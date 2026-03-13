@@ -1,0 +1,367 @@
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  boolean,
+  timestamp,
+  decimal,
+  integer,
+  date,
+  time,
+  jsonb,
+  inet,
+  check,
+} from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+
+// Users table
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar('email', { length: 255 }).unique().notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  phone: varchar('phone', { length: 20 }),
+  role: text('role').notNull().default('customer'),
+  emailVerified: boolean('email_verified').default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Drivers table
+export const drivers = pgTable('drivers', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  isOnline: boolean('is_online').default(false),
+  currentLat: decimal('current_lat', { precision: 9, scale: 6 }),
+  currentLng: decimal('current_lng', { precision: 9, scale: 6 }),
+  locationAt: timestamp('location_at', { withTimezone: true }),
+  status: text('status').default('offline'),
+  createdBy: uuid('created_by').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Tyre products table
+export const tyreProducts = pgTable('tyre_products', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  brand: varchar('brand', { length: 100 }).notNull(),
+  pattern: varchar('pattern', { length: 200 }).notNull(),
+  width: integer('width').notNull(),
+  aspect: integer('aspect').notNull(),
+  rim: integer('rim').notNull(),
+  sizeDisplay: varchar('size_display', { length: 20 }).notNull(),
+  season: text('season').notNull(),
+  speedRating: varchar('speed_rating', { length: 5 }),
+  loadIndex: integer('load_index'),
+  wetGrip: varchar('wet_grip', { length: 2 }),
+  fuelEfficiency: varchar('fuel_efficiency', { length: 2 }),
+  noiseDb: integer('noise_db'),
+  runFlat: boolean('run_flat').default(false),
+  priceNew: decimal('price_new', { precision: 10, scale: 2 }),
+  priceUsed: decimal('price_used', { precision: 10, scale: 2 }),
+  stockNew: integer('stock_new').default(0),
+  stockUsed: integer('stock_used').default(0),
+  availableNew: boolean('available_new').default(true),
+  availableUsed: boolean('available_used').default(true),
+  featured: boolean('featured').default(false),
+  images: text('images').array(),
+  slug: varchar('slug', { length: 255 }).unique().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Bookings table
+export const bookings = pgTable('bookings', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  refNumber: varchar('ref_number', { length: 20 }).unique().notNull(),
+  userId: uuid('user_id').references(() => users.id),
+  driverId: uuid('driver_id').references(() => drivers.id),
+  status: text('status').notNull().default('draft'),
+  bookingType: text('booking_type').notNull(),
+  serviceType: text('service_type').notNull(),
+  addressLine: text('address_line').notNull(),
+  lat: decimal('lat', { precision: 9, scale: 6 }).notNull(),
+  lng: decimal('lng', { precision: 9, scale: 6 }).notNull(),
+  distanceMiles: decimal('distance_miles', { precision: 5, scale: 2 }),
+  quantity: integer('quantity').notNull().default(1),
+  tyreSizeDisplay: varchar('tyre_size_display', { length: 20 }),
+  vehicleReg: varchar('vehicle_reg', { length: 10 }),
+  vehicleMake: varchar('vehicle_make', { length: 100 }),
+  vehicleModel: varchar('vehicle_model', { length: 100 }),
+  tyrePhotoUrl: text('tyre_photo_url'),
+  customerName: varchar('customer_name', { length: 255 }).notNull(),
+  customerEmail: varchar('customer_email', { length: 255 }).notNull(),
+  customerPhone: varchar('customer_phone', { length: 20 }).notNull(),
+  scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
+  priceSnapshot: jsonb('price_snapshot').notNull(),
+  subtotal: decimal('subtotal', { precision: 10, scale: 2 }).notNull(),
+  vatAmount: decimal('vat_amount', { precision: 10, scale: 2 }).notNull(),
+  totalAmount: decimal('total_amount', { precision: 10, scale: 2 }).notNull(),
+  stripePiId: varchar('stripe_pi_id', { length: 255 }),
+  quoteExpiresAt: timestamp('quote_expires_at', { withTimezone: true }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Booking tyres junction table
+export const bookingTyres = pgTable('booking_tyres', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: uuid('booking_id').references(() => bookings.id, { onDelete: 'cascade' }),
+  tyreId: uuid('tyre_id').references(() => tyreProducts.id),
+  condition: text('condition').notNull(),
+  quantity: integer('quantity').notNull().default(1),
+  unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
+  service: text('service').notNull(),
+});
+
+// Booking status history
+export const bookingStatusHistory = pgTable('booking_status_history', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  fromStatus: text('from_status'),
+  toStatus: text('to_status').notNull(),
+  actorUserId: uuid('actor_user_id').references(() => users.id),
+  actorRole: text('actor_role'),
+  note: text('note'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Inventory reservations
+export const inventoryReservations = pgTable('inventory_reservations', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  tyreId: uuid('tyre_id').references(() => tyreProducts.id),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  condition: text('condition').notNull(),
+  quantity: integer('quantity').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  released: boolean('released').default(false),
+});
+
+// Inventory movements
+export const inventoryMovements = pgTable('inventory_movements', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  tyreId: uuid('tyre_id').references(() => tyreProducts.id),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  condition: text('condition').notNull(),
+  movementType: text('movement_type'),
+  quantityDelta: integer('quantity_delta').notNull(),
+  stockAfter: integer('stock_after').notNull(),
+  actorUserId: uuid('actor_user_id').references(() => users.id),
+  note: text('note'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Payments
+export const payments = pgTable('payments', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  stripePiId: varchar('stripe_pi_id', { length: 255 }).unique().notNull(),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  currency: varchar('currency', { length: 3 }).default('gbp'),
+  status: text('status').notNull(),
+  stripePayload: jsonb('stripe_payload'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Refunds
+export const refunds = pgTable('refunds', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  paymentId: uuid('payment_id').references(() => payments.id),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  stripeRefundId: varchar('stripe_refund_id', { length: 255 }),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  reason: text('reason').notNull(),
+  issuedBy: uuid('issued_by').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Pricing rules
+export const pricingRules = pgTable('pricing_rules', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  key: varchar('key', { length: 100 }).unique().notNull(),
+  value: text('value').notNull(),
+  label: varchar('label', { length: 200 }),
+  type: text('type'),
+  updatedBy: uuid('updated_by').references(() => users.id),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Availability slots
+export const availabilitySlots = pgTable('availability_slots', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  date: date('date').notNull(),
+  timeStart: time('time_start').notNull(),
+  timeEnd: time('time_end').notNull(),
+  maxBookings: integer('max_bookings').default(1),
+  bookedCount: integer('booked_count').default(0),
+  active: boolean('active').default(true),
+});
+
+// Bank holidays
+export const bankHolidays = pgTable('bank_holidays', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  date: date('date').unique().notNull(),
+  name: varchar('name', { length: 100 }),
+  region: varchar('region', { length: 50 }).default('Scotland'),
+});
+
+// Service areas
+export const serviceAreas = pgTable('service_areas', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar('name', { length: 100 }),
+  centerLat: decimal('center_lat', { precision: 9, scale: 6 }),
+  centerLng: decimal('center_lng', { precision: 9, scale: 6 }),
+  radiusMiles: decimal('radius_miles', { precision: 5, scale: 2 }),
+  active: boolean('active').default(true),
+});
+
+// Audit logs
+export const auditLogs = pgTable('audit_logs', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  actorUserId: uuid('actor_user_id').references(() => users.id),
+  actorRole: varchar('actor_role', { length: 20 }),
+  entityType: varchar('entity_type', { length: 50 }),
+  entityId: uuid('entity_id'),
+  action: varchar('action', { length: 100 }),
+  beforeJson: jsonb('before_json'),
+  afterJson: jsonb('after_json'),
+  ipAddress: inet('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  type: varchar('type', { length: 50 }).notNull(),
+  channel: text('channel').default('email'),
+  status: text('status').default('pending'),
+  attempts: integer('attempts').default(0),
+  lastError: text('last_error'),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Testimonials
+export const testimonials = pgTable('testimonials', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  authorName: varchar('author_name', { length: 255 }).notNull(),
+  rating: integer('rating'),
+  content: text('content').notNull(),
+  jobType: varchar('job_type', { length: 100 }),
+  approved: boolean('approved').default(false),
+  featured: boolean('featured').default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// FAQs
+export const faqs = pgTable('faqs', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  question: text('question').notNull(),
+  answer: text('answer').notNull(),
+  displayOrder: integer('display_order'),
+  active: boolean('active').default(true),
+});
+
+// Chat sessions
+export const chatSessions = pgTable('chat_sessions', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id),
+  messages: jsonb('messages').notNull().default(sql`'[]'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Driver location history
+export const driverLocationHistory = pgTable('driver_location_history', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  driverId: uuid('driver_id').references(() => drivers.id),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  lat: decimal('lat', { precision: 9, scale: 6 }).notNull(),
+  lng: decimal('lng', { precision: 9, scale: 6 }).notNull(),
+  recordedAt: timestamp('recorded_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Surge pricing log
+export const surgePricingLog = pgTable('surge_pricing_log', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  groqInput: jsonb('groq_input'),
+  groqOutput: jsonb('groq_output'),
+  multiplierUsed: decimal('multiplier_used', { precision: 4, scale: 3 }),
+  applied: boolean('applied'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Quotes table (serverless-compatible quote storage)
+export const quotes = pgTable('quotes', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  lat: decimal('lat', { precision: 9, scale: 6 }).notNull(),
+  lng: decimal('lng', { precision: 9, scale: 6 }).notNull(),
+  addressLine: text('address_line').notNull(),
+  bookingType: text('booking_type').notNull(),
+  serviceType: text('service_type').notNull(),
+  tyreSelections: jsonb('tyre_selections').notNull(),
+  scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
+  distanceMiles: decimal('distance_miles', { precision: 5, scale: 2 }).notNull(),
+  breakdown: jsonb('breakdown').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  used: boolean('used').default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Password reset tokens table
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  tokenHash: varchar('token_hash', { length: 255 }).notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  used: boolean('used').default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Email verification tokens table
+export const emailVerificationTokens = pgTable('email_verification_tokens', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  tokenHash: varchar('token_hash', { length: 255 }).notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  used: boolean('used').default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Type exports for use throughout the application
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Driver = typeof drivers.$inferSelect;
+export type NewDriver = typeof drivers.$inferInsert;
+export type TyreProduct = typeof tyreProducts.$inferSelect;
+export type NewTyreProduct = typeof tyreProducts.$inferInsert;
+export type Booking = typeof bookings.$inferSelect;
+export type NewBooking = typeof bookings.$inferInsert;
+export type BookingTyre = typeof bookingTyres.$inferSelect;
+export type NewBookingTyre = typeof bookingTyres.$inferInsert;
+export type BookingStatusHistory = typeof bookingStatusHistory.$inferSelect;
+export type InventoryReservation = typeof inventoryReservations.$inferSelect;
+export type InventoryMovement = typeof inventoryMovements.$inferSelect;
+export type Payment = typeof payments.$inferSelect;
+export type Refund = typeof refunds.$inferSelect;
+export type PricingRule = typeof pricingRules.$inferSelect;
+export type AvailabilitySlot = typeof availabilitySlots.$inferSelect;
+export type BankHoliday = typeof bankHolidays.$inferSelect;
+export type ServiceArea = typeof serviceAreas.$inferSelect;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
+export type Testimonial = typeof testimonials.$inferSelect;
+export type FAQ = typeof faqs.$inferSelect;
+export type ChatSession = typeof chatSessions.$inferSelect;
+export type DriverLocationHistory = typeof driverLocationHistory.$inferSelect;
+export type SurgePricingLog = typeof surgePricingLog.$inferSelect;
+export type Quote = typeof quotes.$inferSelect;
+export type NewQuote = typeof quotes.$inferInsert;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;

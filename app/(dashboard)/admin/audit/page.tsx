@@ -1,0 +1,70 @@
+import { db, auditLogs, users } from '@/lib/db';
+import { desc, eq } from 'drizzle-orm';
+import { Box, Heading, Text, VStack, Table, Badge } from '@chakra-ui/react';
+import { colorTokens as c } from '@/lib/design-tokens';
+
+export default async function AdminAuditPage() {
+  const logs = await db
+    .select({
+      id: auditLogs.id,
+      actorRole: auditLogs.actorRole,
+      entityType: auditLogs.entityType,
+      entityId: auditLogs.entityId,
+      action: auditLogs.action,
+      createdAt: auditLogs.createdAt,
+      actorName: users.name,
+      actorEmail: users.email,
+    })
+    .from(auditLogs)
+    .leftJoin(users, eq(auditLogs.actorUserId, users.id))
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(200);
+
+  return (
+    <VStack align="stretch" gap={6}>
+      <Box>
+        <Heading size="lg" color={c.text}>Audit Log</Heading>
+        <Text color={c.muted} mt={1}>Recent administrative actions</Text>
+      </Box>
+
+      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden">
+        <Table.Root size="sm">
+          <Table.Header>
+            <Table.Row bg={c.surface}>
+              <Table.ColumnHeader color={c.muted} px={4} py={3}>Time</Table.ColumnHeader>
+              <Table.ColumnHeader color={c.muted} px={4} py={3}>Actor</Table.ColumnHeader>
+              <Table.ColumnHeader color={c.muted} px={4} py={3}>Action</Table.ColumnHeader>
+              <Table.ColumnHeader color={c.muted} px={4} py={3}>Entity</Table.ColumnHeader>
+              <Table.ColumnHeader color={c.muted} px={4} py={3}>Entity ID</Table.ColumnHeader>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {logs.length === 0 && (
+              <Table.Row>
+                <Table.Cell colSpan={5} textAlign="center" py={8} color={c.muted}>No audit entries</Table.Cell>
+              </Table.Row>
+            )}
+            {logs.map((log) => (
+              <Table.Row key={log.id} _hover={{ bg: c.surface }}>
+                <Table.Cell px={4} py={3} color={c.muted} fontSize="sm" whiteSpace="nowrap">
+                  {log.createdAt ? new Date(log.createdAt).toLocaleString('en-GB') : '—'}
+                </Table.Cell>
+                <Table.Cell px={4} py={3}>
+                  <Text color={c.text} fontSize="sm">{log.actorName || log.actorEmail || '—'}</Text>
+                  {log.actorRole && <Badge bg={c.surface} color={c.muted} fontSize="xs">{log.actorRole}</Badge>}
+                </Table.Cell>
+                <Table.Cell px={4} py={3}>
+                  <Badge bg={c.accent} color="white">{log.action}</Badge>
+                </Table.Cell>
+                <Table.Cell px={4} py={3} color={c.text} fontSize="sm">{log.entityType || '—'}</Table.Cell>
+                <Table.Cell px={4} py={3} color={c.muted} fontSize="xs" fontFamily="mono">
+                  {log.entityId ? log.entityId.slice(0, 8) + '...' : '—'}
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table.Root>
+      </Box>
+    </VStack>
+  );
+}

@@ -1,0 +1,24 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/release-reservations",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/reconcile-payments",
+      "schedule": "0 */2 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-locations",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/low-stock-scan",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/booking-reminders",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
