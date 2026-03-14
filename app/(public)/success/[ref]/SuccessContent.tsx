@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Box,
   Container,
@@ -8,6 +9,7 @@ import {
   HStack,
   Text,
   Button,
+  Spinner,
 } from '@chakra-ui/react';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/pricing-engine';
@@ -44,7 +46,46 @@ interface SuccessContentProps {
 }
 
 export function SuccessContent({ booking }: SuccessContentProps) {
+  const searchParams = useSearchParams();
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [confirmedStatus, setConfirmedStatus] = useState<string>(booking.status);
+
+  // On mount: if booking is still awaiting_payment AND we have Stripe redirect params, confirm it
+  useEffect(() => {
+    const paymentIntent = searchParams.get('payment_intent');
+    const redirectStatus = searchParams.get('redirect_status');
+
+    if (confirmedStatus !== 'awaiting_payment') return;
+    if (!paymentIntent) return;
+
+    async function confirmPayment() {
+      setConfirming(true);
+      setConfirmError(null);
+      try {
+        const res = await fetch('/api/bookings/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: booking.refNumber,
+            paymentIntentId: paymentIntent,
+            redirectStatus,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Confirmation failed');
+        setConfirmedStatus(data.status);
+      } catch (err) {
+        setConfirmError(err instanceof Error ? err.message : 'Confirmation failed');
+      } finally {
+        setConfirming(false);
+      }
+    }
+
+    confirmPayment();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Calculate ETA for emergency bookings
   // Rough estimate: 30 minutes base + 2 minutes per mile
@@ -96,15 +137,39 @@ export function SuccessContent({ booking }: SuccessContentProps) {
 
   // Check if tracking is available
   const trackingStatuses = ['driver_assigned', 'en_route', 'arrived', 'in_progress', 'completed'];
-  const isTrackingAvailable = trackingStatuses.includes(booking.status);
+  const isTrackingAvailable = trackingStatuses.includes(confirmedStatus);
+
+  const isPaid = confirmedStatus === 'paid' || trackingStatuses.includes(confirmedStatus);
+
+  // Show spinner while confirming payment
+  if (confirming) {
+    return (
+      <Container maxW="container.md" py={24}>
+        <VStack gap={4}>
+          <Spinner size="xl" color={c.accent} />
+          <Text color={c.muted}>Confirming your payment…</Text>
+        </VStack>
+      </Container>
+    );
+  }
 
   return (
     <Container maxW="container.md" py={12}>
       <VStack gap={8} align="stretch">
+        {/* Confirmation error banner */}
+        {confirmError && (
+          <Box p={4} bg="rgba(239,68,68,0.15)" borderRadius="lg" textAlign="center">
+            <Text color="red.400" fontWeight="500">
+              We couldn&apos;t verify your payment automatically. Don&apos;t worry — if
+              the payment went through, it will be confirmed shortly.
+            </Text>
+          </Box>
+        )}
+
         {/* Success Header */}
         <Box textAlign="center" style={anim.scaleIn('0.6s')}>
-          <Text fontSize="lg" color="green.400" fontWeight="500" mb={2}>
-            Booking Confirmed
+          <Text fontSize="lg" color={isPaid ? 'green.400' : 'yellow.400'} fontWeight="500" mb={2}>
+            {isPaid ? 'Booking Confirmed' : 'Booking Received — Awaiting Payment Confirmation'}
           </Text>
           <Text fontSize="4xl" fontWeight="700" mb={2} color={c.text}>
             {booking.refNumber}

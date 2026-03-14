@@ -115,7 +115,7 @@ export function StepCustomerDetails({
       updateState({
         bookingId: data.bookingId,
         refNumber: data.refNumber,
-        stripeClientSecret: data.clientSecret,
+        stripeClientSecret: data.stripeClientSecret,
       });
 
       goToNext();

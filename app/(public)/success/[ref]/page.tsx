@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { db } from '@/lib/db';
 import { bookings, bookingTyres, tyreProducts } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -78,5 +79,13 @@ export default async function SuccessPage({ params }: PageProps) {
     })),
   };
 
-  return <SuccessContent booking={bookingData} />;
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#09090B' }}>
+        <p className="text-[#A1A1AA]">Loading…</p>
+      </div>
+    }>
+      <SuccessContent booking={bookingData} />
+    </Suspense>
+  );
 }

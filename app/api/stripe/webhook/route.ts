@@ -36,6 +36,13 @@ export const dynamic = 'force-dynamic';
  * All handlers are idempotent - duplicate webhooks won't cause issues.
  */
 export async function POST(request: NextRequest) {
+  // If webhook secret is not configured, acknowledge but skip processing.
+  // The /api/bookings/confirm route handles primary payment confirmation.
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.warn('STRIPE_WEBHOOK_SECRET not set — webhook processing skipped');
+    return NextResponse.json({ received: true });
+  }
+
   try {
     // Get raw body for signature verification
     const body = await request.text();
