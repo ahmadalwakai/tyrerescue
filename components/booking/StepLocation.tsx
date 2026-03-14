@@ -1,22 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Input,
-  Button,
-  Spinner,
-} from '@chakra-ui/react';
+import { Box, Flex, Text, Spinner } from '@chakra-ui/react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { WizardState } from './types';
-import { colorTokens as c, inputProps } from '@/lib/design-tokens';
-import { anim } from '@/lib/animations';
+import { colorTokens as c } from '@/lib/design-tokens';
 
-// Set Mapbox token
 if (process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
   mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 }
@@ -56,74 +46,65 @@ export function StepLocation({
   } | null>(
     state.lat && state.lng
       ? { lat: state.lat, lng: state.lng, address: state.address }
-      : null
+      : null,
   );
 
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const mapInitialized = useRef(false);
 
-  // Initialize map
+  // Initialize / update map when a location is confirmed
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (!selectedLocation || !mapContainer.current) return;
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: selectedLocation
-        ? [selectedLocation.lng, selectedLocation.lat]
-        : [-4.2206, 55.8547], // Glasgow
-      zoom: selectedLocation ? 14 : 10,
-    });
-
-    // Add marker if location already selected
-    if (selectedLocation) {
-      marker.current = new mapboxgl.Marker({ color: c.accent })
-        .setLngLat([selectedLocation.lng, selectedLocation.lat])
-        .addTo(map.current);
+    if (!map.current) {
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/dark-v11',
+        center: [selectedLocation.lng, selectedLocation.lat],
+        zoom: 14,
+        interactive: false,
+      });
+      mapInitialized.current = true;
+    } else {
+      map.current.flyTo({
+        center: [selectedLocation.lng, selectedLocation.lat],
+        zoom: 14,
+      });
     }
 
+    if (marker.current) marker.current.remove();
+    marker.current = new mapboxgl.Marker({ color: c.accent })
+      .setLngLat([selectedLocation.lng, selectedLocation.lat])
+      .addTo(map.current);
+
+    return () => {
+      // cleanup only on unmount
+    };
+  }, [selectedLocation]);
+
+  // Cleanup map on unmount
+  useEffect(() => {
     return () => {
       map.current?.remove();
       map.current = null;
     };
   }, []);
 
-  // Update marker when location changes
-  useEffect(() => {
-    if (!map.current || !selectedLocation) return;
-
-    // Remove existing marker
-    if (marker.current) {
-      marker.current.remove();
-    }
-
-    // Add new marker
-    marker.current = new mapboxgl.Marker({ color: c.accent })
-      .setLngLat([selectedLocation.lng, selectedLocation.lat])
-      .addTo(map.current);
-
-    // Fly to location
-    map.current.flyTo({
-      center: [selectedLocation.lng, selectedLocation.lat],
-      zoom: 14,
-    });
-  }, [selectedLocation]);
-
-  // Search for addresses
+  // Search for addresses via Mapbox geocoding
   const searchAddress = useCallback(async (query: string) => {
-    if (!query || query.length < 3) {
+    if (!query || query.length < 2) {
       setSuggestions([]);
       return;
     }
-
     setIsSearching(true);
     try {
+      const encoded = encodeURIComponent(query);
+      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
       const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-          query
-        )}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}&country=GB&types=address,poi&limit=5`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?country=gb&types=address,postcode,place&proximity=-4.2518,55.8617&language=en&limit=6&access_token=${token}`,
       );
       const data = await res.json();
       setSuggestions(data.features || []);
@@ -134,64 +115,56 @@ export function StepLocation({
     }
   }, []);
 
-  // Debounced search
   const handleAddressChange = (value: string) => {
     setAddress(value);
     setShowSuggestions(true);
     setValidation(null);
+    setSelectedLocation(null);
 
-    if (searchTimeout.current) {
-      clearTimeout(searchTimeout.current);
-    }
-
-    searchTimeout.current = setTimeout(() => {
-      searchAddress(value);
-    }, 300);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => searchAddress(value), 250);
   };
 
-  // Select address from suggestions
   const selectAddress = async (feature: any) => {
     const [lng, lat] = feature.center;
-    const addr = feature.place_name;
-
+    const addr: string = feature.place_name;
     setAddress(addr);
     setSelectedLocation({ lat, lng, address: addr });
     setSuggestions([]);
     setShowSuggestions(false);
-
-    // Validate location
     await validateLocation(lat, lng, addr);
   };
 
-  // Use current location
+  const clearSelection = () => {
+    setSelectedLocation(null);
+    setValidation(null);
+    setAddress('');
+  };
+
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
       setGeoError('Geolocation is not supported by your browser');
       return;
     }
-
     setIsLocating(true);
     setGeoError(null);
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude: lat, longitude: lng } = position.coords;
-
-        // Reverse geocode to get address
         try {
+          const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
           const res = await fetch(
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}&country=GB&limit=1`
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?country=gb&language=en&limit=1&access_token=${token}`,
           );
           const data = await res.json();
-          const addr = data.features?.[0]?.place_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-
+          const addr =
+            data.features?.[0]?.place_name ||
+            `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
           setAddress(addr);
           setSelectedLocation({ lat, lng, address: addr });
-
-          // Validate location
           await validateLocation(lat, lng, addr);
-        } catch (e) {
-          console.error('Reverse geocoding failed:', e);
+        } catch {
           const addr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
           setAddress(addr);
           setSelectedLocation({ lat, lng, address: addr });
@@ -202,44 +175,29 @@ export function StepLocation({
       },
       (error) => {
         setIsLocating(false);
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            setGeoError('Location access denied. Please enter your address manually.');
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setGeoError('Location unavailable. Please enter your address manually.');
-            break;
-          case error.TIMEOUT:
-            setGeoError('Location request timed out. Please try again or enter your address manually.');
-            break;
-          default:
-            setGeoError('Unable to get your location. Please enter your address manually.');
+        if (error.code === error.PERMISSION_DENIED) {
+          setGeoError('Location access denied. Please type your address below.');
+        } else {
+          setGeoError('Unable to get your location. Please type your address below.');
         }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   };
 
-  // Validate location against service area
   const validateLocation = async (lat: number, lng: number, addr: string) => {
     setIsValidating(true);
     setValidation(null);
-
     try {
       const res = await fetch('/api/bookings/validate-location', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lat, lng, address: addr }),
       });
-
       const data = await res.json();
       setValidation(data);
-
-      if (data.valid) {
-        setSelectedLocation({ lat, lng, address: addr });
-      }
-    } catch (e) {
-      console.error('Location validation failed:', e);
+      if (data.valid) setSelectedLocation({ lat, lng, address: addr });
+    } catch {
       setValidation({
         valid: false,
         distanceMiles: 0,
@@ -250,10 +208,8 @@ export function StepLocation({
     }
   };
 
-  // Continue to next step
   const handleContinue = () => {
     if (!selectedLocation || !validation?.valid) return;
-
     updateState({
       address: selectedLocation.address,
       lat: selectedLocation.lat,
@@ -263,162 +219,295 @@ export function StepLocation({
     goToNext();
   };
 
+  const canContinue = !!selectedLocation && !!validation?.valid;
+
   return (
-    <VStack gap={6} align="stretch">
-      <Box style={anim.fadeUp('0.5s')}>
-        <Text fontSize="2xl" fontWeight="700" mb={2} color={c.text}>
-          Where are you?
+    <Box>
+      {/* Header */}
+      <Box mb={6} style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both' }}>
+        <Text
+          fontSize="11px"
+          fontWeight="500"
+          letterSpacing="0.15em"
+          color={c.accent}
+          mb={2}
+          style={{ fontFamily: 'var(--font-body)' }}
+        >
+          STEP 2
         </Text>
-        <Text color={c.muted}>
-          Enter your location so we can come to you
+        <Text
+          color={c.text}
+          lineHeight="1"
+          mb={2}
+          fontSize={{ base: '40px', md: '64px' }}
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          WHERE ARE YOU?
+        </Text>
+        <Text
+          fontSize="15px"
+          color={c.muted}
+          style={{ fontFamily: 'var(--font-body)' }}
+        >
+          We come to you. Enter your address or postcode.
         </Text>
       </Box>
 
-      {/* Current Location Button */}
-      <Button
-        size="lg"
-        variant="outline"
-        onClick={useCurrentLocation}
-        disabled={isLocating}
-        w="full"
-      >
-        {isLocating ? (
-          <HStack gap={2}>
-            <Spinner size="sm" />
-            <Text>Getting your location...</Text>
-          </HStack>
-        ) : (
-          'Use My Current Location'
-        )}
-      </Button>
+      {/* Location button */}
+      {!selectedLocation && (
+        <Box style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s both' }}>
+          <button
+            type="button"
+            onClick={useCurrentLocation}
+            disabled={isLocating}
+            style={{
+              width: '100%',
+              height: 52,
+              background: c.surface,
+              border: `1px solid ${c.border}`,
+              borderRadius: 8,
+              color: c.text,
+              fontSize: 15,
+              fontWeight: 500,
+              fontFamily: 'var(--font-body)',
+              cursor: isLocating ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              transition: 'border-color 0.15s',
+            }}
+          >
+            {isLocating ? (
+              <>
+                <Spinner size="xs" />
+                Getting your location…
+              </>
+            ) : (
+              '📍 Use My Current Location'
+            )}
+          </button>
 
-      {geoError && (
-        <Box
-          p={3}
-          bg="rgba(249,115,22,0.1)"
-          borderRadius="md"
-          borderWidth="1px"
-          borderColor="rgba(249,115,22,0.3)"
-        >
-          <Text fontSize="sm" color={c.accent}>
-            {geoError}
-          </Text>
+          {geoError && (
+            <Text fontSize="13px" color={c.muted} mt={2} style={{ fontFamily: 'var(--font-body)' }}>
+              {geoError}
+            </Text>
+          )}
+
+          {/* Divider */}
+          <Flex align="center" gap={3} my={4}>
+            <Box flex={1} h="1px" bg={c.border} />
+            <Text fontSize="13px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>
+              or
+            </Text>
+            <Box flex={1} h="1px" bg={c.border} />
+          </Flex>
+
+          {/* Address input */}
+          <Box position="relative">
+            <input
+              type="text"
+              placeholder="Address or postcode…"
+              value={address}
+              onChange={(e) => handleAddressChange(e.target.value)}
+              onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              style={{
+                width: '100%',
+                height: 52,
+                background: c.input.bg,
+                border: `1px solid ${c.input.border}`,
+                borderRadius: 8,
+                color: c.input.text,
+                fontSize: 16,
+                fontFamily: 'var(--font-body)',
+                padding: '0 16px',
+                outline: 'none',
+                transition: 'border-color 0.15s, box-shadow 0.15s',
+              }}
+              onFocusCapture={(e) => {
+                e.currentTarget.style.borderColor = c.accent;
+                e.currentTarget.style.boxShadow = `0 0 0 1px ${c.accent}`;
+              }}
+              onBlurCapture={(e) => {
+                e.currentTarget.style.borderColor = c.input.border;
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            />
+
+            {isSearching && (
+              <Box position="absolute" right="14px" top="50%" style={{ transform: 'translateY(-50%)' }}>
+                <Spinner size="xs" />
+              </Box>
+            )}
+
+            {/* Suggestions dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <Box
+                position="absolute"
+                top="100%"
+                left={0}
+                right={0}
+                zIndex={9999}
+                bg={c.card}
+                border={`1px solid ${c.border}`}
+                borderRadius="8px"
+                overflow="hidden"
+                maxH="240px"
+                overflowY="auto"
+                boxShadow="0 8px 32px rgba(0,0,0,0.4)"
+                mt="2px"
+              >
+                {suggestions.map((feature: any) => {
+                  const parts = (feature.place_name as string).split(', ');
+                  const main = parts[0];
+                  const rest = parts.slice(1).join(', ');
+                  return (
+                    <Box
+                      key={feature.id}
+                      px={4}
+                      py={3}
+                      cursor="pointer"
+                      borderBottom={`1px solid ${c.border}`}
+                      _hover={{ bg: c.surface }}
+                      onClick={() => selectAddress(feature)}
+                    >
+                      <Text fontSize="14px" color={c.text} style={{ fontFamily: 'var(--font-body)' }}>
+                        {main}
+                      </Text>
+                      {rest && (
+                        <Text fontSize="12px" color={c.muted} mt="2px" style={{ fontFamily: 'var(--font-body)' }}>
+                          {rest}
+                        </Text>
+                      )}
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
+          </Box>
         </Box>
       )}
 
-      <Box textAlign="center">
-        <Text fontSize="sm" color={c.muted}>
-          or enter address manually
-        </Text>
-      </Box>
-
-      {/* Address Input */}
-      <Box position="relative" style={anim.fadeUp('0.5s', '0.1s')}>
-        <Input {...inputProps}
-          size="lg"
-          placeholder="Start typing your address..."
-          value={address}
-          onChange={(e) => handleAddressChange(e.target.value)}
-          onFocus={() => setShowSuggestions(true)}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-        />
-
-        {/* Suggestions Dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
+      {/* Selected address confirmation */}
+      {selectedLocation && (
+        <Box style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both' }}>
+          {/* Address card */}
           <Box
-            position="absolute"
-            top="100%"
-            left="0"
-            right="0"
-            zIndex="10"
             bg={c.surface}
-            borderWidth="1px"
-            borderColor={c.border}
-            borderRadius="md"
-            shadow="lg"
-            maxH="200px"
-            overflowY="auto"
+            border={`1px solid ${c.accent}`}
+            borderRadius="8px"
+            p="12px 16px"
           >
-            {suggestions.map((feature) => (
-              <Box
-                key={feature.id}
-                p={3}
+            <Flex justify="space-between" align="center" gap={3}>
+              <Text fontSize="14px" color={c.text} style={{ fontFamily: 'var(--font-body)' }}>
+                {selectedLocation.address}
+              </Text>
+              <Text
+                as="button"
+                fontSize="12px"
+                color={c.accent}
+                bg="transparent"
+                border="none"
                 cursor="pointer"
-                _hover={{ bg: c.card }}
-                onClick={() => selectAddress(feature)}
+                flexShrink={0}
+                _hover={{ textDecoration: 'underline' }}
+                style={{ fontFamily: 'var(--font-body)' }}
+                onClick={clearSelection}
               >
-                <Text fontSize="sm" color={c.text}>{feature.place_name}</Text>
-              </Box>
-            ))}
+                Change
+              </Text>
+            </Flex>
           </Box>
-        )}
 
-        {isSearching && (
-          <Box position="absolute" right="12px" top="50%" transform="translateY(-50%)">
-            <Spinner size="sm" />
-          </Box>
-        )}
-      </Box>
+          {/* Map preview — only when address confirmed */}
+          <Box
+            ref={mapContainer}
+            h={{ base: '200px', md: '280px' }}
+            borderRadius="8px"
+            overflow="hidden"
+            border={`1px solid ${c.border}`}
+            mt={4}
+            position="relative"
+          />
 
-      {/* Map Preview */}
-      <Box
-        ref={mapContainer}
-        h="250px"
-        borderRadius="lg"
-        overflow="hidden"
-        borderWidth="1px"
-        borderColor={c.border}
-        style={anim.scaleIn('0.5s', '0.2s')}
-      />
+          {/* Validation */}
+          {isValidating && (
+            <Flex gap={2} justify="center" py={4}>
+              <Spinner size="sm" />
+              <Text fontSize="14px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>
+                Checking service area…
+              </Text>
+            </Flex>
+          )}
 
-      {/* Validation Status */}
-      {isValidating && (
-        <HStack gap={2} justify="center" p={4}>
-          <Spinner size="sm" />
-          <Text color={c.muted}>Checking service area...</Text>
-        </HStack>
-      )}
-
-      {validation && !isValidating && (
-        <Box
-          p={4}
-          borderRadius="md"
-          bg={validation.valid ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'}
-          borderWidth="1px"
-          borderColor={validation.valid ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}
-        >
-          <Text
-            color={validation.valid ? 'green.400' : 'red.400'}
-            fontWeight={validation.valid ? '500' : '600'}
-          >
-            {validation.message}
-          </Text>
-          {!validation.valid && (
-            <Text fontSize="sm" color="red.400" mt={2}>
-              Please call us on 0141 266 0690 and we will do our best to help.
-            </Text>
+          {validation && !isValidating && !validation.valid && (
+            <Box
+              mt={3}
+              p={4}
+              bg="rgba(239,68,68,0.1)"
+              border="1px solid rgba(239,68,68,0.3)"
+              borderRadius="8px"
+            >
+              <Text fontSize="14px" color="red.400" style={{ fontFamily: 'var(--font-body)' }}>
+                This address is outside our service area. We cover Glasgow, Edinburgh and within 50 miles.
+              </Text>
+              <Text fontSize="13px" color="red.400" mt={1} style={{ fontFamily: 'var(--font-body)' }}>
+                Call us:{' '}
+                <a href="tel:01412660690" style={{ color: c.accent, textDecoration: 'none', fontWeight: 600 }}>
+                  0141 266 0690
+                </a>
+              </Text>
+            </Box>
           )}
         </Box>
       )}
 
-      {/* Navigation */}
-      <HStack gap={4} pt={4} style={anim.fadeUp('0.4s', '0.1s')}>
-        <Button
-          variant="outline"
+      {/* Navigation buttons */}
+      <Flex gap={3} mt={5} style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.1s both' }}>
+        <button
+          type="button"
           onClick={goToPrev}
-          flex="1"
+          style={{
+            flex: 1,
+            height: 52,
+            background: 'transparent',
+            border: `1px solid ${c.border}`,
+            borderRadius: 6,
+            color: c.text,
+            fontSize: 15,
+            fontWeight: 500,
+            fontFamily: 'var(--font-body)',
+            cursor: 'pointer',
+            transition: 'border-color 0.15s',
+          }}
         >
           Back
-        </Button>
-        <Button
-          colorPalette="orange"
-          onClick={handleContinue}
-          disabled={!selectedLocation || !validation?.valid}
-          flex="1"
-        >
-          Continue
-        </Button>
-      </HStack>
-    </VStack>
+        </button>
+        {canContinue && (
+          <button
+            type="button"
+            onClick={handleContinue}
+            style={{
+              flex: 1,
+              height: 52,
+              background: c.accent,
+              border: 'none',
+              borderRadius: 6,
+              color: '#09090B',
+              fontSize: 20,
+              letterSpacing: '0.05em',
+              fontFamily: 'var(--font-display)',
+              cursor: 'pointer',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = c.accentHover; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = c.accent; }}
+          >
+            CONTINUE →
+          </button>
+        )}
+      </Flex>
+    </Box>
   );
 }
