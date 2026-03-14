@@ -1,6 +1,6 @@
 /**
  * Shared animation system — CSS keyframes defined in app/globals.css
- * Use via Chakra UI sx prop: <Box sx={anim.fadeUp()}>
+ * Use via Chakra UI style prop: <Box style={anim.fadeUp()}>
  */
 
 const EASE_OUT_EXPO = 'cubic-bezier(0.16,1,0.3,1)';
@@ -23,7 +23,7 @@ export const animations = {
   },
 };
 
-/** CSS animation sx-prop helpers — every call returns a Record<string, string> */
+/** CSS animation style-prop helpers — every call returns a Record<string, string> */
 export const anim = {
   fadeUp: (duration = '0.5s', delay = '0s') => ({
     animation: `fadeUp ${duration} ${EASE_OUT_EXPO} ${delay} both`,
