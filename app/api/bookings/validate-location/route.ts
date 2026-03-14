@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getDrivingDistanceMiles, haversineDistanceMiles, SERVICE_CENTER } from '@/lib/mapbox';
+import { getDrivingDistanceMiles, haversineDistanceMiles } from '@/lib/mapbox';
+import { db } from '@/lib/db';
+import { serviceAreas } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 const validateLocationSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -8,13 +11,11 @@ const validateLocationSchema = z.object({
   address: z.string().optional(),
 });
 
-const MAX_SERVICE_MILES = 50;
-
 /**
  * POST /api/bookings/validate-location
- * 
- * Validates if a location is within our 50-mile service radius.
- * Returns distance and whether the location is serviceable.
+ *
+ * Validates if a location is within any active service area.
+ * Finds the nearest area and checks if the customer is within its radius.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -30,33 +31,73 @@ export async function POST(request: NextRequest) {
 
     const { lat, lng } = validation.data;
 
-    // Calculate driving distance
-    let distanceMiles: number;
-    let durationMinutes: number | undefined;
+    // Load active service areas from DB
+    const areas = await db
+      .select()
+      .from(serviceAreas)
+      .where(eq(serviceAreas.active, true));
 
-    const drivingResult = await getDrivingDistanceMiles(
-      { lat: SERVICE_CENTER.lat, lng: SERVICE_CENTER.lng },
-      { lat, lng }
-    );
-
-    if (drivingResult) {
-      distanceMiles = drivingResult.distanceMiles;
-      durationMinutes = drivingResult.durationMinutes;
-    } else {
-      // Fallback to Haversine with road approximation
-      distanceMiles = haversineDistanceMiles(SERVICE_CENTER, { lat, lng }) * 1.3;
+    if (areas.length === 0) {
+      // Fallback: no areas seeded — accept within 50 miles of Glasgow
+      const fallbackDist = haversineDistanceMiles(
+        { lat: 55.8547, lng: -4.2206 },
+        { lat, lng }
+      ) * 1.3;
+      const valid = fallbackDist <= 50;
+      return NextResponse.json({
+        valid,
+        distanceMiles: Math.round(fallbackDist * 10) / 10,
+        nearestArea: 'Glasgow',
+        message: valid
+          ? `Location is ${Math.round(fallbackDist)} miles from our base`
+          : `Sorry, this location is ${Math.round(fallbackDist)} miles away, which is outside our service area. Please call 0141 266 0690 for assistance.`,
+      });
     }
 
-    const isWithinServiceArea = distanceMiles <= MAX_SERVICE_MILES;
+    // Find nearest service area
+    let nearestArea = areas[0];
+    let nearestDist = Infinity;
+    let nearestDuration: number | undefined;
+
+    for (const area of areas) {
+      const areaLat = Number(area.centerLat);
+      const areaLng = Number(area.centerLng);
+
+      // Try driving distance
+      const driving = await getDrivingDistanceMiles(
+        { lat: areaLat, lng: areaLng },
+        { lat, lng }
+      );
+
+      let dist: number;
+      let duration: number | undefined;
+
+      if (driving) {
+        dist = driving.distanceMiles;
+        duration = driving.durationMinutes;
+      } else {
+        // Haversine fallback with road approximation
+        dist = haversineDistanceMiles({ lat: areaLat, lng: areaLng }, { lat, lng }) * 1.3;
+      }
+
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestDuration = duration;
+        nearestArea = area;
+      }
+    }
+
+    const radiusMiles = Number(nearestArea.radiusMiles);
+    const isWithinServiceArea = nearestDist <= radiusMiles;
 
     return NextResponse.json({
       valid: isWithinServiceArea,
-      distanceMiles: Math.round(distanceMiles * 10) / 10,
-      estimatedMinutes: durationMinutes,
-      maxServiceMiles: MAX_SERVICE_MILES,
+      distanceMiles: Math.round(nearestDist * 10) / 10,
+      estimatedMinutes: nearestDuration,
+      nearestArea: nearestArea.name,
       message: isWithinServiceArea
-        ? `Location is ${Math.round(distanceMiles)} miles from our base`
-        : `Sorry, this location is ${Math.round(distanceMiles)} miles away, which is outside our ${MAX_SERVICE_MILES}-mile service area. Please call 0141 266 0690 for assistance.`,
+        ? `Location is ${Math.round(nearestDist)} miles from ${nearestArea.name}`
+        : `We do not currently cover your area. Call 0141 266 0690 to discuss.`,
     });
   } catch (error) {
     console.error('Location validation error:', error);

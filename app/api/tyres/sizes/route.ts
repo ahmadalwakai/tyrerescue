@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { tyreProducts } from '@/lib/db/schema';
-import { sql, ilike, or, eq } from 'drizzle-orm';
+import { sql, ilike, or, eq, and } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,12 +15,12 @@ export async function GET(request: NextRequest) {
     const sanitised = q.replace(/[^0-9/rR\s]/g, '');
     if (!sanitised) return NextResponse.json([]);
 
+    const availableCondition = eq(tyreProducts.availableNew, true);
     const looksLikeFullSize = /[/rR]/.test(sanitised);
 
     let results;
 
     if (looksLikeFullSize) {
-      // Partial or exact match on size_display  e.g. "205/55" or "205/55/R16"
       const pattern = `%${sanitised.replace(/\s+/g, '')}%`;
       results = await db
         .select({
@@ -29,16 +29,18 @@ export async function GET(request: NextRequest) {
         })
         .from(tyreProducts)
         .where(
-          or(
-            ilike(tyreProducts.sizeDisplay, pattern),
-            ilike(tyreProducts.sizeDisplay, pattern.replace(/r/gi, 'R'))
+          and(
+            availableCondition,
+            or(
+              ilike(tyreProducts.sizeDisplay, pattern),
+              ilike(tyreProducts.sizeDisplay, pattern.replace(/r/gi, 'R'))
+            )
           )
         )
         .groupBy(tyreProducts.sizeDisplay)
         .orderBy(sql`sum(${tyreProducts.stockNew}) desc`)
         .limit(8);
     } else {
-      // Just digits — treat as width prefix
       const widthNum = parseInt(sanitised, 10);
       if (isNaN(widthNum)) return NextResponse.json([]);
 
@@ -48,7 +50,7 @@ export async function GET(request: NextRequest) {
           count: sql<number>`count(*)::int`,
         })
         .from(tyreProducts)
-        .where(eq(tyreProducts.width, widthNum))
+        .where(and(availableCondition, eq(tyreProducts.width, widthNum)))
         .groupBy(tyreProducts.sizeDisplay)
         .orderBy(sql`sum(${tyreProducts.stockNew}) desc`)
         .limit(8);

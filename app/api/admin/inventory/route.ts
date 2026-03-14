@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { tyreCatalogue, tyreProducts, bookingTyres } from '@/lib/db/schema';
-import { eq, ilike, or, sql, desc } from 'drizzle-orm';
+import { eq, ilike, or, and, sql, desc } from 'drizzle-orm';
 
 /**
  * GET /api/admin/inventory
- * Returns catalogue items with their activation status (whether a tyreProduct row exists)
+ * Returns catalogue items with their activation status.
+ * Supports filters: width, rim, tier, season, status (active/inactive), search
  */
 export async function GET(request: Request) {
   const session = await auth();
@@ -16,24 +17,51 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const search = url.searchParams.get('search') || '';
+  const width = url.searchParams.get('width');
+  const rim = url.searchParams.get('rim');
+  const tier = url.searchParams.get('tier');
+  const season = url.searchParams.get('season');
+  const status = url.searchParams.get('status'); // 'active' | 'inactive'
   const page = parseInt(url.searchParams.get('page') || '1', 10);
-  const perPage = 25;
+  const perPage = 48;
   const offset = (page - 1) * perPage;
 
-  const where = search
-    ? or(
+  const conditions = [];
+
+  if (search) {
+    conditions.push(
+      or(
         ilike(tyreCatalogue.brand, `%${search}%`),
         ilike(tyreCatalogue.pattern, `%${search}%`),
         ilike(tyreCatalogue.sizeDisplay, `%${search}%`)
       )
-    : undefined;
+    );
+  }
+  if (width) {
+    const w = parseInt(width, 10);
+    if (!isNaN(w)) conditions.push(eq(tyreCatalogue.width, w));
+  }
+  if (rim) {
+    const r = parseInt(rim, 10);
+    if (!isNaN(r)) conditions.push(eq(tyreCatalogue.rim, r));
+  }
+  if (tier && tier !== 'all') {
+    conditions.push(eq(tyreCatalogue.tier, tier));
+  }
+  if (season && season !== 'all') {
+    conditions.push(eq(tyreCatalogue.season, season));
+  }
 
-  const [items, countResult] = await Promise.all([
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [items, countResult, activeCountResult] = await Promise.all([
     db
       .select({
         catalogueId: tyreCatalogue.id,
         brand: tyreCatalogue.brand,
         pattern: tyreCatalogue.pattern,
+        width: tyreCatalogue.width,
+        rim: tyreCatalogue.rim,
         sizeDisplay: tyreCatalogue.sizeDisplay,
         season: tyreCatalogue.season,
         speedRating: tyreCatalogue.speedRating,
@@ -41,32 +69,39 @@ export async function GET(request: Request) {
         wetGrip: tyreCatalogue.wetGrip,
         fuelEfficiency: tyreCatalogue.fuelEfficiency,
         runFlat: tyreCatalogue.runFlat,
+        tier: tyreCatalogue.tier,
+        suggestedPriceNew: tyreCatalogue.suggestedPriceNew,
         slug: tyreCatalogue.slug,
-        // Product fields (null if not activated)
         productId: tyreProducts.id,
         priceNew: tyreProducts.priceNew,
         stockNew: tyreProducts.stockNew,
         availableNew: tyreProducts.availableNew,
-        // Booking count
-        bookingCount: sql<number>`COALESCE((
-          SELECT SUM(${bookingTyres.quantity})
-          FROM ${bookingTyres}
-          WHERE ${bookingTyres.tyreId} = ${tyreProducts.id}
-        ), 0)`.as('booking_count'),
       })
       .from(tyreCatalogue)
       .leftJoin(tyreProducts, eq(tyreProducts.catalogueId, tyreCatalogue.id))
       .where(where)
-      .orderBy(desc(tyreCatalogue.brand), tyreCatalogue.pattern)
+      .orderBy(desc(tyreCatalogue.brand), tyreCatalogue.sizeDisplay)
       .limit(perPage)
       .offset(offset),
     db.select({ count: sql<number>`count(*)` }).from(tyreCatalogue).where(where),
+    db.select({ count: sql<number>`count(*)` })
+      .from(tyreCatalogue)
+      .innerJoin(tyreProducts, eq(tyreProducts.catalogueId, tyreCatalogue.id)),
   ]);
+
+  // Post-filter by status (active/inactive) if specified
+  let filtered = items;
+  if (status === 'active') {
+    filtered = items.filter((i) => i.productId !== null);
+  } else if (status === 'inactive') {
+    filtered = items.filter((i) => i.productId === null);
+  }
 
   const totalCount = Number(countResult[0]?.count || 0);
   const totalPages = Math.ceil(totalCount / perPage);
+  const activeCount = Number(activeCountResult[0]?.count || 0);
 
-  return NextResponse.json({ items, page, totalPages, totalCount });
+  return NextResponse.json({ items: filtered, page, totalPages, totalCount, activeCount });
 }
 
 /**

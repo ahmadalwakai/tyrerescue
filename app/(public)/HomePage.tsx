@@ -7,6 +7,8 @@ import {
   Text,
   Flex,
   Input,
+  SimpleGrid,
+  Grid,
   Link as ChakraLink,
 } from '@chakra-ui/react';
 import Link from 'next/link';
@@ -14,6 +16,7 @@ import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
 import { colorTokens, inputProps } from '@/lib/design-tokens';
+import { cities } from '@/lib/cities';
 
 const colors = {
   bg: colorTokens.bg,
@@ -813,6 +816,37 @@ export function HomePage() {
         </Box>
 
         {/* ═══════════════════════════════════════════════════
+            SECTION 3: TRUST PILLARS
+        ═══════════════════════════════════════════════════ */}
+        <Box bg={colors.bg} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
+          <Container maxW="1200px">
+            <SimpleGrid columns={{ base: 2, md: 4 }} gap={{ base: 6, md: 0 }}>
+              <Box textAlign="center">
+                <Text fontSize={{ base: '48px', md: '64px' }} color={colors.accent} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>£2M</Text>
+                <Text fontSize="14px" fontWeight="600" color={colors.textPrimary} mt={2} style={{ fontFamily: 'var(--font-body)' }}>Public Liability</Text>
+                <Text fontSize="12px" color={colors.textSecondary} maxW="160px" mx="auto" mt={1} style={{ fontFamily: 'var(--font-body)' }}>All fitters fully insured</Text>
+              </Box>
+              <Box textAlign="center">
+                <Text fontSize={{ base: '48px', md: '64px' }} color={colors.accent} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>45 MIN</Text>
+                <Text fontSize="14px" fontWeight="600" color={colors.textPrimary} mt={2} style={{ fontFamily: 'var(--font-body)' }}>Avg Response Time</Text>
+                <Text fontSize="12px" color={colors.textSecondary} maxW="160px" mx="auto" mt={1} style={{ fontFamily: 'var(--font-body)' }}>Emergency callouts Glasgow &amp; Edinburgh</Text>
+              </Box>
+              <Box textAlign="center">
+                <Text fontSize={{ base: '48px', md: '64px' }} color={colors.accent} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>10+</Text>
+                <Text fontSize="14px" fontWeight="600" color={colors.textPrimary} mt={2} style={{ fontFamily: 'var(--font-body)' }}>Years Experience</Text>
+                <Text fontSize="12px" color={colors.textSecondary} maxW="160px" mx="auto" mt={1} style={{ fontFamily: 'var(--font-body)' }}>Duke Street Tyres, est. 2014</Text>
+              </Box>
+              <Box textAlign="center">
+                <Text fontSize={{ base: '48px', md: '64px' }} color={colors.accent} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>4.8</Text>
+                <Text fontSize="14px" fontWeight="600" color={colors.textPrimary} mt={2} style={{ fontFamily: 'var(--font-body)' }}>Google Rating</Text>
+                <Text fontSize="12px" color={colors.textSecondary} maxW="160px" mx="auto" mt={1} style={{ fontFamily: 'var(--font-body)' }}>97 verified reviews</Text>
+              </Box>
+            </SimpleGrid>
+            <Box h="1px" bg={colors.border} mt={10} />
+          </Container>
+        </Box>
+
+        {/* ═══════════════════════════════════════════════════
             SECTION 3: SERVICES
         ═══════════════════════════════════════════════════ */}
         <Box bg={colors.bg} py="120px">
@@ -912,6 +946,48 @@ export function HomePage() {
         </Box>
 
         {/* ═══════════════════════════════════════════════════
+            SECTION: GUARANTEE
+        ═══════════════════════════════════════════════════ */}
+        <Box bg={colors.surface} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
+          <Container maxW="1200px">
+            <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={{ base: 10, md: 16 }} alignItems="flex-start">
+              <Flex direction="column" gap={4} align="flex-start">
+                <Text fontSize="11px" color={colors.accent} letterSpacing="0.15em" style={{ fontFamily: 'var(--font-body)' }}>OUR GUARANTEE</Text>
+                <Text fontSize={{ base: '40px', md: '56px' }} color={colors.textPrimary} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>WE STAND BEHIND EVERY JOB.</Text>
+                <Text fontSize="15px" color={colors.textSecondary} lineHeight="1.7" style={{ fontFamily: 'var(--font-body)' }}>
+                  If you are not completely satisfied with our work, we will return and put it right at no extra charge. No arguments, no hassle.
+                </Text>
+                <Box mt={4}>
+                  <Text fontSize="13px" color={colors.textSecondary} style={{ fontFamily: 'var(--font-body)' }}>
+                    Call us anytime:{' '}
+                    <ChakraLink href="tel:01412660690" color={colors.accent} _hover={{ opacity: 0.8 }}>0141 266 0690</ChakraLink>
+                  </Text>
+                </Box>
+              </Flex>
+              <Flex direction="column" gap={4}>
+                {[
+                  { title: 'Quality Parts Only', body: 'We only fit tyres from reputable manufacturers with full EU tyre ratings. No inferior products.' },
+                  { title: 'Transparent Pricing', body: 'The price you see before you pay is the price you pay. No hidden fees, no surprise charges.' },
+                  { title: 'Trained Fitters', body: 'All our mobile fitters are trained and experienced professionals. Your vehicle is in safe hands.' },
+                ].map((card) => (
+                  <Box
+                    key={card.title}
+                    bg={colors.card}
+                    borderLeftWidth="3px"
+                    borderColor={colors.accent}
+                    borderRadius="0 8px 8px 0"
+                    p={{ base: '16px', md: '20px' }}
+                  >
+                    <Text fontSize="15px" fontWeight="600" color={colors.textPrimary} style={{ fontFamily: 'var(--font-body)' }}>{card.title}</Text>
+                    <Text fontSize="13px" color={colors.textSecondary} mt="4px" style={{ fontFamily: 'var(--font-body)' }}>{card.body}</Text>
+                  </Box>
+                ))}
+              </Flex>
+            </Grid>
+          </Container>
+        </Box>
+
+        {/* ═══════════════════════════════════════════════════
             SECTION 4: HOW IT WORKS
         ═══════════════════════════════════════════════════ */}
         <Box bg={colors.surface} py="120px">
@@ -1002,6 +1078,45 @@ export function HomePage() {
                 ))}
               </Flex>
             </Box>
+          </Container>
+        </Box>
+
+        {/* ═══════════════════════════════════════════════════
+            SECTION: AREAS WE COVER
+        ═══════════════════════════════════════════════════ */}
+        <Box bg={colors.surface} py={{ base: '50px', md: '70px' }} px={{ base: 4, md: 8 }}>
+          <Container maxW="1200px">
+            <Text
+              fontSize={{ base: '36px', md: '56px' }}
+              color={colors.textPrimary}
+              mb={8}
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              AREAS WE COVER
+            </Text>
+            <Flex wrap="wrap" gap={3}>
+              {cities.map((city) => (
+                <ChakraLink
+                  key={city.slug}
+                  asChild
+                  _hover={{ borderColor: colors.accent, color: colors.accent }}
+                  transition="all 0.2s"
+                >
+                  <Link href={`/services/${city.slug}`}>
+                    <Box
+                      bg={colors.card}
+                      borderWidth="1px"
+                      borderColor={colors.border}
+                      borderRadius="4px"
+                      px={5}
+                      py="10px"
+                    >
+                      <Text fontSize="13px" color={colors.textSecondary} style={{ fontFamily: 'var(--font-body)' }}>{city.name}</Text>
+                    </Box>
+                  </Link>
+                </ChakraLink>
+              ))}
+            </Flex>
           </Container>
         </Box>
 
@@ -1110,7 +1225,55 @@ export function HomePage() {
         </Box>
 
         {/* ═══════════════════════════════════════════════════
-            SECTION 6: FAQ
+            SECTION: ABOUT US
+        ═══════════════════════════════════════════════════ */}
+        <Box bg={colors.bg} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
+          <Container maxW="1200px">
+            <Grid templateColumns={{ base: '1fr', md: '2fr 3fr' }} gap={{ base: 10, md: 16 }}>
+              <Flex direction="column" gap={5} align="flex-start">
+                <Text fontSize="11px" color={colors.accent} letterSpacing="0.15em" style={{ fontFamily: 'var(--font-body)' }}>ABOUT US</Text>
+                <Text fontSize={{ base: '40px', md: '56px' }} color={colors.textPrimary} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>DUKE STREET TYRES.</Text>
+                <Text fontSize="15px" color={colors.textSecondary} lineHeight="1.7" style={{ fontFamily: 'var(--font-body)' }}>
+                  Based in Glasgow&apos;s East End, Duke Street Tyres has been providing professional tyre services to drivers across Scotland since 2014. Our mobile fitting service brings the expertise of a full garage to your exact location.
+                </Text>
+                <Text fontSize="15px" color={colors.textSecondary} lineHeight="1.7" style={{ fontFamily: 'var(--font-body)' }}>
+                  We are a real local business with a physical workshop you can visit. Every job is carried out by our own trained staff — not contractors.
+                </Text>
+                <Box bg={colors.surface} borderWidth="1px" borderColor={colors.border} borderRadius="8px" p={4} mt={2}>
+                  <Text fontSize="14px" color={colors.textPrimary} style={{ fontFamily: 'var(--font-body)' }}>3, 10 Gateside St, Glasgow G31 1PD</Text>
+                  <Text fontSize="12px" color={colors.textSecondary} mt="4px" style={{ fontFamily: 'var(--font-body)' }}>Open 8am to Midnight, Every Day</Text>
+                </Box>
+              </Flex>
+              <Flex direction="column" gap={3}>
+                {[
+                  { title: 'Established 2014', sub: 'Over a decade serving Glasgow drivers' },
+                  { title: 'Glasgow Based, Scotland Wide', sub: 'Workshop in Parkhead, coverage across Scotland' },
+                  { title: 'Fully Insured and Licensed', sub: '£2 million public liability insurance' },
+                ].map((card) => (
+                  <Box
+                    key={card.title}
+                    bg={colors.card}
+                    borderLeftWidth="3px"
+                    borderColor={colors.accent}
+                    borderRadius="0 8px 8px 0"
+                    p={5}
+                  >
+                    <Text fontSize="15px" fontWeight="600" color={colors.textPrimary} style={{ fontFamily: 'var(--font-body)' }}>{card.title}</Text>
+                    <Text fontSize="13px" color={colors.textSecondary} mt="4px" style={{ fontFamily: 'var(--font-body)' }}>{card.sub}</Text>
+                  </Box>
+                ))}
+              </Flex>
+            </Grid>
+          </Container>
+        </Box>
+
+        {/* ═══════════════════════════════════════════════════
+            SECTION: CONTACT
+        ═══════════════════════════════════════════════════ */}
+        <ContactSection />
+
+        {/* ═══════════════════════════════════════════════════
+            SECTION: FAQ
         ═══════════════════════════════════════════════════ */}
         <Box bg={colors.surface} py="120px">
           <Container maxW="4xl">
@@ -1144,12 +1307,7 @@ export function HomePage() {
         </Box>
 
         {/* ═══════════════════════════════════════════════════
-            SECTION 7: CONTACT
-        ═══════════════════════════════════════════════════ */}
-        <ContactSection />
-
-        {/* ═══════════════════════════════════════════════════
-            SECTION 8: CTA
+            SECTION: CTA
         ═══════════════════════════════════════════════════ */}
         <Box bg={colors.accent} py="80px">
           <Container maxW="4xl" textAlign="center">

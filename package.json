@@ -12,7 +12,8 @@
     "db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
     "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
     "db:seed": "dotenv -e .env.local -- tsx seed.ts",
-    "seed:tyres": "dotenv -e .env.local -- tsx scripts/seed-tyres.ts"
+    "seed:tyres": "dotenv -e .env.local -- tsx scripts/seed-tyres.ts",
+    "seed:areas": "dotenv -e .env.local -- tsx scripts/seed-service-areas.ts"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.34.0",

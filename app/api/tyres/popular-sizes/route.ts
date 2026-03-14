@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { tyreProducts } from '@/lib/db/schema';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 
 export async function GET() {
   try {
@@ -11,6 +11,7 @@ export async function GET() {
         count: sql<number>`count(*)::int`,
       })
       .from(tyreProducts)
+      .where(eq(tyreProducts.availableNew, true))
       .groupBy(tyreProducts.sizeDisplay)
       .orderBy(sql`sum(${tyreProducts.stockNew}) desc`)
       .limit(8);

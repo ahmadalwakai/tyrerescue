@@ -21,6 +21,7 @@ interface TyreProduct {
   pattern: string;
   sizeDisplay: string;
   season: string;
+  tier: string;
   speedRating: string | null;
   loadIndex: number | null;
   wetGrip: string | null;
@@ -264,6 +265,9 @@ export function StepTyreSelection({
           {tyres.map((tyre, i) => {
             const inStock = tyre.availableNew && tyre.priceNew && tyre.stockNew >= state.quantity;
             const isSelected = selectedTyreId === tyre.id;
+            const lowStock = tyre.stockNew >= 1 && tyre.stockNew <= 2;
+            const seasonColor = tyre.season === 'summer' ? 'orange' : tyre.season === 'winter' ? 'blue' : 'gray';
+            const tierColor = tyre.tier === 'premium' ? 'purple' : tyre.tier === 'budget' ? 'gray' : 'cyan';
 
             return (
               <Box
@@ -288,30 +292,33 @@ export function StepTyreSelection({
                     <Text fontWeight="600" fontSize="lg" color={c.text}>
                       {tyre.brand}
                     </Text>
-                    <Text color={c.muted}>{tyre.pattern}</Text>
-                    <HStack gap={3} mt={2} fontSize="sm" color={c.muted}>
-                      {tyre.loadIndex && <Text>Load: {tyre.loadIndex}</Text>}
-                      {tyre.wetGrip && <Text>Grip: {tyre.wetGrip}</Text>}
-                      {tyre.fuelEfficiency && <Text>Fuel: {tyre.fuelEfficiency}</Text>}
+                    <Text color={c.muted} fontSize="sm">{tyre.pattern}</Text>
+                    <Text fontFamily="var(--font-display)" fontSize="md" color={c.text} mt={1}>
+                      {tyre.sizeDisplay}
+                    </Text>
+                    <HStack gap={2} mt={2} flexWrap="wrap">
+                      <Badge colorPalette={seasonColor} size="sm">{tyre.season}</Badge>
+                      <Badge colorPalette={tierColor} size="sm">{tyre.tier}</Badge>
+                      {tyre.speedRating && (
+                        <Text fontSize="xs" color={c.muted}>Speed: {tyre.speedRating}</Text>
+                      )}
+                      {tyre.loadIndex && (
+                        <Text fontSize="xs" color={c.muted}>Load: {tyre.loadIndex}</Text>
+                      )}
+                      {tyre.wetGrip && (
+                        <Text fontSize="xs" color={c.muted}>Grip: {tyre.wetGrip}</Text>
+                      )}
                     </HStack>
                   </Box>
                   <VStack align="end" gap={1}>
-                    <Badge colorPalette={tyre.season === 'summer' ? 'orange' : tyre.season === 'winter' ? 'blue' : 'gray'}>
-                      {tyre.season}
-                    </Badge>
-                    {tyre.speedRating && (
-                      <Text fontSize="xs" color="gray.500">
-                        Speed: {tyre.speedRating}
-                      </Text>
-                    )}
                     {inStock ? (
                       <>
-                        <Text fontSize="xl" fontWeight="700" color={isSelected ? c.accent : c.text}>
+                        <Text fontSize="xl" fontWeight="700" fontFamily="var(--font-body)" color={c.accent}>
                           {formatPrice(tyre.priceNew!)}
                         </Text>
-                        <Text fontSize="xs" color={c.muted}>
-                          each ({tyre.stockNew} in stock)
-                        </Text>
+                        <Badge colorPalette={lowStock ? 'yellow' : 'green'} size="sm">
+                          {lowStock ? 'Low Stock' : 'In Stock'}
+                        </Badge>
                       </>
                     ) : (
                       <Text fontSize="sm" color={c.muted}>

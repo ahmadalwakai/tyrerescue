@@ -2,9 +2,9 @@ import { Metadata } from 'next';
 import { ContactContent } from './ContactContent';
 
 export const metadata: Metadata = {
-  title: 'Contact Us',
+  title: 'Contact Tyre Rescue | 0141 266 0690 | Glasgow',
   description:
-    'Get in touch with Tyre Rescue. We are available 8am to midnight, every day. Call 0141 266 0690 or visit us at 3, 10 Gateside St, Glasgow G31 1PD.',
+    'Get in touch with Tyre Rescue. Call us on 0141 266 0690 for immediate assistance or send us a message. Emergency tyre fitting available 24/7.',
   alternates: { canonical: 'https://www.tyrerescue.uk/contact' },
 };
 

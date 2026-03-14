@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
+import { sql as sql_fn } from 'drizzle-orm';
 import * as schema from '../lib/db/schema';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -87,6 +88,15 @@ function pickBrand(pool: BrandDef[], index: number): BrandDef {
   return pool[index % pool.length];
 }
 
+function suggestedPrice(rim: number, tier: 'budget' | 'mid' | 'premium'): string {
+  const prices: Record<string, Record<string, number>> = {
+    budget:  { '13': 48, '14': 48, '15': 58, '16': 58, '17': 72, '18': 72, '19': 92, '20': 92, '21': 115 },
+    mid:     { '13': 72, '14': 72, '15': 85, '16': 85, '17': 105, '18': 105, '19': 135, '20': 135, '21': 160 },
+    premium: { '13': 95, '14': 95, '15': 115, '16': 115, '17': 145, '18': 145, '19': 175, '20': 175, '21': 210 },
+  };
+  return String(prices[tier][String(rim)] ?? 85);
+}
+
 // ---------- main ----------
 async function seedCatalogue() {
   console.log('Seeding tyre catalogue...');
@@ -94,7 +104,7 @@ async function seedCatalogue() {
   let insertedCount = 0;
   let skippedCount = 0;
 
-  const tiers: { key: string; pool: BrandDef[]; wetGrip: string; fuelEff: string }[] = [
+  const tiers: { key: 'budget' | 'mid' | 'premium'; pool: BrandDef[]; wetGrip: string; fuelEff: string }[] = [
     { key: 'budget',  pool: budgetBrands,  wetGrip: 'B', fuelEff: 'C' },
     { key: 'mid',     pool: midBrands,     wetGrip: 'A', fuelEff: 'B' },
     { key: 'premium', pool: premiumBrands, wetGrip: 'A', fuelEff: 'A' },
@@ -124,6 +134,8 @@ async function seedCatalogue() {
         fuelEfficiency: tier.fuelEff,
         noiseDb: 70,
         runFlat: false,
+        tier: tier.key,
+        suggestedPriceNew: suggestedPrice(r, tier.key),
         slug: makeSlug(b.brand, b.pattern, w, a, r),
       });
 
@@ -131,7 +143,13 @@ async function seedCatalogue() {
         const result = await db
           .insert(schema.tyreCatalogue)
           .values(batch)
-          .onConflictDoNothing({ target: schema.tyreCatalogue.slug });
+          .onConflictDoUpdate({
+            target: schema.tyreCatalogue.slug,
+            set: {
+              tier: sql_fn`excluded.tier`,
+              suggestedPriceNew: sql_fn`excluded.suggested_price_new`,
+            },
+          });
         insertedCount += result.rowCount ?? 0;
         skippedCount += batch.length - (result.rowCount ?? 0);
         batch = [];
@@ -144,7 +162,13 @@ async function seedCatalogue() {
     const result = await db
       .insert(schema.tyreCatalogue)
       .values(batch)
-      .onConflictDoNothing({ target: schema.tyreCatalogue.slug });
+      .onConflictDoUpdate({
+        target: schema.tyreCatalogue.slug,
+        set: {
+          tier: sql_fn`excluded.tier`,
+          suggestedPriceNew: sql_fn`excluded.suggested_price_new`,
+        },
+      });
     insertedCount += result.rowCount ?? 0;
     skippedCount += batch.length - (result.rowCount ?? 0);
   }
@@ -152,7 +176,7 @@ async function seedCatalogue() {
   console.log(`\nSeed complete!`);
   console.log(`  Inserted: ${insertedCount}`);
   console.log(`  Skipped (already exist): ${skippedCount}`);
-  console.log(`  Total catalogue items: ${insertedCount + skippedCount}`);
+  console.log(`  Total catalogue entries: ${insertedCount + skippedCount}`);
 }
 
 seedCatalogue()

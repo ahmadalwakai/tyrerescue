@@ -2,9 +2,9 @@ import { Metadata } from 'next';
 import { BookingWizard } from '@/components/booking/BookingWizard';
 
 export const metadata: Metadata = {
-  title: 'Emergency Callout',
+  title: 'Emergency Tyre Fitting Glasgow & Edinburgh | 24/7 Response | Tyre Rescue',
   description:
-    'Need a tyre fitted urgently? Book an emergency callout and we will dispatch a fitter to your location within 45 minutes.',
+    'Flat tyre? Our emergency mobile tyre fitters respond within 45 minutes, 24 hours a day across Glasgow and Edinburgh. Call 0141 266 0690.',
 };
 
 export default function EmergencyPage() {

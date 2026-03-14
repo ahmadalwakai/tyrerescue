@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Box, Container, Flex, Text, Link as ChakraLink, SimpleGrid } from '@chakra-ui/react';
 import Link from 'next/link';
 import { colorTokens } from '@/lib/design-tokens';
+import { cities } from '@/lib/cities';
 
 const colors = {
   bg: colorTokens.bg,
@@ -109,12 +110,40 @@ export function Footer() {
           </Text>
         </Flex>
 
-        {/* Four columns */}
-        <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} gap={12} mb="60px">
+        {/* Five columns */}
+        <SimpleGrid columns={{ base: 2, md: 5 }} gap={12} mb="60px">
           <FooterColumn title="About" links={footerLinks.about} />
           <FooterColumn title="Navigation" links={footerLinks.navigation} />
           <FooterColumn title="Services" links={footerLinks.services} />
           <FooterColumn title="Legal" links={footerLinks.legal} />
+          <Box>
+            <Text
+              fontSize="11px"
+              fontWeight="500"
+              color={colors.textSecondary}
+              textTransform="uppercase"
+              letterSpacing="0.1em"
+              mb={4}
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              AREAS WE COVER
+            </Text>
+            <Flex direction="column" gap={2}>
+              {cities.slice(0, 8).map((city) => (
+                <ChakraLink
+                  key={city.slug}
+                  asChild
+                  fontSize="13px"
+                  color={colors.textSecondary}
+                  _hover={{ color: colors.textPrimary }}
+                  transition="color 0.2s"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  <Link href={`/services/${city.slug}`}>{city.name}</Link>
+                </ChakraLink>
+              ))}
+            </Flex>
+          </Box>
         </SimpleGrid>
 
         {/* Bottom bar */}
