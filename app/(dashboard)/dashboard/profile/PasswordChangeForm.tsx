@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Box, VStack, Text, Input, Button, Field } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 
 export function PasswordChangeForm() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -59,7 +59,7 @@ export function PasswordChangeForm() {
       <VStack align="stretch" gap={4}>
         <Field.Root>
           <Field.Label color={c.muted} fontSize="sm">Current Password</Field.Label>
-          <Input
+          <Input {...inputProps}
             type="password"
             value={currentPassword}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
@@ -69,7 +69,7 @@ export function PasswordChangeForm() {
 
         <Field.Root>
           <Field.Label color={c.muted} fontSize="sm">New Password</Field.Label>
-          <Input
+          <Input {...inputProps}
             type="password"
             value={newPassword}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
@@ -79,7 +79,7 @@ export function PasswordChangeForm() {
 
         <Field.Root>
           <Field.Label color={c.muted} fontSize="sm">Confirm New Password</Field.Label>
-          <Input
+          <Input {...inputProps}
             type="password"
             value={confirmPassword}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}

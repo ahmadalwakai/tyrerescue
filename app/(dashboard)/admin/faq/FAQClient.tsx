@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Box, Heading, Text, VStack, HStack, Button, Input, Table, Flex, Textarea } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps, textareaProps } from '@/lib/design-tokens';
 import { useRouter } from 'next/navigation';
 
 interface FAQ {
@@ -74,10 +74,10 @@ export function FAQClient({ faqs }: { faqs: FAQ[] }) {
         <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border}>
           <VStack align="stretch" gap={3}>
             <HStack gap={3}>
-              <Input name="question" placeholder="Question" required {...inputStyle} />
-              <Input name="displayOrder" type="number" placeholder="Order" {...inputStyle} maxW="100px" />
+              <Input {...inputProps} name="question" placeholder="Question" required />
+              <Input {...inputProps} name="displayOrder" type="number" placeholder="Order" maxW="100px" />
             </HStack>
-            <Textarea name="answer" placeholder="Answer" required {...inputStyle} rows={3} />
+            <Textarea {...textareaProps} {...textareaProps} name="answer" placeholder="Answer" required rows={3} />
             <Button type="submit" bg={c.accent} color="white" _hover={{ bg: c.accentHover }} alignSelf="flex-start">Save</Button>
           </VStack>
         </Box>

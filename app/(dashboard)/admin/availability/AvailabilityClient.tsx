@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Box, Heading, Text, VStack, HStack, Button, Input, Table, Badge, Flex } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { useRouter } from 'next/navigation';
 
 interface Slot {
@@ -65,10 +65,10 @@ export function AvailabilityClient({ slots }: { slots: Slot[] }) {
       <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border}>
         <Text color={c.text} fontWeight="600" mb={3}>Add Slot</Text>
         <HStack gap={3} flexWrap="wrap">
-          <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} {...inputStyle} maxW="180px" />
-          <Input type="time" value={newStart} onChange={(e) => setNewStart(e.target.value)} {...inputStyle} maxW="140px" />
-          <Input type="time" value={newEnd} onChange={(e) => setNewEnd(e.target.value)} {...inputStyle} maxW="140px" />
-          <Input type="number" value={newMax} onChange={(e) => setNewMax(e.target.value)} {...inputStyle} maxW="100px" placeholder="Max" />
+          <Input {...inputProps} type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} maxW="180px" />
+          <Input {...inputProps} type="time" value={newStart} onChange={(e) => setNewStart(e.target.value)} maxW="140px" />
+          <Input {...inputProps} type="time" value={newEnd} onChange={(e) => setNewEnd(e.target.value)} maxW="140px" />
+          <Input {...inputProps} type="number" value={newMax} onChange={(e) => setNewMax(e.target.value)} maxW="100px" placeholder="Max" />
           <Button bg={c.accent} color="white" _hover={{ bg: c.accentHover }} onClick={addSlot}>Add</Button>
         </HStack>
       </Box>

@@ -14,7 +14,7 @@ import {
   Field,
 } from '@chakra-ui/react';
 
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 
 export default function ResetPasswordPage() {
   const params = useParams();
@@ -107,6 +107,7 @@ export default function ResetPasswordPage() {
             <Field.Root>
               <Field.Label>New Password</Field.Label>
               <Input
+                {...inputProps}
                 type="password"
                 value={password}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
@@ -121,6 +122,7 @@ export default function ResetPasswordPage() {
             <Field.Root>
               <Field.Label>Confirm New Password</Field.Label>
               <Input
+                {...inputProps}
                 type="password"
                 value={confirmPassword}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}

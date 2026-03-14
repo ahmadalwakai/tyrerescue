@@ -16,7 +16,7 @@ import {
   NativeSelect,
   Spinner,
 } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, selectProps, textareaProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
 interface Booking {
@@ -441,6 +441,7 @@ export function BookingDetailClient({
               <>
                 <NativeSelect.Root mb={3}>
                   <NativeSelect.Field
+                    {...selectProps}
                     value={selectedDriverId}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedDriverId(e.target.value)}
                   >
@@ -482,6 +483,7 @@ export function BookingDetailClient({
                 Process Refund
               </Heading>
               <Textarea
+                {...textareaProps}
                 placeholder="Reason for refund..."
                 value={refundReason}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRefundReason(e.target.value)}

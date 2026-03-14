@@ -13,7 +13,7 @@ import {
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { WizardState } from './types';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
 // Set Mapbox token
@@ -314,7 +314,7 @@ export function StepLocation({
 
       {/* Address Input */}
       <Box position="relative" style={anim.fadeUp('0.5s', '0.1s')}>
-        <Input
+        <Input {...inputProps}
           size="lg"
           placeholder="Start typing your address..."
           value={address}

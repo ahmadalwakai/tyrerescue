@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Box, Heading, Text, VStack, HStack, Button, Input, Table, Flex } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { useRouter } from 'next/navigation';
 
@@ -82,7 +82,7 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
                 <Table.Cell px={4} py={3} color={c.text} fontFamily="mono" fontSize="sm">{rule.key}</Table.Cell>
                 <Table.Cell px={4} py={3} color={c.muted} fontSize="sm">{rule.label || '—'}</Table.Cell>
                 <Table.Cell px={4} py={3}>
-                  <Input
+                  <Input {...inputProps}
                     size="sm"
                     defaultValue={rule.value}
                     onBlur={(e) => {
@@ -106,9 +106,9 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
       <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border}>
         <Text color={c.text} fontWeight="600" mb={3}>Add Rule</Text>
         <HStack gap={3}>
-          <Input placeholder="Key" value={addKey} onChange={(e) => setAddKey(e.target.value)} {...inputStyle} maxW="180px" />
-          <Input placeholder="Label" value={addLabel} onChange={(e) => setAddLabel(e.target.value)} {...inputStyle} maxW="200px" />
-          <Input placeholder="Value" value={addValue} onChange={(e) => setAddValue(e.target.value)} {...inputStyle} maxW="180px" />
+          <Input {...inputProps} placeholder="Key" value={addKey} onChange={(e) => setAddKey(e.target.value)} {...inputStyle} maxW="180px" />
+          <Input {...inputProps} placeholder="Label" value={addLabel} onChange={(e) => setAddLabel(e.target.value)} {...inputStyle} maxW="200px" />
+          <Input {...inputProps} placeholder="Value" value={addValue} onChange={(e) => setAddValue(e.target.value)} {...inputStyle} maxW="180px" />
           <Button bg={c.accent} color="white" _hover={{ bg: c.accentHover }} onClick={handleAdd}>Add</Button>
         </HStack>
       </Box>

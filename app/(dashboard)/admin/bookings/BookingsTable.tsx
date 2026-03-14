@@ -15,7 +15,7 @@ import {
   Button,
   NativeSelect,
 } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps, selectProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
 interface Booking {
@@ -139,7 +139,7 @@ export function BookingsTable({
             <Text fontSize="sm" fontWeight="medium" mb={1}>
               Search
             </Text>
-            <Input
+            <Input {...inputProps}
               placeholder="Ref, name, or email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -152,6 +152,7 @@ export function BookingsTable({
             </Text>
             <NativeSelect.Root>
               <NativeSelect.Field
+                {...selectProps}
                 value={status}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value)}
               >
@@ -167,7 +168,7 @@ export function BookingsTable({
             <Text fontSize="sm" fontWeight="medium" mb={1}>
               Date From
             </Text>
-            <Input
+            <Input {...inputProps}
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
@@ -177,7 +178,7 @@ export function BookingsTable({
             <Text fontSize="sm" fontWeight="medium" mb={1}>
               Date To
             </Text>
-            <Input
+            <Input {...inputProps}
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}

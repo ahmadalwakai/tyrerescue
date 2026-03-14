@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Box, Heading, Text, VStack, HStack, Button, Input, Flex } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { useRouter } from 'next/navigation';
 
 export default function NewProductPage() {
@@ -63,69 +63,69 @@ export default function NewProductPage() {
           <HStack gap={4}>
             <Box flex={1}>
               <Text {...labelStyle}>Brand *</Text>
-              <Input name="brand" required {...inputStyle} />
+              <Input {...inputProps} name="brand" required />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Pattern *</Text>
-              <Input name="pattern" required {...inputStyle} />
+              <Input {...inputProps} name="pattern" required />
             </Box>
           </HStack>
 
           <HStack gap={4}>
             <Box flex={1}>
               <Text {...labelStyle}>Width *</Text>
-              <Input name="width" type="number" required {...inputStyle} placeholder="205" />
+              <Input {...inputProps} name="width" type="number" required placeholder="205" />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Aspect *</Text>
-              <Input name="aspect" type="number" required {...inputStyle} placeholder="55" />
+              <Input {...inputProps} name="aspect" type="number" required placeholder="55" />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Rim *</Text>
-              <Input name="rim" type="number" required {...inputStyle} placeholder="16" />
+              <Input {...inputProps} name="rim" type="number" required placeholder="16" />
             </Box>
           </HStack>
 
           <HStack gap={4}>
             <Box flex={1}>
               <Text {...labelStyle}>Season *</Text>
-              <Input name="season" required {...inputStyle} placeholder="summer / winter / all-season" />
+              <Input {...inputProps} name="season" required placeholder="summer / winter / all-season" />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Speed Rating</Text>
-              <Input name="speedRating" {...inputStyle} placeholder="V" />
+              <Input {...inputProps} name="speedRating" placeholder="V" />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Load Index</Text>
-              <Input name="loadIndex" type="number" {...inputStyle} placeholder="91" />
+              <Input {...inputProps} name="loadIndex" type="number" placeholder="91" />
             </Box>
           </HStack>
 
           <HStack gap={4}>
             <Box flex={1}>
               <Text {...labelStyle}>Price New (£)</Text>
-              <Input name="priceNew" type="number" step="0.01" {...inputStyle} />
+              <Input {...inputProps} name="priceNew" type="number" step="0.01" />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Price Used (£)</Text>
-              <Input name="priceUsed" type="number" step="0.01" {...inputStyle} />
+              <Input {...inputProps} name="priceUsed" type="number" step="0.01" />
             </Box>
           </HStack>
 
           <HStack gap={4}>
             <Box flex={1}>
               <Text {...labelStyle}>Stock New</Text>
-              <Input name="stockNew" type="number" defaultValue={0} {...inputStyle} />
+              <Input {...inputProps} name="stockNew" type="number" defaultValue={0} />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Stock Used</Text>
-              <Input name="stockUsed" type="number" defaultValue={0} {...inputStyle} />
+              <Input {...inputProps} name="stockUsed" type="number" defaultValue={0} />
             </Box>
           </HStack>
 
           <HStack gap={4}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: c.muted }}>
-              <input type="checkbox" name="runFlat" /> Run Flat
+              <Input {...inputProps} type="checkbox" name="runFlat" /> Run Flat
             </label>
           </HStack>
 

@@ -5,7 +5,7 @@ import {
   Box, Heading, Text, VStack, HStack, Button, Input, Table,
   Flex, Badge, createListCollection
 } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { useRouter } from 'next/navigation';
 
@@ -61,7 +61,7 @@ export function InventoryClient({ tyres, page, totalPages, search }: Props) {
       </Flex>
 
       <HStack>
-        <Input
+        <Input {...inputProps}
           placeholder="Search brand, pattern, size..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}

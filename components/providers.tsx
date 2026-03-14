@@ -1,8 +1,9 @@
 'use client';
 
-import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
+import { ChakraProvider } from '@chakra-ui/react';
 import { SessionProvider } from 'next-auth/react';
 import { ReactNode } from 'react';
+import { system } from '@/lib/theme';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -11,7 +12,7 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <SessionProvider>
-      <ChakraProvider value={defaultSystem}>
+      <ChakraProvider value={system}>
         {children}
       </ChakraProvider>
     </SessionProvider>

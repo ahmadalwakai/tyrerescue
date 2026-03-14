@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/release-reservations",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/reconcile-payments",
-      "schedule": "0 */2 * * *"
+      "schedule": "0 2 * * *"
     },
     {
       "path": "/api/cron/cleanup-locations",
@@ -18,7 +18,7 @@
     },
     {
       "path": "/api/cron/booking-reminders",
-      "schedule": "0 * * * *"
+      "schedule": "0 7 * * *"
     }
   ]
 }

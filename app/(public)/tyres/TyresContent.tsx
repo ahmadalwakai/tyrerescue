@@ -18,7 +18,7 @@ import {
   Link as ChakraLink,
 } from '@chakra-ui/react';
 import { TyreCard } from '@/components/tyres/TyreCard';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps, selectProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
 interface Tyre {

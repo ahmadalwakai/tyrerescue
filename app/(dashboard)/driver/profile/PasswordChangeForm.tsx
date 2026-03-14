@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Box, VStack, Text, Input, Button, HStack, Spinner } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 
 export function PasswordChangeForm() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -68,7 +68,7 @@ export function PasswordChangeForm() {
           <Text fontSize="sm" fontWeight="medium" mb={1}>
             Current Password
           </Text>
-          <Input
+          <Input {...inputProps}
             type="password"
             value={currentPassword}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
@@ -81,7 +81,7 @@ export function PasswordChangeForm() {
           <Text fontSize="sm" fontWeight="medium" mb={1}>
             New Password
           </Text>
-          <Input
+          <Input {...inputProps}
             type="password"
             value={newPassword}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
@@ -98,7 +98,7 @@ export function PasswordChangeForm() {
           <Text fontSize="sm" fontWeight="medium" mb={1}>
             Confirm New Password
           </Text>
-          <Input
+          <Input {...inputProps}
             type="password"
             value={confirmPassword}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}

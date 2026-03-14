@@ -13,7 +13,7 @@ import {
   Field,
 } from '@chakra-ui/react';
 
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
 export default function ForgotPasswordPage() {
@@ -84,7 +84,7 @@ export default function ForgotPasswordPage() {
           <VStack gap={4} align="stretch">
             <Field.Root>
               <Field.Label>Email Address</Field.Label>
-              <Input
+              <Input {...inputProps}
                 type="email"
                 value={email}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}

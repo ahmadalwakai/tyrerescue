@@ -15,7 +15,7 @@ import {
   Button,
   Spinner,
 } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
 interface Driver {
@@ -131,7 +131,7 @@ export function DriversClient({ drivers }: Props) {
                 <Text fontSize="sm" fontWeight="medium" mb={1}>
                   Name
                 </Text>
-                <Input
+                <Input {...inputProps}
                   value={formData.name}
                   onChange={(e) => updateField('name', e.target.value)}
                   placeholder="Full name"
@@ -142,7 +142,7 @@ export function DriversClient({ drivers }: Props) {
                 <Text fontSize="sm" fontWeight="medium" mb={1}>
                   Email
                 </Text>
-                <Input
+                <Input {...inputProps}
                   type="email"
                   value={formData.email}
                   onChange={(e) => updateField('email', e.target.value)}
@@ -154,7 +154,7 @@ export function DriversClient({ drivers }: Props) {
                 <Text fontSize="sm" fontWeight="medium" mb={1}>
                   Phone
                 </Text>
-                <Input
+                <Input {...inputProps}
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => updateField('phone', e.target.value)}
@@ -166,7 +166,7 @@ export function DriversClient({ drivers }: Props) {
                 <Text fontSize="sm" fontWeight="medium" mb={1}>
                   Password
                 </Text>
-                <Input
+                <Input {...inputProps}
                   type="password"
                   value={formData.password}
                   onChange={(e) => updateField('password', e.target.value)}

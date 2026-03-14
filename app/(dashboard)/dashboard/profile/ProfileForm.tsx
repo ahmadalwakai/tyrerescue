@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Box, VStack, Text, Input, Button, Field } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 
 interface ProfileFormProps {
   user: { name: string; email: string; phone: string | null };
@@ -42,7 +42,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
       <VStack align="stretch" gap={4}>
         <Field.Root>
           <Field.Label color={c.muted} fontSize="sm">Name</Field.Label>
-          <Input
+          <Input {...inputProps}
             value={name}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             required
@@ -51,12 +51,12 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
         <Field.Root>
           <Field.Label color={c.muted} fontSize="sm">Email</Field.Label>
-          <Input value={user.email} readOnly bg={c.surface} />
+          <Input {...inputProps} value={user.email} readOnly bg={c.surface} />
         </Field.Root>
 
         <Field.Root>
           <Field.Label color={c.muted} fontSize="sm">Phone</Field.Label>
-          <Input
+          <Input {...inputProps}
             value={phone}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
           />

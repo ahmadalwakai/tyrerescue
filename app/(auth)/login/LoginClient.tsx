@@ -15,7 +15,7 @@ import {
   Field,
 } from '@chakra-ui/react';
 
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
 export default function LoginClient() {
@@ -92,7 +92,7 @@ export default function LoginClient() {
 
             <Field.Root>
               <Field.Label>Email Address</Field.Label>
-              <Input
+              <Input {...inputProps}
                 type="email"
                 value={email}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
@@ -104,7 +104,7 @@ export default function LoginClient() {
 
             <Field.Root>
               <Field.Label>Password</Field.Label>
-              <Input
+              <Input {...inputProps}
                 type="password"
                 value={password}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}

@@ -14,7 +14,7 @@ import {
   Field,
 } from '@chakra-ui/react';
 
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
 export default function RegisterPage() {
@@ -92,7 +92,7 @@ export default function RegisterPage() {
 
             <Field.Root>
               <Field.Label>Full Name</Field.Label>
-              <Input
+              <Input {...inputProps}
                 type="text"
                 value={name}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
@@ -103,7 +103,7 @@ export default function RegisterPage() {
 
             <Field.Root>
               <Field.Label>Email Address</Field.Label>
-              <Input
+              <Input {...inputProps}
                 type="email"
                 value={email}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
@@ -119,7 +119,7 @@ export default function RegisterPage() {
                   (optional)
                 </Text>
               </Field.Label>
-              <Input
+              <Input {...inputProps}
                 type="tel"
                 value={phone}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
@@ -129,7 +129,7 @@ export default function RegisterPage() {
 
             <Field.Root>
               <Field.Label>Password</Field.Label>
-              <Input
+              <Input {...inputProps}
                 type="password"
                 value={password}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
@@ -143,7 +143,7 @@ export default function RegisterPage() {
 
             <Field.Root>
               <Field.Label>Confirm Password</Field.Label>
-              <Input
+              <Input {...inputProps}
                 type="password"
                 value={confirmPassword}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}

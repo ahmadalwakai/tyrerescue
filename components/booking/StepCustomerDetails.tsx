@@ -16,7 +16,7 @@ import {
 } from '@chakra-ui/react';
 import { useSession } from 'next-auth/react';
 import { WizardState } from './types';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
 interface StepCustomerDetailsProps {
@@ -158,7 +158,7 @@ export function StepCustomerDetails({
               <Text as="span" color="red.500" ml={1}>*</Text>
             </Field.Label>
             <Box style={anim.fadeUp('0.4s', '0.1s')}>
-            <Input
+            <Input {...inputProps}
               placeholder="John Smith"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -177,7 +177,7 @@ export function StepCustomerDetails({
               <Text as="span" color="red.500" ml={1}>*</Text>
             </Field.Label>
             <Box style={anim.fadeUp('0.4s', '0.2s')}>
-            <Input
+            <Input {...inputProps}
               type="email"
               placeholder="john@example.com"
               value={email}
@@ -200,7 +200,7 @@ export function StepCustomerDetails({
               <Text as="span" color="red.500" ml={1}>*</Text>
             </Field.Label>
             <Box style={anim.fadeUp('0.4s', '0.3s')}>
-            <Input
+            <Input {...inputProps}
               type="tel"
               placeholder="07123 456789"
               value={phone}
@@ -222,10 +222,14 @@ export function StepCustomerDetails({
               <Checkbox.Root
                 checked={createAccount}
                 onCheckedChange={(e) => setCreateAccount(!!e.checked)}
+                colorPalette="orange"
               >
                 <Checkbox.HiddenInput />
-                <Checkbox.Control />
-                <Checkbox.Label>
+                <Checkbox.Control
+                  borderColor={c.input.border}
+                  bg="transparent"
+                />
+                <Checkbox.Label color={c.text}>
                   <VStack align="start" gap={0}>
                     <Text fontWeight="500">Create an account</Text>
                     <Text fontSize="sm" color={c.muted}>

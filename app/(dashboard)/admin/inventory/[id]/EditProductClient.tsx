@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Box, Heading, Text, VStack, HStack, Button, Input, Flex } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { useRouter } from 'next/navigation';
 
 interface TyreData {
@@ -102,64 +102,64 @@ export function EditProductClient({ tyre }: { tyre: TyreData }) {
           <HStack gap={4}>
             <Box flex={1}>
               <Text {...labelStyle}>Brand</Text>
-              <Input name="brand" defaultValue={tyre.brand} required {...inputStyle} />
+              <Input {...inputProps} name="brand" defaultValue={tyre.brand} required />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Pattern</Text>
-              <Input name="pattern" defaultValue={tyre.pattern} required {...inputStyle} />
+              <Input {...inputProps} name="pattern" defaultValue={tyre.pattern} required />
             </Box>
           </HStack>
           <HStack gap={4}>
             <Box flex={1}>
               <Text {...labelStyle}>Width</Text>
-              <Input name="width" type="number" defaultValue={tyre.width} required {...inputStyle} />
+              <Input {...inputProps} name="width" type="number" defaultValue={tyre.width} required />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Aspect</Text>
-              <Input name="aspect" type="number" defaultValue={tyre.aspect} required {...inputStyle} />
+              <Input {...inputProps} name="aspect" type="number" defaultValue={tyre.aspect} required />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Rim</Text>
-              <Input name="rim" type="number" defaultValue={tyre.rim} required {...inputStyle} />
+              <Input {...inputProps} name="rim" type="number" defaultValue={tyre.rim} required />
             </Box>
           </HStack>
           <HStack gap={4}>
             <Box flex={1}>
               <Text {...labelStyle}>Season</Text>
-              <Input name="season" defaultValue={tyre.season} required {...inputStyle} />
+              <Input {...inputProps} name="season" defaultValue={tyre.season} required />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Speed Rating</Text>
-              <Input name="speedRating" defaultValue={tyre.speedRating ?? ''} {...inputStyle} />
+              <Input {...inputProps} name="speedRating" defaultValue={tyre.speedRating ?? ''} />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Load Index</Text>
-              <Input name="loadIndex" type="number" defaultValue={tyre.loadIndex ?? ''} {...inputStyle} />
+              <Input {...inputProps} name="loadIndex" type="number" defaultValue={tyre.loadIndex ?? ''} />
             </Box>
           </HStack>
           <HStack gap={4}>
             <Box flex={1}>
               <Text {...labelStyle}>Price New (£)</Text>
-              <Input name="priceNew" type="number" step="0.01" defaultValue={tyre.priceNew ?? ''} {...inputStyle} />
+              <Input {...inputProps} name="priceNew" type="number" step="0.01" defaultValue={tyre.priceNew ?? ''} />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Price Used (£)</Text>
-              <Input name="priceUsed" type="number" step="0.01" defaultValue={tyre.priceUsed ?? ''} {...inputStyle} />
+              <Input {...inputProps} name="priceUsed" type="number" step="0.01" defaultValue={tyre.priceUsed ?? ''} />
             </Box>
           </HStack>
           <HStack gap={4}>
             <Box flex={1}>
               <Text {...labelStyle}>Stock New</Text>
-              <Input name="stockNew" type="number" defaultValue={tyre.stockNew ?? 0} {...inputStyle} />
+              <Input {...inputProps} name="stockNew" type="number" defaultValue={tyre.stockNew ?? 0} />
             </Box>
             <Box flex={1}>
               <Text {...labelStyle}>Stock Used</Text>
-              <Input name="stockUsed" type="number" defaultValue={tyre.stockUsed ?? 0} {...inputStyle} />
+              <Input {...inputProps} name="stockUsed" type="number" defaultValue={tyre.stockUsed ?? 0} />
             </Box>
           </HStack>
           <HStack gap={4}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: c.muted }}>
-              <input type="checkbox" name="runFlat" defaultChecked={tyre.runFlat ?? false} /> Run Flat
+              <Input {...inputProps} type="checkbox" name="runFlat" defaultChecked={tyre.runFlat ?? false} /> Run Flat
             </label>
           </HStack>
           <Flex gap={3} pt={2}>

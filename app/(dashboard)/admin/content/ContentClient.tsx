@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Box, Heading, Text, VStack, HStack, Button, Input, Textarea, Flex } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps, textareaProps } from '@/lib/design-tokens';
 import { useRouter } from 'next/navigation';
 
 interface ContentItem {
@@ -62,9 +62,9 @@ export function ContentClient({ items }: { items: ContentItem[] }) {
             <Box key={ck.key}>
               <Text color={c.muted} fontSize="sm" mb={1}>{ck.label}</Text>
               {ck.key === 'site_banner_text' ? (
-                <Textarea name={ck.key} placeholder={ck.placeholder} defaultValue={valueMap[ck.key]?.value ?? ''} {...inputStyle} rows={2} />
+                <Textarea {...textareaProps} {...textareaProps} name={ck.key} placeholder={ck.placeholder} defaultValue={valueMap[ck.key]?.value ?? ''} rows={2} />
               ) : (
-                <Input name={ck.key} placeholder={ck.placeholder} defaultValue={valueMap[ck.key]?.value ?? ''} {...inputStyle} />
+                <Input {...inputProps} name={ck.key} placeholder={ck.placeholder} defaultValue={valueMap[ck.key]?.value ?? ''} />
               )}
             </Box>
           ))}

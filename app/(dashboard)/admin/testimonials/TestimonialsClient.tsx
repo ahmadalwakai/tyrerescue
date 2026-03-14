@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Box, Heading, Text, VStack, HStack, Button, Input, Table, Badge, Flex, Textarea } from '@chakra-ui/react';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps, textareaProps } from '@/lib/design-tokens';
 import { useRouter } from 'next/navigation';
 
 interface Testimonial {
@@ -86,11 +86,11 @@ export function TestimonialsClient({ testimonials }: { testimonials: Testimonial
         <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border}>
           <VStack align="stretch" gap={3}>
             <HStack gap={3}>
-              <Input name="authorName" placeholder="Author name" required {...inputStyle} />
-              <Input name="rating" type="number" min={1} max={5} placeholder="Rating (1-5)" {...inputStyle} maxW="160px" />
-              <Input name="jobType" placeholder="Job type" {...inputStyle} maxW="160px" />
+              <Input {...inputProps} name="authorName" placeholder="Author name" required />
+              <Input {...inputProps} name="rating" type="number" min={1} max={5} placeholder="Rating (1-5)" maxW="160px" />
+              <Input {...inputProps} name="jobType" placeholder="Job type" maxW="160px" />
             </HStack>
-            <Textarea name="content" placeholder="Testimonial content" required {...inputStyle} rows={3} />
+            <Textarea {...textareaProps} {...textareaProps} name="content" placeholder="Testimonial content" required rows={3} />
             <Button type="submit" bg={c.accent} color="white" _hover={{ bg: c.accentHover }} alignSelf="flex-start">Save</Button>
           </VStack>
         </Box>

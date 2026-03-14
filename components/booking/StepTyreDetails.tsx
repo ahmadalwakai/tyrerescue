@@ -13,7 +13,7 @@ import {
   Image,
 } from '@chakra-ui/react';
 import { WizardState } from './types';
-import { colorTokens as c } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
 interface StepTyreDetailsProps {
@@ -119,7 +119,7 @@ export function StepTyreDetails({
         <Text fontWeight="500" mb={2}>
           Vehicle Registration (optional)
         </Text>
-        <Input
+        <Input {...inputProps}
           size="lg"
           placeholder="AB12 CDE"
           value={vehicleReg}
@@ -138,7 +138,7 @@ export function StepTyreDetails({
         </Text>
         <HStack gap={2} align="center">
           <Box flex="1">
-            <Input
+            <Input {...inputProps}
               size="lg"
               placeholder="205"
               value={width}
@@ -154,7 +154,7 @@ export function StepTyreDetails({
             /
           </Text>
           <Box flex="1">
-            <Input
+            <Input {...inputProps}
               size="lg"
               placeholder="55"
               value={aspect}
@@ -170,7 +170,7 @@ export function StepTyreDetails({
             /R
           </Text>
           <Box flex="1">
-            <Input
+            <Input {...inputProps}
               size="lg"
               placeholder="16"
               value={rim}
@@ -315,7 +315,7 @@ export function StepTyreDetails({
           Helps our driver prepare and speeds up the job
         </Text>
 
-        <input
+        <Input {...inputProps}
           type="file"
           ref={fileInputRef}
           accept="image/jpeg,image/png,image/webp"
