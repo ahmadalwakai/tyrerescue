@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { Box, Container, Flex, Text, Link as ChakraLink, VStack } from '@chakra-ui/react';
 import Link from 'next/link';
@@ -33,8 +33,13 @@ const pulseGlowKeyframes = `
 
 export function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { data: session } = useSession();
-  const isLoggedIn = !!session?.user;
+  const isLoggedIn = mounted && !!session?.user;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <>
