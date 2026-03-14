@@ -300,3 +300,48 @@ body {
     transition: none;
   }
 }
+
+/* ─── Skip Navigation ─────────────────────────────────── */
+
+.skip-nav {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  z-index: 100;
+  padding: 12px 24px;
+  background: #F97316;
+  color: #09090B;
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  border-radius: 0 0 4px 4px;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-nav:focus {
+  top: 0;
+}
+
+/* ─── Print Styles ────────────────────────────────────── */
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .hero-sq,
+  .back-to-top,
+  .marquee-container,
+  nav,
+  footer,
+  [aria-hidden="true"] {
+    display: none !important;
+  }
+
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

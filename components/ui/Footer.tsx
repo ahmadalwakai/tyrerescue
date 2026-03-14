@@ -8,6 +8,7 @@ import { cities } from '@/lib/cities';
 
 const colors = {
   bg: colorTokens.bg,
+  accent: colorTokens.accent,
   textPrimary: colorTokens.text,
   textSecondary: colorTokens.muted,
   border: colorTokens.border,
@@ -93,21 +94,48 @@ export function Footer() {
           gap={4}
           mb="60px"
         >
-          <Text
-            fontSize={{ base: '32px', md: '48px' }}
-            color={colors.textPrimary}
-            lineHeight="1"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            TYRE RESCUE
-          </Text>
-          <Text
-            fontSize="13px"
-            color={colors.textSecondary}
-            style={{ fontFamily: 'var(--font-body)' }}
-          >
-            Emergency mobile tyre fitting — Glasgow &amp; Edinburgh
-          </Text>
+          <Box>
+            <Text
+              fontSize={{ base: '32px', md: '48px' }}
+              color={colors.textPrimary}
+              lineHeight="1"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              TYRE RESCUE
+            </Text>
+            <Text
+              fontSize="13px"
+              color={colors.textSecondary}
+              mt={2}
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              Emergency mobile tyre fitting — Glasgow &amp; Edinburgh
+            </Text>
+          </Box>
+          <Flex direction="column" gap={2} align={{ base: 'flex-start', md: 'flex-end' }}>
+            <ChakraLink
+              href="tel:01412660690"
+              fontSize={{ base: '24px', md: '32px' }}
+              color={colors.accent}
+              _hover={{ opacity: 0.8 }}
+              transition="opacity 0.2s"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              0141 266 0690
+            </ChakraLink>
+            <ChakraLink
+              href="https://wa.me/447423262955"
+              target="_blank"
+              rel="noopener noreferrer"
+              fontSize="13px"
+              color="#25D366"
+              _hover={{ opacity: 0.8 }}
+              transition="opacity 0.2s"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              WhatsApp Us
+            </ChakraLink>
+          </Flex>
         </Flex>
 
         {/* Five columns */}
@@ -145,6 +173,27 @@ export function Footer() {
             </Flex>
           </Box>
         </SimpleGrid>
+
+        {/* Payment methods */}
+        <Flex gap={4} align="center" mb={8} mt={2} wrap="wrap">
+          <Text fontSize="11px" color={colors.textSecondary} style={{ fontFamily: 'var(--font-body)' }}>
+            We accept:
+          </Text>
+          {['Visa', 'Mastercard', 'Apple Pay', 'Google Pay'].map((method) => (
+            <Box
+              key={method}
+              px={3}
+              py="4px"
+              borderWidth="1px"
+              borderColor={colors.border}
+              borderRadius="4px"
+            >
+              <Text fontSize="11px" color={colors.textSecondary} style={{ fontFamily: 'var(--font-body)' }}>
+                {method}
+              </Text>
+            </Box>
+          ))}
+        </Flex>
 
         {/* Bottom bar */}
         <Box pt={8} borderTopWidth="1px" borderColor={colors.border}>

@@ -51,6 +51,14 @@ export const metadata: Metadata = {
     siteName: 'Tyre Rescue',
     locale: 'en_GB',
     type: 'website',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Tyre Rescue — Emergency Mobile Tyre Fitting Glasgow & Edinburgh',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
@@ -77,9 +85,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${bebasNeue.variable}`} suppressHydrationWarning>
+    <html lang="en-GB" className={`${inter.variable} ${bebasNeue.variable}`} suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <Providers>
+          <a
+            href="#main-content"
+            className="skip-nav"
+          >
+            Skip to main content
+          </a>
           {children}
           <CookieBanner />
           <CallMeBack />

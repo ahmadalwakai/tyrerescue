@@ -7,6 +7,7 @@ import {
   Text,
   Flex,
   Input,
+  Textarea,
   SimpleGrid,
   Grid,
   Link as ChakraLink,
@@ -15,7 +16,7 @@ import Link from 'next/link';
 import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
-import { colorTokens, inputProps } from '@/lib/design-tokens';
+import { colorTokens, inputProps, textareaProps } from '@/lib/design-tokens';
 import { cities } from '@/lib/cities';
 
 const colors = {
@@ -86,22 +87,9 @@ const marqueeItems = [
 ];
 
 const cssKeyframes = `
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(40px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes slideInRight {
-    from { opacity: 0; transform: translateX(60px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
   @keyframes marquee {
     from { transform: translateX(0); }
     to { transform: translateX(-50%); }
-  }
-  @keyframes pulseGlow {
-    0% { box-shadow: 0 0 0 0 rgba(249,115,22,0.4); }
-    70% { box-shadow: 0 0 0 12px rgba(249,115,22,0); }
-    100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
   }
   @keyframes lineGrow {
     from { width: 0; }
@@ -352,21 +340,33 @@ function AnimatedSection({ children, delay = 0 }: { children: React.ReactNode; d
 }
 
 // ─── FAQ Item ────────────────────────────────────────────
-function FAQItem({ question, answer }: { question: string; answer: string }) {
+function FAQItem({ question, answer, index }: { question: string; answer: string; index: number }) {
   const [isOpen, setIsOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const panelId = `faq-panel-${index}`;
+  const headingId = `faq-heading-${index}`;
 
   return (
     <Box borderBottomWidth="1px" borderColor={colors.border}>
       <Flex
+        as="button"
+        id={headingId}
+        role="button"
+        aria-expanded={isOpen}
+        aria-controls={panelId}
         justify="space-between"
         align="center"
         cursor="pointer"
         py="24px"
+        w="100%"
+        bg="transparent"
+        border="none"
+        textAlign="left"
         onClick={() => setIsOpen(!isOpen)}
         _hover={{ opacity: 0.8 }}
       >
         <Text
+          as="span"
           fontWeight="500"
           color={colors.textPrimary}
           fontSize="16px"
@@ -381,6 +381,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
           fontSize="24px"
           flexShrink={0}
           className={`faq-toggle${isOpen ? ' open' : ''}`}
+          aria-hidden="true"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           +
@@ -388,6 +389,9 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
       </Flex>
       <Box
         ref={contentRef}
+        id={panelId}
+        role="region"
+        aria-labelledby={headingId}
         overflow="hidden"
         style={{
           maxHeight: isOpen ? '500px' : '0',
@@ -456,6 +460,7 @@ function ContactSection() {
             GET IN TOUCH
           </Text>
           <Text
+            as="h2"
             fontSize={{ base: '36px', md: '64px', lg: '80px' }}
             color={colors.textPrimary}
             lineHeight="1"
@@ -468,7 +473,7 @@ function ContactSection() {
 
         <AnimatedSection delay={0.2}>
           {status === 'success' ? (
-            <Box bg={colors.surface} p={8} borderRadius="8px" borderWidth="1px" borderColor={colors.border} textAlign="center">
+            <Box bg={colors.surface} p={8} borderRadius="8px" borderWidth="1px" borderColor={colors.border} textAlign="center" role="status" aria-live="polite">
               <Text fontWeight="700" fontSize="lg" color={colors.textPrimary} mb={2}>
                 Message sent
               </Text>
@@ -479,42 +484,30 @@ function ContactSection() {
           ) : (
             <Box bg={colors.surface} p={{ base: 6, md: 8 }} borderRadius="8px" borderWidth="1px" borderColor={colors.border}>
               <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
-                <Box flex="1">
-                  <Text fontSize="13px" color={colors.textSecondary} mb="6px" fontWeight="500">Name</Text>
+                <Box flex="1" as="label" display="block">
+                  <Text fontSize="13px" color={colors.textSecondary} mb="6px" fontWeight="500" style={{ fontFamily: 'var(--font-body)' }}>Name</Text>
                   <Input {...inputProps} placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
                 </Box>
-                <Box flex="1">
-                  <Text fontSize="13px" color={colors.textSecondary} mb="6px" fontWeight="500">Email</Text>
+                <Box flex="1" as="label" display="block">
+                  <Text fontSize="13px" color={colors.textSecondary} mb="6px" fontWeight="500" style={{ fontFamily: 'var(--font-body)' }}>Email</Text>
                   <Input {...inputProps} placeholder="your@email.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                 </Box>
               </Flex>
-              <Box mt={4}>
-                <Text fontSize="13px" color={colors.textSecondary} mb="6px" fontWeight="500">Phone (optional)</Text>
+              <Box mt={4} as="label" display="block">
+                <Text fontSize="13px" color={colors.textSecondary} mb="6px" fontWeight="500" style={{ fontFamily: 'var(--font-body)' }}>Phone (optional)</Text>
                 <Input {...inputProps} placeholder="Your phone number" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
               </Box>
-              <Box mt={4}>
-                <Text fontSize="13px" color={colors.textSecondary} mb="6px" fontWeight="500">Message</Text>
-                <textarea
+              <Box mt={4} as="label" display="block">
+                <Text fontSize="13px" color={colors.textSecondary} mb="6px" fontWeight="500" style={{ fontFamily: 'var(--font-body)' }}>Message</Text>
+                <Textarea
+                  {...textareaProps}
                   placeholder="How can we help?"
                   value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  style={{
-                    width: '100%',
-                    minHeight: '120px',
-                    resize: 'vertical',
-                    padding: '12px 16px',
-                    fontSize: '15px',
-                    borderRadius: '6px',
-                    border: `1px solid ${colorTokens.input.border}`,
-                    background: colorTokens.input.bg,
-                    color: colorTokens.input.text,
-                    fontFamily: 'var(--font-body)',
-                    outline: 'none',
-                  }}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessage(e.target.value)}
                 />
               </Box>
               {status === 'error' && (
-                <Text color="#EF4444" fontSize="sm" mt={2}>Something went wrong. Please try again.</Text>
+                <Text color="#EF4444" fontSize="sm" mt={2} role="alert">Something went wrong. Please try again.</Text>
               )}
               <Box mt={6}>
                 <Box
@@ -626,7 +619,7 @@ export function HomePage() {
       <style>{cssKeyframes}</style>
       <Nav />
 
-      <Box as="main" flex={1}>
+      <Box as="main" id="main-content" flex={1}>
         {/* ═══════════════════════════════════════════════════
             SECTION 1: HERO
         ═══════════════════════════════════════════════════ */}
@@ -1101,6 +1094,7 @@ export function HomePage() {
                 </Text>
                 <Box>
                   <Text
+                    as="h2"
                     fontSize={{ base: '36px', md: '64px' }}
                     color={colors.textPrimary}
                     lineHeight="1"
@@ -1193,7 +1187,7 @@ export function HomePage() {
             <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={{ base: 10, md: 16 }} alignItems="flex-start">
               <Flex direction="column" gap={4} align="flex-start">
                 <Text fontSize="11px" color={colors.accent} letterSpacing="0.15em" style={{ fontFamily: 'var(--font-body)' }}>OUR GUARANTEE</Text>
-                <Text fontSize={{ base: '40px', md: '56px' }} color={colors.textPrimary} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>WE STAND BEHIND EVERY JOB.</Text>
+                <Text as="h2" fontSize={{ base: '40px', md: '56px' }} color={colors.textPrimary} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>WE STAND BEHIND EVERY JOB.</Text>
                 <Text fontSize="15px" color={colors.textSecondary} lineHeight="1.7" style={{ fontFamily: 'var(--font-body)' }}>
                   If you are not completely satisfied with our work, we will return and put it right at no extra charge. No arguments, no hassle.
                 </Text>
@@ -1244,6 +1238,7 @@ export function HomePage() {
                 THE PROCESS
               </Text>
               <Text
+                as="h2"
                 fontSize={{ base: '36px', md: '64px', lg: '80px' }}
                 color={colors.textPrimary}
                 lineHeight="1"
@@ -1329,6 +1324,7 @@ export function HomePage() {
           <Container maxW="1200px">
           <AnimatedSection>
             <Text
+              as="h2"
               fontSize={{ base: '36px', md: '56px' }}
               color={colors.textPrimary}
               mb={2}
@@ -1380,6 +1376,7 @@ export function HomePage() {
                 WHAT THEY SAY
               </Text>
               <Text
+                as="h2"
                 fontSize={{ base: '36px', md: '64px', lg: '80px' }}
                 color={colors.textPrimary}
                 lineHeight="1"
@@ -1481,7 +1478,7 @@ export function HomePage() {
             <Grid templateColumns={{ base: '1fr', md: '2fr 3fr' }} gap={{ base: 10, md: 16 }}>
               <Flex direction="column" gap={5} align="flex-start">
                 <Text fontSize="11px" color={colors.accent} letterSpacing="0.15em" style={{ fontFamily: 'var(--font-body)' }}>ABOUT US</Text>
-                <Text fontSize={{ base: '40px', md: '56px' }} color={colors.textPrimary} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>DUKE STREET TYRES.</Text>
+                <Text as="h2" fontSize={{ base: '40px', md: '56px' }} color={colors.textPrimary} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>DUKE STREET TYRES.</Text>
                 <Text fontSize="15px" color={colors.textSecondary} lineHeight="1.7" style={{ fontFamily: 'var(--font-body)' }}>
                   Based in Glasgow&apos;s East End, Duke Street Tyres has been providing professional tyre services to drivers across Scotland since 2014. Our mobile fitting service brings the expertise of a full garage to your exact location.
                 </Text>
@@ -1538,6 +1535,7 @@ export function HomePage() {
                 COMMON QUESTIONS
               </Text>
               <Text
+                as="h2"
                 fontSize={{ base: '36px', md: '64px', lg: '80px' }}
                 color={colors.textPrimary}
                 lineHeight="1"
@@ -1550,7 +1548,7 @@ export function HomePage() {
 
             <AnimatedSection delay={0.2}>
               {faqs.map((faq, index) => (
-                <FAQItem key={index} question={faq.question} answer={faq.answer} />
+                <FAQItem key={index} index={index} question={faq.question} answer={faq.answer} />
               ))}
             </AnimatedSection>
           </Container>

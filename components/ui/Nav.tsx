@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { Box, Container, Flex, Text, Link as ChakraLink, VStack } from '@chakra-ui/react';
@@ -41,6 +41,7 @@ export function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
   const pathname = usePathname();
   const isLoggedIn = mounted && !!session?.user;
@@ -55,6 +56,34 @@ export function Nav() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, [onScroll]);
+
+  // Focus trap for mobile menu
+  useEffect(() => {
+    if (!mobileOpen || !mobileMenuRef.current) return;
+    const menu = mobileMenuRef.current;
+    const focusable = menu.querySelectorAll<HTMLElement>('a, button, [tabindex]:not([tabindex="-1"])');
+    if (focusable.length > 0) focusable[0].focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMobileOpen(false);
+        return;
+      }
+      if (e.key !== 'Tab' || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [mobileOpen]);
 
   return (
     <>
@@ -122,18 +151,24 @@ export function Nav() {
 
             <Flex gap={4} align="center">
               {/* Mobile menu toggle */}
-              <Text
+              <Box
+                as="button"
                 display={{ base: 'block', md: 'none' }}
                 color={colors.textSecondary}
                 fontSize="13px"
                 letterSpacing="0.1em"
                 cursor="pointer"
+                bg="transparent"
+                border="none"
                 _hover={{ color: colors.textPrimary }}
                 onClick={() => setMobileOpen(!mobileOpen)}
+                aria-expanded={mobileOpen}
+                aria-controls="mobile-nav"
+                aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 {mobileOpen ? 'CLOSE' : 'MENU'}
-              </Text>
+              </Box>
 
               {isLoggedIn ? (
                 <Flex gap={3} align="center" display={{ base: 'none', sm: 'flex' }}>
@@ -144,7 +179,7 @@ export function Nav() {
                   >
                     {session.user?.name}
                   </Text>
-                  <Text
+                  <Box
                     as="button"
                     fontSize="13px"
                     color={colors.textSecondary}
@@ -157,7 +192,7 @@ export function Nav() {
                     onClick={() => signOut({ callbackUrl: '/login' })}
                   >
                     Sign Out
-                  </Text>
+                  </Box>
                 </Flex>
               ) : (
                 <ChakraLink
@@ -199,6 +234,11 @@ export function Nav() {
       {/* Mobile overlay */}
       {mobileOpen && (
         <Box
+          ref={mobileMenuRef}
+          id="mobile-nav"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile navigation"
           position="fixed"
           inset={0}
           top="64px"
@@ -226,7 +266,7 @@ export function Nav() {
               </ChakraLink>
             ))}
             {isLoggedIn ? (
-              <Text
+              <Box
                 as="button"
                 fontSize="24px"
                 color={colors.textSecondary}
@@ -243,7 +283,7 @@ export function Nav() {
                 }}
               >
                 SIGN OUT
-              </Text>
+              </Box>
             ) : (
               <ChakraLink
                 asChild
