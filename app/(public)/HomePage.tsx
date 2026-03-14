@@ -113,6 +113,177 @@ const cssKeyframes = `
   }
 `;
 
+type AmbientDepth = 'far' | 'mid' | 'accent';
+type AmbientVariant = 'outline' | 'fill' | 'fragment' | 'mark';
+
+type AmbientPiece = {
+  id: string;
+  x: number;
+  y: number;
+  size: 8 | 12 | 16 | 20 | 24 | 28;
+  depth: AmbientDepth;
+  variant: AmbientVariant;
+  driftX: number;
+  driftY: number;
+  rotate: number;
+  duration: number;
+  delay: number;
+};
+
+const heroAmbientPieces: AmbientPiece[] = [
+  // far — tiny, slow, edges only
+  { id: 'f1', x: 5, y: 10, size: 8, depth: 'far', variant: 'outline', driftX: 5, driftY: -4, rotate: 3, duration: 28, delay: -4 },
+  { id: 'f2', x: 11, y: 28, size: 12, depth: 'far', variant: 'fill', driftX: 6, driftY: 4, rotate: -3, duration: 30, delay: -11 },
+  { id: 'f3', x: 88, y: 9, size: 8, depth: 'far', variant: 'outline', driftX: -4, driftY: 5, rotate: -2, duration: 32, delay: -7 },
+  { id: 'f4', x: 93, y: 22, size: 12, depth: 'far', variant: 'fragment', driftX: -6, driftY: 3, rotate: 3, duration: 26, delay: -15 },
+  { id: 'f5', x: 7, y: 80, size: 8, depth: 'far', variant: 'outline', driftX: 5, driftY: -5, rotate: -3, duration: 34, delay: -2 },
+  { id: 'f6', x: 92, y: 78, size: 12, depth: 'far', variant: 'fill', driftX: -4, driftY: -4, rotate: 2, duration: 29, delay: -18 },
+
+  // mid — slightly larger, medium edges, no centre
+  { id: 'm1', x: 74, y: 14, size: 16, depth: 'mid', variant: 'outline', driftX: -7, driftY: 6, rotate: 4, duration: 22, delay: -3 },
+  { id: 'm2', x: 80, y: 30, size: 20, depth: 'mid', variant: 'fragment', driftX: -8, driftY: -5, rotate: -4, duration: 20, delay: -9 },
+  { id: 'm3', x: 78, y: 78, size: 16, depth: 'mid', variant: 'mark', driftX: -7, driftY: -4, rotate: 3, duration: 21, delay: -5 },
+  { id: 'm4', x: 14, y: 10, size: 16, depth: 'mid', variant: 'mark', driftX: 6, driftY: 4, rotate: -3, duration: 23, delay: -12 },
+  { id: 'm5', x: 9, y: 46, size: 20, depth: 'mid', variant: 'fragment', driftX: 7, driftY: -5, rotate: 3, duration: 19, delay: -7 },
+  { id: 'm6', x: 11, y: 88, size: 16, depth: 'mid', variant: 'outline', driftX: 5, driftY: -6, rotate: -4, duration: 24, delay: -16 },
+
+  // accent — orange, fewest, deliberate
+  { id: 'a1', x: 86, y: 18, size: 16, depth: 'accent', variant: 'outline', driftX: -5, driftY: 4, rotate: 3, duration: 18, delay: -4 },
+  { id: 'a2', x: 8, y: 74, size: 12, depth: 'accent', variant: 'mark', driftX: 4, driftY: -3, rotate: 2, duration: 16, delay: -9 },
+];
+
+function HeroAmbientLayer() {
+  return (
+    <Box className="hero-ambient-layer" position="absolute" inset={0} zIndex={0} pointerEvents="none" aria-hidden>
+      {heroAmbientPieces.map((piece) => {
+        const pieceStyle = {
+          left: `${piece.x}%`,
+          top: `${piece.y}%`,
+          width: `${piece.size}px`,
+          height: piece.variant === 'mark' ? '2px' : `${piece.size}px`,
+          animationDuration: `${piece.duration}s`,
+          animationDelay: `${piece.delay}s`,
+          '--drift-x': `${piece.driftX}px`,
+          '--drift-y': `${piece.driftY}px`,
+          '--drift-rot': `${piece.rotate}deg`,
+        } as React.CSSProperties;
+
+        return (
+          <Box
+            key={piece.id}
+            as="span"
+            className={`hero-ambient-piece depth-${piece.depth} variant-${piece.variant}`}
+            style={pieceStyle}
+          />
+        );
+      })}
+    </Box>
+  );
+}
+
+// ─── Glasgow O Letter Animation ─────────────────────────
+function GlasgowO({ delay }: { delay: string }) {
+  return (
+    <Box
+      as="span"
+      display="inline-block"
+      position="relative"
+      w="1ch"
+      verticalAlign="baseline"
+    >
+      <Box
+        as="span"
+        className="neon-char"
+        position="absolute"
+        top={0}
+        left={0}
+        w="100%"
+        h="100%"
+        style={{
+          animation: `glasgowORollPath 9.6s cubic-bezier(0.22,1,0.36,1) ${delay} infinite, glasgowOLetterOpacity 9.6s ease-in-out ${delay} infinite, orangeNeon 3s ease-in-out ${delay} infinite`,
+        }}
+      >
+        O
+      </Box>
+
+      <Box
+        as="span"
+        position="absolute"
+        top={0}
+        left={0}
+        w="100%"
+        h="100%"
+        pointerEvents="none"
+        style={{
+          animation: `glasgowORollPath 9.6s cubic-bezier(0.22,1,0.36,1) ${delay} infinite, glasgowOTyreOpacity 9.6s ease-in-out ${delay} infinite`,
+        }}
+      >
+        <Box
+          as="span"
+          display="inline-block"
+          w="1.15ch"
+          h="1.15em"
+          style={{
+            transform: 'translateY(-0.04em)',
+            animation: `glasgowOTyreBounce 1.6s ease-in-out ${delay} infinite`,
+          }}
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 100 100"
+            width="100%"
+            height="100%"
+            style={{
+              animation: 'tyreSpin 2s linear infinite',
+              transformOrigin: 'center',
+              filter: 'drop-shadow(0 0 3px rgba(249,115,22,0.6)) drop-shadow(0 0 8px rgba(249,115,22,0.35))',
+            }}
+          >
+            <circle cx="50" cy="50" r="46" fill="#1A1A1A" />
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#2A2A2A" strokeWidth="2" />
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#F97316" strokeWidth="10" />
+            <circle cx="50" cy="50" r="30" fill="#27272A" stroke="#3F3F46" strokeWidth="2" />
+            <circle cx="50" cy="50" r="30" fill="none" stroke="#A1A1AA" strokeWidth="1" opacity="0.5" />
+            {[0, 72, 144, 216, 288].map((angle) => {
+              const rad = (angle * Math.PI) / 180;
+              const x2 = 50 + 24 * Math.cos(rad);
+              const y2 = 50 + 24 * Math.sin(rad);
+              return (
+                <line
+                  key={angle}
+                  x1="50"
+                  y1="50"
+                  x2={x2}
+                  y2={y2}
+                  stroke="#A1A1AA"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                />
+              );
+            })}
+            <circle cx="50" cy="50" r="6" fill="#F97316" />
+            <circle cx="50" cy="50" r="3" fill="#09090B" />
+            {Array.from({ length: 8 }).map((_, i) => (
+              <rect
+                key={i}
+                x="47"
+                y="3"
+                width="6"
+                height="10"
+                fill="#F97316"
+                opacity="0.55"
+                transform={`rotate(${i * 45} 50 50)`}
+              />
+            ))}
+          </svg>
+        </Box>
+      </Box>
+
+      <Box as="span" visibility="hidden">O</Box>
+    </Box>
+  );
+}
+
 // ─── Counter Hook ────────────────────────────────────────
 function useCountUp(end: number, duration: number = 1500, decimals: number = 0) {
   const [value, setValue] = useState(0);
@@ -449,6 +620,7 @@ export function HomePage() {
               backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
             }}
           />
+          <HeroAmbientLayer />
           {/* Giant watermark */}
           <Text
             position="absolute"
@@ -490,6 +662,7 @@ export function HomePage() {
                 <Box
                   style={{
                     animation: 'fadeUp 0.6s ease-out 0.1s both',
+                    overflow: 'hidden',
                   }}
                 >
                   <Text
@@ -502,11 +675,17 @@ export function HomePage() {
                       animation: 'slideInLeft 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s both',
                     }}
                   >
-                    {'GLASGOW'.split('').map((ch, i) => (
-                      <span key={i} className="neon-char" style={{ animationDelay: `${i * 0.12}s` }}>
-                        {ch}
-                      </span>
-                    ))}
+                    {'GLASGOW'.split('').map((ch, i) => {
+                      if (ch === 'O' && i === 5) {
+                        return <GlasgowO key={i} delay={`${i * 0.12}s`} />;
+                      }
+
+                      return (
+                        <Box as="span" key={i} className="neon-char" style={{ animationDelay: `${i * 0.12}s` }}>
+                          {ch}
+                        </Box>
+                      );
+                    })}
                   </Text>
                   <Text
                     as="span"
@@ -520,9 +699,9 @@ export function HomePage() {
                     }}
                   >
                     {'EDINBURGH'.split('').map((ch, i) => (
-                      <span key={i} className="neon-char" style={{ animationDelay: `${(i + 7) * 0.12}s` }}>
+                      <Box as="span" key={i} className="neon-char" style={{ animationDelay: `${(i + 7) * 0.12}s` }}>
                         {ch}
-                      </span>
+                      </Box>
                     ))}
                   </Text>
                   <Text
@@ -537,9 +716,9 @@ export function HomePage() {
                     }}
                   >
                     {'DUNDEE'.split('').map((ch, i) => (
-                      <span key={i} className="neon-char" style={{ animationDelay: `${(i + 16) * 0.12}s` }}>
+                      <Box as="span" key={i} className="neon-char" style={{ animationDelay: `${(i + 16) * 0.12}s` }}>
                         {ch}
-                      </span>
+                      </Box>
                     ))}
                   </Text>
                 </Box>
