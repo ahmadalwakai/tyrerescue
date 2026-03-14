@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, VStack, HStack, Text, Button, Separator, Spinner } from '@chakra-ui/react';
 import { WizardState, WizardStep } from './types';
 import { formatPrice, PricingBreakdown, PricingLineItem } from '@/lib/pricing-engine';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { API } from '@/lib/api-endpoints';
 
 interface StepPricingProps {
   state: WizardState;
@@ -60,7 +61,7 @@ export function StepPricing({
     setIsExpired(false);
 
     try {
-      const res = await fetch('/api/bookings/quote', {
+      const res = await fetch(API.BOOKINGS_QUOTE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -93,7 +94,6 @@ export function StepPricing({
         quoteExpiresAt: data.expiresAt,
       });
     } catch (error) {
-      console.error('Failed to refresh quote:', error);
       alert('Failed to refresh quote. Please try again.');
     } finally {
       setIsRefreshing(false);
@@ -111,12 +111,12 @@ export function StepPricing({
     );
   }
 
-  // Group line items by type
-  const tyreItems = breakdown.lineItems.filter(item => item.type === 'tyre');
-  const serviceItems = breakdown.lineItems.filter(item => item.type === 'service');
-  const calloutItems = breakdown.lineItems.filter(item => item.type === 'callout');
-  const surchargeItems = breakdown.lineItems.filter(item => item.type === 'surcharge');
-  const discountItems = breakdown.lineItems.filter(item => item.type === 'discount');
+  // Group line items by type (memoized to avoid recalculating on every render)
+  const tyreItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'tyre'), [breakdown]);
+  const serviceItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'service'), [breakdown]);
+  const calloutItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'callout'), [breakdown]);
+  const surchargeItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'surcharge'), [breakdown]);
+  const discountItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'discount'), [breakdown]);
 
   return (
     <VStack gap={6} align="stretch">

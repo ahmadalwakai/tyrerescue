@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -8,7 +8,9 @@ import {
   VStack,
   HStack,
   Text,
+  Skeleton,
 } from '@chakra-ui/react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   WizardState,
   WizardStep,
@@ -44,6 +46,8 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
       mb={6}
       borderWidth="1px"
       borderColor={c.border}
+      role="navigation"
+      aria-label="Booking progress"
     >
       <HStack gap={0} justify="space-between" wrap="wrap">
         {steps.map((step, index) => {
@@ -96,8 +100,9 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
                 justifyContent="center"
                 mx="auto"
                 mb={1}
+                aria-current={isActive ? 'step' : undefined}
               >
-                {step.number}
+                {isCompleted ? '\u2713' : step.number}
               </Box>
 
               {/* Step name */}
@@ -127,6 +132,7 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
   const [state, setState] = useState<WizardState>({ ...initialWizardState, ...initialState });
   const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep || 'service-type');
   const [isHydrated, setIsHydrated] = useState(false);
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Restore state from sessionStorage on mount
   useEffect(() => {
@@ -138,21 +144,24 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
         if (!initialStep && parsed.currentStep) {
           setCurrentStep(parsed.currentStep);
         }
-      } catch (e) {
-        console.error('Failed to restore wizard state:', e);
+      } catch {
+        // Corrupted storage — start fresh
       }
     }
     setIsHydrated(true);
   }, [initialStep]);
 
-  // Save state to sessionStorage on every change
+  // Debounced save to sessionStorage (300ms)
   useEffect(() => {
-    if (isHydrated) {
+    if (!isHydrated) return;
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => {
       sessionStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({ state, currentStep })
       );
-    }
+    }, 300);
+    return () => { if (saveTimeout.current) clearTimeout(saveTimeout.current); };
   }, [state, currentStep, isHydrated]);
 
   const updateState = useCallback((updates: Partial<WizardState>) => {
@@ -192,7 +201,6 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
   }, [router]);
 
   const handlePaymentError = useCallback((error: string) => {
-    console.error('Payment error:', error);
     // Stay on payment step to allow retry
   }, []);
 
@@ -200,7 +208,11 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
   if (!isHydrated) {
     return (
       <Container maxW="container.md" py={8}>
-        <Box h="400px" />
+        <VStack gap={6} align="stretch">
+          <Skeleton h="60px" borderRadius="md" />
+          <Skeleton h="300px" borderRadius="lg" />
+          <Skeleton h="20px" w="120px" mx="auto" borderRadius="sm" />
+        </VStack>
       </Container>
     );
   }
@@ -306,7 +318,7 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
   };
 
   return (
-    <>
+    <ErrorBoundary>
       {/* Service type step renders full-viewport, outside the card wrapper */}
       {currentStep === 'service-type' && renderStep()}
 
@@ -325,6 +337,7 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
               p={{ base: 4, md: 6 }}
               borderWidth="1px"
               borderColor={c.border}
+              aria-live="polite"
             >
               {renderStep()}
             </Box>
@@ -345,6 +358,6 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
           </VStack>
         </Container>
       )}
-    </>
+    </ErrorBoundary>
   );
 }

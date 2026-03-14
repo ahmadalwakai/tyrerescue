@@ -14,6 +14,7 @@ import { WizardState, SelectedTyre, PricingBreakdown } from './types';
 import { formatPrice } from '@/lib/pricing-engine';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { API } from '@/lib/api-endpoints';
 
 interface TyreProduct {
   id: string;
@@ -62,7 +63,7 @@ export function StepTyreSelection({
       try {
         const { width, aspect, rim } = state.tyreSize;
         const res = await fetch(
-          `/api/tyres?width=${width}&aspect=${aspect}&rim=${rim}`
+          `${API.TYRES}?width=${width}&aspect=${aspect}&rim=${rim}`
         );
         const data = await res.json();
 
@@ -108,7 +109,7 @@ export function StepTyreSelection({
     }
 
     try {
-      const res = await fetch('/api/bookings/quote', {
+      const res = await fetch(API.BOOKINGS_QUOTE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -177,7 +178,7 @@ export function StepTyreSelection({
     setIsQuoting(true);
 
     try {
-      const res = await fetch('/api/bookings/quote', {
+      const res = await fetch(API.BOOKINGS_QUOTE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -253,9 +254,14 @@ export function StepTyreSelection({
           <Text fontWeight="500" mb={2} color={c.text}>
             No tyres available for this size
           </Text>
-          <Text color={c.muted} fontSize="sm">
-            Please call us on 0141 266 0690 and we can source the right tyres for you.
+          <Text color={c.muted} fontSize="sm" mb={4}>
+            We can still help! Call us and we will source the right tyres for you.
           </Text>
+          <a href="tel:01412660690" style={{ textDecoration: 'none' }}>
+            <Button colorPalette="orange" size="sm">
+              Call 0141 266 0690
+            </Button>
+          </a>
         </Box>
       )}
 
@@ -297,8 +303,12 @@ export function StepTyreSelection({
                       {tyre.sizeDisplay}
                     </Text>
                     <HStack gap={2} mt={2} flexWrap="wrap">
-                      <Badge colorPalette={seasonColor} size="sm">{tyre.season}</Badge>
-                      <Badge colorPalette={tierColor} size="sm">{tyre.tier}</Badge>
+                      <Badge colorPalette={seasonColor} size="sm">
+                        {tyre.season}
+                      </Badge>
+                      <Badge colorPalette={tierColor} size="sm">
+                        {tyre.tier}
+                      </Badge>
                       {tyre.speedRating && (
                         <Text fontSize="xs" color={c.muted}>Speed: {tyre.speedRating}</Text>
                       )}

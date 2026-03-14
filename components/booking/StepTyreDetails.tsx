@@ -14,6 +14,7 @@ import {
 import { WizardState } from './types';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { API } from '@/lib/api-endpoints';
 
 interface SizeSuggestion {
   size: string;
@@ -61,7 +62,7 @@ export function StepTyreDetails({
 
   // Fetch popular sizes on mount
   useEffect(() => {
-    fetch('/api/tyres/popular-sizes')
+    fetch(API.TYRES_POPULAR_SIZES)
       .then((r) => r.json())
       .then((data: SizeSuggestion[]) => setPopularSizes(data))
       .catch(() => {});
@@ -90,14 +91,14 @@ export function StepTyreDetails({
     }
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/tyres/sizes?q=${encodeURIComponent(val.trim())}`);
+        const res = await fetch(`${API.TYRES_SIZES}?q=${encodeURIComponent(val.trim())}`);
         const data: SizeSuggestion[] = await res.json();
         setSuggestions(data);
         setShowSuggestions(data.length > 0);
       } catch {
         setSuggestions([]);
       }
-    }, 200);
+    }, 500);
   }, []);
 
   // Fill size from suggestion
@@ -132,7 +133,7 @@ export function StepTyreDetails({
     formData.append('file', file);
 
     try {
-      const res = await fetch('/api/upload/tyre-photo', {
+      const res = await fetch(API.UPLOAD_TYRE_PHOTO, {
         method: 'POST',
         body: formData,
       });
@@ -197,6 +198,7 @@ export function StepTyreDetails({
           value={vehicleReg}
           onChange={(e) => setVehicleReg(e.target.value.toUpperCase())}
           maxLength={10}
+          aria-label="Vehicle registration"
         />
         <Text fontSize="xs" color={c.muted} mt={1}>
           Helps our driver identify your vehicle
@@ -226,6 +228,8 @@ export function StepTyreDetails({
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+            aria-label="Search tyre size"
+            aria-autocomplete="list"
           />
           {showSuggestions && suggestions.length > 0 && (
             <Box
@@ -281,6 +285,7 @@ export function StepTyreDetails({
               onChange={(e) => setWidth(e.target.value.replace(/\D/g, ''))}
               maxLength={3}
               textAlign="center"
+              aria-label="Tyre width"
             />
             <Text fontSize="xs" color={c.muted} mt={1} textAlign="center">
               Width
@@ -297,6 +302,7 @@ export function StepTyreDetails({
               onChange={(e) => setAspect(e.target.value.replace(/\D/g, ''))}
               maxLength={2}
               textAlign="center"
+              aria-label="Tyre aspect ratio"
             />
             <Text fontSize="xs" color={c.muted} mt={1} textAlign="center">
               Aspect
@@ -313,6 +319,7 @@ export function StepTyreDetails({
               onChange={(e) => setRim(e.target.value.replace(/\D/g, ''))}
               maxLength={2}
               textAlign="center"
+              aria-label="Rim diameter"
             />
             <Text fontSize="xs" color={c.muted} mt={1} textAlign="center">
               Rim

@@ -2,9 +2,80 @@ import { auth } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+/* ─── Rate Limiting (in-memory, per-instance) ─── */
+const rateMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_WINDOW_MS = 60_000;
+const RATE_LIMIT = 20;
+
+const RATE_LIMITED_PREFIXES = [
+  '/api/auth/',
+  '/api/bookings/create',
+  '/api/bookings/quote',
+  '/api/driver/location',
+];
+
+function isRateLimited(ip: string, pathname: string): boolean {
+  if (!RATE_LIMITED_PREFIXES.some((p) => pathname.startsWith(p))) return false;
+
+  const now = Date.now();
+  const entry = rateMap.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return false;
+  }
+
+  entry.count++;
+  return entry.count > RATE_LIMIT;
+}
+
+// Periodic cleanup every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of rateMap) {
+    if (now > val.resetAt) rateMap.delete(key);
+  }
+}, 5 * 60_000);
+
+/* ─── noindex prefixes (auth & dashboard) ─── */
+const NOINDEX_PREFIXES = [
+  '/login', '/register', '/forgot-password', '/reset-password', '/verify-email',
+  '/dashboard', '/admin', '/driver',
+];
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
+  /* ─── CSRF check on mutating API requests ─── */
+  const method = request.method;
+  if (
+    pathname.startsWith('/api/') &&
+    ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) &&
+    !pathname.startsWith('/api/stripe/webhook')
+  ) {
+    const origin = request.headers.get('origin');
+    const host = request.headers.get('host');
+    if (origin && host) {
+      try {
+        const originHost = new URL(origin).host;
+        if (originHost !== host) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+  }
+
+  /* ─── Rate limiting ─── */
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  if (isRateLimited(ip, pathname)) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: { 'Retry-After': '60' } },
+    );
+  }
+
   // Get session using auth()
   const session = await auth();
   const isLoggedIn = !!session;
@@ -39,7 +110,11 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/api/');
 
   if (isPublicRoute) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    if (NOINDEX_PREFIXES.some((p) => pathname.startsWith(p))) {
+      response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    }
+    return response;
   }
 
   // Protected routes require authentication
@@ -70,7 +145,11 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  if (NOINDEX_PREFIXES.some((p) => pathname.startsWith(p))) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  }
+  return response;
 }
 
 export const config = {

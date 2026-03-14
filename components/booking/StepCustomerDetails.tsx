@@ -18,6 +18,8 @@ import { useSession } from 'next-auth/react';
 import { WizardState } from './types';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { API } from '@/lib/api-endpoints';
+import { EMAIL_REGEX, PHONE_DISPLAY_REGEX } from '@/lib/utils';
 
 interface StepCustomerDetailsProps {
   state: WizardState;
@@ -59,13 +61,13 @@ export function StepCustomerDetails({
 
     if (!email.trim()) {
       newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    } else if (!EMAIL_REGEX.test(email)) {
       newErrors.email = 'Please enter a valid email';
     }
 
     if (!phone.trim()) {
       newErrors.phone = 'Phone number is required';
-    } else if (!/^[\d\s+()-]{10,}$/.test(phone.replace(/\s/g, ''))) {
+    } else if (!PHONE_DISPLAY_REGEX.test(phone.replace(/\s/g, ''))) {
       newErrors.phone = 'Please enter a valid phone number';
     }
 
@@ -90,7 +92,7 @@ export function StepCustomerDetails({
 
     try {
       // Create the booking
-      const res = await fetch('/api/bookings/create', {
+      const res = await fetch(API.BOOKINGS_CREATE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -120,7 +122,6 @@ export function StepCustomerDetails({
 
       goToNext();
     } catch (error) {
-      console.error('Failed to create booking:', error);
       setSubmitError(
         error instanceof Error ? error.message : 'Failed to create booking'
       );
@@ -150,7 +151,7 @@ export function StepCustomerDetails({
         </Box>
       )}
 
-      <Fieldset.Root>
+      <Fieldset.Root disabled={isSubmitting}>
         <Fieldset.Content>
           {/* Name */}
           <Field.Root invalid={!!errors.name}>

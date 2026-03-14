@@ -84,20 +84,30 @@ export function formatTyreSize(width: number, aspect: number, rim: number): stri
 /**
  * Validate UK phone number
  */
+export const UK_PHONE_REGEX = /^(\+44|0)[1-9]\d{8,10}$/;
 export function isValidUKPhone(phone: string): boolean {
   const cleanedPhone = phone.replace(/\s/g, '');
-  // UK phone numbers start with 0 or +44
-  const ukPhoneRegex = /^(\+44|0)[1-9]\d{8,10}$/;
-  return ukPhoneRegex.test(cleanedPhone);
+  return UK_PHONE_REGEX.test(cleanedPhone);
 }
 
 /**
  * Validate email address
  */
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  return EMAIL_REGEX.test(email);
 }
+
+/**
+ * Validate UK postcode
+ */
+export const POSTCODE_REGEX = /^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$/i;
+export function isValidPostcode(postcode: string): boolean {
+  return POSTCODE_REGEX.test(postcode.trim());
+}
+
+/** Simple phone formatting for display (no mutation) */
+export const PHONE_DISPLAY_REGEX = /^[\d\s+()-]{10,}$/;
 
 /**
  * Validate UK postcode

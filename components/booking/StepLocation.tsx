@@ -1,11 +1,19 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Box, Flex, Text, Spinner } from '@chakra-ui/react';
+import { Box, Flex, Text, Spinner, Input, Button } from '@chakra-ui/react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { WizardState } from './types';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { inputProps } from '@/lib/design-tokens';
+import { API } from '@/lib/api-endpoints';
+
+interface MapboxFeature {
+  id: string;
+  place_name: string;
+  center: [number, number];
+}
 
 if (process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
   mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -32,7 +40,7 @@ export function StepLocation({
   goToPrev,
 }: StepLocationProps) {
   const [address, setAddress] = useState(state.address || '');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<MapboxFeature[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
@@ -108,8 +116,8 @@ export function StepLocation({
       );
       const data = await res.json();
       setSuggestions(data.features || []);
-    } catch (e) {
-      console.error('Address search failed:', e);
+    } catch {
+      // Address search failed — silent
     } finally {
       setIsSearching(false);
     }
@@ -125,7 +133,7 @@ export function StepLocation({
     searchTimeout.current = setTimeout(() => searchAddress(value), 250);
   };
 
-  const selectAddress = async (feature: any) => {
+  const selectAddress = async (feature: MapboxFeature) => {
     const [lng, lat] = feature.center;
     const addr: string = feature.place_name;
     setAddress(addr);
@@ -189,7 +197,7 @@ export function StepLocation({
     setIsValidating(true);
     setValidation(null);
     try {
-      const res = await fetch('/api/bookings/validate-location', {
+      const res = await fetch(API.BOOKINGS_VALIDATE_LOCATION, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lat, lng, address: addr }),
@@ -256,37 +264,30 @@ export function StepLocation({
       {/* Location button */}
       {!selectedLocation && (
         <Box style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s both' }}>
-          <button
-            type="button"
+          <Button
+            variant="outline"
             onClick={useCurrentLocation}
             disabled={isLocating}
-            style={{
-              width: '100%',
-              height: 52,
-              background: c.surface,
-              border: `1px solid ${c.border}`,
-              borderRadius: 8,
-              color: c.text,
-              fontSize: 15,
-              fontWeight: 500,
-              fontFamily: 'var(--font-body)',
-              cursor: isLocating ? 'wait' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              transition: 'border-color 0.15s',
-            }}
+            w="full"
+            h="52px"
+            bg={c.surface}
+            borderColor={c.border}
+            color={c.text}
+            fontSize="15px"
+            fontWeight={500}
+            fontFamily="var(--font-body)"
+            borderRadius="8px"
+            _hover={{ borderColor: c.accent }}
           >
             {isLocating ? (
               <>
-                <Spinner size="xs" />
+                <Spinner size="xs" mr={2} />
                 Getting your location…
               </>
             ) : (
               '📍 Use My Current Location'
             )}
-          </button>
+          </Button>
 
           {geoError && (
             <Text fontSize="13px" color={c.muted} mt={2} style={{ fontFamily: 'var(--font-body)' }}>
@@ -305,34 +306,16 @@ export function StepLocation({
 
           {/* Address input */}
           <Box position="relative">
-            <input
+            <Input
+              {...inputProps}
               type="text"
               placeholder="Address or postcode…"
               value={address}
               onChange={(e) => handleAddressChange(e.target.value)}
               onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              style={{
-                width: '100%',
-                height: 52,
-                background: c.input.bg,
-                border: `1px solid ${c.input.border}`,
-                borderRadius: 8,
-                color: c.input.text,
-                fontSize: 16,
-                fontFamily: 'var(--font-body)',
-                padding: '0 16px',
-                outline: 'none',
-                transition: 'border-color 0.15s, box-shadow 0.15s',
-              }}
-              onFocusCapture={(e) => {
-                e.currentTarget.style.borderColor = c.accent;
-                e.currentTarget.style.boxShadow = `0 0 0 1px ${c.accent}`;
-              }}
-              onBlurCapture={(e) => {
-                e.currentTarget.style.borderColor = c.input.border;
-                e.currentTarget.style.boxShadow = 'none';
-              }}
+              aria-label="Address or postcode"
+              aria-autocomplete="list"
             />
 
             {isSearching && (
@@ -358,8 +341,8 @@ export function StepLocation({
                 boxShadow="0 8px 32px rgba(0,0,0,0.4)"
                 mt="2px"
               >
-                {suggestions.map((feature: any) => {
-                  const parts = (feature.place_name as string).split(', ');
+                {suggestions.map((feature) => {
+                  const parts = feature.place_name.split(', ');
                   const main = parts[0];
                   const rest = parts.slice(1).join(', ');
                   return (
@@ -465,47 +448,37 @@ export function StepLocation({
 
       {/* Navigation buttons */}
       <Flex gap={3} mt={5} style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.1s both' }}>
-        <button
-          type="button"
+        <Button
+          variant="outline"
           onClick={goToPrev}
-          style={{
-            flex: 1,
-            height: 52,
-            background: 'transparent',
-            border: `1px solid ${c.border}`,
-            borderRadius: 6,
-            color: c.text,
-            fontSize: 15,
-            fontWeight: 500,
-            fontFamily: 'var(--font-body)',
-            cursor: 'pointer',
-            transition: 'border-color 0.15s',
-          }}
+          flex={1}
+          h="52px"
+          bg="transparent"
+          borderColor={c.border}
+          borderRadius="6px"
+          color={c.text}
+          fontSize="15px"
+          fontWeight={500}
+          fontFamily="var(--font-body)"
+          _hover={{ borderColor: c.accent }}
         >
           Back
-        </button>
+        </Button>
         {canContinue && (
-          <button
-            type="button"
+          <Button
             onClick={handleContinue}
-            style={{
-              flex: 1,
-              height: 52,
-              background: c.accent,
-              border: 'none',
-              borderRadius: 6,
-              color: '#09090B',
-              fontSize: 20,
-              letterSpacing: '0.05em',
-              fontFamily: 'var(--font-display)',
-              cursor: 'pointer',
-              transition: 'background 0.15s',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = c.accentHover; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = c.accent; }}
+            flex={1}
+            h="52px"
+            bg={c.accent}
+            borderRadius="6px"
+            color="#09090B"
+            fontSize="20px"
+            letterSpacing="0.05em"
+            fontFamily="var(--font-display)"
+            _hover={{ bg: c.accentHover }}
           >
             CONTINUE →
-          </button>
+          </Button>
         )}
       </Flex>
     </Box>

@@ -57,7 +57,6 @@ export function LocationBroadcast({ isOnline, hasActiveJob }: Props) {
         setLastUpdate(new Date());
         setError(null);
       } catch (err) {
-        console.error('Error sending location:', err);
         setError(err instanceof Error ? err.message : 'Failed to send location');
       }
     }

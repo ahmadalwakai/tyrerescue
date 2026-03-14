@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Box, VStack, Text, Spinner } from '@chakra-ui/react';
+import { Box, VStack, HStack, Text, Spinner } from '@chakra-ui/react';
 import { colorTokens as c } from '@/lib/design-tokens';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -29,6 +29,7 @@ export function TrackingMap({
   const customerMarker = useRef<mapboxgl.Marker | null>(null);
   const driverMarker = useRef<mapboxgl.Marker | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const lastRouteCoords = useRef<string | null>(null);
 
   // Initialize map
   useEffect(() => {
@@ -168,6 +169,9 @@ export function TrackingMap({
   ) => {
     if (!map.current) return;
 
+    const coordKey = `${fromLng},${fromLat};${toLng},${toLat}`;
+    if (lastRouteCoords.current === coordKey) return;
+
     try {
       const response = await fetch(
         `https://api.mapbox.com/directions/v5/mapbox/driving/${fromLng},${fromLat};${toLng},${toLat}?geometries=geojson&access_token=${mapboxgl.accessToken}`
@@ -187,9 +191,10 @@ export function TrackingMap({
             coordinates: route,
           },
         });
+        lastRouteCoords.current = coordKey;
       }
-    } catch (error) {
-      console.error('Error fetching route:', error);
+    } catch {
+      // Route fetch failed silently — map still usable without route
     }
   };
 
@@ -258,14 +263,5 @@ export function TrackingMap({
         </VStack>
       </Box>
     </Box>
-  );
-}
-
-// HStack component for legend
-function HStack({ children, gap }: { children: React.ReactNode; gap: number }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: `${gap * 4}px` }}>
-      {children}
-    </div>
   );
 }

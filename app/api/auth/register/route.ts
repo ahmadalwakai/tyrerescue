@@ -43,10 +43,11 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: 'An account with this email already exists' },
-        { status: 400 }
-      );
+      // Return same success response to prevent email enumeration
+      return NextResponse.json({
+        success: true,
+        message: 'Account created successfully. Please check your email to verify your account.',
+      });
     }
 
     // Hash password

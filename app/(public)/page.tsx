@@ -34,7 +34,7 @@ const jsonLd = {
     longitude: -4.2206,
   },
   openingHours: 'Mo-Su 08:00-23:59',
-  priceRange: '££',
+  priceRange: '£20–£200',
   areaServed: [
     {
       '@type': 'City',

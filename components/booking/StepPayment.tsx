@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   VStack,
@@ -79,11 +79,11 @@ function CheckoutForm({
   };
 
   // Filter items to display
-  const mainItems = breakdown.lineItems.filter(
+  const mainItems = useMemo(() => breakdown.lineItems.filter(
     item => item.type === 'tyre' || item.type === 'service' || item.type === 'callout'
-  );
-  const surchargeItems = breakdown.lineItems.filter(item => item.type === 'surcharge');
-  const discountItems = breakdown.lineItems.filter(item => item.type === 'discount');
+  ), [breakdown]);
+  const surchargeItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'surcharge'), [breakdown]);
+  const discountItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'discount'), [breakdown]);
 
   return (
     <form onSubmit={handleSubmit}>

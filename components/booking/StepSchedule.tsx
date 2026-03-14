@@ -13,6 +13,7 @@ import {
 import { WizardState } from './types';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { API } from '@/lib/api-endpoints';
 
 interface TimeSlot {
   time: string;
@@ -77,7 +78,7 @@ export function StepSchedule({
 
       try {
         const res = await fetch(
-          `/api/availability/slots?date=${selectedDate}&lat=${state.lat}&lng=${state.lng}`
+          `${API.AVAILABILITY_SLOTS}?date=${selectedDate}&lat=${state.lat}&lng=${state.lng}`
         );
         const data = await res.json();
 
@@ -201,6 +202,7 @@ export function StepSchedule({
                   h="auto"
                   py={3}
                   gap={0}
+                  aria-label={slot.available ? `${slot.label}${slot.spotsLeft <= 3 ? `, ${slot.spotsLeft} spots left` : ''}` : `${slot.label} — fully booked`}
                 >
                   <Text fontWeight="600">{slot.label}</Text>
                   {slot.available ? (

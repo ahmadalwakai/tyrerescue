@@ -62,7 +62,7 @@ export function StatusTimeline({ history, currentStatus }: StatusTimelineProps) 
   }
 
   return (
-    <VStack align="stretch" gap={0}>
+    <VStack align="stretch" gap={0} role="list" aria-label="Booking status timeline">
       {displayStatuses.map((status, index) => {
         const timestamp = statusTimestamps.get(status);
         const isLast = index === displayStatuses.length - 1;
@@ -70,7 +70,7 @@ export function StatusTimeline({ history, currentStatus }: StatusTimelineProps) 
         const isCancelled = status === 'cancelled' || status === 'refunded';
 
         return (
-          <Box key={status} position="relative" style={anim.stagger('fadeUp', index, '0.4s', 0, 0.1)}>
+          <Box key={status} position="relative" role="listitem" style={anim.stagger('fadeUp', index, '0.4s', 0, 0.1)}>
             {/* Connector Line */}
             {!isLast && (
               <Box
@@ -100,6 +100,7 @@ export function StatusTimeline({ history, currentStatus }: StatusTimelineProps) 
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
+                aria-hidden="true"
               >
                 {timestamp && (
                   <Box
@@ -123,7 +124,7 @@ export function StatusTimeline({ history, currentStatus }: StatusTimelineProps) 
                       : c.muted
                   }
                 >
-                  {STATUS_LABELS[status] || status}
+                  {isCancelled ? '✗ ' : timestamp ? '✓ ' : ''}{STATUS_LABELS[status] || status}
                 </Text>
                 {timestamp && (
                   <Text fontSize="sm" color={c.muted}>

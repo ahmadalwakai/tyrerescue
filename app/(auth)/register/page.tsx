@@ -137,7 +137,7 @@ export default function RegisterPage() {
                 required
               />
               <Text fontSize="xs" color={c.muted} mt={1}>
-                Must contain uppercase, lowercase, and a number
+                At least 8 characters with uppercase, lowercase, and a number
               </Text>
             </Field.Root>
 
