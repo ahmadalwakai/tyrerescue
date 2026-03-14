@@ -113,70 +113,73 @@ const cssKeyframes = `
   }
 `;
 
-type AmbientDepth = 'far' | 'mid' | 'accent';
-type AmbientVariant = 'outline' | 'fill' | 'fragment' | 'mark';
+type FallingSquareDepth = 'far' | 'mid' | 'accent';
+type FallingSquareVariant = 'fill' | 'outline' | 'blur';
 
-type AmbientPiece = {
+type FallingSquare = {
   id: string;
   x: number;
-  y: number;
-  size: 8 | 12 | 16 | 20 | 24 | 28;
-  depth: AmbientDepth;
-  variant: AmbientVariant;
+  size: 8 | 12 | 16 | 20 | 24;
+  depth: FallingSquareDepth;
+  variant: FallingSquareVariant;
   driftX: number;
-  driftY: number;
   rotate: number;
   duration: number;
   delay: number;
 };
 
-const heroAmbientPieces: AmbientPiece[] = [
-  // far — tiny, slow, edges only
-  { id: 'f1', x: 5, y: 10, size: 8, depth: 'far', variant: 'outline', driftX: 5, driftY: -4, rotate: 3, duration: 28, delay: -4 },
-  { id: 'f2', x: 11, y: 28, size: 12, depth: 'far', variant: 'fill', driftX: 6, driftY: 4, rotate: -3, duration: 30, delay: -11 },
-  { id: 'f3', x: 88, y: 9, size: 8, depth: 'far', variant: 'outline', driftX: -4, driftY: 5, rotate: -2, duration: 32, delay: -7 },
-  { id: 'f4', x: 93, y: 22, size: 12, depth: 'far', variant: 'fragment', driftX: -6, driftY: 3, rotate: 3, duration: 26, delay: -15 },
-  { id: 'f5', x: 7, y: 80, size: 8, depth: 'far', variant: 'outline', driftX: 5, driftY: -5, rotate: -3, duration: 34, delay: -2 },
-  { id: 'f6', x: 92, y: 78, size: 12, depth: 'far', variant: 'fill', driftX: -4, driftY: -4, rotate: 2, duration: 29, delay: -18 },
+const heroFallingSquares: FallingSquare[] = [
+  // far — smallest, slowest, darkest, edges only
+  { id: 'f1', x: 4,  size: 8,  depth: 'far', variant: 'fill',    driftX: 3,  rotate: 4,  duration: 38, delay: -5 },
+  { id: 'f2', x: 14, size: 12, depth: 'far', variant: 'outline', driftX: -2, rotate: -3, duration: 34, delay: -18 },
+  { id: 'f3', x: 88, size: 8,  depth: 'far', variant: 'fill',    driftX: -3, rotate: 3,  duration: 40, delay: -10 },
+  { id: 'f4', x: 94, size: 12, depth: 'far', variant: 'outline', driftX: 2,  rotate: -2, duration: 36, delay: -26 },
+  { id: 'f5', x: 8,  size: 8,  depth: 'far', variant: 'outline', driftX: 4,  rotate: -4, duration: 42, delay: -15 },
+  { id: 'f6', x: 91, size: 8,  depth: 'far', variant: 'fill',    driftX: -2, rotate: 2,  duration: 37, delay: -32 },
 
-  // mid — slightly larger, medium edges, no centre
-  { id: 'm1', x: 74, y: 14, size: 16, depth: 'mid', variant: 'outline', driftX: -7, driftY: 6, rotate: 4, duration: 22, delay: -3 },
-  { id: 'm2', x: 80, y: 30, size: 20, depth: 'mid', variant: 'fragment', driftX: -8, driftY: -5, rotate: -4, duration: 20, delay: -9 },
-  { id: 'm3', x: 78, y: 78, size: 16, depth: 'mid', variant: 'mark', driftX: -7, driftY: -4, rotate: 3, duration: 21, delay: -5 },
-  { id: 'm4', x: 14, y: 10, size: 16, depth: 'mid', variant: 'mark', driftX: 6, driftY: 4, rotate: -3, duration: 23, delay: -12 },
-  { id: 'm5', x: 9, y: 46, size: 20, depth: 'mid', variant: 'fragment', driftX: 7, driftY: -5, rotate: 3, duration: 19, delay: -7 },
-  { id: 'm6', x: 11, y: 88, size: 16, depth: 'mid', variant: 'outline', driftX: 5, driftY: -6, rotate: -4, duration: 24, delay: -16 },
+  // mid — mixed black + dark orange tones, varied speed
+  { id: 'm1', x: 78, size: 16, depth: 'mid', variant: 'fill',    driftX: -5, rotate: 5,  duration: 28, delay: -4 },
+  { id: 'm2', x: 83, size: 20, depth: 'mid', variant: 'outline', driftX: 3,  rotate: -3, duration: 26, delay: -14 },
+  { id: 'm3', x: 11, size: 16, depth: 'mid', variant: 'blur',    driftX: 4,  rotate: -4, duration: 30, delay: -8 },
+  { id: 'm4', x: 19, size: 12, depth: 'mid', variant: 'fill',    driftX: -3, rotate: 3,  duration: 25, delay: -21 },
+  { id: 'm5', x: 75, size: 16, depth: 'mid', variant: 'outline', driftX: -4, rotate: -2, duration: 27, delay: -12 },
+  { id: 'm6', x: 9,  size: 20, depth: 'mid', variant: 'fill',    driftX: 3,  rotate: 4,  duration: 24, delay: -28 },
 
-  // accent — orange, fewest, deliberate
-  { id: 'a1', x: 86, y: 18, size: 16, depth: 'accent', variant: 'outline', driftX: -5, driftY: 4, rotate: 3, duration: 18, delay: -4 },
-  { id: 'a2', x: 8, y: 74, size: 12, depth: 'accent', variant: 'mark', driftX: 4, driftY: -3, rotate: 2, duration: 16, delay: -9 },
+  // accent — orange, fewest, restrained
+  { id: 'a1', x: 86, size: 16, depth: 'accent', variant: 'outline', driftX: -3, rotate: 3, duration: 22, delay: -6 },
+  { id: 'a2', x: 7,  size: 12, depth: 'accent', variant: 'fill',    driftX: 2,  rotate: -2, duration: 24, delay: -16 },
 ];
 
-function HeroAmbientLayer() {
+function HeroFallingSquares() {
   return (
-    <Box className="hero-ambient-layer" position="absolute" inset={0} zIndex={0} pointerEvents="none" aria-hidden>
-      {heroAmbientPieces.map((piece) => {
-        const pieceStyle = {
-          left: `${piece.x}%`,
-          top: `${piece.y}%`,
-          width: `${piece.size}px`,
-          height: piece.variant === 'mark' ? '2px' : `${piece.size}px`,
-          animationDuration: `${piece.duration}s`,
-          animationDelay: `${piece.delay}s`,
-          '--drift-x': `${piece.driftX}px`,
-          '--drift-y': `${piece.driftY}px`,
-          '--drift-rot': `${piece.rotate}deg`,
-        } as React.CSSProperties;
-
-        return (
-          <Box
-            key={piece.id}
-            as="span"
-            className={`hero-ambient-piece depth-${piece.depth} variant-${piece.variant}`}
-            style={pieceStyle}
-          />
-        );
-      })}
+    <Box
+      position="absolute"
+      inset={0}
+      zIndex={0}
+      overflow="hidden"
+      pointerEvents="none"
+      aria-hidden
+    >
+      {heroFallingSquares.map((sq) => (
+        <Box
+          key={sq.id}
+          as="span"
+          position="absolute"
+          top="-30px"
+          display={{ base: sq.depth === 'far' ? 'none' : 'block', md: 'block' }}
+          className={`hero-sq depth-${sq.depth} variant-${sq.variant}`}
+          w={`${sq.size}px`}
+          h={`${sq.size}px`}
+          borderRadius="2px"
+          style={{
+            left: `${sq.x}%`,
+            animationDuration: `${sq.duration}s`,
+            animationDelay: `${sq.delay}s`,
+            '--sq-dx': `${sq.driftX}px`,
+            '--sq-rot': `${sq.rotate}deg`,
+          } as React.CSSProperties}
+        />
+      ))}
     </Box>
   );
 }
@@ -377,9 +380,10 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
           color={colors.accent}
           fontSize="24px"
           flexShrink={0}
-          style={{ fontFamily: 'var(--font-body)', transition: 'transform 0.2s' }}
+          className={`faq-toggle${isOpen ? ' open' : ''}`}
+          style={{ fontFamily: 'var(--font-body)' }}
         >
-          {isOpen ? '−' : '+'}
+          +
         </Text>
       </Flex>
       <Box
@@ -545,6 +549,46 @@ function ContactSection() {
   );
 }
 
+// ─── Back to Top ─────────────────────────────────────────
+function BackToTop() {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 400);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  if (!show) return null;
+
+  return (
+    <Box
+      as="button"
+      className="back-to-top"
+      position="fixed"
+      bottom="80px"
+      right="24px"
+      zIndex={40}
+      w="44px"
+      h="44px"
+      bg={colors.accent}
+      color={colors.bg}
+      borderRadius="4px"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      cursor="pointer"
+      opacity={show ? 1 : 0}
+      border="none"
+      aria-label="Back to top"
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      style={{ fontFamily: 'var(--font-display)', fontSize: '20px' }}
+    >
+      ↑
+    </Box>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────────
 export function HomePage() {
   const [heroOffset, setHeroOffset] = useState(0);
@@ -620,7 +664,7 @@ export function HomePage() {
               backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
             }}
           />
-          <HeroAmbientLayer />
+          <HeroFallingSquares />
           {/* Giant watermark */}
           <Text
             position="absolute"
@@ -885,9 +929,14 @@ export function HomePage() {
                   zIndex={2}
                 />
                 <Box
+                  style={{
+                    filter: 'drop-shadow(0 0 6px rgba(249,115,22,0.3)) drop-shadow(0 0 18px rgba(249,115,22,0.12))',
+                  }}
+                >
+                <Box
                   bg={colors.card}
                   borderWidth="1px"
-                  borderColor={colors.border}
+                  borderColor="rgba(249,115,22,0.35)"
                   p="40px"
                   position="relative"
                   style={{
@@ -901,7 +950,7 @@ export function HomePage() {
                     color={colors.accent}
                     letterSpacing="0.2em"
                     mb={3}
-                    style={{ fontFamily: 'var(--font-body)' }}
+                    style={{ fontFamily: 'var(--font-body)', animation: 'fadeUp 0.5s ease-out 0.6s both' }}
                   >
                     OUR WORKSHOP
                   </Text>
@@ -910,20 +959,20 @@ export function HomePage() {
                     color={colors.textPrimary}
                     lineHeight="1.1"
                     mb={1}
-                    style={{ fontFamily: 'var(--font-display)' }}
+                    style={{ fontFamily: 'var(--font-display)', animation: 'fadeUp 0.5s ease-out 0.7s both' }}
                   >
                     MOBILE TYRE FITTING
                   </Text>
-                  <Text fontSize="13px" color={colors.textSecondary} mb={0}>
+                  <Text fontSize="13px" color={colors.textSecondary} mb={0} style={{ animation: 'fadeUp 0.5s ease-out 0.8s both' }}>
                     Duke Street Tyres
                   </Text>
 
-                  <Box h="1px" bg={colors.border} my="24px" />
+                  <Box h="1px" bg={colors.border} my="24px" style={{ animation: 'lineGrow 0.5s ease-out 0.9s both' }} />
 
-                  <Text fontSize="14px" color={colors.textPrimary} lineHeight="1.5">
+                  <Text fontSize="14px" color={colors.textPrimary} lineHeight="1.5" style={{ animation: 'fadeUp 0.4s ease-out 1.0s both' }}>
                     3, 10 Gateside St
                   </Text>
-                  <Text fontSize="14px" color={colors.textPrimary} mb={4}>
+                  <Text fontSize="14px" color={colors.textPrimary} mb={4} style={{ animation: 'fadeUp 0.4s ease-out 1.05s both' }}>
                     Glasgow G31 1PD
                   </Text>
 
@@ -938,18 +987,19 @@ export function HomePage() {
                     fontSize={{ base: '32px', md: '52px' }}
                     style={{
                       fontFamily: 'var(--font-display)',
+                      animation: 'fadeUp 0.5s ease-out 1.1s both',
                     }}
                   >
                     {PHONE_NUMBER}
                   </ChakraLink>
 
-                  <Text fontSize="12px" color={colors.textSecondary}>
+                  <Text fontSize="12px" color={colors.textSecondary} style={{ animation: 'fadeUp 0.4s ease-out 1.2s both' }}>
                     Open 8am to Midnight, Every Day
                   </Text>
 
-                  <Box h="1px" bg={colors.border} my="24px" />
+                  <Box h="1px" bg={colors.border} my="24px" style={{ animation: 'lineGrow 0.5s ease-out 1.3s both' }} />
 
-                  <Flex justify="space-between" align="center">
+                  <Flex justify="space-between" align="center" style={{ animation: 'fadeUp 0.4s ease-out 1.4s both' }}>
                     <Text fontSize="11px" color={colors.textSecondary}>
                       Google Reviews
                     </Text>
@@ -957,6 +1007,7 @@ export function HomePage() {
                       4.8 stars — 97 reviews
                     </Text>
                   </Flex>
+                </Box>
                 </Box>
               </Box>
             </Flex>
@@ -966,7 +1017,7 @@ export function HomePage() {
         {/* ═══════════════════════════════════════════════════
             SECTION 2: MARQUEE STRIP
         ═══════════════════════════════════════════════════ */}
-        <Box bg={colors.accent} h="44px" overflow="hidden" display="flex" alignItems="center">
+        <Box bg={colors.accent} h="44px" overflow="hidden" display="flex" alignItems="center" className="marquee-container">
           <Box
             display="flex"
             whiteSpace="nowrap"
@@ -997,8 +1048,9 @@ export function HomePage() {
         {/* ═══════════════════════════════════════════════════
             SECTION 3: TRUST PILLARS
         ═══════════════════════════════════════════════════ */}
-        <Box bg={colors.bg} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
+        <Box id="trust" bg={colors.bg} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
           <Container maxW="1200px">
+          <AnimatedSection>
             <SimpleGrid columns={{ base: 2, md: 4 }} gap={{ base: 6, md: 0 }}>
               <Box textAlign="center">
                 <Text fontSize={{ base: '48px', md: '64px' }} color={colors.accent} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>£2M</Text>
@@ -1022,13 +1074,14 @@ export function HomePage() {
               </Box>
             </SimpleGrid>
             <Box h="1px" bg={colors.border} mt={10} />
+          </AnimatedSection>
           </Container>
         </Box>
 
         {/* ═══════════════════════════════════════════════════
             SECTION 3: SERVICES
         ═══════════════════════════════════════════════════ */}
-        <Box bg={colors.bg} py="120px">
+        <Box id="services" bg={colors.bg} py="120px">
           <Container maxW="7xl">
             <AnimatedSection>
               <Flex
@@ -1046,20 +1099,24 @@ export function HomePage() {
                 >
                   WHAT WE DO
                 </Text>
-                <Text
-                  fontSize={{ base: '36px', md: '64px' }}
-                  color={colors.textPrimary}
-                  lineHeight="1"
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  Complete Mobile Tyre Service
-                </Text>
+                <Box>
+                  <Text
+                    fontSize={{ base: '36px', md: '64px' }}
+                    color={colors.textPrimary}
+                    lineHeight="1"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    Complete Mobile Tyre Service
+                  </Text>
+                  <Box h="2px" w="60px" bg={colors.accent} mt={3} />
+                </Box>
               </Flex>
             </AnimatedSection>
 
             {services.map((service, index) => (
               <AnimatedSection key={service.title} delay={index * 0.1}>
                 <Box
+                  className="service-row"
                   borderBottomWidth="1px"
                   borderColor={colors.border}
                   py="48px"
@@ -1074,9 +1131,11 @@ export function HomePage() {
                   >
                     <Box flex={{ md: '0 0 40%' }}>
                       <Text
+                        className="service-num"
                         fontSize={{ base: '48px', md: '72px' }}
                         color={colors.border}
                         lineHeight="1"
+                        transition="color 0.3s"
                         style={{ fontFamily: 'var(--font-display)' }}
                       >
                         {service.num}
@@ -1110,6 +1169,7 @@ export function HomePage() {
                         {service.price}
                       </Text>
                       <Text
+                        className="service-arrow"
                         fontSize="24px"
                         color={colors.textSecondary}
                         style={{ fontFamily: 'var(--font-body)' }}
@@ -1127,8 +1187,9 @@ export function HomePage() {
         {/* ═══════════════════════════════════════════════════
             SECTION: GUARANTEE
         ═══════════════════════════════════════════════════ */}
-        <Box bg={colors.surface} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
+        <Box id="guarantee" bg={colors.surface} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
           <Container maxW="1200px">
+          <AnimatedSection>
             <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={{ base: 10, md: 16 }} alignItems="flex-start">
               <Flex direction="column" gap={4} align="flex-start">
                 <Text fontSize="11px" color={colors.accent} letterSpacing="0.15em" style={{ fontFamily: 'var(--font-body)' }}>OUR GUARANTEE</Text>
@@ -1163,13 +1224,14 @@ export function HomePage() {
                 ))}
               </Flex>
             </Grid>
+          </AnimatedSection>
           </Container>
         </Box>
 
         {/* ═══════════════════════════════════════════════════
             SECTION 4: HOW IT WORKS
         ═══════════════════════════════════════════════════ */}
-        <Box bg={colors.surface} py="120px">
+        <Box id="how-it-works" bg={colors.surface} py="120px">
           <Container maxW="7xl">
             <AnimatedSection>
               <Text
@@ -1263,16 +1325,18 @@ export function HomePage() {
         {/* ═══════════════════════════════════════════════════
             SECTION: AREAS WE COVER
         ═══════════════════════════════════════════════════ */}
-        <Box bg={colors.surface} py={{ base: '50px', md: '70px' }} px={{ base: 4, md: 8 }}>
+        <Box id="areas" bg={colors.surface} py={{ base: '50px', md: '70px' }} px={{ base: 4, md: 8 }}>
           <Container maxW="1200px">
+          <AnimatedSection>
             <Text
               fontSize={{ base: '36px', md: '56px' }}
               color={colors.textPrimary}
-              mb={8}
+              mb={2}
               style={{ fontFamily: 'var(--font-display)' }}
             >
               AREAS WE COVER
             </Text>
+            <Box h="2px" w="60px" bg={colors.accent} mb={8} />
             <Flex wrap="wrap" gap={3}>
               {cities.map((city) => (
                 <ChakraLink
@@ -1296,13 +1360,14 @@ export function HomePage() {
                 </ChakraLink>
               ))}
             </Flex>
+          </AnimatedSection>
           </Container>
         </Box>
 
         {/* ═══════════════════════════════════════════════════
             SECTION 5: TESTIMONIALS
         ═══════════════════════════════════════════════════ */}
-        <Box bg={colors.bg} py="120px">
+        <Box id="testimonials" bg={colors.bg} py="120px">
           <Container maxW="7xl">
             <AnimatedSection>
               <Text
@@ -1318,11 +1383,12 @@ export function HomePage() {
                 fontSize={{ base: '36px', md: '64px', lg: '80px' }}
                 color={colors.textPrimary}
                 lineHeight="1"
-                mb="60px"
+                mb={2}
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 Real Reviews
               </Text>
+              <Box h="2px" w="60px" bg={colors.accent} mb="60px" />
             </AnimatedSection>
 
             <Box
@@ -1338,10 +1404,13 @@ export function HomePage() {
                 {testimonials.map((t, i) => (
                   <Box
                     key={i}
+                    className="testimonial-card"
                     minW={{ base: '300px', md: '360px' }}
                     bg={colors.surface}
                     borderWidth="1px"
                     borderColor={colors.border}
+                    borderTopWidth="3px"
+                    borderTopColor={colors.accent}
                     p="32px"
                     position="relative"
                     flexShrink={0}
@@ -1406,8 +1475,9 @@ export function HomePage() {
         {/* ═══════════════════════════════════════════════════
             SECTION: ABOUT US
         ═══════════════════════════════════════════════════ */}
-        <Box bg={colors.bg} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
+        <Box id="about" bg={colors.bg} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
           <Container maxW="1200px">
+          <AnimatedSection>
             <Grid templateColumns={{ base: '1fr', md: '2fr 3fr' }} gap={{ base: 10, md: 16 }}>
               <Flex direction="column" gap={5} align="flex-start">
                 <Text fontSize="11px" color={colors.accent} letterSpacing="0.15em" style={{ fontFamily: 'var(--font-body)' }}>ABOUT US</Text>
@@ -1443,6 +1513,7 @@ export function HomePage() {
                 ))}
               </Flex>
             </Grid>
+          </AnimatedSection>
           </Container>
         </Box>
 
@@ -1454,7 +1525,7 @@ export function HomePage() {
         {/* ═══════════════════════════════════════════════════
             SECTION: FAQ
         ═══════════════════════════════════════════════════ */}
-        <Box bg={colors.surface} py="120px">
+        <Box id="faq" bg={colors.surface} py="120px">
           <Container maxW="4xl">
             <AnimatedSection>
               <Text
@@ -1488,6 +1559,7 @@ export function HomePage() {
         {/* ═══════════════════════════════════════════════════
             SECTION: CTA
         ═══════════════════════════════════════════════════ */}
+        <AnimatedSection>
         <Box bg={colors.accent} py="80px">
           <Container maxW="4xl" textAlign="center">
             <Text
@@ -1565,7 +1637,11 @@ export function HomePage() {
             </Flex>
           </Container>
         </Box>
+        </AnimatedSection>
       </Box>
+
+      {/* Back to Top */}
+      <BackToTop />
 
       <Footer />
       <FloatingContactBar />

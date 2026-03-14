@@ -112,132 +112,191 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* ─── Hero Ambient Motion Layer ───────────────────────── */
+/* ─── Hero Falling Squares Layer ──────────────────────── */
 
-.hero-ambient-layer {
-  overflow: hidden;
-}
-
-.hero-ambient-piece {
+.hero-sq {
   position: absolute;
-  display: block;
-  border-radius: 2px;
-  transform: translate3d(0, 0, 0) rotate(0deg);
-  animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  animation-name: heroSquareFall;
+  animation-timing-function: linear;
   animation-iteration-count: infinite;
+  animation-fill-mode: backwards;
 }
 
 /* ── Depth tiers ── */
 
-.hero-ambient-piece.depth-far {
-  opacity: 0.05;
-  animation-name: heroAmbientDriftFar;
+.hero-sq.depth-far {
+  opacity: 0.04;
+  background: rgba(20, 20, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-.hero-ambient-piece.depth-mid {
-  opacity: 0.1;
-  animation-name: heroAmbientDriftMid;
+.hero-sq.depth-mid {
+  opacity: 0.08;
 }
 
-.hero-ambient-piece.depth-accent {
-  opacity: 0.18;
-  animation-name: heroAmbientDriftAccent, heroAmbientPulse;
-  animation-duration: inherit, 8s;
+.hero-sq.depth-accent {
+  opacity: 0.14;
+  animation-name: heroSquareFall, heroSquarePulse;
+  animation-duration: inherit, 7s;
   animation-delay: inherit, 0s;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1), ease-in-out;
+  animation-timing-function: linear, ease-in-out;
   animation-iteration-count: infinite, infinite;
 }
 
 /* ── Variant styles ── */
 
-.hero-ambient-piece.variant-outline {
+.hero-sq.variant-fill {
+  background: rgba(20, 20, 20, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.hero-sq.variant-outline {
   background: transparent;
-  border: 1px solid rgba(250, 250, 250, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.hero-ambient-piece.variant-fill {
-  background: rgba(250, 250, 250, 0.05);
-  border: 1px solid rgba(250, 250, 250, 0.06);
-}
-
-.hero-ambient-piece.variant-fragment {
-  background: linear-gradient(135deg, rgba(250, 250, 250, 0.06), rgba(250, 250, 250, 0.01));
-  border: 1px solid rgba(250, 250, 250, 0.1);
-  clip-path: polygon(0 0, 82% 0, 100% 30%, 100% 100%, 0 100%, 0 72%);
-}
-
-.hero-ambient-piece.variant-mark {
-  border-radius: 1px;
-  background: linear-gradient(90deg, rgba(250, 250, 250, 0), rgba(250, 250, 250, 0.18), rgba(250, 250, 250, 0));
+.hero-sq.variant-blur {
+  background: rgba(20, 20, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  filter: blur(1px);
 }
 
 /* ── Accent (orange) overrides ── */
 
-.hero-ambient-piece.depth-accent.variant-outline,
-.hero-ambient-piece.depth-accent.variant-fragment,
-.hero-ambient-piece.depth-accent.variant-mark,
-.hero-ambient-piece.depth-accent.variant-fill {
-  border-color: rgba(249, 115, 22, 0.25);
-  background-color: rgba(249, 115, 22, 0.06);
-  box-shadow: 0 0 6px rgba(249, 115, 22, 0.08);
+.hero-sq.depth-accent.variant-fill {
+  background: rgba(249, 115, 22, 0.08);
+  border-color: rgba(249, 115, 22, 0.18);
+  box-shadow: 0 0 6px rgba(249, 115, 22, 0.06);
 }
 
-/* ── Drift keyframes — asymmetric waypoints to break ping-pong feel ── */
-
-@keyframes heroAmbientDriftFar {
-  0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
-  38%  { transform: translate3d(var(--drift-x), calc(var(--drift-y) * 0.6), 0) rotate(var(--drift-rot)); }
-  72%  { transform: translate3d(calc(var(--drift-x) * 0.3), var(--drift-y), 0) rotate(calc(var(--drift-rot) * 0.4)); }
-  100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+.hero-sq.depth-accent.variant-outline {
+  background: transparent;
+  border-color: rgba(249, 115, 22, 0.22);
+  box-shadow: 0 0 5px rgba(249, 115, 22, 0.05);
 }
 
-@keyframes heroAmbientDriftMid {
-  0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
-  42%  { transform: translate3d(calc(var(--drift-x) * 0.85), var(--drift-y), 0) rotate(var(--drift-rot)); }
-  68%  { transform: translate3d(calc(var(--drift-x) * 0.25), calc(var(--drift-y) * 0.4), 0) rotate(calc(var(--drift-rot) * 0.6)); }
-  100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+/* ── Keyframes ── */
+
+@keyframes heroSquareFall {
+  from {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  to {
+    transform: translate3d(var(--sq-dx), calc(100vh + 60px), 0) rotate(var(--sq-rot));
+  }
 }
 
-@keyframes heroAmbientDriftAccent {
-  0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
-  35%  { transform: translate3d(calc(var(--drift-x) * 0.7), calc(var(--drift-y) * 0.5), 0) rotate(var(--drift-rot)); }
-  65%  { transform: translate3d(calc(var(--drift-x) * 0.2), calc(var(--drift-y) * 0.8), 0) rotate(calc(var(--drift-rot) * 0.3)); }
-  100% { transform: translate3d(0, 0, 0) rotate(0deg); }
-}
-
-@keyframes heroAmbientPulse {
-  0%, 100% { opacity: 0.16; }
-  50%      { opacity: 0.22; }
+@keyframes heroSquarePulse {
+  0%, 100% { opacity: 0.12; }
+  50%      { opacity: 0.18; }
 }
 
 /* ── Responsive ── */
 
 @media (max-width: 768px) {
-  .hero-ambient-piece.depth-far {
+  .hero-sq.depth-far {
     display: none;
   }
 
-  .hero-ambient-piece.depth-mid:nth-child(2n) {
+  .hero-sq.depth-mid:nth-child(2n) {
     display: none;
   }
 
-  .hero-ambient-piece.depth-mid,
-  .hero-ambient-piece.depth-accent {
-    opacity: 0.08;
+  .hero-sq.depth-mid,
+  .hero-sq.depth-accent {
+    opacity: 0.06;
   }
 }
 
+/* ── Accessibility ── */
+
 @media (prefers-reduced-motion: reduce) {
-  .hero-ambient-piece {
+  .hero-sq {
     animation: none !important;
     transform: none !important;
-  }
-
-  .hero-ambient-piece.depth-far {
     display: none;
   }
+}
 
-  .hero-ambient-piece.depth-accent {
-    opacity: 0.1;
+/* ─── Service Row Hover ───────────────────────────────── */
+
+.service-row {
+  position: relative;
+}
+
+.service-row .service-arrow {
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.service-row:hover .service-arrow {
+  transform: translateX(6px);
+  color: #F97316;
+}
+
+.service-row:hover .service-num {
+  color: rgba(249, 115, 22, 0.25);
+}
+
+/* ─── Testimonial Card ────────────────────────────────── */
+
+.testimonial-card {
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.testimonial-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(249, 115, 22, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(249, 115, 22, 0.1);
+}
+
+/* ─── Back to Top Button ──────────────────────────────── */
+
+.back-to-top {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.back-to-top:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.3);
+}
+
+/* ─── FAQ Toggle Icon ─────────────────────────────────── */
+
+.faq-toggle {
+  transition: transform 0.3s ease;
+}
+
+.faq-toggle.open {
+  transform: rotate(45deg);
+}
+
+/* ─── Softer Emergency Pulse ──────────────────────────── */
+
+@keyframes pulseGlowSoft {
+  0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.25); }
+  70% { box-shadow: 0 0 0 8px rgba(249, 115, 22, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+}
+
+/* ─── Marquee Edge Fade ───────────────────────────────── */
+
+.marquee-container {
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+
+/* ─── Reduced Motion Global ───────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .testimonial-card:hover {
+    transform: none;
+  }
+
+  .back-to-top {
+    transition: none;
+  }
+
+  .faq-toggle {
+    transition: none;
   }
 }

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
 import { Box, Container, Flex, Text, Link as ChakraLink, VStack } from '@chakra-ui/react';
 import Link from 'next/link';
 import { colorTokens } from '@/lib/design-tokens';
@@ -29,17 +30,31 @@ const pulseGlowKeyframes = `
     70% { box-shadow: 0 0 0 12px rgba(249,115,22,0); }
     100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
   }
+  @keyframes pulseGlowSoft {
+    0% { box-shadow: 0 0 0 0 rgba(249,115,22,0.25); }
+    70% { box-shadow: 0 0 0 8px rgba(249,115,22,0); }
+    100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+  }
 `;
 
 export function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { data: session } = useSession();
+  const pathname = usePathname();
   const isLoggedIn = mounted && !!session?.user;
+  const isHome = pathname === '/';
+
+  const onScroll = useCallback(() => {
+    setScrolled(window.scrollY > 20);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [onScroll]);
 
   return (
     <>
@@ -49,13 +64,14 @@ export function Nav() {
         position="sticky"
         top={0}
         zIndex={50}
-        bg="rgba(9,9,11,0.85)"
+        bg={scrolled ? 'rgba(9,9,11,0.92)' : 'rgba(9,9,11,0.85)'}
         backdropFilter="blur(20px)"
         borderBottomWidth="1px"
-        borderColor={colors.border}
+        borderColor={scrolled ? colors.border : 'transparent'}
         h="64px"
         display="flex"
         alignItems="center"
+        transition="background 0.3s, border-color 0.3s"
         style={{ animation: 'fadeIn 0.4s ease-out both' }}
       >
         <Container maxW="7xl">
@@ -86,19 +102,22 @@ export function Nav() {
               gap={8}
               display={{ base: 'none', md: 'flex' }}
             >
-              {navLinks.map((link) => (
+              {navLinks.map((link) => {
+                const isActive = link.href === '/' ? isHome : pathname.startsWith(link.href);
+                return (
                 <ChakraLink
                   key={link.href}
                   asChild
                   fontSize="13px"
-                  color={colors.textSecondary}
+                  color={isActive ? colors.accent : colors.textSecondary}
                   _hover={{ color: colors.textPrimary }}
                   transition="color 0.2s"
                   style={{ fontFamily: 'var(--font-body)' }}
                 >
                   <Link href={link.href}>{link.label}</Link>
                 </ChakraLink>
-              ))}
+                );
+              })}
             </Flex>
 
             <Flex gap={4} align="center">
@@ -167,7 +186,7 @@ export function Nav() {
                 _active={{ transform: 'scale(0.98)' }}
                 style={{
                   fontFamily: 'var(--font-display)',
-                  animation: 'pulseGlow 2s infinite',
+                  animation: 'pulseGlowSoft 3s infinite',
                 }}
               >
                 <Link href="/emergency">EMERGENCY</Link>
