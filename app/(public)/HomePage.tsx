@@ -6,13 +6,14 @@ import {
   Container,
   Text,
   Flex,
+  Input,
   Link as ChakraLink,
 } from '@chakra-ui/react';
 import Link from 'next/link';
 import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
-import { colorTokens } from '@/lib/design-tokens';
+import { colorTokens, inputProps } from '@/lib/design-tokens';
 
 const colors = {
   bg: colorTokens.bg,
@@ -230,6 +231,146 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
+// ─── Contact Section ─────────────────────────────────────
+function ContactSection() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+
+  async function handleSubmit() {
+    if (!name.trim() || !email.trim() || !message.trim()) return;
+    setStatus('submitting');
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim() || undefined,
+          message: message.trim(),
+        }),
+      });
+      if (res.ok) {
+        setStatus('success');
+        setName(''); setEmail(''); setPhone(''); setMessage('');
+      } else {
+        setStatus('error');
+      }
+    } catch {
+      setStatus('error');
+    }
+  }
+
+  return (
+    <Box bg={colors.bg} py="120px">
+      <Container maxW="4xl">
+        <AnimatedSection>
+          <Text
+            fontSize="11px"
+            color={colors.accent}
+            letterSpacing="0.2em"
+            mb={4}
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            GET IN TOUCH
+          </Text>
+          <Text
+            fontSize={{ base: '36px', md: '64px', lg: '80px' }}
+            color={colors.textPrimary}
+            lineHeight="1"
+            mb="60px"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            CONTACT US
+          </Text>
+        </AnimatedSection>
+
+        <AnimatedSection delay={0.2}>
+          {status === 'success' ? (
+            <Box bg={colors.surface} p={8} borderRadius="8px" borderWidth="1px" borderColor={colors.border} textAlign="center">
+              <Text fontWeight="700" fontSize="lg" color={colors.textPrimary} mb={2}>
+                Message sent
+              </Text>
+              <Text color={colors.textSecondary} fontSize="sm">
+                We will get back to you as soon as possible.
+              </Text>
+            </Box>
+          ) : (
+            <Box bg={colors.surface} p={{ base: 6, md: 8 }} borderRadius="8px" borderWidth="1px" borderColor={colors.border}>
+              <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
+                <Box flex="1">
+                  <Text fontSize="13px" color={colors.textSecondary} mb="6px" fontWeight="500">Name</Text>
+                  <Input {...inputProps} placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
+                </Box>
+                <Box flex="1">
+                  <Text fontSize="13px" color={colors.textSecondary} mb="6px" fontWeight="500">Email</Text>
+                  <Input {...inputProps} placeholder="your@email.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </Box>
+              </Flex>
+              <Box mt={4}>
+                <Text fontSize="13px" color={colors.textSecondary} mb="6px" fontWeight="500">Phone (optional)</Text>
+                <Input {...inputProps} placeholder="Your phone number" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </Box>
+              <Box mt={4}>
+                <Text fontSize="13px" color={colors.textSecondary} mb="6px" fontWeight="500">Message</Text>
+                <textarea
+                  placeholder="How can we help?"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  style={{
+                    width: '100%',
+                    minHeight: '120px',
+                    resize: 'vertical',
+                    padding: '12px 16px',
+                    fontSize: '15px',
+                    borderRadius: '6px',
+                    border: `1px solid ${colorTokens.input.border}`,
+                    background: colorTokens.input.bg,
+                    color: colorTokens.input.text,
+                    fontFamily: 'var(--font-body)',
+                    outline: 'none',
+                  }}
+                />
+              </Box>
+              {status === 'error' && (
+                <Text color="#EF4444" fontSize="sm" mt={2}>Something went wrong. Please try again.</Text>
+              )}
+              <Box mt={6}>
+                <Box
+                  as="button"
+                  bg={colors.accent}
+                  color="white"
+                  fontWeight="700"
+                  fontSize="16px"
+                  letterSpacing="0.05em"
+                  borderRadius="4px"
+                  px={8}
+                  py={4}
+                  w={{ base: '100%', md: 'auto' }}
+                  cursor="pointer"
+                  transition="all 0.2s"
+                  _hover={{ bg: '#EA580C' }}
+                  _active={{ transform: 'scale(0.98)' }}
+                  onClick={handleSubmit}
+                  aria-disabled={!name.trim() || !email.trim() || !message.trim() || status === 'submitting'}
+                  pointerEvents={(!name.trim() || !email.trim() || !message.trim() || status === 'submitting') ? 'none' : 'auto'}
+                  opacity={(!name.trim() || !email.trim() || !message.trim()) ? 0.5 : 1}
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  {status === 'submitting' ? 'SENDING...' : 'SEND MESSAGE'}
+                </Box>
+              </Box>
+            </Box>
+          )}
+        </AnimatedSection>
+      </Container>
+    </Box>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────────
 export function HomePage() {
   const [heroOffset, setHeroOffset] = useState(0);
@@ -398,9 +539,9 @@ export function HomePage() {
 
                 {/* Buttons */}
                 <Flex
-                  gap={4}
+                  gap={{ base: 3, md: 4 }}
                   mt="40px"
-                  direction={{ base: 'column', sm: 'row' }}
+                  flexWrap="wrap"
                   style={{ animation: 'fadeUp 0.6s ease-out 0.5s both' }}
                 >
                   <ChakraLink
@@ -444,6 +585,31 @@ export function HomePage() {
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
                     <Link href="/book">SCHEDULE A FITTING</Link>
+                  </ChakraLink>
+                  <ChakraLink
+                    href="https://wa.me/447423262955"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    px="32px"
+                    h="56px"
+                    display="inline-flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    bg="transparent"
+                    color="#25D366"
+                    fontSize="20px"
+                    letterSpacing="0.05em"
+                    borderRadius="4px"
+                    borderWidth="1px"
+                    borderColor="#25D366"
+                    transition="all 0.2s"
+                    _hover={{ bg: 'rgba(37,211,102,0.08)' }}
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      animation: 'fadeUp 0.6s ease-out 0.6s both, neonFlash 4s ease-in-out 2s infinite',
+                    }}
+                  >
+                    WHATSAPP US
                   </ChakraLink>
                 </Flex>
 
@@ -951,7 +1117,12 @@ export function HomePage() {
         </Box>
 
         {/* ═══════════════════════════════════════════════════
-            SECTION 7: CTA
+            SECTION 7: CONTACT
+        ═══════════════════════════════════════════════════ */}
+        <ContactSection />
+
+        {/* ═══════════════════════════════════════════════════
+            SECTION 8: CTA
         ═══════════════════════════════════════════════════ */}
         <Box bg={colors.accent} py="80px">
           <Container maxW="4xl" textAlign="center">

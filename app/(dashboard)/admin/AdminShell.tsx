@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { signOut } from 'next-auth/react';
 import { Box, Flex, VStack, Link as ChakraLink, Text, Heading } from '@chakra-ui/react';
 import NextLink from 'next/link';
@@ -9,14 +9,17 @@ import { anim } from '@/lib/animations';
 
 const navItems = [
   { label: 'Bookings', href: '/admin/bookings' },
+  { label: 'Callbacks', href: '/admin/callbacks', badgeKey: 'callbacks' as const },
+  { label: 'Messages', href: '/admin/messages', badgeKey: 'messages' as const },
   { label: 'Drivers', href: '/admin/drivers' },
   { label: 'Inventory', href: '/admin/inventory' },
   { label: 'Pricing', href: '/admin/pricing' },
   { label: 'Availability', href: '/admin/availability' },
   { label: 'Testimonials', href: '/admin/testimonials' },
   { label: 'FAQ', href: '/admin/faq' },
-  { label: 'Audit Log', href: '/admin/audit' },
   { label: 'Content', href: '/admin/content' },
+  { label: 'Audit Log', href: '/admin/audit' },
+  { label: 'Analytics', href: '/admin/analytics' },
 ];
 
 export function AdminShell({
@@ -27,6 +30,30 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [badgeCounts, setBadgeCounts] = useState<{ callbacks: number; messages: number }>({ callbacks: 0, messages: 0 });
+
+  const fetchCounts = useCallback(async () => {
+    try {
+      const [cbRes, msgRes] = await Promise.all([
+        fetch('/api/admin/callbacks/count'),
+        fetch('/api/admin/messages/count'),
+      ]);
+      if (cbRes.ok) {
+        const cbData = await cbRes.json();
+        setBadgeCounts(prev => ({ ...prev, callbacks: cbData.count ?? 0 }));
+      }
+      if (msgRes.ok) {
+        const msgData = await msgRes.json();
+        setBadgeCounts(prev => ({ ...prev, messages: msgData.count ?? 0 }));
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 60000);
+    return () => clearInterval(interval);
+  }, [fetchCounts]);
 
   return (
     <Flex minH="100vh">
@@ -58,7 +85,28 @@ export function AdminShell({
               transition="background 0.2s"
               style={anim.stagger('fadeUp', i, '0.3s', 0.05)}
             >
-              <NextLink href={item.href}>{item.label}</NextLink>
+              <NextLink href={item.href}>
+                <Flex align="center" w="100%">
+                  <Text flex={1}>{item.label}</Text>
+                  {item.badgeKey && badgeCounts[item.badgeKey] > 0 && (
+                    <Flex
+                      align="center"
+                      justify="center"
+                      bg={c.accent}
+                      color="#09090B"
+                      fontSize="10px"
+                      fontWeight="700"
+                      minW="18px"
+                      h="18px"
+                      borderRadius="full"
+                      ml="auto"
+                      px="4px"
+                    >
+                      {badgeCounts[item.badgeKey]}
+                    </Flex>
+                  )}
+                </Flex>
+              </NextLink>
             </ChakraLink>
           ))}
         </VStack>
@@ -174,7 +222,28 @@ export function AdminShell({
                 _hover={{ bg: c.surface, textDecoration: 'none' }}
                 onClick={() => setMobileOpen(false)}
               >
-                <NextLink href={item.href}>{item.label}</NextLink>
+                <NextLink href={item.href}>
+                  <Flex align="center" w="100%">
+                    <Text flex={1}>{item.label}</Text>
+                    {item.badgeKey && badgeCounts[item.badgeKey] > 0 && (
+                      <Flex
+                        align="center"
+                        justify="center"
+                        bg={c.accent}
+                        color="#09090B"
+                        fontSize="10px"
+                        fontWeight="700"
+                        minW="18px"
+                        h="18px"
+                        borderRadius="full"
+                        ml="auto"
+                        px="4px"
+                      >
+                        {badgeCounts[item.badgeKey]}
+                      </Flex>
+                    )}
+                  </Flex>
+                </NextLink>
               </ChakraLink>
             ))}
           </VStack>

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { tyreCatalogue, tyreProducts } from '@/lib/db/schema';
+import { tyreCatalogue, tyreProducts, bookingTyres } from '@/lib/db/schema';
 import { eq, ilike, or, sql, desc } from 'drizzle-orm';
 
 /**
@@ -47,6 +47,12 @@ export async function GET(request: Request) {
         priceNew: tyreProducts.priceNew,
         stockNew: tyreProducts.stockNew,
         availableNew: tyreProducts.availableNew,
+        // Booking count
+        bookingCount: sql<number>`COALESCE((
+          SELECT SUM(${bookingTyres.quantity})
+          FROM ${bookingTyres}
+          WHERE ${bookingTyres.tyreId} = ${tyreProducts.id}
+        ), 0)`.as('booking_count'),
       })
       .from(tyreCatalogue)
       .leftJoin(tyreProducts, eq(tyreProducts.catalogueId, tyreCatalogue.id))

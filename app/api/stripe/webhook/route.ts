@@ -8,8 +8,9 @@ import {
   inventoryMovements,
   tyreProducts,
   bookingTyres,
+  pricingRules,
 } from '@/lib/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { constructWebhookEvent, stripe } from '@/lib/stripe';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import {
@@ -273,6 +274,14 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
 
   // Send payment receipt email to customer
   try {
+    const vatRules = await db
+      .select({ key: pricingRules.key, value: pricingRules.value })
+      .from(pricingRules)
+      .where(inArray(pricingRules.key, ['vat_registered', 'vat_number']));
+    const vatMap = new Map(vatRules.map((r) => [r.key, r.value]));
+    const isVatRegistered = vatMap.get('vat_registered') === 'true';
+    const vatNumberVal = vatMap.get('vat_number') || '';
+
     const receiptEmail = paymentReceipt({
       customerName: booking.customerName,
       refNumber: booking.refNumber,
@@ -286,6 +295,8 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       subtotal: priceSnapshot.subtotal,
       vatAmount: priceSnapshot.vatAmount,
       total: priceSnapshot.total,
+      vatRegistered: isVatRegistered,
+      vatNumber: vatNumberVal,
     });
 
     await createNotificationAndSend({

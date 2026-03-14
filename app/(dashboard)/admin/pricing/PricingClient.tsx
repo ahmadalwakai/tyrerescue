@@ -22,6 +22,43 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
   const [addValue, setAddValue] = useState('');
   const [addLabel, setAddLabel] = useState('');
 
+  // VAT state
+  const vatRule = items.find((r) => r.key === 'vat_registered');
+  const vatNumRule = items.find((r) => r.key === 'vat_number');
+  const [vatOn, setVatOn] = useState(vatRule?.value === 'true');
+  const [vatNumber, setVatNumber] = useState(vatNumRule?.value || '');
+  const [vatSaving, setVatSaving] = useState(false);
+
+  async function toggleVat() {
+    if (!vatRule) return;
+    const newVal = !vatOn;
+    setVatOn(newVal);
+    setVatSaving(true);
+    try {
+      const res = await fetch('/api/admin/pricing', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: vatRule.id, value: String(newVal) }),
+      });
+      if (!res.ok) setVatOn(!newVal);
+    } catch {
+      setVatOn(!newVal);
+    } finally {
+      setVatSaving(false);
+    }
+  }
+
+  async function saveVatNumber() {
+    if (!vatNumRule) return;
+    setVatSaving(true);
+    await fetch('/api/admin/pricing', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: vatNumRule.id, value: vatNumber }),
+    });
+    setVatSaving(false);
+  }
+
   async function handleSave(id: string, value: string) {
     setSaving(id);
     await fetch('/api/admin/pricing', {
@@ -61,6 +98,88 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
 
   return (
     <VStack align="stretch" gap={6}>
+      {/* VAT Settings */}
+      <Box bg={c.card} borderWidth="1px" borderColor={c.border} borderRadius="8px" p="24px" mb="32px">
+        <Text fontSize="28px" color={c.text} mb={5} style={{ fontFamily: 'var(--font-display)' }}>
+          VAT SETTINGS
+        </Text>
+
+        <Flex justify="space-between" align="center" mb={vatOn ? 4 : 0}>
+          <Box>
+            <Text fontSize="15px" color={c.text} fontWeight="500" style={{ fontFamily: 'var(--font-body)' }}>
+              Business is VAT Registered
+            </Text>
+            <Text fontSize="12px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>
+              When enabled, 20% VAT applies to all bookings and your VAT number appears on invoices and receipts
+            </Text>
+          </Box>
+          <Box
+            as="button"
+            w="80px"
+            h="36px"
+            borderRadius="18px"
+            bg={vatOn ? c.accent : c.border}
+            color={vatOn ? '#09090B' : c.muted}
+            fontSize="12px"
+            fontWeight="700"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            cursor="pointer"
+            transition="all 0.2s"
+            border="none"
+            flexShrink={0}
+            ml={4}
+            onClick={toggleVat}
+            aria-disabled={vatSaving}
+            pointerEvents={vatSaving ? 'none' : 'auto'}
+            opacity={vatSaving ? 0.5 : 1}
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            {vatOn ? 'VAT ON' : 'VAT OFF'}
+          </Box>
+        </Flex>
+
+        {vatOn && (
+          <Box style={{ animation: 'fadeUp 0.3s ease-out both' }}>
+            <Text fontSize="13px" color={c.muted} mb="6px" style={{ fontFamily: 'var(--font-body)' }}>
+              VAT NUMBER
+            </Text>
+            <Flex gap="8px">
+              <Input
+                w="200px"
+                placeholder="GB123456789"
+                value={vatNumber}
+                onChange={(e) => setVatNumber(e.target.value)}
+                bg={c.input.bg}
+                borderColor={c.input.border}
+                color={c.input.text}
+                fontSize="15px"
+                height="40px"
+                borderRadius="6px"
+              />
+              <Button
+                bg={c.accent}
+                color="#09090B"
+                px="20px"
+                h="40px"
+                borderRadius="6px"
+                fontSize="13px"
+                fontWeight="600"
+                onClick={saveVatNumber}
+                disabled={vatSaving}
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                Save
+              </Button>
+            </Flex>
+            <Text fontSize="11px" color={c.muted} mt={2} style={{ fontFamily: 'var(--font-body)' }}>
+              Format: GB followed by 9 digits e.g. GB123456789
+            </Text>
+          </Box>
+        )}
+      </Box>
+
       <Box style={anim.fadeUp('0.5s')}>
         <Heading size="lg" color={c.text}>Pricing Rules</Heading>
         <Text color={c.muted} mt={1}>Configure pricing parameters used by the pricing engine</Text>

@@ -273,6 +273,9 @@ export async function POST(
       }
 
       // Run pricing engine
+      const vatRule = rules.find((r) => r.key === 'vat_registered');
+      const vatRegistered = vatRule ? vatRule.value === 'true' : true;
+
       const breakdown = calculatePricing(
         {
           tyreSelections: pricingSelections,
@@ -281,7 +284,8 @@ export async function POST(
           bookingDate,
           isBankHoliday,
         },
-        parsedRules
+        parsedRules,
+        vatRegistered
       );
 
       if (!breakdown.isValid) {

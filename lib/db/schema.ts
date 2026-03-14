@@ -350,6 +350,31 @@ export const emailVerificationTokens = pgTable('email_verification_tokens', {
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// Call Me Back requests
+export const callMeBack = pgTable('call_me_back', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar('name', { length: 100 }).notNull(),
+  phone: varchar('phone', { length: 20 }).notNull(),
+  notes: text('notes'),
+  status: text('status').notNull().default('pending'),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  resolvedBy: uuid('resolved_by').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Contact messages
+export const contactMessages = pgTable('contact_messages', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar('name', { length: 100 }).notNull(),
+  email: varchar('email', { length: 255 }).notNull(),
+  phone: varchar('phone', { length: 20 }),
+  message: text('message').notNull(),
+  status: text('status').notNull().default('unread'),
+  repliedAt: timestamp('replied_at', { withTimezone: true }),
+  repliedBy: uuid('replied_by').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
 // Type exports for use throughout the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -383,3 +408,7 @@ export type Quote = typeof quotes.$inferSelect;
 export type NewQuote = typeof quotes.$inferInsert;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
+export type CallMeBack = typeof callMeBack.$inferSelect;
+export type NewCallMeBack = typeof callMeBack.$inferInsert;
+export type ContactMessage = typeof contactMessages.$inferSelect;
+export type NewContactMessage = typeof contactMessages.$inferInsert;

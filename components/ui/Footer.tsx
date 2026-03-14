@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Box, Container, Flex, Text, Link as ChakraLink, SimpleGrid } from '@chakra-ui/react';
 import Link from 'next/link';
 import { colorTokens } from '@/lib/design-tokens';
@@ -71,6 +72,15 @@ function FooterColumn({ title, links }: { title: string; links: { label: string;
 }
 
 export function Footer() {
+  const [vatInfo, setVatInfo] = useState<{ vatRegistered: boolean; vatNumber: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/public/settings')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setVatInfo(data); })
+      .catch(() => {});
+  }, []);
+
   return (
     <Box as="footer" bg={colors.bg} borderTopWidth="1px" borderColor={colors.border} mt="auto">
       <Container maxW="7xl" py="80px">
@@ -122,13 +132,15 @@ export function Footer() {
             >
               © {new Date().getFullYear()} Tyre Rescue. All rights reserved.
             </Text>
-            <Text
-              fontSize="11px"
-              color={colors.textSecondary}
-              style={{ fontFamily: 'var(--font-body)' }}
-            >
-              VAT Registration: [VAT_NUMBER_HERE]
-            </Text>
+            {vatInfo?.vatRegistered && vatInfo.vatNumber && (
+              <Text
+                fontSize="11px"
+                color={colors.textSecondary}
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                VAT Reg: {vatInfo.vatNumber}
+              </Text>
+            )}
           </Flex>
         </Box>
       </Container>

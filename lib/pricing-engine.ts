@@ -410,13 +410,19 @@ function applySurgeMultiplier(
  */
 function calculateVatAndTotal(
   subtotal: Decimal,
-  minimumTotal: number
+  minimumTotal: number,
+  vatRegistered: boolean = true
 ): {
   vatAmount: Decimal;
   total: Decimal;
 } {
-  const VAT_RATE = new Decimal(0.2);
-  const vatAmount = subtotal.times(VAT_RATE);
+  let vatAmount: Decimal;
+  if (vatRegistered) {
+    const VAT_RATE = new Decimal(0.2);
+    vatAmount = subtotal.times(VAT_RATE);
+  } else {
+    vatAmount = new Decimal(0);
+  }
   let total = subtotal.plus(vatAmount);
 
   // Apply minimum order total
@@ -436,7 +442,8 @@ function calculateVatAndTotal(
  */
 export function calculatePricing(
   input: PricingInput,
-  rules: PricingRules
+  rules: PricingRules,
+  vatRegistered: boolean = true
 ): PricingBreakdown {
   const lineItems: PricingLineItem[] = [];
 
@@ -524,7 +531,7 @@ export function calculatePricing(
 
   // Add subtotal line item
   lineItems.push({
-    label: 'Subtotal (excl. VAT)',
+    label: vatRegistered ? 'Subtotal (excl. VAT)' : 'Subtotal',
     amount: surgeResult.adjustedSubtotal.toNumber(),
     type: 'subtotal',
   });
@@ -532,15 +539,18 @@ export function calculatePricing(
   // Component 7: VAT and total
   const { vatAmount, total } = calculateVatAndTotal(
     surgeResult.adjustedSubtotal,
-    rules.minimum_order_total
+    rules.minimum_order_total,
+    vatRegistered
   );
 
-  // Add VAT line item
-  lineItems.push({
-    label: 'VAT (20%)',
-    amount: vatAmount.toNumber(),
-    type: 'vat',
-  });
+  // Add VAT line item (only when VAT registered)
+  if (vatRegistered) {
+    lineItems.push({
+      label: 'VAT (20%)',
+      amount: vatAmount.toNumber(),
+      type: 'vat',
+    });
+  }
 
   // Add total line item
   lineItems.push({

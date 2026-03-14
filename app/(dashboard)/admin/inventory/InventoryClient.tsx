@@ -25,6 +25,7 @@ interface CatalogueItem {
   priceNew: string | null;
   stockNew: number | null;
   availableNew: boolean | null;
+  bookingCount: number;
 }
 
 export function InventoryClient() {
@@ -111,6 +112,14 @@ function CatalogueCard({ item, index, onRefresh }: { item: CatalogueItem; index:
   const [price, setPrice] = useState(item.priceNew ? String(Number(item.priceNew).toFixed(2)) : '');
   const [stock, setStock] = useState(String(item.stockNew ?? 0));
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+
+  // Edit fields
+  const [editBrand, setEditBrand] = useState(item.brand);
+  const [editPattern, setEditPattern] = useState(item.pattern);
+  const [editSeason, setEditSeason] = useState(item.season);
+  const [editSpeedRating, setEditSpeedRating] = useState(item.speedRating ?? '');
 
   async function activate() {
     setIsSaving(true);
@@ -138,6 +147,7 @@ function CatalogueCard({ item, index, onRefresh }: { item: CatalogueItem; index:
       onRefresh();
     } finally {
       setIsSaving(false);
+      setConfirmRemove(false);
     }
   }
 
@@ -153,6 +163,26 @@ function CatalogueCard({ item, index, onRefresh }: { item: CatalogueItem; index:
           stockNew: stock ? Number(stock) : 0,
         }),
       });
+      onRefresh();
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function saveEdit() {
+    setIsSaving(true);
+    try {
+      await fetch(`/api/admin/catalogue/${item.catalogueId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brand: editBrand,
+          pattern: editPattern,
+          season: editSeason,
+          speed_rating: editSpeedRating || undefined,
+        }),
+      });
+      setIsEditing(false);
       onRefresh();
     } finally {
       setIsSaving(false);
@@ -184,6 +214,68 @@ function CatalogueCard({ item, index, onRefresh }: { item: CatalogueItem; index:
         {item.runFlat && <Badge colorPalette="blue" fontSize="xs">Run Flat</Badge>}
       </HStack>
 
+      {isActive && Number(item.bookingCount) > 0 && (
+        <Text fontSize="xs" color={c.muted} mt={2}>
+          Used in {Number(item.bookingCount)} booking{Number(item.bookingCount) !== 1 ? 's' : ''}
+        </Text>
+      )}
+
+      {/* Inline edit panel */}
+      {isEditing && (
+        <Box mt={4} p={3} bg={c.surface} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+          <Grid templateColumns="1fr 1fr" gap={2}>
+            <Box>
+              <Text fontSize="xs" color={c.muted} mb={1}>Brand</Text>
+              <Input size="sm" value={editBrand} onChange={(e) => setEditBrand(e.target.value)}
+                bg={c.card} borderColor={c.border} color={c.text} />
+            </Box>
+            <Box>
+              <Text fontSize="xs" color={c.muted} mb={1}>Pattern</Text>
+              <Input size="sm" value={editPattern} onChange={(e) => setEditPattern(e.target.value)}
+                bg={c.card} borderColor={c.border} color={c.text} />
+            </Box>
+            <Box>
+              <Text fontSize="xs" color={c.muted} mb={1}>Season</Text>
+              <Input size="sm" value={editSeason} onChange={(e) => setEditSeason(e.target.value)}
+                bg={c.card} borderColor={c.border} color={c.text} />
+            </Box>
+            <Box>
+              <Text fontSize="xs" color={c.muted} mb={1}>Speed Rating</Text>
+              <Input size="sm" value={editSpeedRating} onChange={(e) => setEditSpeedRating(e.target.value)}
+                bg={c.card} borderColor={c.border} color={c.text} />
+            </Box>
+          </Grid>
+          <Flex gap={2} mt={3}>
+            <Button size="sm" bg={c.accent} color="white" onClick={saveEdit} disabled={isSaving} minH="36px">
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+            <Button size="sm" variant="outline" borderColor={c.border} color={c.text}
+              onClick={() => setIsEditing(false)} minH="36px">
+              Cancel
+            </Button>
+          </Flex>
+        </Box>
+      )}
+
+      {/* Confirm remove panel */}
+      {confirmRemove && (
+        <Box mt={4} p={3} bg={c.surface} borderRadius="md" borderWidth="1px" borderColor="#E53E3E">
+          <Text fontSize="sm" color={c.text} mb={2}>
+            Remove this item from active stock?
+            {Number(item.bookingCount) > 0 && ` It has been used in ${Number(item.bookingCount)} booking(s).`}
+          </Text>
+          <Flex gap={2}>
+            <Button size="sm" bg="#E53E3E" color="white" onClick={deactivate} disabled={isSaving} minH="36px">
+              {isSaving ? 'Removing...' : 'Confirm Remove'}
+            </Button>
+            <Button size="sm" variant="outline" borderColor={c.border} color={c.text}
+              onClick={() => setConfirmRemove(false)} minH="36px">
+              Cancel
+            </Button>
+          </Flex>
+        </Box>
+      )}
+
       <VStack align="stretch" gap={2} mt={4}>
         <Flex gap={2}>
           <Box flex="1">
@@ -214,41 +306,68 @@ function CatalogueCard({ item, index, onRefresh }: { item: CatalogueItem; index:
         </Flex>
 
         {isActive ? (
+          <>
+            <Flex gap={2}>
+              <Button
+                flex="1"
+                size="sm"
+                bg={c.accent}
+                color="white"
+                onClick={saveChanges}
+                disabled={isSaving}
+                minH="40px"
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                borderColor={c.border}
+                color={c.text}
+                onClick={() => { setIsEditing(!isEditing); setConfirmRemove(false); }}
+                disabled={isSaving}
+                minH="40px"
+              >
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                borderColor="#E53E3E"
+                color="#E53E3E"
+                onClick={() => { setConfirmRemove(!confirmRemove); setIsEditing(false); }}
+                disabled={isSaving}
+                minH="40px"
+              >
+                Remove
+              </Button>
+            </Flex>
+          </>
+        ) : (
           <Flex gap={2}>
             <Button
               flex="1"
               size="sm"
               bg={c.accent}
               color="white"
-              onClick={saveChanges}
-              disabled={isSaving}
+              onClick={activate}
+              disabled={isSaving || !price}
               minH="40px"
             >
-              {isSaving ? 'Saving...' : 'Save'}
+              {isSaving ? 'Activating...' : 'Activate'}
             </Button>
             <Button
               size="sm"
               variant="outline"
-              colorPalette="red"
-              onClick={deactivate}
+              borderColor={c.border}
+              color={c.text}
+              onClick={() => { setIsEditing(!isEditing); }}
               disabled={isSaving}
               minH="40px"
             >
-              Deactivate
+              Edit
             </Button>
           </Flex>
-        ) : (
-          <Button
-            size="sm"
-            bg={c.accent}
-            color="white"
-            onClick={activate}
-            disabled={isSaving || !price}
-            minH="40px"
-            w="full"
-          >
-            {isSaving ? 'Activating...' : 'Activate'}
-          </Button>
         )}
       </VStack>
     </Box>

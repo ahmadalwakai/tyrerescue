@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Bebas_Neue } from 'next/font/google';
 import { Providers } from '@/components/providers';
 import { CookieBanner } from '@/components/ui/CookieBanner';
+import { CallMeBack } from '@/components/ui/CallMeBack';
 import './globals.css';
 
 const inter = Inter({
@@ -81,6 +82,7 @@ export default function RootLayout({
         <Providers>
           {children}
           <CookieBanner />
+          <CallMeBack />
         </Providers>
       </body>
     </html>
