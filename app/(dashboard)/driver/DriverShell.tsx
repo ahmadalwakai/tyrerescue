@@ -41,15 +41,27 @@ export function DriverShell({
           gap={2}
         >
           <Flex align="center" gap={{ base: 4, md: 8 }} minW={0} flex={1}>
-            <Text
+            <ChakraLink
+              asChild
               fontWeight="bold"
               fontSize={{ base: 'md', md: 'lg' }}
               color={c.text}
               flexShrink={0}
+              _hover={{ textDecoration: 'none', color: c.accent }}
+              transition="color 0.2s"
             >
-              Tyre Rescue Driver
-            </Text>
+              <NextLink href="/">Tyre Rescue Driver</NextLink>
+            </ChakraLink>
             <Flex as="nav" gap={{ base: 3, md: 6 }}>
+              <ChakraLink
+                asChild
+                fontWeight="medium"
+                fontSize={{ base: '13px', md: '14px' }}
+                color={c.accent}
+                _hover={{ color: c.text, textDecoration: 'none' }}
+              >
+                <NextLink href="/">← Site</NextLink>
+              </ChakraLink>
               {navItems.map((item) => (
                 <ChakraLink
                   key={item.href}

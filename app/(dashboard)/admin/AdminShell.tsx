@@ -69,7 +69,31 @@ export function AdminShell({
         overflowY="auto"
         display={{ base: 'none', md: 'block' }}
       >
-        <Heading size="md" mb={8} color={c.text} style={anim.fadeUp()}>
+        <ChakraLink
+          asChild
+          fontSize="20px"
+          letterSpacing="0.05em"
+          color={c.text}
+          _hover={{ textDecoration: 'none', color: c.accent }}
+          transition="color 0.2s"
+          style={{ fontFamily: 'var(--font-display)', ...anim.fadeUp() }}
+        >
+          <NextLink href="/">TYRE RESCUE</NextLink>
+        </ChakraLink>
+        <ChakraLink
+          asChild
+          fontSize="12px"
+          color={c.muted}
+          mt={1}
+          mb={6}
+          display="inline-block"
+          _hover={{ color: c.accent, textDecoration: 'none' }}
+          transition="color 0.2s"
+        >
+          <NextLink href="/">← Back to Site</NextLink>
+        </ChakraLink>
+
+        <Heading size="md" mb={4} color={c.text} fontSize="14px" fontWeight="600" letterSpacing="0.05em" textTransform="uppercase">
           Admin Panel
         </Heading>
 
@@ -81,6 +105,7 @@ export function AdminShell({
               px={3}
               py={2}
               borderRadius="md"
+              color={c.text}
               _hover={{ bg: c.card, textDecoration: 'none' }}
               transition="background 0.2s"
               style={anim.stagger('fadeUp', i, '0.3s', 0.05)}
@@ -156,14 +181,16 @@ export function AdminShell({
         px={4}
         zIndex={100}
       >
-        <Text
+        <ChakraLink
+          asChild
           fontSize="20px"
           color={c.text}
           letterSpacing="0.05em"
+          _hover={{ textDecoration: 'none', color: c.accent }}
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          TYRE RESCUE
-        </Text>
+          <NextLink href="/">TYRE RESCUE</NextLink>
+        </ChakraLink>
         <Text
           as="button"
           fontSize="13px"
@@ -210,6 +237,18 @@ export function AdminShell({
           </Flex>
 
           <VStack align="stretch" gap={0} flex={1} overflowY="auto">
+            <ChakraLink
+              asChild
+              py="20px"
+              px="24px"
+              fontSize="16px"
+              color={c.accent}
+              borderBottom={`1px solid ${c.border}`}
+              _hover={{ bg: c.surface, textDecoration: 'none' }}
+              onClick={() => setMobileOpen(false)}
+            >
+              <NextLink href="/">← Back to Site</NextLink>
+            </ChakraLink>
             {navItems.map((item) => (
               <ChakraLink
                 key={item.href}

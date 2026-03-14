@@ -496,9 +496,14 @@ export function HomePage() {
                     style={{
                       fontFamily: 'var(--font-display)',
                       fontSize: 'clamp(52px, 10vw, 140px)',
+                      animation: 'slideInLeft 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s both',
                     }}
                   >
-                    GLASGOW &
+                    {'GLASGOW'.split('').map((ch, i) => (
+                      <span key={i} className="neon-char" style={{ animationDelay: `${i * 0.12}s` }}>
+                        {ch}
+                      </span>
+                    ))}
                   </Text>
                   <Text
                     as="span"
@@ -508,9 +513,31 @@ export function HomePage() {
                     style={{
                       fontFamily: 'var(--font-display)',
                       fontSize: 'clamp(52px, 10vw, 140px)',
+                      animation: 'slideInRight 0.7s cubic-bezier(0.16,1,0.3,1) 0.45s both',
                     }}
                   >
-                    EDINBURGH.
+                    {'EDINBURGH'.split('').map((ch, i) => (
+                      <span key={i} className="neon-char" style={{ animationDelay: `${(i + 7) * 0.12}s` }}>
+                        {ch}
+                      </span>
+                    ))}
+                  </Text>
+                  <Text
+                    as="span"
+                    display="block"
+                    color={colors.textPrimary}
+                    lineHeight="0.92"
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 'clamp(52px, 10vw, 140px)',
+                      animation: 'slideInLeft 0.7s cubic-bezier(0.16,1,0.3,1) 0.7s both',
+                    }}
+                  >
+                    {'DUNDEE'.split('').map((ch, i) => (
+                      <span key={i} className="neon-char" style={{ animationDelay: `${(i + 16) * 0.12}s` }}>
+                        {ch}
+                      </span>
+                    ))}
                   </Text>
                 </Box>
 

@@ -60,3 +60,13 @@ body {
   96% { box-shadow: 0 0 0 0 transparent; }
   98% { box-shadow: 0 0 12px 3px rgba(37,211,102,0.9), inset 0 0 12px rgba(37,211,102,0.2); }
 }
+
+@keyframes orangeNeon {
+  0%, 100% { text-shadow: 0 0 4px rgba(249,115,22,0.4), 0 0 11px rgba(249,115,22,0.2); }
+  50% { text-shadow: 0 0 8px rgba(249,115,22,0.8), 0 0 20px rgba(249,115,22,0.4), 0 0 40px rgba(249,115,22,0.15); }
+}
+
+.neon-char {
+  display: inline-block;
+  animation: orangeNeon 3s ease-in-out infinite;
+}
