@@ -32,7 +32,6 @@ interface ActiveJob {
   tyrePhotoUrl: string | null;
   scheduledAt: string | null;
   tyres: {
-    condition: string;
     quantity: number;
     brand: string | null;
     pattern: string | null;
@@ -208,7 +207,7 @@ export function DriverDashboardClient({
                 <VStack align="stretch" gap={1} mt={2}>
                   {activeJob.tyres.map((tyre, idx) => (
                     <Text key={idx} fontSize="sm" color={c.muted}>
-                      {tyre.brand} {tyre.pattern} ({tyre.condition}) x{tyre.quantity}
+                      {tyre.brand} {tyre.pattern} x{tyre.quantity}
                     </Text>
                   ))}
                 </VStack>

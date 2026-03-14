@@ -11,7 +11,6 @@ export interface AdminBookingData {
   lat: number;
   lng: number;
   tyreSizeDisplay: string;
-  tyreCondition: 'new' | 'used';
   quantity: number;
   total: number;
   scheduledAt?: Date;
@@ -39,7 +38,6 @@ export function adminNewBooking(
     lat,
     lng,
     tyreSizeDisplay,
-    tyreCondition,
     quantity,
     total,
     scheduledAt,
@@ -112,10 +110,6 @@ export function adminNewBooking(
       <div class="info-row">
         <span class="label">Tyre Size</span>
         <span class="value">${tyreSizeDisplay}</span>
-      </div>
-      <div class="info-row">
-        <span class="label">Condition</span>
-        <span class="value">${tyreCondition === 'new' ? 'New' : 'Part-Worn'}</span>
       </div>
       <div class="info-row">
         <span class="label">Quantity</span>

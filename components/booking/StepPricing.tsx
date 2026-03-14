@@ -71,7 +71,6 @@ export function StepPricing({
           serviceType: state.conditionAssessment === 'repair' ? 'repair' : 'fit',
           tyreSelections: state.selectedTyres.map((tyre) => ({
             tyreId: tyre.tyreId,
-            condition: tyre.condition,
             quantity: tyre.quantity,
             service: tyre.service,
             requiresTpms: false,
@@ -271,7 +270,7 @@ export function StepPricing({
         <VStack align="stretch" gap={1} fontSize="sm" color={c.muted}>
           {state.selectedTyres.map((tyre, i) => (
             <Text key={i}>
-              {tyre.quantity}x {tyre.brand} {tyre.pattern} ({tyre.condition})
+              {tyre.quantity}x {tyre.brand} {tyre.pattern}
             </Text>
           ))}
           {state.conditionAssessment === 'repair' && (

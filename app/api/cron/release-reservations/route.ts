@@ -26,12 +26,9 @@ export async function GET(request: Request) {
 
   for (const reservation of expired) {
     // Restore stock
-    const stockCol =
-      reservation.condition === 'new' ? tyreProducts.stockNew : tyreProducts.stockUsed;
-
     await db
       .update(tyreProducts)
-      .set({ [reservation.condition === 'new' ? 'stockNew' : 'stockUsed']: sql`${stockCol} + ${reservation.quantity}` })
+      .set({ stockNew: sql`${tyreProducts.stockNew} + ${reservation.quantity}` })
       .where(eq(tyreProducts.id, reservation.tyreId!));
 
     // Mark as released

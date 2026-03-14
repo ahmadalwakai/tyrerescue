@@ -38,7 +38,7 @@ const services = [
     num: '02',
     title: 'Tyre Fitting',
     description:
-      'New and used tyres fitted at your location. Professional service at your home, workplace, or roadside.',
+      'Quality tyres fitted at your location. Professional service at your home, workplace, or roadside.',
     price: 'From £20',
   },
   {
@@ -78,7 +78,7 @@ const marqueeItems = [
   '24 HOURS A DAY',
   'MOBILE TYRE FITTING',
   'PUNCTURE REPAIR',
-  'NEW AND USED TYRES',
+  'QUALITY TYRES',
 ];
 
 const cssKeyframes = `

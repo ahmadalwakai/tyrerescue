@@ -7,11 +7,11 @@ export interface JobAssignedData {
   customerLat: number;
   customerLng: number;
   tyreSizeDisplay: string;
-  tyreCondition: 'new' | 'used';
   quantity: number;
   serviceType: string;
   customerPhone: string;
   tyrePhotoUrl?: string;
+  lockingNutStatus?: string | null;
 }
 
 export function jobAssigned(data: JobAssignedData): { subject: string; html: string } {
@@ -22,11 +22,11 @@ export function jobAssigned(data: JobAssignedData): { subject: string; html: str
     customerLat,
     customerLng,
     tyreSizeDisplay,
-    tyreCondition,
     quantity,
     serviceType,
     customerPhone,
     tyrePhotoUrl,
+    lockingNutStatus,
   } = data;
 
   const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}`;
@@ -60,10 +60,6 @@ export function jobAssigned(data: JobAssignedData): { subject: string; html: str
         <span class="value">${tyreSizeDisplay}</span>
       </div>
       <div class="info-row">
-        <span class="label">Condition</span>
-        <span class="value">${tyreCondition === 'new' ? 'New' : 'Part-Worn'}</span>
-      </div>
-      <div class="info-row">
         <span class="label">Quantity</span>
         <span class="value">${quantity}</span>
       </div>
@@ -82,6 +78,20 @@ export function jobAssigned(data: JobAssignedData): { subject: string; html: str
       <p style="margin: 0;">
         <a href="${tyrePhotoUrl}" style="color: #1a1a1a; font-weight: 600;">View Customer's Tyre Photo</a>
       </p>
+    </div>
+    ` : ''}
+
+    ${lockingNutStatus === 'no_key' ? `
+    <div style="background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px; padding: 16px; margin-top: 16px;">
+      <h2 style="color: #dc2626; margin: 0 0 8px 0; font-size: 18px;">⚠ LOCKING NUT WARNING</h2>
+      <p style="color: #dc2626; margin: 0; font-weight: 600;">Customer does NOT have the locking wheel nut key. You may not be able to remove the wheels. Contact the customer before departing to discuss.</p>
+    </div>
+    ` : lockingNutStatus === 'has_key' ? `
+    <div class="info-box">
+      <div class="info-row">
+        <span class="label">Locking Nuts</span>
+        <span class="value">✓ Customer has the key</span>
+      </div>
     </div>
     ` : ''}
 

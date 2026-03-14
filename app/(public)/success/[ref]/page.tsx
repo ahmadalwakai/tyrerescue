@@ -47,7 +47,6 @@ export default async function SuccessPage({ params }: PageProps) {
       brand: tyreProducts.brand,
       pattern: tyreProducts.pattern,
       sizeDisplay: tyreProducts.sizeDisplay,
-      condition: bookingTyres.condition,
       quantity: bookingTyres.quantity,
       unitPrice: bookingTyres.unitPrice,
     })
@@ -74,7 +73,6 @@ export default async function SuccessPage({ params }: PageProps) {
       brand: t.brand || '',
       pattern: t.pattern || '',
       sizeDisplay: t.sizeDisplay || '',
-      condition: t.condition,
       quantity: t.quantity,
       unitPrice: t.unitPrice ? parseFloat(t.unitPrice) : 0,
     })),

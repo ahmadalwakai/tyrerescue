@@ -28,6 +28,7 @@ const createBookingSchema = z.object({
   vehicleMake: z.string().max(100).optional(),
   vehicleModel: z.string().max(100).optional(),
   tyreSizeDisplay: z.string().max(20).optional(),
+  lockingNutStatus: z.enum(['has_key', 'no_key', 'standard']).optional(),
   notes: z.string().max(1000).optional(),
   createAccount: z.boolean().optional(),
 });
@@ -49,7 +50,6 @@ interface ErrorResponse {
 
 interface TyreSelection {
   tyreId: string;
-  condition: 'new' | 'used';
   quantity: number;
   service: 'fit' | 'repair' | 'assess';
   requiresTpms?: boolean;
@@ -167,12 +167,11 @@ export async function POST(
 
         // Stock was already reserved in quote, so we check current stock
         // is non-negative (reservation already decremented it)
-        const isNew = selection.condition === 'new';
-        const currentStock = isNew ? (tyre.stockNew ?? 0) : (tyre.stockUsed ?? 0);
+        const currentStock = tyre.stockNew ?? 0;
 
         if (currentStock < 0) {
           stockErrors.push(
-            `${tyre.brand} ${tyre.pattern} (${selection.condition}) is no longer available`
+            `${tyre.brand} ${tyre.pattern} is no longer available`
           );
         }
       }
@@ -225,6 +224,7 @@ export async function POST(
         vehicleMake: data.vehicleMake || null,
         vehicleModel: data.vehicleModel || null,
         tyrePhotoUrl: data.tyrePhotoUrl || null,
+        lockingNutStatus: data.lockingNutStatus || null,
         customerName: data.customerName,
         customerEmail: data.customerEmail.toLowerCase(),
         customerPhone: data.customerPhone,
@@ -240,16 +240,12 @@ export async function POST(
       // Create booking tyres entries
       for (const selection of tyreSelections) {
         const tyre = tyreMap.get(selection.tyreId)!;
-        const isNew = selection.condition === 'new';
-        const unitPrice = isNew
-          ? parseFloat(tyre.priceNew?.toString() ?? '0')
-          : parseFloat(tyre.priceUsed?.toString() ?? '0');
+        const unitPrice = parseFloat(tyre.priceNew?.toString() ?? '0');
 
         await db.insert(bookingTyres).values({
           id: uuidv4(),
           bookingId,
           tyreId: selection.tyreId,
-          condition: selection.condition,
           quantity: selection.quantity,
           unitPrice: unitPrice.toString(),
           service: selection.service,
@@ -264,7 +260,6 @@ export async function POST(
           .where(
             and(
               eq(inventoryReservations.tyreId, selection.tyreId),
-              eq(inventoryReservations.condition, selection.condition),
               eq(inventoryReservations.released, false)
             )
           );
@@ -338,12 +333,10 @@ async function releaseQuoteReservations(
   tyreSelections: TyreSelection[]
 ) {
   for (const selection of tyreSelections) {
-    const stockColumn = selection.condition === 'new' ? 'stock_new' : 'stock_used';
-
     // Restore stock
     await client.query(
       `UPDATE tyre_products 
-       SET ${stockColumn} = ${stockColumn} + $1,
+       SET stock_new = stock_new + $1,
            updated_at = NOW()
        WHERE id = $2`,
       [selection.quantity, selection.tyreId]
@@ -353,8 +346,8 @@ async function releaseQuoteReservations(
     await client.query(
       `UPDATE inventory_reservations 
        SET released = true 
-       WHERE tyre_id = $1 AND condition = $2 AND released = false`,
-      [selection.tyreId, selection.condition]
+       WHERE tyre_id = $1 AND released = false`,
+      [selection.tyreId]
     );
   }
 }

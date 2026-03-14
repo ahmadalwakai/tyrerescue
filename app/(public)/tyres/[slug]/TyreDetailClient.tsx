@@ -33,11 +33,8 @@ interface TyreData {
   noiseDb: number | null;
   runFlat: boolean;
   priceNew: number | null;
-  priceUsed: number | null;
   stockNew: number;
-  stockUsed: number;
   availableNew: boolean;
-  availableUsed: boolean;
   slug: string;
 }
 
@@ -48,9 +45,7 @@ interface RelatedTyre {
   sizeDisplay: string;
   season: string;
   priceNew: number | null;
-  priceUsed: number | null;
   availableNew: boolean;
-  availableUsed: boolean;
   slug: string;
 }
 
@@ -150,7 +145,7 @@ export function TyreDetailClient({ tyre, relatedTyres }: Props) {
                       borderColor={c.border}
                     >
                       <Flex justify="space-between" align="start" mb={2}>
-                        <Text fontWeight="semibold" color={c.text}>New Tyre</Text>
+                        <Text fontWeight="semibold" color={c.text}>Price</Text>
                         <Text fontSize="xl" fontWeight="bold" color={c.text}>
                           {formatPrice(tyre.priceNew)}
                         </Text>
@@ -163,38 +158,8 @@ export function TyreDetailClient({ tyre, relatedTyres }: Props) {
                         mt={3}
                         disabled={tyre.stockNew === 0}
                       >
-                        <NextLink href={`/emergency?tyreId=${tyre.id}&condition=new`}>
-                          Book New Tyre
-                        </NextLink>
-                      </Button>
-                    </Box>
-                  )}
-
-                  {/* Used Tyre Option */}
-                  {tyre.availableUsed && tyre.priceUsed !== null && (
-                    <Box
-                      p={4}
-                      borderWidth="1px"
-                      borderRadius="md"
-                      borderColor={c.border}
-                    >
-                      <Flex justify="space-between" align="start" mb={2}>
-                        <Text fontWeight="semibold" color={c.text}>Part-Worn Tyre</Text>
-                        <Text fontSize="xl" fontWeight="bold" color={c.text}>
-                          {formatPrice(tyre.priceUsed)}
-                        </Text>
-                      </Flex>
-                      <StockBadge stock={tyre.stockUsed} />
-                      <Button
-                        asChild
-                        colorPalette="orange"
-                        variant="outline"
-                        width="full"
-                        mt={3}
-                        disabled={tyre.stockUsed === 0}
-                      >
-                        <NextLink href={`/emergency?tyreId=${tyre.id}&condition=used`}>
-                          Book Part-Worn Tyre
+                        <NextLink href={`/emergency?tyreId=${tyre.id}`}>
+                          Book This Tyre
                         </NextLink>
                       </Button>
                     </Box>
@@ -331,10 +296,7 @@ export function TyreDetailClient({ tyre, relatedTyres }: Props) {
                       : related.season === 'winter'
                       ? 'Winter'
                       : 'All Season';
-                  const lowestPrice =
-                    related.priceNew && related.priceUsed
-                      ? Math.min(related.priceNew, related.priceUsed)
-                      : related.priceNew || related.priceUsed;
+                  const lowestPrice = related.priceNew;
 
                   return (
                     <ChakraLink

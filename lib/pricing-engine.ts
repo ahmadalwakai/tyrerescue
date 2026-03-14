@@ -14,7 +14,6 @@ Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 // Types
 export interface TyreSelection {
   tyreId: string;
-  condition: 'new' | 'used';
   quantity: number;
   unitPrice: number;
   service: 'fit' | 'repair' | 'assess';
@@ -136,7 +135,7 @@ function calculateTyreCost(tyreSelections: TyreSelection[]): {
     total = total.plus(amount);
 
     lineItems.push({
-      label: `Tyre (${selection.condition})`,
+      label: 'Tyre',
       quantity: selection.quantity,
       unitPrice: selection.unitPrice,
       amount: amount.toNumber(),

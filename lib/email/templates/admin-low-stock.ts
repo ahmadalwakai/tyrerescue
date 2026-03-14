@@ -5,12 +5,11 @@ export interface AdminLowStockData {
   pattern: string;
   size: string;
   stockNew: number;
-  stockUsed: number;
   inventoryUrl: string;
 }
 
 export function adminLowStock(data: AdminLowStockData): { subject: string; html: string } {
-  const { brand, pattern, size, stockNew, stockUsed, inventoryUrl } = data;
+  const { brand, pattern, size, stockNew, inventoryUrl } = data;
 
   const content = `
     <h1>Low Stock Alert</h1>
@@ -24,23 +23,17 @@ export function adminLowStock(data: AdminLowStockData): { subject: string; html:
       </div>
     </div>
 
-    <h2>Current Stock Levels</h2>
+    <h2>Current Stock Level</h2>
     <div class="info-box">
       <div class="info-row">
-        <span class="label">New Tyres</span>
+        <span class="label">Stock</span>
         <span class="value" style="${stockNew <= 2 ? 'color: #dc2626;' : ''}">${stockNew} units</span>
-      </div>
-      <div class="info-row">
-        <span class="label">Part-Worn Tyres</span>
-        <span class="value" style="${stockUsed <= 2 ? 'color: #dc2626;' : ''}">${stockUsed} units</span>
       </div>
     </div>
 
-    ${stockNew === 0 || stockUsed === 0 ? `
+    ${stockNew === 0 ? `
     <div class="info-box" style="background-color: #fef2f2; border: 1px solid #fecaca;">
-      <p style="margin: 0; color: #dc2626; font-weight: 600;">
-        ${stockNew === 0 && stockUsed === 0 ? 'Both new and part-worn stock are depleted.' : stockNew === 0 ? 'New tyre stock is depleted.' : 'Part-worn tyre stock is depleted.'}
-      </p>
+      <p style="margin: 0; color: #dc2626; font-weight: 600;">Stock is depleted.</p>
     </div>
     ` : ''}
 
@@ -48,7 +41,7 @@ export function adminLowStock(data: AdminLowStockData): { subject: string; html:
       <a href="${inventoryUrl}" class="button">Manage Inventory</a>
     </div>
 
-    <p style="font-size: 14px; color: #666666;">This alert is triggered when stock falls below 5 units for any condition.</p>
+    <p style="font-size: 14px; color: #666666;">This alert is triggered when stock falls below 5 units.</p>
   `;
 
   return {

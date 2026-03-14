@@ -38,7 +38,6 @@ interface Booking {
 
 interface Tyre {
   id: string;
-  condition: string;
   quantity: number;
   unitPrice: string;
   service: string;
@@ -300,8 +299,7 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
                           {tyre.brand} {tyre.pattern}
                         </Text>
                         <Text fontSize="sm" color={c.muted}>
-                          {tyre.width}/{tyre.aspect}R{tyre.rim} - {tyre.condition} -{' '}
-                          {tyre.service}
+                          {tyre.width}/{tyre.aspect}R{tyre.rim} - {tyre.service}
                         </Text>
                         <Text fontSize="sm">
                           {formatCurrency(tyre.unitPrice)} x {tyre.quantity}

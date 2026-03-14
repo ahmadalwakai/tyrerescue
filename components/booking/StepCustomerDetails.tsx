@@ -100,6 +100,7 @@ export function StepCustomerDetails({
           customerPhone: customerDetails.customerPhone,
           vehicleReg: state.vehicleReg || undefined,
           tyrePhotoUrl: state.tyrePhotoUrl || undefined,
+          lockingNutStatus: state.lockingNutStatus || undefined,
           notes: undefined,
         }),
       });

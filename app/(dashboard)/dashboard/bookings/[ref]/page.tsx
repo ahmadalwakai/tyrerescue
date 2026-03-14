@@ -28,7 +28,6 @@ export default async function CustomerBookingDetailPage(
       brand: tyreProducts.brand,
       pattern: tyreProducts.pattern,
       sizeDisplay: tyreProducts.sizeDisplay,
-      condition: bookingTyres.condition,
       quantity: bookingTyres.quantity,
       unitPrice: bookingTyres.unitPrice,
       service: bookingTyres.service,
@@ -137,7 +136,7 @@ export default async function CustomerBookingDetailPage(
               <HStack key={i} justify="space-between" py={2} borderBottomWidth={i < tyres.length - 1 ? '1px' : '0'} borderColor={c.border}>
                 <Box>
                   <Text fontSize="sm" color={c.text}>{t.brand} {t.pattern}</Text>
-                  <Text fontSize="xs" color={c.muted}>{t.sizeDisplay} / {t.condition} / {t.service}</Text>
+                  <Text fontSize="xs" color={c.muted}>{t.sizeDisplay} / {t.service}</Text>
                 </Box>
                 <Text fontSize="sm" color={c.text}>{t.quantity}x £{Number(t.unitPrice).toFixed(2)}</Text>
               </HStack>

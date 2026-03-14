@@ -11,7 +11,6 @@ import {
   Heading,
   Input,
   Grid,
-  GridItem,
   Flex,
   Button,
   NativeSelect,
@@ -31,11 +30,8 @@ interface Tyre {
   loadIndex: number | null;
   wetGrip: string | null;
   priceNew: number | null;
-  priceUsed: number | null;
   stockNew: number | null;
-  stockUsed: number | null;
   availableNew: boolean | null;
-  availableUsed: boolean | null;
   slug: string;
 }
 
@@ -68,7 +64,6 @@ export function TyresContent() {
   // Filter state
   const [brand, setBrand] = useState(searchParams.get('brand') || 'all');
   const [season, setSeason] = useState(searchParams.get('season') || 'all');
-  const [condition, setCondition] = useState(searchParams.get('condition') || 'both');
   const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
 
@@ -97,7 +92,6 @@ export function TyresContent() {
       if (rim) params.set('rim', rim);
       if (brand !== 'all') params.set('brand', brand);
       if (season !== 'all') params.set('season', season);
-      if (condition !== 'both') params.set('condition', condition);
       if (minPrice) params.set('minPrice', minPrice);
       if (maxPrice) params.set('maxPrice', maxPrice);
       params.set('page', page.toString());
@@ -119,7 +113,7 @@ export function TyresContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [width, aspect, rim, brand, season, condition, minPrice, maxPrice, router]);
+  }, [width, aspect, rim, brand, season, minPrice, maxPrice, router]);
 
   // Load initial results if URL has params
   useEffect(() => {
@@ -138,7 +132,6 @@ export function TyresContent() {
     setRim('');
     setBrand('all');
     setSeason('all');
-    setCondition('both');
     setMinPrice('');
     setMaxPrice('');
     setTyres([]);
@@ -150,9 +143,7 @@ export function TyresContent() {
     fetchTyres(page);
   }
 
-  // Separate tyres by condition
-  const newTyres = tyres.filter((t) => t.availableNew && t.priceNew !== null);
-  const usedTyres = tyres.filter((t) => t.availableUsed && t.priceUsed !== null);
+  const availableTyres = tyres.filter((t) => t.availableNew && t.priceNew !== null);
 
   return (
     <Box bg={c.bg} minH="100vh" py={8}>
@@ -278,21 +269,6 @@ export function TyresContent() {
                   </NativeSelect.Field>
                 </NativeSelect.Root>
               </Box>
-              <Box minW="150px">
-                <Text fontSize="sm" color={c.muted} mb={1}>
-                  Condition
-                </Text>
-                <NativeSelect.Root>
-                  <NativeSelect.Field
-                    value={condition}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCondition(e.target.value)}
-                  >
-                    <option value="both">New and Used</option>
-                    <option value="new">New Only</option>
-                    <option value="used">Used Only</option>
-                  </NativeSelect.Field>
-                </NativeSelect.Root>
-              </Box>
               <Box minW="100px">
                 <Text fontSize="sm" color={c.muted} mb={1}>
                   Min Price
@@ -348,51 +324,24 @@ export function TyresContent() {
               </VStack>
             </Box>
           ) : hasSearched ? (
-            <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={8}>
-              {/* New Tyres Column */}
-              {(condition === 'both' || condition === 'new') && (
-                <GridItem>
-                  <Heading size="md" mb={4} color={c.text}>
-                    New Tyres
-                  </Heading>
-                  {newTyres.length === 0 ? (
-                    <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border}>
-                      <Text color={c.muted}>No new tyres available</Text>
+            <Box>
+              <Heading size="md" mb={4} color={c.text}>
+                Tyres ({availableTyres.length})
+              </Heading>
+              {availableTyres.length === 0 ? (
+                <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+                  <Text color={c.muted}>No tyres available</Text>
+                </Box>
+              ) : (
+                <Grid templateColumns={{ base: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }} gap={4}>
+                  {availableTyres.map((tyre, i) => (
+                    <Box key={tyre.id} style={anim.stagger('fadeUp', i, '0.4s', 0.1, 0.05)}>
+                      <TyreCard tyre={tyre} />
                     </Box>
-                  ) : (
-                    <VStack align="stretch" gap={4}>
-                      {newTyres.map((tyre, i) => (
-                        <Box key={`new-${tyre.id}`} style={anim.stagger('fadeUp', i, '0.4s', 0.1, 0.05)}>
-                          <TyreCard tyre={tyre} condition="new" />
-                        </Box>
-                      ))}
-                    </VStack>
-                  )}
-                </GridItem>
+                  ))}
+                </Grid>
               )}
-
-              {/* Used Tyres Column */}
-              {(condition === 'both' || condition === 'used') && (
-                <GridItem>
-                  <Heading size="md" mb={4} color={c.text}>
-                    Used Tyres
-                  </Heading>
-                  {usedTyres.length === 0 ? (
-                    <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border}>
-                      <Text color={c.muted}>No used tyres available</Text>
-                    </Box>
-                  ) : (
-                    <VStack align="stretch" gap={4}>
-                      {usedTyres.map((tyre, i) => (
-                        <Box key={`used-${tyre.id}`} style={anim.stagger('fadeUp', i, '0.4s', 0.1, 0.05)}>
-                          <TyreCard tyre={tyre} condition="used" />
-                        </Box>
-                      ))}
-                    </VStack>
-                  )}
-                </GridItem>
-              )}
-            </Grid>
+            </Box>
           ) : (
             <Box bg={c.card} p={8} borderRadius="md" borderWidth="1px" borderColor={c.border} textAlign="center">
               <VStack gap={4}>

@@ -53,11 +53,10 @@ export default async function DriverDashboardPage() {
     .limit(1);
 
   // Get tyre details for active job
-  let activeJobTyres: { condition: string; quantity: number; brand: string | null; pattern: string | null }[] = [];
+  let activeJobTyres: { quantity: number; brand: string | null; pattern: string | null }[] = [];
   if (activeJob) {
     activeJobTyres = await db
       .select({
-        condition: bookingTyres.condition,
         quantity: bookingTyres.quantity,
         brand: tyreProducts.brand,
         pattern: tyreProducts.pattern,
@@ -116,7 +115,6 @@ export default async function DriverDashboardPage() {
         tyrePhotoUrl: activeJob.tyrePhotoUrl,
         scheduledAt: activeJob.scheduledAt?.toISOString() ?? null,
         tyres: activeJobTyres.map((t) => ({
-          condition: t.condition,
           quantity: t.quantity,
           brand: t.brand,
           pattern: t.pattern,

@@ -201,15 +201,12 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       .limit(1);
 
     if (tyre) {
-      const stockAfter = bookingTyre.condition === 'new'
-        ? (tyre.stockNew ?? 0)
-        : (tyre.stockUsed ?? 0);
+      const stockAfter = tyre.stockNew ?? 0;
 
       await db.insert(inventoryMovements).values({
         id: uuidv4(),
         tyreId: bookingTyre.tyreId,
         bookingId,
-        condition: bookingTyre.condition,
         movementType: 'sale',
         quantityDelta: -bookingTyre.quantity,
         stockAfter,
@@ -226,7 +223,6 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
 
   // Get tyre details for admin email
   let tyreSizeDisplay = 'N/A';
-  let tyreCondition: 'new' | 'used' = 'new';
   if (tyresInBooking.length > 0 && tyresInBooking[0].tyreId) {
     const [tyre] = await db
       .select()
@@ -235,9 +231,6 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       .limit(1);
     if (tyre) {
       tyreSizeDisplay = tyre.sizeDisplay;
-    }
-    if (tyresInBooking[0].condition) {
-      tyreCondition = tyresInBooking[0].condition as 'new' | 'used';
     }
   }
 
@@ -325,7 +318,6 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
           lat: parseFloat(booking.lat),
           lng: parseFloat(booking.lng),
           tyreSizeDisplay,
-          tyreCondition,
           quantity: booking.quantity,
           total: priceSnapshot.total,
           scheduledAt: booking.scheduledAt || undefined,

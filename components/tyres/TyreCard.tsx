@@ -14,17 +14,13 @@ interface Tyre {
   loadIndex: number | null;
   wetGrip: string | null;
   priceNew: number | null;
-  priceUsed: number | null;
   stockNew: number | null;
-  stockUsed: number | null;
   availableNew: boolean | null;
-  availableUsed: boolean | null;
   slug: string;
 }
 
 interface Props {
   tyre: Tyre;
-  condition: 'new' | 'used';
 }
 
 const SEASON_LABELS: Record<string, string> = {
@@ -43,10 +39,10 @@ function getStockBadge(stock: number | null): { text: string; weight: string } {
   return { text: 'In Stock', weight: 'semibold' };
 }
 
-export function TyreCard({ tyre, condition }: Props) {
-  const price = condition === 'new' ? tyre.priceNew : tyre.priceUsed;
-  const stock = condition === 'new' ? tyre.stockNew : tyre.stockUsed;
-  const available = condition === 'new' ? tyre.availableNew : tyre.availableUsed;
+export function TyreCard({ tyre }: Props) {
+  const price = tyre.priceNew;
+  const stock = tyre.stockNew;
+  const available = tyre.availableNew;
   const stockBadge = getStockBadge(stock);
 
   if (!available || price === null) {
@@ -91,7 +87,7 @@ export function TyreCard({ tyre, condition }: Props) {
         {/* Price and Stock */}
         <HStack justify="space-between" align="center">
           <Text fontSize="xl" fontWeight="bold" color={c.text}>
-            £{price.toFixed(2)}
+            \u00A3{price.toFixed(2)}
           </Text>
           <Text fontSize="sm" fontWeight={stockBadge.weight}>
             {stockBadge.text}

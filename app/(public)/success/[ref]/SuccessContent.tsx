@@ -18,7 +18,6 @@ interface TyreDetail {
   brand: string;
   pattern: string;
   sizeDisplay: string;
-  condition: string;
   quantity: number;
   unitPrice: number;
 }
@@ -198,7 +197,7 @@ export function SuccessContent({ booking }: SuccessContentProps) {
                           {tyre.brand} {tyre.pattern}
                         </Text>
                         <Text fontSize="sm" color={c.muted}>
-                          {tyre.sizeDisplay} - {tyre.condition} x {tyre.quantity}
+                          {tyre.sizeDisplay} x {tyre.quantity}
                         </Text>
                       </Box>
                       <Text fontWeight="500" color={c.text}>

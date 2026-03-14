@@ -101,30 +101,16 @@ export default async function TyreDetailPage({ params }: Props) {
 
   // Build JSON-LD Product schema
   const priceNew = tyre.priceNew ? parseFloat(tyre.priceNew) : null;
-  const priceUsed = tyre.priceUsed ? parseFloat(tyre.priceUsed) : null;
-  const lowestPrice = priceNew && priceUsed ? Math.min(priceNew, priceUsed) : priceNew || priceUsed;
-  const highestPrice = priceNew && priceUsed ? Math.max(priceNew, priceUsed) : priceNew || priceUsed;
 
   const offersArray = [];
   if (priceNew && tyre.availableNew) {
     offersArray.push({
       '@type': 'Offer',
-      name: 'New Tyre',
+      name: 'Tyre',
       price: priceNew,
       priceCurrency: 'GBP',
       availability: (tyre.stockNew ?? 0) > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       itemCondition: 'https://schema.org/NewCondition',
-      url: `https://tyrerescue.co.uk/tyres/${slug}`,
-    });
-  }
-  if (priceUsed && tyre.availableUsed) {
-    offersArray.push({
-      '@type': 'Offer',
-      name: 'Part-Worn Tyre',
-      price: priceUsed,
-      priceCurrency: 'GBP',
-      availability: (tyre.stockUsed ?? 0) > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      itemCondition: 'https://schema.org/UsedCondition',
       url: `https://tyrerescue.co.uk/tyres/${slug}`,
     });
   }
@@ -153,8 +139,8 @@ export default async function TyreDetailPage({ params }: Props) {
     ],
     offers: offersArray.length === 1 ? offersArray[0] : {
       '@type': 'AggregateOffer',
-      lowPrice: lowestPrice,
-      highPrice: highestPrice,
+      lowPrice: priceNew,
+      highPrice: priceNew,
       priceCurrency: 'GBP',
       offerCount: offersArray.length,
       offers: offersArray,
@@ -175,11 +161,8 @@ export default async function TyreDetailPage({ params }: Props) {
     noiseDb: tyre.noiseDb,
     runFlat: tyre.runFlat ?? false,
     priceNew,
-    priceUsed,
     stockNew: tyre.stockNew ?? 0,
-    stockUsed: tyre.stockUsed ?? 0,
     availableNew: tyre.availableNew ?? false,
-    availableUsed: tyre.availableUsed ?? false,
     slug: tyre.slug,
   };
 
@@ -190,9 +173,7 @@ export default async function TyreDetailPage({ params }: Props) {
     sizeDisplay: t.sizeDisplay,
     season: t.season,
     priceNew: t.priceNew ? parseFloat(t.priceNew) : null,
-    priceUsed: t.priceUsed ? parseFloat(t.priceUsed) : null,
     availableNew: t.availableNew ?? false,
-    availableUsed: t.availableUsed ?? false,
     slug: t.slug,
   }));
 

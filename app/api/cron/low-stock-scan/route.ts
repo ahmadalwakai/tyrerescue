@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { tyreProducts } from '@/lib/db/schema';
-import { or, lte, sql } from 'drizzle-orm';
+import { lte, sql } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email/resend';
 
 export const dynamic = 'force-dynamic';
@@ -22,21 +22,17 @@ export async function GET(request: Request) {
       pattern: tyreProducts.pattern,
       sizeDisplay: tyreProducts.sizeDisplay,
       stockNew: tyreProducts.stockNew,
-      stockUsed: tyreProducts.stockUsed,
     })
     .from(tyreProducts)
     .where(
-      or(
-        lte(tyreProducts.stockNew, LOW_STOCK_THRESHOLD),
-        lte(tyreProducts.stockUsed, LOW_STOCK_THRESHOLD)
-      )
+      lte(tyreProducts.stockNew, LOW_STOCK_THRESHOLD)
     );
 
   if (lowStock.length > 0) {
     const rows = lowStock
       .map(
         (t) =>
-          `<tr><td>${t.brand} ${t.pattern}</td><td>${t.sizeDisplay}</td><td>${t.stockNew ?? 0}</td><td>${t.stockUsed ?? 0}</td></tr>`
+          `<tr><td>${t.brand} ${t.pattern}</td><td>${t.sizeDisplay}</td><td>${t.stockNew ?? 0}</td></tr>`
       )
       .join('');
 
@@ -45,7 +41,7 @@ export async function GET(request: Request) {
     await sendEmail({
       to: adminEmail,
       subject: `Low Stock Alert: ${lowStock.length} product(s) below threshold`,
-      html: `<h2>Low Stock Alert</h2><table border="1" cellpadding="6"><tr><th>Product</th><th>Size</th><th>New</th><th>Used</th></tr>${rows}</table>`,
+      html: `<h2>Low Stock Alert</h2><table border="1" cellpadding="6"><tr><th>Product</th><th>Size</th><th>Stock</th></tr>${rows}</table>`,
     });
   }
 

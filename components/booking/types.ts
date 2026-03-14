@@ -10,7 +10,6 @@ export type { PricingBreakdown };
 
 export type BookingType = 'emergency' | 'scheduled';
 export type ServiceType = 'repair' | 'fit' | 'both' | 'assess';
-export type TyreCondition = 'new' | 'used';
 
 export interface TyreSize {
   width: string;
@@ -23,7 +22,6 @@ export interface SelectedTyre {
   brand: string;
   pattern: string;
   sizeDisplay: string;
-  condition: TyreCondition;
   quantity: number;
   unitPrice: number;
   service: 'fit' | 'repair' | 'assess';
@@ -48,6 +46,7 @@ export interface WizardState {
   quantity: number;
   conditionAssessment: 'repair' | 'replacement' | 'not_sure' | null;
   tyrePhotoUrl: string | null;
+  lockingNutStatus: 'has_key' | 'no_key' | 'standard' | null;
   
   // Step 4: Tyre Selection
   selectedTyres: SelectedTyre[];
@@ -88,6 +87,7 @@ export const initialWizardState: WizardState = {
   quantity: 1,
   conditionAssessment: null,
   tyrePhotoUrl: null,
+  lockingNutStatus: 'standard',
   selectedTyres: [],
   serviceType: null,
   scheduledDate: null,

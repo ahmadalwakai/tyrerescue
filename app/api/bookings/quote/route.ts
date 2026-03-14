@@ -27,7 +27,6 @@ import { Pool } from '@neondatabase/serverless';
 // Input validation schema
 const tyreSelectionSchema = z.object({
   tyreId: z.string().uuid(),
-  condition: z.enum(['new', 'used']),
   quantity: z.number().int().min(1).max(4),
   service: z.enum(['fit', 'repair', 'assess']),
   requiresTpms: z.boolean().optional(),
@@ -56,7 +55,6 @@ interface QuoteResponse {
     brand: string;
     pattern: string;
     sizeDisplay: string;
-    condition: string;
     quantity: number;
     unitPrice: number;
     available: boolean;
@@ -211,14 +209,10 @@ export async function POST(
 
       for (const selection of data.tyreSelections) {
         const tyre = tyreMap.get(selection.tyreId)!;
-        const isNew = selection.condition === 'new';
-        const stockColumn = isNew ? 'stock_new' : 'stock_used';
-        const availableColumn = isNew ? 'available_new' : 'available_used';
-        const priceColumn = isNew ? 'price_new' : 'price_used';
 
         // SELECT FOR UPDATE SKIP LOCKED to prevent race conditions
         const result = await client.query(
-          `SELECT id, ${stockColumn} as stock, ${availableColumn} as available, ${priceColumn} as price
+          `SELECT id, stock_new as stock, available_new as available, price_new as price
            FROM tyre_products 
            WHERE id = $1 
            FOR UPDATE SKIP LOCKED`,
@@ -226,9 +220,8 @@ export async function POST(
         );
 
         if (result.rows.length === 0) {
-          // Row is locked by another transaction, treat as unavailable
           stockErrors.push(
-            `${tyre.brand} ${tyre.pattern} (${selection.condition}) is currently being reserved by another customer`
+            `${tyre.brand} ${tyre.pattern} is currently being reserved by another customer`
           );
           continue;
         }
@@ -240,11 +233,11 @@ export async function POST(
 
         if (!available) {
           stockErrors.push(
-            `${tyre.brand} ${tyre.pattern} (${selection.condition}) is not currently available`
+            `${tyre.brand} ${tyre.pattern} is not currently available`
           );
         } else if (stock < selection.quantity) {
           stockErrors.push(
-            `Insufficient stock for ${tyre.brand} ${tyre.pattern} (${selection.condition}). Requested: ${selection.quantity}, Available: ${stock}`
+            `Insufficient stock for ${tyre.brand} ${tyre.pattern}. Requested: ${selection.quantity}, Available: ${stock}`
           );
         }
 
@@ -253,7 +246,6 @@ export async function POST(
           brand: tyre.brand,
           pattern: tyre.pattern,
           sizeDisplay: tyre.sizeDisplay,
-          condition: selection.condition,
           quantity: selection.quantity,
           unitPrice: price,
           available: !!available && stock >= selection.quantity,
@@ -261,7 +253,6 @@ export async function POST(
 
         pricingSelections.push({
           tyreId: tyre.id,
-          condition: selection.condition,
           quantity: selection.quantity,
           unitPrice: price,
           service: selection.service,
@@ -312,20 +303,17 @@ export async function POST(
 
       // Decrement stock and create reservations within the same transaction
       for (const selection of data.tyreSelections) {
-        const stockColumn = selection.condition === 'new' ? 'stock_new' : 'stock_used';
-
         // Atomic decrement with check
         const updateResult = await client.query(
           `UPDATE tyre_products 
-           SET ${stockColumn} = ${stockColumn} - $1,
+           SET stock_new = stock_new - $1,
                updated_at = NOW()
-           WHERE id = $2 AND ${stockColumn} >= $1
+           WHERE id = $2 AND stock_new >= $1
            RETURNING id`,
           [selection.quantity, selection.tyreId]
         );
 
         if (updateResult.rowCount === 0) {
-          // This shouldn't happen due to FOR UPDATE check, but handle gracefully
           await client.query('ROLLBACK');
           return NextResponse.json(
             {
@@ -339,9 +327,9 @@ export async function POST(
         // Create inventory reservation
         const reservationId = uuidv4();
         await client.query(
-          `INSERT INTO inventory_reservations (id, tyre_id, booking_id, condition, quantity, expires_at, released)
-           VALUES ($1, $2, NULL, $3, $4, $5, false)`,
-          [reservationId, selection.tyreId, selection.condition, selection.quantity, expiresAt]
+          `INSERT INTO inventory_reservations (id, tyre_id, booking_id, quantity, expires_at, released)
+           VALUES ($1, $2, NULL, $3, $4, false)`,
+          [reservationId, selection.tyreId, selection.quantity, expiresAt]
         );
       }
 

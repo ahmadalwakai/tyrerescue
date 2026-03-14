@@ -134,7 +134,6 @@ export async function PATCH(request: Request, { params }: Props) {
       .limit(1);
 
     let tyreSizeDisplay = 'N/A';
-    let tyreCondition: 'new' | 'used' = 'new';
     if (bookingTyre?.tyreId) {
       const [tyre] = await db
         .select()
@@ -143,9 +142,6 @@ export async function PATCH(request: Request, { params }: Props) {
         .limit(1);
       if (tyre) {
         tyreSizeDisplay = tyre.sizeDisplay;
-      }
-      if (bookingTyre.condition) {
-        tyreCondition = bookingTyre.condition as 'new' | 'used';
       }
     }
 
@@ -182,10 +178,10 @@ export async function PATCH(request: Request, { params }: Props) {
           customerLat: parseFloat(booking.lat),
           customerLng: parseFloat(booking.lng),
           tyreSizeDisplay,
-          tyreCondition,
           quantity: booking.quantity,
           serviceType: booking.serviceType,
           customerPhone: booking.customerPhone,
+          lockingNutStatus: booking.lockingNutStatus,
         });
 
         await createNotificationAndSend({

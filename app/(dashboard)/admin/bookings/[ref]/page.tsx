@@ -26,7 +26,6 @@ export default async function AdminBookingDetailPage({ params }: Props) {
   const tyres = await db
     .select({
       id: bookingTyres.id,
-      condition: bookingTyres.condition,
       quantity: bookingTyres.quantity,
       unitPrice: bookingTyres.unitPrice,
       service: bookingTyres.service,
@@ -97,6 +96,7 @@ export default async function AdminBookingDetailPage({ params }: Props) {
     vehicleMake: booking.vehicleMake,
     vehicleModel: booking.vehicleModel,
     tyrePhotoUrl: booking.tyrePhotoUrl,
+    lockingNutStatus: booking.lockingNutStatus,
     customerName: booking.customerName,
     customerEmail: booking.customerEmail,
     customerPhone: booking.customerPhone,
@@ -112,7 +112,6 @@ export default async function AdminBookingDetailPage({ params }: Props) {
 
   const tyresData = tyres.map((t) => ({
     id: t.id,
-    condition: t.condition,
     quantity: t.quantity,
     unitPrice: t.unitPrice.toString(),
     service: t.service,

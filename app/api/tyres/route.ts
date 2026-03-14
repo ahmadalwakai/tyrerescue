@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
     const rim = searchParams.get('rim');
     const brand = searchParams.get('brand');
     const season = searchParams.get('season');
-    const condition = searchParams.get('condition'); // new, used, both
     const minPrice = searchParams.get('minPrice');
     const maxPrice = searchParams.get('maxPrice');
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -20,6 +19,9 @@ export async function GET(request: NextRequest) {
 
     // Build where conditions
     const conditions = [];
+
+    // Only show available products
+    conditions.push(eq(tyreProducts.availableNew, true));
 
     // Size filters
     if (width) {
@@ -51,42 +53,17 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(tyreProducts.season, season));
     }
 
-    // Condition filter - affects availability check
-    if (condition === 'new') {
-      conditions.push(eq(tyreProducts.availableNew, true));
-    } else if (condition === 'used') {
-      conditions.push(eq(tyreProducts.availableUsed, true));
-    } else {
-      // Both or unspecified - at least one must be available
-      conditions.push(
-        or(
-          eq(tyreProducts.availableNew, true),
-          eq(tyreProducts.availableUsed, true)
-        )
-      );
-    }
-
-    // Price range filter (applies to both new and used)
+    // Price range filter
     if (minPrice) {
       const minPriceNum = parseFloat(minPrice);
       if (!isNaN(minPriceNum)) {
-        conditions.push(
-          or(
-            gte(tyreProducts.priceNew, minPriceNum.toString()),
-            gte(tyreProducts.priceUsed, minPriceNum.toString())
-          )
-        );
+        conditions.push(gte(tyreProducts.priceNew, minPriceNum.toString()));
       }
     }
     if (maxPrice) {
       const maxPriceNum = parseFloat(maxPrice);
       if (!isNaN(maxPriceNum)) {
-        conditions.push(
-          or(
-            lte(tyreProducts.priceNew, maxPriceNum.toString()),
-            lte(tyreProducts.priceUsed, maxPriceNum.toString())
-          )
-        );
+        conditions.push(lte(tyreProducts.priceNew, maxPriceNum.toString()));
       }
     }
 
@@ -119,11 +96,8 @@ export async function GET(request: NextRequest) {
         noiseDb: tyreProducts.noiseDb,
         runFlat: tyreProducts.runFlat,
         priceNew: tyreProducts.priceNew,
-        priceUsed: tyreProducts.priceUsed,
         stockNew: tyreProducts.stockNew,
-        stockUsed: tyreProducts.stockUsed,
         availableNew: tyreProducts.availableNew,
-        availableUsed: tyreProducts.availableUsed,
         featured: tyreProducts.featured,
         slug: tyreProducts.slug,
       })
@@ -137,7 +111,6 @@ export async function GET(request: NextRequest) {
     const tyresWithPrices = tyres.map((tyre) => ({
       ...tyre,
       priceNew: tyre.priceNew ? parseFloat(tyre.priceNew) : null,
-      priceUsed: tyre.priceUsed ? parseFloat(tyre.priceUsed) : null,
     }));
 
     // Get distinct brands for filter dropdown

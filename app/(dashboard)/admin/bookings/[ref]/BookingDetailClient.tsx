@@ -35,6 +35,7 @@ interface Booking {
   vehicleMake: string | null;
   vehicleModel: string | null;
   tyrePhotoUrl: string | null;
+  lockingNutStatus: string | null;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -50,7 +51,6 @@ interface Booking {
 
 interface Tyre {
   id: string;
-  condition: string;
   quantity: number;
   unitPrice: string;
   service: string;
@@ -326,6 +326,23 @@ export function BookingDetailClient({
             {booking.tyreSizeDisplay && (
               <Text mb={4} color={c.text}>Size: {booking.tyreSizeDisplay}</Text>
             )}
+            {booking.lockingNutStatus && booking.lockingNutStatus !== 'standard' && (
+              <Box
+                mb={4}
+                p={3}
+                bg={booking.lockingNutStatus === 'no_key' ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)'}
+                borderRadius="md"
+              >
+                <Text
+                  fontWeight="600"
+                  color={booking.lockingNutStatus === 'no_key' ? 'red.400' : 'green.400'}
+                >
+                  {booking.lockingNutStatus === 'no_key'
+                    ? '⚠ Customer does NOT have locking nut key'
+                    : '✓ Customer has locking nut key'}
+                </Text>
+              </Box>
+            )}
             {tyres.length > 0 ? (
               <VStack align="stretch" gap={3}>
                 {tyres.map((tyre) => (
@@ -336,8 +353,7 @@ export function BookingDetailClient({
                           {tyre.brand} {tyre.pattern}
                         </Text>
                         <Text fontSize="sm" color={c.muted}>
-                          {tyre.width}/{tyre.aspect}R{tyre.rim} - {tyre.condition} -{' '}
-                          {tyre.service}
+                          {tyre.width}/{tyre.aspect}R{tyre.rim} - {tyre.service}
                         </Text>
                       </Box>
                       <Box textAlign="right">

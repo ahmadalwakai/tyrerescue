@@ -41,8 +41,8 @@ export const drivers = pgTable('drivers', {
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
-// Tyre products table
-export const tyreProducts = pgTable('tyre_products', {
+// Tyre catalogue (master readonly list of all known sizes/brands)
+export const tyreCatalogue = pgTable('tyre_catalogue', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   brand: varchar('brand', { length: 100 }).notNull(),
   pattern: varchar('pattern', { length: 200 }).notNull(),
@@ -57,12 +57,30 @@ export const tyreProducts = pgTable('tyre_products', {
   fuelEfficiency: varchar('fuel_efficiency', { length: 2 }),
   noiseDb: integer('noise_db'),
   runFlat: boolean('run_flat').default(false),
+  slug: varchar('slug', { length: 255 }).unique().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Tyre products table (admin-activated subset with price/stock)
+export const tyreProducts = pgTable('tyre_products', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  catalogueId: uuid('catalogue_id').references(() => tyreCatalogue.id, { onDelete: 'cascade' }),
+  brand: varchar('brand', { length: 100 }).notNull(),
+  pattern: varchar('pattern', { length: 200 }).notNull(),
+  width: integer('width').notNull(),
+  aspect: integer('aspect').notNull(),
+  rim: integer('rim').notNull(),
+  sizeDisplay: varchar('size_display', { length: 20 }).notNull(),
+  season: text('season').notNull(),
+  speedRating: varchar('speed_rating', { length: 5 }),
+  loadIndex: integer('load_index'),
+  wetGrip: varchar('wet_grip', { length: 2 }),
+  fuelEfficiency: varchar('fuel_efficiency', { length: 2 }),
+  noiseDb: integer('noise_db'),
+  runFlat: boolean('run_flat').default(false),
   priceNew: decimal('price_new', { precision: 10, scale: 2 }),
-  priceUsed: decimal('price_used', { precision: 10, scale: 2 }),
   stockNew: integer('stock_new').default(0),
-  stockUsed: integer('stock_used').default(0),
   availableNew: boolean('available_new').default(true),
-  availableUsed: boolean('available_used').default(true),
   featured: boolean('featured').default(false),
   images: text('images').array(),
   slug: varchar('slug', { length: 255 }).unique().notNull(),
@@ -99,6 +117,7 @@ export const bookings = pgTable('bookings', {
   totalAmount: decimal('total_amount', { precision: 10, scale: 2 }).notNull(),
   stripePiId: varchar('stripe_pi_id', { length: 255 }),
   quoteExpiresAt: timestamp('quote_expires_at', { withTimezone: true }),
+  lockingNutStatus: text('locking_nut_status'),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
@@ -109,7 +128,6 @@ export const bookingTyres = pgTable('booking_tyres', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   bookingId: uuid('booking_id').references(() => bookings.id, { onDelete: 'cascade' }),
   tyreId: uuid('tyre_id').references(() => tyreProducts.id),
-  condition: text('condition').notNull(),
   quantity: integer('quantity').notNull().default(1),
   unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
   service: text('service').notNull(),
@@ -132,7 +150,6 @@ export const inventoryReservations = pgTable('inventory_reservations', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   tyreId: uuid('tyre_id').references(() => tyreProducts.id),
   bookingId: uuid('booking_id').references(() => bookings.id),
-  condition: text('condition').notNull(),
   quantity: integer('quantity').notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   released: boolean('released').default(false),
@@ -143,7 +160,6 @@ export const inventoryMovements = pgTable('inventory_movements', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   tyreId: uuid('tyre_id').references(() => tyreProducts.id),
   bookingId: uuid('booking_id').references(() => bookings.id),
-  condition: text('condition').notNull(),
   movementType: text('movement_type'),
   quantityDelta: integer('quantity_delta').notNull(),
   stockAfter: integer('stock_after').notNull(),
@@ -339,6 +355,8 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Driver = typeof drivers.$inferSelect;
 export type NewDriver = typeof drivers.$inferInsert;
+export type TyreCatalogueItem = typeof tyreCatalogue.$inferSelect;
+export type NewTyreCatalogueItem = typeof tyreCatalogue.$inferInsert;
 export type TyreProduct = typeof tyreProducts.$inferSelect;
 export type NewTyreProduct = typeof tyreProducts.$inferInsert;
 export type Booking = typeof bookings.$inferSelect;

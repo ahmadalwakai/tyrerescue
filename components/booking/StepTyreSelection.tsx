@@ -8,10 +8,9 @@ import {
   Text,
   Button,
   Spinner,
-  SimpleGrid,
   Badge,
 } from '@chakra-ui/react';
-import { WizardState, SelectedTyre, TyreCondition, PricingBreakdown } from './types';
+import { WizardState, SelectedTyre, PricingBreakdown } from './types';
 import { formatPrice } from '@/lib/pricing-engine';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
@@ -27,11 +26,8 @@ interface TyreProduct {
   wetGrip: string | null;
   fuelEfficiency: string | null;
   priceNew: number | null;
-  priceUsed: number | null;
   stockNew: number;
-  stockUsed: number;
   availableNew: boolean;
-  availableUsed: boolean;
 }
 
 interface StepTyreSelectionProps {
@@ -50,13 +46,8 @@ export function StepTyreSelection({
   const [tyres, setTyres] = useState<TyreProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTyre, setSelectedTyre] = useState<{
-    tyreId: string;
-    condition: TyreCondition;
-  } | null>(
-    state.selectedTyres.length > 0
-      ? { tyreId: state.selectedTyres[0].tyreId, condition: state.selectedTyres[0].condition }
-      : null
+  const [selectedTyreId, setSelectedTyreId] = useState<string | null>(
+    state.selectedTyres.length > 0 ? state.selectedTyres[0].tyreId : null
   );
   const [isQuoting, setIsQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
@@ -92,28 +83,22 @@ export function StepTyreSelection({
     }
   }, [state.tyreSize]);
 
-  // Get the selected tyre object
-  const selectedTyreProduct = selectedTyre
-    ? tyres.find((t) => t.id === selectedTyre.tyreId)
+  const selectedTyreProduct = selectedTyreId
+    ? tyres.find((t) => t.id === selectedTyreId)
     : null;
 
-  // Handle tyre selection
-  const handleSelectTyre = (tyreId: string, condition: TyreCondition) => {
-    setSelectedTyre({ tyreId, condition });
+  const handleSelectTyre = (tyreId: string) => {
+    setSelectedTyreId(tyreId);
     setQuoteError(null);
   };
 
-  // Request quote
   const handleRequestQuote = async () => {
-    if (!selectedTyre || !selectedTyreProduct) return;
+    if (!selectedTyreId || !selectedTyreProduct) return;
 
     setIsQuoting(true);
     setQuoteError(null);
 
-    const isNew = selectedTyre.condition === 'new';
-    const unitPrice = isNew
-      ? selectedTyreProduct.priceNew
-      : selectedTyreProduct.priceUsed;
+    const unitPrice = selectedTyreProduct.priceNew;
 
     if (!unitPrice) {
       setQuoteError('Price not available for this tyre');
@@ -133,8 +118,7 @@ export function StepTyreSelection({
           serviceType: state.conditionAssessment === 'repair' ? 'repair' : 'fit',
           tyreSelections: [
             {
-              tyreId: selectedTyre.tyreId,
-              condition: selectedTyre.condition,
+              tyreId: selectedTyreId,
               quantity: state.quantity,
               service: state.conditionAssessment === 'repair' ? 'repair' : 'fit',
               requiresTpms: false,
@@ -152,15 +136,13 @@ export function StepTyreSelection({
         throw new Error(data.error || 'Failed to get quote');
       }
 
-      // Save selection and quote
       const selection: SelectedTyre = {
-        tyreId: selectedTyre.tyreId,
+        tyreId: selectedTyreId,
         brand: selectedTyreProduct.brand,
         pattern: selectedTyreProduct.pattern,
         sizeDisplay: selectedTyreProduct.sizeDisplay,
-        condition: selectedTyre.condition,
         quantity: state.quantity,
-        unitPrice: unitPrice,
+        unitPrice,
         service: state.conditionAssessment === 'repair' ? 'repair' : 'fit',
       };
 
@@ -279,16 +261,76 @@ export function StepTyreSelection({
       {/* Tyre Cards */}
       {tyres.length > 0 && (
         <VStack gap={4}>
-          {tyres.map((tyre, i) => (
-            <Box key={tyre.id} style={anim.stagger('fadeUp', i, '0.4s', 0.1, 0.05)}>
-            <TyreCard
-              tyre={tyre}
-              quantity={state.quantity}
-              selected={selectedTyre?.tyreId === tyre.id ? selectedTyre.condition : null}
-              onSelect={(condition) => handleSelectTyre(tyre.id, condition)}
-            />
-            </Box>
-          ))}
+          {tyres.map((tyre, i) => {
+            const inStock = tyre.availableNew && tyre.priceNew && tyre.stockNew >= state.quantity;
+            const isSelected = selectedTyreId === tyre.id;
+
+            return (
+              <Box
+                key={tyre.id}
+                as="button"
+                w="full"
+                textAlign="left"
+                p={4}
+                borderWidth="2px"
+                borderColor={isSelected ? c.accent : c.border}
+                borderRadius="lg"
+                bg={isSelected ? 'rgba(249,115,22,0.1)' : c.card}
+                opacity={inStock ? 1 : 0.5}
+                cursor={inStock ? 'pointer' : 'not-allowed'}
+                onClick={() => inStock && handleSelectTyre(tyre.id)}
+                transition="all 0.2s"
+                _hover={inStock ? { borderColor: c.accent } : {}}
+                style={anim.stagger('fadeUp', i, '0.4s', 0.1, 0.05)}
+              >
+                <HStack justify="space-between" align="start">
+                  <Box>
+                    <Text fontWeight="600" fontSize="lg" color={c.text}>
+                      {tyre.brand}
+                    </Text>
+                    <Text color={c.muted}>{tyre.pattern}</Text>
+                    <HStack gap={3} mt={2} fontSize="sm" color={c.muted}>
+                      {tyre.loadIndex && <Text>Load: {tyre.loadIndex}</Text>}
+                      {tyre.wetGrip && <Text>Grip: {tyre.wetGrip}</Text>}
+                      {tyre.fuelEfficiency && <Text>Fuel: {tyre.fuelEfficiency}</Text>}
+                    </HStack>
+                  </Box>
+                  <VStack align="end" gap={1}>
+                    <Badge colorPalette={tyre.season === 'summer' ? 'orange' : tyre.season === 'winter' ? 'blue' : 'gray'}>
+                      {tyre.season}
+                    </Badge>
+                    {tyre.speedRating && (
+                      <Text fontSize="xs" color="gray.500">
+                        Speed: {tyre.speedRating}
+                      </Text>
+                    )}
+                    {inStock ? (
+                      <>
+                        <Text fontSize="xl" fontWeight="700" color={isSelected ? c.accent : c.text}>
+                          {formatPrice(tyre.priceNew!)}
+                        </Text>
+                        <Text fontSize="xs" color={c.muted}>
+                          each ({tyre.stockNew} in stock)
+                        </Text>
+                      </>
+                    ) : (
+                      <Text fontSize="sm" color={c.muted}>
+                        Out of stock
+                      </Text>
+                    )}
+                  </VStack>
+                </HStack>
+
+                {isSelected && (
+                  <Box mt={3} pt={3} borderTopWidth="1px" borderColor={c.border}>
+                    <Text color={c.accent} fontWeight="500" fontSize="sm">
+                      Selected: {state.quantity} x {formatPrice(tyre.priceNew!)} = {formatPrice(tyre.priceNew! * state.quantity)}
+                    </Text>
+                  </Box>
+                )}
+              </Box>
+            );
+          })}
         </VStack>
       )}
 
@@ -311,7 +353,7 @@ export function StepTyreSelection({
         <Button
           colorPalette="orange"
           onClick={handleRequestQuote}
-          disabled={!selectedTyre || isQuoting}
+          disabled={!selectedTyreId || isQuoting}
           flex="1"
         >
           {isQuoting ? (
@@ -325,134 +367,5 @@ export function StepTyreSelection({
         </Button>
       </HStack>
     </VStack>
-  );
-}
-
-interface TyreCardProps {
-  tyre: TyreProduct;
-  quantity: number;
-  selected: TyreCondition | null;
-  onSelect: (condition: TyreCondition) => void;
-}
-
-function TyreCard({ tyre, quantity, selected, onSelect }: TyreCardProps) {
-  const hasNew = tyre.availableNew && tyre.priceNew && tyre.stockNew >= quantity;
-  const hasUsed = tyre.availableUsed && tyre.priceUsed && tyre.stockUsed >= quantity;
-
-  return (
-    <Box
-      w="full"
-      borderWidth="1px"
-      borderColor={c.border}
-      borderRadius="lg"
-      overflow="hidden"
-    >
-      {/* Tyre Info Header */}
-      <Box p={4} bg={c.surface} borderBottomWidth="1px" borderColor={c.border}>
-        <HStack justify="space-between" align="start">
-          <Box>
-            <Text fontWeight="600" fontSize="lg" color={c.text}>
-              {tyre.brand}
-            </Text>
-            <Text color={c.muted}>{tyre.pattern}</Text>
-          </Box>
-          <VStack align="end" gap={1}>
-            <Badge colorPalette={tyre.season === 'summer' ? 'orange' : tyre.season === 'winter' ? 'blue' : 'gray'}>
-              {tyre.season}
-            </Badge>
-            {tyre.speedRating && (
-              <Text fontSize="xs" color="gray.500">
-                Speed: {tyre.speedRating}
-              </Text>
-            )}
-          </VStack>
-        </HStack>
-
-        {/* Specs */}
-        <HStack gap={4} mt={3} fontSize="sm" color={c.muted}>
-          {tyre.loadIndex && <Text>Load: {tyre.loadIndex}</Text>}
-          {tyre.wetGrip && <Text>Grip: {tyre.wetGrip}</Text>}
-          {tyre.fuelEfficiency && <Text>Fuel: {tyre.fuelEfficiency}</Text>}
-        </HStack>
-      </Box>
-
-      {/* Price Options */}
-      <SimpleGrid columns={2} gap={0}>
-        {/* New Option */}
-        <Box
-          as="button"
-          p={4}
-          borderRightWidth="1px"
-          borderColor={c.border}
-          bg={selected === 'new' ? 'rgba(249,115,22,0.1)' : c.card}
-          opacity={hasNew ? 1 : 0.5}
-          cursor={hasNew ? 'pointer' : 'not-allowed'}
-          onClick={() => hasNew && onSelect('new')}
-          textAlign="center"
-          transition="all 0.2s"
-          _hover={hasNew ? { bg: 'rgba(249,115,22,0.1)' } : {}}
-        >
-          <Text fontWeight="600" color={selected === 'new' ? c.accent : c.text}>
-            New
-          </Text>
-          {hasNew ? (
-            <>
-              <Text fontSize="xl" fontWeight="700" color={selected === 'new' ? c.accent : c.text}>
-                {formatPrice(tyre.priceNew!)}
-              </Text>
-              <Text fontSize="xs" color={c.muted}>
-                each ({tyre.stockNew} in stock)
-              </Text>
-            </>
-          ) : (
-            <Text fontSize="sm" color={c.muted}>
-              Out of stock
-            </Text>
-          )}
-        </Box>
-
-        {/* Used Option */}
-        <Box
-          as="button"
-          p={4}
-          bg={selected === 'used' ? 'rgba(249,115,22,0.1)' : c.card}
-          opacity={hasUsed ? 1 : 0.5}
-          cursor={hasUsed ? 'pointer' : 'not-allowed'}
-          onClick={() => hasUsed && onSelect('used')}
-          textAlign="center"
-          transition="all 0.2s"
-          _hover={hasUsed ? { bg: 'rgba(249,115,22,0.1)' } : {}}
-        >
-          <Text fontWeight="600" color={selected === 'used' ? c.accent : c.text}>
-            Used
-          </Text>
-          {hasUsed ? (
-            <>
-              <Text fontSize="xl" fontWeight="700" color={selected === 'used' ? c.accent : c.text}>
-                {formatPrice(tyre.priceUsed!)}
-              </Text>
-              <Text fontSize="xs" color={c.muted}>
-                each ({tyre.stockUsed} in stock)
-              </Text>
-            </>
-          ) : (
-            <Text fontSize="sm" color={c.muted}>
-              Out of stock
-            </Text>
-          )}
-        </Box>
-      </SimpleGrid>
-
-      {/* Selection indicator */}
-      {selected && (
-        <Box p={2} bg={c.accent} textAlign="center">
-          <Text color={c.bg} fontSize="sm" fontWeight="500">
-            Selected: {selected === 'new' ? 'New' : 'Used'} x {quantity} = {formatPrice(
-              (selected === 'new' ? tyre.priceNew! : tyre.priceUsed!) * quantity
-            )}
-          </Text>
-        </Box>
-      )}
-    </Box>
   );
 }
