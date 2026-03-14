@@ -172,8 +172,8 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
       <GridItem>
         <VStack align="stretch" gap={6}>
           {/* Status */}
-          <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.5s')}>
-            <HStack justify="space-between" align="center">
+          <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.5s')}>
+            <Box display="flex" flexDirection={{ base: 'column', sm: 'row' }} justifyContent="space-between" gap={3}>
               <Box>
                 <Text fontSize="sm" color={c.muted}>
                   Current Status
@@ -200,32 +200,38 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
                   {booking.bookingType}
                 </Text>
               </Box>
-            </HStack>
+            </Box>
           </Box>
 
           {/* Customer Address */}
-          <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.4s', '0.1s')}>
+          <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.4s', '0.1s')}>
             <Heading size="md" mb={4} color={c.text}>
               Customer Location
             </Heading>
-            <ChakraLink
-              href={getGoogleMapsUrl(booking.lat, booking.lng)}
-              target="_blank"
-              rel="noopener noreferrer"
-              color={c.accent}
-              fontWeight="medium"
-              fontSize="lg"
-              _hover={{ textDecoration: 'underline' }}
+            <Box
+              asChild
+              display="block"
+              p={{ base: 3, md: 0 }}
+              bg={{ base: c.surface, md: 'transparent' }}
+              borderRadius={{ base: '8px', md: '0' }}
+              minH="48px"
             >
-              {booking.addressLine}
-            </ChakraLink>
-            <Text fontSize="sm" color={c.muted} mt={2}>
-              Click address to open in Google Maps
-            </Text>
+              <a
+                href={getGoogleMapsUrl(booking.lat, booking.lng)}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ textDecoration: 'none' }}
+              >
+                <Text color={c.accent} fontWeight="medium" fontSize="lg">{booking.addressLine}</Text>
+                <Text fontSize="sm" color={c.muted} mt={2}>
+                  Tap to open in Google Maps
+                </Text>
+              </a>
+            </Box>
           </Box>
 
           {/* Customer Contact */}
-          <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.4s', '0.2s')}>
+          <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.4s', '0.2s')}>
             <Heading size="md" mb={4} color={c.text}>
               Customer Contact
             </Heading>
@@ -253,7 +259,7 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
           </Box>
 
           {/* Tyre Details */}
-          <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.4s', '0.3s')}>
+          <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.4s', '0.3s')}>
             <Heading size="md" mb={4} color={c.text}>
               Tyre Details
             </Heading>
@@ -341,7 +347,7 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
         <VStack align="stretch" gap={6}>
           {/* Status Update Button */}
           {buttonConfig && (
-            <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+            <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border}>
               <Heading size="md" mb={4} color={c.text}>
                 Update Status
               </Heading>
@@ -353,6 +359,7 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
                   onClick={handleStatusUpdate}
                   disabled={isUpdating}
                   width="100%"
+                  minH="56px"
                   py={8}
                   fontSize="lg"
                 >
@@ -369,6 +376,7 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
                     onClick={handleStatusUpdate}
                     disabled={isUpdating}
                     width="100%"
+                    minH="56px"
                     py={8}
                     fontSize="lg"
                   >
@@ -419,7 +427,7 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
 
           {/* Scheduled Time */}
           {booking.scheduledAt && (
-            <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+            <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border}>
               <Heading size="md" mb={4} color={c.text}>
                 Scheduled Time
               </Heading>
@@ -430,7 +438,7 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
           )}
 
           {/* Status History */}
-          <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+          <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border}>
             <Heading size="md" mb={4} color={c.text}>
               Status History
             </Heading>

@@ -66,7 +66,8 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
         <Text color={c.muted} mt={1}>Configure pricing parameters used by the pricing engine</Text>
       </Box>
 
-      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden" style={anim.fadeUp('0.5s', '0.1s')}>
+      {/* Desktop table */}
+      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden" style={anim.fadeUp('0.5s', '0.1s')} display={{ base: 'none', md: 'block' }}>
         <Table.Root size="sm">
           <Table.Header>
             <Table.Row bg={c.surface}>
@@ -103,9 +104,36 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
         </Table.Root>
       </Box>
 
+      {/* Mobile cards */}
+      <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
+        {items.map((rule) => (
+          <Box key={rule.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4}>
+            <Text fontSize="xs" color={c.muted} mb={1}>{rule.label || rule.key}</Text>
+            <Text fontFamily="mono" fontSize="sm" color={c.muted} mb={2}>{rule.key}</Text>
+            <Input {...inputProps}
+              size="sm"
+              defaultValue={rule.value}
+              onBlur={(e) => {
+                if (e.target.value !== rule.value) handleSave(rule.id, e.target.value);
+              }}
+              mb={2}
+            />
+            <Button size="sm" w="100%" minH="48px" bg="#7F1D1D" color="white" _hover={{ bg: '#991B1B' }} onClick={() => handleDelete(rule.id)}>
+              Delete
+            </Button>
+          </Box>
+        ))}
+      </VStack>
+
       <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border}>
         <Text color={c.text} fontWeight="600" mb={3}>Add Rule</Text>
-        <HStack gap={3}>
+        <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
+          <Input {...inputProps} placeholder="Key" value={addKey} onChange={(e) => setAddKey(e.target.value)} />
+          <Input {...inputProps} placeholder="Label" value={addLabel} onChange={(e) => setAddLabel(e.target.value)} />
+          <Input {...inputProps} placeholder="Value" value={addValue} onChange={(e) => setAddValue(e.target.value)} />
+          <Button bg={c.accent} color="white" _hover={{ bg: c.accentHover }} onClick={handleAdd} w="100%" minH="48px">Add</Button>
+        </VStack>
+        <HStack gap={3} display={{ base: 'none', md: 'flex' }}>
           <Input {...inputProps} placeholder="Key" value={addKey} onChange={(e) => setAddKey(e.target.value)} {...inputStyle} maxW="180px" />
           <Input {...inputProps} placeholder="Label" value={addLabel} onChange={(e) => setAddLabel(e.target.value)} {...inputStyle} maxW="200px" />
           <Input {...inputProps} placeholder="Value" value={addValue} onChange={(e) => setAddValue(e.target.value)} {...inputStyle} maxW="180px" />

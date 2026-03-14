@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
-import { Box, Heading, Text, VStack, Table } from '@chakra-ui/react';
+import { Box, Heading, Text, VStack, Table, Badge } from '@chakra-ui/react';
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
 
@@ -38,7 +38,9 @@ export default async function CustomerBookingsPage() {
           </Box>
         </Box>
       ) : (
-        <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto" style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both' }}>
+        <>
+        {/* Desktop table */}
+        <Box display={{ base: 'none', md: 'block' }} bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto" style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both' }}>
           <Table.Root size="sm">
             <Table.Header>
               <Table.Row>
@@ -80,6 +82,32 @@ export default async function CustomerBookingsPage() {
             </Table.Body>
           </Table.Root>
         </Box>
+
+        {/* Mobile cards */}
+        <VStack display={{ base: 'flex', md: 'none' }} gap={3} align="stretch">
+          {userBookings.map((booking, i) => (
+            <Box key={booking.id} asChild>
+              <NextLink href={`/dashboard/bookings/${booking.refNumber}`} style={{ textDecoration: 'none' }}>
+                <Box bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4} minH="48px" _active={{ bg: c.surface }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Text color={c.accent} fontWeight="600" fontSize="sm">{booking.refNumber}</Text>
+                    <Badge bg={c.surface} color={c.muted} fontSize="xs" textTransform="capitalize">
+                      {booking.status.replace(/_/g, ' ')}
+                    </Badge>
+                  </Box>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Text color={c.text} fontSize="sm" textTransform="capitalize">{booking.bookingType}</Text>
+                    <Text color={c.text} fontSize="sm" fontWeight="600">{'\u00A3'}{Number(booking.totalAmount).toFixed(2)}</Text>
+                  </Box>
+                  <Text color={c.muted} fontSize="xs" mt={1}>
+                    {new Date(booking.createdAt!).toLocaleDateString('en-GB')}
+                  </Text>
+                </Box>
+              </NextLink>
+            </Box>
+          ))}
+        </VStack>
+        </>
       )}
     </VStack>
   );

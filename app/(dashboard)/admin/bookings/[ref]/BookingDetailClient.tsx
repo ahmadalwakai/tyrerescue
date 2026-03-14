@@ -200,8 +200,8 @@ export function BookingDetailClient({
       <GridItem>
         <VStack align="stretch" gap={6}>
           {/* Status and basic info */}
-          <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.4s')}>
-            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+          <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.4s')}>
+            <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)' }} gap={4}>
               <Box>
                 <Text fontSize="sm" color={c.muted}>
                   Status
@@ -258,11 +258,11 @@ export function BookingDetailClient({
           </Box>
 
           {/* Customer details */}
-          <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.4s', '0.1s')}>
+          <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.4s', '0.1s')}>
             <Heading size="md" mb={4} color={c.text}>
               Customer Details
             </Heading>
-            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+            <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)' }} gap={4}>
               <Box>
                 <Text fontSize="sm" color={c.muted}>
                   Name
@@ -457,6 +457,7 @@ export function BookingDetailClient({
                   onClick={handleAssignDriver}
                   disabled={!selectedDriverId || assignLoading}
                   width="100%"
+                  minH="48px"
                 >
                   {assignLoading ? (
                     <HStack gap={2}>
@@ -495,6 +496,7 @@ export function BookingDetailClient({
                 onClick={handleRefund}
                 disabled={refundLoading}
                 width="100%"
+                minH="48px"
               >
                 {refundLoading ? (
                   <HStack gap={2}>

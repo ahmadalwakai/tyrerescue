@@ -59,12 +59,12 @@ export function FAQClient({ faqs }: { faqs: FAQ[] }) {
 
   return (
     <VStack align="stretch" gap={6}>
-      <Flex justify="space-between" align="center">
+      <Flex justify="space-between" align="center" wrap="wrap" gap={3}>
         <Box>
           <Heading size="lg" color={c.text}>FAQs</Heading>
           <Text color={c.muted} mt={1}>Manage frequently asked questions</Text>
         </Box>
-        <Button bg={c.accent} color="white" _hover={{ bg: c.accentHover }} onClick={() => setShowAdd(!showAdd)}>
+        <Button bg={c.accent} color="white" _hover={{ bg: c.accentHover }} onClick={() => setShowAdd(!showAdd)} w={{ base: '100%', md: 'auto' }} minH="48px">
           {showAdd ? 'Cancel' : 'Add FAQ'}
         </Button>
       </Flex>
@@ -73,18 +73,23 @@ export function FAQClient({ faqs }: { faqs: FAQ[] }) {
         <form onSubmit={handleAdd}>
         <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border}>
           <VStack align="stretch" gap={3}>
-            <HStack gap={3}>
+            <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
+              <Input {...inputProps} name="question" placeholder="Question" required />
+              <Input {...inputProps} name="displayOrder" type="number" placeholder="Order" />
+            </VStack>
+            <HStack gap={3} display={{ base: 'none', md: 'flex' }}>
               <Input {...inputProps} name="question" placeholder="Question" required />
               <Input {...inputProps} name="displayOrder" type="number" placeholder="Order" maxW="100px" />
             </HStack>
             <Textarea {...textareaProps} {...textareaProps} name="answer" placeholder="Answer" required rows={3} />
-            <Button type="submit" bg={c.accent} color="white" _hover={{ bg: c.accentHover }} alignSelf="flex-start">Save</Button>
+            <Button type="submit" bg={c.accent} color="white" _hover={{ bg: c.accentHover }} alignSelf={{ base: 'stretch', md: 'flex-start' }} minH="48px">Save</Button>
           </VStack>
         </Box>
         </form>
       )}
 
-      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden">
+      {/* Desktop table */}
+      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden" display={{ base: 'none', md: 'block' }}>
         <Table.Root size="sm">
           <Table.Header>
             <Table.Row bg={c.surface}>
@@ -118,6 +123,26 @@ export function FAQClient({ faqs }: { faqs: FAQ[] }) {
           </Table.Body>
         </Table.Root>
       </Box>
+
+      {/* Mobile cards */}
+      <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
+        {items.length === 0 ? (
+          <Text textAlign="center" py={8} color={c.muted}>No FAQs</Text>
+        ) : (
+          items.map((faq) => (
+            <Box key={faq.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4} opacity={faq.active ? 1 : 0.5}>
+              <Text fontWeight="bold" color={c.text} mb={1}>{faq.question}</Text>
+              <Text fontSize="sm" color={c.muted} mb={3} lineClamp={3}>{faq.answer}</Text>
+              <Flex gap={2}>
+                <Button flex={1} size="sm" minH="48px" bg={c.surface} color={c.text} borderWidth="1px" borderColor={c.border} onClick={() => toggleActive(faq.id, faq.active ?? true)}>
+                  {faq.active ? 'Hide' : 'Show'}
+                </Button>
+                <Button flex={1} size="sm" minH="48px" bg="#7F1D1D" color="white" onClick={() => deleteFAQ(faq.id)}>Delete</Button>
+              </Flex>
+            </Box>
+          ))
+        )}
+      </VStack>
     </VStack>
   );
 }

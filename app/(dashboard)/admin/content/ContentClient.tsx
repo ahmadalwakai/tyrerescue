@@ -56,7 +56,7 @@ export function ContentClient({ items }: { items: ContentItem[] }) {
       </Box>
 
       <form onSubmit={handleSubmit}>
-        <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+        <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border}>
         <VStack align="stretch" gap={5}>
           {CONTENT_KEYS.map((ck) => (
             <Box key={ck.key}>
@@ -69,7 +69,7 @@ export function ContentClient({ items }: { items: ContentItem[] }) {
             </Box>
           ))}
 
-          <Button type="submit" bg={c.accent} color="white" _hover={{ bg: c.accentHover }} alignSelf="flex-start" disabled={saving}>
+          <Button type="submit" bg={c.accent} color="white" _hover={{ bg: c.accentHover }} alignSelf={{ base: 'stretch', md: 'flex-start' }} minH="48px" disabled={saving}>
             {saving ? 'Saving...' : 'Save All'}
           </Button>
         </VStack>

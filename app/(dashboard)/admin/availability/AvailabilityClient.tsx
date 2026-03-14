@@ -64,7 +64,16 @@ export function AvailabilityClient({ slots }: { slots: Slot[] }) {
 
       <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border}>
         <Text color={c.text} fontWeight="600" mb={3}>Add Slot</Text>
-        <HStack gap={3} flexWrap="wrap">
+        <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
+          <Input {...inputProps} type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
+          <Flex gap={2}>
+            <Input {...inputProps} type="time" value={newStart} onChange={(e) => setNewStart(e.target.value)} flex={1} />
+            <Input {...inputProps} type="time" value={newEnd} onChange={(e) => setNewEnd(e.target.value)} flex={1} />
+          </Flex>
+          <Input {...inputProps} type="number" value={newMax} onChange={(e) => setNewMax(e.target.value)} placeholder="Max bookings" />
+          <Button bg={c.accent} color="white" _hover={{ bg: c.accentHover }} onClick={addSlot} w="100%" minH="48px">Add Slot</Button>
+        </VStack>
+        <HStack gap={3} flexWrap="wrap" display={{ base: 'none', md: 'flex' }}>
           <Input {...inputProps} type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} maxW="180px" />
           <Input {...inputProps} type="time" value={newStart} onChange={(e) => setNewStart(e.target.value)} maxW="140px" />
           <Input {...inputProps} type="time" value={newEnd} onChange={(e) => setNewEnd(e.target.value)} maxW="140px" />
@@ -73,7 +82,8 @@ export function AvailabilityClient({ slots }: { slots: Slot[] }) {
         </HStack>
       </Box>
 
-      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden">
+      {/* Desktop table */}
+      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden" display={{ base: 'none', md: 'block' }}>
         <Table.Root size="sm">
           <Table.Header>
             <Table.Row bg={c.surface}>
@@ -115,6 +125,32 @@ export function AvailabilityClient({ slots }: { slots: Slot[] }) {
           </Table.Body>
         </Table.Root>
       </Box>
+
+      {/* Mobile cards */}
+      <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
+        {items.length === 0 ? (
+          <Text textAlign="center" py={8} color={c.muted}>No slots configured</Text>
+        ) : (
+          items.map((slot) => (
+            <Box key={slot.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4}>
+              <Flex justify="space-between" align="center" mb={2}>
+                <Text fontWeight="bold" color={c.text}>{slot.date}</Text>
+                <Badge bg={slot.active ? '#14532D' : '#7F1D1D'} color="white">
+                  {slot.active ? 'Active' : 'Disabled'}
+                </Badge>
+              </Flex>
+              <Text fontSize="sm" color={c.muted} mb={1}>{slot.timeStart} – {slot.timeEnd}</Text>
+              <Text fontSize="sm" color={c.muted} mb={3}>Capacity: {slot.maxBookings ?? 1} | Booked: {slot.bookedCount ?? 0}</Text>
+              <Flex gap={2}>
+                <Button flex={1} size="sm" minH="48px" bg={c.surface} color={c.text} borderWidth="1px" borderColor={c.border} onClick={() => toggleSlot(slot.id, slot.active ?? true)}>
+                  {slot.active ? 'Disable' : 'Enable'}
+                </Button>
+                <Button flex={1} size="sm" minH="48px" bg="#7F1D1D" color="white" onClick={() => deleteSlot(slot.id)}>Delete</Button>
+              </Flex>
+            </Box>
+          ))
+        )}
+      </VStack>
     </VStack>
   );
 }

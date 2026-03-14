@@ -134,7 +134,36 @@ export function BookingsTable({
     <VStack align="stretch" gap={4}>
       {/* Filter bar */}
       <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.5s')}>
-        <Flex gap={4} wrap="wrap" align="end">
+        <VStack gap={3} display={{ base: 'flex', md: 'none' }} align="stretch">
+          <Input {...inputProps}
+            placeholder="Ref, name, or email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+          />
+          <NativeSelect.Root>
+            <NativeSelect.Field
+              {...selectProps}
+              value={status}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value)}
+            >
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </NativeSelect.Field>
+          </NativeSelect.Root>
+          <Flex gap={2}>
+            <Input {...inputProps} type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} flex={1} />
+            <Input {...inputProps} type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} flex={1} />
+          </Flex>
+          <Flex gap={2}>
+            <Button onClick={applyFilters} flex={1} minH="48px">Filter</Button>
+            <Button variant="outline" onClick={clearFilters} flex={1} minH="48px">Clear</Button>
+          </Flex>
+        </VStack>
+        <Flex gap={4} wrap="wrap" align="end" display={{ base: 'none', md: 'flex' }}>
           <Box flex="1" minW="200px">
             <Text fontSize="sm" fontWeight="medium" mb={1}>
               Search
@@ -198,8 +227,8 @@ export function BookingsTable({
         {totalCount} booking{totalCount !== 1 ? 's' : ''} found
       </Text>
 
-      {/* Table */}
-      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto" style={anim.fadeUp('0.5s', '0.1s')}>
+      {/* Desktop Table */}
+      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto" style={anim.fadeUp('0.5s', '0.1s')} display={{ base: 'none', md: 'block' }}>
         <Table.Root size="md">
           <Table.Header>
             <Table.Row>
@@ -265,6 +294,64 @@ export function BookingsTable({
           </Table.Body>
         </Table.Root>
       </Box>
+
+      {/* Mobile Card List */}
+      <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
+        {bookings.length === 0 ? (
+          <Text textAlign="center" py={8} color={c.muted}>
+            No bookings found
+          </Text>
+        ) : (
+          bookings.map((booking) => (
+            <Box
+              key={booking.id}
+              asChild
+              bg={c.card}
+              border={`1px solid ${c.border}`}
+              borderRadius="8px"
+              p={4}
+              cursor="pointer"
+              _hover={{ bg: c.surface }}
+              transition="background 0.2s"
+            >
+              <NextLink href={`/admin/bookings/${booking.refNumber}`} style={{ textDecoration: 'none' }}>
+                <Flex justify="space-between" align="center" mb={2}>
+                  <Text fontWeight="bold" color={c.accent} fontSize="sm">
+                    {booking.refNumber}
+                  </Text>
+                  <Text
+                    fontSize="xs"
+                    fontWeight="medium"
+                    color={
+                      booking.status === 'completed'
+                        ? 'green.400'
+                        : booking.status === 'cancelled' || booking.status === 'refunded'
+                        ? 'red.400'
+                        : booking.status === 'en_route' || booking.status === 'in_progress'
+                        ? c.accent
+                        : c.muted
+                    }
+                  >
+                    {STATUS_LABELS[booking.status] || booking.status}
+                  </Text>
+                </Flex>
+                <Flex justify="space-between" mb={1}>
+                  <Text fontSize="sm" color={c.text}>{booking.customerName}</Text>
+                  <Text fontSize="xs" color={c.muted}>{formatDate(booking.createdAt)}</Text>
+                </Flex>
+                <Flex justify="space-between">
+                  <Text fontSize="xs" color={c.muted}>
+                    {SERVICE_LABELS[booking.serviceType] || booking.serviceType}
+                  </Text>
+                  <Text fontSize="sm" fontWeight="medium" color={c.text}>
+                    {formatCurrency(booking.totalAmount)}
+                  </Text>
+                </Flex>
+              </NextLink>
+            </Box>
+          ))
+        )}
+      </VStack>
 
       {/* Pagination */}
       {totalPages > 1 && (

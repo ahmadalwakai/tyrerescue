@@ -45,7 +45,7 @@ export function InventoryClient({ tyres, page, totalPages, search }: Props) {
 
   return (
     <VStack align="stretch" gap={6}>
-      <Flex justify="space-between" align="center" style={anim.fadeUp('0.5s')}>
+      <Flex justify="space-between" align="center" wrap="wrap" gap={3} style={anim.fadeUp('0.5s')}>
         <Box>
           <Heading size="lg" color={c.text}>Inventory</Heading>
           <Text color={c.muted} mt={1}>Manage tyre products and stock levels</Text>
@@ -55,12 +55,14 @@ export function InventoryClient({ tyres, page, totalPages, search }: Props) {
           color="white"
           _hover={{ bg: c.accentHover }}
           onClick={() => router.push('/admin/inventory/new')}
+          w={{ base: '100%', md: 'auto' }}
+          minH="48px"
         >
           Add Product
         </Button>
       </Flex>
 
-      <HStack>
+      <Flex gap={2} direction={{ base: 'column', md: 'row' }}>
         <Input {...inputProps}
           placeholder="Search brand, pattern, size..."
           value={searchInput}
@@ -69,14 +71,14 @@ export function InventoryClient({ tyres, page, totalPages, search }: Props) {
           bg={c.surface}
           borderColor={c.border}
           color={c.text}
-          maxW="400px"
+          maxW={{ base: '100%', md: '400px' }}
         />
-        <Button onClick={applySearch} bg={c.card} color={c.text} borderColor={c.border} borderWidth="1px">
+        <Button onClick={applySearch} bg={c.card} color={c.text} borderColor={c.border} borderWidth="1px" w={{ base: '100%', md: 'auto' }} minH="48px">
           Search
         </Button>
-      </HStack>
+      </Flex>
 
-      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden" style={anim.fadeUp('0.5s', '0.1s')}>
+      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden" style={anim.fadeUp('0.5s', '0.1s')} display={{ base: 'none', md: 'block' }}>
         <Table.Root size="sm">
           <Table.Header>
             <Table.Row bg={c.surface}>
@@ -141,6 +143,48 @@ export function InventoryClient({ tyres, page, totalPages, search }: Props) {
           </Table.Body>
         </Table.Root>
       </Box>
+
+      {/* Mobile card list */}
+      <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
+        {tyres.length === 0 ? (
+          <Text textAlign="center" py={8} color={c.muted}>No products found</Text>
+        ) : (
+          tyres.map((t) => (
+            <Box key={t.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4}>
+              <Flex justify="space-between" align="start" mb={2}>
+                <Box>
+                  <Text fontWeight="bold" color={c.text}>{t.brand}</Text>
+                  <Text fontSize="sm" color={c.muted}>{t.pattern}</Text>
+                </Box>
+                <Badge bg={c.surface} color={c.text}>{t.season}</Badge>
+              </Flex>
+              <Text fontSize="sm" color={c.text} mb={2}>{t.sizeDisplay}</Text>
+              <Flex justify="space-between" mb={3}>
+                <Box>
+                  <Text fontSize="xs" color={c.muted}>New: {t.priceNew ? `£${Number(t.priceNew).toFixed(2)}` : '—'}</Text>
+                  <Text fontSize="xs" color={c.muted}>Used: {t.priceUsed ? `£${Number(t.priceUsed).toFixed(2)}` : '—'}</Text>
+                </Box>
+                <Box textAlign="right">
+                  <Text fontSize="xs" color={c.muted}>Stock New: {t.stockNew ?? 0}</Text>
+                  <Text fontSize="xs" color={c.muted}>Stock Used: {t.stockUsed ?? 0}</Text>
+                </Box>
+              </Flex>
+              <Button
+                w="100%"
+                size="sm"
+                minH="48px"
+                bg={c.surface}
+                color={c.text}
+                borderWidth="1px"
+                borderColor={c.border}
+                onClick={() => router.push(`/admin/inventory/${t.id}`)}
+              >
+                Edit
+              </Button>
+            </Box>
+          ))
+        )}
+      </VStack>
 
       {totalPages > 1 && (
         <HStack justify="center" gap={2}>

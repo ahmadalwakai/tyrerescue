@@ -3,7 +3,7 @@ import { redirect, notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { bookings, bookingTyres, bookingStatusHistory, tyreProducts } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import { Box, Heading, Text, VStack, HStack, SimpleGrid } from '@chakra-ui/react';
+import { Box, Heading, Text, VStack, HStack, SimpleGrid, Flex } from '@chakra-ui/react';
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
 
@@ -164,13 +164,14 @@ export default async function CustomerBookingDetailPage(
       </Box>
 
       {/* Actions */}
-      <HStack gap={4}>
+      <Flex gap={3} direction={{ base: 'column', sm: 'row' }}>
         {showTracking && (
           <Box asChild>
             <NextLink href={`/tracking/${booking.refNumber}`} style={{
-              display: 'inline-block', padding: '10px 24px',
+              display: 'inline-block', padding: '12px 24px',
               background: c.accent, color: c.bg, borderRadius: 6,
               fontWeight: 600, textDecoration: 'none', fontSize: 14,
+              textAlign: 'center', minHeight: 48,
             }}>
               Track Driver
             </NextLink>
@@ -179,10 +180,10 @@ export default async function CustomerBookingDetailPage(
         {showInvoice && (
           <Box asChild>
             <a href={`/api/dashboard/invoices/${booking.refNumber}`} style={{
-              display: 'inline-block', padding: '10px 24px',
+              display: 'inline-block', padding: '12px 24px',
               background: c.card, color: c.text, borderRadius: 6,
               fontWeight: 600, textDecoration: 'none', fontSize: 14,
-              border: `1px solid ${c.border}`,
+              border: `1px solid ${c.border}`, textAlign: 'center', minHeight: 48,
             }}>
               Download Invoice
             </a>
@@ -190,15 +191,15 @@ export default async function CustomerBookingDetailPage(
         )}
         <Box asChild>
           <NextLink href="/dashboard/bookings" style={{
-            display: 'inline-block', padding: '10px 24px',
+            display: 'inline-block', padding: '12px 24px',
             background: c.card, color: c.text, borderRadius: 6,
             fontWeight: 600, textDecoration: 'none', fontSize: 14,
-            border: `1px solid ${c.border}`,
+            border: `1px solid ${c.border}`, textAlign: 'center', minHeight: 48,
           }}>
             Back to Bookings
           </NextLink>
         </Box>
-      </HStack>
+      </Flex>
     </VStack>
   );
 }

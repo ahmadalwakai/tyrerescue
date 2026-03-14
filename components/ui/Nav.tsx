@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 import { Box, Container, Flex, Text, Link as ChakraLink, VStack } from '@chakra-ui/react';
 import Link from 'next/link';
 import { colorTokens } from '@/lib/design-tokens';
@@ -32,6 +33,8 @@ const pulseGlowKeyframes = `
 
 export function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: session } = useSession();
+  const isLoggedIn = !!session?.user;
 
   return (
     <>
@@ -107,17 +110,43 @@ export function Nav() {
                 {mobileOpen ? 'CLOSE' : 'MENU'}
               </Text>
 
-              <ChakraLink
-                asChild
-                fontSize="13px"
-                color={colors.textSecondary}
-                _hover={{ color: colors.textPrimary }}
-                transition="color 0.2s"
-                display={{ base: 'none', sm: 'block' }}
-                style={{ fontFamily: 'var(--font-body)' }}
-              >
-                <Link href="/login">Sign In</Link>
-              </ChakraLink>
+              {isLoggedIn ? (
+                <Flex gap={3} align="center" display={{ base: 'none', sm: 'flex' }}>
+                  <Text
+                    fontSize="13px"
+                    color={colors.textSecondary}
+                    style={{ fontFamily: 'var(--font-body)' }}
+                  >
+                    {session.user?.name}
+                  </Text>
+                  <Text
+                    as="button"
+                    fontSize="13px"
+                    color={colors.textSecondary}
+                    bg="transparent"
+                    border="none"
+                    cursor="pointer"
+                    _hover={{ color: 'red.400' }}
+                    transition="color 0.2s"
+                    style={{ fontFamily: 'var(--font-body)' }}
+                    onClick={() => signOut({ callbackUrl: '/login' })}
+                  >
+                    Sign Out
+                  </Text>
+                </Flex>
+              ) : (
+                <ChakraLink
+                  asChild
+                  fontSize="13px"
+                  color={colors.textSecondary}
+                  _hover={{ color: colors.textPrimary }}
+                  transition="color 0.2s"
+                  display={{ base: 'none', sm: 'block' }}
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  <Link href="/login">Sign In</Link>
+                </ChakraLink>
+              )}
               <ChakraLink
                 asChild
                 px="24px"
@@ -171,18 +200,39 @@ export function Nav() {
                 <Link href={link.href}>{link.label.toUpperCase()}</Link>
               </ChakraLink>
             ))}
-            <ChakraLink
-              asChild
-              fontSize="24px"
-              color={colors.textSecondary}
-              letterSpacing="0.1em"
-              _hover={{ color: colors.accent }}
-              transition="color 0.2s"
-              style={{ fontFamily: 'var(--font-display)' }}
-              onClick={() => setMobileOpen(false)}
-            >
-              <Link href="/login">SIGN IN</Link>
-            </ChakraLink>
+            {isLoggedIn ? (
+              <Text
+                as="button"
+                fontSize="24px"
+                color={colors.textSecondary}
+                letterSpacing="0.1em"
+                bg="transparent"
+                border="none"
+                cursor="pointer"
+                _hover={{ color: 'red.400' }}
+                transition="color 0.2s"
+                style={{ fontFamily: 'var(--font-display)' }}
+                onClick={() => {
+                  setMobileOpen(false);
+                  signOut({ callbackUrl: '/login' });
+                }}
+              >
+                SIGN OUT
+              </Text>
+            ) : (
+              <ChakraLink
+                asChild
+                fontSize="24px"
+                color={colors.textSecondary}
+                letterSpacing="0.1em"
+                _hover={{ color: colors.accent }}
+                transition="color 0.2s"
+                style={{ fontFamily: 'var(--font-display)' }}
+                onClick={() => setMobileOpen(false)}
+              >
+                <Link href="/login">SIGN IN</Link>
+              </ChakraLink>
+            )}
           </VStack>
         </Box>
       )}

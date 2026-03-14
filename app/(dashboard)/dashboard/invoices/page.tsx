@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq, desc, inArray } from 'drizzle-orm';
-import { Box, Heading, Text, VStack, Table } from '@chakra-ui/react';
+import { Box, Heading, Text, VStack, Table, Badge } from '@chakra-ui/react';
 import { colorTokens as c } from '@/lib/design-tokens';
 
 export default async function InvoicesPage() {
@@ -32,7 +32,9 @@ export default async function InvoicesPage() {
           <Text color={c.muted}>No invoices available yet.</Text>
         </Box>
       ) : (
-        <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto">
+        <>
+        {/* Desktop table */}
+        <Box display={{ base: 'none', md: 'block' }} bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto">
           <Table.Root size="sm">
             <Table.Header>
               <Table.Row>
@@ -71,6 +73,32 @@ export default async function InvoicesPage() {
             </Table.Body>
           </Table.Root>
         </Box>
+
+        {/* Mobile cards */}
+        <VStack display={{ base: 'flex', md: 'none' }} gap={3} align="stretch">
+          {invoiceable.map((booking) => (
+            <Box key={booking.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4}>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Text color={c.text} fontWeight="600" fontSize="sm">{booking.refNumber}</Text>
+                <Text color={c.text} fontWeight="600" fontSize="sm">{'\u00A3'}{Number(booking.totalAmount).toFixed(2)}</Text>
+              </Box>
+              <Text color={c.muted} fontSize="xs" mb={3}>
+                {new Date(booking.createdAt!).toLocaleDateString('en-GB')}
+              </Text>
+              <a
+                href={`/api/dashboard/invoices/${booking.refNumber}`}
+                style={{
+                  display: 'block', textAlign: 'center', padding: '12px',
+                  background: c.accent, color: c.bg, borderRadius: 6,
+                  fontWeight: 600, textDecoration: 'none', fontSize: 14, minHeight: 48,
+                }}
+              >
+                Download Invoice
+              </a>
+            </Box>
+          ))}
+        </VStack>
+        </>
       )}
     </VStack>
   );

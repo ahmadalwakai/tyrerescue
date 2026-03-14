@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Box,
   Table,
+  Flex,
   VStack,
   HStack,
   Text,
@@ -121,12 +122,12 @@ export function DriversClient({ drivers }: Props) {
           <Button onClick={() => setShowForm(true)}>Add Driver</Button>
         </Box>
       ) : (
-        <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.scaleIn('0.5s')}>
+        <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.scaleIn('0.5s')}>
           <Heading size="md" mb={4} color={c.text}>
             Add New Driver
           </Heading>
           <form onSubmit={handleSubmit}>
-            <Grid templateColumns="repeat(2, 1fr)" gap={4} mb={4}>
+            <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={4} mb={4}>
               <GridItem>
                 <Text fontSize="sm" fontWeight="medium" mb={1}>
                   Name
@@ -186,7 +187,30 @@ export function DriversClient({ drivers }: Props) {
                 {success}
               </Text>
             )}
-            <HStack>
+            <VStack gap={2} display={{ base: 'flex', md: 'none' }}>
+              <Button type="submit" disabled={loading} w="100%" minH="48px">
+                {loading ? (
+                  <HStack gap={2}>
+                    <Spinner size="sm" />
+                    <Text>Creating...</Text>
+                  </HStack>
+                ) : (
+                  'Create Driver'
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                w="100%"
+                minH="48px"
+                onClick={() => {
+                  setShowForm(false);
+                  setError('');
+                }}
+              >
+                Cancel
+              </Button>
+            </VStack>
+            <HStack display={{ base: 'none', md: 'flex' }}>
               <Button type="submit" disabled={loading}>
                 {loading ? (
                   <HStack gap={2}>
@@ -211,8 +235,8 @@ export function DriversClient({ drivers }: Props) {
         </Box>
       )}
 
-      {/* Drivers table */}
-      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto" style={anim.fadeUp('0.5s')}>
+      {/* Drivers table - desktop */}
+      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto" style={anim.fadeUp('0.5s')} display={{ base: 'none', md: 'block' }}>
         <Table.Root size="md">
           <Table.Header>
             <Table.Row>
@@ -271,6 +295,29 @@ export function DriversClient({ drivers }: Props) {
           </Table.Body>
         </Table.Root>
       </Box>
+
+      {/* Drivers cards - mobile */}
+      <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
+        {drivers.length === 0 ? (
+          <Text textAlign="center" py={8} color={c.muted}>No drivers found</Text>
+        ) : (
+          drivers.map((driver) => (
+            <Box key={driver.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4}>
+              <Flex justify="space-between" align="center" mb={2}>
+                <Text fontWeight="bold" color={c.text}>{driver.name}</Text>
+                <Text fontSize="xs" fontWeight="medium" color={driver.isOnline ? 'green.400' : c.muted}>
+                  {driver.isOnline ? 'Online' : 'Offline'}
+                </Text>
+              </Flex>
+              <Text fontSize="sm" color={c.muted} mb={1}>{driver.email}</Text>
+              <Flex justify="space-between">
+                <Text fontSize="sm" color={c.muted}>{driver.phone || 'No phone'}</Text>
+                <Text fontSize="xs" color={c.muted}>{formatDate(driver.createdAt)}</Text>
+              </Flex>
+            </Box>
+          ))
+        )}
+      </VStack>
 
       {/* Summary */}
       <Text fontSize="sm" color={c.muted}>

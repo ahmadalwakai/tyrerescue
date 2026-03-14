@@ -97,9 +97,9 @@ export function DriverDashboardClient({
   return (
     <VStack align="stretch" gap={6}>
       {/* Online/Offline Toggle */}
-      <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.scaleIn('0.5s')}>
+      <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.scaleIn('0.5s')}>
         <VStack align="stretch" gap={4}>
-          <HStack justify="space-between" align="center">
+          <Box display="flex" flexDirection={{ base: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ base: 'stretch', sm: 'center' }} gap={3}>
             <Box>
               <Text fontSize="lg" fontWeight="semibold" color={c.text}>
                 Status
@@ -118,10 +118,11 @@ export function DriverDashboardClient({
               color={isOnline ? 'green.400' : c.muted}
               fontWeight="bold"
               fontSize="lg"
+              textAlign="center"
             >
               {isOnline ? 'ONLINE' : 'OFFLINE'}
             </Box>
-          </HStack>
+          </Box>
 
           <Button
             size="lg"
@@ -129,6 +130,7 @@ export function DriverDashboardClient({
             onClick={handleToggleOnline}
             disabled={isToggling}
             width="100%"
+            minH="56px"
           >
             {isToggling
               ? 'Updating...'
@@ -149,7 +151,7 @@ export function DriverDashboardClient({
 
       {/* Active Job Card */}
       {activeJob && (
-        <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} borderLeft="4px solid" borderLeftColor={c.accent} style={anim.fadeUp('0.6s', '0.2s')}>
+        <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} borderLeft="4px solid" borderLeftColor={c.accent} style={anim.fadeUp('0.6s', '0.2s')}>
           <VStack align="stretch" gap={4}>
             <HStack justify="space-between">
               <Heading size="md" color={c.text}>Active Job</Heading>
@@ -170,19 +172,26 @@ export function DriverDashboardClient({
               <Text fontSize="sm" fontWeight="medium" color={c.muted} mb={1}>
                 Customer Address
               </Text>
-              <ChakraLink
-                href={getGoogleMapsUrl(activeJob.addressLine, activeJob.lat, activeJob.lng)}
-                target="_blank"
-                rel="noopener noreferrer"
-                color={c.accent}
-                fontWeight="medium"
-                _hover={{ textDecoration: 'underline' }}
+              <Box
+                asChild
+                display="block"
+                p={{ base: 3, md: 0 }}
+                bg={{ base: c.surface, md: 'transparent' }}
+                borderRadius={{ base: '8px', md: '0' }}
+                minH="48px"
               >
-                {activeJob.addressLine}
-              </ChakraLink>
-              <Text fontSize="xs" color={c.muted} mt={1}>
-                (Click to open in Google Maps)
-              </Text>
+                <a
+                  href={getGoogleMapsUrl(activeJob.addressLine, activeJob.lat, activeJob.lng)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Text color={c.accent} fontWeight="medium">{activeJob.addressLine}</Text>
+                  <Text fontSize="xs" color={c.muted} mt={1}>
+                    Tap to open in Google Maps
+                  </Text>
+                </a>
+              </Box>
             </Box>
 
             {/* Tyre Details */}
@@ -242,6 +251,8 @@ export function DriverDashboardClient({
               variant="outline"
               onClick={() => router.push(`/driver/jobs/${activeJob.refNumber}`)}
               width="100%"
+              minH="56px"
+              fontSize={{ base: 'md', md: 'sm' }}
             >
               View Full Details and Update Status
             </Button>
@@ -259,11 +270,11 @@ export function DriverDashboardClient({
       )}
 
       {/* Earnings Summary */}
-      <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.5s', '0.3s')}>
+      <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.5s', '0.3s')}>
         <Heading size="md" mb={4} color={c.text}>
           Jobs Completed
         </Heading>
-        <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <Grid templateColumns="repeat(2, 1fr)" gap={{ base: 3, md: 4 }}>
           <GridItem>
             <Box p={4} bg={c.surface} borderRadius="md" textAlign="center">
               <Text fontSize="3xl" fontWeight="bold" color="green.400">

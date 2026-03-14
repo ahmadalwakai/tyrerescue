@@ -71,12 +71,12 @@ export function TestimonialsClient({ testimonials }: { testimonials: Testimonial
 
   return (
     <VStack align="stretch" gap={6}>
-      <Flex justify="space-between" align="center">
+      <Flex justify="space-between" align="center" wrap="wrap" gap={3}>
         <Box>
           <Heading size="lg" color={c.text}>Testimonials</Heading>
           <Text color={c.muted} mt={1}>Manage customer reviews displayed on the site</Text>
         </Box>
-        <Button bg={c.accent} color="white" _hover={{ bg: c.accentHover }} onClick={() => setShowAdd(!showAdd)}>
+        <Button bg={c.accent} color="white" _hover={{ bg: c.accentHover }} onClick={() => setShowAdd(!showAdd)} w={{ base: '100%', md: 'auto' }} minH="48px">
           {showAdd ? 'Cancel' : 'Add Testimonial'}
         </Button>
       </Flex>
@@ -85,19 +85,25 @@ export function TestimonialsClient({ testimonials }: { testimonials: Testimonial
         <form onSubmit={handleAdd}>
         <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border}>
           <VStack align="stretch" gap={3}>
-            <HStack gap={3}>
+            <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
+              <Input {...inputProps} name="authorName" placeholder="Author name" required />
+              <Input {...inputProps} name="rating" type="number" min={1} max={5} placeholder="Rating (1-5)" />
+              <Input {...inputProps} name="jobType" placeholder="Job type" />
+            </VStack>
+            <HStack gap={3} display={{ base: 'none', md: 'flex' }}>
               <Input {...inputProps} name="authorName" placeholder="Author name" required />
               <Input {...inputProps} name="rating" type="number" min={1} max={5} placeholder="Rating (1-5)" maxW="160px" />
               <Input {...inputProps} name="jobType" placeholder="Job type" maxW="160px" />
             </HStack>
             <Textarea {...textareaProps} {...textareaProps} name="content" placeholder="Testimonial content" required rows={3} />
-            <Button type="submit" bg={c.accent} color="white" _hover={{ bg: c.accentHover }} alignSelf="flex-start">Save</Button>
+            <Button type="submit" bg={c.accent} color="white" _hover={{ bg: c.accentHover }} alignSelf={{ base: 'stretch', md: 'flex-start' }} minH="48px">Save</Button>
           </VStack>
         </Box>
         </form>
       )}
 
-      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden">
+      {/* Desktop table */}
+      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden" display={{ base: 'none', md: 'block' }}>
         <Table.Root size="sm">
           <Table.Header>
             <Table.Row bg={c.surface}>
@@ -141,6 +147,38 @@ export function TestimonialsClient({ testimonials }: { testimonials: Testimonial
           </Table.Body>
         </Table.Root>
       </Box>
+
+      {/* Mobile cards */}
+      <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
+        {items.length === 0 ? (
+          <Text textAlign="center" py={8} color={c.muted}>No testimonials</Text>
+        ) : (
+          items.map((t) => (
+            <Box key={t.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4}>
+              <Flex justify="space-between" align="center" mb={2}>
+                <Text fontWeight="bold" color={c.text}>{t.authorName}</Text>
+                <HStack gap={1}>
+                  <Badge bg={t.approved ? '#14532D' : '#7F1D1D'} color="white" fontSize="xs">{t.approved ? 'Approved' : 'Pending'}</Badge>
+                  {t.featured && <Badge bg={c.accent} color="white" fontSize="xs">Featured</Badge>}
+                </HStack>
+              </Flex>
+              {t.rating && <Text fontSize="sm" color={c.accent} mb={1}>{'\u2605'.repeat(t.rating)}</Text>}
+              <Text fontSize="sm" color={c.muted} mb={3} lineClamp={3}>{t.content}</Text>
+              <VStack gap={2} align="stretch">
+                <Flex gap={2}>
+                  <Button flex={1} size="sm" minH="48px" bg={c.surface} color={c.text} borderWidth="1px" borderColor={c.border} onClick={() => toggleApproval(t.id, t.approved ?? false)}>
+                    {t.approved ? 'Unapprove' : 'Approve'}
+                  </Button>
+                  <Button flex={1} size="sm" minH="48px" bg={c.surface} color={c.text} borderWidth="1px" borderColor={c.border} onClick={() => toggleFeatured(t.id, t.featured ?? false)}>
+                    {t.featured ? 'Unfeature' : 'Feature'}
+                  </Button>
+                </Flex>
+                <Button size="sm" w="100%" minH="48px" bg="#7F1D1D" color="white" onClick={() => deleteTestimonial(t.id)}>Delete</Button>
+              </VStack>
+            </Box>
+          ))
+        )}
+      </VStack>
     </VStack>
   );
 }

@@ -27,7 +27,8 @@ export default async function AdminAuditPage() {
         <Text color={c.muted} mt={1}>Recent administrative actions</Text>
       </Box>
 
-      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden">
+      {/* Desktop table */}
+      <Box display={{ base: 'none', md: 'block' }} bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden">
         <Table.Root size="sm">
           <Table.Header>
             <Table.Row bg={c.surface}>
@@ -65,6 +66,33 @@ export default async function AdminAuditPage() {
           </Table.Body>
         </Table.Root>
       </Box>
+
+      {/* Mobile cards */}
+      <VStack display={{ base: 'flex', md: 'none' }} gap={3} align="stretch">
+        {logs.length === 0 && (
+          <Text textAlign="center" py={8} color={c.muted}>No audit entries</Text>
+        )}
+        {logs.map((log) => (
+          <Box key={log.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Badge bg={c.accent} color="white">{log.action}</Badge>
+              <Text color={c.muted} fontSize="xs">
+                {log.createdAt ? new Date(log.createdAt).toLocaleString('en-GB') : '—'}
+              </Text>
+            </Box>
+            <Text color={c.text} fontSize="sm" fontWeight="600">
+              {log.actorName || log.actorEmail || '—'}
+            </Text>
+            {log.actorRole && <Badge bg={c.surface} color={c.muted} fontSize="xs" mt={1}>{log.actorRole}</Badge>}
+            <Box display="flex" justifyContent="space-between" mt={2}>
+              <Text color={c.muted} fontSize="xs">{log.entityType || '—'}</Text>
+              <Text color={c.muted} fontSize="xs" fontFamily="mono">
+                {log.entityId ? log.entityId.slice(0, 8) + '...' : '—'}
+              </Text>
+            </Box>
+          </Box>
+        ))}
+      </VStack>
     </VStack>
   );
 }

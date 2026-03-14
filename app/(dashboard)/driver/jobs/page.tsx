@@ -8,6 +8,7 @@ import {
   VStack,
   Text,
   Table,
+  Badge,
   Link as ChakraLink,
 } from '@chakra-ui/react';
 import NextLink from 'next/link';
@@ -100,7 +101,8 @@ export default async function DriverJobsPage() {
           <Heading size="md" mb={4} color={c.text}>
             Active Jobs
           </Heading>
-          <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto" style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both' }}>
+          {/* Desktop table */}
+          <Box display={{ base: 'none', md: 'block' }} bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto" style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both' }}>
             <Table.Root size="md">
               <Table.Header>
                 <Table.Row>
@@ -154,6 +156,33 @@ export default async function DriverJobsPage() {
               </Table.Body>
             </Table.Root>
           </Box>
+
+          {/* Mobile cards */}
+          <VStack display={{ base: 'flex', md: 'none' }} gap={3} align="stretch">
+            {activeJobs.length === 0 ? (
+              <Text textAlign="center" py={6} color={c.muted}>No active jobs</Text>
+            ) : (
+              activeJobs.map((job) => (
+                <Box key={job.refNumber} asChild>
+                  <NextLink href={`/driver/jobs/${job.refNumber}`} style={{ textDecoration: 'none' }}>
+                    <Box bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4} minH="48px" borderLeft="4px solid" borderLeftColor={c.accent}>
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                        <Text color={c.accent} fontWeight="600" fontSize="sm">{job.refNumber}</Text>
+                        <Badge bg="rgba(249,115,22,0.1)" color={c.accent} fontSize="xs">
+                          {STATUS_LABELS[job.status] || job.status}
+                        </Badge>
+                      </Box>
+                      <Text color={c.text} fontSize="sm" mb={1} lineClamp={2}>{job.addressLine}</Text>
+                      <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Text color={c.muted} fontSize="xs">{job.tyreSizeDisplay || '-'}</Text>
+                        <Text color={c.muted} fontSize="xs">{formatDate(job.scheduledAt || job.createdAt)}</Text>
+                      </Box>
+                    </Box>
+                  </NextLink>
+                </Box>
+              ))
+            )}
+          </VStack>
         </Box>
 
         {/* Completed Jobs */}
@@ -161,7 +190,8 @@ export default async function DriverJobsPage() {
           <Heading size="md" mb={4} color={c.text}>
             Completed Jobs
           </Heading>
-          <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto" style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.2s both' }}>
+          {/* Desktop table */}
+          <Box display={{ base: 'none', md: 'block' }} bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto" style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.2s both' }}>
             <Table.Root size="md">
               <Table.Header>
                 <Table.Row>
@@ -215,6 +245,31 @@ export default async function DriverJobsPage() {
               </Table.Body>
             </Table.Root>
           </Box>
+
+          {/* Mobile cards */}
+          <VStack display={{ base: 'flex', md: 'none' }} gap={3} align="stretch">
+            {completedJobs.length === 0 ? (
+              <Text textAlign="center" py={6} color={c.muted}>No completed jobs yet</Text>
+            ) : (
+              completedJobs.map((job) => (
+                <Box key={job.refNumber} asChild>
+                  <NextLink href={`/driver/jobs/${job.refNumber}`} style={{ textDecoration: 'none' }}>
+                    <Box bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4} minH="48px">
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                        <Text color={c.accent} fontWeight="600" fontSize="sm">{job.refNumber}</Text>
+                        <Text fontWeight="medium" color="green.400" fontSize="xs">Completed</Text>
+                      </Box>
+                      <Text color={c.text} fontSize="sm" mb={1} lineClamp={2}>{job.addressLine}</Text>
+                      <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Text color={c.muted} fontSize="xs">{job.tyreSizeDisplay || '-'}</Text>
+                        <Text color={c.muted} fontSize="xs">{formatDate(job.scheduledAt || job.createdAt)}</Text>
+                      </Box>
+                    </Box>
+                  </NextLink>
+                </Box>
+              ))
+            )}
+          </VStack>
           {completedJobs.length === 30 && (
             <Text fontSize="sm" color={c.muted} mt={2}>
               Showing last 30 completed jobs
