@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Box, Heading, Text, VStack, HStack, Button, Input, Table, Badge, Flex, Textarea } from '@chakra-ui/react';
 import { colorTokens as c, inputProps, textareaProps } from '@/lib/design-tokens';
+import { anim } from '@/lib/animations';
 import { useRouter } from 'next/navigation';
 
 interface Testimonial {
@@ -71,7 +72,7 @@ export function TestimonialsClient({ testimonials }: { testimonials: Testimonial
 
   return (
     <VStack align="stretch" gap={6}>
-      <Flex justify="space-between" align="center" wrap="wrap" gap={3}>
+      <Flex justify="space-between" align="center" wrap="wrap" gap={3} style={anim.fadeUp()}>
         <Box>
           <Heading size="lg" color={c.text}>Testimonials</Heading>
           <Text color={c.muted} mt={1}>Manage customer reviews displayed on the site</Text>
@@ -83,7 +84,7 @@ export function TestimonialsClient({ testimonials }: { testimonials: Testimonial
 
       {showAdd && (
         <form onSubmit={handleAdd}>
-        <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+        <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.scaleIn('0.3s')}>
           <VStack align="stretch" gap={3}>
             <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
               <Input {...inputProps} name="authorName" placeholder="Author name" required />
@@ -103,7 +104,7 @@ export function TestimonialsClient({ testimonials }: { testimonials: Testimonial
       )}
 
       {/* Desktop table */}
-      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden" display={{ base: 'none', md: 'block' }}>
+      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden" display={{ base: 'none', md: 'block' }} style={anim.fadeUp('0.5s', '0.15s')}>
         <Table.Root size="sm">
           <Table.Header>
             <Table.Row bg={c.surface}>
@@ -153,8 +154,8 @@ export function TestimonialsClient({ testimonials }: { testimonials: Testimonial
         {items.length === 0 ? (
           <Text textAlign="center" py={8} color={c.muted}>No testimonials</Text>
         ) : (
-          items.map((t) => (
-            <Box key={t.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4}>
+          items.map((t, i) => (
+            <Box key={t.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4} style={anim.stagger('fadeUp', i)}>
               <Flex justify="space-between" align="center" mb={2}>
                 <Text fontWeight="bold" color={c.text}>{t.authorName}</Text>
                 <HStack gap={1}>

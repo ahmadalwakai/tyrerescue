@@ -5,6 +5,7 @@ import { signOut } from 'next-auth/react';
 import { Box, Flex, VStack, Link as ChakraLink, Text, Heading } from '@chakra-ui/react';
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { anim } from '@/lib/animations';
 
 const navItems = [
   { label: 'Bookings', href: '/admin/bookings' },
@@ -41,12 +42,12 @@ export function AdminShell({
         overflowY="auto"
         display={{ base: 'none', md: 'block' }}
       >
-        <Heading size="md" mb={8} color={c.text}>
+        <Heading size="md" mb={8} color={c.text} style={anim.fadeUp()}>
           Admin Panel
         </Heading>
 
         <VStack align="stretch" gap={1}>
-          {navItems.map((item) => (
+          {navItems.map((item, i) => (
             <ChakraLink
               key={item.href}
               asChild
@@ -55,6 +56,7 @@ export function AdminShell({
               borderRadius="md"
               _hover={{ bg: c.card, textDecoration: 'none' }}
               transition="background 0.2s"
+              style={anim.stagger('fadeUp', i, '0.3s', 0.05)}
             >
               <NextLink href={item.href}>{item.label}</NextLink>
             </ChakraLink>

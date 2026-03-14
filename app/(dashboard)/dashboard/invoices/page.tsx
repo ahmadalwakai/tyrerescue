@@ -22,19 +22,19 @@ export default async function InvoicesPage() {
 
   return (
     <VStack align="stretch" gap={6}>
-      <Box>
+      <Box style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both' }}>
         <Heading size="lg" color={c.text}>Invoices</Heading>
         <Text color={c.muted} mt={1}>Download VAT invoices for your completed bookings</Text>
       </Box>
 
       {invoiceable.length === 0 ? (
-        <Box bg={c.card} p={8} borderRadius="md" borderWidth="1px" borderColor={c.border} textAlign="center">
+        <Box bg={c.card} p={8} borderRadius="md" borderWidth="1px" borderColor={c.border} textAlign="center" style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both' }}>
           <Text color={c.muted}>No invoices available yet.</Text>
         </Box>
       ) : (
         <>
         {/* Desktop table */}
-        <Box display={{ base: 'none', md: 'block' }} bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto">
+        <Box display={{ base: 'none', md: 'block' }} bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto" style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both' }}>
           <Table.Root size="sm">
             <Table.Header>
               <Table.Row>
@@ -76,8 +76,8 @@ export default async function InvoicesPage() {
 
         {/* Mobile cards */}
         <VStack display={{ base: 'flex', md: 'none' }} gap={3} align="stretch">
-          {invoiceable.map((booking) => (
-            <Box key={booking.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4}>
+          {invoiceable.map((booking, i) => (
+            <Box key={booking.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4} style={{ animation: `fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${Math.min(0.05 + i * 0.05, 0.5).toFixed(2)}s both` }}>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 <Text color={c.text} fontWeight="600" fontSize="sm">{booking.refNumber}</Text>
                 <Text color={c.text} fontWeight="600" fontSize="sm">{'\u00A3'}{Number(booking.totalAmount).toFixed(2)}</Text>

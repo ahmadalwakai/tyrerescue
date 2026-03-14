@@ -162,8 +162,8 @@ export default async function DriverJobsPage() {
             {activeJobs.length === 0 ? (
               <Text textAlign="center" py={6} color={c.muted}>No active jobs</Text>
             ) : (
-              activeJobs.map((job) => (
-                <Box key={job.refNumber} asChild>
+              activeJobs.map((job, i) => (
+                <Box key={job.refNumber} asChild style={{ animation: `fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${Math.min(0.05 + i * 0.05, 0.5).toFixed(2)}s both` }}>
                   <NextLink href={`/driver/jobs/${job.refNumber}`} style={{ textDecoration: 'none' }}>
                     <Box bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4} minH="48px" borderLeft="4px solid" borderLeftColor={c.accent}>
                       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
@@ -251,8 +251,8 @@ export default async function DriverJobsPage() {
             {completedJobs.length === 0 ? (
               <Text textAlign="center" py={6} color={c.muted}>No completed jobs yet</Text>
             ) : (
-              completedJobs.map((job) => (
-                <Box key={job.refNumber} asChild>
+              completedJobs.map((job, i) => (
+                <Box key={job.refNumber} asChild style={{ animation: `fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${Math.min(0.05 + i * 0.05, 0.5).toFixed(2)}s both` }}>
                   <NextLink href={`/driver/jobs/${job.refNumber}`} style={{ textDecoration: 'none' }}>
                     <Box bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4} minH="48px">
                       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>

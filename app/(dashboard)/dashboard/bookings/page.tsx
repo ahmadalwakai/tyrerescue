@@ -86,7 +86,7 @@ export default async function CustomerBookingsPage() {
         {/* Mobile cards */}
         <VStack display={{ base: 'flex', md: 'none' }} gap={3} align="stretch">
           {userBookings.map((booking, i) => (
-            <Box key={booking.id} asChild>
+            <Box key={booking.id} asChild style={{ animation: `fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${Math.min(0.05 + i * 0.05, 0.5).toFixed(2)}s both` }}>
               <NextLink href={`/dashboard/bookings/${booking.refNumber}`} style={{ textDecoration: 'none' }}>
                 <Box bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4} minH="48px" _active={{ bg: c.surface }}>
                   <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>

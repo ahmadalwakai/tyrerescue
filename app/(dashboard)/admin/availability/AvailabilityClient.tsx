@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Box, Heading, Text, VStack, HStack, Button, Input, Table, Badge, Flex } from '@chakra-ui/react';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
+import { anim } from '@/lib/animations';
 import { useRouter } from 'next/navigation';
 
 interface Slot {
@@ -57,12 +58,12 @@ export function AvailabilityClient({ slots }: { slots: Slot[] }) {
 
   return (
     <VStack align="stretch" gap={6}>
-      <Box>
+      <Box style={anim.fadeUp()}>
         <Heading size="lg" color={c.text}>Availability</Heading>
         <Text color={c.muted} mt={1}>Manage booking time slots</Text>
       </Box>
 
-      <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+      <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.5s', '0.1s')}>
         <Text color={c.text} fontWeight="600" mb={3}>Add Slot</Text>
         <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
           <Input {...inputProps} type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
@@ -83,7 +84,7 @@ export function AvailabilityClient({ slots }: { slots: Slot[] }) {
       </Box>
 
       {/* Desktop table */}
-      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden" display={{ base: 'none', md: 'block' }}>
+      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden" display={{ base: 'none', md: 'block' }} style={anim.fadeUp('0.5s', '0.2s')}>
         <Table.Root size="sm">
           <Table.Header>
             <Table.Row bg={c.surface}>
@@ -131,8 +132,8 @@ export function AvailabilityClient({ slots }: { slots: Slot[] }) {
         {items.length === 0 ? (
           <Text textAlign="center" py={8} color={c.muted}>No slots configured</Text>
         ) : (
-          items.map((slot) => (
-            <Box key={slot.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4}>
+          items.map((slot, i) => (
+            <Box key={slot.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4} style={anim.stagger('fadeUp', i)}>
               <Flex justify="space-between" align="center" mb={2}>
                 <Text fontWeight="bold" color={c.text}>{slot.date}</Text>
                 <Badge bg={slot.active ? '#14532D' : '#7F1D1D'} color="white">

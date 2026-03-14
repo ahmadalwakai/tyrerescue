@@ -51,6 +51,7 @@ export function Nav() {
         h="64px"
         display="flex"
         alignItems="center"
+        style={{ animation: 'fadeIn 0.4s ease-out both' }}
       >
         <Container maxW="7xl">
           <Flex justify="space-between" align="center">
@@ -185,7 +186,7 @@ export function Nav() {
           justifyContent="center"
         >
           <VStack gap={6}>
-            {navLinks.map((link) => (
+            {navLinks.map((link, i) => (
               <ChakraLink
                 key={link.href}
                 asChild
@@ -194,7 +195,7 @@ export function Nav() {
                 letterSpacing="0.1em"
                 _hover={{ color: colors.accent }}
                 transition="color 0.2s"
-                style={{ fontFamily: 'var(--font-display)' }}
+                style={{ fontFamily: 'var(--font-display)', animation: `fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${(0.05 + i * 0.06).toFixed(2)}s both` }}
                 onClick={() => setMobileOpen(false)}
               >
                 <Link href={link.href}>{link.label.toUpperCase()}</Link>

@@ -4,6 +4,7 @@ import { signOut } from 'next-auth/react';
 import { Box, Flex, Text, Link as ChakraLink } from '@chakra-ui/react';
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { anim } from '@/lib/animations';
 
 const navItems = [
   { label: 'Dashboard', href: '/driver' },
@@ -30,6 +31,7 @@ export function DriverShell({
         borderColor={c.border}
         px={{ base: 3, md: 6 }}
         py={{ base: 3, md: 4 }}
+        style={anim.fadeIn('0.4s')}
       >
         <Flex
           justify="space-between"

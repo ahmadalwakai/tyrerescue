@@ -130,7 +130,7 @@ export default async function CustomerBookingDetailPage(
 
       {/* Tyres */}
       {tyres.length > 0 && (
-        <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+        <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.3s both' }}>
           <Text fontWeight="600" color={c.text} mb={4}>Tyres</Text>
           <VStack align="stretch" gap={3}>
             {tyres.map((t, i) => (
@@ -147,7 +147,7 @@ export default async function CustomerBookingDetailPage(
       )}
 
       {/* Status History */}
-      <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+      <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.35s both' }}>
         <Text fontWeight="600" color={c.text} mb={4}>Status History</Text>
         <VStack align="stretch" gap={2}>
           {statusHistory.map((sh) => (
@@ -164,7 +164,7 @@ export default async function CustomerBookingDetailPage(
       </Box>
 
       {/* Actions */}
-      <Flex gap={3} direction={{ base: 'column', sm: 'row' }}>
+      <Flex gap={3} direction={{ base: 'column', sm: 'row' }} style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.4s both' }}>
         {showTracking && (
           <Box asChild>
             <NextLink href={`/tracking/${booking.refNumber}`} style={{

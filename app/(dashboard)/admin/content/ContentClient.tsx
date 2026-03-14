@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Box, Heading, Text, VStack, HStack, Button, Input, Textarea, Flex } from '@chakra-ui/react';
 import { colorTokens as c, inputProps, textareaProps } from '@/lib/design-tokens';
+import { anim } from '@/lib/animations';
 import { useRouter } from 'next/navigation';
 
 interface ContentItem {
@@ -50,13 +51,13 @@ export function ContentClient({ items }: { items: ContentItem[] }) {
 
   return (
     <VStack align="stretch" gap={6}>
-      <Box>
+      <Box style={anim.fadeUp()}>
         <Heading size="lg" color={c.text}>Content</Heading>
         <Text color={c.muted} mt={1}>Manage site-wide text and settings</Text>
       </Box>
 
       <form onSubmit={handleSubmit}>
-        <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+        <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.5s', '0.1s')}>
         <VStack align="stretch" gap={5}>
           {CONTENT_KEYS.map((ck) => (
             <Box key={ck.key}>
