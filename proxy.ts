@@ -107,7 +107,13 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/services/') ||
     pathname.startsWith('/reset-password/') ||
     pathname.startsWith('/verify-email/') ||
-    pathname.startsWith('/api/');
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/images/') ||
+    pathname.endsWith('.xml') ||
+    pathname.endsWith('.txt') ||
+    pathname.endsWith('.ico') ||
+    pathname.endsWith('.json');
 
   if (isPublicRoute) {
     const response = NextResponse.next();
