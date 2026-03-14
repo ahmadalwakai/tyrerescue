@@ -76,8 +76,8 @@ export async function POST(request: NextRequest) {
       expiresAt,
     });
 
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://tyrerescue.uk';
-    const verifyUrl = `${baseUrl}/verify-email/${verifyToken}`;
+    const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+    const verifyUrl = `${siteUrl}/verify-email/${verifyToken}`;
 
     // Send welcome email
     try {

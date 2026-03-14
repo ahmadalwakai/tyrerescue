@@ -240,8 +240,8 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     vatAmount: number;
     total: number;
   };
-  const trackingUrl = `${process.env.NEXTAUTH_URL || 'https://tyrerescue.uk'}/tracking/${refNumber}`;
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://tyrerescue.uk';
+  const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+  const trackingUrl = `${siteUrl}/tracking/${refNumber}`;
 
   // Send booking confirmation email to customer
   try {
@@ -322,7 +322,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
           total: priceSnapshot.total,
           scheduledAt: booking.scheduledAt || undefined,
         },
-        `${baseUrl}/admin/bookings/${booking.id}`
+        `${siteUrl}/admin/bookings/${booking.id}`
       );
 
       await createNotificationAndSend({

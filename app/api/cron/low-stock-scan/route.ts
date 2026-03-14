@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { tyreProducts } from '@/lib/db/schema';
 import { lte, sql } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email/resend';
+import { adminLowStock } from '@/lib/email/templates';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,8 @@ export async function GET(request: Request) {
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
 
   // Find products with low stock
   const lowStock = await db
@@ -28,20 +31,22 @@ export async function GET(request: Request) {
       lte(tyreProducts.stockNew, LOW_STOCK_THRESHOLD)
     );
 
-  if (lowStock.length > 0) {
-    const rows = lowStock
-      .map(
-        (t) =>
-          `<tr><td>${t.brand} ${t.pattern}</td><td>${t.sizeDisplay}</td><td>${t.stockNew ?? 0}</td></tr>`
-      )
-      .join('');
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.RESEND_FROM_EMAIL || 'admin@tyrerescue.uk';
 
-    const adminEmail = process.env.ADMIN_EMAIL || process.env.RESEND_FROM_EMAIL || 'admin@tyrerescue.uk';
+  // Send individual alerts for each low-stock item
+  for (const tyre of lowStock) {
+    const { subject, html } = adminLowStock({
+      brand: tyre.brand,
+      pattern: tyre.pattern,
+      size: tyre.sizeDisplay,
+      stockNew: tyre.stockNew ?? 0,
+      inventoryUrl: `${siteUrl}/admin/inventory`,
+    });
 
     await sendEmail({
       to: adminEmail,
-      subject: `Low Stock Alert: ${lowStock.length} product(s) below threshold`,
-      html: `<h2>Low Stock Alert</h2><table border="1" cellpadding="6"><tr><th>Product</th><th>Size</th><th>Stock</th></tr>${rows}</table>`,
+      subject,
+      html,
     });
   }
 

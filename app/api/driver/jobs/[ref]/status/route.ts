@@ -106,8 +106,8 @@ export async function PATCH(request: Request, { params }: Props) {
 
       // Send job complete email to customer
       try {
-        const baseUrl = process.env.NEXTAUTH_URL || 'https://tyrerescue.uk';
-        const reviewUrl = `${baseUrl}/review/${booking.refNumber}`;
+        const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+        const reviewUrl = `${siteUrl}/review/${booking.refNumber}`;
 
         const completeEmail = jobComplete({
           customerName: booking.customerName,

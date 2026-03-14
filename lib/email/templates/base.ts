@@ -7,9 +7,12 @@ export interface BaseEmailProps {
   preheader?: string;
   content: string;
   isMarketing?: boolean;
+  siteUrl?: string;
 }
 
-export function baseEmailTemplate({ preheader, content, isMarketing = false }: BaseEmailProps): string {
+export function baseEmailTemplate({ preheader, content, isMarketing = false, siteUrl }: BaseEmailProps): string {
+  const url = siteUrl || process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+  
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -173,13 +176,13 @@ export function baseEmailTemplate({ preheader, content, isMarketing = false }: B
       <p>Phone: 0141 266 0690</p>
       <p>Open: 8am to Midnight, Every Day</p>
       <div class="footer-links">
-        <a href="https://tyrerescue.uk/privacy-policy">Privacy Policy</a> |
-        <a href="https://tyrerescue.uk/terms-of-service">Terms of Service</a>
+        <a href="${url}/privacy-policy">Privacy Policy</a> |
+        <a href="${url}/terms-of-service">Terms of Service</a>
       </div>
       ${isMarketing ? `
       <div class="disclaimer">
         You are receiving this email because you subscribed to marketing communications from Tyre Rescue.
-        <br><a href="https://tyrerescue.uk/unsubscribe" style="color: #999999;">Unsubscribe</a>
+        <br><a href="${url}/unsubscribe" style="color: #999999;">Unsubscribe</a>
       </div>
       ` : ''}
       <div class="disclaimer">

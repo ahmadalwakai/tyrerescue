@@ -40,13 +40,13 @@ export const metadata: Metadata = {
     telephone: false,
   },
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || 'https://tyrerescue.uk'
+    process.env.NEXT_PUBLIC_SITE_URL || 'https://www.tyrerescue.uk'
   ),
   openGraph: {
     title: 'Tyre Rescue | Emergency Mobile Tyre Fitting Glasgow & Edinburgh',
     description:
       'Emergency mobile tyre fitting service in Glasgow and Edinburgh. 24 hours a day, 7 days a week.',
-    url: 'https://tyrerescue.uk',
+    url: 'https://www.tyrerescue.uk',
     siteName: 'Tyre Rescue',
     locale: 'en_GB',
     type: 'website',

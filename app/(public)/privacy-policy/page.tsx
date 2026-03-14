@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: 'Privacy Policy',
   description:
     'Read our privacy policy to understand how Tyre Rescue collects, uses and protects your personal data.',
-  alternates: { canonical: 'https://tyrerescue.uk/privacy-policy' },
+  alternates: { canonical: 'https://www.tyrerescue.uk/privacy-policy' },
 };
 
 export default function PrivacyPolicyPage() {

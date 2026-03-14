@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: 'Frequently Asked Questions',
   description:
     'Find answers to common questions about Tyre Rescue mobile tyre fitting services in Glasgow and Edinburgh.',
-  alternates: { canonical: 'https://tyrerescue.uk/faq' },
+  alternates: { canonical: 'https://www.tyrerescue.uk/faq' },
 };
 
 const jsonLd = {

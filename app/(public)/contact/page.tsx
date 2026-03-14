@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: 'Contact Us',
   description:
     'Get in touch with Tyre Rescue. We are available 8am to midnight, every day. Call 0141 266 0690 or visit us at 3, 10 Gateside St, Glasgow G31 1PD.',
-  alternates: { canonical: 'https://tyrerescue.uk/contact' },
+  alternates: { canonical: 'https://www.tyrerescue.uk/contact' },
 };
 
 const jsonLd = {
@@ -21,7 +21,7 @@ const jsonLd = {
     addressCountry: 'GB',
   },
   openingHours: 'Mo-Su 08:00-23:59',
-  url: 'https://tyrerescue.uk/contact',
+  url: 'https://www.tyrerescue.uk/contact',
 };
 
 export default function ContactPage() {

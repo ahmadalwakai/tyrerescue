@@ -64,7 +64,7 @@ export async function GET(request: Request) {
         <p>This is a reminder that your <strong>${booking.serviceType}</strong> booking is scheduled for <strong>${scheduledTime}</strong>.</p>
         <p><strong>Location:</strong> ${booking.addressLine}</p>
         <p><strong>Reference:</strong> ${booking.refNumber}</p>
-        <p>You can track your driver on the day at: ${process.env.NEXT_PUBLIC_APP_URL}/tracking/${booking.refNumber}</p>
+        <p>You can track your driver on the day at: ${process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk'}/tracking/${booking.refNumber}</p>
         <p>Thanks,<br/>Tyre Rescue</p>
       `,
       notificationId: notification.id,

@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
 
     // Send password reset email
     try {
-      const baseUrl = process.env.NEXTAUTH_URL || 'https://tyrerescue.uk';
-      const resetUrl = `${baseUrl}/reset-password/${token}`;
+      const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+      const resetUrl = `${siteUrl}/reset-password/${token}`;
 
       const resetEmail = resetPassword({
         name: user.name || 'Customer',

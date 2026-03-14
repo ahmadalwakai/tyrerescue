@@ -89,12 +89,12 @@ export async function POST(request: Request) {
 
     // Send welcome email to driver with credentials
     try {
-      const baseUrl = process.env.NEXTAUTH_URL || 'https://tyrerescue.uk';
+      const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
       const welcomeEmail = driverWelcome({
         name: name.trim(),
         email: email.toLowerCase(),
         password, // Send plain password - only sent once at account creation
-        portalUrl: `${baseUrl}/driver`,
+        portalUrl: `${siteUrl}/driver`,
       });
 
       await createNotificationAndSend({

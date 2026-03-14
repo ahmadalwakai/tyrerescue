@@ -123,8 +123,8 @@ export async function PATCH(request: Request, { params }: Props) {
     }
 
     // Send notification emails
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://tyrerescue.uk';
-    const trackingUrl = `${baseUrl}/tracking/${booking.refNumber}`;
+    const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+    const trackingUrl = `${siteUrl}/tracking/${booking.refNumber}`;
 
     // Get tyre summary for job assigned email
     const [bookingTyre] = await db

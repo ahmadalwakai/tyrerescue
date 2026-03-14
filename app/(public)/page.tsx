@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description:
     'Emergency mobile tyre fitting service in Glasgow and Edinburgh. 24 hours a day, 7 days a week. Professional tyre replacement and puncture repair. Call 0141 266 0690.',
   alternates: {
-    canonical: 'https://tyrerescue.uk',
+    canonical: 'https://www.tyrerescue.uk',
   },
 };
 
@@ -18,7 +18,7 @@ const jsonLd = {
   alternateName: 'Duke Street Tyres',
   description:
     'Emergency mobile tyre fitting service in Glasgow and Edinburgh. 24 hours a day, 7 days a week.',
-  url: 'https://tyrerescue.uk',
+  url: 'https://www.tyrerescue.uk',
   telephone: '+441412660690',
   email: 'info@tyrerescue.uk',
   address: {
