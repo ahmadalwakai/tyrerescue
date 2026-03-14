@@ -354,7 +354,7 @@ export function HomePage() {
                     lineHeight="0.92"
                     style={{
                       fontFamily: 'var(--font-display)',
-                      fontSize: 'clamp(72px, 10vw, 140px)',
+                      fontSize: 'clamp(52px, 10vw, 140px)',
                     }}
                   >
                     GLASGOW &
@@ -366,7 +366,7 @@ export function HomePage() {
                     lineHeight="0.92"
                     style={{
                       fontFamily: 'var(--font-display)',
-                      fontSize: 'clamp(72px, 10vw, 140px)',
+                      fontSize: 'clamp(52px, 10vw, 140px)',
                     }}
                   >
                     EDINBURGH.
@@ -448,10 +448,10 @@ export function HomePage() {
                 </Flex>
 
                 {/* Stats */}
-                <Flex mt="48px" style={{ animation: 'fadeUp 0.6s ease-out 0.6s both' }}>
-                  <Box pr="32px" ref={stat1.ref}>
+                <Flex mt="48px" gap={{ base: 4, md: 0 }} wrap="wrap" style={{ animation: 'fadeUp 0.6s ease-out 0.6s both' }}>
+                  <Box pr={{ base: '16px', md: '32px' }} ref={stat1.ref}>
                     <Text
-                      fontSize="48px"
+                      fontSize={{ base: '32px', md: '48px' }}
                       color={colors.textPrimary}
                       lineHeight="1"
                       style={{ fontFamily: 'var(--font-display)' }}
@@ -466,11 +466,11 @@ export function HomePage() {
                     borderLeftWidth="1px"
                     borderRightWidth="1px"
                     borderColor={colors.border}
-                    px="32px"
+                    px={{ base: '16px', md: '32px' }}
                     ref={stat2.ref}
                   >
                     <Text
-                      fontSize="48px"
+                      fontSize={{ base: '32px', md: '48px' }}
                       color={colors.accent}
                       lineHeight="1"
                       style={{ fontFamily: 'var(--font-display)' }}
@@ -481,9 +481,9 @@ export function HomePage() {
                       Star Rating
                     </Text>
                   </Box>
-                  <Box pl="32px" ref={stat3.ref}>
+                  <Box pl={{ base: '16px', md: '32px' }} ref={stat3.ref}>
                     <Text
-                      fontSize="48px"
+                      fontSize={{ base: '32px', md: '48px' }}
                       color={colors.textPrimary}
                       lineHeight="1"
                       style={{ fontFamily: 'var(--font-display)' }}
@@ -560,9 +560,9 @@ export function HomePage() {
                     _hover={{ color: colors.textPrimary }}
                     transition="color 0.2s"
                     mb={2}
+                    fontSize={{ base: '32px', md: '52px' }}
                     style={{
                       fontFamily: 'var(--font-display)',
-                      fontSize: '52px',
                     }}
                   >
                     {PHONE_NUMBER}
@@ -641,7 +641,7 @@ export function HomePage() {
                   WHAT WE DO
                 </Text>
                 <Text
-                  fontSize={{ base: '40px', md: '64px' }}
+                  fontSize={{ base: '36px', md: '64px' }}
                   color={colors.textPrimary}
                   lineHeight="1"
                   style={{ fontFamily: 'var(--font-display)' }}
@@ -668,7 +668,7 @@ export function HomePage() {
                   >
                     <Box flex={{ md: '0 0 40%' }}>
                       <Text
-                        fontSize="72px"
+                        fontSize={{ base: '48px', md: '72px' }}
                         color={colors.border}
                         lineHeight="1"
                         style={{ fontFamily: 'var(--font-display)' }}
@@ -678,7 +678,7 @@ export function HomePage() {
                     </Box>
                     <Box flex={{ md: '0 0 40%' }}>
                       <Text
-                        fontSize="32px"
+                        fontSize={{ base: '24px', md: '32px' }}
                         color={colors.textPrimary}
                         mb={2}
                         style={{ fontFamily: 'var(--font-display)' }}
@@ -697,7 +697,7 @@ export function HomePage() {
                     </Box>
                     <Flex flex={{ md: '0 0 20%' }} justify="flex-end" align="center" gap={4}>
                       <Text
-                        fontSize="28px"
+                        fontSize={{ base: '20px', md: '28px' }}
                         color={colors.accent}
                         style={{ fontFamily: 'var(--font-display)' }}
                       >
@@ -734,7 +734,7 @@ export function HomePage() {
                 THE PROCESS
               </Text>
               <Text
-                fontSize={{ base: '48px', md: '80px' }}
+                fontSize={{ base: '36px', md: '64px', lg: '80px' }}
                 color={colors.textPrimary}
                 lineHeight="1"
                 mb="80px"
@@ -779,7 +779,7 @@ export function HomePage() {
                     >
                       <Text
                         className="step-number"
-                        fontSize="96px"
+                        fontSize={{ base: '64px', md: '96px' }}
                         color={colors.card}
                         lineHeight="1"
                         mb={4}
@@ -789,7 +789,7 @@ export function HomePage() {
                         {step.number}
                       </Text>
                       <Text
-                        fontSize="28px"
+                        fontSize={{ base: '22px', md: '28px' }}
                         color={colors.textPrimary}
                         mb={2}
                         style={{ fontFamily: 'var(--font-display)' }}
@@ -828,7 +828,7 @@ export function HomePage() {
                 WHAT THEY SAY
               </Text>
               <Text
-                fontSize={{ base: '48px', md: '80px' }}
+                fontSize={{ base: '36px', md: '64px', lg: '80px' }}
                 color={colors.textPrimary}
                 lineHeight="1"
                 mb="60px"
@@ -851,7 +851,7 @@ export function HomePage() {
                 {testimonials.map((t, i) => (
                   <Box
                     key={i}
-                    minW="360px"
+                    minW={{ base: '300px', md: '360px' }}
                     bg={colors.surface}
                     borderWidth="1px"
                     borderColor={colors.border}
@@ -932,7 +932,7 @@ export function HomePage() {
                 COMMON QUESTIONS
               </Text>
               <Text
-                fontSize={{ base: '48px', md: '80px' }}
+                fontSize={{ base: '36px', md: '64px', lg: '80px' }}
                 color={colors.textPrimary}
                 lineHeight="1"
                 mb="60px"
@@ -961,7 +961,7 @@ export function HomePage() {
               mb={6}
               style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: 'clamp(64px, 8vw, 100px)',
+                fontSize: 'clamp(48px, 8vw, 100px)',
               }}
             >
               STRANDED?
@@ -975,9 +975,9 @@ export function HomePage() {
               mb={4}
               _hover={{ opacity: 0.7 }}
               transition="opacity 0.2s"
+              fontSize={{ base: '32px', md: '56px' }}
               style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: '56px',
               }}
             >
               {PHONE_NUMBER}

@@ -4,6 +4,17 @@ import { useState, useEffect } from 'react';
 import { Box, Text, Spinner } from '@chakra-ui/react';
 import { WizardState, BookingType } from './types';
 
+const stepStyles = `
+  .service-heading { font-size: 36px; }
+  @media (min-width: 768px) { .service-heading { font-size: 56px; } }
+  .service-card { flex-direction: column; padding: 20px; }
+  @media (min-width: 768px) { .service-card { flex-direction: row; padding: 36px 40px; } }
+  .service-card-title { font-size: 28px; }
+  @media (min-width: 768px) { .service-card-title { font-size: 40px; } }
+  .service-card-chips { flex-direction: row; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  @media (min-width: 768px) { .service-card-chips { flex-direction: column; align-items: flex-end; gap: 8px; margin-top: 0; margin-left: 24px; } }
+`;
+
 interface DriverAvailability {
   available: boolean;
   count: number;
@@ -77,6 +88,8 @@ export function StepServiceType({
   };
 
   return (
+    <>
+    <style>{stepStyles}</style>
     <div
       style={{
         minHeight: '100vh',
@@ -84,7 +97,7 @@ export function StepServiceType({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '48px 20px',
+        padding: '48px 16px',
       }}
     >
       <div style={{ maxWidth: 760, width: '100%' }}>
@@ -92,13 +105,13 @@ export function StepServiceType({
         <h1
           style={{
             fontFamily: 'var(--font-display), sans-serif',
-            fontSize: 72,
             lineHeight: 1,
             color: '#FAFAFA',
             textAlign: 'center',
             margin: 0,
             animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both',
           }}
+          className="service-heading"
         >
           WHAT DO YOU NEED?
         </h1>
@@ -134,6 +147,7 @@ export function StepServiceType({
                     handleSelect(card.type);
                   }
                 }}
+                className="service-card"
                 style={{
                   position: 'relative',
                   background: isSelected ? '#1C1917' : '#18181B',
@@ -141,12 +155,11 @@ export function StepServiceType({
                     ? '2px solid #F97316'
                     : '1px solid #3F3F46',
                   borderRadius: 8,
-                  padding: isSelected ? '35px 39px' : '36px 40px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center',
+                  alignItems: 'flex-start',
                   boxShadow: isSelected
                     ? '0 0 0 4px rgba(249,115,22,0.15), inset 0 0 40px rgba(249,115,22,0.04)'
                     : 'none',
@@ -180,9 +193,9 @@ export function StepServiceType({
                     {card.label}
                   </span>
                   <div
+                    className="service-card-title"
                     style={{
                       fontFamily: 'var(--font-display), sans-serif',
-                      fontSize: 40,
                       lineHeight: 1,
                       color: '#FAFAFA',
                       marginTop: 4,
@@ -205,16 +218,7 @@ export function StepServiceType({
                 </div>
 
                 {/* Right side */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-end',
-                    gap: 8,
-                    flexShrink: 0,
-                    marginLeft: 24,
-                  }}
-                >
+                <div className="service-card-chips">
                   {card.type === 'emergency' ? (
                     <>
                       {loading ? (
@@ -256,7 +260,7 @@ export function StepServiceType({
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        +\u00A330 emergency surcharge
+                        +£30 emergency surcharge
                       </span>
                     </>
                   ) : (
@@ -359,12 +363,13 @@ export function StepServiceType({
               e.currentTarget.style.background = '#F97316';
             }}
           >
-            CONTINUE \u2192
+            CONTINUE →
           </button>
         )}
 
 
       </div>
     </div>
+    </>
   );
 }

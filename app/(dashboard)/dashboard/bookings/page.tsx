@@ -69,7 +69,7 @@ export default async function CustomerBookingsPage() {
                   </Table.Cell>
                   <Table.Cell borderColor={c.border}>
                     <Text fontSize="sm" color={c.text}>
-                      {'\u00A3'}{Number(booking.totalAmount).toFixed(2)}
+                      £{Number(booking.totalAmount).toFixed(2)}
                     </Text>
                   </Table.Cell>
                   <Table.Cell borderColor={c.border}>
@@ -97,7 +97,7 @@ export default async function CustomerBookingsPage() {
                   </Box>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
                     <Text color={c.text} fontSize="sm" textTransform="capitalize">{booking.bookingType}</Text>
-                    <Text color={c.text} fontSize="sm" fontWeight="600">{'\u00A3'}{Number(booking.totalAmount).toFixed(2)}</Text>
+                    <Text color={c.text} fontSize="sm" fontWeight="600">£{Number(booking.totalAmount).toFixed(2)}</Text>
                   </Box>
                   <Text color={c.muted} fontSize="xs" mt={1}>
                     {new Date(booking.createdAt!).toLocaleDateString('en-GB')}

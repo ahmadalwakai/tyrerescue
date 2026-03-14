@@ -58,7 +58,7 @@ export function Nav() {
             <Link href="/" style={{ textDecoration: 'none' }}>
               <Flex direction="column" gap={0}>
                 <Text
-                  fontSize="28px"
+                  fontSize={{ base: '20px', md: '28px' }}
                   color={colors.textPrimary}
                   lineHeight="1"
                   letterSpacing="0.1em"

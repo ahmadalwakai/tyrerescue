@@ -112,16 +112,16 @@ export default async function CustomerBookingDetailPage(
           <VStack align="stretch" gap={3}>
             <HStack justify="space-between">
               <Text fontSize="sm" color={c.muted}>Subtotal</Text>
-              <Text fontSize="sm" color={c.text}>{'\u00A3'}{Number(booking.subtotal).toFixed(2)}</Text>
+              <Text fontSize="sm" color={c.text}>£{Number(booking.subtotal).toFixed(2)}</Text>
             </HStack>
             <HStack justify="space-between">
               <Text fontSize="sm" color={c.muted}>VAT (20%)</Text>
-              <Text fontSize="sm" color={c.text}>{'\u00A3'}{Number(booking.vatAmount).toFixed(2)}</Text>
+              <Text fontSize="sm" color={c.text}>£{Number(booking.vatAmount).toFixed(2)}</Text>
             </HStack>
             <Box borderTopWidth="1px" borderColor={c.border} pt={3}>
               <HStack justify="space-between">
                 <Text fontWeight="600" color={c.text}>Total</Text>
-                <Text fontWeight="700" fontSize="lg" color={c.accent}>{'\u00A3'}{Number(booking.totalAmount).toFixed(2)}</Text>
+                <Text fontWeight="700" fontSize="lg" color={c.accent}>£{Number(booking.totalAmount).toFixed(2)}</Text>
               </HStack>
             </Box>
           </VStack>
@@ -139,7 +139,7 @@ export default async function CustomerBookingDetailPage(
                   <Text fontSize="sm" color={c.text}>{t.brand} {t.pattern}</Text>
                   <Text fontSize="xs" color={c.muted}>{t.sizeDisplay} / {t.condition} / {t.service}</Text>
                 </Box>
-                <Text fontSize="sm" color={c.text}>{t.quantity}x {'\u00A3'}{Number(t.unitPrice).toFixed(2)}</Text>
+                <Text fontSize="sm" color={c.text}>{t.quantity}x £{Number(t.unitPrice).toFixed(2)}</Text>
               </HStack>
             ))}
           </VStack>

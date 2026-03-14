@@ -57,7 +57,7 @@ export default async function InvoicesPage() {
                   </Table.Cell>
                   <Table.Cell borderColor={c.border}>
                     <Text fontSize="sm" color={c.text}>
-                      {'\u00A3'}{Number(booking.totalAmount).toFixed(2)}
+                      £{Number(booking.totalAmount).toFixed(2)}
                     </Text>
                   </Table.Cell>
                   <Table.Cell borderColor={c.border}>
@@ -80,7 +80,7 @@ export default async function InvoicesPage() {
             <Box key={booking.id} bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4} style={{ animation: `fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${Math.min(0.05 + i * 0.05, 0.5).toFixed(2)}s both` }}>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 <Text color={c.text} fontWeight="600" fontSize="sm">{booking.refNumber}</Text>
-                <Text color={c.text} fontWeight="600" fontSize="sm">{'\u00A3'}{Number(booking.totalAmount).toFixed(2)}</Text>
+                <Text color={c.text} fontWeight="600" fontSize="sm">£{Number(booking.totalAmount).toFixed(2)}</Text>
               </Box>
               <Text color={c.muted} fontSize="xs" mb={3}>
                 {new Date(booking.createdAt!).toLocaleDateString('en-GB')}

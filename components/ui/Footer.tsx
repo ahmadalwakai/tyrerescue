@@ -83,7 +83,7 @@ export function Footer() {
           mb="60px"
         >
           <Text
-            fontSize="48px"
+            fontSize={{ base: '32px', md: '48px' }}
             color={colors.textPrimary}
             lineHeight="1"
             style={{ fontFamily: 'var(--font-display)' }}
