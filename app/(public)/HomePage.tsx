@@ -36,21 +36,21 @@ const services = [
     num: '01',
     title: 'Emergency Callout',
     description:
-      'Driver to you within 45 minutes. Available 24 hours a day, 7 days a week. Fast response when you need it most.',
+      'Flat tyre near me? Our emergency mobile tyre fitters respond across Glasgow and Edinburgh within 45 minutes, 24 hours a day, 7 days a week.',
     price: 'From £49',
   },
   {
     num: '02',
-    title: 'Tyre Fitting',
+    title: 'Mobile Tyre Fitting',
     description:
-      'Quality tyres fitted at your location. Professional service at your home, workplace, or roadside.',
+      'New tyres fitted at your location. We are the mobile tyre shop that comes to you \u2014 at home, at work, or at the roadside across Glasgow.',
     price: 'From £20',
   },
   {
     num: '03',
     title: 'Puncture Repair',
     description:
-      'Professional assessment and repair where possible. We check damage and fix safely on-site.',
+      'Professional tyre repair near me service. Where possible we repair your tyre on the spot. Faster and cheaper than a full tyre replacement.',
     price: 'From £25',
   },
 ];
@@ -1480,10 +1480,10 @@ export function HomePage() {
                 <Text fontSize="11px" color={colors.accent} letterSpacing="0.15em" style={{ fontFamily: 'var(--font-body)' }}>ABOUT US</Text>
                 <Text as="h2" fontSize={{ base: '40px', md: '56px' }} color={colors.textPrimary} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>DUKE STREET TYRES.</Text>
                 <Text fontSize="15px" color={colors.textSecondary} lineHeight="1.7" style={{ fontFamily: 'var(--font-body)' }}>
-                  Based in Glasgow&apos;s East End, Duke Street Tyres has been providing professional tyre services to drivers across Scotland since 2014. Our mobile fitting service brings the expertise of a full garage to your exact location.
+                  Based in Glasgow&apos;s East End, Duke Street Tyres has been providing mobile tyre fitting in Glasgow since 2014. Whether you need tyres near me, emergency tyre repair, or a scheduled mobile tyre fitter, our service brings the expertise of a full tyre shop to your exact location.
                 </Text>
                 <Text fontSize="15px" color={colors.textSecondary} lineHeight="1.7" style={{ fontFamily: 'var(--font-body)' }}>
-                  We are a real local business with a physical workshop you can visit. Every job is carried out by our own trained staff — not contractors.
+                  We are a real local tyre shop in Glasgow with a physical workshop you can visit. Every job is carried out by our own trained mobile tyre fitters &mdash; not contractors.
                 </Text>
                 <Box bg={colors.surface} borderWidth="1px" borderColor={colors.border} borderRadius="8px" p={4} mt={2}>
                   <Text fontSize="14px" color={colors.textPrimary} style={{ fontFamily: 'var(--font-body)' }}>3, 10 Gateside St, Glasgow G31 1PD</Text>

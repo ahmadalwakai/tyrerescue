@@ -2,9 +2,9 @@ import { Metadata } from 'next';
 import { FAQContent } from './FAQContent';
 
 export const metadata: Metadata = {
-  title: 'FAQ | Mobile Tyre Fitting Questions | Tyre Rescue Glasgow',
+  title: 'FAQ | Mobile Tyre Fitting Near Me | Tyre Repair Glasgow | Tyre Rescue',
   description:
-    'Answers to common questions about our mobile tyre fitting service. Pricing, coverage, response times and how to book.',
+    'Common questions about mobile tyre fitting in Glasgow. How does tyre repair near me work? Pricing, response times, coverage areas and booking information.',
   alternates: { canonical: 'https://www.tyrerescue.uk/faq' },
 };
 
