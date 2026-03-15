@@ -19,13 +19,29 @@ import { sql } from 'drizzle-orm';
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   email: varchar('email', { length: 255 }).unique().notNull(),
-  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }),
   name: varchar('name', { length: 255 }).notNull(),
   phone: varchar('phone', { length: 20 }),
   role: text('role').notNull().default('customer'),
   emailVerified: boolean('email_verified').default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// OAuth accounts table (for Google sign-in etc.)
+export const accounts = pgTable('accounts', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: varchar('type', { length: 50 }).notNull(),
+  provider: varchar('provider', { length: 50 }).notNull(),
+  providerAccountId: varchar('provider_account_id', { length: 255 }).notNull(),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  expiresAt: integer('expires_at'),
+  tokenType: varchar('token_type', { length: 50 }),
+  scope: text('scope'),
+  idToken: text('id_token'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
 // Drivers table
@@ -408,6 +424,8 @@ export type InventoryMovement = typeof inventoryMovements.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type Refund = typeof refunds.$inferSelect;
 export type PricingRule = typeof pricingRules.$inferSelect;
+export type Account = typeof accounts.$inferSelect;
+export type NewAccount = typeof accounts.$inferInsert;
 export type AvailabilitySlot = typeof availabilitySlots.$inferSelect;
 export type BankHoliday = typeof bankHolidays.$inferSelect;
 export type ServiceArea = typeof serviceAreas.$inferSelect;

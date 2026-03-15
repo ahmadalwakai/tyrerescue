@@ -33,6 +33,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
+  if (!user.passwordHash) {
+    return NextResponse.json({ error: 'Account uses Google sign-in. Password cannot be changed here.' }, { status: 400 });
+  }
+
   const isValid = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
   if (!isValid) {
     return NextResponse.json({ error: 'Current password is incorrect' }, { status: 400 });

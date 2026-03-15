@@ -44,6 +44,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!user.passwordHash) {
+      return NextResponse.json(
+        { error: 'Account uses Google sign-in. Password cannot be changed here.' },
+        { status: 400 }
+      );
+    }
+
     // Verify current password
     const isValidPassword = await verifyPassword(currentPassword, user.passwordHash);
     if (!isValidPassword) {

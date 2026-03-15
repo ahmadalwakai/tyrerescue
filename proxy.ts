@@ -107,6 +107,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/services/') ||
     pathname.startsWith('/reset-password/') ||
     pathname.startsWith('/verify-email/') ||
+    pathname.startsWith('/api/auth/callback/') ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/images/') ||
