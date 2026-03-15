@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: { params: Promise<{ city: str
   if (!city) return {};
   return {
     title: `Mobile Tyre Fitting ${city.name} | 24/7 Emergency Service | Tyre Rescue`,
-    description: `Emergency and scheduled mobile tyre fitting in ${city.name}, Scotland. Available 24 hours, 7 days a week. Our certified fitters come to your exact location. Call 0141 266 0690.`,
+    description: `Emergency and scheduled mobile tyre fitting in ${city.name}, Scotland with AI-powered dispatch for fastest response times. Available 24 hours, 7 days a week. Our certified fitters come to your exact location. Call 0141 266 0690.`,
     keywords: [
       `mobile tyre fitting ${city.name.toLowerCase()}`,
       `tyre repair ${city.name.toLowerCase()}`,
@@ -25,6 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ city: str
       `emergency tyre fitting ${city.name.toLowerCase()}`,
       `tyre fitting near me`,
       `mobile tyre repair near me`,
+      `ai tyre dispatch ${city.name.toLowerCase()}`,
     ].join(', '),
     openGraph: {
       title: `Mobile Tyre Fitting ${city.name} | Tyre Rescue`,

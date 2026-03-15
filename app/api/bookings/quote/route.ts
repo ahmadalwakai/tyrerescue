@@ -23,6 +23,7 @@ import {
 } from '@/lib/mapbox';
 import { v4 as uuidv4 } from 'uuid';
 import { Pool } from '@neondatabase/serverless';
+import { getSurgeMultiplier } from '@/lib/surge';
 
 // Input validation schema
 const tyreSelectionSchema = z.object({
@@ -208,6 +209,12 @@ export async function POST(
       const vatRule = rules.find((r) => r.key === 'vat_registered');
       const vatRegistered = vatRule ? vatRule.value === 'true' : true;
 
+      // Fetch AI surge multiplier if surge pricing is enabled
+      let surgeMultiplier: number | undefined;
+      if (parsedRules.surge_pricing_enabled) {
+        surgeMultiplier = await getSurgeMultiplier();
+      }
+
       const breakdown = calculatePricing(
         {
           tyreSelections: [],
@@ -215,6 +222,7 @@ export async function POST(
           bookingType: data.bookingType,
           bookingDate,
           isBankHoliday,
+          surgeMultiplier,
         },
         parsedRules,
         vatRegistered
@@ -366,6 +374,12 @@ export async function POST(
       const vatRule = rules.find((r) => r.key === 'vat_registered');
       const vatRegistered = vatRule ? vatRule.value === 'true' : true;
 
+      // Fetch AI surge multiplier if surge pricing is enabled
+      let surgeMultiplier: number | undefined;
+      if (parsedRules.surge_pricing_enabled) {
+        surgeMultiplier = await getSurgeMultiplier();
+      }
+
       const breakdown = calculatePricing(
         {
           tyreSelections: pricingSelections,
@@ -373,6 +387,7 @@ export async function POST(
           bookingType: data.bookingType,
           bookingDate,
           isBankHoliday,
+          surgeMultiplier,
         },
         parsedRules,
         vatRegistered

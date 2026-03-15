@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Box, Heading, Text, VStack, HStack, Button, Input, Table, Flex } from '@chakra-ui/react';
+import { useState, useEffect, useCallback } from 'react';
+import { Box, Heading, Text, VStack, HStack, Button, Input, Table, Flex, Badge, Spinner } from '@chakra-ui/react';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { useRouter } from 'next/navigation';
@@ -28,6 +28,36 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
   const [vatOn, setVatOn] = useState(vatRule?.value === 'true');
   const [vatNumber, setVatNumber] = useState(vatNumRule?.value || '');
   const [vatSaving, setVatSaving] = useState(false);
+
+  // Surge state
+  const surgeEnabled = items.find((r) => r.key === 'surge_pricing_enabled')?.value === 'true';
+  const [surgeData, setSurgeData] = useState<{
+    multiplier: number;
+    confidence: string;
+    reasoning: string;
+    demandLevel: string;
+    demandSignals: Record<string, number | boolean>;
+    aiPowered: boolean;
+  } | null>(null);
+  const [surgeLoading, setSurgeLoading] = useState(false);
+
+  const fetchSurge = useCallback(async () => {
+    setSurgeLoading(true);
+    try {
+      const res = await fetch('/api/admin/pricing/surge-check');
+      if (res.ok) setSurgeData(await res.json());
+    } catch { /* ignore */ } finally {
+      setSurgeLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (surgeEnabled) {
+      fetchSurge();
+      const interval = setInterval(fetchSurge, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [surgeEnabled, fetchSurge]);
 
   async function toggleVat() {
     if (!vatRule) return;
@@ -179,6 +209,76 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
           </Box>
         )}
       </Box>
+
+      {/* Live Demand Monitor */}
+      {surgeEnabled && (
+        <Box bg={c.card} borderWidth="1px" borderColor={c.border} borderRadius="8px" p="24px" mb="32px" style={anim.fadeUp('0.5s', '0.05s')}>
+          <Flex justify="space-between" align="center" mb={4}>
+            <Text fontSize="28px" color={c.text} style={{ fontFamily: 'var(--font-display)' }}>
+              LIVE DEMAND MONITOR
+            </Text>
+            <Button size="sm" onClick={fetchSurge} disabled={surgeLoading} bg={c.surface} color={c.text} fontSize="12px">
+              {surgeLoading ? <Spinner size="xs" /> : 'Refresh'}
+            </Button>
+          </Flex>
+
+          {surgeData ? (
+            <VStack align="stretch" gap={4}>
+              <Flex align="center" gap={4}>
+                <Text
+                  fontSize="48px"
+                  fontWeight="700"
+                  color={surgeData.multiplier > 1.05 ? c.accent : surgeData.multiplier < 0.95 ? 'green.400' : c.text}
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  {surgeData.multiplier.toFixed(2)}x
+                </Text>
+                <VStack align="start" gap={1}>
+                  <Badge
+                    colorPalette={
+                      surgeData.demandLevel === 'peak' || surgeData.demandLevel === 'high' ? 'red'
+                        : surgeData.demandLevel === 'mild' ? 'orange'
+                        : surgeData.demandLevel === 'low' ? 'green'
+                        : 'gray'
+                    }
+                    size="sm"
+                  >
+                    {surgeData.demandLevel.toUpperCase()} DEMAND
+                  </Badge>
+                  <Badge colorPalette={surgeData.confidence === 'high' ? 'green' : surgeData.confidence === 'medium' ? 'orange' : 'gray'} size="sm" variant="outline">
+                    {surgeData.confidence} confidence
+                  </Badge>
+                </VStack>
+              </Flex>
+              <Text fontSize="sm" color={c.muted}>{surgeData.reasoning}</Text>
+              <Flex gap={4} flexWrap="wrap">
+                <Box>
+                  <Text fontSize="xs" color={c.muted}>Active bookings</Text>
+                  <Text fontSize="lg" fontWeight="600" color={c.text}>{String(surgeData.demandSignals.activeBookingsToday)}</Text>
+                </Box>
+                <Box>
+                  <Text fontSize="xs" color={c.muted}>Emergency</Text>
+                  <Text fontSize="lg" fontWeight="600" color={c.text}>{String(surgeData.demandSignals.emergencyPending)}</Text>
+                </Box>
+                <Box>
+                  <Text fontSize="xs" color={c.muted}>Drivers online</Text>
+                  <Text fontSize="lg" fontWeight="600" color={c.text}>{String(surgeData.demandSignals.availableDrivers)}</Text>
+                </Box>
+              </Flex>
+              {surgeData.aiPowered && (
+                <Text fontSize="xs" color={c.muted} textAlign="center">⚡ Powered by Groq AI — refreshes every 5 min</Text>
+              )}
+            </VStack>
+          ) : surgeLoading ? (
+            <HStack justify="center" py={4}>
+              <Spinner size="sm" color={c.accent} />
+              <Text fontSize="sm" color={c.muted}>Analysing demand...</Text>
+            </HStack>
+          ) : (
+            <Text fontSize="sm" color={c.muted}>Enable surge pricing to see live demand</Text>
+          )}
+        </Box>
+      )}
 
       <Box style={anim.fadeUp('0.5s')}>
         <Heading size="lg" color={c.text}>Pricing Rules</Heading>

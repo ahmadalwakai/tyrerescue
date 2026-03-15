@@ -14,6 +14,11 @@ interface MessageItem {
   phone: string | null;
   message: string;
   status: string;
+  aiPriority: string | null;
+  aiCategory: string | null;
+  aiSuggestedResponse: string | null;
+  requiresImmediateCall: boolean | null;
+  aiSentiment: string | null;
   createdAt: string;
   repliedAt: string | null;
 }
@@ -104,17 +109,41 @@ export function MessagesClient() {
             >
               <Flex justify="space-between" align="start" gap={4} direction={{ base: 'column', md: 'row' }}>
                 <Box flex="1" minW={0}>
-                  <Flex gap={3} align="center" mb={1}>
+                  <Flex gap={2} align="center" mb={1} flexWrap="wrap">
                     <Text fontWeight="700" color={c.text}>{item.name}</Text>
                     <Badge bg={statusColor(item.status)} color="white" fontSize="xs">
                       {item.status}
                     </Badge>
+                    {item.aiPriority && (
+                      <Badge
+                        colorPalette={item.aiPriority === 'urgent' ? 'red' : item.aiPriority === 'high' ? 'orange' : item.aiPriority === 'low' ? 'gray' : 'blue'}
+                        fontSize="xs"
+                        size="sm"
+                      >
+                        {item.aiPriority}
+                      </Badge>
+                    )}
+                    {item.aiCategory && (
+                      <Badge colorPalette="purple" fontSize="xs" size="sm" variant="outline">
+                        {item.aiCategory.replace(/_/g, ' ')}
+                      </Badge>
+                    )}
+                    {item.requiresImmediateCall && (
+                      <Badge colorPalette="red" fontSize="xs" size="sm" variant="solid">📞 NEEDS CALL</Badge>
+                    )}
                   </Flex>
                   <Text color={c.muted} fontSize="sm">{item.email}</Text>
                   {item.phone && <Text color={c.muted} fontSize="sm">Phone: {item.phone}</Text>}
                   <Text color={c.text} fontSize="sm" mt={2} whiteSpace="pre-wrap">{item.message}</Text>
+                  {item.aiSuggestedResponse && (
+                    <Box mt={2} p={2} bg={c.surface} borderRadius="md" borderLeft="3px solid" borderColor={c.accent}>
+                      <Text fontSize="xs" color={c.muted} mb={1}>⚡ AI Suggested Response</Text>
+                      <Text fontSize="sm" color={c.text}>{item.aiSuggestedResponse}</Text>
+                    </Box>
+                  )}
                   <Text color={c.muted} fontSize="xs" mt={2}>
                     {new Date(item.createdAt).toLocaleString('en-GB')}
+                    {item.aiSentiment && ` · Sentiment: ${item.aiSentiment}`}
                   </Text>
                 </Box>
                 <VStack gap={2} flexShrink={0} align="stretch">

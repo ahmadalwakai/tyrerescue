@@ -2,6 +2,7 @@ import { db, bookings, payments, users } from '@/lib/db';
 import { sql, eq, gte, desc } from 'drizzle-orm';
 import { Box, Heading, Text, VStack, SimpleGrid, Table } from '@chakra-ui/react';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { InventoryForecast } from './InventoryForecast';
 
 export default async function AdminAnalyticsPage() {
   const thirtyDaysAgo = new Date();
@@ -71,6 +72,8 @@ export default async function AdminAnalyticsPage() {
           </Table.Body>
         </Table.Root>
       </Box>
+
+      <InventoryForecast />
     </VStack>
   );
 }

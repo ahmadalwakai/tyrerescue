@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -13,11 +13,20 @@ import {
   Image,
   Textarea,
   Button,
-  NativeSelect,
+  Badge,
   Spinner,
 } from '@chakra-ui/react';
-import { colorTokens as c, selectProps, textareaProps } from '@/lib/design-tokens';
+import { colorTokens as c, textareaProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+
+interface RankedDriver {
+  driverId: string;
+  name: string;
+  score: number;
+  reason: string;
+  distanceToCustomer: number;
+  activeJobsToday: number;
+}
 
 interface Booking {
   id: string;
@@ -115,6 +124,38 @@ export function BookingDetailClient({
   const [selectedDriverId, setSelectedDriverId] = useState(assignedDriver?.id || '');
   const [assignLoading, setAssignLoading] = useState(false);
   const [assignError, setAssignError] = useState('');
+  const [rankedDrivers, setRankedDrivers] = useState<RankedDriver[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiPowered, setAiPowered] = useState(false);
+  const [recommendation, setRecommendation] = useState('');
+
+  const canAssign = ['confirmed', 'assigned'].includes(booking.status);
+
+  const fetchSuggestions = useCallback(async () => {
+    setAiLoading(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${booking.refNumber}/suggest-driver`);
+      if (res.ok) {
+        const data = await res.json();
+        setRankedDrivers(data.rankedDrivers || []);
+        setAiPowered(data.aiPowered || false);
+        setRecommendation(data.recommendation || '');
+        if (data.rankedDrivers?.length > 0 && !selectedDriverId) {
+          setSelectedDriverId(data.rankedDrivers[0].driverId);
+        }
+      }
+    } catch {
+      // Silently fail — drivers still available via fallback
+    } finally {
+      setAiLoading(false);
+    }
+  }, [booking.refNumber, selectedDriverId]);
+
+  useEffect(() => {
+    if (canAssign && availableDrivers.length > 0) {
+      fetchSuggestions();
+    }
+  }, [canAssign, availableDrivers.length, fetchSuggestions]);
 
   const [refundReason, setRefundReason] = useState('');
   const [refundLoading, setRefundLoading] = useState(false);
@@ -191,7 +232,6 @@ export function BookingDetailClient({
     return `£${parseFloat(amount).toFixed(2)}`;
   }
 
-  const canAssign = ['confirmed', 'assigned'].includes(booking.status);
   const canRefund = ['confirmed', 'assigned', 'completed'].includes(booking.status) && booking.stripePiId;
 
   return (
@@ -457,20 +497,63 @@ export function BookingDetailClient({
 
             {canAssign && (
               <>
-                <NativeSelect.Root mb={3}>
-                  <NativeSelect.Field
-                    {...selectProps}
-                    value={selectedDriverId}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedDriverId(e.target.value)}
-                  >
-                    <option value="">Select driver...</option>
-                    {availableDrivers.map((driver) => (
-                      <option key={driver.id} value={driver.id}>
-                        {driver.name}
-                      </option>
-                    ))}
-                  </NativeSelect.Field>
-                </NativeSelect.Root>
+                {aiLoading ? (
+                  <HStack justify="center" py={4}>
+                    <Spinner size="sm" color={c.accent} />
+                    <Text fontSize="sm" color={c.muted}>AI analysing drivers...</Text>
+                  </HStack>
+                ) : rankedDrivers.length > 0 ? (
+                  <VStack align="stretch" gap={3} mb={3}>
+                    {recommendation && (
+                      <Text fontSize="sm" color={c.accent} fontWeight="600">{recommendation}</Text>
+                    )}
+                    {rankedDrivers.map((driver, idx) => {
+                      const isSelected = selectedDriverId === driver.driverId;
+                      const scoreColor = driver.score > 70 ? 'green' : driver.score >= 40 ? 'orange' : 'gray';
+                      return (
+                        <Box
+                          key={driver.driverId}
+                          p={3}
+                          bg={isSelected ? 'rgba(249,115,22,0.1)' : c.surface}
+                          borderRadius="md"
+                          borderWidth="2px"
+                          borderColor={isSelected ? c.accent : c.border}
+                          cursor="pointer"
+                          onClick={() => setSelectedDriverId(driver.driverId)}
+                          _hover={{ borderColor: c.accent }}
+                        >
+                          <HStack justify="space-between" mb={1}>
+                            <HStack gap={2}>
+                              <Text fontWeight="600" color={c.text}>{driver.name}</Text>
+                              {idx === 0 && (
+                                <Badge colorPalette="orange" size="sm">RECOMMENDED</Badge>
+                              )}
+                            </HStack>
+                            <Badge colorPalette={scoreColor} size="sm" variant="solid">
+                              {driver.score}/100
+                            </Badge>
+                          </HStack>
+                          <Text fontSize="xs" color={c.muted}>{driver.reason}</Text>
+                          <HStack gap={4} mt={1}>
+                            <Text fontSize="xs" color={c.muted}>
+                              📍 {driver.distanceToCustomer} mi
+                            </Text>
+                            <Text fontSize="xs" color={c.muted}>
+                              🔧 {driver.activeJobsToday} jobs today
+                            </Text>
+                          </HStack>
+                        </Box>
+                      );
+                    })}
+                    {aiPowered && (
+                      <Text fontSize="xs" color={c.muted} textAlign="center">
+                        ⚡ Ranked by Groq AI
+                      </Text>
+                    )}
+                  </VStack>
+                ) : (
+                  <Text fontSize="sm" color={c.muted} mb={3}>No drivers available</Text>
+                )}
                 <Button
                   onClick={handleAssignDriver}
                   disabled={!selectedDriverId || assignLoading}

@@ -4,7 +4,7 @@ import { HomePage } from './HomePage';
 export const metadata: Metadata = {
   title: 'Mobile Tyre Fitting Glasgow | Tyres Near Me | 24/7 Emergency | Tyre Rescue',
   description:
-    'Mobile tyre fitting in Glasgow and Edinburgh. Emergency tyre repair near me, 24 hours a day. Flat tyre? Our mobile tyre fitters come to your exact location in under 45 minutes. Call 0141 266 0690. Duke Street Tyres.',
+    'Mobile tyre fitting in Glasgow and Edinburgh with AI-powered dispatch. Emergency tyre repair near me, 24 hours a day. Flat tyre? Our mobile tyre fitters come to your exact location in under 45 minutes. AI-optimised driver assignment for fastest response. Call 0141 266 0690. Duke Street Tyres.',
   keywords: [
     'mobile tyre fitting glasgow',
     'mobile tyre fitting near me',
@@ -28,6 +28,9 @@ export const metadata: Metadata = {
     '24 hour tyre fitting glasgow',
     'emergency tyre fitting edinburgh',
     'roadside tyre fitting scotland',
+    'ai tyre dispatch',
+    'smart tyre fitting',
+    'intelligent mobile tyre service',
   ].join(', '),
   alternates: {
     canonical: 'https://www.tyrerescue.uk',
@@ -180,6 +183,23 @@ export default function Page() {
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          name: 'Tyre Rescue AI Dispatch',
+          applicationCategory: 'BusinessApplication',
+          operatingSystem: 'Web',
+          description: 'AI-powered mobile tyre fitting dispatch system for Glasgow and Scotland. Smart driver assignment, demand-based pricing, and intelligent inventory management.',
+          offers: {
+            '@type': 'Offer',
+            price: '0',
+            priceCurrency: 'GBP',
+          },
+        }) }}
       />
     </>
   );
