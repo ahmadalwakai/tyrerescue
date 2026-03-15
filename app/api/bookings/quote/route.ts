@@ -30,6 +30,7 @@ const tyreSelectionSchema = z.object({
   quantity: z.number().int().min(1).max(4),
   service: z.enum(['fit', 'repair', 'assess']),
   requiresTpms: z.boolean().optional(),
+  isPreOrder: z.boolean().optional(),
 });
 
 const quoteRequestSchema = z.object({
@@ -209,6 +210,31 @@ export async function POST(
 
       for (const selection of data.tyreSelections) {
         const tyre = tyreMap.get(selection.tyreId)!;
+        const isPreOrder = selection.isPreOrder ?? false;
+
+        if (isPreOrder) {
+          // Pre-order: no stock lock needed, use catalogue price
+          const price = parseFloat(tyre.priceNew?.toString() ?? '0');
+
+          tyreDetails.push({
+            tyreId: tyre.id,
+            brand: tyre.brand,
+            pattern: tyre.pattern,
+            sizeDisplay: tyre.sizeDisplay,
+            quantity: selection.quantity,
+            unitPrice: price,
+            available: true,
+          });
+
+          pricingSelections.push({
+            tyreId: tyre.id,
+            quantity: selection.quantity,
+            unitPrice: price,
+            service: selection.service,
+            requiresTpms: selection.requiresTpms,
+          });
+          continue;
+        }
 
         // SELECT FOR UPDATE SKIP LOCKED to prevent race conditions
         const result = await client.query(
@@ -307,6 +333,9 @@ export async function POST(
 
       // Decrement stock and create reservations within the same transaction
       for (const selection of data.tyreSelections) {
+        // Skip stock decrement for pre-order items
+        if (selection.isPreOrder) continue;
+
         // Atomic decrement with check
         const updateResult = await client.query(
           `UPDATE tyre_products 

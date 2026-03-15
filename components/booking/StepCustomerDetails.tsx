@@ -16,6 +16,7 @@ import {
 } from '@chakra-ui/react';
 import { useSession } from 'next-auth/react';
 import { WizardState } from './types';
+import { CartSummary } from './CartSummary';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { API } from '@/lib/api-endpoints';
@@ -142,6 +143,11 @@ export function StepCustomerDetails({
           We&apos;ll use this to contact you about your booking.
         </Text>
       </Box>
+
+      {/* Compact order summary */}
+      {state.selectedTyres.length > 0 && (
+        <CartSummary cart={state.selectedTyres} compact />
+      )}
 
       {isLoggedIn && (
         <Box p={3} bg="rgba(34,197,94,0.1)" borderRadius="md" borderWidth="1px" borderColor="rgba(34,197,94,0.3)">

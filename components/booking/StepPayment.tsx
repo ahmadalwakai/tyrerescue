@@ -19,6 +19,8 @@ import { loadStripe, type StripeElementsOptions } from '@stripe/stripe-js';
 import { formatPrice, PricingBreakdown } from '@/lib/pricing-engine';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import type { SelectedTyre } from './types';
+import { CartSummary } from './CartSummary';
 
 // Load Stripe outside of component to avoid recreating on every render
 const stripePromise = loadStripe(
@@ -30,6 +32,7 @@ export interface StepPaymentProps {
   bookingId: string;
   refNumber: string;
   breakdown: PricingBreakdown;
+  selectedTyres?: SelectedTyre[];
   onSuccess: (refNumber: string) => void;
   onError: (error: string) => void;
 }
@@ -41,6 +44,7 @@ function CheckoutForm({
   bookingId,
   refNumber,
   breakdown,
+  selectedTyres,
   onSuccess,
   onError,
 }: Omit<StepPaymentProps, 'clientSecret'>) {
@@ -59,7 +63,7 @@ function CheckoutForm({
     setIsProcessing(true);
     setErrorMessage(null);
 
-    const { error } = await stripe.confirmPayment({
+    const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
         return_url: `${window.location.origin}/success/${refNumber}`,
@@ -72,8 +76,23 @@ function CheckoutForm({
       setErrorMessage(error.message || 'Payment failed. Please try again.');
       setIsProcessing(false);
       onError(error.message || 'Payment failed');
+    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+      // Payment succeeded without redirect — confirm server-side before navigating
+      try {
+        await fetch('/api/bookings/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: refNumber,
+            paymentIntentId: paymentIntent.id,
+          }),
+        });
+      } catch {
+        // Non-blocking — webhook will handle it if this fails
+      }
+      onSuccess(refNumber);
     } else {
-      // Payment succeeded without redirect (unlikely with Payment Element)
+      // Fallback
       onSuccess(refNumber);
     }
   };
@@ -88,6 +107,11 @@ function CheckoutForm({
   return (
     <form onSubmit={handleSubmit}>
       <VStack gap={6} align="stretch">
+        {/* Compact cart summary */}
+        {selectedTyres && selectedTyres.length > 0 && (
+          <CartSummary cart={selectedTyres} compact />
+        )}
+
         {/* Order Summary */}
         <Box style={anim.slideInLeft('0.6s', '0.1s')}>
           <Text fontWeight="600" fontSize="lg" mb={4}>
@@ -187,6 +211,10 @@ function CheckoutForm({
             <PaymentElement
               options={{
                 layout: 'accordion',
+                wallets: {
+                  applePay: 'auto',
+                  googlePay: 'auto',
+                },
               }}
             />
           </Box>
@@ -250,6 +278,7 @@ export function StepPayment({
   bookingId,
   refNumber,
   breakdown,
+  selectedTyres,
   onSuccess,
   onError,
 }: StepPaymentProps) {
@@ -294,6 +323,7 @@ export function StepPayment({
         bookingId={bookingId}
         refNumber={refNumber}
         breakdown={breakdown}
+        selectedTyres={selectedTyres}
         onSuccess={onSuccess}
         onError={onError}
       />

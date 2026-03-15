@@ -38,7 +38,6 @@ export function StepTyreDetails({
   const [width, setWidth] = useState(state.tyreSize.width || '');
   const [aspect, setAspect] = useState(state.tyreSize.aspect || '');
   const [rim, setRim] = useState(state.tyreSize.rim || '');
-  const [quantity, setQuantity] = useState(state.quantity || 1);
   const [condition, setCondition] = useState<'repair' | 'replacement' | 'not_sure' | null>(
     state.conditionAssessment
   );
@@ -158,7 +157,6 @@ export function StepTyreDetails({
     width.length >= 3 &&
     aspect.length >= 2 &&
     rim.length >= 2 &&
-    quantity >= 1 &&
     condition !== null;
 
   const handleContinue = () => {
@@ -167,7 +165,6 @@ export function StepTyreDetails({
     updateState({
       vehicleReg,
       tyreSize: { width, aspect, rim },
-      quantity,
       conditionAssessment: condition,
       tyrePhotoUrl: photoUrl,
       lockingNutStatus: lockingNut,
@@ -374,36 +371,6 @@ export function StepTyreDetails({
             </HStack>
           </Box>
         )}
-      </Box>
-
-      {/* Number of Tyres */}
-      <Box style={anim.fadeUp('0.5s', '0.3s')}>
-        <Text fontWeight="500" mb={2}>
-          How many tyres need attention?
-        </Text>
-        <HStack gap={2}>
-          {[1, 2, 3, 4].map((num) => (
-            <Box
-              key={num}
-              as="button"
-              flex="1"
-              py={3}
-              borderWidth="2px"
-              borderColor={quantity === num ? c.accent : c.border}
-              borderRadius="md"
-              bg={quantity === num ? 'rgba(249,115,22,0.1)' : c.surface}
-              fontWeight={quantity === num ? '600' : '400'}
-              color={quantity === num ? c.accent : c.text}
-              onClick={() => setQuantity(num)}
-              transition="all 0.2s"
-              _hover={{
-                borderColor: c.accent,
-              }}
-            >
-              {num}
-            </Box>
-          ))}
-        </HStack>
       </Box>
 
       {/* Condition Assessment */}

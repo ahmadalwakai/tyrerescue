@@ -317,8 +317,8 @@ export function TyresContent() {
                 </Text>
                 <Text fontWeight="semibold" color={c.text}>
                   Call us:{' '}
-                  <ChakraLink href="tel:08001234567" color={c.accent}>
-                    0800 123 4567
+                  <ChakraLink href="tel:01412660690" color={c.accent}>
+                    0141 266 0690
                   </ChakraLink>
                 </Text>
               </VStack>

@@ -120,6 +120,7 @@ export const bookings = pgTable('bookings', {
   stripePiId: varchar('stripe_pi_id', { length: 255 }),
   quoteExpiresAt: timestamp('quote_expires_at', { withTimezone: true }),
   lockingNutStatus: text('locking_nut_status'),
+  hasPreOrderItems: boolean('has_pre_order_items').default(false),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),

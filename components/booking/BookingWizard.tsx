@@ -307,6 +307,7 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
             bookingId={state.bookingId}
             refNumber={state.refNumber}
             breakdown={state.breakdown}
+            selectedTyres={state.selectedTyres}
             onSuccess={handlePaymentSuccess}
             onError={handlePaymentError}
           />

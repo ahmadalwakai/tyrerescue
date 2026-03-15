@@ -146,6 +146,9 @@ export async function POST(
       // Parse quote data
       const tyreSelections: TyreSelection[] = quote.tyre_selections;
       const breakdown: PricingBreakdown = quote.breakdown;
+      const hasPreOrderItems = tyreSelections.some(
+        (s: TyreSelection & { isPreOrder?: boolean }) => s.isPreOrder,
+      );
 
       // Verify stock is still available (double-check against race conditions)
       const tyreIds = tyreSelections.map((s) => s.tyreId);
@@ -235,6 +238,7 @@ export async function POST(
         totalAmount: breakdown.total.toString(),
         quoteExpiresAt: expiresAt,
         notes: data.notes || null,
+        hasPreOrderItems,
       });
 
       // Create booking tyres entries

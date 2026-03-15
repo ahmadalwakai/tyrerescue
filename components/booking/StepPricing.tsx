@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, VStack, HStack, Text, Button, Separator, Spinner } from '@chakra-ui/react';
-import { WizardState, WizardStep } from './types';
+import { WizardState, WizardStep, updateCartQuantity, removeFromCart } from './types';
+import { CartSummary } from './CartSummary';
 import { formatPrice, PricingBreakdown, PricingLineItem } from '@/lib/pricing-engine';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
@@ -21,6 +22,7 @@ export function StepPricing({
   updateState,
   goToNext,
   goToPrev,
+  goToStep,
 }: StepPricingProps) {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isExpired, setIsExpired] = useState(false);
@@ -55,7 +57,61 @@ export function StepPricing({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Refresh quote
+  // Handle cart edits → re-quote
+  const handleCartChange = useCallback(
+    async (newCart: typeof state.selectedTyres) => {
+      updateState({ selectedTyres: newCart });
+
+      if (newCart.length === 0) return;
+
+      setIsRefreshing(true);
+      setIsExpired(false);
+
+      try {
+        const res = await fetch(API.BOOKINGS_QUOTE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lat: state.lat,
+            lng: state.lng,
+            addressLine: state.address,
+            bookingType: state.bookingType,
+            serviceType: state.conditionAssessment === 'repair' ? 'repair' : 'fit',
+            tyreSelections: newCart.map((tyre) => ({
+              tyreId: tyre.tyreId,
+              quantity: tyre.quantity,
+              service: tyre.service,
+              requiresTpms: false,
+              isPreOrder: tyre.isPreOrder ?? false,
+            })),
+            scheduledAt:
+              state.scheduledDate && state.scheduledTime
+                ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
+                : undefined,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to refresh quote');
+        }
+
+        updateState({
+          quoteId: data.quoteId,
+          breakdown: data.breakdown,
+          quoteExpiresAt: data.expiresAt,
+        });
+      } catch {
+        alert('Failed to refresh quote. Please try again.');
+      } finally {
+        setIsRefreshing(false);
+      }
+    },
+    [state, updateState],
+  );
+
+  // Refresh quote (without cart changes)
   const handleRefreshQuote = useCallback(async () => {
     setIsRefreshing(true);
     setIsExpired(false);
@@ -175,6 +231,25 @@ export function StepPricing({
           </Box>
         )}
       </Box>
+
+      {/* Editable Cart */}
+      {state.selectedTyres.length > 0 && (
+        <Box style={anim.fadeUp('0.4s', '0.05s')}>
+          <CartSummary cart={state.selectedTyres} onChange={handleCartChange} />
+          {goToStep && (
+            <Box
+              as="button"
+              mt={2}
+              fontSize="sm"
+              color={c.accent}
+              _hover={{ textDecoration: 'underline' }}
+              onClick={() => goToStep('tyre-selection')}
+            >
+              Add more tyres
+            </Box>
+          )}
+        </Box>
+      )}
 
       {/* Price Breakdown */}
       <Box borderWidth="1px" borderColor={c.border} borderRadius="lg" overflow="hidden" style={anim.fadeUp('0.5s', '0.1s')}>

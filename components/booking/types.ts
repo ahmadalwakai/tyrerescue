@@ -26,6 +26,7 @@ export interface SelectedTyre {
   unitPrice: number;
   service: 'fit' | 'repair' | 'assess';
   requiresTpms?: boolean;
+  isPreOrder?: boolean;
 }
 
 export interface WizardState {
@@ -43,12 +44,11 @@ export interface WizardState {
   vehicleMake: string;
   vehicleModel: string;
   tyreSize: TyreSize;
-  quantity: number;
   conditionAssessment: 'repair' | 'replacement' | 'not_sure' | null;
   tyrePhotoUrl: string | null;
   lockingNutStatus: 'has_key' | 'no_key' | 'standard' | null;
   
-  // Step 4: Tyre Selection
+  // Step 4: Tyre Selection (cart)
   selectedTyres: SelectedTyre[];
   serviceType: ServiceType | null;
   
@@ -84,7 +84,6 @@ export const initialWizardState: WizardState = {
   vehicleMake: '',
   vehicleModel: '',
   tyreSize: { width: '', aspect: '', rim: '' },
-  quantity: 1,
   conditionAssessment: null,
   tyrePhotoUrl: null,
   lockingNutStatus: 'standard',
@@ -104,6 +103,52 @@ export const initialWizardState: WizardState = {
   refNumber: null,
   stripeClientSecret: null,
 };
+
+// ── Cart helpers ──
+
+export function addToCart(
+  cart: SelectedTyre[],
+  tyre: Omit<SelectedTyre, 'quantity'>,
+  qty = 1,
+): SelectedTyre[] {
+  const existing = cart.find((t) => t.tyreId === tyre.tyreId);
+  if (existing) {
+    return cart.map((t) =>
+      t.tyreId === tyre.tyreId
+        ? { ...t, quantity: Math.min(t.quantity + qty, 4) }
+        : t,
+    );
+  }
+  const totalItems = cart.reduce((s, t) => s + t.quantity, 0);
+  if (totalItems + qty > 4) return cart;
+  return [...cart, { ...tyre, quantity: qty }];
+}
+
+export function removeFromCart(cart: SelectedTyre[], tyreId: string): SelectedTyre[] {
+  return cart.filter((t) => t.tyreId !== tyreId);
+}
+
+export function updateCartQuantity(
+  cart: SelectedTyre[],
+  tyreId: string,
+  quantity: number,
+): SelectedTyre[] {
+  if (quantity <= 0) return removeFromCart(cart, tyreId);
+  const otherTotal = cart
+    .filter((t) => t.tyreId !== tyreId)
+    .reduce((s, t) => s + t.quantity, 0);
+  const clamped = Math.min(quantity, 4 - otherTotal);
+  if (clamped <= 0) return cart;
+  return cart.map((t) => (t.tyreId === tyreId ? { ...t, quantity: clamped } : t));
+}
+
+export function cartTotal(cart: SelectedTyre[]): number {
+  return cart.reduce((sum, t) => sum + t.unitPrice * t.quantity, 0);
+}
+
+export function cartItemCount(cart: SelectedTyre[]): number {
+  return cart.reduce((sum, t) => sum + t.quantity, 0);
+}
 
 export type WizardStep = 
   | 'service-type'

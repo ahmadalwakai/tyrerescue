@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   VStack,
@@ -10,7 +10,17 @@ import {
   Spinner,
   Badge,
 } from '@chakra-ui/react';
-import { WizardState, SelectedTyre, PricingBreakdown } from './types';
+import {
+  WizardState,
+  SelectedTyre,
+  PricingBreakdown,
+  addToCart,
+  removeFromCart,
+  updateCartQuantity,
+  cartTotal,
+  cartItemCount,
+} from './types';
+import { CartSummary } from './CartSummary';
 import { formatPrice } from '@/lib/pricing-engine';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
@@ -48,11 +58,16 @@ export function StepTyreSelection({
   const [tyres, setTyres] = useState<TyreProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTyreId, setSelectedTyreId] = useState<string | null>(
-    state.selectedTyres.length > 0 ? state.selectedTyres[0].tyreId : null
-  );
   const [isQuoting, setIsQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+
+  const cart = state.selectedTyres;
+  const totalItems = cartItemCount(cart);
+
+  const setCart = useCallback(
+    (next: SelectedTyre[]) => updateState({ selectedTyres: next }),
+    [updateState],
+  );
 
   // Fetch tyres matching the size
   useEffect(() => {
@@ -85,28 +100,29 @@ export function StepTyreSelection({
     }
   }, [state.tyreSize]);
 
-  const selectedTyreProduct = selectedTyreId
-    ? tyres.find((t) => t.id === selectedTyreId)
-    : null;
-
-  const handleSelectTyre = (tyreId: string) => {
-    setSelectedTyreId(tyreId);
+  const handleAddToCart = (tyre: TyreProduct) => {
+    if (!tyre.priceNew) return;
+    const service = state.conditionAssessment === 'repair' ? 'repair' as const : 'fit' as const;
+    const inStock = tyre.availableNew && tyre.stockNew >= 1;
+    setCart(
+      addToCart(cart, {
+        tyreId: tyre.id,
+        brand: tyre.brand,
+        pattern: tyre.pattern,
+        sizeDisplay: tyre.sizeDisplay,
+        unitPrice: tyre.priceNew,
+        service,
+        isPreOrder: !inStock,
+      }),
+    );
     setQuoteError(null);
   };
 
   const handleRequestQuote = async () => {
-    if (!selectedTyreId || !selectedTyreProduct) return;
+    if (cart.length === 0) return;
 
     setIsQuoting(true);
     setQuoteError(null);
-
-    const unitPrice = selectedTyreProduct.priceNew;
-
-    if (!unitPrice) {
-      setQuoteError('Price not available for this tyre');
-      setIsQuoting(false);
-      return;
-    }
 
     try {
       const res = await fetch(API.BOOKINGS_QUOTE, {
@@ -118,17 +134,17 @@ export function StepTyreSelection({
           addressLine: state.address,
           bookingType: state.bookingType,
           serviceType: state.conditionAssessment === 'repair' ? 'repair' : 'fit',
-          tyreSelections: [
-            {
-              tyreId: selectedTyreId,
-              quantity: state.quantity,
-              service: state.conditionAssessment === 'repair' ? 'repair' : 'fit',
-              requiresTpms: false,
-            },
-          ],
-          scheduledAt: state.scheduledDate && state.scheduledTime
-            ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
-            : undefined,
+          tyreSelections: cart.map((t) => ({
+            tyreId: t.tyreId,
+            quantity: t.quantity,
+            service: t.service,
+            requiresTpms: t.requiresTpms ?? false,
+            isPreOrder: t.isPreOrder ?? false,
+          })),
+          scheduledAt:
+            state.scheduledDate && state.scheduledTime
+              ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
+              : undefined,
         }),
       });
 
@@ -138,18 +154,7 @@ export function StepTyreSelection({
         throw new Error(data.error || 'Failed to get quote');
       }
 
-      const selection: SelectedTyre = {
-        tyreId: selectedTyreId,
-        brand: selectedTyreProduct.brand,
-        pattern: selectedTyreProduct.pattern,
-        sizeDisplay: selectedTyreProduct.sizeDisplay,
-        quantity: state.quantity,
-        unitPrice,
-        service: state.conditionAssessment === 'repair' ? 'repair' : 'fit',
-      };
-
       updateState({
-        selectedTyres: [selection],
         quoteId: data.quoteId,
         breakdown: data.breakdown as PricingBreakdown,
         quoteExpiresAt: data.expiresAt,
@@ -167,11 +172,11 @@ export function StepTyreSelection({
   // Skip tyre selection if repair only
   const isRepairOnly = state.conditionAssessment === 'repair';
 
-  // If repair only, create quote without tyre selection
   useEffect(() => {
     if (isRepairOnly && state.lat && state.lng) {
       handleRepairQuote();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRepairOnly]);
 
   const handleRepairQuote = async () => {
@@ -187,10 +192,11 @@ export function StepTyreSelection({
           addressLine: state.address,
           bookingType: state.bookingType,
           serviceType: 'repair',
-          tyreSelections: [], // No tyre needed for repair
-          scheduledAt: state.scheduledDate && state.scheduledTime
-            ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
-            : undefined,
+          tyreSelections: [],
+          scheduledAt:
+            state.scheduledDate && state.scheduledTime
+              ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
+              : undefined,
         }),
       });
 
@@ -215,7 +221,7 @@ export function StepTyreSelection({
     }
   };
 
-  // Show loading while fetching or processing repair quote
+  // Loading state
   if (isLoading || (isRepairOnly && isQuoting)) {
     return (
       <VStack gap={4} py={12}>
@@ -227,10 +233,7 @@ export function StepTyreSelection({
     );
   }
 
-  // For repair only, we skip this step
-  if (isRepairOnly) {
-    return null;
-  }
+  if (isRepairOnly) return null;
 
   return (
     <VStack gap={6} align="stretch">
@@ -240,6 +243,7 @@ export function StepTyreSelection({
         </Text>
         <Text color={c.muted}>
           Size: {state.tyreSize.width}/{state.tyreSize.aspect}/R{state.tyreSize.rim}
+          {' '} &mdash; Select up to 4 tyres
         </Text>
       </Box>
 
@@ -265,90 +269,151 @@ export function StepTyreSelection({
         </Box>
       )}
 
-      {/* Tyre Cards */}
+      {/* Two-panel: tyre list + cart sidebar on desktop */}
       {tyres.length > 0 && (
-        <VStack gap={4}>
-          {tyres.map((tyre, i) => {
-            const inStock = tyre.availableNew && tyre.priceNew && tyre.stockNew >= state.quantity;
-            const isSelected = selectedTyreId === tyre.id;
-            const lowStock = tyre.stockNew >= 1 && tyre.stockNew <= 2;
-            const seasonColor = tyre.season === 'summer' ? 'orange' : tyre.season === 'winter' ? 'blue' : 'gray';
-            const tierColor = tyre.tier === 'premium' ? 'purple' : tyre.tier === 'budget' ? 'gray' : 'cyan';
+        <Box
+          display={{ base: 'flex', lg: 'flex' }}
+          flexDir={{ base: 'column', lg: 'row' }}
+          gap={6}
+        >
+          {/* Left: Tyre cards */}
+          <Box flex="1">
+            <VStack gap={4}>
+              {tyres.map((tyre, i) => {
+                const inStock = tyre.availableNew && tyre.priceNew !== null && tyre.stockNew >= 1;
+                const cartItem = cart.find((t) => t.tyreId === tyre.id);
+                const isInCart = !!cartItem;
+                const lowStock = tyre.stockNew >= 1 && tyre.stockNew <= 2;
+                const seasonColor = tyre.season === 'summer' ? 'orange' : tyre.season === 'winter' ? 'blue' : 'gray';
+                const tierColor = tyre.tier === 'premium' ? 'purple' : tyre.tier === 'budget' ? 'gray' : 'cyan';
+                const canAdd = totalItems < 4 && tyre.priceNew !== null;
 
-            return (
-              <Box
-                key={tyre.id}
-                as="button"
-                w="full"
-                textAlign="left"
-                p={4}
-                borderWidth="2px"
-                borderColor={isSelected ? c.accent : c.border}
-                borderRadius="lg"
-                bg={isSelected ? 'rgba(249,115,22,0.1)' : c.card}
-                opacity={inStock ? 1 : 0.5}
-                cursor={inStock ? 'pointer' : 'not-allowed'}
-                onClick={() => inStock && handleSelectTyre(tyre.id)}
-                transition="all 0.2s"
-                _hover={inStock ? { borderColor: c.accent } : {}}
-                style={anim.stagger('fadeUp', i, '0.4s', 0.1, 0.05)}
-              >
-                <HStack justify="space-between" align="start">
-                  <Box>
-                    <Text fontWeight="600" fontSize="lg" color={c.text}>
-                      {tyre.brand}
-                    </Text>
-                    <Text color={c.muted} fontSize="sm">{tyre.pattern}</Text>
-                    <Text fontFamily="var(--font-display)" fontSize="md" color={c.text} mt={1}>
-                      {tyre.sizeDisplay}
-                    </Text>
-                    <HStack gap={2} mt={2} flexWrap="wrap">
-                      <Badge colorPalette={seasonColor} size="sm">
-                        {tyre.season}
-                      </Badge>
-                      <Badge colorPalette={tierColor} size="sm">
-                        {tyre.tier}
-                      </Badge>
-                      {tyre.speedRating && (
-                        <Text fontSize="xs" color={c.muted}>Speed: {tyre.speedRating}</Text>
-                      )}
-                      {tyre.loadIndex && (
-                        <Text fontSize="xs" color={c.muted}>Load: {tyre.loadIndex}</Text>
-                      )}
-                      {tyre.wetGrip && (
-                        <Text fontSize="xs" color={c.muted}>Grip: {tyre.wetGrip}</Text>
-                      )}
+                return (
+                  <Box
+                    key={tyre.id}
+                    w="full"
+                    p={4}
+                    borderWidth="2px"
+                    borderColor={isInCart ? c.accent : c.border}
+                    borderRadius="lg"
+                    bg={isInCart ? 'rgba(249,115,22,0.1)' : c.card}
+                    transition="all 0.2s"
+                    style={anim.stagger('fadeUp', i, '0.4s', 0.1, 0.05)}
+                  >
+                    <HStack justify="space-between" align="start" flexDir={{ base: 'column', md: 'row' }} gap={3}>
+                      <Box>
+                        <Text fontWeight="600" fontSize="lg" color={c.text}>
+                          {tyre.brand}
+                        </Text>
+                        <Text color={c.muted} fontSize="sm">{tyre.pattern}</Text>
+                        <Text fontFamily="var(--font-display)" fontSize="md" color={c.text} mt={1}>
+                          {tyre.sizeDisplay}
+                        </Text>
+                        <HStack gap={2} mt={2} flexWrap="wrap">
+                          <Badge colorPalette={seasonColor} size="sm">{tyre.season}</Badge>
+                          <Badge colorPalette={tierColor} size="sm">{tyre.tier}</Badge>
+                          {tyre.speedRating && <Text fontSize="xs" color={c.muted}>Speed: {tyre.speedRating}</Text>}
+                          {tyre.loadIndex && <Text fontSize="xs" color={c.muted}>Load: {tyre.loadIndex}</Text>}
+                          {tyre.wetGrip && <Text fontSize="xs" color={c.muted}>Grip: {tyre.wetGrip}</Text>}
+                        </HStack>
+                      </Box>
+
+                      <VStack align="end" gap={2} minW="120px">
+                        {tyre.priceNew ? (
+                          <Text fontSize="xl" fontWeight="700" fontFamily="var(--font-body)" color={c.accent}>
+                            {formatPrice(tyre.priceNew)}
+                          </Text>
+                        ) : (
+                          <Text fontSize="sm" color={c.muted}>Price N/A</Text>
+                        )}
+
+                        {inStock ? (
+                          <Badge colorPalette={lowStock ? 'yellow' : 'green'} size="sm">
+                            {lowStock ? 'Low Stock' : 'In Stock'}
+                          </Badge>
+                        ) : tyre.priceNew ? (
+                          <Badge colorPalette="yellow" size="sm">
+                            Pre-order (2-3 days)
+                          </Badge>
+                        ) : (
+                          <Badge colorPalette="gray" size="sm">Unavailable</Badge>
+                        )}
+
+                        {isInCart ? (
+                          <HStack gap={1}>
+                            <Box
+                              as="button"
+                              w="36px"
+                              h="36px"
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="center"
+                              borderWidth="1px"
+                              borderColor={c.border}
+                              borderRadius="md"
+                              bg={c.card}
+                              color={c.text}
+                              _hover={{ borderColor: c.accent }}
+                              onClick={() =>
+                                setCart(updateCartQuantity(cart, tyre.id, cartItem!.quantity - 1))
+                              }
+                            >
+                              -
+                            </Box>
+                            <Text w="28px" textAlign="center" fontWeight="600" color={c.text} fontSize="sm">
+                              {cartItem!.quantity}
+                            </Text>
+                            <Box
+                              as="button"
+                              w="36px"
+                              h="36px"
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="center"
+                              borderWidth="1px"
+                              borderColor={c.border}
+                              borderRadius="md"
+                              bg={c.card}
+                              color={c.text}
+                              _hover={{ borderColor: c.accent }}
+                              onClick={() =>
+                                setCart(updateCartQuantity(cart, tyre.id, cartItem!.quantity + 1))
+                              }
+                            >
+                              +
+                            </Box>
+                          </HStack>
+                        ) : (
+                          <Button
+                            size="sm"
+                            colorPalette="orange"
+                            disabled={!canAdd}
+                            onClick={() => handleAddToCart(tyre)}
+                            minH="36px"
+                          >
+                            Add to cart
+                          </Button>
+                        )}
+                      </VStack>
                     </HStack>
                   </Box>
-                  <VStack align="end" gap={1}>
-                    {inStock ? (
-                      <>
-                        <Text fontSize="xl" fontWeight="700" fontFamily="var(--font-body)" color={c.accent}>
-                          {formatPrice(tyre.priceNew!)}
-                        </Text>
-                        <Badge colorPalette={lowStock ? 'yellow' : 'green'} size="sm">
-                          {lowStock ? 'Low Stock' : 'In Stock'}
-                        </Badge>
-                      </>
-                    ) : (
-                      <Text fontSize="sm" color={c.muted}>
-                        Out of stock
-                      </Text>
-                    )}
-                  </VStack>
-                </HStack>
+                );
+              })}
+            </VStack>
+          </Box>
 
-                {isSelected && (
-                  <Box mt={3} pt={3} borderTopWidth="1px" borderColor={c.border}>
-                    <Text color={c.accent} fontWeight="500" fontSize="sm">
-                      Selected: {state.quantity} x {formatPrice(tyre.priceNew!)} = {formatPrice(tyre.priceNew! * state.quantity)}
-                    </Text>
-                  </Box>
-                )}
-              </Box>
-            );
-          })}
-        </VStack>
+          {/* Right: Cart sidebar (desktop) */}
+          <Box
+            display={{ base: 'none', lg: 'block' }}
+            w="320px"
+            flexShrink={0}
+            position="sticky"
+            top="100px"
+            alignSelf="flex-start"
+          >
+            <CartSummary cart={cart} onChange={setCart} />
+          </Box>
+        </Box>
       )}
 
       {quoteError && (
@@ -370,7 +435,7 @@ export function StepTyreSelection({
         <Button
           colorPalette="orange"
           onClick={handleRequestQuote}
-          disabled={!selectedTyreId || isQuoting}
+          disabled={cart.length === 0 || isQuoting}
           flex="1"
         >
           {isQuoting ? (
@@ -379,10 +444,48 @@ export function StepTyreSelection({
               <Text>Getting quote...</Text>
             </HStack>
           ) : (
-            'Get Quote'
+            `Get Quote (${totalItems} tyre${totalItems !== 1 ? 's' : ''})`
           )}
         </Button>
       </HStack>
+
+      {/* Mobile sticky cart bar */}
+      {cart.length > 0 && (
+        <Box
+          display={{ base: 'block', lg: 'none' }}
+          position="fixed"
+          bottom={0}
+          left={0}
+          right={0}
+          zIndex={50}
+          bg={c.surface}
+          borderTopWidth="1px"
+          borderColor={c.border}
+          p={3}
+          boxShadow="0 -4px 20px rgba(0,0,0,0.4)"
+        >
+          <HStack justify="space-between">
+            <Box>
+              <Text fontSize="sm" color={c.muted}>
+                {totalItems} tyre{totalItems !== 1 ? 's' : ''}
+              </Text>
+              <Text fontWeight="700" color={c.accent}>
+                {formatPrice(cartTotal(cart))}
+              </Text>
+            </Box>
+            <Button
+              colorPalette="orange"
+              size="sm"
+              onClick={handleRequestQuote}
+              disabled={isQuoting}
+              minH="48px"
+              px={6}
+            >
+              {isQuoting ? <Spinner size="sm" /> : 'Get Quote'}
+            </Button>
+          </HStack>
+        </Box>
+      )}
     </VStack>
   );
 }
