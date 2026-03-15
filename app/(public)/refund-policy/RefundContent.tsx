@@ -38,8 +38,14 @@ export function RefundContent() {
             <Heading as="h2" fontSize="20px" fontWeight="600" color={colors.textPrimary} mb={4} mt={8}>
               Cancellation Before Service
             </Heading>
+            <Text fontSize="14px" color={colors.textSecondary} lineHeight="1.8" mb={4}>
+              Cancellations made more than 2 hours before the scheduled appointment will receive a full refund.
+            </Text>
+            <Text fontSize="14px" color={colors.textSecondary} lineHeight="1.8" mb={4}>
+              For cancellations made within 2 hours of the scheduled appointment, the callout fee is non-refundable.
+            </Text>
             <Text fontSize="14px" color={colors.textSecondary} lineHeight="1.8" mb={6}>
-              Cancellations made more than 2 hours before the scheduled appointment will receive a full refund. Cancellations within 2 hours may incur a callout fee.
+              If a technician has already been dispatched to the customer&apos;s location, the callout fee will remain non-refundable even if the service is later cancelled or not completed.
             </Text>
           </Animated>
           <Animated animation={anim.fadeUp('0.5s')}>

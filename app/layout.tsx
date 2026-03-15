@@ -72,7 +72,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/og-image.png',
+        url: '/og-image.svg',
         width: 1200,
         height: 630,
         alt: 'Tyre Rescue — Emergency Mobile Tyre Fitting Glasgow & Edinburgh',
@@ -84,6 +84,11 @@ export const metadata: Metadata = {
     title: 'Tyre Rescue | Emergency Mobile Tyre Fitting Glasgow & Edinburgh',
     description:
       'Emergency mobile tyre fitting service in Glasgow and Edinburgh. 24 hours a day, 7 days a week.',
+  },
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
   },
   robots: {
     index: true,

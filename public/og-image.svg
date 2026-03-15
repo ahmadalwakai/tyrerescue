@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#09090B"/>
+  <!-- Large tyre wheel centered -->
+  <!-- Outer tyre ring -->
+  <circle cx="600" cy="240" r="140" stroke="#F97316" stroke-width="32" fill="none"/>
+  <!-- Inner rim -->
+  <circle cx="600" cy="240" r="80" stroke="#F97316" stroke-width="10" fill="none"/>
+  <!-- Hub center -->
+  <circle cx="600" cy="240" r="20" fill="#F97316"/>
+  <!-- 5 spokes -->
+  <line x1="600" y1="240" x2="600" y2="160" stroke="#F97316" stroke-width="8" stroke-linecap="round"/>
+  <line x1="600" y1="240" x2="676" y2="196" stroke="#F97316" stroke-width="8" stroke-linecap="round"/>
+  <line x1="600" y1="240" x2="676" y2="284" stroke="#F97316" stroke-width="8" stroke-linecap="round"/>
+  <line x1="600" y1="240" x2="524" y2="284" stroke="#F97316" stroke-width="8" stroke-linecap="round"/>
+  <line x1="600" y1="240" x2="524" y2="196" stroke="#F97316" stroke-width="8" stroke-linecap="round"/>
+  <!-- TYRE RESCUE text -->
+  <text x="600" y="460" text-anchor="middle" font-family="'Bebas Neue', Arial, sans-serif" font-size="96" letter-spacing="8">
+    <tspan fill="#FAFAFA">TYRE </tspan><tspan fill="#F97316">RESCUE</tspan>
+  </text>
+  <!-- Tagline -->
+  <text x="600" y="510" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="28" fill="#A1A1AA" letter-spacing="1">
+    Emergency Mobile Tyre Fitting
+  </text>
+</svg>

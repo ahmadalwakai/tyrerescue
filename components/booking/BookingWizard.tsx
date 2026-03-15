@@ -26,6 +26,7 @@ import { StepSchedule } from './StepSchedule';
 import { StepPricing } from './StepPricing';
 import { StepCustomerDetails } from './StepCustomerDetails';
 import { StepPayment } from './StepPayment';
+import { QuoteLoadingScreen } from './QuoteLoadingScreen';
 import { colorTokens as c } from '@/lib/design-tokens';
 
 const STORAGE_KEY = 'tyrerescue_booking_wizard';
@@ -132,6 +133,8 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
   const [state, setState] = useState<WizardState>({ ...initialWizardState, ...initialState });
   const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep || 'service-type');
   const [isHydrated, setIsHydrated] = useState(false);
+  const [showQuoteLoader, setShowQuoteLoader] = useState(false);
+  const quoteLoaderTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Restore state from sessionStorage on mount
@@ -177,7 +180,13 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
     const steps = getStepsForBookingType(state.bookingType, state.serviceType);
     const currentIndex = steps.findIndex(s => s.key === currentStep);
     if (currentIndex < steps.length - 1) {
-      goToStep(steps[currentIndex + 1].key);
+      const nextStep = steps[currentIndex + 1].key;
+      if (nextStep === 'pricing') {
+        // Show loading screen before pricing
+        setShowQuoteLoader(true);
+        return;
+      }
+      goToStep(nextStep);
     }
   }, [state.bookingType, state.serviceType, currentStep, goToStep]);
 
@@ -203,6 +212,11 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
   const handlePaymentError = useCallback((error: string) => {
     // Stay on payment step to allow retry
   }, []);
+
+  const handleQuoteLoaderComplete = useCallback(() => {
+    setShowQuoteLoader(false);
+    goToStep('pricing');
+  }, [goToStep]);
 
   // Don't render until hydrated to prevent mismatch
   if (!isHydrated) {
@@ -359,6 +373,12 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
           </VStack>
         </Container>
       )}
+
+      <QuoteLoadingScreen
+        isVisible={showQuoteLoader}
+        onComplete={handleQuoteLoaderComplete}
+        bookingType={state.bookingType || 'scheduled'}
+      />
     </ErrorBoundary>
   );
 }

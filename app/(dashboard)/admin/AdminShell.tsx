@@ -72,14 +72,17 @@ export function AdminShell({
       >
         <ChakraLink
           asChild
-          fontSize="20px"
-          letterSpacing="0.05em"
-          color={c.text}
-          _hover={{ textDecoration: 'none', color: c.accent }}
-          transition="color 0.2s"
-          style={{ fontFamily: 'var(--font-display)', ...anim.fadeUp() }}
+          _hover={{ textDecoration: 'none', opacity: 0.8 }}
+          transition="opacity 0.2s"
+          style={anim.fadeUp()}
         >
-          <NextLink href="/">TYRE RESCUE</NextLink>
+          <NextLink href="/">
+            <img
+              src="/logo.svg"
+              alt="Tyre Rescue"
+              style={{ height: '32px', width: 'auto', objectFit: 'contain', marginBottom: '4px' }}
+            />
+          </NextLink>
         </ChakraLink>
         <ChakraLink
           asChild

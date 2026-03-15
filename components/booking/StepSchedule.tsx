@@ -127,11 +127,13 @@ export function StepSchedule({
         </Text>
         <Box overflowX="auto" pb={2}>
           <HStack gap={2} minW="max-content">
-            {availableDates.map((date) => (
+            {availableDates.map((date) => {
+              const isSelected = selectedDate === date.value;
+              return (
               <Button
                 key={date.value}
-                variant={selectedDate === date.value ? 'solid' : 'outline'}
-                colorPalette={selectedDate === date.value ? 'orange' : 'gray'}
+                variant={isSelected ? 'solid' : 'outline'}
+                colorPalette={isSelected ? 'orange' : 'gray'}
                 minW="70px"
                 h="auto"
                 py={3}
@@ -139,13 +141,16 @@ export function StepSchedule({
                 onClick={() => setSelectedDate(date.value)}
                 flexDir="column"
                 gap={1}
+                color={isSelected ? undefined : c.text}
+                borderColor={isSelected ? undefined : c.border}
               >
                 <Text fontSize="xs" opacity={0.8}>
                   {date.dayName}
                 </Text>
                 <Text fontWeight="700">{date.label}</Text>
               </Button>
-            ))}
+              );
+            })}
           </HStack>
         </Box>
       </Box>
@@ -183,18 +188,20 @@ export function StepSchedule({
 
           {!isLoading && !error && slots.length > 0 && (
             <SimpleGrid columns={{ base: 2, md: 3 }} gap={2}>
-              {slots.map((slot, i) => (
+              {slots.map((slot, i) => {
+                const isSelected = selectedTime === slot.time;
+                // Build time range: "9:00am — 10:00am"
+                const hour = parseInt(slot.time.split(':')[0], 10);
+                const nextHour = hour + 1;
+                const fmtH = (h: number) => { const hh = h % 12 || 12; return `${hh}:00${h < 12 ? 'am' : 'pm'}`; };
+                const timeRange = `${fmtH(hour)} — ${fmtH(nextHour)}`;
+
+                return (
                 <Button
                   key={slot.time}
                   style={anim.stagger('fadeUp', i, '0.4s', 0, 0.05)}
-                  variant={selectedTime === slot.time ? 'solid' : 'outline'}
-                  colorPalette={
-                    selectedTime === slot.time
-                      ? 'orange'
-                      : slot.available
-                      ? 'gray'
-                      : 'gray'
-                  }
+                  variant={isSelected ? 'solid' : 'outline'}
+                  colorPalette={isSelected ? 'orange' : 'gray'}
                   disabled={!slot.available}
                   opacity={slot.available ? 1 : 0.5}
                   onClick={() => slot.available && setSelectedTime(slot.time)}
@@ -202,20 +209,27 @@ export function StepSchedule({
                   h="auto"
                   py={3}
                   gap={0}
-                  aria-label={slot.available ? `${slot.label}${slot.spotsLeft <= 3 ? `, ${slot.spotsLeft} spots left` : ''}` : `${slot.label} — fully booked`}
+                  color={isSelected ? undefined : c.text}
+                  borderColor={isSelected ? undefined : c.border}
+                  aria-label={slot.available ? `${timeRange}${slot.spotsLeft <= 3 ? `, ${slot.spotsLeft} slots left` : ''}` : `${timeRange} — fully booked`}
                 >
-                  <Text fontWeight="600">{slot.label}</Text>
+                  <Text fontWeight="600" fontSize="lg" style={{ fontFamily: 'var(--font-display)' }}>
+                    {timeRange}
+                  </Text>
                   {slot.available ? (
-                    slot.spotsLeft <= 3 && (
-                      <Text fontSize="xs" color="orange.500">
-                        {slot.spotsLeft} left
+                    slot.spotsLeft <= 3 ? (
+                      <Text fontSize="xs" color={c.accent}>
+                        {slot.spotsLeft} slots left
                       </Text>
+                    ) : (
+                      <Text fontSize="xs" color={isSelected ? undefined : c.muted}>Available</Text>
                     )
                   ) : (
-                    <Text fontSize="xs">Fully booked</Text>
+                    <Text fontSize="xs" color={c.muted}>Fully booked</Text>
                   )}
                 </Button>
-              ))}
+                );
+              })}
             </SimpleGrid>
           )}
         </Box>

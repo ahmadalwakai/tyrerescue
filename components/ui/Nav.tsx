@@ -106,24 +106,11 @@ export function Nav() {
         <Container maxW="7xl">
           <Flex justify="space-between" align="center">
             <Link href="/" style={{ textDecoration: 'none' }}>
-              <Flex direction="column" gap={0}>
-                <Text
-                  fontSize={{ base: '20px', md: '28px' }}
-                  color={colors.textPrimary}
-                  lineHeight="1"
-                  letterSpacing="0.1em"
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  TYRE RESCUE
-                </Text>
-                <Text
-                  fontSize="10px"
-                  color={colors.textSecondary}
-                  style={{ fontFamily: 'var(--font-body)' }}
-                >
-                  Powered by Duke Street Tyres
-                </Text>
-              </Flex>
+              <img
+                src="/logo.svg"
+                alt="Tyre Rescue"
+                style={{ height: '44px', width: 'auto', objectFit: 'contain' }}
+              />
             </Link>
 
             <Flex

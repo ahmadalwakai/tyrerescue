@@ -116,14 +116,11 @@ export function Footer() {
           mb="60px"
         >
           <Box>
-            <Text
-              fontSize={{ base: '32px', md: '48px' }}
-              color={colors.textPrimary}
-              lineHeight="1"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              TYRE RESCUE
-            </Text>
+            <img
+              src="/logo.svg"
+              alt="Tyre Rescue"
+              style={{ height: '48px', width: 'auto', objectFit: 'contain' }}
+            />
             <Text
               fontSize="13px"
               color={colors.textSecondary}
