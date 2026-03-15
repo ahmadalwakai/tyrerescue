@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     const [countResult] = await db
       .select({ count: sql<number>`count(*)` })
       .from(tyreProducts)
-      .innerJoin(tyreCatalogue, eq(tyreCatalogue.id, tyreProducts.catalogueId))
+      .leftJoin(tyreCatalogue, eq(tyreCatalogue.id, tyreProducts.catalogueId))
       .where(whereClause);
 
     const totalCount = Number(countResult?.count || 0);
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
         tier: tyreCatalogue.tier,
       })
       .from(tyreProducts)
-      .innerJoin(tyreCatalogue, eq(tyreCatalogue.id, tyreProducts.catalogueId))
+      .leftJoin(tyreCatalogue, eq(tyreCatalogue.id, tyreProducts.catalogueId))
       .where(whereClause)
       .orderBy(desc(tyreProducts.featured), asc(tyreProducts.brand), asc(tyreProducts.pattern))
       .limit(limit)
@@ -92,6 +92,7 @@ export async function GET(request: NextRequest) {
     const tyresWithPrices = tyres.map((tyre) => ({
       ...tyre,
       priceNew: tyre.priceNew ? parseFloat(tyre.priceNew) : null,
+      tier: tyre.tier ?? 'mid',
     }));
 
     const brands = await db
