@@ -17,7 +17,7 @@ const CONTENT_KEYS = [
   { key: 'site_banner_text', label: 'Site Banner Text', placeholder: 'e.g. Free callout within Glasgow!' },
   { key: 'site_banner_active', label: 'Show Banner (true/false)', placeholder: 'true' },
   { key: 'site_phone', label: 'Contact Phone', placeholder: '07XXX XXXXXX' },
-  { key: 'site_email', label: 'Contact Email', placeholder: 'info@tyrerescue.co.uk' },
+  { key: 'site_email', label: 'Contact Email', placeholder: 'support@tyrerescue.uk' },
   { key: 'site_min_order', label: 'Minimum Order Text', placeholder: 'No minimum order' },
   { key: 'site_service_radius', label: 'Service Radius', placeholder: '30 miles' },
 ];

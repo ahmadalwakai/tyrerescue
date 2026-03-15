@@ -61,7 +61,7 @@ export function RefundContent() {
               How to Request a Refund
             </Heading>
             <Text fontSize="14px" color={colors.textSecondary} lineHeight="1.8">
-              Contact us at 0141 266 0690 or info@tyrerescue.uk with your booking reference number. Refunds are processed within 5-10 business days.
+              Contact us at 0141 266 0690 or support@tyrerescue.uk with your booking reference number. Refunds are processed within 5-10 business days.
             </Text>
           </Animated>
         </Container>

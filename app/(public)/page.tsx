@@ -44,7 +44,7 @@ const jsonLd = {
     'Emergency mobile tyre fitting service in Glasgow and Edinburgh. 24 hours a day, 7 days a week.',
   url: 'https://www.tyrerescue.uk',
   telephone: '+441412660690',
-  email: 'info@tyrerescue.uk',
+  email: 'support@tyrerescue.uk',
   keywords: 'mobile tyre fitting glasgow, tyre repair near me, mobile tyre fitter glasgow',
   address: {
     '@type': 'PostalAddress',

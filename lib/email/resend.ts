@@ -11,7 +11,7 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@tyrerescue.uk';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'support@tyrerescue.uk';
 
 export interface EmailOptions {
   to: string | string[];

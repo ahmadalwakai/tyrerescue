@@ -55,7 +55,7 @@ export function PrivacyContent() {
               Contact
             </Heading>
             <Text fontSize="14px" color={colors.textSecondary} lineHeight="1.8">
-              For questions about this privacy policy, contact us at info@tyrerescue.uk or call 0141 266 0690.
+              For questions about this privacy policy, contact us at support@tyrerescue.uk or call 0141 266 0690.
             </Text>
           </Animated>
         </Container>

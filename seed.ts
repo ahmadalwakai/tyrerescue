@@ -25,7 +25,7 @@ async function seed() {
   await db
     .insert(users)
     .values({
-      email: 'admin@tyrerescue.uk',
+      email: 'support@tyrerescue.uk',
       passwordHash: adminPassword,
       name: 'Admin',
       role: 'admin',
