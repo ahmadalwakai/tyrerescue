@@ -98,8 +98,17 @@ export function LocationBroadcast({ isOnline, hasActiveJob }: Props) {
 
     intervalRef.current = setInterval(updateLocation, intervalMs);
 
+    // Re-broadcast immediately when tab becomes visible again
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        updateLocation();
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     // Cleanup on unmount or when dependencies change
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;

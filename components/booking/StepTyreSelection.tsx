@@ -169,71 +169,17 @@ export function StepTyreSelection({
     }
   };
 
-  // Skip tyre selection if repair only
-  const isRepairOnly = state.conditionAssessment === 'repair';
-
-  useEffect(() => {
-    if (isRepairOnly && state.lat && state.lng) {
-      handleRepairQuote();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRepairOnly]);
-
-  const handleRepairQuote = async () => {
-    setIsQuoting(true);
-
-    try {
-      const res = await fetch(API.BOOKINGS_QUOTE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lat: state.lat,
-          lng: state.lng,
-          addressLine: state.address,
-          bookingType: state.bookingType,
-          serviceType: 'repair',
-          tyreSelections: [],
-          scheduledAt:
-            state.scheduledDate && state.scheduledTime
-              ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
-              : undefined,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to get quote');
-      }
-
-      updateState({
-        selectedTyres: [],
-        quoteId: data.quoteId,
-        breakdown: data.breakdown as PricingBreakdown,
-        quoteExpiresAt: data.expiresAt,
-      });
-
-      goToNext();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to get quote';
-      setQuoteError(message);
-      setIsQuoting(false);
-    }
-  };
-
   // Loading state
-  if (isLoading || (isRepairOnly && isQuoting)) {
+  if (isLoading) {
     return (
       <VStack gap={4} py={12}>
         <Spinner size="lg" />
         <Text color={c.muted}>
-          {isRepairOnly ? 'Preparing your quote...' : 'Loading available tyres...'}
+          Loading available tyres...
         </Text>
       </VStack>
     );
   }
-
-  if (isRepairOnly) return null;
 
   return (
     <VStack gap={6} align="stretch">

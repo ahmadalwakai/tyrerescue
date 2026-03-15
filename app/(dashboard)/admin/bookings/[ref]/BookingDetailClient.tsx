@@ -393,10 +393,12 @@ export function BookingDetailClient({
                 <Text color={c.muted}>Subtotal</Text>
                 <Text color={c.text}>{formatCurrency(booking.subtotal)}</Text>
               </HStack>
-              <HStack justify="space-between">
-                <Text color={c.muted}>VAT (20%)</Text>
-                <Text color={c.text}>{formatCurrency(booking.vatAmount)}</Text>
-              </HStack>
+              {Number(booking.vatAmount) > 0 && (
+                <HStack justify="space-between">
+                  <Text color={c.muted}>VAT (20%)</Text>
+                  <Text color={c.text}>{formatCurrency(booking.vatAmount)}</Text>
+                </HStack>
+              )}
               <Box pt={2} borderTop="1px solid" borderColor={c.border}>
                 <HStack justify="space-between">
                   <Text fontWeight="semibold" color={c.text}>Total</Text>

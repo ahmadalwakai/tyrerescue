@@ -178,13 +178,25 @@ export const WIZARD_STEPS: StepConfig[] = [
   { key: 'payment', number: 8, name: 'Payment' },
 ];
 
-export function getStepsForBookingType(bookingType: BookingType | null): StepConfig[] {
+export function getStepsForBookingType(
+  bookingType: BookingType | null,
+  serviceType?: ServiceType | null,
+): StepConfig[] {
+  let steps = WIZARD_STEPS as StepConfig[];
+
   if (bookingType === 'emergency') {
     // Skip schedule step for emergency bookings
-    return WIZARD_STEPS.filter(step => step.key !== 'schedule').map((step, index) => ({
-      ...step,
-      number: index + 1,
-    }));
+    steps = steps.filter(step => step.key !== 'schedule');
   }
-  return WIZARD_STEPS;
+
+  if (serviceType === 'repair') {
+    // Skip tyre selection for repair — no product to pick
+    steps = steps.filter(step => step.key !== 'tyre-selection');
+  }
+
+  // Re-number steps sequentially
+  return steps.map((step, index) => ({
+    ...step,
+    number: index + 1,
+  }));
 }

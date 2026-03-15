@@ -28,13 +28,13 @@ export async function GET() {
       )
       .limit(5);
 
-    // Check if we have any recent locations (within 10 minutes)
+    // Check if we have any recent locations (within 60 minutes)
     const now = new Date();
-    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
     const activeDrivers = availableDrivers.filter(d => {
-      if (!d.locationAt) return false;
-      return new Date(d.locationAt) > tenMinutesAgo;
+      if (!d.locationAt) return true; // Online but no GPS yet — still available
+      return new Date(d.locationAt) > oneHourAgo;
     });
 
     return NextResponse.json({

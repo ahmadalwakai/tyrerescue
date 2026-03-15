@@ -87,7 +87,7 @@ export function TyreCard({ tyre }: Props) {
         {/* Price and Stock */}
         <HStack justify="space-between" align="center">
           <Text fontSize="xl" fontWeight="bold" color={c.text}>
-            \u00A3{price.toFixed(2)}
+            £{price.toFixed(2)}
           </Text>
           <Text fontSize="sm" fontWeight={stockBadge.weight}>
             {stockBadge.text}

@@ -378,6 +378,17 @@ export const contactMessages = pgTable('contact_messages', {
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// Cookie settings
+export const cookieSettings = pgTable('cookie_settings', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  key: varchar('key', { length: 100 }).unique().notNull(),
+  value: text('value').notNull(),
+  label: varchar('label', { length: 200 }),
+  description: text('description'),
+  updatedBy: uuid('updated_by').references(() => users.id),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
 // Type exports for use throughout the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -415,3 +426,5 @@ export type CallMeBack = typeof callMeBack.$inferSelect;
 export type NewCallMeBack = typeof callMeBack.$inferInsert;
 export type ContactMessage = typeof contactMessages.$inferSelect;
 export type NewContactMessage = typeof contactMessages.$inferInsert;
+export type CookieSetting = typeof cookieSettings.$inferSelect;
+export type NewCookieSetting = typeof cookieSettings.$inferInsert;

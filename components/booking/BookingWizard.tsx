@@ -174,20 +174,20 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
   }, []);
 
   const goToNext = useCallback(() => {
-    const steps = getStepsForBookingType(state.bookingType);
+    const steps = getStepsForBookingType(state.bookingType, state.serviceType);
     const currentIndex = steps.findIndex(s => s.key === currentStep);
     if (currentIndex < steps.length - 1) {
       goToStep(steps[currentIndex + 1].key);
     }
-  }, [state.bookingType, currentStep, goToStep]);
+  }, [state.bookingType, state.serviceType, currentStep, goToStep]);
 
   const goToPrev = useCallback(() => {
-    const steps = getStepsForBookingType(state.bookingType);
+    const steps = getStepsForBookingType(state.bookingType, state.serviceType);
     const currentIndex = steps.findIndex(s => s.key === currentStep);
     if (currentIndex > 0) {
       goToStep(steps[currentIndex - 1].key);
     }
-  }, [state.bookingType, currentStep, goToStep]);
+  }, [state.bookingType, state.serviceType, currentStep, goToStep]);
 
   const resetWizard = useCallback(() => {
     setState(initialWizardState);
@@ -217,7 +217,7 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
     );
   }
 
-  const steps = getStepsForBookingType(state.bookingType);
+  const steps = getStepsForBookingType(state.bookingType, state.serviceType);
 
   const renderStep = () => {
     switch (currentStep) {

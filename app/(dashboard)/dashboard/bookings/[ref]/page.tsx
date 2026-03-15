@@ -113,10 +113,12 @@ export default async function CustomerBookingDetailPage(
               <Text fontSize="sm" color={c.muted}>Subtotal</Text>
               <Text fontSize="sm" color={c.text}>£{Number(booking.subtotal).toFixed(2)}</Text>
             </HStack>
-            <HStack justify="space-between">
-              <Text fontSize="sm" color={c.muted}>VAT (20%)</Text>
-              <Text fontSize="sm" color={c.text}>£{Number(booking.vatAmount).toFixed(2)}</Text>
-            </HStack>
+            {Number(booking.vatAmount) > 0 && (
+              <HStack justify="space-between">
+                <Text fontSize="sm" color={c.muted}>VAT (20%)</Text>
+                <Text fontSize="sm" color={c.text}>£{Number(booking.vatAmount).toFixed(2)}</Text>
+              </HStack>
+            )}
             <Box borderTopWidth="1px" borderColor={c.border} pt={3}>
               <HStack justify="space-between">
                 <Text fontWeight="600" color={c.text}>Total</Text>

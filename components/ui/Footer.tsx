@@ -68,6 +68,27 @@ function FooterColumn({ title, links }: { title: string; links: { label: string;
             <Link href={link.href}>{link.label}</Link>
           </ChakraLink>
         ))}
+        {title === 'Legal' && (
+          <Text
+            as="button"
+            fontSize="13px"
+            color={colors.textSecondary}
+            _hover={{ color: colors.textPrimary }}
+            transition="color 0.2s"
+            cursor="pointer"
+            bg="transparent"
+            border="none"
+            p={0}
+            textAlign="left"
+            style={{ fontFamily: 'var(--font-body)' }}
+            onClick={() => {
+              localStorage.removeItem('tyrerescue_consent_v2');
+              window.dispatchEvent(new CustomEvent('cookie-consent-reset'));
+            }}
+          >
+            Cookie Settings
+          </Text>
+        )}
       </Flex>
     </Box>
   );

@@ -238,7 +238,7 @@ export function StepServiceType({
                         color={c.muted}
                         whiteSpace="nowrap"
                       >
-                        +\u00a330 emergency surcharge
+                        +£30 emergency surcharge
                       </Text>
                     </>
                   ) : (

@@ -18,6 +18,7 @@ const navItems = [
   { label: 'Testimonials', href: '/admin/testimonials' },
   { label: 'FAQ', href: '/admin/faq' },
   { label: 'Content', href: '/admin/content' },
+  { label: 'Cookies', href: '/admin/cookies' },
   { label: 'Audit Log', href: '/admin/audit' },
   { label: 'Analytics', href: '/admin/analytics' },
 ];

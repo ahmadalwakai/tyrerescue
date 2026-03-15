@@ -60,6 +60,12 @@ export function SuccessContent({ booking }: SuccessContentProps) {
     if (confirmedStatus !== 'awaiting_payment') return;
     if (!paymentIntent) return;
 
+    // Do not attempt confirmation if Stripe redirect clearly failed
+    if (redirectStatus && redirectStatus !== 'succeeded') {
+      setConfirmError('Payment was not completed. You have not been charged.');
+      return;
+    }
+
     async function confirmPayment() {
       setConfirming(true);
       setConfirmError(null);
@@ -174,14 +180,21 @@ export function SuccessContent({ booking }: SuccessContentProps) {
           <Text fontSize="4xl" fontWeight="700" mb={2} color={c.text}>
             {booking.refNumber}
           </Text>
-          <Text color={c.muted}>
-            Thank you, {booking.customerName.split(' ')[0]}. Your confirmation
-            email is on its way to {booking.customerEmail}.
-          </Text>
+          {isPaid ? (
+            <Text color={c.muted}>
+              Thank you, {booking.customerName.split(' ')[0]}. Your confirmation
+              email is on its way to {booking.customerEmail}.
+            </Text>
+          ) : (
+            <Text color={c.muted}>
+              Thank you, {booking.customerName.split(' ')[0]}. Once payment is
+              confirmed, you will receive a confirmation email at {booking.customerEmail}.
+            </Text>
+          )}
         </Box>
 
-        {/* ETA for Emergency Bookings */}
-        {booking.bookingType === 'emergency' && (
+        {/* ETA for Emergency Bookings — only show once payment is confirmed */}
+        {isPaid && booking.bookingType === 'emergency' && (
           <Box textAlign="center" p={6} bg="rgba(249,115,22,0.1)" borderRadius="lg">
             <Text color={c.accent} fontWeight="500" mb={1}>
               Estimated Arrival Time
@@ -196,8 +209,8 @@ export function SuccessContent({ booking }: SuccessContentProps) {
           </Box>
         )}
 
-        {/* Scheduled Time */}
-        {booking.bookingType === 'scheduled' && booking.scheduledAt && (
+        {/* Scheduled Time — only show once payment is confirmed */}
+        {isPaid && booking.bookingType === 'scheduled' && booking.scheduledAt && (
           <Box textAlign="center" p={6} bg={c.surface} borderRadius="lg">
             <Text color={c.muted} fontWeight="500" mb={2}>
               Scheduled Appointment
@@ -280,14 +293,18 @@ export function SuccessContent({ booking }: SuccessContentProps) {
               <Text color={c.text}>{formatPrice(booking.subtotal)}</Text>
             </HStack>
 
-            <HStack justify="space-between" p={4} borderBottomWidth="1px" borderColor={c.border}>
-              <Text color={c.muted}>VAT (20%)</Text>
-              <Text color={c.text}>{formatPrice(booking.vatAmount)}</Text>
-            </HStack>
+            {booking.vatAmount > 0 && (
+              <HStack justify="space-between" p={4} borderBottomWidth="1px" borderColor={c.border}>
+                <Text color={c.muted}>VAT (20%)</Text>
+                <Text color={c.text}>{formatPrice(booking.vatAmount)}</Text>
+              </HStack>
+            )}
 
-            <HStack justify="space-between" p={4} bg={c.accent}>
-              <Text fontWeight="600" color={c.bg}>Total Paid</Text>
-              <Text fontWeight="700" fontSize="lg" color={c.bg}>
+            <HStack justify="space-between" p={4} bg={isPaid ? c.accent : c.surface} borderTopWidth={isPaid ? '0' : '1px'} borderColor={c.border}>
+              <Text fontWeight="600" color={isPaid ? c.bg : c.text}>
+                {isPaid ? 'Total Paid' : 'Total Due'}
+              </Text>
+              <Text fontWeight="700" fontSize="lg" color={isPaid ? c.bg : c.accent}>
                 {formatPrice(booking.totalAmount)}
               </Text>
             </HStack>

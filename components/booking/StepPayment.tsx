@@ -72,7 +72,7 @@ function CheckoutForm({
     });
 
     if (error) {
-      // Payment failed
+      // Payment failed or cancelled by user
       setErrorMessage(error.message || 'Payment failed. Please try again.');
       setIsProcessing(false);
       onError(error.message || 'Payment failed');
@@ -91,9 +91,18 @@ function CheckoutForm({
         // Non-blocking — webhook will handle it if this fails
       }
       onSuccess(refNumber);
-    } else {
-      // Fallback
+    } else if (paymentIntent && paymentIntent.status === 'processing') {
+      // Payment still processing (e.g. bank debits) — navigate to success page
+      // which will show awaiting-confirmation state
       onSuccess(refNumber);
+    } else {
+      // Payment not succeeded (cancelled, requires_action, requires_payment_method, etc.)
+      const statusMsg = paymentIntent?.status
+        ? `Payment not completed (status: ${paymentIntent.status}). Please try again.`
+        : 'Payment was not completed. Please try again.';
+      setErrorMessage(statusMsg);
+      setIsProcessing(false);
+      onError(statusMsg);
     }
   };
 
@@ -177,10 +186,12 @@ function CheckoutForm({
                 </HStack>
               )}
 
-              <HStack justify="space-between">
-                <Text color={c.muted}>VAT (20%)</Text>
-                <Text color={c.text}>{formatPrice(breakdown.vatAmount)}</Text>
-              </HStack>
+              {breakdown.vatAmount > 0 && (
+                <HStack justify="space-between">
+                  <Text color={c.muted}>VAT (20%)</Text>
+                  <Text color={c.text}>{formatPrice(breakdown.vatAmount)}</Text>
+                </HStack>
+              )}
 
               <Box borderTopWidth="2px" borderColor={c.border} pt={3}>
                 <HStack justify="space-between">

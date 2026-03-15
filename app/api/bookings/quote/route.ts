@@ -39,7 +39,7 @@ const quoteRequestSchema = z.object({
   addressLine: z.string().min(1).max(500),
   bookingType: z.enum(['emergency', 'scheduled']),
   serviceType: z.enum(['repair', 'fit', 'both', 'assess']),
-  tyreSelections: z.array(tyreSelectionSchema).min(1).max(4),
+  tyreSelections: z.array(tyreSelectionSchema).min(0).max(4),
   scheduledAt: z.string().datetime().optional(),
 });
 
@@ -121,27 +121,34 @@ export async function POST(
       );
     }
 
-    // Get tyre product details (read-only query before transaction)
-    const tyreIds = data.tyreSelections.map((s) => s.tyreId);
-    const tyres = await db
-      .select()
-      .from(tyreProducts)
-      .where(inArray(tyreProducts.id, tyreIds));
+    // Repair with no tyre selections — skip stock checks entirely
+    const isRepairOnly = data.serviceType === 'repair' && data.tyreSelections.length === 0;
 
-    // Create a map for quick lookup
-    const tyreMap = new Map(tyres.map((t) => [t.id, t]));
+    let tyreMap = new Map<string, typeof tyreProducts.$inferSelect>();
 
-    // Validate each tyre exists
-    for (const selection of data.tyreSelections) {
-      const tyre = tyreMap.get(selection.tyreId);
-      if (!tyre) {
-        return NextResponse.json(
-          {
-            error: `Tyre not found: ${selection.tyreId}`,
-            code: 'TYRE_NOT_FOUND',
-          },
-          { status: 400 }
-        );
+    if (!isRepairOnly) {
+      // Get tyre product details (read-only query before transaction)
+      const tyreIds = data.tyreSelections.map((s) => s.tyreId);
+      const tyres = await db
+        .select()
+        .from(tyreProducts)
+        .where(inArray(tyreProducts.id, tyreIds));
+
+      // Create a map for quick lookup
+      tyreMap = new Map(tyres.map((t) => [t.id, t]));
+
+      // Validate each tyre exists
+      for (const selection of data.tyreSelections) {
+        const tyre = tyreMap.get(selection.tyreId);
+        if (!tyre) {
+          return NextResponse.json(
+            {
+              error: `Tyre not found: ${selection.tyreId}`,
+              code: 'TYRE_NOT_FOUND',
+            },
+            { status: 400 }
+          );
+        }
       }
     }
 
@@ -195,6 +202,63 @@ export async function POST(
       .limit(1);
 
     const isBankHoliday = !!holiday;
+
+    // Repair-only fast path — no stock to lock, no transaction needed
+    if (isRepairOnly) {
+      const vatRule = rules.find((r) => r.key === 'vat_registered');
+      const vatRegistered = vatRule ? vatRule.value === 'true' : true;
+
+      const breakdown = calculatePricing(
+        {
+          tyreSelections: [],
+          distanceMiles,
+          bookingType: data.bookingType,
+          bookingDate,
+          isBankHoliday,
+        },
+        parsedRules,
+        vatRegistered
+      );
+
+      if (!breakdown.isValid) {
+        return NextResponse.json(
+          {
+            error: breakdown.error || 'Failed to calculate pricing',
+            code: breakdown.error === 'OUTSIDE_SERVICE_AREA'
+              ? 'OUTSIDE_SERVICE_AREA'
+              : 'PRICING_ERROR',
+          },
+          { status: 400 }
+        );
+      }
+
+      const quoteId = uuidv4();
+      const expiresAt = new Date(breakdown.quoteExpiresAt);
+
+      await db.insert(quotes).values({
+        id: quoteId,
+        lat: String(data.lat),
+        lng: String(data.lng),
+        addressLine: data.addressLine,
+        bookingType: data.bookingType,
+        serviceType: data.serviceType,
+        tyreSelections: [],
+        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
+        distanceMiles: String(distanceMiles),
+        breakdown: breakdown as unknown as Record<string, unknown>,
+        expiresAt,
+        used: false,
+      });
+
+      return NextResponse.json({
+        quoteId,
+        expiresAt: expiresAt.toISOString(),
+        breakdown,
+        distanceMiles,
+        driverEtaMinutes,
+        tyreDetails: [],
+      });
+    }
 
     // Use raw SQL transaction with FOR UPDATE SKIP LOCKED for race condition prevention
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });

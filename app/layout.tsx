@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Bebas_Neue } from 'next/font/google';
 import { Providers } from '@/components/providers';
 import { CookieBanner } from '@/components/ui/CookieBanner';
+import { AnalyticsProvider } from '@/components/ui/AnalyticsProvider';
 import { CallMeBack } from '@/components/ui/CallMeBack';
 import './globals.css';
 
@@ -114,6 +115,7 @@ export default function RootLayout({
           </a>
           {children}
           <CookieBanner />
+          <AnalyticsProvider />
           <CallMeBack />
         </Providers>
       </body>

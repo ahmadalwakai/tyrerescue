@@ -27,6 +27,65 @@ export function StepPricing({
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isExpired, setIsExpired] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [repairQuoteError, setRepairQuoteError] = useState<string | null>(null);
+
+  // Auto-fetch quote for repair bookings that skipped tyre selection
+  useEffect(() => {
+    if (state.serviceType !== 'repair' || state.quoteId) return;
+    if (!state.lat || !state.lng) return;
+
+    let cancelled = false;
+
+    async function fetchRepairQuote() {
+      setIsRefreshing(true);
+      try {
+        const res = await fetch(API.BOOKINGS_QUOTE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lat: state.lat,
+            lng: state.lng,
+            addressLine: state.address,
+            bookingType: state.bookingType,
+            serviceType: 'repair',
+            tyreSelections: [],
+            scheduledAt:
+              state.scheduledDate && state.scheduledTime
+                ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
+                : undefined,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to get quote');
+        }
+
+        if (!cancelled) {
+          updateState({
+            selectedTyres: [],
+            quoteId: data.quoteId,
+            breakdown: data.breakdown,
+            quoteExpiresAt: data.expiresAt,
+          });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Failed to get quote';
+          setRepairQuoteError(message);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsRefreshing(false);
+        }
+      }
+    }
+
+    fetchRepairQuote();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Calculate time remaining
   useEffect(() => {
@@ -159,6 +218,29 @@ export function StepPricing({
   const breakdown = state.breakdown as PricingBreakdown | null;
 
   if (!breakdown) {
+    if (repairQuoteError) {
+      return (
+        <VStack py={12} gap={4}>
+          <Box p={4} bg="rgba(239,68,68,0.1)" borderRadius="md" borderWidth="1px" borderColor="rgba(239,68,68,0.3)" textAlign="center">
+            <Text fontWeight="600" color="red.400" mb={2}>
+              Unable to generate quote
+            </Text>
+            <Text color="red.300" fontSize="sm" mb={3}>
+              {repairQuoteError}
+            </Text>
+            <Text color={c.muted} fontSize="sm">
+              Please call us on{' '}
+              <a href="tel:01412660690" style={{ color: c.accent, fontWeight: 500 }}>
+                0141 266 0690
+              </a>
+            </Text>
+          </Box>
+          <Button variant="outline" onClick={goToPrev}>
+            Back
+          </Button>
+        </VStack>
+      );
+    }
     return (
       <VStack py={12}>
         <Spinner size="lg" />
@@ -322,10 +404,12 @@ export function StepPricing({
             <Text color={c.text}>Subtotal</Text>
             <Text color={c.text}>{formatPrice(breakdown.subtotal)}</Text>
           </HStack>
-          <HStack justify="space-between" p={4} borderBottomWidth="1px" borderColor={c.border}>
-            <Text color={c.text}>VAT (20%)</Text>
-            <Text color={c.text}>{formatPrice(breakdown.vatAmount)}</Text>
-          </HStack>
+          {breakdown.vatAmount > 0 && (
+            <HStack justify="space-between" p={4} borderBottomWidth="1px" borderColor={c.border}>
+              <Text color={c.text}>VAT (20%)</Text>
+              <Text color={c.text}>{formatPrice(breakdown.vatAmount)}</Text>
+            </HStack>
+          )}
           <HStack justify="space-between" p={4} bg={c.accent} style={anim.fadeUp('0.5s', '0.4s')}>
             <Text fontWeight="700" fontSize="lg" color={c.bg}>
               Total
