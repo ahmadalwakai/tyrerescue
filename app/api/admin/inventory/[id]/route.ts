@@ -8,6 +8,8 @@ import { z } from 'zod';
 const updateSchema = z.object({
   priceNew: z.union([z.string(), z.number()]).nullable().optional(),
   stockNew: z.number().int().min(0).optional(),
+  stockOrdered: z.number().int().min(0).optional(),
+  isLocalStock: z.boolean().optional(),
   availableNew: z.boolean().optional(),
 });
 
@@ -35,6 +37,8 @@ export async function PATCH(
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (d.priceNew !== undefined) updates.priceNew = d.priceNew != null ? String(d.priceNew) : null;
   if (d.stockNew !== undefined) updates.stockNew = d.stockNew;
+  if (d.stockOrdered !== undefined) updates.stockOrdered = d.stockOrdered;
+  if (d.isLocalStock !== undefined) updates.isLocalStock = d.isLocalStock;
   if (d.availableNew !== undefined) updates.availableNew = d.availableNew;
 
   await db.update(tyreProducts).set(updates).where(eq(tyreProducts.id, id));

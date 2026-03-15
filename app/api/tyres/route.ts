@@ -77,6 +77,8 @@ export async function GET(request: NextRequest) {
         runFlat: tyreProducts.runFlat,
         priceNew: tyreProducts.priceNew,
         stockNew: tyreProducts.stockNew,
+        stockOrdered: tyreProducts.stockOrdered,
+        isLocalStock: tyreProducts.isLocalStock,
         availableNew: tyreProducts.availableNew,
         featured: tyreProducts.featured,
         slug: tyreProducts.slug,

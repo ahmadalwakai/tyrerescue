@@ -47,6 +47,7 @@ export function StepTyreDetails({
   const [photoUrl, setPhotoUrl] = useState<string | null>(state.tyrePhotoUrl);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [repairQty, setRepairQty] = useState(state.quantity || 1);
 
   // Search autocomplete state
   const [searchQuery, setSearchQuery] = useState('');
@@ -169,6 +170,7 @@ export function StepTyreDetails({
       tyrePhotoUrl: photoUrl,
       lockingNutStatus: lockingNut,
       serviceType: condition === 'repair' ? 'repair' : condition === 'replacement' ? 'fit' : 'assess',
+      quantity: condition === 'repair' ? repairQty : 1,
     });
     goToNext();
   };
@@ -446,6 +448,50 @@ export function StepTyreDetails({
           </Box>
         </VStack>
       </Box>
+
+      {/* Repair Quantity Selector */}
+      {condition === 'repair' && (
+        <Box style={anim.fadeUp('0.5s', '0.42s')}>
+          <Text
+            fontSize="13px"
+            color={c.muted}
+            letterSpacing="0.1em"
+            mb={3}
+            fontFamily="Inter, sans-serif"
+          >
+            HOW MANY TYRES NEED REPAIR?
+          </Text>
+          <HStack gap={3}>
+            {[1, 2, 3, 4].map((n) => (
+              <Box
+                key={n}
+                as="button"
+                w="56px"
+                h="56px"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                bg={repairQty === n ? 'rgba(249,115,22,0.08)' : c.card}
+                border={repairQty === n ? '2px solid' : '1px solid'}
+                borderColor={repairQty === n ? c.accent : c.border}
+                borderRadius="8px"
+                cursor="pointer"
+                transition="all 0.15s"
+                _hover={{ borderColor: c.accent }}
+                onClick={() => setRepairQty(n)}
+              >
+                <Text
+                  fontFamily="var(--font-display)"
+                  fontSize="24px"
+                  color={repairQty === n ? c.accent : c.text}
+                >
+                  {n}
+                </Text>
+              </Box>
+            ))}
+          </HStack>
+        </Box>
+      )}
 
       {/* Locking Wheel Nuts */}
       <Box style={anim.fadeUp('0.5s', '0.45s')}>

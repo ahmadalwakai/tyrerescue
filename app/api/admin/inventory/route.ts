@@ -52,6 +52,13 @@ export async function GET(request: Request) {
     conditions.push(eq(tyreCatalogue.season, season));
   }
 
+  // Status filter — applied in SQL for correct pagination
+  if (status === 'active') {
+    conditions.push(sql`${tyreProducts.id} IS NOT NULL`);
+  } else if (status === 'inactive') {
+    conditions.push(sql`${tyreProducts.id} IS NULL`);
+  }
+
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [items, countResult, activeCountResult] = await Promise.all([
@@ -75,6 +82,8 @@ export async function GET(request: Request) {
         productId: tyreProducts.id,
         priceNew: tyreProducts.priceNew,
         stockNew: tyreProducts.stockNew,
+        stockOrdered: tyreProducts.stockOrdered,
+        isLocalStock: tyreProducts.isLocalStock,
         availableNew: tyreProducts.availableNew,
       })
       .from(tyreCatalogue)
@@ -83,25 +92,20 @@ export async function GET(request: Request) {
       .orderBy(desc(tyreCatalogue.brand), tyreCatalogue.sizeDisplay)
       .limit(perPage)
       .offset(offset),
-    db.select({ count: sql<number>`count(*)` }).from(tyreCatalogue).where(where),
+    db.select({ count: sql<number>`count(*)` })
+      .from(tyreCatalogue)
+      .leftJoin(tyreProducts, eq(tyreProducts.catalogueId, tyreCatalogue.id))
+      .where(where),
     db.select({ count: sql<number>`count(*)` })
       .from(tyreCatalogue)
       .innerJoin(tyreProducts, eq(tyreProducts.catalogueId, tyreCatalogue.id)),
   ]);
 
-  // Post-filter by status (active/inactive) if specified
-  let filtered = items;
-  if (status === 'active') {
-    filtered = items.filter((i) => i.productId !== null);
-  } else if (status === 'inactive') {
-    filtered = items.filter((i) => i.productId === null);
-  }
-
   const totalCount = Number(countResult[0]?.count || 0);
   const totalPages = Math.ceil(totalCount / perPage);
   const activeCount = Number(activeCountResult[0]?.count || 0);
 
-  return NextResponse.json({ items: filtered, page, totalPages, totalCount, activeCount });
+  return NextResponse.json({ items, page, totalPages, totalCount, activeCount });
 }
 
 /**
@@ -115,7 +119,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { catalogueId, priceNew, stockNew } = body;
+  const { catalogueId, priceNew, stockNew, stockOrdered, isLocalStock } = body;
 
   if (!catalogueId) {
     return NextResponse.json({ error: 'catalogueId required' }, { status: 400 });
@@ -160,6 +164,8 @@ export async function POST(request: Request) {
     slug: cat.slug,
     priceNew: priceNew != null ? String(priceNew) : null,
     stockNew: stockNew ?? 0,
+    stockOrdered: stockOrdered ?? 0,
+    isLocalStock: isLocalStock ?? true,
     availableNew: priceNew != null,
   });
 

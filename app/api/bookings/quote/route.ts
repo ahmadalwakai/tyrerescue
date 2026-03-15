@@ -42,6 +42,7 @@ const quoteRequestSchema = z.object({
   serviceType: z.enum(['repair', 'fit', 'both', 'assess']),
   tyreSelections: z.array(tyreSelectionSchema).min(0).max(4),
   scheduledAt: z.string().datetime().optional(),
+  quantity: z.number().int().min(1).max(4).optional().default(1),
 });
 
 type QuoteRequest = z.infer<typeof quoteRequestSchema>;
@@ -223,6 +224,8 @@ export async function POST(
           bookingDate,
           isBankHoliday,
           surgeMultiplier,
+          serviceType: 'repair',
+          tyreQuantity: data.quantity || 1,
         },
         parsedRules,
         vatRegistered

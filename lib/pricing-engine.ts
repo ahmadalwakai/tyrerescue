@@ -51,6 +51,8 @@ export interface PricingInput {
   bookingDate: Date;
   isBankHoliday: boolean;
   surgeMultiplier?: number;
+  serviceType?: 'repair' | 'fit' | 'both' | 'assess';
+  tyreQuantity?: number;
 }
 
 export interface PricingLineItem {
@@ -447,8 +449,11 @@ export function calculatePricing(
 ): PricingBreakdown {
   const lineItems: PricingLineItem[] = [];
 
-  // Validate input
-  if (!input.tyreSelections || input.tyreSelections.length === 0) {
+  // Check if this is a repair-only booking (no tyre selections needed)
+  const isRepairOnly = input.serviceType === 'repair' && (!input.tyreSelections || input.tyreSelections.length === 0);
+
+  // Validate input — allow empty selections for repair-only bookings
+  if (!isRepairOnly && (!input.tyreSelections || input.tyreSelections.length === 0)) {
     return {
       lineItems: [],
       totalTyreCost: 0,
@@ -466,13 +471,34 @@ export function calculatePricing(
     };
   }
 
-  // Component 1: Tyre cost
-  const tyreCostResult = calculateTyreCost(input.tyreSelections);
-  lineItems.push(...tyreCostResult.lineItems);
+  let tyreCostTotal: Decimal;
+  let serviceFeeTotal: Decimal;
 
-  // Component 2: Service fees
-  const serviceFeeResult = calculateServiceFees(input.tyreSelections, rules);
-  lineItems.push(...serviceFeeResult.lineItems);
+  if (isRepairOnly) {
+    // Repair-only: no tyre cost, calculate repair fee from quantity
+    tyreCostTotal = new Decimal(0);
+    const quantity = input.tyreQuantity || 1;
+    const repairAmount = new Decimal(rules.repair_fee_per_tyre).times(quantity);
+    serviceFeeTotal = repairAmount;
+
+    lineItems.push({
+      label: `Puncture Repair \u00D7 ${quantity}`,
+      quantity,
+      unitPrice: rules.repair_fee_per_tyre,
+      amount: repairAmount.toNumber(),
+      type: 'service',
+    });
+  } else {
+    // Component 1: Tyre cost
+    const tyreCostResult = calculateTyreCost(input.tyreSelections);
+    lineItems.push(...tyreCostResult.lineItems);
+    tyreCostTotal = tyreCostResult.total;
+
+    // Component 2: Service fees
+    const serviceFeeResult = calculateServiceFees(input.tyreSelections, rules);
+    lineItems.push(...serviceFeeResult.lineItems);
+    serviceFeeTotal = serviceFeeResult.total;
+  }
 
   // Component 3: Callout fee
   const calloutResult = calculateCalloutFee(input.distanceMiles, rules);
@@ -502,12 +528,11 @@ export function calculatePricing(
   lineItems.push(...surchargeResult.lineItems);
 
   // Component 5: Multi-tyre discount
-  const totalTyres = input.tyreSelections.reduce(
-    (sum, s) => sum + s.quantity,
-    0
-  );
+  const totalTyres = isRepairOnly
+    ? (input.tyreQuantity || 1)
+    : input.tyreSelections.reduce((sum, s) => sum + s.quantity, 0);
   const discountResult = calculateMultiTyreDiscount(
-    serviceFeeResult.total,
+    serviceFeeTotal,
     totalTyres,
     rules
   );
@@ -516,8 +541,8 @@ export function calculatePricing(
   }
 
   // Calculate pre-surge subtotal
-  const preSurgeSubtotal = tyreCostResult.total
-    .plus(serviceFeeResult.total)
+  const preSurgeSubtotal = tyreCostTotal
+    .plus(serviceFeeTotal)
     .plus(calloutResult.fee)
     .plus(surchargeResult.total)
     .minus(discountResult.discountAmount);
@@ -567,8 +592,8 @@ export function calculatePricing(
 
   return {
     lineItems,
-    totalTyreCost: tyreCostResult.total.toNumber(),
-    totalServiceFee: serviceFeeResult.total.toNumber(),
+    totalTyreCost: tyreCostTotal.toNumber(),
+    totalServiceFee: serviceFeeTotal.toNumber(),
     calloutFee: calloutResult.fee.toNumber(),
     totalSurcharges: surchargeResult.total.toNumber(),
     discountAmount: discountResult.discountAmount.toNumber(),

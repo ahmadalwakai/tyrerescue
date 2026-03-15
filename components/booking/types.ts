@@ -47,6 +47,7 @@ export interface WizardState {
   conditionAssessment: 'repair' | 'replacement' | 'not_sure' | null;
   tyrePhotoUrl: string | null;
   lockingNutStatus: 'has_key' | 'no_key' | 'standard' | null;
+  quantity: number;
   
   // Step 4: Tyre Selection (cart)
   selectedTyres: SelectedTyre[];
@@ -87,6 +88,7 @@ export const initialWizardState: WizardState = {
   conditionAssessment: null,
   tyrePhotoUrl: null,
   lockingNutStatus: 'standard',
+  quantity: 1,
   selectedTyres: [],
   serviceType: null,
   scheduledDate: null,

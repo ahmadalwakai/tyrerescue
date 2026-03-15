@@ -39,6 +39,8 @@ interface TyreProduct {
   fuelEfficiency: string | null;
   priceNew: number | null;
   stockNew: number;
+  stockOrdered: number | null;
+  isLocalStock: boolean | null;
   availableNew: boolean;
 }
 
@@ -274,12 +276,18 @@ export function StepTyreSelection({
                         )}
 
                         {inStock ? (
-                          <Badge colorPalette={lowStock ? 'yellow' : 'green'} size="sm">
-                            {lowStock ? 'Low Stock' : 'In Stock'}
-                          </Badge>
+                          tyre.isLocalStock !== false ? (
+                            <Badge colorPalette="green" size="sm">
+                              Available Now
+                            </Badge>
+                          ) : (
+                            <Badge colorPalette="orange" size="sm">
+                              2-3 Days
+                            </Badge>
+                          )
                         ) : tyre.priceNew ? (
-                          <Badge colorPalette="yellow" size="sm">
-                            Pre-order (2-3 days)
+                          <Badge colorPalette="red" size="sm">
+                            Pre-order
                           </Badge>
                         ) : (
                           <Badge colorPalette="gray" size="sm">Unavailable</Badge>

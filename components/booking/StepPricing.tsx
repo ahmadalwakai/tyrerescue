@@ -49,6 +49,7 @@ export function StepPricing({
             bookingType: state.bookingType,
             serviceType: 'repair',
             tyreSelections: [],
+            quantity: state.quantity || 1,
             scheduledAt:
               state.scheduledDate && state.scheduledTime
                 ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
@@ -121,7 +122,10 @@ export function StepPricing({
     async (newCart: typeof state.selectedTyres) => {
       updateState({ selectedTyres: newCart });
 
-      if (newCart.length === 0) return;
+      if (newCart.length === 0) {
+        updateState({ breakdown: null, quoteId: null, quoteExpiresAt: null });
+        return;
+      }
 
       setIsRefreshing(true);
       setIsExpired(false);
@@ -462,7 +466,7 @@ export function StepPricing({
         <Button
           colorPalette="orange"
           onClick={goToNext}
-          disabled={isExpired}
+          disabled={isExpired || !breakdown || breakdown.total <= 0}
           flex="1"
         >
           Continue to details

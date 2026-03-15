@@ -45,6 +45,8 @@ export async function PATCH(
   if (parsed.data.pattern !== undefined) updates.pattern = parsed.data.pattern;
   if (parsed.data.season !== undefined) updates.season = parsed.data.season;
   if (parsed.data.speed_rating !== undefined) updates.speedRating = parsed.data.speed_rating;
+  if (parsed.data.tier !== undefined) updates.tier = parsed.data.tier;
+  if (parsed.data.suggested_price_new !== undefined) updates.suggestedPriceNew = String(parsed.data.suggested_price_new);
 
   if (Object.keys(updates).length > 0) {
     await db.update(tyreCatalogue).set(updates).where(eq(tyreCatalogue.id, id));

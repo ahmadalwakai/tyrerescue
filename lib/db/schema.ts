@@ -98,6 +98,8 @@ export const tyreProducts = pgTable('tyre_products', {
   runFlat: boolean('run_flat').default(false),
   priceNew: decimal('price_new', { precision: 10, scale: 2 }),
   stockNew: integer('stock_new').default(0),
+  stockOrdered: integer('stock_ordered').default(0),
+  isLocalStock: boolean('is_local_stock').default(true),
   availableNew: boolean('available_new').default(true),
   featured: boolean('featured').default(false),
   images: text('images').array(),
