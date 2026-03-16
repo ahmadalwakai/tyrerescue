@@ -155,11 +155,10 @@ export function Footer() {
           </Flex>
         </Flex>
 
-        {/* Five columns */}
-        <SimpleGrid columns={{ base: 2, md: 5 }} gap={12} mb="60px">
+        {/* Six columns */}
+        <SimpleGrid columns={{ base: 2, md: 6 }} gap={12} mb="60px">
           <FooterColumn title="About" links={footerLinks.about} />
           <FooterColumn title="Navigation" links={footerLinks.navigation} />
-          <FooterColumn title="Services" links={footerLinks.services} />
           <FooterColumn title="Legal" links={footerLinks.legal} />
           <Box>
             <Text
@@ -167,21 +166,97 @@ export function Footer() {
               fontWeight="500"
               color={colors.textSecondary}
               textTransform="uppercase"
-              letterSpacing="0.1em"
+              letterSpacing="0.15em"
               mb={4}
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              AREAS WE COVER
+              Our Services
             </Text>
             <Flex direction="column" gap={2}>
               {[
-                { label: 'Tyre Fitting Glasgow', href: '/mobile-tyre-fitting/glasgow' },
-                { label: 'Tyre Fitting Edinburgh', href: '/mobile-tyre-fitting/edinburgh' },
-                { label: 'Tyre Fitting Dundee', href: '/mobile-tyre-fitting/dundee' },
-                { label: 'Emergency Glasgow', href: '/emergency-tyre-fitting/glasgow' },
-                { label: 'Emergency Edinburgh', href: '/emergency-tyre-fitting/edinburgh' },
-                { label: 'Tyre Repair Glasgow', href: '/tyre-repair/glasgow' },
-                { label: 'Puncture Repair Glasgow', href: '/puncture-repair/glasgow' },
+                { label: 'Mobile Tyre Fitting', href: '/mobile-tyre-fitting/glasgow' },
+                { label: 'Emergency Tyre Fitting', href: '/emergency-tyre-fitting/glasgow' },
+                { label: 'Tyre Repair', href: '/tyre-repair/glasgow' },
+                { label: 'Puncture Repair', href: '/puncture-repair/glasgow' },
+                { label: 'Tyre Fitting', href: '/tyre-fitting/glasgow' },
+              ].map((link) => (
+                <ChakraLink
+                  key={link.href}
+                  asChild
+                  fontSize="13px"
+                  color={colors.textSecondary}
+                  _hover={{ color: colors.textPrimary }}
+                  transition="color 0.2s"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  <Link href={link.href}>{link.label}</Link>
+                </ChakraLink>
+              ))}
+            </Flex>
+          </Box>
+          <Box>
+            <Text
+              fontSize="11px"
+              fontWeight="500"
+              color={colors.textSecondary}
+              textTransform="uppercase"
+              letterSpacing="0.15em"
+              mb={4}
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              Cities We Cover
+            </Text>
+            <Flex direction="column" gap={2}>
+              {[
+                { label: 'Glasgow', href: '/mobile-tyre-fitting/glasgow' },
+                { label: 'Edinburgh', href: '/mobile-tyre-fitting/edinburgh' },
+                { label: 'Dundee', href: '/mobile-tyre-fitting/dundee' },
+                { label: 'Stirling', href: '/mobile-tyre-fitting/stirling' },
+                { label: 'Falkirk', href: '/mobile-tyre-fitting/falkirk' },
+                { label: 'Paisley', href: '/mobile-tyre-fitting/paisley' },
+                { label: 'Hamilton', href: '/mobile-tyre-fitting/hamilton' },
+                { label: 'East Kilbride', href: '/mobile-tyre-fitting/east-kilbride' },
+                { label: 'Motherwell', href: '/mobile-tyre-fitting/motherwell' },
+                { label: 'Livingston', href: '/mobile-tyre-fitting/livingston' },
+                { label: 'Kirkcaldy', href: '/mobile-tyre-fitting/kirkcaldy' },
+                { label: 'Perth', href: '/mobile-tyre-fitting/perth' },
+                { label: 'Greenock', href: '/mobile-tyre-fitting/greenock' },
+                { label: 'Dunfermline', href: '/mobile-tyre-fitting/dunfermline' },
+              ].map((link) => (
+                <ChakraLink
+                  key={link.href}
+                  asChild
+                  fontSize="13px"
+                  color={colors.textSecondary}
+                  _hover={{ color: colors.textPrimary }}
+                  transition="color 0.2s"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  <Link href={link.href}>{link.label}</Link>
+                </ChakraLink>
+              ))}
+            </Flex>
+          </Box>
+          <Box>
+            <Text
+              fontSize="11px"
+              fontWeight="500"
+              color={colors.textSecondary}
+              textTransform="uppercase"
+              letterSpacing="0.15em"
+              mb={4}
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              Popular Areas
+            </Text>
+            <Flex direction="column" gap={2}>
+              {[
+                { label: 'Govan', href: '/mobile-tyre-fitting/glasgow/govan' },
+                { label: 'Partick', href: '/mobile-tyre-fitting/glasgow/partick' },
+                { label: 'Leith', href: '/mobile-tyre-fitting/edinburgh/leith' },
+                { label: 'Broughty Ferry', href: '/mobile-tyre-fitting/dundee/broughty-ferry' },
+                { label: 'Shawlands', href: '/mobile-tyre-fitting/glasgow/shawlands' },
+                { label: 'Dennistoun', href: '/mobile-tyre-fitting/glasgow/dennistoun' },
               ].map((link) => (
                 <ChakraLink
                   key={link.href}

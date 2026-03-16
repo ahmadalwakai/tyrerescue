@@ -139,11 +139,14 @@ export function ServiceCityContent({ service, city, areas }: { service: ServiceS
                 color={c.muted}
                 lineHeight="1.7"
                 maxW="640px"
-                mb={8}
+                mb={2}
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 We provide {service.name.toLowerCase()} throughout {city.name} and all surrounding areas.
                 Our mobile fitters cover every postcode in {city.county}.
+              </Text>
+              <Text fontSize="13px" color={c.muted} mb={8} style={{ fontFamily: 'var(--font-body)' }}>
+                We cover {areas.length} areas in {city.name}.
               </Text>
               <Flex gap={2} wrap="wrap">
                 {areas.map((area) => (
@@ -268,6 +271,37 @@ export function ServiceCityContent({ service, city, areas }: { service: ServiceS
                 </ChakraLink>
               ))}
             </SimpleGrid>
+          </Container>
+        </Box>
+
+        {/* ── ALL SERVICES ── */}
+        <Box bg={c.surface} py={{ base: '40px', md: '60px' }} px={{ base: 4, md: 8 }}>
+          <Container maxW="1200px">
+            <Text fontSize="16px" fontWeight="600" color={c.text} mb={4} style={{ fontFamily: 'var(--font-body)' }}>
+              All Services in {city.name}
+            </Text>
+            <Flex wrap="wrap" gap={2}>
+              {services.map((s) => (
+                <ChakraLink
+                  key={s.slug}
+                  asChild
+                  bg={c.card}
+                  borderWidth="1px"
+                  borderColor={c.border}
+                  borderRadius="4px"
+                  px={4}
+                  py={2}
+                  _hover={{ borderColor: c.accent, color: c.accent }}
+                  transition="all 0.2s"
+                >
+                  <Link href={`/${s.slug}/${city.slug}`}>
+                    <Text fontSize="13px" color={s.slug === service.slug ? c.accent : c.muted} style={{ fontFamily: 'var(--font-body)' }}>
+                      {s.name}
+                    </Text>
+                  </Link>
+                </ChakraLink>
+              ))}
+            </Flex>
           </Container>
         </Box>
 

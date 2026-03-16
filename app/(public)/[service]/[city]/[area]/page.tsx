@@ -24,19 +24,22 @@ export async function generateMetadata({ params }: { params: Promise<{ service: 
   const area = getAreaBySlug(citySlug, areaSlug);
   if (!service || !city || !area) return {};
 
+  const estimatedArrival = Math.round(area.distanceFromCentre * 3.5 + 18);
+
   return {
-    title: `${service.name} in ${area.name} | ${city.name} | Tyre Rescue`,
-    description: `${service.name} in ${area.name}, ${city.name} (${area.postcode}). Our mobile tyre fitters cover ${area.name} and surrounding areas. Call 0141 266 0690.`,
+    title: `${service.name} ${area.name} ${area.postcode} | ${estimatedArrival} Min Response | Tyre Rescue`,
+    description: `${service.name} in ${area.name}, ${city.name} (${area.postcode}). Response time approximately ${estimatedArrival} minutes. Near ${area.nearestLandmark}. Call 0141 266 0690 — available 24/7.`,
     keywords: [
       `${service.name.toLowerCase()} ${area.name.toLowerCase()}`,
       `${service.name.toLowerCase()} ${area.postcode}`,
       `tyre fitting ${area.name.toLowerCase()}`,
       `mobile tyre ${area.name.toLowerCase()}`,
       `tyre repair ${area.name.toLowerCase()}`,
+      `tyre fitting ${area.postcode}`,
     ].join(', '),
     openGraph: {
       title: `${service.name} in ${area.name}, ${city.name} | Tyre Rescue`,
-      description: `${service.name} in ${area.name} (${area.postcode}). Call 0141 266 0690.`,
+      description: `${service.name} in ${area.name} (${area.postcode}). ~${estimatedArrival} min response. Call 0141 266 0690.`,
       url: `https://www.tyrerescue.uk/${service.slug}/${city.slug}/${area.slug}`,
     },
     alternates: {
@@ -51,6 +54,9 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ se
   const city = getCityBySlug(citySlug);
   const area = getAreaBySlug(citySlug, areaSlug);
   if (!service || !city || !area) notFound();
+
+  const allCityAreas = getAreasForCity(citySlug);
+  const siteUrl = 'https://www.tyrerescue.uk';
 
   return (
     <>
@@ -76,18 +82,38 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ se
             areaServed: {
               '@type': 'Place',
               name: area.name,
+              geo: {
+                '@type': 'GeoCoordinates',
+                latitude: area.lat,
+                longitude: area.lng,
+              },
               address: {
                 '@type': 'PostalAddress',
                 postalCode: area.postcode,
-                addressLocality: city.name,
+                addressRegion: city.county,
                 addressCountry: 'GB',
               },
             },
             serviceType: service.name,
+            hasMap: `https://maps.google.com/?q=${area.lat},${area.lng}`,
           }),
         }}
       />
-      <ServiceAreaContent service={service} city={city} area={area} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: `${siteUrl}/` },
+              { '@type': 'ListItem', position: 2, name: `${service.name} ${city.name}`, item: `${siteUrl}/${service.slug}/${city.slug}` },
+              { '@type': 'ListItem', position: 3, name: area.name, item: `${siteUrl}/${service.slug}/${city.slug}/${area.slug}` },
+            ],
+          }),
+        }}
+      />
+      <ServiceAreaContent service={service} city={city} area={area} allCityAreas={allCityAreas} />
     </>
   );
 }

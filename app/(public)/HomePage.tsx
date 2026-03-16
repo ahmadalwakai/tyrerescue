@@ -18,6 +18,7 @@ import { Footer } from '@/components/ui/Footer';
 import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
 import { colorTokens, inputProps, textareaProps } from '@/lib/design-tokens';
 import { cities } from '@/lib/cities';
+import { services as seoServices, serviceCities } from '@/lib/areas';
 
 const colors = {
   bg: colorTokens.bg,
@@ -1420,6 +1421,44 @@ export function HomePage() {
               ))}
             </Flex>
           </AnimatedSection>
+          </Container>
+        </Box>
+
+        {/* ═══════════════════════════════════════════════════
+            SECTION: OUR SERVICES BY LOCATION
+        ═══════════════════════════════════════════════════ */}
+        <Box bg={colors.bg} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }} borderTop={`1px solid ${colors.border}`}>
+          <Container maxW="1200px">
+            <Text
+              as="h2"
+              fontSize={{ base: '36px', md: '48px' }}
+              color={colors.textPrimary}
+              mb={10}
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              OUR SERVICES BY LOCATION
+            </Text>
+            {seoServices.map((svc) => {
+              const citiesForService = serviceCities.map((slug) => cities.find((c) => c.slug === slug)).filter(Boolean);
+              return (
+                <Box key={svc.slug} mb={6}>
+                  <Text fontSize="14px" fontWeight="600" color={colors.textPrimary} mb={2} style={{ fontFamily: 'var(--font-body)' }}>
+                    {svc.name}
+                  </Text>
+                  <Flex wrap="wrap" gap={2}>
+                    {citiesForService.map((city) => (
+                      <ChakraLink key={city!.slug} asChild _hover={{ borderColor: colors.accent, color: colors.accent }} transition="all 0.2s">
+                        <Link href={`/${svc.slug}/${city!.slug}`}>
+                          <Box bg={colors.surface} borderWidth="1px" borderColor={colors.border} borderRadius="4px" px={3} py="6px">
+                            <Text fontSize="12px" color={colors.textSecondary} style={{ fontFamily: 'var(--font-body)' }}>{city!.name}</Text>
+                          </Box>
+                        </Link>
+                      </ChakraLink>
+                    ))}
+                  </Flex>
+                </Box>
+              );
+            })}
           </Container>
         </Box>
 

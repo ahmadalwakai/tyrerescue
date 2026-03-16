@@ -13,20 +13,48 @@ import { Footer } from '@/components/ui/Footer';
 import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
 import { colorTokens } from '@/lib/design-tokens';
 import type { ServiceSEO, Area } from '@/lib/areas';
+import { services } from '@/lib/areas';
 import type { City } from '@/lib/cities';
 
 const c = colorTokens;
 
-export function ServiceAreaContent({ service, city, area }: { service: ServiceSEO; city: City; area: Area }) {
-  const etaMinutes = Math.round(area.distanceFromCentre * 3 + 20);
+export function ServiceAreaContent({ service, city, area, allCityAreas }: { service: ServiceSEO; city: City; area: Area; allCityAreas: Area[] }) {
+  const estimatedArrival = Math.round(area.distanceFromCentre * 3.5 + 18);
+
+  const nearbyAreas = allCityAreas
+    .filter((a) => a.slug !== area.slug)
+    .sort((a, b) =>
+      Math.abs(a.distanceFromCentre - area.distanceFromCentre) -
+      Math.abs(b.distanceFromCentre - area.distanceFromCentre)
+    )
+    .slice(0, 6);
+
+  const otherServices = services.filter((s) => s.slug !== service.slug);
 
   return (
     <Box minH="100vh" display="flex" flexDirection="column" bg={c.bg}>
       <Nav />
       <Box as="main" flex={1}>
 
+        {/* ── BREADCRUMB ── */}
+        <Box bg={c.bg} pt={{ base: '80px', md: '100px' }} px={{ base: 4, md: 8 }}>
+          <Container maxW="1200px">
+            <Flex align="center" gap={2} flexWrap="wrap">
+              <ChakraLink asChild fontSize="12px" color={c.muted} _hover={{ color: c.text }} style={{ fontFamily: 'var(--font-body)' }}>
+                <Link href="/">Home</Link>
+              </ChakraLink>
+              <Text fontSize="12px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>/</Text>
+              <ChakraLink asChild fontSize="12px" color={c.muted} _hover={{ color: c.text }} style={{ fontFamily: 'var(--font-body)' }}>
+                <Link href={`/${service.slug}/${city.slug}`}>{city.name}</Link>
+              </ChakraLink>
+              <Text fontSize="12px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>/</Text>
+              <Text fontSize="12px" color={c.accent} style={{ fontFamily: 'var(--font-body)' }}>{area.name}</Text>
+            </Flex>
+          </Container>
+        </Box>
+
         {/* ── HERO ── */}
-        <Box bg={c.bg} py={{ base: '80px', md: '120px' }} px={{ base: 4, md: 8 }}>
+        <Box bg={c.bg} py={{ base: '40px', md: '80px' }} px={{ base: 4, md: 8 }}>
           <Container maxW="1200px">
             <Text
               fontSize="11px"
@@ -44,7 +72,7 @@ export function ServiceAreaContent({ service, city, area }: { service: ServiceSE
               color={c.text}
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              {service.name.toUpperCase()} IN {area.name.toUpperCase()}.
+              {service.name.toUpperCase()} IN {area.name.toUpperCase()}, {city.name.toUpperCase()}.
             </Text>
             <Text
               fontSize="17px"
@@ -54,7 +82,7 @@ export function ServiceAreaContent({ service, city, area }: { service: ServiceSE
               mt={6}
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              Serving {area.name} and the {area.postcode} postcode area of {city.name}.
+              {service.name} in {area.name} ({area.postcode}). We typically reach customers near {area.nearestLandmark} in approximately {estimatedArrival} minutes from our Glasgow base. Available 24 hours a day, 7 days a week.
             </Text>
 
             <Flex gap={3} mt={10} direction={{ base: 'column', md: 'row' }} flexWrap="wrap">
@@ -101,7 +129,7 @@ export function ServiceAreaContent({ service, city, area }: { service: ServiceSE
               mb={6}
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              {service.name.toUpperCase()} IN {area.name.toUpperCase()}
+              {service.name.toUpperCase()} NEAR {area.nearestLandmark.toUpperCase()}
             </Text>
             <Text
               fontSize="15px"
@@ -111,9 +139,17 @@ export function ServiceAreaContent({ service, city, area }: { service: ServiceSE
               mb={6}
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              We know {area.name} well. Our mobile tyre fitters regularly serve customers
-              near {area.nearestLandmark} and throughout the {area.postcode} area. We
-              typically reach {area.name} in under {etaMinutes} minutes from our base.
+              Our {service.name.toLowerCase()} service covers {area.name} and the {area.postcode} postcode area. Whether you are near {area.nearestLandmark} or anywhere else in {area.name}, our mobile fitters can reach you. We are {area.distanceFromCentre.toFixed(1)} miles from {city.name} city centre.
+            </Text>
+            <Text
+              fontSize="14px"
+              color={c.muted}
+              lineHeight="1.8"
+              maxW="640px"
+              mb={4}
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              Serving the {area.postcode} postcode area and surrounding streets.
             </Text>
             <Text
               fontSize="15px"
@@ -122,9 +158,7 @@ export function ServiceAreaContent({ service, city, area }: { service: ServiceSE
               maxW="640px"
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              Our {service.name.toLowerCase()} service covers {area.name} ({area.postcode}) and
-              the surrounding streets. Whether you are in the centre of {area.name} or nearby,
-              we can reach you.
+              We know {area.name} well. Our mobile tyre fitters regularly serve customers throughout the {area.postcode} area. We typically reach {area.name} in approximately {estimatedArrival} minutes from our base, making us one of the fastest mobile tyre services available in {city.county}.
             </Text>
           </Container>
         </Box>
@@ -153,6 +187,70 @@ export function ServiceAreaContent({ service, city, area }: { service: ServiceSE
             >
               <Link href="/book">BOOK NOW</Link>
             </ChakraLink>
+          </Container>
+        </Box>
+
+        {/* ── NEARBY AREAS ── */}
+        {nearbyAreas.length > 0 && (
+          <Box bg={c.surface} py={{ base: '40px', md: '60px' }} px={{ base: 4, md: 8 }}>
+            <Container maxW="1200px">
+              <Text fontSize="16px" fontWeight="600" color={c.text} mb={4} style={{ fontFamily: 'var(--font-body)' }}>
+                Nearby Areas We Also Cover
+              </Text>
+              <Flex gap={2} wrap="wrap">
+                {nearbyAreas.map((nearby) => (
+                  <ChakraLink
+                    key={nearby.slug}
+                    asChild
+                    bg={c.card}
+                    borderWidth="1px"
+                    borderColor={c.border}
+                    borderRadius="4px"
+                    px={4}
+                    py={2}
+                    _hover={{ borderColor: c.accent, color: c.accent }}
+                    transition="all 0.2s"
+                  >
+                    <Link href={`/${service.slug}/${city.slug}/${nearby.slug}`}>
+                      <Text fontSize="13px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>
+                        {nearby.name}
+                      </Text>
+                    </Link>
+                  </ChakraLink>
+                ))}
+              </Flex>
+            </Container>
+          </Box>
+        )}
+
+        {/* ── OTHER SERVICES ── */}
+        <Box bg={c.bg} py={{ base: '40px', md: '60px' }} px={{ base: 4, md: 8 }}>
+          <Container maxW="1200px">
+            <Text fontSize="16px" fontWeight="600" color={c.text} mb={4} style={{ fontFamily: 'var(--font-body)' }}>
+              Other Services in {area.name}
+            </Text>
+            <Flex gap={2} wrap="wrap">
+              {otherServices.map((s) => (
+                <ChakraLink
+                  key={s.slug}
+                  asChild
+                  bg={c.card}
+                  borderWidth="1px"
+                  borderColor={c.border}
+                  borderRadius="4px"
+                  px={4}
+                  py={2}
+                  _hover={{ borderColor: c.accent, color: c.accent }}
+                  transition="all 0.2s"
+                >
+                  <Link href={`/${s.slug}/${city.slug}/${area.slug}`}>
+                    <Text fontSize="13px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>
+                      {s.name}
+                    </Text>
+                  </Link>
+                </ChakraLink>
+              ))}
+            </Flex>
           </Container>
         </Box>
 
