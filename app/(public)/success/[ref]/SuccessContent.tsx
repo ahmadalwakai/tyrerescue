@@ -119,7 +119,7 @@ export function SuccessContent({ booking }: SuccessContentProps) {
       'VERSION:2.0',
       'PRODID:-//Tyre Rescue//Booking//EN',
       'BEGIN:VEVENT',
-      `UID:${booking.refNumber}@tyrerescue.co.uk`,
+      `UID:${booking.refNumber}@tyrerescue.uk`,
       `DTSTAMP:${formatICSDate(new Date())}`,
       `DTSTART:${formatICSDate(startDate)}`,
       `DTEND:${formatICSDate(endDate)}`,

@@ -72,7 +72,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       type: 'website',
-      url: `https://tyrerescue.co.uk/tyres/${slug}`,
+      url: `https://www.tyrerescue.uk/tyres/${slug}`,
     },
     twitter: {
       card: 'summary_large_image',
@@ -111,7 +111,7 @@ export default async function TyreDetailPage({ params }: Props) {
       priceCurrency: 'GBP',
       availability: (tyre.stockNew ?? 0) > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       itemCondition: 'https://schema.org/NewCondition',
-      url: `https://tyrerescue.co.uk/tyres/${slug}`,
+      url: `https://www.tyrerescue.uk/tyres/${slug}`,
     });
   }
 
