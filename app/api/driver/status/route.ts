@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireDriver } from '@/lib/auth';
-import { db, drivers } from '@/lib/db';
-import { eq } from 'drizzle-orm';
+import { db, drivers, bookings } from '@/lib/db';
+import { eq, and, inArray } from 'drizzle-orm';
 
 export async function POST(request: Request) {
   try {
@@ -27,6 +27,27 @@ export async function POST(request: Request) {
         { error: 'Driver record not found' },
         { status: 404 }
       );
+    }
+
+    // Prevent going offline while having active jobs
+    if (!is_online) {
+      const [activeJob] = await db
+        .select({ id: bookings.id, refNumber: bookings.refNumber })
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.driverId, driver.id),
+            inArray(bookings.status, ['driver_assigned', 'en_route', 'arrived', 'in_progress'])
+          )
+        )
+        .limit(1);
+
+      if (activeJob) {
+        return NextResponse.json(
+          { error: `Cannot go offline while you have an active job (${activeJob.refNumber}). Complete or contact admin to reassign.` },
+          { status: 400 }
+        );
+      }
     }
 
     // Update driver status

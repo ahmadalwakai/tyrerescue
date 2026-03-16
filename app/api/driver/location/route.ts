@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireDriver } from '@/lib/auth';
-import { db, drivers } from '@/lib/db';
-import { eq } from 'drizzle-orm';
+import { db, drivers, driverLocationHistory, bookings } from '@/lib/db';
+import { eq, and, inArray } from 'drizzle-orm';
 
 export async function POST(request: Request) {
   try {
@@ -54,6 +54,25 @@ export async function POST(request: Request) {
         locationAt: new Date(),
       })
       .where(eq(drivers.id, driver.id));
+
+    // Record location history (find active booking if any)
+    const [activeBooking] = await db
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.driverId, driver.id),
+          inArray(bookings.status, ['driver_assigned', 'en_route', 'arrived', 'in_progress'])
+        )
+      )
+      .limit(1);
+
+    await db.insert(driverLocationHistory).values({
+      driverId: driver.id,
+      bookingId: activeBooking?.id ?? null,
+      lat: lat.toString(),
+      lng: lng.toString(),
+    });
 
     return NextResponse.json({
       success: true,

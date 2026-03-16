@@ -39,5 +39,11 @@ export type { AdminUrgentNoDriverData } from './admin-urgent-no-driver';
 export { adminLowStock } from './admin-low-stock';
 export type { AdminLowStockData } from './admin-low-stock';
 
+export { bookingCancelled } from './booking-cancelled';
+export type { BookingCancelledData } from './booking-cancelled';
+
+export { adminStaleAssignment } from './admin-stale-assignment';
+export type { AdminStaleAssignmentData, StaleBooking } from './admin-stale-assignment';
+
 export { baseEmailTemplate } from './base';
 export type { BaseEmailProps } from './base';
