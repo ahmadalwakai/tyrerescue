@@ -67,17 +67,17 @@ export async function PATCH(request: Request, { params }: Props) {
 
     const currentStatus = booking.status as BookingStatus;
 
-    // Check if booking is in a state that allows assignment
-    // Allow assignment from 'paid' or 'driver_assigned' (for reassignment)
-    if (!['paid', 'driver_assigned'].includes(currentStatus)) {
+    // Block assignment for terminal statuses only
+    const terminalStatuses = ['completed', 'cancelled', 'refunded', 'refunded_partial', 'cancelled_refund_pending'];
+    if (terminalStatuses.includes(currentStatus)) {
       return NextResponse.json(
         { error: `Cannot assign driver to booking in status: ${currentStatus}` },
         { status: 400 }
       );
     }
 
-    // If already in driver_assigned state, just update the driver
-    if (currentStatus === 'driver_assigned') {
+    // If already has a driver (reassignment), just update the driver and timestamps
+    if (currentStatus !== 'paid') {
       const now = new Date();
       await db
         .update(bookings)
@@ -93,11 +93,11 @@ export async function PATCH(request: Request, { params }: Props) {
       // Log the reassignment
       await db.insert(bookingStatusHistory).values({
         bookingId: booking.id,
-        fromStatus: 'driver_assigned',
-        toStatus: 'driver_assigned',
+        fromStatus: currentStatus,
+        toStatus: currentStatus,
         actorUserId: session.user.id,
         actorRole: 'admin',
-        note: 'Driver reassigned',
+        note: `Driver reassigned (during ${currentStatus})`,
       });
 
       return NextResponse.json({ success: true, reassigned: true });

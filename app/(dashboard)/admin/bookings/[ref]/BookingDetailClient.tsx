@@ -186,7 +186,8 @@ export function BookingDetailClient({
   const [recommendation, setRecommendation] = useState('');
   const [driverViewMode, setDriverViewMode] = useState<'ai' | 'manual'>('ai');
 
-  const canAssign = ['paid', 'driver_assigned'].includes(booking.status);
+  const isTerminalStatus = ['completed', 'cancelled', 'refunded', 'refunded_partial', 'cancelled_refund_pending'].includes(booking.status);
+  const canAssign = !isTerminalStatus;
 
   const fetchSuggestions = useCallback(async () => {
     setAiLoading(true);
@@ -255,7 +256,7 @@ export function BookingDetailClient({
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const staticMapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l+ef4444(${booking.lng},${booking.lat})/${booking.lng},${booking.lat},14,0/400x300@2x?access_token=${mapboxToken}`;
 
-  const isTerminal = ['completed', 'cancelled', 'refunded', 'refunded_partial'].includes(booking.status);
+  const isTerminal = isTerminalStatus;
   const nextStatuses = ADMIN_TRANSITIONS[booking.status] || [];
   const canRefund = ['paid', 'driver_assigned', 'completed'].includes(booking.status) && booking.stripePiId;
 
