@@ -7,22 +7,13 @@ const regSchema = z
   .max(10)
   .transform((v) => v.replace(/\s+/g, '').toUpperCase());
 
-interface MotTest {
-  completedDate?: string;
-  testResult?: string;
-  odometerValue?: string;
-  odometerUnit?: string;
-}
-
-interface DvsaVehicle {
+interface DvlaVehicle {
   make?: string;
-  model?: string;
-  primaryColour?: string;
+  colour?: string;
   fuelType?: string;
-  registrationDate?: string;
-  manufactureYear?: string;
-  engineSize?: string;
-  motTests?: MotTest[];
+  yearOfManufacture?: number;
+  engineCapacity?: number;
+  monthOfFirstRegistration?: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -46,12 +37,14 @@ export async function GET(request: NextRequest) {
 
   try {
     const res = await fetch(
-      `https://beta.check-mot.service.gov.uk/trade/vehicles/mot-tests?registration=${parsed.data}`,
+      'https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles',
       {
+        method: 'POST',
         headers: {
-          Accept: 'application/json+v6',
+          'Content-Type': 'application/json',
           'x-api-key': apiKey,
         },
+        body: JSON.stringify({ registrationNumber: parsed.data }),
         signal: AbortSignal.timeout(8000),
       }
     );
@@ -70,25 +63,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data: DvsaVehicle[] = await res.json();
-    const vehicle = data?.[0];
-
-    if (!vehicle) {
-      return NextResponse.json(
-        { error: 'Vehicle not found' },
-        { status: 404 }
-      );
-    }
+    const vehicle: DvlaVehicle = await res.json();
 
     return NextResponse.json({
       make: vehicle.make || null,
-      model: vehicle.model || null,
-      colour: vehicle.primaryColour || null,
+      colour: vehicle.colour || null,
       fuelType: vehicle.fuelType || null,
-      year: vehicle.manufactureYear || null,
+      year: vehicle.yearOfManufacture?.toString() || null,
     });
   } catch (err) {
-    console.error('DVSA lookup error:', err);
+    console.error('DVLA lookup error:', err);
     return NextResponse.json(
       { error: 'Vehicle lookup timed out' },
       { status: 504 }

@@ -37,6 +37,8 @@ export function StepTyreDetails({
   const [vehicleReg, setVehicleReg] = useState(state.vehicleReg || '');
   const [vehicleMake, setVehicleMake] = useState(state.vehicleMake || '');
   const [vehicleModel, setVehicleModel] = useState(state.vehicleModel || '');
+  const [vehicleColour, setVehicleColour] = useState('');
+  const [vehicleYear, setVehicleYear] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [lookupDone, setLookupDone] = useState(false);
@@ -77,7 +79,8 @@ export function StepTyreDetails({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lookup failed');
       if (data.make) setVehicleMake(data.make);
-      if (data.model) setVehicleModel(data.model);
+      if (data.colour) setVehicleColour(data.colour);
+      if (data.year) setVehicleYear(data.year);
       setLookupDone(true);
     } catch (err) {
       setLookupError(err instanceof Error ? err.message : 'Lookup failed');
@@ -259,10 +262,10 @@ export function StepTyreDetails({
             {lookupError}
           </Text>
         )}
-        {lookupDone && (vehicleMake || vehicleModel) && (
+        {lookupDone && vehicleMake && (
           <Box mt={2} p={3} bg="rgba(249,115,22,0.06)" border="1px solid" borderColor={c.accent} borderRadius="md">
             <Text fontSize="sm" color={c.accent} fontWeight="600">
-              {[vehicleMake, vehicleModel].filter(Boolean).join(' ')}
+              {[vehicleYear, vehicleMake, vehicleColour].filter(Boolean).join(' · ')}
             </Text>
             <Text fontSize="xs" color={c.muted} mt={0.5}>
               Vehicle identified — enter your tyre size below
