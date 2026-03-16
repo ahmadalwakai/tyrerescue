@@ -1,14 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
-import { db, bookings, bookingStatusHistory } from '@/lib/db';
+import { db, bookings, bookingStatusHistory, drivers, users } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { executeTransition, BookingStatus, getValidNextStates, isValidTransition } from '@/lib/state-machine';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { bookingCancelled } from '@/lib/email/templates/booking-cancelled';
+import { jobCancelled, jobUpdated } from '@/lib/email/templates';
 
 interface Props {
   params: Promise<{ ref: string }>;
 }
+
+// Fields that are always safe to edit (customer info, notes, schedule)
+const ALWAYS_EDITABLE = new Set([
+  'customerName', 'customerEmail', 'customerPhone',
+  'vehicleReg', 'vehicleMake', 'vehicleModel',
+  'notes', 'scheduledAt',
+]);
+
+// Fields that need confirmation after driver accepts (address, pricing, scope)
+const RESTRICTED_AFTER_ACCEPT = new Set([
+  'addressLine', 'serviceType', 'bookingType',
+  'tyreSizeDisplay', 'quantity', 'lockingNutStatus',
+  'subtotal', 'vatAmount', 'totalAmount',
+]);
+
+// Terminal statuses — no edits allowed
+const TERMINAL_STATUSES = new Set([
+  'completed', 'cancelled', 'refunded', 'refunded_partial', 'cancelled_refund_pending',
+]);
 
 // PUT /api/admin/bookings/[ref] — edit booking fields
 export async function PUT(request: NextRequest, { params }: Props) {
@@ -27,6 +47,20 @@ export async function PUT(request: NextRequest, { params }: Props) {
     if (!booking) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
+
+    const currentStatus = booking.status as string;
+
+    // Block edits on terminal statuses
+    if (TERMINAL_STATUSES.has(currentStatus)) {
+      return NextResponse.json(
+        { error: `Cannot edit booking in ${currentStatus} status` },
+        { status: 400 }
+      );
+    }
+
+    // Determine which fields are allowed based on acceptance state
+    const driverAccepted = !!booking.acceptedAt;
+    const driverActive = ['en_route', 'arrived', 'in_progress'].includes(currentStatus);
 
     // Build update object from allowed fields
     const updates: Record<string, unknown> = {};
@@ -130,6 +164,16 @@ export async function PUT(request: NextRequest, { params }: Props) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
 
+    // Block restricted fields when driver is active (en_route/arrived/in_progress)
+    // unless explicitly confirmed
+    const restrictedEdited = Object.keys(updates).filter((k) => k !== 'updatedAt' && RESTRICTED_AFTER_ACCEPT.has(k));
+    if (driverActive && restrictedEdited.length > 0 && !body.confirmRestricted) {
+      return NextResponse.json(
+        { error: `Driver is ${currentStatus}. Editing ${restrictedEdited.join(', ')} requires confirmation.`, requiresConfirmation: true, restrictedFields: restrictedEdited },
+        { status: 409 }
+      );
+    }
+
     updates.updatedAt = new Date();
 
     await db.update(bookings).set(updates).where(eq(bookings.id, booking.id));
@@ -144,6 +188,35 @@ export async function PUT(request: NextRequest, { params }: Props) {
       actorRole: 'admin',
       note: `Booking edited: ${editedFields}`,
     });
+
+    // Notify assigned driver of changes if driver has been assigned
+    if (booking.driverId && (driverAccepted || driverActive)) {
+      try {
+        const [driver] = await db.select().from(drivers).where(eq(drivers.id, booking.driverId)).limit(1);
+        if (driver?.userId) {
+          const [driverUser] = await db.select().from(users).where(eq(users.id, driver.userId)).limit(1);
+          if (driverUser?.email) {
+            const emailData = jobUpdated({
+              driverName: driverUser.name || 'Driver',
+              refNumber: booking.refNumber,
+              changedFields: editedFields,
+              customerAddress: (updates.addressLine as string) || booking.addressLine,
+              customerPhone: (updates.customerPhone as string) || booking.customerPhone,
+            });
+            await createNotificationAndSend({
+              to: driverUser.email,
+              subject: emailData.subject,
+              html: emailData.html,
+              type: 'job-updated',
+              userId: driver.userId,
+              bookingId: booking.id,
+            });
+          }
+        }
+      } catch (emailErr) {
+        console.error('Failed to notify driver of booking edit:', emailErr);
+      }
+    }
 
     return NextResponse.json({ success: true, updatedFields: editedFields });
   } catch (error) {
@@ -199,6 +272,11 @@ export async function PATCH(request: NextRequest, { params }: Props) {
       );
     }
 
+    // Require cancellation reason
+    if (newStatus === 'cancelled' && (!note || !note.trim())) {
+      return NextResponse.json({ error: 'Cancellation reason is required' }, { status: 400 });
+    }
+
     // Use state machine for normal transitions, manual for admin overrides
     if (isValidTransition(currentStatus, newStatus as BookingStatus)) {
       const result = await executeTransition(
@@ -243,6 +321,34 @@ export async function PATCH(request: NextRequest, { params }: Props) {
         });
       } catch (emailErr) {
         console.error('Failed to send cancellation email:', emailErr);
+      }
+
+      // Notify assigned driver of cancellation
+      if (booking.driverId) {
+        try {
+          const [driver] = await db.select().from(drivers).where(eq(drivers.id, booking.driverId)).limit(1);
+          if (driver?.userId) {
+            const [driverUser] = await db.select().from(users).where(eq(users.id, driver.userId)).limit(1);
+            if (driverUser?.email) {
+              const emailData = jobCancelled({
+                driverName: driverUser.name || 'Driver',
+                refNumber: booking.refNumber,
+                customerAddress: booking.addressLine,
+                reason: note || undefined,
+              });
+              await createNotificationAndSend({
+                to: driverUser.email,
+                subject: emailData.subject,
+                html: emailData.html,
+                type: 'job-cancelled',
+                userId: driver.userId,
+                bookingId: booking.id,
+              });
+            }
+          }
+        } catch (emailErr) {
+          console.error('Failed to send cancellation email to driver:', emailErr);
+        }
       }
     }
 

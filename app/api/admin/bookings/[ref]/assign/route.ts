@@ -4,7 +4,7 @@ import { db, bookings, drivers, bookingStatusHistory, tyreProducts, bookingTyres
 import { eq } from 'drizzle-orm';
 import { executeTransition, BookingStatus } from '@/lib/state-machine';
 import { createNotificationAndSend } from '@/lib/email/resend';
-import { driverAssigned, jobAssigned } from '@/lib/email/templates';
+import { driverAssigned, jobAssigned, jobCancelled } from '@/lib/email/templates';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -218,5 +218,90 @@ export async function PATCH(request: Request, { params }: Props) {
       { error: 'Failed to assign driver' },
       { status: 500 }
     );
+  }
+}
+
+// DELETE /api/admin/bookings/[ref]/assign — remove assigned driver
+export async function DELETE(request: Request, { params }: Props) {
+  try {
+    const session = await requireAdmin();
+    const { ref } = await params;
+
+    const [booking] = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.refNumber, ref))
+      .limit(1);
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    }
+
+    if (!booking.driverId) {
+      return NextResponse.json({ error: 'No driver assigned' }, { status: 400 });
+    }
+
+    // Only allow removal before driver starts working
+    if (['en_route', 'arrived', 'in_progress'].includes(booking.status)) {
+      return NextResponse.json(
+        { error: `Cannot remove driver while job is ${booking.status}. Reassign instead.` },
+        { status: 400 }
+      );
+    }
+
+    const previousDriverId = booking.driverId;
+
+    // Revert booking to paid status and clear driver data
+    await db
+      .update(bookings)
+      .set({
+        driverId: null,
+        assignedAt: null,
+        acceptedAt: null,
+        acceptanceDeadline: null,
+        status: 'paid',
+        updatedAt: new Date(),
+      })
+      .where(eq(bookings.id, booking.id));
+
+    await db.insert(bookingStatusHistory).values({
+      bookingId: booking.id,
+      fromStatus: booking.status,
+      toStatus: 'paid',
+      actorUserId: session.user.id,
+      actorRole: 'admin',
+      note: 'Driver removed by admin',
+    });
+
+    // Notify the removed driver
+    try {
+      const [driver] = await db.select().from(drivers).where(eq(drivers.id, previousDriverId)).limit(1);
+      if (driver?.userId) {
+        const [driverUser] = await db.select().from(users).where(eq(users.id, driver.userId)).limit(1);
+        if (driverUser?.email) {
+          const emailData = jobCancelled({
+            driverName: driverUser.name || 'Driver',
+            refNumber: booking.refNumber,
+            customerAddress: booking.addressLine,
+            reason: 'Driver assignment removed by admin',
+          });
+          await createNotificationAndSend({
+            to: driverUser.email,
+            subject: emailData.subject,
+            html: emailData.html,
+            type: 'job-cancelled',
+            userId: driver.userId,
+            bookingId: booking.id,
+          });
+        }
+      }
+    } catch (emailErr) {
+      console.error('Failed to notify driver of removal:', emailErr);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error removing driver:', error);
+    return NextResponse.json({ error: 'Failed to remove driver' }, { status: 500 });
   }
 }

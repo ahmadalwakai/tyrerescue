@@ -244,6 +244,8 @@ export function BookingDetailClient({
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState('');
+  const [editConfirmRestricted, setEditConfirmRestricted] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState<Record<string, unknown> | null>(null);
 
   // ── Status change ──
   const [statusLoading, setStatusLoading] = useState(false);
@@ -252,6 +254,12 @@ export function BookingDetailClient({
 
   // ── Cancel ──
   const [showCancel, setShowCancel] = useState(false);
+
+  // ── Remove driver ──
+  const [removeDriverLoading, setRemoveDriverLoading] = useState(false);
+
+  const driverAccepted = !!booking.acceptedAt;
+  const driverActive = ['en_route', 'arrived', 'in_progress'].includes(booking.status);
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const staticMapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l+ef4444(${booking.lng},${booking.lat})/${booking.lng},${booking.lat},14,0/400x300@2x?access_token=${mapboxToken}`;
@@ -305,32 +313,35 @@ export function BookingDetailClient({
     }
   }
 
-  async function handleEdit() {
+  async function handleEdit(confirmRestricted = false) {
     setEditLoading(true);
     setEditError('');
     setEditSuccess('');
     try {
-      const payload: Record<string, unknown> = {};
-      if (editData.customerName !== booking.customerName) payload.customerName = editData.customerName;
-      if (editData.customerEmail !== booking.customerEmail) payload.customerEmail = editData.customerEmail;
-      if (editData.customerPhone !== booking.customerPhone) payload.customerPhone = editData.customerPhone;
-      if (editData.vehicleReg !== (booking.vehicleReg || '')) payload.vehicleReg = editData.vehicleReg || null;
-      if (editData.vehicleMake !== (booking.vehicleMake || '')) payload.vehicleMake = editData.vehicleMake || null;
-      if (editData.vehicleModel !== (booking.vehicleModel || '')) payload.vehicleModel = editData.vehicleModel || null;
-      if (editData.addressLine !== booking.addressLine) payload.addressLine = editData.addressLine;
-      if (editData.notes !== (booking.notes || '')) payload.notes = editData.notes || null;
-      if (editData.serviceType !== booking.serviceType) payload.serviceType = editData.serviceType;
-      if (editData.bookingType !== booking.bookingType) payload.bookingType = editData.bookingType;
-      if (editData.tyreSizeDisplay !== (booking.tyreSizeDisplay || '')) payload.tyreSizeDisplay = editData.tyreSizeDisplay || null;
-      if (editData.quantity !== String(booking.quantity)) payload.quantity = editData.quantity;
-      if (editData.lockingNutStatus !== (booking.lockingNutStatus || 'standard')) payload.lockingNutStatus = editData.lockingNutStatus;
-      if (editData.subtotal !== booking.subtotal) payload.subtotal = editData.subtotal;
-      if (editData.vatAmount !== booking.vatAmount) payload.vatAmount = editData.vatAmount;
-      if (editData.totalAmount !== booking.totalAmount) payload.totalAmount = editData.totalAmount;
+      const payload: Record<string, unknown> = confirmRestricted && pendingPayload ? { ...pendingPayload } : {};
 
-      const origScheduled = booking.scheduledAt ? booking.scheduledAt.slice(0, 16) : '';
-      if (editData.scheduledAt !== origScheduled) {
-        payload.scheduledAt = editData.scheduledAt ? new Date(editData.scheduledAt).toISOString() : null;
+      if (!confirmRestricted) {
+        if (editData.customerName !== booking.customerName) payload.customerName = editData.customerName;
+        if (editData.customerEmail !== booking.customerEmail) payload.customerEmail = editData.customerEmail;
+        if (editData.customerPhone !== booking.customerPhone) payload.customerPhone = editData.customerPhone;
+        if (editData.vehicleReg !== (booking.vehicleReg || '')) payload.vehicleReg = editData.vehicleReg || null;
+        if (editData.vehicleMake !== (booking.vehicleMake || '')) payload.vehicleMake = editData.vehicleMake || null;
+        if (editData.vehicleModel !== (booking.vehicleModel || '')) payload.vehicleModel = editData.vehicleModel || null;
+        if (editData.addressLine !== booking.addressLine) payload.addressLine = editData.addressLine;
+        if (editData.notes !== (booking.notes || '')) payload.notes = editData.notes || null;
+        if (editData.serviceType !== booking.serviceType) payload.serviceType = editData.serviceType;
+        if (editData.bookingType !== booking.bookingType) payload.bookingType = editData.bookingType;
+        if (editData.tyreSizeDisplay !== (booking.tyreSizeDisplay || '')) payload.tyreSizeDisplay = editData.tyreSizeDisplay || null;
+        if (editData.quantity !== String(booking.quantity)) payload.quantity = editData.quantity;
+        if (editData.lockingNutStatus !== (booking.lockingNutStatus || 'standard')) payload.lockingNutStatus = editData.lockingNutStatus;
+        if (editData.subtotal !== booking.subtotal) payload.subtotal = editData.subtotal;
+        if (editData.vatAmount !== booking.vatAmount) payload.vatAmount = editData.vatAmount;
+        if (editData.totalAmount !== booking.totalAmount) payload.totalAmount = editData.totalAmount;
+
+        const origScheduled = booking.scheduledAt ? booking.scheduledAt.slice(0, 16) : '';
+        if (editData.scheduledAt !== origScheduled) {
+          payload.scheduledAt = editData.scheduledAt ? new Date(editData.scheduledAt).toISOString() : null;
+        }
       }
 
       if (Object.keys(payload).length === 0) {
@@ -339,17 +350,33 @@ export function BookingDetailClient({
         return;
       }
 
+      if (confirmRestricted) {
+        payload.confirmRestricted = true;
+      }
+
       const res = await fetch(`/api/admin/bookings/${booking.refNumber}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+
+      if (res.status === 409) {
+        const data = await res.json();
+        setPendingPayload(payload);
+        setEditConfirmRestricted(true);
+        setEditError(data.error);
+        setEditLoading(false);
+        return;
+      }
+
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to update');
       }
-      setEditSuccess('Booking updated');
+      setEditSuccess('Booking updated — driver notified');
       setEditing(false);
+      setEditConfirmRestricted(false);
+      setPendingPayload(null);
       router.refresh();
     } catch (err) {
       setEditError(err instanceof Error ? err.message : 'Failed to update');
@@ -378,6 +405,25 @@ export function BookingDetailClient({
       setStatusError(err instanceof Error ? err.message : 'Failed to change status');
     } finally {
       setStatusLoading(false);
+    }
+  }
+
+  async function handleRemoveDriver() {
+    setRemoveDriverLoading(true);
+    setAssignError('');
+    try {
+      const res = await fetch(`/api/admin/bookings/${booking.refNumber}/assign`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to remove driver');
+      }
+      router.refresh();
+    } catch (err) {
+      setAssignError(err instanceof Error ? err.message : 'Failed to remove driver');
+    } finally {
+      setRemoveDriverLoading(false);
     }
   }
 
@@ -578,16 +624,31 @@ export function BookingDetailClient({
 
           {/* Edit save/cancel bar */}
           {editing && (
-            <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.accent} style={anim.scaleIn('0.2s')}>
+            <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={editConfirmRestricted ? 'orange.400' : c.accent} style={anim.scaleIn('0.2s')}>
+              {driverActive && <Text fontSize="xs" color="orange.300" mb={2}>Driver is {booking.status.replace('_', ' ')} — changes to address, service, or pricing will notify the driver and require confirmation.</Text>}
               {editError && <Text color="red.400" fontSize="sm" mb={2}>{editError}</Text>}
-              <HStack>
-                <Button bg={c.accent} color="#09090B" _hover={{ bg: c.accentHover }} onClick={handleEdit} disabled={editLoading} flex={1} minH="44px">
-                  {editLoading ? <Spinner size="sm" /> : 'Save Changes'}
-                </Button>
-                <Button variant="outline" borderColor={c.border} color={c.muted} onClick={() => { setEditing(false); setEditError(''); }} flex={1} minH="44px">
-                  Discard
-                </Button>
-              </HStack>
+              {editConfirmRestricted ? (
+                <VStack align="stretch" gap={2}>
+                  <Text fontWeight="600" color="orange.300" fontSize="sm">The driver is active. Are you sure you want to update these restricted fields?</Text>
+                  <HStack>
+                    <Button bg="orange.500" color="white" _hover={{ bg: 'orange.600' }} onClick={() => handleEdit(true)} disabled={editLoading} flex={1} minH="44px">
+                      {editLoading ? <Spinner size="sm" /> : 'Yes, Save & Notify Driver'}
+                    </Button>
+                    <Button variant="outline" borderColor={c.border} color={c.muted} onClick={() => { setEditConfirmRestricted(false); setPendingPayload(null); setEditError(''); }} flex={1} minH="44px">
+                      Cancel
+                    </Button>
+                  </HStack>
+                </VStack>
+              ) : (
+                <HStack>
+                  <Button bg={c.accent} color="#09090B" _hover={{ bg: c.accentHover }} onClick={() => handleEdit()} disabled={editLoading} flex={1} minH="44px">
+                    {editLoading ? <Spinner size="sm" /> : 'Save Changes'}
+                  </Button>
+                  <Button variant="outline" borderColor={c.border} color={c.muted} onClick={() => { setEditing(false); setEditError(''); setEditConfirmRestricted(false); setPendingPayload(null); }} flex={1} minH="44px">
+                    Discard
+                  </Button>
+                </HStack>
+              )}
             </Box>
           )}
 
@@ -765,16 +826,17 @@ export function BookingDetailClient({
                   ) : (
                     <VStack align="stretch" gap={2}>
                       <Text color="red.400" fontSize="sm" fontWeight="600">Are you sure? This cannot be undone.</Text>
+                      {assignedDriver && <Text color="orange.300" fontSize="xs">The assigned driver will be notified of this cancellation.</Text>}
                       <Input
                         {...inputProps}
                         size="sm"
                         height="36px"
-                        placeholder="Cancellation reason…"
+                        placeholder="Cancellation reason (required)…"
                         value={statusNote}
                         onChange={(e) => setStatusNote(e.target.value)}
                       />
                       <HStack>
-                        <Button size="sm" bg="red.500" color="white" _hover={{ bg: 'red.600' }} onClick={() => handleStatusChange('cancelled')} disabled={statusLoading} flex={1}>
+                        <Button size="sm" bg="red.500" color="white" _hover={{ bg: 'red.600' }} onClick={() => handleStatusChange('cancelled')} disabled={statusLoading || !statusNote.trim()} flex={1}>
                           {statusLoading ? <Spinner size="xs" /> : 'Yes, Cancel'}
                         </Button>
                         <Button size="sm" variant="outline" borderColor={c.border} color={c.muted} onClick={() => setShowCancel(false)} flex={1}>
@@ -793,9 +855,28 @@ export function BookingDetailClient({
             <Heading size="md" mb={4} color={c.text}>Driver Assignment</Heading>
             {assignedDriver ? (
               <Box mb={4} p={3} bg="rgba(34,197,94,0.1)" borderRadius="md">
-                <Text fontWeight="medium" color={c.text}>{assignedDriver.name}</Text>
-                {assignedDriver.email && <Text fontSize="sm" color={c.muted}>{assignedDriver.email}</Text>}
-                {assignedDriver.phone && <Text fontSize="sm" color={c.muted}>{assignedDriver.phone}</Text>}
+                <HStack justify="space-between" align="start">
+                  <Box>
+                    <Text fontWeight="medium" color={c.text}>{assignedDriver.name}</Text>
+                    {assignedDriver.email && <Text fontSize="sm" color={c.muted}>{assignedDriver.email}</Text>}
+                    {assignedDriver.phone && <Text fontSize="sm" color={c.muted}>{assignedDriver.phone}</Text>}
+                  </Box>
+                  {canAssign && !driverActive && (
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      borderColor="red.500"
+                      color="red.400"
+                      _hover={{ bg: 'rgba(239,68,68,0.1)' }}
+                      onClick={handleRemoveDriver}
+                      disabled={removeDriverLoading}
+                    >
+                      {removeDriverLoading ? <Spinner size="xs" /> : 'Remove'}
+                    </Button>
+                  )}
+                </HStack>
+                {driverAccepted && <Badge colorPalette="green" size="sm" mt={2}>Accepted</Badge>}
+                {!driverAccepted && booking.status === 'driver_assigned' && <Badge colorPalette="yellow" size="sm" mt={2}>Awaiting Acceptance</Badge>}
               </Box>
             ) : (
               <Text color={c.muted} mb={4}>No driver assigned</Text>

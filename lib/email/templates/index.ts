@@ -45,5 +45,11 @@ export type { BookingCancelledData } from './booking-cancelled';
 export { adminStaleAssignment } from './admin-stale-assignment';
 export type { AdminStaleAssignmentData, StaleBooking } from './admin-stale-assignment';
 
+export { jobCancelled } from './job-cancelled';
+export type { JobCancelledData } from './job-cancelled';
+
+export { jobUpdated } from './job-updated';
+export type { JobUpdatedData } from './job-updated';
+
 export { baseEmailTemplate } from './base';
 export type { BaseEmailProps } from './base';
