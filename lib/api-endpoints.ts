@@ -25,6 +25,9 @@ export const API = {
   TYRES_SIZES: '/api/tyres/sizes',
   TYRES_POPULAR_SIZES: '/api/tyres/popular-sizes',
 
+  // Vehicle Lookup
+  VEHICLE_LOOKUP: '/api/vehicle-lookup',
+
   // Upload
   UPLOAD_TYRE_PHOTO: '/api/upload/tyre-photo',
 } as const;

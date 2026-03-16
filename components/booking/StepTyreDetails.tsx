@@ -35,6 +35,11 @@ export function StepTyreDetails({
   goToPrev,
 }: StepTyreDetailsProps) {
   const [vehicleReg, setVehicleReg] = useState(state.vehicleReg || '');
+  const [vehicleMake, setVehicleMake] = useState(state.vehicleMake || '');
+  const [vehicleModel, setVehicleModel] = useState(state.vehicleModel || '');
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [lookupDone, setLookupDone] = useState(false);
   const [width, setWidth] = useState(state.tyreSize.width || '');
   const [aspect, setAspect] = useState(state.tyreSize.aspect || '');
   const [rim, setRim] = useState(state.tyreSize.rim || '');
@@ -59,6 +64,27 @@ export function StepTyreDetails({
   const searchRef = useRef<HTMLDivElement>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Vehicle registration lookup
+  const handleRegLookup = useCallback(async () => {
+    const cleaned = vehicleReg.replace(/\s+/g, '').toUpperCase();
+    if (cleaned.length < 2) return;
+    setLookupLoading(true);
+    setLookupError(null);
+    setLookupDone(false);
+    try {
+      const res = await fetch(`${API.VEHICLE_LOOKUP}?reg=${encodeURIComponent(cleaned)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lookup failed');
+      if (data.make) setVehicleMake(data.make);
+      if (data.model) setVehicleModel(data.model);
+      setLookupDone(true);
+    } catch (err) {
+      setLookupError(err instanceof Error ? err.message : 'Lookup failed');
+    } finally {
+      setLookupLoading(false);
+    }
+  }, [vehicleReg]);
 
   // Fetch popular sizes on mount
   useEffect(() => {
@@ -165,6 +191,8 @@ export function StepTyreDetails({
 
     updateState({
       vehicleReg,
+      vehicleMake,
+      vehicleModel,
       tyreSize: { width, aspect, rim },
       conditionAssessment: condition,
       tyrePhotoUrl: photoUrl,
@@ -186,22 +214,61 @@ export function StepTyreDetails({
         </Text>
       </Box>
 
-      {/* Vehicle Registration (Optional) */}
+      {/* Vehicle Registration with Lookup */}
       <Box style={anim.fadeUp('0.5s', '0.1s')}>
         <Text fontWeight="500" mb={2}>
           Vehicle Registration (optional)
         </Text>
-        <Input {...inputProps}
-          size="lg"
-          placeholder="AB12 CDE"
-          value={vehicleReg}
-          onChange={(e) => setVehicleReg(e.target.value.toUpperCase())}
-          maxLength={10}
-          aria-label="Vehicle registration"
-        />
+        <HStack gap={2}>
+          <Input {...inputProps}
+            size="lg"
+            placeholder="AB12 CDE"
+            value={vehicleReg}
+            onChange={(e) => {
+              setVehicleReg(e.target.value.toUpperCase());
+              setLookupDone(false);
+              setLookupError(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && vehicleReg.replace(/\s+/g, '').length >= 2) {
+                e.preventDefault();
+                handleRegLookup();
+              }
+            }}
+            maxLength={10}
+            aria-label="Vehicle registration"
+            flex={1}
+          />
+          <Button
+            size="lg"
+            colorPalette="orange"
+            variant="outline"
+            onClick={handleRegLookup}
+            disabled={lookupLoading || vehicleReg.replace(/\s+/g, '').length < 2}
+            minW="100px"
+            flexShrink={0}
+          >
+            {lookupLoading ? <Spinner size="sm" /> : 'Lookup'}
+          </Button>
+        </HStack>
         <Text fontSize="xs" color={c.muted} mt={1}>
-          Helps our driver identify your vehicle
+          Enter your reg and tap Lookup to auto-fill vehicle details
         </Text>
+        {lookupError && (
+          <Text fontSize="xs" color="red.400" mt={1}>
+            {lookupError}
+          </Text>
+        )}
+        {lookupDone && (vehicleMake || vehicleModel) && (
+          <Box mt={2} p={3} bg="rgba(249,115,22,0.06)" border="1px solid" borderColor={c.accent} borderRadius="md">
+            <Text fontSize="sm" color={c.accent} fontWeight="600">
+              {[vehicleMake, vehicleModel].filter(Boolean).join(' ')}
+            </Text>
+            <Text fontSize="xs" color={c.muted} mt={0.5}>
+              Vehicle identified — enter your tyre size below
+            </Text>
+          </Box>
+        )}
       </Box>
 
       {/* Tyre Size */}
