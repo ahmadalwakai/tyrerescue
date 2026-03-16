@@ -98,9 +98,19 @@ export async function proxy(request: NextRequest) {
     '/cookie-policy',
   ];
 
+  // Service SEO routes (e.g. /mobile-tyre-fitting/glasgow/govan)
+  const serviceRoutes = [
+    '/mobile-tyre-fitting',
+    '/emergency-tyre-fitting',
+    '/tyre-repair',
+    '/puncture-repair',
+    '/tyre-fitting',
+  ];
+
   // Check if the route is public
   const isPublicRoute =
     publicRoutes.includes(pathname) ||
+    serviceRoutes.some((route) => pathname.startsWith(route)) ||
     pathname.startsWith('/tyres/') ||
     pathname.startsWith('/tracking/') ||
     pathname.startsWith('/success/') ||
