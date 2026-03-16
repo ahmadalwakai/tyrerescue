@@ -33,7 +33,12 @@ interface ActiveJob {
   scheduledAt: string | null;
   acceptedAt: string | null;
   serviceType: string;
+  bookingType: string;
   notes: string | null;
+  vehicleReg: string | null;
+  vehicleMake: string | null;
+  vehicleModel: string | null;
+  lockingNutStatus: string | null;
   tyres: {
     quantity: number;
     brand: string | null;
@@ -252,6 +257,23 @@ export function DriverDashboardClient({
                 </VStack>
               )}
             </Box>
+
+            {/* Vehicle Info */}
+            {(activeJob.vehicleReg || activeJob.vehicleMake || activeJob.vehicleModel) && (
+              <Box>
+                <Text fontSize="sm" fontWeight="medium" color={c.muted} mb={1}>
+                  Vehicle
+                </Text>
+                <Text fontWeight="medium" color={c.text}>
+                  {[activeJob.vehicleReg, activeJob.vehicleMake, activeJob.vehicleModel].filter(Boolean).join(' · ')}
+                </Text>
+                {activeJob.lockingNutStatus && (
+                  <Text fontSize="xs" color={c.muted} mt={1}>
+                    Locking nut: {activeJob.lockingNutStatus.replace(/_/g, ' ')}
+                  </Text>
+                )}
+              </Box>
+            )}
 
             {/* Customer Phone */}
             <Box>
