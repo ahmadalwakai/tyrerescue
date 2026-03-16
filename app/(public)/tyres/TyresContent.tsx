@@ -31,6 +31,7 @@ interface Tyre {
   wetGrip: string | null;
   priceNew: number | null;
   stockNew: number | null;
+  isLocalStock: boolean | null;
   availableNew: boolean | null;
   slug: string;
 }

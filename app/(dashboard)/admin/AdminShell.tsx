@@ -6,6 +6,7 @@ import { Box, Flex, VStack, Link as ChakraLink, Text, Heading } from '@chakra-ui
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { AdminChatbot } from '@/components/admin/AdminChatbot';
 
 const navItems = [
   { label: 'Bookings', href: '/admin/bookings' },
@@ -325,6 +326,7 @@ export function AdminShell({
         minH="100vh"
       >
         {children}
+        <AdminChatbot />
       </Box>
     </Flex>
   );

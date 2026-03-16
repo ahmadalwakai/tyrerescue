@@ -412,6 +412,22 @@ export const cookieSettings = pgTable('cookie_settings', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// Admin chat settings (per-admin chatbot preferences)
+export const adminChatSettings = pgTable('admin_chat_settings', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id).unique().notNull(),
+  dailyAskEnabled: boolean('daily_ask_enabled').default(true),
+  dailyAskTime: text('daily_ask_time'),
+  lastAskedAt: timestamp('last_asked_at', { withTimezone: true }),
+  lastAnsweredAt: timestamp('last_answered_at', { withTimezone: true }),
+  voiceInputEnabled: boolean('voice_input_enabled').default(false),
+  voiceOutputEnabled: boolean('voice_output_enabled').default(false),
+  autoOpenEnabled: boolean('auto_open_enabled').default(true),
+  lastSeenAlertsAt: timestamp('last_seen_alerts_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
 // Type exports for use throughout the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -453,3 +469,5 @@ export type ContactMessage = typeof contactMessages.$inferSelect;
 export type NewContactMessage = typeof contactMessages.$inferInsert;
 export type CookieSetting = typeof cookieSettings.$inferSelect;
 export type NewCookieSetting = typeof cookieSettings.$inferInsert;
+export type AdminChatSetting = typeof adminChatSettings.$inferSelect;
+export type NewAdminChatSetting = typeof adminChatSettings.$inferInsert;

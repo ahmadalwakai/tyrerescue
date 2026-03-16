@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
       .from(tyreProducts)
       .leftJoin(tyreCatalogue, eq(tyreCatalogue.id, tyreProducts.catalogueId))
       .where(whereClause)
-      .orderBy(desc(tyreProducts.featured), asc(tyreProducts.brand), asc(tyreProducts.pattern))
+      .orderBy(desc(tyreProducts.featured), desc(tyreProducts.isLocalStock), desc(tyreProducts.stockNew), asc(tyreProducts.brand), asc(tyreProducts.pattern))
       .limit(limit)
       .offset(offset);
 

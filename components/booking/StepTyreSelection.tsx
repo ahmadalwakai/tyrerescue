@@ -275,19 +275,13 @@ export function StepTyreSelection({
                           <Text fontSize="sm" color={c.muted}>Price N/A</Text>
                         )}
 
-                        {inStock ? (
-                          tyre.isLocalStock !== false ? (
-                            <Badge colorPalette="green" size="sm">
-                              Available Now
-                            </Badge>
-                          ) : (
-                            <Badge colorPalette="orange" size="sm">
-                              2-3 Days
-                            </Badge>
-                          )
+                        {inStock && tyre.isLocalStock !== false ? (
+                          <Badge colorPalette="green" size="sm">
+                            In Stock — Same Day
+                          </Badge>
                         ) : tyre.priceNew ? (
-                          <Badge colorPalette="red" size="sm">
-                            Pre-order
+                          <Badge colorPalette="orange" size="sm">
+                            Pre-order — 2-3 Working Days
                           </Badge>
                         ) : (
                           <Badge colorPalette="gray" size="sm">Unavailable</Badge>

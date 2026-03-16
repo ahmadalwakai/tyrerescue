@@ -14,7 +14,8 @@
     "db:seed": "dotenv -e .env.local -- tsx seed.ts",
     "seed:tyres": "dotenv -e .env.local -- tsx scripts/seed-tyres.ts",
     "seed:areas": "dotenv -e .env.local -- tsx scripts/seed-service-areas.ts",
-    "seed:cookies": "dotenv -e .env.local -- tsx scripts/seed-cookie-settings.ts"
+    "seed:cookies": "dotenv -e .env.local -- tsx scripts/seed-cookie-settings.ts",
+    "seed:stock": "dotenv -e .env.local -- tsx scripts/seed-from-excel.ts"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.34.0",
@@ -36,6 +37,7 @@
     "resend": "^6.9.3",
     "stripe": "^20.4.1",
     "uuid": "^13.0.0",
+    "xlsx": "^0.18.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {

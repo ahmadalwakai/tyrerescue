@@ -15,6 +15,7 @@ interface Tyre {
   wetGrip: string | null;
   priceNew: number | null;
   stockNew: number | null;
+  isLocalStock: boolean | null;
   availableNew: boolean | null;
   slug: string;
 }
@@ -29,21 +30,21 @@ const SEASON_LABELS: Record<string, string> = {
   allseason: 'All Season',
 };
 
-function getStockBadge(stock: number | null): { text: string; weight: string } {
-  if (stock === null || stock === 0) {
-    return { text: 'Out of Stock', weight: 'normal' };
+function getStockBadge(stock: number | null, isLocal: boolean | null): { text: string; color: string } {
+  if (isLocal && stock && stock >= 3) {
+    return { text: 'In Stock', color: '#22C55E' };
   }
-  if (stock <= 4) {
-    return { text: 'Low Stock', weight: 'medium' };
+  if (isLocal && stock && stock >= 1) {
+    return { text: 'Low Stock', color: c.accent };
   }
-  return { text: 'In Stock', weight: 'semibold' };
+  return { text: 'Pre-order', color: c.accent };
 }
 
 export function TyreCard({ tyre }: Props) {
   const price = tyre.priceNew;
   const stock = tyre.stockNew;
   const available = tyre.availableNew;
-  const stockBadge = getStockBadge(stock);
+  const stockBadge = getStockBadge(stock, tyre.isLocalStock);
 
   if (!available || price === null) {
     return null;
@@ -89,7 +90,7 @@ export function TyreCard({ tyre }: Props) {
           <Text fontSize="xl" fontWeight="bold" color={c.text}>
             £{price.toFixed(2)}
           </Text>
-          <Text fontSize="sm" fontWeight={stockBadge.weight}>
+          <Text fontSize="sm" fontWeight="500" color={stockBadge.color}>
             {stockBadge.text}
           </Text>
         </HStack>
@@ -100,7 +101,7 @@ export function TyreCard({ tyre }: Props) {
           size="sm"
           colorPalette="orange"
           width="100%"
-          disabled={stock === 0}
+          disabled={!available}
         >
           <NextLink href={`/emergency?tyreId=${tyre.id}`}>
             Book This Tyre

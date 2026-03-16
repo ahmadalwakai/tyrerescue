@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box, Heading, Text, VStack, HStack, Button, Input, Grid,
   Flex, Spinner,
@@ -110,6 +110,55 @@ export function InventoryClient() {
   const [customSaving, setCustomSaving] = useState(false);
   const [customError, setCustomError] = useState<string | null>(null);
 
+  // Import stock state
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    success: boolean;
+    imported?: number;
+    activated?: number;
+    message?: string;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    setImportResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/admin/inventory/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Import failed');
+
+      setImportResult({
+        success: true,
+        imported: data.imported,
+        activated: data.activated,
+        message: `Import complete. ${data.imported} sizes imported from file. ${data.activated} additional sizes activated as pre-order. ${data.reset} items reset to pre-order.`,
+      });
+
+      fetchItems(1);
+    } catch (error) {
+      setImportResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Import failed',
+      });
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleCustomSubmit = async () => {
     setCustomSaving(true);
     setCustomError(null);
@@ -162,13 +211,66 @@ export function InventoryClient() {
             Activate the tyres you currently stock. Set your price and quantity for each.
           </Text>
         </Box>
-        <Button
-          bg={c.accent} color="white" fontFamily="var(--font-display)" fontSize="16px"
-          h="44px" px={5} onClick={() => setShowCustomForm(!showCustomForm)}
-        >
-          {showCustomForm ? 'CANCEL' : 'ADD CUSTOM TYRE'}
-        </Button>
+        <Flex gap={2}>
+          <Button
+            bg={c.surface} color={c.text} fontFamily="var(--font-display)" fontSize="16px"
+            h="44px" px={5} borderWidth="1px" borderColor={c.border}
+            _hover={{ borderColor: c.accent }}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+          >
+            {importing ? 'IMPORTING...' : 'IMPORT STOCK FILE'}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xls,.xlsx"
+            style={{ display: 'none' }}
+            onChange={handleImport}
+          />
+          <Button
+            bg={c.accent} color="white" fontFamily="var(--font-display)" fontSize="16px"
+            h="44px" px={5} onClick={() => setShowCustomForm(!showCustomForm)}
+          >
+            {showCustomForm ? 'CANCEL' : 'ADD CUSTOM TYRE'}
+          </Button>
+        </Flex>
       </Flex>
+
+      {/* Import result */}
+      {importResult && (
+        <Box
+          mt={-3}
+          borderRadius="8px"
+          p="14px"
+          bg={importResult.success ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'}
+          borderWidth="1px"
+          borderColor={importResult.success ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}
+        >
+          <Text fontSize="13px" color={importResult.success ? '#22C55E' : '#EF4444'} style={{ fontFamily: 'var(--font-body)' }}>
+            {importResult.message}
+          </Text>
+        </Box>
+      )}
+
+      {/* Import format info */}
+      <Box bg={c.surface} borderWidth="1px" borderColor={c.border} borderRadius="8px" p={4}>
+        <Text fontSize="13px" fontWeight="600" color={c.text} style={{ fontFamily: 'var(--font-body)' }}>
+          Stock Import Format
+        </Text>
+        <Text fontSize="12px" color={c.muted} mt={2} style={{ fontFamily: 'var(--font-body)' }}>
+          Upload your stock Excel file (.xls or .xlsx).
+        </Text>
+        <Text fontSize="12px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>
+          Expected columns: Item Code | Item Name | Barcode | Quantity
+        </Text>
+        <Text fontSize="12px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>
+          Item code format: 1956016c = 195/60/R16
+        </Text>
+        <Text fontSize="12px" color={c.accent} mt={2} style={{ fontFamily: 'var(--font-body)' }}>
+          Items in the file = In Stock (local). All other catalogue sizes = Pre-order 2-3 days.
+        </Text>
+      </Box>
 
       {/* Custom tyre form */}
       {showCustomForm && (
