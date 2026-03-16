@@ -98,6 +98,10 @@ export default async function DriverJobDetailPage({ params }: Props) {
     arrivedAt: booking.arrivedAt?.toISOString() ?? null,
     inProgressAt: booking.inProgressAt?.toISOString() ?? null,
     completedAt: booking.completedAt?.toISOString() ?? null,
+    vehicleReg: booking.vehicleReg,
+    vehicleMake: booking.vehicleMake,
+    vehicleModel: booking.vehicleModel,
+    lockingNutStatus: booking.lockingNutStatus,
   };
 
   const tyresData = tyres.map((t) => ({

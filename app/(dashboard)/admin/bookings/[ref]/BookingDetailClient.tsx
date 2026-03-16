@@ -868,7 +868,10 @@ export function BookingDetailClient({
                       borderColor="red.500"
                       color="red.400"
                       _hover={{ bg: 'rgba(239,68,68,0.1)' }}
-                      onClick={handleRemoveDriver}
+                      onClick={() => {
+                        if (driverAccepted && !confirm('This driver has already ACCEPTED the job. Are you sure you want to remove them?')) return;
+                        handleRemoveDriver();
+                      }}
                       disabled={removeDriverLoading}
                     >
                       {removeDriverLoading ? <Spinner size="xs" /> : 'Remove'}

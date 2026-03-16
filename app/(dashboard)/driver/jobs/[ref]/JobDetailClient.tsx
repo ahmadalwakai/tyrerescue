@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -40,6 +40,10 @@ interface Booking {
   arrivedAt: string | null;
   inProgressAt: string | null;
   completedAt: string | null;
+  vehicleReg: string | null;
+  vehicleMake: string | null;
+  vehicleModel: string | null;
+  lockingNutStatus: string | null;
 }
 
 interface Tyre {
@@ -115,6 +119,12 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
   const [acceptLoading, setAcceptLoading] = useState(false);
   const [rejectLoading, setRejectLoading] = useState(false);
   const [acceptError, setAcceptError] = useState('');
+
+  // Auto-refresh every 30s to pick up admin edits
+  useEffect(() => {
+    const interval = setInterval(() => router.refresh(), 30_000);
+    return () => clearInterval(interval);
+  }, [router]);
 
   const needsAcceptance = booking.status === 'driver_assigned' && !booking.acceptedAt;
   const buttonConfig = needsAcceptance ? null : STATUS_BUTTONS[booking.status];
@@ -302,6 +312,35 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
               </Box>
             </VStack>
           </Box>
+
+          {/* Vehicle Info */}
+          {(booking.vehicleReg || booking.vehicleMake || booking.vehicleModel || booking.lockingNutStatus) && (
+            <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.4s', '0.25s')}>
+              <Heading size="md" mb={4} color={c.text}>
+                Vehicle Info
+              </Heading>
+              <VStack align="stretch" gap={3}>
+                {booking.vehicleReg && (
+                  <Box>
+                    <Text fontSize="sm" color={c.muted}>Registration</Text>
+                    <Text fontWeight="medium" color={c.text}>{booking.vehicleReg}</Text>
+                  </Box>
+                )}
+                {(booking.vehicleMake || booking.vehicleModel) && (
+                  <Box>
+                    <Text fontSize="sm" color={c.muted}>Vehicle</Text>
+                    <Text fontWeight="medium" color={c.text}>{[booking.vehicleMake, booking.vehicleModel].filter(Boolean).join(' ')}</Text>
+                  </Box>
+                )}
+                {booking.lockingNutStatus && (
+                  <Box>
+                    <Text fontSize="sm" color={c.muted}>Locking Nut</Text>
+                    <Text fontWeight="medium" color={c.text} textTransform="capitalize">{booking.lockingNutStatus.replace(/_/g, ' ')}</Text>
+                  </Box>
+                )}
+              </VStack>
+            </Box>
+          )}
 
           {/* Tyre Details */}
           <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.4s', '0.3s')}>

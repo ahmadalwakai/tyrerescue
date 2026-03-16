@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -32,6 +32,8 @@ interface ActiveJob {
   tyrePhotoUrl: string | null;
   scheduledAt: string | null;
   acceptedAt: string | null;
+  serviceType: string;
+  notes: string | null;
   tyres: {
     quantity: number;
     brand: string | null;
@@ -66,6 +68,12 @@ export function DriverDashboardClient({
   const [acceptLoading, setAcceptLoading] = useState(false);
   const [rejectLoading, setRejectLoading] = useState(false);
   const [acceptError, setAcceptError] = useState('');
+
+  // Auto-refresh every 30s to pick up admin edits/new assignments
+  useEffect(() => {
+    const interval = setInterval(() => router.refresh(), 30_000);
+    return () => clearInterval(interval);
+  }, [router]);
 
   const needsAcceptance = activeJob?.status === 'driver_assigned' && !activeJob?.acceptedAt;
 
@@ -192,6 +200,9 @@ export function DriverDashboardClient({
 
             <Text fontSize="sm" color={c.muted}>
               Ref: {activeJob.refNumber}
+              {activeJob.serviceType && (
+                <> &bull; {activeJob.serviceType.replace(/_/g, ' ')}</>
+              )}
             </Text>
 
             {/* Customer Address with Google Maps link */}
@@ -270,6 +281,16 @@ export function DriverDashboardClient({
                   maxH="150px"
                   objectFit="cover"
                 />
+              </Box>
+            )}
+
+            {/* Notes */}
+            {activeJob.notes && (
+              <Box>
+                <Text fontSize="sm" fontWeight="medium" color={c.muted} mb={1}>
+                  Notes
+                </Text>
+                <Text fontSize="sm" color={c.text} whiteSpace="pre-wrap">{activeJob.notes}</Text>
               </Box>
             )}
 

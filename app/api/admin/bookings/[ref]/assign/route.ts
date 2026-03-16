@@ -251,7 +251,7 @@ export async function DELETE(request: Request, { params }: Props) {
 
     const previousDriverId = booking.driverId;
 
-    // Revert booking to paid status and clear driver data
+    // Revert booking to paid status and clear driver + all lifecycle timestamps
     await db
       .update(bookings)
       .set({
@@ -259,6 +259,10 @@ export async function DELETE(request: Request, { params }: Props) {
         assignedAt: null,
         acceptedAt: null,
         acceptanceDeadline: null,
+        enRouteAt: null,
+        arrivedAt: null,
+        inProgressAt: null,
+        completedAt: null,
         status: 'paid',
         updatedAt: new Date(),
       })

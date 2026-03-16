@@ -43,6 +43,8 @@ export default async function DriverDashboardPage() {
       tyrePhotoUrl: bookings.tyrePhotoUrl,
       scheduledAt: bookings.scheduledAt,
       acceptedAt: bookings.acceptedAt,
+      serviceType: bookings.serviceType,
+      notes: bookings.notes,
     })
     .from(bookings)
     .where(
@@ -116,6 +118,8 @@ export default async function DriverDashboardPage() {
         tyrePhotoUrl: activeJob.tyrePhotoUrl,
         scheduledAt: activeJob.scheduledAt?.toISOString() ?? null,
         acceptedAt: activeJob.acceptedAt?.toISOString() ?? null,
+        serviceType: activeJob.serviceType,
+        notes: activeJob.notes,
         tyres: activeJobTyres.map((t) => ({
           quantity: t.quantity,
           brand: t.brand,
