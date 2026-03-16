@@ -51,6 +51,7 @@ const nextConfig: NextConfig = {
       { source: '/home', destination: '/', permanent: true },
       { source: '/emergency-tyre-fitting', destination: '/emergency', permanent: true },
       { source: '/book-tyre-fitting', destination: '/book', permanent: true },
+      { source: '/services/:city', destination: '/mobile-tyre-fitting/:city', permanent: true },
     ];
   },
 };

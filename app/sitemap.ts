@@ -3,6 +3,7 @@ import { cities } from '@/lib/cities';
 import { db } from '@/lib/db';
 import { tyreProducts } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { services, serviceCities, getAreasForCity } from '@/lib/areas';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.tyrerescue.uk';
@@ -28,13 +29,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: route === '' ? 1 : 0.8,
   }));
 
-  // City service pages
+  // City service pages (legacy)
   const cityRoutes: MetadataRoute.Sitemap = cities.map((city) => ({
     url: `${baseUrl}/services/${city.slug}`,
     lastModified: new Date(),
     changeFrequency: 'monthly' as const,
     priority: 0.8,
   }));
+
+  // SEO — service × city pages (e.g. /mobile-tyre-fitting/glasgow)
+  const serviceCityRoutes: MetadataRoute.Sitemap = services.flatMap((service) =>
+    serviceCities.map((citySlug) => ({
+      url: `${baseUrl}/${service.slug}/${citySlug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    })),
+  );
+
+  // SEO — service × city × area pages (e.g. /mobile-tyre-fitting/glasgow/govan)
+  const serviceAreaRoutes: MetadataRoute.Sitemap = services.flatMap((service) =>
+    serviceCities.flatMap((citySlug) =>
+      getAreasForCity(citySlug).map((area) => ({
+        url: `${baseUrl}/${service.slug}/${citySlug}/${area.slug}`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly' as const,
+        priority: 0.7,
+      })),
+    ),
+  );
 
   // Tyre product pages
   let tyreRoutes: MetadataRoute.Sitemap = [];
@@ -53,5 +76,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // DB unavailable at build time — skip tyre pages
   }
 
-  return [...staticRoutes, ...cityRoutes, ...tyreRoutes];
+  return [...staticRoutes, ...cityRoutes, ...serviceCityRoutes, ...serviceAreaRoutes, ...tyreRoutes];
 }

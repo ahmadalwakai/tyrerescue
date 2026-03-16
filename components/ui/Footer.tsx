@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Box, Container, Flex, Text, Link as ChakraLink, SimpleGrid } from '@chakra-ui/react';
 import Link from 'next/link';
 import { colorTokens } from '@/lib/design-tokens';
-import { cities } from '@/lib/cities';
 
 const colors = {
   bg: colorTokens.bg,
@@ -175,9 +174,17 @@ export function Footer() {
               AREAS WE COVER
             </Text>
             <Flex direction="column" gap={2}>
-              {cities.slice(0, 8).map((city) => (
+              {[
+                { label: 'Tyre Fitting Glasgow', href: '/mobile-tyre-fitting/glasgow' },
+                { label: 'Tyre Fitting Edinburgh', href: '/mobile-tyre-fitting/edinburgh' },
+                { label: 'Tyre Fitting Dundee', href: '/mobile-tyre-fitting/dundee' },
+                { label: 'Emergency Glasgow', href: '/emergency-tyre-fitting/glasgow' },
+                { label: 'Emergency Edinburgh', href: '/emergency-tyre-fitting/edinburgh' },
+                { label: 'Tyre Repair Glasgow', href: '/tyre-repair/glasgow' },
+                { label: 'Puncture Repair Glasgow', href: '/puncture-repair/glasgow' },
+              ].map((link) => (
                 <ChakraLink
-                  key={city.slug}
+                  key={link.href}
                   asChild
                   fontSize="13px"
                   color={colors.textSecondary}
@@ -185,7 +192,7 @@ export function Footer() {
                   transition="color 0.2s"
                   style={{ fontFamily: 'var(--font-body)' }}
                 >
-                  <Link href={`/services/${city.slug}`}>{city.name}</Link>
+                  <Link href={link.href}>{link.label}</Link>
                 </ChakraLink>
               ))}
             </Flex>
