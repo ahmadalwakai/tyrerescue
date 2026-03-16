@@ -3,6 +3,8 @@ import { requireAdmin } from '@/lib/auth';
 import { db, bookings, bookingStatusHistory } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { executeTransition, BookingStatus, getValidNextStates, isValidTransition } from '@/lib/state-machine';
+import { createNotificationAndSend } from '@/lib/email/resend';
+import { bookingCancelled } from '@/lib/email/templates/booking-cancelled';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -219,6 +221,30 @@ export async function PATCH(request: NextRequest, { params }: Props) {
         actorRole: 'admin',
         note: note || `Admin override: status changed`,
       });
+    }
+
+    // Send cancellation email to customer
+    if (newStatus === 'cancelled' && booking.customerEmail) {
+      try {
+        const { subject, html } = bookingCancelled({
+          customerName: booking.customerName ?? 'Customer',
+          refNumber: booking.refNumber,
+          reason: note || undefined,
+          serviceType: booking.serviceType ?? 'tyre_replacement',
+          scheduledAt: booking.scheduledAt ? booking.scheduledAt.toISOString() : null,
+        });
+        await createNotificationAndSend({
+          userId: booking.userId ?? undefined,
+          bookingId: booking.id,
+          type: 'booking_cancelled',
+          channel: 'email',
+          to: booking.customerEmail,
+          subject,
+          html,
+        });
+      } catch (emailErr) {
+        console.error('Failed to send cancellation email:', emailErr);
+      }
     }
 
     return NextResponse.json({ success: true, previousStatus: currentStatus, newStatus });
