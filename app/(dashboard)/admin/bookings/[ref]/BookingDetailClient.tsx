@@ -184,6 +184,7 @@ export function BookingDetailClient({
   const [aiLoading, setAiLoading] = useState(false);
   const [aiPowered, setAiPowered] = useState(false);
   const [recommendation, setRecommendation] = useState('');
+  const [driverViewMode, setDriverViewMode] = useState<'ai' | 'manual'>('ai');
 
   const canAssign = ['paid', 'driver_assigned'].includes(booking.status);
 
@@ -799,7 +800,36 @@ export function BookingDetailClient({
               <Text color={c.muted} mb={4}>No driver assigned</Text>
             )}
 
-            {canAssign && (
+            {/* Mode toggle: AI / Manual */}
+            <HStack gap={2} mb={4}>
+              <Button
+                size="sm"
+                flex={1}
+                variant={driverViewMode === 'ai' ? 'solid' : 'outline'}
+                bg={driverViewMode === 'ai' ? c.accent : 'transparent'}
+                color={driverViewMode === 'ai' ? '#09090B' : c.muted}
+                borderColor={c.border}
+                _hover={{ bg: driverViewMode === 'ai' ? c.accentHover : c.surface }}
+                onClick={() => setDriverViewMode('ai')}
+              >
+                AI Recommended
+              </Button>
+              <Button
+                size="sm"
+                flex={1}
+                variant={driverViewMode === 'manual' ? 'solid' : 'outline'}
+                bg={driverViewMode === 'manual' ? c.accent : 'transparent'}
+                color={driverViewMode === 'manual' ? '#09090B' : c.muted}
+                borderColor={c.border}
+                _hover={{ bg: driverViewMode === 'manual' ? c.accentHover : c.surface }}
+                onClick={() => setDriverViewMode('manual')}
+              >
+                All Drivers
+              </Button>
+            </HStack>
+
+            {/* AI Recommended view */}
+            {driverViewMode === 'ai' && (
               <>
                 {aiLoading ? (
                   <HStack justify="center" py={4}>
@@ -820,9 +850,9 @@ export function BookingDetailClient({
                           borderRadius="md"
                           borderWidth="2px"
                           borderColor={isSelected ? c.accent : c.border}
-                          cursor="pointer"
-                          onClick={() => setSelectedDriverId(driver.driverId)}
-                          _hover={{ borderColor: c.accent }}
+                          cursor={canAssign ? 'pointer' : 'default'}
+                          onClick={() => canAssign && setSelectedDriverId(driver.driverId)}
+                          _hover={canAssign ? { borderColor: c.accent } : {}}
                         >
                           <HStack justify="space-between" mb={1}>
                             <HStack gap={2}>
@@ -833,17 +863,70 @@ export function BookingDetailClient({
                           </HStack>
                           <Text fontSize="xs" color={c.muted}>{driver.reason}</Text>
                           <HStack gap={4} mt={1}>
-                            <Text fontSize="xs" color={c.muted}>📍 {driver.distanceToCustomer} mi</Text>
-                            <Text fontSize="xs" color={c.muted}>🔧 {driver.activeJobsToday} jobs today</Text>
+                            <Text fontSize="xs" color={c.muted}>{driver.distanceToCustomer} mi away</Text>
+                            <Text fontSize="xs" color={c.muted}>{driver.activeJobsToday} jobs today</Text>
                           </HStack>
                         </Box>
                       );
                     })}
-                    {aiPowered && <Text fontSize="xs" color={c.muted} textAlign="center">⚡ Ranked by Groq AI</Text>}
+                    {aiPowered && <Text fontSize="xs" color={c.muted} textAlign="center">Ranked by Groq AI</Text>}
                   </VStack>
                 ) : (
-                  <Text fontSize="sm" color={c.muted} mb={3}>No drivers available</Text>
+                  <Text fontSize="sm" color={c.muted} mb={3}>No AI suggestions available</Text>
                 )}
+              </>
+            )}
+
+            {/* Manual / All Drivers view */}
+            {driverViewMode === 'manual' && (
+              <VStack align="stretch" gap={2} mb={3}>
+                {availableDrivers.length > 0 ? (
+                  availableDrivers.map((driver) => {
+                    const isSelected = selectedDriverId === driver.id;
+                    const aiMatch = rankedDrivers.find((r) => r.driverId === driver.id);
+                    return (
+                      <Box
+                        key={driver.id}
+                        p={3}
+                        bg={isSelected ? 'rgba(249,115,22,0.1)' : c.surface}
+                        borderRadius="md"
+                        borderWidth="2px"
+                        borderColor={isSelected ? c.accent : c.border}
+                        cursor={canAssign ? 'pointer' : 'default'}
+                        onClick={() => canAssign && setSelectedDriverId(driver.id)}
+                        _hover={canAssign ? { borderColor: c.accent } : {}}
+                      >
+                        <HStack justify="space-between">
+                          <Box>
+                            <Text fontWeight="600" color={c.text}>{driver.name}</Text>
+                            {driver.email && <Text fontSize="xs" color={c.muted}>{driver.email}</Text>}
+                            {driver.phone && <Text fontSize="xs" color={c.muted}>{driver.phone}</Text>}
+                          </Box>
+                          <VStack gap={1} align="end">
+                            {driver.isOnline != null && (
+                              <Badge colorPalette={driver.isOnline ? 'green' : 'red'} size="sm">
+                                {driver.isOnline ? 'Online' : 'Offline'}
+                              </Badge>
+                            )}
+                            {aiMatch && (
+                              <Badge colorPalette={aiMatch.score > 70 ? 'green' : aiMatch.score >= 40 ? 'orange' : 'gray'} size="sm" variant="outline">
+                                AI {aiMatch.score}/100
+                              </Badge>
+                            )}
+                          </VStack>
+                        </HStack>
+                      </Box>
+                    );
+                  })
+                ) : (
+                  <Text fontSize="sm" color={c.muted}>No drivers registered</Text>
+                )}
+              </VStack>
+            )}
+
+            {/* Assign button — only when assignment is allowed */}
+            {canAssign && (
+              <>
                 <Button onClick={handleAssignDriver} disabled={!selectedDriverId || assignLoading} width="100%" minH="48px" bg={c.accent} color="#09090B" _hover={{ bg: c.accentHover }}>
                   {assignLoading ? <HStack gap={2}><Spinner size="sm" /><Text>Assigning…</Text></HStack> : (assignedDriver ? 'Reassign Driver' : 'Assign Driver')}
                 </Button>
