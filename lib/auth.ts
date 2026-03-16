@@ -96,11 +96,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         .limit(1);
 
       if (existing) {
-        // Block drivers and admins from using Google sign-in
-        if (existing.role === 'driver' || existing.role === 'admin') {
-          return '/login?error=AccessDenied';
-        }
-
         // Link Google account if not already linked
         const [existingAccount] = await db
           .select()
