@@ -237,7 +237,6 @@ export async function PATCH(request: NextRequest, { params }: Props) {
           userId: booking.userId ?? undefined,
           bookingId: booking.id,
           type: 'booking_cancelled',
-          channel: 'email',
           to: booking.customerEmail,
           subject,
           html,
