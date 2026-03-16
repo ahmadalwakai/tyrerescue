@@ -145,6 +145,36 @@ export const glasgowAreas: Area[] = [
   { slug: 'city-centre', name: 'City Centre', postcode: 'G1', lat: 55.8617, lng: -4.2518, distanceFromCentre: 0, nearestLandmark: 'George Square' },
   { slug: 'east-end', name: 'East End', postcode: 'G31', lat: 55.8534, lng: -4.2012, distanceFromCentre: 1.9, nearestLandmark: 'Parkhead Cross' },
   { slug: 'southside', name: 'Southside', postcode: 'G42', lat: 55.8398, lng: -4.2612, distanceFromCentre: 2.2, nearestLandmark: 'Queens Park' },
+  { slug: 'crosshill', name: 'Crosshill', postcode: 'G42', lat: 55.8334, lng: -4.2578, distanceFromCentre: 2.4, nearestLandmark: 'Queens Park' },
+  { slug: 'langside', name: 'Langside', postcode: 'G42', lat: 55.8298, lng: -4.2512, distanceFromCentre: 2.8, nearestLandmark: 'Battle of Langside Monument' },
+  { slug: 'mount-florida', name: 'Mount Florida', postcode: 'G42', lat: 55.8234, lng: -4.2412, distanceFromCentre: 3.2, nearestLandmark: 'Hampden Park' },
+  { slug: 'battlefield', name: 'Battlefield', postcode: 'G42', lat: 55.8298, lng: -4.2412, distanceFromCentre: 2.9, nearestLandmark: 'Battlefield Rest' },
+  { slug: 'cessnock', name: 'Cessnock', postcode: 'G51', lat: 55.8534, lng: -4.2978, distanceFromCentre: 2.8, nearestLandmark: 'Cessnock Subway' },
+  { slug: 'tradeston', name: 'Tradeston', postcode: 'G5', lat: 55.8534, lng: -4.2612, distanceFromCentre: 1.2, nearestLandmark: 'Squiggly Bridge' },
+  { slug: 'finnieston', name: 'Finnieston', postcode: 'G3', lat: 55.8612, lng: -4.2912, distanceFromCentre: 1.8, nearestLandmark: 'SSE Hydro' },
+  { slug: 'anderston', name: 'Anderston', postcode: 'G3', lat: 55.8612, lng: -4.2712, distanceFromCentre: 1.2, nearestLandmark: 'Anderston Station' },
+  { slug: 'woodlands', name: 'Woodlands', postcode: 'G3', lat: 55.8698, lng: -4.2812, distanceFromCentre: 1.4, nearestLandmark: 'Kelvingrove Park' },
+  { slug: 'garnethill', name: 'Garnethill', postcode: 'G3', lat: 55.8648, lng: -4.2678, distanceFromCentre: 0.9, nearestLandmark: 'Glasgow School of Art' },
+  { slug: 'townhead', name: 'Townhead', postcode: 'G4', lat: 55.8634, lng: -4.2378, distanceFromCentre: 0.8, nearestLandmark: 'Glasgow Cathedral' },
+  { slug: 'royston', name: 'Royston', postcode: 'G21', lat: 55.8798, lng: -4.2312, distanceFromCentre: 2.4, nearestLandmark: 'Royston Road' },
+  { slug: 'blackhill', name: 'Blackhill', postcode: 'G33', lat: 55.8734, lng: -4.1978, distanceFromCentre: 3.2, nearestLandmark: 'Provanmill Road' },
+  { slug: 'provanmill', name: 'Provanmill', postcode: 'G33', lat: 55.8798, lng: -4.1878, distanceFromCentre: 3.4, nearestLandmark: 'Provan Hall' },
+  { slug: 'milton', name: 'Milton', postcode: 'G22', lat: 55.9034, lng: -4.2612, distanceFromCentre: 3.8, nearestLandmark: 'Milton Park' },
+  { slug: 'summerston', name: 'Summerston', postcode: 'G23', lat: 55.9134, lng: -4.2812, distanceFromCentre: 4.8, nearestLandmark: 'Forth and Clyde Canal' },
+  { slug: 'temple', name: 'Temple', postcode: 'G13', lat: 55.8934, lng: -4.3212, distanceFromCentre: 3.8, nearestLandmark: 'Anniesland Cross' },
+  { slug: 'kelvindale', name: 'Kelvindale', postcode: 'G12', lat: 55.8898, lng: -4.3012, distanceFromCentre: 2.8, nearestLandmark: 'River Kelvin' },
+  { slug: 'broomhill', name: 'Broomhill', postcode: 'G11', lat: 55.8734, lng: -4.3198, distanceFromCentre: 2.4, nearestLandmark: 'Broomhill Drive' },
+  { slug: 'dowanhill', name: 'Dowanhill', postcode: 'G12', lat: 55.8798, lng: -4.3012, distanceFromCentre: 2.2, nearestLandmark: 'Hyndland Road' },
+  { slug: 'mosspark', name: 'Mosspark', postcode: 'G52', lat: 55.8434, lng: -4.3312, distanceFromCentre: 4.4, nearestLandmark: 'Mosspark Boulevard' },
+  { slug: 'corkerhill', name: 'Corkerhill', postcode: 'G52', lat: 55.8298, lng: -4.3312, distanceFromCentre: 4.9, nearestLandmark: 'Corkerhill Station' },
+  { slug: 'muirend', name: 'Muirend', postcode: 'G44', lat: 55.8098, lng: -4.2612, distanceFromCentre: 4.8, nearestLandmark: 'Muirend Shopping Centre' },
+  { slug: 'netherlee', name: 'Netherlee', postcode: 'G44', lat: 55.7998, lng: -4.2678, distanceFromCentre: 5.8, nearestLandmark: 'Linn Park' },
+  { slug: 'stamperland', name: 'Stamperland', postcode: 'G76', lat: 55.7934, lng: -4.2578, distanceFromCentre: 6.4, nearestLandmark: 'Clarkston Road' },
+  { slug: 'elderslie', name: 'Elderslie', postcode: 'PA5', lat: 55.8434, lng: -4.4612, distanceFromCentre: 8.9, nearestLandmark: 'Wallace Monument Elderslie' },
+  { slug: 'erskine', name: 'Erskine', postcode: 'PA8', lat: 55.9034, lng: -4.4512, distanceFromCentre: 9.2, nearestLandmark: 'Erskine Bridge' },
+  { slug: 'bowling', name: 'Bowling', postcode: 'G60', lat: 55.9198, lng: -4.4812, distanceFromCentre: 10.8, nearestLandmark: 'Bowling Harbour' },
+  { slug: 'craigton', name: 'Craigton', postcode: 'G52', lat: 55.8534, lng: -4.3512, distanceFromCentre: 4.8, nearestLandmark: 'Craigton Cemetery' },
+  { slug: 'arden', name: 'Arden', postcode: 'G46', lat: 55.8034, lng: -4.3112, distanceFromCentre: 5.9, nearestLandmark: 'Arden Primary School' },
 ];
 
 export const edinburghAreas: Area[] = [
@@ -202,6 +232,34 @@ export const edinburghAreas: Area[] = [
   { slug: 'linlithgow', name: 'Linlithgow', postcode: 'EH49', lat: 55.9734, lng: -3.5912, distanceFromCentre: 15.8, nearestLandmark: 'Linlithgow Palace' },
   { slug: 'old-town', name: 'Old Town', postcode: 'EH1', lat: 55.9487, lng: -3.1890, distanceFromCentre: 0.2, nearestLandmark: 'Edinburgh Castle' },
   { slug: 'new-town', name: 'New Town', postcode: 'EH2', lat: 55.9534, lng: -3.1978, distanceFromCentre: 0.4, nearestLandmark: 'Princes Street' },
+  { slug: 'craigentinny', name: 'Craigentinny', postcode: 'EH7', lat: 55.9598, lng: -3.1398, distanceFromCentre: 2.4, nearestLandmark: 'Craigentinny Park' },
+  { slug: 'abbeyhill', name: 'Abbeyhill', postcode: 'EH8', lat: 55.9534, lng: -3.1712, distanceFromCentre: 1.1, nearestLandmark: 'Holyrood Palace' },
+  { slug: 'meadowbank', name: 'Meadowbank', postcode: 'EH8', lat: 55.9598, lng: -3.1512, distanceFromCentre: 1.8, nearestLandmark: 'Meadowbank Sports Centre' },
+  { slug: 'dean-village', name: 'Dean Village', postcode: 'EH4', lat: 55.9534, lng: -3.2198, distanceFromCentre: 1.2, nearestLandmark: 'Water of Leith' },
+  { slug: 'comely-bank', name: 'Comely Bank', postcode: 'EH4', lat: 55.9598, lng: -3.2298, distanceFromCentre: 1.8, nearestLandmark: 'Fettes College' },
+  { slug: 'inverleith', name: 'Inverleith', postcode: 'EH3', lat: 55.9698, lng: -3.2098, distanceFromCentre: 2.1, nearestLandmark: 'Royal Botanic Garden' },
+  { slug: 'bonnington', name: 'Bonnington', postcode: 'EH6', lat: 55.9698, lng: -3.1878, distanceFromCentre: 2.2, nearestLandmark: 'Bonnington Road' },
+  { slug: 'lochend', name: 'Lochend', postcode: 'EH7', lat: 55.9634, lng: -3.1612, distanceFromCentre: 1.8, nearestLandmark: 'Lochend Park' },
+  { slug: 'easter-road', name: 'Easter Road', postcode: 'EH7', lat: 55.9634, lng: -3.1712, distanceFromCentre: 1.4, nearestLandmark: 'Easter Road Stadium' },
+  { slug: 'restalrig', name: 'Restalrig', postcode: 'EH7', lat: 55.9698, lng: -3.1498, distanceFromCentre: 2.4, nearestLandmark: 'Restalrig Church' },
+  { slug: 'willowbrae', name: 'Willowbrae', postcode: 'EH8', lat: 55.9498, lng: -3.1498, distanceFromCentre: 2.1, nearestLandmark: 'Willowbrae Road' },
+  { slug: 'sighthill', name: 'Sighthill', postcode: 'EH11', lat: 55.9298, lng: -3.2598, distanceFromCentre: 3.2, nearestLandmark: 'Sighthill Park' },
+  { slug: 'wester-hailes', name: 'Wester Hailes', postcode: 'EH14', lat: 55.9134, lng: -3.2798, distanceFromCentre: 4.8, nearestLandmark: 'Wester Hailes Education Centre' },
+  { slug: 'stenhouse', name: 'Stenhouse', postcode: 'EH11', lat: 55.9298, lng: -3.2698, distanceFromCentre: 3.4, nearestLandmark: 'Stenhouse Primary School' },
+  { slug: 'murrayfield', name: 'Murrayfield', postcode: 'EH12', lat: 55.9434, lng: -3.2498, distanceFromCentre: 2.4, nearestLandmark: 'Murrayfield Stadium' },
+  { slug: 'ravelston', name: 'Ravelston', postcode: 'EH4', lat: 55.9534, lng: -3.2612, distanceFromCentre: 3.1, nearestLandmark: 'Ravelston Golf Club' },
+  { slug: 'clermiston', name: 'Clermiston', postcode: 'EH4', lat: 55.9534, lng: -3.2998, distanceFromCentre: 4.4, nearestLandmark: 'Clermiston Road' },
+  { slug: 'drumbrae', name: 'Drumbrae', postcode: 'EH4', lat: 55.9534, lng: -3.3112, distanceFromCentre: 4.8, nearestLandmark: 'Drumbrae Library' },
+  { slug: 'south-gyle', name: 'South Gyle', postcode: 'EH12', lat: 55.9434, lng: -3.3312, distanceFromCentre: 5.4, nearestLandmark: 'Edinburgh Park Station' },
+  { slug: 'gorebridge', name: 'Gorebridge', postcode: 'EH23', lat: 55.8434, lng: -3.0512, distanceFromCentre: 12.8, nearestLandmark: 'Gorebridge Town Centre' },
+  { slug: 'north-berwick', name: 'North Berwick', postcode: 'EH39', lat: 56.0598, lng: -2.7212, distanceFromCentre: 22.8, nearestLandmark: 'North Berwick Law' },
+  { slug: 'dunbar', name: 'Dunbar', postcode: 'EH42', lat: 56.0034, lng: -2.5212, distanceFromCentre: 27.4, nearestLandmark: 'Dunbar Castle' },
+  { slug: 'warriston', name: 'Warriston', postcode: 'EH3', lat: 55.9698, lng: -3.1978, distanceFromCentre: 2.4, nearestLandmark: 'Warriston Cemetery' },
+  { slug: 'jocks-lodge', name: "Jock's Lodge", postcode: 'EH7', lat: 55.9598, lng: -3.1612, distanceFromCentre: 1.9, nearestLandmark: 'Meadowbank' },
+  { slug: 'swanston', name: 'Swanston', postcode: 'EH10', lat: 55.8898, lng: -3.2012, distanceFromCentre: 5.4, nearestLandmark: 'Swanston Village' },
+  { slug: 'dreghorn', name: 'Dreghorn', postcode: 'EH13', lat: 55.8998, lng: -3.2812, distanceFromCentre: 5.8, nearestLandmark: 'Dreghorn Barracks' },
+  { slug: 'mountcastle', name: 'Mountcastle', postcode: 'EH8', lat: 55.9534, lng: -3.1312, distanceFromCentre: 2.8, nearestLandmark: 'Portobello Road' },
+  { slug: 'pathhead', name: 'Pathhead', postcode: 'EH37', lat: 55.8434, lng: -2.9812, distanceFromCentre: 14.2, nearestLandmark: 'Crichton Castle' },
 ];
 
 export const dundeeAreas: Area[] = [
@@ -238,6 +296,211 @@ export const dundeeAreas: Area[] = [
   { slug: 'strathmartine', name: 'Strathmartine', postcode: 'DD3', lat: 56.5034, lng: -2.9712, distanceFromCentre: 4.8, nearestLandmark: 'Strathmartine Castle' },
   { slug: 'city-quay', name: 'City Quay', postcode: 'DD1', lat: 56.4598, lng: -2.9612, distanceFromCentre: 0.4, nearestLandmark: 'V&A Dundee' },
   { slug: 'caird-park', name: 'Caird Park', postcode: 'DD4', lat: 56.4798, lng: -2.9212, distanceFromCentre: 2.8, nearestLandmark: 'Caird Park Golf Course' },
+  { slug: 'ardler', name: 'Ardler', postcode: 'DD2', lat: 56.4834, lng: -3.0112, distanceFromCentre: 2.8, nearestLandmark: 'Ardler Village' },
+  { slug: 'kirkton', name: 'Kirkton', postcode: 'DD3', lat: 56.4934, lng: -2.9812, distanceFromCentre: 3.4, nearestLandmark: 'Kirkton Community Centre' },
+  { slug: 'ninewells', name: 'Ninewells', postcode: 'DD2', lat: 56.4634, lng: -3.0312, distanceFromCentre: 3.2, nearestLandmark: 'Ninewells Hospital' },
+  { slug: 'balgay', name: 'Balgay', postcode: 'DD2', lat: 56.4698, lng: -3.0212, distanceFromCentre: 2.4, nearestLandmark: 'Balgay Park' },
+  { slug: 'blackness', name: 'Blackness', postcode: 'DD2', lat: 56.4634, lng: -2.9812, distanceFromCentre: 1.8, nearestLandmark: 'Blackness Road' },
+  { slug: 'claverhouse', name: 'Claverhouse', postcode: 'DD4', lat: 56.4934, lng: -2.9312, distanceFromCentre: 4.1, nearestLandmark: 'Claverhouse Road' },
+  { slug: 'dryburgh', name: 'Dryburgh', postcode: 'DD4', lat: 56.4798, lng: -2.9412, distanceFromCentre: 2.8, nearestLandmark: 'Dryburgh Avenue' },
+  { slug: 'baxter-park', name: 'Baxter Park', postcode: 'DD4', lat: 56.4698, lng: -2.9312, distanceFromCentre: 2.4, nearestLandmark: 'Baxter Park' },
+  { slug: 'stannergate', name: 'Stannergate', postcode: 'DD5', lat: 56.4598, lng: -2.9112, distanceFromCentre: 2.8, nearestLandmark: 'River Tay' },
+  { slug: 'baldovie', name: 'Baldovie', postcode: 'DD4', lat: 56.4898, lng: -2.9012, distanceFromCentre: 4.4, nearestLandmark: 'Baldovie Road' },
+  { slug: 'st-marys', name: "St Mary's", postcode: 'DD4', lat: 56.4798, lng: -2.9512, distanceFromCentre: 2.9, nearestLandmark: "St Mary's Church" },
+  { slug: 'mains-of-fintry', name: 'Mains of Fintry', postcode: 'DD4', lat: 56.4934, lng: -2.9212, distanceFromCentre: 3.8, nearestLandmark: 'Mains Loan' },
+  { slug: 'trottick', name: 'Trottick', postcode: 'DD4', lat: 56.4898, lng: -2.9612, distanceFromCentre: 3.1, nearestLandmark: 'Trottick Mill Pond' },
+  { slug: 'muirhead-dundee', name: 'Muirhead', postcode: 'DD2', lat: 56.5034, lng: -3.0212, distanceFromCentre: 5.8, nearestLandmark: 'Muirhead Village' },
+  { slug: 'auchterhouse', name: 'Auchterhouse', postcode: 'DD3', lat: 56.5198, lng: -3.0512, distanceFromCentre: 7.8, nearestLandmark: 'Auchterhouse Village' },
+  { slug: 'tealing', name: 'Tealing', postcode: 'DD4', lat: 56.5298, lng: -2.9512, distanceFromCentre: 8.8, nearestLandmark: 'Tealing Village' },
+  { slug: 'ferry-road-dundee', name: 'Ferry Road', postcode: 'DD5', lat: 56.4698, lng: -2.8912, distanceFromCentre: 3.2, nearestLandmark: 'Broughty Ferry Road' },
+  { slug: 'law-hill', name: 'Law Hill', postcode: 'DD3', lat: 56.4798, lng: -2.9712, distanceFromCentre: 1.8, nearestLandmark: 'Dundee Law' },
+  { slug: 'birkhill', name: 'Birkhill', postcode: 'DD2', lat: 56.4734, lng: -3.1012, distanceFromCentre: 5.8, nearestLandmark: 'Birkhill Village' },
+  { slug: 'piperdam', name: 'Piperdam', postcode: 'DD2', lat: 56.4934, lng: -3.1312, distanceFromCentre: 8.2, nearestLandmark: 'Piperdam Golf Course' },
+];
+
+export const stirlingAreas: Area[] = [
+  { slug: 'bridge-of-allan', name: 'Bridge of Allan', postcode: 'FK9', lat: 56.1534, lng: -3.9512, distanceFromCentre: 2.8, nearestLandmark: 'University of Stirling' },
+  { slug: 'causewayhead', name: 'Causewayhead', postcode: 'FK9', lat: 56.1298, lng: -3.9312, distanceFromCentre: 1.8, nearestLandmark: 'Wallace Monument' },
+  { slug: 'bannockburn', name: 'Bannockburn', postcode: 'FK7', lat: 56.0898, lng: -3.9112, distanceFromCentre: 2.9, nearestLandmark: 'Bannockburn Heritage Centre' },
+  { slug: 'dunblane', name: 'Dunblane', postcode: 'FK15', lat: 56.1834, lng: -3.9612, distanceFromCentre: 5.2, nearestLandmark: 'Dunblane Cathedral' },
+  { slug: 'alloa', name: 'Alloa', postcode: 'FK10', lat: 56.1198, lng: -3.7912, distanceFromCentre: 9.8, nearestLandmark: 'Alloa Tower' },
+  { slug: 'tillicoultry', name: 'Tillicoultry', postcode: 'FK13', lat: 56.1534, lng: -3.7412, distanceFromCentre: 11.2, nearestLandmark: 'Ochil Hills' },
+  { slug: 'dollar', name: 'Dollar', postcode: 'FK14', lat: 56.1634, lng: -3.6712, distanceFromCentre: 13.8, nearestLandmark: 'Castle Campbell' },
+  { slug: 'clackmannan', name: 'Clackmannan', postcode: 'FK10', lat: 56.1098, lng: -3.7612, distanceFromCentre: 10.2, nearestLandmark: 'Clackmannan Tower' },
+  { slug: 'menstrie', name: 'Menstrie', postcode: 'FK11', lat: 56.1534, lng: -3.7812, distanceFromCentre: 10.8, nearestLandmark: 'Menstrie Castle' },
+  { slug: 'blairlogie', name: 'Blairlogie', postcode: 'FK9', lat: 56.1498, lng: -3.9012, distanceFromCentre: 3.4, nearestLandmark: 'Ochil Hills' },
+  { slug: 'raploch', name: 'Raploch', postcode: 'FK8', lat: 56.1198, lng: -3.9512, distanceFromCentre: 0.8, nearestLandmark: 'Stirling Castle' },
+  { slug: 'st-ninians', name: 'St Ninians', postcode: 'FK7', lat: 56.0998, lng: -3.9312, distanceFromCentre: 1.8, nearestLandmark: 'St Ninians Old Church' },
+  { slug: 'cambusbarron', name: 'Cambusbarron', postcode: 'FK7', lat: 56.1098, lng: -3.9712, distanceFromCentre: 2.4, nearestLandmark: 'Touch Hills' },
+  { slug: 'cowie', name: 'Cowie', postcode: 'FK7', lat: 56.0698, lng: -3.9012, distanceFromCentre: 4.8, nearestLandmark: 'Cowie Village' },
+  { slug: 'plean', name: 'Plean', postcode: 'FK7', lat: 56.0598, lng: -3.8712, distanceFromCentre: 5.8, nearestLandmark: 'Plean Country Park' },
+];
+
+export const falkirkAreas: Area[] = [
+  { slug: 'grangemouth', name: 'Grangemouth', postcode: 'FK3', lat: 56.0134, lng: -3.7212, distanceFromCentre: 4.2, nearestLandmark: 'Grangemouth Stadium' },
+  { slug: 'bo-ness', name: "Bo'ness", postcode: 'EH51', lat: 56.0098, lng: -3.5912, distanceFromCentre: 8.4, nearestLandmark: "Bo'ness Motor Museum" },
+  { slug: 'denny', name: 'Denny', postcode: 'FK6', lat: 56.0234, lng: -3.9012, distanceFromCentre: 6.8, nearestLandmark: 'Denny Town Centre' },
+  { slug: 'stenhousemuir', name: 'Stenhousemuir', postcode: 'FK5', lat: 56.0198, lng: -3.8212, distanceFromCentre: 3.4, nearestLandmark: 'Ochilview Park' },
+  { slug: 'polmont', name: 'Polmont', postcode: 'FK2', lat: 55.9898, lng: -3.7112, distanceFromCentre: 5.2, nearestLandmark: 'Polmont Station' },
+  { slug: 'larbert', name: 'Larbert', postcode: 'FK5', lat: 56.0234, lng: -3.8312, distanceFromCentre: 2.8, nearestLandmark: 'Larbert Station' },
+  { slug: 'camelon', name: 'Camelon', postcode: 'FK1', lat: 55.9998, lng: -3.8012, distanceFromCentre: 1.8, nearestLandmark: 'Falkirk Wheel' },
+  { slug: 'bainsford', name: 'Bainsford', postcode: 'FK2', lat: 56.0034, lng: -3.7712, distanceFromCentre: 2.1, nearestLandmark: 'Bainsford Bridge' },
+  { slug: 'laurieston', name: 'Laurieston', postcode: 'FK2', lat: 55.9934, lng: -3.7912, distanceFromCentre: 2.4, nearestLandmark: 'Callendar Park' },
+  { slug: 'california', name: 'California', postcode: 'FK1', lat: 55.9798, lng: -3.8012, distanceFromCentre: 3.1, nearestLandmark: 'California Primary School' },
+  { slug: 'head-of-muir', name: 'Head of Muir', postcode: 'FK6', lat: 56.0098, lng: -3.8712, distanceFromCentre: 4.2, nearestLandmark: 'Head of Muir Primary' },
+  { slug: 'shieldhill', name: 'Shieldhill', postcode: 'FK1', lat: 55.9634, lng: -3.7812, distanceFromCentre: 4.8, nearestLandmark: 'Shieldhill Village' },
+  { slug: 'banknock', name: 'Banknock', postcode: 'FK4', lat: 56.0098, lng: -3.9212, distanceFromCentre: 7.2, nearestLandmark: 'Banknock Village' },
+];
+
+export const paisleyAreas: Area[] = [
+  { slug: 'renfrew-paisley', name: 'Renfrew', postcode: 'PA4', lat: 55.8734, lng: -4.4012, distanceFromCentre: 2.8, nearestLandmark: 'Renfrew Ferry' },
+  { slug: 'johnstone', name: 'Johnstone', postcode: 'PA5', lat: 55.8298, lng: -4.5012, distanceFromCentre: 4.8, nearestLandmark: 'Johnstone Town Centre' },
+  { slug: 'linwood', name: 'Linwood', postcode: 'PA3', lat: 55.8434, lng: -4.4712, distanceFromCentre: 3.8, nearestLandmark: 'Linwood Moss' },
+  { slug: 'ferguslie-park', name: 'Ferguslie Park', postcode: 'PA3', lat: 55.8534, lng: -4.4512, distanceFromCentre: 2.4, nearestLandmark: 'Ferguslie Park' },
+  { slug: 'foxbar', name: 'Foxbar', postcode: 'PA2', lat: 55.8298, lng: -4.4312, distanceFromCentre: 3.2, nearestLandmark: 'Foxbar Shopping Centre' },
+  { slug: 'gallowhill', name: 'Gallowhill', postcode: 'PA3', lat: 55.8434, lng: -4.4212, distanceFromCentre: 2.8, nearestLandmark: 'Gallowhill Road' },
+  { slug: 'shortroods', name: 'Shortroods', postcode: 'PA3', lat: 55.8398, lng: -4.4312, distanceFromCentre: 2.9, nearestLandmark: 'Shortroods Avenue' },
+  { slug: 'glenburn', name: 'Glenburn', postcode: 'PA2', lat: 55.8198, lng: -4.4212, distanceFromCentre: 3.8, nearestLandmark: 'Glenburn Road' },
+  { slug: 'seedhill', name: 'Seedhill', postcode: 'PA1', lat: 55.8434, lng: -4.4312, distanceFromCentre: 1.8, nearestLandmark: 'Seedhill Road' },
+  { slug: 'ralston', name: 'Ralston', postcode: 'PA1', lat: 55.8534, lng: -4.4112, distanceFromCentre: 2.1, nearestLandmark: 'Ralston Airfield' },
+  { slug: 'bridge-of-weir', name: 'Bridge of Weir', postcode: 'PA11', lat: 55.8498, lng: -4.5712, distanceFromCentre: 7.8, nearestLandmark: 'Bridge of Weir Village' },
+  { slug: 'kilbarchan', name: 'Kilbarchan', postcode: 'PA10', lat: 55.8298, lng: -4.5412, distanceFromCentre: 6.8, nearestLandmark: 'Kilbarchan Steeple' },
+  { slug: 'howwood', name: 'Howwood', postcode: 'PA9', lat: 55.8098, lng: -4.5212, distanceFromCentre: 7.2, nearestLandmark: 'Howwood Station' },
+];
+
+export const hamiltonAreas: Area[] = [
+  { slug: 'larkhall', name: 'Larkhall', postcode: 'ML9', lat: 55.7398, lng: -3.9712, distanceFromCentre: 4.8, nearestLandmark: 'Larkhall Town Centre' },
+  { slug: 'wishaw', name: 'Wishaw', postcode: 'ML2', lat: 55.7734, lng: -3.9212, distanceFromCentre: 5.4, nearestLandmark: 'Wishaw General Hospital' },
+  { slug: 'motherwell-hamilton', name: 'Motherwell', postcode: 'ML1', lat: 55.7898, lng: -3.9898, distanceFromCentre: 4.2, nearestLandmark: 'Fir Park' },
+  { slug: 'quarter', name: 'Quarter', postcode: 'ML3', lat: 55.7598, lng: -4.0212, distanceFromCentre: 3.8, nearestLandmark: 'Quarter Village' },
+  { slug: 'ferniegair', name: 'Ferniegair', postcode: 'ML3', lat: 55.7798, lng: -4.0312, distanceFromCentre: 2.4, nearestLandmark: 'Ferniegair Village' },
+  { slug: 'bothwell-hamilton', name: 'Bothwell', postcode: 'G71', lat: 55.8134, lng: -4.0778, distanceFromCentre: 5.2, nearestLandmark: 'Bothwell Castle' },
+  { slug: 'blantyre-hamilton', name: 'Blantyre', postcode: 'G72', lat: 55.7998, lng: -4.1178, distanceFromCentre: 4.4, nearestLandmark: 'David Livingstone Centre' },
+  { slug: 'burnbank', name: 'Burnbank', postcode: 'ML3', lat: 55.7834, lng: -4.0412, distanceFromCentre: 1.2, nearestLandmark: 'Burnbank Road' },
+  { slug: 'hillhouse', name: 'Hillhouse', postcode: 'ML3', lat: 55.7734, lng: -4.0312, distanceFromCentre: 1.8, nearestLandmark: 'Hillhouse Road' },
+  { slug: 'meikle-earnock', name: 'Meikle Earnock', postcode: 'ML3', lat: 55.7698, lng: -4.0512, distanceFromCentre: 2.1, nearestLandmark: 'Earnock High School' },
+  { slug: 'stonehouse', name: 'Stonehouse', postcode: 'ML9', lat: 55.7098, lng: -3.9812, distanceFromCentre: 8.4, nearestLandmark: 'Stonehouse Village' },
+  { slug: 'strathaven', name: 'Strathaven', postcode: 'ML10', lat: 55.6798, lng: -4.0612, distanceFromCentre: 11.8, nearestLandmark: 'Strathaven Castle' },
+];
+
+export const eastKilbrideAreas: Area[] = [
+  { slug: 'westwood', name: 'Westwood', postcode: 'G75', lat: 55.7598, lng: -4.1769, distanceFromCentre: 1.2, nearestLandmark: 'Westwood Health Centre' },
+  { slug: 'hairmyres', name: 'Hairmyres', postcode: 'G75', lat: 55.7498, lng: -4.1969, distanceFromCentre: 1.8, nearestLandmark: 'Hairmyres Hospital' },
+  { slug: 'village-east-kilbride', name: 'The Village', postcode: 'G74', lat: 55.7644, lng: -4.1769, distanceFromCentre: 0.4, nearestLandmark: 'EK Town Centre' },
+  { slug: 'st-leonards', name: 'St Leonards', postcode: 'G74', lat: 55.7734, lng: -4.1569, distanceFromCentre: 1.4, nearestLandmark: 'St Leonards Road' },
+  { slug: 'calderwood', name: 'Calderwood', postcode: 'G74', lat: 55.7534, lng: -4.1569, distanceFromCentre: 1.8, nearestLandmark: 'Calderwood Primary' },
+  { slug: 'nerston', name: 'Nerston', postcode: 'G74', lat: 55.7734, lng: -4.1869, distanceFromCentre: 1.6, nearestLandmark: 'Nerston Road' },
+  { slug: 'claremont', name: 'Claremont', postcode: 'G74', lat: 55.7598, lng: -4.1969, distanceFromCentre: 1.4, nearestLandmark: 'Claremont Road' },
+  { slug: 'stewartfield', name: 'Stewartfield', postcode: 'G74', lat: 55.7698, lng: -4.1469, distanceFromCentre: 1.8, nearestLandmark: 'Stewartfield Way' },
+  { slug: 'chapelton', name: 'Chapelton', postcode: 'ML10', lat: 55.6998, lng: -4.1269, distanceFromCentre: 8.4, nearestLandmark: 'Chapelton Village' },
+  { slug: 'jackton', name: 'Jackton', postcode: 'G75', lat: 55.7398, lng: -4.1469, distanceFromCentre: 3.2, nearestLandmark: 'Jackton Road' },
+];
+
+export const motherwellAreas: Area[] = [
+  { slug: 'wishaw-motherwell', name: 'Wishaw', postcode: 'ML2', lat: 55.7734, lng: -3.9212, distanceFromCentre: 3.2, nearestLandmark: 'Wishaw Town Centre' },
+  { slug: 'bellshill-motherwell', name: 'Bellshill', postcode: 'ML4', lat: 55.8198, lng: -4.0278, distanceFromCentre: 3.4, nearestLandmark: 'Bellshill Town Centre' },
+  { slug: 'newarthill', name: 'Newarthill', postcode: 'ML1', lat: 55.8034, lng: -3.9612, distanceFromCentre: 2.8, nearestLandmark: 'Newarthill Road' },
+  { slug: 'carfin', name: 'Carfin', postcode: 'ML1', lat: 55.8034, lng: -3.9412, distanceFromCentre: 3.1, nearestLandmark: 'Carfin Grotto' },
+  { slug: 'cleland', name: 'Cleland', postcode: 'ML1', lat: 55.8034, lng: -3.8912, distanceFromCentre: 4.8, nearestLandmark: 'Cleland Village' },
+  { slug: 'holytown', name: 'Holytown', postcode: 'ML1', lat: 55.8098, lng: -3.9712, distanceFromCentre: 2.4, nearestLandmark: 'Holytown Road' },
+  { slug: 'shotts', name: 'Shotts', postcode: 'ML7', lat: 55.8298, lng: -3.7912, distanceFromCentre: 10.8, nearestLandmark: 'Shotts Town Centre' },
+  { slug: 'overtown', name: 'Overtown', postcode: 'ML2', lat: 55.7898, lng: -3.9012, distanceFromCentre: 4.2, nearestLandmark: 'Overtown Village' },
+  { slug: 'larkhall-motherwell', name: 'Larkhall', postcode: 'ML9', lat: 55.7398, lng: -3.9712, distanceFromCentre: 6.8, nearestLandmark: 'Larkhall Town Centre' },
+  { slug: 'law-motherwell', name: 'Law', postcode: 'ML8', lat: 55.7698, lng: -3.8912, distanceFromCentre: 6.2, nearestLandmark: 'Law Village' },
+];
+
+export const livingstonAreas: Area[] = [
+  { slug: 'almondvale', name: 'Almondvale', postcode: 'EH54', lat: 55.8836, lng: -3.5157, distanceFromCentre: 0.4, nearestLandmark: 'Almondvale Shopping Centre' },
+  { slug: 'craigshill', name: 'Craigshill', postcode: 'EH54', lat: 55.8936, lng: -3.5257, distanceFromCentre: 0.8, nearestLandmark: 'Craigshill Road' },
+  { slug: 'dedridge', name: 'Dedridge', postcode: 'EH54', lat: 55.8736, lng: -3.5357, distanceFromCentre: 1.2, nearestLandmark: 'Dedridge Road' },
+  { slug: 'knightsridge', name: 'Knightsridge', postcode: 'EH54', lat: 55.8836, lng: -3.5557, distanceFromCentre: 1.8, nearestLandmark: 'Knightsridge Road' },
+  { slug: 'ladywell', name: 'Ladywell', postcode: 'EH54', lat: 55.8936, lng: -3.5357, distanceFromCentre: 1.4, nearestLandmark: 'Ladywell Road' },
+  { slug: 'eliburn', name: 'Eliburn', postcode: 'EH54', lat: 55.8736, lng: -3.4957, distanceFromCentre: 1.2, nearestLandmark: 'Eliburn Reservoir' },
+  { slug: 'bathgate-livingston', name: 'Bathgate', postcode: 'EH48', lat: 55.9034, lng: -3.6412, distanceFromCentre: 8.2, nearestLandmark: 'Bathgate Town Centre' },
+  { slug: 'armadale', name: 'Armadale', postcode: 'EH48', lat: 55.8998, lng: -3.6912, distanceFromCentre: 10.4, nearestLandmark: 'Armadale Town Centre' },
+  { slug: 'whitburn', name: 'Whitburn', postcode: 'EH47', lat: 55.8698, lng: -3.6812, distanceFromCentre: 9.8, nearestLandmark: 'Whitburn Town Centre' },
+  { slug: 'stoneyburn', name: 'Stoneyburn', postcode: 'EH47', lat: 55.8598, lng: -3.6612, distanceFromCentre: 10.8, nearestLandmark: 'Stoneyburn Village' },
+];
+
+export const kirkcaldyAreas: Area[] = [
+  { slug: 'glenrothes', name: 'Glenrothes', postcode: 'KY7', lat: 56.1998, lng: -3.1712, distanceFromCentre: 6.8, nearestLandmark: 'Glenrothes Town Centre' },
+  { slug: 'dunfermline', name: 'Dunfermline', postcode: 'KY11', lat: 56.0734, lng: -3.4512, distanceFromCentre: 14.8, nearestLandmark: 'Dunfermline Abbey' },
+  { slug: 'burntisland', name: 'Burntisland', postcode: 'KY3', lat: 56.0598, lng: -3.2412, distanceFromCentre: 4.8, nearestLandmark: 'Burntisland Beach' },
+  { slug: 'methil', name: 'Methil', postcode: 'KY8', lat: 56.1798, lng: -3.0212, distanceFromCentre: 7.2, nearestLandmark: 'Methil Docks' },
+  { slug: 'leven', name: 'Leven', postcode: 'KY8', lat: 56.1998, lng: -3.0012, distanceFromCentre: 8.4, nearestLandmark: 'Leven Beach' },
+  { slug: 'dysart', name: 'Dysart', postcode: 'KY1', lat: 56.1198, lng: -3.1312, distanceFromCentre: 1.8, nearestLandmark: 'Dysart Harbour' },
+  { slug: 'pathhead-kirkcaldy', name: 'Pathhead', postcode: 'KY1', lat: 56.1098, lng: -3.1512, distanceFromCentre: 1.2, nearestLandmark: 'Pathhead Sands' },
+  { slug: 'sinclairtown', name: 'Sinclairtown', postcode: 'KY1', lat: 56.1098, lng: -3.1612, distanceFromCentre: 0.8, nearestLandmark: 'Sinclairtown Station' },
+  { slug: 'cowdenbeath', name: 'Cowdenbeath', postcode: 'KY4', lat: 56.1134, lng: -3.3512, distanceFromCentre: 10.8, nearestLandmark: 'Cowdenbeath Town Centre' },
+  { slug: 'lochgelly', name: 'Lochgelly', postcode: 'KY5', lat: 56.1298, lng: -3.3112, distanceFromCentre: 8.4, nearestLandmark: 'Lochgelly Centre' },
+];
+
+export const perthAreas: Area[] = [
+  { slug: 'scone-perth', name: 'Scone', postcode: 'PH2', lat: 56.4198, lng: -3.4312, distanceFromCentre: 2.8, nearestLandmark: 'Scone Palace' },
+  { slug: 'kinnoull', name: 'Kinnoull', postcode: 'PH2', lat: 56.4034, lng: -3.4112, distanceFromCentre: 1.4, nearestLandmark: 'Kinnoull Hill' },
+  { slug: 'bridgend-perth', name: 'Bridgend', postcode: 'PH2', lat: 56.3898, lng: -3.4312, distanceFromCentre: 0.8, nearestLandmark: 'River Tay' },
+  { slug: 'craigie-perth', name: 'Craigie', postcode: 'PH2', lat: 56.3798, lng: -3.4512, distanceFromCentre: 1.8, nearestLandmark: 'Craigie Road' },
+  { slug: 'letham-perth', name: 'Letham', postcode: 'PH1', lat: 56.4098, lng: -3.4712, distanceFromCentre: 2.1, nearestLandmark: 'Letham Road' },
+  { slug: 'crieff', name: 'Crieff', postcode: 'PH7', lat: 56.3734, lng: -3.8412, distanceFromCentre: 16.8, nearestLandmark: 'Crieff Town Centre' },
+  { slug: 'auchterarder', name: 'Auchterarder', postcode: 'PH3', lat: 56.2998, lng: -3.6912, distanceFromCentre: 14.2, nearestLandmark: 'Gleneagles Hotel' },
+  { slug: 'kinross', name: 'Kinross', postcode: 'KY13', lat: 56.2098, lng: -3.4212, distanceFromCentre: 12.8, nearestLandmark: 'Kinross-shire' },
+  { slug: 'pitlochry', name: 'Pitlochry', postcode: 'PH16', lat: 56.7034, lng: -3.7312, distanceFromCentre: 27.8, nearestLandmark: 'Pitlochry Dam' },
+  { slug: 'aberfeldy', name: 'Aberfeldy', postcode: 'PH15', lat: 56.6234, lng: -3.8612, distanceFromCentre: 26.4, nearestLandmark: 'Wade Bridge' },
+];
+
+export const cumbernauldAreas: Area[] = [
+  { slug: 'condorrat', name: 'Condorrat', postcode: 'G67', lat: 55.9534, lng: -3.9712, distanceFromCentre: 1.8, nearestLandmark: 'Condorrat Road' },
+  { slug: 'abronhill', name: 'Abronhill', postcode: 'G67', lat: 55.9634, lng: -3.9512, distanceFromCentre: 2.2, nearestLandmark: 'Abronhill Shopping Centre' },
+  { slug: 'kildrum', name: 'Kildrum', postcode: 'G67', lat: 55.9498, lng: -3.9912, distanceFromCentre: 1.4, nearestLandmark: 'Kildrum Road' },
+  { slug: 'seafar', name: 'Seafar', postcode: 'G67', lat: 55.9598, lng: -3.9812, distanceFromCentre: 1.6, nearestLandmark: 'Seafar Road' },
+  { slug: 'carbrain', name: 'Carbrain', postcode: 'G67', lat: 55.9498, lng: -3.9712, distanceFromCentre: 0.8, nearestLandmark: 'Carbrain Road' },
+  { slug: 'kilsyth', name: 'Kilsyth', postcode: 'G65', lat: 55.9798, lng: -4.0512, distanceFromCentre: 5.8, nearestLandmark: 'Kilsyth Town Centre' },
+  { slug: 'queenzieburn', name: 'Queenzieburn', postcode: 'G65', lat: 55.9798, lng: -4.0912, distanceFromCentre: 7.2, nearestLandmark: 'Queenzieburn Village' },
+  { slug: 'greenfaulds', name: 'Greenfaulds', postcode: 'G67', lat: 55.9434, lng: -3.9612, distanceFromCentre: 1.2, nearestLandmark: 'Greenfaulds Station' },
+  { slug: 'balloch-cumbernauld', name: 'Balloch', postcode: 'G68', lat: 55.9734, lng: -4.0112, distanceFromCentre: 3.8, nearestLandmark: 'Balloch Road' },
+];
+
+export const dumfriesAreas: Area[] = [
+  { slug: 'annan', name: 'Annan', postcode: 'DG12', lat: 54.9834, lng: -3.2612, distanceFromCentre: 15.8, nearestLandmark: 'Annan Town Centre' },
+  { slug: 'lockerbie', name: 'Lockerbie', postcode: 'DG11', lat: 55.1198, lng: -3.3512, distanceFromCentre: 13.8, nearestLandmark: 'Lockerbie Town Centre' },
+  { slug: 'castle-douglas', name: 'Castle Douglas', postcode: 'DG7', lat: 54.9334, lng: -3.9312, distanceFromCentre: 18.4, nearestLandmark: 'Carlingwark Loch' },
+  { slug: 'dalbeattie', name: 'Dalbeattie', postcode: 'DG5', lat: 54.9298, lng: -3.8212, distanceFromCentre: 16.8, nearestLandmark: 'Dalbeattie Town Centre' },
+  { slug: 'sanquhar', name: 'Sanquhar', postcode: 'DG4', lat: 55.3698, lng: -3.9212, distanceFromCentre: 24.8, nearestLandmark: 'Sanquhar Post Office' },
+  { slug: 'moffat', name: 'Moffat', postcode: 'DG10', lat: 55.3298, lng: -3.4412, distanceFromCentre: 21.8, nearestLandmark: 'Moffat Town Centre' },
+  { slug: 'langholm', name: 'Langholm', postcode: 'DG13', lat: 55.1498, lng: -2.9912, distanceFromCentre: 22.8, nearestLandmark: 'Langholm Town Centre' },
+  { slug: 'maxwelltown', name: 'Maxwelltown', postcode: 'DG2', lat: 55.0798, lng: -3.6212, distanceFromCentre: 1.2, nearestLandmark: 'Maxwelltown High School' },
+  { slug: 'lochside-dumfries', name: 'Lochside', postcode: 'DG2', lat: 55.0698, lng: -3.5912, distanceFromCentre: 1.8, nearestLandmark: 'Lochside Road' },
+  { slug: 'heathhall', name: 'Heathhall', postcode: 'DG1', lat: 55.0798, lng: -3.5712, distanceFromCentre: 2.4, nearestLandmark: 'Heathhall Road' },
+];
+
+export const greenockAreas: Area[] = [
+  { slug: 'port-glasgow', name: 'Port Glasgow', postcode: 'PA14', lat: 55.9334, lng: -4.6912, distanceFromCentre: 3.8, nearestLandmark: 'Newark Castle' },
+  { slug: 'gourock', name: 'Gourock', postcode: 'PA19', lat: 55.9598, lng: -4.8212, distanceFromCentre: 4.2, nearestLandmark: 'Gourock Outdoor Pool' },
+  { slug: 'inverkip', name: 'Inverkip', postcode: 'PA16', lat: 55.9034, lng: -4.8712, distanceFromCentre: 7.8, nearestLandmark: 'Inverkip Marina' },
+  { slug: 'wemyss-bay', name: 'Wemyss Bay', postcode: 'PA18', lat: 55.8798, lng: -4.8912, distanceFromCentre: 9.4, nearestLandmark: 'Wemyss Bay Station' },
+  { slug: 'kilmacolm', name: 'Kilmacolm', postcode: 'PA13', lat: 55.8998, lng: -4.6312, distanceFromCentre: 6.8, nearestLandmark: 'Kilmacolm Village' },
+  { slug: 'larkfield', name: 'Larkfield', postcode: 'PA16', lat: 55.9434, lng: -4.7312, distanceFromCentre: 1.4, nearestLandmark: 'Larkfield Road' },
+  { slug: 'braeside', name: 'Braeside', postcode: 'PA16', lat: 55.9534, lng: -4.7612, distanceFromCentre: 1.2, nearestLandmark: 'Braeside Street' },
+  { slug: 'gibshill', name: 'Gibshill', postcode: 'PA15', lat: 55.9398, lng: -4.7312, distanceFromCentre: 1.8, nearestLandmark: 'Gibshill Road' },
+  { slug: 'bow-farm', name: 'Bow Farm', postcode: 'PA16', lat: 55.9534, lng: -4.7212, distanceFromCentre: 2.1, nearestLandmark: 'Bow Farm Road' },
+  { slug: 'upper-greenock', name: 'Upper Greenock', postcode: 'PA16', lat: 55.9598, lng: -4.7612, distanceFromCentre: 1.6, nearestLandmark: 'Lyle Hill' },
+  { slug: 'cardwell-bay', name: 'Cardwell Bay', postcode: 'PA19', lat: 55.9598, lng: -4.7912, distanceFromCentre: 2.8, nearestLandmark: 'Cardwell Bay Beach' },
+  { slug: 'greenock-west-end', name: 'West End', postcode: 'PA15', lat: 55.9486, lng: -4.7812, distanceFromCentre: 1.8, nearestLandmark: 'Greenock West Station' },
+];
+
+export const dunfermlineAreas: Area[] = [
+  { slug: 'rosyth', name: 'Rosyth', postcode: 'KY11', lat: 56.0334, lng: -3.4312, distanceFromCentre: 4.2, nearestLandmark: 'Rosyth Dockyard' },
+  { slug: 'inverkeithing', name: 'Inverkeithing', postcode: 'KY11', lat: 56.0298, lng: -3.3912, distanceFromCentre: 5.8, nearestLandmark: 'Inverkeithing Station' },
+  { slug: 'dalgety-bay', name: 'Dalgety Bay', postcode: 'KY11', lat: 56.0434, lng: -3.3512, distanceFromCentre: 6.4, nearestLandmark: 'Dalgety Bay Sailing Club' },
+  { slug: 'aberdour', name: 'Aberdour', postcode: 'KY3', lat: 56.0534, lng: -3.3012, distanceFromCentre: 8.4, nearestLandmark: 'Aberdour Castle' },
+  { slug: 'crossford', name: 'Crossford', postcode: 'KY12', lat: 56.0534, lng: -3.4912, distanceFromCentre: 2.8, nearestLandmark: 'Crossford Village' },
+  { slug: 'cairneyhill', name: 'Cairneyhill', postcode: 'KY12', lat: 56.0634, lng: -3.5212, distanceFromCentre: 4.2, nearestLandmark: 'Cairneyhill Village' },
+  { slug: 'kingseat', name: 'Kingseat', postcode: 'KY12', lat: 56.1034, lng: -3.4312, distanceFromCentre: 3.8, nearestLandmark: 'Kingseat Village' },
+  { slug: 'townhill', name: 'Townhill', postcode: 'KY12', lat: 56.0898, lng: -3.4512, distanceFromCentre: 1.8, nearestLandmark: 'Townhill Country Park' },
+  { slug: 'milesmark', name: 'Milesmark', postcode: 'KY12', lat: 56.0798, lng: -3.4812, distanceFromCentre: 2.1, nearestLandmark: 'Milesmark Road' },
+  { slug: 'pitcorthie', name: 'Pitcorthie', postcode: 'KY11', lat: 56.0634, lng: -3.4212, distanceFromCentre: 1.4, nearestLandmark: 'Pitcorthie Drive' },
+  { slug: 'wellwood', name: 'Wellwood', postcode: 'KY12', lat: 56.0798, lng: -3.4212, distanceFromCentre: 1.2, nearestLandmark: 'Wellwood Road' },
+  { slug: 'baldridgeburn', name: 'Baldridgeburn', postcode: 'KY12', lat: 56.0698, lng: -3.4612, distanceFromCentre: 1.8, nearestLandmark: 'Baldridgeburn Road' },
 ];
 
 export function getAreasForCity(citySlug: string): Area[] {
@@ -245,6 +508,19 @@ export function getAreasForCity(citySlug: string): Area[] {
     case 'glasgow': return glasgowAreas;
     case 'edinburgh': return edinburghAreas;
     case 'dundee': return dundeeAreas;
+    case 'stirling': return stirlingAreas;
+    case 'falkirk': return falkirkAreas;
+    case 'paisley': return paisleyAreas;
+    case 'hamilton': return hamiltonAreas;
+    case 'east-kilbride': return eastKilbrideAreas;
+    case 'motherwell': return motherwellAreas;
+    case 'livingston': return livingstonAreas;
+    case 'kirkcaldy': return kirkcaldyAreas;
+    case 'perth': return perthAreas;
+    case 'cumbernauld': return cumbernauldAreas;
+    case 'dumfries': return dumfriesAreas;
+    case 'greenock': return greenockAreas;
+    case 'dunfermline': return dunfermlineAreas;
     default: return [];
   }
 }
@@ -257,4 +533,11 @@ export function getServiceBySlug(slug: string): ServiceSEO | undefined {
   return services.find((s) => s.slug === slug);
 }
 
-export const serviceCities = ['glasgow', 'edinburgh', 'dundee'] as const;
+export const serviceCities = [
+  'glasgow', 'edinburgh', 'dundee',
+  'stirling', 'falkirk', 'paisley',
+  'hamilton', 'east-kilbride', 'motherwell',
+  'livingston', 'kirkcaldy', 'perth',
+  'cumbernauld', 'dumfries',
+  'greenock', 'dunfermline',
+] as const;

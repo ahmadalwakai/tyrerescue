@@ -165,6 +165,28 @@ export const cities: City[] = [
     nearbyAreas: ['Annan', 'Lockerbie', 'Castle Douglas', 'Sanquhar', 'Moffat'],
     postcodePrefix: 'DG',
   },
+  {
+    slug: 'greenock',
+    name: 'Greenock',
+    county: 'Inverclyde',
+    distanceMilesFromGlasgow: 25,
+    lat: 55.9486,
+    lng: -4.7537,
+    landmarks: ['Town Centre', 'Esplanade', 'Lyle Hill'],
+    nearbyAreas: ['Port Glasgow', 'Gourock', 'Inverkip', 'Wemyss Bay', 'Kilmacolm'],
+    postcodePrefix: 'PA',
+  },
+  {
+    slug: 'dunfermline',
+    name: 'Dunfermline',
+    county: 'Fife',
+    distanceMilesFromGlasgow: 35,
+    lat: 56.0719,
+    lng: -3.4393,
+    landmarks: ['Town Centre', 'Dunfermline Abbey', 'Pittencrieff Park'],
+    nearbyAreas: ['Rosyth', 'Inverkeithing', 'Dalgety Bay', 'Crossford', 'Townhill'],
+    postcodePrefix: 'KY11',
+  },
 ];
 
 export function getCityBySlug(slug: string): City | undefined {
