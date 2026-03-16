@@ -39,6 +39,8 @@ export function StepTyreDetails({
   const [vehicleModel, setVehicleModel] = useState(state.vehicleModel || '');
   const [vehicleColour, setVehicleColour] = useState('');
   const [vehicleYear, setVehicleYear] = useState('');
+  const [vehicleFuel, setVehicleFuel] = useState('');
+  const [vehicleEngine, setVehicleEngine] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [lookupDone, setLookupDone] = useState(false);
@@ -81,6 +83,8 @@ export function StepTyreDetails({
       if (data.make) setVehicleMake(data.make);
       if (data.colour) setVehicleColour(data.colour);
       if (data.year) setVehicleYear(data.year);
+      if (data.fuelType) setVehicleFuel(data.fuelType);
+      if (data.engineSize) setVehicleEngine(data.engineSize);
       setLookupDone(true);
     } catch (err) {
       setLookupError(err instanceof Error ? err.message : 'Lookup failed');
@@ -265,7 +269,17 @@ export function StepTyreDetails({
         {lookupDone && vehicleMake && (
           <Box mt={2} p={3} bg="rgba(249,115,22,0.06)" border="1px solid" borderColor={c.accent} borderRadius="md">
             <Text fontSize="sm" color={c.accent} fontWeight="600">
-              {[vehicleYear, vehicleMake, vehicleColour].filter(Boolean).join(' · ')}
+              {[vehicleYear, vehicleMake].filter(Boolean).join(' ')}
+              {(vehicleEngine || vehicleFuel) && (
+                <Text as="span" color={c.text} fontWeight="400">
+                  {' · '}{[vehicleEngine, vehicleFuel ? vehicleFuel.charAt(0) + vehicleFuel.slice(1).toLowerCase() : ''].filter(Boolean).join(' ')}
+                </Text>
+              )}
+              {vehicleColour && (
+                <Text as="span" color={c.muted} fontWeight="400">
+                  {' · '}{vehicleColour.charAt(0) + vehicleColour.slice(1).toLowerCase()}
+                </Text>
+              )}
             </Text>
             <Text fontSize="xs" color={c.muted} mt={0.5}>
               Vehicle identified — enter your tyre size below

@@ -14,6 +14,7 @@ interface DvlaVehicle {
   yearOfManufacture?: number;
   engineCapacity?: number;
   monthOfFirstRegistration?: string;
+  wheelplan?: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -65,11 +66,18 @@ export async function GET(request: NextRequest) {
 
     const vehicle: DvlaVehicle = await res.json();
 
+    // Format engine capacity: 1995 → "2.0L"
+    let engineSize: string | null = null;
+    if (vehicle.engineCapacity) {
+      engineSize = (vehicle.engineCapacity / 1000).toFixed(1) + 'L';
+    }
+
     return NextResponse.json({
       make: vehicle.make || null,
       colour: vehicle.colour || null,
       fuelType: vehicle.fuelType || null,
       year: vehicle.yearOfManufacture?.toString() || null,
+      engineSize,
     });
   } catch (err) {
     console.error('DVLA lookup error:', err);
