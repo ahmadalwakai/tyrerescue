@@ -31,6 +31,7 @@ interface ActiveJob {
   customerPhone: string;
   tyrePhotoUrl: string | null;
   scheduledAt: string | null;
+  acceptedAt: string | null;
   tyres: {
     quantity: number;
     brand: string | null;
@@ -62,6 +63,11 @@ export function DriverDashboardClient({
   const [isOnline, setIsOnline] = useState(initialIsOnline);
   const [isToggling, setIsToggling] = useState(false);
   const [error, setError] = useState('');
+  const [acceptLoading, setAcceptLoading] = useState(false);
+  const [rejectLoading, setRejectLoading] = useState(false);
+  const [acceptError, setAcceptError] = useState('');
+
+  const needsAcceptance = activeJob?.status === 'driver_assigned' && !activeJob?.acceptedAt;
 
   async function handleToggleOnline() {
     setIsToggling(true);
@@ -89,8 +95,30 @@ export function DriverDashboardClient({
   }
 
   function getGoogleMapsUrl(address: string, lat: string, lng: string): string {
-    // Use coordinates for more accurate navigation
     return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  }
+
+  async function handleAcceptReject(action: 'accept' | 'reject') {
+    if (!activeJob) return;
+    action === 'accept' ? setAcceptLoading(true) : setRejectLoading(true);
+    setAcceptError('');
+    try {
+      const res = await fetch(`/api/driver/jobs/${activeJob.refNumber}/accept`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || `Failed to ${action} job`);
+      }
+      router.refresh();
+    } catch (err) {
+      setAcceptError(err instanceof Error ? err.message : `Failed to ${action} job`);
+    } finally {
+      setAcceptLoading(false);
+      setRejectLoading(false);
+    }
   }
 
   return (
@@ -242,6 +270,43 @@ export function DriverDashboardClient({
                   maxH="150px"
                   objectFit="cover"
                 />
+              </Box>
+            )}
+
+            {/* Accept/Reject buttons for new assignments */}
+            {needsAcceptance && (
+              <Box p={3} bg="rgba(234,179,8,0.1)" borderRadius="md" borderWidth="1px" borderColor="rgba(234,179,8,0.3)">
+                <Text fontWeight="600" color="#EAB308" mb={3} textAlign="center">
+                  New Job Assigned — Accept or Reject
+                </Text>
+                <HStack gap={3}>
+                  <Button
+                    flex={1}
+                    size="lg"
+                    minH="56px"
+                    bg="green.500"
+                    color="white"
+                    _hover={{ bg: 'green.600' }}
+                    onClick={() => handleAcceptReject('accept')}
+                    disabled={acceptLoading || rejectLoading}
+                  >
+                    {acceptLoading ? 'Accepting...' : 'Accept Job'}
+                  </Button>
+                  <Button
+                    flex={1}
+                    size="lg"
+                    minH="56px"
+                    variant="outline"
+                    borderColor="red.500"
+                    color="red.400"
+                    _hover={{ bg: 'rgba(239,68,68,0.1)' }}
+                    onClick={() => handleAcceptReject('reject')}
+                    disabled={acceptLoading || rejectLoading}
+                  >
+                    {rejectLoading ? 'Rejecting...' : 'Reject'}
+                  </Button>
+                </HStack>
+                {acceptError && <Text color="red.400" fontSize="sm" mt={2}>{acceptError}</Text>}
               </Box>
             )}
 

@@ -140,6 +140,14 @@ export const bookings = pgTable('bookings', {
   lockingNutStatus: text('locking_nut_status'),
   hasPreOrderItems: boolean('has_pre_order_items').default(false),
   notes: text('notes'),
+  // Assignment lifecycle timestamps
+  assignedAt: timestamp('assigned_at', { withTimezone: true }),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+  enRouteAt: timestamp('en_route_at', { withTimezone: true }),
+  arrivedAt: timestamp('arrived_at', { withTimezone: true }),
+  inProgressAt: timestamp('in_progress_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  acceptanceDeadline: timestamp('acceptance_deadline', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
 });

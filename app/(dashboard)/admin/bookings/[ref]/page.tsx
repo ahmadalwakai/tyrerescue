@@ -62,12 +62,24 @@ export default async function AdminBookingDetailPage({ params }: Props) {
         name: users.name,
         email: users.email,
         phone: users.phone,
+        isOnline: drivers.isOnline,
+        status: drivers.status,
+        currentLat: drivers.currentLat,
+        currentLng: drivers.currentLng,
+        locationAt: drivers.locationAt,
       })
       .from(drivers)
       .innerJoin(users, eq(drivers.userId, users.id))
       .where(eq(drivers.id, booking.driverId))
       .limit(1);
-    assignedDriver = driver || null;
+    assignedDriver = driver
+      ? {
+          ...driver,
+          currentLat: driver.currentLat?.toString() ?? null,
+          currentLng: driver.currentLng?.toString() ?? null,
+          locationAt: driver.locationAt?.toISOString() ?? null,
+        }
+      : null;
   }
 
   // Fetch all available drivers for assignment dropdown
@@ -108,6 +120,13 @@ export default async function AdminBookingDetailPage({ params }: Props) {
     stripePiId: booking.stripePiId,
     notes: booking.notes,
     createdAt: booking.createdAt?.toISOString() ?? null,
+    assignedAt: booking.assignedAt?.toISOString() ?? null,
+    acceptedAt: booking.acceptedAt?.toISOString() ?? null,
+    acceptanceDeadline: booking.acceptanceDeadline?.toISOString() ?? null,
+    enRouteAt: booking.enRouteAt?.toISOString() ?? null,
+    arrivedAt: booking.arrivedAt?.toISOString() ?? null,
+    inProgressAt: booking.inProgressAt?.toISOString() ?? null,
+    completedAt: booking.completedAt?.toISOString() ?? null,
   };
 
   const tyresData = tyres.map((t) => ({

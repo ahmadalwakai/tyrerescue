@@ -59,6 +59,13 @@ interface Booking {
   stripePiId: string | null;
   notes: string | null;
   createdAt: string | null;
+  assignedAt: string | null;
+  acceptedAt: string | null;
+  acceptanceDeadline: string | null;
+  enRouteAt: string | null;
+  arrivedAt: string | null;
+  inProgressAt: string | null;
+  completedAt: string | null;
 }
 
 interface Tyre {
@@ -87,6 +94,11 @@ interface Driver {
   name: string;
   email?: string;
   phone?: string | null;
+  isOnline?: boolean | null;
+  status?: string | null;
+  currentLat?: string | null;
+  currentLng?: string | null;
+  locationAt?: string | null;
 }
 
 interface Props {
@@ -380,6 +392,42 @@ export function BookingDetailClient({
 
   function ed(field: keyof typeof editData, value: string) {
     setEditData((p) => ({ ...p, [field]: value }));
+  }
+
+  function formatRelative(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.round(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ${mins % 60}m ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }
+
+  function formatDuration(from: string, to: string): string {
+    const diff = new Date(to).getTime() - new Date(from).getTime();
+    const mins = Math.round(diff / 60000);
+    if (mins < 1) return '<1 min';
+    if (mins < 60) return `${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    return remMins > 0 ? `${hrs}h ${remMins}m` : `${hrs}h`;
+  }
+
+  function TimelineRow({ label, time, prev, active }: { label: string; time: string | null; prev?: string | null; active?: boolean }) {
+    const done = !!time;
+    return (
+      <HStack gap={3} py={2}>
+        <Box w="10px" h="10px" borderRadius="full" bg={done ? 'green.400' : c.border} flexShrink={0} />
+        <Box flex={1}>
+          <Text fontSize="sm" fontWeight={done ? '600' : '400'} color={done ? c.text : c.muted}>{label}</Text>
+          {done && <Text fontSize="xs" color={c.muted}>{formatDate(time)}</Text>}
+          {done && prev && (
+            <Text fontSize="xs" color={c.accent}>{formatDuration(prev, time!)} from previous</Text>
+          )}
+        </Box>
+      </HStack>
+    );
   }
 
   return (
@@ -803,6 +851,89 @@ export function BookingDetailClient({
               </>
             )}
           </Box>
+
+          {/* Job Management — lifecycle timeline + driver tracking */}
+          {booking.assignedAt && (
+            <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+              <Heading size="md" mb={4} color={c.text}>Job Management</Heading>
+
+              {/* Driver tracking info */}
+              {assignedDriver && (
+                <Box mb={4} p={3} bg={c.surface} borderRadius="md">
+                  <HStack justify="space-between" mb={2}>
+                    <Text fontSize="sm" fontWeight="600" color={c.text}>Driver Status</Text>
+                    <Badge colorPalette={assignedDriver.isOnline ? 'green' : 'red'} size="sm">
+                      {assignedDriver.isOnline ? 'Online' : 'Offline'}
+                    </Badge>
+                  </HStack>
+                  {assignedDriver.currentLat && assignedDriver.currentLng && (
+                    <Text fontSize="xs" color={c.muted}>
+                      Last GPS: {Number(assignedDriver.currentLat).toFixed(4)}, {Number(assignedDriver.currentLng).toFixed(4)}
+                      {assignedDriver.locationAt && ` (${formatRelative(assignedDriver.locationAt)})`}
+                    </Text>
+                  )}
+                </Box>
+              )}
+
+              {/* Acceptance status */}
+              {booking.status === 'driver_assigned' && !booking.acceptedAt && (
+                <Box mb={4} p={3} bg="rgba(234,179,8,0.1)" borderRadius="md" borderWidth="1px" borderColor="rgba(234,179,8,0.3)">
+                  <Text fontSize="sm" fontWeight="600" color="#EAB308">Awaiting Driver Acceptance</Text>
+                  {booking.acceptanceDeadline && (
+                    <Text fontSize="xs" color={c.muted}>
+                      Deadline: {formatDate(booking.acceptanceDeadline)}
+                      {new Date(booking.acceptanceDeadline) < new Date() && (
+                        <Text as="span" color="red.400" fontWeight="bold"> — OVERDUE</Text>
+                      )}
+                    </Text>
+                  )}
+                </Box>
+              )}
+              {booking.acceptedAt && (
+                <Box mb={4} p={3} bg="rgba(34,197,94,0.1)" borderRadius="md" borderWidth="1px" borderColor="rgba(34,197,94,0.3)">
+                  <Text fontSize="sm" fontWeight="600" color="green.400">Driver Accepted</Text>
+                  <Text fontSize="xs" color={c.muted}>
+                    Accepted {formatDate(booking.acceptedAt)}
+                    {booking.assignedAt && ` (${formatDuration(booking.assignedAt, booking.acceptedAt)} after assignment)`}
+                  </Text>
+                </Box>
+              )}
+
+              {/* Lifecycle timeline */}
+              <VStack align="stretch" gap={0} mt={2}>
+                <TimelineRow label="Assigned" time={booking.assignedAt} active />
+                <TimelineRow label="Accepted" time={booking.acceptedAt} prev={booking.assignedAt} />
+                <TimelineRow label="En Route" time={booking.enRouteAt} prev={booking.acceptedAt || booking.assignedAt} />
+                <TimelineRow label="Arrived" time={booking.arrivedAt} prev={booking.enRouteAt} />
+                <TimelineRow label="In Progress" time={booking.inProgressAt} prev={booking.arrivedAt} />
+                <TimelineRow label="Completed" time={booking.completedAt} prev={booking.inProgressAt} />
+              </VStack>
+
+              {/* Total journey duration */}
+              {booking.completedAt && booking.assignedAt && (
+                <Box mt={4} pt={3} borderTop="1px solid" borderColor={c.border}>
+                  <HStack justify="space-between">
+                    <Text fontSize="sm" fontWeight="600" color={c.text}>Total Duration</Text>
+                    <Text fontSize="sm" fontWeight="bold" color={c.accent}>
+                      {formatDuration(booking.assignedAt, booking.completedAt)}
+                    </Text>
+                  </HStack>
+                  {booking.enRouteAt && booking.arrivedAt && (
+                    <HStack justify="space-between" mt={1}>
+                      <Text fontSize="xs" color={c.muted}>Travel Time</Text>
+                      <Text fontSize="xs" color={c.muted}>{formatDuration(booking.enRouteAt, booking.arrivedAt)}</Text>
+                    </HStack>
+                  )}
+                  {booking.inProgressAt && booking.completedAt && (
+                    <HStack justify="space-between" mt={1}>
+                      <Text fontSize="xs" color={c.muted}>Work Time</Text>
+                      <Text fontSize="xs" color={c.muted}>{formatDuration(booking.inProgressAt, booking.completedAt)}</Text>
+                    </HStack>
+                  )}
+                </Box>
+              )}
+            </Box>
+          )}
 
           {/* Refund */}
           {canRefund && (

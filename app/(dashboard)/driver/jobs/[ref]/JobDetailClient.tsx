@@ -34,6 +34,12 @@ interface Booking {
   scheduledAt: string | null;
   notes: string | null;
   createdAt: string | null;
+  acceptedAt: string | null;
+  assignedAt: string | null;
+  enRouteAt: string | null;
+  arrivedAt: string | null;
+  inProgressAt: string | null;
+  completedAt: string | null;
 }
 
 interface Tyre {
@@ -106,8 +112,12 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
+  const [acceptLoading, setAcceptLoading] = useState(false);
+  const [rejectLoading, setRejectLoading] = useState(false);
+  const [acceptError, setAcceptError] = useState('');
 
-  const buttonConfig = STATUS_BUTTONS[booking.status];
+  const needsAcceptance = booking.status === 'driver_assigned' && !booking.acceptedAt;
+  const buttonConfig = needsAcceptance ? null : STATUS_BUTTONS[booking.status];
 
   function getGoogleMapsUrl(lat: string, lng: string): string {
     return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
@@ -148,6 +158,42 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
 
   function cancelConfirm() {
     setShowConfirm(false);
+  }
+
+  async function handleAcceptReject(action: 'accept' | 'reject') {
+    action === 'accept' ? setAcceptLoading(true) : setRejectLoading(true);
+    setAcceptError('');
+    try {
+      const res = await fetch(`/api/driver/jobs/${booking.refNumber}/accept`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || `Failed to ${action} job`);
+      }
+      if (action === 'reject') {
+        router.push('/driver/jobs');
+      } else {
+        router.refresh();
+      }
+    } catch (err) {
+      setAcceptError(err instanceof Error ? err.message : `Failed to ${action}`);
+    } finally {
+      setAcceptLoading(false);
+      setRejectLoading(false);
+    }
+  }
+
+  function formatDuration(from: string, to: string): string {
+    const diff = new Date(to).getTime() - new Date(from).getTime();
+    const mins = Math.round(diff / 60000);
+    if (mins < 1) return '<1 min';
+    if (mins < 60) return `${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    const rem = mins % 60;
+    return rem > 0 ? `${hrs}h ${rem}m` : `${hrs}h`;
   }
 
   function formatDate(dateStr: string | null): string {
@@ -343,6 +389,25 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
       {/* Right column - Actions and history */}
       <GridItem>
         <VStack align="stretch" gap={6}>
+          {/* Accept / Reject */}
+          {needsAcceptance && (
+            <Box bg="rgba(234,179,8,0.1)" p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor="rgba(234,179,8,0.4)">
+              <Heading size="md" mb={2} color="yellow.300">
+                New Job Assigned
+              </Heading>
+              <Text color={c.muted} mb={4}>You must accept or reject this job before you can proceed.</Text>
+              {acceptError && <Text color="red.400" fontSize="sm" mb={3}>{acceptError}</Text>}
+              <HStack gap={3}>
+                <Button flex={1} size="lg" colorPalette="green" minH="56px" py={8} fontSize="lg" disabled={acceptLoading || rejectLoading} onClick={() => handleAcceptReject('accept')}>
+                  {acceptLoading ? 'Accepting…' : 'Accept Job'}
+                </Button>
+                <Button flex={1} size="lg" variant="outline" colorPalette="red" minH="56px" disabled={acceptLoading || rejectLoading} onClick={() => handleAcceptReject('reject')}>
+                  {rejectLoading ? 'Rejecting…' : 'Reject'}
+                </Button>
+              </HStack>
+            </Box>
+          )}
+
           {/* Status Update Button */}
           {buttonConfig && (
             <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border}>
@@ -420,6 +485,59 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
               <Text color="green.300" textAlign="center" mt={2}>
                 This job has been successfully completed.
               </Text>
+            </Box>
+          )}
+
+          {/* Journey Timeline */}
+          {booking.assignedAt && (
+            <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+              <Heading size="md" mb={4} color={c.text}>Journey Timeline</Heading>
+              <VStack align="stretch" gap={0}>
+                {[
+                  { label: 'Assigned', time: booking.assignedAt, prev: null as string | null },
+                  { label: 'Accepted', time: booking.acceptedAt, prev: booking.assignedAt },
+                  { label: 'En Route', time: booking.enRouteAt, prev: booking.acceptedAt },
+                  { label: 'Arrived', time: booking.arrivedAt, prev: booking.enRouteAt },
+                  { label: 'In Progress', time: booking.inProgressAt, prev: booking.arrivedAt },
+                  { label: 'Completed', time: booking.completedAt, prev: booking.inProgressAt },
+                ].map((step) => {
+                  const done = !!step.time;
+                  return (
+                    <HStack key={step.label} gap={3} py={2}>
+                      <Box w="10px" h="10px" borderRadius="full" bg={done ? 'green.400' : c.border} flexShrink={0} />
+                      <Box flex={1}>
+                        <Text fontSize="sm" fontWeight="medium" color={done ? c.text : c.muted}>{step.label}</Text>
+                        {step.time && (
+                          <Text fontSize="xs" color={c.muted}>
+                            {formatDate(step.time)}
+                            {step.prev && ` (${formatDuration(step.prev, step.time)})`}
+                          </Text>
+                        )}
+                      </Box>
+                    </HStack>
+                  );
+                })}
+              </VStack>
+              {booking.completedAt && booking.assignedAt && (
+                <Box mt={4} pt={3} borderTopWidth="1px" borderColor={c.border}>
+                  <HStack justifyContent="space-between">
+                    <Text fontSize="sm" color={c.muted}>Total Duration</Text>
+                    <Text fontSize="sm" fontWeight="bold" color="green.400">{formatDuration(booking.assignedAt, booking.completedAt)}</Text>
+                  </HStack>
+                  {booking.enRouteAt && booking.arrivedAt && (
+                    <HStack justifyContent="space-between" mt={1}>
+                      <Text fontSize="sm" color={c.muted}>Travel Time</Text>
+                      <Text fontSize="sm" color={c.text}>{formatDuration(booking.enRouteAt, booking.arrivedAt)}</Text>
+                    </HStack>
+                  )}
+                  {booking.inProgressAt && booking.completedAt && (
+                    <HStack justifyContent="space-between" mt={1}>
+                      <Text fontSize="sm" color={c.muted}>Work Time</Text>
+                      <Text fontSize="sm" color={c.text}>{formatDuration(booking.inProgressAt, booking.completedAt)}</Text>
+                    </HStack>
+                  )}
+                </Box>
+              )}
             </Box>
           )}
 

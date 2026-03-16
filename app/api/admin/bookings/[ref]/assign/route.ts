@@ -78,11 +78,15 @@ export async function PATCH(request: Request, { params }: Props) {
 
     // If already in driver_assigned state, just update the driver
     if (currentStatus === 'driver_assigned') {
+      const now = new Date();
       await db
         .update(bookings)
         .set({
           driverId,
-          updatedAt: new Date(),
+          assignedAt: now,
+          acceptedAt: null,
+          acceptanceDeadline: new Date(now.getTime() + 10 * 60 * 1000),
+          updatedAt: now,
         })
         .where(eq(bookings.id, booking.id));
 
@@ -100,11 +104,15 @@ export async function PATCH(request: Request, { params }: Props) {
     }
 
     // Transition from paid to driver_assigned
+    const now = new Date();
     await db
       .update(bookings)
       .set({
         driverId,
-        updatedAt: new Date(),
+        assignedAt: now,
+        acceptedAt: null,
+        acceptanceDeadline: new Date(now.getTime() + 10 * 60 * 1000),
+        updatedAt: now,
       })
       .where(eq(bookings.id, booking.id));
 

@@ -78,11 +78,21 @@ export async function PATCH(request: Request, { params }: Props) {
     }
 
     // Perform the transition
+    const now = new Date();
+    const timestampField: Record<string, string> = {
+      en_route: 'enRouteAt',
+      arrived: 'arrivedAt',
+      in_progress: 'inProgressAt',
+      completed: 'completedAt',
+    };
+    const tsCol = timestampField[newStatus];
+
     await db
       .update(bookings)
       .set({
         status: newStatus,
-        updatedAt: new Date(),
+        updatedAt: now,
+        ...(tsCol ? { [tsCol]: now } : {}),
       })
       .where(eq(bookings.id, booking.id));
 
