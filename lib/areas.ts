@@ -597,6 +597,75 @@ export const dunfermlineAreas: Area[] = [
   { slug: 'high-valleyfield', name: 'High Valleyfield', postcode: 'KY12', lat: 56.0530, lng: -3.5810, distanceFromCentre: 5.2, nearestLandmark: 'Preston Island' },
 ];
 
+export const kilmarnockAreas: Area[] = [
+  { slug: 'kilmarnock-town-centre', name: 'Town Centre', postcode: 'KA1', lat: 55.6116, lng: -4.4953, distanceFromCentre: 0, nearestLandmark: 'The Dick Institute' },
+  { slug: 'hurlford', name: 'Hurlford', postcode: 'KA1', lat: 55.6090, lng: -4.4630, distanceFromCentre: 1.8, nearestLandmark: 'Hurlford Village' },
+  { slug: 'galston', name: 'Galston', postcode: 'KA4', lat: 55.5990, lng: -4.3810, distanceFromCentre: 5.2, nearestLandmark: 'Barr Castle' },
+  { slug: 'stewarton', name: 'Stewarton', postcode: 'KA3', lat: 55.6800, lng: -4.5180, distanceFromCentre: 4.8, nearestLandmark: 'Stewarton Bonnet Guild' },
+  { slug: 'fenwick', name: 'Fenwick', postcode: 'KA3', lat: 55.6490, lng: -4.4780, distanceFromCentre: 3.8, nearestLandmark: 'Fenwick Moor' },
+  { slug: 'crosshouse', name: 'Crosshouse', postcode: 'KA2', lat: 55.6130, lng: -4.5310, distanceFromCentre: 2.4, nearestLandmark: 'Crosshouse Hospital' },
+  { slug: 'darvel', name: 'Darvel', postcode: 'KA17', lat: 55.6070, lng: -4.2810, distanceFromCentre: 8.4, nearestLandmark: 'Alexander Fleming Statue' },
+  { slug: 'newmilns', name: 'Newmilns', postcode: 'KA16', lat: 55.6090, lng: -4.3290, distanceFromCentre: 7.2, nearestLandmark: 'Loudoun Castle' },
+  { slug: 'cumnock', name: 'Cumnock', postcode: 'KA18', lat: 55.4550, lng: -4.2650, distanceFromCentre: 14.8, nearestLandmark: 'Dumfries House' },
+  { slug: 'auchinleck', name: 'Auchinleck', postcode: 'KA18', lat: 55.4730, lng: -4.2940, distanceFromCentre: 13.2, nearestLandmark: 'Auchinleck House' },
+  { slug: 'mauchline', name: 'Mauchline', postcode: 'KA5', lat: 55.5150, lng: -4.3790, distanceFromCentre: 8.8, nearestLandmark: 'Burns House Museum' },
+  { slug: 'riccarton', name: 'Riccarton', postcode: 'KA1', lat: 55.6020, lng: -4.5110, distanceFromCentre: 1.4, nearestLandmark: 'Riccarton Road' },
+  { slug: 'bellfield', name: 'Bellfield', postcode: 'KA1', lat: 55.6250, lng: -4.5090, distanceFromCentre: 1.2, nearestLandmark: 'Dean Castle Country Park' },
+  { slug: 'kilmaurs', name: 'Kilmaurs', postcode: 'KA3', lat: 55.6360, lng: -4.5310, distanceFromCentre: 2.8, nearestLandmark: 'Kilmaurs Village' },
+  { slug: 'crookedholm', name: 'Crookedholm', postcode: 'KA3', lat: 55.6190, lng: -4.4610, distanceFromCentre: 2.1, nearestLandmark: 'Crookedholm Village' },
+  { slug: 'catrine', name: 'Catrine', postcode: 'KA5', lat: 55.4930, lng: -4.3510, distanceFromCentre: 10.2, nearestLandmark: 'Catrine Voes' },
+  { slug: 'muirkirk', name: 'Muirkirk', postcode: 'KA18', lat: 55.5110, lng: -4.0570, distanceFromCentre: 18.4, nearestLandmark: 'Airds Moss' },
+  { slug: 'troon-kilmarnock', name: 'Troon', postcode: 'KA10', lat: 55.5440, lng: -4.6640, distanceFromCentre: 8.8, nearestLandmark: 'Royal Troon Golf Club' },
+  { slug: 'kilwinning-kilmarnock', name: 'Kilwinning', postcode: 'KA13', lat: 55.6550, lng: -4.7060, distanceFromCentre: 11.4, nearestLandmark: 'Kilwinning Abbey' },
+  { slug: 'dreghorn-kilmarnock', name: 'Dreghorn', postcode: 'KA11', lat: 55.6200, lng: -4.6370, distanceFromCentre: 6.8, nearestLandmark: 'Dreghorn Village' },
+];
+
+export const ayrAreas: Area[] = [
+  { slug: 'ayr-town-centre', name: 'Town Centre', postcode: 'KA7', lat: 55.4584, lng: -4.6291, distanceFromCentre: 0, nearestLandmark: 'Burns Statue Square' },
+  { slug: 'prestwick', name: 'Prestwick', postcode: 'KA9', lat: 55.4930, lng: -4.6140, distanceFromCentre: 2.8, nearestLandmark: 'Prestwick Airport' },
+  { slug: 'alloway', name: 'Alloway', postcode: 'KA7', lat: 55.4320, lng: -4.6330, distanceFromCentre: 2.4, nearestLandmark: 'Burns Cottage' },
+  { slug: 'maybole', name: 'Maybole', postcode: 'KA19', lat: 55.3550, lng: -4.6830, distanceFromCentre: 8.8, nearestLandmark: 'Maybole Castle' },
+  { slug: 'girvan', name: 'Girvan', postcode: 'KA26', lat: 55.2470, lng: -4.8610, distanceFromCentre: 21.4, nearestLandmark: 'Ailsa Craig View' },
+  { slug: 'troon', name: 'Troon', postcode: 'KA10', lat: 55.5440, lng: -4.6640, distanceFromCentre: 6.8, nearestLandmark: 'Royal Troon Golf Club' },
+  { slug: 'ayr-seafield', name: 'Seafield', postcode: 'KA8', lat: 55.4660, lng: -4.6510, distanceFromCentre: 1.2, nearestLandmark: 'Ayr Seafield' },
+  { slug: 'newton-on-ayr', name: 'Newton on Ayr', postcode: 'KA8', lat: 55.4730, lng: -4.6440, distanceFromCentre: 1.4, nearestLandmark: 'Newton Park' },
+  { slug: 'doonfoot', name: 'Doonfoot', postcode: 'KA7', lat: 55.4280, lng: -4.6510, distanceFromCentre: 3.2, nearestLandmark: 'Greenan Castle' },
+  { slug: 'whitletts', name: 'Whitletts', postcode: 'KA8', lat: 55.4490, lng: -4.6130, distanceFromCentre: 1.4, nearestLandmark: 'Tam O Shanter Experience' },
+  { slug: 'lochside-ayr', name: 'Lochside', postcode: 'KA8', lat: 55.4520, lng: -4.5810, distanceFromCentre: 2.1, nearestLandmark: 'Lochside Road' },
+  { slug: 'mossblown', name: 'Mossblown', postcode: 'KA6', lat: 55.4730, lng: -4.5710, distanceFromCentre: 3.8, nearestLandmark: 'Mossblown Village' },
+  { slug: 'coylton', name: 'Coylton', postcode: 'KA6', lat: 55.4420, lng: -4.5410, distanceFromCentre: 4.8, nearestLandmark: 'Coylton Village' },
+  { slug: 'dalrymple', name: 'Dalrymple', postcode: 'KA6', lat: 55.4080, lng: -4.6010, distanceFromCentre: 4.2, nearestLandmark: 'Skeldon House' },
+  { slug: 'monkton', name: 'Monkton', postcode: 'KA9', lat: 55.5040, lng: -4.5980, distanceFromCentre: 3.4, nearestLandmark: 'Glasgow Prestwick Airport' },
+  { slug: 'symington-ayr', name: 'Symington', postcode: 'KA1', lat: 55.5190, lng: -4.5510, distanceFromCentre: 5.8, nearestLandmark: 'Symington Village' },
+  { slug: 'dailly', name: 'Dailly', postcode: 'KA26', lat: 55.2790, lng: -4.7910, distanceFromCentre: 18.4, nearestLandmark: 'Bargany Gardens' },
+  { slug: 'minishant', name: 'Minishant', postcode: 'KA19', lat: 55.3890, lng: -4.6410, distanceFromCentre: 6.2, nearestLandmark: 'Minishant Village' },
+  { slug: 'annbank', name: 'Annbank', postcode: 'KA6', lat: 55.4490, lng: -4.5610, distanceFromCentre: 3.4, nearestLandmark: 'Annbank Village' },
+  { slug: 'dundonald', name: 'Dundonald', postcode: 'KA2', lat: 55.5560, lng: -4.6110, distanceFromCentre: 6.8, nearestLandmark: 'Dundonald Castle' },
+];
+
+export const irvineAreas: Area[] = [
+  { slug: 'irvine-town-centre', name: 'Town Centre', postcode: 'KA12', lat: 55.6127, lng: -4.6681, distanceFromCentre: 0, nearestLandmark: 'Irvine Harbourside' },
+  { slug: 'kilwinning', name: 'Kilwinning', postcode: 'KA13', lat: 55.6550, lng: -4.7060, distanceFromCentre: 3.8, nearestLandmark: 'Kilwinning Abbey' },
+  { slug: 'saltcoats', name: 'Saltcoats', postcode: 'KA21', lat: 55.6350, lng: -4.7860, distanceFromCentre: 5.2, nearestLandmark: 'Saltcoats Beach' },
+  { slug: 'ardrossan', name: 'Ardrossan', postcode: 'KA22', lat: 55.6440, lng: -4.8150, distanceFromCentre: 6.4, nearestLandmark: 'Ardrossan Castle' },
+  { slug: 'stevenston', name: 'Stevenston', postcode: 'KA20', lat: 55.6340, lng: -4.7510, distanceFromCentre: 3.8, nearestLandmark: 'Stevenston Beach' },
+  { slug: 'largs', name: 'Largs', postcode: 'KA30', lat: 55.7940, lng: -4.8620, distanceFromCentre: 14.8, nearestLandmark: 'Vikingar' },
+  { slug: 'dalry', name: 'Dalry', postcode: 'KA24', lat: 55.7100, lng: -4.7210, distanceFromCentre: 8.4, nearestLandmark: 'Dalry Town Centre' },
+  { slug: 'beith', name: 'Beith', postcode: 'KA15', lat: 55.7520, lng: -4.6310, distanceFromCentre: 8.8, nearestLandmark: 'Beith Town Centre' },
+  { slug: 'west-kilbride', name: 'West Kilbride', postcode: 'KA23', lat: 55.6920, lng: -4.8530, distanceFromCentre: 9.8, nearestLandmark: 'Seamill Beach' },
+  { slug: 'fairlie', name: 'Fairlie', postcode: 'KA29', lat: 55.7530, lng: -4.8690, distanceFromCentre: 12.4, nearestLandmark: 'Fairlie Castle' },
+  { slug: 'skelmorlie-irvine', name: 'Skelmorlie', postcode: 'PA17', lat: 55.8590, lng: -4.9210, distanceFromCentre: 18.2, nearestLandmark: 'Skelmorlie Castle' },
+  { slug: 'dreghorn', name: 'Dreghorn', postcode: 'KA11', lat: 55.6200, lng: -4.6370, distanceFromCentre: 1.8, nearestLandmark: 'Dreghorn Village' },
+  { slug: 'springside', name: 'Springside', postcode: 'KA11', lat: 55.6370, lng: -4.6110, distanceFromCentre: 3.2, nearestLandmark: 'Springside Village' },
+  { slug: 'bourtreehill', name: 'Bourtreehill', postcode: 'KA11', lat: 55.6240, lng: -4.6510, distanceFromCentre: 1.2, nearestLandmark: 'Bourtreehill Shopping Centre' },
+  { slug: 'girdle-toll', name: 'Girdle Toll', postcode: 'KA11', lat: 55.6190, lng: -4.6610, distanceFromCentre: 0.8, nearestLandmark: 'Girdle Toll Roundabout' },
+  { slug: 'perceton', name: 'Perceton', postcode: 'KA11', lat: 55.6290, lng: -4.6280, distanceFromCentre: 2.4, nearestLandmark: 'Perceton Row' },
+  { slug: 'eglinton', name: 'Eglinton', postcode: 'KA11', lat: 55.6350, lng: -4.6380, distanceFromCentre: 2.8, nearestLandmark: 'Eglinton Country Park' },
+  { slug: 'millport', name: 'Millport', postcode: 'KA28', lat: 55.7520, lng: -4.9250, distanceFromCentre: 16.8, nearestLandmark: 'Cathedral of the Isles' },
+  { slug: 'glengarnock', name: 'Glengarnock', postcode: 'KA14', lat: 55.7380, lng: -4.6810, distanceFromCentre: 6.8, nearestLandmark: 'Glengarnock Village' },
+  { slug: 'barrmill', name: 'Barrmill', postcode: 'KA15', lat: 55.7340, lng: -4.6310, distanceFromCentre: 7.4, nearestLandmark: 'Barrmill Village' },
+];
+
 export function getAreasForCity(citySlug: string): Area[] {
   switch (citySlug) {
     case 'glasgow': return glasgowAreas;
@@ -615,6 +684,9 @@ export function getAreasForCity(citySlug: string): Area[] {
     case 'dumfries': return dumfriesAreas;
     case 'greenock': return greenockAreas;
     case 'dunfermline': return dunfermlineAreas;
+    case 'kilmarnock': return kilmarnockAreas;
+    case 'ayr': return ayrAreas;
+    case 'irvine': return irvineAreas;
     default: return [];
   }
 }
@@ -634,4 +706,5 @@ export const serviceCities = [
   'livingston', 'kirkcaldy', 'perth',
   'cumbernauld', 'dumfries',
   'greenock', 'dunfermline',
+  'kilmarnock', 'ayr', 'irvine',
 ] as const;
