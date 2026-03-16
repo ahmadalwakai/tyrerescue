@@ -7,6 +7,7 @@ import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { AdminChatbot } from '@/components/admin/AdminChatbot';
+import { BackButton } from '@/components/ui/BackButton';
 
 const navItems = [
   { label: 'Bookings', href: '/admin/bookings' },
@@ -325,6 +326,9 @@ export function AdminShell({
         bg={c.bg}
         minH="100vh"
       >
+        <Box mb={2}>
+          <BackButton />
+        </Box>
         {children}
         <AdminChatbot />
       </Box>

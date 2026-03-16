@@ -5,6 +5,7 @@ import { Box, Flex, Text, Link as ChakraLink } from '@chakra-ui/react';
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { BackButton } from '@/components/ui/BackButton';
 
 const navItems = [
   { label: 'Dashboard', href: '/driver' },
@@ -115,6 +116,9 @@ export function DriverShell({
 
       {/* Main content */}
       <Box maxW="1200px" mx="auto" p={{ base: 4, md: 6 }}>
+        <Box mb={2}>
+          <BackButton />
+        </Box>
         {children}
       </Box>
     </Box>

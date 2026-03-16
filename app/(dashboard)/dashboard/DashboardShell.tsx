@@ -6,6 +6,7 @@ import { Box, Flex, VStack, Text, Heading, Link as ChakraLink } from '@chakra-ui
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { BackButton } from '@/components/ui/BackButton';
 
 const navItems = [
   { label: 'Overview', href: '/dashboard' },
@@ -246,6 +247,9 @@ export function DashboardShell({
         p={{ base: 4, md: 8 }}
         pt={{ base: '72px', md: 8 }}
       >
+        <Box mb={2}>
+          <BackButton />
+        </Box>
         {children}
       </Box>
     </Flex>
