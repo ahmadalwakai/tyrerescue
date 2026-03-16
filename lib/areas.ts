@@ -175,6 +175,14 @@ export const glasgowAreas: Area[] = [
   { slug: 'bowling', name: 'Bowling', postcode: 'G60', lat: 55.9198, lng: -4.4812, distanceFromCentre: 10.8, nearestLandmark: 'Bowling Harbour' },
   { slug: 'craigton', name: 'Craigton', postcode: 'G52', lat: 55.8534, lng: -4.3512, distanceFromCentre: 4.8, nearestLandmark: 'Craigton Cemetery' },
   { slug: 'arden', name: 'Arden', postcode: 'G46', lat: 55.8034, lng: -4.3112, distanceFromCentre: 5.9, nearestLandmark: 'Arden Primary School' },
+  { slug: 'shettleston', name: 'Shettleston', postcode: 'G32', lat: 55.8540, lng: -4.1680, distanceFromCentre: 3.4, nearestLandmark: 'Shettleston Halls' },
+  { slug: 'chryston', name: 'Chryston', postcode: 'G69', lat: 55.9082, lng: -4.1019, distanceFromCentre: 7.2, nearestLandmark: 'Bedlay Castle' },
+  { slug: 'moodiesburn', name: 'Moodiesburn', postcode: 'G69', lat: 55.9123, lng: -4.0712, distanceFromCentre: 8.4, nearestLandmark: 'Moodiesburn Glen' },
+  { slug: 'duntocher', name: 'Duntocher', postcode: 'G81', lat: 55.9234, lng: -4.4212, distanceFromCentre: 8.8, nearestLandmark: 'Antonine Wall' },
+  { slug: 'dumbarton', name: 'Dumbarton', postcode: 'G82', lat: 55.9453, lng: -4.5643, distanceFromCentre: 14.2, nearestLandmark: 'Dumbarton Castle' },
+  { slug: 'alexandria', name: 'Alexandria', postcode: 'G83', lat: 55.9842, lng: -4.5832, distanceFromCentre: 16.8, nearestLandmark: 'Vale of Leven' },
+  { slug: 'balloch', name: 'Balloch', postcode: 'G83', lat: 56.0012, lng: -4.5862, distanceFromCentre: 17.4, nearestLandmark: 'Loch Lomond Shores' },
+  { slug: 'helensburgh', name: 'Helensburgh', postcode: 'G84', lat: 56.0111, lng: -4.7332, distanceFromCentre: 22.8, nearestLandmark: 'Helensburgh Waterfront' },
 ];
 
 export const edinburghAreas: Area[] = [
@@ -260,6 +268,11 @@ export const edinburghAreas: Area[] = [
   { slug: 'dreghorn', name: 'Dreghorn', postcode: 'EH13', lat: 55.8998, lng: -3.2812, distanceFromCentre: 5.8, nearestLandmark: 'Dreghorn Barracks' },
   { slug: 'mountcastle', name: 'Mountcastle', postcode: 'EH8', lat: 55.9534, lng: -3.1312, distanceFromCentre: 2.8, nearestLandmark: 'Portobello Road' },
   { slug: 'pathhead', name: 'Pathhead', postcode: 'EH37', lat: 55.8434, lng: -2.9812, distanceFromCentre: 14.2, nearestLandmark: 'Crichton Castle' },
+  { slug: 'prestonpans', name: 'Prestonpans', postcode: 'EH32', lat: 55.9520, lng: -2.9800, distanceFromCentre: 8.8, nearestLandmark: 'Preston Tower' },
+  { slug: 'wallyford', name: 'Wallyford', postcode: 'EH21', lat: 55.9420, lng: -3.0150, distanceFromCentre: 7.2, nearestLandmark: 'Wallyford Community Centre' },
+  { slug: 'newtongrange', name: 'Newtongrange', postcode: 'EH22', lat: 55.8620, lng: -3.0720, distanceFromCentre: 8.8, nearestLandmark: 'National Mining Museum' },
+  { slug: 'danderhall', name: 'Danderhall', postcode: 'EH22', lat: 55.9160, lng: -3.1080, distanceFromCentre: 4.4, nearestLandmark: 'Danderhall Village' },
+  { slug: 'longniddry', name: 'Longniddry', postcode: 'EH32', lat: 55.9720, lng: -2.8870, distanceFromCentre: 12.4, nearestLandmark: 'Longniddry Bents' },
 ];
 
 export const dundeeAreas: Area[] = [
@@ -316,6 +329,9 @@ export const dundeeAreas: Area[] = [
   { slug: 'law-hill', name: 'Law Hill', postcode: 'DD3', lat: 56.4798, lng: -2.9712, distanceFromCentre: 1.8, nearestLandmark: 'Dundee Law' },
   { slug: 'birkhill', name: 'Birkhill', postcode: 'DD2', lat: 56.4734, lng: -3.1012, distanceFromCentre: 5.8, nearestLandmark: 'Birkhill Village' },
   { slug: 'piperdam', name: 'Piperdam', postcode: 'DD2', lat: 56.4934, lng: -3.1312, distanceFromCentre: 8.2, nearestLandmark: 'Piperdam Golf Course' },
+  { slug: 'st-andrews', name: 'St Andrews', postcode: 'KY16', lat: 56.3400, lng: -2.7990, distanceFromCentre: 14.2, nearestLandmark: 'St Andrews Old Course' },
+  { slug: 'cupar', name: 'Cupar', postcode: 'KY15', lat: 56.3200, lng: -3.0110, distanceFromCentre: 12.8, nearestLandmark: 'Cupar Town Centre' },
+  { slug: 'leuchars', name: 'Leuchars', postcode: 'KY16', lat: 56.3780, lng: -2.8820, distanceFromCentre: 10.8, nearestLandmark: 'Leuchars Station' },
 ];
 
 export const stirlingAreas: Area[] = [
@@ -368,6 +384,7 @@ export const falkirkAreas: Area[] = [
   { slug: 'westquarter', name: 'Westquarter', postcode: 'FK2', lat: 55.9790, lng: -3.8010, distanceFromCentre: 2.1, nearestLandmark: 'Westquarter Village' },
   { slug: 'bonnybridge', name: 'Bonnybridge', postcode: 'FK4', lat: 56.0034, lng: -3.8912, distanceFromCentre: 5.4, nearestLandmark: 'Antonine Wall' },
   { slug: 'redding', name: 'Redding', postcode: 'FK2', lat: 55.9860, lng: -3.7510, distanceFromCentre: 2.8, nearestLandmark: 'Redding Village' },
+  { slug: 'carron', name: 'Carron', postcode: 'FK2', lat: 56.0140, lng: -3.8160, distanceFromCentre: 1.8, nearestLandmark: 'Carron Works Heritage' },
 ];
 
 export const paisleyAreas: Area[] = [
@@ -413,6 +430,8 @@ export const hamiltonAreas: Area[] = [
   { slug: 'udston', name: 'Udston', postcode: 'ML3', lat: 55.7830, lng: -4.0210, distanceFromCentre: 1.2, nearestLandmark: 'Udston Hospital' },
   { slug: 'cadzow', name: 'Cadzow', postcode: 'ML3', lat: 55.7880, lng: -4.0410, distanceFromCentre: 0.8, nearestLandmark: 'Chatelherault Country Park' },
   { slug: 'lesmahagow', name: 'Lesmahagow', postcode: 'ML11', lat: 55.6360, lng: -3.8890, distanceFromCentre: 12.8, nearestLandmark: 'Lesmahagow Priory' },
+  { slug: 'carluke', name: 'Carluke', postcode: 'ML8', lat: 55.7340, lng: -3.8350, distanceFromCentre: 9.2, nearestLandmark: 'Carluke High Mill' },
+  { slug: 'lanark', name: 'Lanark', postcode: 'ML11', lat: 55.6740, lng: -3.7780, distanceFromCentre: 14.8, nearestLandmark: 'New Lanark World Heritage Site' },
 ];
 
 export const eastKilbrideAreas: Area[] = [
@@ -453,6 +472,9 @@ export const motherwellAreas: Area[] = [
   { slug: 'cambusnethan', name: 'Cambusnethan', postcode: 'ML2', lat: 55.7690, lng: -3.9310, distanceFromCentre: 4.2, nearestLandmark: 'Cambusnethan Priory' },
   { slug: 'netherton-motherwell', name: 'Netherton', postcode: 'ML2', lat: 55.7690, lng: -3.9110, distanceFromCentre: 4.8, nearestLandmark: 'Netherton Road' },
   { slug: 'newmains', name: 'Newmains', postcode: 'ML2', lat: 55.7830, lng: -3.8610, distanceFromCentre: 6.8, nearestLandmark: 'Newmains Village' },
+  { slug: 'chapelhall', name: 'Chapelhall', postcode: 'ML6', lat: 55.8430, lng: -3.9520, distanceFromCentre: 4.4, nearestLandmark: 'Chapelhall Village' },
+  { slug: 'plains', name: 'Plains', postcode: 'ML6', lat: 55.8650, lng: -3.8770, distanceFromCentre: 7.2, nearestLandmark: 'Plains Cross' },
+  { slug: 'harthill', name: 'Harthill', postcode: 'ML7', lat: 55.8600, lng: -3.7880, distanceFromCentre: 10.2, nearestLandmark: 'Harthill Village' },
 ];
 
 export const livingstonAreas: Area[] = [
@@ -473,6 +495,10 @@ export const livingstonAreas: Area[] = [
   { slug: 'pumpherston', name: 'Pumpherston', postcode: 'EH53', lat: 55.9030, lng: -3.4770, distanceFromCentre: 3.2, nearestLandmark: 'Pumpherston Golf Club' },
   { slug: 'mid-calder', name: 'Mid Calder', postcode: 'EH53', lat: 55.8920, lng: -3.4610, distanceFromCentre: 4.2, nearestLandmark: 'Calder House' },
   { slug: 'east-calder', name: 'East Calder', postcode: 'EH53', lat: 55.8920, lng: -3.4270, distanceFromCentre: 5.8, nearestLandmark: 'East Calder Village' },
+  { slug: 'blackburn', name: 'Blackburn', postcode: 'EH47', lat: 55.8670, lng: -3.6260, distanceFromCentre: 5.2, nearestLandmark: 'Blackburn Town Centre' },
+  { slug: 'fauldhouse', name: 'Fauldhouse', postcode: 'EH47', lat: 55.8380, lng: -3.7200, distanceFromCentre: 9.4, nearestLandmark: 'Fauldhouse Village' },
+  { slug: 'west-calder', name: 'West Calder', postcode: 'EH55', lat: 55.8520, lng: -3.5680, distanceFromCentre: 4.2, nearestLandmark: 'West Calder Village' },
+  { slug: 'winchburgh', name: 'Winchburgh', postcode: 'EH52', lat: 55.9500, lng: -3.4770, distanceFromCentre: 5.4, nearestLandmark: 'Winchburgh Village' },
 ];
 
 export const kirkcaldyAreas: Area[] = [
@@ -494,6 +520,10 @@ export const kirkcaldyAreas: Area[] = [
   { slug: 'markinch', name: 'Markinch', postcode: 'KY7', lat: 56.2010, lng: -3.1310, distanceFromCentre: 5.4, nearestLandmark: 'Markinch Station' },
   { slug: 'leslie', name: 'Leslie', postcode: 'KY6', lat: 56.1990, lng: -3.2110, distanceFromCentre: 6.2, nearestLandmark: 'Leslie House' },
   { slug: 'east-wemyss', name: 'East Wemyss', postcode: 'KY1', lat: 56.1490, lng: -3.0610, distanceFromCentre: 5.8, nearestLandmark: 'Wemyss Caves' },
+  { slug: 'anstruther', name: 'Anstruther', postcode: 'KY10', lat: 56.2230, lng: -2.7000, distanceFromCentre: 20.2, nearestLandmark: 'Anstruther Harbour' },
+  { slug: 'pittenweem', name: 'Pittenweem', postcode: 'KY10', lat: 56.2130, lng: -2.7300, distanceFromCentre: 18.8, nearestLandmark: 'Pittenweem Harbour' },
+  { slug: 'st-monans', name: 'St Monans', postcode: 'KY10', lat: 56.2060, lng: -2.7660, distanceFromCentre: 17.8, nearestLandmark: 'St Monans Windmill' },
+  { slug: 'crail', name: 'Crail', postcode: 'KY10', lat: 56.2610, lng: -2.6270, distanceFromCentre: 24.2, nearestLandmark: 'Crail Harbour' },
 ];
 
 export const perthAreas: Area[] = [
@@ -514,6 +544,8 @@ export const perthAreas: Area[] = [
   { slug: 'inveralmond-perth', name: 'Inveralmond', postcode: 'PH1', lat: 56.4090, lng: -3.4710, distanceFromCentre: 2.8, nearestLandmark: 'Inveralmond Industrial Estate' },
   { slug: 'blairgowrie', name: 'Blairgowrie', postcode: 'PH10', lat: 56.5890, lng: -3.3410, distanceFromCentre: 16.8, nearestLandmark: 'Blairgowrie Town Centre' },
   { slug: 'coupar-angus', name: 'Coupar Angus', postcode: 'PH13', lat: 56.5290, lng: -3.2610, distanceFromCentre: 12.4, nearestLandmark: 'Coupar Angus Town Centre' },
+  { slug: 'bridge-of-earn', name: 'Bridge of Earn', postcode: 'PH2', lat: 56.3400, lng: -3.4100, distanceFromCentre: 4.2, nearestLandmark: 'Bridge of Earn Village' },
+  { slug: 'dunkeld', name: 'Dunkeld', postcode: 'PH8', lat: 56.5660, lng: -3.5830, distanceFromCentre: 14.8, nearestLandmark: 'Dunkeld Cathedral' },
 ];
 
 export const cumbernauldAreas: Area[] = [
@@ -533,6 +565,8 @@ export const cumbernauldAreas: Area[] = [
   { slug: 'dullatur', name: 'Dullatur', postcode: 'G68', lat: 55.9690, lng: -4.0210, distanceFromCentre: 3.8, nearestLandmark: 'Dullatur Golf Club' },
   { slug: 'banton', name: 'Banton', postcode: 'G65', lat: 55.9890, lng: -4.0810, distanceFromCentre: 6.8, nearestLandmark: 'Banton Loch' },
   { slug: 'castlecary', name: 'Castlecary', postcode: 'G68', lat: 55.9590, lng: -3.9210, distanceFromCentre: 3.4, nearestLandmark: 'Castlecary Arches' },
+  { slug: 'croy', name: 'Croy', postcode: 'G65', lat: 55.9620, lng: -4.0370, distanceFromCentre: 2.8, nearestLandmark: 'Croy Station' },
+  { slug: 'twechar', name: 'Twechar', postcode: 'G65', lat: 55.9770, lng: -4.1210, distanceFromCentre: 5.8, nearestLandmark: 'Twechar Village' },
 ];
 
 export const dumfriesAreas: Area[] = [
@@ -554,6 +588,8 @@ export const dumfriesAreas: Area[] = [
   { slug: 'kirkcudbright', name: 'Kirkcudbright', postcode: 'DG6', lat: 54.8330, lng: -4.0480, distanceFromCentre: 26.8, nearestLandmark: 'Kirkcudbright Castle' },
   { slug: 'gretna', name: 'Gretna', postcode: 'DG16', lat: 54.9960, lng: -3.0620, distanceFromCentre: 10.4, nearestLandmark: 'Gretna Green' },
   { slug: 'eastriggs', name: 'Eastriggs', postcode: 'DG12', lat: 54.9890, lng: -3.2010, distanceFromCentre: 14.2, nearestLandmark: 'Eastriggs Village' },
+  { slug: 'locharbriggs', name: 'Locharbriggs', postcode: 'DG1', lat: 55.0400, lng: -3.5740, distanceFromCentre: 3.2, nearestLandmark: 'Locharbriggs Quarry' },
+  { slug: 'lochmaben', name: 'Lochmaben', postcode: 'DG11', lat: 55.1330, lng: -3.4450, distanceFromCentre: 7.8, nearestLandmark: 'Lochmaben Castle' },
 ];
 
 export const greenockAreas: Area[] = [
@@ -595,6 +631,7 @@ export const dunfermlineAreas: Area[] = [
   { slug: 'oakley', name: 'Oakley', postcode: 'KY12', lat: 56.0890, lng: -3.5510, distanceFromCentre: 4.8, nearestLandmark: 'Oakley Village' },
   { slug: 'carnock', name: 'Carnock', postcode: 'KY12', lat: 56.0890, lng: -3.5310, distanceFromCentre: 4.2, nearestLandmark: 'Carnock Village' },
   { slug: 'high-valleyfield', name: 'High Valleyfield', postcode: 'KY12', lat: 56.0530, lng: -3.5810, distanceFromCentre: 5.2, nearestLandmark: 'Preston Island' },
+  { slug: 'culross', name: 'Culross', postcode: 'KY12', lat: 56.0570, lng: -3.6280, distanceFromCentre: 7.4, nearestLandmark: 'Culross Palace' },
 ];
 
 export const kilmarnockAreas: Area[] = [
