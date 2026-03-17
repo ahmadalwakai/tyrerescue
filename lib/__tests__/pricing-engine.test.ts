@@ -18,7 +18,7 @@ function defaultRules(overrides: Partial<PricingRules> = {}): PricingRules {
     multi_tyre_discount_3: 8,
     multi_tyre_discount_4: 12,
     minimum_order_total: 50,
-    max_service_miles: 50,
+    max_service_miles: 190,
     quote_expiry_minutes: 15,
     surge_pricing_enabled: false,
     callout_0_5: 0,
@@ -127,7 +127,7 @@ describe('calculatePricing', () => {
 describe('parsePricingRules', () => {
   it('uses defaults when no rules provided', () => {
     const rules = parsePricingRules([]);
-    expect(rules.max_service_miles).toBe(50);
+    expect(rules.max_service_miles).toBe(190);
     expect(rules.fitting_fee_per_tyre).toBe(20);
   });
 

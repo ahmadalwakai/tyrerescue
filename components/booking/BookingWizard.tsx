@@ -20,6 +20,7 @@ import {
 } from './types';
 import { StepServiceType } from './StepServiceType';
 import { StepLocation } from './StepLocation';
+import { StepEligibility } from './StepEligibility';
 import { StepTyreDetails } from './StepTyreDetails';
 import { StepTyreSelection } from './StepTyreSelection';
 import { StepSchedule } from './StepSchedule';
@@ -38,6 +39,7 @@ interface StepIndicatorProps {
 
 function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
   const currentIndex = steps.findIndex(s => s.key === currentStep);
+  const progress = steps.length > 1 ? (currentIndex / (steps.length - 1)) * 100 : 0;
 
   return (
     <Box
@@ -50,6 +52,26 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
       role="navigation"
       aria-label="Booking progress"
     >
+      {/* Animated progress bar */}
+      <Box
+        h="2px"
+        bg={c.border}
+        borderRadius="full"
+        mb={4}
+        overflow="hidden"
+        position="relative"
+      >
+        <Box
+          h="full"
+          bg={c.accent}
+          borderRadius="full"
+          style={{
+            width: `${progress}%`,
+            transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)',
+          }}
+        />
+      </Box>
+
       <HStack gap={0} justify="space-between" wrap="wrap">
         {steps.map((step, index) => {
           const isActive = step.key === currentStep;
@@ -63,28 +85,6 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
               textAlign="center"
               position="relative"
             >
-              {/* Connector line */}
-              {index > 0 && (
-                <Box
-                  position="absolute"
-                  top="12px"
-                  left="0"
-                  right="50%"
-                  h="2px"
-                  bg={isCompleted || isActive ? c.accent : c.border}
-                />
-              )}
-              {index < steps.length - 1 && (
-                <Box
-                  position="absolute"
-                  top="12px"
-                  left="50%"
-                  right="0"
-                  h="2px"
-                  bg={isCompleted ? c.accent : c.border}
-                />
-              )}
-
               {/* Step number */}
               <Box
                 position="relative"
@@ -102,6 +102,11 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
                 mx="auto"
                 mb={1}
                 aria-current={isActive ? 'step' : undefined}
+                style={{
+                  transition: 'background 0.3s ease, transform 0.3s ease',
+                  transform: isActive ? 'scale(1.15)' : 'scale(1)',
+                  animation: isActive ? 'indicatorPulse 2s ease-in-out infinite' : undefined,
+                }}
               >
                 {isCompleted ? '\u2713' : step.number}
               </Box>
@@ -112,6 +117,7 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
                 fontWeight={isActive ? '600' : '400'}
                 color={isActive ? c.accent : isCompleted ? c.text : c.muted}
                 whiteSpace="nowrap"
+                style={{ transition: 'color 0.3s ease' }}
               >
                 {step.name}
               </Text>
@@ -254,6 +260,16 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
           />
         );
 
+      case 'eligibility':
+        return (
+          <StepEligibility
+            state={state}
+            updateState={updateState}
+            goToNext={goToNext}
+            goToPrev={goToPrev}
+          />
+        );
+
       case 'tyre-details':
         return (
           <StepTyreDetails
@@ -347,12 +363,14 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
 
             {/* Current step content */}
             <Box
+              key={currentStep}
               bg={c.card}
               borderRadius="lg"
               p={{ base: 4, md: 6 }}
               borderWidth="1px"
               borderColor={c.border}
               aria-live="polite"
+              style={{ animation: 'stepEnter 0.4s cubic-bezier(0.16,1,0.3,1) both' }}
             >
               {renderStep()}
             </Box>

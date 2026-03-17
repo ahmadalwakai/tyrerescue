@@ -69,6 +69,11 @@ export interface WizardState {
   customerPhone: string;
   createAccount: boolean;
   
+  // Emergency eligibility (after location check)
+  emergencyEta: number | null;        // minutes
+  nearestDriverId: string | null;
+  nearestDriverName: string | null;
+
   // Step 8: Payment
   bookingId: string | null;
   refNumber: string | null;
@@ -101,6 +106,9 @@ export const initialWizardState: WizardState = {
   customerEmail: '',
   customerPhone: '',
   createAccount: false,
+  emergencyEta: null,
+  nearestDriverId: null,
+  nearestDriverName: null,
   bookingId: null,
   refNumber: null,
   stripeClientSecret: null,
@@ -155,6 +163,7 @@ export function cartItemCount(cart: SelectedTyre[]): number {
 export type WizardStep = 
   | 'service-type'
   | 'location'
+  | 'eligibility'
   | 'tyre-details'
   | 'tyre-selection'
   | 'schedule'
@@ -169,34 +178,54 @@ export interface StepConfig {
   isOptional?: boolean;
 }
 
-export const WIZARD_STEPS: StepConfig[] = [
+/**
+ * Emergency flow: dispatch-first — get a driver out ASAP.
+ * Light triage, no appointment picking, eligibility check after location.
+ */
+const EMERGENCY_STEPS: StepConfig[] = [
+  { key: 'service-type', number: 1, name: 'Service Type' },
+  { key: 'location', number: 2, name: 'Location' },
+  { key: 'eligibility', number: 3, name: 'Availability' },
+  { key: 'tyre-details', number: 4, name: 'Tyre Details' },
+  { key: 'pricing', number: 5, name: 'Quote' },
+  { key: 'customer-details', number: 6, name: 'Your Details' },
+  { key: 'payment', number: 7, name: 'Payment' },
+];
+
+/**
+ * Scheduled flow: appointment-first — customer picks a slot.
+ * Full triage, tyre selection (for fit/both), schedule before quote.
+ */
+const SCHEDULED_STEPS: StepConfig[] = [
   { key: 'service-type', number: 1, name: 'Service Type' },
   { key: 'location', number: 2, name: 'Location' },
   { key: 'tyre-details', number: 3, name: 'Tyre Details' },
   { key: 'tyre-selection', number: 4, name: 'Select Tyres' },
-  { key: 'schedule', number: 5, name: 'Schedule', isOptional: true },
+  { key: 'schedule', number: 5, name: 'Schedule' },
   { key: 'pricing', number: 6, name: 'Quote' },
   { key: 'customer-details', number: 7, name: 'Your Details' },
   { key: 'payment', number: 8, name: 'Payment' },
 ];
 
+/** Kept for backward-compat imports — prefer getStepsForBookingType */
+export const WIZARD_STEPS: StepConfig[] = SCHEDULED_STEPS;
+
 export function getStepsForBookingType(
   bookingType: BookingType | null,
   serviceType?: ServiceType | null,
 ): StepConfig[] {
-  let steps = WIZARD_STEPS as StepConfig[];
+  // Default to scheduled when no type chosen yet
+  let steps: StepConfig[] =
+    bookingType === 'emergency'
+      ? [...EMERGENCY_STEPS]
+      : [...SCHEDULED_STEPS];
 
-  if (bookingType === 'emergency') {
-    // Skip schedule step for emergency bookings
-    steps = steps.filter(step => step.key !== 'schedule');
-  }
-
+  // Repair bookings skip tyre selection (nothing to pick)
   if (serviceType === 'repair') {
-    // Skip tyre selection for repair — no product to pick
     steps = steps.filter(step => step.key !== 'tyre-selection');
   }
 
-  // Re-number steps sequentially
+  // Re-number sequentially
   return steps.map((step, index) => ({
     ...step,
     number: index + 1,

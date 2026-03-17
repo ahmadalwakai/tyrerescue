@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, drivers } from '@/lib/db/schema';
+import { bookings, drivers, serviceAreas } from '@/lib/db/schema';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { haversineDistanceMiles } from '@/lib/mapbox';
 
 interface TimeSlot {
   time: string;
@@ -56,15 +57,79 @@ export async function GET(request: NextRequest) {
       baseSlots.push({ time, label });
     }
 
-    // Get total number of drivers available for this date
-    // For simplicity, count all active drivers
-    const activeDrivers = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(drivers)
-      .where(eq(drivers.status, 'available'));
-    
-    const totalDrivers = Math.max(activeDrivers[0]?.count || 0, 2); // Minimum 2 slots for demo
-    const slotsPerTimeSlot = totalDrivers;
+    // ── Location-aware capacity ──────────────────────────────
+    // If lat/lng provided, find nearest service area and use its drivers.
+    // Otherwise fall back to global count.
+    let slotsPerTimeSlot: number;
+
+    const parsedLat = lat ? parseFloat(lat) : null;
+    const parsedLng = lng ? parseFloat(lng) : null;
+
+    if (parsedLat !== null && parsedLng !== null && !isNaN(parsedLat) && !isNaN(parsedLng)) {
+      // Find the nearest active service area within range
+      const areas = await db
+        .select({
+          id: serviceAreas.id,
+          centerLat: serviceAreas.centerLat,
+          centerLng: serviceAreas.centerLng,
+          radiusMiles: serviceAreas.radiusMiles,
+        })
+        .from(serviceAreas)
+        .where(eq(serviceAreas.active, true));
+
+      let nearestArea: typeof areas[number] | null = null;
+      let nearestDist = Infinity;
+
+      for (const area of areas) {
+        if (!area.centerLat || !area.centerLng) continue;
+        const dist = haversineDistanceMiles(
+          { lat: Number(area.centerLat), lng: Number(area.centerLng) },
+          { lat: parsedLat, lng: parsedLng },
+        );
+        const radius = area.radiusMiles ? Number(area.radiusMiles) : 50;
+        if (dist <= radius && dist < nearestDist) {
+          nearestDist = dist;
+          nearestArea = area;
+        }
+      }
+
+      if (nearestArea) {
+        // Count drivers whose last known position is within this service area
+        const allDrivers = await db
+          .select({
+            lat: drivers.currentLat,
+            lng: drivers.currentLng,
+          })
+          .from(drivers)
+          .where(eq(drivers.status, 'available'));
+
+        const areaRadius = nearestArea.radiusMiles ? Number(nearestArea.radiusMiles) : 50;
+        const driversInArea = allDrivers.filter((d) => {
+          if (!d.lat || !d.lng || !nearestArea!.centerLat || !nearestArea!.centerLng) return false;
+          const dist = haversineDistanceMiles(
+            { lat: Number(d.lat), lng: Number(d.lng) },
+            { lat: Number(nearestArea!.centerLat), lng: Number(nearestArea!.centerLng) },
+          );
+          return dist <= areaRadius;
+        });
+
+        slotsPerTimeSlot = Math.max(driversInArea.length, 2);
+      } else {
+        // Customer outside all areas — fall back to global count
+        const activeDrivers = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(drivers)
+          .where(eq(drivers.status, 'available'));
+        slotsPerTimeSlot = Math.max(activeDrivers[0]?.count || 0, 2);
+      }
+    } else {
+      // No location — generic capacity
+      const activeDrivers = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(drivers)
+        .where(eq(drivers.status, 'available'));
+      slotsPerTimeSlot = Math.max(activeDrivers[0]?.count || 0, 2);
+    }
 
     // Get existing bookings for this date
     const dateStart = new Date(`${date}T00:00:00`);

@@ -28,7 +28,7 @@ const faqs = [
   },
   {
     question: 'What areas do you cover?',
-    answer: 'We cover Glasgow, Edinburgh, and all surrounding areas within 50 miles of our base. This includes Paisley, East Kilbride, Hamilton, Livingston, Falkirk, and more.',
+    answer: 'We cover Glasgow, Edinburgh, and all surrounding areas across Central Scotland. This includes Paisley, East Kilbride, Hamilton, Livingston, Falkirk, Stirling, Perth, Dundee, and more.',
   },
   {
     question: 'Do you fit tyres I have already purchased?',

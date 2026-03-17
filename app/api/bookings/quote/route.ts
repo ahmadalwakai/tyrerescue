@@ -112,7 +112,13 @@ export async function POST(
       })
         .from(drivers)
         .where(and(eq(drivers.isOnline, true), eq(drivers.status, 'available'))),
-      db.select().from(serviceAreas).where(eq(serviceAreas.active, true)),
+      db.select({
+        id: serviceAreas.id,
+        name: serviceAreas.name,
+        centerLat: serviceAreas.centerLat,
+        centerLng: serviceAreas.centerLng,
+        radiusMiles: serviceAreas.radiusMiles,
+      }).from(serviceAreas).where(eq(serviceAreas.active, true)),
     ]);
 
     const parsedRules = parsePricingRules(

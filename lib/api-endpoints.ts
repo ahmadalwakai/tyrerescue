@@ -15,6 +15,7 @@ export const API = {
 
   // Availability
   AVAILABILITY_SLOTS: '/api/availability/slots',
+  AVAILABILITY_ELIGIBILITY: '/api/availability/eligibility',
 
   // Driver
   DRIVER_STATUS_AVAILABLE: '/api/driver/status/available',

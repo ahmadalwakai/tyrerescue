@@ -72,7 +72,7 @@ const testimonials = [
 
 const faqs = [
   { question: 'How quickly can you get to me in an emergency?', answer: 'For emergency callouts in Glasgow and Edinburgh city centres, we typically arrive within 45 minutes. For surrounding areas, arrival times vary based on distance but we always provide an accurate ETA when you book.' },
-  { question: 'What areas do you cover?', answer: 'We cover Glasgow, Edinburgh, and all surrounding areas within 50 miles of our base. This includes Paisley, East Kilbride, Hamilton, Livingston, Falkirk, and more.' },
+  { question: 'What areas do you cover?', answer: 'We cover Glasgow, Edinburgh, and all surrounding areas across Central Scotland. This includes Paisley, East Kilbride, Hamilton, Livingston, Falkirk, Stirling, Perth, Dundee, and more.' },
   { question: 'Do you fit tyres I have already purchased?', answer: 'We primarily fit tyres purchased through our service to ensure quality and warranty coverage. If you have tyres you need fitted, please call us to discuss.' },
   { question: 'What payment methods do you accept?', answer: 'We accept all major credit and debit cards, Apple Pay, and Google Pay through our secure online checkout. Payment is taken at the time of booking.' },
   { question: 'Can you repair my puncture or do I need a new tyre?', answer: 'Our fitters assess every puncture on arrival. Repairs are only possible when the damage is in the central tread area and the tyre structure is intact. Sidewall damage or multiple punctures require replacement.' },

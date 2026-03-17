@@ -108,7 +108,7 @@ export function parsePricingRules(
     multi_tyre_discount_3: getNum('multi_tyre_discount_3', 8.0),
     multi_tyre_discount_4: getNum('multi_tyre_discount_4', 12.0),
     minimum_order_total: getNum('minimum_order_total', 50.0),
-    max_service_miles: getNum('max_service_miles', 50),
+    max_service_miles: getNum('max_service_miles', 190),
     quote_expiry_minutes: getNum('quote_expiry_minutes', 15),
     surge_pricing_enabled: getBool('surge_pricing_enabled', false),
     callout_0_5: getNum('callout_0_5', 0.0),
@@ -687,7 +687,7 @@ export const defaultPricingRules: Array<{
   },
   {
     key: 'max_service_miles',
-    value: '50',
+    value: '190',
     label: 'Maximum service distance (miles)',
     type: 'amount',
   },

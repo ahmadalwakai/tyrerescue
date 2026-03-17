@@ -433,7 +433,7 @@ export function StepLocation({
               borderRadius="8px"
             >
               <Text fontSize="14px" color="red.400" style={{ fontFamily: 'var(--font-body)' }}>
-                This address is outside our service area. We cover Glasgow, Edinburgh and within 50 miles.
+                This address is outside our service area. We cover Glasgow, Edinburgh and surrounding areas across Central Scotland.
               </Text>
               <Text fontSize="13px" color="red.400" mt={1} style={{ fontFamily: 'var(--font-body)' }}>
                 Call us:{' '}

@@ -43,6 +43,10 @@ export const anim = {
   pulseGlow: () => ({
     animation: 'pulseGlow 2s infinite',
   }),
+  /** Step enter (slide-in from right) */
+  stepEnter: (duration = '0.4s', delay = '0s') => ({
+    animation: `stepEnter ${duration} ${EASE_OUT_EXPO} ${delay} both`,
+  }),
   /** Stagger helper: returns sx for the nth item (0-based index) */
   stagger: (
     type: 'fadeUp' | 'fadeIn' | 'slideInRight' | 'slideInLeft' | 'scaleIn',
