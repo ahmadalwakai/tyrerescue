@@ -30,7 +30,69 @@ import { StepPayment } from './StepPayment';
 import { QuoteLoadingScreen } from './QuoteLoadingScreen';
 import { colorTokens as c } from '@/lib/design-tokens';
 
-const STORAGE_KEY = 'tyrerescue_booking_wizard';
+// ── Draft persistence ────────────────────────────────────
+// localStorage key for durable cross-session persistence.
+// Schema is versioned so stale drafts are safely discarded.
+export const BOOKING_DRAFT_KEY = 'tyrerescue_booking_draft';
+const DRAFT_VERSION = 1;
+
+/** Fields that must NEVER be persisted (secrets, transient IDs) */
+const SENSITIVE_KEYS: (keyof WizardState)[] = [
+  'stripeClientSecret',
+];
+
+interface DraftEnvelope {
+  version: number;
+  state: WizardState;
+  currentStep: WizardStep;
+  updatedAt: number; // epoch ms
+}
+
+function saveDraft(state: WizardState, currentStep: WizardStep) {
+  try {
+    const safe = { ...state };
+    for (const key of SENSITIVE_KEYS) {
+      (safe as Record<string, unknown>)[key] = null;
+    }
+    const envelope: DraftEnvelope = {
+      version: DRAFT_VERSION,
+      state: safe,
+      currentStep,
+      updatedAt: Date.now(),
+    };
+    localStorage.setItem(BOOKING_DRAFT_KEY, JSON.stringify(envelope));
+  } catch {
+    // Storage full or unavailable — non-fatal
+  }
+}
+
+function loadDraft(): DraftEnvelope | null {
+  try {
+    const raw = localStorage.getItem(BOOKING_DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as DraftEnvelope;
+    if (parsed.version !== DRAFT_VERSION) {
+      localStorage.removeItem(BOOKING_DRAFT_KEY);
+      return null;
+    }
+    // Discard drafts older than 24 hours
+    if (Date.now() - parsed.updatedAt > 24 * 60 * 60 * 1000) {
+      localStorage.removeItem(BOOKING_DRAFT_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    localStorage.removeItem(BOOKING_DRAFT_KEY);
+    return null;
+  }
+}
+
+export function clearBookingDraft() {
+  try { localStorage.removeItem(BOOKING_DRAFT_KEY); } catch { /* noop */ }
+  try { sessionStorage.removeItem('tyrerescue_booking_wizard'); } catch { /* noop */ }
+}
+
+// ── Step Indicator ───────────────────────────────────────
 
 interface StepIndicatorProps {
   steps: StepConfig[];
@@ -85,7 +147,7 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
               textAlign="center"
               position="relative"
             >
-              {/* Step number */}
+              {/* Step number — always 1-based from resolved flow */}
               <Box
                 position="relative"
                 zIndex={1}
@@ -129,6 +191,8 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
   );
 }
 
+// ── Booking Wizard ───────────────────────────────────────
+
 export interface BookingWizardProps {
   initialStep?: WizardStep;
   initialState?: Partial<WizardState>;
@@ -140,35 +204,39 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
   const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep || 'service-type');
   const [isHydrated, setIsHydrated] = useState(false);
   const [showQuoteLoader, setShowQuoteLoader] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const quoteLoaderTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Restore state from sessionStorage on mount
+  // Restore state from localStorage on mount (fall back to sessionStorage for migration)
   useEffect(() => {
-    const stored = sessionStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setState(parsed.state || initialWizardState);
-        if (!initialStep && parsed.currentStep) {
-          setCurrentStep(parsed.currentStep);
-        }
-      } catch {
-        // Corrupted storage — start fresh
+    const draft = loadDraft();
+    if (draft) {
+      setState({ ...initialWizardState, ...draft.state });
+      if (!initialStep && draft.currentStep) {
+        setCurrentStep(draft.currentStep);
       }
+    } else {
+      // One-time migration: check old sessionStorage key
+      try {
+        const old = sessionStorage.getItem('tyrerescue_booking_wizard');
+        if (old) {
+          const parsed = JSON.parse(old);
+          if (parsed.state) setState({ ...initialWizardState, ...parsed.state });
+          if (!initialStep && parsed.currentStep) setCurrentStep(parsed.currentStep);
+          sessionStorage.removeItem('tyrerescue_booking_wizard');
+        }
+      } catch { /* ignore */ }
     }
     setIsHydrated(true);
   }, [initialStep]);
 
-  // Debounced save to sessionStorage (300ms)
+  // Debounced save to localStorage (300ms)
   useEffect(() => {
     if (!isHydrated) return;
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(() => {
-      sessionStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ state, currentStep })
-      );
+      saveDraft(state, currentStep);
     }, 300);
     return () => { if (saveTimeout.current) clearTimeout(saveTimeout.current); };
   }, [state, currentStep, isHydrated]);
@@ -188,7 +256,6 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
     if (currentIndex < steps.length - 1) {
       const nextStep = steps[currentIndex + 1].key;
       if (nextStep === 'pricing') {
-        // Show loading screen before pricing
         setShowQuoteLoader(true);
         return;
       }
@@ -207,11 +274,21 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
   const resetWizard = useCallback(() => {
     setState(initialWizardState);
     setCurrentStep('service-type');
-    sessionStorage.removeItem(STORAGE_KEY);
+    clearBookingDraft();
+    setShowResetConfirm(false);
   }, []);
 
+  const handleStartOverClick = useCallback(() => {
+    // If the user has progressed past service-type, confirm first
+    if (currentStep !== 'service-type') {
+      setShowResetConfirm(true);
+    } else {
+      resetWizard();
+    }
+  }, [currentStep, resetWizard]);
+
   const handlePaymentSuccess = useCallback((refNumber: string) => {
-    sessionStorage.removeItem(STORAGE_KEY);
+    clearBookingDraft();
     router.push(`/success/${refNumber}`);
   }, [router]);
 
@@ -375,18 +452,54 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
               {renderStep()}
             </Box>
 
-            {/* Reset link */}
+            {/* Reset link with confirmation */}
             {currentStep !== 'payment' && (
-              <Text
-                fontSize="sm"
-                color={c.muted}
-                textAlign="center"
-                cursor="pointer"
-                _hover={{ color: c.text }}
-                onClick={resetWizard}
-              >
-                Start over
-              </Text>
+              <>
+                {showResetConfirm ? (
+                  <HStack justify="center" gap={3}>
+                    <Text fontSize="sm" color={c.muted}>
+                      Discard your progress?
+                    </Text>
+                    <Text
+                      as="button"
+                      fontSize="sm"
+                      color="red.400"
+                      cursor="pointer"
+                      fontWeight="600"
+                      bg="transparent"
+                      border="none"
+                      _hover={{ textDecoration: 'underline' }}
+                      onClick={resetWizard}
+                    >
+                      Yes, start over
+                    </Text>
+                    <Text
+                      as="button"
+                      fontSize="sm"
+                      color={c.accent}
+                      cursor="pointer"
+                      fontWeight="600"
+                      bg="transparent"
+                      border="none"
+                      _hover={{ textDecoration: 'underline' }}
+                      onClick={() => setShowResetConfirm(false)}
+                    >
+                      Cancel
+                    </Text>
+                  </HStack>
+                ) : (
+                  <Text
+                    fontSize="sm"
+                    color={c.muted}
+                    textAlign="center"
+                    cursor="pointer"
+                    _hover={{ color: c.text }}
+                    onClick={handleStartOverClick}
+                  >
+                    Start over
+                  </Text>
+                )}
+              </>
             )}
           </VStack>
         </Container>

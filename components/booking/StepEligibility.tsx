@@ -2,17 +2,28 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Box, VStack, HStack, Text, Button, Spinner } from '@chakra-ui/react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { WizardState } from './types';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { API } from '@/lib/api-endpoints';
 
+if (process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
+  mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+}
+
 interface EligibilityResult {
   eligible: boolean;
-  etaMinutes: number;
+  etaMinMinutes: number;
+  etaMaxMinutes: number;
+  etaLabel: string;
   distanceMiles: number;
   source: string;
   driverId: string | null;
   driverName: string | null;
+  driverLat: number | null;
+  driverLng: number | null;
+  routeDurationMinutes: number | null;
   driversOnline: number;
   message: string;
 }
@@ -34,6 +45,14 @@ export function StepEligibility({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetched = useRef(false);
+
+  // Route map state
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const [routeInfo, setRouteInfo] = useState<{
+    distanceMiles: number;
+    durationMinutes: number;
+  } | null>(null);
 
   useEffect(() => {
     if (fetched.current) return;
@@ -65,9 +84,14 @@ export function StepEligibility({
   const handleContinue = () => {
     if (!result?.eligible) return;
     updateState({
-      emergencyEta: result.etaMinutes,
+      emergencyEta: result.etaMinMinutes,
+      emergencyEtaMin: result.etaMinMinutes,
+      emergencyEtaMax: result.etaMaxMinutes,
+      emergencyEtaLabel: result.etaLabel,
       nearestDriverId: result.driverId,
       nearestDriverName: result.driverName,
+      nearestDriverLat: result.driverLat,
+      nearestDriverLng: result.driverLng,
     });
     goToNext();
   };
@@ -99,6 +123,123 @@ export function StepEligibility({
       })();
     }, 0);
   };
+
+  // Route map initialization — runs when eligible result arrives
+  useEffect(() => {
+    if (!result?.eligible || !mapContainerRef.current) return;
+    if (mapRef.current) return;
+    if (!state.lat || !state.lng) return;
+
+    const custLng = state.lng;
+    const custLat = state.lat;
+    const drvLat = result.driverLat;
+    const drvLng = result.driverLng;
+
+    const center: [number, number] =
+      drvLng != null && drvLat != null
+        ? [(custLng + drvLng) / 2, (custLat + drvLat) / 2]
+        : [custLng, custLat];
+
+    const m = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: 'mapbox://styles/mapbox/dark-v11',
+      center,
+      zoom: 12,
+    });
+    mapRef.current = m;
+
+    m.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+
+    m.on('load', async () => {
+      m.resize();
+
+      // Customer marker (green dot)
+      const custEl = document.createElement('div');
+      custEl.style.width = '18px';
+      custEl.style.height = '18px';
+      custEl.style.borderRadius = '50%';
+      custEl.style.backgroundColor = '#22C55E';
+      custEl.style.border = `3px solid ${c.bg}`;
+      custEl.style.boxShadow = '0 0 8px rgba(34,197,94,0.35)';
+      new mapboxgl.Marker({ element: custEl, anchor: 'center' })
+        .setLngLat([custLng, custLat])
+        .addTo(m);
+
+      if (drvLng != null && drvLat != null) {
+        // Driver marker (orange pulsing)
+        const drvEl = document.createElement('div');
+        drvEl.className = 'map-marker-pulse';
+        drvEl.style.width = '28px';
+        drvEl.style.height = '28px';
+        drvEl.style.borderRadius = '50%';
+        drvEl.style.backgroundColor = c.accent;
+        drvEl.style.border = `3px solid ${c.bg}`;
+        drvEl.style.boxShadow = `0 0 12px ${c.accentGlow}`;
+        drvEl.style.position = 'relative';
+        drvEl.style.animation = 'mapMarkerPulse 3s ease-in-out infinite';
+
+        const ring = document.createElement('div');
+        ring.className = 'map-marker-ring';
+        ring.style.position = 'absolute';
+        ring.style.inset = '-8px';
+        ring.style.borderRadius = '50%';
+        ring.style.border = `2px solid ${c.accent}`;
+        ring.style.animation = 'mapMarkerPing 3s ease-out infinite';
+        ring.style.opacity = '0';
+        drvEl.appendChild(ring);
+
+        new mapboxgl.Marker({ element: drvEl, anchor: 'center' })
+          .setLngLat([drvLng, drvLat])
+          .addTo(m);
+
+        // Fit bounds to show both markers
+        const bounds = new mapboxgl.LngLatBounds();
+        bounds.extend([custLng, custLat]);
+        bounds.extend([drvLng, drvLat]);
+
+        // Fetch route geometry from Mapbox Directions
+        try {
+          const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+          const res = await fetch(
+            `https://api.mapbox.com/directions/v5/mapbox/driving/${drvLng},${drvLat};${custLng},${custLat}?geometries=geojson&overview=full&access_token=${token}`,
+          );
+          const data = await res.json();
+          const route = data.routes?.[0];
+          if (route) {
+            m.addSource('route', {
+              type: 'geojson',
+              data: { type: 'Feature', properties: {}, geometry: route.geometry },
+            });
+            m.addLayer({
+              id: 'route-line',
+              type: 'line',
+              source: 'route',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: { 'line-color': c.accent, 'line-width': 4, 'line-opacity': 0.75 },
+            });
+            const coords: [number, number][] = route.geometry.coordinates;
+            for (const coord of coords) bounds.extend(coord);
+            setRouteInfo({
+              distanceMiles: Math.round(route.distance * 0.000621371 * 10) / 10,
+              durationMinutes: Math.round(route.duration / 60),
+            });
+          }
+        } catch {
+          // Route fetch failed — non-fatal, map still shows markers
+        }
+
+        m.fitBounds(bounds, { padding: 60, maxZoom: 14 });
+      }
+    });
+  }, [result, state.lat, state.lng]);
+
+  // Map cleanup
+  useEffect(() => {
+    return () => {
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, []);
 
   // Loading state
   if (loading) {
@@ -203,7 +344,7 @@ export function StepEligibility({
     );
   }
 
-  // Eligible — show ETA and proceed
+  // Eligible — show route map, ETA, acceptance window
   return (
     <VStack py={8} gap={6} style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both' }}>
       <Text
@@ -217,6 +358,41 @@ export function StepEligibility({
         DRIVER AVAILABLE
       </Text>
 
+      {/* Route map */}
+      {result!.driverLat != null && result!.driverLng != null && (
+        <Box
+          ref={mapContainerRef}
+          w="full"
+          h={{ base: '220px', md: '300px' }}
+          borderRadius="8px"
+          overflow="hidden"
+          border={`1px solid ${c.border}`}
+          position="relative"
+        />
+      )}
+
+      {/* Route distance & drive time */}
+      {routeInfo && (
+        <HStack gap={3} w="full">
+          <Box flex={1} textAlign="center" bg={c.surface} p={3} borderRadius="8px" borderWidth="1px" borderColor={c.border}>
+            <Text fontSize="22px" fontWeight="700" color={c.text} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>
+              {routeInfo.distanceMiles} mi
+            </Text>
+            <Text fontSize="11px" color={c.muted} mt={1} letterSpacing="0.1em" style={{ fontFamily: 'var(--font-body)' }}>
+              ROUTE DISTANCE
+            </Text>
+          </Box>
+          <Box flex={1} textAlign="center" bg={c.surface} p={3} borderRadius="8px" borderWidth="1px" borderColor={c.border}>
+            <Text fontSize="22px" fontWeight="700" color={c.text} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>
+              {routeInfo.durationMinutes} min
+            </Text>
+            <Text fontSize="11px" color={c.muted} mt={1} letterSpacing="0.1em" style={{ fontFamily: 'var(--font-body)' }}>
+              DRIVE TIME
+            </Text>
+          </Box>
+        </HStack>
+      )}
+
       {/* ETA card */}
       <Box
         w="full"
@@ -229,22 +405,22 @@ export function StepEligibility({
         style={{ animation: 'neonHeartbeat 2s ease-in-out infinite' }}
       >
         <Text
-          fontSize={{ base: '48px', md: '64px' }}
+          fontSize={{ base: '36px', md: '52px' }}
           fontWeight="700"
           color={c.accent}
           lineHeight="1"
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          {result!.etaMinutes}
+          1–2 hours
         </Text>
         <Text
           fontSize="14px"
           color={c.muted}
-          mt={1}
+          mt={2}
           letterSpacing="0.1em"
           style={{ fontFamily: 'var(--font-body)' }}
         >
-          ESTIMATED MINUTES
+          ESTIMATED ARRIVAL
         </Text>
         {result!.driverName && (
           <Text
@@ -264,6 +440,21 @@ export function StepEligibility({
         >
           {result!.driversOnline} driver{result!.driversOnline !== 1 ? 's' : ''} online
         </Text>
+      </Box>
+
+      {/* Driver acceptance window */}
+      <Box w="full" p={4} bg={c.surface} borderRadius="8px" borderWidth="1px" borderColor={c.border}>
+        <HStack gap={3} align="flex-start">
+          <Box w="10px" h="10px" borderRadius="full" bg={c.accent} mt="5px" flexShrink={0} />
+          <Box>
+            <Text fontSize="14px" fontWeight="600" color={c.text} style={{ fontFamily: 'var(--font-body)' }}>
+              Driver response window
+            </Text>
+            <Text fontSize="13px" color={c.muted} mt={1} style={{ fontFamily: 'var(--font-body)' }}>
+              Your driver will confirm acceptance within 1 hour of dispatch
+            </Text>
+          </Box>
+        </HStack>
       </Box>
 
       {/* Navigation */}

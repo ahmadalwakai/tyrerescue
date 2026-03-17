@@ -70,9 +70,14 @@ export interface WizardState {
   createAccount: boolean;
   
   // Emergency eligibility (after location check)
-  emergencyEta: number | null;        // minutes
+  emergencyEta: number | null;          // legacy single ETA (kept for compat)
+  emergencyEtaMin: number | null;       // min range minutes
+  emergencyEtaMax: number | null;       // max range minutes
+  emergencyEtaLabel: string | null;     // human label e.g. "30–45 min"
   nearestDriverId: string | null;
   nearestDriverName: string | null;
+  nearestDriverLat: number | null;
+  nearestDriverLng: number | null;
 
   // Step 8: Payment
   bookingId: string | null;
@@ -107,8 +112,13 @@ export const initialWizardState: WizardState = {
   customerPhone: '',
   createAccount: false,
   emergencyEta: null,
+  emergencyEtaMin: null,
+  emergencyEtaMax: null,
+  emergencyEtaLabel: null,
   nearestDriverId: null,
   nearestDriverName: null,
+  nearestDriverLat: null,
+  nearestDriverLng: null,
   bookingId: null,
   refNumber: null,
   stripeClientSecret: null,

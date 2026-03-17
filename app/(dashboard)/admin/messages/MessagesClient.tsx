@@ -124,7 +124,7 @@ export function MessagesClient() {
                       </Badge>
                     )}
                     {item.aiCategory && (
-                      <Badge colorPalette="purple" fontSize="xs" size="sm" variant="outline">
+                      <Badge colorPalette="cyan" fontSize="xs" size="sm" variant="outline">
                         {item.aiCategory.replace(/_/g, ' ')}
                       </Badge>
                     )}

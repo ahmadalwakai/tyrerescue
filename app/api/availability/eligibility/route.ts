@@ -63,7 +63,10 @@ export async function POST(request: NextRequest) {
     );
     const maxServiceMiles = parsedRules.max_service_miles;
 
-    // Filter to drivers with fresh GPS
+    // All online+available drivers count (for the UI "X drivers online" label)
+    const onlineDriverCount = availableDrivers.length;
+
+    // Filter to drivers with fresh GPS (used for routing/ETA only)
     const freshDrivers = availableDrivers
       .filter((d) => {
         if (!d.lat || !d.lng) return false;
@@ -94,9 +97,34 @@ export async function POST(request: NextRequest) {
 
     const eligible = result.distanceMiles <= maxServiceMiles;
 
-    // Build ETA: use driving duration if available, else estimate at 30mph average
-    const etaMinutes =
+    // Build ETA range: use driving duration when available, else estimate at 30mph
+    const rawEta =
       result.durationMinutes ?? Math.round((result.distanceMiles / 30) * 60);
+
+    // Produce a realistic range — never show misleading single-minute precision
+    const etaMinRaw = Math.max(15, Math.round(rawEta * 0.8));
+    const etaMaxRaw = Math.round(rawEta * 1.4);
+    // Guard: min must never exceed max
+    const etaMinMinutes = Math.min(etaMinRaw, etaMaxRaw);
+    const etaMaxMinutes = Math.max(etaMinRaw, etaMaxRaw);
+
+    // Human-friendly label
+    // For emergency availability the owner-approved label is always "1–2 hours".
+    // We never show misleading minute-precision ETA on this card.
+    function formatEtaLabel(min: number, max: number): string {
+      // Normalise so min <= max
+      const lo = Math.min(min, max);
+      const hi = Math.max(min, max);
+      if (hi >= 60) {
+        const loH = lo / 60;
+        const hiH = hi / 60;
+        return `${Math.max(1, Math.round(loH))}–${Math.max(Math.ceil(hiH), 2)} hours`;
+      }
+      // Even for sub-hour, clamp to at least "1–2 hours" for emergency use
+      return '1–2 hours';
+    }
+
+    const etaLabel = formatEtaLabel(etaMinMinutes, etaMaxMinutes);
 
     // Find matching driver name if sourced from a driver
     let driverName: string | null = null;
@@ -107,16 +135,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       eligible,
-      etaMinutes,
+      etaMinMinutes,
+      etaMaxMinutes,
+      etaLabel,
       distanceMiles: result.distanceMiles,
       source: result.distanceSource,
       driverId: result.selectedDriverId,
       driverName,
-      driversOnline: freshDrivers.length,
+      driverLat: result.originLat,
+      driverLng: result.originLng,
+      routeDurationMinutes: result.durationMinutes,
+      driversOnline: onlineDriverCount,
       message: eligible
         ? freshDrivers.length > 0
-          ? `Nearest driver approximately ${etaMinutes} minutes away`
-          : `Estimated arrival ${etaMinutes} minutes (from service center)`
+          ? `Nearest driver approximately ${etaLabel} away`
+          : `Estimated arrival ${etaLabel} (from service center)`
         : 'This location is outside our emergency service area',
     });
   } catch (error) {

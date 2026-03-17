@@ -233,7 +233,7 @@ export function StepTyreSelection({
                 const isInCart = !!cartItem;
                 const lowStock = tyre.stockNew >= 1 && tyre.stockNew <= 2;
                 const seasonColor = tyre.season === 'summer' ? 'orange' : tyre.season === 'winter' ? 'blue' : 'gray';
-                const tierColor = tyre.tier === 'premium' ? 'purple' : tyre.tier === 'budget' ? 'gray' : 'cyan';
+                const tierColor = tyre.tier === 'premium' ? 'orange' : tyre.tier === 'budget' ? 'gray' : 'cyan';
                 const canAdd = totalItems < 4 && tyre.priceNew !== null;
 
                 return (

@@ -45,7 +45,11 @@ export function StepLocation({
   const [isSearching, setIsSearching] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
-  const [validation, setValidation] = useState<LocationValidation | null>(null);
+  const [validation, setValidation] = useState<LocationValidation | null>(
+    state.lat && state.lng && state.distanceMiles != null
+      ? { valid: true, distanceMiles: state.distanceMiles, message: '' }
+      : null,
+  );
   const [geoError, setGeoError] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{
     lat: number;
@@ -67,30 +71,64 @@ export function StepLocation({
   useEffect(() => {
     if (!selectedLocation || !mapContainer.current) return;
 
+    const buildMarker = (m: mapboxgl.Map) => {
+      if (marker.current) marker.current.remove();
+
+      const el = document.createElement('div');
+      el.className = 'map-marker-pulse';
+      el.style.width = '28px';
+      el.style.height = '28px';
+      el.style.borderRadius = '50%';
+      el.style.backgroundColor = c.accent;
+      el.style.border = `3px solid ${c.bg}`;
+      el.style.boxShadow = `0 0 12px ${c.accentGlow}`;
+      el.style.cursor = 'pointer';
+      el.style.position = 'relative';
+
+      const ring = document.createElement('div');
+      ring.className = 'map-marker-ring';
+      ring.style.position = 'absolute';
+      ring.style.inset = '-8px';
+      ring.style.borderRadius = '50%';
+      ring.style.border = `2px solid ${c.accent}`;
+      ring.style.animation = 'mapMarkerPing 3s ease-out infinite';
+      ring.style.opacity = '0';
+      el.appendChild(ring);
+
+      el.style.animation = 'mapMarkerPulse 3s ease-in-out infinite';
+
+      marker.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([selectedLocation.lng, selectedLocation.lat])
+        .addTo(m);
+    };
+
     if (!map.current) {
-      map.current = new mapboxgl.Map({
+      const m = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/dark-v11',
         center: [selectedLocation.lng, selectedLocation.lat],
         zoom: 14,
-        interactive: false,
       });
+      map.current = m;
+      m.addControl(
+        new mapboxgl.NavigationControl({ showCompass: false }),
+        'top-right',
+      );
       mapInitialized.current = true;
+
+      // Defer marker until map fully loaded — prevents corner-position bug
+      // caused by fadeUp animation transforming the container during init
+      m.once('load', () => {
+        m.resize();
+        buildMarker(m);
+      });
     } else {
       map.current.flyTo({
         center: [selectedLocation.lng, selectedLocation.lat],
         zoom: 14,
       });
+      buildMarker(map.current);
     }
-
-    if (marker.current) marker.current.remove();
-    marker.current = new mapboxgl.Marker({ color: c.accent })
-      .setLngLat([selectedLocation.lng, selectedLocation.lat])
-      .addTo(map.current);
-
-    return () => {
-      // cleanup only on unmount
-    };
   }, [selectedLocation]);
 
   // Cleanup map on unmount
@@ -233,16 +271,30 @@ export function StepLocation({
     <Box>
       {/* Header */}
       <Box mb={6} style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both' }}>
-        <Text
-          fontSize="11px"
-          fontWeight="500"
-          letterSpacing="0.15em"
-          color={c.accent}
-          mb={2}
-          style={{ fontFamily: 'var(--font-body)' }}
-        >
-          STEP 2
-        </Text>
+        <Flex justify="space-between" align="center" mb={2}>
+          <Text
+            fontSize="11px"
+            fontWeight="500"
+            letterSpacing="0.15em"
+            color={c.accent}
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            LOCATION
+          </Text>
+          <Text
+            as="button"
+            fontSize="13px"
+            color={c.muted}
+            bg="transparent"
+            border="none"
+            cursor="pointer"
+            _hover={{ color: c.accent }}
+            style={{ fontFamily: 'var(--font-body)' }}
+            onClick={goToPrev}
+          >
+            ← Back
+          </Text>
+        </Flex>
         <Text
           color={c.text}
           lineHeight="1"
@@ -285,7 +337,52 @@ export function StepLocation({
                 Getting your location…
               </>
             ) : (
-              '📍 Use My Current Location'
+              <>
+                {/* Animated GPS icon */}
+                <Box
+                  as="span"
+                  display="inline-flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  position="relative"
+                  w="24px"
+                  h="24px"
+                  mr={2}
+                  flexShrink={0}
+                >
+                  {/* Ping ring */}
+                  <Box
+                    className="gps-ping"
+                    position="absolute"
+                    inset="0"
+                    borderRadius="full"
+                    border="2px solid"
+                    borderColor={c.accent}
+                    style={{
+                      animation: 'gpsPing 3s ease-out infinite',
+                    }}
+                  />
+                  {/* Icon core */}
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={c.accent}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    width="18"
+                    height="18"
+                    className="gps-pulse"
+                    style={{
+                      animation: 'gpsPulse 3s ease-in-out infinite',
+                    }}
+                  >
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                    <circle cx="12" cy="9" r="2.5" fill={c.accent} stroke="none" />
+                  </svg>
+                </Box>
+                Use My Current Location
+              </>
             )}
           </Button>
 
