@@ -44,6 +44,13 @@ export function StepCustomerDetails({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [domainSuggestions, setDomainSuggestions] = useState<string[]>([]);
+
+  const COMMON_DOMAINS = [
+    'gmail.com', 'yahoo.co.uk', 'hotmail.com', 'hotmail.co.uk',
+    'outlook.com', 'icloud.com', 'aol.com', 'live.co.uk',
+    'btinternet.com', 'sky.com', 'virginmedia.com',
+  ];
 
   // Pre-fill from session if logged in
   useEffect(() => {
@@ -170,6 +177,7 @@ export function StepCustomerDetails({
               placeholder="John Smith"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
               size="lg"
             />
             </Box>
@@ -184,14 +192,70 @@ export function StepCustomerDetails({
               Email address
               <Text as="span" color="red.500" ml={1}>*</Text>
             </Field.Label>
-            <Box style={anim.fadeUp('0.4s', '0.2s')}>
+            <Box style={anim.fadeUp('0.4s', '0.2s')} position="relative">
             <Input {...inputProps}
               type="email"
               placeholder="john@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setEmail(val);
+                const atIndex = val.indexOf('@');
+                if (atIndex > 0) {
+                  const partial = val.slice(atIndex + 1).toLowerCase();
+                  if (partial && !partial.includes('.') || (partial.includes('.') && !COMMON_DOMAINS.includes(partial))) {
+                    setDomainSuggestions(
+                      COMMON_DOMAINS.filter(d => d.startsWith(partial)).slice(0, 4)
+                    );
+                  } else {
+                    setDomainSuggestions([]);
+                  }
+                } else {
+                  setDomainSuggestions([]);
+                }
+              }}
+              onBlur={() => setTimeout(() => setDomainSuggestions([]), 150)}
+              autoComplete="email"
               size="lg"
             />
+            {domainSuggestions.length > 0 && (
+              <Box
+                position="absolute"
+                top="100%"
+                left={0}
+                right={0}
+                mt={1}
+                bg={c.surface}
+                border={`1px solid ${c.border}`}
+                borderRadius="8px"
+                overflow="hidden"
+                zIndex={10}
+                boxShadow="lg"
+              >
+                {domainSuggestions.map((domain) => {
+                  const localPart = email.split('@')[0];
+                  const suggestion = `${localPart}@${domain}`;
+                  return (
+                    <Box
+                      key={domain}
+                      px={3}
+                      py={2}
+                      cursor="pointer"
+                      fontSize="14px"
+                      color={c.text}
+                      _hover={{ bg: c.border }}
+                      onClick={() => {
+                        setEmail(suggestion);
+                        setDomainSuggestions([]);
+                      }}
+                      style={{ fontFamily: 'var(--font-body)' }}
+                    >
+                      {localPart}@<Text as="span" color={c.accent} fontWeight="600">{domain}</Text>
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
             </Box>
             {errors.email && (
               <Field.ErrorText>{errors.email}</Field.ErrorText>
@@ -213,6 +277,7 @@ export function StepCustomerDetails({
               placeholder="07123 456789"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              autoComplete="tel"
               size="lg"
             />
             </Box>
