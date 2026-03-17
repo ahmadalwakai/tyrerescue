@@ -64,9 +64,11 @@ export function StepPricing({
 
     const isRepair = state.serviceType === 'repair' && state.selectedTyres.length === 0;
     const hasTyres = state.selectedTyres.length > 0;
+    // Emergency flow with assess/fit but no tyre selection step — treat as service-only quote
+    const isEmergencyNoTyres = state.bookingType === 'emergency' && state.selectedTyres.length === 0;
 
-    // Nothing quotable — no tyres and not a repair
-    if (!isRepair && !hasTyres) return;
+    // Nothing quotable — no tyres and not a repair/emergency-without-tyres
+    if (!isRepair && !hasTyres && !isEmergencyNoTyres) return;
 
     // Build a stable key from request inputs to avoid duplicate fetches
     const fetchKey = `${state.lat}|${state.lng}|${state.bookingType}|${state.serviceType}|${tyreFingerprint}`;
@@ -79,28 +81,24 @@ export function StepPricing({
 
     // Retry limit reached for this session
     if (recoveryCountRef.current >= RECOVERY_LIMIT) return;
-
     lastFetchKeyRef.current = fetchKey;
     recoveryCountRef.current += 1;
     inFlightRef.current = true;
-
-    let cancelled = false;
 
     async function fetchQuote() {
       setIsRefreshing(true);
       setRepairQuoteError(null);
       setLoadingTimedOut(false);
       try {
-        const res = await fetch(API.BOOKINGS_QUOTE, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        // For emergency with no tyres (assess/fit without selection step), treat as repair-like
+        const sendAsRepair = isRepair || isEmergencyNoTyres;
+        const payload = {
             lat: state.lat,
             lng: state.lng,
             addressLine: state.address,
             bookingType: state.bookingType,
-            serviceType: isRepair ? 'repair' : (state.conditionAssessment === 'repair' ? 'repair' : 'fit'),
-            tyreSelections: isRepair
+            serviceType: sendAsRepair ? 'repair' : (state.conditionAssessment === 'repair' ? 'repair' : 'fit'),
+            tyreSelections: sendAsRepair
               ? []
               : state.selectedTyres.map((t) => ({
                   tyreId: t.tyreId,
@@ -109,13 +107,17 @@ export function StepPricing({
                   requiresTpms: t.requiresTpms ?? false,
                   isPreOrder: t.isPreOrder ?? false,
                 })),
-            quantity: isRepair ? (state.quantity || 1) : undefined,
+            quantity: sendAsRepair ? (state.quantity || 1) : undefined,
             fulfillmentOption: state.fulfillmentOption ?? undefined,
             scheduledAt:
               state.scheduledDate && state.scheduledTime
                 ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
                 : undefined,
-          }),
+        };
+        const res = await fetch(API.BOOKINGS_QUOTE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
 
         const data = await res.json();
@@ -132,33 +134,30 @@ export function StepPricing({
           throw new Error('Invalid quote response — missing pricing breakdown');
         }
 
-        if (!cancelled) {
-          updateState({
-            quoteId: data.quoteId,
-            breakdown: data.breakdown,
-            quoteExpiresAt: data.expiresAt,
-            ...(isRepair ? { selectedTyres: [] } : {}),
-          });
-        }
+        updateState({
+          quoteId: data.quoteId,
+          breakdown: data.breakdown,
+          quoteExpiresAt: data.expiresAt,
+          ...(sendAsRepair ? { selectedTyres: [] } : {}),
+        });
       } catch (err) {
-        if (!cancelled) {
-          const message = err instanceof Error ? err.message : 'Failed to get quote';
-          setRepairQuoteError(message);
-          // Reset fetch key so user-triggered retry can re-attempt
-          lastFetchKeyRef.current = '';
-        }
+        const message = err instanceof Error ? err.message : 'Failed to get quote';
+        setRepairQuoteError(message);
+        // Reset fetch key so user-triggered retry can re-attempt
+        lastFetchKeyRef.current = '';
       } finally {
-        if (!cancelled) {
-          inFlightRef.current = false;
-          setIsRefreshing(false);
-        }
+        inFlightRef.current = false;
+        setIsRefreshing(false);
       }
     }
 
     fetchQuote();
 
+    // Cleanup: only reset inFlightRef so the next effect run can proceed.
+    // Do NOT cancel in-flight requests — React Strict Mode re-runs effects
+    // (mount → cleanup → remount) which would cancel valid fetches via
+    // a closure `cancelled` flag before the response arrives.
     return () => {
-      cancelled = true;
       inFlightRef.current = false;
     };
   }, [
@@ -304,6 +303,7 @@ export function StepPricing({
     setIsExpired(false);
 
     try {
+      const refreshAsRepair = state.selectedTyres.length === 0;
       const res = await fetch(API.BOOKINGS_QUOTE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -312,14 +312,17 @@ export function StepPricing({
           lng: state.lng,
           addressLine: state.address,
           bookingType: state.bookingType,
-          serviceType: state.conditionAssessment === 'repair' ? 'repair' : 'fit',
-          tyreSelections: state.selectedTyres.map((tyre) => ({
-            tyreId: tyre.tyreId,
-            quantity: tyre.quantity,
-            service: tyre.service,
-            requiresTpms: false,
-            isPreOrder: tyre.isPreOrder ?? false,
-          })),
+          serviceType: refreshAsRepair ? 'repair' : (state.conditionAssessment === 'repair' ? 'repair' : 'fit'),
+          tyreSelections: refreshAsRepair
+            ? []
+            : state.selectedTyres.map((tyre) => ({
+                tyreId: tyre.tyreId,
+                quantity: tyre.quantity,
+                service: tyre.service,
+                requiresTpms: false,
+                isPreOrder: tyre.isPreOrder ?? false,
+              })),
+          quantity: refreshAsRepair ? (state.quantity || 1) : undefined,
           fulfillmentOption: state.fulfillmentOption ?? undefined,
           scheduledAt: state.scheduledDate && state.scheduledTime
             ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
