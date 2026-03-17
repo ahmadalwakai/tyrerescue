@@ -29,14 +29,20 @@ export function StepPricing({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [repairQuoteError, setRepairQuoteError] = useState<string | null>(null);
 
-  // Auto-fetch quote for repair bookings that skipped tyre selection
+  // Auto-fetch quote when missing (repair that skipped tyre selection, or restored draft without quote)
   useEffect(() => {
-    if (state.serviceType !== 'repair' || state.quoteId) return;
+    if (state.quoteId && state.breakdown) return;
     if (!state.lat || !state.lng) return;
+
+    const isRepair = state.serviceType === 'repair' && state.selectedTyres.length === 0;
+
+    // Non-repair bookings with tyres but no quote — re-request it
+    const hasTyres = state.selectedTyres.length > 0;
+    if (!isRepair && !hasTyres) return;
 
     let cancelled = false;
 
-    async function fetchRepairQuote() {
+    async function fetchQuote() {
       setIsRefreshing(true);
       try {
         const res = await fetch(API.BOOKINGS_QUOTE, {
@@ -47,9 +53,17 @@ export function StepPricing({
             lng: state.lng,
             addressLine: state.address,
             bookingType: state.bookingType,
-            serviceType: 'repair',
-            tyreSelections: [],
-            quantity: state.quantity || 1,
+            serviceType: isRepair ? 'repair' : (state.conditionAssessment === 'repair' ? 'repair' : 'fit'),
+            tyreSelections: isRepair
+              ? []
+              : state.selectedTyres.map((t) => ({
+                  tyreId: t.tyreId,
+                  quantity: t.quantity,
+                  service: t.service,
+                  requiresTpms: t.requiresTpms ?? false,
+                  isPreOrder: t.isPreOrder ?? false,
+                })),
+            quantity: isRepair ? (state.quantity || 1) : undefined,
             scheduledAt:
               state.scheduledDate && state.scheduledTime
                 ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
@@ -65,10 +79,10 @@ export function StepPricing({
 
         if (!cancelled) {
           updateState({
-            selectedTyres: [],
             quoteId: data.quoteId,
             breakdown: data.breakdown,
             quoteExpiresAt: data.expiresAt,
+            ...(isRepair ? { selectedTyres: [] } : {}),
           });
         }
       } catch (err) {
@@ -83,7 +97,7 @@ export function StepPricing({
       }
     }
 
-    fetchRepairQuote();
+    fetchQuote();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
