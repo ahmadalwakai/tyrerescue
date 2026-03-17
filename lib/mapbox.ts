@@ -24,6 +24,26 @@ interface DirectionsResult {
 }
 
 /**
+ * Structured distance result with full metadata for auditability.
+ * Records which provider was used, which origin point, and why.
+ */
+export interface DistanceResult {
+  distanceMiles: number;
+  durationMinutes: number | null;
+  distanceProvider: 'mapbox' | 'haversine';
+  distanceSource: 'driver' | 'service_area' | 'service_center';
+  originLat: number;
+  originLng: number;
+  destLat: number;
+  destLng: number;
+  distanceMeters: number | null;
+  durationSeconds: number | null;
+  fallbackReason: string | null;
+  selectedDriverId: string | null;
+  selectedServiceAreaId: string | null;
+}
+
+/**
  * Forward geocoding - address to coordinates
  */
 export async function geocodeAddress(
@@ -186,6 +206,182 @@ export function haversineDistanceMiles(
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return Math.round(R * c * 100) / 100;
+}
+
+/** Maximum candidates per type to try via Mapbox directions API */
+const MAX_MAPBOX_CANDIDATES = 3;
+
+/**
+ * Resolve the best origin-to-customer distance using the fallback chain:
+ *   1. Nearest online driver (by driving time)
+ *   2. Nearest active service area center (by driving time)
+ *   3. SERVICE_CENTER (Duke Street Tyres, Glasgow)
+ *
+ * Within each phase, candidates are pre-sorted by haversine (cheap) and
+ * only the closest N are checked via Mapbox to limit API calls.
+ * If all Mapbox calls within a phase fail, haversine × 1.3 is used.
+ */
+export async function resolveDistance(
+  customer: { lat: number; lng: number },
+  driverCandidates: Array<{ id: string; lat: number; lng: number }>,
+  serviceAreaCandidates: Array<{ id: string; lat: number; lng: number }>,
+): Promise<DistanceResult> {
+  // --- Phase 1: Try drivers ---
+  const sortedDrivers = [...driverCandidates]
+    .sort((a, b) =>
+      haversineDistanceMiles(a, customer) - haversineDistanceMiles(b, customer)
+    )
+    .slice(0, MAX_MAPBOX_CANDIDATES);
+
+  let bestDriver: DistanceResult | null = null;
+  for (const d of sortedDrivers) {
+    const dirs = await getDirections(
+      { lng: d.lng, lat: d.lat },
+      { lng: customer.lng, lat: customer.lat },
+    );
+    if (dirs) {
+      const miles = Math.round(metersToMiles(dirs.distance) * 100) / 100;
+      const mins = secondsToMinutes(dirs.duration);
+      if (!bestDriver || mins < (bestDriver.durationMinutes ?? Infinity)) {
+        bestDriver = {
+          distanceMiles: miles,
+          durationMinutes: mins,
+          distanceProvider: 'mapbox',
+          distanceSource: 'driver',
+          originLat: d.lat,
+          originLng: d.lng,
+          destLat: customer.lat,
+          destLng: customer.lng,
+          distanceMeters: dirs.distance,
+          durationSeconds: dirs.duration,
+          fallbackReason: null,
+          selectedDriverId: d.id,
+          selectedServiceAreaId: null,
+        };
+      }
+    }
+  }
+  if (bestDriver) return bestDriver;
+
+  // Haversine fallback for nearest driver
+  if (sortedDrivers.length > 0) {
+    const d = sortedDrivers[0];
+    const hvDist = haversineDistanceMiles(d, customer) * 1.3;
+    return {
+      distanceMiles: Math.round(hvDist * 100) / 100,
+      durationMinutes: null,
+      distanceProvider: 'haversine',
+      distanceSource: 'driver',
+      originLat: d.lat,
+      originLng: d.lng,
+      destLat: customer.lat,
+      destLng: customer.lng,
+      distanceMeters: null,
+      durationSeconds: null,
+      fallbackReason: 'Mapbox directions unavailable for drivers',
+      selectedDriverId: d.id,
+      selectedServiceAreaId: null,
+    };
+  }
+
+  // --- Phase 2: Try service areas ---
+  const sortedAreas = [...serviceAreaCandidates]
+    .sort((a, b) =>
+      haversineDistanceMiles(a, customer) - haversineDistanceMiles(b, customer)
+    )
+    .slice(0, MAX_MAPBOX_CANDIDATES);
+
+  let bestArea: DistanceResult | null = null;
+  for (const a of sortedAreas) {
+    const dirs = await getDirections(
+      { lng: a.lng, lat: a.lat },
+      { lng: customer.lng, lat: customer.lat },
+    );
+    if (dirs) {
+      const miles = Math.round(metersToMiles(dirs.distance) * 100) / 100;
+      const mins = secondsToMinutes(dirs.duration);
+      if (!bestArea || mins < (bestArea.durationMinutes ?? Infinity)) {
+        bestArea = {
+          distanceMiles: miles,
+          durationMinutes: mins,
+          distanceProvider: 'mapbox',
+          distanceSource: 'service_area',
+          originLat: a.lat,
+          originLng: a.lng,
+          destLat: customer.lat,
+          destLng: customer.lng,
+          distanceMeters: dirs.distance,
+          durationSeconds: dirs.duration,
+          fallbackReason: null,
+          selectedDriverId: null,
+          selectedServiceAreaId: a.id,
+        };
+      }
+    }
+  }
+  if (bestArea) return bestArea;
+
+  // Haversine fallback for nearest service area
+  if (sortedAreas.length > 0) {
+    const a = sortedAreas[0];
+    const hvDist = haversineDistanceMiles(a, customer) * 1.3;
+    return {
+      distanceMiles: Math.round(hvDist * 100) / 100,
+      durationMinutes: null,
+      distanceProvider: 'haversine',
+      distanceSource: 'service_area',
+      originLat: a.lat,
+      originLng: a.lng,
+      destLat: customer.lat,
+      destLng: customer.lng,
+      distanceMeters: null,
+      durationSeconds: null,
+      fallbackReason: 'Mapbox directions unavailable for service areas',
+      selectedDriverId: null,
+      selectedServiceAreaId: a.id,
+    };
+  }
+
+  // --- Phase 3: SERVICE_CENTER fallback ---
+  const scDirs = await getDirections(
+    { lng: SERVICE_CENTER.lng, lat: SERVICE_CENTER.lat },
+    { lng: customer.lng, lat: customer.lat },
+  );
+  if (scDirs) {
+    return {
+      distanceMiles: Math.round(metersToMiles(scDirs.distance) * 100) / 100,
+      durationMinutes: secondsToMinutes(scDirs.duration),
+      distanceProvider: 'mapbox',
+      distanceSource: 'service_center',
+      originLat: SERVICE_CENTER.lat,
+      originLng: SERVICE_CENTER.lng,
+      destLat: customer.lat,
+      destLng: customer.lng,
+      distanceMeters: scDirs.distance,
+      durationSeconds: scDirs.duration,
+      fallbackReason: 'No drivers or service areas available',
+      selectedDriverId: null,
+      selectedServiceAreaId: null,
+    };
+  }
+
+  // Absolute last resort: haversine from SERVICE_CENTER
+  const hvDist = haversineDistanceMiles(SERVICE_CENTER, customer) * 1.3;
+  return {
+    distanceMiles: Math.round(hvDist * 100) / 100,
+    durationMinutes: null,
+    distanceProvider: 'haversine',
+    distanceSource: 'service_center',
+    originLat: SERVICE_CENTER.lat,
+    originLng: SERVICE_CENTER.lng,
+    destLat: customer.lat,
+    destLng: customer.lng,
+    distanceMeters: null,
+    durationSeconds: null,
+    fallbackReason: 'All Mapbox calls failed, haversine from SERVICE_CENTER',
+    selectedDriverId: null,
+    selectedServiceAreaId: null,
+  };
 }
 
 // Service area center (Duke Street Tyres)

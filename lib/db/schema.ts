@@ -259,6 +259,7 @@ export const serviceAreas = pgTable('service_areas', {
   centerLat: decimal('center_lat', { precision: 9, scale: 6 }),
   centerLng: decimal('center_lng', { precision: 9, scale: 6 }),
   radiusMiles: decimal('radius_miles', { precision: 5, scale: 2 }),
+  priority: integer('priority').default(0),
   active: boolean('active').default(true),
 });
 
@@ -354,6 +355,7 @@ export const quotes = pgTable('quotes', {
   scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
   distanceMiles: decimal('distance_miles', { precision: 5, scale: 2 }).notNull(),
   breakdown: jsonb('breakdown').notNull(),
+  metadata: jsonb('metadata'),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   used: boolean('used').default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),

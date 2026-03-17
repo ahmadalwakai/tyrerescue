@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getDrivingDistanceMiles, haversineDistanceMiles } from '@/lib/mapbox';
+import { getDrivingDistanceMiles, haversineDistanceMiles, SERVICE_CENTER } from '@/lib/mapbox';
 import { db } from '@/lib/db';
-import { serviceAreas } from '@/lib/db/schema';
+import { serviceAreas, pricingRules } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { parsePricingRules } from '@/lib/pricing-engine';
 
 const validateLocationSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -31,19 +32,24 @@ export async function POST(request: NextRequest) {
 
     const { lat, lng } = validation.data;
 
-    // Load active service areas from DB
-    const areas = await db
-      .select()
-      .from(serviceAreas)
-      .where(eq(serviceAreas.active, true));
+    // Load active service areas and pricing rules in parallel
+    const [areas, rulesRows] = await Promise.all([
+      db.select().from(serviceAreas).where(eq(serviceAreas.active, true)),
+      db.select().from(pricingRules),
+    ]);
+
+    const parsedRules = parsePricingRules(
+      rulesRows.map((r) => ({ key: r.key, value: r.value }))
+    );
+    const maxServiceMiles = parsedRules.max_service_miles;
 
     if (areas.length === 0) {
-      // Fallback: no areas seeded — accept within 50 miles of Glasgow
+      // Fallback: no areas seeded — accept within max_service_miles of SERVICE_CENTER
       const fallbackDist = haversineDistanceMiles(
-        { lat: 55.8547, lng: -4.2206 },
+        SERVICE_CENTER,
         { lat, lng }
       ) * 1.3;
-      const valid = fallbackDist <= 50;
+      const valid = fallbackDist <= maxServiceMiles;
       return NextResponse.json({
         valid,
         distanceMiles: Math.round(fallbackDist * 10) / 10,
@@ -90,14 +96,20 @@ export async function POST(request: NextRequest) {
     const radiusMiles = Number(nearestArea.radiusMiles);
     const isWithinServiceArea = nearestDist <= radiusMiles;
 
+    // Secondary check: even if outside the nearest area's radius, the customer
+    // may still be within overall max_service_miles (quote route would accept them)
+    const isWithinMaxRange = nearestDist <= maxServiceMiles;
+
     return NextResponse.json({
-      valid: isWithinServiceArea,
+      valid: isWithinServiceArea || isWithinMaxRange,
       distanceMiles: Math.round(nearestDist * 10) / 10,
       estimatedMinutes: nearestDuration,
       nearestArea: nearestArea.name,
       message: isWithinServiceArea
         ? `Location is ${Math.round(nearestDist)} miles from ${nearestArea.name}`
-        : `We do not currently cover your area. Call 0141 266 0690 to discuss.`,
+        : isWithinMaxRange
+          ? `Location is ${Math.round(nearestDist)} miles from ${nearestArea.name} (on the edge of our coverage)`
+          : `We do not currently cover your area. Call 0141 266 0690 to discuss.`,
     });
   } catch (error) {
     console.error('Location validation error:', error);

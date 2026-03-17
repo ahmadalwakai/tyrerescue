@@ -8,6 +8,7 @@ import {
   drivers,
   bankHolidays,
   quotes,
+  serviceAreas,
 } from '@/lib/db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import {
@@ -17,9 +18,8 @@ import {
   type PricingBreakdown,
 } from '@/lib/pricing-engine';
 import {
-  getDrivingDistanceMiles,
-  haversineDistanceMiles,
-  SERVICE_CENTER,
+  resolveDistance,
+  type DistanceResult,
 } from '@/lib/mapbox';
 import { v4 as uuidv4 } from 'uuid';
 import { Pool } from '@neondatabase/serverless';
@@ -53,6 +53,7 @@ interface QuoteResponse {
   breakdown: PricingBreakdown;
   distanceMiles: number;
   driverEtaMinutes?: number;
+  distanceMetadata?: DistanceResult;
   tyreDetails: Array<{
     tyreId: string;
     brand: string;
@@ -91,40 +92,80 @@ export async function POST(
 
     const data: QuoteRequest = validation.data;
 
-    // Calculate distance from service center to customer
     const customerLocation = { lat: data.lat, lng: data.lng };
-    let distanceMiles: number;
-    let durationMinutes: number | undefined;
+    const isRepairOnly = data.serviceType === 'repair' && data.tyreSelections.length === 0;
 
-    // Try to get driving distance, fall back to straight-line distance
-    const drivingResult = await getDrivingDistanceMiles(
-      { lat: SERVICE_CENTER.lat, lng: SERVICE_CENTER.lng },
-      customerLocation
+    // Determine booking date for bank holiday check
+    const bookingDate = data.scheduledAt
+      ? new Date(data.scheduledAt)
+      : new Date();
+    const bookingDateStr = bookingDate.toISOString().split('T')[0];
+
+    // --- Parallel data loading (pricing rules, bank holiday, drivers, service areas) ---
+    const [rulesRows, holidayResult, driverRows, areaRows] = await Promise.all([
+      db.select().from(pricingRules),
+      db.select().from(bankHolidays).where(eq(bankHolidays.date, bookingDateStr)).limit(1),
+      db.select({
+        id: drivers.id,
+        currentLat: drivers.currentLat,
+        currentLng: drivers.currentLng,
+      })
+        .from(drivers)
+        .where(and(eq(drivers.isOnline, true), eq(drivers.status, 'available'))),
+      db.select().from(serviceAreas).where(eq(serviceAreas.active, true)),
+    ]);
+
+    const parsedRules = parsePricingRules(
+      rulesRows.map((r) => ({ key: r.key, value: r.value }))
+    );
+    const isBankHoliday = holidayResult.length > 0;
+
+    // Build driver candidates — skip drivers with invalid coordinates
+    const driverCandidates = driverRows
+      .filter((d) => d.currentLat != null && d.currentLng != null)
+      .map((d) => ({
+        id: d.id,
+        lat: parseFloat(d.currentLat!),
+        lng: parseFloat(d.currentLng!),
+      }))
+      .filter((d) => !isNaN(d.lat) && !isNaN(d.lng));
+
+    // Build service area candidates
+    const areaCandidates = areaRows
+      .filter((a) => a.centerLat != null && a.centerLng != null)
+      .map((a) => ({
+        id: a.id,
+        lat: Number(a.centerLat),
+        lng: Number(a.centerLng),
+      }));
+
+    // --- Resolve distance (driver → service area → SERVICE_CENTER) ---
+    const distanceResult = await resolveDistance(
+      customerLocation,
+      driverCandidates,
+      areaCandidates,
     );
 
-    if (drivingResult) {
-      distanceMiles = drivingResult.distanceMiles;
-      durationMinutes = drivingResult.durationMinutes;
-    } else {
-      // Fallback to Haversine distance (multiply by 1.3 for road approximation)
-      distanceMiles =
-        haversineDistanceMiles(SERVICE_CENTER, customerLocation) * 1.3;
-    }
+    const distanceMiles = distanceResult.distanceMiles;
 
-    // Check if within service area (50 miles max)
-    const maxServiceMiles = 50;
-    if (distanceMiles > maxServiceMiles) {
+    // Check if within service area — single source of truth from DB
+    if (distanceMiles > parsedRules.max_service_miles) {
       return NextResponse.json(
         {
-          error: `Location is outside our service area. We cover up to ${maxServiceMiles} miles from Glasgow. Please call 0141 266 0690 for assistance.`,
+          error: `Location is outside our service area (${Math.round(distanceMiles)} miles). We cover up to ${parsedRules.max_service_miles} miles. Please call 0141 266 0690 for assistance.`,
           code: 'OUTSIDE_SERVICE_AREA',
         },
         { status: 400 }
       );
     }
 
+    // Derive driver ETA for emergency bookings from distance resolution
+    const driverEtaMinutes =
+      data.bookingType === 'emergency' && distanceResult.distanceSource === 'driver'
+        ? distanceResult.durationMinutes ?? undefined
+        : undefined;
+
     // Repair with no tyre selections — skip stock checks entirely
-    const isRepairOnly = data.serviceType === 'repair' && data.tyreSelections.length === 0;
 
     let tyreMap = new Map<string, typeof tyreProducts.$inferSelect>();
 
@@ -154,60 +195,9 @@ export async function POST(
       }
     }
 
-    // Check for available driver (for emergency bookings) - outside transaction
-    let driverEtaMinutes: number | undefined;
-    if (data.bookingType === 'emergency') {
-      const availableDrivers = await db
-        .select()
-        .from(drivers)
-        .where(
-          and(eq(drivers.isOnline, true), eq(drivers.status, 'available'))
-        )
-        .limit(1);
-
-      if (availableDrivers.length > 0) {
-        const driver = availableDrivers[0];
-        if (driver.currentLat && driver.currentLng) {
-          const driverDriving = await getDrivingDistanceMiles(
-            {
-              lat: parseFloat(driver.currentLat),
-              lng: parseFloat(driver.currentLng),
-            },
-            customerLocation
-          );
-          if (driverDriving) {
-            driverEtaMinutes = driverDriving.durationMinutes;
-          }
-        }
-        if (!driverEtaMinutes && durationMinutes) {
-          driverEtaMinutes = durationMinutes;
-        }
-      }
-    }
-
-    // Get pricing rules from database
-    const rules = await db.select().from(pricingRules);
-    const parsedRules = parsePricingRules(
-      rules.map((r) => ({ key: r.key, value: r.value }))
-    );
-
-    // Check if booking date is a bank holiday
-    const bookingDate = data.scheduledAt
-      ? new Date(data.scheduledAt)
-      : new Date();
-    const bookingDateStr = bookingDate.toISOString().split('T')[0];
-
-    const [holiday] = await db
-      .select()
-      .from(bankHolidays)
-      .where(eq(bankHolidays.date, bookingDateStr))
-      .limit(1);
-
-    const isBankHoliday = !!holiday;
-
     // Repair-only fast path — no stock to lock, no transaction needed
     if (isRepairOnly) {
-      const vatRule = rules.find((r) => r.key === 'vat_registered');
+      const vatRule = rulesRows.find((r) => r.key === 'vat_registered');
       const vatRegistered = vatRule ? vatRule.value === 'true' : true;
 
       // Fetch AI surge multiplier if surge pricing is enabled
@@ -257,6 +247,7 @@ export async function POST(
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
         distanceMiles: String(distanceMiles),
         breakdown: breakdown as unknown as Record<string, unknown>,
+        metadata: distanceResult as unknown as Record<string, unknown>,
         expiresAt,
         used: false,
       });
@@ -267,6 +258,7 @@ export async function POST(
         breakdown,
         distanceMiles,
         driverEtaMinutes,
+        distanceMetadata: distanceResult,
         tyreDetails: [],
       });
     }
@@ -374,7 +366,7 @@ export async function POST(
       }
 
       // Run pricing engine
-      const vatRule = rules.find((r) => r.key === 'vat_registered');
+      const vatRule = rulesRows.find((r) => r.key === 'vat_registered');
       const vatRegistered = vatRule ? vatRule.value === 'true' : true;
 
       // Fetch AI surge multiplier if surge pricing is enabled
@@ -448,10 +440,10 @@ export async function POST(
         );
       }
 
-      // Store quote in database
+      // Store quote in database (with distance metadata for auditability)
       await client.query(
-        `INSERT INTO quotes (id, lat, lng, address_line, booking_type, service_type, tyre_selections, scheduled_at, distance_miles, breakdown, expires_at, used)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, false)`,
+        `INSERT INTO quotes (id, lat, lng, address_line, booking_type, service_type, tyre_selections, scheduled_at, distance_miles, breakdown, metadata, expires_at, used)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, false)`,
         [
           quoteId,
           data.lat,
@@ -463,6 +455,7 @@ export async function POST(
           data.scheduledAt ? new Date(data.scheduledAt) : null,
           distanceMiles,
           JSON.stringify(breakdown),
+          JSON.stringify(distanceResult),
           expiresAt,
         ]
       );
@@ -475,6 +468,7 @@ export async function POST(
         breakdown,
         distanceMiles,
         driverEtaMinutes,
+        distanceMetadata: distanceResult,
         tyreDetails,
       });
     } catch (txError) {
