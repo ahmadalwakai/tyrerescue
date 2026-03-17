@@ -266,7 +266,8 @@ export async function POST(
         used: false,
       });
 
-      console.log('[QUOTE SUCCESS] repair-only', { quoteId, total: breakdown.total, elapsed: Date.now() - startTime });
+      const quoteDurationMs = Date.now() - startTime;
+      console.log('[QUOTE SUCCESS] repair-only', { quoteId, total: breakdown.total, elapsed: quoteDurationMs });
       return NextResponse.json({
         quoteId,
         expiresAt: expiresAt.toISOString(),
@@ -277,6 +278,14 @@ export async function POST(
         tyreDetails: [],
         specialOrderRequired: false,
         leadTime: null,
+        debug: {
+          quoteDurationMs,
+          distanceProvider: distanceResult.distanceProvider,
+          distanceSource: distanceResult.distanceSource,
+          selectedDriverId: distanceResult.selectedDriverId,
+          selectedServiceAreaId: distanceResult.selectedServiceAreaId,
+          fallbackReason: distanceResult.fallbackReason,
+        },
       });
     }
 
@@ -289,6 +298,8 @@ export async function POST(
 
     try {
       await client.query('BEGIN');
+      await client.query('SET LOCAL statement_timeout = \'8s\'');
+      await client.query('SET LOCAL idle_in_transaction_session_timeout = \'8s\'');
 
       // Lock and check stock for each tyre atomically
       const tyreDetails: QuoteResponse['tyreDetails'] = [];
@@ -499,7 +510,8 @@ export async function POST(
 
       await client.query('COMMIT');
 
-      console.log('[QUOTE SUCCESS]', { quoteId, total: breakdown.total, specialOrder: hasSpecialOrder, elapsed: Date.now() - startTime });
+      const quoteDurationMs = Date.now() - startTime;
+      console.log('[QUOTE SUCCESS]', { quoteId, total: breakdown.total, specialOrder: hasSpecialOrder, elapsed: quoteDurationMs });
       return NextResponse.json({
         quoteId,
         expiresAt: expiresAt.toISOString(),
@@ -510,6 +522,14 @@ export async function POST(
         tyreDetails,
         specialOrderRequired: hasSpecialOrder,
         leadTime: hasSpecialOrder ? '2\u20133 working days' : null,
+        debug: {
+          quoteDurationMs,
+          distanceProvider: distanceResult.distanceProvider,
+          distanceSource: distanceResult.distanceSource,
+          selectedDriverId: distanceResult.selectedDriverId,
+          selectedServiceAreaId: distanceResult.selectedServiceAreaId,
+          fallbackReason: distanceResult.fallbackReason,
+        },
       });
     } catch (txError) {
       await client.query('ROLLBACK');

@@ -121,6 +121,16 @@ export async function reverseGeocode(
  */
 const MAPBOX_TIMEOUT_MS = 8_000;
 
+/** Warn once if token looks like a placeholder */
+let _tokenWarned = false;
+function warnIfPlaceholderToken(token: string) {
+  if (_tokenWarned) return;
+  if (token.length < 20 || /^sk\.x+$/i.test(token)) {
+    console.warn('[MAPBOX] Secret token appears to be a placeholder — directions will fail, falling back to haversine');
+    _tokenWarned = true;
+  }
+}
+
 export async function getDirections(
   origin: { lng: number; lat: number },
   destination: { lng: number; lat: number }
@@ -129,6 +139,7 @@ export async function getDirections(
   if (!token) {
     throw new Error('Missing MAPBOX_SECRET_TOKEN environment variable');
   }
+  warnIfPlaceholderToken(token);
 
   const url = `${MAPBOX_BASE_URL}/directions/v5/mapbox/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?access_token=${token}&geometries=geojson&overview=full`;
 
@@ -230,7 +241,8 @@ const MAX_MAPBOX_CANDIDATES = 3;
  *   3. SERVICE_CENTER (Duke Street Tyres, Glasgow)
  *
  * Within each phase, candidates are pre-sorted by haversine (cheap) and
- * only the closest N are checked via Mapbox to limit API calls.
+ * only the closest N are checked via Mapbox **in parallel** to keep
+ * worst-case latency to a single timeout window (~8s) instead of N × 8s.
  * If all Mapbox calls within a phase fail, haversine × 1.3 is used.
  */
 export async function resolveDistance(
@@ -238,20 +250,27 @@ export async function resolveDistance(
   driverCandidates: Array<{ id: string; lat: number; lng: number }>,
   serviceAreaCandidates: Array<{ id: string; lat: number; lng: number }>,
 ): Promise<DistanceResult> {
-  // --- Phase 1: Try drivers ---
+  // --- Phase 1: Try drivers (parallel) ---
   const sortedDrivers = [...driverCandidates]
     .sort((a, b) =>
       haversineDistanceMiles(a, customer) - haversineDistanceMiles(b, customer)
     )
     .slice(0, MAX_MAPBOX_CANDIDATES);
 
-  let bestDriver: DistanceResult | null = null;
-  for (const d of sortedDrivers) {
-    const dirs = await getDirections(
-      { lng: d.lng, lat: d.lat },
-      { lng: customer.lng, lat: customer.lat },
+  if (sortedDrivers.length > 0) {
+    const results = await Promise.allSettled(
+      sortedDrivers.map(d =>
+        getDirections(
+          { lng: d.lng, lat: d.lat },
+          { lng: customer.lng, lat: customer.lat },
+        ).then(dirs => dirs ? { driver: d, dirs } : null),
+      ),
     );
-    if (dirs) {
+
+    let bestDriver: DistanceResult | null = null;
+    for (const r of results) {
+      if (r.status !== 'fulfilled' || !r.value) continue;
+      const { driver: d, dirs } = r.value;
       const miles = Math.round(metersToMiles(dirs.distance) * 100) / 100;
       const mins = secondsToMinutes(dirs.duration);
       if (!bestDriver || mins < (bestDriver.durationMinutes ?? Infinity)) {
@@ -272,11 +291,9 @@ export async function resolveDistance(
         };
       }
     }
-  }
-  if (bestDriver) return bestDriver;
+    if (bestDriver) return bestDriver;
 
-  // Haversine fallback for nearest driver
-  if (sortedDrivers.length > 0) {
+    // Haversine fallback for nearest driver
     const d = sortedDrivers[0];
     const hvDist = haversineDistanceMiles(d, customer) * 1.3;
     return {
@@ -296,20 +313,27 @@ export async function resolveDistance(
     };
   }
 
-  // --- Phase 2: Try service areas ---
+  // --- Phase 2: Try service areas (parallel) ---
   const sortedAreas = [...serviceAreaCandidates]
     .sort((a, b) =>
       haversineDistanceMiles(a, customer) - haversineDistanceMiles(b, customer)
     )
     .slice(0, MAX_MAPBOX_CANDIDATES);
 
-  let bestArea: DistanceResult | null = null;
-  for (const a of sortedAreas) {
-    const dirs = await getDirections(
-      { lng: a.lng, lat: a.lat },
-      { lng: customer.lng, lat: customer.lat },
+  if (sortedAreas.length > 0) {
+    const results = await Promise.allSettled(
+      sortedAreas.map(a =>
+        getDirections(
+          { lng: a.lng, lat: a.lat },
+          { lng: customer.lng, lat: customer.lat },
+        ).then(dirs => dirs ? { area: a, dirs } : null),
+      ),
     );
-    if (dirs) {
+
+    let bestArea: DistanceResult | null = null;
+    for (const r of results) {
+      if (r.status !== 'fulfilled' || !r.value) continue;
+      const { area: a, dirs } = r.value;
       const miles = Math.round(metersToMiles(dirs.distance) * 100) / 100;
       const mins = secondsToMinutes(dirs.duration);
       if (!bestArea || mins < (bestArea.durationMinutes ?? Infinity)) {
@@ -330,11 +354,9 @@ export async function resolveDistance(
         };
       }
     }
-  }
-  if (bestArea) return bestArea;
+    if (bestArea) return bestArea;
 
-  // Haversine fallback for nearest service area
-  if (sortedAreas.length > 0) {
+    // Haversine fallback for nearest service area
     const a = sortedAreas[0];
     const hvDist = haversineDistanceMiles(a, customer) * 1.3;
     return {

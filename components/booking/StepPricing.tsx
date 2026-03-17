@@ -32,6 +32,15 @@ export function StepPricing({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [repairQuoteError, setRepairQuoteError] = useState<string | null>(null);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  const [buildSha, setBuildSha] = useState<string | null>(null);
+
+  // Fetch build SHA once for support diagnostics
+  useEffect(() => {
+    fetch('/api/public/build-info')
+      .then(r => r.json())
+      .then(d => setBuildSha(d.gitSha ?? null))
+      .catch(() => {});
+  }, []);
 
   // Guards to prevent infinite re-fetch loops
   const inFlightRef = useRef(false);
@@ -370,6 +379,9 @@ export function StepPricing({
                 0141 266 0690
               </a>
             </Text>
+            {buildSha && buildSha !== 'unknown' && (
+              <Text color={c.muted} fontSize="xs" mt={1}>Build: {buildSha.slice(0, 7)}</Text>
+            )}
           </Box>
           <HStack gap={3} justify="center">
             <Button variant="outline" onClick={goToPrev}>
@@ -400,6 +412,9 @@ export function StepPricing({
                 0141 266 0690
               </a>
             </Text>
+            {buildSha && buildSha !== 'unknown' && (
+              <Text color={c.muted} fontSize="xs" mt={1}>Build: {buildSha.slice(0, 7)}</Text>
+            )}
           </Box>
           <HStack gap={3} justify="center">
             <Button variant="outline" onClick={goToPrev}>
