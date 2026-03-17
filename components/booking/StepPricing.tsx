@@ -17,6 +17,54 @@ interface StepPricingProps {
   goToStep?: (step: WizardStep) => void;
 }
 
+/** Auto-lookup cheapest matching tyre for emergency bookings that need replacement */
+async function findCheapestMatchingTyre(
+  tyreSize: { width: string; aspect: string; rim: string },
+  quantity: number,
+  service: 'fit' | 'assess',
+): Promise<{
+  tyreId: string;
+  brand: string;
+  pattern: string;
+  sizeDisplay: string;
+  unitPrice: number;
+  quantity: number;
+  service: 'fit' | 'assess';
+} | null> {
+  const params = new URLSearchParams({
+    width: tyreSize.width,
+    aspect: tyreSize.aspect,
+    rim: tyreSize.rim,
+    limit: '20',
+  });
+  const res = await fetch(`${API.TYRES}?${params}`);
+  if (!res.ok) return null;
+  const data = await res.json();
+  const tyres: Array<{
+    id: string; brand: string; pattern: string; sizeDisplay: string;
+    priceNew: number | null; stockNew: number | null;
+  }> = data.tyres ?? [];
+  if (tyres.length === 0) return null;
+
+  // Pick cheapest available tyre with sufficient stock, or fall back to any priced tyre
+  const priced = tyres.filter(t => t.priceNew != null && t.priceNew > 0);
+  const withStock = priced.filter(t => (t.stockNew ?? 0) >= quantity);
+  const candidates = withStock.length > 0 ? withStock : priced;
+  if (candidates.length === 0) return null;
+
+  candidates.sort((a, b) => (a.priceNew ?? 0) - (b.priceNew ?? 0));
+  const tyre = candidates[0];
+  return {
+    tyreId: tyre.id,
+    brand: tyre.brand,
+    pattern: tyre.pattern,
+    sizeDisplay: tyre.sizeDisplay,
+    unitPrice: tyre.priceNew!,
+    quantity,
+    service,
+  };
+}
+
 const RECOVERY_LIMIT = 3;
 const LOADING_TIMEOUT_MS = 20_000;
 
@@ -67,6 +115,10 @@ export function StepPricing({
     // Emergency flow with assess/fit but no tyre selection step — treat as service-only quote
     const isEmergencyNoTyres = state.bookingType === 'emergency' && state.selectedTyres.length === 0;
 
+    // Emergency replacement/assess needs auto tyre lookup (no tyre-selection step)
+    const needsAutoTyreLookup =
+      isEmergencyNoTyres && state.conditionAssessment !== 'repair';
+
     // Nothing quotable — no tyres and not a repair/emergency-without-tyres
     if (!isRepair && !hasTyres && !isEmergencyNoTyres) return;
 
@@ -90,24 +142,62 @@ export function StepPricing({
       setRepairQuoteError(null);
       setLoadingTimedOut(false);
       try {
-        // For emergency with no tyres (assess/fit without selection step), treat as repair-like
-        const sendAsRepair = isRepair || isEmergencyNoTyres;
+        // Determine how to build the quote request
+        let finalServiceType: string;
+        type TyreSel = { tyreId: string; quantity: number; service: string; requiresTpms: boolean; isPreOrder: boolean };
+        let finalTyreSelections: TyreSel[];
+        let autoTyre: Awaited<ReturnType<typeof findCheapestMatchingTyre>> = null;
+        let isSendingAsRepair = false;
+
+        if (
+          needsAutoTyreLookup &&
+          state.tyreSize.width &&
+          state.tyreSize.aspect &&
+          state.tyreSize.rim
+        ) {
+          // Emergency replacement/assess — auto-select cheapest matching tyre
+          const svc = state.serviceType === 'assess' ? 'assess' as const : 'fit' as const;
+          autoTyre = await findCheapestMatchingTyre(
+            state.tyreSize,
+            state.quantity || 1,
+            svc,
+          );
+        }
+
+        if (autoTyre) {
+          // Found a matching tyre — quote with tyre cost + fitting/assess fee
+          finalServiceType = autoTyre.service;
+          finalTyreSelections = [{
+            tyreId: autoTyre.tyreId,
+            quantity: autoTyre.quantity,
+            service: autoTyre.service,
+            requiresTpms: false,
+            isPreOrder: false,
+          }];
+        } else if (isRepair || isEmergencyNoTyres) {
+          // Pure repair OR emergency fallback (no matching tyres found)
+          isSendingAsRepair = true;
+          finalServiceType = 'repair';
+          finalTyreSelections = [];
+        } else {
+          finalServiceType = state.conditionAssessment === 'repair' ? 'repair' : 'fit';
+          finalTyreSelections = state.selectedTyres.map((t) => ({
+            tyreId: t.tyreId,
+            quantity: t.quantity,
+            service: t.service,
+            requiresTpms: t.requiresTpms ?? false,
+            isPreOrder: t.isPreOrder ?? false,
+          }));
+        }
+
         const payload = {
             lat: state.lat,
             lng: state.lng,
             addressLine: state.address,
             bookingType: state.bookingType,
-            serviceType: sendAsRepair ? 'repair' : (state.conditionAssessment === 'repair' ? 'repair' : 'fit'),
-            tyreSelections: sendAsRepair
-              ? []
-              : state.selectedTyres.map((t) => ({
-                  tyreId: t.tyreId,
-                  quantity: t.quantity,
-                  service: t.service,
-                  requiresTpms: t.requiresTpms ?? false,
-                  isPreOrder: t.isPreOrder ?? false,
-                })),
-            quantity: sendAsRepair ? (state.quantity || 1) : undefined,
+            serviceType: finalServiceType,
+            tyreSelections: finalTyreSelections,
+            quantity: isSendingAsRepair ? (state.quantity || 1) : undefined,
             fulfillmentOption: state.fulfillmentOption ?? undefined,
             scheduledAt:
               state.scheduledDate && state.scheduledTime
@@ -138,7 +228,21 @@ export function StepPricing({
           quoteId: data.quoteId,
           breakdown: data.breakdown,
           quoteExpiresAt: data.expiresAt,
-          ...(sendAsRepair ? { selectedTyres: [] } : {}),
+          ...(autoTyre
+            ? {
+                selectedTyres: [{
+                  tyreId: autoTyre.tyreId,
+                  brand: autoTyre.brand,
+                  pattern: autoTyre.pattern,
+                  sizeDisplay: autoTyre.sizeDisplay,
+                  quantity: autoTyre.quantity,
+                  unitPrice: autoTyre.unitPrice,
+                  service: autoTyre.service,
+                }],
+              }
+            : isSendingAsRepair
+            ? { selectedTyres: [] }
+            : {}),
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to get quote';
@@ -303,7 +407,53 @@ export function StepPricing({
     setIsExpired(false);
 
     try {
-      const refreshAsRepair = state.selectedTyres.length === 0;
+      const isEmergencyNeedsTyre =
+        state.bookingType === 'emergency' &&
+        state.selectedTyres.length === 0 &&
+        state.conditionAssessment !== 'repair' &&
+        state.tyreSize.width &&
+        state.tyreSize.aspect &&
+        state.tyreSize.rim;
+
+      let autoTyre: Awaited<ReturnType<typeof findCheapestMatchingTyre>> = null;
+      if (isEmergencyNeedsTyre) {
+        const svc = state.serviceType === 'assess' ? 'assess' as const : 'fit' as const;
+        autoTyre = await findCheapestMatchingTyre(
+          state.tyreSize,
+          state.quantity || 1,
+          svc,
+        );
+      }
+
+      let refreshServiceType: string;
+      type TyreSel = { tyreId: string; quantity: number; service: string; requiresTpms: boolean; isPreOrder: boolean };
+      let refreshTyreSelections: TyreSel[];
+      let refreshAsRepair = false;
+
+      if (autoTyre) {
+        refreshServiceType = autoTyre.service;
+        refreshTyreSelections = [{
+          tyreId: autoTyre.tyreId,
+          quantity: autoTyre.quantity,
+          service: autoTyre.service,
+          requiresTpms: false,
+          isPreOrder: false,
+        }];
+      } else if (state.selectedTyres.length === 0) {
+        refreshAsRepair = true;
+        refreshServiceType = 'repair';
+        refreshTyreSelections = [];
+      } else {
+        refreshServiceType = state.conditionAssessment === 'repair' ? 'repair' : 'fit';
+        refreshTyreSelections = state.selectedTyres.map((tyre) => ({
+          tyreId: tyre.tyreId,
+          quantity: tyre.quantity,
+          service: tyre.service,
+          requiresTpms: false,
+          isPreOrder: tyre.isPreOrder ?? false,
+        }));
+      }
+
       const res = await fetch(API.BOOKINGS_QUOTE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -312,16 +462,8 @@ export function StepPricing({
           lng: state.lng,
           addressLine: state.address,
           bookingType: state.bookingType,
-          serviceType: refreshAsRepair ? 'repair' : (state.conditionAssessment === 'repair' ? 'repair' : 'fit'),
-          tyreSelections: refreshAsRepair
-            ? []
-            : state.selectedTyres.map((tyre) => ({
-                tyreId: tyre.tyreId,
-                quantity: tyre.quantity,
-                service: tyre.service,
-                requiresTpms: false,
-                isPreOrder: tyre.isPreOrder ?? false,
-              })),
+          serviceType: refreshServiceType,
+          tyreSelections: refreshTyreSelections,
           quantity: refreshAsRepair ? (state.quantity || 1) : undefined,
           fulfillmentOption: state.fulfillmentOption ?? undefined,
           scheduledAt: state.scheduledDate && state.scheduledTime
@@ -344,6 +486,19 @@ export function StepPricing({
         quoteId: data.quoteId,
         breakdown: data.breakdown,
         quoteExpiresAt: data.expiresAt,
+        ...(autoTyre
+          ? {
+              selectedTyres: [{
+                tyreId: autoTyre.tyreId,
+                brand: autoTyre.brand,
+                pattern: autoTyre.pattern,
+                sizeDisplay: autoTyre.sizeDisplay,
+                quantity: autoTyre.quantity,
+                unitPrice: autoTyre.unitPrice,
+                service: autoTyre.service,
+              }],
+            }
+          : {}),
       });
     } catch (error) {
       setRepairQuoteError('Failed to refresh quote. Please try again.');
