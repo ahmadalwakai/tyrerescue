@@ -42,6 +42,10 @@ interface TyreProduct {
   stockOrdered: number | null;
   isLocalStock: boolean | null;
   availableNew: boolean;
+  isDirectSale: boolean;
+  isOrderOnly: boolean;
+  orderType: 'immediate' | 'special_order';
+  leadTimeLabel: string | null;
 }
 
 interface StepTyreSelectionProps {
@@ -62,6 +66,10 @@ export function StepTyreSelection({
   const [error, setError] = useState<string | null>(null);
   const [isQuoting, setIsQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [orderPrompt, setOrderPrompt] = useState<{
+    tyre: TyreProduct;
+    step: 'confirm' | 'fulfillment';
+  } | null>(null);
 
   const cart = state.selectedTyres;
   const totalItems = cartItemCount(cart);
@@ -104,6 +112,21 @@ export function StepTyreSelection({
 
   const handleAddToCart = (tyre: TyreProduct) => {
     if (!tyre.priceNew) return;
+
+    // Non-budget tyres require explicit order confirmation
+    if (tyre.isOrderOnly) {
+      // Emergency flow blocks non-budget entirely
+      if (state.bookingType === 'emergency') {
+        setQuoteError(
+          'Only budget tyres are available for emergency callout. Please select a budget tyre or switch to a scheduled booking.',
+        );
+        return;
+      }
+      setOrderPrompt({ tyre, step: 'confirm' });
+      return;
+    }
+
+    // Budget tyre — add directly
     const service = state.conditionAssessment === 'repair' ? 'repair' as const : 'fit' as const;
     const inStock = tyre.availableNew && tyre.stockNew >= 1;
     setCart(
@@ -117,6 +140,27 @@ export function StepTyreSelection({
         isPreOrder: !inStock,
       }),
     );
+    setQuoteError(null);
+  };
+
+  const handleConfirmSpecialOrder = (fulfillment: 'delivery' | 'fitting') => {
+    if (!orderPrompt) return;
+    const tyre = orderPrompt.tyre;
+    const service = state.conditionAssessment === 'repair' ? 'repair' as const : 'fit' as const;
+    setCart(
+      addToCart(cart, {
+        tyreId: tyre.id,
+        brand: tyre.brand,
+        pattern: tyre.pattern,
+        sizeDisplay: tyre.sizeDisplay,
+        unitPrice: tyre.priceNew!,
+        service,
+        isPreOrder: true,
+        orderConfirmed: true,
+      }),
+    );
+    updateState({ fulfillmentOption: fulfillment });
+    setOrderPrompt(null);
     setQuoteError(null);
   };
 
@@ -147,6 +191,7 @@ export function StepTyreSelection({
             state.scheduledDate && state.scheduledTime
               ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
               : undefined,
+          fulfillmentOption: state.fulfillmentOption ?? null,
         }),
       });
 
@@ -275,13 +320,17 @@ export function StepTyreSelection({
                           <Text fontSize="sm" color={c.muted}>Price N/A</Text>
                         )}
 
-                        {inStock && tyre.isLocalStock !== false ? (
+                        {tyre.isOrderOnly ? (
+                          <Badge colorPalette="orange" size="sm">
+                            Order Only — 2–3 Working Days
+                          </Badge>
+                        ) : inStock && tyre.isLocalStock !== false ? (
                           <Badge colorPalette="green" size="sm">
                             In Stock — Same Day
                           </Badge>
                         ) : tyre.priceNew ? (
-                          <Badge colorPalette="orange" size="sm">
-                            Pre-order — 2-3 Working Days
+                          <Badge colorPalette="gray" size="sm">
+                            Out of Stock
                           </Badge>
                         ) : (
                           <Badge colorPalette="gray" size="sm">Unavailable</Badge>
@@ -432,6 +481,134 @@ export function StepTyreSelection({
               {isQuoting ? <Spinner size="sm" /> : 'Get Quote'}
             </Button>
           </HStack>
+        </Box>
+      )}
+
+      {/* Special order confirmation overlay */}
+      {orderPrompt && orderPrompt.step === 'confirm' && (
+        <Box
+          position="fixed"
+          inset="0"
+          bg="rgba(0,0,0,0.7)"
+          zIndex={100}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          p={4}
+        >
+          <Box
+            bg={c.card}
+            p={6}
+            borderRadius="lg"
+            borderWidth="1px"
+            borderColor={c.border}
+            maxW="440px"
+            w="full"
+          >
+            <VStack gap={4} align="stretch">
+              <Text fontSize="lg" fontWeight="700" color={c.text}>
+                This tyre is not available for immediate fitting
+              </Text>
+              <Text fontSize="sm" color={c.muted}>
+                <strong style={{ color: c.text }}>
+                  {orderPrompt.tyre.brand} {orderPrompt.tyre.pattern}
+                </strong>{' '}
+                ({orderPrompt.tyre.sizeDisplay}) is a special-order item.
+              </Text>
+              <Box
+                p={3}
+                bg={c.surface}
+                borderRadius="md"
+                borderWidth="1px"
+                borderColor={c.border}
+              >
+                <Text fontSize="sm" fontWeight="600" color={c.accent}>
+                  Estimated delivery: 2–3 working days
+                </Text>
+              </Box>
+              <Text fontSize="sm" color={c.muted}>
+                Do you want to order it, or choose a budget alternative available now?
+              </Text>
+              <VStack gap={2}>
+                <Button
+                  colorPalette="orange"
+                  w="full"
+                  onClick={() => setOrderPrompt({ ...orderPrompt, step: 'fulfillment' })}
+                >
+                  Order this tyre
+                </Button>
+                <Button
+                  variant="outline"
+                  w="full"
+                  borderColor={c.border}
+                  color={c.text}
+                  onClick={() => setOrderPrompt(null)}
+                >
+                  Choose budget alternative
+                </Button>
+              </VStack>
+            </VStack>
+          </Box>
+        </Box>
+      )}
+
+      {/* Fulfillment choice overlay */}
+      {orderPrompt && orderPrompt.step === 'fulfillment' && (
+        <Box
+          position="fixed"
+          inset="0"
+          bg="rgba(0,0,0,0.7)"
+          zIndex={100}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          p={4}
+        >
+          <Box
+            bg={c.card}
+            p={6}
+            borderRadius="lg"
+            borderWidth="1px"
+            borderColor={c.border}
+            maxW="440px"
+            w="full"
+          >
+            <VStack gap={4} align="stretch">
+              <Text fontSize="lg" fontWeight="700" color={c.text}>
+                How would you like to receive this tyre?
+              </Text>
+              <Text fontSize="sm" color={c.muted}>
+                {orderPrompt.tyre.brand} {orderPrompt.tyre.pattern} — 2–3 working days
+              </Text>
+              <VStack gap={2}>
+                <Button
+                  colorPalette="orange"
+                  w="full"
+                  onClick={() => handleConfirmSpecialOrder('delivery')}
+                >
+                  Delivery only
+                </Button>
+                <Button
+                  colorPalette="orange"
+                  variant="outline"
+                  w="full"
+                  borderColor={c.accent}
+                  color={c.text}
+                  onClick={() => handleConfirmSpecialOrder('fitting')}
+                >
+                  Fitting appointment after arrival
+                </Button>
+                <Button
+                  variant="ghost"
+                  w="full"
+                  color={c.muted}
+                  onClick={() => setOrderPrompt(null)}
+                >
+                  Cancel
+                </Button>
+              </VStack>
+            </VStack>
+          </Box>
         </Box>
       )}
     </VStack>

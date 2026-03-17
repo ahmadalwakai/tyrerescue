@@ -139,6 +139,7 @@ export const bookings = pgTable('bookings', {
   quoteExpiresAt: timestamp('quote_expires_at', { withTimezone: true }),
   lockingNutStatus: text('locking_nut_status'),
   hasPreOrderItems: boolean('has_pre_order_items').default(false),
+  fulfillmentOption: text('fulfillment_option'),
   notes: text('notes'),
   // Assignment lifecycle timestamps
   assignedAt: timestamp('assigned_at', { withTimezone: true }),

@@ -24,6 +24,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { Pool } from '@neondatabase/serverless';
 import { getSurgeMultiplier } from '@/lib/surge';
+import { isBudgetTyre } from '@/lib/budget-inventory';
 
 // Input validation schema
 const tyreSelectionSchema = z.object({
@@ -43,6 +44,7 @@ const quoteRequestSchema = z.object({
   tyreSelections: z.array(tyreSelectionSchema).min(0).max(4),
   scheduledAt: z.string().datetime().optional(),
   quantity: z.number().int().min(1).max(4).optional().default(1),
+  fulfillmentOption: z.enum(['delivery', 'fitting']).optional().nullable(),
 });
 
 type QuoteRequest = z.infer<typeof quoteRequestSchema>;
@@ -63,6 +65,8 @@ interface QuoteResponse {
     unitPrice: number;
     available: boolean;
   }>;
+  specialOrderRequired: boolean;
+  leadTime: string | null;
 }
 
 interface ErrorResponse {
@@ -266,6 +270,8 @@ export async function POST(
         driverEtaMinutes,
         distanceMetadata: distanceResult,
         tyreDetails: [],
+        specialOrderRequired: false,
+        leadTime: null,
       });
     }
 
@@ -283,7 +289,9 @@ export async function POST(
 
       for (const selection of data.tyreSelections) {
         const tyre = tyreMap.get(selection.tyreId)!;
-        const isPreOrder = selection.isPreOrder ?? false;
+
+        // Backend enforcement: non-budget tyres are ALWAYS pre-order
+        const isPreOrder = !isBudgetTyre(tyre.sizeDisplay) || (selection.isPreOrder ?? false);
 
         if (isPreOrder) {
           // Pre-order: no stock lock needed, use catalogue price
@@ -446,6 +454,13 @@ export async function POST(
         );
       }
 
+      // Build corrected selections with backend-enforced isPreOrder
+      const correctedSelections = data.tyreSelections.map((sel) => {
+        const t = tyreMap.get(sel.tyreId)!;
+        return { ...sel, isPreOrder: !isBudgetTyre(t.sizeDisplay) || (sel.isPreOrder ?? false) };
+      });
+      const hasSpecialOrder = correctedSelections.some((s) => s.isPreOrder);
+
       // Store quote in database (with distance metadata for auditability)
       await client.query(
         `INSERT INTO quotes (id, lat, lng, address_line, booking_type, service_type, tyre_selections, scheduled_at, distance_miles, breakdown, metadata, expires_at, used)
@@ -457,11 +472,11 @@ export async function POST(
           data.addressLine,
           data.bookingType,
           data.serviceType,
-          JSON.stringify(data.tyreSelections),
+          JSON.stringify(correctedSelections),
           data.scheduledAt ? new Date(data.scheduledAt) : null,
           distanceMiles,
           JSON.stringify(breakdown),
-          JSON.stringify(distanceResult),
+          JSON.stringify({ ...distanceResult, fulfillmentOption: data.fulfillmentOption ?? null }),
           expiresAt,
         ]
       );
@@ -476,6 +491,8 @@ export async function POST(
         driverEtaMinutes,
         distanceMetadata: distanceResult,
         tyreDetails,
+        specialOrderRequired: hasSpecialOrder,
+        leadTime: hasSpecialOrder ? '2\u20133 working days' : null,
       });
     } catch (txError) {
       await client.query('ROLLBACK');

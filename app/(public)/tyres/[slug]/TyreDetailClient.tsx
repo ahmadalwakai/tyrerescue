@@ -36,6 +36,8 @@ interface TyreData {
   stockNew: number;
   availableNew: boolean;
   slug: string;
+  isOrderOnly: boolean;
+  leadTimeLabel: string | null;
 }
 
 interface RelatedTyre {
@@ -54,7 +56,15 @@ interface Props {
   relatedTyres: RelatedTyre[];
 }
 
-function StockBadge({ stock }: { stock: number }) {
+function StockBadge({ stock, isOrderOnly, leadTimeLabel }: { stock: number; isOrderOnly: boolean; leadTimeLabel: string | null }) {
+  if (isOrderOnly) {
+    return (
+      <Box>
+        <Text color={c.accent} fontWeight="semibold">Order Only</Text>
+        <Text fontSize="sm" color={c.muted}>{leadTimeLabel || '2\u20133 working days'}</Text>
+      </Box>
+    );
+  }
   if (stock === 0) {
     return <Text color="red.400">Out of Stock</Text>;
   }
@@ -150,16 +160,16 @@ export function TyreDetailClient({ tyre, relatedTyres }: Props) {
                           {formatPrice(tyre.priceNew)}
                         </Text>
                       </Flex>
-                      <StockBadge stock={tyre.stockNew} />
+                      <StockBadge stock={tyre.stockNew} isOrderOnly={tyre.isOrderOnly} leadTimeLabel={tyre.leadTimeLabel} />
                       <Button
                         asChild
                         colorPalette="orange"
                         width="full"
                         mt={3}
-                        disabled={tyre.stockNew === 0}
+                        disabled={tyre.stockNew === 0 && !tyre.isOrderOnly}
                       >
-                        <NextLink href={`/emergency?tyreId=${tyre.id}`}>
-                          Book This Tyre
+                        <NextLink href={tyre.isOrderOnly ? `/book?tyreId=${tyre.id}` : `/emergency?tyreId=${tyre.id}`}>
+                          {tyre.isOrderOnly ? 'Order This Tyre' : 'Book This Tyre'}
                         </NextLink>
                       </Button>
                     </Box>

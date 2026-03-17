@@ -31,6 +31,7 @@ const createBookingSchema = z.object({
   lockingNutStatus: z.enum(['has_key', 'no_key', 'standard']).optional(),
   notes: z.string().max(1000).optional(),
   createAccount: z.boolean().optional(),
+  fulfillmentOption: z.enum(['delivery', 'fitting']).optional().nullable(),
 });
 
 type CreateBookingRequest = z.infer<typeof createBookingSchema>;
@@ -239,6 +240,7 @@ export async function POST(
         quoteExpiresAt: expiresAt,
         notes: data.notes || null,
         hasPreOrderItems,
+        fulfillmentOption: data.fulfillmentOption ?? null,
       });
 
       // Create booking tyres entries

@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { tyreProducts } from '@/lib/db/schema';
 import { eq, and, ne, or } from 'drizzle-orm';
 import { TyreDetailClient } from './TyreDetailClient';
+import { classifyTyre } from '@/lib/budget-inventory';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -102,14 +103,24 @@ export default async function TyreDetailPage({ params }: Props) {
   // Build JSON-LD Product schema
   const priceNew = tyre.priceNew ? parseFloat(tyre.priceNew) : null;
 
+  const classification = classifyTyre(tyre.sizeDisplay, tyre.stockNew ?? 0);
+
   const offersArray = [];
   if (priceNew && tyre.availableNew) {
+    let availability: string;
+    if (classification.isOrderOnly) {
+      availability = 'https://schema.org/PreOrder';
+    } else if ((tyre.stockNew ?? 0) > 0) {
+      availability = 'https://schema.org/InStock';
+    } else {
+      availability = 'https://schema.org/OutOfStock';
+    }
     offersArray.push({
       '@type': 'Offer',
       name: 'Tyre',
       price: priceNew,
       priceCurrency: 'GBP',
-      availability: (tyre.stockNew ?? 0) > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      availability,
       itemCondition: 'https://schema.org/NewCondition',
       url: `https://www.tyrerescue.uk/tyres/${slug}`,
     });
@@ -164,6 +175,7 @@ export default async function TyreDetailPage({ params }: Props) {
     stockNew: tyre.stockNew ?? 0,
     availableNew: tyre.availableNew ?? false,
     slug: tyre.slug,
+    ...classifyTyre(tyre.sizeDisplay, tyre.stockNew ?? 0),
   };
 
   const relatedData = relatedTyres.map((t) => ({

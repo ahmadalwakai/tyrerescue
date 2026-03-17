@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { tyreCatalogue, tyreProducts } from '@/lib/db/schema';
 import { eq, and, gte, lte, ilike, sql, desc, asc } from 'drizzle-orm';
+import { classifyTyre } from '@/lib/budget-inventory';
 
 export async function GET(request: NextRequest) {
   try {
@@ -91,11 +92,17 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .offset(offset);
 
-    const tyresWithPrices = tyres.map((tyre) => ({
-      ...tyre,
-      priceNew: tyre.priceNew ? parseFloat(tyre.priceNew) : null,
-      tier: tyre.tier ?? 'mid',
-    }));
+    const tyresWithPrices = tyres.map((tyre) => {
+      const tier = tyre.tier ?? 'mid';
+      const stock = tyre.stockNew ?? 0;
+      const classification = classifyTyre(tyre.sizeDisplay, stock);
+      return {
+        ...tyre,
+        priceNew: tyre.priceNew ? parseFloat(tyre.priceNew) : null,
+        tier,
+        ...classification,
+      };
+    });
 
     const brands = await db
       .selectDistinct({ brand: tyreProducts.brand })

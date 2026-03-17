@@ -34,6 +34,9 @@ interface Tyre {
   isLocalStock: boolean | null;
   availableNew: boolean | null;
   slug: string;
+  tier?: string;
+  isOrderOnly?: boolean;
+  leadTimeLabel?: string | null;
 }
 
 interface TyresResponse {

@@ -27,6 +27,7 @@ export interface SelectedTyre {
   service: 'fit' | 'repair' | 'assess';
   requiresTpms?: boolean;
   isPreOrder?: boolean;
+  orderConfirmed?: boolean;
 }
 
 export interface WizardState {
@@ -79,6 +80,9 @@ export interface WizardState {
   nearestDriverLat: number | null;
   nearestDriverLng: number | null;
 
+  // Order fulfillment (for special-order / non-budget tyres)
+  fulfillmentOption: 'delivery' | 'fitting' | null;
+
   // Step 8: Payment
   bookingId: string | null;
   refNumber: string | null;
@@ -119,6 +123,7 @@ export const initialWizardState: WizardState = {
   nearestDriverName: null,
   nearestDriverLat: null,
   nearestDriverLng: null,
+  fulfillmentOption: null,
   bookingId: null,
   refNumber: null,
   stripeClientSecret: null,

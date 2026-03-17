@@ -18,6 +18,9 @@ interface Tyre {
   isLocalStock: boolean | null;
   availableNew: boolean | null;
   slug: string;
+  tier?: string;
+  isOrderOnly?: boolean;
+  leadTimeLabel?: string | null;
 }
 
 interface Props {
@@ -30,21 +33,30 @@ const SEASON_LABELS: Record<string, string> = {
   allseason: 'All Season',
 };
 
-function getStockBadge(stock: number | null, isLocal: boolean | null): { text: string; color: string } {
+function getStockBadge(tyre: Tyre): { text: string; color: string; subtext?: string } {
+  if (tyre.isOrderOnly) {
+    return {
+      text: 'Order Only',
+      color: c.accent,
+      subtext: tyre.leadTimeLabel || '2\u20133 working days',
+    };
+  }
+  const stock = tyre.stockNew;
+  const isLocal = tyre.isLocalStock;
   if (isLocal && stock && stock >= 3) {
     return { text: 'In Stock', color: '#22C55E' };
   }
   if (isLocal && stock && stock >= 1) {
     return { text: 'Low Stock', color: c.accent };
   }
-  return { text: 'Pre-order', color: c.accent };
+  return { text: 'Out of Stock', color: '#A1A1AA' };
 }
 
 export function TyreCard({ tyre }: Props) {
   const price = tyre.priceNew;
-  const stock = tyre.stockNew;
   const available = tyre.availableNew;
-  const stockBadge = getStockBadge(stock, tyre.isLocalStock);
+  const stockBadge = getStockBadge(tyre);
+  const isOrderOnly = tyre.isOrderOnly ?? false;
 
   if (!available || price === null) {
     return null;
@@ -90,9 +102,16 @@ export function TyreCard({ tyre }: Props) {
           <Text fontSize="xl" fontWeight="bold" color={c.text}>
             £{price.toFixed(2)}
           </Text>
-          <Text fontSize="sm" fontWeight="500" color={stockBadge.color}>
-            {stockBadge.text}
-          </Text>
+          <Box textAlign="right">
+            <Text fontSize="sm" fontWeight="500" color={stockBadge.color}>
+              {stockBadge.text}
+            </Text>
+            {stockBadge.subtext && (
+              <Text fontSize="xs" color={c.muted}>
+                {stockBadge.subtext}
+              </Text>
+            )}
+          </Box>
         </HStack>
 
         {/* Book Button */}
@@ -103,8 +122,8 @@ export function TyreCard({ tyre }: Props) {
           width="100%"
           disabled={!available}
         >
-          <NextLink href={`/emergency?tyreId=${tyre.id}`}>
-            Book This Tyre
+          <NextLink href={isOrderOnly ? `/book?tyreId=${tyre.id}` : `/emergency?tyreId=${tyre.id}`}>
+            {isOrderOnly ? 'Order This Tyre' : 'Book This Tyre'}
           </NextLink>
         </Button>
       </VStack>
