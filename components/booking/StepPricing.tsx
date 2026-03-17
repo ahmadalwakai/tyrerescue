@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Box, VStack, HStack, Text, Button, Separator, Spinner } from '@chakra-ui/react';
 import { WizardState, WizardStep, updateCartQuantity, removeFromCart } from './types';
 import { CartSummary } from './CartSummary';
@@ -17,6 +17,9 @@ interface StepPricingProps {
   goToStep?: (step: WizardStep) => void;
 }
 
+const RECOVERY_LIMIT = 3;
+const LOADING_TIMEOUT_MS = 20_000;
+
 export function StepPricing({
   state,
   updateState,
@@ -28,22 +31,56 @@ export function StepPricing({
   const [isExpired, setIsExpired] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [repairQuoteError, setRepairQuoteError] = useState<string | null>(null);
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
-  // Auto-fetch quote when missing (repair that skipped tyre selection, or restored draft without quote)
+  // Guards to prevent infinite re-fetch loops
+  const inFlightRef = useRef(false);
+  const lastFetchKeyRef = useRef('');
+  const recoveryCountRef = useRef(0);
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Stable fingerprint of selectedTyres for dependency tracking
+  const tyreFingerprint = useMemo(
+    () => state.selectedTyres.map(t => `${t.tyreId}:${t.quantity}:${t.service}`).join('|'),
+    [state.selectedTyres],
+  );
+
+  // State-driven auto-recovery: reacts to pricing state, not just mount
   useEffect(() => {
+    // Already have a valid quote — nothing to do
     if (state.quoteId && state.breakdown) return;
+
+    // Cannot fetch without location
     if (!state.lat || !state.lng) return;
 
     const isRepair = state.serviceType === 'repair' && state.selectedTyres.length === 0;
-
-    // Non-repair bookings with tyres but no quote — re-request it
     const hasTyres = state.selectedTyres.length > 0;
+
+    // Nothing quotable — no tyres and not a repair
     if (!isRepair && !hasTyres) return;
+
+    // Build a stable key from request inputs to avoid duplicate fetches
+    const fetchKey = `${state.lat}|${state.lng}|${state.bookingType}|${state.serviceType}|${tyreFingerprint}`;
+
+    // Already fetched (or fetching) for these exact inputs
+    if (fetchKey === lastFetchKeyRef.current) return;
+
+    // Concurrent request guard
+    if (inFlightRef.current) return;
+
+    // Retry limit reached for this session
+    if (recoveryCountRef.current >= RECOVERY_LIMIT) return;
+
+    lastFetchKeyRef.current = fetchKey;
+    recoveryCountRef.current += 1;
+    inFlightRef.current = true;
 
     let cancelled = false;
 
     async function fetchQuote() {
       setIsRefreshing(true);
+      setRepairQuoteError(null);
+      setLoadingTimedOut(false);
       try {
         const res = await fetch(API.BOOKINGS_QUOTE, {
           method: 'POST',
@@ -64,6 +101,7 @@ export function StepPricing({
                   isPreOrder: t.isPreOrder ?? false,
                 })),
             quantity: isRepair ? (state.quantity || 1) : undefined,
+            fulfillmentOption: state.fulfillmentOption ?? undefined,
             scheduledAt:
               state.scheduledDate && state.scheduledTime
                 ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
@@ -75,6 +113,14 @@ export function StepPricing({
 
         if (!res.ok) {
           throw new Error(data.error || 'Failed to get quote');
+        }
+
+        // Validate response shape before updating state
+        if (!data.quoteId || typeof data.quoteId !== 'string') {
+          throw new Error('Invalid quote response — missing quote ID');
+        }
+        if (!data.breakdown || typeof data.breakdown !== 'object') {
+          throw new Error('Invalid quote response — missing pricing breakdown');
         }
 
         if (!cancelled) {
@@ -89,18 +135,69 @@ export function StepPricing({
         if (!cancelled) {
           const message = err instanceof Error ? err.message : 'Failed to get quote';
           setRepairQuoteError(message);
+          // Reset fetch key so user-triggered retry can re-attempt
+          lastFetchKeyRef.current = '';
         }
       } finally {
         if (!cancelled) {
+          inFlightRef.current = false;
           setIsRefreshing(false);
         }
       }
     }
 
     fetchQuote();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    return () => {
+      cancelled = true;
+      inFlightRef.current = false;
+    };
+  }, [
+    state.quoteId,
+    state.breakdown,
+    state.lat,
+    state.lng,
+    state.serviceType,
+    state.bookingType,
+    tyreFingerprint,
+    updateState,
+    state.conditionAssessment,
+    state.address,
+    state.quantity,
+    state.fulfillmentOption,
+    state.scheduledDate,
+    state.scheduledTime,
+    state.selectedTyres,
+  ]);
+
+  // Hard fail-safe: never allow infinite loading spinner
+  useEffect(() => {
+    if (state.breakdown || repairQuoteError) {
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+        loadingTimerRef.current = null;
+      }
+      setLoadingTimedOut(false);
+      return;
+    }
+
+    // Already timed out — don't restart
+    if (loadingTimedOut) return;
+
+    if (!loadingTimerRef.current) {
+      loadingTimerRef.current = setTimeout(() => {
+        loadingTimerRef.current = null;
+        setLoadingTimedOut(true);
+      }, LOADING_TIMEOUT_MS);
+    }
+
+    return () => {
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+        loadingTimerRef.current = null;
+      }
+    };
+  }, [state.breakdown, repairQuoteError, loadingTimedOut]);
 
   // Calculate time remaining
   useEffect(() => {
@@ -174,13 +271,17 @@ export function StepPricing({
           throw new Error(data.error || 'Failed to refresh quote');
         }
 
+        if (!data.quoteId || !data.breakdown) {
+          throw new Error('Incomplete quote response');
+        }
+
         updateState({
           quoteId: data.quoteId,
           breakdown: data.breakdown,
           quoteExpiresAt: data.expiresAt,
         });
       } catch {
-        alert('Failed to refresh quote. Please try again.');
+        setRepairQuoteError('Failed to refresh quote. Please try again.');
       } finally {
         setIsRefreshing(false);
       }
@@ -208,7 +309,9 @@ export function StepPricing({
             quantity: tyre.quantity,
             service: tyre.service,
             requiresTpms: false,
+            isPreOrder: tyre.isPreOrder ?? false,
           })),
+          fulfillmentOption: state.fulfillmentOption ?? undefined,
           scheduledAt: state.scheduledDate && state.scheduledTime
             ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
             : undefined,
@@ -221,21 +324,36 @@ export function StepPricing({
         throw new Error(data.error || 'Failed to refresh quote');
       }
 
+      if (!data.quoteId || !data.breakdown) {
+        throw new Error('Incomplete quote response');
+      }
+
       updateState({
         quoteId: data.quoteId,
         breakdown: data.breakdown,
         quoteExpiresAt: data.expiresAt,
       });
     } catch (error) {
-      alert('Failed to refresh quote. Please try again.');
+      setRepairQuoteError('Failed to refresh quote. Please try again.');
     } finally {
       setIsRefreshing(false);
     }
   }, [state, updateState]);
 
+  // Manual retry handler — resets guards so the recovery effect can re-trigger
+  const handleManualRetry = useCallback(() => {
+    lastFetchKeyRef.current = '';
+    recoveryCountRef.current = 0;
+    setRepairQuoteError(null);
+    setLoadingTimedOut(false);
+    // Clear stale quote state to trigger the recovery effect
+    updateState({ quoteId: null, breakdown: null, quoteExpiresAt: null });
+  }, [updateState]);
+
   const breakdown = state.breakdown as PricingBreakdown | null;
 
   if (!breakdown) {
+    // Error state (API error or response validation failure)
     if (repairQuoteError) {
       return (
         <VStack py={12} gap={4}>
@@ -253,12 +371,49 @@ export function StepPricing({
               </a>
             </Text>
           </Box>
-          <Button variant="outline" onClick={goToPrev}>
-            Back
-          </Button>
+          <HStack gap={3} justify="center">
+            <Button variant="outline" onClick={goToPrev}>
+              Back
+            </Button>
+            <Button colorPalette="orange" onClick={handleManualRetry}>
+              Retry
+            </Button>
+          </HStack>
         </VStack>
       );
     }
+
+    // Timed-out state — spinner has been showing too long
+    if (loadingTimedOut) {
+      return (
+        <VStack py={12} gap={4}>
+          <Box p={4} bg="rgba(249,115,22,0.1)" borderRadius="md" borderWidth="1px" borderColor="rgba(249,115,22,0.3)" textAlign="center">
+            <Text fontWeight="600" color={c.accent} mb={2}>
+              Quote is taking longer than expected
+            </Text>
+            <Text color={c.muted} fontSize="sm" mb={3}>
+              This may be due to a slow connection. You can retry or go back and try again.
+            </Text>
+            <Text color={c.muted} fontSize="sm">
+              Need help? Call{' '}
+              <a href="tel:01412660690" style={{ color: c.accent, fontWeight: 500 }}>
+                0141 266 0690
+              </a>
+            </Text>
+          </Box>
+          <HStack gap={3} justify="center">
+            <Button variant="outline" onClick={goToPrev}>
+              Back
+            </Button>
+            <Button colorPalette="orange" onClick={handleManualRetry}>
+              Retry
+            </Button>
+          </HStack>
+        </VStack>
+      );
+    }
+
+    // Normal loading state (bounded by the timeout above)
     return (
       <VStack py={12}>
         <Spinner size="lg" />

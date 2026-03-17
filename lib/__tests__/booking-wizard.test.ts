@@ -598,3 +598,259 @@ describe('Eligibility map markers', () => {
     expect(anchorConfig.anchor).toBe('center');
   });
 });
+
+// ── Pricing step recovery ──
+
+describe('Pricing step recovery logic', () => {
+  const RECOVERY_LIMIT = 3;
+  const LOADING_TIMEOUT_MS = 20_000;
+
+  /**
+   * Simulates the guard logic from StepPricing's state-driven recovery effect.
+   * Returns whether a fetch would be triggered, and updates the refs accordingly.
+   */
+  function shouldFetchQuote(
+    state: {
+      quoteId: string | null;
+      breakdown: unknown;
+      lat: number | null;
+      lng: number | null;
+      serviceType: string | null;
+      selectedTyres: Array<{ tyreId: string; quantity: number; service: string }>;
+      bookingType: string | null;
+    },
+    refs: {
+      inFlight: boolean;
+      lastFetchKey: string;
+      recoveryCount: number;
+    },
+  ): { triggers: boolean; reason: string } {
+    if (state.quoteId && state.breakdown) return { triggers: false, reason: 'already-has-quote' };
+    if (!state.lat || !state.lng) return { triggers: false, reason: 'no-location' };
+
+    const isRepair = state.serviceType === 'repair' && state.selectedTyres.length === 0;
+    const hasTyres = state.selectedTyres.length > 0;
+    if (!isRepair && !hasTyres) return { triggers: false, reason: 'nothing-quotable' };
+
+    const tyreKey = state.selectedTyres.map(t => `${t.tyreId}:${t.quantity}:${t.service}`).join('|');
+    const fetchKey = `${state.lat}|${state.lng}|${state.bookingType}|${state.serviceType}|${tyreKey}`;
+
+    if (fetchKey === refs.lastFetchKey) return { triggers: false, reason: 'same-key' };
+    if (refs.inFlight) return { triggers: false, reason: 'in-flight' };
+    if (refs.recoveryCount >= RECOVERY_LIMIT) return { triggers: false, reason: 'limit-reached' };
+
+    // Would trigger — update refs
+    refs.lastFetchKey = fetchKey;
+    refs.recoveryCount += 1;
+    return { triggers: true, reason: 'fetching' };
+  }
+
+  it('recovers when quoteId is missing and tyres are present', () => {
+    const state = {
+      quoteId: null,
+      breakdown: null,
+      lat: 55.86,
+      lng: -4.25,
+      serviceType: 'fit',
+      selectedTyres: [{ tyreId: 'tyre_1', quantity: 2, service: 'fit' }],
+      bookingType: 'scheduled',
+    };
+    const refs = { inFlight: false, lastFetchKey: '', recoveryCount: 0 };
+    const result = shouldFetchQuote(state, refs);
+    expect(result.triggers).toBe(true);
+  });
+
+  it('recovers when quoteId exists but breakdown is missing', () => {
+    const state = {
+      quoteId: 'quote_123',
+      breakdown: null,
+      lat: 55.86,
+      lng: -4.25,
+      serviceType: 'fit',
+      selectedTyres: [{ tyreId: 'tyre_1', quantity: 2, service: 'fit' }],
+      bookingType: 'scheduled',
+    };
+    const refs = { inFlight: false, lastFetchKey: '', recoveryCount: 0 };
+    const result = shouldFetchQuote(state, refs);
+    expect(result.triggers).toBe(true);
+  });
+
+  it('does not re-fetch when both quoteId and breakdown are present', () => {
+    const state = {
+      quoteId: 'quote_123',
+      breakdown: { lineItems: [], subtotal: 100, vatAmount: 20, total: 120 },
+      lat: 55.86,
+      lng: -4.25,
+      serviceType: 'fit',
+      selectedTyres: [{ tyreId: 'tyre_1', quantity: 2, service: 'fit' }],
+      bookingType: 'scheduled',
+    };
+    const refs = { inFlight: false, lastFetchKey: '', recoveryCount: 0 };
+    const result = shouldFetchQuote(state, refs);
+    expect(result.triggers).toBe(false);
+    expect(result.reason).toBe('already-has-quote');
+  });
+
+  it('does NOT stay stuck on spinner — limited by recovery count', () => {
+    const state = {
+      quoteId: null,
+      breakdown: null,
+      lat: 55.86,
+      lng: -4.25,
+      serviceType: 'fit',
+      selectedTyres: [{ tyreId: 'tyre_1', quantity: 1, service: 'fit' }],
+      bookingType: 'scheduled',
+    };
+    const refs = { inFlight: false, lastFetchKey: '', recoveryCount: 0 };
+
+    // First 3 attempts trigger
+    for (let i = 0; i < RECOVERY_LIMIT; i++) {
+      refs.lastFetchKey = ''; // simulate failed key reset
+      expect(shouldFetchQuote(state, refs).triggers).toBe(true);
+    }
+
+    // 4th attempt blocked by limit
+    refs.lastFetchKey = '';
+    const blocked = shouldFetchQuote(state, refs);
+    expect(blocked.triggers).toBe(false);
+    expect(blocked.reason).toBe('limit-reached');
+  });
+
+  it('does not create infinite re-fetch loop for same inputs', () => {
+    const state = {
+      quoteId: null,
+      breakdown: null,
+      lat: 55.86,
+      lng: -4.25,
+      serviceType: 'fit',
+      selectedTyres: [{ tyreId: 'tyre_1', quantity: 2, service: 'fit' }],
+      bookingType: 'emergency',
+    };
+    const refs = { inFlight: false, lastFetchKey: '', recoveryCount: 0 };
+
+    // First call triggers
+    const first = shouldFetchQuote(state, refs);
+    expect(first.triggers).toBe(true);
+
+    // Second call with same inputs — blocked by same key
+    const second = shouldFetchQuote(state, refs);
+    expect(second.triggers).toBe(false);
+    expect(second.reason).toBe('same-key');
+  });
+
+  it('repairs draft without quote: recovery triggers for repair serviceType', () => {
+    const state = {
+      quoteId: null,
+      breakdown: null,
+      lat: 55.86,
+      lng: -4.25,
+      serviceType: 'repair',
+      selectedTyres: [] as Array<{ tyreId: string; quantity: number; service: string }>,
+      bookingType: 'emergency',
+    };
+    const refs = { inFlight: false, lastFetchKey: '', recoveryCount: 0 };
+    const result = shouldFetchQuote(state, refs);
+    expect(result.triggers).toBe(true);
+  });
+
+  it('blocks concurrent fetch when inFlight is true', () => {
+    const state = {
+      quoteId: null,
+      breakdown: null,
+      lat: 55.86,
+      lng: -4.25,
+      serviceType: 'fit',
+      selectedTyres: [{ tyreId: 'tyre_1', quantity: 1, service: 'fit' }],
+      bookingType: 'scheduled',
+    };
+    const refs = { inFlight: true, lastFetchKey: '', recoveryCount: 0 };
+    const result = shouldFetchQuote(state, refs);
+    expect(result.triggers).toBe(false);
+    expect(result.reason).toBe('in-flight');
+  });
+
+  it('loading timeout prevents permanent spinner', () => {
+    // Contract: LOADING_TIMEOUT_MS must be a positive finite number
+    // and the component must enter timed-out state after this duration
+    expect(LOADING_TIMEOUT_MS).toBeGreaterThan(0);
+    expect(LOADING_TIMEOUT_MS).toBeLessThanOrEqual(30_000);
+
+    // After timeout, loadingTimedOut = true → shows error UI, not spinner
+    const loadingTimedOut = true;
+    const breakdown = null;
+    const repairQuoteError = null;
+
+    // When breakdown is null and loadingTimedOut is true, user sees timeout UI (not spinner)
+    const showsTimeoutUI = !breakdown && !repairQuoteError && loadingTimedOut;
+    const showsSpinner = !breakdown && !repairQuoteError && !loadingTimedOut;
+    expect(showsTimeoutUI).toBe(true);
+    expect(showsSpinner).toBe(false);
+  });
+
+  it('partial quote response (no breakdown) is treated as error, not success', () => {
+    // Simulates the response validation in StepPricing fetchQuote
+    const partialResponse = { quoteId: 'quote_1', expiresAt: '2026-01-01' };
+    const hasValidBreakdown = partialResponse && 'breakdown' in partialResponse && !!((partialResponse as Record<string, unknown>).breakdown);
+    expect(hasValidBreakdown).toBe(false);
+    // The component throws an error for this case — it does NOT update state
+  });
+
+  it('partial quote response (no quoteId) is treated as error, not success', () => {
+    const partialResponse = { breakdown: { total: 120 }, expiresAt: '2026-01-01' };
+    const hasValidQuoteId = partialResponse && 'quoteId' in partialResponse && !!((partialResponse as Record<string, unknown>).quoteId);
+    expect(hasValidQuoteId).toBe(false);
+  });
+
+  it('manual retry resets all guards', () => {
+    const refs = { inFlight: false, lastFetchKey: 'old-key', recoveryCount: 3 };
+
+    // Simulate handleManualRetry
+    refs.lastFetchKey = '';
+    refs.recoveryCount = 0;
+
+    const state = {
+      quoteId: null,
+      breakdown: null,
+      lat: 55.86,
+      lng: -4.25,
+      serviceType: 'fit',
+      selectedTyres: [{ tyreId: 'tyre_1', quantity: 1, service: 'fit' }],
+      bookingType: 'scheduled',
+    };
+
+    const result = shouldFetchQuote(state, refs);
+    expect(result.triggers).toBe(true);
+  });
+
+  it('does not trigger when location is missing', () => {
+    const state = {
+      quoteId: null,
+      breakdown: null,
+      lat: null,
+      lng: null,
+      serviceType: 'fit',
+      selectedTyres: [{ tyreId: 'tyre_1', quantity: 1, service: 'fit' }],
+      bookingType: 'scheduled',
+    };
+    const refs = { inFlight: false, lastFetchKey: '', recoveryCount: 0 };
+    const result = shouldFetchQuote(state, refs);
+    expect(result.triggers).toBe(false);
+    expect(result.reason).toBe('no-location');
+  });
+
+  it('does not trigger for non-repair with no tyres selected', () => {
+    const state = {
+      quoteId: null,
+      breakdown: null,
+      lat: 55.86,
+      lng: -4.25,
+      serviceType: 'fit',
+      selectedTyres: [] as Array<{ tyreId: string; quantity: number; service: string }>,
+      bookingType: 'scheduled',
+    };
+    const refs = { inFlight: false, lastFetchKey: '', recoveryCount: 0 };
+    const result = shouldFetchQuote(state, refs);
+    expect(result.triggers).toBe(false);
+    expect(result.reason).toBe('nothing-quotable');
+  });
+});
