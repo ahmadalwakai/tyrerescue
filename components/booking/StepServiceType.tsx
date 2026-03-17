@@ -106,10 +106,16 @@ export function StepServiceType({
           as="h1"
           fontFamily="var(--font-display), sans-serif"
           lineHeight={1}
-          color={c.text}
           textAlign="center"
           className="service-heading"
-          style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both' }}
+          style={{
+            animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both, headingShimmer 4s ease-in-out infinite',
+            background: 'linear-gradient(270deg, #FFFFFF, #F97316, #FFFFFF, #F97316)',
+            backgroundSize: '300% 100%',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}
         >
           WHAT DO YOU NEED?
         </Text>
@@ -159,6 +165,7 @@ export function StepServiceType({
                 boxShadow={isSelected
                   ? '0 0 0 4px rgba(249,115,22,0.15), inset 0 0 40px rgba(249,115,22,0.04)'
                   : 'none'}
+                animation={isSelected ? 'neonHeartbeat 2s ease-in-out infinite' : undefined}
                 overflow="hidden"
                 _hover={!isSelected ? { borderColor: c.accent, bg: '#1C1917' } : {}}
                 w="full"
@@ -315,7 +322,7 @@ export function StepServiceType({
             borderRadius="6px"
             mt={6}
             _hover={{ bg: c.accentHover }}
-            style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.3s both' }}
+            style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.3s both, btnPulse 2s ease-in-out 0.7s infinite' }}
           >
             CONTINUE {'\u2192'}
           </Button>
