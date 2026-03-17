@@ -519,6 +519,13 @@ export function StepPricing({
 
   const breakdown = state.breakdown as PricingBreakdown | null;
 
+  // Group line items by type — must be above early returns to preserve hook order
+  const tyreItems = useMemo(() => breakdown?.lineItems.filter(item => item.type === 'tyre') ?? [], [breakdown]);
+  const serviceItems = useMemo(() => breakdown?.lineItems.filter(item => item.type === 'service') ?? [], [breakdown]);
+  const calloutItems = useMemo(() => breakdown?.lineItems.filter(item => item.type === 'callout') ?? [], [breakdown]);
+  const surchargeItems = useMemo(() => breakdown?.lineItems.filter(item => item.type === 'surcharge') ?? [], [breakdown]);
+  const discountItems = useMemo(() => breakdown?.lineItems.filter(item => item.type === 'discount') ?? [], [breakdown]);
+
   if (!breakdown) {
     // Error state (API error or response validation failure)
     if (repairQuoteError) {
@@ -594,13 +601,6 @@ export function StepPricing({
       </VStack>
     );
   }
-
-  // Group line items by type (memoized to avoid recalculating on every render)
-  const tyreItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'tyre'), [breakdown]);
-  const serviceItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'service'), [breakdown]);
-  const calloutItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'callout'), [breakdown]);
-  const surchargeItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'surcharge'), [breakdown]);
-  const discountItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'discount'), [breakdown]);
 
   return (
     <VStack gap={6} align="stretch">

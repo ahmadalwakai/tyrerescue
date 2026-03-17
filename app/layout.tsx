@@ -119,13 +119,13 @@ export default function RootLayout({
   return (
     <html lang="en-GB" className={`${inter.variable} ${bebasNeue.variable}`} suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
+        <a
+          href="#main-content"
+          className="skip-nav"
+        >
+          Skip to main content
+        </a>
         <Providers>
-          <a
-            href="#main-content"
-            className="skip-nav"
-          >
-            Skip to main content
-          </a>
           {children}
           <CookieBanner />
           <AnalyticsProvider />
