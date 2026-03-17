@@ -2,6 +2,7 @@ import Groq from 'groq-sdk';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
+  timeout: 8_000,
 });
 
 export default groq;

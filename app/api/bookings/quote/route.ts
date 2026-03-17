@@ -78,6 +78,7 @@ interface ErrorResponse {
 export async function POST(
   request: NextRequest
 ): Promise<NextResponse<QuoteResponse | ErrorResponse>> {
+  const startTime = Date.now();
   try {
     // Parse and validate request body
     const body = await request.json();
@@ -95,6 +96,7 @@ export async function POST(
     }
 
     const data: QuoteRequest = validation.data;
+    console.log('[QUOTE START]', { bookingType: data.bookingType, serviceType: data.serviceType, tyreCount: data.tyreSelections.length, lat: data.lat, lng: data.lng });
 
     const customerLocation = { lat: data.lat, lng: data.lng };
     const isRepairOnly = data.serviceType === 'repair' && data.tyreSelections.length === 0;
@@ -150,6 +152,7 @@ export async function POST(
       }));
 
     // --- Resolve distance (driver → service area → SERVICE_CENTER) ---
+    console.log('[DISTANCE CALC]', { driverCount: driverCandidates.length, areaCount: areaCandidates.length });
     const distanceResult = await resolveDistance(
       customerLocation,
       driverCandidates,
@@ -207,6 +210,7 @@ export async function POST(
 
     // Repair-only fast path — no stock to lock, no transaction needed
     if (isRepairOnly) {
+      console.log('[PRICING CALC] repair-only path');
       const vatRule = rulesRows.find((r) => r.key === 'vat_registered');
       const vatRegistered = vatRule ? vatRule.value === 'true' : true;
 
@@ -262,6 +266,7 @@ export async function POST(
         used: false,
       });
 
+      console.log('[QUOTE SUCCESS] repair-only', { quoteId, total: breakdown.total, elapsed: Date.now() - startTime });
       return NextResponse.json({
         quoteId,
         expiresAt: expiresAt.toISOString(),
@@ -276,7 +281,10 @@ export async function POST(
     }
 
     // Use raw SQL transaction with FOR UPDATE SKIP LOCKED for race condition prevention
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 8_000,
+    });
     const client = await pool.connect();
 
     try {
@@ -287,11 +295,18 @@ export async function POST(
       const pricingSelections: TyreSelection[] = [];
       const stockErrors: string[] = [];
 
+      // Build backend-enforced preOrder map BEFORE stock loop
+      const preOrderMap = new Map<string, boolean>();
+      for (const selection of data.tyreSelections) {
+        const tyre = tyreMap.get(selection.tyreId)!;
+        preOrderMap.set(selection.tyreId, !isBudgetTyre(tyre.sizeDisplay) || (selection.isPreOrder ?? false));
+      }
+
       for (const selection of data.tyreSelections) {
         const tyre = tyreMap.get(selection.tyreId)!;
 
         // Backend enforcement: non-budget tyres are ALWAYS pre-order
-        const isPreOrder = !isBudgetTyre(tyre.sizeDisplay) || (selection.isPreOrder ?? false);
+        const isPreOrder = preOrderMap.get(selection.tyreId)!;
 
         if (isPreOrder) {
           // Pre-order: no stock lock needed, use catalogue price
@@ -380,6 +395,7 @@ export async function POST(
       }
 
       // Run pricing engine
+      console.log('[PRICING CALC] tyre path', { tyreCount: data.tyreSelections.length });
       const vatRule = rulesRows.find((r) => r.key === 'vat_registered');
       const vatRegistered = vatRule ? vatRule.value === 'true' : true;
 
@@ -421,8 +437,8 @@ export async function POST(
 
       // Decrement stock and create reservations within the same transaction
       for (const selection of data.tyreSelections) {
-        // Skip stock decrement for pre-order items
-        if (selection.isPreOrder) continue;
+        // Skip stock decrement for pre-order items (use backend-enforced map)
+        if (preOrderMap.get(selection.tyreId)) continue;
 
         // Atomic decrement with check
         const updateResult = await client.query(
@@ -483,6 +499,7 @@ export async function POST(
 
       await client.query('COMMIT');
 
+      console.log('[QUOTE SUCCESS]', { quoteId, total: breakdown.total, specialOrder: hasSpecialOrder, elapsed: Date.now() - startTime });
       return NextResponse.json({
         quoteId,
         expiresAt: expiresAt.toISOString(),
@@ -502,10 +519,10 @@ export async function POST(
       await pool.end();
     }
   } catch (error) {
-    console.error('Quote creation error:', error);
+    console.error('[QUOTE ERROR]', error);
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: 'Failed to generate quote',
         code: 'INTERNAL_ERROR',
       },
       { status: 500 }

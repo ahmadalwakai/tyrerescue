@@ -116,8 +116,11 @@ export async function reverseGeocode(
 }
 
 /**
- * Get driving directions and distance between two points
+ * Get driving directions and distance between two points.
+ * Hard 8-second timeout prevents the quote API from hanging on Mapbox.
  */
+const MAPBOX_TIMEOUT_MS = 8_000;
+
 export async function getDirections(
   origin: { lng: number; lat: number },
   destination: { lng: number; lat: number }
@@ -129,25 +132,34 @@ export async function getDirections(
 
   const url = `${MAPBOX_BASE_URL}/directions/v5/mapbox/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?access_token=${token}&geometries=geojson&overview=full`;
 
-  const response = await fetch(url);
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), MAPBOX_TIMEOUT_MS);
 
-  if (!response.ok) {
-    console.error('Directions request failed:', response.statusText);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.error('Directions request failed:', response.statusText);
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (!data.routes || data.routes.length === 0) {
+      return null;
+    }
+
+    const route = data.routes[0];
+    return {
+      distance: route.distance,
+      duration: route.duration,
+      geometry: route.geometry,
+    };
+  } catch (err) {
+    console.error('Directions request failed:', err instanceof Error ? err.message : err);
     return null;
   }
-
-  const data = await response.json();
-
-  if (!data.routes || data.routes.length === 0) {
-    return null;
-  }
-
-  const route = data.routes[0];
-  return {
-    distance: route.distance,
-    duration: route.duration,
-    geometry: route.geometry,
-  };
 }
 
 /**
