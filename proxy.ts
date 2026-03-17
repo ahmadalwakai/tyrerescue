@@ -124,7 +124,8 @@ export async function proxy(request: NextRequest) {
     pathname.endsWith('.xml') ||
     pathname.endsWith('.txt') ||
     pathname.endsWith('.ico') ||
-    pathname.endsWith('.json');
+    pathname.endsWith('.json') ||
+    pathname.endsWith('.webmanifest');
 
   if (isPublicRoute) {
     const response = NextResponse.next();

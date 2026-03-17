@@ -95,8 +95,10 @@ function FooterColumn({ title, links }: { title: string; links: { label: string;
 
 export function Footer() {
   const [vatInfo, setVatInfo] = useState<{ vatRegistered: boolean; vatNumber: string } | null>(null);
+  const [year, setYear] = useState(2026); // static default avoids hydration mismatch
 
   useEffect(() => {
+    setYear(new Date().getFullYear());
     fetch('/api/public/settings')
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data) setVatInfo(data); })
@@ -308,7 +310,7 @@ export function Footer() {
               color={colors.textSecondary}
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              © {new Date().getFullYear()} Tyre Rescue. All rights reserved.
+              © {year} Tyre Rescue. All rights reserved.
             </Text>
             {vatInfo?.vatRegistered && vatInfo.vatNumber && (
               <Text
