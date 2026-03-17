@@ -317,7 +317,7 @@ export function StepServiceType({
             _hover={{ bg: c.accentHover }}
             style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.3s both' }}
           >
-            CONTINUE \u2192
+            CONTINUE {'\u2192'}
           </Button>
         )}
 
