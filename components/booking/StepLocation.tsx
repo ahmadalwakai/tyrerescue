@@ -74,17 +74,27 @@ export function StepLocation({
     const buildMarker = (m: mapboxgl.Map) => {
       if (marker.current) marker.current.remove();
 
+      // Stable root wrapper — NO animation / NO transform so Mapbox
+      // can freely set transform: translate() for positioning.
       const el = document.createElement('div');
-      el.className = 'map-marker-pulse';
       el.style.width = '28px';
       el.style.height = '28px';
-      el.style.borderRadius = '50%';
-      el.style.backgroundColor = c.accent;
-      el.style.border = `3px solid ${c.bg}`;
-      el.style.boxShadow = `0 0 12px ${c.accentGlow}`;
-      el.style.cursor = 'pointer';
       el.style.position = 'relative';
 
+      // Visible core dot — animation lives on this child only
+      const core = document.createElement('div');
+      core.className = 'map-marker-pulse';
+      core.style.width = '28px';
+      core.style.height = '28px';
+      core.style.borderRadius = '50%';
+      core.style.backgroundColor = c.accent;
+      core.style.border = `3px solid ${c.bg}`;
+      core.style.boxShadow = `0 0 12px ${c.accentGlow}`;
+      core.style.cursor = 'pointer';
+      core.style.animation = 'mapMarkerPulse 3s ease-in-out infinite';
+      el.appendChild(core);
+
+      // Expanding ping ring
       const ring = document.createElement('div');
       ring.className = 'map-marker-ring';
       ring.style.position = 'absolute';
@@ -94,8 +104,6 @@ export function StepLocation({
       ring.style.animation = 'mapMarkerPing 3s ease-out infinite';
       ring.style.opacity = '0';
       el.appendChild(ring);
-
-      el.style.animation = 'mapMarkerPulse 3s ease-in-out infinite';
 
       marker.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat([selectedLocation.lng, selectedLocation.lat])

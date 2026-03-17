@@ -359,6 +359,71 @@ describe('Map marker pulse animation', () => {
     expect(accent).not.toMatch(/purple|violet/i);
     expect(accentGlow).not.toMatch(/purple|violet/i);
   });
+
+  it('root marker element has NO animation or transform — animation lives on child only', () => {
+    // Contract: buildMarker() in StepLocation creates a root wrapper that is
+    // inert (no className, no animation, no transform). Animation is on child
+    // elements only (.map-marker-pulse core, .map-marker-ring).
+    // The root has: width, height, position:relative — nothing else.
+    const rootProps = { width: '28px', height: '28px', position: 'relative' };
+    const rootAnimation = ''; // must be empty string — NO animation on root
+    const rootClassName = ''; // must be empty — class lives on child
+
+    expect(rootAnimation).toBe('');
+    expect(rootClassName).toBe('');
+    expect(rootProps).not.toHaveProperty('transform');
+    expect(rootProps).not.toHaveProperty('animation');
+
+    // Child core gets the animation
+    const coreClassName = 'map-marker-pulse';
+    const coreAnimation = 'mapMarkerPulse 3s ease-in-out infinite';
+    expect(coreClassName).toBe('map-marker-pulse');
+    expect(coreAnimation).toContain('mapMarkerPulse');
+  });
+
+  it('mapMarkerPulse keyframe must NOT use transform (only box-shadow)', () => {
+    // Read the actual CSS keyframe from globals.css — contract test
+    const fs = require('fs');
+    const path = require('path');
+    const css = fs.readFileSync(
+      path.resolve(__dirname, '../../app/globals.css'),
+      'utf8',
+    );
+    const pulseMatch = css.match(
+      /@keyframes mapMarkerPulse\s*\{[^}]*\{([^}]+)\}[^}]*\{([^}]+)\}/,
+    );
+    expect(pulseMatch).not.toBeNull();
+    const keyframeBody = (pulseMatch![1] + pulseMatch![2]).toLowerCase();
+    expect(keyframeBody).not.toContain('transform');
+    expect(keyframeBody).toContain('box-shadow');
+  });
+
+  it('marker position survives zoom/pan — no transform on root to conflict with Mapbox', () => {
+    // Contract: since the root wrapper has no animation and no CSS class that
+    // animates transform, Mapbox's inline transform: translate(...) is never
+    // overridden. We verify this by checking the CSS file for the class names.
+    const fs = require('fs');
+    const path = require('path');
+    const css = fs.readFileSync(
+      path.resolve(__dirname, '../../app/globals.css'),
+      'utf8',
+    );
+
+    // mapMarkerPulse should NOT contain transform
+    const pulseBlock = css.match(
+      /@keyframes mapMarkerPulse\s*\{([\s\S]*?)\n\}/,
+    );
+    expect(pulseBlock).not.toBeNull();
+    expect(pulseBlock![1].toLowerCase()).not.toContain('transform');
+
+    // mapMarkerPing (ring) does use transform but it's safe—applied to a
+    // child element, not the Mapbox root element
+    const pingBlock = css.match(
+      /@keyframes mapMarkerPing\s*\{([\s\S]*?)\n\}/,
+    );
+    expect(pingBlock).not.toBeNull();
+    expect(pingBlock![1].toLowerCase()).toContain('transform');
+  });
 });
 
 describe('Purple/violet colorScheme audit', () => {

@@ -166,17 +166,22 @@ export function StepEligibility({
         .addTo(m);
 
       if (drvLng != null && drvLat != null) {
-        // Driver marker (orange pulsing)
+        // Driver marker — stable root wrapper, animation on child only
         const drvEl = document.createElement('div');
-        drvEl.className = 'map-marker-pulse';
         drvEl.style.width = '28px';
         drvEl.style.height = '28px';
-        drvEl.style.borderRadius = '50%';
-        drvEl.style.backgroundColor = c.accent;
-        drvEl.style.border = `3px solid ${c.bg}`;
-        drvEl.style.boxShadow = `0 0 12px ${c.accentGlow}`;
         drvEl.style.position = 'relative';
-        drvEl.style.animation = 'mapMarkerPulse 3s ease-in-out infinite';
+
+        const drvCore = document.createElement('div');
+        drvCore.className = 'map-marker-pulse';
+        drvCore.style.width = '28px';
+        drvCore.style.height = '28px';
+        drvCore.style.borderRadius = '50%';
+        drvCore.style.backgroundColor = c.accent;
+        drvCore.style.border = `3px solid ${c.bg}`;
+        drvCore.style.boxShadow = `0 0 12px ${c.accentGlow}`;
+        drvCore.style.animation = 'mapMarkerPulse 3s ease-in-out infinite';
+        drvEl.appendChild(drvCore);
 
         const ring = document.createElement('div');
         ring.className = 'map-marker-ring';
