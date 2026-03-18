@@ -78,7 +78,10 @@ export function InvoiceDetailClient({ invoiceId }: { invoiceId: string }) {
   useEffect(() => {
     (async () => {
       const res = await fetch(`/api/admin/invoices/${invoiceId}`);
-      if (res.ok) setInvoice(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setInvoice({ ...data.invoice, items: data.items ?? [] });
+      }
       setLoading(false);
     })();
   }, [invoiceId]);
@@ -115,7 +118,10 @@ export function InvoiceDetailClient({ invoiceId }: { invoiceId: string }) {
           setTimeout(() => router.push('/admin/invoices'), 600);
         } else {
           const r = await fetch(`/api/admin/invoices/${invoiceId}`);
-          if (r.ok) setInvoice(await r.json());
+          if (r.ok) {
+            const d = await r.json();
+            setInvoice({ ...d.invoice, items: d.items ?? [] });
+          }
         }
       } else {
         const data = await res.json();
