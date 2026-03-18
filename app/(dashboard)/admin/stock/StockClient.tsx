@@ -84,7 +84,7 @@ export function StockClient() {
 
   /* Add form state */
   const [showAddForm, setShowAddForm] = useState(false);
-  const [addForm, setAddForm] = useState({ sizeRaw: '', stockNew: '0', priceNew: '' });
+  const [addForm, setAddForm] = useState({ sizeRaw: '', stockNew: '0', priceNew: '', brand: '', pattern: '', season: 'allseason' });
   const [addError, setAddError] = useState('');
   const [addSaving, setAddSaving] = useState(false);
 
@@ -240,6 +240,9 @@ export function StockClient() {
           ...parsed,
           stockNew,
           priceNew: addForm.priceNew ? Number(addForm.priceNew) : null,
+          brand: addForm.brand.trim() || undefined,
+          pattern: addForm.pattern.trim() || undefined,
+          season: addForm.season || undefined,
         }),
       });
       const data = await res.json();
@@ -248,7 +251,7 @@ export function StockClient() {
         return;
       }
       setShowAddForm(false);
-      setAddForm({ sizeRaw: '', stockNew: '0', priceNew: '' });
+      setAddForm({ sizeRaw: '', stockNew: '0', priceNew: '', brand: '', pattern: '', season: 'allseason' });
       flash('Added successfully', true);
       fetchItems(1);
     } catch {
@@ -399,6 +402,31 @@ export function StockClient() {
                 onChange={(e) => setAddForm(f => ({ ...f, sizeRaw: e.target.value }))}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !addSaving) handleAdd(); }}
               />
+            </Box>
+            <Box minW="120px">
+              <Text fontSize="11px" color={c.muted} mb={1}>Brand (optional)</Text>
+              <Input {...inputProps} size="sm"
+                placeholder="Budget"
+                value={addForm.brand}
+                onChange={(e) => setAddForm(f => ({ ...f, brand: e.target.value }))}
+              />
+            </Box>
+            <Box minW="120px">
+              <Text fontSize="11px" color={c.muted} mb={1}>Pattern (optional)</Text>
+              <Input {...inputProps} size="sm"
+                placeholder="All-Season"
+                value={addForm.pattern}
+                onChange={(e) => setAddForm(f => ({ ...f, pattern: e.target.value }))}
+              />
+            </Box>
+            <Box minW="110px">
+              <Text fontSize="11px" color={c.muted} mb={1}>Season</Text>
+              <select style={{ ...selectStyle, height: 38 }} value={addForm.season}
+                onChange={(e) => setAddForm(f => ({ ...f, season: e.target.value }))}>
+                <option value="allseason">All-Season</option>
+                <option value="summer">Summer</option>
+                <option value="winter">Winter</option>
+              </select>
             </Box>
             <Box minW="90px">
               <Text fontSize="11px" color={c.muted} mb={1}>Stock</Text>

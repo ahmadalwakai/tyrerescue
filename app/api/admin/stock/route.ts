@@ -58,14 +58,12 @@ export async function GET(request: Request) {
   const perPage = 50;
   const offset = (page - 1) * perPage;
 
-  // Budget brand only (no hardcoded size list — admin-added sizes always visible)
-  const conditions = [
-    ilike(tyreProducts.brand, 'budget'),
-  ];
+  const conditions: ReturnType<typeof eq>[] = [];
 
   if (search) {
     conditions.push(
       or(
+        ilike(tyreProducts.brand, `%${search}%`),
         ilike(tyreProducts.pattern, `%${search}%`),
         ilike(tyreProducts.sizeDisplay, `%${search}%`)
       )!
@@ -94,7 +92,7 @@ export async function GET(request: Request) {
   } as const;
   const ordering = orderMap[sort as keyof typeof orderMap] ?? orderMap.size;
 
-  const budgetScope = ilike(tyreProducts.brand, 'budget');
+  const budgetScope = sql`1=1`; // all brands
 
   const [rows, countResult, statsResult] = await Promise.all([
     db
@@ -165,6 +163,9 @@ const addSchema = z.object({
   stockNew: z.number().int().min(0).default(0),
   priceNew: z.union([z.string(), z.number()]).nullable().optional(),
   isCommercial: z.boolean().default(false),
+  brand: z.string().min(1).max(100).optional(),
+  pattern: z.string().max(200).optional(),
+  season: z.enum(['summer', 'winter', 'allseason']).optional(),
 });
 
 export async function POST(request: Request) {
@@ -180,14 +181,17 @@ export async function POST(request: Request) {
   }
 
   const { sizeDisplay, width, aspect, rim, stockNew, priceNew } = parsed.data;
+  const brand = parsed.data.brand || 'Budget';
+  const pattern = parsed.data.pattern || 'All-Season';
+  const season = parsed.data.season || 'allseason';
 
-  // Check for duplicate — same sizeDisplay + Budget brand
+  // Check for duplicate — same sizeDisplay + same brand
   const [existing] = await db
     .select({ id: tyreProducts.id })
     .from(tyreProducts)
     .where(
       and(
-        ilike(tyreProducts.brand, 'budget'),
+        ilike(tyreProducts.brand, brand),
         eq(tyreProducts.sizeDisplay, sizeDisplay),
       )
     )
@@ -200,38 +204,40 @@ export async function POST(request: Request) {
     );
   }
 
-  // Find or create budget catalogue entry
+  const tier = brand.toLowerCase() === 'budget' ? 'budget' : 'mid';
+
+  // Find or create catalogue entry
   let [catRow] = await db
     .select()
     .from(tyreCatalogue)
     .where(
       and(
+        ilike(tyreCatalogue.brand, brand),
         eq(tyreCatalogue.width, width),
         eq(tyreCatalogue.aspect, aspect),
         eq(tyreCatalogue.rim, rim),
-        eq(tyreCatalogue.tier, 'budget'),
         eq(tyreCatalogue.sizeDisplay, sizeDisplay),
       )
     )
     .limit(1);
 
   if (!catRow) {
-    const slug = makeSlug('budget', 'all-season', width, aspect, `r${rim}`, 'budget', Date.now());
+    const slug = makeSlug(brand, pattern, width, aspect, `r${rim}`, Date.now());
     const [inserted] = await db.insert(tyreCatalogue).values({
-      brand: 'Budget',
-      pattern: 'All-Season',
+      brand,
+      pattern,
       width,
       aspect,
       rim,
       sizeDisplay,
-      season: 'allseason',
+      season,
       speedRating: speedRatingFor(rim),
       loadIndex: loadIndexFor(width, aspect),
       wetGrip: 'C',
       fuelEfficiency: 'C',
       noiseDb: 71,
       runFlat: false,
-      tier: 'budget',
+      tier,
       suggestedPriceNew: suggestedPrice(rim),
       slug,
     }).onConflictDoNothing().returning();
@@ -244,17 +250,17 @@ export async function POST(request: Request) {
   }
 
   const price = priceNew != null ? String(priceNew) : suggestedPrice(rim);
-  const prodSlug = makeSlug('budget', 'all-season', width, aspect, `r${rim}`, 'budget', Date.now());
+  const prodSlug = makeSlug(brand, pattern, width, aspect, `r${rim}`, Date.now());
 
   const [product] = await db.insert(tyreProducts).values({
     catalogueId: catRow.id,
-    brand: 'Budget',
-    pattern: 'All-Season',
+    brand,
+    pattern,
     width,
     aspect,
     rim,
     sizeDisplay,
-    season: 'allseason',
+    season,
     speedRating: speedRatingFor(rim),
     loadIndex: loadIndexFor(width, aspect),
     wetGrip: 'C',
