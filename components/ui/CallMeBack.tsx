@@ -11,7 +11,6 @@ const HIDDEN_PREFIXES = ['/admin', '/dashboard', '/driver'];
 
 export function CallMeBack() {
   const pathname = usePathname();
-  if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
   const [state, setState] = useState<FormState>('idle');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -28,6 +27,8 @@ export function CallMeBack() {
       return () => clearTimeout(timer);
     }
   }, [state]);
+
+  const hidden = HIDDEN_PREFIXES.some((p) => pathname.startsWith(p));
 
   async function handleSubmit() {
     if (!name.trim() || !phone.trim()) return;
@@ -47,6 +48,8 @@ export function CallMeBack() {
       setState('error');
     }
   }
+
+  if (hidden) return null;
 
   if (state === 'idle') {
     return (
