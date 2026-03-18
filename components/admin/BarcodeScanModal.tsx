@@ -34,15 +34,29 @@ interface ScanResponse {
 
 type ScanState = 'idle' | 'camera' | 'scanning' | 'result' | 'error';
 
-/* ─── Browser BarcodeDetector type ─────────────────────── */
-interface BarcodeDetectorResult { rawValue: string; format: string }
-interface BarcodeDetectorAPI {
-  detect(source: ImageBitmapSource): Promise<BarcodeDetectorResult[]>;
+/* ─── Barcode detector (native + polyfill) ─────────────── */
+interface DetectorResult { rawValue: string; format: string }
+interface DetectorLike {
+  detect(source: ImageBitmapSource): Promise<DetectorResult[]>;
 }
-declare global {
-  interface Window {
-    BarcodeDetector?: new (opts?: { formats?: string[] }) => BarcodeDetectorAPI;
+
+const BARCODE_FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'code_93', 'itf', 'codabar'] as const;
+
+/** Returns a BarcodeDetector — native if available, otherwise the ZXing WASM polyfill (lazy-loaded). */
+async function getDetector(): Promise<DetectorLike> {
+  // Try native first (Chromium, Android WebView)
+  if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+    try {
+      const native = new (window as /* eslint-disable-line @typescript-eslint/no-explicit-any */ any).BarcodeDetector({
+        formats: [...BARCODE_FORMATS],
+      });
+      // Smoke-test: some browsers expose the constructor but throw on detect()
+      if (typeof native.detect === 'function') return native as DetectorLike;
+    } catch { /* native broken — fall through to polyfill */ }
   }
+  // Polyfill: barcode-detector (ZXing WASM) — dynamic import keeps main bundle small
+  const { BarcodeDetector: Polyfill } = await import('barcode-detector');
+  return new Polyfill({ formats: [...BARCODE_FORMATS] }) as unknown as DetectorLike;
 }
 
 /* ─── Component ────────────────────────────────────────── */
@@ -56,6 +70,7 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const detectorRef = useRef<DetectorLike | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /* ─── Cleanup camera ─────────────────────────────────── */
@@ -122,26 +137,26 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
       }
       setState('camera');
 
-      // Start scanning loop with BarcodeDetector
-      if (window.BarcodeDetector) {
-        const detector = new window.BarcodeDetector({
-          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'code_93', 'itf', 'codabar'],
-        });
-        scanTimerRef.current = setInterval(async () => {
-          if (!videoRef.current || videoRef.current.readyState < 2) return;
-          try {
-            const results = await detector.detect(videoRef.current);
-            if (results.length > 0) {
-              const barcode = results[0].rawValue;
-              stopCamera();
-              lookupBarcode(barcode);
-            }
-          } catch { /* detection frame failed — retry next interval */ }
-        }, 400);
-      } else {
-        // No BarcodeDetector — camera preview only, user must use image upload or manual
-        setCameraError('Live scan not supported on this browser. Use image upload or enter the barcode manually.');
+      // Get a detector (native or WASM polyfill)
+      try {
+        detectorRef.current = await getDetector();
+      } catch {
+        setCameraError('Barcode detection engine failed to load. Use image upload or enter the barcode manually.');
+        return;
       }
+
+      const detector = detectorRef.current;
+      scanTimerRef.current = setInterval(async () => {
+        if (!videoRef.current || videoRef.current.readyState < 2) return;
+        try {
+          const results = await detector.detect(videoRef.current);
+          if (results.length > 0) {
+            const barcode = results[0].rawValue;
+            stopCamera();
+            lookupBarcode(barcode);
+          }
+        } catch { /* detection frame failed — retry next interval */ }
+      }, 400);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       if (msg.includes('Permission') || msg.includes('NotAllowed')) {
@@ -157,17 +172,11 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
 
   /* ─── Image upload fallback ──────────────────────────── */
   const handleImageUpload = async (file: File) => {
-    if (!window.BarcodeDetector) {
-      setErrorMsg('BarcodeDetector API not supported. Please enter the barcode manually.');
-      setState('error');
-      return;
-    }
     setState('scanning');
     try {
+      const detector = detectorRef.current ?? await getDetector();
+      detectorRef.current = detector;
       const bitmap = await createImageBitmap(file);
-      const detector = new window.BarcodeDetector!({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'code_93', 'itf', 'codabar'],
-      });
       const results = await detector.detect(bitmap);
       bitmap.close();
       if (results.length > 0) {
