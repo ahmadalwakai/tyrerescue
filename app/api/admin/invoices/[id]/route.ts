@@ -103,37 +103,26 @@ export async function PATCH(request: Request, props: Props) {
     if (data.bookingId !== undefined) updates.bookingId = data.bookingId;
     if (data.userId !== undefined) updates.userId = data.userId;
 
-    // Recalculate totals if items or vatRate changed
-    if (data.items || data.vatRate !== undefined) {
-      const vatRate = data.vatRate ?? parseFloat(existing.vatRate?.toString() ?? '20');
-      if (data.items) {
-        const subtotal = data.items.reduce((sum, it) => sum + it.totalPrice, 0);
-        const vatAmount = parseFloat((subtotal * vatRate / 100).toFixed(2));
-        updates.subtotal = subtotal.toFixed(2);
-        updates.vatRate = vatRate.toFixed(2);
-        updates.vatAmount = vatAmount.toFixed(2);
-        updates.totalAmount = (subtotal + vatAmount).toFixed(2);
+    // Recalculate totals if items changed (VAT not applied)
+    if (data.items) {
+      const subtotal = data.items.reduce((sum, it) => sum + it.totalPrice, 0);
+      updates.subtotal = subtotal.toFixed(2);
+      updates.vatRate = '0.00';
+      updates.vatAmount = '0.00';
+      updates.totalAmount = subtotal.toFixed(2);
 
-        // Replace items: delete old, insert new
-        await db.delete(invoiceItems).where(eq(invoiceItems.invoiceId, id));
-        await db.insert(invoiceItems).values(
-          data.items.map((it, i) => ({
-            invoiceId: id,
-            description: it.description,
-            quantity: it.quantity,
-            unitPrice: it.unitPrice.toFixed(2),
-            totalPrice: it.totalPrice.toFixed(2),
-            sortOrder: it.sortOrder ?? i,
-          }))
-        );
-      } else {
-        // Only vatRate changed, recalc from existing subtotal
-        const subtotal = parseFloat(existing.subtotal?.toString() ?? '0');
-        const vatAmount = parseFloat((subtotal * vatRate / 100).toFixed(2));
-        updates.vatRate = vatRate.toFixed(2);
-        updates.vatAmount = vatAmount.toFixed(2);
-        updates.totalAmount = (subtotal + vatAmount).toFixed(2);
-      }
+      // Replace items: delete old, insert new
+      await db.delete(invoiceItems).where(eq(invoiceItems.invoiceId, id));
+      await db.insert(invoiceItems).values(
+        data.items.map((it, i) => ({
+          invoiceId: id,
+          description: it.description,
+          quantity: it.quantity,
+          unitPrice: it.unitPrice.toFixed(2),
+          totalPrice: it.totalPrice.toFixed(2),
+          sortOrder: it.sortOrder ?? i,
+        }))
+      );
     }
 
     await db.update(invoices).set(updates).where(eq(invoices.id, id));

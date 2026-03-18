@@ -52,7 +52,7 @@ export function InvoiceFormClient({ initialData, invoiceId }: {
     customerAddress: initialData?.customerAddress ?? '',
     issueDate: initialData?.issueDate ?? new Date().toISOString().slice(0, 10),
     dueDate: initialData?.dueDate ?? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-    vatRate: initialData?.vatRate ?? '20.00',
+    vatRate: initialData?.vatRate ?? '0',
     notes: initialData?.notes ?? '',
     internalNotes: initialData?.internalNotes ?? '',
     bookingId: initialData?.bookingId ?? '',
@@ -202,10 +202,6 @@ export function InvoiceFormClient({ initialData, invoiceId }: {
               <Text {...labelProps} mb={1}>Due Date</Text>
               <Input {...inputProps} type="date" value={form.dueDate} onChange={(e) => updateForm('dueDate', e.target.value)} />
             </Box>
-            <Box>
-              <Text {...labelProps} mb={1}>VAT Rate (%)</Text>
-              <Input {...inputProps} type="number" step="0.01" value={form.vatRate} onChange={(e) => updateForm('vatRate', e.target.value)} />
-            </Box>
           </Grid>
           <Box mt={4}>
             <Text {...labelProps} mb={1}>Booking Reference (optional)</Text>
@@ -268,10 +264,6 @@ export function InvoiceFormClient({ initialData, invoiceId }: {
               <HStack gap={8}>
                 <Text color={c.muted} fontSize="sm">Subtotal</Text>
                 <Text color={c.text} fontSize="sm" fontWeight="600">£{subtotal.toFixed(2)}</Text>
-              </HStack>
-              <HStack gap={8}>
-                <Text color={c.muted} fontSize="sm">VAT ({vatRate}%)</Text>
-                <Text color={c.text} fontSize="sm" fontWeight="600">£{vatAmount.toFixed(2)}</Text>
               </HStack>
               <Box w="160px" h="2px" bg={c.accent} my={1} />
               <HStack gap={8}>

@@ -276,10 +276,6 @@ export function InvoiceDetailClient({ invoiceId }: { invoiceId: string }) {
               <Text color={c.muted} fontSize="sm">Subtotal</Text>
               <Text color={c.text} fontSize="sm" fontWeight="600" w="100px" textAlign="right">£{parseFloat(invoice.subtotal).toFixed(2)}</Text>
             </HStack>
-            <HStack gap={8}>
-              <Text color={c.muted} fontSize="sm">VAT ({parseFloat(invoice.vatRate).toFixed(0)}%)</Text>
-              <Text color={c.text} fontSize="sm" fontWeight="600" w="100px" textAlign="right">£{parseFloat(invoice.vatAmount).toFixed(2)}</Text>
-            </HStack>
             <Box w="160px" h="2px" bg={c.accent} my={1} />
             <HStack gap={8}>
               <Text color={c.text} fontSize="md" fontWeight="700">Total Due</Text>

@@ -182,7 +182,6 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
   }
 
   drawTotalRow('Subtotal', fmtPrice(data.subtotal));
-  drawTotalRow(`VAT (${data.vatRate}%)`, fmtPrice(data.vatAmount));
   page.drawLine({ start: { x: totalsX, y: y + 8 }, end: { x: valX, y: y + 8 }, thickness: 2, color: ORANGE });
   y -= 4;
   drawTotalRow('Total Due', fmtPrice(data.totalAmount), true);

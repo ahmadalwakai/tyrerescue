@@ -153,12 +153,12 @@ export async function POST(request: Request) {
 
     const data = parsed.data;
     const vatInfo = await getVatInfo();
-    const vatRate = data.vatRate ?? vatInfo.vatRate;
 
-    // Compute totals from items
+    // Compute totals from items (VAT not applied)
     const subtotal = data.items.reduce((sum, it) => sum + it.totalPrice, 0);
-    const vatAmount = parseFloat((subtotal * vatRate / 100).toFixed(2));
-    const totalAmount = parseFloat((subtotal + vatAmount).toFixed(2));
+    const vatRate = 0;
+    const vatAmount = 0;
+    const totalAmount = subtotal;
 
     const invoiceNumber = await generateInvoiceNumber();
 
