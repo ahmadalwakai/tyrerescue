@@ -84,7 +84,7 @@ export function TestimonialsClient({ testimonials }: { testimonials: Testimonial
 
       {showAdd && (
         <form onSubmit={handleAdd}>
-        <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.scaleIn('0.3s')}>
+        <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border}>
           <VStack align="stretch" gap={3}>
             <Flex direction={{ base: 'column', md: 'row' }} gap={3}>
               <Input {...inputProps} name="authorName" placeholder="Author name" required flex="1" />
