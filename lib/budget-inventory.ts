@@ -207,6 +207,9 @@ for (const [size, qty] of BUDGET_INVENTORY) {
 }
 const _sizeSet = new Set(_stockMap.keys());
 
+/** All budget sizeDisplay strings as stored in the inventory (for SQL IN clauses). */
+export const BUDGET_SIZES: string[] = BUDGET_INVENTORY.map(([size]) => size);
+
 /** True if the size exists in the budget inventory (regardless of current stock). */
 export function isBudgetTyre(sizeDisplay: string): boolean {
   return _sizeSet.has(normalizeTyreSize(sizeDisplay));

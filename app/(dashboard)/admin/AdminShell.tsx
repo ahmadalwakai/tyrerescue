@@ -15,6 +15,7 @@ const navItems = [
   { label: 'Messages', href: '/admin/messages', badgeKey: 'messages' as const },
   { label: 'Drivers', href: '/admin/drivers' },
   { label: 'Inventory', href: '/admin/inventory' },
+  { label: 'Current Stock', href: '/admin/stock' },
   { label: 'Pricing', href: '/admin/pricing' },
   { label: 'Availability', href: '/admin/availability' },
   { label: 'Testimonials', href: '/admin/testimonials' },
