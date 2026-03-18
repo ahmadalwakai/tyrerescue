@@ -152,7 +152,6 @@ export async function POST(request: Request) {
     }
 
     const data = parsed.data;
-    const vatInfo = await getVatInfo();
 
     // Compute totals from items (VAT not applied)
     const subtotal = data.items.reduce((sum, it) => sum + it.totalPrice, 0);
@@ -175,7 +174,7 @@ export async function POST(request: Request) {
       companyAddress: COMPANY.address,
       companyPhone: COMPANY.phone,
       companyEmail: COMPANY.email,
-      companyVatNumber: vatInfo.vatNumber,
+      companyVatNumber: null,
       issueDate: new Date(data.issueDate),
       dueDate: new Date(data.dueDate),
       subtotal: subtotal.toFixed(2),

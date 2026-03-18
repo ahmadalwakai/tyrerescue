@@ -138,7 +138,7 @@ export async function PATCH(request: Request, props: Props) {
       afterJson: updates,
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ invoice: { id } });
   } catch (error) {
     if (error instanceof Error && error.message.includes('Unauthorized'))
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

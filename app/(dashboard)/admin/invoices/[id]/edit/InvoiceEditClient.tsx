@@ -13,7 +13,6 @@ interface InvoiceData {
   customerAddress: string | null;
   issueDate: string | null;
   dueDate: string | null;
-  vatRate: string;
   notes: string | null;
   internalNotes: string | null;
   bookingId: string | null;
@@ -49,7 +48,6 @@ export function InvoiceEditWrapper({ invoiceId }: { invoiceId: string }) {
         customerAddress: data.customerAddress ?? '',
         issueDate: data.issueDate ? data.issueDate.slice(0, 10) : '',
         dueDate: data.dueDate ? data.dueDate.slice(0, 10) : '',
-        vatRate: data.vatRate,
         notes: data.notes ?? '',
         internalNotes: data.internalNotes ?? '',
         bookingId: data.bookingId ?? '',

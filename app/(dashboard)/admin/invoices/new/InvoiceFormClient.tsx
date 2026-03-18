@@ -34,7 +34,6 @@ export function InvoiceFormClient({ initialData, invoiceId }: {
     customerAddress: string;
     issueDate: string;
     dueDate: string;
-    vatRate: string;
     notes: string;
     internalNotes: string;
     bookingId: string;
@@ -52,7 +51,6 @@ export function InvoiceFormClient({ initialData, invoiceId }: {
     customerAddress: initialData?.customerAddress ?? '',
     issueDate: initialData?.issueDate ?? new Date().toISOString().slice(0, 10),
     dueDate: initialData?.dueDate ?? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-    vatRate: initialData?.vatRate ?? '0',
     notes: initialData?.notes ?? '',
     internalNotes: initialData?.internalNotes ?? '',
     bookingId: initialData?.bookingId ?? '',
@@ -210,8 +208,9 @@ export function InvoiceFormClient({ initialData, invoiceId }: {
             </Box>
           </Grid>
           <Box mt={4}>
-            <Text {...labelProps} mb={1}>Booking Reference (optional)</Text>
-            <Input {...inputProps} placeholder="Booking ID or reference" value={form.bookingId} onChange={(e) => updateForm('bookingId', e.target.value)} />
+            <Text {...labelProps} mb={1}>Linked Booking (optional)</Text>
+            <Input {...inputProps} placeholder="Booking UUID e.g. 3f2504e0-4f89-11d3-..." value={form.bookingId} onChange={(e) => updateForm('bookingId', e.target.value)} />
+            <Text fontSize="11px" color={c.muted} mt={1}>Leave blank for standalone invoices. Only accepts a booking UUID.</Text>
           </Box>
         </Box>
 
