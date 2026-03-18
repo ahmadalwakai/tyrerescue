@@ -140,11 +140,15 @@ describe('barcode scan API contract', () => {
       barcode: '5901234123457',
       found: true,
       matchType: 'barcode',
-      items: [{ id: 'uuid', brand: 'Budget', sizeDisplay: '205/55/R16', stockNew: 4 }],
+      item: { id: 'uuid', brand: 'Budget', size: '205/55/R16', season: 'All-Season', quantity: 4, price: 58 },
+      items: [{ id: 'uuid', brand: 'Budget', size: '205/55/R16', season: 'All-Season', quantity: 4, price: 58 }],
       message: 'Exact barcode match found',
     };
     expect(response.success).toBe(true);
     expect(response.found).toBe(true);
+    expect(response.item).toBeDefined();
+    expect(response.item.size).toBe('205/55/R16');
+    expect(response.item.season).toBe('All-Season');
     expect(response.items.length).toBeGreaterThan(0);
   });
 
@@ -167,13 +171,15 @@ describe('barcode scan API contract', () => {
       barcode: '2055516',
       found: true,
       matchType: 'size-fallback',
+      item: { id: 'a', brand: 'Budget', size: '205/55/R16', season: 'All-Season', quantity: 4, price: 58 },
       items: [
-        { id: 'a', brand: 'Budget', sizeDisplay: '205/55/R16', stockNew: 4 },
-        { id: 'b', brand: 'Budget', sizeDisplay: '205/55/R16C', stockNew: 2 },
+        { id: 'a', brand: 'Budget', size: '205/55/R16', season: 'All-Season', quantity: 4, price: 58 },
+        { id: 'b', brand: 'Budget', size: '205/55/R16C', season: 'All-Season', quantity: 2, price: 58 },
       ],
       message: '2 products matched by size (fallback).',
     };
     expect(response.items.length).toBeGreaterThan(1);
     expect(response.matchType).toBe('size-fallback');
+    expect(response.item).toBeDefined();
   });
 });

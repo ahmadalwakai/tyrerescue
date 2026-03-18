@@ -9,13 +9,13 @@ import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 /* ─── Types ────────────────────────────────────────────── */
 interface ScanResultItem {
   id: string;
-  brand: string;
-  pattern: string;
-  sizeDisplay: string;
-  season: string;
   barcode: string | null;
-  priceNew: number | null;
-  stockNew: number;
+  size: string;
+  brand: string;
+  season: string;
+  pattern: string | null;
+  quantity: number;
+  price: number | null;
   stockOrdered: number;
   isLocalStock: boolean;
   availableNew: boolean;
@@ -26,6 +26,7 @@ interface ScanResponse {
   barcode: string;
   found: boolean;
   matchType: 'barcode' | 'size-fallback' | null;
+  item?: ScanResultItem;
   items: ScanResultItem[];
   message: string;
   error?: string;
@@ -388,7 +389,9 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
                     <Flex justify="space-between" align="start" wrap="wrap" gap={2}>
                       <Box>
                         <Text fontSize="14px" fontWeight="700" color={c.text}>{item.brand}</Text>
-                        <Text fontSize="12px" color={c.muted}>{item.pattern}</Text>
+                        {item.pattern && (
+                          <Text fontSize="12px" color={c.muted}>{item.pattern}</Text>
+                        )}
                       </Box>
                       <Box as="span" px={2} py={1} borderRadius="4px" fontSize="11px" fontWeight="600"
                         bg={item.availableNew ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}
@@ -401,14 +404,14 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
                       display="grid"
                       gridTemplateColumns="repeat(auto-fill, minmax(120px, 1fr))"
                       gap="8px">
-                      <DetailCell label="Size" value={item.sizeDisplay} />
+                      <DetailCell label="Size" value={item.size} />
                       <DetailCell label="Season" value={item.season} />
                       <DetailCell label="Remaining Stock"
-                        value={String(item.stockNew)}
-                        highlight={item.stockNew > 0 ? '#22C55E' : '#EF4444'} />
+                        value={String(item.quantity)}
+                        highlight={item.quantity > 0 ? '#22C55E' : '#EF4444'} />
                       <DetailCell label="Ordered" value={String(item.stockOrdered)} />
-                      {item.priceNew != null && (
-                        <DetailCell label="Price" value={`£${item.priceNew.toFixed(2)}`} highlight={c.accent} />
+                      {item.price != null && (
+                        <DetailCell label="Price" value={`£${item.price.toFixed(2)}`} highlight={c.accent} />
                       )}
                       <DetailCell label="Local Stock" value={item.isLocalStock ? 'Yes' : 'No'} />
                       {item.barcode && (

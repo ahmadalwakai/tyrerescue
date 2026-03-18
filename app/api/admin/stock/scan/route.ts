@@ -59,12 +59,14 @@ export async function POST(request: Request) {
       .where(eq(tyreProducts.barcode, normalized));
 
     if (exactMatches.length > 0) {
+      const items = exactMatches.map(formatItem);
       return NextResponse.json({
         success: true,
         barcode: normalized,
         found: true,
         matchType: 'barcode',
-        items: exactMatches.map(formatItem),
+        item: items[0],
+        items,
         message:
           exactMatches.length === 1
             ? 'Exact barcode match found'
@@ -87,12 +89,14 @@ export async function POST(request: Request) {
         );
 
       if (sizeMatches.length > 0) {
+        const items = sizeMatches.map(formatItem);
         return NextResponse.json({
           success: true,
           barcode: normalized,
           found: true,
           matchType: 'size-fallback',
-          items: sizeMatches.map(formatItem),
+          item: items[0],
+          items,
           message:
             sizeMatches.length === 1
               ? 'No barcode field set — matched by tyre size (fallback). Consider assigning this barcode to the product.'
@@ -124,19 +128,29 @@ export async function POST(request: Request) {
 
 /* ── helpers ─────────────────────────────────────────────── */
 
+function formatSeasonLabel(season: string): string {
+  switch (season) {
+    case 'summer': return 'Summer';
+    case 'winter': return 'Winter';
+    default: return 'All-Season';
+  }
+}
+
 function formatItem(r: typeof tyreProducts.$inferSelect) {
+  const priceNum = r.priceNew ? parseFloat(r.priceNew) : null;
   return {
     id: r.id,
+    barcode: r.barcode ?? null,
+    size: r.sizeDisplay,
     brand: r.brand,
-    pattern: r.pattern,
-    sizeDisplay: r.sizeDisplay,
+    season: formatSeasonLabel(r.season),
+    pattern: r.pattern || null,
+    quantity: r.stockNew ?? 0,
+    price: priceNum,
+    // extended details
     width: r.width,
     aspect: r.aspect,
     rim: r.rim,
-    season: r.season,
-    barcode: r.barcode,
-    priceNew: r.priceNew ? parseFloat(r.priceNew) : null,
-    stockNew: r.stockNew ?? 0,
     stockOrdered: r.stockOrdered ?? 0,
     isLocalStock: r.isLocalStock ?? false,
     availableNew: r.availableNew ?? true,
