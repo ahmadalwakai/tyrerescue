@@ -6,6 +6,7 @@ import {
 } from '@chakra-ui/react';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { BarcodeScanModal } from '@/components/admin/BarcodeScanModal';
 
 /* ─── Constants ─────────────────────────────────────────── */
 const WIDTHS = [155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285];
@@ -96,6 +97,9 @@ export function StockClient() {
 
   /* Remove confirm state */
   const [removeTarget, setRemoveTarget] = useState<{ id: string; label: string } | null>(null);
+
+  /* Barcode scan state */
+  const [showScan, setShowScan] = useState(false);
 
   /* ─── Data fetch ────────────────────────────────────────── */
   const fetchItems = useCallback(async (p: number) => {
@@ -358,6 +362,15 @@ export function StockClient() {
             disabled={showAddForm}
           >
             + Add Size
+          </Button>
+          <Button
+            bg="transparent" color={c.text} h="38px" px={4}
+            borderWidth="1px" borderColor={c.border}
+            fontFamily="var(--font-display)" fontSize="13px"
+            _hover={{ bg: c.surface }}
+            onClick={() => setShowScan(true)}
+          >
+            Scan Barcode
           </Button>
           <Button
             bg="transparent" color={c.text} h="38px" px={4}
@@ -858,6 +871,8 @@ export function StockClient() {
           </Button>
         </Flex>
       )}
+      {/* ─── Barcode Scan Modal ──────────────────────── */}
+      <BarcodeScanModal open={showScan} onClose={() => setShowScan(false)} />
     </VStack>
   );
 }

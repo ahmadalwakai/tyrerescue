@@ -96,6 +96,7 @@ export const tyreProducts = pgTable('tyre_products', {
   fuelEfficiency: varchar('fuel_efficiency', { length: 2 }),
   noiseDb: integer('noise_db'),
   runFlat: boolean('run_flat').default(false),
+  barcode: varchar('barcode', { length: 50 }),
   priceNew: decimal('price_new', { precision: 10, scale: 2 }),
   stockNew: integer('stock_new').default(0),
   stockOrdered: integer('stock_ordered').default(0),
