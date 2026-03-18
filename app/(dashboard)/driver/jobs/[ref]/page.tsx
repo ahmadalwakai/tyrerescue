@@ -133,6 +133,7 @@ export default async function DriverJobDetailPage({ params }: Props) {
         booking={bookingData}
         tyres={tyresData}
         statusHistory={historyData}
+        currentUserId={session.user.id}
       />
     </Box>
   );

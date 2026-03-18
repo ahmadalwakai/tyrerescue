@@ -439,6 +439,105 @@ export const adminChatSettings = pgTable('admin_chat_settings', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// ─── Booking Chat System ────────────────────────────────────────────────────
+
+// Booking conversations (one per booking per channel)
+export const bookingConversations = pgTable('booking_conversations', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: uuid('booking_id').references(() => bookings.id, { onDelete: 'cascade' }).notNull(),
+  channel: text('channel').notNull(), // 'customer_admin' | 'customer_driver'
+  status: text('status').notNull().default('open'), // open | closed | archived
+  locked: boolean('locked').default(false),
+  muted: boolean('muted').default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Conversation participants
+export const conversationParticipants = pgTable('conversation_participants', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: uuid('conversation_id').references(() => bookingConversations.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  role: text('role').notNull(), // 'customer' | 'admin' | 'driver'
+  joinedAt: timestamp('joined_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Booking messages
+export const bookingMessages = pgTable('booking_messages', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: uuid('conversation_id').references(() => bookingConversations.id, { onDelete: 'cascade' }).notNull(),
+  senderId: uuid('sender_id').references(() => users.id).notNull(),
+  senderRole: text('sender_role').notNull(), // 'customer' | 'admin' | 'driver'
+  body: text('body'),
+  messageType: text('message_type').notNull().default('text'), // 'text' | 'image' | 'admin_note'
+  deliveryStatus: text('delivery_status').notNull().default('sent'), // 'sending' | 'sent' | 'delivered' | 'failed'
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Message attachments
+export const messageAttachments = pgTable('message_attachments', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  messageId: uuid('message_id').references(() => bookingMessages.id, { onDelete: 'cascade' }).notNull(),
+  url: text('url').notNull(),
+  mimeType: varchar('mime_type', { length: 100 }).notNull(),
+  fileSize: integer('file_size').notNull(),
+  fileName: varchar('file_name', { length: 255 }),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+});
+
+// Per-user read state per conversation
+export const messageReadState = pgTable('message_read_state', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: uuid('conversation_id').references(() => bookingConversations.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  lastReadMessageId: uuid('last_read_message_id').references(() => bookingMessages.id),
+  unreadCount: integer('unread_count').default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// ─── Invoices ───────────────────────────────────────────────────────
+export const invoices = pgTable('invoices', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  invoiceNumber: varchar('invoice_number', { length: 30 }).notNull().unique(),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  userId: uuid('user_id').references(() => users.id),
+  status: text('status').notNull().default('draft'), // draft | issued | sent | paid | overdue | archived | cancelled
+  customerName: varchar('customer_name', { length: 255 }).notNull(),
+  customerEmail: varchar('customer_email', { length: 255 }).notNull(),
+  customerPhone: varchar('customer_phone', { length: 20 }),
+  customerAddress: text('customer_address'),
+  companyName: varchar('company_name', { length: 255 }).notNull(),
+  companyAddress: text('company_address').notNull(),
+  companyPhone: varchar('company_phone', { length: 30 }).notNull(),
+  companyEmail: varchar('company_email', { length: 255 }).notNull(),
+  companyVatNumber: varchar('company_vat_number', { length: 30 }),
+  issueDate: timestamp('issue_date', { withTimezone: true }).notNull(),
+  dueDate: timestamp('due_date', { withTimezone: true }).notNull(),
+  subtotal: decimal('subtotal', { precision: 10, scale: 2 }).notNull(),
+  vatRate: decimal('vat_rate', { precision: 5, scale: 2 }).notNull().default('20.00'),
+  vatAmount: decimal('vat_amount', { precision: 10, scale: 2 }).notNull(),
+  totalAmount: decimal('total_amount', { precision: 10, scale: 2 }).notNull(),
+  notes: text('notes'),
+  internalNotes: text('internal_notes'),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  createdBy: uuid('created_by').references(() => users.id),
+  updatedBy: uuid('updated_by').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+export const invoiceItems = pgTable('invoice_items', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  invoiceId: uuid('invoice_id').references(() => invoices.id, { onDelete: 'cascade' }).notNull(),
+  description: text('description').notNull(),
+  quantity: integer('quantity').notNull().default(1),
+  unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
+  totalPrice: decimal('total_price', { precision: 10, scale: 2 }).notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+});
+
 // Type exports for use throughout the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -452,6 +551,10 @@ export type Booking = typeof bookings.$inferSelect;
 export type NewBooking = typeof bookings.$inferInsert;
 export type BookingTyre = typeof bookingTyres.$inferSelect;
 export type NewBookingTyre = typeof bookingTyres.$inferInsert;
+export type Invoice = typeof invoices.$inferSelect;
+export type NewInvoice = typeof invoices.$inferInsert;
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+export type NewInvoiceItem = typeof invoiceItems.$inferInsert;
 export type BookingStatusHistory = typeof bookingStatusHistory.$inferSelect;
 export type InventoryReservation = typeof inventoryReservations.$inferSelect;
 export type InventoryMovement = typeof inventoryMovements.$inferSelect;
@@ -482,3 +585,10 @@ export type CookieSetting = typeof cookieSettings.$inferSelect;
 export type NewCookieSetting = typeof cookieSettings.$inferInsert;
 export type AdminChatSetting = typeof adminChatSettings.$inferSelect;
 export type NewAdminChatSetting = typeof adminChatSettings.$inferInsert;
+export type BookingConversation = typeof bookingConversations.$inferSelect;
+export type NewBookingConversation = typeof bookingConversations.$inferInsert;
+export type ConversationParticipant = typeof conversationParticipants.$inferSelect;
+export type BookingMessage = typeof bookingMessages.$inferSelect;
+export type NewBookingMessage = typeof bookingMessages.$inferInsert;
+export type MessageAttachment = typeof messageAttachments.$inferSelect;
+export type MessageReadStateRow = typeof messageReadState.$inferSelect;

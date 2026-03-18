@@ -16,6 +16,7 @@ import {
 } from '@chakra-ui/react';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { ChatWidget } from '@/components/chat/ChatWidget';
 
 interface Booking {
   id: string;
@@ -70,6 +71,7 @@ interface Props {
   booking: Booking;
   tyres: Tyre[];
   statusHistory: StatusHistoryItem[];
+  currentUserId: string;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -111,7 +113,7 @@ const STATUS_BUTTONS: Record<string, { label: string; nextStatus: string; colorP
   },
 };
 
-export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
+export function JobDetailClient({ booking, tyres, statusHistory, currentUserId }: Props) {
   const router = useRouter();
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState('');
@@ -222,6 +224,7 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
   }
 
   return (
+    <>
     <Grid templateColumns={{ base: '1fr', lg: '2fr 1fr' }} gap={6}>
       {/* Left column - Main info */}
       <GridItem>
@@ -623,5 +626,18 @@ export function JobDetailClient({ booking, tyres, statusHistory }: Props) {
         </VStack>
       </GridItem>
     </Grid>
+
+    {/* ═══ Chat with Customer ═══ */}
+    <Box mt={6}>
+      <ChatWidget
+        bookingId={booking.id}
+        bookingRef={booking.refNumber}
+        channel="customer_driver"
+        currentUserId={currentUserId}
+        currentUserRole="driver"
+        defaultCollapsed
+      />
+    </Box>
+    </>
   );
 }

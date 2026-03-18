@@ -21,6 +21,7 @@ import {
 } from '@chakra-ui/react';
 import { colorTokens as c, inputProps, textareaProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { ChatWidget } from '@/components/chat/ChatWidget';
 
 interface RankedDriver {
   driverId: string;
@@ -107,6 +108,8 @@ interface Props {
   statusHistory: StatusHistoryItem[];
   assignedDriver: Driver | null;
   availableDrivers: Driver[];
+  currentUserId: string;
+  currentUserRole: 'admin' | 'driver' | 'customer';
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -173,6 +176,8 @@ export function BookingDetailClient({
   statusHistory,
   assignedDriver,
   availableDrivers,
+  currentUserId,
+  currentUserRole,
 }: Props) {
   const router = useRouter();
 
@@ -479,6 +484,7 @@ export function BookingDetailClient({
   }
 
   return (
+    <>
     <Grid templateColumns={{ base: '1fr', lg: '2fr 1fr' }} gap={6}>
       {/* ═══ LEFT: Info & Edit ═══ */}
       <GridItem>
@@ -1138,5 +1144,19 @@ export function BookingDetailClient({
         </VStack>
       </GridItem>
     </Grid>
+
+    {/* ═══ Booking Chat ═══ */}
+    <Box mt={6}>
+      <ChatWidget
+        bookingId={booking.id}
+        bookingRef={booking.refNumber}
+        channel="customer_admin"
+        currentUserId={currentUserId}
+        currentUserRole={currentUserRole}
+        showAdminControls
+        defaultCollapsed
+      />
+    </Box>
+    </>
   );
 }

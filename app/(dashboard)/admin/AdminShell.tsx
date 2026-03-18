@@ -13,6 +13,8 @@ const navItems = [
   { label: 'Bookings', href: '/admin/bookings' },
   { label: 'Callbacks', href: '/admin/callbacks', badgeKey: 'callbacks' as const },
   { label: 'Messages', href: '/admin/messages', badgeKey: 'messages' as const },
+  { label: 'Chat', href: '/admin/chat', badgeKey: 'chat' as const },
+  { label: 'Invoices', href: '/admin/invoices' },
   { label: 'Drivers', href: '/admin/drivers' },
   { label: 'Inventory', href: '/admin/inventory' },
   { label: 'Current Stock', href: '/admin/stock' },
@@ -34,13 +36,14 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [badgeCounts, setBadgeCounts] = useState<{ callbacks: number; messages: number }>({ callbacks: 0, messages: 0 });
+  const [badgeCounts, setBadgeCounts] = useState<{ callbacks: number; messages: number; chat: number }>({ callbacks: 0, messages: 0, chat: 0 });
 
   const fetchCounts = useCallback(async () => {
     try {
-      const [cbRes, msgRes] = await Promise.all([
+      const [cbRes, msgRes, chatRes] = await Promise.all([
         fetch('/api/admin/callbacks/count'),
         fetch('/api/admin/messages/count'),
+        fetch('/api/chat/unread'),
       ]);
       if (cbRes.ok) {
         const cbData = await cbRes.json();
@@ -49,6 +52,10 @@ export function AdminShell({
       if (msgRes.ok) {
         const msgData = await msgRes.json();
         setBadgeCounts(prev => ({ ...prev, messages: msgData.count ?? 0 }));
+      }
+      if (chatRes.ok) {
+        const chatData = await chatRes.json();
+        setBadgeCounts(prev => ({ ...prev, chat: chatData.unread ?? 0 }));
       }
     } catch { /* ignore */ }
   }, []);

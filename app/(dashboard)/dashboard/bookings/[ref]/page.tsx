@@ -6,6 +6,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { Box, Heading, Text, VStack, HStack, SimpleGrid, Flex } from '@chakra-ui/react';
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { CustomerChatSection } from './CustomerChatSection';
 
 export default async function CustomerBookingDetailPage(
   props: { params: Promise<{ ref: string }> }
@@ -201,6 +202,14 @@ export default async function CustomerBookingDetailPage(
           </NextLink>
         </Box>
       </Flex>
+
+      {/* Chat */}
+      <CustomerChatSection
+        bookingId={booking.id}
+        bookingRef={booking.refNumber}
+        currentUserId={session.user.id}
+        hasDriver={!!booking.driverId}
+      />
     </VStack>
   );
 }

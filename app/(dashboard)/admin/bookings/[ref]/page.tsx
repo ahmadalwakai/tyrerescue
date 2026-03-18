@@ -3,6 +3,7 @@ import { db, bookings, bookingTyres, bookingStatusHistory, drivers, users, tyreP
 import { eq, desc } from 'drizzle-orm';
 import { Box, Heading, VStack, Grid, GridItem, Text, Flex } from '@chakra-ui/react';
 import { BookingDetailClient } from './BookingDetailClient';
+import { auth } from '@/lib/auth';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -155,6 +156,8 @@ export default async function AdminBookingDetailPage({ params }: Props) {
     name: d.name,
   }));
 
+  const session = await auth();
+
   return (
     <Box>
       <Heading size="lg" mb={6}>
@@ -166,6 +169,8 @@ export default async function AdminBookingDetailPage({ params }: Props) {
         statusHistory={historyData}
         assignedDriver={assignedDriver}
         availableDrivers={driversData}
+        currentUserId={session?.user?.id ?? ''}
+        currentUserRole={(session?.user?.role as 'admin' | 'driver' | 'customer') ?? 'admin'}
       />
     </Box>
   );
