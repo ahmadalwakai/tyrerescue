@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box, Heading, Text, VStack, HStack, Button, Input, Grid,
-  Flex, Spinner,
+  Flex, Spinner, NativeSelect,
 } from '@chakra-ui/react';
-import { colorTokens as c, inputProps } from '@/lib/design-tokens';
+import { colorTokens as c, inputProps, selectProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
 const WIDTHS = [155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285];
@@ -753,21 +753,22 @@ function CatalogueCard({ item, index, onRefresh }: { item: CatalogueItem; index:
       <Flex gap={2} mt={2}>
         <Box flex="1">
           <Text fontSize="11px" color={c.muted} mb={1}>Season</Text>
-          <select
-            value={season}
-            onChange={(e) => {
-              setSeason(e.target.value);
-              saveField('season', e.target.value);
-            }}
-            style={{
-              width: '100%', padding: '4px 8px', fontSize: 14,
-              background: c.surface, color: c.text, border: `1px solid ${c.border}`,
-              borderRadius: 6, height: 32,
-            }}>
-            <option value="summer">Summer</option>
-            <option value="winter">Winter</option>
-            <option value="allseason">All Season</option>
-          </select>
+          <NativeSelect.Root size="sm">
+            <NativeSelect.Field
+              {...selectProps}
+              value={season}
+              height="32px"
+              fontSize="14px"
+              onChange={(e) => {
+                setSeason(e.target.value);
+                saveField('season', e.target.value);
+              }}
+            >
+              <option value="summer">Summer</option>
+              <option value="winter">Winter</option>
+              <option value="allseason">All Season</option>
+            </NativeSelect.Field>
+          </NativeSelect.Root>
         </Box>
         <Box flex="1">
           <Text fontSize="11px" color={c.muted} mb={1}>Price (£)</Text>
