@@ -72,17 +72,13 @@ export function FAQClient({ faqs }: { faqs: FAQ[] }) {
 
       {showAdd && (
         <form onSubmit={handleAdd}>
-        <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.scaleIn('0.3s')}>
+        <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border}>
           <VStack align="stretch" gap={3}>
-            <VStack gap={2} display={{ base: 'flex', md: 'none' }} align="stretch">
+            <Flex direction={{ base: 'column', md: 'row' }} gap={3}>
               <Input {...inputProps} name="question" placeholder="Question" required />
-              <Input {...inputProps} name="displayOrder" type="number" placeholder="Order" />
-            </VStack>
-            <HStack gap={3} display={{ base: 'none', md: 'flex' }}>
-              <Input {...inputProps} name="question" placeholder="Question" required />
-              <Input {...inputProps} name="displayOrder" type="number" placeholder="Order" maxW="100px" />
-            </HStack>
-            <Textarea {...textareaProps} {...textareaProps} name="answer" placeholder="Answer" required rows={3} />
+              <Input {...inputProps} name="displayOrder" type="number" placeholder="Order" maxW={{ md: '100px' }} />
+            </Flex>
+            <Textarea {...textareaProps} name="answer" placeholder="Answer" required rows={3} />
             <Button type="submit" bg={c.accent} color="white" _hover={{ bg: c.accentHover }} alignSelf={{ base: 'stretch', md: 'flex-start' }} minH="48px">Save</Button>
           </VStack>
         </Box>
