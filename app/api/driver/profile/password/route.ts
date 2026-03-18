@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import { requireDriver, hashPassword, verifyPassword } from '@/lib/auth';
+import { requireDriverMobile, hashPassword, verifyPassword } from '@/lib/auth';
 import { db, users } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 
 export async function POST(request: Request) {
   try {
-    const session = await requireDriver();
+    const { user } = await requireDriverMobile(request);
+    const session = { user };
     const { currentPassword, newPassword } = await request.json();
 
     // Validate inputs
@@ -31,20 +32,20 @@ export async function POST(request: Request) {
     }
 
     // Get current user's password hash
-    const [user] = await db
+    const [dbUser] = await db
       .select({ passwordHash: users.passwordHash })
       .from(users)
       .where(eq(users.id, session.user.id))
       .limit(1);
 
-    if (!user) {
+    if (!dbUser) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    if (!user.passwordHash) {
+    if (!dbUser.passwordHash) {
       return NextResponse.json(
         { error: 'Account uses Google sign-in. Password cannot be changed here.' },
         { status: 400 }
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
     }
 
     // Verify current password
-    const isValidPassword = await verifyPassword(currentPassword, user.passwordHash);
+    const isValidPassword = await verifyPassword(currentPassword, dbUser.passwordHash);
     if (!isValidPassword) {
       return NextResponse.json(
         { error: 'Current password is incorrect' },

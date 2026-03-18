@@ -2,7 +2,8 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
-import { db, users, accounts } from '@/lib/db';
+import { SignJWT, jwtVerify } from 'jose';
+import { db, users, accounts, drivers } from '@/lib/db';
 import { eq, and } from 'drizzle-orm';
 
 // Extend NextAuth types
@@ -231,4 +232,93 @@ export async function verifyPassword(
   hashedPassword: string
 ): Promise<boolean> {
   return bcrypt.compare(password, hashedPassword);
+}
+
+// ── Mobile JWT helpers ──
+
+const MOBILE_JWT_SECRET = new TextEncoder().encode(
+  process.env.NEXTAUTH_SECRET ?? 'fallback-secret',
+);
+
+export async function signMobileToken(payload: {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  driverId: string;
+}): Promise<string> {
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .setSubject(payload.id)
+    .sign(MOBILE_JWT_SECRET);
+}
+
+export async function verifyMobileToken(token: string) {
+  const { payload } = await jwtVerify(token, MOBILE_JWT_SECRET);
+  return payload as { id: string; email: string; name: string; role: string; driverId: string; sub: string };
+}
+
+/** General auth helper that works for both web sessions and mobile Bearer tokens (any role) */
+export async function authMobile(request?: Request) {
+  // Try Bearer token first (mobile)
+  if (request) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const payload = await verifyMobileToken(token);
+        return {
+          user: {
+            id: payload.id,
+            email: payload.email,
+            name: payload.name,
+            role: payload.role as 'customer' | 'driver' | 'admin',
+          },
+        };
+      } catch {
+        return null;
+      }
+    }
+  }
+  // Fall back to web session
+  const session = await auth();
+  return session;
+}
+
+/** Auth helper that works for both web sessions and mobile Bearer tokens (driver only) */
+export async function requireDriverMobile(request?: Request) {
+  // Try Bearer token first (mobile)
+  if (request) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const payload = await verifyMobileToken(token);
+        if (payload.role !== 'driver') throw new Error('Forbidden');
+        return {
+          user: {
+            id: payload.id,
+            email: payload.email,
+            name: payload.name,
+            role: 'driver' as const,
+          },
+          driverId: payload.driverId,
+        };
+      } catch {
+        throw new Error('Unauthorized');
+      }
+    }
+  }
+
+  // Fall back to web session
+  const session = await requireDriver();
+  const [driver] = await db
+    .select({ id: drivers.id })
+    .from(drivers)
+    .where(eq(drivers.userId, session.user.id))
+    .limit(1);
+  if (!driver) throw new Error('Driver record not found');
+  return { user: session.user, driverId: driver.id };
 }

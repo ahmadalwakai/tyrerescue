@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireDriver } from '@/lib/auth';
+import { requireDriverMobile } from '@/lib/auth';
 import { db, drivers, bookings, bookingStatusHistory } from '@/lib/db';
 import { eq, and } from 'drizzle-orm';
 import { BookingStatus } from '@/lib/state-machine';
@@ -20,16 +20,11 @@ const DRIVER_TRANSITIONS: Record<string, string> = {
 
 export async function PATCH(request: Request, { params }: Props) {
   try {
-    const session = await requireDriver();
+    const { user, driverId } = await requireDriverMobile(request);
     const { ref } = await params;
     const { status: newStatus } = await request.json();
 
-    // Get driver record
-    const [driver] = await db
-      .select({ id: drivers.id })
-      .from(drivers)
-      .where(eq(drivers.userId, session.user.id))
-      .limit(1);
+    const driver = { id: driverId };
 
     if (!driver) {
       return NextResponse.json(
@@ -101,7 +96,7 @@ export async function PATCH(request: Request, { params }: Props) {
       bookingId: booking.id,
       fromStatus: currentStatus,
       toStatus: newStatus,
-      actorUserId: session.user.id,
+      actorUserId: user.id,
       actorRole: 'driver',
     });
 

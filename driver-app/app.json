@@ -1,0 +1,65 @@
+{
+  "expo": {
+    "name": "Tyre Rescue Driver",
+    "slug": "tyre-rescue-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "tyrerescuedriver",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#09090B"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "uk.tyrerescue.driver",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Tyre Rescue uses your location to share your position with customers while you are on an active job, so they can track your arrival.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Tyre Rescue uses your location to share your position with customers while you are on an active job.",
+        "UIBackgroundModes": []
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#09090B"
+      },
+      "package": "uk.tyrerescue.driver",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Tyre Rescue uses your location to share your position with customers while you are on an active job.",
+          "locationWhenInUsePermission": "Tyre Rescue uses your location to share your position with customers while you are on an active job, so they can track your arrival.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
+        }
+      ],
+      "expo-font",
+      "expo-asset"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    },
+    "owner": "tyrerescue"
+  }
+}

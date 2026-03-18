@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requireDriver } from '@/lib/auth';
-import { db, drivers, bookings, bookingStatusHistory } from '@/lib/db';
+import { requireDriverMobile } from '@/lib/auth';
+import { db, bookings, bookingStatusHistory } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 
 export async function PATCH(request: Request, { params }: Props) {
   try {
-    const session = await requireDriver();
+    const { user, driverId } = await requireDriverMobile(request);
     const { ref } = await params;
     const { action } = await request.json();
 
@@ -17,12 +17,7 @@ export async function PATCH(request: Request, { params }: Props) {
       return NextResponse.json({ error: 'Action must be accept or reject' }, { status: 400 });
     }
 
-    // Get driver record
-    const [driver] = await db
-      .select({ id: drivers.id })
-      .from(drivers)
-      .where(eq(drivers.userId, session.user.id))
-      .limit(1);
+    const driver = { id: driverId };
 
     if (!driver) {
       return NextResponse.json({ error: 'Driver record not found' }, { status: 404 });
@@ -58,7 +53,7 @@ export async function PATCH(request: Request, { params }: Props) {
         bookingId: booking.id,
         fromStatus: 'driver_assigned',
         toStatus: 'driver_assigned',
-        actorUserId: session.user.id,
+        actorUserId: user.id,
         actorRole: 'driver',
         note: 'Driver accepted the job',
       });
@@ -84,7 +79,7 @@ export async function PATCH(request: Request, { params }: Props) {
       bookingId: booking.id,
       fromStatus: 'driver_assigned',
       toStatus: 'paid',
-      actorUserId: session.user.id,
+      actorUserId: user.id,
       actorRole: 'driver',
       note: 'Driver rejected the job',
     });

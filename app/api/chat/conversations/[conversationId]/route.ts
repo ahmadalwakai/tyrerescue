@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { authMobile } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { bookingConversations, messageAttachments, bookingMessages } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -24,7 +24,7 @@ type RouteContext = { params: Promise<{ conversationId: string }> };
 
 /** GET /api/chat/conversations/[conversationId] — conversation detail */
 export async function GET(req: NextRequest, ctx: RouteContext) {
-  const session = await auth();
+  const session = await authMobile(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { conversationId } = await ctx.params;
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
 
 /** PATCH /api/chat/conversations/[conversationId] — admin controls */
 export async function PATCH(req: NextRequest, ctx: RouteContext) {
-  const session = await auth();
+  const session = await authMobile(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   if (session.user.role !== 'admin') {

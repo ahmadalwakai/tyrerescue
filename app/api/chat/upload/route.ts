@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { authMobile } from '@/lib/auth';
 import { put } from '@vercel/blob';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -8,7 +8,7 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 /** POST /api/chat/upload — upload a chat image attachment to Vercel Blob */
 export async function POST(request: NextRequest) {
-  const session = await auth();
+  const session = await authMobile(request);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

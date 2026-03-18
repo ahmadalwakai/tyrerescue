@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { authMobile } from '@/lib/auth';
 import { z } from 'zod';
 import { canSendMessage, ensureParticipant } from '@/lib/chat/permissions';
 import { getMessages, sendMessage } from '@/lib/chat/queries';
@@ -20,7 +20,7 @@ type RouteContext = { params: Promise<{ conversationId: string }> };
 
 /** GET /api/chat/conversations/[conversationId]/messages — paginated messages */
 export async function GET(req: NextRequest, ctx: RouteContext) {
-  const session = await auth();
+  const session = await authMobile(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { conversationId } = await ctx.params;
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
 
 /** POST /api/chat/conversations/[conversationId]/messages — send a message */
 export async function POST(req: NextRequest, ctx: RouteContext) {
-  const session = await auth();
+  const session = await authMobile(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { conversationId } = await ctx.params;

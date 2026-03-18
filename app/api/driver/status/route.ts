@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { requireDriver } from '@/lib/auth';
+import { requireDriverMobile } from '@/lib/auth';
 import { db, drivers, bookings } from '@/lib/db';
 import { eq, and, inArray } from 'drizzle-orm';
 
 export async function POST(request: Request) {
   try {
-    const session = await requireDriver();
+    const { driverId } = await requireDriverMobile(request);
     const { is_online } = await request.json();
 
     if (typeof is_online !== 'boolean') {
@@ -15,19 +15,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get driver record
-    const [driver] = await db
-      .select({ id: drivers.id })
-      .from(drivers)
-      .where(eq(drivers.userId, session.user.id))
-      .limit(1);
-
-    if (!driver) {
-      return NextResponse.json(
-        { error: 'Driver record not found' },
-        { status: 404 }
-      );
-    }
+    const driver = { id: driverId };
 
     // Prevent going offline while having active jobs
     if (!is_online) {
@@ -80,9 +68,9 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const session = await requireDriver();
+    const { driverId } = await requireDriverMobile(request);
 
     // Get driver record
     const [driver] = await db
@@ -91,7 +79,7 @@ export async function GET() {
         status: drivers.status,
       })
       .from(drivers)
-      .where(eq(drivers.userId, session.user.id))
+      .where(eq(drivers.id, driverId))
       .limit(1);
 
     if (!driver) {

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { requireDriver } from '@/lib/auth';
+import { requireDriverMobile } from '@/lib/auth';
 import { db, drivers, driverLocationHistory, bookings } from '@/lib/db';
 import { eq, and, inArray } from 'drizzle-orm';
 
 export async function POST(request: Request) {
   try {
-    const session = await requireDriver();
+    const { driverId } = await requireDriverMobile(request);
     const { lat, lng } = await request.json();
 
     // Validate coordinates
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const [driver] = await db
       .select({ id: drivers.id, isOnline: drivers.isOnline })
       .from(drivers)
-      .where(eq(drivers.userId, session.user.id))
+      .where(eq(drivers.id, driverId))
       .limit(1);
 
     if (!driver) {

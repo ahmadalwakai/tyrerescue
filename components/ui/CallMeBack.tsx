@@ -1,12 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Box, Text, Input, Button, VStack, Flex } from '@chakra-ui/react';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 
 type FormState = 'idle' | 'open' | 'submitting' | 'success' | 'error';
 
+const HIDDEN_PREFIXES = ['/admin', '/dashboard', '/driver'];
+
 export function CallMeBack() {
+  const pathname = usePathname();
+  if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
   const [state, setState] = useState<FormState>('idle');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
