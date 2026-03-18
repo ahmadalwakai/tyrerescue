@@ -119,12 +119,18 @@ export function InvoiceFormClient({ initialData, invoiceId }: {
     try {
       const payload = {
         ...form,
+        vatRate: parseFloat(form.vatRate) || 0,
         bookingId: form.bookingId || undefined,
-        items: items.map((it) => ({
-          description: it.description,
-          quantity: parseInt(it.quantity) || 1,
-          unitPrice: it.unitPrice,
-        })),
+        items: items.map((it) => {
+          const qty = parseInt(it.quantity) || 1;
+          const unit = parseFloat(it.unitPrice) || 0;
+          return {
+            description: it.description,
+            quantity: qty,
+            unitPrice: unit,
+            totalPrice: parseFloat((qty * unit).toFixed(2)),
+          };
+        }),
       };
 
       const url = isEdit ? `/api/admin/invoices/${invoiceId}` : '/api/admin/invoices';
