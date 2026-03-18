@@ -108,19 +108,18 @@ export function InvoiceFormClient({ initialData, invoiceId }: {
   }
 
   const subtotal = computeSubtotal();
-  const vatRate = parseFloat(form.vatRate) || 0;
-  const vatAmount = subtotal * (vatRate / 100);
-  const totalAmount = subtotal + vatAmount;
+  const totalAmount = subtotal;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       const payload = {
         ...form,
-        vatRate: parseFloat(form.vatRate) || 0,
-        bookingId: form.bookingId || undefined,
+        vatRate: 0,
+        bookingId: form.bookingId && UUID_RE.test(form.bookingId) ? form.bookingId : undefined,
         items: items.map((it) => {
           const qty = parseInt(it.quantity) || 1;
           const unit = parseFloat(it.unitPrice) || 0;
@@ -149,8 +148,9 @@ export function InvoiceFormClient({ initialData, invoiceId }: {
 
       const data = await res.json();
       setToast({ text: isEdit ? 'Invoice updated' : 'Invoice created', ok: true });
+      const newId = data.invoice?.id ?? data.id;
       setTimeout(() => {
-        router.push(`/admin/invoices/${isEdit ? invoiceId : data.id}`);
+        router.push(`/admin/invoices/${isEdit ? invoiceId : newId}`);
       }, 600);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
