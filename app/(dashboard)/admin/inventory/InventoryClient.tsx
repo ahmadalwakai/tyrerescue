@@ -475,6 +475,9 @@ function CatalogueCard({ item, index, onRefresh }: { item: CatalogueItem; index:
   const [price, setPrice] = useState(item.priceNew ? String(Number(item.priceNew).toFixed(2)) : (item.suggestedPriceNew ? String(Number(item.suggestedPriceNew).toFixed(2)) : ''));
   const [stock, setStock] = useState(String(item.stockNew ?? 4));
   const [stockOrdered, setStockOrdered] = useState(String(item.stockOrdered ?? 0));
+  const [brand, setBrand] = useState(item.brand);
+  const [sizeDisplay, setSizeDisplay] = useState(item.sizeDisplay);
+  const [season, setSeason] = useState(item.season);
   const [isSaving, setIsSaving] = useState(false);
   const [showActivateForm, setShowActivateForm] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -544,14 +547,18 @@ function CatalogueCard({ item, index, onRefresh }: { item: CatalogueItem; index:
     }
   }
 
-  async function saveField(field: 'priceNew' | 'stockNew' | 'stockOrdered', value: string) {
+  async function saveField(field: 'priceNew' | 'stockNew' | 'stockOrdered' | 'brand' | 'sizeDisplay' | 'season', value: string) {
     if (!item.productId) return;
     setCardError(null);
-    const body = field === 'priceNew'
-      ? { priceNew: value ? Number(value) : null }
-      : field === 'stockOrdered'
-        ? { stockOrdered: value ? Number(value) : 0 }
-        : { stockNew: value ? Number(value) : 0 };
+    let body: Record<string, unknown>;
+    switch (field) {
+      case 'priceNew': body = { priceNew: value ? Number(value) : null }; break;
+      case 'stockOrdered': body = { stockOrdered: value ? Number(value) : 0 }; break;
+      case 'stockNew': body = { stockNew: value ? Number(value) : 0 }; break;
+      case 'brand': body = { brand: value }; break;
+      case 'sizeDisplay': body = { sizeDisplay: value }; break;
+      case 'season': body = { season: value }; break;
+    }
     try {
       const res = await fetch(`/api/admin/inventory/${item.productId}`, {
         method: 'PATCH',
@@ -567,6 +574,12 @@ function CatalogueCard({ item, index, onRefresh }: { item: CatalogueItem; index:
         setPrice(item.priceNew ? String(Number(item.priceNew).toFixed(2)) : '');
       } else if (field === 'stockOrdered') {
         setStockOrdered(String(item.stockOrdered ?? 0));
+      } else if (field === 'brand') {
+        setBrand(item.brand);
+      } else if (field === 'sizeDisplay') {
+        setSizeDisplay(item.sizeDisplay);
+      } else if (field === 'season') {
+        setSeason(item.season);
       } else {
         setStock(String(item.stockNew ?? 0));
       }
@@ -698,10 +711,6 @@ function CatalogueCard({ item, index, onRefresh }: { item: CatalogueItem; index:
       p={4}
       style={anim.stagger('fadeUp', index, '0.3s', 0.1, 0.03)}
     >
-      <Text fontSize="13px" color={c.accent} fontFamily="var(--font-body)">{item.brand}</Text>
-      <Text fontSize="24px" fontWeight="700" color={c.text} fontFamily="var(--font-display)" lineHeight="1.1" mt={1}>
-        {item.sizeDisplay}
-      </Text>
       <Text fontSize="12px" color={c.muted} mt={1}>{item.pattern}</Text>
 
       <Flex gap={2} mt={2} align="center" flexWrap="wrap">
@@ -715,9 +724,51 @@ function CatalogueCard({ item, index, onRefresh }: { item: CatalogueItem; index:
         </Flex>
       </Flex>
 
-      {/* Inline editable price + stock */}
+      {/* Inline editable brand + size + season + price + stock */}
       {cardError && <Text fontSize="12px" color="red.400" mt={2}>{cardError}</Text>}
       <Flex gap={2} mt={3}>
+        <Box flex="1">
+          <Text fontSize="11px" color={c.muted} mb={1}>Brand</Text>
+          <Input
+            size="sm"
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+            onBlur={() => saveField('brand', brand)}
+            bg={c.surface} borderColor={c.border} color={c.text}
+            fontSize="14px"
+          />
+        </Box>
+        <Box flex="1">
+          <Text fontSize="11px" color={c.muted} mb={1}>Size</Text>
+          <Input
+            size="sm"
+            value={sizeDisplay}
+            onChange={(e) => setSizeDisplay(e.target.value)}
+            onBlur={() => saveField('sizeDisplay', sizeDisplay)}
+            bg={c.surface} borderColor={c.border} color={c.text}
+            fontSize="14px"
+          />
+        </Box>
+      </Flex>
+      <Flex gap={2} mt={2}>
+        <Box flex="1">
+          <Text fontSize="11px" color={c.muted} mb={1}>Season</Text>
+          <select
+            value={season}
+            onChange={(e) => {
+              setSeason(e.target.value);
+              saveField('season', e.target.value);
+            }}
+            style={{
+              width: '100%', padding: '4px 8px', fontSize: 14,
+              background: c.surface, color: c.text, border: `1px solid ${c.border}`,
+              borderRadius: 6, height: 32,
+            }}>
+            <option value="summer">Summer</option>
+            <option value="winter">Winter</option>
+            <option value="allseason">All Season</option>
+          </select>
+        </Box>
         <Box flex="1">
           <Text fontSize="11px" color={c.muted} mb={1}>Price (£)</Text>
           <Input
@@ -726,7 +777,7 @@ function CatalogueCard({ item, index, onRefresh }: { item: CatalogueItem; index:
             onChange={(e) => setPrice(e.target.value)}
             onBlur={() => saveField('priceNew', price)}
             bg={c.surface} borderColor={c.border} color={c.text}
-            w="80px" fontSize="14px"
+            fontSize="14px"
           />
         </Box>
         <Box flex="1">

@@ -5,12 +5,17 @@ import { tyreProducts } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
+const SIZE_RE = /^(\d+)\/(\d+)\/R(\d+)(c?)$/i;
+
 const updateSchema = z.object({
   priceNew: z.union([z.string(), z.number()]).nullable().optional(),
   stockNew: z.number().int().min(0).optional(),
   stockOrdered: z.number().int().min(0).optional(),
   isLocalStock: z.boolean().optional(),
   availableNew: z.boolean().optional(),
+  brand: z.string().min(1).max(100).optional(),
+  sizeDisplay: z.string().min(3).max(20).optional(),
+  season: z.enum(['summer', 'winter', 'allseason']).optional(),
 });
 
 /**
@@ -40,6 +45,18 @@ export async function PATCH(
   if (d.stockOrdered !== undefined) updates.stockOrdered = d.stockOrdered;
   if (d.isLocalStock !== undefined) updates.isLocalStock = d.isLocalStock;
   if (d.availableNew !== undefined) updates.availableNew = d.availableNew;
+  if (d.brand !== undefined) updates.brand = d.brand;
+  if (d.season !== undefined) updates.season = d.season;
+  if (d.sizeDisplay !== undefined) {
+    const m = d.sizeDisplay.match(SIZE_RE);
+    if (!m) {
+      return NextResponse.json({ error: 'Invalid size format. Use e.g. 205/55/R16' }, { status: 400 });
+    }
+    updates.sizeDisplay = d.sizeDisplay;
+    updates.width = Number(m[1]);
+    updates.aspect = Number(m[2]);
+    updates.rim = Number(m[3]);
+  }
 
   await db.update(tyreProducts).set(updates).where(eq(tyreProducts.id, id));
 
