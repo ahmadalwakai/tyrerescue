@@ -79,7 +79,11 @@ export function StockClient() {
 
   /* Edit state */
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ priceNew: '', stockNew: '', stockOrdered: '' });
+  const [editForm, setEditForm] = useState({
+    brand: '', sizeDisplay: '', season: 'allseason',
+    priceNew: '', stockNew: '', stockOrdered: '',
+  });
+  const [editError, setEditError] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -130,34 +134,70 @@ export function StockClient() {
   useEffect(() => { fetchItems(1); }, [fetchItems]);
 
   /* ─── Inline PATCH helpers ──────────────────────────────── */
+  const VALID_SEASONS = ['allseason', 'summer', 'winter'] as const;
+
   const startEdit = (item: StockItem) => {
     setEditingId(item.id);
+    setEditError('');
     setEditForm({
+      brand: item.brand,
+      sizeDisplay: item.sizeDisplay,
+      season: item.season,
       priceNew: item.priceNew != null ? String(item.priceNew) : '',
       stockNew: String(item.stockNew),
       stockOrdered: String(item.stockOrdered),
     });
   };
-  const cancelEdit = () => setEditingId(null);
+  const cancelEdit = () => { setEditingId(null); setEditError(''); };
 
   const saveEdit = async (id: string) => {
+    // Client-side validation
+    const brand = editForm.brand.trim();
+    if (!brand) { setEditError('Brand is required'); return; }
+    if (!editForm.sizeDisplay.trim()) { setEditError('Size is required'); return; }
+    if (!VALID_SEASONS.includes(editForm.season as typeof VALID_SEASONS[number])) {
+      setEditError('Invalid season'); return;
+    }
+    const priceVal = editForm.priceNew ? Number(editForm.priceNew) : null;
+    if (priceVal !== null && (isNaN(priceVal) || priceVal < 0)) {
+      setEditError('Price must be 0 or more'); return;
+    }
+    const stockVal = parseInt(editForm.stockNew, 10);
+    if (isNaN(stockVal) || stockVal < 0) { setEditError('Stock must be 0 or more'); return; }
+    const orderedVal = parseInt(editForm.stockOrdered, 10);
+    if (isNaN(orderedVal) || orderedVal < 0) { setEditError('Ordered must be 0 or more'); return; }
+
+    setEditError('');
     setSavingId(id);
     try {
       const res = await fetch(`/api/admin/inventory/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          priceNew: editForm.priceNew ? Number(editForm.priceNew) : null,
-          stockNew: parseInt(editForm.stockNew, 10) || 0,
-          stockOrdered: parseInt(editForm.stockOrdered, 10) || 0,
+          brand,
+          sizeDisplay: editForm.sizeDisplay.trim(),
+          season: editForm.season,
+          priceNew: priceVal,
+          stockNew: stockVal,
+          stockOrdered: orderedVal,
         }),
       });
-      if (!res.ok) throw new Error('Save failed');
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        const errMsg = typeof data?.error === 'string' ? data.error
+          : data?.error?.formErrors?.[0] || data?.error?.fieldErrors
+            ? Object.values(data.error.fieldErrors as Record<string, string[]>).flat().join(', ')
+            : `Save failed (HTTP ${res.status})`;
+        throw new Error(errMsg);
+      }
       setEditingId(null);
+      setEditError('');
       flash('Saved', true);
       fetchItems(page);
-    } catch {
-      flash('Save failed', false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Save failed';
+      setEditError(msg);
+      flash(msg, false);
     } finally {
       setSavingId(null);
     }
@@ -713,6 +753,8 @@ export function StockClient() {
               <option value="size">Size</option>
               <option value="stock">Stock (high&#8594;low)</option>
               <option value="price">Price (low&#8594;high)</option>
+              <option value="type">Type</option>
+              <option value="season_type">Season + Type</option>
             </select>
           </Box>
           <Button bg={c.accent} color="white" h="40px" px={5}
@@ -773,16 +815,46 @@ export function StockClient() {
                     transition="background 0.15s">
                     {/* Brand */}
                     <Box as="td" p={3} borderBottomWidth="1px" borderColor={c.border}>
-                      <Text fontSize="13px" color={c.text} fontWeight="600">{item.brand}</Text>
-                      <Text fontSize="11px" color={c.muted}>{item.pattern}</Text>
+                      {isEditing ? (
+                        <Input {...inputProps} size="sm" w="100px"
+                          value={editForm.brand}
+                          onChange={(e) => setEditForm((f) => ({ ...f, brand: e.target.value }))} />
+                      ) : (
+                        <>
+                          <Text fontSize="13px" color={c.text} fontWeight="600">{item.brand}</Text>
+                          <Text fontSize="11px" color={c.muted}>{item.pattern}</Text>
+                        </>
+                      )}
                     </Box>
                     {/* Size */}
                     <Box as="td" p={3} borderBottomWidth="1px" borderColor={c.border}>
-                      <Text fontSize="13px" color={c.text} fontWeight="500">{item.sizeDisplay}</Text>
+                      {isEditing ? (
+                        <Box>
+                          <Input {...inputProps} size="sm" w="110px"
+                            placeholder="205/55/R16"
+                            value={editForm.sizeDisplay}
+                            onChange={(e) => setEditForm((f) => ({ ...f, sizeDisplay: e.target.value }))} />
+                          <Text fontSize="10px" color={c.muted} mt={1}>e.g. 205/55/R16</Text>
+                        </Box>
+                      ) : (
+                        <Text fontSize="13px" color={c.text} fontWeight="500">{item.sizeDisplay}</Text>
+                      )}
                     </Box>
                     {/* Season */}
                     <Box as="td" p={3} borderBottomWidth="1px" borderColor={c.border}>
-                      <Text fontSize="12px" color={c.muted} textTransform="capitalize">{item.season}</Text>
+                      {isEditing ? (
+                        <select style={{ ...selectStyle, height: 34, fontSize: 12 }}
+                          value={editForm.season}
+                          onChange={(e) => setEditForm((f) => ({ ...f, season: e.target.value }))}>
+                          <option value="allseason">All-Season</option>
+                          <option value="summer">Summer</option>
+                          <option value="winter">Winter</option>
+                        </select>
+                      ) : (
+                        <Text fontSize="12px" color={c.muted} textTransform="capitalize">
+                          {item.season === 'allseason' ? 'All-Season' : item.season}
+                        </Text>
+                      )}
                     </Box>
                     {/* Price */}
                     <Box as="td" p={3} borderBottomWidth="1px" borderColor={c.border} minW="90px">
@@ -837,6 +909,9 @@ export function StockClient() {
                       <Flex gap={2} wrap="wrap">
                         {isEditing ? (
                           <>
+                            {editError && (
+                              <Text fontSize="11px" color="#EF4444" mb={1} maxW="160px">{editError}</Text>
+                            )}
                             <button
                               style={{ ...toggleBtn(true), fontSize: 11, padding: '4px 10px' }}
                               onClick={() => saveEdit(item.id)}

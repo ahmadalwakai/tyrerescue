@@ -79,10 +79,15 @@ export async function GET(request: Request) {
 
   const where = and(...conditions);
 
+  const tierOrder = sql`COALESCE((SELECT CASE tier WHEN 'premium' THEN 1 WHEN 'mid' THEN 2 WHEN 'budget' THEN 3 ELSE 4 END FROM tyre_catalogue WHERE id = ${tyreProducts.catalogueId}), 4)`;
+  const seasonOrder = sql`CASE ${tyreProducts.season} WHEN 'allseason' THEN 1 WHEN 'summer' THEN 2 WHEN 'winter' THEN 3 ELSE 4 END`;
+
   const orderMap = {
     size: [asc(tyreProducts.width), asc(tyreProducts.aspect), asc(tyreProducts.rim)],
     stock: [desc(tyreProducts.stockNew), asc(tyreProducts.sizeDisplay)],
     price: [asc(tyreProducts.priceNew), asc(tyreProducts.sizeDisplay)],
+    type: [tierOrder, asc(tyreProducts.brand), asc(tyreProducts.sizeDisplay)],
+    season_type: [seasonOrder, tierOrder, asc(tyreProducts.sizeDisplay)],
   } as const;
   const ordering = orderMap[sort as keyof typeof orderMap] ?? orderMap.size;
 
