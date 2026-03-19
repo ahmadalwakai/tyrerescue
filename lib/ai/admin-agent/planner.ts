@@ -221,15 +221,19 @@ function deterministicPlan(message: string): AgentPlan | null {
 /**
  * Use the LLM to generate a plan from the admin's message.
  * Falls back to deterministic matching if the LLM fails.
+ * Optional memoryContext provides entity/preference context for the LLM.
  */
-export async function generatePlan(message: string): Promise<AgentPlan> {
+export async function generatePlan(message: string, memoryContext?: string): Promise<AgentPlan> {
   // 1. Try deterministic patterns first (fast, no API call)
   const deterministicResult = deterministicPlan(message);
   if (deterministicResult) return deterministicResult;
 
   // 2. Call LLM for ambiguous/complex messages
   try {
-    const systemPrompt = buildPlannerPrompt(allTools);
+    let systemPrompt = buildPlannerPrompt(allTools);
+    if (memoryContext) {
+      systemPrompt += `\n\nCONVERSATION CONTEXT:\n${memoryContext}`;
+    }
     const raw = await askGroqJSON(systemPrompt, message, 600);
     if (!raw) throw new Error('LLM returned null');
 

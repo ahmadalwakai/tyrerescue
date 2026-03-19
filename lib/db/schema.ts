@@ -320,6 +320,23 @@ export const chatSessions = pgTable('chat_sessions', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid('user_id').references(() => users.id),
   messages: jsonb('messages').notNull().default(sql`'[]'::jsonb`),
+  context: jsonb('context'),
+  summary: text('summary'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// Agent long-term memory (persists across sessions)
+export const agentMemory = pgTable('agent_memory', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  kind: text('kind').notNull(), // 'entity_ref' | 'preference' | 'follow_up' | 'fact'
+  entityType: varchar('entity_type', { length: 50 }),
+  entityId: uuid('entity_id'),
+  entityRef: varchar('entity_ref', { length: 50 }),
+  content: text('content').notNull(),
+  metadata: jsonb('metadata'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
 });
@@ -572,6 +589,8 @@ export type Notification = typeof notifications.$inferSelect;
 export type Testimonial = typeof testimonials.$inferSelect;
 export type FAQ = typeof faqs.$inferSelect;
 export type ChatSession = typeof chatSessions.$inferSelect;
+export type AgentMemoryRow = typeof agentMemory.$inferSelect;
+export type NewAgentMemory = typeof agentMemory.$inferInsert;
 export type DriverLocationHistory = typeof driverLocationHistory.$inferSelect;
 export type SurgePricingLog = typeof surgePricingLog.$inferSelect;
 export type Quote = typeof quotes.$inferSelect;

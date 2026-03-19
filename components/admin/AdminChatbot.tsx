@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Box, Flex, Text, VStack, Spinner } from '@chakra-ui/react';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { AdminAIAgentIcon } from './icons/AdminAIAgentIcon';
 
 /* ────────── Web Speech API type shim ────────── */
 
@@ -41,6 +42,12 @@ interface ChatMessage {
   content: string;
   timestamp: string;
   actions?: ChatAction[];
+}
+
+interface MemoryIndicators {
+  recentEntities: { type: string; ref: string }[];
+  pendingFollowUps: string[];
+  hasSummary: boolean;
 }
 
 interface ChatAction {
@@ -103,6 +110,13 @@ export function AdminChatbot() {
   // Agent confirmation state
   const [pendingConfirmationId, setPendingConfirmationId] = useState<string | null>(null);
   const [executing, setExecuting] = useState(false);
+
+  // Memory indicators
+  const [memory, setMemory] = useState<MemoryIndicators>({
+    recentEntities: [],
+    pendingFollowUps: [],
+    hasSummary: false,
+  });
 
   // Voice state
   const [listening, setListening] = useState(false);
@@ -204,6 +218,7 @@ export function AdminChatbot() {
         if (!res.ok) return null;
         const data = await res.json();
         setSessionId(data.sessionId);
+        if (data.memory) setMemory(data.memory);
         return data;
       } catch {
         return null;
@@ -480,8 +495,6 @@ export function AdminChatbot() {
         w="48px"
         h="48px"
         borderRadius="full"
-        bg={c.accent}
-        color="#09090B"
         display="flex"
         alignItems="center"
         justifyContent="center"
@@ -491,12 +504,10 @@ export function AdminChatbot() {
         _hover={{ transform: 'scale(1.08)', boxShadow: `0 4px 20px ${c.accentGlow}` }}
         onClick={() => setOpen(true)}
         style={anim.scaleIn()}
-        aria-label="Open admin chat"
+        aria-label="Open admin AI agent"
+        title="AI Admin Agent"
       >
-        {/* Chat icon - simple text glyph */}
-        <Text fontSize="20px" fontWeight="700" lineHeight="1" mt="-1px">
-          ?
-        </Text>
+        <AdminAIAgentIcon size={48} animated glow />
         {/* Alert badge */}
         {alertCount > 0 && (
           <Box
@@ -509,6 +520,7 @@ export function AdminChatbot() {
             bg="#EF4444"
             border="2px solid"
             borderColor={c.bg}
+            zIndex={1}
           />
         )}
       </Box>
@@ -621,6 +633,44 @@ export function AdminChatbot() {
         <>
           {/* Messages */}
           <Box flex={1} overflowY="auto" px={3} py={3}>
+            {/* Memory context indicators */}
+            {(memory.recentEntities.length > 0 || memory.pendingFollowUps.length > 0) && messages.length > 2 && (
+              <Flex gap={1} flexWrap="wrap" mb={2}>
+                {memory.recentEntities.slice(0, 4).map((e, i) => (
+                  <Box
+                    key={i}
+                    px={2}
+                    py={0.5}
+                    borderRadius="full"
+                    bg="rgba(249, 115, 22, 0.08)"
+                    border="1px solid rgba(249, 115, 22, 0.2)"
+                    fontSize="10px"
+                    color={c.muted}
+                    whiteSpace="nowrap"
+                  >
+                    {e.ref}
+                  </Box>
+                ))}
+                {memory.pendingFollowUps.slice(0, 2).map((f, i) => (
+                  <Box
+                    key={`f-${i}`}
+                    px={2}
+                    py={0.5}
+                    borderRadius="full"
+                    bg="rgba(234, 179, 8, 0.08)"
+                    border="1px solid rgba(234, 179, 8, 0.2)"
+                    fontSize="10px"
+                    color="#EAB308"
+                    whiteSpace="nowrap"
+                    maxW="140px"
+                    overflow="hidden"
+                    textOverflow="ellipsis"
+                  >
+                    {f}
+                  </Box>
+                ))}
+              </Flex>
+            )}
             {messages.length === 0 && !loading && (
               <Text fontSize="13px" color={c.muted} textAlign="center" mt={8}>
                 Loading...

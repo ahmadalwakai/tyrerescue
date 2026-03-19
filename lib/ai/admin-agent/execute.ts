@@ -7,11 +7,49 @@ export type ExecutionOutput = {
   allSucceeded: boolean;
 };
 
+/* ── Deduplication guard ── */
+
+const recentExecutions = new Map<string, number>();
+const DEDUP_WINDOW_MS = 5_000; // 5 seconds
+
+function buildDedupeKey(plan: AgentPlan, userId: string): string {
+  const toolPart = plan.tools
+    .map((t) => `${t.toolName}:${JSON.stringify(t.params)}`)
+    .join('|');
+  return `${userId}:${plan.intent}:${toolPart}`;
+}
+
 /**
  * Execute all tools in a plan sequentially.
+ * Includes deduplication guard to prevent double-execution.
  * Returns structured results for each tool.
  */
-export async function executePlan(plan: AgentPlan, ctx: ToolContext): Promise<ExecutionOutput> {
+export async function executePlan(
+  plan: AgentPlan,
+  ctx: ToolContext,
+  opts?: { skipDedup?: boolean },
+): Promise<ExecutionOutput> {
+  // Deduplication check
+  if (!opts?.skipDedup) {
+    const key = buildDedupeKey(plan, ctx.userId);
+    const lastExec = recentExecutions.get(key);
+    if (lastExec && Date.now() - lastExec < DEDUP_WINDOW_MS) {
+      return {
+        results: [],
+        cards: [{ toolName: 'dedup_guard', success: false, summary: 'This action was already submitted. Please wait a moment before retrying.' }],
+        allSucceeded: false,
+      };
+    }
+    recentExecutions.set(key, Date.now());
+    // Cleanup old entries periodically
+    if (recentExecutions.size > 100) {
+      const cutoff = Date.now() - DEDUP_WINDOW_MS;
+      for (const [k, v] of recentExecutions) {
+        if (v < cutoff) recentExecutions.delete(k);
+      }
+    }
+  }
+
   const results: { toolName: string; result: ToolResult }[] = [];
   const cards: ExecutionResultCard[] = [];
 
@@ -26,6 +64,15 @@ export async function executePlan(plan: AgentPlan, ctx: ToolContext): Promise<Ex
 
     try {
       const result = await def.execute(planned.params, ctx);
+
+      // Post-action verification for write tools
+      if (def.kind === 'write' && result.success && result.after) {
+        const verified = await verifyPostAction(planned.toolName, planned.params, result);
+        if (!verified.success) {
+          result.warning = verified.warning;
+        }
+      }
+
       results.push({ toolName: planned.toolName, result });
       cards.push({
         toolName: planned.toolName,
@@ -36,6 +83,11 @@ export async function executePlan(plan: AgentPlan, ctx: ToolContext): Promise<Ex
         before: result.before ? JSON.stringify(result.before) : undefined,
         after: result.after ? JSON.stringify(result.after) : undefined,
       });
+
+      // Add warning to card if post-verification flagged something
+      if (result.warning) {
+        cards[cards.length - 1].summary += ` (Warning: ${result.warning})`;
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Execution error';
       results.push({ toolName: planned.toolName, result: { success: false, error: errorMsg } });
@@ -48,6 +100,47 @@ export async function executePlan(plan: AgentPlan, ctx: ToolContext): Promise<Ex
     cards,
     allSucceeded: results.every((r) => r.result.success),
   };
+}
+
+/* ── Post-action verification ── */
+
+async function verifyPostAction(
+  toolName: string,
+  params: Record<string, unknown>,
+  result: ToolResult,
+): Promise<{ success: boolean; warning?: string }> {
+  try {
+    const after = result.after as Record<string, unknown> | undefined;
+    if (!after) return { success: true };
+
+    switch (toolName) {
+      case 'update_stock_quantity': {
+        // Verify the stock value matches what we set
+        const expected = after.stock;
+        if (expected !== undefined && result.data) {
+          const d = result.data as Record<string, unknown>;
+          if (d.stockAfter !== expected) {
+            return { success: false, warning: `Expected stock ${expected} but got ${d.stockAfter}` };
+          }
+        }
+        return { success: true };
+      }
+      case 'update_booking_status': {
+        const expected = after.status;
+        if (expected && result.data) {
+          const d = result.data as Record<string, unknown>;
+          if (d.toStatus !== expected) {
+            return { success: false, warning: `Expected status "${expected}" but got "${d.toStatus}"` };
+          }
+        }
+        return { success: true };
+      }
+      default:
+        return { success: true };
+    }
+  } catch {
+    return { success: true }; // Don't fail the action if verification has an error
+  }
 }
 
 function formatResultSummary(toolName: string, result: ToolResult): string {

@@ -19,9 +19,17 @@ import {
   createPendingConfirmation,
   validateConfirmation,
   buildConfirmationDetails,
-  buildResponsePrompt,
   IDENTITY_RESPONSE,
   toolMap,
+  formatAgentResponse,
+  recall,
+  remember,
+  extractSessionMemory,
+  buildMemoryContext,
+  summarizeIfNeeded,
+  rememberEntitiesFromResults,
+  resolveEntities,
+  injectResolvedEntities,
 } from '@/lib/ai/admin-agent';
 import { agentRequestSchema } from '@/lib/ai/admin-agent/schemas';
 import { adjustStock } from '@/lib/inventory/stock-service';
@@ -168,7 +176,7 @@ async function handleGreeting(userId: string): Promise<{ reply: string }> {
 
 /* ────────── Session persistence ────────── */
 
-type SessionData = { id: string; messages: ChatMessage[]; context?: AgentSessionContext };
+type SessionData = { id: string; messages: ChatMessage[]; context?: AgentSessionContext; summary?: string | null };
 
 async function getOrCreateSession(userId: string, sessionId?: string): Promise<SessionData> {
   if (sessionId) {
@@ -177,7 +185,8 @@ async function getOrCreateSession(userId: string, sessionId?: string): Promise<S
       return {
         id: session.id,
         messages: (session.messages as ChatMessage[]) || [],
-        context: (session as Record<string, unknown>).context as AgentSessionContext | undefined,
+        context: (session.context as AgentSessionContext | undefined) ?? undefined,
+        summary: session.summary ?? null,
       };
     }
   }
@@ -187,56 +196,27 @@ async function getOrCreateSession(userId: string, sessionId?: string): Promise<S
     return {
       id: existing.id,
       messages: (existing.messages as ChatMessage[]) || [],
-      context: (existing as Record<string, unknown>).context as AgentSessionContext | undefined,
+      context: (existing.context as AgentSessionContext | undefined) ?? undefined,
+      summary: existing.summary ?? null,
     };
   }
   const [created] = await db.insert(chatSessions).values({ userId, messages: [] }).returning({ id: chatSessions.id });
-  return { id: created.id, messages: [], context: undefined };
+  return { id: created.id, messages: [], context: undefined, summary: null };
 }
 
 async function persistSession(session: SessionData) {
-  const trimmed = session.messages.slice(-100);
+  // Summarize older messages to prevent context bloat
+  const { messages: trimmed, summary } = await summarizeIfNeeded(
+    session.messages.slice(-100),
+    session.summary,
+  );
+
   await db.update(chatSessions).set({
     messages: JSON.parse(JSON.stringify(trimmed)),
+    context: session.context ? JSON.parse(JSON.stringify(session.context)) : null,
+    summary: summary,
     updatedAt: new Date(),
   }).where(eq(chatSessions.id, session.id));
-}
-
-/* ────────── Response formatting via LLM ────────── */
-
-async function formatAgentResponse(intent: string, toolResults: { toolName: string; result: { success: boolean; data?: unknown; error?: string } }[]): Promise<string> {
-  // Build a summary of what happened
-  const resultSummary = toolResults.map((r) => {
-    if (r.result.success) {
-      return `Tool ${r.toolName} succeeded. Data: ${JSON.stringify(r.result.data)}`;
-    }
-    return `Tool ${r.toolName} failed: ${r.result.error}`;
-  }).join('\n');
-
-  try {
-    const reply = await askGroq(
-      buildResponsePrompt(),
-      `Intent: ${intent}\nResults:\n${resultSummary}`,
-      500,
-    );
-    if (reply) return reply;
-  } catch { /* fall through */ }
-
-  // Fallback: format without LLM
-  return toolResults.map((r) => {
-    if (r.result.success && r.result.data) {
-      const data = r.result.data;
-      if (Array.isArray(data)) {
-        if (data.length === 0) return 'No results found.';
-        return `Found ${data.length} item(s):\n` + data.slice(0, 10).map((item: Record<string, unknown>) =>
-          Object.entries(item).map(([k, v]) => `${k}: ${v}`).join(' | ')
-        ).join('\n');
-      }
-      return Object.entries(data as Record<string, unknown>).map(([k, v]) => `${k}: ${v}`).join('\n');
-    }
-    if (!r.result.success) return `Error: ${r.result.error}`;
-    return 'Done.';
-  }).join('\n\n');
 }
 
 /* ────────── Main handler ────────── */
@@ -259,6 +239,11 @@ export async function POST(request: Request) {
   const now = new Date().toISOString();
 
   const ctx: ToolContext = { userId, userRole: 'admin' };
+
+  // Load memory context
+  const longTermMemory = await recall(userId, { limit: 20 });
+  const sessionMemory = extractSessionMemory(chatSession.context);
+  const memoryContext = buildMemoryContext(longTermMemory, sessionMemory);
 
   // Add user message
   if (intent !== 'greeting' && message.length > 0) {
@@ -304,8 +289,11 @@ export async function POST(request: Request) {
       // Execute the confirmed plan
       const output = await executePlan(validation.plan!, ctx);
       chatSession.context = { ...chatSession.context, pendingConfirmation: null, lastToolResults: output.results.map((r) => ({ toolName: r.toolName, result: r.result, at: now })) };
-      reply = await formatAgentResponse(validation.plan!.intent, output.results);
+      reply = await formatAgentResponse(validation.plan!.intent, output.results, memoryContext);
       if (output.cards.length > 0) actions = [{ type: 'executed', results: output.cards }];
+
+      // Remember entities from results
+      await rememberEntitiesFromResults(userId, output.results);
     }
   }
 
@@ -322,7 +310,7 @@ export async function POST(request: Request) {
     if (result.actions) actions = result.actions;
   }
 
-  // ── 4. Agent pipeline: plan → validate → confirm/execute → respond ──
+  // ── 4. Agent pipeline: plan → resolve → validate → confirm/execute → respond ──
 
   else {
     // Identity check — hard-coded, no AI
@@ -331,8 +319,19 @@ export async function POST(request: Request) {
     }
 
     else {
-      // Generate plan (deterministic first, then LLM fallback)
-      const plan = await generatePlan(message);
+      // Resolve entity references ("that booking", "the last driver", etc.)
+      const resolved = await resolveEntities(message, {
+        recentEntities: sessionMemory.recentEntities,
+        longTermMemory,
+      });
+
+      // Generate plan (deterministic first, then LLM fallback with memory context)
+      const plan = await generatePlan(message, memoryContext);
+
+      // Inject resolved entities into plan params where needed
+      for (const tool of plan.tools) {
+        tool.params = injectResolvedEntities(tool.params, resolved, tool.toolName);
+      }
 
       if (plan.intent === 'identity') {
         reply = IDENTITY_RESPONSE;
@@ -352,6 +351,7 @@ export async function POST(request: Request) {
         if (lookupResult?.success) {
           const bk = lookupResult.data as Record<string, unknown>;
           reply = `Booking ${bk.refNumber} exists (status: "${bk.status}"). Bookings cannot be deleted — they can only be cancelled. To cancel, say: "cancel booking ${bk.refNumber}"`;
+          await rememberEntitiesFromResults(userId, output.results);
         } else {
           reply = lookupResult?.error ?? 'Booking not found.';
           actions = [{ type: 'error', message: reply }];
@@ -365,6 +365,7 @@ export async function POST(request: Request) {
         if (lookupResult?.success) {
           const bk = lookupResult.data as Record<string, unknown>;
           reply = `Booking ${bk.refNumber} is currently "${bk.status}". To change its status, say: "change ${bk.refNumber} to <new-status>"\nFor example: "change ${bk.refNumber} to paid"`;
+          await rememberEntitiesFromResults(userId, output.results);
         } else {
           reply = lookupResult?.error ?? 'Booking not found.';
           actions = [{ type: 'error', message: reply }];
@@ -379,11 +380,14 @@ export async function POST(request: Request) {
         if (plan.clarificationNeeded) {
           reply = plan.clarificationNeeded;
         } else {
+          const contextBlock = memoryContext
+            ? `\nRecent context:\n${memoryContext}\n`
+            : '';
           const systemPrompt = `You are an admin assistant for Tyre Rescue, a mobile tyre fitting business in Glasgow/Edinburgh, Scotland.
 You help the admin with operational questions about the admin panel.
 Available features: Bookings, Callbacks, Messages, Drivers, Inventory, Pricing, Availability, Testimonials, FAQ, Content, Audit Log, Analytics.
 Keep answers concise and practical. The admin is non-technical.
-For identity questions, answer exactly: "Mr Ahmad Alwakai lead developer"`;
+For identity questions, answer exactly: "Mr Ahmad Alwakai lead developer"${contextBlock}`;
           const helpReply = await askGroq(systemPrompt, message, 400);
           reply = helpReply || "I'm having trouble right now. Try asking about stock, bookings, or alerts instead.";
         }
@@ -393,8 +397,9 @@ For identity questions, answer exactly: "Mr Ahmad Alwakai lead developer"`;
         // Has clarification but tools are read-only — execute them to show context, then ask
         const output = await executePlan(plan, ctx);
         chatSession.context = { ...chatSession.context, lastToolResults: output.results.map((r) => ({ toolName: r.toolName, result: r.result, at: now })) };
-        reply = await formatAgentResponse(plan.intent, output.results);
+        reply = await formatAgentResponse(plan.intent, output.results, memoryContext);
         if (plan.clarificationNeeded) reply += '\n\n' + plan.clarificationNeeded;
+        await rememberEntitiesFromResults(userId, output.results);
       }
 
       else if (planRequiresConfirmation(plan)) {
@@ -420,10 +425,13 @@ For identity questions, answer exactly: "Mr Ahmad Alwakai lead developer"`;
           lastToolResults: output.results.map((r) => ({ toolName: r.toolName, result: r.result, at: now })),
           lastEntities: extractEntities(output.results),
         };
-        reply = await formatAgentResponse(plan.intent, output.results);
+        reply = await formatAgentResponse(plan.intent, output.results, memoryContext);
         if (output.cards.some((c) => !c.success)) {
           actions = output.cards.filter((c) => !c.success).map((c) => ({ type: 'warning' as const, message: c.summary }));
         }
+
+        // Remember entities from results for future reference
+        await rememberEntitiesFromResults(userId, output.results);
       }
     }
   }
@@ -432,7 +440,25 @@ For identity questions, answer exactly: "Mr Ahmad Alwakai lead developer"`;
   chatSession.messages.push({ role: 'assistant', content: reply, timestamp: new Date().toISOString(), actions: actions.length > 0 ? actions : undefined });
   await persistSession(chatSession);
 
-  return NextResponse.json({ reply, actions, sessionId: chatSession.id });
+  // Return memory indicators for the UI
+  const memoryIndicators = {
+    recentEntities: sessionMemory.recentEntities.slice(0, 5).map((e) => ({
+      type: e.type,
+      ref: e.ref ?? e.id.slice(0, 8),
+    })),
+    pendingFollowUps: longTermMemory
+      .filter((m) => m.kind === 'follow_up')
+      .slice(0, 3)
+      .map((m) => m.content),
+    hasSummary: !!chatSession.summary,
+  };
+
+  return NextResponse.json({
+    reply,
+    actions,
+    sessionId: chatSession.id,
+    memory: memoryIndicators,
+  });
 }
 
 /* ── Entity extraction for context memory ── */

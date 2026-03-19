@@ -30,7 +30,7 @@ vi.mock('@/lib/state-machine', () => ({
 
 import { generatePlan } from '../ai/admin-agent/planner';
 import { toolMap, allTools } from '../ai/admin-agent/tools';
-import type { AgentPlan, AgentSessionContext, ToolContext, ToolResult } from '../ai/admin-agent/types';
+import type { AgentPlan, AgentSessionContext, ChatMessage, ToolContext, ToolResult } from '../ai/admin-agent/types';
 import {
   planRequiresConfirmation,
   createPendingConfirmation,
@@ -39,6 +39,18 @@ import {
 } from '../ai/admin-agent/safeguards';
 import { executePlan } from '../ai/admin-agent/execute';
 import { agentRequestSchema } from '../ai/admin-agent/schemas';
+import {
+  extractSessionMemory,
+  buildMemoryContext,
+  summarizeIfNeeded,
+} from '../ai/admin-agent/memory-manager';
+import type { MemoryEntry } from '../ai/admin-agent/memory-manager';
+import {
+  resolveEntities,
+  injectResolvedEntities,
+} from '../ai/admin-agent/entity-resolver';
+import type { ResolvedEntity } from '../ai/admin-agent/entity-resolver';
+import { formatAgentResponse } from '../ai/admin-agent/response-formatter';
 
 /* ── Intent / plan parsing ────────────────────────────────── */
 describe('planner — deterministic patterns', () => {
@@ -390,7 +402,7 @@ describe('executePlan', () => {
       intent: 'test',
       tools: [{ toolName: 'nonexistent_tool' as any, params: {} }],
     };
-    const out = await executePlan(plan, ctx);
+    const out = await executePlan(plan, ctx, { skipDedup: true });
     expect(out.allSucceeded).toBe(false);
     expect(out.cards).toHaveLength(1);
     expect(out.cards[0].success).toBe(false);
@@ -410,7 +422,7 @@ describe('executePlan', () => {
       intent: 'test',
       tools: [{ toolName: 'get_today_bookings', params: {} }],
     };
-    const out = await executePlan(plan, ctx);
+    const out = await executePlan(plan, ctx, { skipDedup: true });
     expect(out.allSucceeded).toBe(false);
     expect(out.cards[0].success).toBe(false);
     expect(out.cards[0].summary).toBe('DB connection failed');
@@ -431,7 +443,7 @@ describe('executePlan', () => {
       intent: 'stock_lookup',
       tools: [{ toolName: 'get_stock_by_size', params: { width: 205, aspect: 55, rim: 16 } }],
     };
-    const out = await executePlan(plan, ctx);
+    const out = await executePlan(plan, ctx, { skipDedup: true });
     expect(out.allSucceeded).toBe(true);
     expect(out.cards[0].success).toBe(true);
 
@@ -459,7 +471,7 @@ describe('executePlan', () => {
         { toolName: 'get_driver_statuses', params: {} },
       ],
     };
-    const out = await executePlan(plan, ctx);
+    const out = await executePlan(plan, ctx, { skipDedup: true });
     expect(out.allSucceeded).toBe(true);
     expect(out.cards).toHaveLength(2);
     expect(order).toEqual(['bookings', 'drivers']);
@@ -488,7 +500,7 @@ describe('executePlan', () => {
         { toolName: 'get_driver_statuses', params: {} },
       ],
     };
-    const out = await executePlan(plan, ctx);
+    const out = await executePlan(plan, ctx, { skipDedup: true });
     expect(out.allSucceeded).toBe(false);
     expect(out.cards[0].success).toBe(true);
     expect(out.cards[1].success).toBe(false);
@@ -532,7 +544,7 @@ describe('no false success', () => {
       intent: 'stock_lookup',
       tools: [{ toolName: 'get_stock_by_size', params: { width: 999, aspect: 99, rim: 99 } }],
     };
-    const out = await executePlan(plan, { userId: 'admin-1', userRole: 'admin' });
+    const out = await executePlan(plan, { userId: 'admin-1', userRole: 'admin' }, { skipDedup: true });
     expect(out.allSucceeded).toBe(false);
     expect(out.cards[0].success).toBe(false);
     expect(out.cards[0].summary).toBe('Product not found');
@@ -550,7 +562,7 @@ describe('no false success', () => {
     const plan = await generatePlan('delete booking TR-FAKE');
     expect(plan.intent).toBe('delete_booking');
 
-    const out = await executePlan(plan, { userId: 'admin-1', userRole: 'admin' });
+    const out = await executePlan(plan, { userId: 'admin-1', userRole: 'admin' }, { skipDedup: true });
     expect(out.allSucceeded).toBe(false);
     expect(out.cards[0].summary).toBe('Booking TR-FAKE not found');
 
@@ -568,7 +580,7 @@ describe('no false success', () => {
     expect(plan.intent).toBe('cancel_booking');
     expect(plan.tools[0].params.newStatus).toBe('cancelled');
 
-    const out = await executePlan(plan, { userId: 'admin-1', userRole: 'admin' });
+    const out = await executePlan(plan, { userId: 'admin-1', userRole: 'admin' }, { skipDedup: true });
     expect(out.allSucceeded).toBe(false);
     expect(out.cards[0].success).toBe(false);
     expect(out.cards[0].summary).toContain('not found');
@@ -607,5 +619,265 @@ describe('agent request schema', () => {
       message: '',
     });
     expect(result.success).toBe(true);
+  });
+});
+
+/* ── 8. Memory manager — session memory ──────────────────── */
+describe('memory manager — session helpers', () => {
+  it('extractSessionMemory returns empty defaults for undefined context', () => {
+    const mem = extractSessionMemory(undefined);
+    expect(mem.recentEntities).toEqual([]);
+    expect(mem.lastActionContext).toBeUndefined();
+    expect(mem.pendingFollowUps).toEqual([]);
+  });
+
+  it('extractSessionMemory extracts entities from context', () => {
+    const ctx: AgentSessionContext = {
+      lastEntities: [
+        { type: 'booking', id: 'b1', ref: 'TR-001' },
+        { type: 'product', id: 'p1' },
+      ],
+      lastToolResults: [
+        { toolName: 'get_booking_by_ref', result: { success: true }, at: '2026-01-01T00:00:00Z' },
+      ],
+    };
+    const mem = extractSessionMemory(ctx);
+    expect(mem.recentEntities).toHaveLength(2);
+    expect(mem.lastActionContext).toContain('get_booking_by_ref');
+    expect(mem.lastActionContext).toContain('ok');
+  });
+
+  it('buildMemoryContext formats entities and preferences', () => {
+    const longTerm: MemoryEntry[] = [
+      { id: '1', kind: 'entity_ref', content: 'Booking TR-001 (paid, John)', entityType: 'booking', entityId: 'b1', entityRef: 'TR-001', createdAt: new Date() },
+      { id: '2', kind: 'preference', content: 'Admin prefers voice output on', createdAt: new Date() },
+      { id: '3', kind: 'follow_up', content: 'Check stock for 225/45/R17 tomorrow', createdAt: new Date() },
+    ];
+    const session = {
+      recentEntities: [{ type: 'booking', id: 'b2', ref: 'TR-002' }],
+      pendingFollowUps: [],
+    };
+    const result = buildMemoryContext(longTerm, session);
+    expect(result).toContain('TR-002');
+    expect(result).toContain('TR-001');
+    expect(result).toContain('voice output');
+    expect(result).toContain('225/45/R17');
+  });
+
+  it('buildMemoryContext returns empty string for no memory', () => {
+    const result = buildMemoryContext([], { recentEntities: [], pendingFollowUps: [] });
+    expect(result).toBe('');
+  });
+});
+
+/* ── 9. Memory manager — summarization ──────────────────── */
+describe('memory manager — summarization', () => {
+  it('does not summarize when below threshold', async () => {
+    const messages: ChatMessage[] = Array.from({ length: 10 }, (_, i) => ({
+      role: i % 2 === 0 ? 'user' : 'assistant',
+      content: `Message ${i}`,
+      timestamp: new Date().toISOString(),
+    }));
+    const { messages: result, summary } = await summarizeIfNeeded(messages);
+    expect(result).toHaveLength(10);
+    expect(summary).toBeNull();
+  });
+
+  it('trims messages when above threshold (LLM mocked to null)', async () => {
+    // With LLM mocked to return null, it should trim to KEEP_RECENT (15)
+    const messages: ChatMessage[] = Array.from({ length: 50 }, (_, i) => ({
+      role: i % 2 === 0 ? 'user' : 'assistant',
+      content: `Message ${i}`,
+      timestamp: new Date().toISOString(),
+    }));
+    const { messages: result } = await summarizeIfNeeded(messages);
+    expect(result.length).toBeLessThanOrEqual(15);
+    // Should keep the newest messages
+    expect(result[result.length - 1].content).toBe('Message 49');
+  });
+
+  it('preserves existing summary when LLM fails', async () => {
+    const messages: ChatMessage[] = Array.from({ length: 50 }, (_, i) => ({
+      role: i % 2 === 0 ? 'user' : 'assistant',
+      content: `Message ${i}`,
+      timestamp: new Date().toISOString(),
+    }));
+    const { summary } = await summarizeIfNeeded(messages, 'Previous summary about bookings');
+    expect(summary).toBe('Previous summary about bookings');
+  });
+});
+
+/* ── 10. Entity resolver — pronoun resolution ────────────── */
+describe('entity resolver — injectResolvedEntities', () => {
+  it('injects booking ref into params when missing', () => {
+    const resolved: ResolvedEntity[] = [
+      { type: 'booking', id: 'b1', ref: 'TR-ABC', label: 'Booking TR-ABC', confidence: 'inferred' },
+    ];
+    const params = { newStatus: 'cancelled' };
+    const result = injectResolvedEntities(params, resolved, 'update_booking_status');
+    expect(result.ref).toBe('TR-ABC');
+    expect(result.newStatus).toBe('cancelled');
+  });
+
+  it('does not overwrite existing ref', () => {
+    const resolved: ResolvedEntity[] = [
+      { type: 'booking', id: 'b1', ref: 'TR-ABC', label: 'Booking TR-ABC', confidence: 'inferred' },
+    ];
+    const params = { ref: 'TR-XYZ', newStatus: 'cancelled' };
+    const result = injectResolvedEntities(params, resolved, 'update_booking_status');
+    expect(result.ref).toBe('TR-XYZ');
+  });
+
+  it('injects productId from resolved product', () => {
+    const resolved: ResolvedEntity[] = [
+      { type: 'product', id: 'p-uuid-123', ref: '205/55/R16', label: 'Budget 205/55/R16', confidence: 'exact' },
+    ];
+    const params = { newStock: 10 };
+    const result = injectResolvedEntities(params, resolved, 'update_stock_quantity');
+    expect(result.productId).toBe('p-uuid-123');
+  });
+
+  it('injects driverId from resolved driver', () => {
+    const resolved: ResolvedEntity[] = [
+      { type: 'driver', id: 'd-uuid-456', label: 'Driver John', confidence: 'exact' },
+    ];
+    const params = { ref: 'TR-001' };
+    const result = injectResolvedEntities(params, resolved, 'assign_driver_to_booking');
+    expect(result.driverId).toBe('d-uuid-456');
+  });
+
+  it('returns params unchanged when no matching resolution', () => {
+    const params = { newStock: 10 };
+    const result = injectResolvedEntities(params, [], 'update_stock_quantity');
+    expect(result).toEqual({ newStock: 10 });
+  });
+});
+
+/* ── 11. Deduplication guard in executePlan ───────────────── */
+describe('executePlan — deduplication', () => {
+  const ctx: ToolContext = { userId: 'admin-dedup', userRole: 'admin' };
+
+  it('blocks duplicate execution within 5s window', async () => {
+    const original = toolMap.get('get_today_bookings');
+    let callCount = 0;
+    toolMap.set('get_today_bookings', {
+      ...original!,
+      execute: async () => { callCount++; return { success: true, data: [] }; },
+    });
+
+    const plan: AgentPlan = {
+      intent: 'test_dedup',
+      tools: [{ toolName: 'get_today_bookings', params: {} }],
+    };
+
+    // First call should succeed
+    const out1 = await executePlan(plan, ctx);
+    expect(out1.allSucceeded).toBe(true);
+    expect(callCount).toBe(1);
+
+    // Second identical call within window should be blocked
+    const out2 = await executePlan(plan, ctx);
+    expect(out2.allSucceeded).toBe(false);
+    expect(out2.cards[0].summary).toContain('already submitted');
+    expect(callCount).toBe(1); // should NOT have called tool again
+
+    toolMap.set('get_today_bookings', original!);
+  });
+
+  it('allows execution with skipDedup option', async () => {
+    const original = toolMap.get('get_driver_statuses');
+    let callCount = 0;
+    toolMap.set('get_driver_statuses', {
+      ...original!,
+      execute: async () => { callCount++; return { success: true, data: [] }; },
+    });
+
+    const plan: AgentPlan = {
+      intent: 'test_skip_dedup',
+      tools: [{ toolName: 'get_driver_statuses', params: {} }],
+    };
+
+    await executePlan(plan, ctx, { skipDedup: true });
+    await executePlan(plan, ctx, { skipDedup: true });
+    expect(callCount).toBe(2);
+
+    toolMap.set('get_driver_statuses', original!);
+  });
+});
+
+/* ── 12. Response formatter — fallback ───────────────────── */
+describe('response formatter — fallback', () => {
+  it('formats successful results when LLM returns null', async () => {
+    const results = [
+      {
+        toolName: 'get_low_stock_items',
+        result: {
+          success: true,
+          data: [
+            { id: 'p1', brand: 'Budget', sizeDisplay: '205/55/R16', stockNew: 2, priceNew: '48.00' },
+          ],
+        },
+      },
+    ];
+    const reply = await formatAgentResponse('low_stock', results);
+    expect(reply).toContain('1 item');
+    expect(reply).toContain('Budget');
+  });
+
+  it('formats error results when tool fails', async () => {
+    const results = [
+      { toolName: 'get_booking_by_ref', result: { success: false, error: 'Booking TR-999 not found' } },
+    ];
+    const reply = await formatAgentResponse('booking_lookup', results);
+    expect(reply).toContain('TR-999 not found');
+  });
+
+  it('returns "No results." for empty results', async () => {
+    const reply = await formatAgentResponse('test', []);
+    expect(reply).toBe('No results.');
+  });
+});
+
+/* ── 13. Post-action verification ────────────────────────── */
+describe('executePlan — post-action verification', () => {
+  const ctx: ToolContext = { userId: 'admin-verify', userRole: 'admin' };
+
+  it('adds warning when verification detects mismatch', async () => {
+    const original = toolMap.get('update_stock_quantity');
+    toolMap.set('update_stock_quantity', {
+      ...original!,
+      execute: async () => ({
+        success: true,
+        data: { brand: 'Budget', size: '205/55/R16', stockBefore: 10, stockAfter: 7 },
+        before: { stock: 10 },
+        after: { stock: 8 }, // Mismatch: expected 8, got 7
+      }),
+    });
+
+    const plan: AgentPlan = {
+      intent: 'stock_update',
+      tools: [{ toolName: 'update_stock_quantity', params: { productId: 'x', newStock: 8 } }],
+    };
+
+    const out = await executePlan(plan, ctx, { skipDedup: true });
+    expect(out.allSucceeded).toBe(true);
+    // The card should contain a warning about the mismatch
+    expect(out.cards[0].summary).toContain('Warning');
+
+    toolMap.set('update_stock_quantity', original!);
+  });
+});
+
+/* ── 14. Planner accepts memoryContext ───────────────────── */
+describe('planner — with memory context', () => {
+  it('still works with deterministic patterns when memoryContext is provided', async () => {
+    const plan = await generatePlan('check stock for 205/55/R16', 'Recent entities: booking:TR-001');
+    expect(plan.intent).toBe('stock_lookup');
+    expect(plan.tools[0].toolName).toBe('get_stock_by_size');
+  });
+
+  it('falls back to general_help with memoryContext when LLM returns null', async () => {
+    const plan = await generatePlan('what is the meaning of life', 'No recent context');
+    expect(plan.intent).toBe('general_help');
   });
 });
