@@ -47,6 +47,14 @@ interface ChatAction {
   type: string;
   items?: StockPreviewItem[];
   data?: Record<string, unknown>;
+  confirmationId?: string;
+  summary?: string;
+  details?: { label: string; before?: string; after?: string }[];
+  results?: { toolName: string; success: boolean; summary: string; before?: string; after?: string }[];
+  message?: string;
+  title?: string;
+  columns?: string[];
+  rows?: unknown[][];
 }
 
 interface StockPreviewItem {
@@ -91,6 +99,10 @@ export function AdminChatbot() {
   // Stock update confirmation state
   const [pendingItems, setPendingItems] = useState<StockPreviewItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Agent confirmation state
+  const [pendingConfirmationId, setPendingConfirmationId] = useState<string | null>(null);
+  const [executing, setExecuting] = useState(false);
 
   // Voice state
   const [listening, setListening] = useState(false);
@@ -178,10 +190,16 @@ export function AdminChatbot() {
     ): Promise<{ reply: string; actions: ChatAction[]; sessionId: string } | null> => {
       try {
         setLoading(true);
+        const reqBody: Record<string, unknown> = { message: text, sessionId, intent };
+        if (payload && typeof payload === 'object' && 'confirmationId' in (payload as Record<string, unknown>)) {
+          reqBody.confirmationId = (payload as Record<string, unknown>).confirmationId;
+        } else if (payload) {
+          reqBody.payload = payload;
+        }
         const res = await fetch('/api/admin/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text, sessionId, intent, payload }),
+          body: JSON.stringify(reqBody),
         });
         if (!res.ok) return null;
         const data = await res.json();
@@ -298,12 +316,17 @@ export function AdminChatbot() {
       const preview = data.actions?.find((a: ChatAction) => a.type === 'stock_update_preview');
       if (preview?.items) {
         setPendingItems(preview.items);
-        // Pre-select all if single product per size, otherwise none
         if (preview.items.length <= 3) {
           setSelectedIds(new Set(preview.items.map((i: StockPreviewItem) => i.productId)));
         } else {
           setSelectedIds(new Set());
         }
+      }
+
+      // Handle agent confirmation required
+      const confirm = data.actions?.find((a: ChatAction) => a.type === 'confirmation_required');
+      if (confirm?.confirmationId) {
+        setPendingConfirmationId(confirm.confirmationId);
       }
     } else {
       setMessages((prev) => [
@@ -347,6 +370,33 @@ export function AdminChatbot() {
       { role: 'assistant', content: "Stock update cancelled.", timestamp: new Date().toISOString() },
     ]);
   }, []);
+
+  /* ────────── Agent confirmation handlers ────────── */
+
+  const handleConfirmAction = useCallback(async () => {
+    if (!pendingConfirmationId) return;
+    setExecuting(true);
+    const data = await sendMessage('Confirmed', 'confirm_action', { confirmationId: pendingConfirmationId });
+    setPendingConfirmationId(null);
+    setExecuting(false);
+    if (data) {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: data.reply, timestamp: new Date().toISOString(), actions: data.actions },
+      ]);
+      if (settings.voiceOutputEnabled && data.reply) speak(data.reply);
+    }
+  }, [pendingConfirmationId, sendMessage, settings.voiceOutputEnabled, speak]);
+
+  const handleCancelAction = useCallback(async () => {
+    if (!pendingConfirmationId) return;
+    await sendMessage('Cancel', 'cancel_action');
+    setPendingConfirmationId(null);
+    setMessages((prev) => [
+      ...prev,
+      { role: 'assistant', content: 'Action cancelled.', timestamp: new Date().toISOString() },
+    ]);
+  }, [pendingConfirmationId, sendMessage]);
 
   const toggleProduct = useCallback((productId: string) => {
     setSelectedIds((prev) => {
@@ -617,9 +667,77 @@ export function AdminChatbot() {
                         Read aloud
                       </Text>
                     )}
+                    {/* Agent action cards */}
+                    {msg.actions?.map((action, ai) => (
+                      <Box key={ai} mt={2}>
+                        {action.type === 'executed' && action.results && (
+                          <VStack align="stretch" gap={1}>
+                            {action.results.map((r, ri) => (
+                              <Flex key={ri} align="center" gap={2} px={2} py={1} borderRadius="md"
+                                bg={r.success ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'}
+                                border={`1px solid ${r.success ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`}
+                              >
+                                <Text fontSize="11px" fontWeight="600" color={r.success ? '#22C55E' : '#EF4444'}>
+                                  {r.success ? 'OK' : 'ERR'}
+                                </Text>
+                                <Text fontSize="11px" color={c.text}>{r.summary}</Text>
+                              </Flex>
+                            ))}
+                          </VStack>
+                        )}
+                        {action.type === 'warning' && (
+                          <Flex px={2} py={1} borderRadius="md" bg="rgba(234, 179, 8, 0.1)" border="1px solid rgba(234, 179, 8, 0.3)">
+                            <Text fontSize="11px" color="#EAB308">{action.message}</Text>
+                          </Flex>
+                        )}
+                        {action.type === 'error' && (
+                          <Flex px={2} py={1} borderRadius="md" bg="rgba(239, 68, 68, 0.1)" border="1px solid rgba(239, 68, 68, 0.3)">
+                            <Text fontSize="11px" color="#EF4444">{action.message}</Text>
+                          </Flex>
+                        )}
+                      </Box>
+                    ))}
                   </Box>
                 </Flex>
               ))}
+
+              {/* Agent confirmation card */}
+              {pendingConfirmationId && (
+                <Box bg={c.card} borderRadius="10px" px={3} py={3} style={anim.fadeUp('0.3s')}>
+                  <Text fontSize="12px" fontWeight="600" color="#EAB308" mb={2} textTransform="uppercase" letterSpacing="0.05em">
+                    Confirm action
+                  </Text>
+                  <Flex gap={2} mt={2}>
+                    <Box
+                      as="button" flex={1} py={2}
+                      bg={executing ? c.border : c.accent}
+                      color={executing ? c.muted : '#09090B'}
+                      borderRadius="md" fontSize="13px" fontWeight="600"
+                      cursor={executing ? 'not-allowed' : 'pointer'}
+                      transition="all 0.2s"
+                      _hover={!executing ? { bg: c.accentHover } : {}}
+                      onClick={handleConfirmAction}
+                      aria-disabled={executing}
+                      pointerEvents={executing ? 'none' : 'auto'}
+                    >
+                      {executing ? 'Executing...' : 'Confirm'}
+                    </Box>
+                    <Box
+                      as="button" px={4} py={2}
+                      bg="transparent" border={`1px solid ${c.border}`}
+                      color={c.muted} borderRadius="md" fontSize="13px" fontWeight="600"
+                      cursor="pointer"
+                      _hover={{ borderColor: c.text, color: c.text }}
+                      transition="all 0.2s"
+                      onClick={handleCancelAction}
+                      aria-disabled={executing}
+                      pointerEvents={executing ? 'none' : 'auto'}
+                    >
+                      Cancel
+                    </Box>
+                  </Flex>
+                </Box>
+              )}
 
               {/* Stock update preview */}
               {pendingItems.length > 0 && (
