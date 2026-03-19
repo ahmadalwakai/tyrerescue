@@ -151,6 +151,68 @@ describe('planner — deterministic patterns', () => {
     expect(plan.intent).toBe('general_help');
     expect(plan.tools).toHaveLength(0);
   });
+
+  /* ── New command patterns ── */
+
+  it('detects cancel booking', async () => {
+    const plan = await generatePlan('cancel booking TR-12345');
+    expect(plan.intent).toBe('cancel_booking');
+    expect(plan.tools).toHaveLength(1);
+    expect(plan.tools[0].toolName).toBe('update_booking_status');
+    expect(plan.tools[0].params).toEqual({ ref: 'TR-12345', newStatus: 'cancelled' });
+  });
+
+  it('detects cancel booking without TR prefix', async () => {
+    const plan = await generatePlan('cancel TR12345');
+    expect(plan.intent).toBe('cancel_booking');
+    expect(plan.tools[0].params.ref).toBe('TR12345');
+  });
+
+  it('detects delete booking and routes to lookup', async () => {
+    const plan = await generatePlan('delete booking TR-FAKE');
+    expect(plan.intent).toBe('delete_booking');
+    expect(plan.tools[0].toolName).toBe('get_booking_by_ref');
+    expect(plan.tools[0].params).toEqual({ ref: 'TR-FAKE' });
+  });
+
+  it('detects confirm booking and routes to lookup', async () => {
+    const plan = await generatePlan('confirm booking TR-1234');
+    expect(plan.intent).toBe('confirm_booking');
+    expect(plan.tools[0].toolName).toBe('get_booking_by_ref');
+    expect(plan.tools[0].params).toEqual({ ref: 'TR-1234' });
+  });
+
+  it('detects create booking and explains', async () => {
+    const plan = await generatePlan('create a new booking');
+    expect(plan.intent).toBe('create_booking_explain');
+    expect(plan.tools).toHaveLength(0);
+    expect(plan.clarificationNeeded).toContain('booking wizard');
+  });
+
+  it('detects add new tyre to inventory', async () => {
+    const plan = await generatePlan('add a new tyre to inventory');
+    expect(plan.intent).toBe('add_inventory_product');
+    expect(plan.tools[0].toolName).toBe('add_inventory_product');
+    expect(plan.clarificationNeeded).toContain('brand');
+  });
+
+  it('detects add tyre to stock', async () => {
+    const plan = await generatePlan('add new product to stock');
+    expect(plan.intent).toBe('add_inventory_product');
+  });
+
+  it('detects set stock to exact value', async () => {
+    const plan = await generatePlan('set stock for 205/55/R16 to 10');
+    expect(plan.intent).toBe('stock_set');
+    expect(plan.tools[0].toolName).toBe('get_stock_by_size');
+    expect(plan.tools[0].params).toEqual({ width: 205, aspect: 55, rim: 16 });
+  });
+
+  it('detects update stock to value', async () => {
+    const plan = await generatePlan('update stock 225/45/R17 to 5');
+    expect(plan.intent).toBe('stock_set');
+    expect(plan.tools[0].params).toEqual({ width: 225, aspect: 45, rim: 17 });
+  });
 });
 
 /* ── 2. Confirmation-required actions (safeguards) ─────────── */
@@ -171,6 +233,14 @@ describe('safeguards — confirmation flow', () => {
     expect(planRequiresConfirmation(plan)).toBe(false);
   });
 
+  it('planRequiresConfirmation returns true for add_inventory_product', () => {
+    const plan: AgentPlan = {
+      intent: 'add_inventory_product',
+      tools: [{ toolName: 'add_inventory_product', params: { brand: 'Budget', pattern: 'Economy', width: 205, aspect: 55, rim: 16, season: 'allseason', priceNew: 49.99 } }],
+    };
+    expect(planRequiresConfirmation(plan)).toBe(true);
+  });
+
   it('planRequiresConfirmation returns true for booking status change', () => {
     const plan: AgentPlan = {
       intent: 'booking_status_change',
@@ -189,6 +259,16 @@ describe('safeguards — confirmation flow', () => {
 
   it('planRequiresConfirmation returns false for no tools', () => {
     const plan: AgentPlan = { intent: 'identity', tools: [] };
+    expect(planRequiresConfirmation(plan)).toBe(false);
+  });
+
+  it('cancel_booking plan requires confirmation', async () => {
+    const plan = await generatePlan('cancel booking TR-ABC');
+    expect(planRequiresConfirmation(plan)).toBe(true);
+  });
+
+  it('delete_booking plan does NOT require confirmation (read-only lookup)', async () => {
+    const plan = await generatePlan('delete booking TR-ABC');
     expect(planRequiresConfirmation(plan)).toBe(false);
   });
 
@@ -261,8 +341,8 @@ describe('safeguards — confirmation flow', () => {
 
 /* ── 3. Tool registry structure ──────────────────────────── */
 describe('tool registry', () => {
-  it('exports 18 tools', () => {
-    expect(allTools).toHaveLength(18);
+  it('exports 19 tools', () => {
+    expect(allTools).toHaveLength(19);
   });
 
   it('all tools have required fields', () => {
@@ -294,7 +374,7 @@ describe('tool registry', () => {
   });
 
   it('toolMap has all tools indexed by name', () => {
-    expect(toolMap.size).toBe(18);
+    expect(toolMap.size).toBe(19);
     for (const tool of allTools) {
       expect(toolMap.get(tool.name)).toBe(tool);
     }
@@ -458,6 +538,42 @@ describe('no false success', () => {
     expect(out.cards[0].summary).toBe('Product not found');
 
     toolMap.set('get_stock_by_size', original!);
+  });
+
+  it('delete non-existent booking returns clear error via get_booking_by_ref', async () => {
+    const original = toolMap.get('get_booking_by_ref');
+    toolMap.set('get_booking_by_ref', {
+      ...original!,
+      execute: async () => ({ success: false, error: 'Booking TR-FAKE not found' }),
+    });
+
+    const plan = await generatePlan('delete booking TR-FAKE');
+    expect(plan.intent).toBe('delete_booking');
+
+    const out = await executePlan(plan, { userId: 'admin-1', userRole: 'admin' });
+    expect(out.allSucceeded).toBe(false);
+    expect(out.cards[0].summary).toBe('Booking TR-FAKE not found');
+
+    toolMap.set('get_booking_by_ref', original!);
+  });
+
+  it('cancel non-existent booking returns clear error', async () => {
+    const original = toolMap.get('update_booking_status');
+    toolMap.set('update_booking_status', {
+      ...original!,
+      execute: async () => ({ success: false, error: 'Booking TR-GONE not found' }),
+    });
+
+    const plan = await generatePlan('cancel booking TR-GONE');
+    expect(plan.intent).toBe('cancel_booking');
+    expect(plan.tools[0].params.newStatus).toBe('cancelled');
+
+    const out = await executePlan(plan, { userId: 'admin-1', userRole: 'admin' });
+    expect(out.allSucceeded).toBe(false);
+    expect(out.cards[0].success).toBe(false);
+    expect(out.cards[0].summary).toContain('not found');
+
+    toolMap.set('update_booking_status', original!);
   });
 });
 

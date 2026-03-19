@@ -338,6 +338,42 @@ export async function POST(request: Request) {
         reply = IDENTITY_RESPONSE;
       }
 
+      // Stock reduction/set → redirect to stock preview UI (needs product selection)
+      else if (plan.intent === 'stock_reduction' || plan.intent === 'stock_set') {
+        const result = await handleStockUpdatePreview(message);
+        reply = result.reply;
+        if (result.actions) actions = result.actions;
+      }
+
+      // Delete booking → lookup + explain deletion is not supported
+      else if (plan.intent === 'delete_booking') {
+        const output = await executePlan(plan, ctx);
+        const lookupResult = output.results[0]?.result;
+        if (lookupResult?.success) {
+          const bk = lookupResult.data as Record<string, unknown>;
+          reply = `Booking ${bk.refNumber} exists (status: "${bk.status}"). Bookings cannot be deleted — they can only be cancelled. To cancel, say: "cancel booking ${bk.refNumber}"`;
+        } else {
+          reply = lookupResult?.error ?? 'Booking not found.';
+          actions = [{ type: 'error', message: reply }];
+        }
+      }
+
+      // Confirm booking → lookup + show valid next states
+      else if (plan.intent === 'confirm_booking') {
+        const output = await executePlan(plan, ctx);
+        const lookupResult = output.results[0]?.result;
+        if (lookupResult?.success) {
+          const bk = lookupResult.data as Record<string, unknown>;
+          reply = `Booking ${bk.refNumber} is currently "${bk.status}". To change its status, say: "change ${bk.refNumber} to <new-status>"\nFor example: "change ${bk.refNumber} to paid"`;
+        } else {
+          reply = lookupResult?.error ?? 'Booking not found.';
+          actions = [{ type: 'error', message: reply }];
+        }
+      }
+
+      // Cancel booking → the plan already has update_booking_status with 'cancelled'
+      // Falls through to the confirmation flow below since it's a write tool
+
       else if (plan.tools.length === 0) {
         // No tools matched — use LLM for general help
         if (plan.clarificationNeeded) {

@@ -26,6 +26,7 @@ import {
   messageIdSchema,
   toggleAvailabilitySchema,
   chatSettingsSchema,
+  addInventoryProductSchema,
 } from './schemas';
 
 /* ── Helpers ──────────────────────────────────────────── */
@@ -578,6 +579,62 @@ const updateChatSettings: ToolDefinition = {
   },
 };
 
+const addInventoryProduct: ToolDefinition = {
+  name: 'add_inventory_product',
+  kind: 'write',
+  description: 'Add a new tyre product to inventory. Requires brand, pattern, width, aspect, rim, season, priceNew, and optional stockNew.',
+  requiresConfirmation: true,
+  parameterNames: ['brand', 'pattern', 'width', 'aspect', 'rim', 'season', 'priceNew', 'stockNew'],
+  async execute(params, ctx): Promise<ToolResult> {
+    const parsed = addInventoryProductSchema.safeParse(params);
+    if (!parsed.success) return { success: false, error: 'Invalid params. Need: brand, pattern, width, aspect, rim, season (summer|winter|allseason), priceNew.' };
+
+    const { brand, pattern, width, aspect, rim, season, priceNew, stockNew } = parsed.data;
+    const sizeDisplay = `${width}/${aspect}/R${rim}`;
+    const slug = `${brand}-${pattern}-${sizeDisplay}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '');
+
+    // Check for existing product with same brand + size
+    const [existing] = await db
+      .select({ id: tyreProducts.id })
+      .from(tyreProducts)
+      .where(
+        and(
+          eq(tyreProducts.brand, brand),
+          eq(tyreProducts.width, width),
+          eq(tyreProducts.aspect, aspect),
+          eq(tyreProducts.rim, rim),
+          eq(tyreProducts.pattern, pattern),
+        )
+      )
+      .limit(1);
+
+    if (existing) return { success: false, error: `Product already exists: ${brand} ${pattern} ${sizeDisplay} (ID: ${existing.id})` };
+
+    const [created] = await db.insert(tyreProducts).values({
+      brand,
+      pattern,
+      width,
+      aspect,
+      rim,
+      sizeDisplay,
+      season,
+      priceNew: String(priceNew),
+      stockNew: stockNew ?? 0,
+      isLocalStock: true,
+      availableNew: true,
+      slug: `${slug}-${Date.now()}`,
+    }).returning({ id: tyreProducts.id });
+
+    await logAudit(ctx, 'tyre_product', created.id, 'create_product', null, { brand, pattern, sizeDisplay, priceNew, stockNew });
+
+    return {
+      success: true,
+      data: { id: created.id, brand, pattern, sizeDisplay, priceNew, stockNew: stockNew ?? 0 },
+      after: { brand, pattern, sizeDisplay, priceNew, stockNew: stockNew ?? 0 },
+    };
+  },
+};
+
 /* ── Tool registry ────────────────────────────────────── */
 
 export const allTools: ToolDefinition[] = [
@@ -601,6 +658,7 @@ export const allTools: ToolDefinition[] = [
   toggleProductAvailability,
   markMessageRead,
   updateChatSettings,
+  addInventoryProduct,
 ];
 
 export const toolMap = new Map<string, ToolDefinition>(allTools.map((t) => [t.name, t]));

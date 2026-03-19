@@ -69,6 +69,8 @@ function formatResultSummary(toolName: string, result: ToolResult): string {
       return `Message marked as read`;
     case 'update_chat_settings':
       return `Settings updated: ${(d.updated as string[]).join(', ')}`;
+    case 'add_inventory_product':
+      return `Added ${d.brand} ${d.pattern} ${d.sizeDisplay} at £${d.priceNew} (stock: ${d.stockNew})`;
     default:
       return 'Done';
   }

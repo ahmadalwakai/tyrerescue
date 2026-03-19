@@ -50,6 +50,17 @@ export const chatSettingsSchema = z.object({
   autoOpenEnabled: z.boolean().optional(),
 });
 
+export const addInventoryProductSchema = z.object({
+  brand: z.string().min(1).max(100),
+  pattern: z.string().min(1).max(200),
+  width: z.number().int().min(100).max(400),
+  aspect: z.number().int().min(20).max(90),
+  rim: z.number().int().min(10).max(24),
+  season: z.enum(['summer', 'winter', 'allseason']),
+  priceNew: z.number().min(0),
+  stockNew: z.number().int().min(0).default(0),
+});
+
 /** Schema for the LLM plan extraction output */
 export const llmPlanSchema = z.object({
   intent: z.string(),

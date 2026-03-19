@@ -23,6 +23,12 @@ const DRIVER_STATUS_RE = /driver.*status|who.*online|which\s+driver/i;
 const SALES_SUMMARY_RE = /sales\s+summary|today.*sales|revenue|how\s+much.*sold/i;
 const AUDIT_RE = /audit\s+log|recent\s+action|what.*happened|activity\s+log/i;
 const UNREAD_MESSAGES_RE = /unread\s+message|new\s+message|contact\s+message/i;
+const CANCEL_BOOKING_RE = /cancel\s+(?:booking\s+)?(TR-?\w+)/i;
+const DELETE_BOOKING_RE = /delete\s+(?:booking\s+)?(TR-?\w+)/i;
+const CONFIRM_BOOKING_RE = /confirm\s+(?:booking\s+)?(TR-?\w+)/i;
+const CREATE_BOOKING_RE = /(?:create|make|add|new)\s+(?:a\s+)?(?:new\s+)?booking/i;
+const ADD_INVENTORY_RE = /(?:add|create|new)\s+(?:a\s+)?(?:new\s+)?(?:tyre|tire|product)\s+(?:to\s+)?(?:inventory|stock|catalogue)/i;
+const SET_STOCK_RE = /(?:set|update)\s+stock\s+(?:for\s+)?(\d{3})\/?(\d{2})\/?R?(\d{2})\s+(?:to|=)\s*(\d+)/i;
 
 /**
  * Try to build a plan deterministically from pattern matching.
@@ -30,14 +36,72 @@ const UNREAD_MESSAGES_RE = /unread\s+message|new\s+message|contact\s+message/i;
  */
 function deterministicPlan(message: string): AgentPlan | null {
   const msg = message.trim();
+  let m: RegExpMatchArray | null;
 
   // Identity
   if (IDENTITY_RE.test(msg)) {
     return { intent: 'identity', tools: [] };
   }
 
+  // Cancel booking
+  m = msg.match(CANCEL_BOOKING_RE);
+  if (m) {
+    return {
+      intent: 'cancel_booking',
+      tools: [{ toolName: 'update_booking_status', params: { ref: m[1], newStatus: 'cancelled' } }],
+    };
+  }
+
+  // Delete booking → lookup to show error (bookings cannot be deleted, only cancelled)
+  m = msg.match(DELETE_BOOKING_RE);
+  if (m) {
+    return {
+      intent: 'delete_booking',
+      tools: [{ toolName: 'get_booking_by_ref', params: { ref: m[1] } }],
+      reasoning: 'Bookings cannot be deleted — only cancelled. Looking up booking to show status.',
+    };
+  }
+
+  // Confirm booking → lookup
+  m = msg.match(CONFIRM_BOOKING_RE);
+  if (m) {
+    return {
+      intent: 'confirm_booking',
+      tools: [{ toolName: 'get_booking_by_ref', params: { ref: m[1] } }],
+      reasoning: 'Looking up booking to determine appropriate next status.',
+    };
+  }
+
+  // Create booking → no tool, explain
+  if (CREATE_BOOKING_RE.test(msg)) {
+    return {
+      intent: 'create_booking_explain',
+      tools: [],
+      clarificationNeeded: 'Bookings are created through the customer-facing booking wizard on the website, which handles location, tyre selection, scheduling, and Stripe payment. I can help you look up or manage existing bookings instead.',
+    };
+  }
+
+  // Add tyre to inventory
+  if (ADD_INVENTORY_RE.test(msg)) {
+    return {
+      intent: 'add_inventory_product',
+      tools: [{ toolName: 'add_inventory_product', params: {} }],
+      clarificationNeeded: 'To add a tyre, I need: brand, pattern name, size (width/aspect/rim), season (summer/winter/allseason), and price. For example: "add Budget Economy 205/55/R16 allseason at £49.99"',
+    };
+  }
+
+  // Set stock to exact value: "set stock for 205/55/R16 to 10"
+  m = msg.match(SET_STOCK_RE);
+  if (m) {
+    return {
+      intent: 'stock_set',
+      tools: [{ toolName: 'get_stock_by_size', params: { width: Number(m[1]), aspect: Number(m[2]), rim: Number(m[3]) } }],
+      reasoning: `Set stock for ${m[1]}/${m[2]}/R${m[3]} to ${m[4]}. Need to look up products first.`,
+    };
+  }
+
   // Reduce stock with quantity
-  let m = msg.match(REDUCE_STOCK_RE);
+  m = msg.match(REDUCE_STOCK_RE);
   if (m) {
     // Pattern 1: reduce XXX/XX/RXX by N
     if (m[1]) {

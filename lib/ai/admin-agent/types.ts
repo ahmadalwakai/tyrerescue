@@ -21,7 +21,8 @@ export type ToolName =
   | 'assign_driver_to_booking'
   | 'toggle_product_availability'
   | 'mark_message_read'
-  | 'update_chat_settings';
+  | 'update_chat_settings'
+  | 'add_inventory_product';
 
 /** Whether the tool mutates state */
 export type ToolKind = 'read' | 'write';
