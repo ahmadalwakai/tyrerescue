@@ -556,6 +556,22 @@ export const invoiceItems = pgTable('invoice_items', {
   sortOrder: integer('sort_order').notNull().default(0),
 });
 
+// Homepage media slides table
+export const homepageMedia = pgTable('homepage_media', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  src: text('src').notNull(),
+  alt: text('alt').notNull(),
+  eyebrow: varchar('eyebrow', { length: 100 }).notNull(),
+  title: varchar('title', { length: 200 }).notNull(),
+  caption: text('caption'),
+  objectPosition: varchar('object_position', { length: 50 }).notNull().default('center center'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+  animationStyle: varchar('animation_style', { length: 20 }).notNull().default('fadeZoom'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
 // Type exports for use throughout the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -572,6 +588,8 @@ export type NewBookingTyre = typeof bookingTyres.$inferInsert;
 export type Invoice = typeof invoices.$inferSelect;
 export type NewInvoice = typeof invoices.$inferInsert;
 export type InvoiceItem = typeof invoiceItems.$inferSelect;
+export type HomepageMedia = typeof homepageMedia.$inferSelect;
+export type NewHomepageMedia = typeof homepageMedia.$inferInsert;
 export type NewInvoiceItem = typeof invoiceItems.$inferInsert;
 export type BookingStatusHistory = typeof bookingStatusHistory.$inferSelect;
 export type InventoryReservation = typeof inventoryReservations.$inferSelect;

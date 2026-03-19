@@ -18,8 +18,10 @@ import { Footer } from '@/components/ui/Footer';
 import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
 import { colorTokens, inputProps, textareaProps } from '@/lib/design-tokens';
 import { HomeImageShowcase } from '@/components/home/HomeImageShowcase';
+import type { HomeSlide } from '@/components/home/homeImageSlides';
 import { cities } from '@/lib/cities';
 import { services as seoServices, serviceCities } from '@/lib/areas';
+import { homepageFAQItems } from '@/lib/content/faq';
 
 const colors = {
   bg: colorTokens.bg,
@@ -71,13 +73,7 @@ const testimonials = [
   { author: 'Emma W.', content: 'Flat tyre on the way to Edinburgh airport. These guys saved me from missing my flight. Cannot recommend enough.', rating: '5.0 / 5' },
 ];
 
-const faqs = [
-  { question: 'How quickly can you get to me in an emergency?', answer: 'For emergency callouts in Glasgow and Edinburgh city centres, we typically arrive within 45 minutes. For surrounding areas, arrival times vary based on distance but we always provide an accurate ETA when you book.' },
-  { question: 'What areas do you cover?', answer: 'We cover Glasgow, Edinburgh, and all surrounding areas across Central Scotland. This includes Paisley, East Kilbride, Hamilton, Livingston, Falkirk, Stirling, Perth, Dundee, and more.' },
-  { question: 'Do you fit tyres I have already purchased?', answer: 'We primarily fit tyres purchased through our service to ensure quality and warranty coverage. If you have tyres you need fitted, please call us to discuss.' },
-  { question: 'What payment methods do you accept?', answer: 'We accept all major credit and debit cards, Apple Pay, and Google Pay through our secure online checkout. Payment is taken at the time of booking.' },
-  { question: 'Can you repair my puncture or do I need a new tyre?', answer: 'Our fitters assess every puncture on arrival. Repairs are only possible when the damage is in the central tread area and the tyre structure is intact. Sidewall damage or multiple punctures require replacement.' },
-];
+
 
 const marqueeItems = [
   'EMERGENCY CALLOUT',
@@ -589,7 +585,7 @@ function BackToTop() {
 }
 
 // ─── Main Component ──────────────────────────────────────
-export function HomePage() {
+export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
   const [heroOffset, setHeroOffset] = useState(0);
   const stat1 = useCountUp(97, 1500);
   const stat2 = useCountUp(4.8, 1500, 1);
@@ -930,7 +926,7 @@ export function HomePage() {
 
                 {/* Hero image showcase */}
                 <Box mb={{ base: 6, lg: 8 }} style={{ animation: 'slideInRight 0.8s ease-out 0.2s both' }}>
-                  <HomeImageShowcase />
+                  <HomeImageShowcase slides={heroSlides} />
                 </Box>
 
                 <Box
@@ -1662,8 +1658,8 @@ export function HomePage() {
             </AnimatedSection>
 
             <AnimatedSection delay={0.2}>
-              {faqs.map((faq, index) => (
-                <FAQItem key={index} index={index} question={faq.question} answer={faq.answer} />
+              {homepageFAQItems.map((faq, index) => (
+                <FAQItem key={faq.id} index={index} question={faq.question} answer={faq.answer} />
               ))}
             </AnimatedSection>
           </Container>

@@ -1,41 +1,59 @@
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { HomePage } from './HomePage';
+import { db, homepageMedia } from '@/lib/db';
+import { eq, asc } from 'drizzle-orm';
+import type { HomeSlide } from '@/components/home/homeImageSlides';
 
-export const metadata: Metadata = {
-  title: 'Mobile Tyre Fitting Glasgow | Tyres Near Me | 24/7 Emergency | Tyre Rescue',
-  description:
-    'Mobile tyre fitting in Glasgow and Edinburgh with AI-powered dispatch. Emergency tyre repair near me, 24 hours a day. Flat tyre? Our mobile tyre fitters come to your exact location in under 45 minutes. AI-optimised driver assignment for fastest response. Call 0141 266 0690. Duke Street Tyres.',
-  keywords: [
-    'mobile tyre fitting glasgow',
-    'mobile tyre fitting near me',
-    'emergency tyre fitting glasgow',
-    'tyre repair near me',
-    'tyres near me',
-    'tyre shop near me',
-    'tyres glasgow',
-    'mobile tyres near me',
-    'mobile tyre repair near me',
-    'mobile tyre fitters glasgow',
-    'tyre repair glasgow',
-    'puncture repair near me',
-    'mobile tyre fitter glasgow',
-    'mobile tyres glasgow',
-    'mobile tyre repair',
-    'glasgow mobile tyres',
-    'tyre fitting near me',
-    'tyre shop glasgow',
-    'duke street tyres',
-    '24 hour tyre fitting glasgow',
-    'emergency tyre fitting edinburgh',
-    'roadside tyre fitting scotland',
-    'ai tyre dispatch',
-    'smart tyre fitting',
-    'intelligent mobile tyre service',
-  ].join(', '),
-  alternates: {
-    canonical: 'https://www.tyrerescue.uk',
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  // Fetch first active hero image for OG
+  const [firstSlide] = await db
+    .select({ src: homepageMedia.src, alt: homepageMedia.alt })
+    .from(homepageMedia)
+    .where(eq(homepageMedia.isActive, true))
+    .orderBy(asc(homepageMedia.sortOrder))
+    .limit(1);
+
+  const ogImage = firstSlide?.src || '/og-image.svg';
+
+  return {
+    title: 'Mobile Tyre Fitting Glasgow | Tyres Near Me | 24/7 Emergency | Tyre Rescue',
+    description:
+      'Mobile tyre fitting in Glasgow and Edinburgh with AI-powered dispatch. Emergency tyre repair near me, 24 hours a day. Flat tyre? Our mobile tyre fitters come to your exact location in under 45 minutes. AI-optimised driver assignment for fastest response. Call 0141 266 0690. Duke Street Tyres.',
+    keywords: [
+      'mobile tyre fitting glasgow',
+      'mobile tyre fitting near me',
+      'emergency tyre fitting glasgow',
+      'tyre repair near me',
+      'tyres near me',
+      'tyre shop near me',
+      'tyres glasgow',
+      'mobile tyres near me',
+      'mobile tyre repair near me',
+      'mobile tyre fitters glasgow',
+      'tyre repair glasgow',
+      'puncture repair near me',
+      'mobile tyre fitter glasgow',
+      'mobile tyres glasgow',
+      'mobile tyre repair',
+      'glasgow mobile tyres',
+      'tyre fitting near me',
+      'tyre shop glasgow',
+      'duke street tyres',
+      '24 hour tyre fitting glasgow',
+      'emergency tyre fitting edinburgh',
+      'roadside tyre fitting scotland',
+      'ai tyre dispatch',
+      'smart tyre fitting',
+      'intelligent mobile tyre service',
+    ].join(', '),
+    alternates: {
+      canonical: 'https://www.tyrerescue.uk',
+    },
+    openGraph: {
+      images: [{ url: ogImage, width: 1200, height: 630, alt: firstSlide?.alt || 'Tyre Rescue — Mobile Tyre Fitting' }],
+    },
+  };
+}
 
 // JSON-LD structured data for LocalBusiness
 const jsonLd = {
@@ -122,67 +140,42 @@ const jsonLd = {
   },
 };
 
-// FAQ structured data for rich results
-const faqJsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'How quickly can you get to me in an emergency?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'For emergency callouts in Glasgow and Edinburgh city centres, we typically arrive within 45 minutes. For surrounding areas, arrival times vary based on distance but we always provide an accurate ETA when you book.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'What areas do you cover?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'We cover Glasgow, Edinburgh, and all surrounding areas across Central Scotland. This includes Paisley, East Kilbride, Hamilton, Livingston, Falkirk, Stirling, Perth, Dundee, and more.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Do you fit tyres I have already purchased?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'We primarily fit tyres purchased through our service to ensure quality and warranty coverage. If you have tyres you need fitted, please call us to discuss.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'What payment methods do you accept?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'We accept all major credit and debit cards, Apple Pay, and Google Pay through our secure online checkout. Payment is taken at the time of booking.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Can you repair my puncture or do I need a new tyre?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Our fitters assess every puncture on arrival. Repairs are only possible when the damage is in the central tread area and the tyre structure is intact. Sidewall damage or multiple punctures require replacement.',
-      },
-    },
-  ],
-};
 
-export default function Page() {
+
+export default async function Page() {
+  // Fetch active hero slides from DB
+  const dbSlides = await db
+    .select({
+      id: homepageMedia.id,
+      src: homepageMedia.src,
+      alt: homepageMedia.alt,
+      eyebrow: homepageMedia.eyebrow,
+      title: homepageMedia.title,
+      caption: homepageMedia.caption,
+      objectPosition: homepageMedia.objectPosition,
+      animationStyle: homepageMedia.animationStyle,
+    })
+    .from(homepageMedia)
+    .where(eq(homepageMedia.isActive, true))
+    .orderBy(asc(homepageMedia.sortOrder));
+
+  // Only pass DB slides if there are any; otherwise undefined falls back to hardcoded
+  const heroSlides: HomeSlide[] | undefined =
+    dbSlides.length > 0
+      ? dbSlides.map((s, i) => ({
+          ...s,
+          caption: s.caption ?? undefined,
+          priority: i === 0,
+        }))
+      : undefined;
+
   return (
     <>
-      <HomePage />
+      <HomePage heroSlides={heroSlides} />
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <script
         type="application/ld+json"
@@ -201,6 +194,27 @@ export default function Page() {
           },
         }) }}
       />
+      {dbSlides.length > 0 && (
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'ImageGallery',
+              name: 'Tyre Rescue Mobile Tyre Fitting Gallery',
+              description: 'Professional mobile tyre fitting service images showcasing our team, equipment, and service quality.',
+              image: dbSlides.map((s) => ({
+                '@type': 'ImageObject',
+                url: s.src,
+                name: s.title,
+                description: s.alt,
+                caption: s.caption ?? s.alt,
+              })),
+            }),
+          }}
+        />
+      )}
     </>
   );
 }

@@ -23,6 +23,7 @@ const navItems = [
   { label: 'Testimonials', href: '/admin/testimonials' },
   { label: 'FAQ', href: '/admin/faq' },
   { label: 'Content', href: '/admin/content' },
+  { label: 'Hero Media', href: '/admin/hero-media' },
   { label: 'Cookies', href: '/admin/cookies' },
   { label: 'Diagnostics', href: '/admin/diagnostics' },
   { label: 'Audit Log', href: '/admin/audit' },

@@ -13,6 +13,33 @@ const RADIUS = '24px';
 const TRANSITION_MS = 500; // fade + scale duration
 const AUTOPLAY_MS = 5000;
 
+/** Get transform values based on animation style */
+function getSlideTransform(animStyle: string | undefined, isActive: boolean) {
+  switch (animStyle) {
+    case 'fadePan':
+      return {
+        transform: isActive ? 'translateX(0)' : 'translateX(3%)',
+        transition: `opacity ${TRANSITION_MS}ms ease-in-out, transform ${TRANSITION_MS * 4}ms ease-out`,
+      };
+    case 'crossfade':
+      return {
+        transform: 'scale(1)',
+        transition: `opacity ${TRANSITION_MS * 1.5}ms ease-in-out`,
+      };
+    case 'fade':
+      return {
+        transform: 'scale(1)',
+        transition: `opacity ${TRANSITION_MS}ms ease-in-out`,
+      };
+    case 'fadeZoom':
+    default:
+      return {
+        transform: isActive ? 'scale(1.05)' : 'scale(1)',
+        transition: `opacity ${TRANSITION_MS}ms ease-in-out, transform ${TRANSITION_MS * 6}ms ease-out`,
+      };
+  }
+}
+
 /* ── Badge chip data ─────────────────────────────────────── */
 const badges = [
   { label: '24/7 Callout', top: '16px', left: '16px' },
@@ -58,6 +85,7 @@ function HomeImageShowcaseInner({ slides = homeSlides }: HomeImageShowcaseProps)
       {slides.map((slide, i) => {
         const isActive = i === activeIndex;
         const hasError = errors.has(slide.id);
+        const animTransform = getSlideTransform(slide.animationStyle, isActive);
 
         return (
           <Box
@@ -66,8 +94,7 @@ function HomeImageShowcaseInner({ slides = homeSlides }: HomeImageShowcaseProps)
             inset={0}
             style={{
               opacity: isActive ? 1 : 0,
-              transform: isActive ? 'scale(1.05)' : 'scale(1)',
-              transition: `opacity ${TRANSITION_MS}ms ease-in-out, transform ${TRANSITION_MS * 6}ms ease-out`,
+              ...animTransform,
               zIndex: isActive ? 1 : 0,
               pointerEvents: isActive ? 'auto' : 'none',
             }}
