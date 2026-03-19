@@ -17,6 +17,7 @@ import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
 import { colorTokens, inputProps, textareaProps } from '@/lib/design-tokens';
+import { HomeImageShowcase } from '@/components/home/HomeImageShowcase';
 import { cities } from '@/lib/cities';
 import { services as seoServices, serviceCities } from '@/lib/areas';
 
@@ -926,6 +927,12 @@ export function HomePage() {
                   bg={colors.accent}
                   zIndex={2}
                 />
+
+                {/* Hero image showcase */}
+                <Box mb={{ base: 6, lg: 8 }} style={{ animation: 'slideInRight 0.8s ease-out 0.2s both' }}>
+                  <HomeImageShowcase />
+                </Box>
+
                 <Box
                   style={{
                     filter: 'drop-shadow(0 0 6px rgba(249,115,22,0.3)) drop-shadow(0 0 18px rgba(249,115,22,0.12))',
