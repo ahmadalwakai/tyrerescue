@@ -58,6 +58,29 @@ export async function PATCH(
     updates.rim = Number(m[3]);
   }
 
+  // If stock changed, log an inventory movement
+  if (d.stockNew !== undefined) {
+    const [current] = await db
+      .select({ stockNew: tyreProducts.stockNew })
+      .from(tyreProducts)
+      .where(eq(tyreProducts.id, id))
+      .limit(1);
+    const oldStock = current?.stockNew ?? 0;
+    const delta = d.stockNew - oldStock;
+    if (delta !== 0) {
+      await db.update(tyreProducts).set(updates).where(eq(tyreProducts.id, id));
+      await db.insert(inventoryMovements).values({
+        tyreId: id,
+        movementType: delta > 0 ? 'restock' : 'adjustment',
+        quantityDelta: delta,
+        stockAfter: d.stockNew,
+        actorUserId: session.user.id,
+        note: `Admin stock edit: ${oldStock} → ${d.stockNew}`,
+      });
+      return NextResponse.json({ success: true });
+    }
+  }
+
   await db.update(tyreProducts).set(updates).where(eq(tyreProducts.id, id));
 
   return NextResponse.json({ success: true });
@@ -79,12 +102,18 @@ export async function DELETE(
 
   const { id } = await props.params;
 
-  await db.transaction(async (tx) => {
-    await tx.update(bookingTyres).set({ tyreId: null }).where(eq(bookingTyres.tyreId, id));
-    await tx.update(inventoryReservations).set({ tyreId: null }).where(eq(inventoryReservations.tyreId, id));
-    await tx.update(inventoryMovements).set({ tyreId: null }).where(eq(inventoryMovements.tyreId, id));
-    await tx.delete(tyreProducts).where(eq(tyreProducts.id, id));
-  });
+  try {
+    await db.transaction(async (tx) => {
+      await tx.update(bookingTyres).set({ tyreId: null }).where(eq(bookingTyres.tyreId, id));
+      await tx.update(inventoryReservations).set({ tyreId: null }).where(eq(inventoryReservations.tyreId, id));
+      await tx.update(inventoryMovements).set({ tyreId: null }).where(eq(inventoryMovements.tyreId, id));
+      await tx.delete(tyreProducts).where(eq(tyreProducts.id, id));
+    });
+  } catch (err) {
+    console.error('[DELETE /api/admin/inventory] failed:', err);
+    const msg = err instanceof Error ? err.message : 'Unknown DB error';
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true });
 }

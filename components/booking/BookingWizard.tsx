@@ -207,13 +207,32 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const quoteLoaderTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Stable ref so the hydration effect runs only on mount
+  const initialStateRef = useRef(initialState);
 
   // Restore state from localStorage on mount (fall back to sessionStorage for migration)
   useEffect(() => {
+    const entry = initialStateRef.current;
     const draft = loadDraft();
     if (draft) {
-      setState({ ...initialWizardState, ...draft.state });
-      if (!initialStep && draft.currentStep) {
+      // If the caller passed explicit initialState (e.g. bookingType), those
+      // fields take priority over the stale draft so that entry intent is
+      // never hijacked by an old session.
+      const merged = { ...initialWizardState, ...draft.state, ...entry };
+      setState(merged);
+
+      // Only restore the draft's currentStep when:
+      // 1. No explicit initialStep was given by the page, AND
+      // 2. The draft's booking intent is compatible with this entry:
+      //    - If the page declared a bookingType → draft must match it
+      //    - If no bookingType declared (e.g. /book) → draft must NOT be
+      //      emergency (prevents stale emergency sessions from hijacking
+      //      the scheduled entry).
+      const draftTypeMatchesEntry = entry?.bookingType
+        ? draft.state.bookingType === entry.bookingType
+        : draft.state.bookingType !== 'emergency';
+
+      if (!initialStep && draft.currentStep && draftTypeMatchesEntry) {
         setCurrentStep(draft.currentStep);
       }
     } else {
@@ -222,13 +241,14 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
         const old = sessionStorage.getItem('tyrerescue_booking_wizard');
         if (old) {
           const parsed = JSON.parse(old);
-          if (parsed.state) setState({ ...initialWizardState, ...parsed.state });
+          if (parsed.state) setState({ ...initialWizardState, ...parsed.state, ...entry });
           if (!initialStep && parsed.currentStep) setCurrentStep(parsed.currentStep);
           sessionStorage.removeItem('tyrerescue_booking_wizard');
         }
       } catch { /* ignore */ }
     }
     setIsHydrated(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialStep]);
 
   // Debounced save to localStorage (300ms)

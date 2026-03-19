@@ -168,7 +168,7 @@ export function TyreDetailClient({ tyre, relatedTyres }: Props) {
                         mt={3}
                         disabled={tyre.stockNew === 0 && !tyre.isOrderOnly}
                       >
-                        <NextLink href={tyre.isOrderOnly ? `/book?tyreId=${tyre.id}` : `/emergency?tyreId=${tyre.id}`}>
+                        <NextLink href={`/book?tyreId=${tyre.id}`}>
                           {tyre.isOrderOnly ? 'Order This Tyre' : 'Book This Tyre'}
                         </NextLink>
                       </Button>

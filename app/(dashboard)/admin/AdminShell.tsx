@@ -24,6 +24,7 @@ const navItems = [
   { label: 'FAQ', href: '/admin/faq' },
   { label: 'Content', href: '/admin/content' },
   { label: 'Cookies', href: '/admin/cookies' },
+  { label: 'Diagnostics', href: '/admin/diagnostics' },
   { label: 'Audit Log', href: '/admin/audit' },
   { label: 'Analytics', href: '/admin/analytics' },
 ];

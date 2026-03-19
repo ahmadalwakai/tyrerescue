@@ -193,11 +193,14 @@ export function StockClient() {
     setSavingId(id);
     try {
       const res = await fetch(`/api/admin/inventory/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
       flash('Removed', true);
       fetchItems(page);
-    } catch {
-      flash('Delete failed', false);
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Delete failed', false);
     } finally {
       setSavingId(null);
     }

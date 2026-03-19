@@ -122,7 +122,7 @@ export function TyreCard({ tyre }: Props) {
           width="100%"
           disabled={!available}
         >
-          <NextLink href={isOrderOnly ? `/book?tyreId=${tyre.id}` : `/emergency?tyreId=${tyre.id}`}>
+          <NextLink href={`/book?tyreId=${tyre.id}`}>
             {isOrderOnly ? 'Order This Tyre' : 'Book This Tyre'}
           </NextLink>
         </Button>
