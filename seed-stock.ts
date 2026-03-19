@@ -14,6 +14,7 @@
 import { db } from './lib/db';
 import { tyreCatalogue, tyreProducts } from './lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { getDefaultPriceString } from './lib/inventory/default-price-map';
 
 /* ─── Budget stock data (owner-provided) ──────────────────── */
 interface StockEntry {
@@ -116,13 +117,7 @@ function loadIndexFor(width: number, aspect: number): number {
   return 100;
 }
 
-function suggestedPrice(rim: number): string {
-  const prices: Record<number, number> = {
-    10: 48, 12: 48, 13: 48, 14: 48, 15: 58, 16: 58, 17: 72, 18: 72,
-    19: 92, 20: 92, 21: 115,
-  };
-  return String(prices[rim] ?? 58);
-}
+
 
 /* ─── Main ────────────────────────────────────────────────── */
 async function main() {
@@ -216,7 +211,7 @@ async function main() {
         noiseDb: 71,
         runFlat: false,
         tier: 'budget',
-        suggestedPriceNew: suggestedPrice(rim),
+        suggestedPriceNew: getDefaultPriceString(rim),
         slug,
       }).onConflictDoNothing().returning();
 

@@ -100,8 +100,43 @@ export interface DuplicateGroup {
 // ── Constants ──────────────────────────────────────────────
 
 export const LOW_STOCK_THRESHOLD = 3;
+export const OUT_OF_STOCK_THRESHOLD = 0;
 export const SIZE_REGEX = /^(\d{3})\/(\d{2,3})\/R(\d{2})(C?)$/i;
 export const SIZE_REGEX_NO_ASPECT = /^(\d{3})\/R(\d{2})(C?)$/i;
+
+// ── Stock Badge (for UI) ───────────────────────────────────
+
+export interface StockBadge {
+  text: string;
+  level: StockLevel | 'order-only';
+}
+
+/**
+ * Derive a user-facing stock badge from raw stock numbers.
+ * Centralises the threshold logic used by TyreCard, TyreDetailClient,
+ * StepTyreSelection, and cron scans.
+ */
+export function getStockBadge(
+  stock: number | null,
+  isLocalStock: boolean | null,
+  opts?: { isOrderOnly?: boolean; leadTimeLabel?: string | null },
+): StockBadge & { subtext?: string } {
+  if (opts?.isOrderOnly) {
+    return {
+      text: 'Order Only',
+      level: 'order-only',
+      subtext: opts.leadTimeLabel || '2\u20133 working days',
+    };
+  }
+  const s = sanitizeInt(stock);
+  if (isLocalStock && s > LOW_STOCK_THRESHOLD) {
+    return { text: 'In Stock', level: 'in-stock' };
+  }
+  if (isLocalStock && s >= 1) {
+    return { text: 'Low Stock', level: 'low-stock' };
+  }
+  return { text: 'Out of Stock', level: 'out-of-stock' };
+}
 
 // ── Pure stock math ────────────────────────────────────────
 
@@ -163,6 +198,14 @@ export function validateSizeFormat(sizeDisplay: string): { valid: boolean; error
     return { valid: true };
   }
   return { valid: false, error: `Invalid size format: "${trimmed}". Expected NNN/NN/RNN or NNN/RNN` };
+}
+
+/**
+ * Check whether a product counts as low stock for alert purposes.
+ * Used by cron/low-stock-scan and admin dashboards.
+ */
+export function isLowStock(stockNew: number | null): boolean {
+  return sanitizeInt(stockNew) <= LOW_STOCK_THRESHOLD;
 }
 
 export function validatePrice(priceNew: string | null): { valid: boolean; error?: string } {

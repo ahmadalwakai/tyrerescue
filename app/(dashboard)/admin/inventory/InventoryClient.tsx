@@ -7,9 +7,10 @@ import {
 } from '@chakra-ui/react';
 import { colorTokens as c, inputProps, selectProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { WIDTH_OPTIONS, RIM_OPTIONS_STANDARD } from '@/lib/inventory/tyre-options';
 
-const WIDTHS = [155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285];
-const RIMS = [13, 14, 15, 16, 17, 18, 19, 20, 21];
+const WIDTHS = WIDTH_OPTIONS;
+const RIMS = RIM_OPTIONS_STANDARD;
 
 interface CatalogueItem {
   catalogueId: string;

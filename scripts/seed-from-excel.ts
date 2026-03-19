@@ -4,6 +4,7 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { eq, and, sql as sqlFn, isNull } from 'drizzle-orm';
 import * as schema from '../lib/db/schema';
 import { parseStockExcel } from '../lib/inventory/parse-stock-excel';
+import { getDefaultPriceString } from '../lib/inventory/default-price-map';
 
 const sqlClient = neon(process.env.DATABASE_URL!);
 const db = drizzle(sqlClient, { schema });
@@ -44,14 +45,7 @@ function loadIndex(width: number, aspect: number): number {
   if (vol < 140) return 97;
   return 100;
 }
-function suggestedPrice(rim: number, tier: 'budget' | 'mid' | 'premium'): string {
-  const prices: Record<string, Record<string, number>> = {
-    budget:  { '13': 48, '14': 48, '15': 58, '16': 58, '17': 72, '18': 72, '19': 92, '20': 92, '21': 115, '22': 130, '23': 145 },
-    mid:     { '13': 72, '14': 72, '15': 85, '16': 85, '17': 105, '18': 105, '19': 135, '20': 135, '21': 160, '22': 180, '23': 200 },
-    premium: { '13': 95, '14': 95, '15': 115, '16': 115, '17': 145, '18': 145, '19': 175, '20': 175, '21': 210, '22': 240, '23': 270 },
-  };
-  return String(prices[tier][String(rim)] ?? 85);
-}
+
 
 const tiers = [
   { key: 'budget' as const,  pool: budgetBrands,  wetGrip: 'B', fuelEff: 'C' },
@@ -78,7 +72,7 @@ async function ensureCatalogueForSize(width: number, aspect: number, rim: number
       noiseDb: 70,
       runFlat: false,
       tier: t.key,
-      suggestedPriceNew: suggestedPrice(rim, t.key),
+      suggestedPriceNew: getDefaultPriceString(rim, t.key),
       slug,
     }).onConflictDoNothing().returning();
     if (row) created.push(row);

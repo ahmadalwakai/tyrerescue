@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { tyreProducts, bookingTyres, inventoryReservations, inventoryMovements } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
-
-const SIZE_RE = /^(\d+)\/(\d+)\/R(\d+)(c?)$/i;
+import { Pool } from '@neondatabase/serverless';
+import { parseTyreSize } from '@/lib/inventory/tyre-size';
+import { adjustStock } from '@/lib/inventory/stock-service';
 
 const updateSchema = z.object({
   priceNew: z.union([z.string(), z.number()]).nullable().optional(),
@@ -41,44 +42,46 @@ export async function PATCH(
   const d = parsed.data;
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (d.priceNew !== undefined) updates.priceNew = d.priceNew != null ? String(d.priceNew) : null;
-  if (d.stockNew !== undefined) updates.stockNew = d.stockNew;
   if (d.stockOrdered !== undefined) updates.stockOrdered = d.stockOrdered;
   if (d.isLocalStock !== undefined) updates.isLocalStock = d.isLocalStock;
   if (d.availableNew !== undefined) updates.availableNew = d.availableNew;
   if (d.brand !== undefined) updates.brand = d.brand;
   if (d.season !== undefined) updates.season = d.season;
   if (d.sizeDisplay !== undefined) {
-    const m = d.sizeDisplay.match(SIZE_RE);
-    if (!m) {
-      return NextResponse.json({ error: 'Invalid size format. Use e.g. 205/55/R16' }, { status: 400 });
+    const sizeResult = parseTyreSize(d.sizeDisplay);
+    if (!sizeResult.valid) {
+      return NextResponse.json({ error: sizeResult.error }, { status: 400 });
     }
-    updates.sizeDisplay = d.sizeDisplay;
-    updates.width = Number(m[1]);
-    updates.aspect = Number(m[2]);
-    updates.rim = Number(m[3]);
+    updates.sizeDisplay = sizeResult.size.sizeDisplay;
+    updates.width = sizeResult.size.width;
+    updates.aspect = sizeResult.size.aspect;
+    updates.rim = sizeResult.size.rim;
   }
 
-  // If stock changed, log an inventory movement
+  // If stock changed, use the shared stock service (transactional + movement logging)
   if (d.stockNew !== undefined) {
-    const [current] = await db
-      .select({ stockNew: tyreProducts.stockNew })
-      .from(tyreProducts)
-      .where(eq(tyreProducts.id, id))
-      .limit(1);
-    const oldStock = current?.stockNew ?? 0;
-    const delta = d.stockNew - oldStock;
-    if (delta !== 0) {
-      await db.update(tyreProducts).set(updates).where(eq(tyreProducts.id, id));
-      await db.insert(inventoryMovements).values({
-        tyreId: id,
-        movementType: delta > 0 ? 'restock' : 'adjustment',
-        quantityDelta: delta,
-        stockAfter: d.stockNew,
-        actorUserId: session.user.id,
-        note: `Admin stock edit: ${oldStock} → ${d.stockNew}`,
-      });
-      return NextResponse.json({ success: true });
+    const result = await adjustStock({
+      productId: id,
+      newStock: d.stockNew,
+      reason: 'manual-edit',
+      actor: 'admin',
+      actorUserId: session.user.id,
+      note: `Admin stock edit`,
+    });
+
+    if (!result.success) {
+      const status = result.code === 'NOT_FOUND' ? 404 : 400;
+      return NextResponse.json({ error: result.error }, { status });
     }
+
+    // Apply remaining non-stock field updates
+    const nonStockUpdates = { ...updates };
+    delete nonStockUpdates.stockNew;
+    if (Object.keys(nonStockUpdates).length > 1) { // > 1 because updatedAt is always there
+      await db.update(tyreProducts).set(nonStockUpdates).where(eq(tyreProducts.id, id));
+    }
+
+    return NextResponse.json({ success: true });
   }
 
   await db.update(tyreProducts).set(updates).where(eq(tyreProducts.id, id));
@@ -88,8 +91,9 @@ export async function PATCH(
 
 /**
  * DELETE /api/admin/inventory/[id]
- * Remove a product — nullifies FK references in booking_tyres,
- * inventory_reservations, and inventory_movements first.
+ * Remove a product — blocks if there are active unreleased reservations.
+ * Nullifies FK references in booking_tyres, inventory_reservations,
+ * and inventory_movements before deleting.
  */
 export async function DELETE(
   _request: Request,
@@ -103,12 +107,41 @@ export async function DELETE(
   const { id } = await props.params;
 
   try {
-    await db.transaction(async (tx) => {
-      await tx.update(bookingTyres).set({ tyreId: null }).where(eq(bookingTyres.tyreId, id));
-      await tx.update(inventoryReservations).set({ tyreId: null }).where(eq(inventoryReservations.tyreId, id));
-      await tx.update(inventoryMovements).set({ tyreId: null }).where(eq(inventoryMovements.tyreId, id));
-      await tx.delete(tyreProducts).where(eq(tyreProducts.id, id));
-    });
+    // Check for active unreleased reservations
+    const [activeRes] = await db
+      .select({ id: inventoryReservations.id })
+      .from(inventoryReservations)
+      .where(
+        and(
+          eq(inventoryReservations.tyreId, id),
+          eq(inventoryReservations.released, false),
+        )
+      )
+      .limit(1);
+
+    if (activeRes) {
+      return NextResponse.json(
+        { error: 'Cannot delete product with active unreleased reservations. Release or expire them first.' },
+        { status: 409 },
+      );
+    }
+
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('UPDATE booking_tyres SET tyre_id = NULL WHERE tyre_id = $1', [id]);
+      await client.query('UPDATE inventory_reservations SET tyre_id = NULL WHERE tyre_id = $1', [id]);
+      await client.query('UPDATE inventory_movements SET tyre_id = NULL WHERE tyre_id = $1', [id]);
+      await client.query('DELETE FROM tyre_products WHERE id = $1', [id]);
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
+      await pool.end();
+    }
   } catch (err) {
     console.error('[DELETE /api/admin/inventory] failed:', err);
     const msg = err instanceof Error ? err.message : 'Unknown DB error';

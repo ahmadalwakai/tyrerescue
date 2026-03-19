@@ -24,7 +24,6 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { Pool } from '@neondatabase/serverless';
 import { getSurgeMultiplier } from '@/lib/surge';
-import { isBudgetTyre } from '@/lib/budget-inventory';
 
 // Input validation schema
 const tyreSelectionSchema = z.object({
@@ -310,7 +309,7 @@ export async function POST(
       const preOrderMap = new Map<string, boolean>();
       for (const selection of data.tyreSelections) {
         const tyre = tyreMap.get(selection.tyreId)!;
-        preOrderMap.set(selection.tyreId, !isBudgetTyre(tyre.sizeDisplay) || (selection.isPreOrder ?? false));
+        preOrderMap.set(selection.tyreId, !tyre.isLocalStock || (selection.isPreOrder ?? false));
       }
 
       for (const selection of data.tyreSelections) {
@@ -484,7 +483,7 @@ export async function POST(
       // Build corrected selections with backend-enforced isPreOrder
       const correctedSelections = data.tyreSelections.map((sel) => {
         const t = tyreMap.get(sel.tyreId)!;
-        return { ...sel, isPreOrder: !isBudgetTyre(t.sizeDisplay) || (sel.isPreOrder ?? false) };
+        return { ...sel, isPreOrder: !t.isLocalStock || (sel.isPreOrder ?? false) };
       });
       const hasSpecialOrder = correctedSelections.some((s) => s.isPreOrder);
 

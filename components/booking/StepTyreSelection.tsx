@@ -25,6 +25,7 @@ import { formatPrice } from '@/lib/pricing-engine';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { API } from '@/lib/api-endpoints';
+import { LOW_STOCK_THRESHOLD } from '@/lib/inventory/stock-domain';
 
 interface TyreProduct {
   id: string;
@@ -276,7 +277,6 @@ export function StepTyreSelection({
                 const inStock = tyre.availableNew && tyre.priceNew !== null && tyre.stockNew >= 1;
                 const cartItem = cart.find((t) => t.tyreId === tyre.id);
                 const isInCart = !!cartItem;
-                const lowStock = tyre.stockNew >= 1 && tyre.stockNew <= 2;
                 const seasonColor = tyre.season === 'summer' ? 'orange' : tyre.season === 'winter' ? 'blue' : 'gray';
                 const tierColor = tyre.tier === 'premium' ? 'orange' : tyre.tier === 'budget' ? 'gray' : 'cyan';
                 const canAdd = totalItems < 4 && tyre.priceNew !== null;

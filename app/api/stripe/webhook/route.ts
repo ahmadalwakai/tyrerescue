@@ -5,12 +5,11 @@ import {
   bookingStatusHistory,
   payments,
   inventoryReservations,
-  inventoryMovements,
   tyreProducts,
   bookingTyres,
   pricingRules,
 } from '@/lib/db/schema';
-import { eq, and, sql, inArray } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { constructWebhookEvent, stripe } from '@/lib/stripe';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import {
@@ -20,6 +19,7 @@ import {
 } from '@/lib/email/templates';
 import { v4 as uuidv4 } from 'uuid';
 import type Stripe from 'stripe';
+import { logInventoryMovement, releaseReservations } from '@/lib/inventory/stock-service';
 
 // Disable body parsing - we need the raw body for signature verification
 export const runtime = 'nodejs';
@@ -202,23 +202,21 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     .where(eq(bookingTyres.bookingId, bookingId));
 
   for (const bookingTyre of tyresInBooking) {
+    if (!bookingTyre.tyreId) continue;
     const [tyre] = await db
       .select()
       .from(tyreProducts)
-      .where(eq(tyreProducts.id, bookingTyre.tyreId!))
+      .where(eq(tyreProducts.id, bookingTyre.tyreId))
       .limit(1);
 
     if (tyre) {
-      const stockAfter = tyre.stockNew ?? 0;
-
-      await db.insert(inventoryMovements).values({
-        id: uuidv4(),
+      await logInventoryMovement({
         tyreId: bookingTyre.tyreId,
         bookingId,
         movementType: 'sale',
         quantityDelta: -bookingTyre.quantity,
-        stockAfter,
-        actorUserId: null,
+        stockAfter: tyre.stockNew ?? 0,
+        actor: 'webhook',
         note: `Sold via booking ${refNumber}`,
       });
     }
@@ -429,6 +427,24 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
       actorRole: 'system',
       note: `Payment failed: ${paymentIntent.last_payment_error?.message || 'Unknown error'}`,
     });
+
+    // Release reserved stock back to inventory
+    try {
+      const releaseResult = await releaseReservations({
+        bookingId,
+        restoreStock: true,
+        reason: 'cancel',
+        actor: 'webhook',
+        note: `Payment failed for ${paymentIntentId}`,
+      });
+      if (releaseResult.success) {
+        console.log(`Released ${releaseResult.releasedCount} reservations for failed payment ${paymentIntentId}`);
+      } else {
+        console.error(`Failed to release reservations for ${bookingId}:`, releaseResult.error);
+      }
+    } catch (releaseError) {
+      console.error(`Error releasing reservations for ${bookingId}:`, releaseError);
+    }
   }
 
   console.log(`Payment failure recorded for ${paymentIntentId}`);

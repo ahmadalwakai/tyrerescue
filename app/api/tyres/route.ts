@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { tyreCatalogue, tyreProducts } from '@/lib/db/schema';
 import { eq, and, gte, lte, ilike, sql, desc, asc } from 'drizzle-orm';
-import { classifyTyre } from '@/lib/budget-inventory';
 
 export async function GET(request: NextRequest) {
   try {
@@ -95,12 +94,15 @@ export async function GET(request: NextRequest) {
     const tyresWithPrices = tyres.map((tyre) => {
       const tier = tyre.tier ?? 'mid';
       const stock = tyre.stockNew ?? 0;
-      const classification = classifyTyre(tyre.sizeDisplay, stock);
+      const isLocal = tyre.isLocalStock ?? false;
       return {
         ...tyre,
         priceNew: tyre.priceNew ? parseFloat(tyre.priceNew) : null,
         tier,
-        ...classification,
+        isDirectSale: isLocal && stock > 0,
+        isOrderOnly: !isLocal,
+        orderType: isLocal ? 'immediate' as const : 'special_order' as const,
+        leadTimeLabel: isLocal ? null : '2\u20133 working days',
       };
     });
 

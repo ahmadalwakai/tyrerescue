@@ -6,6 +6,7 @@ import { createRefund } from '@/lib/stripe';
 import { executeTransition, BookingStatus } from '@/lib/state-machine';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { refundIssued } from '@/lib/email/templates';
+import { restoreBookingStock } from '@/lib/inventory/stock-service';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -125,6 +126,18 @@ export async function POST(request: Request, { params }: Props) {
           updatedAt: new Date(),
         })
         .where(eq(bookings.id, booking.id));
+
+      // Restore stock for refunded booking
+      const stockResult = await restoreBookingStock({
+        bookingId: booking.id,
+        reason: 'refund',
+        actor: 'admin',
+        actorUserId: session.user.id,
+        note: `Refund ${stripeRefund.id}: stock restored`,
+      });
+      if (!stockResult.success) {
+        console.error('[refund] stock restore failed:', stockResult.error);
+      }
 
       // Send refund email to customer
       try {

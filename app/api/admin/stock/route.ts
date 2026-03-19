@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { tyreCatalogue, tyreProducts } from '@/lib/db/schema';
 import { eq, ilike, or, and, sql, asc, desc } from 'drizzle-orm';
 import { z } from 'zod';
+import { getDefaultPriceString } from '@/lib/inventory/default-price-map';
 
 /* ─── Helpers ──────────────────────────────────────────── */
 
@@ -20,13 +21,6 @@ function loadIndexFor(width: number, aspect: number): number {
   if (vol < 125) return 94;
   if (vol < 140) return 97;
   return 100;
-}
-function suggestedPrice(rim: number): string {
-  const p: Record<number, number> = {
-    10: 48, 12: 48, 13: 48, 14: 48, 15: 58, 16: 58,
-    17: 72, 18: 72, 19: 92, 20: 92, 21: 115,
-  };
-  return String(p[rim] ?? 58);
 }
 function makeSlug(...parts: (string | number)[]): string {
   return parts
@@ -238,7 +232,7 @@ export async function POST(request: Request) {
       noiseDb: 71,
       runFlat: false,
       tier,
-      suggestedPriceNew: suggestedPrice(rim),
+      suggestedPriceNew: getDefaultPriceString(rim),
       slug,
     }).onConflictDoNothing().returning();
 
@@ -249,7 +243,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to resolve catalogue entry' }, { status: 500 });
   }
 
-  const price = priceNew != null ? String(priceNew) : suggestedPrice(rim);
+  const price = priceNew != null ? String(priceNew) : getDefaultPriceString(rim);
   const prodSlug = makeSlug(brand, pattern, width, aspect, `r${rim}`, Date.now());
 
   const [product] = await db.insert(tyreProducts).values({

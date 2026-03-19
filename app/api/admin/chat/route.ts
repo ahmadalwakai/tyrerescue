@@ -13,7 +13,7 @@ import {
 import { eq, and, sql, gte, desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { askGroq } from '@/lib/groq';
-import { applyStockUpdate } from '@/lib/inventory/stock-update';
+import { adjustStock } from '@/lib/inventory/stock-service';
 
 /* ────────── Zod schemas ────────── */
 
@@ -315,13 +315,19 @@ async function handleStockUpdateConfirm(
     const computedNewStock = Math.max(0, liveStock - item.quantitySold);
 
     try {
-      const updated = await applyStockUpdate({
+      const result = await adjustStock({
         productId: item.productId,
         newStock: computedNewStock,
+        reason: 'manual-edit',
+        actor: 'admin',
         actorUserId: userId,
         note: `Chatbot sale: -${item.quantitySold} (${current.brand} ${current.sizeDisplay})`,
       });
-      results.push(`${current.brand} ${current.sizeDisplay}: ${liveStock} → ${updated.stockNew}`);
+      if (result.success) {
+        results.push(`${current.brand} ${current.sizeDisplay}: ${liveStock} → ${result.stockAfter}`);
+      } else {
+        errors.push(`Failed to update ${current.brand} ${current.sizeDisplay}: ${result.error}`);
+      }
     } catch (err) {
       errors.push(`Failed to update ${current.brand} ${current.sizeDisplay}: ${err instanceof Error ? err.message : 'unknown error'}`);
     }

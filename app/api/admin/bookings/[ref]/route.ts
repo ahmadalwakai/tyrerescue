@@ -6,6 +6,7 @@ import { executeTransition, BookingStatus, getValidNextStates, isValidTransition
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { bookingCancelled } from '@/lib/email/templates/booking-cancelled';
 import { jobCancelled, jobUpdated } from '@/lib/email/templates';
+import { restoreBookingStock } from '@/lib/inventory/stock-service';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -299,6 +300,20 @@ export async function PATCH(request: NextRequest, { params }: Props) {
         actorRole: 'admin',
         note: note || `Admin override: status changed`,
       });
+    }
+
+    // Restore stock on cancellation
+    if (newStatus === 'cancelled') {
+      const stockResult = await restoreBookingStock({
+        bookingId: booking.id,
+        reason: 'cancel',
+        actor: 'admin',
+        actorUserId: session.user.id,
+        note: `Booking ${booking.refNumber} cancelled: stock restored`,
+      });
+      if (!stockResult.success) {
+        console.error('[cancel] stock restore failed:', stockResult.error);
+      }
     }
 
     // Send cancellation email to customer

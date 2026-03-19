@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { db, bookings } from '@/lib/db';
-import { desc, sql, ilike, eq, and, gte, lte, or } from 'drizzle-orm';
+import { bookingTyres, tyreProducts } from '@/lib/db/schema';
+import { desc, sql, ilike, eq, and, gte, lte, or, exists } from 'drizzle-orm';
 import { Heading, Box } from '@chakra-ui/react';
 import { BookingsTable } from './BookingsTable';
 
@@ -33,7 +34,19 @@ export default async function AdminBookingsPage({ searchParams }: Props) {
       or(
         ilike(bookings.refNumber, searchTerm),
         ilike(bookings.customerName, searchTerm),
-        ilike(bookings.customerEmail, searchTerm)
+        ilike(bookings.customerEmail, searchTerm),
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(bookingTyres)
+            .innerJoin(tyreProducts, eq(bookingTyres.tyreId, tyreProducts.id))
+            .where(
+              and(
+                eq(bookingTyres.bookingId, bookings.id),
+                ilike(tyreProducts.sizeDisplay, searchTerm),
+              ),
+            ),
+        ),
       )
     );
   }

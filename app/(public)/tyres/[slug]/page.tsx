@@ -4,7 +4,6 @@ import { db } from '@/lib/db';
 import { tyreProducts } from '@/lib/db/schema';
 import { eq, and, ne, or } from 'drizzle-orm';
 import { TyreDetailClient } from './TyreDetailClient';
-import { classifyTyre } from '@/lib/budget-inventory';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -103,7 +102,14 @@ export default async function TyreDetailPage({ params }: Props) {
   // Build JSON-LD Product schema
   const priceNew = tyre.priceNew ? parseFloat(tyre.priceNew) : null;
 
-  const classification = classifyTyre(tyre.sizeDisplay, tyre.stockNew ?? 0);
+  const isLocal = tyre.isLocalStock ?? false;
+  const stock = tyre.stockNew ?? 0;
+  const classification = {
+    isDirectSale: isLocal && stock > 0,
+    isOrderOnly: !isLocal,
+    orderType: isLocal ? 'immediate' as const : 'special_order' as const,
+    leadTimeLabel: isLocal ? null : '2\u20133 working days',
+  };
 
   const offersArray = [];
   if (priceNew && tyre.availableNew) {
@@ -175,7 +181,7 @@ export default async function TyreDetailPage({ params }: Props) {
     stockNew: tyre.stockNew ?? 0,
     availableNew: tyre.availableNew ?? false,
     slug: tyre.slug,
-    ...classifyTyre(tyre.sizeDisplay, tyre.stockNew ?? 0),
+    ...classification,
   };
 
   const relatedData = relatedTyres.map((t) => ({

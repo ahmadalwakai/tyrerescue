@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { inventoryReservations, tyreProducts } from '@/lib/db/schema';
-import { eq, and, lte, sql } from 'drizzle-orm';
+import { inventoryReservations } from '@/lib/db/schema';
+import { eq, and, lte } from 'drizzle-orm';
+import { releaseReservations } from '@/lib/inventory/stock-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,9 +12,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Find expired, unreleased reservations
+  // Find expired, unreleased reservation IDs
   const expired = await db
-    .select()
+    .select({ id: inventoryReservations.id })
     .from(inventoryReservations)
     .where(
       and(
@@ -22,23 +23,25 @@ export async function GET(request: Request) {
       )
     );
 
-  let releasedCount = 0;
-
-  for (const reservation of expired) {
-    // Restore stock
-    await db
-      .update(tyreProducts)
-      .set({ stockNew: sql`${tyreProducts.stockNew} + ${reservation.quantity}` })
-      .where(eq(tyreProducts.id, reservation.tyreId!));
-
-    // Mark as released
-    await db
-      .update(inventoryReservations)
-      .set({ released: true })
-      .where(eq(inventoryReservations.id, reservation.id));
-
-    releasedCount++;
+  if (expired.length === 0) {
+    return NextResponse.json({ released: 0 });
   }
 
-  return NextResponse.json({ released: releasedCount });
+  const result = await releaseReservations({
+    reservationIds: expired.map(r => r.id),
+    restoreStock: true,
+    reason: 'quote-release',
+    actor: 'cron',
+    note: 'Cron: expired reservation release',
+  });
+
+  if (!result.success) {
+    console.error('[cron/release-reservations] failed:', result.error);
+    return NextResponse.json({ error: result.error }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    released: result.releasedCount,
+    restored: result.restoredProducts.length,
+  });
 }

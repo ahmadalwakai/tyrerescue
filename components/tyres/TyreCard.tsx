@@ -3,6 +3,7 @@
 import { Box, VStack, HStack, Text, Button, Link as ChakraLink } from '@chakra-ui/react';
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { getStockBadge as getStockBadgeBase } from '@/lib/inventory/stock-domain';
 
 interface Tyre {
   id: string;
@@ -33,23 +34,23 @@ const SEASON_LABELS: Record<string, string> = {
   allseason: 'All Season',
 };
 
+const BADGE_COLORS: Record<string, string> = {
+  'in-stock': '#22C55E',
+  'low-stock': c.accent,
+  'out-of-stock': '#A1A1AA',
+  'order-only': c.accent,
+};
+
 function getStockBadge(tyre: Tyre): { text: string; color: string; subtext?: string } {
-  if (tyre.isOrderOnly) {
-    return {
-      text: 'Order Only',
-      color: c.accent,
-      subtext: tyre.leadTimeLabel || '2\u20133 working days',
-    };
-  }
-  const stock = tyre.stockNew;
-  const isLocal = tyre.isLocalStock;
-  if (isLocal && stock && stock >= 3) {
-    return { text: 'In Stock', color: '#22C55E' };
-  }
-  if (isLocal && stock && stock >= 1) {
-    return { text: 'Low Stock', color: c.accent };
-  }
-  return { text: 'Out of Stock', color: '#A1A1AA' };
+  const badge = getStockBadgeBase(tyre.stockNew, tyre.isLocalStock, {
+    isOrderOnly: tyre.isOrderOnly,
+    leadTimeLabel: tyre.leadTimeLabel,
+  });
+  return {
+    text: badge.text,
+    color: BADGE_COLORS[badge.level] ?? '#A1A1AA',
+    subtext: badge.subtext,
+  };
 }
 
 export function TyreCard({ tyre }: Props) {

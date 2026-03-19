@@ -3,33 +3,14 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { tyreCatalogue, tyreProducts } from '@/lib/db/schema';
 import { eq, and, ilike } from 'drizzle-orm';
+import { parseTyreSize, type ParsedTyreSize } from '@/lib/inventory/tyre-size';
+import { getDefaultPriceString } from '@/lib/inventory/default-price-map';
 
 /* ─── Size parsing ─────────────────────────────────────── */
 
-interface ParsedRow {
-  sizeDisplay: string;
-  width: number;
-  aspect: number;
-  rim: number;
-  isCommercial: boolean;
+interface ParsedRow extends ParsedTyreSize {
   quantity: number;
   rowIndex: number;
-}
-
-/** Parse a tyre size string like "195/60/R16", "155/R13", "215/65/R16C" */
-function parseSizeString(raw: string): Omit<ParsedRow, 'quantity' | 'rowIndex'> | null {
-  const s = raw.trim().toUpperCase();
-  const m = s.match(/^(\d+)\/(?:(\d+)\/)?R(\d+)(C?)$/);
-  if (!m) return null;
-  const width = Number(m[1]);
-  const aspect = m[2] ? Number(m[2]) : 0;
-  const rim = Number(m[3]);
-  const isCommercial = m[4] === 'C';
-  if (width < 100 || width > 400 || rim < 10 || rim > 26) return null;
-  if (m[2] && (aspect < 0 || aspect > 100)) return null;
-  const rimStr = `R${rim}${isCommercial ? 'C' : ''}`;
-  const sizeDisplay = aspect > 0 ? `${width}/${aspect}/${rimStr}` : `${width}/${rimStr}`;
-  return { sizeDisplay, width, aspect, rim, isCommercial };
 }
 
 /* ─── CSV parsing ──────────────────────────────────────── */
@@ -86,13 +67,6 @@ function loadIndexFor(width: number, aspect: number): number {
   if (vol < 125) return 94;
   if (vol < 140) return 97;
   return 100;
-}
-function suggestedPrice(rim: number): string {
-  const p: Record<number, number> = {
-    10: 48, 12: 48, 13: 48, 14: 48, 15: 58, 16: 58,
-    17: 72, 18: 72, 19: 92, 20: 92, 21: 115,
-  };
-  return String(p[rim] ?? 58);
 }
 function makeSlug(...parts: (string | number)[]): string {
   return parts
@@ -190,11 +164,12 @@ export async function POST(request: Request) {
   const fileDuplicates = new Map<string, number[]>(); // sizeDisplay → row numbers
 
   for (const { size, qty, row } of rawRows) {
-    const parsed = parseSizeString(size);
-    if (!parsed) {
-      invalidRows.push({ row, raw: size, reason: 'Unrecognised tyre size format' });
+    const result = parseTyreSize(size);
+    if (!result.valid) {
+      invalidRows.push({ row, raw: size, reason: result.error });
       continue;
     }
+    const parsed = result.size;
     // Track in-file duplicates
     const existing = fileDuplicates.get(parsed.sizeDisplay);
     if (existing) {
@@ -273,7 +248,7 @@ export async function POST(request: Request) {
           noiseDb: 71,
           runFlat: false,
           tier: 'budget',
-          suggestedPriceNew: suggestedPrice(row.rim),
+          suggestedPriceNew: getDefaultPriceString(row.rim),
           slug,
         }).onConflictDoNothing().returning();
         if (inserted) catRow = inserted;
@@ -302,7 +277,7 @@ export async function POST(request: Request) {
         fuelEfficiency: 'C',
         noiseDb: 71,
         runFlat: false,
-        priceNew: suggestedPrice(row.rim),
+        priceNew: getDefaultPriceString(row.rim),
         stockNew: row.quantity,
         stockOrdered: 0,
         isLocalStock: true,
