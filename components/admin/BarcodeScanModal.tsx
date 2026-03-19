@@ -32,7 +32,7 @@ interface ScanResponse {
   error?: string;
 }
 
-type ScanState = 'idle' | 'camera' | 'scanning' | 'result' | 'error';
+type ScanState = 'idle' | 'camera-init' | 'camera' | 'scanning' | 'result' | 'error';
 
 /* ─── Barcode detector (native + polyfill) ─────────────── */
 interface DetectorResult { rawValue: string; format: string }
@@ -42,19 +42,15 @@ interface DetectorLike {
 
 const BARCODE_FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'code_93', 'itf', 'codabar'] as const;
 
-/** Returns a BarcodeDetector — native if available, otherwise the ZXing WASM polyfill (lazy-loaded). */
 async function getDetector(): Promise<DetectorLike> {
-  // Try native first (Chromium, Android WebView)
   if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
     try {
       const native = new (window as /* eslint-disable-line @typescript-eslint/no-explicit-any */ any).BarcodeDetector({
         formats: [...BARCODE_FORMATS],
       });
-      // Smoke-test: some browsers expose the constructor but throw on detect()
       if (typeof native.detect === 'function') return native as DetectorLike;
     } catch { /* native broken — fall through to polyfill */ }
   }
-  // Polyfill: barcode-detector (ZXing WASM) — dynamic import keeps main bundle small
   const { BarcodeDetector: Polyfill } = await import('barcode-detector');
   return new Polyfill({ formats: [...BARCODE_FORMATS] }) as unknown as DetectorLike;
 }
@@ -65,13 +61,14 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
   const [manualInput, setManualInput] = useState('');
   const [result, setResult] = useState<ScanResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [cameraError, setCameraError] = useState('');
+  const [cameraStatus, setCameraStatus] = useState('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const detectorRef = useRef<DetectorLike | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const captureInputRef = useRef<HTMLInputElement>(null);
 
   /* ─── Cleanup camera ─────────────────────────────────── */
   const stopCamera = useCallback(() => {
@@ -85,7 +82,6 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
     }
   }, []);
 
-  /* Cleanup on unmount or close */
   useEffect(() => {
     if (!open) {
       stopCamera();
@@ -93,7 +89,7 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
       setManualInput('');
       setResult(null);
       setErrorMsg('');
-      setCameraError('');
+      setCameraStatus('');
     }
     return () => stopCamera();
   }, [open, stopCamera]);
@@ -123,55 +119,91 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
     }
   };
 
-  /* ─── Camera scan ────────────────────────────────────── */
+  /* ─── Live camera scan ───────────────────────────────── */
   const startCamera = async () => {
-    setCameraError('');
+    setCameraStatus('Requesting camera access…');
+    setState('camera-init');
+
+    // 1. Get stream
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
       });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setState('camera');
-
-      // Get a detector (native or WASM polyfill)
-      try {
-        detectorRef.current = await getDetector();
-      } catch {
-        setCameraError('Barcode detection engine failed to load. Use image upload or enter the barcode manually.');
-        return;
-      }
-
-      const detector = detectorRef.current;
-      scanTimerRef.current = setInterval(async () => {
-        if (!videoRef.current || videoRef.current.readyState < 2) return;
-        try {
-          const results = await detector.detect(videoRef.current);
-          if (results.length > 0) {
-            const barcode = results[0].rawValue;
-            stopCamera();
-            lookupBarcode(barcode);
-          }
-        } catch { /* detection frame failed — retry next interval */ }
-      }, 400);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
-      if (msg.includes('Permission') || msg.includes('NotAllowed')) {
-        setCameraError('Camera permission denied. Please allow camera access and try again.');
-      } else if (msg.includes('NotFound') || msg.includes('DevicesNotFound')) {
-        setCameraError('No camera found on this device.');
-      } else {
-        setCameraError(`Camera error: ${msg}`);
-      }
       setState('idle');
+      if (msg.includes('Permission') || msg.includes('NotAllowed')) {
+        setCameraStatus('Camera permission denied. Allow camera access in your browser settings and try again.');
+      } else if (msg.includes('NotFound') || msg.includes('DevicesNotFound')) {
+        setCameraStatus('No camera found on this device.');
+      } else {
+        setCameraStatus(`Camera error: ${msg}`);
+      }
+      return;
     }
+
+    streamRef.current = stream;
+
+    // 2. Attach stream to video element and wait for actual playback
+    const video = videoRef.current;
+    if (!video) {
+      stopCamera();
+      setState('idle');
+      setCameraStatus('Video element not available. Please try again.');
+      return;
+    }
+
+    video.srcObject = stream;
+    setCameraStatus('Starting video…');
+
+    try {
+      await video.play();
+      // Wait until at least one frame is decoded (readyState >= 2)
+      if (video.readyState < 2) {
+        await new Promise<void>((resolve, reject) => {
+          const onData = () => { video.removeEventListener('loadeddata', onData); resolve(); };
+          video.addEventListener('loadeddata', onData);
+          setTimeout(() => { video.removeEventListener('loadeddata', onData); reject(new Error('timeout')); }, 5000);
+        });
+      }
+    } catch {
+      stopCamera();
+      setState('idle');
+      setCameraStatus('Camera stream started but video failed to play. Try again or use Take Photo / Upload Image.');
+      return;
+    }
+
+    // 3. Load barcode detector
+    setCameraStatus('Loading barcode detector…');
+    try {
+      detectorRef.current = await getDetector();
+    } catch {
+      stopCamera();
+      setState('idle');
+      setCameraStatus('Barcode detection engine failed to load. Use Take Photo or Upload Image instead.');
+      return;
+    }
+
+    // 4. Everything ready — show camera and start scanning loop
+    setCameraStatus('');
+    setState('camera');
+
+    const detector = detectorRef.current;
+    scanTimerRef.current = setInterval(async () => {
+      if (!videoRef.current || videoRef.current.readyState < 2) return;
+      try {
+        const results = await detector.detect(videoRef.current);
+        if (results.length > 0) {
+          stopCamera();
+          lookupBarcode(results[0].rawValue);
+        }
+      } catch { /* single frame detection failed — retry next interval */ }
+    }, 400);
   };
 
-  /* ─── Image upload fallback ──────────────────────────── */
-  const handleImageUpload = async (file: File) => {
+  /* ─── Image file handler (gallery or capture) ────────── */
+  const handleImageFile = async (file: File) => {
     setState('scanning');
     try {
       const detector = detectorRef.current ?? await getDetector();
@@ -201,10 +233,11 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
 
   /* ─── Scan again ─────────────────────────────────────── */
   const scanAgain = () => {
+    stopCamera();
     setState('idle');
     setResult(null);
     setErrorMsg('');
-    setCameraError('');
+    setCameraStatus('');
     setManualInput('');
   };
 
@@ -231,6 +264,13 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
     borderRadius: 6, padding: '8px 18px', fontSize: 13, fontWeight: 500, cursor: 'pointer',
   };
 
+  /* Shared file input handler */
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) handleImageFile(f);
+    e.target.value = '';
+  };
+
   return (
     <div style={overlayStyle} onClick={(e) => { if (e.target === e.currentTarget) { stopCamera(); onClose(); } }}>
       <div style={modalStyle}>
@@ -242,30 +282,35 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
           </button>
         </Flex>
 
+        {/* Hidden file inputs — gallery vs capture are separate */}
+        <input ref={galleryInputRef} type="file" accept="image/*"
+          style={{ display: 'none' }} onChange={onFileChange} />
+        <input ref={captureInputRef} type="file" accept="image/*" capture="environment"
+          style={{ display: 'none' }} onChange={onFileChange} />
+
         {/* ── Idle: choose method ─────────────────────────── */}
         {state === 'idle' && (
           <VStack gap={3} align="stretch">
             <Text fontSize="13px" color={c.muted}>
               Scan a tyre barcode to look up stock. Choose a method:
             </Text>
-            <HStack gap={2} wrap="wrap">
+            <Flex gap={2} wrap="wrap">
               <button style={btnPrimary} onClick={startCamera}>
                 📷 Live Camera
               </button>
-              <button style={btnSecondary} onClick={() => fileInputRef.current?.click()}>
+              <button style={btnSecondary} onClick={() => captureInputRef.current?.click()}>
+                📸 Take Photo
+              </button>
+              <button style={btnSecondary} onClick={() => galleryInputRef.current?.click()}>
                 🖼️ Upload Image
               </button>
-            </HStack>
-            <input
-              ref={fileInputRef}
-              type="file" accept="image/*" capture="environment"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleImageUpload(f);
-                if (fileInputRef.current) fileInputRef.current.value = '';
-              }}
-            />
+            </Flex>
+            {cameraStatus && (
+              <Box p={3} borderRadius="6px" bg="rgba(245,158,11,0.1)" borderWidth="1px"
+                borderColor="rgba(245,158,11,0.3)">
+                <Text fontSize="12px" color="#F59E0B">{cameraStatus}</Text>
+              </Box>
+            )}
             <Box mt={2} pt={3} borderTopWidth="1px" borderColor={c.border}>
               <Text fontSize="12px" color={c.muted} mb={1}>Or enter barcode manually:</Text>
               <Flex gap={2}>
@@ -286,7 +331,29 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
           </VStack>
         )}
 
-        {/* ── Camera view ─────────────────────────────────── */}
+        {/* ── Camera initializing ─────────────────────────── */}
+        {state === 'camera-init' && (
+          <VStack gap={3} align="stretch">
+            <Box borderRadius="8px" overflow="hidden" bg="black" position="relative">
+              <video
+                ref={videoRef}
+                style={{ width: '100%', height: 280, objectFit: 'cover' }}
+                playsInline muted autoPlay
+              />
+              <Flex position="absolute" inset="0" align="center" justify="center" bg="rgba(0,0,0,0.6)">
+                <VStack gap={2}>
+                  <Spinner size="md" color="white" />
+                  <Text fontSize="12px" color="white">{cameraStatus || 'Initializing…'}</Text>
+                </VStack>
+              </Flex>
+            </Box>
+            <button style={btnSecondary} onClick={() => { stopCamera(); setState('idle'); setCameraStatus(''); }}>
+              Cancel
+            </button>
+          </VStack>
+        )}
+
+        {/* ── Camera live ─────────────────────────────────── */}
         {state === 'camera' && (
           <VStack gap={3} align="stretch">
             <Box borderRadius="8px" overflow="hidden" bg="black" position="relative">
@@ -295,16 +362,9 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
                 style={{ width: '100%', height: 280, objectFit: 'cover' }}
                 playsInline muted autoPlay
               />
-              {/* Scanning indicator overlay */}
               <Box position="absolute" top="50%" left="10%" right="10%" h="2px" bg={c.accent} opacity={0.7}
                 style={{ animation: 'pulse 1.5s ease-in-out infinite' }} />
             </Box>
-            {cameraError && (
-              <Box p={3} borderRadius="6px" bg="rgba(245,158,11,0.1)" borderWidth="1px"
-                borderColor="rgba(245,158,11,0.3)">
-                <Text fontSize="12px" color="#F59E0B">{cameraError}</Text>
-              </Box>
-            )}
             <Text fontSize="12px" color={c.muted} textAlign="center">
               Point camera at the barcode label. Detection is automatic.
             </Text>
@@ -357,7 +417,6 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
         {/* ── Result ──────────────────────────────────────── */}
         {state === 'result' && result && (
           <VStack gap={4} align="stretch">
-            {/* Barcode value */}
             <Box p={3} borderRadius="6px" bg={c.card}>
               <Text fontSize="11px" color={c.muted} textTransform="uppercase" letterSpacing="0.05em">
                 Barcode
@@ -367,7 +426,6 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
               </Text>
             </Box>
 
-            {/* Found / Not Found */}
             {!result.found ? (
               <Box p={4} borderRadius="8px" bg="rgba(239,68,68,0.08)" borderWidth="1px"
                 borderColor="rgba(239,68,68,0.25)">
@@ -378,7 +436,6 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
               </Box>
             ) : (
               <>
-                {/* Match info */}
                 <Box p={3} borderRadius="6px"
                   bg={result.matchType === 'barcode' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)'}
                   borderWidth="1px"
@@ -391,7 +448,6 @@ export function BarcodeScanModal({ open, onClose }: { open: boolean; onClose: ()
                   <Text fontSize="11px" color={c.muted} mt={1}>{result.message}</Text>
                 </Box>
 
-                {/* Result items */}
                 {result.items.map((item) => (
                   <Box key={item.id} p={4} borderRadius="8px" bg={c.card}
                     borderWidth="1px" borderColor={c.border}>

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { tyreProducts } from '@/lib/db/schema';
+import { tyreProducts, bookingTyres, inventoryReservations, inventoryMovements } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -65,7 +65,8 @@ export async function PATCH(
 
 /**
  * DELETE /api/admin/inventory/[id]
- * Deactivate a product (remove from tyreProducts) — id = tyreProducts.id
+ * Remove a product — nullifies FK references in booking_tyres,
+ * inventory_reservations, and inventory_movements first.
  */
 export async function DELETE(
   _request: Request,
@@ -77,7 +78,13 @@ export async function DELETE(
   }
 
   const { id } = await props.params;
-  await db.delete(tyreProducts).where(eq(tyreProducts.id, id));
+
+  await db.transaction(async (tx) => {
+    await tx.update(bookingTyres).set({ tyreId: null }).where(eq(bookingTyres.tyreId, id));
+    await tx.update(inventoryReservations).set({ tyreId: null }).where(eq(inventoryReservations.tyreId, id));
+    await tx.update(inventoryMovements).set({ tyreId: null }).where(eq(inventoryMovements.tyreId, id));
+    await tx.delete(tyreProducts).where(eq(tyreProducts.id, id));
+  });
 
   return NextResponse.json({ success: true });
 }
