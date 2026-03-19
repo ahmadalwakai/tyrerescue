@@ -95,7 +95,7 @@ export function CartSummary({ cart, onChange, compact = false }: CartSummaryProp
                 </Text>
                 {item.isPreOrder && (
                   <Text fontSize="xs" color={c.accent} mt={1}>
-                    Pre-order — 2-3 working days
+                    Special order {'\u2013'} 2{'\u2013'}3 working days
                   </Text>
                 )}
               </Box>

@@ -36,7 +36,7 @@ const SEASON_LABELS: Record<string, string> = {
 
 const BADGE_COLORS: Record<string, string> = {
   'in-stock': '#22C55E',
-  'low-stock': c.accent,
+  'low-stock': '#22C55E',
   'out-of-stock': '#A1A1AA',
   'order-only': c.accent,
 };
@@ -57,7 +57,6 @@ export function TyreCard({ tyre }: Props) {
   const price = tyre.priceNew;
   const available = tyre.availableNew;
   const stockBadge = getStockBadge(tyre);
-  const isOrderOnly = tyre.isOrderOnly ?? false;
 
   if (!available || price === null) {
     return null;
@@ -124,7 +123,7 @@ export function TyreCard({ tyre }: Props) {
           disabled={!available}
         >
           <NextLink href={`/book?tyreId=${tyre.id}`}>
-            {isOrderOnly ? 'Order This Tyre' : 'Book This Tyre'}
+            Book This Tyre
           </NextLink>
         </Button>
       </VStack>

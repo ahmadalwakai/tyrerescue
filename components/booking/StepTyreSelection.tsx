@@ -25,7 +25,6 @@ import { formatPrice } from '@/lib/pricing-engine';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { API } from '@/lib/api-endpoints';
-import { LOW_STOCK_THRESHOLD } from '@/lib/inventory/stock-domain';
 
 interface TyreProduct {
   id: string;
@@ -322,15 +321,15 @@ export function StepTyreSelection({
 
                         {tyre.isOrderOnly ? (
                           <Badge colorPalette="orange" size="sm">
-                            Order Only — 2–3 Working Days
+                            Special order {'\u2013'} 2{'\u2013'}3 working days
                           </Badge>
                         ) : inStock && tyre.isLocalStock !== false ? (
                           <Badge colorPalette="green" size="sm">
-                            In Stock — Same Day
+                            Available for fitting
                           </Badge>
                         ) : tyre.priceNew ? (
                           <Badge colorPalette="gray" size="sm">
-                            Out of Stock
+                            Out of stock
                           </Badge>
                         ) : (
                           <Badge colorPalette="gray" size="sm">Unavailable</Badge>
@@ -578,7 +577,7 @@ export function StepTyreSelection({
                 How would you like to receive this tyre?
               </Text>
               <Text fontSize="sm" color={c.muted}>
-                {orderPrompt.tyre.brand} {orderPrompt.tyre.pattern} — 2–3 working days
+                {orderPrompt.tyre.brand} {orderPrompt.tyre.pattern} {"\u2013"} 2{"\u2013"}3 working days
               </Text>
               <VStack gap={2}>
                 <Button

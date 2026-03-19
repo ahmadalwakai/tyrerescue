@@ -362,39 +362,40 @@ describe('runDiagnostics', () => {
 // ── getStockBadge ──
 
 describe('getStockBadge', () => {
-  it('returns "In Stock" for local stock above threshold', () => {
+  it('returns "Available for fitting" for local stock above threshold', () => {
     const badge = getStockBadge(5, true);
-    expect(badge.text).toBe('In Stock');
+    expect(badge.text).toBe('Available for fitting');
     expect(badge.level).toBe('in-stock');
   });
 
-  it('returns "Low Stock" for local stock 1-3', () => {
+  it('returns "Available for fitting" with limited stock subtext for local stock 1-3', () => {
     const badge = getStockBadge(2, true);
-    expect(badge.text).toBe('Low Stock');
+    expect(badge.text).toBe('Available for fitting');
     expect(badge.level).toBe('low-stock');
+    expect(badge.subtext).toBe('Limited stock');
   });
 
-  it('returns "Out of Stock" for zero stock', () => {
+  it('returns "Out of stock" for zero stock', () => {
     const badge = getStockBadge(0, true);
-    expect(badge.text).toBe('Out of Stock');
+    expect(badge.text).toBe('Out of stock');
     expect(badge.level).toBe('out-of-stock');
   });
 
-  it('returns "Out of Stock" for null stock', () => {
+  it('returns "Out of stock" for null stock', () => {
     const badge = getStockBadge(null, true);
-    expect(badge.text).toBe('Out of Stock');
+    expect(badge.text).toBe('Out of stock');
     expect(badge.level).toBe('out-of-stock');
   });
 
-  it('returns "Out of Stock" for non-local stock', () => {
+  it('returns "Out of stock" for non-local stock', () => {
     const badge = getStockBadge(10, false);
-    expect(badge.text).toBe('Out of Stock');
+    expect(badge.text).toBe('Out of stock');
     expect(badge.level).toBe('out-of-stock');
   });
 
-  it('returns "Order Only" when isOrderOnly flag set', () => {
+  it('returns "Special order" when isOrderOnly flag set', () => {
     const badge = getStockBadge(0, false, { isOrderOnly: true });
-    expect(badge.text).toBe('Order Only');
+    expect(badge.text).toBe('Special order');
     expect(badge.level).toBe('order-only');
     expect(badge.subtext).toBeDefined();
   });

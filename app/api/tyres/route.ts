@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { tyreCatalogue, tyreProducts } from '@/lib/db/schema';
 import { eq, and, gte, lte, ilike, sql, desc, asc } from 'drizzle-orm';
+import { classifyTyre } from '@/lib/budget-inventory';
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,6 +39,10 @@ export async function GET(request: NextRequest) {
     }
     if (season && season !== 'all') {
       conditions.push(eq(tyreProducts.season, season));
+    }
+    const tier = searchParams.get('tier');
+    if (tier && tier !== 'all') {
+      conditions.push(eq(tyreCatalogue.tier, tier));
     }
     if (minPrice) {
       const minPriceNum = parseFloat(minPrice);
@@ -92,17 +97,14 @@ export async function GET(request: NextRequest) {
       .offset(offset);
 
     const tyresWithPrices = tyres.map((tyre) => {
-      const tier = tyre.tier ?? 'mid';
+      const tierVal = tyre.tier ?? 'mid';
       const stock = tyre.stockNew ?? 0;
-      const isLocal = tyre.isLocalStock ?? false;
+      const classification = classifyTyre(tyre.sizeDisplay, stock, tyre.season, tierVal);
       return {
         ...tyre,
         priceNew: tyre.priceNew ? parseFloat(tyre.priceNew) : null,
-        tier,
-        isDirectSale: isLocal && stock > 0,
-        isOrderOnly: !isLocal,
-        orderType: isLocal ? 'immediate' as const : 'special_order' as const,
-        leadTimeLabel: isLocal ? null : '2\u20133 working days',
+        tier: tierVal,
+        ...classification,
       };
     });
 

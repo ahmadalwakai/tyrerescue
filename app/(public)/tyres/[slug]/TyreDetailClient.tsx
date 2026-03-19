@@ -18,6 +18,7 @@ import {
 } from '@chakra-ui/react';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { getStockBadge as getStockBadgeBase0 } from '@/lib/inventory/stock-domain';
 
 interface TyreData {
   id: string;
@@ -36,6 +37,7 @@ interface TyreData {
   stockNew: number;
   availableNew: boolean;
   slug: string;
+  isLocalStock: boolean | null;
   isOrderOnly: boolean;
   leadTimeLabel: string | null;
 }
@@ -56,22 +58,27 @@ interface Props {
   relatedTyres: RelatedTyre[];
 }
 
-function StockBadge({ stock, isOrderOnly, leadTimeLabel }: { stock: number; isOrderOnly: boolean; leadTimeLabel: string | null }) {
-  if (isOrderOnly) {
-    return (
-      <Box>
-        <Text color={c.accent} fontWeight="semibold">Order Only</Text>
-        <Text fontSize="sm" color={c.muted}>{leadTimeLabel || '2\u20133 working days'}</Text>
-      </Box>
-    );
-  }
-  if (stock === 0) {
-    return <Text color="red.400">Out of Stock</Text>;
-  }
-  if (stock <= 4) {
-    return <Text color={c.accent} fontWeight="semibold">Low Stock ({stock} left)</Text>;
-  }
-  return <Text color="green.400" fontWeight="semibold">In Stock</Text>;
+const BADGE_COLORS: Record<string, string> = {
+  'in-stock': '#22C55E',
+  'low-stock': '#22C55E',
+  'out-of-stock': '#A1A1AA',
+  'order-only': c.accent,
+};
+
+function StockBadge({ stock, isOrderOnly, leadTimeLabel, isLocalStock }: { stock: number; isOrderOnly: boolean; leadTimeLabel: string | null; isLocalStock?: boolean | null }) {
+  const badge = getStockBadgeBase0(stock, isLocalStock ?? null, {
+    isOrderOnly,
+    leadTimeLabel,
+  });
+  const color = BADGE_COLORS[badge.level] ?? '#A1A1AA';
+  return (
+    <Box>
+      <Text color={color} fontWeight="semibold">{badge.text}</Text>
+      {badge.subtext && (
+        <Text fontSize="sm" color={c.muted}>{badge.subtext}</Text>
+      )}
+    </Box>
+  );
 }
 
 function formatPrice(price: number | null): string {
@@ -160,7 +167,7 @@ export function TyreDetailClient({ tyre, relatedTyres }: Props) {
                           {formatPrice(tyre.priceNew)}
                         </Text>
                       </Flex>
-                      <StockBadge stock={tyre.stockNew} isOrderOnly={tyre.isOrderOnly} leadTimeLabel={tyre.leadTimeLabel} />
+                      <StockBadge stock={tyre.stockNew} isOrderOnly={tyre.isOrderOnly} leadTimeLabel={tyre.leadTimeLabel} isLocalStock={tyre.isLocalStock} />
                       <Button
                         asChild
                         colorPalette="orange"
@@ -169,7 +176,7 @@ export function TyreDetailClient({ tyre, relatedTyres }: Props) {
                         disabled={tyre.stockNew === 0 && !tyre.isOrderOnly}
                       >
                         <NextLink href={`/book?tyreId=${tyre.id}`}>
-                          {tyre.isOrderOnly ? 'Order This Tyre' : 'Book This Tyre'}
+                          Book This Tyre
                         </NextLink>
                       </Button>
                     </Box>

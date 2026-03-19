@@ -68,6 +68,7 @@ export function TyresContent() {
   // Filter state
   const [brand, setBrand] = useState(searchParams.get('brand') || 'all');
   const [season, setSeason] = useState(searchParams.get('season') || 'all');
+  const [tier, setTier] = useState(searchParams.get('tier') || 'all');
   const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
 
@@ -96,6 +97,7 @@ export function TyresContent() {
       if (rim) params.set('rim', rim);
       if (brand !== 'all') params.set('brand', brand);
       if (season !== 'all') params.set('season', season);
+      if (tier !== 'all') params.set('tier', tier);
       if (minPrice) params.set('minPrice', minPrice);
       if (maxPrice) params.set('maxPrice', maxPrice);
       params.set('page', page.toString());
@@ -117,7 +119,7 @@ export function TyresContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [width, aspect, rim, brand, season, minPrice, maxPrice, router]);
+  }, [width, aspect, rim, brand, season, tier, minPrice, maxPrice, router]);
 
   // Load initial results if URL has params
   useEffect(() => {
@@ -136,6 +138,7 @@ export function TyresContent() {
     setRim('');
     setBrand('all');
     setSeason('all');
+    setTier('all');
     setMinPrice('');
     setMaxPrice('');
     setTyres([]);
@@ -270,6 +273,22 @@ export function TyresContent() {
                     <option value="summer">Summer</option>
                     <option value="winter">Winter</option>
                     <option value="allseason">All Season</option>
+                  </NativeSelect.Field>
+                </NativeSelect.Root>
+              </Box>
+              <Box minW="150px">
+                <Text fontSize="sm" color={c.muted} mb={1}>
+                  Type
+                </Text>
+                <NativeSelect.Root>
+                  <NativeSelect.Field
+                    value={tier}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTier(e.target.value)}
+                  >
+                    <option value="all">All Types</option>
+                    <option value="budget">Budget</option>
+                    <option value="mid">Mid-Range</option>
+                    <option value="premium">Premium</option>
                   </NativeSelect.Field>
                 </NativeSelect.Root>
               </Box>

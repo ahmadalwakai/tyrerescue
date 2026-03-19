@@ -1,9 +1,10 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
-import { tyreProducts } from '@/lib/db/schema';
+import { tyreProducts, tyreCatalogue } from '@/lib/db/schema';
 import { eq, and, ne, or } from 'drizzle-orm';
 import { TyreDetailClient } from './TyreDetailClient';
+import { classifyTyre } from '@/lib/budget-inventory';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -11,8 +12,32 @@ interface Props {
 
 async function getTyre(slug: string) {
   const [tyre] = await db
-    .select()
+    .select({
+      id: tyreProducts.id,
+      brand: tyreProducts.brand,
+      pattern: tyreProducts.pattern,
+      width: tyreProducts.width,
+      aspect: tyreProducts.aspect,
+      rim: tyreProducts.rim,
+      sizeDisplay: tyreProducts.sizeDisplay,
+      season: tyreProducts.season,
+      speedRating: tyreProducts.speedRating,
+      loadIndex: tyreProducts.loadIndex,
+      wetGrip: tyreProducts.wetGrip,
+      fuelEfficiency: tyreProducts.fuelEfficiency,
+      noiseDb: tyreProducts.noiseDb,
+      runFlat: tyreProducts.runFlat,
+      priceNew: tyreProducts.priceNew,
+      stockNew: tyreProducts.stockNew,
+      stockOrdered: tyreProducts.stockOrdered,
+      isLocalStock: tyreProducts.isLocalStock,
+      availableNew: tyreProducts.availableNew,
+      featured: tyreProducts.featured,
+      slug: tyreProducts.slug,
+      tier: tyreCatalogue.tier,
+    })
     .from(tyreProducts)
+    .leftJoin(tyreCatalogue, eq(tyreCatalogue.id, tyreProducts.catalogueId))
     .where(eq(tyreProducts.slug, slug))
     .limit(1);
 
@@ -102,14 +127,9 @@ export default async function TyreDetailPage({ params }: Props) {
   // Build JSON-LD Product schema
   const priceNew = tyre.priceNew ? parseFloat(tyre.priceNew) : null;
 
-  const isLocal = tyre.isLocalStock ?? false;
   const stock = tyre.stockNew ?? 0;
-  const classification = {
-    isDirectSale: isLocal && stock > 0,
-    isOrderOnly: !isLocal,
-    orderType: isLocal ? 'immediate' as const : 'special_order' as const,
-    leadTimeLabel: isLocal ? null : '2\u20133 working days',
-  };
+  const tierVal = tyre.tier ?? 'mid';
+  const classification = classifyTyre(tyre.sizeDisplay, stock, tyre.season, tierVal);
 
   const offersArray = [];
   if (priceNew && tyre.availableNew) {
@@ -181,6 +201,7 @@ export default async function TyreDetailPage({ params }: Props) {
     stockNew: tyre.stockNew ?? 0,
     availableNew: tyre.availableNew ?? false,
     slug: tyre.slug,
+    isLocalStock: tyre.isLocalStock ?? null,
     ...classification,
   };
 

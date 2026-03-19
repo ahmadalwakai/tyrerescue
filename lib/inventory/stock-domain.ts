@@ -123,19 +123,19 @@ export function getStockBadge(
 ): StockBadge & { subtext?: string } {
   if (opts?.isOrderOnly) {
     return {
-      text: 'Order Only',
+      text: 'Special order',
       level: 'order-only',
       subtext: opts.leadTimeLabel || '2\u20133 working days',
     };
   }
   const s = sanitizeInt(stock);
   if (isLocalStock && s > LOW_STOCK_THRESHOLD) {
-    return { text: 'In Stock', level: 'in-stock' };
+    return { text: 'Available for fitting', level: 'in-stock' };
   }
   if (isLocalStock && s >= 1) {
-    return { text: 'Low Stock', level: 'low-stock' };
+    return { text: 'Available for fitting', level: 'low-stock', subtext: 'Limited stock' };
   }
-  return { text: 'Out of Stock', level: 'out-of-stock' };
+  return { text: 'Out of stock', level: 'out-of-stock' };
 }
 
 // ── Pure stock math ────────────────────────────────────────

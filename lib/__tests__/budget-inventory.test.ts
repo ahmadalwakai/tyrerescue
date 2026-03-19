@@ -120,34 +120,62 @@ describe('getBudgetSizes', () => {
 // ── classifyTyre ──
 
 describe('classifyTyre', () => {
-  it('budget tyre with stock = immediate / direct sale', () => {
-    const result = classifyTyre('205/55/R16', 5);
+  it('approved budget summer tyre with stock = immediate / direct sale', () => {
+    const result = classifyTyre('205/55/R16', 5, 'summer', 'budget');
     expect(result.isDirectSale).toBe(true);
     expect(result.isOrderOnly).toBe(false);
     expect(result.orderType).toBe('immediate');
+    expect(result.isImmediateAvailable).toBe(true);
+    expect(result.isSpecialOrder).toBe(false);
+    expect(result.fulfilmentType).toBe('immediate');
     expect(result.leadTimeLabel).toBeNull();
   });
 
-  it('budget tyre with zero stock = not direct sale, but still not order-only', () => {
-    const result = classifyTyre('205/55/R16', 0);
+  it('approved budget summer tyre with zero stock = special order', () => {
+    const result = classifyTyre('205/55/R16', 0, 'summer', 'budget');
     expect(result.isDirectSale).toBe(false);
-    expect(result.isOrderOnly).toBe(false); // still a budget tyre
-    expect(result.orderType).toBe('immediate');
-    expect(result.leadTimeLabel).toBeNull();
+    expect(result.isOrderOnly).toBe(true);
+    expect(result.orderType).toBe('special_order');
+    expect(result.leadTimeLabel).toBe('2\u20133 working days');
+    expect(result.reason).toBe('No stock available');
   });
 
-  it('non-budget tyre = order-only regardless of stock', () => {
-    const withStock = classifyTyre('275/40/R20', 10);
+  it('approved size but winter season = special order', () => {
+    const result = classifyTyre('205/55/R16', 5, 'winter', 'budget');
+    expect(result.isDirectSale).toBe(false);
+    expect(result.isOrderOnly).toBe(true);
+    expect(result.orderType).toBe('special_order');
+    expect(result.reason).toBe('Not a summer tyre');
+  });
+
+  it('approved size but premium tier = special order', () => {
+    const result = classifyTyre('205/55/R16', 5, 'summer', 'premium');
+    expect(result.isDirectSale).toBe(false);
+    expect(result.isOrderOnly).toBe(true);
+    expect(result.orderType).toBe('special_order');
+    expect(result.reason).toBe('Not budget tier');
+  });
+
+  it('non-approved size = special order regardless of season/tier/stock', () => {
+    const withStock = classifyTyre('275/40/R20', 10, 'summer', 'budget');
     expect(withStock.isDirectSale).toBe(false);
     expect(withStock.isOrderOnly).toBe(true);
     expect(withStock.orderType).toBe('special_order');
     expect(withStock.leadTimeLabel).toBe('2\u20133 working days');
+    expect(withStock.reason).toBe('Size not in approved immediate list');
 
     const noStock = classifyTyre('275/40/R20', 0);
     expect(noStock.isDirectSale).toBe(false);
     expect(noStock.isOrderOnly).toBe(true);
     expect(noStock.orderType).toBe('special_order');
     expect(noStock.leadTimeLabel).toBe('2\u20133 working days');
+  });
+
+  it('missing season/tier params default to special order', () => {
+    const result = classifyTyre('205/55/R16', 5);
+    expect(result.isDirectSale).toBe(false);
+    expect(result.isOrderOnly).toBe(true);
+    expect(result.orderType).toBe('special_order');
   });
 
   it('lead time label uses en-dash, not hyphen', () => {
@@ -163,15 +191,15 @@ describe('Tyre sales policy contracts', () => {
   it('emergency flow must block non-budget tyres', () => {
     // Simulates the policy enforced in StepTyreSelection.handleAddToCart
     const bookingType = 'emergency';
-    const tyre = classifyTyre('275/40/R20', 10);
+    const tyre = classifyTyre('275/40/R20', 10, 'summer', 'budget');
 
     const blocked = bookingType === 'emergency' && tyre.isOrderOnly;
     expect(blocked).toBe(true);
   });
 
-  it('emergency flow allows budget tyres', () => {
+  it('emergency flow allows budget summer tyres with stock', () => {
     const bookingType = 'emergency';
-    const tyre = classifyTyre('205/55/R16', 5);
+    const tyre = classifyTyre('205/55/R16', 5, 'summer', 'budget');
 
     const blocked = bookingType === 'emergency' && tyre.isOrderOnly;
     expect(blocked).toBe(false);
@@ -202,12 +230,12 @@ describe('Tyre sales policy contracts', () => {
     expect(isPreOrder).toBe(true); // respects the flag
   });
 
-  it('no misleading "In Stock" label for non-budget tyres with stock', () => {
-    const tyre = classifyTyre('275/40/R20', 10);
+  it('no misleading availability label for non-budget tyres with stock', () => {
+    const tyre = classifyTyre('275/40/R20', 10, 'summer', 'budget');
     // Even with stock > 0, isDirectSale must be false and isOrderOnly must be true
     expect(tyre.isDirectSale).toBe(false);
     expect(tyre.isOrderOnly).toBe(true);
-    // UI should show "Order Only", never "In Stock"
+    // UI should show "Special order", never "Available for fitting"
     expect(tyre.orderType).toBe('special_order');
   });
 

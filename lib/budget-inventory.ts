@@ -225,21 +225,66 @@ export function getBudgetSizes(): string[] {
   return [..._sizeSet];
 }
 
-/** Derive order classification for a tyre product. */
+export interface TyreClassification {
+  isImmediateAvailable: boolean;
+  isSpecialOrder: boolean;
+  fulfilmentType: 'immediate' | 'special_order';
+  leadTimeLabel: string | null;
+  reason: string;
+  /** @deprecated Use isImmediateAvailable */
+  isDirectSale: boolean;
+  /** @deprecated Use isSpecialOrder */
+  isOrderOnly: boolean;
+  /** @deprecated Use fulfilmentType */
+  orderType: 'immediate' | 'special_order';
+}
+
+/**
+ * Derive fulfilment classification for a tyre product.
+ *
+ * Immediate / direct-fit requires ALL of:
+ *  - size exists in approved budget inventory list
+ *  - season = summer
+ *  - tier = budget (or unset — defaults treated as non-budget)
+ *  - stockNew > 0
+ *
+ * Everything else is bookable as special order (2–3 working days).
+ */
 export function classifyTyre(
   sizeDisplay: string,
   stockNew: number,
-): {
-  isDirectSale: boolean;
-  isOrderOnly: boolean;
-  orderType: 'immediate' | 'special_order';
-  leadTimeLabel: string | null;
-} {
-  const budget = isBudgetTyre(sizeDisplay);
+  season?: string | null,
+  tier?: string | null,
+): TyreClassification {
+  const approvedSize = isBudgetTyre(sizeDisplay);
+  const isSummer = (season ?? '').toLowerCase() === 'summer';
+  const isBudgetTier = (tier ?? '').toLowerCase() === 'budget';
+  const hasStock = (stockNew ?? 0) > 0;
+
+  const immediate = approvedSize && isSummer && isBudgetTier && hasStock;
+
+  let reason: string;
+  if (immediate) {
+    reason = 'Approved budget summer size with stock';
+  } else if (!approvedSize) {
+    reason = 'Size not in approved immediate list';
+  } else if (!isSummer) {
+    reason = 'Not a summer tyre';
+  } else if (!isBudgetTier) {
+    reason = 'Not budget tier';
+  } else {
+    reason = 'No stock available';
+  }
+
   return {
-    isDirectSale: budget && stockNew > 0,
-    isOrderOnly: !budget,
-    orderType: budget ? 'immediate' : 'special_order',
-    leadTimeLabel: budget ? null : '2\u20133 working days',
+    isImmediateAvailable: immediate,
+    isSpecialOrder: !immediate,
+    fulfilmentType: immediate ? 'immediate' : 'special_order',
+    leadTimeLabel: immediate ? null : '2\u20133 working days',
+    reason,
+    // Backwards-compat aliases
+    isDirectSale: immediate,
+    isOrderOnly: !immediate,
+    orderType: immediate ? 'immediate' : 'special_order',
   };
 }
