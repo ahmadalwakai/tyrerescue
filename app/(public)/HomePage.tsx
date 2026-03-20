@@ -15,7 +15,6 @@ import {
 import Link from 'next/link';
 import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
-import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
 import { colorTokens, inputProps, textareaProps } from '@/lib/design-tokens';
 import { HomeImageShowcase } from '@/components/home/HomeImageShowcase';
 import type { HomeSlide } from '@/components/home/homeImageSlides';
@@ -1787,7 +1786,6 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
       <BackToTop />
 
       <Footer />
-      <FloatingContactBar />
     </Box>
   );
 }

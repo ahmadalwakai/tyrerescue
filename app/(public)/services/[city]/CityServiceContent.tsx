@@ -11,7 +11,6 @@ import {
 import Link from 'next/link';
 import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
-import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
 import { colorTokens } from '@/lib/design-tokens';
 import type { City } from '@/lib/cities';
 
@@ -251,7 +250,6 @@ export function CityServiceContent({ city }: { city: City }) {
         </Box>
       </Box>
       <Footer />
-      <FloatingContactBar />
     </Box>
   );
 }

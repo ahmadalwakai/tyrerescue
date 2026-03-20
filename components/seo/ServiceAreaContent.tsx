@@ -10,7 +10,6 @@ import {
 import Link from 'next/link';
 import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
-import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
 import { colorTokens } from '@/lib/design-tokens';
 import type { ServiceSEO, Area } from '@/lib/areas';
 import { services } from '@/lib/areas';
@@ -332,7 +331,6 @@ export function ServiceAreaContent({ service, city, area, allCityAreas }: { serv
         </Box>
       </Box>
       <Footer />
-      <FloatingContactBar />
     </Box>
   );
 }
