@@ -7,7 +7,8 @@ import { CallMeBack } from '@/components/ui/CallMeBack';
 import { BookingReminder } from '@/components/ui/BookingReminder';
 import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { getLocalBusinessSchema, getWebSiteSchema, getEmergencyServiceSchema } from '@/lib/seo/schemas';
+import { getLocalBusinessSchema, getWebSiteSchema } from '@/lib/seo/schemas';
+import Script from 'next/script';
 import './globals.css';
 
 const inter = Inter({
@@ -125,9 +126,12 @@ export default function RootLayout({
       <head>
         <JsonLd data={getLocalBusinessSchema()} />
         <JsonLd data={getWebSiteSchema()} />
-        <JsonLd data={getEmergencyServiceSchema()} />
       </head>
       <body className={inter.className} suppressHydrationWarning>
+        <Script
+          src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js"
+          strategy="afterInteractive"
+        />
         <a
           href="#main-content"
           className="skip-nav"

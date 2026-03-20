@@ -154,6 +154,18 @@ export function Footer() {
             >
               WhatsApp Us
             </ChakraLink>
+            <ChakraLink
+              href="https://www.facebook.com/share/1Bt1ZFNkXN/"
+              target="_blank"
+              rel="noopener noreferrer"
+              fontSize="13px"
+              color="#1877F2"
+              _hover={{ opacity: 0.8 }}
+              transition="opacity 0.2s"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              Facebook
+            </ChakraLink>
           </Flex>
         </Flex>
 

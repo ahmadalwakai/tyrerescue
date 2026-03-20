@@ -21,6 +21,7 @@ import type { HomeSlide } from '@/components/home/homeImageSlides';
 import { cities } from '@/lib/cities';
 import { services as seoServices, serviceCities } from '@/lib/areas';
 import { homepageFAQItems } from '@/lib/content/faq';
+import { TrustpilotReviewCollector } from '@/components/ui/TrustpilotReviewCollector';
 
 const colors = {
   bg: colorTokens.bg,
@@ -1507,6 +1508,10 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
               </Text>
               <Box h="2px" w="60px" bg={colors.accent} mb="60px" />
             </AnimatedSection>
+
+            <Box mb={{ base: 8, md: 10 }}>
+              <TrustpilotReviewCollector />
+            </Box>
 
             <Box
               overflowX="auto"

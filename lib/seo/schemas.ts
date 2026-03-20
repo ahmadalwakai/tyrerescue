@@ -42,6 +42,11 @@ export function getLocalBusinessSchema() {
       { '@type': 'City', name: 'Edinburgh' },
       { '@type': 'City', name: 'Dundee' },
     ],
+    sameAs: [
+      'https://www.facebook.com/share/1Bt1ZFNkXN/',
+      'https://wa.me/447423262955',
+      'https://uk.trustpilot.com/review/tyrerescue.uk',
+    ],
     aggregateRating: {
       '@type': 'AggregateRating',
       ratingValue: '4.8',
