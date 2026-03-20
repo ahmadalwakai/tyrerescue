@@ -381,8 +381,36 @@ body {
   100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); transform: scale(1); }
 }
 
+/* ─── Hero CTA Premium Animations ─────────────────────── */
+
+.hero-cta-call {
+  animation: heroCallGlow 3s ease-in-out infinite;
+}
+
+.hero-cta-whatsapp {
+  animation: heroWaBreath 3.5s ease-in-out infinite;
+}
+
+@keyframes heroCallGlow {
+  0%   { box-shadow: 0 4px 20px rgba(249,115,22,0.35), 0 0 0 0 rgba(249,115,22,0.2), 0 0 0 1px rgba(255,255,255,0.06) inset; }
+  50%  { box-shadow: 0 6px 28px rgba(249,115,22,0.5), 0 0 0 6px rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.08) inset; transform: scale(1.008); }
+  100% { box-shadow: 0 4px 20px rgba(249,115,22,0.35), 0 0 0 0 rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.06) inset; transform: scale(1); }
+}
+
+@keyframes heroWaBreath {
+  0%   { box-shadow: 0 2px 12px rgba(37,211,102,0.08), 0 0 0 0 rgba(37,211,102,0.15); }
+  50%  { box-shadow: 0 3px 16px rgba(37,211,102,0.15), 0 0 0 5px rgba(37,211,102,0); }
+  100% { box-shadow: 0 2px 12px rgba(37,211,102,0.08), 0 0 0 0 rgba(37,211,102,0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .call-now-btn { animation: none !important; }
+  .hero-cta-call,
+  .hero-cta-emergency,
+  .hero-cta-schedule,
+  .hero-cta-whatsapp { animation: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
   .floating-call-btn { animation: none !important; }
   .floating-wa-btn { animation: none !important; }
   .floating-top-btn { transition: opacity 0.1s !important; transform: none !important; }

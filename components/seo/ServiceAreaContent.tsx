@@ -84,35 +84,107 @@ export function ServiceAreaContent({ service, city, area, allCityAreas }: { serv
               {service.name} in {area.name} ({area.postcode}). We typically reach customers near {area.nearestLandmark} in approximately {estimatedArrival} minutes from our Glasgow base. Available 24 hours a day, 7 days a week.
             </Text>
 
-            <Flex gap={3} mt={10} direction={{ base: 'column', md: 'row' }} flexWrap="wrap">
+            <Flex gap="14px" mt={10} direction="column" maxW={{ md: '480px' }}>
+              <ChakraLink
+                href="tel:01412660690"
+                className="hero-cta-call"
+                display="inline-flex"
+                alignItems="center"
+                justifyContent="center"
+                gap="10px"
+                w="100%"
+                h={{ base: '58px', md: '60px' }}
+                bg="linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
+                color="white"
+                fontSize={{ base: '18px', md: '20px' }}
+                fontWeight="800"
+                letterSpacing="0.04em"
+                borderRadius="14px"
+                transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+                boxShadow="0 4px 20px rgba(249,115,22,0.35), 0 0 0 1px rgba(255,255,255,0.06) inset"
+                _hover={{ transform: 'translateY(-2px)', boxShadow: '0 8px 32px rgba(249,115,22,0.5), 0 0 0 1px rgba(255,255,255,0.1) inset' }}
+                _active={{ transform: 'scale(0.97)' }}
+                aria-label="Call now"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                CALL NOW
+              </ChakraLink>
               <ChakraLink
                 asChild
-                px={10} h="56px" display="inline-flex" alignItems="center" justifyContent="center"
-                bg={c.accent} color={c.bg} fontSize="20px" letterSpacing="0.05em" borderRadius="4px"
-                w={{ base: '100%', md: 'auto' }} _hover={{ opacity: 0.9 }}
+                className="hero-cta-emergency"
+                w="100%"
+                h={{ base: '54px', md: '56px' }}
+                display="inline-flex"
+                alignItems="center"
+                justifyContent="center"
+                bg="rgba(249,115,22,0.12)"
+                color={c.accent}
+                fontSize={{ base: '17px', md: '19px' }}
+                fontWeight="700"
+                letterSpacing="0.04em"
+                borderRadius="12px"
+                borderWidth="1.5px"
+                borderColor="rgba(249,115,22,0.4)"
+                transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+                boxShadow="0 2px 12px rgba(249,115,22,0.1)"
+                _hover={{ bg: 'rgba(249,115,22,0.18)', borderColor: c.accent, transform: 'translateY(-1px)', boxShadow: '0 4px 20px rgba(249,115,22,0.2)' }}
+                _active={{ transform: 'scale(0.98)' }}
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 <Link href="/emergency">EMERGENCY CALLOUT</Link>
               </ChakraLink>
               <ChakraLink
                 asChild
-                px={10} h="56px" display="inline-flex" alignItems="center" justifyContent="center"
-                bg="transparent" color={c.text} fontSize="20px" letterSpacing="0.05em" borderRadius="4px"
-                borderWidth="1px" borderColor={c.border} w={{ base: '100%', md: 'auto' }}
-                _hover={{ borderColor: c.accent, color: c.accent }}
-                style={{ fontFamily: 'var(--font-display)' }}
+                className="hero-cta-schedule"
+                w="100%"
+                h={{ base: '54px', md: '56px' }}
+                display="inline-flex"
+                alignItems="center"
+                justifyContent="center"
+                bg="rgba(24,24,27,0.6)"
+                color={c.text}
+                fontSize={{ base: '17px', md: '19px' }}
+                fontWeight="700"
+                letterSpacing="0.04em"
+                borderRadius="12px"
+                borderWidth="1px"
+                borderColor={c.border}
+                transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+                boxShadow="0 2px 12px rgba(0,0,0,0.15)"
+                _hover={{ borderColor: 'rgba(249,115,22,0.5)', color: c.accent, transform: 'translateY(-1px)', boxShadow: '0 4px 20px rgba(249,115,22,0.12)' }}
+                _active={{ transform: 'scale(0.98)' }}
+                style={{ fontFamily: 'var(--font-display)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
               >
                 <Link href="/book">SCHEDULE A FITTING</Link>
               </ChakraLink>
               <ChakraLink
-                href="tel:01412660690"
-                px={10} h="56px" display="inline-flex" alignItems="center" justifyContent="center"
-                bg="transparent" color={c.accent} fontSize="20px" letterSpacing="0.05em" borderRadius="4px"
-                borderWidth="1px" borderColor={c.accent} w={{ base: '100%', md: 'auto' }}
-                _hover={{ bg: 'rgba(249,115,22,0.08)' }}
+                href="https://wa.me/447423262955"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hero-cta-whatsapp"
+                w="100%"
+                h={{ base: '54px', md: '56px' }}
+                display="inline-flex"
+                alignItems="center"
+                justifyContent="center"
+                gap="8px"
+                bg="rgba(37,211,102,0.08)"
+                color="#25D366"
+                fontSize={{ base: '17px', md: '19px' }}
+                fontWeight="700"
+                letterSpacing="0.04em"
+                borderRadius="12px"
+                borderWidth="1px"
+                borderColor="rgba(37,211,102,0.3)"
+                transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+                boxShadow="0 2px 12px rgba(37,211,102,0.08)"
+                _hover={{ bg: 'rgba(37,211,102,0.14)', borderColor: '#25D366', transform: 'translateY(-1px)', boxShadow: '0 4px 20px rgba(37,211,102,0.2)' }}
+                _active={{ transform: 'scale(0.98)' }}
                 style={{ fontFamily: 'var(--font-display)' }}
               >
-                CALL 0141 266 0690
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.174.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.174-.297-.019-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.174-.008-.372-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+                WHATSAPP US
               </ChakraLink>
             </Flex>
           </Container>

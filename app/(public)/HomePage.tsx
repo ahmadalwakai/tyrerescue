@@ -747,111 +747,119 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                 {/* Buttons */}
                 <Flex
                   direction="column"
-                  gap={4}
+                  gap="14px"
                   mt="40px"
+                  maxW={{ md: '480px' }}
                   style={{ animation: 'fadeUp 0.6s ease-out 0.5s both' }}
                 >
-                  {/* Call Now */}
+                  {/* 1. CALL NOW — Primary */}
                   <ChakraLink
                     href={`tel:${PHONE_NUMBER.replace(/\s/g, '')}`}
-                    className="call-now-btn"
+                    className="hero-cta-call"
                     display="inline-flex"
                     alignItems="center"
                     justifyContent="center"
                     gap="10px"
-                    w={{ base: '100%', md: 'fit-content' }}
-                    minW={{ md: '320px' }}
-                    h="56px"
-                    px="40px"
-                    bg="linear-gradient(90deg, #f97316, #ea580c)"
+                    w="100%"
+                    h={{ base: '58px', md: '60px' }}
+                    bg="linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
                     color="white"
                     fontSize={{ base: '18px', md: '20px' }}
-                    fontWeight="bold"
-                    letterSpacing="0.05em"
-                    borderRadius="xl"
-                    transition="all 0.2s"
-                    _hover={{ opacity: 0.92, transform: 'translateY(-1px)' }}
+                    fontWeight="800"
+                    letterSpacing="0.04em"
+                    borderRadius="14px"
+                    transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+                    boxShadow="0 4px 20px rgba(249,115,22,0.35), 0 0 0 1px rgba(255,255,255,0.06) inset"
+                    _hover={{ transform: 'translateY(-2px)', boxShadow: '0 8px 32px rgba(249,115,22,0.5), 0 0 0 1px rgba(255,255,255,0.1) inset' }}
                     _active={{ transform: 'scale(0.97)' }}
                     aria-label="Call now"
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      animation: 'callPulse 2.5s ease-in-out infinite',
-                    }}
+                    style={{ fontFamily: 'var(--font-display)' }}
                   >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                     CALL NOW
                   </ChakraLink>
 
-                  {/* Existing CTA row */}
-                  <Flex gap={{ base: 3, md: 4 }} flexWrap="wrap">
+                  {/* 2. EMERGENCY CALLOUT — Strong secondary */}
                   <ChakraLink
                     asChild
-                    px="40px"
-                    h="56px"
+                    className="hero-cta-emergency"
+                    w="100%"
+                    h={{ base: '54px', md: '56px' }}
                     display="inline-flex"
                     alignItems="center"
                     justifyContent="center"
-                    bg={colors.accent}
-                    color={colors.bg}
-                    fontSize="20px"
-                    letterSpacing="0.05em"
-                    borderRadius="4px"
-                    transition="all 0.2s"
-                    _hover={{ opacity: 0.9 }}
+                    bg="rgba(249,115,22,0.12)"
+                    color={colors.accent}
+                    fontSize={{ base: '17px', md: '19px' }}
+                    fontWeight="700"
+                    letterSpacing="0.04em"
+                    borderRadius="12px"
+                    borderWidth="1.5px"
+                    borderColor="rgba(249,115,22,0.4)"
+                    transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+                    boxShadow="0 2px 12px rgba(249,115,22,0.1)"
+                    _hover={{ bg: 'rgba(249,115,22,0.18)', borderColor: colors.accent, transform: 'translateY(-1px)', boxShadow: '0 4px 20px rgba(249,115,22,0.2)' }}
                     _active={{ transform: 'scale(0.98)' }}
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      animation: 'pulseGlow 2s infinite',
-                    }}
+                    style={{ fontFamily: 'var(--font-display)' }}
                   >
                     <Link href="/emergency">EMERGENCY CALLOUT</Link>
                   </ChakraLink>
+
+                  {/* 3. SCHEDULE A FITTING — Refined planned CTA */}
                   <ChakraLink
                     asChild
-                    px="40px"
-                    h="56px"
+                    className="hero-cta-schedule"
+                    w="100%"
+                    h={{ base: '54px', md: '56px' }}
                     display="inline-flex"
                     alignItems="center"
                     justifyContent="center"
-                    bg="transparent"
+                    bg="rgba(24,24,27,0.6)"
                     color={colors.textPrimary}
-                    fontSize="20px"
-                    letterSpacing="0.05em"
-                    borderRadius="4px"
+                    fontSize={{ base: '17px', md: '19px' }}
+                    fontWeight="700"
+                    letterSpacing="0.04em"
+                    borderRadius="12px"
                     borderWidth="1px"
                     borderColor={colors.border}
-                    transition="all 0.2s"
-                    _hover={{ borderColor: colors.accent, color: colors.accent }}
-                    style={{ fontFamily: 'var(--font-display)' }}
+                    transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+                    boxShadow="0 2px 12px rgba(0,0,0,0.15)"
+                    _hover={{ borderColor: 'rgba(249,115,22,0.5)', color: colors.accent, transform: 'translateY(-1px)', boxShadow: '0 4px 20px rgba(249,115,22,0.12)' }}
+                    _active={{ transform: 'scale(0.98)' }}
+                    style={{ fontFamily: 'var(--font-display)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
                   >
                     <Link href="/book">SCHEDULE A FITTING</Link>
                   </ChakraLink>
+
+                  {/* 4. WHATSAPP US — Distinct green CTA */}
                   <ChakraLink
                     href="https://wa.me/447423262955"
                     target="_blank"
                     rel="noopener noreferrer"
-                    px="32px"
-                    h="56px"
+                    className="hero-cta-whatsapp"
+                    w="100%"
+                    h={{ base: '54px', md: '56px' }}
                     display="inline-flex"
                     alignItems="center"
                     justifyContent="center"
-                    bg="transparent"
+                    gap="8px"
+                    bg="rgba(37,211,102,0.08)"
                     color="#25D366"
-                    fontSize="20px"
-                    letterSpacing="0.05em"
-                    borderRadius="4px"
+                    fontSize={{ base: '17px', md: '19px' }}
+                    fontWeight="700"
+                    letterSpacing="0.04em"
+                    borderRadius="12px"
                     borderWidth="1px"
-                    borderColor="#25D366"
-                    transition="all 0.2s"
-                    _hover={{ bg: 'rgba(37,211,102,0.08)' }}
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      animation: 'fadeUp 0.6s ease-out 0.6s both, neonFlash 4s ease-in-out 2s infinite',
-                    }}
+                    borderColor="rgba(37,211,102,0.3)"
+                    transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+                    boxShadow="0 2px 12px rgba(37,211,102,0.08)"
+                    _hover={{ bg: 'rgba(37,211,102,0.14)', borderColor: '#25D366', transform: 'translateY(-1px)', boxShadow: '0 4px 20px rgba(37,211,102,0.2)' }}
+                    _active={{ transform: 'scale(0.98)' }}
+                    style={{ fontFamily: 'var(--font-display)' }}
                   >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.174.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.174-.297-.019-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.174-.008-.372-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
                     WHATSAPP US
                   </ChakraLink>
-                  </Flex>
                 </Flex>
 
                 {/* Stats */}
