@@ -35,7 +35,7 @@ export function getLocalBusinessSchema() {
       latitude: 55.8547,
       longitude: -4.2206,
     },
-    openingHours: 'Mo-Su 08:00-23:59',
+    openingHours: 'Mo-Su 00:00-23:59',
     priceRange: '£20–£200',
     areaServed: [
       { '@type': 'City', name: 'Glasgow' },
@@ -49,6 +49,52 @@ export function getLocalBusinessSchema() {
       bestRating: '5',
       worstRating: '1',
     },
+    contactPoint: {
+      '@type': 'ContactPoint',
+      telephone: PHONE,
+      contactType: 'emergency',
+      areaServed: ['Glasgow', 'Edinburgh', 'Central Scotland'],
+      availableLanguage: 'English',
+      hoursAvailable: {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        opens: '00:00',
+        closes: '23:59',
+      },
+    },
+    makesOffer: [
+      {
+        '@type': 'Offer',
+        itemOffered: {
+          '@type': 'Service',
+          name: 'Emergency Mobile Tyre Fitting',
+          description: '24/7 emergency tyre replacement at your location across Glasgow and Edinburgh',
+        },
+        price: '49',
+        priceCurrency: 'GBP',
+        availability: 'https://schema.org/InStock',
+      },
+      {
+        '@type': 'Offer',
+        itemOffered: {
+          '@type': 'Service',
+          name: 'Mobile Tyre Fitting',
+          description: 'Scheduled tyre fitting at home, work, or roadside',
+        },
+        price: '20',
+        priceCurrency: 'GBP',
+      },
+      {
+        '@type': 'Offer',
+        itemOffered: {
+          '@type': 'Service',
+          name: 'Puncture Repair',
+          description: 'On-the-spot puncture repair where possible',
+        },
+        price: '25',
+        priceCurrency: 'GBP',
+      },
+    ],
   };
 }
 
@@ -131,6 +177,45 @@ export function getBreadcrumbSchema(
       name: item.name,
       item: `${SITE_URL}${item.path}`,
     })),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  EmergencyService — for layout + /emergency page                   */
+/* ------------------------------------------------------------------ */
+export function getEmergencyServiceSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'EmergencyService',
+    name: 'Tyre Rescue — 24/7 Emergency Tyre Fitting',
+    description:
+      'Emergency mobile tyre fitting service covering Glasgow, Edinburgh and Central Scotland. Average 45 minute response time.',
+    serviceType: 'Emergency Tyre Fitting',
+    provider: {
+      '@type': 'AutoRepair',
+      name: 'Tyre Rescue',
+      url: SITE_URL,
+    },
+    areaServed: [
+      { '@type': 'City', name: 'Glasgow' },
+      { '@type': 'City', name: 'Edinburgh' },
+      { '@type': 'AdministrativeArea', name: 'Central Scotland' },
+    ],
+    availableChannel: {
+      '@type': 'ServiceChannel',
+      serviceUrl: `${SITE_URL}/emergency`,
+      servicePhone: {
+        '@type': 'ContactPoint',
+        telephone: PHONE,
+        contactType: 'emergency',
+      },
+    },
+    hoursAvailable: {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      opens: '00:00',
+      closes: '23:59',
+    },
   };
 }
 

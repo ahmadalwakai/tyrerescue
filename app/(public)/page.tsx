@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     description:
-      '24/7 emergency mobile tyre fitting in Glasgow & Edinburgh. From £49. Average 45 min response. Fully insured fitters. Call 0141 266 0690.',
+      'Flat tyre? Call 0141 266 0690 now. 24/7 emergency mobile tyre fitting Glasgow & Edinburgh. 45 min avg response. From £49. We come to you.',
     keywords: [
       'mobile tyre fitting glasgow',
       'mobile tyre fitting near me',

@@ -7,7 +7,7 @@ import { CallMeBack } from '@/components/ui/CallMeBack';
 import { BookingReminder } from '@/components/ui/BookingReminder';
 import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { getLocalBusinessSchema, getWebSiteSchema } from '@/lib/seo/schemas';
+import { getLocalBusinessSchema, getWebSiteSchema, getEmergencyServiceSchema } from '@/lib/seo/schemas';
 import './globals.css';
 
 const inter = Inter({
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     template: '%s | Tyre Rescue',
   },
   description:
-    '24/7 emergency mobile tyre fitting in Glasgow & Edinburgh. From £49. Average 45 min response. Fully insured fitters. Call 0141 266 0690.',
+    'Flat tyre? Call 0141 266 0690 now. 24/7 emergency mobile tyre fitting Glasgow & Edinburgh. 45 min avg response. From £49. We come to you.',
   keywords: [
     'mobile tyre fitting glasgow',
     'mobile tyre fitting near me',
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Tyre Rescue — 24/7 Mobile Tyre Fitting Glasgow & Edinburgh',
     description:
-      'Emergency mobile tyre fitting at your location. Average 45 min response. Fully insured. Call 0141 266 0690.',
+      'Flat tyre? Call 0141 266 0690. 24/7 emergency mobile tyre fitting Glasgow & Edinburgh. 45 min response.',
     url: 'https://www.tyrerescue.uk',
     siteName: 'Tyre Rescue',
     locale: 'en_GB',
@@ -87,7 +87,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Tyre Rescue — 24/7 Mobile Tyre Fitting',
     description:
-      'Emergency mobile tyre fitting Glasgow & Edinburgh. 45 min response.',
+      'Flat tyre? Call 0141 266 0690. 24/7 emergency mobile tyre fitting Glasgow & Edinburgh. 45 min response.',
     images: ['/images/home/slide-1.png'],
   },
   icons: {
@@ -125,6 +125,7 @@ export default function RootLayout({
       <head>
         <JsonLd data={getLocalBusinessSchema()} />
         <JsonLd data={getWebSiteSchema()} />
+        <JsonLd data={getEmergencyServiceSchema()} />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         <a
