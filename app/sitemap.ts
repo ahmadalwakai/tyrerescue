@@ -5,6 +5,7 @@ import { tyreProducts } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { services, serviceCities, getAreasForCity } from '@/lib/areas';
 import { articles } from '@/lib/blog/articles';
+import { competitors } from '@/lib/data/competitors';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.tyrerescue.uk';
@@ -93,5 +94,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
-  return [...staticRoutes, ...cityRoutes, ...serviceCityRoutes, ...serviceAreaRoutes, ...tyreRoutes, ...blogRoutes];
+  // Competitor comparison routes
+  const compareRoutes: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/compare`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    ...competitors.map((comp) => ({
+      url: `${baseUrl}/compare/${comp.slug}`,
+      lastModified: new Date(comp.lastModified),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    })),
+  ];
+
+  return [...staticRoutes, ...cityRoutes, ...serviceCityRoutes, ...serviceAreaRoutes, ...tyreRoutes, ...blogRoutes, ...compareRoutes];
 }

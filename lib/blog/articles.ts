@@ -580,6 +580,345 @@ Typically 20,000–40,000 miles depending on driving style, vehicle weight, and 
 ### Are part-worn tyres safe?
 We don't recommend part-worn tyres. You don't know their history — they may have been run flat, overheated, or improperly stored. The small cost saving isn't worth the safety risk.`,
   },
+  {
+    slug: 'best-mobile-tyre-fitting-services-scotland',
+    title: 'Best Mobile Tyre Fitting Services in Scotland (2025 Guide)',
+    description:
+      'Looking for the best mobile tyre fitting in Scotland? We compare services, pricing, response times and coverage areas to help you choose the right provider in Glasgow, Edinburgh & beyond.',
+    category: 'fitting',
+    publishDate: '2025-06-20',
+    lastModified: '2025-06-20',
+    readingTime: 12,
+    keywords: [
+      'best mobile tyre fitting scotland',
+      'mobile tyre fitting near me',
+      'mobile tyre fitter glasgow',
+      'mobile tyre fitting edinburgh',
+      'cheapest mobile tyre fitting',
+      'tyre fitting comparison',
+      'mobile tyre fitting reviews',
+    ],
+    relatedSlugs: ['mobile-tyre-fitting-vs-garage', 'emergency-tyre-fitting-glasgow-complete-guide'],
+    featured: false,
+    content: `Getting a flat tyre is stressful enough without having to figure out which tyre fitting service to call. With so many options in Scotland — from national chains to independent mobile fitters — choosing the right provider matters.
+
+This guide compares the top mobile tyre fitting services available in Scotland, focusing on what matters most: response times, pricing, coverage, and customer satisfaction.
+
+## What Is Mobile Tyre Fitting?
+
+Mobile tyre fitting is a service where a qualified fitter comes to your location — home, work, or roadside — to replace, repair, or fit new tyres on your vehicle. Instead of driving to a garage (which is often impossible with a flat tyre), the garage comes to you.
+
+### Benefits of Mobile Tyre Fitting
+- **No recovery needed** — the fitter comes to you, wherever you are
+- **Time saving** — no waiting in a garage queue
+- **Emergency availability** — some providers offer 24/7 callout
+- **Same professional equipment** — hydraulic jacks, torque wrenches, balancing machines
+- **Convenience** — fitting at your home or workplace while you carry on with your day
+
+## Key Factors When Choosing a Mobile Tyre Fitter
+
+### 1. Response Time
+This is crucial, especially in emergencies. The best mobile fitters offer average response times under an hour. Some appointment-based services require booking a day or more in advance.
+
+### 2. Coverage Area
+Not all providers cover the whole of Scotland. Check whether they serve your specific area — especially if you're outside Glasgow or Edinburgh.
+
+### 3. 24/7 Availability
+Flat tyres don't wait for business hours. If emergency service matters to you, check whether the provider offers genuine round-the-clock callout.
+
+### 4. Pricing Transparency
+Look for providers with clear, upfront pricing. Beware of hidden callout fees, fitting charges, or surge pricing during unsociable hours.
+
+### 5. Customer Reviews
+Trustpilot, Google Reviews, and word of mouth are your best guides. Look for recent reviews that mention the specific service you need.
+
+## Top Mobile Tyre Fitting Services in Scotland
+
+### Tyre Rescue
+- **Coverage:** Glasgow, Edinburgh, Dundee, Stirling, Falkirk, Paisley and surrounding areas
+- **Hours:** 24/7, 365 days a year
+- **Response Time:** 45 minutes average
+- **Starting Price:** From £49 (emergency callout)
+- **Trustpilot:** 4.8/5 stars
+- **Key Features:** Live GPS tracking of your fitter, instant online booking, budget to premium tyre range
+- **Best For:** Emergency callouts, out-of-hours fitting, anyone who values convenience
+
+Tyre Rescue is Scotland's dedicated mobile tyre fitting service. Unlike national chains that bolt on mobile service as an afterthought, Tyre Rescue was built from the ground up for mobile fitting. Their 24/7 availability and real-time fitter tracking set them apart.
+
+### Kwik Fit
+- **Coverage:** Nationwide garage network
+- **Hours:** Standard business hours (garages)
+- **Response Time:** Appointment-based
+- **Starting Price:** From £45 (garage visit)
+- **Trustpilot:** 3.7/5 stars
+- **Best For:** In-store fitting during business hours
+
+Kwik Fit is the UK's most recognisable tyre brand. Their strengths are brand trust and nationwide availability. However, their mobile service is limited, and their Trustpilot rating is significantly lower than specialist mobile fitters.
+
+### National Tyres and Autocare
+- **Coverage:** UK-wide with some mobile options
+- **Hours:** Business hours
+- **Response Time:** Pre-booked, usually next day
+- **Starting Price:** From £50 (with mobile surcharge)
+- **Trustpilot:** 4.3/5 stars
+- **Best For:** Planned tyre replacements
+
+National Tyres offers a competent service with growing mobile capabilities. Mobile fitting availability varies by location and requires advance booking.
+
+### ATS Euromaster
+- **Coverage:** Nationwide, limited Scottish centres
+- **Hours:** Business hours
+- **Response Time:** Appointment-based
+- **Starting Price:** From £45 (in-centre)
+- **Trustpilot:** 4.1/5 stars
+- **Best For:** Fleet and commercial vehicles
+
+ATS Euromaster excels in commercial and fleet tyre management. For individual consumer mobile tyre fitting in Scotland, they're not the natural choice.
+
+### Halfords Autocentres
+- **Coverage:** Nationwide garages, limited mobile
+- **Hours:** Garage hours
+- **Response Time:** Pre-booked
+- **Starting Price:** From £40 (tyre only, in-store)
+- **Trustpilot:** 3.5/5 stars
+- **Best For:** Budget in-store tyre fitting
+
+Halfords offers competitive in-store pricing and the convenience of a high street location. Their mobile service (Halfords Mobile Expert) has limited coverage in Scotland.
+
+## Comparison Summary
+
+| Feature | Tyre Rescue | Kwik Fit | National Tyres | ATS | Halfords |
+|---------|------------|----------|---------------|-----|----------|
+| 24/7 Service | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Mobile-First | ✅ | ❌ | Partial | Fleet | Limited |
+| Avg Response | 45 min | N/A | Next day | N/A | N/A |
+| GPS Tracking | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Trustpilot | 4.8★ | 3.7★ | 4.3★ | 4.1★ | 3.5★ |
+| From Price | £49 | £45 | £50 | £45 | £40 |
+
+## When to Use Mobile Tyre Fitting vs a Garage
+
+**Choose mobile tyre fitting when:**
+- You have a flat tyre and can't drive to a garage
+- It's outside normal business hours (evening, weekend, bank holiday)
+- You want the convenience of fitting at home or work
+- You need emergency callout
+- Your vehicle can't be moved (wheel damage, no spare)
+
+**Choose a garage when:**
+- You need complex wheel alignment or tracking
+- You want to browse tyres in person before buying
+- You're already near a garage and it's during business hours
+
+## How to Book Mobile Tyre Fitting
+
+With Tyre Rescue, booking takes under 2 minutes:
+
+1. **Visit tyrerescue.uk/book** or call 0141 266 0690
+2. **Enter your tyre size** (found on tyre sidewall, e.g. 205/55 R16)
+3. **Choose your tyre** from budget, mid-range, or premium options
+4. **Pick a time** or select emergency callout for immediate service
+5. **Enter your location** and pay securely online
+6. **Track your fitter** with live GPS via your booking confirmation link
+
+## Frequently Asked Questions
+
+### How much does mobile tyre fitting cost in Scotland?
+Prices typically start from £49 for emergency callout including fitting. The total cost depends on the tyre brand and size you choose. Budget tyres for standard cars start from around £55 fitted.
+
+### How quickly can a mobile tyre fitter get to me?
+Tyre Rescue averages 45-minute response times in Glasgow and Edinburgh. Most appointment-based services require at least a few hours' notice or next-day booking.
+
+### Do mobile tyre fitters carry all tyre sizes?
+Most mobile fitters carry common sizes. For unusual sizes, you may need to give a few hours' notice. Tyre Rescue stocks the most popular sizes on vans and can source specialist tyres within a few hours.
+
+### Is mobile tyre fitting as good as garage fitting?
+Yes. Mobile fitters use the same professional equipment — hydraulic jacks, torque wrenches, and portable balancing machines. The quality of fitting is identical to a garage.
+
+### Can you repair a puncture at the roadside?
+Yes, if the puncture is in the repairable area of the tyre (the central tread). Sidewall damage cannot be safely repaired. Tyre Rescue carries puncture repair kits on every van.
+
+## The Bottom Line
+
+For mobile tyre fitting in Scotland, the choice depends on your priorities. If you need 24/7 emergency service, fast response times, and the convenience of a mobile-first provider, Tyre Rescue is the standout option. For planned, in-store fitting during business hours, national chains like Kwik Fit or Halfords offer a familiar experience.
+
+**Need a tyre fitted now?** Call Tyre Rescue on **0141 266 0690** or book online at **tyrerescue.uk/book**. We're available 24/7 and average 45-minute response times across Glasgow, Edinburgh, and Central Scotland.`,
+  },
+  {
+    slug: 'tyre-fitting-costs-scotland-pricing-guide',
+    title: 'Tyre Fitting Costs in Scotland: Complete Pricing Guide (2025)',
+    description:
+      'How much does tyre fitting cost in Scotland? Full breakdown of mobile tyre fitting prices, garage costs, emergency callout fees & ways to save. Updated for 2025.',
+    category: 'fitting',
+    publishDate: '2025-06-20',
+    lastModified: '2025-06-20',
+    readingTime: 10,
+    keywords: [
+      'tyre fitting cost scotland',
+      'how much does mobile tyre fitting cost',
+      'tyre fitting prices glasgow',
+      'cheap tyre fitting near me',
+      'emergency tyre fitting cost',
+      'tyre fitting price comparison',
+    ],
+    relatedSlugs: ['best-mobile-tyre-fitting-services-scotland', 'signs-you-need-new-tyres'],
+    featured: false,
+    content: `One of the most common questions we get at Tyre Rescue is "how much does tyre fitting cost?" The answer depends on several factors — tyre brand, size, vehicle type, and whether you need mobile or in-garage service.
+
+This guide breaks down tyre fitting costs across Scotland for 2025, so you know exactly what to expect before you book.
+
+## What Affects Tyre Fitting Costs?
+
+### 1. Tyre Size
+Larger tyres cost more. A 205/55 R16 (common on family cars) will cost significantly less than a 275/35 R21 (common on SUVs and performance cars).
+
+### 2. Tyre Brand
+- **Budget** (e.g. Hifly, Roadstone): £40–£65 per tyre
+- **Mid-range** (e.g. Firestone, Falken): £60–£100 per tyre
+- **Premium** (e.g. Michelin, Continental, Bridgestone): £90–£180 per tyre
+
+### 3. Fitting Type
+- **Garage fitting:** Usually £10–£20 per tyre fitting fee (on top of tyre cost)
+- **Mobile fitting:** Often included in the total price, or £15–£25 per tyre
+- **Emergency mobile callout:** Callout fee from £49, then per-tyre pricing
+
+### 4. Vehicle Type
+Standard passenger cars are cheapest to fit. SUVs, 4x4s, and vans cost more due to heavier wheels and larger tyres. Run-flat tyres can also add £5–£10 per tyre.
+
+## Average Tyre Fitting Prices in Scotland (2025)
+
+### Standard Car (e.g. Ford Fiesta, VW Golf)
+
+| Service | Budget Tyre | Mid-Range | Premium |
+|---------|-----------|-----------|---------|
+| Single tyre (garage) | £55–£75 | £75–£110 | £110–£180 |
+| Single tyre (mobile) | £65–£85 | £85–£120 | £120–£190 |
+| Set of 4 (garage) | £200–£280 | £280–£420 | £420–£700 |
+| Set of 4 (mobile) | £240–£320 | £320–£460 | £460–£740 |
+
+### SUV / 4x4 (e.g. Nissan Qashqai, Range Rover Sport)
+
+| Service | Budget Tyre | Mid-Range | Premium |
+|---------|-----------|-----------|---------|
+| Single tyre (garage) | £75–£100 | £100–£150 | £150–£250 |
+| Single tyre (mobile) | £85–£110 | £110–£160 | £160–£260 |
+| Set of 4 (garage) | £280–£380 | £380–£580 | £580–£980 |
+| Set of 4 (mobile) | £320–£420 | £420–£620 | £620–£1020 |
+
+### Van (e.g. Ford Transit, VW Transporter)
+
+| Service | Budget Tyre | Mid-Range | Premium |
+|---------|-----------|-----------|---------|
+| Single tyre (garage) | £65–£90 | £90–£130 | £130–£200 |
+| Single tyre (mobile) | £75–£100 | £100–£140 | £140–£210 |
+
+*All prices include VAT and fitting. Prices are estimates for Central Scotland.*
+
+## Mobile Tyre Fitting vs Garage: Cost Comparison
+
+At first glance, garage fitting appears cheaper. But factor in the hidden costs:
+
+### Hidden Costs of Garage Visits
+- **Fuel:** £5–£15 driving to/from the garage
+- **Time off work:** Average 2–3 hours for a garage visit including travel
+- **Recovery cost:** If you can't drive there (flat tyre) — £50–£100 for recovery
+- **Parking:** If the garage is in a city centre
+
+### The True Cost Comparison
+
+For a single tyre replacement with a mid-range tyre on a standard car:
+
+| | Garage | Mobile |
+|---|--------|--------|
+| Tyre + fitting | £85 | £95 |
+| Fuel to/from | £8 | £0 |
+| Time (2.5 hrs × £15/hr) | £37.50 | £0 |
+| Recovery (if flat) | £75 | £0 |
+| **Total** | **£130–£205** | **£95** |
+
+When you can't drive to a garage, mobile fitting isn't just more convenient — it's often cheaper.
+
+## Emergency Tyre Fitting Costs
+
+Emergency callouts (outside standard hours, or immediate response) typically cost more:
+
+- **Emergency callout fee:** £49–£79
+- **Tyre cost:** Same as standard pricing
+- **Fitting:** Usually included in the callout fee
+- **No surge pricing with Tyre Rescue** — our emergency callout is a flat rate from £49
+
+### What Counts as an Emergency?
+- Flat tyre where you can't drive
+- Tyre blowout on a motorway or road
+- Damaged tyre with no spare
+- Late-night or early-morning breakdown
+- Any situation where you need a tyre fitter urgently
+
+## Ways to Save on Tyre Fitting
+
+### 1. Buy 2 or 4 Tyres Together
+Most providers (including Tyre Rescue) offer better per-tyre pricing for multiple tyres. Fitting 2 or 4 at once also reduces callout fees per tyre.
+
+### 2. Choose Mid-Range Over Budget
+Counter-intuitive, but mid-range tyres often last 50–80% longer than budget tyres. The cost per mile is often lower.
+
+### 3. Check Tread Regularly
+Catching wear early lets you plan a replacement at a good time — avoiding emergency callout fees and giving you time to compare prices.
+
+### 4. Ask About Puncture Repair
+If the puncture is in the repairable zone, repair costs £25–£35 compared to £60–£150 for a new tyre. Always ask your fitter to check first.
+
+### 5. Book Online
+Online booking often comes with transparent, locked-in pricing. No surprise charges when the job is done.
+
+## Puncture Repair Costs
+
+Not all flat tyres need replacing. A puncture repair is much cheaper:
+
+| Service | Garage | Mobile |
+|---------|--------|--------|
+| Standard puncture repair | £20–£30 | £25–£40 |
+| Emergency puncture repair | N/A | £49–£65 |
+
+Puncture repairs are only safe when the damage is in the central tread area. Sidewall punctures, large cuts, or multiple punctures in the same area require a new tyre.
+
+## Tyre Fitting Costs by Scottish City
+
+Prices vary slightly across Scotland:
+
+### Glasgow
+Glasgow has the most competitive tyre fitting market in Scotland. Mobile services are widely available, and prices tend to be at the lower end of the ranges shown above. Tyre Rescue is based in Glasgow and offers the fastest response times here.
+
+### Edinburgh
+Edinburgh prices are slightly higher on average, particularly for in-centre fitting where overheads are higher. Mobile fitting prices are comparable to Glasgow.
+
+### Dundee
+Fewer providers means slightly less competition, but mobile services from Tyre Rescue cover Dundee with competitive pricing.
+
+### Stirling & Falkirk
+Central Belt coverage is good. Some national chains have limited presence, making mobile fitting a particularly strong option here.
+
+## Frequently Asked Questions
+
+### How much does it cost to fit 4 tyres on a car?
+For a standard car with mid-range tyres, expect to pay £280–£460 including fitting at a garage, or £320–£460 with mobile fitting. Premium tyres will cost more.
+
+### Is mobile tyre fitting more expensive?
+The tyre cost is the same. Mobile fitting adds a small premium (typically £10–£25 per tyre) for the convenience of coming to your location. However, when you factor in travel time and fuel, mobile fitting often works out cheaper.
+
+### Do tyre fitters charge a callout fee?
+Some do, some don't. Tyre Rescue includes the callout in the quoted price — no hidden fees. Always ask before booking whether there's a separate callout charge.
+
+### Can I bring my own tyres for mobile fitting?
+Yes, most mobile fitters (including Tyre Rescue) will fit customer-supplied tyres. The fitting-only charge is typically £20–£30 per tyre.
+
+### How much does run-flat tyre fitting cost?
+Run-flat tyres typically add £5–£10 to the fitting cost per tyre because they require TPMS sensor resets and more careful handling. The tyres themselves cost 15–25% more than standard tyres.
+
+## Get a Quote Now
+
+For an instant, transparent quote on mobile tyre fitting in Scotland, visit **tyrerescue.uk/book** or call **0141 266 0690**. No hidden fees, no surprises — just honest pricing and 24/7 availability.`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
