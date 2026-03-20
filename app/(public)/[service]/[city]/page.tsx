@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { services, serviceCities, getAreasForCity, getServiceBySlug } from '@/lib/areas';
 import { getCityBySlug } from '@/lib/cities';
 import { ServiceCityContent } from '@/components/seo/ServiceCityContent';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { getServiceSchema, getBreadcrumbSchema } from '@/lib/seo/schemas';
 
 export async function generateStaticParams() {
   const params: { service: string; city: string }[] = [];
@@ -21,9 +23,11 @@ export async function generateMetadata({ params }: { params: Promise<{ service: 
   if (!service || !city) return {};
 
   const location = city.name;
+  const title = `${service.name} ${location} | 24/7 | ${service.priceFrom} | Tyre Rescue`;
+  const description = `${service.metaDescTemplate.replace(/{location}/g, location)} ${service.priceFrom}. Average 45 min response. Fully insured.`;
   return {
-    title: service.metaTitleTemplate.replace('{location}', location),
-    description: service.metaDescTemplate.replace(/{location}/g, location),
+    title,
+    description,
     keywords: [
       `${service.name.toLowerCase()} ${city.name.toLowerCase()}`,
       `${service.name.toLowerCase()} near me`,
@@ -33,9 +37,10 @@ export async function generateMetadata({ params }: { params: Promise<{ service: 
       `puncture repair ${city.name.toLowerCase()}`,
     ].join(', '),
     openGraph: {
-      title: service.metaTitleTemplate.replace('{location}', location),
-      description: service.metaDescTemplate.replace(/{location}/g, location),
+      title: `${service.name} in ${location} — Tyre Rescue`,
+      description,
       url: `https://www.tyrerescue.uk/${service.slug}/${city.slug}`,
+      images: [{ url: 'https://www.tyrerescue.uk/images/home/slide-1.png', width: 1200, height: 630, alt: `${service.name} in ${location}` }],
     },
     alternates: {
       canonical: `https://www.tyrerescue.uk/${service.slug}/${city.slug}`,
@@ -53,33 +58,15 @@ export default async function ServiceCityPage({ params }: { params: Promise<{ se
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Service',
-            name: `${service.name} in ${city.name}`,
-            provider: {
-              '@type': 'LocalBusiness',
-              name: 'Tyre Rescue',
-              telephone: '0141 266 0690',
-              address: {
-                '@type': 'PostalAddress',
-                streetAddress: '3, 10 Gateside St',
-                addressLocality: 'Glasgow',
-                postalCode: 'G31 1PD',
-                addressCountry: 'GB',
-              },
-            },
-            areaServed: {
-              '@type': 'City',
-              name: city.name,
-            },
-            serviceType: service.name,
-          }),
-        }}
-      />
+      <JsonLd data={getServiceSchema({
+        serviceName: `${service.name} in ${city.name}`,
+        areaName: city.name,
+        areaType: 'City',
+      })} />
+      <JsonLd data={getBreadcrumbSchema([
+        { name: 'Home', path: '/' },
+        { name: `${service.name} ${city.name}`, path: `/${service.slug}/${city.slug}` },
+      ])} />
       <ServiceCityContent service={service} city={city} areas={areas} />
     </>
   );

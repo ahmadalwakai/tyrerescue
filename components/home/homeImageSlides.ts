@@ -23,7 +23,7 @@ export const homeSlides: HomeSlide[] = [
   {
     id: 'slide-1',
     src: '/images/home/slide-1.png',
-    alt: 'Tyre Rescue mobile tyre fitting service — professional technician at work',
+    alt: 'Tyre technician fitting a new tyre on a customer vehicle at their driveway',
     eyebrow: 'MOBILE FITTING',
     title: 'We Come to You',
     caption: 'Glasgow & Edinburgh — 24/7',
@@ -33,7 +33,7 @@ export const homeSlides: HomeSlide[] = [
   {
     id: 'slide-2',
     src: '/images/home/slide-2.png',
-    alt: 'Tyre Rescue emergency roadside tyre assistance',
+    alt: 'Emergency roadside tyre change being performed on a dark motorway hard shoulder',
     eyebrow: 'EMERGENCY CALLOUT',
     title: '45 Min Response',
     caption: 'Stranded? We\'ll be there fast.',
@@ -42,7 +42,7 @@ export const homeSlides: HomeSlide[] = [
   {
     id: 'slide-3',
     src: '/images/home/slide-3.png',
-    alt: 'Professional tyre fitting on a customer driveway',
+    alt: 'Mobile fitter using a hydraulic jack to lift a car for tyre replacement at home',
     eyebrow: 'DRIVEWAY SERVICE',
     title: 'At Your Door',
     caption: 'Home, work, or roadside',
@@ -51,7 +51,7 @@ export const homeSlides: HomeSlide[] = [
   {
     id: 'slide-4',
     src: '/images/home/slide-4.png',
-    alt: 'Close-up of a premium tyre and alloy wheel fitted by Tyre Rescue',
+    alt: 'Close-up of a freshly fitted premium tyre on a polished alloy wheel',
     eyebrow: 'QUALITY TYRES',
     title: 'Premium Brands',
     caption: 'Budget to premium — all sizes in stock',
@@ -60,7 +60,7 @@ export const homeSlides: HomeSlide[] = [
   {
     id: 'slide-5',
     src: '/images/home/slide-5.png',
-    alt: 'Tyre Rescue branded service van ready for dispatch',
+    alt: 'White mobile tyre fitting van equipped and ready for callout in Glasgow',
     eyebrow: 'FAST DISPATCH',
     title: 'Always Ready',
     caption: 'Fully stocked vans across Scotland',
@@ -69,7 +69,7 @@ export const homeSlides: HomeSlide[] = [
   {
     id: 'slide-6',
     src: '/images/home/slide-6.png',
-    alt: 'Technician inspecting tyre tread during a mobile fitting appointment',
+    alt: 'Gloved hand checking tyre tread depth with a gauge during inspection',
     eyebrow: 'EXPERT FITTERS',
     title: 'Certified Team',
     caption: 'Fully insured & experienced',
@@ -78,7 +78,7 @@ export const homeSlides: HomeSlide[] = [
   {
     id: 'slide-7',
     src: '/images/home/slide-7.png',
-    alt: 'Customer vehicle receiving a tyre change at home in Glasgow',
+    alt: 'Sedan on a residential street in Glasgow receiving a front tyre replacement',
     eyebrow: 'CONVENIENCE',
     title: 'No Garage Needed',
     caption: 'We bring the workshop to you',
@@ -87,7 +87,7 @@ export const homeSlides: HomeSlide[] = [
   {
     id: 'slide-8',
     src: '/images/home/slide-8.png',
-    alt: 'Tyre Rescue completing a roadside tyre rescue safely',
+    alt: 'Technician tightening wheel bolts after completing an emergency tyre change',
     eyebrow: 'ROADSIDE RESCUE',
     title: 'Safe & Professional',
     caption: '£2M public liability cover',

@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { services, serviceCities, getAreasForCity, getServiceBySlug, getAreaBySlug } from '@/lib/areas';
 import { getCityBySlug } from '@/lib/cities';
 import { ServiceAreaContent } from '@/components/seo/ServiceAreaContent';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { getServiceSchema, getBreadcrumbSchema } from '@/lib/seo/schemas';
 
 export async function generateStaticParams() {
   const params: { service: string; city: string; area: string }[] = [];
@@ -41,6 +43,7 @@ export async function generateMetadata({ params }: { params: Promise<{ service: 
       title: `${service.name} in ${area.name}, ${city.name} | Tyre Rescue`,
       description: `${service.name} in ${area.name} (${area.postcode}). ~${estimatedArrival} min response. Call 0141 266 0690.`,
       url: `https://www.tyrerescue.uk/${service.slug}/${city.slug}/${area.slug}`,
+      images: [{ url: 'https://www.tyrerescue.uk/images/home/slide-1.png', width: 1200, height: 630, alt: `${service.name} in ${area.name}, ${city.name}` }],
     },
     alternates: {
       canonical: `https://www.tyrerescue.uk/${service.slug}/${city.slug}/${area.slug}`,
@@ -56,63 +59,23 @@ export default async function ServiceAreaPage({ params }: { params: Promise<{ se
   if (!service || !city || !area) notFound();
 
   const allCityAreas = getAreasForCity(citySlug);
-  const siteUrl = 'https://www.tyrerescue.uk';
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Service',
-            name: `${service.name} in ${area.name}, ${city.name}`,
-            provider: {
-              '@type': 'LocalBusiness',
-              name: 'Tyre Rescue',
-              telephone: '0141 266 0690',
-              address: {
-                '@type': 'PostalAddress',
-                streetAddress: '3, 10 Gateside St',
-                addressLocality: 'Glasgow',
-                postalCode: 'G31 1PD',
-                addressCountry: 'GB',
-              },
-            },
-            areaServed: {
-              '@type': 'Place',
-              name: area.name,
-              geo: {
-                '@type': 'GeoCoordinates',
-                latitude: area.lat,
-                longitude: area.lng,
-              },
-              address: {
-                '@type': 'PostalAddress',
-                postalCode: area.postcode,
-                addressRegion: city.county,
-                addressCountry: 'GB',
-              },
-            },
-            serviceType: service.name,
-            hasMap: `https://maps.google.com/?q=${area.lat},${area.lng}`,
-          }),
-        }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'BreadcrumbList',
-            itemListElement: [
-              { '@type': 'ListItem', position: 1, name: 'Home', item: `${siteUrl}/` },
-              { '@type': 'ListItem', position: 2, name: `${service.name} ${city.name}`, item: `${siteUrl}/${service.slug}/${city.slug}` },
-              { '@type': 'ListItem', position: 3, name: area.name, item: `${siteUrl}/${service.slug}/${city.slug}/${area.slug}` },
-            ],
-          }),
-        }}
-      />
+      <JsonLd data={getServiceSchema({
+        serviceName: `${service.name} in ${area.name}, ${city.name}`,
+        areaName: area.name,
+        areaType: 'Place',
+        geo: { latitude: area.lat, longitude: area.lng },
+        postcode: area.postcode,
+        county: city.county,
+        mapUrl: `https://maps.google.com/?q=${area.lat},${area.lng}`,
+      })} />
+      <JsonLd data={getBreadcrumbSchema([
+        { name: 'Home', path: '/' },
+        { name: `${service.name} ${city.name}`, path: `/${service.slug}/${city.slug}` },
+        { name: area.name, path: `/${service.slug}/${city.slug}/${area.slug}` },
+      ])} />
       <ServiceAreaContent service={service} city={city} area={area} allCityAreas={allCityAreas} />
     </>
   );

@@ -178,18 +178,18 @@ body {
 
 @keyframes glasgowOLetterOpacity {
   0% { opacity: 1; }
-  6.8% { opacity: 0.35; }
+  3% { opacity: 0; }
   10.4% { opacity: 0; }
   45.8% { opacity: 0; }
-  50% { opacity: 1; }
-  56.8% { opacity: 1; }
+  50% { opacity: 0; }
+  53% { opacity: 1; }
   100% { opacity: 1; }
 }
 
 @keyframes glasgowOTyreOpacity {
   0% { opacity: 0; }
-  6.8% { opacity: 0.65; }
-  10.4% { opacity: 1; }
+  3% { opacity: 0; }
+  5% { opacity: 1; }
   45.8% { opacity: 1; }
   50% { opacity: 0; }
   100% { opacity: 0; }
@@ -387,27 +387,27 @@ body {
   animation: heroCallGlow 3s ease-in-out infinite;
 }
 
-.hero-cta-whatsapp {
-  animation: heroWaBreath 3.5s ease-in-out infinite;
-}
-
 @keyframes heroCallGlow {
   0%   { box-shadow: 0 4px 20px rgba(249,115,22,0.35), 0 0 0 0 rgba(249,115,22,0.2), 0 0 0 1px rgba(255,255,255,0.06) inset; }
   50%  { box-shadow: 0 6px 28px rgba(249,115,22,0.5), 0 0 0 6px rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.08) inset; transform: scale(1.008); }
   100% { box-shadow: 0 4px 20px rgba(249,115,22,0.35), 0 0 0 0 rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.06) inset; transform: scale(1); }
 }
 
-@keyframes heroWaBreath {
-  0%   { box-shadow: 0 2px 12px rgba(37,211,102,0.08), 0 0 0 0 rgba(37,211,102,0.15); }
-  50%  { box-shadow: 0 3px 16px rgba(37,211,102,0.15), 0 0 0 5px rgba(37,211,102,0); }
-  100% { box-shadow: 0 2px 12px rgba(37,211,102,0.08), 0 0 0 0 rgba(37,211,102,0); }
+/* ─── Hero CTA Glass Panel (desktop only) ─────────────── */
+@media (min-width: 768px) {
+  .hero-cta-panel {
+    background: rgba(24,24,27,0.35);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(63,63,70,0.45);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.03) inset;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-cta-call,
-  .hero-cta-emergency,
-  .hero-cta-schedule,
-  .hero-cta-whatsapp { animation: none !important; }
+  .hero-cta-call { animation: none !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {

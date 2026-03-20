@@ -274,15 +274,18 @@ function GlasgowO({ delay }: { delay: string }) {
 
 // ─── Counter Hook ────────────────────────────────────────
 function useCountUp(end: number, duration: number = 1500, decimals: number = 0) {
-  const [value, setValue] = useState(0);
+  const [value, setValue] = useState(end);
   const ref = useRef<HTMLDivElement>(null);
   const started = useRef(false);
 
   useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !started.current) {
           started.current = true;
+          setValue(0);
           const startTime = performance.now();
           const step = (now: number) => {
             const elapsed = now - startTime;
@@ -296,7 +299,7 @@ function useCountUp(end: number, duration: number = 1500, decimals: number = 0) 
       },
       { threshold: 0.3 }
     );
-    if (ref.current) observer.observe(ref.current);
+    observer.observe(el);
     return () => observer.disconnect();
   }, [end, duration, decimals]);
 
@@ -667,6 +670,7 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                     as="h1"
                     color={colors.textPrimary}
                     lineHeight="0.92"
+                    mb="0.06em"
                     style={{
                       fontFamily: 'var(--font-display)',
                       fontSize: 'clamp(52px, 10vw, 140px)',
@@ -690,6 +694,7 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                     display="block"
                     color={colors.textPrimary}
                     lineHeight="0.92"
+                    mb="0.06em"
                     style={{
                       fontFamily: 'var(--font-display)',
                       fontSize: 'clamp(52px, 10vw, 140px)',
@@ -745,12 +750,15 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                 </Text>
 
                 {/* Buttons */}
+                <Box
+                  className="hero-cta-panel"
+                  mt="40px"
+                  maxW={{ md: '520px' }}
+                  style={{ animation: 'fadeUp 0.6s ease-out 0.5s both' }}
+                >
                 <Flex
                   direction="column"
-                  gap="14px"
-                  mt="40px"
-                  maxW={{ md: '480px' }}
-                  style={{ animation: 'fadeUp 0.6s ease-out 0.5s both' }}
+                  gap={{ base: '14px', md: '16px' }}
                 >
                   {/* 1. CALL NOW — Primary */}
                   <ChakraLink
@@ -770,7 +778,7 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                     borderRadius="14px"
                     transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
                     boxShadow="0 4px 20px rgba(249,115,22,0.35), 0 0 0 1px rgba(255,255,255,0.06) inset"
-                    _hover={{ transform: 'translateY(-2px)', boxShadow: '0 8px 32px rgba(249,115,22,0.5), 0 0 0 1px rgba(255,255,255,0.1) inset' }}
+                    _hover={{ transform: 'translateY(-3px)', boxShadow: '0 12px 40px rgba(249,115,22,0.6), 0 0 0 1px rgba(255,255,255,0.12) inset' }}
                     _active={{ transform: 'scale(0.97)' }}
                     aria-label="Call now"
                     style={{ fontFamily: 'var(--font-display)' }}
@@ -798,69 +806,75 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                     borderColor="rgba(249,115,22,0.4)"
                     transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
                     boxShadow="0 2px 12px rgba(249,115,22,0.1)"
-                    _hover={{ bg: 'rgba(249,115,22,0.18)', borderColor: colors.accent, transform: 'translateY(-1px)', boxShadow: '0 4px 20px rgba(249,115,22,0.2)' }}
+                    _hover={{ bg: 'rgba(249,115,22,0.22)', borderColor: colors.accent, transform: 'translateY(-2px)', boxShadow: '0 6px 24px rgba(249,115,22,0.25)' }}
                     _active={{ transform: 'scale(0.98)' }}
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
                     <Link href="/emergency">EMERGENCY CALLOUT</Link>
                   </ChakraLink>
 
-                  {/* 3. SCHEDULE A FITTING — Refined planned CTA */}
-                  <ChakraLink
-                    asChild
-                    className="hero-cta-schedule"
-                    w="100%"
-                    h={{ base: '54px', md: '56px' }}
-                    display="inline-flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    bg="rgba(24,24,27,0.6)"
-                    color={colors.textPrimary}
-                    fontSize={{ base: '17px', md: '19px' }}
-                    fontWeight="700"
-                    letterSpacing="0.04em"
-                    borderRadius="12px"
-                    borderWidth="1px"
-                    borderColor={colors.border}
-                    transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
-                    boxShadow="0 2px 12px rgba(0,0,0,0.15)"
-                    _hover={{ borderColor: 'rgba(249,115,22,0.5)', color: colors.accent, transform: 'translateY(-1px)', boxShadow: '0 4px 20px rgba(249,115,22,0.12)' }}
-                    _active={{ transform: 'scale(0.98)' }}
-                    style={{ fontFamily: 'var(--font-display)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
-                  >
-                    <Link href="/book">SCHEDULE A FITTING</Link>
-                  </ChakraLink>
+                  {/* 3+4. Bottom row: SCHEDULE + WHATSAPP */}
+                  <Flex direction={{ base: 'column', md: 'row' }} gap={{ base: '14px', md: '12px' }}>
+                    {/* 3. SCHEDULE A FITTING — Refined planned CTA */}
+                    <ChakraLink
+                      asChild
+                      className="hero-cta-schedule"
+                      w="100%"
+                      flex={{ md: '1' }}
+                      h={{ base: '54px', md: '52px' }}
+                      display="inline-flex"
+                      alignItems="center"
+                      justifyContent="center"
+                      bg="rgba(24,24,27,0.6)"
+                      color={colors.textPrimary}
+                      fontSize="17px"
+                      fontWeight="700"
+                      letterSpacing="0.04em"
+                      borderRadius="12px"
+                      borderWidth="1px"
+                      borderColor={colors.border}
+                      transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+                      boxShadow="0 2px 12px rgba(0,0,0,0.15)"
+                      _hover={{ borderColor: 'rgba(249,115,22,0.5)', color: colors.accent, transform: 'translateY(-2px)', boxShadow: '0 6px 24px rgba(249,115,22,0.18)' }}
+                      _active={{ transform: 'scale(0.98)' }}
+                      style={{ fontFamily: 'var(--font-display)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+                    >
+                      <Link href="/book">SCHEDULE A FITTING</Link>
+                    </ChakraLink>
 
-                  {/* 4. WHATSAPP US — Distinct green CTA */}
-                  <ChakraLink
-                    href="https://wa.me/447423262955"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hero-cta-whatsapp"
-                    w="100%"
-                    h={{ base: '54px', md: '56px' }}
-                    display="inline-flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    gap="8px"
-                    bg="rgba(37,211,102,0.08)"
-                    color="#25D366"
-                    fontSize={{ base: '17px', md: '19px' }}
-                    fontWeight="700"
-                    letterSpacing="0.04em"
-                    borderRadius="12px"
-                    borderWidth="1px"
-                    borderColor="rgba(37,211,102,0.3)"
-                    transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
-                    boxShadow="0 2px 12px rgba(37,211,102,0.08)"
-                    _hover={{ bg: 'rgba(37,211,102,0.14)', borderColor: '#25D366', transform: 'translateY(-1px)', boxShadow: '0 4px 20px rgba(37,211,102,0.2)' }}
-                    _active={{ transform: 'scale(0.98)' }}
-                    style={{ fontFamily: 'var(--font-display)' }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.174.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.174-.297-.019-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.174-.008-.372-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
-                    WHATSAPP US
-                  </ChakraLink>
+                    {/* 4. WHATSAPP US — Distinct green CTA */}
+                    <ChakraLink
+                      href="https://wa.me/447423262955"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hero-cta-whatsapp"
+                      w="100%"
+                      flex={{ md: '1' }}
+                      h={{ base: '54px', md: '52px' }}
+                      display="inline-flex"
+                      alignItems="center"
+                      justifyContent="center"
+                      gap="8px"
+                      bg="rgba(37,211,102,0.08)"
+                      color="#25D366"
+                      fontSize="17px"
+                      fontWeight="700"
+                      letterSpacing="0.04em"
+                      borderRadius="12px"
+                      borderWidth="1px"
+                      borderColor="rgba(37,211,102,0.3)"
+                      transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+                      boxShadow="0 2px 12px rgba(37,211,102,0.08)"
+                      _hover={{ bg: 'rgba(37,211,102,0.14)', borderColor: '#25D366', transform: 'translateY(-2px)', boxShadow: '0 6px 24px rgba(37,211,102,0.25)' }}
+                      _active={{ transform: 'scale(0.98)' }}
+                      style={{ fontFamily: 'var(--font-display)' }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.174.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.174-.297-.019-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.174-.008-.372-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+                      WHATSAPP US
+                    </ChakraLink>
+                  </Flex>
                 </Flex>
+                </Box>
 
                 {/* Stats */}
                 <Flex mt="48px" gap={{ base: 4, md: 0 }} wrap="wrap" style={{ animation: 'fadeUp 0.6s ease-out 0.6s both' }}>

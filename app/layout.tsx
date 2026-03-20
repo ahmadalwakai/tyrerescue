@@ -6,6 +6,8 @@ import { AnalyticsProvider } from '@/components/ui/AnalyticsProvider';
 import { CallMeBack } from '@/components/ui/CallMeBack';
 import { BookingReminder } from '@/components/ui/BookingReminder';
 import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { getLocalBusinessSchema, getWebSiteSchema } from '@/lib/seo/schemas';
 import './globals.css';
 
 const inter = Inter({
@@ -23,11 +25,11 @@ const bebasNeue = Bebas_Neue({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Tyre Rescue | Emergency Mobile Tyre Fitting Glasgow & Edinburgh',
+    default: 'Mobile Tyre Fitting Glasgow & Edinburgh | 24/7 | Tyre Rescue',
     template: '%s | Tyre Rescue',
   },
   description:
-    'Emergency mobile tyre fitting service in Glasgow and Edinburgh. 24 hours a day, 7 days a week. Call 0141 266 0690 for immediate assistance.',
+    '24/7 emergency mobile tyre fitting in Glasgow & Edinburgh. From £49. Average 45 min response. Fully insured fitters. Call 0141 266 0690.',
   keywords: [
     'mobile tyre fitting glasgow',
     'mobile tyre fitting near me',
@@ -65,27 +67,28 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL || 'https://www.tyrerescue.uk'
   ),
   openGraph: {
-    title: 'Tyre Rescue | Emergency Mobile Tyre Fitting Glasgow & Edinburgh',
+    title: 'Tyre Rescue — 24/7 Mobile Tyre Fitting Glasgow & Edinburgh',
     description:
-      'Emergency mobile tyre fitting service in Glasgow and Edinburgh. 24 hours a day, 7 days a week.',
+      'Emergency mobile tyre fitting at your location. Average 45 min response. Fully insured. Call 0141 266 0690.',
     url: 'https://www.tyrerescue.uk',
     siteName: 'Tyre Rescue',
     locale: 'en_GB',
     type: 'website',
     images: [
       {
-        url: '/og-image.svg',
+        url: '/images/home/slide-1.png',
         width: 1200,
         height: 630,
-        alt: 'Tyre Rescue — Emergency Mobile Tyre Fitting Glasgow & Edinburgh',
+        alt: 'Tyre Rescue mobile tyre fitting service van',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Tyre Rescue | Emergency Mobile Tyre Fitting Glasgow & Edinburgh',
+    title: 'Tyre Rescue — 24/7 Mobile Tyre Fitting',
     description:
-      'Emergency mobile tyre fitting service in Glasgow and Edinburgh. 24 hours a day, 7 days a week.',
+      'Emergency mobile tyre fitting Glasgow & Edinburgh. 45 min response.',
+    images: ['/images/home/slide-1.png'],
   },
   icons: {
     icon: [
@@ -119,6 +122,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en-GB" className={`${inter.variable} ${bebasNeue.variable}`} suppressHydrationWarning>
+      <head>
+        <JsonLd data={getLocalBusinessSchema()} />
+        <JsonLd data={getWebSiteSchema()} />
+      </head>
       <body className={inter.className} suppressHydrationWarning>
         <a
           href="#main-content"

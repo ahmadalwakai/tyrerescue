@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { FAQContent } from './FAQContent';
 import { faqItems, buildFAQPageJsonLd } from '@/lib/content/faq';
+import { JsonLd } from '@/components/seo/JsonLd';
 
 export const metadata: Metadata = {
   title: 'FAQ | Mobile Tyre Fitting Near Me | Tyre Repair Glasgow | Tyre Rescue',
@@ -14,10 +15,7 @@ export default function FAQPage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <FAQContent />
     </>
   );

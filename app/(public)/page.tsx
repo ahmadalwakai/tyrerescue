@@ -3,6 +3,9 @@ import { HomePage } from './HomePage';
 import { db, homepageMedia } from '@/lib/db';
 import { eq, asc } from 'drizzle-orm';
 import type { HomeSlide } from '@/components/home/homeImageSlides';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { getFAQSchema } from '@/lib/seo/schemas';
+import { homepageFAQItems } from '@/lib/content/faq';
 
 export async function generateMetadata(): Promise<Metadata> {
   // Fetch first active hero image for OG
@@ -16,9 +19,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const ogImage = firstSlide?.src || '/og-image.svg';
 
   return {
-    title: 'Mobile Tyre Fitting Glasgow | Tyres Near Me | 24/7 Emergency | Tyre Rescue',
     description:
-      'Mobile tyre fitting in Glasgow and Edinburgh with AI-powered dispatch. Emergency tyre repair near me, 24 hours a day. Flat tyre? Our mobile tyre fitters come to your exact location in under 45 minutes. AI-optimised driver assignment for fastest response. Call 0141 266 0690. Duke Street Tyres.',
+      '24/7 emergency mobile tyre fitting in Glasgow & Edinburgh. From £49. Average 45 min response. Fully insured fitters. Call 0141 266 0690.',
     keywords: [
       'mobile tyre fitting glasgow',
       'mobile tyre fitting near me',
@@ -55,92 +57,6 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// JSON-LD structured data for LocalBusiness
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'LocalBusiness',
-  name: 'Tyre Rescue',
-  alternateName: 'Duke Street Tyres',
-  description:
-    'Emergency mobile tyre fitting service in Glasgow and Edinburgh. 24 hours a day, 7 days a week.',
-  url: 'https://www.tyrerescue.uk',
-  telephone: '+441412660690',
-  email: 'support@tyrerescue.uk',
-  keywords: 'mobile tyre fitting glasgow, tyre repair near me, mobile tyre fitter glasgow',
-  address: {
-    '@type': 'PostalAddress',
-    streetAddress: '3, 10 Gateside St',
-    addressLocality: 'Glasgow',
-    postalCode: 'G31 1PD',
-    addressCountry: 'GB',
-  },
-  geo: {
-    '@type': 'GeoCoordinates',
-    latitude: 55.8547,
-    longitude: -4.2206,
-  },
-  openingHours: 'Mo-Su 08:00-23:59',
-  priceRange: '£20–£200',
-  areaServed: [
-    {
-      '@type': 'City',
-      name: 'Glasgow',
-    },
-    {
-      '@type': 'City',
-      name: 'Edinburgh',
-    },
-    {
-      '@type': 'City',
-      name: 'Dundee',
-    },
-  ],
-  serviceType: [
-    'Emergency Mobile Tyre Fitting',
-    'Scheduled Mobile Tyre Fitting',
-    'Puncture Repair',
-    'Tyre Sales',
-  ],
-  hasOfferCatalog: {
-    '@type': 'OfferCatalog',
-    name: 'Mobile Tyre Services',
-    itemListElement: [
-      {
-        '@type': 'Offer',
-        itemOffered: {
-          '@type': 'Service',
-          name: 'Emergency Mobile Tyre Fitting',
-          description: '24/7 emergency tyre fitting at your location in Glasgow and Edinburgh',
-        },
-      },
-      {
-        '@type': 'Offer',
-        itemOffered: {
-          '@type': 'Service',
-          name: 'Puncture Repair',
-          description: 'Mobile puncture repair service across Glasgow and surrounding areas',
-        },
-      },
-      {
-        '@type': 'Offer',
-        itemOffered: {
-          '@type': 'Service',
-          name: 'Scheduled Tyre Fitting',
-          description: 'Book a convenient mobile tyre fitting appointment at your home or workplace',
-        },
-      },
-    ],
-  },
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '4.8',
-    reviewCount: '97',
-    bestRating: '5',
-    worstRating: '1',
-  },
-};
-
-
 
 export default async function Page() {
   // Fetch active hero slides from DB
@@ -172,11 +88,7 @@ export default async function Page() {
   return (
     <>
       <HomePage heroSlides={heroSlides} />
-      <script
-        type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={getFAQSchema(homepageFAQItems)} />
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger

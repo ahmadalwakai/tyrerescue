@@ -11,10 +11,12 @@ import {
 import Link from 'next/link';
 import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { colorTokens } from '@/lib/design-tokens';
 import type { ServiceSEO, Area } from '@/lib/areas';
 import type { City } from '@/lib/cities';
 import { services } from '@/lib/areas';
+import { cityContent } from '@/lib/data/cityContent';
 
 const c = colorTokens;
 
@@ -31,16 +33,37 @@ const serviceDescriptions: Record<string, (city: string) => string> = {
     `Need new tyres in ${city}? Our mobile tyre fitting service stocks a wide range of budget, mid-range and premium tyres. We come to your home or workplace and fit your new tyres while you carry on with your day.`,
 };
 
+function capitalize(slug: string) {
+  return slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
 export function ServiceCityContent({ service, city, areas }: { service: ServiceSEO; city: City; areas: Area[] }) {
   const otherServices = services.filter((s) => s.slug !== service.slug);
+  const cityData = cityContent[city.slug];
+  const hasUniqueContent = cityData && !cityData.uniqueIntro.startsWith('TODO');
+
+  if (process.env.NODE_ENV === 'development' && cityData && !hasUniqueContent) {
+    console.warn(`City ${city.name} needs unique content`);
+  }
 
   return (
     <Box minH="100vh" display="flex" flexDirection="column" bg={c.bg}>
       <Nav />
       <Box as="main" flex={1}>
 
+        {/* ── BREADCRUMB ── */}
+        <Box bg={c.bg} pt={{ base: '80px', md: '100px' }} px={{ base: 4, md: 8 }}>
+          <Container maxW="1200px">
+            <Breadcrumbs items={[
+              { label: 'Home', href: '/' },
+              { label: service.name, href: `/${service.slug}/${city.slug}` },
+              { label: city.name },
+            ]} />
+          </Container>
+        </Box>
+
         {/* ── HERO ── */}
-        <Box bg={c.bg} py={{ base: '80px', md: '120px' }} px={{ base: 4, md: 8 }}>
+        <Box bg={c.bg} py={{ base: '40px', md: '80px' }} px={{ base: 4, md: 8 }}>
           <Container maxW="1200px">
             <Text
               fontSize="11px"
@@ -71,7 +94,8 @@ export function ServiceCityContent({ service, city, areas }: { service: ServiceS
               {service.heroText.replace('{location}', city.name)}
             </Text>
 
-            <Flex gap="14px" mt={10} direction="column" maxW={{ md: '480px' }}>
+            <Box className="hero-cta-panel" mt={10} maxW={{ md: '520px' }}>
+            <Flex gap={{ base: '14px', md: '16px' }} direction="column">
               <ChakraLink
                 href="tel:01412660690"
                 className="hero-cta-call"
@@ -89,7 +113,7 @@ export function ServiceCityContent({ service, city, areas }: { service: ServiceS
                 borderRadius="14px"
                 transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
                 boxShadow="0 4px 20px rgba(249,115,22,0.35), 0 0 0 1px rgba(255,255,255,0.06) inset"
-                _hover={{ transform: 'translateY(-2px)', boxShadow: '0 8px 32px rgba(249,115,22,0.5), 0 0 0 1px rgba(255,255,255,0.1) inset' }}
+                _hover={{ transform: 'translateY(-3px)', boxShadow: '0 12px 40px rgba(249,115,22,0.6), 0 0 0 1px rgba(255,255,255,0.12) inset' }}
                 _active={{ transform: 'scale(0.97)' }}
                 aria-label="Call now"
                 style={{ fontFamily: 'var(--font-display)' }}
@@ -115,65 +139,70 @@ export function ServiceCityContent({ service, city, areas }: { service: ServiceS
                 borderColor="rgba(249,115,22,0.4)"
                 transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
                 boxShadow="0 2px 12px rgba(249,115,22,0.1)"
-                _hover={{ bg: 'rgba(249,115,22,0.18)', borderColor: c.accent, transform: 'translateY(-1px)', boxShadow: '0 4px 20px rgba(249,115,22,0.2)' }}
+                _hover={{ bg: 'rgba(249,115,22,0.22)', borderColor: c.accent, transform: 'translateY(-2px)', boxShadow: '0 6px 24px rgba(249,115,22,0.25)' }}
                 _active={{ transform: 'scale(0.98)' }}
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 <Link href="/emergency">EMERGENCY CALLOUT</Link>
               </ChakraLink>
-              <ChakraLink
-                asChild
-                className="hero-cta-schedule"
-                w="100%"
-                h={{ base: '54px', md: '56px' }}
-                display="inline-flex"
-                alignItems="center"
-                justifyContent="center"
-                bg="rgba(24,24,27,0.6)"
-                color={c.text}
-                fontSize={{ base: '17px', md: '19px' }}
-                fontWeight="700"
-                letterSpacing="0.04em"
-                borderRadius="12px"
-                borderWidth="1px"
-                borderColor={c.border}
-                transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
-                boxShadow="0 2px 12px rgba(0,0,0,0.15)"
-                _hover={{ borderColor: 'rgba(249,115,22,0.5)', color: c.accent, transform: 'translateY(-1px)', boxShadow: '0 4px 20px rgba(249,115,22,0.12)' }}
-                _active={{ transform: 'scale(0.98)' }}
-                style={{ fontFamily: 'var(--font-display)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
-              >
-                <Link href="/book">SCHEDULE A FITTING</Link>
-              </ChakraLink>
-              <ChakraLink
-                href="https://wa.me/447423262955"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hero-cta-whatsapp"
-                w="100%"
-                h={{ base: '54px', md: '56px' }}
-                display="inline-flex"
-                alignItems="center"
-                justifyContent="center"
-                gap="8px"
-                bg="rgba(37,211,102,0.08)"
-                color="#25D366"
-                fontSize={{ base: '17px', md: '19px' }}
-                fontWeight="700"
-                letterSpacing="0.04em"
-                borderRadius="12px"
-                borderWidth="1px"
-                borderColor="rgba(37,211,102,0.3)"
-                transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
-                boxShadow="0 2px 12px rgba(37,211,102,0.08)"
-                _hover={{ bg: 'rgba(37,211,102,0.14)', borderColor: '#25D366', transform: 'translateY(-1px)', boxShadow: '0 4px 20px rgba(37,211,102,0.2)' }}
-                _active={{ transform: 'scale(0.98)' }}
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.174.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.174-.297-.019-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.174-.008-.372-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
-                WHATSAPP US
-              </ChakraLink>
+              <Flex direction={{ base: 'column', md: 'row' }} gap={{ base: '14px', md: '12px' }}>
+                <ChakraLink
+                  asChild
+                  className="hero-cta-schedule"
+                  w="100%"
+                  flex={{ md: '1' }}
+                  h={{ base: '54px', md: '52px' }}
+                  display="inline-flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  bg="rgba(24,24,27,0.6)"
+                  color={c.text}
+                  fontSize="17px"
+                  fontWeight="700"
+                  letterSpacing="0.04em"
+                  borderRadius="12px"
+                  borderWidth="1px"
+                  borderColor={c.border}
+                  transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+                  boxShadow="0 2px 12px rgba(0,0,0,0.15)"
+                  _hover={{ borderColor: 'rgba(249,115,22,0.5)', color: c.accent, transform: 'translateY(-2px)', boxShadow: '0 6px 24px rgba(249,115,22,0.18)' }}
+                  _active={{ transform: 'scale(0.98)' }}
+                  style={{ fontFamily: 'var(--font-display)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+                >
+                  <Link href="/book">SCHEDULE A FITTING</Link>
+                </ChakraLink>
+                <ChakraLink
+                  href="https://wa.me/447423262955"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hero-cta-whatsapp"
+                  w="100%"
+                  flex={{ md: '1' }}
+                  h={{ base: '54px', md: '52px' }}
+                  display="inline-flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  gap="8px"
+                  bg="rgba(37,211,102,0.08)"
+                  color="#25D366"
+                  fontSize="17px"
+                  fontWeight="700"
+                  letterSpacing="0.04em"
+                  borderRadius="12px"
+                  borderWidth="1px"
+                  borderColor="rgba(37,211,102,0.3)"
+                  transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+                  boxShadow="0 2px 12px rgba(37,211,102,0.08)"
+                  _hover={{ bg: 'rgba(37,211,102,0.14)', borderColor: '#25D366', transform: 'translateY(-2px)', boxShadow: '0 6px 24px rgba(37,211,102,0.25)' }}
+                  _active={{ transform: 'scale(0.98)' }}
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.174.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.174-.297-.019-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.174-.008-.372-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+                  WHATSAPP US
+                </ChakraLink>
+              </Flex>
             </Flex>
+            </Box>
 
             <Flex mt={12} gap={{ base: 6, md: 0 }} wrap="wrap">
               <Box pr={{ base: 4, md: 8 }}>
@@ -268,6 +297,81 @@ export function ServiceCityContent({ service, city, areas }: { service: ServiceS
             </Text>
           </Container>
         </Box>
+
+        {/* ── UNIQUE CITY CONTENT ── */}
+        {hasUniqueContent && (
+          <Box bg={c.surface} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
+            <Container maxW="1200px">
+              <Text
+                as="h2"
+                fontSize={{ base: '36px', md: '48px' }}
+                color={c.text}
+                mb={6}
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                {service.name.toUpperCase()} IN {city.name.toUpperCase()}
+              </Text>
+              <Text
+                fontSize="15px"
+                color={c.muted}
+                lineHeight="1.8"
+                maxW="640px"
+                mb={6}
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                {cityData!.uniqueIntro}
+              </Text>
+              <Text
+                fontSize="15px"
+                color={c.muted}
+                lineHeight="1.8"
+                maxW="640px"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                {cityData!.uniqueBody}
+              </Text>
+            </Container>
+          </Box>
+        )}
+
+        {/* ── NEARBY SERVICE AREAS ── */}
+        {cityData && cityData.neighborCities.length > 0 && (
+          <Box bg={c.bg} py={{ base: '40px', md: '60px' }} px={{ base: 4, md: 8 }}>
+            <Container maxW="1200px">
+              <Text
+                as="h2"
+                fontSize={{ base: '24px', md: '32px' }}
+                color={c.text}
+                mb={6}
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                NEARBY SERVICE AREAS
+              </Text>
+              <Flex wrap="wrap" gap={2}>
+                {cityData.neighborCities.map((nc) => (
+                  <ChakraLink
+                    key={nc}
+                    asChild
+                    bg={c.card}
+                    borderWidth="1px"
+                    borderColor={c.border}
+                    borderRadius="4px"
+                    px={4}
+                    py={2}
+                    _hover={{ borderColor: c.accent, color: c.accent }}
+                    transition="all 0.2s"
+                  >
+                    <Link href={`/${service.slug}/${nc}`}>
+                      <Text fontSize="13px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }} _hover={{ color: c.accent }}>
+                        {capitalize(nc)}
+                      </Text>
+                    </Link>
+                  </ChakraLink>
+                ))}
+              </Flex>
+            </Container>
+          </Box>
+        )}
 
         {/* ── PRICE & BOOKING ── */}
         <Box bg={c.surface} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
