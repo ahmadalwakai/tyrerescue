@@ -543,46 +543,6 @@ function ContactSection() {
   );
 }
 
-// ─── Back to Top ─────────────────────────────────────────
-function BackToTop() {
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setShow(window.scrollY > 400);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  if (!show) return null;
-
-  return (
-    <Box
-      as="button"
-      className="back-to-top"
-      position="fixed"
-      bottom="80px"
-      right="24px"
-      zIndex={40}
-      w="44px"
-      h="44px"
-      bg={colors.accent}
-      color={colors.bg}
-      borderRadius="4px"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      cursor="pointer"
-      opacity={show ? 1 : 0}
-      border="none"
-      aria-label="Back to top"
-      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      style={{ fontFamily: 'var(--font-display)', fontSize: '20px' }}
-    >
-      ↑
-    </Box>
-  );
-}
-
 // ─── Main Component ──────────────────────────────────────
 export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
   const [heroOffset, setHeroOffset] = useState(0);
@@ -1781,9 +1741,6 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
         </Box>
         </AnimatedSection>
       </Box>
-
-      {/* Back to Top */}
-      <BackToTop />
 
       <Footer />
     </Box>

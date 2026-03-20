@@ -342,15 +342,19 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(249, 115, 22, 0.1);
 }
 
-/* ─── Back to Top Button ──────────────────────────────── */
+/* ─── Floating Action Stack ───────────────────────────── */
 
-.back-to-top {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+.floating-action-stack {
+  pointer-events: none;
 }
 
-.back-to-top:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 12px rgba(249, 115, 22, 0.3);
+.floating-action-stack > * {
+  pointer-events: auto;
+}
+
+.floating-action-stack a,
+.floating-action-stack button {
+  pointer-events: auto;
 }
 
 /* ─── FAQ Toggle Icon ─────────────────────────────────── */
@@ -381,19 +385,38 @@ body {
   .call-now-btn { animation: none !important; }
   .floating-call-btn { animation: none !important; }
   .floating-wa-btn { animation: none !important; }
+  .floating-top-btn { transition: opacity 0.1s !important; transform: none !important; }
 }
 
+/* ─── Floating Call – premium orange aura pulse ────────── */
 @keyframes floatingCallPulse {
-  0%   { box-shadow: 0 4px 14px rgba(249,115,22,0.4), 0 0 0 0 rgba(249,115,22,0.3); }
-  50%  { box-shadow: 0 4px 14px rgba(249,115,22,0.4), 0 0 0 8px rgba(249,115,22,0); }
-  100% { box-shadow: 0 4px 14px rgba(249,115,22,0.4), 0 0 0 0 rgba(249,115,22,0); }
+  0%   {
+    box-shadow: 0 4px 24px rgba(249,115,22,0.35), 0 0 0 0 rgba(249,115,22,0.25), 0 0 0 1px rgba(255,255,255,0.08) inset;
+  }
+  50%  {
+    box-shadow: 0 6px 28px rgba(249,115,22,0.45), 0 0 0 10px rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.08) inset;
+  }
+  100% {
+    box-shadow: 0 4px 24px rgba(249,115,22,0.35), 0 0 0 0 rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.08) inset;
+  }
 }
 
+/* ─── Floating WhatsApp – softer green breathing glow ── */
 @keyframes floatingWaPulse {
-  0%   { box-shadow: 0 4px 14px rgba(37,211,102,0.35), 0 0 0 0 rgba(37,211,102,0.25); }
-  50%  { box-shadow: 0 4px 14px rgba(37,211,102,0.35), 0 0 0 8px rgba(37,211,102,0); }
-  100% { box-shadow: 0 4px 14px rgba(37,211,102,0.35), 0 0 0 0 rgba(37,211,102,0); }
+  0%   {
+    box-shadow: 0 4px 20px rgba(37,211,102,0.3), 0 0 0 0 rgba(37,211,102,0.2), 0 0 0 1px rgba(255,255,255,0.06) inset;
+  }
+  60%  {
+    box-shadow: 0 5px 24px rgba(37,211,102,0.38), 0 0 0 8px rgba(37,211,102,0), 0 0 0 1px rgba(255,255,255,0.06) inset;
+  }
+  100% {
+    box-shadow: 0 4px 20px rgba(37,211,102,0.3), 0 0 0 0 rgba(37,211,102,0), 0 0 0 1px rgba(255,255,255,0.06) inset;
+  }
 }
+
+/* ─── Floating CTA animation application ──────────────── */
+.floating-call-btn { animation: floatingCallPulse 2.8s ease-in-out infinite; }
+.floating-wa-btn   { animation: floatingWaPulse 3.2s ease-in-out infinite; }
 
 @keyframes floatGently {
   0%, 100% { transform: translateY(0); }
@@ -453,7 +476,7 @@ body {
     transform: none;
   }
 
-  .back-to-top {
+  .floating-top-btn {
     transition: none;
   }
 
@@ -505,7 +528,7 @@ body {
   }
 
   .hero-sq,
-  .back-to-top,
+  .floating-action-stack,
   .marquee-container,
   nav,
   footer,
