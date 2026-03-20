@@ -5,20 +5,23 @@ import {
   Container,
   Text,
   Flex,
+  SimpleGrid,
   Link as ChakraLink,
 } from '@chakra-ui/react';
 import Link from 'next/link';
 import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { AIOptimizedSection } from '@/components/seo/AIOptimizedSection';
 import { colorTokens } from '@/lib/design-tokens';
 import type { ServiceSEO, Area } from '@/lib/areas';
 import { services } from '@/lib/areas';
 import type { City } from '@/lib/cities';
+import type { NeighborhoodEnrichment } from '@/lib/data/neighborhoodEnrichment';
 
 const c = colorTokens;
 
-export function ServiceAreaContent({ service, city, area, allCityAreas }: { service: ServiceSEO; city: City; area: Area; allCityAreas: Area[] }) {
+export function ServiceAreaContent({ service, city, area, allCityAreas, enrichment }: { service: ServiceSEO; city: City; area: Area; allCityAreas: Area[]; enrichment?: NeighborhoodEnrichment }) {
   const estimatedArrival = Math.round(area.distanceFromCentre * 3.5 + 18);
 
   const nearbyAreas = allCityAreas
@@ -234,6 +237,126 @@ export function ServiceAreaContent({ service, city, area, allCityAreas }: { serv
             </Text>
           </Container>
         </Box>
+
+        {/* ── AI-OPTIMIZED Q&A ── */}
+        <Box bg={c.bg} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
+          <Container maxW="1200px">
+            <AIOptimizedSection
+              question={`How fast can a mobile tyre fitter get to ${area.name}?`}
+              directAnswer={`Our mobile tyre fitters typically reach ${area.name} (${area.postcode}) in approximately ${estimatedArrival} minutes. We are ${area.distanceFromCentre.toFixed(1)} miles from ${city.name} city centre, and our 24/7 dispatch means help is always on the way — day or night.`}
+              entityType="location"
+              detailedAnswer={
+                <Box>
+                  <Text fontSize="15px" color={c.muted} lineHeight="1.8" mb={4} style={{ fontFamily: 'var(--font-body)' }}>
+                    Response times to {area.name} depend on traffic conditions and fitter availability, but our average is {estimatedArrival} minutes.
+                    We carry a full range of tyres in our vans, so in most cases we complete the job in a single visit near {area.nearestLandmark}.
+                  </Text>
+                  <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
+                    <Box bg={c.card} borderRadius="8px" p={5} borderWidth="1px" borderColor={c.border}>
+                      <Text fontSize="28px" color={c.accent} fontWeight="700" style={{ fontFamily: 'var(--font-display)' }}>~{estimatedArrival} MIN</Text>
+                      <Text fontSize="13px" color={c.muted} mt={1} style={{ fontFamily: 'var(--font-body)' }}>Average response to {area.name}</Text>
+                    </Box>
+                    <Box bg={c.card} borderRadius="8px" p={5} borderWidth="1px" borderColor={c.border}>
+                      <Text fontSize="28px" color={c.accent} fontWeight="700" style={{ fontFamily: 'var(--font-display)' }}>24/7</Text>
+                      <Text fontSize="13px" color={c.muted} mt={1} style={{ fontFamily: 'var(--font-body)' }}>Available day and night</Text>
+                    </Box>
+                    <Box bg={c.card} borderRadius="8px" p={5} borderWidth="1px" borderColor={c.border}>
+                      <Text fontSize="28px" color={c.accent} fontWeight="700" style={{ fontFamily: 'var(--font-display)' }}>{area.distanceFromCentre.toFixed(1)} MI</Text>
+                      <Text fontSize="13px" color={c.muted} mt={1} style={{ fontFamily: 'var(--font-body)' }}>From {city.name} centre</Text>
+                    </Box>
+                  </SimpleGrid>
+                </Box>
+              }
+              relatedQuestions={[
+                `What tyres do you carry for ${area.name} customers?`,
+                `Do you fit tyres at roadside in ${area.postcode}?`,
+                `How much does ${service.name.toLowerCase()} cost in ${area.name}?`,
+                `Can you fit run-flat tyres in ${area.name}?`,
+              ]}
+            />
+          </Container>
+        </Box>
+
+        {/* ── ENRICHMENT: LANDMARKS & CHARACTER ── */}
+        {enrichment && (
+          <Box bg={c.surface} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
+            <Container maxW="1200px">
+              <Text
+                as="h2"
+                fontSize={{ base: '36px', md: '48px' }}
+                color={c.text}
+                mb={6}
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                WHY CUSTOMERS IN {area.name.toUpperCase()} CHOOSE US
+              </Text>
+              <Text
+                fontSize="15px"
+                color={c.muted}
+                lineHeight="1.8"
+                maxW="640px"
+                mb={8}
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                {enrichment.description}
+              </Text>
+
+              {/* Landmarks grid */}
+              <Text fontSize="14px" fontWeight="600" color={c.text} mb={4} style={{ fontFamily: 'var(--font-body)' }}>
+                Key Landmarks We Serve Near
+              </Text>
+              <Flex gap={2} wrap="wrap" mb={8}>
+                {enrichment.landmarks.map((landmark) => (
+                  <Box
+                    key={landmark}
+                    bg={c.card}
+                    borderWidth="1px"
+                    borderColor={c.border}
+                    borderRadius="4px"
+                    px={4}
+                    py={2}
+                  >
+                    <Text fontSize="13px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>
+                      📍 {landmark}
+                    </Text>
+                  </Box>
+                ))}
+              </Flex>
+
+              {/* Key Roads */}
+              <Text fontSize="14px" fontWeight="600" color={c.text} mb={4} style={{ fontFamily: 'var(--font-body)' }}>
+                Roads & Areas We Frequently Cover
+              </Text>
+              <Flex gap={2} wrap="wrap" mb={8}>
+                {enrichment.keyRoads.map((road) => (
+                  <Box
+                    key={road}
+                    bg={c.card}
+                    borderWidth="1px"
+                    borderColor={c.border}
+                    borderRadius="4px"
+                    px={4}
+                    py={2}
+                  >
+                    <Text fontSize="13px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>
+                      🛣️ {road}
+                    </Text>
+                  </Box>
+                ))}
+              </Flex>
+
+              {/* Parking notes */}
+              <Box bg={c.card} borderRadius="8px" p={6} borderWidth="1px" borderColor={c.border}>
+                <Text fontSize="14px" fontWeight="600" color={c.accent} mb={2} style={{ fontFamily: 'var(--font-body)' }}>
+                  🅿️ Parking & Access Notes for {area.name}
+                </Text>
+                <Text fontSize="14px" color={c.muted} lineHeight="1.7" style={{ fontFamily: 'var(--font-body)' }}>
+                  {enrichment.parkingNotes}
+                </Text>
+              </Box>
+            </Container>
+          </Box>
+        )}
 
         {/* ── PRICE ── */}
         <Box bg={c.bg} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>

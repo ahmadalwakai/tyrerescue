@@ -17,6 +17,7 @@ import type { ServiceSEO, Area } from '@/lib/areas';
 import type { City } from '@/lib/cities';
 import { services } from '@/lib/areas';
 import { cityContent } from '@/lib/data/cityContent';
+import { neighborhoodEnrichments } from '@/lib/data/neighborhoodEnrichment';
 
 const c = colorTokens;
 
@@ -248,6 +249,56 @@ export function ServiceCityContent({ service, city, areas }: { service: ServiceS
               <Text fontSize="13px" color={c.muted} mb={8} style={{ fontFamily: 'var(--font-body)' }}>
                 We cover {areas.length} areas in {city.name}.
               </Text>
+
+              {/* Featured area cards (enrichment available) */}
+              {(() => {
+                const cityEnrichments = neighborhoodEnrichments[city.slug];
+                const featuredAreas = cityEnrichments
+                  ? areas.filter((a) => cityEnrichments[a.slug])
+                  : [];
+                if (featuredAreas.length === 0) return null;
+                return (
+                  <Box mb={8}>
+                    <Text fontSize="14px" fontWeight="600" color={c.accent} mb={4} style={{ fontFamily: 'var(--font-body)' }}>
+                      Featured Neighbourhoods
+                    </Text>
+                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={4} mb={8}>
+                      {featuredAreas.slice(0, 6).map((area) => {
+                        const enrichment = cityEnrichments[area.slug];
+                        const eta = Math.round(area.distanceFromCentre * 3.5 + 18);
+                        return (
+                          <ChakraLink
+                            key={area.slug}
+                            asChild
+                            bg={c.card}
+                            borderWidth="1px"
+                            borderColor={c.border}
+                            borderRadius="8px"
+                            p={5}
+                            _hover={{ borderColor: c.accent }}
+                            transition="border-color 0.2s"
+                            textDecoration="none"
+                          >
+                            <Link href={`/${service.slug}/${city.slug}/${area.slug}`}>
+                              <Text fontSize="18px" color={c.text} mb={1} style={{ fontFamily: 'var(--font-display)' }}>
+                                {area.name}
+                              </Text>
+                              <Text fontSize="12px" color={c.accent} mb={3} style={{ fontFamily: 'var(--font-body)' }}>
+                                {area.postcode} — ~{eta} min response
+                              </Text>
+                              <Text fontSize="13px" color={c.muted} lineHeight="1.6" lineClamp={2} style={{ fontFamily: 'var(--font-body)' }}>
+                                {enrichment.characterDescription}
+                              </Text>
+                            </Link>
+                          </ChakraLink>
+                        );
+                      })}
+                    </SimpleGrid>
+                  </Box>
+                );
+              })()}
+
+              {/* All areas */}
               <Flex gap={2} wrap="wrap">
                 {areas.map((area) => (
                   <ChakraLink
