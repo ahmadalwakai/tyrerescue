@@ -371,6 +371,23 @@ body {
   100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
 }
 
+@keyframes callPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(249,115,22,0.5); transform: scale(1); }
+  50%  { box-shadow: 0 0 0 10px rgba(249,115,22,0); transform: scale(1.03); }
+  100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .call-now-btn { animation: none !important; }
+  .floating-call-btn { animation: none !important; }
+}
+
+@keyframes floatingCallPulse {
+  0%   { box-shadow: 0 4px 14px rgba(249,115,22,0.4), 0 0 0 0 rgba(249,115,22,0.3); }
+  50%  { box-shadow: 0 4px 14px rgba(249,115,22,0.4), 0 0 0 8px rgba(249,115,22,0); }
+  100% { box-shadow: 0 4px 14px rgba(249,115,22,0.4), 0 0 0 0 rgba(249,115,22,0); }
+}
+
 @keyframes floatGently {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }

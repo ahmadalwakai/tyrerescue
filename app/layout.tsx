@@ -5,6 +5,7 @@ import { CookieBanner } from '@/components/ui/CookieBanner';
 import { AnalyticsProvider } from '@/components/ui/AnalyticsProvider';
 import { CallMeBack } from '@/components/ui/CallMeBack';
 import { BookingReminder } from '@/components/ui/BookingReminder';
+import { FloatingCallButton } from '@/components/global/FloatingCallButton';
 import './globals.css';
 
 const inter = Inter({
@@ -131,6 +132,7 @@ export default function RootLayout({
           <AnalyticsProvider />
           <CallMeBack />
           <BookingReminder />
+          <FloatingCallButton />
         </Providers>
       </body>
     </html>
