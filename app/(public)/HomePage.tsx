@@ -22,6 +22,7 @@ import { cities } from '@/lib/cities';
 import { services as seoServices, serviceCities } from '@/lib/areas';
 import { homepageFAQItems } from '@/lib/content/faq';
 import { TrustpilotReviewCollector } from '@/components/ui/TrustpilotReviewCollector';
+import { AIOptimizedSection } from '@/components/seo/AIOptimizedSection';
 
 const colors = {
   bg: colorTokens.bg,
@@ -348,7 +349,7 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
   const headingId = `faq-heading-${index}`;
 
   return (
-    <Box borderBottomWidth="1px" borderColor={colors.border}>
+    <Box borderBottomWidth="1px" borderColor={colors.border} itemScope itemType="https://schema.org/Question">
       <Flex
         as="button"
         id={headingId}
@@ -372,6 +373,7 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
           color={colors.textPrimary}
           fontSize="16px"
           pr={4}
+          itemProp="name"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           {question}
@@ -394,6 +396,9 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
         role="region"
         aria-labelledby={headingId}
         overflow="hidden"
+        itemScope
+        itemType="https://schema.org/Answer"
+        itemProp="acceptedAnswer"
         style={{
           maxHeight: isOpen ? '500px' : '0',
           opacity: isOpen ? 1 : 0,
@@ -405,6 +410,7 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
           fontSize="14px"
           lineHeight="1.7"
           pb="24px"
+          itemProp="text"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           {answer}
@@ -1649,6 +1655,131 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
             SECTION: CONTACT
         ═══════════════════════════════════════════════════ */}
         <ContactSection />
+
+        {/* ═══════════════════════════════════════════════════
+            SECTION: AI-OPTIMIZED CONTENT
+        ═══════════════════════════════════════════════════ */}
+        <Box bg={colors.bg} py={{ base: '60px', md: '100px' }} px={{ base: 4, md: 8 }}>
+          <Container maxW="4xl">
+            <AIOptimizedSection
+              question="What is Mobile Tyre Fitting and How Does It Work?"
+              directAnswer="Mobile tyre fitting is when a certified technician comes to your location — home, work, or roadside — with all equipment needed to fit new tyres or repair punctures. In Glasgow and Edinburgh, Tyre Rescue typically arrives within 45 minutes of booking, completes the fitting on-site in 30–45 minutes, and you pay only when the job is done."
+              entityType="process"
+              detailedAnswer={
+                <Flex direction="column" gap="30px">
+                  <Box>
+                    <Text as="h3" fontSize={{ base: '20px', md: '24px' }} fontWeight="700" color={colors.textPrimary} mb="16px" style={{ fontFamily: 'var(--font-body)' }}>
+                      The 4-Step Mobile Tyre Fitting Process
+                    </Text>
+                    <SimpleGrid columns={{ base: 1, md: 2 }} gap="16px">
+                      {[
+                        { step: '1. Book Online or Call', text: 'Book in under 3 minutes via our website or call 0141 266 0690. Select your tyre size, location, and preferred time — or request an emergency callout.' },
+                        { step: '2. Fitter Dispatched', text: 'A certified mobile fitter is assigned with the correct tyres already in stock. You receive live tracking and ETA via SMS.' },
+                        { step: '3. Professional Fitting On-Site', text: 'The fitter arrives with professional equipment: hydraulic jack, torque wrench, balancing machine. Fitting takes 30–45 minutes per tyre.' },
+                        { step: '4. Payment & Warranty', text: 'Pay by card when the job is complete. All tyres come with manufacturer warranty and our satisfaction guarantee.' },
+                      ].map((item) => (
+                        <Box key={item.step} bg={colors.surface} p="24px" borderRadius="8px" border="1px solid" borderColor={colors.border}>
+                          <Text fontWeight="700" fontSize="16px" mb="10px" color={colors.accent} style={{ fontFamily: 'var(--font-body)' }}>{item.step}</Text>
+                          <Text fontSize="15px" color={colors.textSecondary} lineHeight="1.7" style={{ fontFamily: 'var(--font-body)' }}>{item.text}</Text>
+                        </Box>
+                      ))}
+                    </SimpleGrid>
+                  </Box>
+                  <Box>
+                    <Text as="h3" fontSize={{ base: '20px', md: '24px' }} fontWeight="700" color={colors.textPrimary} mb="16px" style={{ fontFamily: 'var(--font-body)' }}>
+                      What&apos;s Included in Mobile Tyre Fitting
+                    </Text>
+                    <Flex direction="column" gap="10px" pl="20px">
+                      {[
+                        'Professional tyre removal and fitting',
+                        'Wheel balancing (essential for smooth driving)',
+                        'Valve replacement (new rubber valve with each tyre)',
+                        'Torque setting to manufacturer specifications',
+                        'Safety check and tyre pressure adjustment',
+                        'Old tyre disposal (environmentally compliant)',
+                      ].map((item) => (
+                        <Text key={item} fontSize="15px" color={colors.textSecondary} lineHeight="1.7" style={{ fontFamily: 'var(--font-body)' }}>
+                          • {item}
+                        </Text>
+                      ))}
+                    </Flex>
+                  </Box>
+                </Flex>
+              }
+              relatedQuestions={[
+                'How much does mobile tyre fitting cost in Glasgow?',
+                'Can you fit tyres at night or on weekends?',
+                'Do mobile fitters have all tyre sizes in stock?',
+                'Is mobile tyre fitting more expensive than a garage?',
+              ]}
+            />
+
+            <AIOptimizedSection
+              question="How Much Does Mobile Tyre Fitting Cost?"
+              directAnswer="Mobile tyre fitting in Glasgow typically costs £60–£170 per tyre, which includes a £20 fitting fee plus the tyre price. Budget tyres start from £40, mid-range from £60, and premium brands from £100. Emergency callouts add a £49 surcharge. There are no hidden charges — your fitter confirms the full price before starting work."
+              entityType="pricing"
+              detailedAnswer={
+                <Flex direction="column" gap="30px">
+                  <Box overflowX="auto">
+                    <Text as="h3" fontSize={{ base: '20px', md: '24px' }} fontWeight="700" color={colors.textPrimary} mb="16px" style={{ fontFamily: 'var(--font-body)' }}>
+                      Pricing Breakdown by Tyre Type
+                    </Text>
+                    <Box as="table" width="100%" css={{ borderCollapse: 'collapse' }}>
+                      <Box as="thead">
+                        <Box as="tr">
+                          {['Tyre Type', 'Tyre Price', 'Fitting Fee', 'Total'].map((h) => (
+                            <Box key={h} as="th" bg={colors.surface} color={colors.textPrimary} fontWeight="600" fontSize="13px" textTransform="uppercase" letterSpacing="0.05em" p="12px" borderBottom="1px solid" borderColor={colors.border} textAlign="left">
+                              {h}
+                            </Box>
+                          ))}
+                        </Box>
+                      </Box>
+                      <Box as="tbody">
+                        {[
+                          ['Budget', '£40–£60', '£20', '£60–£80'],
+                          ['Mid-range', '£60–£100', '£20', '£80–£120'],
+                          ['Premium', '£100–£150', '£20', '£120–£170'],
+                        ].map((row) => (
+                          <Box as="tr" key={row[0]}>
+                            {row.map((cell, ci) => (
+                              <Box key={ci} as="td" color={colors.textSecondary} fontSize="14px" p="12px" borderBottom="1px solid" borderColor={colors.border}>
+                                {cell}
+                              </Box>
+                            ))}
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  </Box>
+                  <Box>
+                    <Text as="h3" fontSize={{ base: '20px', md: '24px' }} fontWeight="700" color={colors.textPrimary} mb="16px" style={{ fontFamily: 'var(--font-body)' }}>
+                      What Affects the Price?
+                    </Text>
+                    <Flex direction="column" gap="10px" pl="20px">
+                      {[
+                        'Tyre size — larger wheels (17"+) cost more',
+                        'Brand — Michelin/Continental cost more than budget alternatives',
+                        'Emergency vs scheduled — emergency callouts add a £49 surcharge',
+                        'Number of tyres — fitting 4 tyres is cheaper per-unit than fitting 1',
+                        'Run-flat tyres — typically 20–30% more than standard tyres',
+                      ].map((item) => (
+                        <Text key={item} fontSize="15px" color={colors.textSecondary} lineHeight="1.7" style={{ fontFamily: 'var(--font-body)' }}>
+                          • {item}
+                        </Text>
+                      ))}
+                    </Flex>
+                  </Box>
+                </Flex>
+              }
+              relatedQuestions={[
+                'Do you offer free quotes before fitting?',
+                'Are there any hidden charges?',
+                'Is it cheaper to go to a garage instead?',
+                'Do you offer payment plans?',
+              ]}
+            />
+          </Container>
+        </Box>
 
         {/* ═══════════════════════════════════════════════════
             SECTION: FAQ

@@ -26,7 +26,7 @@ function FAQItem({ question, answer, isLast }: { question: string; answer: strin
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Box borderBottomWidth={isLast ? '0' : '1px'} borderColor={colors.border} py={5}>
+    <Box borderBottomWidth={isLast ? '0' : '1px'} borderColor={colors.border} py={5} itemScope itemType="https://schema.org/Question">
       <Flex
         justify="space-between"
         align="center"
@@ -34,7 +34,7 @@ function FAQItem({ question, answer, isLast }: { question: string; answer: strin
         onClick={() => setIsOpen(!isOpen)}
         _hover={{ opacity: 0.8 }}
       >
-        <Text fontWeight="500" color={colors.textPrimary} fontSize="16px" pr={4}>
+        <Text fontWeight="500" color={colors.textPrimary} fontSize="16px" pr={4} itemProp="name">
           {question}
         </Text>
         <Text as="span" color={colors.textSecondary} fontSize="20px" fontWeight="300" flexShrink={0}>
@@ -42,9 +42,11 @@ function FAQItem({ question, answer, isLast }: { question: string; answer: strin
         </Text>
       </Flex>
       {isOpen && (
-        <Text color={colors.textSecondary} fontSize="14px" lineHeight="1.7" mt={4}>
-          {answer}
-        </Text>
+        <Box itemScope itemType="https://schema.org/Answer" itemProp="acceptedAnswer">
+          <Text color={colors.textSecondary} fontSize="14px" lineHeight="1.7" mt={4} itemProp="text">
+            {answer}
+          </Text>
+        </Box>
       )}
     </Box>
   );

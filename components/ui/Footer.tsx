@@ -167,6 +167,18 @@ export function Footer() {
             >
               Facebook
             </ChakraLink>
+            <ChakraLink
+              href="https://www.instagram.com/dukestreettyres/"
+              target="_blank"
+              rel="noopener noreferrer"
+              fontSize="13px"
+              color="#E4405F"
+              _hover={{ opacity: 0.8 }}
+              transition="opacity 0.2s"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              Instagram
+            </ChakraLink>
           </Flex>
         </Flex>
 

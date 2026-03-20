@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { BookingWizard } from '@/components/booking/BookingWizard';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getEmergencyServiceSchema, getBreadcrumbSchema } from '@/lib/seo/schemas';
+import { EmergencyAISection } from '@/components/seo/EmergencyAISection';
 
 export const metadata: Metadata = {
   title: 'Emergency Tyre Fitting Glasgow | Call 0141 266 0690 | 24/7',
@@ -13,6 +14,7 @@ export default function EmergencyPage() {
   return (
     <>
       <BookingWizard initialState={{ bookingType: 'emergency' }} initialStep="location" />
+      <EmergencyAISection />
       <JsonLd data={getEmergencyServiceSchema()} />
       <JsonLd data={getBreadcrumbSchema([
         { name: 'Home', path: '/' },

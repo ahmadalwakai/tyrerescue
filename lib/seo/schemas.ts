@@ -44,6 +44,7 @@ export function getLocalBusinessSchema() {
     ],
     sameAs: [
       'https://www.facebook.com/share/1Bt1ZFNkXN/',
+      'https://www.instagram.com/dukestreettyres/',
       'https://wa.me/447423262955',
       'https://uk.trustpilot.com/review/tyrerescue.uk',
     ],
