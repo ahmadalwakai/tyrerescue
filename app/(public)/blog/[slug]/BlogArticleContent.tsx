@@ -11,8 +11,10 @@ import {
 } from '@chakra-ui/react';
 import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
+import { RelatedContent } from '@/components/linking/RelatedContent';
 import { colorTokens } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { injectSmartLinks } from '@/lib/linking';
 import type { BlogArticle } from '@/lib/blog/articles';
 
 const colors = {
@@ -91,7 +93,14 @@ export function BlogArticleContent({
   article: BlogArticle;
   relatedArticles: BlogArticle[];
 }) {
-  const contentHtml = markdownToHtml(article.content);
+  const rawHtml = markdownToHtml(article.content);
+  const currentUrl = `/blog/${article.slug}`;
+  const contentHtml = injectSmartLinks(rawHtml, article.content, {
+    currentUrl,
+    currentCategory: article.category,
+    contentLength: article.content.length,
+    existingLinks: [],
+  });
 
   return (
     <Box minH="100vh" display="flex" flexDirection="column" bg={colors.bg}>
@@ -228,6 +237,16 @@ export function BlogArticleContent({
               padding: 0.75rem;
               border-bottom: 1px solid ${colors.border};
             }
+            .blog-prose .smart-internal-link {
+              color: ${colors.accent};
+              text-decoration: none;
+              border-bottom: 1px solid rgba(249, 115, 22, 0.3);
+              transition: color 0.15s ease, border-color 0.15s ease;
+            }
+            .blog-prose .smart-internal-link:hover {
+              color: #EA580C;
+              border-bottom-color: #EA580C;
+            }
             @media (max-width: 768px) {
               .blog-prose h2 { font-size: 22px; }
               .blog-prose h3 { font-size: 18px; }
@@ -285,6 +304,13 @@ export function BlogArticleContent({
               </Link>
             </Flex>
           </Box>
+
+          {/* Contextual related pages from linking engine */}
+          <RelatedContent
+            currentUrl={currentUrl}
+            currentCategory={article.category}
+            existingLinks={[]}
+          />
 
           {/* Related articles */}
           {relatedArticles.length > 0 && (

@@ -547,6 +547,25 @@ body {
   top: 0;
 }
 
+/* ─── Smart Internal Links ────────────────────────────── */
+
+.smart-internal-link {
+  color: #F97316;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(249, 115, 22, 0.3);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.smart-internal-link:hover {
+  color: #EA580C;
+  border-bottom-color: #EA580C;
+}
+
+.smart-internal-link[data-relevance^="0.9"],
+.smart-internal-link[data-relevance="1.00"] {
+  font-weight: 600;
+}
+
 /* ─── Print Styles ────────────────────────────────────── */
 
 @media print {
