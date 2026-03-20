@@ -16,6 +16,7 @@ const colors = {
 const footerLinks = {
   about: [
     { label: 'Home', href: '/' },
+    { label: 'Blog', href: '/blog' },
     { label: 'Contact', href: '/contact' },
     { label: 'FAQ', href: '/faq' },
   ],

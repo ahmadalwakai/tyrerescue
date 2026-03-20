@@ -243,3 +243,44 @@ export function getFAQSchema(
     })),
   };
 }
+
+/* ------------------------------------------------------------------ */
+/*  Article — for /blog/[slug] pages                                  */
+/* ------------------------------------------------------------------ */
+export function getArticleSchema(opts: {
+  title: string;
+  description: string;
+  slug: string;
+  publishDate: string;
+  lastModified: string;
+  keywords: string[];
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: opts.title,
+    description: opts.description,
+    url: `${SITE_URL}/blog/${opts.slug}`,
+    datePublished: opts.publishDate,
+    dateModified: opts.lastModified,
+    keywords: opts.keywords.join(', '),
+    author: {
+      '@type': 'Organization',
+      name: 'Tyre Rescue',
+      url: SITE_URL,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Tyre Rescue',
+      url: SITE_URL,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/logo.svg`,
+      },
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `${SITE_URL}/blog/${opts.slug}`,
+    },
+  };
+}
