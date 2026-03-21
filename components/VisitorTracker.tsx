@@ -33,17 +33,38 @@ function detectBrowser(): string {
   return 'Other';
 }
 
-function getReferrerSource(): string {
+function extractSearchData(): { searchEngine: string; searchKeyword: string | null; referrer: string } {
   const ref = document.referrer;
-  if (!ref) return 'Direct';
-  if (ref.includes('google.')) return 'Google';
-  if (ref.includes('bing.')) return 'Bing';
-  if (ref.includes('facebook.') || ref.includes('fb.')) return 'Facebook';
-  if (ref.includes('instagram.')) return 'Instagram';
-  if (ref.includes('tiktok.')) return 'TikTok';
-  if (ref.includes('whatsapp.')) return 'WhatsApp';
-  if (ref.includes('twitter.') || ref.includes('x.com')) return 'X';
-  return 'Other';
+  let searchEngine = 'Direct';
+  let searchKeyword: string | null = null;
+  let referrer = 'Direct';
+
+  if (!ref) return { searchEngine, searchKeyword, referrer };
+
+  try {
+    const url = new URL(ref);
+    const host = url.hostname.toLowerCase();
+
+    if (host.includes('google'))       { searchEngine = 'Google'; referrer = 'Google'; }
+    else if (host.includes('bing'))    { searchEngine = 'Bing'; referrer = 'Bing'; }
+    else if (host.includes('yahoo'))   { searchEngine = 'Yahoo'; referrer = 'Yahoo'; }
+    else if (host.includes('duckduckgo')) { searchEngine = 'DuckDuckGo'; referrer = 'DuckDuckGo'; }
+    else if (host.includes('ecosia'))  { searchEngine = 'Ecosia'; referrer = 'Ecosia'; }
+    else if (host.includes('facebook') || host.includes('fb.')) { searchEngine = 'Direct'; referrer = 'Facebook'; }
+    else if (host.includes('instagram')) { searchEngine = 'Direct'; referrer = 'Instagram'; }
+    else if (host.includes('tiktok'))  { searchEngine = 'Direct'; referrer = 'TikTok'; }
+    else if (host.includes('whatsapp')) { searchEngine = 'Direct'; referrer = 'WhatsApp'; }
+    else if (host.includes('twitter') || host.includes('x.com')) { searchEngine = 'Direct'; referrer = 'X'; }
+    else { searchEngine = 'Direct'; referrer = host.replace('www.', '').split('.')[0]; }
+
+    searchKeyword = url.searchParams.get('q')
+      || url.searchParams.get('p')
+      || url.searchParams.get('query')
+      || url.searchParams.get('search_query')
+      || null;
+  } catch { /* ignore */ }
+
+  return { searchEngine, searchKeyword, referrer };
 }
 
 export function VisitorTracker() {
@@ -56,11 +77,19 @@ export function VisitorTracker() {
 
   const isAdmin = session?.user?.role === 'admin';
 
+  const searchDataRef = useRef<{ searchEngine: string; searchKeyword: string | null; referrer: string } | null>(null);
+
   const track = useCallback(
     async (extra?: { buttonText?: string }) => {
       if (isAdmin) return;
       const sessionId = getSessionId();
       if (!sessionId) return;
+
+      // Extract search data once per session
+      if (!searchDataRef.current) {
+        searchDataRef.current = extractSearchData();
+      }
+      const sd = searchDataRef.current;
 
       try {
         await fetch('/api/visitors/track', {
@@ -72,7 +101,9 @@ export function VisitorTracker() {
             title: document.title,
             device: detectDevice(),
             browser: detectBrowser(),
-            referrer: getReferrerSource(),
+            referrer: sd.referrer,
+            searchEngine: sd.searchEngine,
+            searchKeyword: sd.searchKeyword,
             ...extra,
           }),
           keepalive: true,
@@ -138,8 +169,8 @@ export function VisitorTracker() {
 
     heartbeatRef.current = setInterval(sendHeartbeat, 30_000);
 
-    // Final beacon on unload
-    const onUnload = () => {
+    // Final beacon on unload — heartbeat + exit tracking
+    const handleExit = () => {
       const sessionId = getSessionId();
       if (!sessionId) return;
       const duration = Math.round((Date.now() - startTimeRef.current) / 1000);
@@ -147,12 +178,21 @@ export function VisitorTracker() {
         '/api/visitors/heartbeat',
         JSON.stringify({ sessionId, duration })
       );
+      navigator.sendBeacon(
+        '/api/visitors/track',
+        new Blob([JSON.stringify({ sessionId, exiting: true, path: window.location.pathname })], { type: 'application/json' })
+      );
     };
-    window.addEventListener('beforeunload', onUnload);
+    window.addEventListener('beforeunload', handleExit);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') handleExit();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       clearInterval(heartbeatRef.current);
-      window.removeEventListener('beforeunload', onUnload);
+      window.removeEventListener('beforeunload', handleExit);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [isAdmin]);
 

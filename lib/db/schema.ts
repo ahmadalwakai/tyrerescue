@@ -589,6 +589,11 @@ export const siteVisitors = pgTable('site_visitors', {
   sessionDuration: integer('session_duration').default(0),
   isOnline: boolean('is_online').default(true),
   lastHeartbeat: timestamp('last_heartbeat', { withTimezone: true }).default(sql`NOW()`),
+  searchKeyword: varchar('search_keyword', { length: 500 }),
+  searchEngine: varchar('search_engine', { length: 50 }),
+  exitedAt: timestamp('exited_at', { withTimezone: true }),
+  visitCount: integer('visit_count').default(1),
+  previousVisits: jsonb('previous_visits'),
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
 });

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { siteVisitors, visitorPageViews, visitorClicks } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql, and, ne } from 'drizzle-orm';
 import { createHash } from 'crypto';
 
 // Simple in-memory rate limiter: max 60 requests per minute per IP
@@ -64,11 +64,21 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { sessionId, path, title, buttonText, device, browser, referrer } = body;
+    const { sessionId, path, title, buttonText, device, browser, referrer, searchEngine, searchKeyword, exiting } = body;
 
     if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 64) {
       return NextResponse.json({ error: 'Invalid sessionId' }, { status: 400 });
     }
+
+    // Handle exit event
+    if (exiting) {
+      await db
+        .update(siteVisitors)
+        .set({ exitedAt: new Date(), isOnline: false, updatedAt: new Date() })
+        .where(eq(siteVisitors.sessionId, sessionId));
+      return NextResponse.json({ success: true });
+    }
+
     if (!path || typeof path !== 'string' || path.length > 500) {
       return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
     }
@@ -96,6 +106,18 @@ export async function POST(request: NextRequest) {
         })
         .where(eq(siteVisitors.id, visitorId));
     } else {
+      // Count previous visits by this IP
+      const priorVisits = await db
+        .select({
+          count: sql<number>`count(*)::int`,
+          dates: sql<string[]>`array_agg(${siteVisitors.createdAt}::text ORDER BY ${siteVisitors.createdAt} DESC)`,
+        })
+        .from(siteVisitors)
+        .where(and(eq(siteVisitors.ipHash, ipHash), ne(siteVisitors.sessionId, sessionId)));
+
+      const visitCount = (priorVisits[0]?.count || 0) + 1;
+      const previousVisits = priorVisits[0]?.dates?.filter(Boolean) || [];
+
       const [inserted] = await db
         .insert(siteVisitors)
         .values({
@@ -106,6 +128,10 @@ export async function POST(request: NextRequest) {
           device: typeof device === 'string' ? device.slice(0, 20) : null,
           browser: typeof browser === 'string' ? browser.slice(0, 50) : null,
           referrer: typeof referrer === 'string' ? referrer.slice(0, 255) : null,
+          searchEngine: typeof searchEngine === 'string' ? searchEngine.slice(0, 50) : null,
+          searchKeyword: typeof searchKeyword === 'string' ? searchKeyword.slice(0, 500) : null,
+          visitCount,
+          previousVisits: previousVisits.length > 0 ? previousVisits : null,
         })
         .returning({ id: siteVisitors.id });
       visitorId = inserted.id;

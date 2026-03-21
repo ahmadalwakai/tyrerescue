@@ -23,10 +23,22 @@ import { NotificationStack } from './NotificationToast';
 
 const MotionBox = motion.create(Box);
 
-// ── Sound ──
+// ── Pre-init AudioContext singleton for instant sound ──
+let audioCtx: AudioContext | null = null;
+function initAudio() {
+  if (!audioCtx) {
+    try {
+      audioCtx = new AudioContext();
+    } catch { /* silent */ }
+  }
+}
+
 function playNotificationSound() {
   try {
-    const ctx = new AudioContext();
+    initAudio();
+    const ctx = audioCtx;
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
@@ -50,6 +62,8 @@ interface VisitorData {
   device: string | null;
   browser: string | null;
   referrer: string | null;
+  searchEngine: string | null;
+  searchKeyword: string | null;
   sessionDuration: number | null;
   consentGiven: boolean | null;
   ageGroup: string | null;
@@ -57,6 +71,9 @@ interface VisitorData {
   interests: string[] | null;
   isOnline: boolean | null;
   createdAt: string | null;
+  exitedAt: string | null;
+  visitCount: number | null;
+  previousVisits: string[] | null;
   pagesVisited: { path: string; title: string | null }[];
   buttonsClicked: { buttonText: string }[];
 }
@@ -76,6 +93,10 @@ interface Stats {
   topPages: { path: string; count: number }[];
   dailyTrend: { day: string; visitors: number }[];
   monthlyTrend: { month: string; visitors: number }[];
+  browserBreakdown: { browser: string | null; count: number }[];
+  engineBreakdown: { engine: string | null; count: number }[];
+  topKeywords: { keyword: string | null; count: number }[];
+  returningVisitors: number;
 }
 
 // ── Live Pulse ──
@@ -107,6 +128,7 @@ const TABS = [
   { id: 'weekly', label: 'Weekly', icon: '📊' },
   { id: 'monthly', label: 'Monthly', icon: '📈' },
   { id: 'heatmap', label: 'Clicks', icon: '🔥' },
+  { id: 'keywords', label: 'Keywords', icon: '🔍' },
   { id: 'geo', label: 'Locations', icon: '🌍' },
 ] as const;
 
@@ -115,7 +137,7 @@ export function VisitorsDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notifications, setNotifications] = useState<{ id: string; city: string | null; device: string | null; browser: string | null }[]>([]);
+  const [notifications, setNotifications] = useState<{ id: string; city: string | null; device: string | null; browser: string | null; searchKeyword?: string | null; searchEngine?: string | null; visitCount?: number | null; createdAt?: string | null }[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('tr_visitor_sound') !== 'off';
     return true;
@@ -144,6 +166,13 @@ export function VisitorsDashboard() {
     const interval = setInterval(fetchData, 30_000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  // Init AudioContext on first user interaction
+  useEffect(() => {
+    const handler = () => initAudio();
+    document.addEventListener('click', handler, { once: true });
+    return () => document.removeEventListener('click', handler);
+  }, []);
 
   // Poll for live visitor arrivals (every 5s)
   useEffect(() => {
@@ -183,6 +212,7 @@ export function VisitorsDashboard() {
     const next = !soundEnabled;
     setSoundEnabled(next);
     localStorage.setItem('tr_visitor_sound', next ? 'on' : 'off');
+    if (next) initAudio();
   };
 
   if (loading) {
@@ -312,7 +342,7 @@ export function VisitorsDashboard() {
             <MotionBox key="live" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <Box bg={c.surface} borderRadius="14px" border={`1px solid ${c.border}`} overflow="hidden">
                 <Grid
-                  templateColumns={{ base: '1fr 1fr 40px', md: '1fr 1fr 0.7fr 0.7fr 40px' }}
+                  templateColumns={{ base: '1fr 1fr 40px', md: '1fr 1fr 0.6fr 0.5fr 0.5fr 40px' }}
                   p="10px 14px"
                   bg="rgba(0,0,0,0.3)"
                   fontSize="10px"
@@ -323,8 +353,9 @@ export function VisitorsDashboard() {
                 >
                   <Text>Location / IP</Text>
                   <Text>Device / Source</Text>
+                  <Text display={{ base: 'none', md: 'block' }}>Browser</Text>
                   <Text display={{ base: 'none', md: 'block' }}>Pages</Text>
-                  <Text display={{ base: 'none', md: 'block' }}>Duration</Text>
+                  <Text display={{ base: 'none', md: 'block' }}>In / Out</Text>
                   <Text />
                 </Grid>
                 <Box maxH="420px" overflowY="auto">
@@ -522,6 +553,112 @@ export function VisitorsDashboard() {
                 ) : (
                   <Box p={8} textAlign="center"><Text color={c.muted}>No page views recorded yet</Text></Box>
                 )}
+              </Box>
+            </MotionBox>
+          )}
+
+          {/* ── KEYWORDS ── */}
+          {activeTab === 'keywords' && (
+            <MotionBox key="keywords" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              {/* Top Search Keywords */}
+              <Box bg={c.surface} borderRadius="14px" border={`1px solid ${c.border}`} p={5}>
+                <Flex justify="space-between" align="center" mb={4}>
+                  <Text fontSize="16px" color={c.text} fontWeight="600">🔍 Search Keywords</Text>
+                  <Text fontSize="11px" color={c.muted} fontFamily="monospace">
+                    {s.topKeywords.length} unique terms
+                  </Text>
+                </Flex>
+                {s.topKeywords.length > 0 ? (
+                  <Flex direction="column" gap={2}>
+                    {s.topKeywords.map((k, i) => {
+                      const maxK = s.topKeywords[0]?.count || 1;
+                      const intensity = k.count / maxK;
+                      return (
+                        <Flex
+                          key={k.keyword}
+                          align="center"
+                          gap={3}
+                          p="8px 12px"
+                          bg={`rgba(129,140,248,${intensity * 0.08})`}
+                          border={`1px solid rgba(129,140,248,${intensity * 0.15})`}
+                          borderRadius="8px"
+                          fontSize="12px"
+                        >
+                          <Text color={c.muted} w="16px" textAlign="right" fontFamily="monospace" fontSize="10px">{i + 1}</Text>
+                          <Text color="#818cf8" flex={1} fontFamily="monospace">{k.keyword || '(empty)'}</Text>
+                          <Box flex={1} maxW="120px" h="4px" bg="rgba(255,255,255,0.05)" borderRadius="2px" overflow="hidden">
+                            <Box h="100%" w={`${intensity * 100}%`} bg="#818cf8" borderRadius="2px" />
+                          </Box>
+                          <Text color={c.text} fontWeight="600" fontFamily="monospace" minW="24px" textAlign="right">{k.count}</Text>
+                        </Flex>
+                      );
+                    })}
+                  </Flex>
+                ) : (
+                  <Box p={8} textAlign="center"><Text color={c.muted}>No search keywords recorded yet</Text></Box>
+                )}
+              </Box>
+
+              {/* Search Engine + Browser Breakdown */}
+              <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={3} mt={3}>
+                <Box bg={c.surface} borderRadius="14px" border={`1px solid ${c.border}`} p={5}>
+                  <Text fontSize="16px" color={c.text} fontWeight="600" mb={4}>🌐 Search Engines</Text>
+                  {s.engineBreakdown.length > 0 ? (
+                    <Grid templateColumns="repeat(auto-fill, minmax(110px, 1fr))" gap="8px">
+                      {s.engineBreakdown.map((e, i) => (
+                        <Box
+                          key={e.engine}
+                          bg={`rgba(${i === 0 ? '129,140,248' : i === 1 ? '16,185,129' : '249,115,22'},0.08)`}
+                          border={`1px solid rgba(${i === 0 ? '129,140,248' : i === 1 ? '16,185,129' : '249,115,22'},0.15)`}
+                          borderRadius="10px"
+                          p="12px 10px"
+                          textAlign="center"
+                        >
+                          <Text fontSize="20px" fontWeight="700" color={PIE_COLORS[i % PIE_COLORS.length]} fontFamily="monospace">
+                            {e.count}
+                          </Text>
+                          <Text fontSize="11px" color={c.muted} mt={1}>{e.engine || 'Unknown'}</Text>
+                        </Box>
+                      ))}
+                    </Grid>
+                  ) : (
+                    <Text color={c.muted} fontStyle="italic" fontSize="11px">No search engine data yet</Text>
+                  )}
+                </Box>
+
+                <Box bg={c.surface} borderRadius="14px" border={`1px solid ${c.border}`} p={5}>
+                  <Text fontSize="16px" color={c.text} fontWeight="600" mb={4}>🖥️ Browsers</Text>
+                  {s.browserBreakdown.length > 0 ? (
+                    s.browserBreakdown.slice(0, 8).map((b) => {
+                      const maxB = s.browserBreakdown[0]?.count || 1;
+                      const pct = Math.round((b.count / maxB) * 100);
+                      return (
+                        <Flex key={b.browser} align="center" gap={2} mb="6px" fontSize="11px">
+                          <Text color={c.muted} w="80px">{b.browser || 'Unknown'}</Text>
+                          <Box flex={1} h="5px" bg="rgba(255,255,255,0.05)" borderRadius="3px" overflow="hidden">
+                            <Box h="100%" w={`${pct}%`} bg="#06b6d4" borderRadius="3px" transition="width 0.5s" />
+                          </Box>
+                          <Text color={c.muted} fontFamily="monospace" w="32px" textAlign="right">{b.count}</Text>
+                        </Flex>
+                      );
+                    })
+                  ) : (
+                    <Text color={c.muted} fontStyle="italic" fontSize="11px">No browser data yet</Text>
+                  )}
+                </Box>
+              </Grid>
+
+              {/* Returning visitors stat */}
+              <Box bg={c.surface} borderRadius="14px" border={`1px solid ${c.border}`} p={5} mt={3}>
+                <Flex justify="space-between" align="center">
+                  <Text fontSize="16px" color={c.text} fontWeight="600">🔄 Returning Visitors</Text>
+                  <Flex align="center" gap={3}>
+                    <Text fontSize="28px" fontWeight="700" color="#f97316" fontFamily="monospace">{s.returningVisitors}</Text>
+                    <Text fontSize="12px" color={c.muted}>
+                      of {s.totalVisitors} ({s.totalVisitors > 0 ? Math.round((s.returningVisitors / s.totalVisitors) * 100) : 0}%)
+                    </Text>
+                  </Flex>
+                </Flex>
               </Box>
             </MotionBox>
           )}

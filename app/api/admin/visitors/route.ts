@@ -140,6 +140,39 @@ export async function GET(request: NextRequest) {
     .where(and(periodFilter, eq(siteVisitors.consentGiven, true)))
     .groupBy(siteVisitors.gender);
 
+  // Browser breakdown
+  const browserBreakdown = await db
+    .select({ browser: siteVisitors.browser, count: count() })
+    .from(siteVisitors)
+    .where(periodFilter)
+    .groupBy(siteVisitors.browser)
+    .orderBy(desc(count()));
+
+  // Search engine breakdown
+  const engineBreakdown = await db
+    .select({ engine: siteVisitors.searchEngine, count: count() })
+    .from(siteVisitors)
+    .where(and(periodFilter, sql`${siteVisitors.searchEngine} IS NOT NULL`))
+    .groupBy(siteVisitors.searchEngine)
+    .orderBy(desc(count()));
+
+  // Top search keywords
+  const topKeywords = await db
+    .select({ keyword: siteVisitors.searchKeyword, count: count() })
+    .from(siteVisitors)
+    .where(and(periodFilter, sql`${siteVisitors.searchKeyword} IS NOT NULL`))
+    .groupBy(siteVisitors.searchKeyword)
+    .orderBy(desc(count()))
+    .limit(20);
+
+  // Returning visitors count
+  const [returningRow] = await db
+    .select({ count: count() })
+    .from(siteVisitors)
+    .where(and(periodFilter, sql`${siteVisitors.visitCount} > 1`));
+
+  const returningVisitors = Number(returningRow?.count || 0);
+
   // Button click heatmap
   const buttonBreakdown = await db
     .select({ buttonText: visitorClicks.buttonText, count: count() })
@@ -222,6 +255,10 @@ export async function GET(request: NextRequest) {
       topPages: topPages.map(p => ({ path: p.path, count: Number(p.count) })),
       dailyTrend: dailyTrend.map(d => ({ day: d.day, visitors: Number(d.count) })),
       monthlyTrend: monthlyTrend.map(m => ({ month: m.month, visitors: Number(m.count) })),
+      browserBreakdown: browserBreakdown.map(b => ({ browser: b.browser, count: Number(b.count) })),
+      engineBreakdown: engineBreakdown.map(e => ({ engine: e.engine, count: Number(e.count) })),
+      topKeywords: topKeywords.map(k => ({ keyword: k.keyword, count: Number(k.count) })),
+      returningVisitors,
     },
     page,
     totalCount: totalVisitors,
