@@ -6,12 +6,12 @@ import { AnalyticsProvider } from '@/components/ui/AnalyticsProvider';
 import { CallMeBack } from '@/components/ui/CallMeBack';
 import { BookingReminder } from '@/components/ui/BookingReminder';
 import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
+import { PageviewTracker } from '@/components/analytics/PageviewTracker';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getLocalBusinessSchema, getWebSiteSchema } from '@/lib/seo/schemas';
+import { GA_MEASUREMENT_ID } from '@/lib/analytics/gtag';
 import Script from 'next/script';
 import './globals.css';
-
-const GA4_ID = 'G-MLH80KPV1T';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -129,12 +129,12 @@ export default function RootLayout({
         <JsonLd data={getLocalBusinessSchema()} />
         <JsonLd data={getWebSiteSchema()} />
         <Script id="gtag-consent-default" strategy="beforeInteractive">
-          {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+          {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;
 gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',functionality_storage:'denied',personalization_storage:'denied',security_storage:'granted'});
-gtag('js',new Date());gtag('config','${GA4_ID}');`}
+gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}');`}
         </Script>
         <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`}
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
           strategy="beforeInteractive"
         />
       </head>
@@ -153,6 +153,7 @@ gtag('js',new Date());gtag('config','${GA4_ID}');`}
           {children}
           <CookieBanner />
           <AnalyticsProvider />
+          <PageviewTracker />
           <CallMeBack />
           <BookingReminder />
           <FloatingContactBar />
