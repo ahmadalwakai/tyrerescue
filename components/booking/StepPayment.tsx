@@ -17,6 +17,7 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe, type StripeElementsOptions } from '@stripe/stripe-js';
 import { formatPrice, PricingBreakdown } from '@/lib/pricing-engine';
+import { trackConversion } from '@/lib/analytics/gtag';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import type { SelectedTyre } from './types';
@@ -90,10 +91,12 @@ function CheckoutForm({
       } catch {
         // Non-blocking — webhook will handle it if this fails
       }
+      trackConversion(breakdown.total / 100);
       onSuccess(refNumber);
     } else if (paymentIntent && paymentIntent.status === 'processing') {
       // Payment still processing (e.g. bank debits) — navigate to success page
       // which will show awaiting-confirmation state
+      trackConversion(breakdown.total / 100);
       onSuccess(refNumber);
     } else {
       // Payment not succeeded (cancelled, requires_action, requires_payment_method, etc.)

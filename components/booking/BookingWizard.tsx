@@ -29,6 +29,7 @@ import { StepCustomerDetails } from './StepCustomerDetails';
 import { StepPayment } from './StepPayment';
 import { QuoteLoadingScreen } from './QuoteLoadingScreen';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { trackBookingStart } from '@/lib/analytics/gtag';
 
 // ── Draft persistence ────────────────────────────────────
 // localStorage key for durable cross-session persistence.
@@ -274,6 +275,7 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
     const steps = getStepsForBookingType(state.bookingType, state.serviceType);
     const currentIndex = steps.findIndex(s => s.key === currentStep);
     if (currentIndex < steps.length - 1) {
+      if (currentStep === 'service-type') trackBookingStart();
       const nextStep = steps[currentIndex + 1].key;
       if (nextStep === 'pricing') {
         setShowQuoteLoader(true);

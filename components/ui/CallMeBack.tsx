@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { Box, Text, Input, Button, VStack, Flex } from '@chakra-ui/react';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
+import { trackCallbackSubmit } from '@/lib/analytics/gtag';
 
 type FormState = 'idle' | 'open' | 'submitting' | 'success' | 'error';
 
@@ -40,6 +41,7 @@ export function CallMeBack() {
         body: JSON.stringify({ name: name.trim(), phone: phone.trim(), notes: notes.trim() || undefined }),
       });
       if (res.ok) {
+        trackCallbackSubmit();
         setState('success');
       } else {
         setState('error');

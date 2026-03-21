@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Box, Flex, Link as ChakraLink } from '@chakra-ui/react';
+import { trackCallClick, trackWhatsAppClick } from '@/lib/analytics/gtag';
 
 const PHONE_NUMBER = process.env.NEXT_PUBLIC_PHONE_NUMBER || '0141 266 0690';
 const PHONE_TEL = PHONE_NUMBER.replace(/\s/g, '');
@@ -103,6 +104,7 @@ export function FloatingContactBar() {
           <ChakraLink
             href={`tel:${PHONE_TEL}`}
             className="floating-call-btn"
+            onClick={() => trackCallClick('floating_desktop')}
             display="flex"
             alignItems="center"
             justifyContent="center"
@@ -132,6 +134,7 @@ export function FloatingContactBar() {
             target="_blank"
             rel="noopener noreferrer"
             className="floating-wa-btn"
+            onClick={() => trackWhatsAppClick('floating_desktop')}
             display="flex"
             alignItems="center"
             justifyContent="center"
@@ -193,12 +196,12 @@ export function FloatingContactBar() {
           <ChevronUpIcon />
         </Box>
 
-        {/* WhatsApp — secondary action */}
         <ChakraLink
           href={WHATSAPP_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="floating-wa-btn"
+          onClick={() => trackWhatsAppClick('floating_mobile')}
           display="flex"
           alignItems="center"
           justifyContent="center"
@@ -216,10 +219,10 @@ export function FloatingContactBar() {
           <WhatsAppIcon size={22} />
         </ChakraLink>
 
-        {/* Call — primary action, largest */}
         <ChakraLink
           href={`tel:${PHONE_TEL}`}
           className="floating-call-btn"
+          onClick={() => trackCallClick('floating_mobile')}
           display="flex"
           alignItems="center"
           justifyContent="center"

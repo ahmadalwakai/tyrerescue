@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Box, Container, Flex, Text, Link as ChakraLink, SimpleGrid } from '@chakra-ui/react';
 import Link from 'next/link';
 import { colorTokens } from '@/lib/design-tokens';
+import { trackCallClick, trackWhatsAppClick } from '@/lib/analytics/gtag';
 
 const colors = {
   bg: colorTokens.bg,
@@ -136,6 +137,7 @@ export function Footer() {
           <Flex direction="column" gap={2} align={{ base: 'flex-start', md: 'flex-end' }}>
             <ChakraLink
               href="tel:01412660690"
+              onClick={() => trackCallClick('footer')}
               fontSize={{ base: '24px', md: '32px' }}
               color={colors.accent}
               _hover={{ opacity: 0.8 }}
@@ -148,6 +150,7 @@ export function Footer() {
               href="https://wa.me/447423262955"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackWhatsAppClick('footer')}
               fontSize="13px"
               color="#25D366"
               _hover={{ opacity: 0.8 }}
