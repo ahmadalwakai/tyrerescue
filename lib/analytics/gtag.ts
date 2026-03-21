@@ -1,5 +1,6 @@
 export const GA_MEASUREMENT_ID = 'G-MLH80KPV1T';
 export const ADS_CONVERSION_ID = 'AW-16460953081';
+export const ADS_PHONE_CONVERSION = 'AW-16460953081/4-0_CMK70YwcEPnrmKk9';
 
 declare global {
   interface Window {
@@ -55,6 +56,9 @@ export function trackCallClick(label: string) {
   window.gtag?.('event', 'click_call', {
     event_category: 'engagement',
     event_label: label,
+  });
+  window.gtag?.('event', 'conversion', {
+    send_to: ADS_PHONE_CONVERSION,
   });
 }
 
