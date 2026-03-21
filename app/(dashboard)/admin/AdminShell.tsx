@@ -8,6 +8,9 @@ import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { AdminChatbot } from '@/components/admin/AdminChatbot';
 import { BackButton } from '@/components/ui/BackButton';
+import { NotificationBell } from '@/components/admin/NotificationBell';
+import { SoundToggle } from '@/components/admin/SoundToggle';
+import { AdminNotificationProvider } from '@/components/admin/AdminNotificationProvider';
 
 const navItems = [
   { label: 'Bookings', href: '/admin/bookings' },
@@ -71,6 +74,7 @@ export function AdminShell({
   }, [fetchCounts]);
 
   return (
+    <AdminNotificationProvider>
     <Flex minH="100vh">
       {/* Desktop Sidebar */}
       <Box
@@ -155,12 +159,18 @@ export function AdminShell({
         </VStack>
 
         <Box mt={8} pt={4} borderTop="1px solid" borderColor={c.border}>
-          <Text fontSize="sm" color={c.muted}>
-            Signed in as
-          </Text>
-          <Text fontSize="sm" fontWeight="medium" color={c.text}>
-            {userName}
-          </Text>
+          <Flex align="center" justify="space-between" mb={2}>
+            <Box>
+              <Text fontSize="sm" color={c.muted}>
+                Signed in as
+              </Text>
+              <Text fontSize="sm" fontWeight="medium" color={c.text}>
+                {userName}
+              </Text>
+            </Box>
+            <SoundToggle />
+            <NotificationBell />
+          </Flex>
         </Box>
 
         <Box mt={4} pt={4} borderTop={`1px solid ${c.border}`}>
@@ -209,18 +219,21 @@ export function AdminShell({
         >
           <NextLink href="/">TYRE RESCUE</NextLink>
         </ChakraLink>
-        <Text
-          as="button"
-          fontSize="13px"
-          fontWeight="600"
-          color={c.accent}
-          cursor="pointer"
-          bg="transparent"
-          border="none"
-          onClick={() => setMobileOpen(true)}
-        >
-          MENU
-        </Text>
+        <Flex align="center" gap="2">
+          <NotificationBell />
+          <Text
+            as="button"
+            fontSize="13px"
+            fontWeight="600"
+            color={c.accent}
+            cursor="pointer"
+            bg="transparent"
+            border="none"
+            onClick={() => setMobileOpen(true)}
+          >
+            MENU
+          </Text>
+        </Flex>
       </Box>
 
       {/* Mobile Full-Screen Overlay */}
@@ -345,5 +358,6 @@ export function AdminShell({
         <AdminChatbot />
       </Box>
     </Flex>
+    </AdminNotificationProvider>
   );
 }

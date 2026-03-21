@@ -1,5 +1,6 @@
 import {
   pgTable,
+  pgEnum,
   uuid,
   varchar,
   text,
@@ -657,6 +658,49 @@ export const pageAnalysis = pgTable('page_analysis', {
   lastCrawled: timestamp('last_crawled', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// ──────────────────────────────────────────────
+// Admin Notifications
+// ──────────────────────────────────────────────
+
+export const notificationSeverityEnum = pgEnum('notification_severity', [
+  'info',
+  'success',
+  'warning',
+  'critical',
+]);
+
+export const adminNotifications = pgTable('admin_notifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  type: text('type').notNull(),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  entityType: text('entity_type').notNull(),
+  entityId: text('entity_id').notNull(),
+  severity: notificationSeverityEnum('severity').default('info').notNull(),
+  link: text('link'),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+  isRead: boolean('is_read').default(false).notNull(),
+  readAt: timestamp('read_at', { withTimezone: true }),
+  createdBy: text('created_by'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ──────────────────────────────────────────────
+// Web Push Subscriptions
+// ──────────────────────────────────────────────
+
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id').notNull(),
+  endpoint: text('endpoint').notNull(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  userAgent: text('user_agent'),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Type exports for use throughout the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -721,3 +765,7 @@ export type VisitorPageView = typeof visitorPageViews.$inferSelect;
 export type VisitorClick = typeof visitorClicks.$inferSelect;
 export type SeoSnapshot = typeof seoSnapshots.$inferSelect;
 export type PageAnalysis = typeof pageAnalysis.$inferSelect;
+export type AdminNotification = typeof adminNotifications.$inferSelect;
+export type NewAdminNotification = typeof adminNotifications.$inferInsert;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type NewPushSubscription = typeof pushSubscriptions.$inferInsert;

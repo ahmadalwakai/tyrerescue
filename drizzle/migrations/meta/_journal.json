@@ -22,6 +22,13 @@
       "when": 1774069969349,
       "tag": "0002_fine_argent",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774122885275,
+      "tag": "0003_slim_hiroim",
+      "breakpoints": true
     }
   ]
 }

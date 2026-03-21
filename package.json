@@ -46,6 +46,7 @@
     "resend": "^6.9.3",
     "stripe": "^20.4.1",
     "uuid": "^13.0.0",
+    "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
     "zod": "^4.3.6"
   },
@@ -57,6 +58,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
+    "@types/web-push": "^3.6.4",
     "@types/ws": "^8.18.1",
     "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.30.0",
