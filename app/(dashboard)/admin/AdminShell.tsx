@@ -29,6 +29,7 @@ const navItems = [
   { label: 'Audit Log', href: '/admin/audit' },
   { label: 'Analytics', href: '/admin/analytics' },
   { label: 'SEO Analytics', href: '/admin/seo-analytics' },
+  { label: 'Visitors', href: '/admin/visitors' },
 ];
 
 export function AdminShell({

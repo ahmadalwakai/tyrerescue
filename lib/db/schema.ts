@@ -572,6 +572,43 @@ export const homepageMedia = pgTable('homepage_media', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// Visitor analytics tables
+export const siteVisitors = pgTable('site_visitors', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar('session_id', { length: 64 }).notNull().unique(),
+  ipHash: varchar('ip_hash', { length: 64 }),
+  city: varchar('city', { length: 100 }),
+  country: varchar('country', { length: 50 }).default('UK'),
+  device: varchar('device', { length: 20 }),
+  browser: varchar('browser', { length: 50 }),
+  referrer: varchar('referrer', { length: 255 }),
+  ageGroup: varchar('age_group', { length: 10 }),
+  gender: varchar('gender', { length: 20 }),
+  interests: jsonb('interests'),
+  consentGiven: boolean('consent_given').default(false),
+  sessionDuration: integer('session_duration').default(0),
+  isOnline: boolean('is_online').default(true),
+  lastHeartbeat: timestamp('last_heartbeat', { withTimezone: true }).default(sql`NOW()`),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+export const visitorPageViews = pgTable('visitor_page_views', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  visitorId: uuid('visitor_id').notNull().references(() => siteVisitors.id),
+  path: varchar('path', { length: 500 }).notNull(),
+  title: varchar('title', { length: 255 }),
+  timestamp: timestamp('timestamp', { withTimezone: true }).default(sql`NOW()`),
+});
+
+export const visitorClicks = pgTable('visitor_clicks', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  visitorId: uuid('visitor_id').notNull().references(() => siteVisitors.id),
+  buttonText: varchar('button_text', { length: 255 }).notNull(),
+  path: varchar('path', { length: 500 }),
+  timestamp: timestamp('timestamp', { withTimezone: true }).default(sql`NOW()`),
+});
+
 // Type exports for use throughout the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -630,3 +667,7 @@ export type BookingMessage = typeof bookingMessages.$inferSelect;
 export type NewBookingMessage = typeof bookingMessages.$inferInsert;
 export type MessageAttachment = typeof messageAttachments.$inferSelect;
 export type MessageReadStateRow = typeof messageReadState.$inferSelect;
+export type SiteVisitor = typeof siteVisitors.$inferSelect;
+export type NewSiteVisitor = typeof siteVisitors.$inferInsert;
+export type VisitorPageView = typeof visitorPageViews.$inferSelect;
+export type VisitorClick = typeof visitorClicks.$inferSelect;

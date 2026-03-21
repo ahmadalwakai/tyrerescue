@@ -6,6 +6,7 @@ import { AnalyticsProvider } from '@/components/ui/AnalyticsProvider';
 import { CallMeBack } from '@/components/ui/CallMeBack';
 import { BookingReminder } from '@/components/ui/BookingReminder';
 import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
+import { VisitorTracker } from '@/components/VisitorTracker';
 import { PageviewTracker } from '@/components/analytics/PageviewTracker';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getLocalBusinessSchema, getWebSiteSchema } from '@/lib/seo/schemas';
@@ -157,6 +158,7 @@ gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{send_page_view:false
           <CallMeBack />
           <BookingReminder />
           <FloatingContactBar />
+          <VisitorTracker />
         </Providers>
       </body>
     </html>
