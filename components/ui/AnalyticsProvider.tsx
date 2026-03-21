@@ -27,18 +27,17 @@ function loadScript(src: string, id: string): Promise<void> {
   });
 }
 
-function initGA4(measurementId: string) {
-  if (document.getElementById('gtag-init')) return;
-
+/* ----------  Google Consent Mode v2  ---------- */
+function gtagConsentUpdate(analytics: boolean, marketing: boolean) {
   const w = window as unknown as Record<string, unknown>;
-  w.dataLayer = (w.dataLayer as unknown[]) || [];
-  function gtag(...args: unknown[]) {
-    (w.dataLayer as unknown[]).push(args);
-  }
-  gtag('js', new Date());
-  gtag('config', measurementId);
-
-  loadScript(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`, 'gtag-init');
+  if (typeof (w as any).gtag !== 'function') return;
+  const gtag = (w as any).gtag as (...args: unknown[]) => void;
+  gtag('consent', 'update', {
+    analytics_storage: analytics ? 'granted' : 'denied',
+    ad_storage: marketing ? 'granted' : 'denied',
+    ad_user_data: marketing ? 'granted' : 'denied',
+    ad_personalization: marketing ? 'granted' : 'denied',
+  });
 }
 
 function initClarity(projectId: string) {
@@ -77,8 +76,12 @@ export function AnalyticsProvider() {
 
     const s = settingsCache!;
 
+    // GA4: always loaded in <head>; just update consent state
+    if (s.ga4Enabled && s.ga4MeasurementId) {
+      gtagConsentUpdate(consent.analytics, consent.marketing);
+    }
+
     if (consent.analytics) {
-      if (s.ga4Enabled && s.ga4MeasurementId) initGA4(s.ga4MeasurementId);
       if (s.clarityEnabled && s.clarityId) initClarity(s.clarityId);
     }
 
