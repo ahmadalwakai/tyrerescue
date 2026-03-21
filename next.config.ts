@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://api.mapbox.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://connect.facebook.net",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://api.mapbox.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://connect.facebook.net https://widget.trustpilot.com",
               "style-src 'self' 'unsafe-inline' https://api.mapbox.com https://fonts.googleapis.com",
               "img-src 'self' data: blob: https://api.mapbox.com https://*.blob.vercel-storage.com https://tile.openstreetmap.org https://www.google-analytics.com https://www.facebook.com",
               "font-src 'self' https://fonts.gstatic.com",
