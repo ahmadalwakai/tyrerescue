@@ -36,13 +36,15 @@ export function TrackingLookup() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = ref.trim().toUpperCase();
+    let trimmed = ref.trim().toUpperCase();
+    // Strip common prefixes like "BOOKING" or "BOOKING:"
+    trimmed = trimmed.replace(/^BOOKING[:\s]+/i, '').trim();
     if (!trimmed) {
       setError('Please enter your booking reference.');
       return;
     }
-    if (!/^[A-Z0-9-]+$/.test(trimmed)) {
-      setError('Invalid reference format. Check your confirmation email.');
+    if (!/^[A-Z]{2,4}-\d{4}-\d{3,6}$/.test(trimmed)) {
+      setError('Invalid format. Enter the reference like TYR-2026-63413.');
       return;
     }
     setError('');
@@ -98,7 +100,7 @@ export function TrackingLookup() {
                 setRef(e.target.value);
                 if (error) setError('');
               }}
-              placeholder="e.g. TR-20260320-ABC1"
+              placeholder="e.g. TYR-2026-63413"
               size="lg"
               bg={c.inputBg}
               borderColor={error ? '#EF4444' : c.inputBorder}
