@@ -27,6 +27,9 @@ export async function GET(req: NextRequest) {
       device: siteVisitors.device,
       browser: siteVisitors.browser,
       referrer: siteVisitors.referrer,
+      searchKeyword: siteVisitors.searchKeyword,
+      searchEngine: siteVisitors.searchEngine,
+      visitCount: siteVisitors.visitCount,
       createdAt: siteVisitors.createdAt,
     })
     .from(siteVisitors)

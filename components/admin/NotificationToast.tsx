@@ -39,8 +39,10 @@ export function NotificationToast({ visitor, onDismiss }: NotificationToastProps
       exit={{ x: -340, opacity: 0 }}
       transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       bg={c.surface}
+      borderTop="1px solid rgba(16,185,129,0.3)"
+      borderRight="1px solid rgba(16,185,129,0.3)"
+      borderBottom="1px solid rgba(16,185,129,0.3)"
       borderLeft="3px solid #10b981"
-      border={`1px solid rgba(16,185,129,0.3)`}
       borderRadius="10px"
       p="10px 14px"
       mb={2}
@@ -49,7 +51,6 @@ export function NotificationToast({ visitor, onDismiss }: NotificationToastProps
       cursor="pointer"
       onClick={onDismiss}
       pointerEvents="auto"
-      style={{ borderLeft: '3px solid #10b981' }}
     >
       <Flex justify="space-between" align="center" mb="4px">
         <Flex align="center" gap="6px">

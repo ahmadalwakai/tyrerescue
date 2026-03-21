@@ -33,9 +33,9 @@ function detectBrowser(): string {
   return 'Other';
 }
 
-function extractSearchData(): { searchEngine: string; searchKeyword: string | null; referrer: string } {
+function extractSearchData(): { searchEngine: string | null; searchKeyword: string | null; referrer: string } {
   const ref = document.referrer;
-  let searchEngine = 'Direct';
+  let searchEngine: string | null = null;
   let searchKeyword: string | null = null;
   let referrer = 'Direct';
 
@@ -50,12 +50,12 @@ function extractSearchData(): { searchEngine: string; searchKeyword: string | nu
     else if (host.includes('yahoo'))   { searchEngine = 'Yahoo'; referrer = 'Yahoo'; }
     else if (host.includes('duckduckgo')) { searchEngine = 'DuckDuckGo'; referrer = 'DuckDuckGo'; }
     else if (host.includes('ecosia'))  { searchEngine = 'Ecosia'; referrer = 'Ecosia'; }
-    else if (host.includes('facebook') || host.includes('fb.')) { searchEngine = 'Direct'; referrer = 'Facebook'; }
-    else if (host.includes('instagram')) { searchEngine = 'Direct'; referrer = 'Instagram'; }
-    else if (host.includes('tiktok'))  { searchEngine = 'Direct'; referrer = 'TikTok'; }
-    else if (host.includes('whatsapp')) { searchEngine = 'Direct'; referrer = 'WhatsApp'; }
-    else if (host.includes('twitter') || host.includes('x.com')) { searchEngine = 'Direct'; referrer = 'X'; }
-    else { searchEngine = 'Direct'; referrer = host.replace('www.', '').split('.')[0]; }
+    else if (host.includes('facebook') || host.includes('fb.')) { referrer = 'Facebook'; }
+    else if (host.includes('instagram')) { referrer = 'Instagram'; }
+    else if (host.includes('tiktok'))  { referrer = 'TikTok'; }
+    else if (host.includes('whatsapp')) { referrer = 'WhatsApp'; }
+    else if (host.includes('twitter') || host.includes('x.com')) { referrer = 'X'; }
+    else { referrer = host.replace('www.', '').split('.')[0]; }
 
     searchKeyword = url.searchParams.get('q')
       || url.searchParams.get('p')
@@ -77,7 +77,7 @@ export function VisitorTracker() {
 
   const isAdmin = session?.user?.role === 'admin';
 
-  const searchDataRef = useRef<{ searchEngine: string; searchKeyword: string | null; referrer: string } | null>(null);
+  const searchDataRef = useRef<{ searchEngine: string | null; searchKeyword: string | null; referrer: string } | null>(null);
 
   const track = useCallback(
     async (extra?: { buttonText?: string }) => {
@@ -170,13 +170,16 @@ export function VisitorTracker() {
     heartbeatRef.current = setInterval(sendHeartbeat, 30_000);
 
     // Final beacon on unload — heartbeat + exit tracking
+    let exitSent = false;
     const handleExit = () => {
+      if (exitSent) return;
+      exitSent = true;
       const sessionId = getSessionId();
       if (!sessionId) return;
       const duration = Math.round((Date.now() - startTimeRef.current) / 1000);
       navigator.sendBeacon(
         '/api/visitors/heartbeat',
-        JSON.stringify({ sessionId, duration })
+        new Blob([JSON.stringify({ sessionId, duration })], { type: 'application/json' })
       );
       navigator.sendBeacon(
         '/api/visitors/track',
