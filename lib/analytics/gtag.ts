@@ -1,7 +1,5 @@
 export const GA_MEASUREMENT_ID = 'G-MLH80KPV1T';
-
-// Replace with your real Google Ads conversion ID + label when available
-export const ADS_CONVERSION_ID = 'AW-XXXXXXXXX/XXXXXXXXX';
+export const ADS_CONVERSION_ID = 'AW-16460953081';
 
 declare global {
   interface Window {
