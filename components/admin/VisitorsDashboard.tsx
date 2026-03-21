@@ -121,8 +121,7 @@ export function VisitorsDashboard() {
     return true;
   });
   const [activeTab, setActiveTab] = useState<string>('live');
-  const sseRef = useRef<EventSource | null>(null);
-  const retryRef = useRef(0);
+  const lastSeenRef = useRef<string>(new Date().toISOString());
 
   // Fetch dashboard data
   const fetchData = useCallback(async () => {
@@ -146,31 +145,27 @@ export function VisitorsDashboard() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // SSE for live visitors
+  // Poll for live visitor arrivals (every 5s)
   useEffect(() => {
-    function connect() {
-      const es = new EventSource('/api/admin/visitors/live');
-      sseRef.current = es;
-
-      es.onmessage = (event) => {
-        try {
-          const visitor = JSON.parse(event.data);
-          setNotifications((prev) => [visitor, ...prev].slice(0, 5));
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/admin/visitors/live?since=${encodeURIComponent(lastSeenRef.current)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.visitors?.length > 0) {
+          for (const visitor of data.visitors) {
+            setNotifications((prev) => [visitor, ...prev].slice(0, 5));
+          }
           if (soundEnabled) playNotificationSound();
-          retryRef.current = 0;
-        } catch { /* ignore */ }
-      };
+          // Update lastSeen to the newest visitor's createdAt
+          const newest = data.visitors[0]?.createdAt;
+          if (newest) lastSeenRef.current = newest;
+        }
+      } catch { /* silent */ }
+    };
 
-      es.onerror = () => {
-        es.close();
-        const delay = Math.min(1000 * 2 ** retryRef.current, 30_000);
-        retryRef.current++;
-        setTimeout(connect, delay);
-      };
-    }
-
-    connect();
-    return () => sseRef.current?.close();
+    const interval = setInterval(poll, 5000);
+    return () => clearInterval(interval);
   }, [soundEnabled]);
 
   // Auto-dismiss notifications
