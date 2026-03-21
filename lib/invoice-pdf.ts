@@ -28,6 +28,12 @@ const GREY = rgb(161 / 255, 161 / 255, 170 / 255);
 const LIGHT_GREY = rgb(245 / 255, 245 / 255, 245 / 255);
 const WHITE = rgb(1, 1, 1);
 
+/** Strip characters outside the WinAnsi range that pdf-lib StandardFonts cannot encode */
+function sanitize(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/[^\x20-\x7E\xA0-\xFF\n\r\t]/g, '');
+}
+
 function fmtPrice(n: number): string {
   return `£${n.toFixed(2)}`;
 }
@@ -52,7 +58,7 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
   page.drawRectangle({ x: 0, y: y - 10, width, height: 60, color: DARK });
   page.drawRectangle({ x: 0, y: y - 12, width, height: 2, color: ORANGE });
 
-  page.drawText(data.companyName.toUpperCase(), {
+  page.drawText(sanitize(data.companyName.toUpperCase()), {
     x: marginLeft, y: y + 18, size: 22, font: fontBold, color: WHITE,
   });
   page.drawText('INVOICE', {
@@ -72,7 +78,7 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
   ];
   let cy = y;
   for (const line of companyLines) {
-    page.drawText(line, { x: marginLeft, y: cy, size: 9, font: fontNormal, color: GREY });
+    page.drawText(sanitize(line), { x: marginLeft, y: cy, size: 9, font: fontNormal, color: GREY });
     cy -= 14;
   }
 
@@ -84,7 +90,7 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
     page.drawText(metaLabels[i], {
       x: marginRight - 160, y: my, size: 9, font: fontNormal, color: GREY,
     });
-    page.drawText(metaValues[i], {
+    page.drawText(sanitize(metaValues[i]), {
       x: marginRight - 160 + labelW + 8, y: my, size: 9,
       font: i === 3 ? fontBold : fontNormal,
       color: i === 3 ? ORANGE : DARK,
@@ -97,20 +103,20 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
   // ── Bill To ──
   page.drawText('BILL TO', { x: marginLeft, y, size: 10, font: fontBold, color: ORANGE });
   y -= 16;
-  page.drawText(data.customerName, { x: marginLeft, y, size: 10, font: fontBold, color: DARK });
+  page.drawText(sanitize(data.customerName), { x: marginLeft, y, size: 10, font: fontBold, color: DARK });
   y -= 14;
   if (data.customerAddress) {
     // Wrap address into lines
     const addrLines = data.customerAddress.split(/[,\n]/).map((s) => s.trim()).filter(Boolean);
     for (const line of addrLines) {
-      page.drawText(line, { x: marginLeft, y, size: 9, font: fontNormal, color: GREY });
+      page.drawText(sanitize(line), { x: marginLeft, y, size: 9, font: fontNormal, color: GREY });
       y -= 13;
     }
   }
-  page.drawText(data.customerEmail, { x: marginLeft, y, size: 9, font: fontNormal, color: GREY });
+  page.drawText(sanitize(data.customerEmail), { x: marginLeft, y, size: 9, font: fontNormal, color: GREY });
   y -= 13;
   if (data.customerPhone) {
-    page.drawText(data.customerPhone, { x: marginLeft, y, size: 9, font: fontNormal, color: GREY });
+    page.drawText(sanitize(data.customerPhone), { x: marginLeft, y, size: 9, font: fontNormal, color: GREY });
     y -= 13;
   }
 
@@ -139,13 +145,13 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
       page.drawRectangle({ x: marginLeft - 5, y: y - 5, width: marginRight - marginLeft + 10, height: 20, color: LIGHT_GREY });
     }
     // Truncate description if too long
-    let desc = item.description;
+    let desc = sanitize(item.description);
     const maxDescW = 240;
     while (fontNormal.widthOfTextAtSize(desc, 9) > maxDescW && desc.length > 3) {
       desc = desc.slice(0, -4) + '...';
     }
 
-    page.drawText(desc, { x: colX[0], y: y + 2, size: 9, font: fontNormal, color: DARK });
+    page.drawText(sanitize(desc), { x: colX[0], y: y + 2, size: 9, font: fontNormal, color: DARK });
 
     const qtyStr = String(item.quantity);
     const qtyW = fontNormal.widthOfTextAtSize(qtyStr, 9);
@@ -194,14 +200,14 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
     const noteLines = data.notes.split('\n');
     for (const line of noteLines) {
       if (y < 60) break;
-      page.drawText(line, { x: marginLeft, y, size: 9, font: fontNormal, color: GREY });
+      page.drawText(sanitize(line), { x: marginLeft, y, size: 9, font: fontNormal, color: GREY });
       y -= 13;
     }
   }
 
   // ── Footer ──
   page.drawRectangle({ x: 0, y: 0, width, height: 35, color: DARK });
-  page.drawText(`${data.companyName} • ${data.companyPhone} • ${data.companyEmail}`, {
+  page.drawText(sanitize(`${data.companyName} - ${data.companyPhone} - ${data.companyEmail}`), {
     x: marginLeft, y: 12, size: 8, font: fontNormal, color: GREY,
   });
 
