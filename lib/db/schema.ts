@@ -12,6 +12,7 @@ import {
   jsonb,
   inet,
   check,
+  real,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -614,6 +615,48 @@ export const visitorClicks = pgTable('visitor_clicks', {
   timestamp: timestamp('timestamp', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// ── SEO Analytics ──
+export const seoSnapshots = pgTable('seo_snapshots', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  date: timestamp('date', { withTimezone: true }).notNull(),
+  performanceScore: integer('performance_score'),
+  accessibilityScore: integer('accessibility_score'),
+  bestPracticesScore: integer('best_practices_score'),
+  seoScore: integer('seo_score'),
+  lcp: real('lcp'),
+  fid: real('fid'),
+  cls: real('cls'),
+  fcp: real('fcp'),
+  ttfb: real('ttfb'),
+  totalVisitors: integer('total_visitors').default(0),
+  organicVisitors: integer('organic_visitors').default(0),
+  directVisitors: integer('direct_visitors').default(0),
+  socialVisitors: integer('social_visitors').default(0),
+  bounceRate: real('bounce_rate'),
+  avgSessionDuration: real('avg_session_duration'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+export const pageAnalysis = pgTable('page_analysis', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  path: varchar('path', { length: 500 }).notNull().unique(),
+  title: varchar('title', { length: 500 }),
+  metaDescription: varchar('meta_description', { length: 1000 }),
+  h1: varchar('h1', { length: 500 }),
+  h1Count: integer('h1_count').default(0),
+  h2Count: integer('h2_count').default(0),
+  imgWithoutAlt: integer('img_without_alt').default(0),
+  wordCount: integer('word_count').default(0),
+  hasCanonical: boolean('has_canonical').default(false),
+  hasOpenGraph: boolean('has_open_graph').default(false),
+  hasTwitterCard: boolean('has_twitter_card').default(false),
+  hasJsonLd: boolean('has_json_ld').default(false),
+  statusCode: integer('status_code'),
+  loadTimeMs: integer('load_time_ms'),
+  issues: jsonb('issues'),
+  lastCrawled: timestamp('last_crawled', { withTimezone: true }).default(sql`NOW()`),
+});
+
 // Type exports for use throughout the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -676,3 +719,5 @@ export type SiteVisitor = typeof siteVisitors.$inferSelect;
 export type NewSiteVisitor = typeof siteVisitors.$inferInsert;
 export type VisitorPageView = typeof visitorPageViews.$inferSelect;
 export type VisitorClick = typeof visitorClicks.$inferSelect;
+export type SeoSnapshot = typeof seoSnapshots.$inferSelect;
+export type PageAnalysis = typeof pageAnalysis.$inferSelect;

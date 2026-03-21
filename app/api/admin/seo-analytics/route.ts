@@ -1,21 +1,58 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { siteVisitors, seoSnapshots, pageAnalysis } from '@/lib/db/schema';
+import { sql, desc } from 'drizzle-orm';
 import { services, serviceCities, getAreasForCity } from '@/lib/areas';
 import { articles } from '@/lib/blog/articles';
 import { cities } from '@/lib/cities';
 
-/**
- * GET /api/admin/seo-analytics
- * Returns aggregated SEO health data for the admin dashboard.
- * Pulls from sitemap structure + static analysis of schema coverage.
- */
-export async function GET() {
-  const session = await auth();
-  if (!session || session.user.role !== 'admin') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+/* ── Types ── */
+interface CWVData {
+  performanceScore: number;
+  accessibilityScore: number;
+  bestPracticesScore: number;
+  seoScore: number;
+  lcp: number;
+  fid: number;
+  cls: number;
+  fcp: number;
+  ttfb: number;
+}
 
-  /* ---- Page inventory (mirrors sitemap.ts logic) ---- */
+/* ── PageSpeed Insights (free API) ── */
+export async function fetchPageSpeedData(url: string): Promise<CWVData | null> {
+  const apiKey = process.env.GOOGLE_PAGESPEED_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&key=${apiKey}&category=performance&category=accessibility&category=best-practices&category=seo&strategy=mobile`;
+    const res = await fetch(apiUrl, { next: { revalidate: 3600 } });
+    if (!res.ok) return null;
+    const data = await res.json();
+
+    const categories = data.lighthouseResult?.categories;
+    const audits = data.lighthouseResult?.audits;
+
+    return {
+      performanceScore: Math.round((categories?.performance?.score || 0) * 100),
+      accessibilityScore: Math.round((categories?.accessibility?.score || 0) * 100),
+      bestPracticesScore: Math.round((categories?.['best-practices']?.score || 0) * 100),
+      seoScore: Math.round((categories?.seo?.score || 0) * 100),
+      lcp: parseFloat(audits?.['largest-contentful-paint']?.numericValue || 0) / 1000,
+      fid: parseFloat(audits?.['max-potential-fid']?.numericValue || 0),
+      cls: parseFloat(audits?.['cumulative-layout-shift']?.numericValue || 0),
+      fcp: parseFloat(audits?.['first-contentful-paint']?.numericValue || 0) / 1000,
+      ttfb: parseFloat(audits?.['server-response-time']?.numericValue || 0),
+    };
+  } catch (e) {
+    console.error('PageSpeed API error:', e);
+    return null;
+  }
+}
+
+/* ── Total pages count (from sitemap structure) ── */
+function countTotalPages(): number {
   const staticPages = [
     '', '/emergency', '/book', '/tyres', '/faq', '/contact',
     '/privacy-policy', '/terms-of-service', '/refund-policy', '/cookie-policy',
@@ -31,112 +68,199 @@ export async function GET() {
   );
   const blogPages = articles.map((a) => `/blog/${a.slug}`);
 
-  const totalPages =
-    staticPages.length +
-    cityPages.length +
-    serviceCityPages.length +
-    serviceAreaPages.length +
-    blogPages.length +
-    1; // +1 for /blog index
-
-  /* ---- Schema coverage (static analysis) ---- */
-  const schemaResults = [
-    { page: '/', types: ['LocalBusiness', 'AutoRepair', 'WebSite'], errors: 0, status: 'valid' as const },
-    { page: '/emergency', types: ['EmergencyService', 'FAQPage'], errors: 0, status: 'valid' as const },
-    { page: '/book', types: ['LocalBusiness'], errors: 0, status: 'valid' as const },
-    { page: '/faq', types: ['FAQPage'], errors: 0, status: 'valid' as const },
-    { page: '/tyres', types: ['ItemList', 'Product'], errors: 0, status: 'valid' as const },
-    { page: '/contact', types: ['LocalBusiness', 'ContactPoint'], errors: 0, status: 'valid' as const },
-    { page: '/blog', types: ['Blog', 'CollectionPage'], errors: 0, status: 'valid' as const },
-    ...services.slice(0, 3).map((s) => ({
-      page: `/${s.slug}/glasgow`,
-      types: ['Service', 'LocalBusiness', 'BreadcrumbList'],
-      errors: 0,
-      status: 'valid' as const,
-    })),
-    ...serviceCities.slice(0, 2).flatMap((city) => [
-      {
-        page: `/${services[0].slug}/${city}/${getAreasForCity(city)[0]?.slug ?? 'area'}`,
-        types: ['Service', 'BreadcrumbList', 'Question'],
-        errors: 0,
-        status: 'valid' as const,
-      },
-    ]),
-  ];
-
-  /* ---- Core Web Vitals (representative values) ---- */
-  const cwv = [
-    { name: 'LCP', value: '1.8s', rating: 'good' as const, target: '< 2.5s' },
-    { name: 'INP', value: '120ms', rating: 'good' as const, target: '< 200ms' },
-    { name: 'CLS', value: '0.04', rating: 'good' as const, target: '< 0.1' },
-  ];
-
-  /* ---- Keyword rankings (target keywords) ---- */
-  const keywords = [
-    { keyword: 'mobile tyre fitting glasgow', position: 8, change: 2, url: '/mobile-tyre-fitting/glasgow', impressions: 4200, clicks: 380, ctr: '9.0%' },
-    { keyword: 'emergency tyre fitting near me', position: 12, change: 4, url: '/emergency', impressions: 6800, clicks: 310, ctr: '4.6%' },
-    { keyword: 'mobile tyre fitting edinburgh', position: 11, change: 1, url: '/mobile-tyre-fitting/edinburgh', impressions: 3100, clicks: 180, ctr: '5.8%' },
-    { keyword: 'tyre repair glasgow', position: 6, change: 3, url: '/tyre-repair/glasgow', impressions: 2900, clicks: 420, ctr: '14.5%' },
-    { keyword: 'puncture repair near me', position: 15, change: -2, url: '/puncture-repair/glasgow', impressions: 5400, clicks: 190, ctr: '3.5%' },
-    { keyword: '24 hour tyre fitting scotland', position: 9, change: 5, url: '/emergency', impressions: 1800, clicks: 140, ctr: '7.8%' },
-    { keyword: 'mobile tyre fitting dundee', position: 14, change: 0, url: '/mobile-tyre-fitting/dundee', impressions: 1200, clicks: 60, ctr: '5.0%' },
-    { keyword: 'tyre fitting stirling', position: 18, change: 3, url: '/tyre-fitting/stirling', impressions: 800, clicks: 30, ctr: '3.8%' },
-    { keyword: 'cheap tyres glasgow', position: 22, change: 1, url: '/tyres', impressions: 7500, clicks: 110, ctr: '1.5%' },
-    { keyword: 'mobile tyre service scotland', position: 10, change: 6, url: '/', impressions: 2400, clicks: 170, ctr: '7.1%' },
-  ];
-
-  /* ---- Traffic trends (last 12 weeks) ---- */
-  const now = new Date();
-  const traffic = Array.from({ length: 12 }, (_, i) => {
-    const weekDate = new Date(now);
-    weekDate.setDate(weekDate.getDate() - (11 - i) * 7);
-    const week = `W${String(getISOWeek(weekDate)).padStart(2, '0')}`;
-    const base = 180 + i * 15;
-    return {
-      period: week,
-      organic: Math.round(base * (0.55 + Math.random() * 0.1)),
-      direct: Math.round(base * (0.2 + Math.random() * 0.05)),
-      referral: Math.round(base * (0.1 + Math.random() * 0.05)),
-      social: Math.round(base * (0.08 + Math.random() * 0.04)),
-    };
-  });
-
-  /* ---- Site health ---- */
-  const issues: string[] = [];
-  if (totalPages > 3000) {
-    issues.push('Large sitemap — consider splitting into sub-sitemaps');
-  }
-  issues.push('Add hreflang tags if planning multi-language support');
-  issues.push('Consider adding FAQ schema to more service area pages');
-
-  const siteHealth = {
-    score: 87,
-    issues,
-  };
-
-  /* ---- Indexing status estimate ---- */
-  const indexing = {
-    totalPages,
-    indexed: Math.round(totalPages * 0.82),
-    notIndexed: Math.round(totalPages * 0.18),
-    errors: 3,
-    lastCrawl: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-  };
-
-  return NextResponse.json({
-    cwv,
-    schemas: schemaResults,
-    indexing,
-    keywords,
-    traffic,
-    siteHealth,
-  });
+  return staticPages.length + cityPages.length + serviceCityPages.length +
+    serviceAreaPages.length + blogPages.length + 1;
 }
 
-/* ---- ISO week helper ---- */
-function getISOWeek(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+/* ── GET handler ── */
+export async function GET() {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    // A) Core Web Vitals from PageSpeed Insights API
+    const cwvData = await fetchPageSpeedData('https://www.tyrerescue.uk');
+    const lastSnapshot = await db.select().from(seoSnapshots)
+      .orderBy(desc(seoSnapshots.date)).limit(1);
+    const cwvLastChecked = lastSnapshot[0]?.date?.toISOString() ?? null;
+
+    // CWV history from seoSnapshots
+    const history = await db.select().from(seoSnapshots)
+      .orderBy(desc(seoSnapshots.date))
+      .limit(30);
+
+    // B) Traffic from real siteVisitors table
+    const trafficQuery = await db.execute(sql`
+      SELECT
+        date_trunc('week', created_at)::text as week,
+        COUNT(*) FILTER (WHERE search_engine IN ('Google','Bing','Yahoo','DuckDuckGo','Ecosia'))::int as organic,
+        COUNT(*) FILTER (WHERE search_engine = 'Direct' OR search_engine IS NULL)::int as direct,
+        COUNT(*) FILTER (WHERE search_engine IN ('Facebook','Instagram','TikTok','WhatsApp'))::int as social,
+        COUNT(*) FILTER (WHERE search_engine NOT IN ('Google','Bing','Yahoo','DuckDuckGo','Ecosia','Direct','Facebook','Instagram','TikTok','WhatsApp') AND search_engine IS NOT NULL)::int as referral,
+        COUNT(*)::int as total
+      FROM site_visitors
+      WHERE created_at > NOW() - INTERVAL '12 weeks'
+      GROUP BY date_trunc('week', created_at)
+      ORDER BY week ASC
+    `);
+
+    const trafficRows = (trafficQuery.rows ?? trafficQuery) as Array<{
+      week: string; organic: number; direct: number; social: number; referral: number; total: number;
+    }>;
+
+    const trafficWeeks = trafficRows.map((r) => ({
+      week: r.week,
+      organic: Number(r.organic) || 0,
+      direct: Number(r.direct) || 0,
+      social: Number(r.social) || 0,
+      referral: Number(r.referral) || 0,
+      total: Number(r.total) || 0,
+    }));
+
+    // Traffic summary
+    const totalVisitors = trafficWeeks.reduce((s, w) => s + w.total, 0);
+    const totalOrganic = trafficWeeks.reduce((s, w) => s + w.organic, 0);
+    const organicPct = totalVisitors > 0 ? Math.round((totalOrganic / totalVisitors) * 100) : 0;
+
+    // Trend: compare last half vs prior half
+    const mid = Math.floor(trafficWeeks.length / 2);
+    const recentTotal = trafficWeeks.slice(mid).reduce((s, w) => s + w.total, 0);
+    const priorTotal = trafficWeeks.slice(0, mid).reduce((s, w) => s + w.total, 0);
+    const trend = priorTotal > 0 ? Math.round(((recentTotal - priorTotal) / priorTotal) * 100) : 0;
+
+    // C) Keywords from real visitor search data
+    const keywordsQuery = await db.execute(sql`
+      SELECT
+        search_keyword as keyword,
+        COUNT(*)::int as impressions,
+        COUNT(*) FILTER (WHERE (
+          SELECT COUNT(*) FROM visitor_clicks vc WHERE vc.visitor_id = site_visitors.id
+        ) > 0)::int as clicks
+      FROM site_visitors
+      WHERE search_keyword IS NOT NULL
+        AND created_at > NOW() - INTERVAL '30 days'
+      GROUP BY search_keyword
+      ORDER BY COUNT(*) DESC
+      LIMIT 30
+    `);
+
+    const keywordRows = (keywordsQuery.rows ?? keywordsQuery) as Array<{
+      keyword: string; impressions: number; clicks: number;
+    }>;
+
+    const keywords = keywordRows.map((r) => ({
+      keyword: r.keyword,
+      impressions: Number(r.impressions) || 0,
+      clicks: Number(r.clicks) || 0,
+      ctr: Number(r.impressions) > 0
+        ? Math.round((Number(r.clicks) / Number(r.impressions)) * 1000) / 10
+        : 0,
+    }));
+
+    // D) Page crawl data
+    const pages = await db.select().from(pageAnalysis)
+      .orderBy(desc(pageAnalysis.lastCrawled))
+      .limit(50);
+
+    const pagesWithIssues = pages.filter((p) => {
+      const issues = p.issues as Array<{ severity: string }> | null;
+      return issues && issues.some((i) => i.severity === 'error' || i.severity === 'warning');
+    }).length;
+
+    const avgLoadTime = pages.length > 0
+      ? Math.round(pages.reduce((s, p) => s + (p.loadTimeMs ?? 0), 0) / pages.length)
+      : 0;
+
+    // E) Schema stats
+    const schemaStatsQuery = await db.select({
+      total: sql<number>`count(*)::int`,
+      withJsonLd: sql<number>`count(*) FILTER (WHERE has_json_ld = true)::int`,
+      withOg: sql<number>`count(*) FILTER (WHERE has_open_graph = true)::int`,
+      withTwitter: sql<number>`count(*) FILTER (WHERE has_twitter_card = true)::int`,
+      withCanonical: sql<number>`count(*) FILTER (WHERE has_canonical = true)::int`,
+    }).from(pageAnalysis);
+
+    const schemaStats = schemaStatsQuery[0] ?? { total: 0, withJsonLd: 0, withOg: 0, withTwitter: 0, withCanonical: 0 };
+
+    // F) Health score from real data
+    const healthIssues: { type: string; message: string; severity: 'error' | 'warning' | 'info'; path?: string }[] = [];
+
+    for (const page of pages) {
+      const pageIssues = page.issues as Array<{ type: string; message: string; severity: string }> | null;
+      if (pageIssues) {
+        for (const issue of pageIssues) {
+          healthIssues.push({
+            type: issue.type,
+            message: issue.message,
+            severity: issue.severity as 'error' | 'warning' | 'info',
+            path: page.path,
+          });
+        }
+      }
+    }
+
+    let healthScore = 100;
+    if (cwvData) {
+      const cwvAvg = (cwvData.performanceScore + cwvData.accessibilityScore +
+        cwvData.bestPracticesScore + cwvData.seoScore) / 4;
+      healthScore = Math.round(cwvAvg * 0.25 +
+        (schemaStats.total > 0 ? (Number(schemaStats.withJsonLd) / Number(schemaStats.total)) * 100 : 0) * 0.25 +
+        (pages.length > 0 ? (pages.filter((p) => p.metaDescription).length / pages.length) * 100 : 0) * 0.25 +
+        (pages.length > 0 ? ((pages.length - pagesWithIssues) / pages.length) * 100 : 0) * 0.25);
+    } else if (pages.length > 0) {
+      healthScore = Math.round(
+        (Number(schemaStats.total) > 0 ? (Number(schemaStats.withJsonLd) / Number(schemaStats.total)) * 100 : 0) * 0.33 +
+        (pages.filter((p) => p.metaDescription).length / pages.length) * 100 * 0.33 +
+        ((pages.length - pagesWithIssues) / pages.length) * 100 * 0.34);
+    } else {
+      healthScore = 0;
+    }
+
+    // G) Indexing
+    const totalPages = countTotalPages();
+    const crawledCount = pages.length;
+    const lastCrawl = pages[0]?.lastCrawled?.toISOString() ?? null;
+
+    return NextResponse.json({
+      cwv: {
+        current: cwvData,
+        history,
+        lastChecked: cwvLastChecked,
+      },
+      traffic: {
+        weeks: trafficWeeks,
+        summary: { totalVisitors, organicPct, trend },
+      },
+      keywords: {
+        list: keywords,
+        total: keywords.length,
+      },
+      pages: {
+        list: pages,
+        stats: { total: pages.length, withIssues: pagesWithIssues, avgLoadTime },
+      },
+      schemas: {
+        total: Number(schemaStats.total) || 0,
+        withJsonLd: Number(schemaStats.withJsonLd) || 0,
+        withOg: Number(schemaStats.withOg) || 0,
+        withTwitter: Number(schemaStats.withTwitter) || 0,
+        withCanonical: Number(schemaStats.withCanonical) || 0,
+      },
+      health: {
+        score: healthScore,
+        issues: healthIssues,
+      },
+      indexing: {
+        totalPages,
+        crawledPages: crawledCount,
+        lastCrawl,
+      },
+    });
+  } catch (e) {
+    console.error('SEO analytics error:', e);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
