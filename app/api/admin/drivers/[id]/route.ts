@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { db, users, drivers, bookings } from '@/lib/db';
 import { eq, and, sql, notInArray } from 'drizzle-orm';
+import { createAdminNotification } from '@/lib/notifications';
 
 // GET /api/admin/drivers/[id] — fetch single driver with stats
 export async function GET(
@@ -129,6 +130,19 @@ export async function PUT(
 
     if (Object.keys(driverUpdates).length > 0) {
       await db.update(drivers).set(driverUpdates).where(eq(drivers.id, id));
+
+      // Notify if status changed
+      if (driverUpdates.status) {
+        await createAdminNotification({
+          type: 'driver.status.changed',
+          title: `Driver ${driverUpdates.status}`,
+          body: `Driver status changed to ${driverUpdates.status}`,
+          entityType: 'driver',
+          entityId: id,
+          link: `/admin/drivers/${id}`,
+          severity: driverUpdates.status === 'offline' ? 'warning' : 'info',
+        });
+      }
     }
 
     return NextResponse.json({ success: true });

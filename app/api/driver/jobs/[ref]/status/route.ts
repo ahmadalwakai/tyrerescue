@@ -5,6 +5,7 @@ import { eq, and } from 'drizzle-orm';
 import { BookingStatus } from '@/lib/state-machine';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { jobComplete } from '@/lib/email/templates';
+import { createAdminNotification } from '@/lib/notifications';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -99,6 +100,17 @@ export async function PATCH(request: Request, { params }: Props) {
       actorUserId: user.id,
       actorRole: 'driver',
     });
+
+    // Notify admin of status change
+    createAdminNotification({
+      type: 'booking.updated',
+      title: `Booking ${newStatus.replace('_', ' ')}`,
+      body: `Booking ${booking.refNumber} — driver status: ${newStatus}`,
+      entityType: 'booking',
+      entityId: booking.id,
+      link: `/admin/bookings/${booking.refNumber}`,
+      severity: newStatus === 'completed' ? 'success' : 'info',
+    }).catch(console.error);
 
     // If marking complete, update driver status to available
     if (newStatus === 'completed') {

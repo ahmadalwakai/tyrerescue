@@ -7,6 +7,7 @@ import { executeTransition, BookingStatus } from '@/lib/state-machine';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { refundIssued } from '@/lib/email/templates';
 import { restoreBookingStock } from '@/lib/inventory/stock-service';
+import { createAdminNotification } from '@/lib/notifications';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -138,6 +139,17 @@ export async function POST(request: Request, { params }: Props) {
       if (!stockResult.success) {
         console.error('[refund] stock restore failed:', stockResult.error);
       }
+
+      // Admin notification for refund
+      await createAdminNotification({
+        type: 'booking.updated',
+        title: 'Refund Issued',
+        body: `£${parseFloat(booking.totalAmount.toString()).toFixed(2)} refunded for ${booking.refNumber}`,
+        entityType: 'booking',
+        entityId: booking.id,
+        link: `/admin/bookings/${booking.refNumber}`,
+        severity: 'warning',
+      });
 
       // Send refund email to customer
       try {

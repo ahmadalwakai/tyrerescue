@@ -7,6 +7,7 @@ import { createNotificationAndSend } from '@/lib/email/resend';
 import { bookingCancelled } from '@/lib/email/templates/booking-cancelled';
 import { jobCancelled, jobUpdated } from '@/lib/email/templates';
 import { restoreBookingStock } from '@/lib/inventory/stock-service';
+import { createAdminNotification } from '@/lib/notifications';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -315,6 +316,17 @@ export async function PATCH(request: NextRequest, { params }: Props) {
         console.error('[cancel] stock restore failed:', stockResult.error);
       }
     }
+
+    // Admin notification for status change
+    await createAdminNotification({
+      type: newStatus === 'cancelled' ? 'booking.cancelled' : 'booking.updated',
+      title: newStatus === 'cancelled' ? 'Booking Cancelled' : `Booking ${newStatus}`,
+      body: `Booking ${booking.refNumber} status changed to ${newStatus}`,
+      entityType: 'booking',
+      entityId: booking.id,
+      link: `/admin/bookings/${booking.refNumber}`,
+      severity: newStatus === 'cancelled' ? 'warning' : 'info',
+    });
 
     // Send cancellation email to customer
     if (newStatus === 'cancelled' && booking.customerEmail) {

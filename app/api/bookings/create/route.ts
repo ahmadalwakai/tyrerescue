@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import { createAdminNotification } from '@/lib/notifications';
 import {
   bookings,
   bookingTyres,
@@ -305,6 +306,18 @@ export async function POST(
       );
 
       await client.query('COMMIT');
+
+      // Notify admin of new booking (fire-and-forget)
+      createAdminNotification({
+        type: 'booking.created',
+        title: 'New Booking',
+        body: `Booking ${refNumber} — ${data.customerName} — ${data.customerPhone}`,
+        entityType: 'booking',
+        entityId: bookingId,
+        link: `/admin/bookings/${refNumber}`,
+        severity: 'info',
+        createdBy: 'system',
+      }).catch(console.error);
 
       return NextResponse.json({
         bookingId,

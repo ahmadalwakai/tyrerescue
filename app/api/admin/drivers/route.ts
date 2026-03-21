@@ -4,6 +4,7 @@ import { db, users, drivers } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { driverWelcome } from '@/lib/email/templates';
+import { createAdminNotification } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -107,6 +108,17 @@ export async function POST(request: Request) {
     } catch (emailError) {
       console.error('Failed to send driver welcome email:', emailError);
     }
+
+    // Admin notification
+    await createAdminNotification({
+      type: 'driver.status.changed',
+      title: 'New Driver Registered',
+      body: `${name.trim()} (${email.toLowerCase()}) has been added`,
+      entityType: 'driver',
+      entityId: newDriver.id,
+      link: `/admin/drivers/${newDriver.id}`,
+      severity: 'info',
+    });
 
     return NextResponse.json({
       success: true,

@@ -212,6 +212,18 @@ export async function POST(request: Request) {
       afterJson: { invoiceNumber, customerName: data.customerName, totalAmount },
     });
 
+    // Admin notification
+    const { createAdminNotification } = await import('@/lib/notifications');
+    await createAdminNotification({
+      type: 'invoice.created',
+      title: 'Invoice Created',
+      body: `Invoice ${invoiceNumber} for £${totalAmount.toFixed(2)} — ${data.customerName}`,
+      entityType: 'invoice',
+      entityId: created.id,
+      link: `/admin/invoices/${created.id}`,
+      severity: 'info',
+    });
+
     return NextResponse.json({ invoice: { id: created.id, invoiceNumber } }, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message.includes('Unauthorized'))

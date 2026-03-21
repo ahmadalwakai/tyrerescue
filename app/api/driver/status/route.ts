@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireDriverMobile } from '@/lib/auth';
 import { db, drivers, bookings } from '@/lib/db';
 import { eq, and, inArray } from 'drizzle-orm';
+import { createAdminNotification } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -48,6 +49,17 @@ export async function POST(request: Request) {
         ...(is_online ? {} : { currentLat: null, currentLng: null, locationAt: null }),
       })
       .where(eq(drivers.id, driver.id));
+
+    // Notify admin of driver status change
+    createAdminNotification({
+      type: 'driver.status.changed',
+      title: `Driver ${is_online ? 'Online' : 'Offline'}`,
+      body: `Driver went ${is_online ? 'online' : 'offline'}`,
+      entityType: 'driver',
+      entityId: driverId,
+      link: '/admin/drivers',
+      severity: is_online ? 'info' : 'warning',
+    }).catch(console.error);
 
     return NextResponse.json({
       success: true,

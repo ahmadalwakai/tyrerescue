@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { canSendMessage, ensureParticipant } from '@/lib/chat/permissions';
 import { getMessages, sendMessage } from '@/lib/chat/queries';
 import type { ChatRole, MessageType } from '@/lib/chat/types';
+import { createAdminNotification } from '@/lib/notifications';
 
 const sendSchema = z.object({
   body: z.string().max(5000).nullable(),
@@ -84,6 +85,20 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
     messageType as MessageType,
     attachment,
   );
+
+  // Notify admin when a customer or driver sends a message
+  if (role !== 'admin') {
+    createAdminNotification({
+      type: 'chat.message.received',
+      title: 'New Chat Message',
+      body: `${role === 'driver' ? 'Driver' : 'Customer'}: ${msgBody?.slice(0, 80) || 'Sent an attachment'}`,
+      entityType: 'chat',
+      entityId: conversationId,
+      link: `/admin/chat/${conversationId}`,
+      severity: 'info',
+      createdBy: 'system',
+    }).catch(console.error);
+  }
 
   return NextResponse.json(message, { status: 201 });
 }

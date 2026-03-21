@@ -20,6 +20,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import type Stripe from 'stripe';
 import { logInventoryMovement, releaseReservations } from '@/lib/inventory/stock-service';
+import { createAdminNotification } from '@/lib/notifications';
 
 // Disable body parsing - we need the raw body for signature verification
 export const runtime = 'nodejs';
@@ -356,6 +357,18 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   }
 
   console.log(`Payment ${paymentIntentId} processed successfully for booking ${refNumber}`);
+
+  // Admin notification
+  await createAdminNotification({
+    type: 'payment.received',
+    title: 'Payment Received',
+    body: `£${(paymentIntent.amount / 100).toFixed(2)} from ${booking.customerEmail} — ${refNumber}`,
+    entityType: 'payment',
+    entityId: paymentIntentId,
+    link: `/admin/bookings/${refNumber}`,
+    severity: 'success',
+    metadata: { stripeId: paymentIntentId, amount: paymentIntent.amount, currency: paymentIntent.currency },
+  });
 }
 
 /**
@@ -448,6 +461,20 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
   }
 
   console.log(`Payment failure recorded for ${paymentIntentId}`);
+
+  // Admin notification for failed payment
+  if (booking) {
+    await createAdminNotification({
+      type: 'payment.failed',
+      title: '❌ Payment Failed',
+      body: `£${(paymentIntent.amount / 100).toFixed(2)} failed for ${booking.refNumber} — ${paymentIntent.last_payment_error?.message || 'Unknown error'}`,
+      entityType: 'payment',
+      entityId: paymentIntentId,
+      link: `/admin/bookings/${booking.refNumber}`,
+      severity: 'critical',
+      metadata: { stripeId: paymentIntentId, error: paymentIntent.last_payment_error?.message },
+    });
+  }
 }
 
 /**

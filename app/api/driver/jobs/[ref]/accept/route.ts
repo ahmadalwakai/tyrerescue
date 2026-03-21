@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireDriverMobile } from '@/lib/auth';
 import { db, bookings, bookingStatusHistory } from '@/lib/db';
 import { eq } from 'drizzle-orm';
+import { createAdminNotification } from '@/lib/notifications';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -58,6 +59,17 @@ export async function PATCH(request: Request, { params }: Props) {
         note: 'Driver accepted the job',
       });
 
+      // Notify admin
+      createAdminNotification({
+        type: 'booking.updated',
+        title: 'Driver Accepted Job',
+        body: `Booking ${booking.refNumber} accepted by driver`,
+        entityType: 'booking',
+        entityId: booking.id,
+        link: `/admin/bookings/${booking.refNumber}`,
+        severity: 'info',
+      }).catch(console.error);
+
       return NextResponse.json({ success: true, action: 'accepted' });
     }
 
@@ -83,6 +95,17 @@ export async function PATCH(request: Request, { params }: Props) {
       actorRole: 'driver',
       note: 'Driver rejected the job',
     });
+
+    // Notify admin of rejection
+    createAdminNotification({
+      type: 'booking.updated',
+      title: 'Driver Rejected Job',
+      body: `Booking ${booking.refNumber} rejected by driver — reverted to paid`,
+      entityType: 'booking',
+      entityId: booking.id,
+      link: `/admin/bookings/${booking.refNumber}`,
+      severity: 'warning',
+    }).catch(console.error);
 
     return NextResponse.json({ success: true, action: 'rejected' });
   } catch (error) {

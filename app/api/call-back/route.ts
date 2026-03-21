@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { callMeBack } from '@/lib/db/schema';
 import { sendEmail } from '@/lib/email/resend';
 import { baseEmailTemplate } from '@/lib/email/templates/base';
+import { createAdminNotification } from '@/lib/notifications';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -21,6 +22,18 @@ export async function POST(request: Request) {
   const { name, phone, notes } = parsed.data;
 
   await db.insert(callMeBack).values({ name, phone, notes: notes || null });
+
+  // Admin notification (fire-and-forget)
+  createAdminNotification({
+    type: 'callback.created',
+    title: 'Callback Request',
+    body: `${name} — ${phone}${notes ? ` — ${notes.slice(0, 60)}` : ''}`,
+    entityType: 'callback',
+    entityId: name,
+    link: '/admin/callbacks',
+    severity: 'warning',
+    createdBy: 'system',
+  }).catch(console.error);
 
   const adminEmail = process.env.ADMIN_EMAIL;
   if (adminEmail) {

@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email/resend';
 import { baseEmailTemplate } from '@/lib/email/templates/base';
 import { askGroqJSON } from '@/lib/groq';
+import { createAdminNotification } from '@/lib/notifications';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -69,6 +70,18 @@ Complaint = unhappy customer, refund request, damaged vehicle.`,
   }
 
   // Notify admin
+  // Admin notification (fire-and-forget)
+  createAdminNotification({
+    type: 'contact.received',
+    title: aiPriority === 'urgent' || aiPriority === 'high' ? `🚨 Contact: ${name}` : `New Contact: ${name}`,
+    body: `${name} (${email})${phone ? ` — ${phone}` : ''}: ${message.slice(0, 80)}`,
+    entityType: 'contact',
+    entityId: inserted.id,
+    link: '/admin/messages',
+    severity: aiPriority === 'urgent' ? 'warning' : 'info',
+    createdBy: 'system',
+  }).catch(console.error);
+
   const adminEmail = process.env.ADMIN_EMAIL;
   if (adminEmail) {
     const priorityLabel = aiPriority === 'urgent' || aiPriority === 'high' ? `🚨 ${aiPriority.toUpperCase()} ` : '';

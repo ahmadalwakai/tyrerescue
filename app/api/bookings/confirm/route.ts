@@ -20,6 +20,7 @@ import {
   adminNewBooking,
 } from '@/lib/email/templates';
 import { v4 as uuidv4 } from 'uuid';
+import { createAdminNotification } from '@/lib/notifications';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -183,6 +184,18 @@ export async function POST(request: NextRequest) {
     sendConfirmationEmails(booking, tyresInBooking).catch((err) =>
       console.error('Email dispatch error:', err),
     );
+
+    // 10. Admin notification (fire-and-forget)
+    createAdminNotification({
+      type: 'payment.received',
+      title: 'Payment Received',
+      body: `£${parseFloat(booking.totalAmount?.toString() ?? '0').toFixed(2)} from ${booking.customerName} — ${booking.refNumber}`,
+      entityType: 'payment',
+      entityId: booking.id,
+      link: `/admin/bookings/${booking.refNumber}`,
+      severity: 'success',
+      metadata: { refNumber: booking.refNumber, amount: booking.totalAmount },
+    }).catch(console.error);
 
     return NextResponse.json({ status: 'paid' });
   } catch (error) {

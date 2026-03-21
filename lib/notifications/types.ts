@@ -6,11 +6,13 @@ export const NOTIFICATION_TYPES = {
   BOOKING_CANCELLED: "booking.cancelled",
   CALLBACK_CREATED: "callback.created",
   CHAT_MESSAGE_RECEIVED: "chat.message.received",
+  CONTACT_RECEIVED: "contact.received",
   STOCK_LOW: "stock.low",
   INVOICE_CREATED: "invoice.created",
   DRIVER_STATUS_CHANGED: "driver.status.changed",
   AVAILABILITY_UPDATED: "availability.updated",
   PAYMENT_RECEIVED: "payment.received",
+  PAYMENT_FAILED: "payment.failed",
   TESTIMONIAL_SUBMITTED: "testimonial.submitted",
 } as const;
 
@@ -23,6 +25,7 @@ export type NotificationEntityType =
   | "booking"
   | "callback"
   | "chat"
+  | "contact"
   | "stock"
   | "invoice"
   | "driver"

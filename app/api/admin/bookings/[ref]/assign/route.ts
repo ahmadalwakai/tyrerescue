@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { executeTransition, BookingStatus } from '@/lib/state-machine';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { driverAssigned, jobAssigned, jobCancelled } from '@/lib/email/templates';
+import { createAdminNotification } from '@/lib/notifications';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -129,6 +130,17 @@ export async function PATCH(request: Request, { params }: Props) {
         { status: 400 }
       );
     }
+
+    // Admin notification for driver assignment
+    await createAdminNotification({
+      type: 'booking.updated',
+      title: 'Driver Assigned',
+      body: `${driverUser?.name || 'Driver'} assigned to booking ${booking.refNumber}`,
+      entityType: 'booking',
+      entityId: booking.id,
+      link: `/admin/bookings/${booking.refNumber}`,
+      severity: 'info',
+    });
 
     // Send notification emails
     const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
