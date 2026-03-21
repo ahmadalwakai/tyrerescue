@@ -19,6 +19,7 @@ const navLinks = [
   { label: 'Home', href: '/' },
   { label: 'Emergency', href: '/emergency' },
   { label: 'Book', href: '/book' },
+  { label: 'Track', href: '/tracking' },
   { label: 'Tyres', href: '/tyres' },
   { label: 'Blog', href: '/blog' },
   { label: 'FAQ', href: '/faq' },

@@ -12,6 +12,7 @@ const ADDRESS = {
   streetAddress: '3, 10 Gateside St',
   addressLocality: 'Glasgow',
   postalCode: 'G31 1PD',
+  addressRegion: 'Scotland',
   addressCountry: 'GB',
 };
 
@@ -41,6 +42,7 @@ export function getLocalBusinessSchema() {
       { '@type': 'City', name: 'Glasgow' },
       { '@type': 'City', name: 'Edinburgh' },
       { '@type': 'City', name: 'Dundee' },
+      { '@type': 'City', name: 'Stirling' },
     ],
     sameAs: [
       'https://www.facebook.com/share/1Bt1ZFNkXN/',
@@ -205,6 +207,8 @@ export function getEmergencyServiceSchema() {
     areaServed: [
       { '@type': 'City', name: 'Glasgow' },
       { '@type': 'City', name: 'Edinburgh' },
+      { '@type': 'City', name: 'Dundee' },
+      { '@type': 'City', name: 'Stirling' },
       { '@type': 'AdministrativeArea', name: 'Central Scotland' },
     ],
     availableChannel: {
