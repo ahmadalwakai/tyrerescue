@@ -153,13 +153,15 @@ export function VisitorsDashboard() {
         if (!res.ok) return;
         const data = await res.json();
         if (data.visitors?.length > 0) {
-          for (const visitor of data.visitors) {
-            setNotifications((prev) => [visitor, ...prev].slice(0, 5));
-          }
+          setNotifications((prev) => {
+            const existingIds = new Set(prev.map((n) => n.id));
+            const fresh = data.visitors.filter((v: { id: string }) => !existingIds.has(v.id));
+            return [...fresh, ...prev].slice(0, 5);
+          });
           if (soundEnabled) playNotificationSound();
-          // Update lastSeen to the newest visitor's createdAt
+          // Advance lastSeen so we don't re-fetch the same visitors
           const newest = data.visitors[0]?.createdAt;
-          if (newest) lastSeenRef.current = newest;
+          lastSeenRef.current = newest || new Date().toISOString();
         }
       } catch { /* silent */ }
     };
