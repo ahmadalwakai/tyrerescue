@@ -236,9 +236,10 @@ export function QuickBookForm() {
       const data: FinalizedResult = await res.json();
       setFinalized(data);
 
-      // If Stripe payment: redirect admin to Stripe checkout page
+      // If Stripe payment: redirect to Stripe checkout page
+      // Use window.location.href for mobile compatibility (window.open is blocked on mobile)
       if (paymentMethod === 'stripe' && data.paymentUrl) {
-        window.open(data.paymentUrl, '_blank');
+        window.location.href = data.paymentUrl;
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
