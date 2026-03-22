@@ -103,6 +103,7 @@ export default async function AdminBookingDetailPage({ params }: Props) {
     lat: booking.lat.toString(),
     lng: booking.lng.toString(),
     distanceMiles: booking.distanceMiles?.toString() ?? null,
+    distanceSource: booking.distanceSource ?? null,
     quantity: booking.quantity,
     tyreSizeDisplay: booking.tyreSizeDisplay,
     vehicleReg: booking.vehicleReg,

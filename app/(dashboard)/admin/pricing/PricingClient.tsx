@@ -5,6 +5,8 @@ import { Box, Heading, Text, VStack, HStack, Button, Input, Table, Flex, Badge, 
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { useRouter } from 'next/navigation';
+import { DemandCircles } from '@/components/admin/pricing/DemandCircles';
+import { SurgeAlert } from '@/components/admin/pricing/SurgeAlert';
 
 interface PricingRule {
   id: string;
@@ -22,12 +24,7 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
   const [addValue, setAddValue] = useState('');
   const [addLabel, setAddLabel] = useState('');
 
-  // VAT state
-  const vatRule = items.find((r) => r.key === 'vat_registered');
-  const vatNumRule = items.find((r) => r.key === 'vat_number');
-  const [vatOn, setVatOn] = useState(vatRule?.value === 'true');
-  const [vatNumber, setVatNumber] = useState(vatNumRule?.value || '');
-  const [vatSaving, setVatSaving] = useState(false);
+  // VAT state removed - VAT has been removed from the pricing system
 
   // Surge state
   const surgeEnabled = items.find((r) => r.key === 'surge_pricing_enabled')?.value === 'true';
@@ -40,6 +37,77 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
     aiPowered: boolean;
   } | null>(null);
   const [surgeLoading, setSurgeLoading] = useState(false);
+
+  // Dynamic pricing config state
+  interface PricingConfigState {
+    nightSurchargePercent: number;
+    nightStartHour: number;
+    nightEndHour: number;
+    manualSurchargePercent: number;
+    manualSurchargeActive: boolean;
+    demandSurchargePercent: number;
+    demandThresholdClicks: number;
+    demandIncrementPercent: number;
+    cookieReturnSurchargePercent: number;
+    maxTotalSurchargePercent: number;
+  }
+  const [pConfig, setPConfig] = useState<PricingConfigState | null>(null);
+  const [pConfigSaving, setPConfigSaving] = useState(false);
+  const [demandData, setDemandData] = useState<{
+    current: { pageViews: number; callClicks: number; bookingStarts: number; bookingCompletes: number; whatsappClicks: number; surchargeApplied: string };
+    history: Array<Record<string, unknown>>;
+  } | null>(null);
+
+  const fetchPricingConfig = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/pricing/config');
+      if (res.ok) {
+        const data = await res.json();
+        setPConfig({
+          nightSurchargePercent: Number(data.nightSurchargePercent ?? 15),
+          nightStartHour: data.nightStartHour ?? 18,
+          nightEndHour: data.nightEndHour ?? 6,
+          manualSurchargePercent: Number(data.manualSurchargePercent ?? 0),
+          manualSurchargeActive: data.manualSurchargeActive ?? false,
+          demandSurchargePercent: Number(data.demandSurchargePercent ?? 0),
+          demandThresholdClicks: data.demandThresholdClicks ?? 20,
+          demandIncrementPercent: Number(data.demandIncrementPercent ?? 2),
+          cookieReturnSurchargePercent: Number(data.cookieReturnSurchargePercent ?? 0),
+          maxTotalSurchargePercent: Number(data.maxTotalSurchargePercent ?? 25),
+        });
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const fetchDemand = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/pricing/demand');
+      if (res.ok) setDemandData(await res.json());
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    fetchPricingConfig();
+    fetchDemand();
+    const interval = setInterval(fetchDemand, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchPricingConfig, fetchDemand]);
+
+  async function savePricingConfig(updates: Partial<PricingConfigState>) {
+    setPConfigSaving(true);
+    try {
+      const res = await fetch('/api/admin/pricing/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        setPConfig((prev) => prev ? { ...prev, ...updates } : prev);
+      }
+    } catch { /* ignore */ } finally {
+      setPConfigSaving(false);
+    }
+  }
 
   const fetchSurge = useCallback(async () => {
     setSurgeLoading(true);
@@ -59,35 +127,7 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
     }
   }, [surgeEnabled, fetchSurge]);
 
-  async function toggleVat() {
-    if (!vatRule) return;
-    const newVal = !vatOn;
-    setVatOn(newVal);
-    setVatSaving(true);
-    try {
-      const res = await fetch('/api/admin/pricing', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: vatRule.id, value: String(newVal) }),
-      });
-      if (!res.ok) setVatOn(!newVal);
-    } catch {
-      setVatOn(!newVal);
-    } finally {
-      setVatSaving(false);
-    }
-  }
-
-  async function saveVatNumber() {
-    if (!vatNumRule) return;
-    setVatSaving(true);
-    await fetch('/api/admin/pricing', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: vatNumRule.id, value: vatNumber }),
-    });
-    setVatSaving(false);
-  }
+  // VAT functions removed - VAT has been removed from the pricing system
 
   async function handleSave(id: string, value: string) {
     setSaving(id);
@@ -128,87 +168,7 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
 
   return (
     <VStack align="stretch" gap={6}>
-      {/* VAT Settings */}
-      <Box bg={c.card} borderWidth="1px" borderColor={c.border} borderRadius="8px" p="24px" mb="32px">
-        <Text fontSize="28px" color={c.text} mb={5} style={{ fontFamily: 'var(--font-display)' }}>
-          VAT SETTINGS
-        </Text>
-
-        <Flex justify="space-between" align="center" mb={vatOn ? 4 : 0}>
-          <Box>
-            <Text fontSize="15px" color={c.text} fontWeight="500" style={{ fontFamily: 'var(--font-body)' }}>
-              Business is VAT Registered
-            </Text>
-            <Text fontSize="12px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>
-              When enabled, 20% VAT applies to all bookings and your VAT number appears on invoices and receipts
-            </Text>
-          </Box>
-          <Box
-            as="button"
-            w="80px"
-            h="36px"
-            borderRadius="18px"
-            bg={vatOn ? c.accent : c.border}
-            color={vatOn ? '#09090B' : c.muted}
-            fontSize="12px"
-            fontWeight="700"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            cursor="pointer"
-            transition="all 0.2s"
-            border="none"
-            flexShrink={0}
-            ml={4}
-            onClick={toggleVat}
-            aria-disabled={vatSaving}
-            pointerEvents={vatSaving ? 'none' : 'auto'}
-            opacity={vatSaving ? 0.5 : 1}
-            style={{ fontFamily: 'var(--font-body)' }}
-          >
-            {vatOn ? 'VAT ON' : 'VAT OFF'}
-          </Box>
-        </Flex>
-
-        {vatOn && (
-          <Box style={{ animation: 'fadeUp 0.3s ease-out both' }}>
-            <Text fontSize="13px" color={c.muted} mb="6px" style={{ fontFamily: 'var(--font-body)' }}>
-              VAT NUMBER
-            </Text>
-            <Flex gap="8px">
-              <Input
-                w="200px"
-                placeholder="GB123456789"
-                value={vatNumber}
-                onChange={(e) => setVatNumber(e.target.value)}
-                bg={c.input.bg}
-                borderColor={c.input.border}
-                color={c.input.text}
-                fontSize="15px"
-                height="40px"
-                borderRadius="6px"
-              />
-              <Button
-                bg={c.accent}
-                color="#09090B"
-                px="20px"
-                h="40px"
-                borderRadius="6px"
-                fontSize="13px"
-                fontWeight="600"
-                onClick={saveVatNumber}
-                disabled={vatSaving}
-                style={{ fontFamily: 'var(--font-body)' }}
-              >
-                Save
-              </Button>
-            </Flex>
-            <Text fontSize="11px" color={c.muted} mt={2} style={{ fontFamily: 'var(--font-body)' }}>
-              Format: GB followed by 9 digits e.g. GB123456789
-            </Text>
-          </Box>
-        )}
-      </Box>
+      {/* VAT Settings removed - VAT has been removed from the pricing system */}
 
       {/* Live Demand Monitor */}
       {surgeEnabled && (
@@ -277,6 +237,220 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
           ) : (
             <Text fontSize="sm" color={c.muted}>Enable surge pricing to see live demand</Text>
           )}
+        </Box>
+      )}
+
+      {/* Dynamic Pricing Controls */}
+      {pConfig && (
+        <Box bg={c.card} borderWidth="1px" borderColor={c.border} borderRadius="8px" p="24px" mb="32px" style={anim.fadeUp('0.5s', '0.1s')}>
+          <Text fontSize="28px" color={c.text} mb={5} style={{ fontFamily: 'var(--font-display)' }}>
+            DYNAMIC PRICING
+          </Text>
+
+          {/* Surge Alert Banner */}
+          <Box mb={5}>
+            <SurgeAlert
+              isNight={(() => {
+                const h = new Date().getHours();
+                const s = pConfig.nightStartHour;
+                const e = pConfig.nightEndHour;
+                return s > e ? (h >= s || h < e) : (h >= s && h < e);
+              })()}
+              manualActive={pConfig.manualSurchargeActive}
+              manualPercent={pConfig.manualSurchargePercent}
+              demandPercent={pConfig.demandSurchargePercent}
+              totalSurcharge={
+                (pConfig.manualSurchargeActive ? pConfig.manualSurchargePercent : 0) +
+                pConfig.demandSurchargePercent
+              }
+            />
+          </Box>
+
+          {/* Demand Circles */}
+          {demandData && (
+            <Box mb={6}>
+              <DemandCircles
+                visitors={demandData.current.pageViews}
+                callClicks={demandData.current.callClicks}
+                bookingStarts={demandData.current.bookingStarts}
+                bookingCompletes={demandData.current.bookingCompletes}
+                activeSurcharge={pConfig.demandSurchargePercent}
+                threshold={pConfig.demandThresholdClicks}
+              />
+            </Box>
+          )}
+
+          {/* Manual Override */}
+          <Box mb={5} p={4} bg={c.surface} borderRadius="8px">
+            <Flex justify="space-between" align="center" mb={3}>
+              <Box>
+                <Text fontSize="14px" color={c.text} fontWeight="600">Manual Surcharge</Text>
+                <Text fontSize="12px" color={c.muted}>Override pricing with a flat percentage increase</Text>
+              </Box>
+              <Box
+                as="button"
+                w="80px"
+                h="36px"
+                borderRadius="18px"
+                bg={pConfig.manualSurchargeActive ? c.accent : c.border}
+                color={pConfig.manualSurchargeActive ? '#09090B' : c.muted}
+                fontSize="12px"
+                fontWeight="700"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                cursor="pointer"
+                transition="all 0.2s"
+                border="none"
+                flexShrink={0}
+                ml={4}
+                onClick={() => savePricingConfig({ manualSurchargeActive: !pConfig.manualSurchargeActive })}
+                opacity={pConfigSaving ? 0.5 : 1}
+                pointerEvents={pConfigSaving ? 'none' : 'auto'}
+              >
+                {pConfig.manualSurchargeActive ? 'ON' : 'OFF'}
+              </Box>
+            </Flex>
+            {pConfig.manualSurchargeActive && (
+              <Flex gap={3} align="center" style={{ animation: 'fadeUp 0.3s ease-out both' }}>
+                <Input
+                  type="number"
+                  w="100px"
+                  value={pConfig.manualSurchargePercent}
+                  onChange={(e) => setPConfig((p) => p ? { ...p, manualSurchargePercent: Number(e.target.value) } : p)}
+                  onBlur={() => savePricingConfig({ manualSurchargePercent: pConfig.manualSurchargePercent })}
+                  {...inputProps}
+                  h="40px"
+                />
+                <Text color={c.muted} fontSize="sm">% surcharge on all bookings</Text>
+              </Flex>
+            )}
+          </Box>
+
+          {/* Night Pricing */}
+          <Box mb={5} p={4} bg={c.surface} borderRadius="8px">
+            <Text fontSize="14px" color={c.text} fontWeight="600" mb={2}>Night Pricing</Text>
+            <Flex gap={3} flexWrap="wrap" align="center">
+              <Flex gap={2} align="center">
+                <Input
+                  type="number"
+                  w="70px"
+                  min={0}
+                  max={100}
+                  value={pConfig.nightSurchargePercent}
+                  onChange={(e) => setPConfig((p) => p ? { ...p, nightSurchargePercent: Number(e.target.value) } : p)}
+                  onBlur={() => savePricingConfig({ nightSurchargePercent: pConfig.nightSurchargePercent })}
+                  {...inputProps}
+                  h="36px"
+                  fontSize="13px"
+                />
+                <Text color={c.muted} fontSize="xs">% surcharge</Text>
+              </Flex>
+              <Flex gap={2} align="center">
+                <Input
+                  type="number"
+                  w="60px"
+                  min={0}
+                  max={23}
+                  value={pConfig.nightStartHour}
+                  onChange={(e) => setPConfig((p) => p ? { ...p, nightStartHour: Number(e.target.value) } : p)}
+                  onBlur={() => savePricingConfig({ nightStartHour: pConfig.nightStartHour })}
+                  {...inputProps}
+                  h="36px"
+                  fontSize="13px"
+                />
+                <Text color={c.muted} fontSize="xs">to</Text>
+                <Input
+                  type="number"
+                  w="60px"
+                  min={0}
+                  max={23}
+                  value={pConfig.nightEndHour}
+                  onChange={(e) => setPConfig((p) => p ? { ...p, nightEndHour: Number(e.target.value) } : p)}
+                  onBlur={() => savePricingConfig({ nightEndHour: pConfig.nightEndHour })}
+                  {...inputProps}
+                  h="36px"
+                  fontSize="13px"
+                />
+              </Flex>
+              <Text color={c.muted} fontSize="xs">🌙 {pConfig.nightStartHour}:00 – {pConfig.nightEndHour}:00</Text>
+            </Flex>
+          </Box>
+
+          {/* Demand Automation Settings */}
+          <Box mb={5} p={4} bg={c.surface} borderRadius="8px">
+            <Text fontSize="14px" color={c.text} fontWeight="600" mb={2}>Demand Auto-Pricing</Text>
+            <Text fontSize="12px" color={c.muted} mb={3}>
+              Automatically increases prices when demand exceeds threshold
+            </Text>
+            <Flex gap={3} flexWrap="wrap">
+              <Flex gap={2} align="center">
+                <Text color={c.muted} fontSize="xs">Threshold:</Text>
+                <Input
+                  type="number"
+                  w="70px"
+                  value={pConfig.demandThresholdClicks}
+                  onChange={(e) => setPConfig((p) => p ? { ...p, demandThresholdClicks: Number(e.target.value) } : p)}
+                  onBlur={() => savePricingConfig({ demandThresholdClicks: pConfig.demandThresholdClicks })}
+                  {...inputProps}
+                  h="36px"
+                  fontSize="13px"
+                />
+                <Text color={c.muted} fontSize="xs">clicks/hr</Text>
+              </Flex>
+              <Flex gap={2} align="center">
+                <Text color={c.muted} fontSize="xs">Increment:</Text>
+                <Input
+                  type="number"
+                  w="70px"
+                  value={pConfig.demandIncrementPercent}
+                  onChange={(e) => setPConfig((p) => p ? { ...p, demandIncrementPercent: Number(e.target.value) } : p)}
+                  onBlur={() => savePricingConfig({ demandIncrementPercent: pConfig.demandIncrementPercent })}
+                  {...inputProps}
+                  h="36px"
+                  fontSize="13px"
+                />
+                <Text color={c.muted} fontSize="xs">%</Text>
+              </Flex>
+              <Flex gap={2} align="center">
+                <Text color={c.muted} fontSize="xs">Max cap:</Text>
+                <Input
+                  type="number"
+                  w="70px"
+                  value={pConfig.maxTotalSurchargePercent}
+                  onChange={(e) => setPConfig((p) => p ? { ...p, maxTotalSurchargePercent: Number(e.target.value) } : p)}
+                  onBlur={() => savePricingConfig({ maxTotalSurchargePercent: pConfig.maxTotalSurchargePercent })}
+                  {...inputProps}
+                  h="36px"
+                  fontSize="13px"
+                />
+                <Text color={c.muted} fontSize="xs">%</Text>
+              </Flex>
+            </Flex>
+          </Box>
+
+          {/* Returning Visitor Surcharge */}
+          <Box p={4} bg={c.surface} borderRadius="8px">
+            <Flex justify="space-between" align="center">
+              <Box>
+                <Text fontSize="14px" color={c.text} fontWeight="600">Returning Visitor Surcharge</Text>
+                <Text fontSize="12px" color={c.muted}>Extra % for visitors who return within the same session</Text>
+              </Box>
+              <Flex gap={2} align="center">
+                <Input
+                  type="number"
+                  w="70px"
+                  value={pConfig.cookieReturnSurchargePercent}
+                  onChange={(e) => setPConfig((p) => p ? { ...p, cookieReturnSurchargePercent: Number(e.target.value) } : p)}
+                  onBlur={() => savePricingConfig({ cookieReturnSurchargePercent: pConfig.cookieReturnSurchargePercent })}
+                  {...inputProps}
+                  h="36px"
+                  fontSize="13px"
+                />
+                <Text color={c.muted} fontSize="xs">%</Text>
+              </Flex>
+            </Flex>
+          </Box>
         </Box>
       )}
 

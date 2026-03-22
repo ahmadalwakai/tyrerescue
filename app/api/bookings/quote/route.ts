@@ -24,6 +24,12 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { Pool } from '@neondatabase/serverless';
 import { getSurgeMultiplier } from '@/lib/surge';
+import { getPricingConfig, isNightWindow } from '@/lib/pricing-config';
+import {
+  calculateDynamicSurchargeBreakdown,
+  applyDynamicSurcharge,
+  type DynamicSurchargeBreakdown,
+} from '@/lib/pricing-engine';
 
 // Input validation schema
 const tyreSelectionSchema = z.object({
@@ -74,11 +80,78 @@ interface ErrorResponse {
   details?: unknown;
 }
 
+/**
+ * Apply dynamic surcharge layer on top of a base pricing breakdown.
+ * Mutates the breakdown in-place: adds surcharge line item, adjusts subtotal/VAT/total.
+ */
+async function applyDynamicLayer(
+  breakdown: PricingBreakdown,
+  isReturning: boolean
+): Promise<{ surchargeBreakdown: DynamicSurchargeBreakdown | null }> {
+  try {
+    const config = await getPricingConfig();
+    const night = isNightWindow(config);
+
+    const surchargeInput = {
+      isNight: night,
+      nightSurchargePercent: Number(config.nightSurchargePercent ?? 0),
+      manualSurchargeActive: config.manualSurchargeActive ?? false,
+      manualSurchargePercent: Number(config.manualSurchargePercent ?? 0),
+      demandSurchargePercent: Number(config.demandSurchargePercent ?? 0),
+      isReturningVisitor: isReturning,
+      cookieReturnSurchargePercent: Number(config.cookieReturnSurchargePercent ?? 0),
+      maxTotalSurchargePercent: Number(config.maxTotalSurchargePercent ?? 25),
+    };
+
+    const surchargeBreakdown = calculateDynamicSurchargeBreakdown(surchargeInput);
+
+    if (surchargeBreakdown.cappedPercent > 0) {
+      const { surchargeAmount, adjustedSubtotal } = applyDynamicSurcharge(
+        breakdown.subtotal,
+        surchargeBreakdown.cappedPercent
+      );
+
+      // Find total line item index for insertion before it
+      const totalIdx = breakdown.lineItems.findIndex((li) => li.type === 'total');
+      const insertIdx = totalIdx >= 0 ? totalIdx : breakdown.lineItems.length;
+
+      breakdown.lineItems.splice(insertIdx, 0, {
+        label: `Dynamic surcharge (${surchargeBreakdown.labels.join(', ')})`,
+        amount: surchargeAmount,
+        type: 'surcharge',
+      });
+
+      // Recalculate total (VAT removed from system)
+      const newTotal = adjustedSubtotal;
+
+      breakdown.subtotal = adjustedSubtotal;
+      breakdown.vatAmount = 0;
+      breakdown.total = Math.round(newTotal * 100) / 100;
+      breakdown.totalSurcharges += surchargeAmount;
+
+      // Update total line item
+      for (const li of breakdown.lineItems) {
+        if (li.type === 'total') li.amount = breakdown.total;
+      }
+
+      return { surchargeBreakdown };
+    }
+
+    return { surchargeBreakdown };
+  } catch (err) {
+    console.error('[DYNAMIC SURCHARGE] Failed, proceeding without:', err);
+    return { surchargeBreakdown: null };
+  }
+}
+
 export async function POST(
   request: NextRequest
 ): Promise<NextResponse<QuoteResponse | ErrorResponse>> {
   const startTime = Date.now();
   try {
+    // Detect returning visitor from cookie header
+    const visitCountRaw = request.headers.get('x-visit-count');
+    const isReturningVisitor = visitCountRaw ? parseInt(visitCountRaw, 10) > 1 : false;
     // Parse and validate request body
     const body = await request.json();
     const validation = quoteRequestSchema.safeParse(body);
@@ -246,6 +319,9 @@ export async function POST(
         );
       }
 
+      // Apply dynamic surcharge layer (night/manual/demand/returning visitor)
+      const { surchargeBreakdown: repairSurcharge } = await applyDynamicLayer(breakdown, isReturningVisitor);
+
       const quoteId = uuidv4();
       const expiresAt = new Date(breakdown.quoteExpiresAt);
 
@@ -260,7 +336,7 @@ export async function POST(
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
         distanceMiles: String(distanceMiles),
         breakdown: breakdown as unknown as Record<string, unknown>,
-        metadata: distanceResult as unknown as Record<string, unknown>,
+        metadata: { ...distanceResult as unknown as Record<string, unknown>, dynamicSurcharge: repairSurcharge },
         expiresAt,
         used: false,
       });
@@ -441,6 +517,9 @@ export async function POST(
         );
       }
 
+      // Apply dynamic surcharge layer (night/manual/demand/returning visitor)
+      const { surchargeBreakdown: tyreSurcharge } = await applyDynamicLayer(breakdown, isReturningVisitor);
+
       // Generate quote ID and expiry
       const quoteId = uuidv4();
       const expiresAt = new Date(breakdown.quoteExpiresAt);
@@ -502,7 +581,7 @@ export async function POST(
           data.scheduledAt ? new Date(data.scheduledAt) : null,
           distanceMiles,
           JSON.stringify(breakdown),
-          JSON.stringify({ ...distanceResult, fulfillmentOption: data.fulfillmentOption ?? null }),
+          JSON.stringify({ ...distanceResult, fulfillmentOption: data.fulfillmentOption ?? null, dynamicSurcharge: tyreSurcharge }),
           expiresAt,
         ]
       );

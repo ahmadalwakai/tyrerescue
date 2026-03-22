@@ -14,6 +14,7 @@ import { AdminNotificationProvider } from '@/components/admin/AdminNotificationP
 
 const navItems = [
   { label: 'Bookings', href: '/admin/bookings' },
+  { label: 'Quick Book', href: '/admin/quick-book' },
   { label: 'Callbacks', href: '/admin/callbacks', badgeKey: 'callbacks' as const },
   { label: 'Messages', href: '/admin/messages', badgeKey: 'messages' as const },
   { label: 'Chat', href: '/admin/chat', badgeKey: 'chat' as const },

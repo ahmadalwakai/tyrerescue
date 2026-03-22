@@ -13,10 +13,10 @@ export interface BookingReceiptData {
   invoiceDate: Date;
   lineItems: LineItem[];
   subtotal: number;
-  vatAmount: number;
+  vatAmount?: number; // Deprecated - VAT removed from system
   total: number;
-  vatRegistered?: boolean;
-  vatNumber?: string;
+  vatRegistered?: boolean; // Deprecated - VAT removed from system
+  vatNumber?: string; // Deprecated - VAT removed from system
 }
 
 function formatPrice(amount: number): string {
@@ -41,10 +41,7 @@ export function paymentReceipt(data: BookingReceiptData): { subject: string; htm
     invoiceDate,
     lineItems,
     subtotal,
-    vatAmount,
     total,
-    vatRegistered = true,
-    vatNumber = '',
   } = data;
 
   const lineItemsHtml = lineItems
@@ -94,26 +91,15 @@ export function paymentReceipt(data: BookingReceiptData): { subject: string; htm
     <div style="max-width: 280px; margin-left: auto;">
       <div class="info-box">
         <div class="info-row">
-          <span class="label">Subtotal${vatRegistered ? ' (excl. VAT)' : ''}</span>
+          <span class="label">Subtotal</span>
           <span class="value">${formatPrice(subtotal)}</span>
         </div>
-        ${vatRegistered ? `<div class="info-row">
-          <span class="label">VAT (20%)</span>
-          <span class="value">${formatPrice(vatAmount)}</span>
-        </div>` : ''}
         <div class="info-row total-row">
           <span>Total Paid</span>
           <span>${formatPrice(total)}</span>
         </div>
       </div>
     </div>
-
-    ${vatRegistered && vatNumber ? `<div class="info-box" style="background-color: #f0f7ff; margin-top: 24px;">
-      <p style="margin: 0; font-size: 14px;">
-        <strong>VAT Registration:</strong> ${vatNumber}<br>
-        A full VAT invoice PDF will be attached separately.
-      </p>
-    </div>` : ''}
 
     <p style="font-size: 14px; color: #666666; margin-top: 24px;">
       If you have any questions about this receipt, please contact us on 0141 266 0690.

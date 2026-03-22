@@ -9,15 +9,15 @@ export interface InvoicePdfData {
   companyAddress: string;
   companyPhone: string;
   companyEmail: string;
-  companyVatNumber: string | null;
+  companyVatNumber?: string | null; // Optional - VAT removed from system
   customerName: string;
   customerEmail: string;
   customerPhone: string | null;
   customerAddress: string | null;
   items: { description: string; quantity: number; unitPrice: number; totalPrice: number }[];
   subtotal: number;
-  vatRate: number;
-  vatAmount: number;
+  vatRate?: number; // Deprecated - VAT removed
+  vatAmount?: number; // Deprecated - VAT removed
   totalAmount: number;
   notes: string | null;
 }
@@ -74,7 +74,7 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
     data.companyAddress,
     data.companyPhone,
     data.companyEmail,
-    ...(data.companyVatNumber ? [`VAT: ${data.companyVatNumber}`] : []),
+    // VAT number removed from system
   ];
   let cy = y;
   for (const line of companyLines) {

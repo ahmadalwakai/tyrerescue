@@ -46,6 +46,55 @@ export async function getPaymentIntent(paymentIntentId: string) {
 }
 
 /**
+ * Create a Stripe Checkout Session for a booking.
+ * Returns the hosted checkout URL (checkout.stripe.com).
+ */
+export async function createCheckoutSession(
+  amount: number,
+  metadata: {
+    bookingId: string;
+    refNumber: string;
+    customerEmail: string;
+  }
+) {
+  const amountInPence = Math.round(amount * 100);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://tyrerescue.uk';
+
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    payment_method_types: ['card'],
+    customer_email: metadata.customerEmail !== 'phone-booking@tyrerescue.uk'
+      ? metadata.customerEmail
+      : undefined,
+    line_items: [
+      {
+        price_data: {
+          currency: 'gbp',
+          unit_amount: amountInPence,
+          product_data: {
+            name: `Tyre Rescue — ${metadata.refNumber}`,
+            description: 'Mobile tyre service',
+          },
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      bookingId: metadata.bookingId,
+      refNumber: metadata.refNumber,
+    },
+    success_url: `${baseUrl}/success/${metadata.refNumber}`,
+    cancel_url: `${baseUrl}/book?ref=${metadata.refNumber}`,
+  });
+
+  return {
+    sessionId: session.id,
+    checkoutUrl: session.url,
+    paymentIntentId: (session.payment_intent as string) || null,
+  };
+}
+
+/**
  * Create a refund
  */
 export async function createRefund(

@@ -59,4 +59,19 @@ export const anim = {
     const ease = type === 'fadeIn' || type === 'scaleIn' ? 'ease-out' : EASE_OUT_EXPO;
     return { animation: `${type} ${duration} ${ease} ${delay} both` };
   },
+
+  /** Ring pulse animation for demand circle borders */
+  ringPulse: () => ({
+    animation: 'ringPulse 2s ease-in-out infinite',
+  }),
+
+  /** Shimmer loading effect */
+  shimmer: () => ({
+    animation: 'shimmer 1.5s ease-in-out infinite',
+  }),
+
+  /** Fade slide up with bounce */
+  fadeSlideUp: (duration = '0.5s', delay = '0s') => ({
+    animation: `fadeSlideUp ${duration} ${EASE_OUT_EXPO} ${delay} both`,
+  }),
 };

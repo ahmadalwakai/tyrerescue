@@ -1,3 +1,5 @@
+import { trackEvent } from '@/lib/analytics-tracker';
+
 export const GA_MEASUREMENT_ID = 'G-MLH80KPV1T';
 export const ADS_CONVERSION_ID = 'AW-16460953081';
 export const ADS_PHONE_CONVERSION = 'AW-16460953081/4-0_CMK70YwcEPnrmKk9';
@@ -49,6 +51,7 @@ export function trackConversion(value: number) {
     value,
     currency: 'GBP',
   });
+  trackEvent('booking_complete', { value: String(value) });
 }
 
 /** Track phone call click */
@@ -60,6 +63,7 @@ export function trackCallClick(label: string) {
   window.gtag?.('event', 'conversion', {
     send_to: ADS_PHONE_CONVERSION,
   });
+  trackEvent('call_click', { label });
 }
 
 /** Track WhatsApp click */
@@ -68,6 +72,7 @@ export function trackWhatsAppClick(label: string) {
     event_category: 'engagement',
     event_label: label,
   });
+  trackEvent('whatsapp_click', { label });
 }
 
 /** Track booking wizard start */
@@ -75,6 +80,7 @@ export function trackBookingStart() {
   window.gtag?.('event', 'start_booking', {
     event_category: 'conversion',
   });
+  trackEvent('booking_start');
 }
 
 /** Track callback form submission */

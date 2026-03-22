@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { initTracker, trackEvent } from '@/lib/analytics-tracker';
 
 const SESSION_KEY = 'tr_visitor_sid';
 
@@ -120,6 +121,17 @@ export function VisitorTracker() {
     const timer = setTimeout(() => track(), 200);
     return () => clearTimeout(timer);
   }, [pathname, track, isAdmin]);
+
+  // Demand-signal tracker: init on mount, page_view on navigation
+  useEffect(() => {
+    if (isAdmin) return;
+    initTracker();
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (isAdmin) return;
+    trackEvent('page_view');
+  }, [pathname, isAdmin]);
 
   // Click tracking
   useEffect(() => {

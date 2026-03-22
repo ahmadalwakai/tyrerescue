@@ -113,6 +113,7 @@ export async function proxy(request: NextRequest) {
     serviceRoutes.some((route) => pathname.startsWith(route)) ||
     pathname.startsWith('/tyres/') ||
     pathname.startsWith('/tracking') ||
+    pathname.startsWith('/locate/') ||
     pathname.startsWith('/success/') ||
     pathname.startsWith('/services/') ||
     pathname.startsWith('/reset-password/') ||

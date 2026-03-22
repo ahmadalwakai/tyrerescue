@@ -8,12 +8,12 @@ export async function GET(request: NextRequest) {
     const q = request.nextUrl.searchParams.get('q')?.trim() ?? '';
 
     if (q.length < 2) {
-      return NextResponse.json([]);
+      return NextResponse.json({ sizes: [] });
     }
 
     // Sanitise: only allow digits, slash, R, spaces
     const sanitised = q.replace(/[^0-9/rR\s]/g, '');
-    if (!sanitised) return NextResponse.json([]);
+    if (!sanitised) return NextResponse.json({ sizes: [] });
 
     const availableCondition = eq(tyreProducts.availableNew, true);
     const looksLikeFullSize = /[/rR]/.test(sanitised);
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       results = await db
         .select({
           size: tyreProducts.sizeDisplay,
-          count: sql<number>`count(*)::int`,
+          count: sql<number>`coalesce(sum(${tyreProducts.stockNew}), 0)::int`,
         })
         .from(tyreProducts)
         .where(
@@ -42,12 +42,12 @@ export async function GET(request: NextRequest) {
         .limit(8);
     } else {
       const widthNum = parseInt(sanitised, 10);
-      if (isNaN(widthNum)) return NextResponse.json([]);
+      if (isNaN(widthNum)) return NextResponse.json({ sizes: [] });
 
       results = await db
         .select({
           size: tyreProducts.sizeDisplay,
-          count: sql<number>`count(*)::int`,
+          count: sql<number>`coalesce(sum(${tyreProducts.stockNew}), 0)::int`,
         })
         .from(tyreProducts)
         .where(and(availableCondition, eq(tyreProducts.width, widthNum)))
@@ -56,9 +56,9 @@ export async function GET(request: NextRequest) {
         .limit(8);
     }
 
-    return NextResponse.json(results);
+    return NextResponse.json({ sizes: results });
   } catch (error) {
     console.error('Error searching tyre sizes:', error);
-    return NextResponse.json([], { status: 500 });
+    return NextResponse.json({ sizes: [] }, { status: 500 });
   }
 }

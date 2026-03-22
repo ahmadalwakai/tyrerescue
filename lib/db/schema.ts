@@ -124,6 +124,7 @@ export const bookings = pgTable('bookings', {
   lat: decimal('lat', { precision: 9, scale: 6 }).notNull(),
   lng: decimal('lng', { precision: 9, scale: 6 }).notNull(),
   distanceMiles: decimal('distance_miles', { precision: 5, scale: 2 }),
+  distanceSource: varchar('distance_source', { length: 20 }),
   quantity: integer('quantity').notNull().default(1),
   tyreSizeDisplay: varchar('tyre_size_display', { length: 20 }),
   vehicleReg: varchar('vehicle_reg', { length: 10 }),
@@ -668,6 +669,76 @@ export const pageAnalysis = pgTable('page_analysis', {
 });
 
 // ──────────────────────────────────────────────
+// Pricing Configuration (dynamic surcharges)
+// ──────────────────────────────────────────────
+
+export const pricingConfig = pgTable('pricing_config', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  baseCalloutFee: decimal('base_callout_fee', { precision: 10, scale: 2 }).default('0.00'),
+  baseFittingFee: decimal('base_fitting_fee', { precision: 10, scale: 2 }).default('20.00'),
+  nightSurchargePercent: decimal('night_surcharge_percent', { precision: 5, scale: 2 }).default('15.00'),
+  nightStartHour: integer('night_start_hour').default(18),
+  nightEndHour: integer('night_end_hour').default(6),
+  manualSurchargePercent: decimal('manual_surcharge_percent', { precision: 5, scale: 2 }).default('0.00'),
+  manualSurchargeActive: boolean('manual_surcharge_active').default(false),
+  demandSurchargePercent: decimal('demand_surcharge_percent', { precision: 5, scale: 2 }).default('0.00'),
+  demandThresholdClicks: integer('demand_threshold_clicks').default(20),
+  demandIncrementPercent: decimal('demand_increment_percent', { precision: 5, scale: 2 }).default('2.00'),
+  cookieReturnSurchargePercent: decimal('cookie_return_surcharge_percent', { precision: 5, scale: 2 }).default('0.00'),
+  maxTotalSurchargePercent: decimal('max_total_surcharge_percent', { precision: 5, scale: 2 }).default('25.00'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedBy: uuid('updated_by').references(() => users.id),
+});
+
+// ──────────────────────────────────────────────
+// Quick Bookings (admin fast-entry)
+// ──────────────────────────────────────────────
+
+export const quickBookings = pgTable('quick_bookings', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  adminId: uuid('admin_id').references(() => users.id).notNull(),
+  customerName: varchar('customer_name', { length: 255 }).notNull(),
+  customerPhone: varchar('customer_phone', { length: 20 }).notNull(),
+  customerEmail: varchar('customer_email', { length: 255 }),
+  locationLat: decimal('location_lat', { precision: 9, scale: 6 }),
+  locationLng: decimal('location_lng', { precision: 9, scale: 6 }),
+  locationAddress: text('location_address'),
+  locationPostcode: varchar('location_postcode', { length: 10 }),
+  locationMethod: text('location_method'), // 'link' | 'postcode' | 'address'
+  locationLinkToken: varchar('location_link_token', { length: 64 }).unique(),
+  locationLinkExpiry: timestamp('location_link_expiry', { withTimezone: true }),
+  locationLinkUsed: boolean('location_link_used').default(false),
+  serviceType: text('service_type').notNull(), // 'fit' | 'repair' | 'assess'
+  tyreSize: varchar('tyre_size', { length: 20 }),
+  tyreCount: integer('tyre_count').default(1),
+  distanceKm: decimal('distance_km', { precision: 8, scale: 2 }),
+  basePrice: decimal('base_price', { precision: 10, scale: 2 }),
+  surchargePercent: decimal('surcharge_percent', { precision: 5, scale: 2 }).default('0.00'),
+  totalPrice: decimal('total_price', { precision: 10, scale: 2 }),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  status: text('status').notNull().default('pending_location'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// ──────────────────────────────────────────────
+// Demand Snapshots (hourly intelligence)
+// ──────────────────────────────────────────────
+
+export const demandSnapshots = pgTable('demand_snapshots', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  hourStart: timestamp('hour_start', { withTimezone: true }).notNull(),
+  pageViews: integer('page_views').default(0),
+  callClicks: integer('call_clicks').default(0),
+  bookingStarts: integer('booking_starts').default(0),
+  bookingCompletes: integer('booking_completes').default(0),
+  whatsappClicks: integer('whatsapp_clicks').default(0),
+  surchargeApplied: decimal('surcharge_applied', { precision: 5, scale: 2 }).default('0.00'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
+// ──────────────────────────────────────────────
 // Admin Notifications
 // ──────────────────────────────────────────────
 
@@ -778,3 +849,9 @@ export type AdminNotification = typeof adminNotifications.$inferSelect;
 export type NewAdminNotification = typeof adminNotifications.$inferInsert;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type NewPushSubscription = typeof pushSubscriptions.$inferInsert;
+export type PricingConfig = typeof pricingConfig.$inferSelect;
+export type NewPricingConfig = typeof pricingConfig.$inferInsert;
+export type QuickBooking = typeof quickBookings.$inferSelect;
+export type NewQuickBooking = typeof quickBookings.$inferInsert;
+export type DemandSnapshot = typeof demandSnapshots.$inferSelect;
+export type NewDemandSnapshot = typeof demandSnapshots.$inferInsert;

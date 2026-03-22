@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Box,
   Container,
@@ -36,7 +36,7 @@ interface BookingData {
   scheduledAt: string | null;
   createdAt: string;
   subtotal: number;
-  vatAmount: number;
+  vatAmount?: number; // Deprecated - VAT removed from system
   totalAmount: number;
   tyres: TyreDetail[];
 }
@@ -47,10 +47,39 @@ interface SuccessContentProps {
 
 export function SuccessContent({ booking }: SuccessContentProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [confirmedStatus, setConfirmedStatus] = useState<string>(booking.status);
+  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
+
+  // Check if tracking is available
+  const trackingStatuses = ['driver_assigned', 'en_route', 'arrived', 'in_progress', 'completed'];
+  const isTrackingAvailable = trackingStatuses.includes(confirmedStatus);
+  const isPaid = confirmedStatus === 'paid' || trackingStatuses.includes(confirmedStatus);
+
+  // Auto-redirect countdown once payment is confirmed
+  useEffect(() => {
+    if (!isPaid || confirming) return;
+
+    // Start countdown at 8 seconds
+    setRedirectCountdown(8);
+
+    const interval = setInterval(() => {
+      setRedirectCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          // Redirect to tracking page
+          router.push(`/tracking/${booking.refNumber}`);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isPaid, confirming, router, booking.refNumber]);
 
   // On mount: if booking is still awaiting_payment AND we have Stripe redirect params, confirm it
   useEffect(() => {
@@ -141,12 +170,6 @@ export function SuccessContent({ booking }: SuccessContentProps) {
     URL.revokeObjectURL(url);
   };
 
-  // Check if tracking is available
-  const trackingStatuses = ['driver_assigned', 'en_route', 'arrived', 'in_progress', 'completed'];
-  const isTrackingAvailable = trackingStatuses.includes(confirmedStatus);
-
-  const isPaid = confirmedStatus === 'paid' || trackingStatuses.includes(confirmedStatus);
-
   // Show spinner while confirming payment
   if (confirming) {
     return (
@@ -192,6 +215,24 @@ export function SuccessContent({ booking }: SuccessContentProps) {
             </Text>
           )}
         </Box>
+
+        {/* Auto-redirect countdown */}
+        {isPaid && redirectCountdown !== null && redirectCountdown > 0 && (
+          <Box textAlign="center" p={4} bg={c.surface} borderRadius="lg" style={anim.fadeUp('0.5s')}>
+            <Text color={c.muted} fontSize="sm">
+              Redirecting to booking details in <Text as="span" fontWeight="700" color={c.accent}>{redirectCountdown}</Text> seconds...
+            </Text>
+            <Button
+              variant="ghost"
+              size="sm"
+              mt={2}
+              color={c.muted}
+              onClick={() => setRedirectCountdown(null)}
+            >
+              Cancel redirect
+            </Button>
+          </Box>
+        )}
 
         {/* ETA for Emergency Bookings — only show once payment is confirmed */}
         {isPaid && booking.bookingType === 'emergency' && (
@@ -292,13 +333,6 @@ export function SuccessContent({ booking }: SuccessContentProps) {
               <Text color={c.muted}>Subtotal</Text>
               <Text color={c.text}>{formatPrice(booking.subtotal)}</Text>
             </HStack>
-
-            {booking.vatAmount > 0 && (
-              <HStack justify="space-between" p={4} borderBottomWidth="1px" borderColor={c.border}>
-                <Text color={c.muted}>VAT (20%)</Text>
-                <Text color={c.text}>{formatPrice(booking.vatAmount)}</Text>
-              </HStack>
-            )}
 
             <HStack justify="space-between" p={4} bg={isPaid ? c.accent : c.surface} borderTopWidth={isPaid ? '0' : '1px'} borderColor={c.border}>
               <Text fontWeight="600" color={isPaid ? c.bg : c.text}>

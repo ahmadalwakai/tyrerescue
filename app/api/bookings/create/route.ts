@@ -234,6 +234,7 @@ export async function POST(
         lat: quote.lat.toString(),
         lng: quote.lng.toString(),
         distanceMiles: quote.distance_miles.toString(),
+        distanceSource: quote.metadata?.distanceSource ?? null,
         quantity: totalQuantity,
         tyreSizeDisplay: data.tyreSizeDisplay || null,
         vehicleReg: data.vehicleReg || null,

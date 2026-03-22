@@ -204,9 +204,10 @@ export function StepPricing({
                 ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
                 : undefined,
         };
+        const visitCount = typeof localStorage !== 'undefined' ? localStorage.getItem('tr_visit_count') || '1' : '1';
         const res = await fetch(API.BOOKINGS_QUOTE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-visit-count': visitCount },
           body: JSON.stringify(payload),
         });
 
@@ -354,9 +355,10 @@ export function StepPricing({
       setIsExpired(false);
 
       try {
+        const vc2 = typeof localStorage !== 'undefined' ? localStorage.getItem('tr_visit_count') || '1' : '1';
         const res = await fetch(API.BOOKINGS_QUOTE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-visit-count': vc2 },
           body: JSON.stringify({
             lat: state.lat,
             lng: state.lng,
@@ -454,9 +456,10 @@ export function StepPricing({
         }));
       }
 
+      const vc3 = typeof localStorage !== 'undefined' ? localStorage.getItem('tr_visit_count') || '1' : '1';
       const res = await fetch(API.BOOKINGS_QUOTE, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-visit-count': vc3 },
         body: JSON.stringify({
           lat: state.lat,
           lng: state.lng,

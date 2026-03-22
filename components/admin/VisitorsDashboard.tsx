@@ -144,16 +144,34 @@ export function VisitorsDashboard() {
   });
   const [activeTab, setActiveTab] = useState<string>('live');
   const lastSeenRef = useRef<string>(new Date().toISOString());
+  const [demandInfo, setDemandInfo] = useState<{ surchargePercent: number; demandAutomation: boolean; currentHour: { pageViews: number; callClicks: number; bookingStarts: number } | null } | null>(null);
 
   // Fetch dashboard data
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/visitors?period=week&limit=50');
+      const [res, demandRes, configRes] = await Promise.all([
+        fetch('/api/admin/visitors?period=week&limit=50'),
+        fetch('/api/admin/pricing/demand').catch(() => null),
+        fetch('/api/admin/pricing/config').catch(() => null),
+      ]);
       if (!res.ok) throw new Error('Failed to load');
       const data = await res.json();
       setVisitors(data.visitors);
       setStats(data.stats);
       setError(null);
+
+      // Parse demand info
+      try {
+        const dData = demandRes?.ok ? await demandRes.json() : null;
+        const cData = configRes?.ok ? await configRes.json() : null;
+        if (dData || cData) {
+          setDemandInfo({
+            surchargePercent: Number(cData?.manualSurchargePercent ?? 0),
+            demandAutomation: (cData?.demandThresholdClicks ?? 0) > 0,
+            currentHour: dData?.current ?? null,
+          });
+        }
+      } catch { /* silent */ }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
@@ -308,6 +326,53 @@ export function VisitorsDashboard() {
           />
           <GaugeMeter value={s.mobilePct} max={100} label="Mobile %" color="#ec4899" icon="📱" />
         </Grid>
+
+        {/* Demand Pricing Intelligence */}
+        {demandInfo && (
+          <Flex
+            mt={4}
+            p="10px 16px"
+            bg={demandInfo.surchargePercent > 0 ? 'rgba(249,115,22,0.08)' : 'rgba(129,140,248,0.06)'}
+            border={`1px solid ${demandInfo.surchargePercent > 0 ? 'rgba(249,115,22,0.25)' : 'rgba(129,140,248,0.15)'}`}
+            borderRadius="10px"
+            align="center"
+            justify="space-between"
+            flexWrap="wrap"
+            gap={2}
+          >
+            <Flex align="center" gap={3}>
+              <Text fontSize="13px" fontWeight="600" color={demandInfo.surchargePercent > 0 ? '#f97316' : c.muted} fontFamily="monospace">
+                {demandInfo.surchargePercent > 0
+                  ? `⚡ +${demandInfo.surchargePercent}% surcharge active`
+                  : '✓ No surcharge'}
+              </Text>
+              {demandInfo.demandAutomation && (
+                <Text fontSize="11px" color={c.muted} fontFamily="monospace" bg="rgba(129,140,248,0.1)" px={2} py="2px" borderRadius="4px">
+                  AUTO
+                </Text>
+              )}
+            </Flex>
+            {demandInfo.currentHour && (
+              <Flex gap={4}>
+                <Text fontSize="11px" color={c.muted} fontFamily="monospace">
+                  Views: {demandInfo.currentHour.pageViews}
+                </Text>
+                <Text fontSize="11px" color={c.muted} fontFamily="monospace">
+                  Calls: {demandInfo.currentHour.callClicks}
+                </Text>
+                <Text fontSize="11px" color={c.muted} fontFamily="monospace">
+                  Bookings: {demandInfo.currentHour.bookingStarts}
+                </Text>
+              </Flex>
+            )}
+            <a
+              href="/admin/pricing"
+              style={{ fontSize: '11px', color: '#818cf8', fontFamily: 'monospace', fontWeight: 600, textDecoration: 'none' }}
+            >
+              Manage →
+            </a>
+          </Flex>
+        )}
 
         {/* Tab Navigation */}
         <Flex gap={1} mt={5} overflowX="auto" pb={1}>

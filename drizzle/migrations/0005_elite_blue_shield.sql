@@ -1,0 +1,1 @@
+ALTER TABLE "bookings" ADD COLUMN "distance_source" text;

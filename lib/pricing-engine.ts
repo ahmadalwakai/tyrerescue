@@ -408,24 +408,21 @@ function applySurgeMultiplier(
 }
 
 /**
- * Component 7: Calculate VAT and final total
+ * Component 7: Calculate final total
+ * NOTE: VAT has been removed from the pricing system.
+ * All prices are now VAT-inclusive (or VAT-exempt).
  */
 function calculateVatAndTotal(
   subtotal: Decimal,
   minimumTotal: number,
-  vatRegistered: boolean = true
+  _vatRegistered: boolean = true
 ): {
   vatAmount: Decimal;
   total: Decimal;
 } {
-  let vatAmount: Decimal;
-  if (vatRegistered) {
-    const VAT_RATE = new Decimal(0.2);
-    vatAmount = subtotal.times(VAT_RATE);
-  } else {
-    vatAmount = new Decimal(0);
-  }
-  let total = subtotal.plus(vatAmount);
+  // VAT removed - vatAmount is always 0
+  const vatAmount = new Decimal(0);
+  let total = subtotal;
 
   // Apply minimum order total
   const minimum = new Decimal(minimumTotal);
@@ -556,26 +553,17 @@ export function calculatePricing(
 
   // Add subtotal line item
   lineItems.push({
-    label: vatRegistered ? 'Subtotal (excl. VAT)' : 'Subtotal',
+    label: 'Subtotal',
     amount: surgeResult.adjustedSubtotal.toNumber(),
     type: 'subtotal',
   });
 
-  // Component 7: VAT and total
+  // Component 7: Calculate final total (VAT removed)
   const { vatAmount, total } = calculateVatAndTotal(
     surgeResult.adjustedSubtotal,
     rules.minimum_order_total,
     vatRegistered
   );
-
-  // Add VAT line item (only when VAT registered)
-  if (vatRegistered) {
-    lineItems.push({
-      label: 'VAT (20%)',
-      amount: vatAmount.toNumber(),
-      type: 'vat',
-    });
-  }
 
   // Add total line item
   lineItems.push({
@@ -603,6 +591,84 @@ export function calculatePricing(
     total: total.toNumber(),
     quoteExpiresAt,
     isValid: true,
+  };
+}
+
+// ─── Dynamic Surcharge Layer ────────────────────────────────────────────────
+
+export interface DynamicSurchargeInput {
+  isNight: boolean;
+  nightSurchargePercent: number;
+  manualSurchargeActive: boolean;
+  manualSurchargePercent: number;
+  demandSurchargePercent: number;
+  isReturningVisitor: boolean;
+  cookieReturnSurchargePercent: number;
+  maxTotalSurchargePercent: number;
+}
+
+export interface DynamicSurchargeBreakdown {
+  nightPercent: number;
+  manualPercent: number;
+  demandPercent: number;
+  returningVisitorPercent: number;
+  totalPercent: number;
+  cappedPercent: number;
+  wasCapApplied: boolean;
+  labels: string[];
+}
+
+/**
+ * Calculate layered dynamic surcharges.
+ * Returns a breakdown with the total percentage to apply on the subtotal.
+ * Total is capped at maxTotalSurchargePercent to prevent runaway pricing.
+ */
+export function calculateDynamicSurchargeBreakdown(
+  input: DynamicSurchargeInput
+): DynamicSurchargeBreakdown {
+  const nightPercent = input.isNight ? input.nightSurchargePercent : 0;
+  const manualPercent = input.manualSurchargeActive ? input.manualSurchargePercent : 0;
+  const demandPercent = input.demandSurchargePercent;
+  const returningVisitorPercent = input.isReturningVisitor
+    ? input.cookieReturnSurchargePercent
+    : 0;
+
+  const totalPercent = nightPercent + manualPercent + demandPercent + returningVisitorPercent;
+  const cappedPercent = Math.min(totalPercent, input.maxTotalSurchargePercent);
+  const wasCapApplied = totalPercent > input.maxTotalSurchargePercent;
+
+  const labels: string[] = [];
+  if (nightPercent > 0) labels.push(`Night surcharge +${nightPercent}%`);
+  if (manualPercent > 0) labels.push(`Admin surcharge +${manualPercent}%`);
+  if (demandPercent > 0) labels.push(`Demand surcharge +${demandPercent}%`);
+  if (returningVisitorPercent > 0) labels.push(`Returning visitor +${returningVisitorPercent}%`);
+  if (wasCapApplied) labels.push(`Capped at ${input.maxTotalSurchargePercent}%`);
+
+  return {
+    nightPercent,
+    manualPercent,
+    demandPercent,
+    returningVisitorPercent,
+    totalPercent,
+    cappedPercent,
+    wasCapApplied,
+    labels,
+  };
+}
+
+/**
+ * Apply dynamic surcharge to a subtotal.
+ * Returns the surcharge amount as a Decimal.
+ */
+export function applyDynamicSurcharge(
+  subtotal: number,
+  surchargePercent: number
+): { surchargeAmount: number; adjustedSubtotal: number } {
+  const sub = new Decimal(subtotal);
+  const surchargeAmount = sub.times(surchargePercent).dividedBy(100);
+  return {
+    surchargeAmount: surchargeAmount.toNumber(),
+    adjustedSubtotal: sub.plus(surchargeAmount).toNumber(),
   };
 }
 

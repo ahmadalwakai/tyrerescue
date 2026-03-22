@@ -42,6 +42,7 @@ interface Booking {
   lat: string;
   lng: string;
   distanceMiles: string | null;
+  distanceSource: string | null;
   quantity: number;
   tyreSizeDisplay: string | null;
   vehicleReg: string | null;
@@ -630,7 +631,10 @@ export function BookingDetailClient({
               <Text mb={4} color={c.text}>{booking.addressLine}</Text>
             )}
             {booking.distanceMiles && (
-              <Text fontSize="sm" color={c.muted} mb={4}>{booking.distanceMiles} miles from depot</Text>
+              <Text fontSize="sm" color={c.muted} mb={4}>
+                {Number(booking.distanceMiles) < 0.1 ? '< 0.1' : booking.distanceMiles} miles from{' '}
+                {booking.distanceSource === 'driver' ? 'nearest driver' : booking.distanceSource === 'service_area' ? 'service area' : 'depot'}
+              </Text>
             )}
             {mapboxToken && (
               <Image src={staticMapUrl} alt="Location map" borderRadius="md" width="100%" maxW="400px" />

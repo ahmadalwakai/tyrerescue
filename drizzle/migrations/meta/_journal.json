@@ -36,6 +36,13 @@
       "when": 1774146824957,
       "tag": "0004_short_blur",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774149129366,
+      "tag": "0005_elite_blue_shield",
+      "breakpoints": true
     }
   ]
 }
