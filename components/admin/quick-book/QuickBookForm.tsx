@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Text, VStack, HStack, Input, Button, Flex, Spinner, Textarea } from '@chakra-ui/react';
+import { Box, Text, VStack, HStack, Input, Button, Flex, Spinner, Textarea, IconButton } from '@chakra-ui/react';
+import { QuickBookMap } from './QuickBookMap';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import {
@@ -93,6 +94,10 @@ export function QuickBookForm() {
   const [created, setCreated] = useState<CreatedBooking | null>(null);
   const [finalized, setFinalized] = useState<FinalizedResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedCoords, setCopiedCoords] = useState(false);
+
+  // Route/distance info (from map)
+  const [routeInfo, setRouteInfo] = useState<{ drivingKm: number | null; drivingMinutes: number | null } | null>(null);
 
   const [isFinalizing, setIsFinalizing] = useState(false);
 
@@ -372,24 +377,139 @@ export function QuickBookForm() {
             </Box>
           </Flex>
 
-          {/* ═══ LOCATION SECTION ═══ */}
+          {/* ═══ LOCATION SECTION WITH MAP ═══ */}
           <Box bg={c.surface} p={4} borderRadius="8px" borderLeft={`3px solid #3B82F6`}>
             <Text color={c.text} fontSize="sm" fontWeight="600" mb={3}>📍 Customer Location</Text>
             
             {created.booking.locationLat ? (
-              <VStack align="stretch" gap={2}>
-                <HStack justify="space-between">
-                  <Text color={c.muted} fontSize="xs">Address</Text>
-                  <Text color="#22C55E" fontSize="xs" fontWeight="600">✓ Received</Text>
-                </HStack>
-                <Text color={c.text} fontSize="sm">
-                  {form.locationAddress || `${created.booking.locationLat}, ${created.booking.locationLng}`}
-                </Text>
-                {created.booking.distanceKm && (
-                  <Text color={c.accent} fontSize="sm" fontWeight="600">
-                    Distance: {(Number(created.booking.distanceKm) * 0.621371).toFixed(1)} miles from shop
-                  </Text>
-                )}
+              <VStack align="stretch" gap={4}>
+                {/* ── LIVE MAP ── */}
+                <Box borderRadius="8px" overflow="hidden" h="280px">
+                  <QuickBookMap
+                    customerLat={Number(created.booking.locationLat)}
+                    customerLng={Number(created.booking.locationLng)}
+                    showRoute={true}
+                    onRouteCalculated={(km, mins) => setRouteInfo({ drivingKm: km, drivingMinutes: mins })}
+                  />
+                </Box>
+
+                {/* ── DISTANCE & ETA ── */}
+                <Flex gap={4} wrap="wrap">
+                  <Box flex={1} minW="120px" bg="rgba(34, 197, 94, 0.1)" p={3} borderRadius="8px">
+                    <Text color={c.muted} fontSize="xs" mb={1}>🚗 Driving Distance</Text>
+                    <Text color="#22C55E" fontSize="lg" fontWeight="700">
+                      {routeInfo?.drivingKm
+                        ? `${(routeInfo.drivingKm * 0.621371).toFixed(1)} mi`
+                        : created.booking.distanceKm
+                          ? `${(Number(created.booking.distanceKm) * 0.621371).toFixed(1)} mi`
+                          : '—'}
+                    </Text>
+                    {(routeInfo?.drivingKm || created.booking.distanceKm) && (
+                      <Text color={c.muted} fontSize="xs">
+                        ({routeInfo?.drivingKm?.toFixed(1) || Number(created.booking.distanceKm).toFixed(1)} km)
+                      </Text>
+                    )}
+                  </Box>
+                  <Box flex={1} minW="120px" bg="rgba(249, 115, 22, 0.1)" p={3} borderRadius="8px">
+                    <Text color={c.muted} fontSize="xs" mb={1}>⏱ ETA to Customer</Text>
+                    <Text color={c.accent} fontSize="lg" fontWeight="700">
+                      {routeInfo?.drivingMinutes ? `${routeInfo.drivingMinutes} min` : '—'}
+                    </Text>
+                    {!routeInfo?.drivingMinutes && (
+                      <Text color={c.muted} fontSize="xs">Calculating...</Text>
+                    )}
+                  </Box>
+                </Flex>
+
+                {/* ── COORDINATES & ADDRESS ── */}
+                <Box bg="rgba(59, 130, 246, 0.1)" p={3} borderRadius="8px">
+                  <HStack justify="space-between" mb={2}>
+                    <Text color={c.muted} fontSize="xs">Coordinates</Text>
+                    <Text color="#22C55E" fontSize="xs" fontWeight="600">✓ Received</Text>
+                  </HStack>
+                  <HStack justify="space-between" align="center">
+                    <Text color={c.text} fontSize="sm" fontFamily="monospace">
+                      {Number(created.booking.locationLat).toFixed(6)}, {Number(created.booking.locationLng).toFixed(6)}
+                    </Text>
+                    <Button
+                      size="xs"
+                      bg={copiedCoords ? '#22C55E' : c.accent}
+                      color="#09090B"
+                      fontWeight="600"
+                      onClick={() => {
+                        const coords = `${Number(created.booking.locationLat).toFixed(6)}, ${Number(created.booking.locationLng).toFixed(6)}`;
+                        navigator.clipboard.writeText(coords);
+                        setCopiedCoords(true);
+                        setTimeout(() => setCopiedCoords(false), 2000);
+                      }}
+                    >
+                      {copiedCoords ? '✓ Copied' : '📋 Copy'}
+                    </Button>
+                  </HStack>
+                  {form.locationAddress && (
+                    <Text color={c.muted} fontSize="xs" mt={2}>
+                      {form.locationAddress}
+                    </Text>
+                  )}
+                </Box>
+
+                {/* ── MAP ACTION BUTTONS ── */}
+                <Box>
+                  <Text color={c.muted} fontSize="xs" mb={2}>Quick Actions</Text>
+                  <Flex gap={2} wrap="wrap">
+                    <Button
+                      size="sm"
+                      bg="#4285F4"
+                      color="white"
+                      fontWeight="600"
+                      onClick={() => {
+                        const url = `https://www.google.com/maps?q=${created.booking.locationLat},${created.booking.locationLng}`;
+                        window.open(url, '_blank');
+                      }}
+                    >
+                      🗺️ Google Maps
+                    </Button>
+                    <Button
+                      size="sm"
+                      bg="#34A853"
+                      color="white"
+                      fontWeight="600"
+                      onClick={() => {
+                        const url = `https://www.google.com/maps/dir/?api=1&origin=55.8547,-4.2206&destination=${created.booking.locationLat},${created.booking.locationLng}&travelmode=driving`;
+                        window.open(url, '_blank');
+                      }}
+                    >
+                      🚗 Get Directions
+                    </Button>
+                    <Button
+                      size="sm"
+                      bg="#1DA1F2"
+                      color="white"
+                      fontWeight="600"
+                      onClick={() => {
+                        const url = `https://waze.com/ul?ll=${created.booking.locationLat},${created.booking.locationLng}&navigate=yes`;
+                        window.open(url, '_blank');
+                      }}
+                    >
+                      📍 Waze
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      borderColor={c.border}
+                      color={c.text}
+                      fontWeight="600"
+                      onClick={() => {
+                        const coords = `${Number(created.booking.locationLat).toFixed(6)}, ${Number(created.booking.locationLng).toFixed(6)}`;
+                        navigator.clipboard.writeText(coords);
+                        setCopiedCoords(true);
+                        setTimeout(() => setCopiedCoords(false), 2000);
+                      }}
+                    >
+                      {copiedCoords ? '✓ Copied' : '📋 Copy Coords'}
+                    </Button>
+                  </Flex>
+                </Box>
               </VStack>
             ) : created.locationLink ? (
               <VStack align="stretch" gap={3}>
