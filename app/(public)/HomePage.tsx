@@ -1674,7 +1674,7 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                     <SimpleGrid columns={{ base: 1, md: 2 }} gap="16px">
                       {[
                         { step: '1. Book Online or Call', text: 'Book in under 3 minutes via our website or call 0141 266 0690. Select your tyre size, location, and preferred time — or request an emergency callout.' },
-                        { step: '2. Fitter Dispatched', text: 'A certified mobile fitter is assigned with the correct tyres already in stock. You receive live tracking and ETA via SMS.' },
+                        { step: '2. Fitter Dispatched', text: 'A certified mobile fitter is assigned with the correct tyres already in stock. You receive live tracking and ETA via email.' },
                         { step: '3. Professional Fitting On-Site', text: 'The fitter arrives with professional equipment: hydraulic jack, torque wrench, balancing machine. Fitting takes 30–45 minutes per tyre.' },
                         { step: '4. Payment & Warranty', text: 'Pay by card when the job is complete. All tyres come with manufacturer warranty and our satisfaction guarantee.' },
                       ].map((item) => (

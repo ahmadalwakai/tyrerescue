@@ -29,6 +29,13 @@
       "when": 1774122885275,
       "tag": "0003_slim_hiroim",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774146824957,
+      "tag": "0004_short_blur",
+      "breakpoints": true
     }
   ]
 }

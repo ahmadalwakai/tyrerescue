@@ -144,6 +144,15 @@ export const bookings = pgTable('bookings', {
   hasPreOrderItems: boolean('has_pre_order_items').default(false),
   fulfillmentOption: text('fulfillment_option'),
   notes: text('notes'),
+  // Attribution / UTM tracking
+  utmSource: varchar('utm_source', { length: 100 }),
+  utmMedium: varchar('utm_medium', { length: 100 }),
+  utmCampaign: varchar('utm_campaign', { length: 255 }),
+  utmTerm: varchar('utm_term', { length: 255 }),
+  utmContent: varchar('utm_content', { length: 255 }),
+  gclid: varchar('gclid', { length: 255 }),
+  landingPage: varchar('landing_page', { length: 500 }),
+  referrer: varchar('referrer', { length: 500 }),
   // Assignment lifecycle timestamps
   assignedAt: timestamp('assigned_at', { withTimezone: true }),
   acceptedAt: timestamp('accepted_at', { withTimezone: true }),

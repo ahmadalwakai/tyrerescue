@@ -59,6 +59,15 @@ interface Booking {
   totalAmount: string;
   stripePiId: string | null;
   notes: string | null;
+  // UTM attribution
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  utmTerm: string | null;
+  utmContent: string | null;
+  gclid: string | null;
+  landingPage: string | null;
+  referrer: string | null;
   createdAt: string | null;
   assignedAt: string | null;
   acceptedAt: string | null;
@@ -771,6 +780,63 @@ export function BookingDetailClient({
               <Text whiteSpace="pre-wrap" color={booking.notes ? c.text : c.muted}>{booking.notes || 'No notes'}</Text>
             )}
           </Box>
+
+          {/* Attribution / UTM */}
+          {(booking.utmSource || booking.gclid || booking.referrer) && (
+            <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+              <Heading size="md" mb={4} color={c.text}>Attribution</Heading>
+              <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)' }} gap={4}>
+                {booking.utmSource && (
+                  <Box>
+                    <Text fontSize="sm" color={c.muted}>Source</Text>
+                    <Text fontWeight="medium" color={c.text}>{booking.utmSource}</Text>
+                  </Box>
+                )}
+                {booking.utmMedium && (
+                  <Box>
+                    <Text fontSize="sm" color={c.muted}>Medium</Text>
+                    <Text fontWeight="medium" color={c.text}>{booking.utmMedium}</Text>
+                  </Box>
+                )}
+                {booking.utmCampaign && (
+                  <Box>
+                    <Text fontSize="sm" color={c.muted}>Campaign</Text>
+                    <Text fontWeight="medium" color={c.text}>{booking.utmCampaign}</Text>
+                  </Box>
+                )}
+                {booking.utmTerm && (
+                  <Box>
+                    <Text fontSize="sm" color={c.muted}>Keyword</Text>
+                    <Text fontWeight="medium" color={c.text}>{booking.utmTerm}</Text>
+                  </Box>
+                )}
+                {booking.utmContent && (
+                  <Box>
+                    <Text fontSize="sm" color={c.muted}>Content</Text>
+                    <Text fontWeight="medium" color={c.text}>{booking.utmContent}</Text>
+                  </Box>
+                )}
+                {booking.gclid && (
+                  <Box>
+                    <Text fontSize="sm" color={c.muted}>Google Ads</Text>
+                    <Badge colorPalette="green" size="sm">Google Ads Click</Badge>
+                  </Box>
+                )}
+                {booking.landingPage && (
+                  <Box>
+                    <Text fontSize="sm" color={c.muted}>Landing Page</Text>
+                    <Text fontWeight="medium" color={c.text} fontSize="sm">{booking.landingPage}</Text>
+                  </Box>
+                )}
+                {booking.referrer && (
+                  <Box>
+                    <Text fontSize="sm" color={c.muted}>Referrer</Text>
+                    <Text fontWeight="medium" color={c.text} fontSize="sm">{booking.referrer}</Text>
+                  </Box>
+                )}
+              </Grid>
+            </Box>
+          )}
         </VStack>
       </GridItem>
 

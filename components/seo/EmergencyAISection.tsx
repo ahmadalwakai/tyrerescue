@@ -56,7 +56,7 @@ export function EmergencyAISection() {
                 <Flex direction="column" gap="20px">
                   {[
                     { num: '1', title: 'Immediate Dispatch', text: 'Our system locates your position via phone GPS or postcode. The nearest fitter with your tyre size in stock is assigned instantly.' },
-                    { num: '2', title: 'Live Tracking', text: 'You receive an SMS with the fitter\'s name, vehicle details, and a live tracking link showing exact ETA.' },
+                    { num: '2', title: 'Live Tracking', text: 'You receive an email with the fitter\'s name, vehicle details, and a live tracking link showing exact ETA.' },
                     { num: '3', title: 'On-Site Fitting', text: 'The fitter arrives with all equipment and tyres. Fitting typically takes 30–45 minutes. Payment by card when complete.' },
                   ].map((step) => (
                     <Flex key={step.num} gap="16px" align="flex-start">

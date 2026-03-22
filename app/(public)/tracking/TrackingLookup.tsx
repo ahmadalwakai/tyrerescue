@@ -70,8 +70,7 @@ export function TrackingLookup() {
           </Heading>
           <Text color={c.muted} fontSize="16px" mb={8} lineHeight="1.6">
             Enter your booking reference to see live driver tracking and status
-            updates. You can find the reference in your confirmation email or
-            SMS.
+            updates. You can find the reference in your confirmation email.
           </Text>
 
           <Box

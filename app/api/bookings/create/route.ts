@@ -33,6 +33,17 @@ const createBookingSchema = z.object({
   notes: z.string().max(1000).optional(),
   createAccount: z.boolean().optional(),
   fulfillmentOption: z.enum(['delivery', 'fitting']).optional().nullable(),
+  // UTM / attribution
+  utm_source: z.string().max(100).optional(),
+  utm_medium: z.string().max(100).optional(),
+  utm_campaign: z.string().max(255).optional(),
+  utm_term: z.string().max(255).optional(),
+  utm_content: z.string().max(255).optional(),
+  gclid: z.string().max(255).optional(),
+  gbraid: z.string().max(255).optional(),
+  wbraid: z.string().max(255).optional(),
+  landing_page: z.string().max(500).optional(),
+  referrer: z.string().max(500).optional(),
 });
 
 type CreateBookingRequest = z.infer<typeof createBookingSchema>;
@@ -242,6 +253,15 @@ export async function POST(
         notes: data.notes || null,
         hasPreOrderItems,
         fulfillmentOption: data.fulfillmentOption ?? null,
+        // UTM attribution
+        utmSource: data.utm_source || null,
+        utmMedium: data.utm_medium || null,
+        utmCampaign: data.utm_campaign || null,
+        utmTerm: data.utm_term || null,
+        utmContent: data.utm_content || null,
+        gclid: data.gclid || null,
+        landingPage: data.landing_page || null,
+        referrer: data.referrer || null,
       });
 
       // Create booking tyres entries

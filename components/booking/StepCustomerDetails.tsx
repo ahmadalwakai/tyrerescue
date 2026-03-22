@@ -21,6 +21,7 @@ import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { API } from '@/lib/api-endpoints';
 import { EMAIL_REGEX, PHONE_DISPLAY_REGEX } from '@/lib/utils';
+import { getStoredUtm } from '@/lib/hooks/useUtmCapture';
 
 interface StepCustomerDetailsProps {
   state: WizardState;
@@ -100,6 +101,7 @@ export function StepCustomerDetails({
 
     try {
       // Create the booking
+      const utm = getStoredUtm();
       const res = await fetch(API.BOOKINGS_CREATE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -112,6 +114,7 @@ export function StepCustomerDetails({
           tyrePhotoUrl: state.tyrePhotoUrl || undefined,
           lockingNutStatus: state.lockingNutStatus || undefined,
           notes: undefined,
+          ...(utm || {}),
         }),
       });
 

@@ -9,6 +9,7 @@ import { SessionProvider } from 'next-auth/react';
 import { ReactNode } from 'react';
 import { system } from '@/lib/theme';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { UtmCaptureProvider } from '@/components/UtmCaptureProvider';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -56,6 +57,7 @@ export function Providers({ children }: ProvidersProps) {
       <SessionProvider>
         <ChakraProvider value={system}>
           <ErrorBoundary>
+            <UtmCaptureProvider />
             {children}
           </ErrorBoundary>
         </ChakraProvider>
