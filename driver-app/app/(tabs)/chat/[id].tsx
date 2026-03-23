@@ -16,6 +16,9 @@ import { colors, spacing, fontSize, radius } from '@/constants/theme';
 import { chatApi, ChatMessage, ApiError } from '@/api/client';
 import { useAuth } from '@/auth/context';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { AnimatedPressable } from '@/components/AnimatedPressable';
+import { lightHaptic } from '@/services/haptics';
+import { MessageSkeleton } from '@/components/SkeletonLoader';
 
 export default function ChatConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -51,6 +54,7 @@ export default function ChatConversationScreen() {
 
   const handleSend = async () => {
     if (!text.trim() || !id || sending) return;
+    lightHaptic();
     setSending(true);
     try {
       const msg = await chatApi.sendMessage(id, text.trim());
@@ -107,13 +111,14 @@ export default function ChatConversationScreen() {
           multiline
           maxLength={5000}
         />
-        <Pressable
+        <AnimatedPressable
           style={[styles.sendButton, (!text.trim() || sending) && styles.sendDisabled]}
           onPress={handleSend}
           disabled={!text.trim() || sending}
+          pressScale={0.9}
         >
           <Ionicons name="send" size={20} color="#FFFFFF" />
-        </Pressable>
+        </AnimatedPressable>
       </View>
     </KeyboardAvoidingView>
   );

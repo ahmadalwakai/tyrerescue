@@ -5,6 +5,9 @@ import { canSendMessage, ensureParticipant } from '@/lib/chat/permissions';
 import { getMessages, sendMessage } from '@/lib/chat/queries';
 import type { ChatRole, MessageType } from '@/lib/chat/types';
 import { createAdminNotification } from '@/lib/notifications';
+import { notifyDriverNewMessage } from '@/lib/notifications/driver-push';
+import { db, bookingConversations, bookings } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 
 const sendSchema = z.object({
   body: z.string().max(5000).nullable(),
@@ -98,6 +101,34 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
       severity: 'info',
       createdBy: 'system',
     }).catch(console.error);
+  }
+
+  // Notify driver via push when admin or customer sends a message
+  if (role !== 'driver') {
+    (async () => {
+      try {
+        const [conv] = await db
+          .select({ bookingId: bookingConversations.bookingId })
+          .from(bookingConversations)
+          .where(eq(bookingConversations.id, conversationId))
+          .limit(1);
+        if (!conv) return;
+        const [booking] = await db
+          .select({ driverId: bookings.driverId })
+          .from(bookings)
+          .where(eq(bookings.id, conv.bookingId))
+          .limit(1);
+        if (!booking?.driverId) return;
+        await notifyDriverNewMessage(
+          booking.driverId,
+          conversationId,
+          session.user.name ?? (role === 'admin' ? 'Admin' : 'Customer'),
+          msgBody?.slice(0, 100) || 'Sent an attachment',
+        );
+      } catch (err) {
+        console.error('[chat] Failed to notify driver:', err);
+      }
+    })();
   }
 
   return NextResponse.json(message, { status: 201 });

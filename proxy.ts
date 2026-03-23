@@ -120,6 +120,7 @@ export async function proxy(request: NextRequest) {
     '/terms-of-service',
     '/refund-policy',
     '/cookie-policy',
+    '/driver-app',
   ];
 
   // Service SEO routes (e.g. /mobile-tyre-fitting/glasgow/govan)

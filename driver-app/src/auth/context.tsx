@@ -6,6 +6,8 @@ import {
   LoginResponse,
   driverApi,
 } from '@/api/client';
+import { unregisterPushToken } from '@/services/notifications';
+import { stopBackgroundLocation } from '@/services/background-location';
 
 interface User {
   id: string;
@@ -72,6 +74,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    await unregisterPushToken();
+    await stopBackgroundLocation();
     await clearToken();
     setTokenState(null);
     setUser(null);

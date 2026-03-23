@@ -223,6 +223,38 @@ export const driverApi = {
       `/api/driver/jobs/${encodeURIComponent(ref)}/status`,
       { method: 'PATCH', body: { status } },
     ),
+
+  // Push token management
+  registerPushToken: (pushToken: string, platform: string) =>
+    api<{ success: boolean }>('/api/driver/push-token', {
+      method: 'POST',
+      body: { pushToken, platform },
+    }),
+
+  unregisterPushToken: () =>
+    api<{ success: boolean }>('/api/driver/push-token', { method: 'DELETE' }),
+
+  // Version check
+  checkVersion: (version: string, platform: string) =>
+    api<{
+      currentVersion: string;
+      minVersion: string;
+      latestVersion: string;
+      forceUpdate: boolean;
+      downloadUrl: string;
+      releaseNotes?: string;
+    }>(`/api/driver/version-check?version=${encodeURIComponent(version)}&platform=${encodeURIComponent(platform)}`),
+
+  // Tracking data (public endpoint — returns real Mapbox ETA)
+  getTrackingData: (ref: string) =>
+    api<{
+      status: string;
+      driverLat: number | null;
+      driverLng: number | null;
+      customerLat: number;
+      customerLng: number;
+      etaMinutes: number | null;
+    }>(`/api/tracking/${encodeURIComponent(ref)}`),
 };
 
 // ── Chat types ──
@@ -295,4 +327,28 @@ export const chatApi = {
     }),
 
   getUnreadCount: () => api<{ unread: number }>('/api/chat/unread'),
+};
+
+// ── Notification types ──
+
+export interface DriverNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  bookingRef: string | null;
+  isRead: boolean;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export const notificationApi = {
+  getNotifications: () =>
+    api<{ notifications: DriverNotification[] }>('/api/driver/notifications'),
+
+  markRead: (id?: string) =>
+    api<{ ok: boolean }>('/api/driver/notifications', {
+      method: 'PATCH',
+      body: id ? { id } : {},
+    }),
 };

@@ -1,6 +1,8 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { colors, spacing, fontSize, radius } from '@/constants/theme';
+import { View, Text, StyleSheet } from 'react-native';
+import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
+import { AnimatedPressable } from './AnimatedPressable';
 import { StatusBadge } from './StatusBadge';
+import { lightHaptic } from '@/services/haptics';
 import { format } from 'date-fns';
 import type { JobSummary } from '@/api/client';
 
@@ -11,9 +13,13 @@ interface JobCardProps {
 
 export function JobCard({ job, onPress }: JobCardProps) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    <AnimatedPressable
+      onPress={() => {
+        lightHaptic();
+        onPress();
+      }}
+      style={styles.card}
+      pressScale={0.97}
     >
       <View style={styles.header}>
         <Text style={styles.ref}>#{job.refNumber}</Text>
@@ -41,21 +47,19 @@ export function JobCard({ job, onPress }: JobCardProps) {
           <Text style={styles.meta}>{job.tyreSizeDisplay}</Text>
         )}
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.md,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
     marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pressed: {
-    opacity: 0.85,
+    borderColor: 'rgba(255,255,255,0.06)',
+    ...cardShadow,
   },
   header: {
     flexDirection: 'row',

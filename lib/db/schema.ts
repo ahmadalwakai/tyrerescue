@@ -55,6 +55,10 @@ export const drivers = pgTable('drivers', {
   currentLng: decimal('current_lng', { precision: 9, scale: 6 }),
   locationAt: timestamp('location_at', { withTimezone: true }),
   status: text('status').default('offline'),
+  pushToken: text('push_token'),
+  pushTokenPlatform: text('push_token_platform'),
+  appVersion: text('app_version'),
+  locationSource: text('location_source'),  // 'mobile_app' | 'web_portal'
   createdBy: uuid('created_by').references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
 });
@@ -784,6 +788,23 @@ export const pushSubscriptions = pgTable('push_subscriptions', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// ──────────────────────────────────────────────
+// Driver push notification history
+// ──────────────────────────────────────────────
+
+export const driverNotifications = pgTable('driver_notifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  driverId: uuid('driver_id').references(() => drivers.id).notNull(),
+  type: varchar('type', { length: 50 }).notNull(), // new_job, status_update, chat_message, system
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  bookingRef: varchar('booking_ref', { length: 20 }),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+  isRead: boolean('is_read').default(false).notNull(),
+  readAt: timestamp('read_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Type exports for use throughout the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -858,3 +879,5 @@ export type QuickBooking = typeof quickBookings.$inferSelect;
 export type NewQuickBooking = typeof quickBookings.$inferInsert;
 export type DemandSnapshot = typeof demandSnapshots.$inferSelect;
 export type NewDemandSnapshot = typeof demandSnapshots.$inferInsert;
+export type DriverNotification = typeof driverNotifications.$inferSelect;
+export type NewDriverNotification = typeof driverNotifications.$inferInsert;

@@ -190,6 +190,8 @@ export async function POST(
         id: drivers.id,
         currentLat: drivers.currentLat,
         currentLng: drivers.currentLng,
+        locationAt: drivers.locationAt,
+        locationSource: drivers.locationSource,
       })
         .from(drivers)
         .where(and(eq(drivers.isOnline, true), eq(drivers.status, 'available'))),
@@ -208,14 +210,18 @@ export async function POST(
     const isBankHoliday = holidayResult.length > 0;
 
     // Build driver candidates — skip drivers with invalid coordinates
+    // Sort mobile_app sourced locations first (authoritative operational source)
     const driverCandidates = driverRows
       .filter((d) => d.currentLat != null && d.currentLng != null)
       .map((d) => ({
         id: d.id,
         lat: parseFloat(d.currentLat!),
         lng: parseFloat(d.currentLng!),
+        isMobile: d.locationSource === 'mobile_app',
       }))
-      .filter((d) => !isNaN(d.lat) && !isNaN(d.lng));
+      .filter((d) => !isNaN(d.lat) && !isNaN(d.lng))
+      .sort((a, b) => (a.isMobile === b.isMobile ? 0 : a.isMobile ? -1 : 1))
+      .map(({ id, lat, lng }) => ({ id, lat, lng }));
 
     // Build service area candidates
     const areaCandidates = areaRows

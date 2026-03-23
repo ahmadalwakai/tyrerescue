@@ -6,6 +6,7 @@ dist/
 *.p12
 *.key
 *.mobileprovision
+credentials.json
 *.orig.*
 web-build/
 .env

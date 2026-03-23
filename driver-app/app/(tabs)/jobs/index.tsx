@@ -5,15 +5,17 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
-  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
 import { driverApi, JobSummary } from '@/api/client';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { JobCard } from '@/components/JobCard';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { AnimatedPressable } from '@/components/AnimatedPressable';
+import { lightHaptic } from '@/services/haptics';
 
 type Tab = 'active' | 'completed';
 
@@ -53,22 +55,24 @@ export default function JobsListScreen() {
     <View style={styles.container}>
       {/* Tabs */}
       <View style={styles.tabs}>
-        <Pressable
+        <AnimatedPressable
           style={[styles.tab, tab === 'active' && styles.tabActive]}
-          onPress={() => setTab('active')}
+          onPress={() => { lightHaptic(); setTab('active'); }}
+          pressScale={0.95}
         >
           <Text style={[styles.tabText, tab === 'active' && styles.tabTextActive]}>
             Active ({active.length})
           </Text>
-        </Pressable>
-        <Pressable
+        </AnimatedPressable>
+        <AnimatedPressable
           style={[styles.tab, tab === 'completed' && styles.tabActive]}
-          onPress={() => setTab('completed')}
+          onPress={() => { lightHaptic(); setTab('completed'); }}
+          pressScale={0.95}
         >
           <Text style={[styles.tabText, tab === 'completed' && styles.tabTextActive]}>
             Completed ({completed.length})
           </Text>
-        </Pressable>
+        </AnimatedPressable>
       </View>
 
       {/* List */}
@@ -83,14 +87,17 @@ export default function JobsListScreen() {
             tintColor={colors.accent}
           />
         }
-        renderItem={({ item }) => (
-          <JobCard
-            job={item}
-            onPress={() => router.push(`/(tabs)/jobs/${item.refNumber}`)}
-          />
+        renderItem={({ item, index }) => (
+          <Animated.View entering={FadeInDown.duration(250).delay(index * 50)}>
+            <JobCard
+              job={item}
+              onPress={() => router.push(`/(tabs)/jobs/${item.refNumber}`)}
+            />
+          </Animated.View>
         )}
         ListEmptyComponent={
           <EmptyState
+            icon={tab === 'active' ? 'briefcase-outline' : 'checkmark-done-outline'}
             title={tab === 'active' ? 'No active jobs' : 'No completed jobs'}
             message={tab === 'active' ? 'New jobs will appear here when assigned.' : undefined}
           />

@@ -4,7 +4,7 @@ import { drivers, users, serviceAreas, pricingRules, bookings } from '@/lib/db/s
 import { eq, and, inArray } from 'drizzle-orm';
 import { resolveDistance } from '@/lib/mapbox';
 import { parsePricingRules } from '@/lib/pricing-engine';
-import { shouldDriverAppearOnline, isLocationTrustworthy } from '@/lib/driver-presence';
+import { shouldDriverAppearOnline, isLocationTrustworthy, isLocationFromMobileApp } from '@/lib/driver-presence';
 
 /**
  * POST /api/availability/eligibility
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
           locationAt: drivers.locationAt,
           isOnline: drivers.isOnline,
           status: drivers.status,
+          locationSource: drivers.locationSource,
         })
         .from(drivers)
         .innerJoin(users, eq(drivers.userId, users.id)),
@@ -79,10 +80,17 @@ export async function POST(request: NextRequest) {
     const onlineDriverCount = availableDrivers.length;
 
     // For ETA/routing, only use drivers with trustworthy GPS
+    // Prefer mobile_app sourced location over web_portal
     const freshDrivers = availableDrivers
       .filter((d) => {
         if (!d.lat || !d.lng) return false;
         return isLocationTrustworthy(d.locationAt);
+      })
+      .sort((a, b) => {
+        // Mobile app location first
+        const aMobile = isLocationFromMobileApp(a.locationSource) ? 0 : 1;
+        const bMobile = isLocationFromMobileApp(b.locationSource) ? 0 : 1;
+        return aMobile - bMobile;
       })
       .map((d) => ({
         id: d.id,

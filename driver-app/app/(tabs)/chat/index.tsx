@@ -5,15 +5,17 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
-  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { format } from 'date-fns';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
 import { chatApi, ChatConversation } from '@/api/client';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { AnimatedPressable } from '@/components/AnimatedPressable';
+import { lightHaptic } from '@/services/haptics';
 
 export default function ChatListScreen() {
   const router = useRouter();
@@ -51,11 +53,13 @@ export default function ChatListScreen() {
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
       }
-      renderItem={({ item }) => (
-        <Pressable
-          style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-          onPress={() => router.push(`/(tabs)/chat/${item.id}`)}
-        >
+      renderItem={({ item, index }) => (
+        <Animated.View entering={FadeInDown.duration(250).delay(index * 40)}>
+          <AnimatedPressable
+            style={styles.row}
+            onPress={() => { lightHaptic(); router.push(`/(tabs)/chat/${item.id}`); }}
+            pressScale={0.98}
+          >
           <View style={styles.rowLeft}>
             <Text style={styles.ref}>#{item.bookingRef}</Text>
             <Text style={styles.name} numberOfLines={1}>
@@ -79,10 +83,15 @@ export default function ChatListScreen() {
               </View>
             )}
           </View>
-        </Pressable>
+          </AnimatedPressable>
+        </Animated.View>
       )}
       ListEmptyComponent={
-        <EmptyState title="No conversations" message="Chat with customers about their bookings." />
+        <EmptyState
+          icon="chatbubbles-outline"
+          title="No conversations"
+          message="Chat with customers about their bookings."
+        />
       }
     />
   );
@@ -100,13 +109,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-  },
-  pressed: {
-    backgroundColor: colors.surface,
   },
   rowLeft: {
     flex: 1,

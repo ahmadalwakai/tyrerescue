@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
-import { requireDriverMobile } from '@/lib/auth';
 import { db, drivers, driverLocationHistory, bookings } from '@/lib/db';
 import { eq, and, inArray } from 'drizzle-orm';
+import { requireDriverMobile } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
+    // Determine authentication source — mobile JWT vs web session
+    const authHeader = request.headers.get('authorization');
+    const isMobileApp = !!(authHeader?.startsWith('Bearer '));
+
     const { driverId } = await requireDriverMobile(request);
     const { lat, lng } = await request.json();
 
@@ -23,9 +27,16 @@ export async function POST(request: Request) {
       );
     }
 
+    const locationSource = isMobileApp ? 'mobile_app' : 'web_portal';
+
     // Get driver record
     const [driver] = await db
-      .select({ id: drivers.id, isOnline: drivers.isOnline })
+      .select({
+        id: drivers.id,
+        isOnline: drivers.isOnline,
+        locationSource: drivers.locationSource,
+        locationAt: drivers.locationAt,
+      })
       .from(drivers)
       .where(eq(drivers.id, driverId))
       .limit(1);
@@ -37,25 +48,30 @@ export async function POST(request: Request) {
       );
     }
 
-    // Accept location updates even if the driver toggled offline.
-    // The heartbeat keeps locationAt fresh which the backend presence
-    // evaluator uses for staleness calculations.
-    // If the driver explicitly went offline AND has no active booking,
-    // we still record the update — it's harmless and keeps data fresh.
-    // The presence evaluator (lib/driver-presence.ts) decides the
-    // effective state.
+    // Web portal must NOT overwrite fresh mobile app location.
+    // If the last source was mobile_app and it's less than 5 minutes old,
+    // silently accept the web update for history but don't overwrite the
+    // authoritative mobile location.
+    const mobileLocationIsFresh =
+      driver.locationSource === 'mobile_app' &&
+      driver.locationAt &&
+      (Date.now() - new Date(driver.locationAt).getTime()) < 5 * 60 * 1000;
 
-    // Update driver location
-    await db
-      .update(drivers)
-      .set({
-        currentLat: lat.toString(),
-        currentLng: lng.toString(),
-        locationAt: new Date(),
-      })
-      .where(eq(drivers.id, driver.id));
+    const shouldUpdatePrimary = isMobileApp || !mobileLocationIsFresh;
 
-    // Record location history (find active booking if any)
+    if (shouldUpdatePrimary) {
+      await db
+        .update(drivers)
+        .set({
+          currentLat: lat.toString(),
+          currentLng: lng.toString(),
+          locationAt: new Date(),
+          locationSource,
+        })
+        .where(eq(drivers.id, driver.id));
+    }
+
+    // Always record location history regardless of source
     const [activeBooking] = await db
       .select({ id: bookings.id })
       .from(bookings)
@@ -78,6 +94,7 @@ export async function POST(request: Request) {
       success: true,
       lat,
       lng,
+      source: locationSource,
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {

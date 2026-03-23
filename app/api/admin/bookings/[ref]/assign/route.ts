@@ -6,6 +6,7 @@ import { executeTransition, BookingStatus } from '@/lib/state-machine';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { driverAssigned, jobAssigned, jobCancelled } from '@/lib/email/templates';
 import { createAdminNotification } from '@/lib/notifications';
+import { notifyDriverNewJob } from '@/lib/notifications/driver-push';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -215,6 +216,13 @@ export async function PATCH(request: Request, { params }: Props) {
       } catch (emailError) {
         console.error('Failed to send job assigned email to driver:', emailError);
       }
+    }
+
+    // Send push notification to driver's mobile app
+    try {
+      await notifyDriverNewJob(driverId, booking.refNumber, booking.addressLine);
+    } catch (pushError) {
+      console.error('Failed to send push notification to driver:', pushError);
     }
 
     return NextResponse.json({ success: true });

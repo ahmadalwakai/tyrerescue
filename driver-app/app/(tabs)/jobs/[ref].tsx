@@ -12,11 +12,15 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import { colors, spacing, fontSize, radius } from '@/constants/theme';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
 import { driverApi, JobDetail, ApiError } from '@/api/client';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { StatusBadge } from '@/components/StatusBadge';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { AnimatedPressable } from '@/components/AnimatedPressable';
+import { mediumHaptic, heavyHaptic, errorHaptic } from '@/services/haptics';
+import { playSound } from '@/services/sound';
 
 const DRIVER_ACTIONS: Record<string, { label: string; next: string }> = {
   driver_assigned: { label: 'Start En Route', next: 'en_route' },
@@ -68,6 +72,12 @@ export default function JobDetailScreen() {
           setActioning(true);
           try {
             await driverApi.updateJobStatus(ref, nextStatus);
+            if (nextStatus === 'completed') {
+              heavyHaptic();
+              playSound('job_completed');
+            } else {
+              mediumHaptic();
+            }
             await fetchJob();
           } catch (err) {
             const msg = err instanceof ApiError ? err.message : 'Failed to update status.';
@@ -89,6 +99,8 @@ export default function JobDetailScreen() {
           setActioning(true);
           try {
             await driverApi.acceptJob(ref);
+            mediumHaptic();
+            playSound('job_accepted');
             await fetchJob();
           } catch (err) {
             const msg = err instanceof ApiError ? err.message : 'Failed to accept job.';
@@ -104,6 +116,29 @@ export default function JobDetailScreen() {
     if (!job?.lat || !job?.lng) return;
     const url = `https://www.google.com/maps/dir/?api=1&destination=${job.lat},${job.lng}`;
     Linking.openURL(url);
+  };
+
+  const handleReject = async () => {
+    if (!ref) return;
+    Alert.alert('Reject Job', 'Are you sure you want to reject this job?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Reject',
+        style: 'destructive',
+        onPress: async () => {
+          setActioning(true);
+          try {
+            errorHaptic();
+            await driverApi.rejectJob(ref);
+            router.back();
+          } catch (err) {
+            const msg = err instanceof ApiError ? err.message : 'Failed to reject job.';
+            Alert.alert('Error', msg);
+          }
+          setActioning(false);
+        },
+      },
+    ]);
   };
 
   if (loading) return <LoadingScreen />;
@@ -151,10 +186,19 @@ export default function JobDetailScreen() {
         <Text style={styles.cardTitle}>Location</Text>
         <Text style={styles.cardValue}>{job.addressLine}</Text>
         {job.lat && job.lng && (
-          <Pressable style={styles.navButton} onPress={openNavigation}>
-            <Ionicons name="navigate-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.navButtonText}>Open in Maps</Text>
-          </Pressable>
+          <View style={styles.locationButtons}>
+            <Pressable style={styles.navButton} onPress={openNavigation}>
+              <Ionicons name="navigate-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.navButtonText}>Open in Maps</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.navButton, styles.mapViewButton]}
+              onPress={() => router.push(`/(tabs)/jobs/${ref}/map`)}
+            >
+              <Ionicons name="map-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.navButtonText}>Live Map</Text>
+            </Pressable>
+          </View>
         )}
       </View>
 
@@ -218,25 +262,63 @@ export default function JobDetailScreen() {
 
       {/* Actions */}
       {job.status === 'paid' && (
-        <Pressable
-          style={[styles.actionButton, actioning && styles.buttonDisabled]}
-          onPress={handleAccept}
-          disabled={actioning}
-        >
-          <Text style={styles.actionButtonText}>Accept Job</Text>
-        </Pressable>
+        <Animated.View entering={FadeInDown.duration(300)} style={styles.actionRow}>
+          <AnimatedPressable
+            style={[styles.actionButton, styles.acceptButton, actioning && styles.buttonDisabled]}
+            onPress={handleAccept}
+            disabled={actioning}
+            pressScale={0.95}
+          >
+            <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.actionButtonText}>Accept Job</Text>
+          </AnimatedPressable>
+          <AnimatedPressable
+            style={[styles.actionButton, styles.rejectButton, actioning && styles.buttonDisabled]}
+            onPress={handleReject}
+            disabled={actioning}
+            pressScale={0.95}
+          >
+            <Ionicons name="close-circle-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.actionButtonText}>Reject</Text>
+          </AnimatedPressable>
+        </Animated.View>
       )}
 
-      {action && (
-        <Pressable
+      {job.status === 'driver_assigned' && (
+        <Animated.View entering={FadeInDown.duration(300)} style={styles.actionRow}>
+          <AnimatedPressable
+            style={[styles.actionButton, styles.acceptButton, actioning && styles.buttonDisabled]}
+            onPress={() => handleStatusAction(DRIVER_ACTIONS.driver_assigned.next)}
+            disabled={actioning}
+            pressScale={0.95}
+          >
+            <Text style={styles.actionButtonText}>
+              {actioning ? 'Updating…' : DRIVER_ACTIONS.driver_assigned.label}
+            </Text>
+          </AnimatedPressable>
+          <AnimatedPressable
+            style={[styles.actionButton, styles.rejectButton, actioning && styles.buttonDisabled]}
+            onPress={handleReject}
+            disabled={actioning}
+            pressScale={0.95}
+          >
+            <Ionicons name="close-circle-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.actionButtonText}>Reject</Text>
+          </AnimatedPressable>
+        </Animated.View>
+      )}
+
+      {action && job.status !== 'driver_assigned' && (
+        <AnimatedPressable
           style={[styles.actionButton, actioning && styles.buttonDisabled]}
           onPress={() => handleStatusAction(action.next)}
           disabled={actioning}
+          pressScale={0.95}
         >
           <Text style={styles.actionButtonText}>
             {actioning ? 'Updating…' : action.label}
           </Text>
-        </Pressable>
+        </AnimatedPressable>
       )}
 
       {/* Status History */}
@@ -286,11 +368,12 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.md,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
     marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: 'rgba(255,255,255,0.06)',
+    ...cardShadow,
   },
   cardTitle: {
     fontFamily: 'Inter_600SemiBold',
@@ -317,6 +400,11 @@ const styles = StyleSheet.create({
     color: colors.accent,
     marginTop: 4,
   },
+  locationButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
   navButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -324,9 +412,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    alignSelf: 'flex-start',
-    marginTop: spacing.sm,
     gap: 6,
+  },
+  mapViewButton: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.accent,
   },
   navButtonText: {
     fontFamily: 'Inter_600SemiBold',
@@ -341,13 +432,31 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: colors.accent,
   },
-  actionButton: {
-    backgroundColor: colors.accent,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    alignItems: 'center',
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
     marginTop: spacing.sm,
     marginBottom: spacing.sm,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: colors.accent,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+    gap: 6,
+  },
+  acceptButton: {
+    flex: 2,
+    backgroundColor: colors.accent,
+  },
+  rejectButton: {
+    flex: 1,
+    backgroundColor: '#7f1d1d',
   },
   buttonDisabled: {
     opacity: 0.6,

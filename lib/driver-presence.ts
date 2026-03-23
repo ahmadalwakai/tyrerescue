@@ -70,6 +70,7 @@ export interface DriverSnapshot {
   isOnline: boolean;
   locationAt: Date | string | null;
   status: string | null;
+  locationSource?: string | null;  // 'mobile_app' | 'web_portal'
 }
 
 /** Active booking shape — only need the status */
@@ -202,4 +203,13 @@ export function isDriverAvailableForDispatch(
  */
 export function isLocationTrustworthy(locationAt: Date | string | null): boolean {
   return isDriverLocationFresh(locationAt);
+}
+
+/**
+ * Is this driver's location sourced from the native mobile app?
+ * Mobile app location is the authoritative operational source.
+ * Web portal location is treated as a weaker fallback.
+ */
+export function isLocationFromMobileApp(locationSource: string | null | undefined): boolean {
+  return locationSource === 'mobile_app';
 }
