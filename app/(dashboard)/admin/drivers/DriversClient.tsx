@@ -20,6 +20,13 @@ import {
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
+import {
+  getDriverPresenceState,
+  PRESENCE_LABELS,
+  PRESENCE_COLORS,
+  type DriverPresenceState,
+} from '@/lib/driver-presence';
+
 interface Driver {
   id: string;
   userId: string | null;
@@ -199,11 +206,24 @@ export function DriversClient({ drivers: initialDrivers }: Props) {
     return `(${Math.floor(diffHours / 24)}d ago)`;
   }
 
+  function getPresence(driver: Driver): DriverPresenceState {
+    return getDriverPresenceState(
+      { isOnline: driver.isOnline, locationAt: driver.locationAt, status: driver.status },
+      null, // Active booking not loaded in admin list — simplified view
+    );
+  }
+
   // ── FILTER ──
   const filtered = drivers.filter((d) => {
     if (filterStatus !== 'all') {
-      if (filterStatus === 'online' && !d.isOnline) return false;
-      if (filterStatus === 'offline' && d.isOnline) return false;
+      if (filterStatus === 'online') {
+        const p = getPresence(d);
+        if (p === 'offline') return false;
+      }
+      if (filterStatus === 'offline') {
+        const p = getPresence(d);
+        if (p !== 'offline') return false;
+      }
       if (!['online', 'offline', 'all'].includes(filterStatus) && d.status !== filterStatus) return false;
     }
     if (search) {
@@ -479,10 +499,18 @@ export function DriversClient({ drivers: initialDrivers }: Props) {
                     <Flex justify="space-between" align="center" mb={2}>
                       <Text fontWeight="bold" color={c.text}>{driver.name}</Text>
                       <HStack gap={1}>
-                        <Box w="8px" h="8px" borderRadius="full" bg={statusColor(driver.status)} />
-                        <Text fontSize="xs" fontWeight="medium" color={statusColor(driver.status)}>
-                          {STATUS_OPTIONS.find((s) => s.value === driver.status)?.label || driver.status}
-                        </Text>
+                        {(() => {
+                          const p = getPresence(driver);
+                          const pColor = PRESENCE_COLORS[p];
+                          return (
+                            <>
+                              <Box w="8px" h="8px" borderRadius="full" bg={`${pColor}.400`} />
+                              <Text fontSize="xs" fontWeight="medium" color={`${pColor}.400`}>
+                                {PRESENCE_LABELS[p]}
+                              </Text>
+                            </>
+                          );
+                        })()}
                       </HStack>
                     </Flex>
                     <Text fontSize="sm" color={c.muted} mb={1}>{driver.email}</Text>
@@ -522,7 +550,7 @@ export function DriversClient({ drivers: initialDrivers }: Props) {
       {/* Summary */}
       <Text fontSize="sm" color={c.muted}>
         {filtered.length}{filtered.length !== drivers.length ? ` of ${drivers.length}` : ''} driver{filtered.length !== 1 ? 's' : ''},{' '}
-        {drivers.filter((d) => d.isOnline).length} online
+        {drivers.filter((d) => getPresence(d) !== 'offline').length} online
       </Text>
     </VStack>
   );

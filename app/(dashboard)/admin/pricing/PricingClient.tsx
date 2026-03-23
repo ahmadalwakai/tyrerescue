@@ -16,6 +16,47 @@ interface PricingRule {
   type: string | null;
 }
 
+/** Shape returned by /api/admin/pricing/state — single source of truth */
+interface PricingState {
+  config: {
+    id: string;
+    nightSurchargePercent: number;
+    nightStartHour: number;
+    nightEndHour: number;
+    manualSurchargePercent: number;
+    manualSurchargeActive: boolean;
+    demandSurchargePercent: number;
+    demandThresholdClicks: number;
+    demandIncrementPercent: number;
+    cookieReturnSurchargePercent: number;
+    maxTotalSurchargePercent: number;
+  };
+  live: {
+    londonHour: number;
+    hourStartIso: string;
+    hourEndIso: string;
+    isNightActive: boolean;
+    nightPercent: number;
+    manualPercent: number;
+    manualActive: boolean;
+    demandPercent: number;
+    totalActivePercent: number;
+  };
+  demand: {
+    pageViews: number;
+    callClicks: number;
+    bookingStarts: number;
+    bookingCompletes: number;
+    whatsappClicks: number;
+    surchargeApplied: string;
+    hasData: boolean;
+  };
+  suggestion: {
+    enabled: boolean;
+    text: string | null;
+  };
+}
+
 export function PricingClient({ rules }: { rules: PricingRule[] }) {
   const router = useRouter();
   const [items, setItems] = useState(rules);
@@ -23,8 +64,6 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
   const [addKey, setAddKey] = useState('');
   const [addValue, setAddValue] = useState('');
   const [addLabel, setAddLabel] = useState('');
-
-  // VAT state removed - VAT has been removed from the pricing system
 
   // Surge state
   const surgeEnabled = items.find((r) => r.key === 'surge_pricing_enabled')?.value === 'true';
@@ -38,62 +77,36 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
   } | null>(null);
   const [surgeLoading, setSurgeLoading] = useState(false);
 
-  // Dynamic pricing config state
-  interface PricingConfigState {
-    nightSurchargePercent: number;
-    nightStartHour: number;
-    nightEndHour: number;
-    manualSurchargePercent: number;
-    manualSurchargeActive: boolean;
-    demandSurchargePercent: number;
-    demandThresholdClicks: number;
-    demandIncrementPercent: number;
-    cookieReturnSurchargePercent: number;
-    maxTotalSurchargePercent: number;
-  }
-  const [pConfig, setPConfig] = useState<PricingConfigState | null>(null);
+  // Single truthful state from backend
+  const [pState, setPState] = useState<PricingState | null>(null);
+  const [pStateLoading, setPStateLoading] = useState(true);
+  const [pStateError, setPStateError] = useState<string | null>(null);
   const [pConfigSaving, setPConfigSaving] = useState(false);
-  const [demandData, setDemandData] = useState<{
-    current: { pageViews: number; callClicks: number; bookingStarts: number; bookingCompletes: number; whatsappClicks: number; surchargeApplied: string };
-    history: Array<Record<string, unknown>>;
-  } | null>(null);
 
-  const fetchPricingConfig = useCallback(async () => {
+  const fetchPricingState = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/pricing/config');
-      if (res.ok) {
-        const data = await res.json();
-        setPConfig({
-          nightSurchargePercent: Number(data.nightSurchargePercent ?? 15),
-          nightStartHour: data.nightStartHour ?? 18,
-          nightEndHour: data.nightEndHour ?? 6,
-          manualSurchargePercent: Number(data.manualSurchargePercent ?? 0),
-          manualSurchargeActive: data.manualSurchargeActive ?? false,
-          demandSurchargePercent: Number(data.demandSurchargePercent ?? 0),
-          demandThresholdClicks: data.demandThresholdClicks ?? 20,
-          demandIncrementPercent: Number(data.demandIncrementPercent ?? 2),
-          cookieReturnSurchargePercent: Number(data.cookieReturnSurchargePercent ?? 0),
-          maxTotalSurchargePercent: Number(data.maxTotalSurchargePercent ?? 25),
-        });
+      setPStateError(null);
+      const res = await fetch('/api/admin/pricing/state');
+      if (!res.ok) {
+        setPStateError(`Failed to load pricing state (${res.status})`);
+        return;
       }
-    } catch { /* ignore */ }
-  }, []);
-
-  const fetchDemand = useCallback(async () => {
-    try {
-      const res = await fetch('/api/admin/pricing/demand');
-      if (res.ok) setDemandData(await res.json());
-    } catch { /* ignore */ }
+      const data: PricingState = await res.json();
+      setPState(data);
+    } catch {
+      setPStateError('Failed to connect to pricing backend');
+    } finally {
+      setPStateLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    fetchPricingConfig();
-    fetchDemand();
-    const interval = setInterval(fetchDemand, 60_000);
+    fetchPricingState();
+    const interval = setInterval(fetchPricingState, 60_000);
     return () => clearInterval(interval);
-  }, [fetchPricingConfig, fetchDemand]);
+  }, [fetchPricingState]);
 
-  async function savePricingConfig(updates: Partial<PricingConfigState>) {
+  async function savePricingConfig(updates: Partial<PricingState['config']>) {
     setPConfigSaving(true);
     try {
       const res = await fetch('/api/admin/pricing/config', {
@@ -102,7 +115,8 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
         body: JSON.stringify(updates),
       });
       if (res.ok) {
-        setPConfig((prev) => prev ? { ...prev, ...updates } : prev);
+        // Re-fetch truthful state from backend after save
+        await fetchPricingState();
       }
     } catch { /* ignore */ } finally {
       setPConfigSaving(false);
@@ -126,8 +140,6 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
       return () => clearInterval(interval);
     }
   }, [surgeEnabled, fetchSurge]);
-
-  // VAT functions removed - VAT has been removed from the pricing system
 
   async function handleSave(id: string, value: string) {
     setSaving(id);
@@ -164,13 +176,21 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
     setItems(items.filter((i) => i.id !== id));
   }
 
+  // Local edit state for config form fields (tracks unsaved input changes)
+  const [localConfig, setLocalConfig] = useState<Partial<PricingState['config']>>({});
+  useEffect(() => {
+    if (pState) setLocalConfig({});
+  }, [pState]);
+
+  const cfg = pState ? { ...pState.config, ...localConfig } : null;
+  const live = pState?.live ?? null;
+  const demand = pState?.demand ?? null;
+
   const inputStyle = { bg: c.surface, borderColor: c.border, color: c.text };
 
   return (
     <VStack align="stretch" gap={6}>
-      {/* VAT Settings removed - VAT has been removed from the pricing system */}
-
-      {/* Live Demand Monitor */}
+      {/* Live Demand Monitor (Groq AI surge) */}
       {surgeEnabled && (
         <Box bg={c.card} borderWidth="1px" borderColor={c.border} borderRadius="8px" p="24px" mb="32px" style={anim.fadeUp('0.5s', '0.05s')}>
           <Flex justify="space-between" align="center" mb={4}>
@@ -226,7 +246,7 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
                 </Box>
               </Flex>
               {surgeData.aiPowered && (
-                <Text fontSize="xs" color={c.muted} textAlign="center">⚡ Powered by Groq AI — refreshes every 5 min</Text>
+                <Text fontSize="xs" color={c.muted} textAlign="center">Powered by Groq AI — refreshes every 5 min</Text>
               )}
             </VStack>
           ) : surgeLoading ? (
@@ -241,42 +261,70 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
       )}
 
       {/* Dynamic Pricing Controls */}
-      {pConfig && (
+      {pStateLoading ? (
+        <Box bg={c.card} borderWidth="1px" borderColor={c.border} borderRadius="8px" p="24px" mb="32px">
+          <HStack justify="center" py={8}>
+            <Spinner size="md" color={c.accent} />
+            <Text color={c.muted}>Loading pricing configuration...</Text>
+          </HStack>
+        </Box>
+      ) : pStateError ? (
+        <Box bg={c.card} borderWidth="1px" borderColor={c.border} borderRadius="8px" p="24px" mb="32px">
+          <Text color="#EF4444" fontWeight="600" mb={2}>Pricing State Error</Text>
+          <Text color={c.muted} fontSize="sm">{pStateError}</Text>
+          <Button size="sm" mt={3} onClick={fetchPricingState} bg={c.surface} color={c.text}>
+            Retry
+          </Button>
+        </Box>
+      ) : cfg && live ? (
         <Box bg={c.card} borderWidth="1px" borderColor={c.border} borderRadius="8px" p="24px" mb="32px" style={anim.fadeUp('0.5s', '0.1s')}>
           <Text fontSize="28px" color={c.text} mb={5} style={{ fontFamily: 'var(--font-display)' }}>
             DYNAMIC PRICING
           </Text>
 
-          {/* Surge Alert Banner */}
+          {/* Surge Alert Banner — uses backend-computed live state only */}
           <Box mb={5}>
             <SurgeAlert
-              isNight={(() => {
-                const h = new Date().getHours();
-                const s = pConfig.nightStartHour;
-                const e = pConfig.nightEndHour;
-                return s > e ? (h >= s || h < e) : (h >= s && h < e);
-              })()}
-              manualActive={pConfig.manualSurchargeActive}
-              manualPercent={pConfig.manualSurchargePercent}
-              demandPercent={pConfig.demandSurchargePercent}
-              totalSurcharge={
-                (pConfig.manualSurchargeActive ? pConfig.manualSurchargePercent : 0) +
-                pConfig.demandSurchargePercent
-              }
+              isNight={live.isNightActive}
+              manualActive={live.manualActive}
+              manualPercent={live.manualPercent}
+              demandPercent={live.demandPercent}
+              nightPercent={live.nightPercent}
+              totalSurcharge={live.totalActivePercent}
+              londonHour={live.londonHour}
             />
           </Box>
 
-          {/* Demand Circles */}
-          {demandData && (
+          {/* Demand Circles — uses real backend demand data */}
+          {demand ? (
             <Box mb={6}>
               <DemandCircles
-                visitors={demandData.current.pageViews}
-                callClicks={demandData.current.callClicks}
-                bookingStarts={demandData.current.bookingStarts}
-                bookingCompletes={demandData.current.bookingCompletes}
-                activeSurcharge={pConfig.demandSurchargePercent}
-                threshold={pConfig.demandThresholdClicks}
+                visitors={demand.pageViews}
+                callClicks={demand.callClicks}
+                bookingStarts={demand.bookingStarts}
+                bookingCompletes={demand.bookingCompletes}
+                activeSurcharge={live.demandPercent}
+                threshold={cfg.demandThresholdClicks}
+                hasData={demand.hasData}
+                hourWindow={`${String(live.londonHour).padStart(2, '0')}:00 – ${String((live.londonHour + 1) % 24).padStart(2, '0')}:00`}
               />
+            </Box>
+          ) : null}
+
+          {/* Backend suggestion */}
+          {pState?.suggestion.enabled && pState.suggestion.text && (
+            <Box
+              mb={5}
+              p={3}
+              bg="rgba(59,130,246,0.1)"
+              borderRadius="8px"
+              borderWidth="1px"
+              borderColor="#3B82F6"
+              textAlign="center"
+            >
+              <Text color="#3B82F6" fontSize="sm" fontWeight="600">
+                {pState.suggestion.text}
+              </Text>
             </Box>
           )}
 
@@ -292,8 +340,8 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
                 w="80px"
                 h="36px"
                 borderRadius="18px"
-                bg={pConfig.manualSurchargeActive ? c.accent : c.border}
-                color={pConfig.manualSurchargeActive ? '#09090B' : c.muted}
+                bg={cfg.manualSurchargeActive ? c.accent : c.border}
+                color={cfg.manualSurchargeActive ? '#09090B' : c.muted}
                 fontSize="12px"
                 fontWeight="700"
                 display="flex"
@@ -304,21 +352,21 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
                 border="none"
                 flexShrink={0}
                 ml={4}
-                onClick={() => savePricingConfig({ manualSurchargeActive: !pConfig.manualSurchargeActive })}
+                onClick={() => savePricingConfig({ manualSurchargeActive: !cfg.manualSurchargeActive })}
                 opacity={pConfigSaving ? 0.5 : 1}
                 pointerEvents={pConfigSaving ? 'none' : 'auto'}
               >
-                {pConfig.manualSurchargeActive ? 'ON' : 'OFF'}
+                {cfg.manualSurchargeActive ? 'ON' : 'OFF'}
               </Box>
             </Flex>
-            {pConfig.manualSurchargeActive && (
+            {cfg.manualSurchargeActive && (
               <Flex gap={3} align="center" style={{ animation: 'fadeUp 0.3s ease-out both' }}>
                 <Input
                   type="number"
                   w="100px"
-                  value={pConfig.manualSurchargePercent}
-                  onChange={(e) => setPConfig((p) => p ? { ...p, manualSurchargePercent: Number(e.target.value) } : p)}
-                  onBlur={() => savePricingConfig({ manualSurchargePercent: pConfig.manualSurchargePercent })}
+                  value={cfg.manualSurchargePercent}
+                  onChange={(e) => setLocalConfig((p) => ({ ...p, manualSurchargePercent: Number(e.target.value) }))}
+                  onBlur={() => savePricingConfig({ manualSurchargePercent: cfg.manualSurchargePercent })}
                   {...inputProps}
                   h="40px"
                 />
@@ -337,9 +385,9 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
                   w="70px"
                   min={0}
                   max={100}
-                  value={pConfig.nightSurchargePercent}
-                  onChange={(e) => setPConfig((p) => p ? { ...p, nightSurchargePercent: Number(e.target.value) } : p)}
-                  onBlur={() => savePricingConfig({ nightSurchargePercent: pConfig.nightSurchargePercent })}
+                  value={cfg.nightSurchargePercent}
+                  onChange={(e) => setLocalConfig((p) => ({ ...p, nightSurchargePercent: Number(e.target.value) }))}
+                  onBlur={() => savePricingConfig({ nightSurchargePercent: cfg.nightSurchargePercent })}
                   {...inputProps}
                   h="36px"
                   fontSize="13px"
@@ -352,9 +400,9 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
                   w="60px"
                   min={0}
                   max={23}
-                  value={pConfig.nightStartHour}
-                  onChange={(e) => setPConfig((p) => p ? { ...p, nightStartHour: Number(e.target.value) } : p)}
-                  onBlur={() => savePricingConfig({ nightStartHour: pConfig.nightStartHour })}
+                  value={cfg.nightStartHour}
+                  onChange={(e) => setLocalConfig((p) => ({ ...p, nightStartHour: Number(e.target.value) }))}
+                  onBlur={() => savePricingConfig({ nightStartHour: cfg.nightStartHour })}
                   {...inputProps}
                   h="36px"
                   fontSize="13px"
@@ -365,15 +413,18 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
                   w="60px"
                   min={0}
                   max={23}
-                  value={pConfig.nightEndHour}
-                  onChange={(e) => setPConfig((p) => p ? { ...p, nightEndHour: Number(e.target.value) } : p)}
-                  onBlur={() => savePricingConfig({ nightEndHour: pConfig.nightEndHour })}
+                  value={cfg.nightEndHour}
+                  onChange={(e) => setLocalConfig((p) => ({ ...p, nightEndHour: Number(e.target.value) }))}
+                  onBlur={() => savePricingConfig({ nightEndHour: cfg.nightEndHour })}
                   {...inputProps}
                   h="36px"
                   fontSize="13px"
                 />
               </Flex>
-              <Text color={c.muted} fontSize="xs">🌙 {pConfig.nightStartHour}:00 – {pConfig.nightEndHour}:00</Text>
+              <Text color={c.muted} fontSize="xs">
+                {cfg.nightStartHour}:00 – {cfg.nightEndHour}:00
+                {live.isNightActive ? ' (active now — London time)' : ''}
+              </Text>
             </Flex>
           </Box>
 
@@ -389,9 +440,9 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
                 <Input
                   type="number"
                   w="70px"
-                  value={pConfig.demandThresholdClicks}
-                  onChange={(e) => setPConfig((p) => p ? { ...p, demandThresholdClicks: Number(e.target.value) } : p)}
-                  onBlur={() => savePricingConfig({ demandThresholdClicks: pConfig.demandThresholdClicks })}
+                  value={cfg.demandThresholdClicks}
+                  onChange={(e) => setLocalConfig((p) => ({ ...p, demandThresholdClicks: Number(e.target.value) }))}
+                  onBlur={() => savePricingConfig({ demandThresholdClicks: cfg.demandThresholdClicks })}
                   {...inputProps}
                   h="36px"
                   fontSize="13px"
@@ -403,9 +454,9 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
                 <Input
                   type="number"
                   w="70px"
-                  value={pConfig.demandIncrementPercent}
-                  onChange={(e) => setPConfig((p) => p ? { ...p, demandIncrementPercent: Number(e.target.value) } : p)}
-                  onBlur={() => savePricingConfig({ demandIncrementPercent: pConfig.demandIncrementPercent })}
+                  value={cfg.demandIncrementPercent}
+                  onChange={(e) => setLocalConfig((p) => ({ ...p, demandIncrementPercent: Number(e.target.value) }))}
+                  onBlur={() => savePricingConfig({ demandIncrementPercent: cfg.demandIncrementPercent })}
                   {...inputProps}
                   h="36px"
                   fontSize="13px"
@@ -417,9 +468,9 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
                 <Input
                   type="number"
                   w="70px"
-                  value={pConfig.maxTotalSurchargePercent}
-                  onChange={(e) => setPConfig((p) => p ? { ...p, maxTotalSurchargePercent: Number(e.target.value) } : p)}
-                  onBlur={() => savePricingConfig({ maxTotalSurchargePercent: pConfig.maxTotalSurchargePercent })}
+                  value={cfg.maxTotalSurchargePercent}
+                  onChange={(e) => setLocalConfig((p) => ({ ...p, maxTotalSurchargePercent: Number(e.target.value) }))}
+                  onBlur={() => savePricingConfig({ maxTotalSurchargePercent: cfg.maxTotalSurchargePercent })}
                   {...inputProps}
                   h="36px"
                   fontSize="13px"
@@ -440,9 +491,9 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
                 <Input
                   type="number"
                   w="70px"
-                  value={pConfig.cookieReturnSurchargePercent}
-                  onChange={(e) => setPConfig((p) => p ? { ...p, cookieReturnSurchargePercent: Number(e.target.value) } : p)}
-                  onBlur={() => savePricingConfig({ cookieReturnSurchargePercent: pConfig.cookieReturnSurchargePercent })}
+                  value={cfg.cookieReturnSurchargePercent}
+                  onChange={(e) => setLocalConfig((p) => ({ ...p, cookieReturnSurchargePercent: Number(e.target.value) }))}
+                  onBlur={() => savePricingConfig({ cookieReturnSurchargePercent: cfg.cookieReturnSurchargePercent })}
                   {...inputProps}
                   h="36px"
                   fontSize="13px"
@@ -452,7 +503,7 @@ export function PricingClient({ rules }: { rules: PricingRule[] }) {
             </Flex>
           </Box>
         </Box>
-      )}
+      ) : null}
 
       <Box style={anim.fadeUp('0.5s')}>
         <Heading size="lg" color={c.text}>Pricing Rules</Heading>

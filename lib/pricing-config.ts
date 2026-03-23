@@ -37,12 +37,33 @@ export function invalidatePricingConfigCache(): void {
   cacheTimestamp = 0;
 }
 
+/** Get current London time details */
+export function getLondonTime(): { hour: number; hourStartIso: string; hourEndIso: string } {
+  const now = new Date();
+  const londonStr = now.toLocaleString('en-GB', { timeZone: 'Europe/London', hour12: false });
+  // Parse "DD/MM/YYYY, HH:MM:SS"
+  const parts = londonStr.split(', ');
+  const timeParts = parts[1].split(':');
+  const hour = parseInt(timeParts[0], 10);
+
+  // Build hour window ISO strings in Europe/London
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const datePart = formatter.format(now); // YYYY-MM-DD
+  const hourStartIso = `${datePart}T${String(hour).padStart(2, '0')}:00:00`;
+  const nextHour = (hour + 1) % 24;
+  const hourEndIso = `${datePart}T${String(nextHour).padStart(2, '0')}:00:00`;
+
+  return { hour, hourStartIso, hourEndIso };
+}
+
 /** Helper to check if current time is in the night window (Europe/London) */
 export function isNightWindow(config: PricingConfig): boolean {
-  const londonTime = new Date(
-    new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })
-  );
-  const hour = londonTime.getHours();
+  const { hour } = getLondonTime();
   const start = config.nightStartHour ?? 18;
   const end = config.nightEndHour ?? 6;
 

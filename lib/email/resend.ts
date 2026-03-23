@@ -1,151 +1,69 @@
-import { Resend } from 'resend';
+/**
+ * Email facade — backward-compatible API surface.
+ *
+ * All 16+ call sites import from '@/lib/email/resend'.
+ * This module keeps those imports working while routing through
+ * the provider-agnostic orchestrator (sender.ts).
+ *
+ * Re-exports canonical types from types.ts for convenience.
+ */
+
 import { db } from '@/lib/db';
 import { notifications } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { sendWithFallback } from './sender';
+import type {
+  EmailOptions as CanonicalEmailOptions,
+  EmailResult as CanonicalEmailResult,
+} from './types';
 
-if (!process.env.RESEND_API_KEY) {
-  console.warn('Missing RESEND_API_KEY - emails will not be sent');
-}
-
-const resend = process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null;
-
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'support@tyrerescue.uk';
-
-export interface EmailOptions {
-  to: string | string[];
-  subject: string;
-  html: string;
-  text?: string;
-  notificationId?: string;
-  attachments?: Array<{
-    filename: string;
-    content: Buffer;
-    contentType: string;
-  }>;
-}
-
-export interface EmailResult {
-  success: boolean;
-  messageId?: string;
-  error?: string;
-}
+// Re-export the canonical types so existing `import { EmailOptions } from '@/lib/email/resend'` still works
+export type EmailOptions = CanonicalEmailOptions;
+export type EmailResult = CanonicalEmailResult;
 
 /**
- * Send an email via Resend
+ * Send an email via the provider orchestrator (ZeptoMail → Resend fallback).
  * On success: updates notifications table status to sent, records sent_at
  * On failure: increments attempts counter, records last_error, keeps status as failed
  */
 export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
-  if (!resend) {
-    console.warn('Resend not configured - email not sent:', options.subject);
-    
-    // Update notification if provided
-    if (options.notificationId) {
-      await db
-        .update(notifications)
-        .set({
-          status: 'failed',
-          lastError: 'Email service not configured',
-          attempts: 1,
-        })
-        .where(eq(notifications.id, options.notificationId));
-    }
-    
-    return {
-      success: false,
-      error: 'Email service not configured',
-    };
-  }
+  const result = await sendWithFallback(options);
 
-  try {
-    const result = await resend.emails.send({
-      from: `Tyre Rescue <${FROM_EMAIL}>`,
-      to: options.to,
-      subject: options.subject,
-      html: options.html,
-      text: options.text,
-      attachments: options.attachments?.map((a) => ({
-        filename: a.filename,
-        content: a.content,
-      })),
-    });
+  // Update notification record if one was attached
+  if (options.notificationId) {
+    const [existing] = await db
+      .select({ attempts: notifications.attempts })
+      .from(notifications)
+      .where(eq(notifications.id, options.notificationId))
+      .limit(1);
 
-    if (result.error) {
-      // Update notification on failure
-      if (options.notificationId) {
-        const [existing] = await db
-          .select({ attempts: notifications.attempts })
-          .from(notifications)
-          .where(eq(notifications.id, options.notificationId))
-          .limit(1);
-        
-        await db
-          .update(notifications)
-          .set({
-            status: 'failed',
-            lastError: result.error.message,
-            attempts: (existing?.attempts ?? 0) + 1,
-          })
-          .where(eq(notifications.id, options.notificationId));
-      }
-      
-      return {
-        success: false,
-        error: result.error.message,
-      };
-    }
-
-    // Update notification on success
-    if (options.notificationId) {
-      const [existing] = await db
-        .select({ attempts: notifications.attempts })
-        .from(notifications)
-        .where(eq(notifications.id, options.notificationId))
-        .limit(1);
-      
+    if (result.success) {
       await db
         .update(notifications)
         .set({
           status: 'sent',
           sentAt: new Date(),
+          lastError: null,
           attempts: (existing?.attempts ?? 0) + 1,
         })
         .where(eq(notifications.id, options.notificationId));
-    }
-
-    return {
-      success: true,
-      messageId: result.data?.id,
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Failed to send email:', errorMessage);
-    
-    // Update notification on exception
-    if (options.notificationId) {
-      const [existing] = await db
-        .select({ attempts: notifications.attempts })
-        .from(notifications)
-        .where(eq(notifications.id, options.notificationId))
-        .limit(1);
-      
+    } else {
       await db
         .update(notifications)
         .set({
           status: 'failed',
-          lastError: errorMessage,
+          lastError: result.error ?? 'Unknown error',
           attempts: (existing?.attempts ?? 0) + 1,
         })
         .where(eq(notifications.id, options.notificationId));
     }
-    
-    return {
-      success: false,
-      error: errorMessage,
-    };
   }
+
+  return {
+    success: result.success,
+    messageId: result.messageId,
+    error: result.error,
+  };
 }
 
 export interface CreateNotificationAndSendOptions {

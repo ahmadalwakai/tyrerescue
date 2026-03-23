@@ -85,13 +85,14 @@ export async function POST(request: Request) {
   }
 
   // Calculate distance + real pricing if we have coordinates
+  let pricingBreakdown: ReturnType<typeof calculatePricing> | null = null;
   if (lat && lng) {
     try {
       const distResult = await calculateDistance({ lat, lng }, SHOP_LOCATION);
       distanceKm = distResult.drivingKm ?? distResult.straightLineKm;
     } catch { /* fallback */ }
 
-    // Real pricing
+    // Real pricing — use the pricing engine with the actual service type
     try {
       const distanceMiles = (distanceKm ?? 5) * 0.621371;
       const rulesRows = await db.select().from(pricingRules);
@@ -108,7 +109,7 @@ export async function POST(request: Request) {
           bookingType: 'emergency',
           bookingDate: new Date(),
           isBankHoliday,
-          serviceType: 'repair', // always use repair-only path (no tyre selections in quick-book)
+          serviceType: data.serviceType,
           tyreQuantity: data.tyreCount,
         },
         rules,
@@ -116,19 +117,9 @@ export async function POST(request: Request) {
       );
 
       if (breakdown.isValid) {
-        // If service is fit/assess, adjust for fitting fee vs repair fee difference
-        if (data.serviceType !== 'repair') {
-          const fittingFee = rules.fitting_fee_per_tyre;
-          const repairFee = rules.repair_fee_per_tyre;
-          const diff = (fittingFee - repairFee) * data.tyreCount;
-          const adjustedSubtotal = breakdown.subtotal + diff;
-          // VAT removed from system - total equals subtotal
-          basePrice = adjustedSubtotal;
-          totalPrice = adjustedSubtotal;
-        } else {
-          basePrice = breakdown.subtotal;
-          totalPrice = breakdown.total;
-        }
+        basePrice = breakdown.subtotal;
+        totalPrice = breakdown.total;
+        pricingBreakdown = breakdown;
       }
     } catch { /* proceed without pricing */ }
   }
@@ -158,12 +149,13 @@ export async function POST(request: Request) {
       basePrice: basePrice != null ? String(basePrice) : null,
       surchargePercent: '0.00',
       totalPrice: totalPrice != null ? String(totalPrice) : null,
+      priceBreakdown: pricingBreakdown ?? null,
       status: initialStatus,
       notes: data.notes ?? null,
     })
     .returning();
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.tyrerescue.uk';
+  const siteUrl = 'https://www.tyrerescue.uk';
   const locationLink = linkToken ? `${siteUrl}/locate/${linkToken}` : null;
   
   // Use beautiful message templates for WhatsApp

@@ -9,35 +9,42 @@ interface Props {
   hasActiveJob: boolean;
 }
 
+/**
+ * LocationBroadcast — sends periodic GPS heartbeats to the server.
+ *
+ * Broadcasting is active when the driver is EITHER:
+ *   - explicitly online (isOnline = true), OR
+ *   - has an active job (the backend relies on fresh locationAt even if
+ *     the isOnline toggle was lost due to a browser restart)
+ *
+ * The component does NOT set the driver offline when the tab is hidden
+ * or backgrounded.  That decision belongs to the backend presence evaluator
+ * (lib/driver-presence.ts) which applies a grace window.
+ */
 export function LocationBroadcast({ isOnline, hasActiveJob }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const watchIdRef = useRef<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Should we broadcast? Yes if online OR working an active job.
+  const shouldBroadcast = isOnline || hasActiveJob;
 
   useEffect(() => {
-    if (!isOnline) {
-      // Clear any existing intervals/watches when offline
+    if (!shouldBroadcast) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
-      }
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-        watchIdRef.current = null;
       }
       setError(null);
       setLastUpdate(null);
       return;
     }
 
-    // Check if geolocation is available
     if (!navigator.geolocation) {
       setError('Geolocation is not supported by your browser');
       return;
     }
 
-    // Function to send location to server
     async function sendLocation(position: GeolocationPosition) {
       try {
         const res = await fetch('/api/driver/location', {
@@ -50,18 +57,20 @@ export function LocationBroadcast({ isOnline, hasActiveJob }: Props) {
         });
 
         if (!res.ok) {
-          const data = await res.json();
+          const data = await res.json().catch(() => ({}));
           throw new Error(data.error || 'Failed to update location');
         }
 
         setLastUpdate(new Date());
         setError(null);
       } catch (err) {
+        // Network errors are expected when the browser is backgrounded.
+        // Don't show alarming errors for transient failures.
+        console.warn('[LocationBroadcast] send failed:', err);
         setError(err instanceof Error ? err.message : 'Failed to send location');
       }
     }
 
-    // Function to get current position and send it
     function updateLocation() {
       navigator.geolocation.getCurrentPosition(
         sendLocation,
@@ -74,7 +83,8 @@ export function LocationBroadcast({ isOnline, hasActiveJob }: Props) {
               setError('Location information is unavailable.');
               break;
             case err.TIMEOUT:
-              setError('Location request timed out.');
+              // Timeouts are common on mobile when backgrounded — don't alarm
+              console.warn('[LocationBroadcast] geolocation timeout');
               break;
             default:
               setError('An unknown error occurred getting location.');
@@ -82,23 +92,21 @@ export function LocationBroadcast({ isOnline, hasActiveJob }: Props) {
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        }
+          timeout: 15000,
+          maximumAge: 30000,
+        },
       );
     }
 
     // Send initial location immediately
     updateLocation();
 
-    // Set up interval based on whether there's an active job
-    // Active job: every 30 seconds
-    // Idle: every 60 seconds
-    const intervalMs = hasActiveJob ? 30000 : 60000;
-
+    // Active job: every 30s, idle: every 60s
+    const intervalMs = hasActiveJob ? 30_000 : 60_000;
     intervalRef.current = setInterval(updateLocation, intervalMs);
 
-    // Re-broadcast immediately when tab becomes visible again
+    // Re-send immediately when tab becomes visible again.
+    // This closes the gap after browser backgrounding.
     function handleVisibilityChange() {
       if (document.visibilityState === 'visible') {
         updateLocation();
@@ -106,22 +114,16 @@ export function LocationBroadcast({ isOnline, hasActiveJob }: Props) {
     }
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Cleanup on unmount or when dependencies change
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-        watchIdRef.current = null;
-      }
     };
-  }, [isOnline, hasActiveJob]);
+  }, [shouldBroadcast, hasActiveJob]);
 
-  // Don't render anything if offline
-  if (!isOnline) {
+  if (!shouldBroadcast) {
     return null;
   }
 

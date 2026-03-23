@@ -58,7 +58,7 @@ export async function createCheckoutSession(
   }
 ) {
   const amountInPence = Math.round(amount * 100);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://tyrerescue.uk';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.tyrerescue.uk';
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',

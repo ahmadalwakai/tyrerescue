@@ -1,11 +1,13 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
-import { bookings } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
-import { Box, Heading, Text, VStack, Table, Badge } from '@chakra-ui/react';
+import { bookings, invoices } from '@/lib/db/schema';
+import { eq, desc, isNull } from 'drizzle-orm';
+import { Box, Heading, Text, VStack, Table, Badge, HStack } from '@chakra-ui/react';
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
+
+const INVOICEABLE = ['paid', 'driver_assigned', 'en_route', 'arrived', 'in_progress', 'completed'];
 
 export default async function CustomerBookingsPage() {
   const session = await auth();
@@ -16,6 +18,17 @@ export default async function CustomerBookingsPage() {
     .from(bookings)
     .where(eq(bookings.userId, session.user.id))
     .orderBy(desc(bookings.createdAt));
+
+  // Fetch invoices linked to this user's bookings for cross-linking
+  const userInvoices = userBookings.length > 0
+    ? await db
+        .select({ id: invoices.id, bookingId: invoices.bookingId, invoiceNumber: invoices.invoiceNumber })
+        .from(invoices)
+        .where(eq(invoices.userId, session.user.id))
+    : [];
+  const invoiceByBookingId = Object.fromEntries(
+    userInvoices.filter((inv) => inv.bookingId).map((inv) => [inv.bookingId!, inv]),
+  );
 
   return (
     <VStack align="stretch" gap={6}>
@@ -46,13 +59,18 @@ export default async function CustomerBookingsPage() {
               <Table.Row>
                 <Table.ColumnHeader color={c.muted} borderColor={c.border}>Ref</Table.ColumnHeader>
                 <Table.ColumnHeader color={c.muted} borderColor={c.border}>Type</Table.ColumnHeader>
+                <Table.ColumnHeader color={c.muted} borderColor={c.border}>Service</Table.ColumnHeader>
                 <Table.ColumnHeader color={c.muted} borderColor={c.border}>Status</Table.ColumnHeader>
                 <Table.ColumnHeader color={c.muted} borderColor={c.border}>Total</Table.ColumnHeader>
                 <Table.ColumnHeader color={c.muted} borderColor={c.border}>Date</Table.ColumnHeader>
+                <Table.ColumnHeader color={c.muted} borderColor={c.border}>Invoice</Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              {userBookings.map((booking, i) => (
+              {userBookings.map((booking, i) => {
+                const linkedInvoice = invoiceByBookingId[booking.id];
+                const hasInvoice = linkedInvoice || INVOICEABLE.includes(booking.status);
+                return (
                 <Table.Row key={booking.id} _hover={{ bg: c.surface }} style={{ animation: `fadeUp 0.3s cubic-bezier(0.16,1,0.3,1) ${Math.min(0.1 + i * 0.05, 0.5)}s both` }}>
                   <Table.Cell borderColor={c.border}>
                     <NextLink href={`/dashboard/bookings/${booking.refNumber}`} style={{ color: c.accent, textDecoration: 'none', fontWeight: 500 }}>
@@ -61,6 +79,9 @@ export default async function CustomerBookingsPage() {
                   </Table.Cell>
                   <Table.Cell borderColor={c.border}>
                     <Text fontSize="sm" color={c.text} textTransform="capitalize">{booking.bookingType}</Text>
+                  </Table.Cell>
+                  <Table.Cell borderColor={c.border}>
+                    <Text fontSize="sm" color={c.text} textTransform="capitalize">{booking.serviceType}</Text>
                   </Table.Cell>
                   <Table.Cell borderColor={c.border}>
                     <Text fontSize="sm" color={c.text} textTransform="capitalize">
@@ -77,15 +98,30 @@ export default async function CustomerBookingsPage() {
                       {new Date(booking.createdAt!).toLocaleDateString('en-GB')}
                     </Text>
                   </Table.Cell>
+                  <Table.Cell borderColor={c.border}>
+                    {hasInvoice ? (
+                      <a
+                        href={`/api/dashboard/invoices/${booking.refNumber}`}
+                        style={{ color: c.accent, textDecoration: 'none', fontWeight: 500, fontSize: 13 }}
+                      >
+                        Download
+                      </a>
+                    ) : (
+                      <Text fontSize="sm" color={c.muted}>—</Text>
+                    )}
+                  </Table.Cell>
                 </Table.Row>
-              ))}
+                );
+              })}
             </Table.Body>
           </Table.Root>
         </Box>
 
         {/* Mobile cards */}
         <VStack display={{ base: 'flex', md: 'none' }} gap={3} align="stretch">
-          {userBookings.map((booking, i) => (
+          {userBookings.map((booking, i) => {
+            const hasInvoice = invoiceByBookingId[booking.id] || INVOICEABLE.includes(booking.status);
+            return (
             <Box key={booking.id} asChild style={{ animation: `fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${Math.min(0.05 + i * 0.05, 0.5).toFixed(2)}s both` }}>
               <NextLink href={`/dashboard/bookings/${booking.refNumber}`} style={{ textDecoration: 'none' }}>
                 <Box bg={c.card} border={`1px solid ${c.border}`} borderRadius="8px" p={4} minH="48px" _active={{ bg: c.surface }}>
@@ -96,16 +132,27 @@ export default async function CustomerBookingsPage() {
                     </Badge>
                   </Box>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Text color={c.text} fontSize="sm" textTransform="capitalize">{booking.bookingType}</Text>
+                    <Text color={c.text} fontSize="sm" textTransform="capitalize">{booking.bookingType} · {booking.serviceType}</Text>
                     <Text color={c.text} fontSize="sm" fontWeight="600">£{Number(booking.totalAmount).toFixed(2)}</Text>
                   </Box>
-                  <Text color={c.muted} fontSize="xs" mt={1}>
-                    {new Date(booking.createdAt!).toLocaleDateString('en-GB')}
-                  </Text>
+                  {booking.addressLine && (
+                    <Text color={c.muted} fontSize="xs" mt={1} overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap">
+                      {booking.addressLine}
+                    </Text>
+                  )}
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mt={1}>
+                    <Text color={c.muted} fontSize="xs">
+                      {new Date(booking.createdAt!).toLocaleDateString('en-GB')}
+                    </Text>
+                    {hasInvoice && (
+                      <Text color={c.accent} fontSize="xs" fontWeight="500">Invoice available</Text>
+                    )}
+                  </Box>
                 </Box>
               </NextLink>
             </Box>
-          ))}
+            );
+          })}
         </VStack>
         </>
       )}

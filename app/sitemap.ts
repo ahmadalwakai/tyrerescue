@@ -6,9 +6,10 @@ import { eq } from 'drizzle-orm';
 import { services, serviceCities, getAreasForCity } from '@/lib/areas';
 import { articles } from '@/lib/blog/articles';
 import { competitors } from '@/lib/data/competitors';
+import { getSiteUrl } from '@/lib/config/site';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.tyrerescue.uk';
+  const baseUrl = getSiteUrl();
 
   // Static pages
   const staticPages = [

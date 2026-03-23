@@ -109,7 +109,7 @@ export async function POST(
     const config = await getPricingConfig();
     const surchargeBreakdown = calculateDynamicSurchargeBreakdown({
       isNight: isNightWindow(config),
-      nightSurchargePercent: Number(config.nightSurchargePercent ?? 0),
+      nightSurchargePercent: Number(config.nightSurchargePercent ?? 15),
       manualSurchargeActive: config.manualSurchargeActive ?? false,
       manualSurchargePercent: Number(config.manualSurchargePercent ?? 0),
       demandSurchargePercent: Number(config.demandSurchargePercent ?? 0),

@@ -40,13 +40,14 @@ export async function POST(request: Request) {
     }
 
     // Update driver status
+    // IMPORTANT: We do NOT clear lat/lng/locationAt on offline.
+    // The last-known location is valuable for admin visibility and
+    // the backend presence evaluator uses locationAt for staleness.
     await db
       .update(drivers)
       .set({
         isOnline: is_online,
         status: is_online ? 'available' : 'offline',
-        // Clear location when going offline
-        ...(is_online ? {} : { currentLat: null, currentLng: null, locationAt: null }),
       })
       .where(eq(drivers.id, driver.id));
 

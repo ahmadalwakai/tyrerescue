@@ -10,6 +10,7 @@ import { VisitorTracker } from '@/components/VisitorTracker';
 import { PageviewTracker } from '@/components/analytics/PageviewTracker';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getLocalBusinessSchema, getWebSiteSchema } from '@/lib/seo/schemas';
+import { getSiteUrl } from '@/lib/config/site';
 import { GA_MEASUREMENT_ID } from '@/lib/analytics/gtag';
 import Script from 'next/script';
 import './globals.css';
@@ -67,14 +68,12 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || 'https://www.tyrerescue.uk'
-  ),
+  metadataBase: new URL(getSiteUrl()),
   openGraph: {
     title: 'Tyre Rescue — 24/7 Mobile Tyre Fitting Glasgow & Edinburgh',
     description:
       'Flat tyre? Call 0141 266 0690. 24/7 emergency mobile tyre fitting Glasgow & Edinburgh. 45 min response.',
-    url: 'https://www.tyrerescue.uk',
+    url: getSiteUrl(),
     siteName: 'Tyre Rescue',
     locale: 'en_GB',
     type: 'website',

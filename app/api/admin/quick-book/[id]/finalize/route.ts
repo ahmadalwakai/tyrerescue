@@ -115,74 +115,47 @@ export async function POST(
   const serviceType = qb.serviceType as 'fit' | 'repair' | 'assess';
   const quantity = qb.tyreCount ?? 1;
 
-  // Quick bookings never have specific tyre products selected (admin is on a phone
-  // call, not browsing the catalogue). The pricing engine's repair-only path is
-  // the only one that accepts empty tyre selections, so we always use it.
-  // For 'fit'/'assess', we swap in the fitting fee after calculation.
+  // The pricing engine now supports any serviceType with empty tyre selections.
   const pricingInput = {
     tyreSelections: [] as PricingTyreSelection[],
     distanceMiles,
-    bookingType: 'emergency' as const, // phone calls are emergency
+    bookingType: 'emergency' as const,
     bookingDate: new Date(),
     isBankHoliday,
-    serviceType: 'repair' as const, // forces repair-only code path (no tyre selections needed)
+    serviceType,
     tyreQuantity: quantity,
   };
 
-  let breakdown: PricingBreakdown = calculatePricing(pricingInput, rules, true);
-
-  // If actual service is fit/assess, replace the repair fee line item with fitting fee
-  if (breakdown.isValid && serviceType !== 'repair') {
-    const fittingFee = rules.fitting_fee_per_tyre;
-    const fittingTotal = fittingFee * quantity;
-    const repairTotal = rules.repair_fee_per_tyre * quantity;
-    const diff = fittingTotal - repairTotal;
-
-    if (diff !== 0) {
-      // Recalculate with fitting fee by adjusting the final totals
-      const adjustedSubtotal = breakdown.subtotal + diff;
-      // VAT removed from system - total equals subtotal
-      const adjustedTotal = adjustedSubtotal;
-
-      const label = serviceType === 'fit'
-        ? `Tyre Fitting × ${quantity}`
-        : `Assessment × ${quantity}`;
-
-      breakdown = {
-        ...breakdown,
-        lineItems: breakdown.lineItems.map((li) =>
-          li.type === 'service'
-            ? { ...li, label, unitPrice: fittingFee, amount: fittingTotal }
-            : li.type === 'subtotal'
-              ? { ...li, amount: adjustedSubtotal }
-              : li.type === 'total'
-                ? { ...li, amount: adjustedTotal }
-                : li
-        ).filter((li) => li.type !== 'vat'), // Remove any VAT line items
-        totalServiceFee: fittingTotal,
-        subtotal: adjustedSubtotal,
-        vatAmount: 0,
-        total: adjustedTotal,
-      };
-    } else {
-      // Same fee, just fix label
-      const label = serviceType === 'fit'
-        ? `Tyre Fitting × ${quantity}`
-        : `Assessment × ${quantity}`;
-      breakdown = {
-        ...breakdown,
-        lineItems: breakdown.lineItems.map((li) =>
-          li.type === 'service' ? { ...li, label } : li
-        ),
-      };
-    }
-  }
+  const breakdown: PricingBreakdown = calculatePricing(pricingInput, rules, true);
 
   if (!breakdown.isValid) {
     return NextResponse.json(
       { error: `Pricing error: ${breakdown.error}` },
       { status: 400 }
     );
+  }
+
+  // Apply admin adjustment if stored on the quick booking
+  const adminAdjustment = qb.adminAdjustmentAmount ? Number(qb.adminAdjustmentAmount) : 0;
+  if (adminAdjustment !== 0) {
+    const reason = qb.adminAdjustmentReason || 'Admin adjustment';
+    breakdown.lineItems.splice(
+      breakdown.lineItems.findIndex((li) => li.type === 'total'),
+      0,
+      {
+        label: `Admin adjustment${reason ? ` — ${reason}` : ''}`,
+        amount: adminAdjustment,
+        type: 'surcharge',
+      },
+    );
+    breakdown.subtotal += adminAdjustment;
+    breakdown.total += adminAdjustment;
+    breakdown.totalSurcharges += adminAdjustment;
+    // Update subtotal + total line items
+    for (const li of breakdown.lineItems) {
+      if (li.type === 'subtotal') li.amount = breakdown.subtotal;
+      if (li.type === 'total') li.amount = breakdown.total;
+    }
   }
 
   // Generate real booking

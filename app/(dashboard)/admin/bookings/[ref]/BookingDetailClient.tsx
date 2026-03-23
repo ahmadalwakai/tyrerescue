@@ -22,6 +22,7 @@ import {
 import { colorTokens as c, inputProps, textareaProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { ChatWidget } from '@/components/chat/ChatWidget';
+import { getDriverPresenceState, PRESENCE_LABELS, PRESENCE_COLORS } from '@/lib/driver-presence';
 
 interface RankedDriver {
   driverId: string;
@@ -1064,11 +1065,17 @@ export function BookingDetailClient({
                             {driver.phone && <Text fontSize="xs" color={c.muted}>{driver.phone}</Text>}
                           </Box>
                           <VStack gap={1} align="end">
-                            {driver.isOnline != null && (
-                              <Badge colorPalette={driver.isOnline ? 'green' : 'red'} size="sm">
-                                {driver.isOnline ? 'Online' : 'Offline'}
-                              </Badge>
-                            )}
+                            {driver.isOnline != null && (() => {
+                              const p = getDriverPresenceState(
+                                { isOnline: driver.isOnline ?? false, locationAt: driver.locationAt ?? null, status: driver.status ?? null },
+                                null,
+                              );
+                              return (
+                                <Badge colorPalette={PRESENCE_COLORS[p]} size="sm">
+                                  {PRESENCE_LABELS[p]}
+                                </Badge>
+                              );
+                            })()}
                             {aiMatch && (
                               <Badge colorPalette={aiMatch.score > 70 ? 'green' : aiMatch.score >= 40 ? 'orange' : 'gray'} size="sm" variant="outline">
                                 AI {aiMatch.score}/100
@@ -1106,9 +1113,18 @@ export function BookingDetailClient({
                 <Box mb={4} p={3} bg={c.surface} borderRadius="md">
                   <HStack justify="space-between" mb={2}>
                     <Text fontSize="sm" fontWeight="600" color={c.text}>Driver Status</Text>
-                    <Badge colorPalette={assignedDriver.isOnline ? 'green' : 'red'} size="sm">
-                      {assignedDriver.isOnline ? 'Online' : 'Offline'}
-                    </Badge>
+                  {assignedDriver && (() => {
+                    const p = getDriverPresenceState(
+                      { isOnline: assignedDriver.isOnline ?? false, locationAt: assignedDriver.locationAt ?? null, status: assignedDriver.status ?? null },
+                      // If the booking is active, pass it as context
+                      ['driver_assigned', 'en_route', 'arrived', 'in_progress'].includes(booking.status) ? { status: booking.status } : null,
+                    );
+                    return (
+                      <Badge colorPalette={PRESENCE_COLORS[p]} size="sm">
+                        {PRESENCE_LABELS[p]}
+                      </Badge>
+                    );
+                  })()}
                   </HStack>
                   {assignedDriver.currentLat && assignedDriver.currentLng && (
                     <Text fontSize="xs" color={c.muted}>

@@ -20,22 +20,16 @@ export async function GET() {
     .orderBy(desc(demandSnapshots.hourStart))
     .limit(12);
 
-  // Current hour snapshot
+  // Find real current-hour snapshot — do NOT fabricate data if absent
   const hourStart = new Date();
   hourStart.setMinutes(0, 0, 0);
   const current = snapshots.find(
     (s) => new Date(s.hourStart).getTime() === hourStart.getTime()
-  ) ?? {
-    pageViews: 0,
-    callClicks: 0,
-    bookingStarts: 0,
-    bookingCompletes: 0,
-    whatsappClicks: 0,
-    surchargeApplied: '0.00',
-  };
+  ) ?? null;
 
   return NextResponse.json({
     current,
+    hasCurrentData: current !== null,
     history: snapshots,
   });
 }

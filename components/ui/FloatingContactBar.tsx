@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Box, Flex, Link as ChakraLink } from '@chakra-ui/react';
 import { trackCallClick, trackWhatsAppClick } from '@/lib/analytics/gtag';
 
 const PHONE_NUMBER = process.env.NEXT_PUBLIC_PHONE_NUMBER || '0141 266 0690';
 const PHONE_TEL = PHONE_NUMBER.replace(/\s/g, '');
 const WHATSAPP_URL = 'https://wa.me/447423262955';
+
+const HIDDEN_PREFIXES = ['/admin', '/dashboard', '/driver'];
 
 /* ─── Inline SVG Icons ──────────────────────────────────── */
 
@@ -37,6 +40,7 @@ function ChevronUpIcon() {
 /* ─── Unified Floating Action Stack ─────────────────────── */
 
 export function FloatingContactBar() {
+  const pathname = usePathname();
   const [showTop, setShowTop] = useState(false);
 
   useEffect(() => {
@@ -44,6 +48,8 @@ export function FloatingContactBar() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
 
   return (
     <Box

@@ -21,6 +21,8 @@ import {
 } from '@/lib/email/templates';
 import { v4 as uuidv4 } from 'uuid';
 import { createAdminNotification } from '@/lib/notifications';
+import { sendVoodooSms } from '@/lib/voodoo-sms';
+import { buildBookingConfirmationSmsMessage } from '@/lib/quick-book-message-templates';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -184,6 +186,19 @@ export async function POST(request: NextRequest) {
     sendConfirmationEmails(booking, tyresInBooking).catch((err) =>
       console.error('Email dispatch error:', err),
     );
+
+    // 9b. Send booking confirmation SMS (fire-and-forget)
+    if (booking.customerPhone) {
+      const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+      sendVoodooSms({
+        to: booking.customerPhone,
+        message: buildBookingConfirmationSmsMessage({
+          customerName: booking.customerName,
+          refNumber: booking.refNumber,
+          trackingUrl: `${siteUrl}/tracking/${booking.refNumber}`,
+        }),
+      }).catch((err) => console.error('Booking confirmation SMS error:', err));
+    }
 
     // 10. Admin notification (fire-and-forget)
     createAdminNotification({

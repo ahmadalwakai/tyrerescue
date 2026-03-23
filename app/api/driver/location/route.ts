@@ -37,13 +37,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Only update location if driver is online
-    if (!driver.isOnline) {
-      return NextResponse.json(
-        { error: 'Cannot update location while offline' },
-        { status: 400 }
-      );
-    }
+    // Accept location updates even if the driver toggled offline.
+    // The heartbeat keeps locationAt fresh which the backend presence
+    // evaluator uses for staleness calculations.
+    // If the driver explicitly went offline AND has no active booking,
+    // we still record the update — it's harmless and keeps data fresh.
+    // The presence evaluator (lib/driver-presence.ts) decides the
+    // effective state.
 
     // Update driver location
     await db

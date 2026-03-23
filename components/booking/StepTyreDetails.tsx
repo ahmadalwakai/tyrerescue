@@ -125,7 +125,8 @@ export function StepTyreDetails({
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await fetch(`${API.TYRES_SIZES}?q=${encodeURIComponent(val.trim())}`);
-        const data: SizeSuggestion[] = await res.json();
+        const json = await res.json();
+        const data: SizeSuggestion[] = json.sizes ?? json;
         setSuggestions(data);
         setShowSuggestions(data.length > 0);
       } catch {

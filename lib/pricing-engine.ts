@@ -446,11 +446,12 @@ export function calculatePricing(
 ): PricingBreakdown {
   const lineItems: PricingLineItem[] = [];
 
-  // Check if this is a repair-only booking (no tyre selections needed)
-  const isRepairOnly = input.serviceType === 'repair' && (!input.tyreSelections || input.tyreSelections.length === 0);
+  // Service-only path: no tyre products selected, just service fee + callout + surcharges.
+  // Supports any serviceType (repair, fit, assess, both) — used by quick-book and repair-only bookings.
+  const isServiceOnly = !input.tyreSelections || input.tyreSelections.length === 0;
 
-  // Validate input — allow empty selections for repair-only bookings
-  if (!isRepairOnly && (!input.tyreSelections || input.tyreSelections.length === 0)) {
+  // Validate input — service-only requires an explicit serviceType
+  if (isServiceOnly && !input.serviceType) {
     return {
       lineItems: [],
       totalTyreCost: 0,
@@ -471,20 +472,37 @@ export function calculatePricing(
   let tyreCostTotal: Decimal;
   let serviceFeeTotal: Decimal;
 
-  if (isRepairOnly) {
-    // Repair-only: no tyre cost, calculate repair fee from quantity
+  if (isServiceOnly) {
+    // Service-only: no tyre cost, calculate service fee from quantity and type
     tyreCostTotal = new Decimal(0);
     const quantity = input.tyreQuantity || 1;
-    const repairAmount = new Decimal(rules.repair_fee_per_tyre).times(quantity);
-    serviceFeeTotal = repairAmount;
 
-    lineItems.push({
-      label: `Puncture Repair \u00D7 ${quantity}`,
-      quantity,
-      unitPrice: rules.repair_fee_per_tyre,
-      amount: repairAmount.toNumber(),
-      type: 'service',
-    });
+    if (input.serviceType === 'repair') {
+      const repairAmount = new Decimal(rules.repair_fee_per_tyre).times(quantity);
+      serviceFeeTotal = repairAmount;
+      lineItems.push({
+        label: `Puncture Repair \u00D7 ${quantity}`,
+        quantity,
+        unitPrice: rules.repair_fee_per_tyre,
+        amount: repairAmount.toNumber(),
+        type: 'service',
+      });
+    } else {
+      // fit, assess, both — use fitting fee
+      const fee = rules.fitting_fee_per_tyre;
+      const amount = new Decimal(fee).times(quantity);
+      serviceFeeTotal = amount;
+      const label = input.serviceType === 'assess'
+        ? `Assessment \u00D7 ${quantity}`
+        : `Tyre Fitting \u00D7 ${quantity}`;
+      lineItems.push({
+        label,
+        quantity,
+        unitPrice: fee,
+        amount: amount.toNumber(),
+        type: 'service',
+      });
+    }
   } else {
     // Component 1: Tyre cost
     const tyreCostResult = calculateTyreCost(input.tyreSelections);
@@ -525,7 +543,7 @@ export function calculatePricing(
   lineItems.push(...surchargeResult.lineItems);
 
   // Component 5: Multi-tyre discount
-  const totalTyres = isRepairOnly
+  const totalTyres = isServiceOnly
     ? (input.tyreQuantity || 1)
     : input.tyreSelections.reduce((sum, s) => sum + s.quantity, 0);
   const discountResult = calculateMultiTyreDiscount(

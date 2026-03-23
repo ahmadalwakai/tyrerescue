@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { drivers, users, serviceAreas, pricingRules } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { drivers, users, serviceAreas, pricingRules, bookings } from '@/lib/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 import { resolveDistance } from '@/lib/mapbox';
 import { parsePricingRules } from '@/lib/pricing-engine';
+import { shouldDriverAppearOnline, isLocationTrustworthy } from '@/lib/driver-presence';
 
 /**
  * POST /api/availability/eligibility
@@ -25,12 +26,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-
-    // Load pricing rules, drivers, and service areas in parallel.
-    // Explicit column selection for serviceAreas to avoid missing-column crashes.
-    const [rulesRows, availableDrivers, areas] = await Promise.all([
+    // Load pricing rules, drivers, active bookings, and service areas in parallel.
+    const [rulesRows, allDrivers, activeBookingRows, areas] = await Promise.all([
       db.select().from(pricingRules),
       db
         .select({
@@ -39,14 +36,16 @@ export async function POST(request: NextRequest) {
           lat: drivers.currentLat,
           lng: drivers.currentLng,
           locationAt: drivers.locationAt,
+          isOnline: drivers.isOnline,
+          status: drivers.status,
         })
         .from(drivers)
-        .innerJoin(users, eq(drivers.userId, users.id))
+        .innerJoin(users, eq(drivers.userId, users.id)),
+      db
+        .select({ driverId: bookings.driverId, status: bookings.status })
+        .from(bookings)
         .where(
-          and(
-            eq(drivers.isOnline, true),
-            eq(drivers.status, 'available'),
-          ),
+          inArray(bookings.status, ['driver_assigned', 'en_route', 'arrived', 'in_progress']),
         ),
       db
         .select({
@@ -58,20 +57,32 @@ export async function POST(request: NextRequest) {
         .where(eq(serviceAreas.active, true)),
     ]);
 
+    // Build active booking map
+    const activeBookingMap = new Map<string, { status: string }>();
+    for (const ab of activeBookingRows) {
+      if (ab.driverId) activeBookingMap.set(ab.driverId, { status: ab.status });
+    }
+
     const parsedRules = parsePricingRules(
       rulesRows.map((r) => ({ key: r.key, value: r.value })),
     );
     const maxServiceMiles = parsedRules.max_service_miles;
 
-    // All online+available drivers count (for the UI "X drivers online" label)
+    // Use presence evaluator — includes grace window logic
+    const availableDrivers = allDrivers.filter((d) =>
+      shouldDriverAppearOnline(
+        { isOnline: d.isOnline ?? false, locationAt: d.locationAt, status: d.status },
+        activeBookingMap.get(d.id) ?? null,
+      ),
+    );
+
     const onlineDriverCount = availableDrivers.length;
 
-    // Filter to drivers with fresh GPS (used for routing/ETA only)
+    // For ETA/routing, only use drivers with trustworthy GPS
     const freshDrivers = availableDrivers
       .filter((d) => {
         if (!d.lat || !d.lng) return false;
-        if (!d.locationAt) return true;
-        return new Date(d.locationAt) > oneHourAgo;
+        return isLocationTrustworthy(d.locationAt);
       })
       .map((d) => ({
         id: d.id,

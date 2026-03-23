@@ -8,7 +8,9 @@ interface SurgeAlertProps {
   manualActive: boolean;
   manualPercent: number;
   demandPercent: number;
+  nightPercent: number;
   totalSurcharge: number;
+  londonHour: number;
 }
 
 export function SurgeAlert({
@@ -16,12 +18,14 @@ export function SurgeAlert({
   manualActive,
   manualPercent,
   demandPercent,
+  nightPercent,
   totalSurcharge,
+  londonHour,
 }: SurgeAlertProps) {
   if (totalSurcharge === 0 && !isNight) return null;
 
   const labels: string[] = [];
-  if (isNight) labels.push('Night hours');
+  if (isNight && nightPercent > 0) labels.push(`Night +${nightPercent}%`);
   if (manualActive && manualPercent > 0) labels.push(`Manual +${manualPercent}%`);
   if (demandPercent > 0) labels.push(`Demand +${demandPercent}%`);
 
@@ -39,9 +43,6 @@ export function SurgeAlert({
       style={totalSurcharge > 0 ? { animation: 'fadeSlideUp 0.4s ease-out both' } : undefined}
     >
       <Flex align="center" gap={3} flexWrap="wrap">
-        <Text fontSize="lg">
-          {severity === 'high' ? '🔴' : severity === 'medium' ? '🟠' : '🔵'}
-        </Text>
         <Box flex={1}>
           <Text color={c.text} fontWeight="600" fontSize="sm">
             Active Surcharge: +{totalSurcharge}%
@@ -50,9 +51,10 @@ export function SurgeAlert({
             {labels.join(' · ') || 'No active surcharges'}
           </Text>
         </Box>
-        {isNight && (
-          <Text color={c.muted} fontSize="xs">🌙 Night window active</Text>
-        )}
+        <Text color={c.muted} fontSize="xs">
+          London time: {String(londonHour).padStart(2, '0')}:00
+          {isNight ? ' — Night window' : ''}
+        </Text>
       </Flex>
     </Box>
   );

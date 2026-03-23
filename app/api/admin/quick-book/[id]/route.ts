@@ -17,6 +17,8 @@ const updateSchema = z.object({
   status: z.string().optional(),
   notes: z.string().optional(),
   bookingId: z.string().uuid().optional(),
+  adminAdjustmentAmount: z.number().optional(),
+  adminAdjustmentReason: z.string().max(500).optional(),
 });
 
 export async function GET(
@@ -72,6 +74,8 @@ export async function PATCH(
   if (data.status) updateData.status = data.status;
   if (data.notes != null) updateData.notes = data.notes;
   if (data.bookingId) updateData.bookingId = data.bookingId;
+  if (data.adminAdjustmentAmount != null) updateData.adminAdjustmentAmount = String(data.adminAdjustmentAmount);
+  if (data.adminAdjustmentReason != null) updateData.adminAdjustmentReason = data.adminAdjustmentReason;
 
   await db.update(quickBookings).set(updateData).where(eq(quickBookings.id, id));
 

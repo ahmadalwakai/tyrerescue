@@ -11,6 +11,7 @@ import { BackButton } from '@/components/ui/BackButton';
 import { NotificationBell } from '@/components/admin/NotificationBell';
 import { SoundToggle } from '@/components/admin/SoundToggle';
 import { AdminNotificationProvider } from '@/components/admin/AdminNotificationProvider';
+import { NotificationNavBadge } from '@/components/admin/NotificationNavBadge';
 
 const navItems = [
   { label: 'Bookings', href: '/admin/bookings' },
@@ -31,6 +32,7 @@ const navItems = [
   { label: 'Cookies', href: '/admin/cookies' },
   { label: 'Diagnostics', href: '/admin/diagnostics' },
   { label: 'Audit Log', href: '/admin/audit' },
+  { label: 'Notifications', href: '/admin/notifications', isNotifications: true as const },
   { label: 'Analytics', href: '/admin/analytics' },
   { label: 'SEO Analytics', href: '/admin/seo-analytics' },
   { label: 'Visitors', href: '/admin/visitors' },
@@ -136,7 +138,9 @@ export function AdminShell({
               <NextLink href={item.href}>
                 <Flex align="center" w="100%">
                   <Text flex={1}>{item.label}</Text>
-                  {item.badgeKey && badgeCounts[item.badgeKey] > 0 && (
+                  {'isNotifications' in item && item.isNotifications ? (
+                    <NotificationNavBadge />
+                  ) : item.badgeKey && badgeCounts[item.badgeKey] > 0 ? (
                     <Flex
                       align="center"
                       justify="center"
@@ -152,7 +156,7 @@ export function AdminShell({
                     >
                       {badgeCounts[item.badgeKey]}
                     </Flex>
-                  )}
+                  ) : null}
                 </Flex>
               </NextLink>
             </ChakraLink>
@@ -296,7 +300,9 @@ export function AdminShell({
                 <NextLink href={item.href}>
                   <Flex align="center" w="100%">
                     <Text flex={1}>{item.label}</Text>
-                    {item.badgeKey && badgeCounts[item.badgeKey] > 0 && (
+                    {'isNotifications' in item && item.isNotifications ? (
+                      <NotificationNavBadge />
+                    ) : item.badgeKey && badgeCounts[item.badgeKey] > 0 ? (
                       <Flex
                         align="center"
                         justify="center"
@@ -312,7 +318,7 @@ export function AdminShell({
                       >
                         {badgeCounts[item.badgeKey]}
                       </Flex>
-                    )}
+                    ) : null}
                   </Flex>
                 </NextLink>
               </ChakraLink>

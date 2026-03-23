@@ -7,9 +7,6 @@ import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import {
   buildLocationWhatsAppMessage,
-  buildLocationSmsMessage,
-  buildLocationEmailSubject,
-  buildLocationEmailBody,
   buildLocationCopyMessage,
   type LocationMessageContext,
 } from '@/lib/quick-book-message-templates';
@@ -42,6 +39,14 @@ interface TyreSizeSuggestion {
   count: number;
 }
 
+interface PricingLineItem {
+  label: string;
+  amount: number;
+  type: string;
+  quantity?: number;
+  unitPrice?: number;
+}
+
 interface CreatedBooking {
   locationLink: string | null;
   whatsappLink: string | null;
@@ -55,6 +60,19 @@ interface CreatedBooking {
     totalPrice: string | null;
     basePrice: string | null;
     surchargePercent: string | null;
+    priceBreakdown: {
+      lineItems: PricingLineItem[];
+      totalTyreCost: number;
+      totalServiceFee: number;
+      calloutFee: number;
+      totalSurcharges: number;
+      discountAmount: number;
+      subtotal: number;
+      vatAmount: number;
+      total: number;
+    } | null;
+    adminAdjustmentAmount: string | null;
+    adminAdjustmentReason: string | null;
   };
 }
 
@@ -96,10 +114,24 @@ export function QuickBookForm() {
   const [copied, setCopied] = useState(false);
   const [copiedCoords, setCopiedCoords] = useState(false);
 
+  // SMS send state
+  const [smsSending, setSmsSending] = useState(false);
+  const [smsResult, setSmsResult] = useState<{ ok: boolean; message?: string; error?: string } | null>(null);
+
+  // Email send state
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailResult, setEmailResult] = useState<{ ok: boolean; message?: string; error?: string } | null>(null);
+
   // Route/distance info (from map)
   const [routeInfo, setRouteInfo] = useState<{ drivingKm: number | null; drivingMinutes: number | null } | null>(null);
 
   const [isFinalizing, setIsFinalizing] = useState(false);
+
+  // Admin price adjustment
+  const [showAdjustment, setShowAdjustment] = useState(false);
+  const [adjustmentAmount, setAdjustmentAmount] = useState('');
+  const [adjustmentReason, setAdjustmentReason] = useState('');
+  const [adjustmentSaving, setAdjustmentSaving] = useState(false);
 
   // Address autocomplete
   const [addressSuggestions, setAddressSuggestions] = useState<MapboxFeature[]>([]);
@@ -253,6 +285,56 @@ export function QuickBookForm() {
     }
   }, [created?.booking.id]);
 
+  // ── Save admin price adjustment ──
+  const handleSaveAdjustment = useCallback(async () => {
+    if (!created?.booking.id) return;
+    const amt = parseFloat(adjustmentAmount);
+    if (isNaN(amt)) return;
+    setAdjustmentSaving(true);
+    try {
+      const res = await fetch(`/api/admin/quick-book/${created.booking.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminAdjustmentAmount: amt,
+          adminAdjustmentReason: adjustmentReason || undefined,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCreated((prev) =>
+          prev ? { ...prev, booking: { ...prev.booking, ...data.booking } } : prev
+        );
+      }
+    } catch { /* silent */ }
+    finally { setAdjustmentSaving(false); }
+  }, [created?.booking.id, adjustmentAmount, adjustmentReason]);
+
+  const handleRemoveAdjustment = useCallback(async () => {
+    if (!created?.booking.id) return;
+    setAdjustmentSaving(true);
+    try {
+      const res = await fetch(`/api/admin/quick-book/${created.booking.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminAdjustmentAmount: 0,
+          adminAdjustmentReason: '',
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCreated((prev) =>
+          prev ? { ...prev, booking: { ...prev.booking, ...data.booking } } : prev
+        );
+        setAdjustmentAmount('');
+        setAdjustmentReason('');
+        setShowAdjustment(false);
+      }
+    } catch { /* silent */ }
+    finally { setAdjustmentSaving(false); }
+  }, [created?.booking.id]);
+
   // ── Poll for location updates when method is 'link' ──
   useEffect(() => {
     if (status !== 'polling' || !created?.booking.id) return;
@@ -279,12 +361,57 @@ export function QuickBookForm() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleSendSms = async () => {
+    if (!created?.booking.id || smsSending) return;
+    setSmsSending(true);
+    setSmsResult(null);
+    try {
+      const res = await fetch('/api/admin/quick-book/send-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quickBookingId: created.booking.id, method: 'sms' }),
+      });
+      const data = await res.json();
+      setSmsResult({ ok: data.ok, message: data.message, error: data.error });
+    } catch {
+      setSmsResult({ ok: false, error: 'Network error' });
+    } finally {
+      setSmsSending(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!created?.booking.id || emailSending) return;
+    setEmailSending(true);
+    setEmailResult(null);
+    try {
+      const res = await fetch('/api/admin/quick-book/send-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quickBookingId: created.booking.id, method: 'email' }),
+      });
+      const data = await res.json();
+      setEmailResult({ ok: data.ok, message: data.message, error: data.error });
+    } catch {
+      setEmailResult({ ok: false, error: 'Network error' });
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
   const handleReset = () => {
     setForm(initialForm);
     setCreated(null);
     setFinalized(null);
     setStatus('idle');
     setError('');
+    setSmsSending(false);
+    setSmsResult(null);
+    setEmailSending(false);
+    setEmailResult(null);
+    setShowAdjustment(false);
+    setAdjustmentAmount('');
+    setAdjustmentReason('');
   };
 
   // ── Finalized success state ──
@@ -311,21 +438,13 @@ export function QuickBookForm() {
               .filter((li) => li.type !== 'subtotal' && li.type !== 'vat' && li.type !== 'total')
               .map((li, i) => (
                 <Flex key={i} justify="space-between" mb={1}>
-                  <Text color={c.text} fontSize="sm">{li.label}</Text>
-                  <Text color={li.amount < 0 ? '#22C55E' : c.text} fontSize="sm">
+                  <Text color={li.label.startsWith('Admin adjustment') ? '#F59E0B' : c.text} fontSize="sm">{li.label}</Text>
+                  <Text color={li.amount < 0 ? '#22C55E' : li.label.startsWith('Admin adjustment') ? '#F59E0B' : c.text} fontSize="sm">
                     {li.amount < 0 ? '-' : ''}£{Math.abs(li.amount).toFixed(2)}
                   </Text>
                 </Flex>
               ))}
             <Box borderTop={`1px solid ${c.border}`} mt={2} pt={2}>
-              <Flex justify="space-between">
-                <Text color={c.muted} fontSize="xs">Subtotal</Text>
-                <Text color={c.text} fontSize="sm">£{finalized.breakdown.subtotal.toFixed(2)}</Text>
-              </Flex>
-              <Flex justify="space-between">
-                <Text color={c.muted} fontSize="xs">VAT (20%)</Text>
-                <Text color={c.text} fontSize="sm">£{finalized.breakdown.vatAmount.toFixed(2)}</Text>
-              </Flex>
               <Flex justify="space-between" mt={1}>
                 <Text color={c.text} fontSize="md" fontWeight="700">Total</Text>
                 <Text color={c.accent} fontSize="xl" fontWeight="700">
@@ -544,37 +663,25 @@ export function QuickBookForm() {
                       </Button>
                     </a>
                   )}
-                  <a
-                    href={`sms:${form.customerPhone}${/iPhone|iPad|iPod/.test(typeof navigator !== 'undefined' ? navigator.userAgent : '') ? '&' : '?'}body=${encodeURIComponent(
-                      buildLocationSmsMessage({
-                        customerName: form.customerName,
-                        locationLink: created.locationLink!,
-                        serviceType: form.serviceType,
-                      })
-                    )}`}
-                  >
-                    <Button size="sm" bg="#3B82F6" color="white" fontWeight="600">
-                      💬 SMS
-                    </Button>
-                  </a>
+                  <Button size="sm" bg="#3B82F6" color="white" fontWeight="600" onClick={handleSendSms} disabled={smsSending}>
+                    {smsSending ? '⏳ Sending…' : '💬 SMS'}
+                  </Button>
                   {form.customerEmail && (
-                    <a
-                      href={`mailto:${form.customerEmail}?subject=${encodeURIComponent(
-                        buildLocationEmailSubject({ customerName: form.customerName, locationLink: created.locationLink! })
-                      )}&body=${encodeURIComponent(
-                        buildLocationEmailBody({
-                          customerName: form.customerName,
-                          locationLink: created.locationLink!,
-                          serviceType: form.serviceType,
-                        })
-                      )}`}
-                    >
-                      <Button size="sm" bg="#8B5CF6" color="white" fontWeight="600">
-                        ✉️ Email
-                      </Button>
-                    </a>
+                    <Button size="sm" bg="#8B5CF6" color="white" fontWeight="600" onClick={handleSendEmail} disabled={emailSending}>
+                      {emailSending ? '⏳ Sending…' : '✉️ Email'}
+                    </Button>
                   )}
                 </Flex>
+                {smsResult && (
+                  <Text fontSize="xs" color={smsResult.ok ? 'green.500' : 'red.500'}>
+                    {smsResult.ok ? '✅ SMS sent successfully' : `❌ SMS failed: ${smsResult.error}`}
+                  </Text>
+                )}
+                {emailResult && (
+                  <Text fontSize="xs" color={emailResult.ok ? 'green.500' : 'red.500'}>
+                    {emailResult.ok ? '✅ Email sent successfully' : `❌ Email failed: ${emailResult.error}`}
+                  </Text>
+                )}
                 <Text color={c.muted} fontSize="xs">
                   Send this link to the customer so they can share their GPS location
                 </Text>
@@ -587,17 +694,121 @@ export function QuickBookForm() {
           {/* ═══ PRICING SECTION ═══ */}
           {created.booking.totalPrice && (
             <Box bg={c.surface} p={4} borderRadius="8px" borderLeft={`3px solid #22C55E`}>
-              <Text color={c.text} fontSize="sm" fontWeight="600" mb={2}>💰 Pricing (from engine)</Text>
-              <Text color={c.accent} fontSize="2xl" fontWeight="700">
-                £{Number(created.booking.totalPrice).toFixed(2)}
-              </Text>
-              {created.booking.basePrice && (
+              <Text color={c.text} fontSize="sm" fontWeight="600" mb={3}>💰 Price Breakdown</Text>
+
+              {/* Line items from pricing engine */}
+              {created.booking.priceBreakdown?.lineItems
+                ?.filter((li) => li.type !== 'subtotal' && li.type !== 'vat' && li.type !== 'total')
+                .map((li, i) => (
+                  <Flex key={i} justify="space-between" mb={1}>
+                    <Text color={c.text} fontSize="sm">{li.label}</Text>
+                    <Text color={li.amount < 0 ? '#22C55E' : c.text} fontSize="sm">
+                      {li.amount < 0 ? '-' : ''}£{Math.abs(li.amount).toFixed(2)}
+                    </Text>
+                  </Flex>
+                ))}
+
+              {/* Admin adjustment (if saved) */}
+              {created.booking.adminAdjustmentAmount && Number(created.booking.adminAdjustmentAmount) !== 0 && (
+                <Flex justify="space-between" mb={1}>
+                  <Text color="#F59E0B" fontSize="sm">
+                    Admin adjustment{created.booking.adminAdjustmentReason ? ` — ${created.booking.adminAdjustmentReason}` : ''}
+                  </Text>
+                  <Text color="#F59E0B" fontSize="sm" fontWeight="600">
+                    £{Number(created.booking.adminAdjustmentAmount).toFixed(2)}
+                  </Text>
+                </Flex>
+              )}
+
+              <Box borderTop={`1px solid ${c.border}`} mt={2} pt={2}>
+                <Flex justify="space-between">
+                  <Text color={c.text} fontSize="md" fontWeight="700">Total</Text>
+                  <Text color={c.accent} fontSize="xl" fontWeight="700">
+                    £{(
+                      Number(created.booking.totalPrice) +
+                      (created.booking.adminAdjustmentAmount ? Number(created.booking.adminAdjustmentAmount) : 0)
+                    ).toFixed(2)}
+                  </Text>
+                </Flex>
+              </Box>
+
+              {/* Fallback if no breakdown stored */}
+              {!created.booking.priceBreakdown && (
                 <Text color={c.muted} fontSize="xs" mt={1}>
-                  Base: £{Number(created.booking.basePrice).toFixed(2)}
+                  Engine total: £{Number(created.booking.totalPrice).toFixed(2)}
                 </Text>
               )}
             </Box>
           )}
+
+          {/* ═══ ADMIN ADJUSTMENT ═══ */}
+          <Box bg={c.surface} p={4} borderRadius="8px" borderLeft="3px solid #F59E0B">
+            {!showAdjustment ? (
+              <Button
+                w="100%"
+                variant="outline"
+                borderColor="#F59E0B"
+                color="#F59E0B"
+                fontWeight="600"
+                borderRadius="8px"
+                onClick={() => setShowAdjustment(true)}
+              >
+                ➕ Add Price Adjustment
+              </Button>
+            ) : (
+              <VStack gap={3} align="stretch">
+                <Text color={c.text} fontSize="sm" fontWeight="600">Manual Price Adjustment</Text>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="Amount (e.g. 15.00)"
+                  value={adjustmentAmount}
+                  onChange={(e) => setAdjustmentAmount(e.target.value)}
+                  {...inputProps}
+                />
+                <Input
+                  placeholder="Reason (optional)"
+                  value={adjustmentReason}
+                  onChange={(e) => setAdjustmentReason(e.target.value)}
+                  {...inputProps}
+                />
+                <HStack gap={2}>
+                  <Button
+                    flex={1}
+                    bg="#F59E0B"
+                    color="#09090B"
+                    fontWeight="600"
+                    borderRadius="8px"
+                    onClick={handleSaveAdjustment}
+                    disabled={adjustmentSaving || !adjustmentAmount}
+                  >
+                    {adjustmentSaving ? <Spinner size="xs" /> : 'Apply'}
+                  </Button>
+                  {created.booking.adminAdjustmentAmount && Number(created.booking.adminAdjustmentAmount) !== 0 && (
+                    <Button
+                      flex={1}
+                      variant="outline"
+                      borderColor="red.500"
+                      color="red.400"
+                      fontWeight="600"
+                      borderRadius="8px"
+                      onClick={handleRemoveAdjustment}
+                      disabled={adjustmentSaving}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    color={c.muted}
+                    onClick={() => setShowAdjustment(false)}
+                  >
+                    Cancel
+                  </Button>
+                </HStack>
+              </VStack>
+            )}
+          </Box>
 
           {error && <Text color="red.400" fontSize="sm">{error}</Text>}
 
@@ -702,37 +913,25 @@ export function QuickBookForm() {
                     </Button>
                   </a>
                 )}
-                <a
-                  href={`sms:${form.customerPhone}${/iPhone|iPad|iPod/.test(typeof navigator !== 'undefined' ? navigator.userAgent : '') ? '&' : '?'}body=${encodeURIComponent(
-                    buildLocationSmsMessage({
-                      customerName: form.customerName,
-                      locationLink: created.locationLink!,
-                      serviceType: form.serviceType,
-                    })
-                  )}`}
-                >
-                  <Button size="sm" bg="#3B82F6" color="white" fontWeight="600">
-                    💬 Text / SMS
-                  </Button>
-                </a>
+                <Button size="sm" bg="#3B82F6" color="white" fontWeight="600" onClick={handleSendSms} disabled={smsSending}>
+                  {smsSending ? '⏳ Sending…' : '💬 Text / SMS'}
+                </Button>
                 {form.customerEmail && (
-                  <a
-                    href={`mailto:${form.customerEmail}?subject=${encodeURIComponent(
-                      buildLocationEmailSubject({ customerName: form.customerName, locationLink: created.locationLink! })
-                    )}&body=${encodeURIComponent(
-                      buildLocationEmailBody({
-                        customerName: form.customerName,
-                        locationLink: created.locationLink!,
-                        serviceType: form.serviceType,
-                      })
-                    )}`}
-                  >
-                    <Button size="sm" bg="#8B5CF6" color="white" fontWeight="600">
-                      ✉️ Email
-                    </Button>
-                  </a>
+                  <Button size="sm" bg="#8B5CF6" color="white" fontWeight="600" onClick={handleSendEmail} disabled={emailSending}>
+                    {emailSending ? '⏳ Sending…' : '✉️ Email'}
+                  </Button>
                 )}
               </Flex>
+              {smsResult && (
+                <Text fontSize="xs" color={smsResult.ok ? 'green.500' : 'red.500'}>
+                  {smsResult.ok ? '✅ SMS sent successfully' : `❌ SMS failed: ${smsResult.error}`}
+                </Text>
+              )}
+              {emailResult && (
+                <Text fontSize="xs" color={emailResult.ok ? 'green.500' : 'red.500'}>
+                  {emailResult.ok ? '✅ Email sent successfully' : `❌ Email failed: ${emailResult.error}`}
+                </Text>
+              )}
               <Text color={c.muted} fontSize="xs" mt={2}>
                 Customer clicks this link to share their GPS location with you
               </Text>

@@ -1,11 +1,14 @@
 import { db, bookings, drivers, surgePricingLog, bankHolidays } from '@/lib/db';
 import { eq, and, sql, gte } from 'drizzle-orm';
 import { askGroqJSON } from '@/lib/groq';
+import { getLondonTime } from '@/lib/pricing-config';
+import { shouldDriverAppearOnline } from '@/lib/driver-presence';
 
 export async function getSurgeMultiplier(): Promise<number> {
   try {
     const now = new Date();
-    const hour = now.getHours();
+    const london = getLondonTime();
+    const hour = london.hour;
     const dayOfWeek = now.getDay();
     const todayStr = now.toISOString().split('T')[0];
 
@@ -33,10 +36,21 @@ export async function getSurgeMultiplier(): Promise<number> {
         )
       );
 
-    const [availableDriversResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(drivers)
-      .where(eq(drivers.isOnline, true));
+    const allDrivers = await db
+      .select({
+        id: drivers.id,
+        isOnline: drivers.isOnline,
+        locationAt: drivers.locationAt,
+        status: drivers.status,
+      })
+      .from(drivers);
+
+    const availableDriverCount = allDrivers.filter((d) =>
+      shouldDriverAppearOnline(
+        { isOnline: d.isOnline ?? false, locationAt: d.locationAt, status: d.status },
+        null,
+      ),
+    ).length;
 
     const [isHoliday] = await db
       .select()
@@ -47,7 +61,7 @@ export async function getSurgeMultiplier(): Promise<number> {
     const groqInput = {
       activeBookingsToday: Number(activeBookingsResult.count),
       emergencyPending: Number(emergencyPendingResult.count),
-      availableDrivers: Number(availableDriversResult.count),
+      availableDrivers: availableDriverCount,
       currentHour: hour,
       dayOfWeek,
       isWeekend: dayOfWeek === 0 || dayOfWeek === 6,

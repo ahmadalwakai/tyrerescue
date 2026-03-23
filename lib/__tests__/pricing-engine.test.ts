@@ -122,6 +122,73 @@ describe('calculatePricing', () => {
     expect(result.totalServiceFee).toBe(50);
     expect(result.totalTyreCost).toBe(0);
   });
+
+  it('calculates fitting-only pricing without tyre selections (quick-book path)', () => {
+    const rules = defaultRules({ fitting_fee_per_tyre: 20 });
+    const input = defaultInput({
+      tyreSelections: [],
+      serviceType: 'fit',
+      tyreQuantity: 2,
+      distanceMiles: 8,
+    });
+
+    const result = calculatePricing(input, rules);
+
+    expect(result.isValid).toBe(true);
+    // 2 fittings at £20 each
+    expect(result.totalServiceFee).toBe(40);
+    expect(result.totalTyreCost).toBe(0);
+    // Callout fee for 5-10 miles
+    expect(result.calloutFee).toBe(rules.callout_5_10);
+    // Service line item should say "Tyre Fitting"
+    const serviceLine = result.lineItems.find((li) => li.type === 'service');
+    expect(serviceLine?.label).toContain('Tyre Fitting');
+  });
+
+  it('calculates assessment-only pricing without tyre selections', () => {
+    const rules = defaultRules({ fitting_fee_per_tyre: 20 });
+    const input = defaultInput({
+      tyreSelections: [],
+      serviceType: 'assess',
+      tyreQuantity: 1,
+    });
+
+    const result = calculatePricing(input, rules);
+
+    expect(result.isValid).toBe(true);
+    expect(result.totalServiceFee).toBe(20);
+    const serviceLine = result.lineItems.find((li) => li.type === 'service');
+    expect(serviceLine?.label).toContain('Assessment');
+  });
+
+  it('returns invalid when no serviceType and no tyre selections', () => {
+    const rules = defaultRules();
+    const input = defaultInput({
+      tyreSelections: [],
+      serviceType: undefined,
+    });
+
+    const result = calculatePricing(input, rules);
+    expect(result.isValid).toBe(false);
+    expect(result.error).toBe('No tyres selected');
+  });
+
+  it('includes emergency surcharge in service-only fitting path', () => {
+    const rules = defaultRules({ fitting_fee_per_tyre: 20, emergency_surcharge: 30 });
+    const input = defaultInput({
+      tyreSelections: [],
+      serviceType: 'fit',
+      tyreQuantity: 1,
+      bookingType: 'emergency',
+    });
+
+    const result = calculatePricing(input, rules);
+
+    expect(result.isValid).toBe(true);
+    expect(result.totalSurcharges).toBe(30);
+    // Total should be at least fitting(20) + emergency(30) = 50
+    expect(result.total).toBeGreaterThanOrEqual(50);
+  });
 });
 
 describe('parsePricingRules', () => {

@@ -1,5 +1,5 @@
 import { db, bookings, payments, callMeBack, tyreProducts, drivers, users } from '@/lib/db';
-import { sql, eq, gte, and, desc, isNotNull, lte } from 'drizzle-orm';
+import { sql, eq, gte, and, desc, isNotNull, lte, inArray } from 'drizzle-orm';
 import {
   Box,
   Heading,
@@ -14,6 +14,7 @@ import {
   Flex,
 } from '@chakra-ui/react';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { getDriverPresenceState, PRESENCE_LABELS, PRESENCE_COLORS } from '@/lib/driver-presence';
 import Link from 'next/link';
 
 function formatCurrency(val: string | number) {
@@ -127,9 +128,11 @@ export default async function AdminDashboardPage() {
     // Driver statuses
     db
       .select({
+        id: drivers.id,
         name: users.name,
         isOnline: drivers.isOnline,
         status: drivers.status,
+        locationAt: drivers.locationAt,
       })
       .from(drivers)
       .innerJoin(users, eq(drivers.userId, users.id)),
@@ -312,14 +315,20 @@ export default async function AdminDashboardPage() {
                 <Text color={c.text} fontWeight="600">Drivers</Text>
               </Box>
               <VStack align="stretch" gap={0}>
-                {driverStatuses.map((d) => (
-                  <HStack key={d.name} px={4} py={3} borderBottomWidth="1px" borderColor={c.border} justifyContent="space-between">
-                    <Text color={c.text} fontSize="sm">{d.name}</Text>
-                    <Badge colorPalette={d.isOnline ? 'green' : 'gray'} size="sm">
-                      {d.isOnline ? 'Online' : 'Offline'}
-                    </Badge>
-                  </HStack>
-                ))}
+                {driverStatuses.map((d) => {
+                  const presence = getDriverPresenceState(
+                    { isOnline: d.isOnline ?? false, locationAt: d.locationAt, status: d.status },
+                    null, // admin sidebar doesn't load active bookings for perf — simplified view
+                  );
+                  return (
+                    <HStack key={d.name} px={4} py={3} borderBottomWidth="1px" borderColor={c.border} justifyContent="space-between">
+                      <Text color={c.text} fontSize="sm">{d.name}</Text>
+                      <Badge colorPalette={PRESENCE_COLORS[presence]} size="sm">
+                        {PRESENCE_LABELS[presence]}
+                      </Badge>
+                    </HStack>
+                  );
+                })}
                 {driverStatuses.length === 0 && (
                   <Box p={4}>
                     <Text color={c.muted} fontSize="sm">No drivers registered</Text>

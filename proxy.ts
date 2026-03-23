@@ -46,6 +46,28 @@ const NOINDEX_PREFIXES = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  /* ─── Canonical host + protocol redirect (production only) ─── */
+  const host = request.headers.get('host') ?? '';
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  const protocol = (forwardedProto ?? request.nextUrl.protocol.replace(':', '')).toLowerCase();
+
+  const isLocal =
+    host.includes('localhost') || host.includes('127.0.0.1');
+  const isPreview = host.includes('.vercel.app');
+
+  const needsCanonicalRedirect =
+    !isLocal &&
+    !isPreview &&
+    host.length > 0 &&
+    (host !== 'www.tyrerescue.uk' || protocol !== 'https');
+
+  if (needsCanonicalRedirect) {
+    const destination = new URL(
+      `https://www.tyrerescue.uk${request.nextUrl.pathname}${request.nextUrl.search}`
+    );
+    return NextResponse.redirect(destination, 308);
+  }
+
   /* ─── CSRF check on mutating API requests ─── */
   const method = request.method;
   if (

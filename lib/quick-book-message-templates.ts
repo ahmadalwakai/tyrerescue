@@ -178,3 +178,27 @@ export function getAllLocationMessages(ctx: LocationMessageContext) {
     copy: buildLocationCopyMessage(ctx),
   };
 }
+
+// ─── Booking Lifecycle SMS Templates ────────────────────
+
+export interface BookingConfirmationSmsContext {
+  customerName: string;
+  refNumber: string;
+  trackingUrl: string;
+}
+
+export function buildBookingConfirmationSmsMessage(ctx: BookingConfirmationSmsContext): string {
+  const firstName = getFirstName(ctx.customerName);
+  return `Tyre Rescue — Ref ${ctx.refNumber}. Hi ${firstName}, your booking is confirmed! Track your technician here: ${ctx.trackingUrl}`;
+}
+
+export interface TrackingSmsContext {
+  customerName: string;
+  refNumber: string;
+  trackingUrl: string;
+}
+
+export function buildTrackingSmsMessage(ctx: TrackingSmsContext): string {
+  const firstName = getFirstName(ctx.customerName);
+  return `Hi ${firstName}, your Tyre Rescue technician is on the way! Track live: ${ctx.trackingUrl} (Ref ${ctx.refNumber})`;
+}

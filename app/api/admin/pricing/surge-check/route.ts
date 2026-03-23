@@ -3,13 +3,15 @@ import { requireAdmin } from '@/lib/auth';
 import { db, bookings, drivers, surgePricingLog, bankHolidays } from '@/lib/db';
 import { eq, and, sql, gte } from 'drizzle-orm';
 import { askGroqJSON } from '@/lib/groq';
+import { getLondonTime } from '@/lib/pricing-config';
 
 export async function GET() {
   try {
     await requireAdmin();
 
     const now = new Date();
-    const hour = now.getHours();
+    const london = getLondonTime();
+    const hour = london.hour;
     const dayOfWeek = now.getDay();
     const todayStr = now.toISOString().split('T')[0];
 

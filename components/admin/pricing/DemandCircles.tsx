@@ -65,6 +65,8 @@ interface DemandCirclesProps {
   bookingCompletes: number;
   activeSurcharge: number;
   threshold: number;
+  hasData: boolean;
+  hourWindow: string;
 }
 
 export function DemandCircles({
@@ -74,7 +76,19 @@ export function DemandCircles({
   bookingCompletes,
   activeSurcharge,
   threshold,
+  hasData,
+  hourWindow,
 }: DemandCirclesProps) {
+  if (!hasData) {
+    return (
+      <Box p={4} textAlign="center">
+        <Text fontSize="sm" color={c.muted}>
+          No demand data recorded for the current hour ({hourWindow})
+        </Text>
+      </Box>
+    );
+  }
+
   const getStatus = (count: number): 'dim' | 'bright' | 'pulsing' => {
     if (count === 0) return 'dim';
     if (count >= threshold) return 'pulsing';
@@ -92,25 +106,25 @@ export function DemandCircles({
           label="Visitors"
           count={visitors}
           status={getStatus(visitors)}
-          timeWindow="This hour"
+          timeWindow={hourWindow}
         />
         <DemandCircle
           label="Call Clicks"
           count={callClicks}
           status={getStatus(callClicks)}
-          timeWindow="This hour"
+          timeWindow={hourWindow}
         />
         <DemandCircle
           label="Bookings Started"
           count={bookingStarts}
           status={getStatus(bookingStarts)}
-          timeWindow="This hour"
+          timeWindow={hourWindow}
         />
         <DemandCircle
           label="Completed"
           count={bookingCompletes}
           status={bookingCompletes > 0 ? 'bright' : 'dim'}
-          timeWindow="This hour"
+          timeWindow={hourWindow}
         />
         <VStack gap={1}>
           <Flex
@@ -134,29 +148,13 @@ export function DemandCircles({
             </Text>
           </Flex>
           <Text fontSize="11px" fontWeight="600" color={c.text} textAlign="center">
-            Surcharge
+            Demand Surcharge
           </Text>
           <Text fontSize="10px" color={c.muted} textAlign="center">
-            Active now
+            {activeSurcharge > 0 ? 'Applied' : 'None'}
           </Text>
         </VStack>
       </Flex>
-
-      {callClicks + bookingStarts >= threshold && (
-        <Box
-          mt={4}
-          p={3}
-          bg="rgba(249,115,22,0.1)"
-          borderRadius="8px"
-          borderWidth="1px"
-          borderColor={c.accent}
-          textAlign="center"
-        >
-          <Text color={c.accent} fontSize="sm" fontWeight="600">
-            🔥 High demand detected — consider enabling a manual surcharge
-          </Text>
-        </Box>
-      )}
     </Box>
   );
 }
