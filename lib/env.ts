@@ -35,4 +35,8 @@ export const env = {
   ZEPTOMAIL_API_KEY: optional('ZEPTOMAIL_API_KEY', ''),
   ZEPTOMAIL_FROM_EMAIL: optional('ZEPTOMAIL_FROM_EMAIL', 'noreply@tyrerescue.uk'),
   ZEPTOMAIL_API_URL: optional('ZEPTOMAIL_API_URL', 'https://api.zeptomail.eu/v1.1/email'),
+
+  // Weather API — optional, neutral pricing fallback when missing
+  WEATHER_API_KEY: optional('WEATHER_API_KEY', ''),
+  WEATHER_API_BASE_URL: optional('WEATHER_API_BASE_URL', 'https://api.openweathermap.org'),
 } as const;

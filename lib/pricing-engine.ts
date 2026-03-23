@@ -836,3 +836,173 @@ export const defaultPricingRules: Array<{
     type: 'amount',
   },
 ];
+
+// ─── Hybrid Pricing (Weather + Demand Aware) ────────────────────────────────
+
+export interface HybridPricingInput extends PricingInput {
+  /** Weather multiplier (1.00–1.25). Defaults to 1.0 if omitted. */
+  weatherMultiplier?: number;
+  /** Weather reason for audit trail */
+  weatherReason?: string;
+  /** Demand multiplier reason for audit trail */
+  demandReason?: string;
+}
+
+export interface HybridPricingBreakdown {
+  // Core components (from existing engine)
+  basePrice: number;
+  serviceCalloutFee: number;
+  emergencyFee: number;
+  afterHoursFee: number;
+  distanceFee: number;
+  tyreServiceFee: number;
+
+  // Multipliers
+  demandMultiplier: number;
+  weatherMultiplier: number;
+
+  // Subtotals
+  subtotalBeforeMultipliers: number;
+  subtotalAfterMultipliers: number;
+
+  // Final
+  finalPrice: number;
+
+  // Audit
+  pricingReasons: string[];
+  pricingAudit: {
+    lineItems: PricingLineItem[];
+    surgeMultiplier: number;
+    weatherMultiplier: number;
+    demandContribution: number;
+    weatherContribution: number;
+    minimumApplied: boolean;
+    calculatedAt: string;
+  };
+
+  // Preserve existing breakdown for backward compat
+  legacyBreakdown: PricingBreakdown;
+}
+
+/** Max combined multiplier for safety bounds */
+const MAX_COMBINED_MULTIPLIER = 1.50;
+/** Minimum final price floor */
+const MIN_FINAL_PRICE = 0;
+
+/**
+ * Calculate pricing with weather and demand awareness.
+ *
+ * Works by:
+ * 1. Running the existing deterministic calculatePricing() with surge multiplier
+ * 2. Applying the weather multiplier on top
+ * 3. Clamping the combined effect
+ * 4. Returning enriched breakdown with full audit trail
+ *
+ * This NEVER replaces calculatePricing — it wraps it.
+ */
+export function calculateHybridPricing(
+  input: HybridPricingInput,
+  rules: PricingRules,
+  vatRegistered: boolean = true,
+): HybridPricingBreakdown {
+  const weatherMult = clampWeatherMultiplier(input.weatherMultiplier ?? 1.0);
+  const demandMult = input.surgeMultiplier ?? 1.0;
+
+  // Run existing engine (handles demand/surge multiplier internally)
+  const legacy = calculatePricing(input, rules, vatRegistered);
+
+  // Extract component fees from line items for the enriched breakdown
+  const emergencyFee = legacy.lineItems
+    .filter(li => li.label === 'Emergency callout')
+    .reduce((sum, li) => sum + li.amount, 0);
+
+  const weekendFee = legacy.lineItems
+    .filter(li => li.label === 'Weekend service')
+    .reduce((sum, li) => sum + li.amount, 0);
+
+  const bankHolidayFee = legacy.lineItems
+    .filter(li => li.label === 'Bank holiday service')
+    .reduce((sum, li) => sum + li.amount, 0);
+
+  const afterHoursFee = weekendFee + bankHolidayFee;
+
+  // Subtotal BEFORE any multipliers = raw component total
+  // The legacy engine applies surge internally, so we compute pre-surge subtotal:
+  const subtotalBeforeMultipliers = legacy.surgeMultiplier !== 1.0
+    ? legacy.subtotal / legacy.surgeMultiplier
+    : legacy.subtotal;
+
+  // Now apply weather multiplier on top of the surge-adjusted subtotal
+  const afterDemand = legacy.subtotal; // already has demand multiplier from engine
+  const afterWeather = new Decimal(afterDemand).times(weatherMult);
+
+  // Safety: clamp combined multiplier effect
+  const combinedMultiplier = demandMult * weatherMult;
+  let finalSubtotal: Decimal;
+  if (combinedMultiplier > MAX_COMBINED_MULTIPLIER) {
+    // Re-derive from pre-multiplier subtotal with capped combined
+    finalSubtotal = new Decimal(subtotalBeforeMultipliers).times(MAX_COMBINED_MULTIPLIER);
+  } else {
+    finalSubtotal = afterWeather;
+  }
+
+  // Apply minimum order total
+  const minimum = new Decimal(rules.minimum_order_total);
+  const minimumApplied = finalSubtotal.lessThan(minimum) && legacy.isValid;
+  if (minimumApplied) {
+    finalSubtotal = minimum;
+  }
+
+  // Round once at the end
+  const finalPrice = Math.round(finalSubtotal.toNumber() * 100) / 100;
+
+  // Build reasons
+  const pricingReasons: string[] = [];
+  if (input.bookingType === 'emergency') pricingReasons.push('Emergency booking');
+  if (afterHoursFee > 0) pricingReasons.push('After-hours surcharge applied');
+  if (demandMult > 1.0) pricingReasons.push(input.demandReason || `High live demand (${demandMult}x)`);
+  if (demandMult < 1.0) pricingReasons.push(`Low demand discount (${demandMult}x)`);
+  if (weatherMult > 1.0) pricingReasons.push(input.weatherReason || `Adverse weather (${weatherMult}x)`);
+  if (minimumApplied) pricingReasons.push('Minimum order total applied');
+  if (combinedMultiplier > MAX_COMBINED_MULTIPLIER) {
+    pricingReasons.push(`Combined multiplier capped at ${MAX_COMBINED_MULTIPLIER}x`);
+  }
+  if (!legacy.isValid) pricingReasons.push(legacy.error || 'Pricing validation failed');
+
+  const demandContribution = afterDemand - subtotalBeforeMultipliers;
+  const weatherContribution = finalPrice - afterDemand;
+
+  return {
+    basePrice: legacy.totalTyreCost,
+    serviceCalloutFee: legacy.calloutFee,
+    emergencyFee,
+    afterHoursFee,
+    distanceFee: legacy.calloutFee,
+    tyreServiceFee: legacy.totalServiceFee,
+    demandMultiplier: demandMult,
+    weatherMultiplier: weatherMult,
+    subtotalBeforeMultipliers: Math.round(subtotalBeforeMultipliers * 100) / 100,
+    subtotalAfterMultipliers: Math.round(finalSubtotal.toNumber() * 100) / 100,
+    finalPrice,
+    pricingReasons,
+    pricingAudit: {
+      lineItems: legacy.lineItems,
+      surgeMultiplier: demandMult,
+      weatherMultiplier: weatherMult,
+      demandContribution: Math.round(demandContribution * 100) / 100,
+      weatherContribution: Math.round(weatherContribution * 100) / 100,
+      minimumApplied,
+      calculatedAt: new Date().toISOString(),
+    },
+    legacyBreakdown: {
+      ...legacy,
+      // Update total to reflect weather adjustment
+      total: finalPrice,
+    },
+  };
+}
+
+function clampWeatherMultiplier(value: number): number {
+  if (!Number.isFinite(value)) return 1.0;
+  return Math.max(1.0, Math.min(1.25, Math.round(value * 100) / 100));
+}

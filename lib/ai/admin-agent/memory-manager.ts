@@ -24,6 +24,10 @@ export interface SessionMemory {
   recentEntities: { type: string; id: string; ref?: string }[];
   lastActionContext?: string;
   pendingFollowUps: string[];
+  /** Recent topics discussed in this session */
+  recentTopics: string[];
+  /** Last recommended actions from intelligence */
+  recommendedActions: string[];
 }
 
 /* ── Long-term memory (DB-backed) ── */
@@ -147,18 +151,56 @@ export async function resolveFollowUp(
   );
 }
 
+/** Store an admin preference (e.g. "prefers Arabic", "likes concise replies") */
+export async function rememberPreference(
+  userId: string,
+  content: string,
+): Promise<void> {
+  await remember(userId, 'preference', content, { ttlHours: 720 }); // 30 days
+}
+
+/** Store a follow-up reminder */
+export async function rememberFollowUp(
+  userId: string,
+  content: string,
+  entityType?: string,
+  entityId?: string,
+): Promise<void> {
+  await remember(userId, 'follow_up', content, {
+    entityType,
+    entityId,
+    ttlHours: 48,
+  });
+}
+
 /* ── Session memory helpers ── */
 
 /** Extract session memory from the stored context */
 export function extractSessionMemory(
   context?: AgentSessionContext,
 ): SessionMemory {
+  const topics: string[] = [];
+  // Infer topics from last tool results
+  if (context?.lastToolResults) {
+    for (const r of context.lastToolResults) {
+      if (r.toolName.includes('booking')) topics.push('bookings');
+      else if (r.toolName.includes('stock') || r.toolName.includes('inventory')) topics.push('stock');
+      else if (r.toolName.includes('driver')) topics.push('drivers');
+      else if (r.toolName.includes('callback')) topics.push('callbacks');
+      else if (r.toolName.includes('message')) topics.push('messages');
+      else if (r.toolName.includes('audit')) topics.push('audit');
+      else if (r.toolName.includes('sales')) topics.push('sales');
+    }
+  }
+
   return {
     recentEntities: context?.lastEntities ?? [],
     lastActionContext: context?.lastToolResults
       ? context.lastToolResults.map((r) => `${r.toolName}: ${r.result.success ? 'ok' : 'fail'}`).join(', ')
       : undefined,
     pendingFollowUps: [],
+    recentTopics: [...new Set(topics)],
+    recommendedActions: [],
   };
 }
 
@@ -175,6 +217,11 @@ export function buildMemoryContext(
       .map((e) => e.ref ? `${e.type}:${e.ref}` : `${e.type}:${e.id.slice(0, 8)}`)
       .join(', ');
     parts.push(`Recent entities: ${refs}`);
+  }
+
+  // Recent topics
+  if (session.recentTopics?.length > 0) {
+    parts.push(`Recent topics: ${session.recentTopics.join(', ')}`);
   }
 
   // Long-term entity refs
@@ -196,9 +243,20 @@ export function buildMemoryContext(
     parts.push(`Pending follow-ups: ${followUps.map((m) => m.content).join('; ')}`);
   }
 
+  // Facts / learned context
+  const facts = longTerm.filter((m) => m.kind === 'fact');
+  if (facts.length > 0) {
+    parts.push(`Known facts: ${facts.slice(0, 5).map((m) => m.content).join('; ')}`);
+  }
+
   // Last action context
   if (session.lastActionContext) {
     parts.push(`Last action: ${session.lastActionContext}`);
+  }
+
+  // Recommended actions
+  if (session.recommendedActions?.length > 0) {
+    parts.push(`Suggested actions: ${session.recommendedActions.join('; ')}`);
   }
 
   return parts.join('\n');

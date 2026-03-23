@@ -437,12 +437,14 @@ export function AdminChatbot() {
     { label: 'Check Stock', intent: 'stock_summary' },
     { label: 'Bookings', intent: 'booking_query' },
     { label: 'Alerts', intent: 'alerts' },
+    { label: 'Insights', intent: 'chat', message: 'any issues or anomalies?' },
+    { label: 'Weekly', intent: 'chat', message: 'weekly comparison' },
     { label: 'Help', intent: 'help' },
   ];
 
   const handleQuickAction = useCallback(
-    async (label: string, intent: string) => {
-      const text = label.toLowerCase();
+    async (label: string, intent: string, customMessage?: string) => {
+      const text = customMessage ?? label.toLowerCase();
       setMessages((prev) => [
         ...prev,
         { role: 'user', content: label, timestamp: new Date().toISOString() },
@@ -522,6 +524,18 @@ export function AdminChatbot() {
         <Text fontSize="13px" fontWeight="600" color={c.text} letterSpacing="0.02em" pr="4px">
           Zyphon
         </Text>
+        {/* Status indicator (green = healthy, orange = needs attention) */}
+        <Box
+          position="absolute"
+          bottom="-1px"
+          left="50%"
+          transform="translateX(-50%)"
+          w="6px"
+          h="6px"
+          borderRadius="full"
+          bg={alertCount > 0 ? c.accent : '#22C55E'}
+          boxShadow={`0 0 6px ${alertCount > 0 ? c.accent : '#22C55E'}`}
+        />
         {/* Alert badge */}
         {alertCount > 0 && (
           <Box
@@ -759,6 +773,107 @@ export function AdminChatbot() {
                             <Text fontSize="11px" color="#EF4444">{action.message}</Text>
                           </Flex>
                         )}
+                        {action.type === 'intelligence_insight' && (action as unknown as { insights?: { title: string; description: string; severity: string; suggestedAction?: string }[] }).insights && (
+                          <VStack align="stretch" gap={1}>
+                            {(action as unknown as { insights: { title: string; description: string; severity: string; suggestedAction?: string }[] }).insights.map((insight, ii) => {
+                              const severityColor = insight.severity === 'urgent' ? '#EF4444' : insight.severity === 'warning' ? '#EAB308' : c.accent;
+                              const severityBg = insight.severity === 'urgent' ? 'rgba(239, 68, 68, 0.1)' : insight.severity === 'warning' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(249, 115, 22, 0.08)';
+                              return (
+                                <Box key={ii} px={2} py={2} borderRadius="md" bg={severityBg} border={`1px solid ${severityColor}33`}>
+                                  <Text fontSize="11px" fontWeight="600" color={severityColor}>{insight.title}</Text>
+                                  <Text fontSize="11px" color={c.muted} mt={0.5}>{insight.description}</Text>
+                                  {insight.suggestedAction && (
+                                    <Text fontSize="10px" color={c.accent} mt={1}>💡 {insight.suggestedAction}</Text>
+                                  )}
+                                </Box>
+                              );
+                            })}
+                          </VStack>
+                        )}
+                        {action.type === 'multi_step_plan' && (action as unknown as { steps?: { label: string; status: string }[]; goal?: string; riskLevel?: string }).steps && (
+                          <Box px={2} py={2} borderRadius="md" bg="rgba(249, 115, 22, 0.05)" border={`1px solid ${c.border}`}>
+                            <Text fontSize="11px" fontWeight="600" color={c.accent} mb={1}>
+                              Plan: {(action as unknown as { goal: string }).goal}
+                            </Text>
+                            <VStack align="stretch" gap={0.5}>
+                              {(action as unknown as { steps: { label: string; status: string }[] }).steps.map((step, si) => (
+                                <Flex key={si} gap={2} align="center">
+                                  <Text fontSize="10px" color={step.status === 'done' ? '#22C55E' : step.status === 'failed' ? '#EF4444' : c.muted}>
+                                    {step.status === 'done' ? '✓' : step.status === 'failed' ? '✗' : '○'}
+                                  </Text>
+                                  <Text fontSize="11px" color={c.text}>{step.label}</Text>
+                                </Flex>
+                              ))}
+                            </VStack>
+                          </Box>
+                        )}
+                        {action.type === 'invoice_preview' && (action as unknown as { invoice?: { invoiceNumber: string; customerName: string; items: { description: string; quantity: number; unitPrice: number; totalPrice: number }[]; subtotal: number; vatRate: number; vatAmount: number; totalAmount: number; status: string; dueDate?: string } }).invoice && (() => {
+                          const inv = (action as unknown as { invoice: { invoiceNumber: string; customerName: string; items: { description: string; quantity: number; unitPrice: number; totalPrice: number }[]; subtotal: number; vatRate: number; vatAmount: number; totalAmount: number; status: string; dueDate?: string } }).invoice;
+                          return (
+                            <Box px={3} py={2} borderRadius="md" bg="rgba(34, 197, 94, 0.06)" border="1px solid rgba(34, 197, 94, 0.25)">
+                              <Flex justify="space-between" align="center" mb={1}>
+                                <Text fontSize="11px" fontWeight="700" color="#22C55E">INVOICE {inv.invoiceNumber}</Text>
+                                <Text fontSize="10px" px={1.5} py={0.5} borderRadius="full" bg="rgba(34, 197, 94, 0.15)" color="#22C55E" fontWeight="600">{inv.status}</Text>
+                              </Flex>
+                              <Text fontSize="11px" color={c.text} mb={1}>{inv.customerName}</Text>
+                              {inv.items.map((item, idx) => (
+                                <Flex key={idx} justify="space-between" fontSize="10px" color={c.muted} py={0.5}>
+                                  <Text>{item.quantity}× {item.description}</Text>
+                                  <Text>£{item.totalPrice.toFixed(2)}</Text>
+                                </Flex>
+                              ))}
+                              <Box borderTop={`1px solid ${c.border}`} mt={1} pt={1}>
+                                <Flex justify="space-between" fontSize="10px" color={c.muted}><Text>Subtotal</Text><Text>£{inv.subtotal.toFixed(2)}</Text></Flex>
+                                <Flex justify="space-between" fontSize="10px" color={c.muted}><Text>VAT ({inv.vatRate}%)</Text><Text>£{inv.vatAmount.toFixed(2)}</Text></Flex>
+                                <Flex justify="space-between" fontSize="11px" fontWeight="700" color={c.text} mt={0.5}><Text>Total</Text><Text>£{inv.totalAmount.toFixed(2)}</Text></Flex>
+                              </Box>
+                              {inv.dueDate && <Text fontSize="10px" color={c.muted} mt={1}>Due: {inv.dueDate}</Text>}
+                            </Box>
+                          );
+                        })()}
+                        {action.type === 'booking_preview' && (action as unknown as { booking?: { id: string; customerName: string; customerPhone: string; serviceType: string; tyreSizeDisplay?: string; quantity: number; addressLine: string; scheduledAt?: string; estimatedTotal: number; status: string } }).booking && (() => {
+                          const bk = (action as unknown as { booking: { id: string; customerName: string; customerPhone: string; serviceType: string; tyreSizeDisplay?: string; quantity: number; addressLine: string; scheduledAt?: string; estimatedTotal: number; status: string } }).booking;
+                          return (
+                            <Box px={3} py={2} borderRadius="md" bg="rgba(59, 130, 246, 0.06)" border="1px solid rgba(59, 130, 246, 0.25)">
+                              <Flex justify="space-between" align="center" mb={1}>
+                                <Text fontSize="11px" fontWeight="700" color="#3B82F6">BOOKING</Text>
+                                <Text fontSize="10px" px={1.5} py={0.5} borderRadius="full" bg="rgba(59, 130, 246, 0.15)" color="#3B82F6" fontWeight="600">{bk.status}</Text>
+                              </Flex>
+                              <Text fontSize="11px" color={c.text} fontWeight="600">{bk.customerName}</Text>
+                              <Text fontSize="10px" color={c.muted}>{bk.customerPhone}</Text>
+                              <Flex gap={2} mt={1} flexWrap="wrap">
+                                <Text fontSize="10px" color={c.muted}>🔧 {bk.serviceType}</Text>
+                                {bk.tyreSizeDisplay && <Text fontSize="10px" color={c.muted}>🛞 {bk.tyreSizeDisplay}</Text>}
+                                <Text fontSize="10px" color={c.muted}>×{bk.quantity}</Text>
+                              </Flex>
+                              <Text fontSize="10px" color={c.muted} mt={1}>📍 {bk.addressLine}</Text>
+                              {bk.scheduledAt && <Text fontSize="10px" color={c.muted}>📅 {bk.scheduledAt}</Text>}
+                              <Flex justify="flex-end" mt={1}>
+                                <Text fontSize="11px" fontWeight="700" color={c.text}>Est. £{bk.estimatedTotal.toFixed(2)}</Text>
+                              </Flex>
+                            </Box>
+                          );
+                        })()}
+                        {action.type === 'analytics_card' && (() => {
+                          const card = action as unknown as { title: string; metric: string; trend?: string; breakdown?: { label: string; value: string | number }[] };
+                          return (
+                            <Box px={3} py={2} borderRadius="md" bg="rgba(168, 85, 247, 0.06)" border="1px solid rgba(168, 85, 247, 0.25)">
+                              <Text fontSize="10px" fontWeight="600" color="#A855F7" textTransform="uppercase" letterSpacing="0.05em">{card.title}</Text>
+                              <Text fontSize="16px" fontWeight="700" color={c.text} mt={0.5}>{card.metric}</Text>
+                              {card.trend && <Text fontSize="10px" color={c.muted} mt={0.5}>{card.trend}</Text>}
+                              {card.breakdown && card.breakdown.length > 0 && (
+                                <VStack align="stretch" gap={0.5} mt={1} pt={1} borderTop={`1px solid ${c.border}`}>
+                                  {card.breakdown.map((row, bi) => (
+                                    <Flex key={bi} justify="space-between" fontSize="10px" color={c.muted}>
+                                      <Text>{row.label}</Text>
+                                      <Text fontWeight="600">{row.value}</Text>
+                                    </Flex>
+                                  ))}
+                                </VStack>
+                              )}
+                            </Box>
+                          );
+                        })()}
                       </Box>
                     ))}
                   </Box>
@@ -934,7 +1049,7 @@ export function AdminChatbot() {
                   cursor="pointer"
                   transition="all 0.15s"
                   _hover={{ borderColor: c.accent, color: c.accent }}
-                  onClick={() => handleQuickAction(qa.label, qa.intent)}
+                  onClick={() => handleQuickAction(qa.label, qa.intent, (qa as { message?: string }).message)}
                   aria-disabled={loading}
                   pointerEvents={loading ? 'none' : 'auto'}
                 >

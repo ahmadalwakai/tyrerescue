@@ -23,8 +23,9 @@ import {
 } from '@/lib/mapbox';
 import { v4 as uuidv4 } from 'uuid';
 import { Pool } from '@neondatabase/serverless';
-import { getSurgeMultiplier } from '@/lib/surge';
+import { getSurgeMultiplier, getSurgeResult } from '@/lib/surge';
 import { getPricingConfig, isNightWindow } from '@/lib/pricing-config';
+import { getWeatherPricingContext, type WeatherPricingContext } from '@/lib/weather';
 import {
   calculateDynamicSurchargeBreakdown,
   applyDynamicSurcharge,
@@ -58,6 +59,8 @@ interface QuoteResponse {
   quoteId: string;
   expiresAt: string;
   breakdown: PricingBreakdown;
+  weatherContext?: WeatherPricingContext;
+  demandContext?: { multiplier: number; confidence: string; reason: string; source: string };
   distanceMiles: number;
   driverEtaMinutes?: number;
   distanceMetadata?: DistanceResult;
@@ -280,16 +283,31 @@ export async function POST(
       }
     }
 
+    // Fetch weather context (non-blocking, neutral fallback on failure)
+    const weatherContext = await getWeatherPricingContext({
+      latitude: data.lat,
+      longitude: data.lng,
+      scheduledAt: data.scheduledAt ?? null,
+    });
+
     // Repair-only fast path — no stock to lock, no transaction needed
     if (isRepairOnly) {
       console.log('[PRICING CALC] repair-only path');
       const vatRule = rulesRows.find((r) => r.key === 'vat_registered');
       const vatRegistered = vatRule ? vatRule.value === 'true' : true;
 
-      // Fetch AI surge multiplier if surge pricing is enabled
+      // Fetch surge/demand multiplier if surge pricing is enabled
       let surgeMultiplier: number | undefined;
+      let demandContext: QuoteResponse['demandContext'] | undefined;
       if (parsedRules.surge_pricing_enabled) {
-        surgeMultiplier = await getSurgeMultiplier();
+        const surgeResult = await getSurgeResult();
+        surgeMultiplier = surgeResult.demandMultiplier;
+        demandContext = {
+          multiplier: surgeResult.demandMultiplier,
+          confidence: surgeResult.confidence,
+          reason: surgeResult.reason,
+          source: surgeResult.source,
+        };
       }
 
       const breakdown = calculatePricing(
@@ -336,7 +354,7 @@ export async function POST(
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
         distanceMiles: String(distanceMiles),
         breakdown: breakdown as unknown as Record<string, unknown>,
-        metadata: { ...distanceResult as unknown as Record<string, unknown>, dynamicSurcharge: repairSurcharge },
+        metadata: { ...distanceResult as unknown as Record<string, unknown>, dynamicSurcharge: repairSurcharge, weatherContext: weatherContext as unknown as Record<string, unknown>, demandContext: demandContext as unknown as Record<string, unknown> },
         expiresAt,
         used: false,
       });
@@ -350,6 +368,8 @@ export async function POST(
         distanceMiles,
         driverEtaMinutes,
         distanceMetadata: distanceResult,
+        weatherContext,
+        demandContext,
         tyreDetails: [],
         specialOrderRequired: false,
         leadTime: null,
@@ -485,10 +505,18 @@ export async function POST(
       const vatRule = rulesRows.find((r) => r.key === 'vat_registered');
       const vatRegistered = vatRule ? vatRule.value === 'true' : true;
 
-      // Fetch AI surge multiplier if surge pricing is enabled
+      // Fetch surge/demand multiplier if surge pricing is enabled
       let surgeMultiplier: number | undefined;
+      let demandContext: QuoteResponse['demandContext'] | undefined;
       if (parsedRules.surge_pricing_enabled) {
-        surgeMultiplier = await getSurgeMultiplier();
+        const surgeResult = await getSurgeResult();
+        surgeMultiplier = surgeResult.demandMultiplier;
+        demandContext = {
+          multiplier: surgeResult.demandMultiplier,
+          confidence: surgeResult.confidence,
+          reason: surgeResult.reason,
+          source: surgeResult.source,
+        };
       }
 
       const breakdown = calculatePricing(
@@ -581,7 +609,7 @@ export async function POST(
           data.scheduledAt ? new Date(data.scheduledAt) : null,
           distanceMiles,
           JSON.stringify(breakdown),
-          JSON.stringify({ ...distanceResult, fulfillmentOption: data.fulfillmentOption ?? null, dynamicSurcharge: tyreSurcharge }),
+          JSON.stringify({ ...distanceResult, fulfillmentOption: data.fulfillmentOption ?? null, dynamicSurcharge: tyreSurcharge, weatherContext, demandContext }),
           expiresAt,
         ]
       );
@@ -597,6 +625,8 @@ export async function POST(
         distanceMiles,
         driverEtaMinutes,
         distanceMetadata: distanceResult,
+        weatherContext,
+        demandContext,
         tyreDetails,
         specialOrderRequired: hasSpecialOrder,
         leadTime: hasSpecialOrder ? '2\u20133 working days' : null,

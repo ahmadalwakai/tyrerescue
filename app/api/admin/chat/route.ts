@@ -30,14 +30,23 @@ import {
   gatherStartupBriefing,
   formatStartupBriefing,
 } from '@/lib/ai/admin-agent';
+import {
+  gatherStartupBriefingV2,
+  formatStartupBriefingV2,
+} from '@/lib/ai/admin-agent/context-builder';
 import { agentRequestSchema } from '@/lib/ai/admin-agent/schemas';
 import { adjustStock } from '@/lib/inventory/stock-service';
+import { logAgentAction } from '@/lib/ai/admin-agent/audit';
+import { classifyRisk } from '@/lib/ai/admin-agent/multi-step-planner';
+import { buildRiskSummary } from '@/lib/ai/admin-agent/safeguards';
 import type {
   ChatMessage,
   AgentAction,
   AgentSessionContext,
   StockPreviewItem,
   ToolContext,
+  InvoicePreviewData,
+  BookingPreviewData,
 } from '@/lib/ai/admin-agent/types';
 import type { ZyphonLanguage } from '@/lib/ai/admin-agent/language';
 
@@ -147,10 +156,10 @@ async function handleGreeting(userId: string): Promise<{ reply: string }> {
   const today = todayStart();
   const [settings] = await db.select().from(adminChatSettings).where(eq(adminChatSettings.userId, userId)).limit(1);
 
-  // Gather startup briefing data in parallel
-  const briefing = await gatherStartupBriefing();
+  // Gather extended startup briefing data in parallel
+  const briefing = await gatherStartupBriefingV2();
   // Default language is Arabic for the greeting (before admin's first reply)
-  const briefingText = formatStartupBriefing(briefing, 'ar');
+  const briefingText = formatStartupBriefingV2(briefing, 'ar');
 
   let greeting = ZYPHON_GREETING;
   greeting += '\n\n' + briefingText;
@@ -298,6 +307,22 @@ export async function POST(request: Request) {
       reply = await formatAgentResponse(validation.plan!.intent, output.results, memoryContext, lang);
       if (output.cards.length > 0) actions = [{ type: 'executed', results: output.cards }];
 
+      // Phase 3: Add preview cards for invoice/booking creation
+      for (const r of output.results) {
+        if (r.toolName === 'create_invoice_draft' && r.result.success && r.result.data) {
+          const d = r.result.data as { preview?: InvoicePreviewData };
+          if (d.preview) actions.push({ type: 'invoice_preview', invoice: d.preview });
+        }
+        if (r.toolName === 'create_quick_booking' && r.result.success && r.result.data) {
+          const d = r.result.data as { preview?: BookingPreviewData };
+          if (d.preview) actions.push({ type: 'booking_preview', booking: d.preview });
+        }
+      }
+
+      // Audit trail: log agent action
+      const risk = classifyRisk(validation.plan!);
+      await logAgentAction(userId, validation.plan!, output, risk);
+
       // Remember entities from results
       await rememberEntitiesFromResults(userId, output.results);
     }
@@ -413,7 +438,8 @@ For identity questions, answer exactly: "Mr Ahmad Alwakai lead developer"${conte
       }
 
       else if (planRequiresConfirmation(plan)) {
-        // Write tools need confirmation
+        // Write tools need confirmation — include risk assessment
+        const riskInfo = buildRiskSummary(plan);
         const summary = plan.tools.map((t) => {
           const def = toolMap.get(t.toolName);
           const paramStr = Object.entries(t.params).map(([k, v]) => `${k}: ${v}`).join(', ');
@@ -423,7 +449,8 @@ For identity questions, answer exactly: "Mr Ahmad Alwakai lead developer"${conte
         const pending = createPendingConfirmation(plan, summary);
         chatSession.context = { ...chatSession.context, pendingConfirmation: pending };
         const details = buildConfirmationDetails(plan);
-        reply = `I'll do the following — please confirm:\n${summary}`;
+        const riskNote = riskInfo.riskLevel !== 'low' ? `\n⚠️ ${riskInfo.summary}` : '';
+        reply = `I'll do the following — please confirm:${riskNote}\n${summary}`;
         actions = [{ type: 'confirmation_required', confirmationId: pending.id, summary, details }];
       }
 
@@ -438,6 +465,21 @@ For identity questions, answer exactly: "Mr Ahmad Alwakai lead developer"${conte
         reply = await formatAgentResponse(plan.intent, output.results, memoryContext, lang);
         if (output.cards.some((c) => !c.success)) {
           actions = output.cards.filter((c) => !c.success).map((c) => ({ type: 'warning' as const, message: c.summary }));
+        }
+
+        // Phase 3: Add analytics cards for analytics tool results
+        const analyticsToolNames = [
+          'get_visitor_analytics', 'get_traffic_sources', 'get_top_pages',
+          'get_realtime_visitors', 'get_conversion_funnel', 'get_demand_signals',
+          'get_today_revenue', 'get_booking_completion_rate', 'get_quote_to_booking_rate',
+          'get_customer_repeat_rate', 'get_peak_booking_hours',
+        ];
+        for (const r of output.results) {
+          if (analyticsToolNames.includes(r.toolName) && r.result.success && r.result.data) {
+            const d = r.result.data as Record<string, unknown>;
+            const card = buildAnalyticsCard(r.toolName, d);
+            if (card) actions.push(card);
+          }
         }
 
         // Remember entities from results for future reference
@@ -493,4 +535,80 @@ function extractEntities(results: { toolName: string; result: { success: boolean
     }
   }
   return entities;
+}
+
+/* ── Phase 3: Build analytics card from tool results ── */
+function buildAnalyticsCard(
+  toolName: string,
+  data: Record<string, unknown>,
+): Extract<AgentAction, { type: 'analytics_card' }> | null {
+  const num = (v: unknown) => Number(v ?? 0);
+  const str = (v: unknown) => String(v ?? '');
+  switch (toolName) {
+    case 'get_visitor_analytics':
+      return {
+        type: 'analytics_card',
+        title: 'Visitor Analytics',
+        metric: `${num(data.totalVisitors)} visitors`,
+        trend: `${num(data.totalPageViews)} page views`,
+        breakdown: [
+          { label: 'Mobile', value: num(data.mobileCount) },
+          { label: 'Desktop', value: num(data.desktopCount) },
+          { label: 'Returning', value: num(data.returningVisitors) },
+          { label: 'Avg Session', value: `${num(data.avgSessionDuration)}s` },
+        ],
+      };
+    case 'get_today_revenue':
+      return {
+        type: 'analytics_card',
+        title: 'Today\'s Revenue',
+        metric: `£${num(data.totalRevenue).toFixed(2)}`,
+        breakdown: [
+          { label: 'Bookings', value: num(data.bookingCount) },
+          { label: 'Avg Order', value: `£${num(data.avgOrderValue).toFixed(2)}` },
+        ],
+      };
+    case 'get_realtime_visitors':
+      return {
+        type: 'analytics_card',
+        title: 'Live Visitors',
+        metric: `${num(data.onlineNow)} online now`,
+        trend: `${num(data.recentVisitors)} in last 5 min`,
+      };
+    case 'get_conversion_funnel': {
+      return {
+        type: 'analytics_card',
+        title: 'Conversion Funnel',
+        metric: str(data.conversionRate || '0%'),
+        breakdown: [
+          { label: 'Page Views', value: num(data.totalPageViews) },
+          { label: 'Call Clicks', value: num(data.callClicks) },
+          { label: 'Booking Starts', value: num(data.bookingStarts) },
+          { label: 'Completed', value: num(data.bookingCompletes) },
+        ],
+      };
+    }
+    case 'get_booking_completion_rate':
+      return {
+        type: 'analytics_card',
+        title: 'Completion Rate',
+        metric: str(data.completionRate || '0%'),
+        breakdown: [
+          { label: 'Paid', value: num(data.totalPaid) },
+          { label: 'Completed', value: num(data.completed) },
+        ],
+      };
+    case 'get_customer_repeat_rate':
+      return {
+        type: 'analytics_card',
+        title: 'Repeat Customers',
+        metric: str(data.repeatRate || '0%'),
+        breakdown: [
+          { label: 'Total Customers', value: num(data.totalCustomers) },
+          { label: 'Returning', value: num(data.repeatCustomers) },
+        ],
+      };
+    default:
+      return null;
+  }
 }

@@ -100,3 +100,52 @@ export const agentRequestSchema = z.object({
   payload: z.object({ items: z.array(confirmItemSchema).min(1).max(50) }).optional(),
   confirmationId: z.string().uuid().optional(),
 });
+
+/* ── Phase 3: New schemas ─────────────────────────────── */
+
+/** Schema for creating an invoice via chat */
+export const createInvoiceSchema = z.object({
+  customerName: z.string().min(1).max(255),
+  customerEmail: z.string().max(255).optional(),
+  customerPhone: z.string().max(20).optional(),
+  customerAddress: z.string().max(500).optional(),
+  items: z.array(z.object({
+    description: z.string().min(1).max(500),
+    quantity: z.number().int().min(1),
+    unitPrice: z.number().min(0),
+  })).min(1).max(20),
+  notes: z.string().max(1000).optional(),
+  dueDate: z.string().optional(),
+  bookingId: z.string().uuid().optional(),
+});
+
+/** Schema for creating a quick booking via chat */
+export const createQuickBookingSchema = z.object({
+  customerName: z.string().min(1).max(255),
+  customerPhone: z.string().min(1).max(20),
+  customerEmail: z.string().max(255).optional(),
+  serviceType: z.string().min(1).max(50),
+  tyreSize: z.string().max(20).optional(),
+  tyreCount: z.number().int().min(1).max(10).default(1),
+  locationAddress: z.string().max(500).optional(),
+  locationPostcode: z.string().max(10).optional(),
+  scheduledAt: z.string().optional(),
+  notes: z.string().max(1000).optional(),
+});
+
+/** Schema for invoice number lookup */
+export const invoiceNumberSchema = z.object({
+  invoiceNumber: z.string().min(1).max(30),
+});
+
+/** Schema for analytics queries with optional days/limit */
+export const analyticsQuerySchema = z.object({
+  days: z.number().int().min(1).max(365).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+});
+
+/** Schema for ops queries with optional days/limit */
+export const opsQuerySchema = z.object({
+  days: z.number().int().min(1).max(365).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+});

@@ -46,3 +46,47 @@ export async function askGroqJSON(
     return null;
   }
 }
+
+/**
+ * Structured JSON output from Groq with schema guidance.
+ * Returns typed result or null on failure.
+ *
+ * - Retries once on malformed response
+ * - Never throws uncaught errors
+ * - Timeout-safe (inherits 8s SDK timeout)
+ */
+export async function askGroqStructured<T>(options: {
+  systemPrompt: string;
+  userMessage: string;
+  schemaName: string;
+  schema: object;
+  maxTokens?: number;
+}): Promise<T | null> {
+  const { systemPrompt, userMessage, schemaName, schema, maxTokens = 500 } = options;
+
+  const schemaHint = `\n\nYou MUST respond with valid JSON matching this schema (${schemaName}):\n${JSON.stringify(schema)}\nNo explanation, no markdown, no extra text.`;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const text = await askGroq(
+        systemPrompt + schemaHint,
+        userMessage,
+        maxTokens
+      );
+
+      if (!text) return null;
+
+      const clean = text.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean) as T;
+      return parsed;
+    } catch {
+      if (attempt === 0) {
+        // Retry once on parse failure
+        continue;
+      }
+      return null;
+    }
+  }
+
+  return null;
+}

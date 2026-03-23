@@ -11,8 +11,10 @@ import {
   inventoryMovements,
   adminChatSettings,
   bookingTyres,
+  invoices,
+  invoiceItems,
 } from '@/lib/db/schema';
-import { eq, and, sql, gte, desc, lte } from 'drizzle-orm';
+import { eq, and, sql, gte, desc, lte, ilike } from 'drizzle-orm';
 import { adjustStock } from '@/lib/inventory/stock-service';
 import { isValidTransition, getValidNextStates, type BookingStatus } from '@/lib/state-machine';
 import type { ToolDefinition, ToolContext, ToolResult } from './types';
@@ -27,7 +29,45 @@ import {
   toggleAvailabilitySchema,
   chatSettingsSchema,
   addInventoryProductSchema,
+  createInvoiceSchema,
+  createQuickBookingSchema,
+  invoiceNumberSchema,
+  analyticsQuerySchema,
+  opsQuerySchema,
 } from './schemas';
+import { gatherIntelligence } from './intelligence';
+import { buildInvoicePreview, persistInvoiceDraft } from './invoice-parser';
+import { buildBookingPreview, persistQuickBookingDraft } from './quick-book-parser';
+import {
+  getVisitorAnalyticsData,
+  getTrafficSourcesData,
+  getTopPagesData,
+  getRealtimeVisitorsData,
+  getConversionFunnelData,
+  getDemandSignalsData,
+} from './analytics-tools';
+import {
+  getTodayRevenueData,
+  getOutstandingPaymentsData,
+  getRefundSummaryData,
+  getDriverPerformanceData,
+  getDriverAssignmentGapsData,
+  getPopularTyreSizesData,
+  getCustomerRepeatRateData,
+  getTopCustomersData,
+  getCancelledBookingsAnalysisData,
+  getNoShowAnalysisData,
+  getPeakBookingHoursData,
+  getServiceDemandTrendsData,
+  getLocationDemandHeatmapData,
+  getAdminWorkloadSummaryData,
+  getPaymentFailuresData,
+  getQuoteToBookingRateData,
+  getBookingCompletionRateData,
+  getRecentAdminActionsData,
+  getAbandonedBookingSignalsData,
+  getStockMovementSummaryData,
+} from './ops-tools';
 
 /* ── Helpers ──────────────────────────────────────────── */
 
@@ -635,7 +675,469 @@ const addInventoryProduct: ToolDefinition = {
   },
 };
 
+/* ── Intelligence tools ───────────────────────────────── */
+
+const getBusinessInsights: ToolDefinition = {
+  name: 'get_business_insights' as ToolDefinition['name'],
+  kind: 'read',
+  description: 'Detect business anomalies, bottlenecks, and operational warnings. Returns prioritised insights.',
+  requiresConfirmation: false,
+  parameterNames: [],
+  async execute(): Promise<ToolResult> {
+    const insights = await gatherIntelligence();
+    return { success: true, data: insights };
+  },
+};
+
+const getWeeklyComparison: ToolDefinition = {
+  name: 'get_weekly_comparison' as ToolDefinition['name'],
+  kind: 'read',
+  description: 'Compare this week\'s booking and revenue metrics with last week.',
+  requiresConfirmation: false,
+  parameterNames: [],
+  async execute(): Promise<ToolResult> {
+    const today = todayStart();
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const twoWeeksAgo = new Date(today);
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+    const [thisWeek] = await db
+      .select({
+        bookings: sql<number>`count(*)::int`,
+        revenue: sql<number>`coalesce(sum(case when ${bookings.status} not in ('draft','pricing_ready','cancelled','payment_failed') then ${bookings.totalAmount}::numeric else 0 end), 0)`,
+        paid: sql<number>`count(case when ${bookings.status} not in ('draft','pricing_ready','cancelled','payment_failed') then 1 end)::int`,
+      })
+      .from(bookings)
+      .where(gte(bookings.createdAt, weekAgo));
+
+    const [lastWeek] = await db
+      .select({
+        bookings: sql<number>`count(*)::int`,
+        revenue: sql<number>`coalesce(sum(case when ${bookings.status} not in ('draft','pricing_ready','cancelled','payment_failed') then ${bookings.totalAmount}::numeric else 0 end), 0)`,
+        paid: sql<number>`count(case when ${bookings.status} not in ('draft','pricing_ready','cancelled','payment_failed') then 1 end)::int`,
+      })
+      .from(bookings)
+      .where(and(gte(bookings.createdAt, twoWeeksAgo), lte(bookings.createdAt, weekAgo)));
+
+    const bookingChange = lastWeek.bookings > 0
+      ? Math.round(((thisWeek.bookings - lastWeek.bookings) / lastWeek.bookings) * 100)
+      : thisWeek.bookings > 0 ? 100 : 0;
+
+    const revenueChange = Number(lastWeek.revenue) > 0
+      ? Math.round(((Number(thisWeek.revenue) - Number(lastWeek.revenue)) / Number(lastWeek.revenue)) * 100)
+      : Number(thisWeek.revenue) > 0 ? 100 : 0;
+
+    return {
+      success: true,
+      data: {
+        thisWeek: { bookings: thisWeek.bookings, paid: thisWeek.paid, revenue: Number(thisWeek.revenue) },
+        lastWeek: { bookings: lastWeek.bookings, paid: lastWeek.paid, revenue: Number(lastWeek.revenue) },
+        bookingChange: `${bookingChange >= 0 ? '+' : ''}${bookingChange}%`,
+        revenueChange: `${revenueChange >= 0 ? '+' : ''}${revenueChange}%`,
+      },
+    };
+  },
+};
+
 /* ── Tool registry ────────────────────────────────────── */
+
+/* ── Phase 3: Invoice tools ───────────────────────────── */
+
+const createInvoiceDraft: ToolDefinition = {
+  name: 'create_invoice_draft',
+  kind: 'write',
+  description: 'Create a draft invoice for a customer. Provide customerName, customerEmail, items (description, quantity, unitPrice), and optional notes/dueDate.',
+  requiresConfirmation: true,
+  parameterNames: ['customerName', 'customerEmail', 'customerPhone', 'items', 'notes', 'dueDate', 'bookingId'],
+  async execute(params, ctx): Promise<ToolResult> {
+    const parsed = createInvoiceSchema.safeParse(params);
+    if (!parsed.success) return { success: false, error: 'Invalid invoice params. Need: customerName, items (array of {description, quantity, unitPrice}).' };
+
+    const preview = await buildInvoicePreview(parsed.data);
+    const result = await persistInvoiceDraft(preview, parsed.data, ctx.userId);
+
+    await logAudit(ctx, 'invoice', result.invoiceId, 'create_draft', null, {
+      invoiceNumber: result.invoiceNumber,
+      customer: parsed.data.customerName,
+      total: preview.totalAmount,
+    });
+
+    return {
+      success: true,
+      data: { ...result, preview },
+      after: { invoiceNumber: result.invoiceNumber, totalAmount: preview.totalAmount },
+    };
+  },
+};
+
+const getInvoiceByNumber: ToolDefinition = {
+  name: 'get_invoice_by_number',
+  kind: 'read',
+  description: 'Look up an invoice by its invoice number (e.g., INV-2025-0001).',
+  requiresConfirmation: false,
+  parameterNames: ['invoiceNumber'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = invoiceNumberSchema.safeParse(params);
+    if (!parsed.success) return { success: false, error: 'Provide a valid invoice number (e.g., INV-2025-0001).' };
+
+    const [inv] = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.invoiceNumber, parsed.data.invoiceNumber))
+      .limit(1);
+
+    if (!inv) return { success: false, error: `Invoice ${parsed.data.invoiceNumber} not found` };
+
+    const items = await db
+      .select()
+      .from(invoiceItems)
+      .where(eq(invoiceItems.invoiceId, inv.id))
+      .orderBy(invoiceItems.sortOrder);
+
+    return { success: true, data: { ...inv, items } };
+  },
+};
+
+/* ── Phase 3: Quick-booking tools ─────────────────────── */
+
+const createQuickBooking: ToolDefinition = {
+  name: 'create_quick_booking',
+  kind: 'write',
+  description: 'Create a quick booking for a customer via chat. Provide customerName, customerPhone, serviceType (fit/repair/assess), and optional tyreSize, tyreCount, locationAddress, locationPostcode, notes.',
+  requiresConfirmation: true,
+  parameterNames: ['customerName', 'customerPhone', 'customerEmail', 'serviceType', 'tyreSize', 'tyreCount', 'locationAddress', 'locationPostcode', 'scheduledAt', 'notes'],
+  async execute(params, ctx): Promise<ToolResult> {
+    const parsed = createQuickBookingSchema.safeParse(params);
+    if (!parsed.success) return { success: false, error: 'Invalid booking params. Need: customerName, customerPhone, serviceType (fit/repair/assess).' };
+
+    const preview = buildBookingPreview(parsed.data);
+    const result = await persistQuickBookingDraft(parsed.data, ctx.userId);
+    preview.id = result.quickBookingId;
+
+    await logAudit(ctx, 'quick_booking', result.quickBookingId, 'create_draft', null, {
+      customer: parsed.data.customerName,
+      service: parsed.data.serviceType,
+    });
+
+    return {
+      success: true,
+      data: { quickBookingId: result.quickBookingId, preview },
+      after: { quickBookingId: result.quickBookingId, customer: parsed.data.customerName },
+    };
+  },
+};
+
+/* ── Phase 3: Visitor analytics tools ─────────────────── */
+
+const getVisitorAnalytics: ToolDefinition = {
+  name: 'get_visitor_analytics',
+  kind: 'read',
+  description: 'Get website visitor analytics: total visitors, page views, session duration, device breakdown.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = analyticsQuerySchema.safeParse(params);
+    return getVisitorAnalyticsData({ days: parsed.success ? parsed.data.days : 7 });
+  },
+};
+
+const getTrafficSources: ToolDefinition = {
+  name: 'get_traffic_sources',
+  kind: 'read',
+  description: 'Get traffic source breakdown: organic, direct, social, referrers.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = analyticsQuerySchema.safeParse(params);
+    return getTrafficSourcesData({ days: parsed.success ? parsed.data.days : 7 });
+  },
+};
+
+const getTopPages: ToolDefinition = {
+  name: 'get_top_pages',
+  kind: 'read',
+  description: 'Get most visited pages on the website.',
+  requiresConfirmation: false,
+  parameterNames: ['days', 'limit'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = analyticsQuerySchema.safeParse(params);
+    return getTopPagesData({ days: parsed.success ? parsed.data.days : 7, limit: parsed.success ? parsed.data.limit : 15 });
+  },
+};
+
+const getRealtimeVisitors: ToolDefinition = {
+  name: 'get_realtime_visitors',
+  kind: 'read',
+  description: 'Get real-time website visitors: who is online now, recent page views.',
+  requiresConfirmation: false,
+  parameterNames: [],
+  async execute(): Promise<ToolResult> {
+    return getRealtimeVisitorsData();
+  },
+};
+
+const getConversionFunnel: ToolDefinition = {
+  name: 'get_conversion_funnel',
+  kind: 'read',
+  description: 'Get conversion funnel: page views → call clicks → booking starts → completions.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = analyticsQuerySchema.safeParse(params);
+    return getConversionFunnelData({ days: parsed.success ? parsed.data.days : 7 });
+  },
+};
+
+const getDemandSignals: ToolDefinition = {
+  name: 'get_demand_signals',
+  kind: 'read',
+  description: 'Get demand signals: hourly patterns, top search keywords driving visitors.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = analyticsQuerySchema.safeParse(params);
+    return getDemandSignalsData({ days: parsed.success ? parsed.data.days : 3 });
+  },
+};
+
+/* ── Phase 3: Advanced operational tools ──────────────── */
+
+const getTodayRevenue: ToolDefinition = {
+  name: 'get_today_revenue',
+  kind: 'read',
+  description: 'Get today\'s revenue: total revenue, booking count, average order value.',
+  requiresConfirmation: false,
+  parameterNames: [],
+  async execute(): Promise<ToolResult> {
+    return getTodayRevenueData();
+  },
+};
+
+const getOutstandingPayments: ToolDefinition = {
+  name: 'get_outstanding_payments',
+  kind: 'read',
+  description: 'List outstanding/unpaid invoices and total outstanding amount.',
+  requiresConfirmation: false,
+  parameterNames: [],
+  async execute(): Promise<ToolResult> {
+    return getOutstandingPaymentsData();
+  },
+};
+
+const getRefundSummary: ToolDefinition = {
+  name: 'get_refund_summary',
+  kind: 'read',
+  description: 'Get refund summary: total refunded, count, and recent refunds.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getRefundSummaryData({ days: parsed.success ? parsed.data.days : 30 });
+  },
+};
+
+const getDriverPerformance: ToolDefinition = {
+  name: 'get_driver_performance',
+  kind: 'read',
+  description: 'Get driver performance: jobs completed, revenue, completion rate, avg time.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getDriverPerformanceData({ days: parsed.success ? parsed.data.days : 7 });
+  },
+};
+
+const getDriverAssignmentGaps: ToolDefinition = {
+  name: 'get_driver_assignment_gaps',
+  kind: 'read',
+  description: 'List paid bookings waiting for driver assignment, with waiting time.',
+  requiresConfirmation: false,
+  parameterNames: [],
+  async execute(): Promise<ToolResult> {
+    return getDriverAssignmentGapsData();
+  },
+};
+
+const getPopularTyreSizes: ToolDefinition = {
+  name: 'get_popular_tyre_sizes',
+  kind: 'read',
+  description: 'Get most ordered tyre sizes by frequency and revenue.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getPopularTyreSizesData({ days: parsed.success ? parsed.data.days : 30 });
+  },
+};
+
+const getCustomerRepeatRate: ToolDefinition = {
+  name: 'get_customer_repeat_rate',
+  kind: 'read',
+  description: 'Get customer repeat rate: how many customers returned for another booking.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getCustomerRepeatRateData({ days: parsed.success ? parsed.data.days : 90 });
+  },
+};
+
+const getTopCustomers: ToolDefinition = {
+  name: 'get_top_customers',
+  kind: 'read',
+  description: 'Get top customers by number of bookings and total spend.',
+  requiresConfirmation: false,
+  parameterNames: ['days', 'limit'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getTopCustomersData({ days: parsed.success ? parsed.data.days : 90, limit: parsed.success ? parsed.data.limit : 10 });
+  },
+};
+
+const getCancelledBookingsAnalysis: ToolDefinition = {
+  name: 'get_cancelled_bookings_analysis',
+  kind: 'read',
+  description: 'Analyze cancelled bookings: count, lost revenue, top cancellation reasons.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getCancelledBookingsAnalysisData({ days: parsed.success ? parsed.data.days : 30 });
+  },
+};
+
+const getNoShowAnalysis: ToolDefinition = {
+  name: 'get_no_show_analysis',
+  kind: 'read',
+  description: 'Analyze no-show rate for bookings.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getNoShowAnalysisData({ days: parsed.success ? parsed.data.days : 30 });
+  },
+};
+
+const getPeakBookingHours: ToolDefinition = {
+  name: 'get_peak_booking_hours',
+  kind: 'read',
+  description: 'Get peak booking hours: when do most bookings happen.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getPeakBookingHoursData({ days: parsed.success ? parsed.data.days : 30 });
+  },
+};
+
+const getServiceDemandTrends: ToolDefinition = {
+  name: 'get_service_demand_trends',
+  kind: 'read',
+  description: 'Get demand trends by service type: tyre replacement, puncture repair, etc.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getServiceDemandTrendsData({ days: parsed.success ? parsed.data.days : 30 });
+  },
+};
+
+const getLocationDemandHeatmap: ToolDefinition = {
+  name: 'get_location_demand_heatmap',
+  kind: 'read',
+  description: 'Get location demand: which areas have highest visitor and booking activity.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getLocationDemandHeatmapData({ days: parsed.success ? parsed.data.days : 30 });
+  },
+};
+
+const getAdminWorkloadSummary: ToolDefinition = {
+  name: 'get_admin_workload_summary',
+  kind: 'read',
+  description: 'Get admin workload overview: open tasks, pending callbacks, unread messages, active bookings.',
+  requiresConfirmation: false,
+  parameterNames: [],
+  async execute(): Promise<ToolResult> {
+    return getAdminWorkloadSummaryData();
+  },
+};
+
+const getPaymentFailures: ToolDefinition = {
+  name: 'get_payment_failures',
+  kind: 'read',
+  description: 'List recent failed payments.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getPaymentFailuresData({ days: parsed.success ? parsed.data.days : 7 });
+  },
+};
+
+const getQuoteToBookingRate: ToolDefinition = {
+  name: 'get_quote_to_booking_rate',
+  kind: 'read',
+  description: 'Get quote-to-booking conversion rate.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getQuoteToBookingRateData({ days: parsed.success ? parsed.data.days : 30 });
+  },
+};
+
+const getBookingCompletionRate: ToolDefinition = {
+  name: 'get_booking_completion_rate',
+  kind: 'read',
+  description: 'Get booking completion rate: how many paid bookings are actually completed.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getBookingCompletionRateData({ days: parsed.success ? parsed.data.days : 30 });
+  },
+};
+
+const getRecentAdminActions: ToolDefinition = {
+  name: 'get_recent_admin_actions',
+  kind: 'read',
+  description: 'Get recent admin actions from the audit log.',
+  requiresConfirmation: false,
+  parameterNames: ['limit'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getRecentAdminActionsData({ limit: parsed.success ? parsed.data.limit : 20 });
+  },
+};
+
+const getAbandonedBookingSignals: ToolDefinition = {
+  name: 'get_abandoned_booking_signals',
+  kind: 'read',
+  description: 'Find abandoned bookings: stuck in draft/pricing_ready, plus unfinalized quick bookings.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getAbandonedBookingSignalsData({ days: parsed.success ? parsed.data.days : 7 });
+  },
+};
+
+const getStockMovementSummary: ToolDefinition = {
+  name: 'get_stock_movement_summary',
+  kind: 'read',
+  description: 'Get stock movement summary: items sold, added, top movers.',
+  requiresConfirmation: false,
+  parameterNames: ['days'],
+  async execute(params): Promise<ToolResult> {
+    const parsed = opsQuerySchema.safeParse(params);
+    return getStockMovementSummaryData({ days: parsed.success ? parsed.data.days : 7 });
+  },
+};
 
 export const allTools: ToolDefinition[] = [
   // Read
@@ -650,6 +1152,9 @@ export const allTools: ToolDefinition[] = [
   getPendingAlerts,
   getTodaySalesSummary,
   getRecentAuditEvents,
+  // Intelligence
+  getBusinessInsights,
+  getWeeklyComparison,
   // Write
   updateStockQuantity,
   markCallbackDone,
@@ -659,6 +1164,39 @@ export const allTools: ToolDefinition[] = [
   markMessageRead,
   updateChatSettings,
   addInventoryProduct,
+  // Phase 3: Invoice
+  createInvoiceDraft,
+  getInvoiceByNumber,
+  // Phase 3: Quick-book
+  createQuickBooking,
+  // Phase 3: Visitor analytics
+  getVisitorAnalytics,
+  getTrafficSources,
+  getTopPages,
+  getRealtimeVisitors,
+  getConversionFunnel,
+  getDemandSignals,
+  // Phase 3: Advanced operational
+  getTodayRevenue,
+  getOutstandingPayments,
+  getRefundSummary,
+  getDriverPerformance,
+  getDriverAssignmentGaps,
+  getPopularTyreSizes,
+  getCustomerRepeatRate,
+  getTopCustomers,
+  getCancelledBookingsAnalysis,
+  getNoShowAnalysis,
+  getPeakBookingHours,
+  getServiceDemandTrends,
+  getLocationDemandHeatmap,
+  getAdminWorkloadSummary,
+  getPaymentFailures,
+  getQuoteToBookingRate,
+  getBookingCompletionRate,
+  getRecentAdminActions,
+  getAbandonedBookingSignals,
+  getStockMovementSummary,
 ];
 
 export const toolMap = new Map<string, ToolDefinition>(allTools.map((t) => [t.name, t]));
