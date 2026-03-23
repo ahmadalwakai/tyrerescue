@@ -3,7 +3,8 @@
  * Every function returns a plain object ready for JSON.stringify.
  */
 
-const SITE_URL = 'https://www.tyrerescue.uk';
+const DEFAULT_BASE_URL = 'https://www.tyrerescue.uk';
+const SITE_URL = DEFAULT_BASE_URL;
 const PHONE = '+441412660690';
 const EMAIL = 'support@tyrerescue.uk';
 
@@ -19,7 +20,7 @@ const ADDRESS = {
 /* ------------------------------------------------------------------ */
 /*  LocalBusiness / AutoRepair — injected site-wide via layout.tsx    */
 /* ------------------------------------------------------------------ */
-export function getLocalBusinessSchema() {
+export function getLocalBusinessSchema(baseUrl: string = DEFAULT_BASE_URL) {
   return {
     '@context': 'https://schema.org',
     '@type': ['LocalBusiness', 'AutoRepair'],
@@ -27,7 +28,7 @@ export function getLocalBusinessSchema() {
     alternateName: 'Duke Street Tyres',
     description:
       'Emergency mobile tyre fitting service in Glasgow and Edinburgh. 24 hours a day, 7 days a week.',
-    url: SITE_URL,
+    url: baseUrl,
     telephone: PHONE,
     email: EMAIL,
     address: ADDRESS,
@@ -109,15 +110,15 @@ export function getLocalBusinessSchema() {
 /* ------------------------------------------------------------------ */
 /*  WebSite + SearchAction — site-wide via layout.tsx                 */
 /* ------------------------------------------------------------------ */
-export function getWebSiteSchema() {
+export function getWebSiteSchema(baseUrl: string = DEFAULT_BASE_URL) {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'Tyre Rescue',
-    url: SITE_URL,
+    url: baseUrl,
     potentialAction: {
       '@type': 'SearchAction',
-      target: `${SITE_URL}/tyres?q={search_term_string}`,
+      target: `${baseUrl}/tyres?q={search_term_string}`,
       'query-input': 'required name=search_term_string',
     },
   };
@@ -134,6 +135,7 @@ export function getServiceSchema(opts: {
   postcode?: string;
   county?: string;
   mapUrl?: string;
+  baseUrl?: string;
 }) {
   const areaServed: Record<string, unknown> =
     opts.areaType === 'Place'
@@ -154,6 +156,8 @@ export function getServiceSchema(opts: {
         }
       : { '@type': 'City', name: opts.areaName };
 
+  const url = opts.baseUrl ?? DEFAULT_BASE_URL;
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Service',
@@ -161,6 +165,7 @@ export function getServiceSchema(opts: {
     provider: {
       '@type': 'LocalBusiness',
       name: 'Tyre Rescue',
+      url,
       telephone: '0141 266 0690',
       address: ADDRESS,
     },
@@ -175,6 +180,7 @@ export function getServiceSchema(opts: {
 /* ------------------------------------------------------------------ */
 export function getBreadcrumbSchema(
   items: { name: string; path: string }[],
+  baseUrl: string = DEFAULT_BASE_URL,
 ) {
   return {
     '@context': 'https://schema.org',
@@ -183,7 +189,7 @@ export function getBreadcrumbSchema(
       '@type': 'ListItem',
       position: i + 1,
       name: item.name,
-      item: `${SITE_URL}${item.path}`,
+      item: `${baseUrl}${item.path}`,
     })),
   };
 }
@@ -191,7 +197,7 @@ export function getBreadcrumbSchema(
 /* ------------------------------------------------------------------ */
 /*  EmergencyService — for layout + /emergency page                   */
 /* ------------------------------------------------------------------ */
-export function getEmergencyServiceSchema() {
+export function getEmergencyServiceSchema(baseUrl: string = DEFAULT_BASE_URL) {
   return {
     '@context': 'https://schema.org',
     '@type': 'EmergencyService',
@@ -202,7 +208,7 @@ export function getEmergencyServiceSchema() {
     provider: {
       '@type': 'AutoRepair',
       name: 'Tyre Rescue',
-      url: SITE_URL,
+      url: baseUrl,
     },
     areaServed: [
       { '@type': 'City', name: 'Glasgow' },
@@ -213,7 +219,7 @@ export function getEmergencyServiceSchema() {
     ],
     availableChannel: {
       '@type': 'ServiceChannel',
-      serviceUrl: `${SITE_URL}/emergency`,
+      serviceUrl: `${baseUrl}/emergency`,
       servicePhone: {
         '@type': 'ContactPoint',
         telephone: PHONE,
@@ -234,6 +240,7 @@ export function getEmergencyServiceSchema() {
 /* ------------------------------------------------------------------ */
 export function getFAQSchema(
   faqs: { question: string; answer: string }[],
+  _baseUrl?: string,
 ) {
   return {
     '@context': 'https://schema.org',
@@ -259,33 +266,71 @@ export function getArticleSchema(opts: {
   publishDate: string;
   lastModified: string;
   keywords: string[];
+  baseUrl?: string;
 }) {
+  const url = opts.baseUrl ?? DEFAULT_BASE_URL;
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: opts.title,
     description: opts.description,
-    url: `${SITE_URL}/blog/${opts.slug}`,
+    url: `${url}/blog/${opts.slug}`,
     datePublished: opts.publishDate,
     dateModified: opts.lastModified,
     keywords: opts.keywords.join(', '),
     author: {
       '@type': 'Organization',
       name: 'Tyre Rescue',
-      url: SITE_URL,
+      url,
     },
     publisher: {
       '@type': 'Organization',
       name: 'Tyre Rescue',
-      url: SITE_URL,
+      url,
       logo: {
         '@type': 'ImageObject',
-        url: `${SITE_URL}/logo.svg`,
+        url: `${url}/logo.svg`,
       },
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `${SITE_URL}/blog/${opts.slug}`,
+      '@id': `${url}/blog/${opts.slug}`,
     },
   };
 }
+
+/* ------------------------------------------------------------------ */
+/*  HowTo — e.g. "How we calculate your price"                        */
+/* ------------------------------------------------------------------ */
+export function getHowToSchema(
+  opts: {
+    name: string;
+    description?: string;
+    steps: { name: string; text: string }[];
+  },
+  baseUrl: string = DEFAULT_BASE_URL,
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: opts.name,
+    ...(opts.description && { description: opts.description }),
+    step: opts.steps.map((s, i) => ({
+      '@type': 'HowToStep',
+      position: i + 1,
+      name: s.name,
+      text: s.text,
+      url: `${baseUrl}#step-${i + 1}`,
+    })),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Aliases matching generate* naming convention                       */
+/* ------------------------------------------------------------------ */
+export const generateLocalBusinessSchema = getLocalBusinessSchema;
+export const generateServiceSchema = getServiceSchema;
+export const generateFAQSchema = getFAQSchema;
+export const generateBreadcrumbSchema = getBreadcrumbSchema;
+export const generateHowToSchema = getHowToSchema;

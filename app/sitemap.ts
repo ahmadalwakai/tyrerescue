@@ -7,11 +7,14 @@ import { services, serviceCities, getAreasForCity } from '@/lib/areas';
 import { articles } from '@/lib/blog/articles';
 import { competitors } from '@/lib/data/competitors';
 import { getSiteUrl } from '@/lib/config/site';
+import { priceCitySlugs } from '@/lib/seo/cities';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getSiteUrl();
 
   // Static pages
+  const now = new Date();
+
   const staticPages = [
     '',
     '/emergency',
@@ -27,9 +30,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticRoutes: MetadataRoute.Sitemap = staticPages.map((route) => ({
     url: `${baseUrl}${route}`,
-    lastModified: new Date(),
+    lastModified: now,
     changeFrequency: 'weekly',
     priority: route === '' ? 1 : 0.8,
+  }));
+
+  // Pricing pages
+  const pricingRoutes: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/pricing`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/pricing-faq`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+  ];
+
+  // City-specific pricing pages (e.g. /mobile-tyre-fitting-glasgow-price)
+  const cityPriceRoutes: MetadataRoute.Sitemap = priceCitySlugs.map((slug) => ({
+    url: `${baseUrl}/mobile-tyre-fitting-${slug}-price`,
+    lastModified: now,
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
   }));
 
   // City service pages (legacy)
@@ -111,5 +138,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
-  return [...staticRoutes, ...cityRoutes, ...serviceCityRoutes, ...serviceAreaRoutes, ...tyreRoutes, ...blogRoutes, ...compareRoutes];
+  return [...staticRoutes, ...pricingRoutes, ...cityPriceRoutes, ...cityRoutes, ...serviceCityRoutes, ...serviceAreaRoutes, ...tyreRoutes, ...blogRoutes, ...compareRoutes];
 }

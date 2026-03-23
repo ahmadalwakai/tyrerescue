@@ -111,6 +111,8 @@ export async function proxy(request: NextRequest) {
     '/forgot-password',
     '/emergency',
     '/book',
+    '/pricing',
+    '/pricing-faq',
     '/tyres',
     '/faq',
     '/contact',
@@ -133,7 +135,10 @@ export async function proxy(request: NextRequest) {
   const isPublicRoute =
     publicRoutes.includes(pathname) ||
     serviceRoutes.some((route) => pathname.startsWith(route)) ||
+    pathname.startsWith('/mobile-tyre-fitting-') ||
     pathname.startsWith('/tyres/') ||
+    pathname.startsWith('/blog') ||
+    pathname.startsWith('/compare') ||
     pathname.startsWith('/tracking') ||
     pathname.startsWith('/locate/') ||
     pathname.startsWith('/success/') ||
