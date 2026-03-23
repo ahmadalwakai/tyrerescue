@@ -74,7 +74,7 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
 
   // Initial fetch and polling
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | null = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
     const startPolling = async () => {
       const shouldContinue = await fetchTrackingData();

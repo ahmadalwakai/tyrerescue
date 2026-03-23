@@ -137,12 +137,12 @@ export function QuickBookForm() {
   const [addressSuggestions, setAddressSuggestions] = useState<MapboxFeature[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
-  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Tyre size autocomplete
   const [tyreSuggestions, setTyreSuggestions] = useState<TyreSizeSuggestion[]>([]);
   const [showTyreSuggestions, setShowTyreSuggestions] = useState(false);
-  const tyreSizeTimeout = useRef<NodeJS.Timeout | null>(null);
+  const tyreSizeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));

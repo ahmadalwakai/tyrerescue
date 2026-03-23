@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     // Use explicit column selection for serviceAreas to avoid crashes
     // when DB schema is missing optional columns (e.g. "priority").
     let rulesRows: Array<{ key: string; value: string }>;
-    let driverRows: Array<{ id: string; currentLat: string | null; currentLng: string | null }>;
+    let driverRows: Array<{ id: string; currentLat: string | null; currentLng: string | null; locationSource: string | null }>;
     let areaRows: Array<{ id: string; name: string | null; centerLat: string | null; centerLng: string | null; radiusMiles: string | null }>;
 
     try {
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
           .where(eq(serviceAreas.active, true)),
       ]);
       rulesRows = r.map((row) => ({ key: row.key, value: row.value }));
-      driverRows = d.map((row) => ({ id: row.id, currentLat: row.currentLat, currentLng: row.currentLng }));
+      driverRows = d.map((row) => ({ id: row.id, currentLat: row.currentLat, currentLng: row.currentLng, locationSource: row.locationSource }));
       areaRows = a.map((row) => ({ id: row.id, name: row.name, centerLat: row.centerLat, centerLng: row.centerLng, radiusMiles: row.radiusMiles }));
     } catch (dbError) {
       // DB query failed (e.g. schema mismatch) — fall back to driver-only or SERVICE_CENTER
