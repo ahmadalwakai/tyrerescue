@@ -83,6 +83,8 @@ export type AgentSessionContext = {
   pendingConfirmation?: PendingConfirmation | null;
   lastToolResults?: { toolName: string; result: ToolResult; at: string }[];
   lastEntities?: { type: string; id: string; ref?: string }[];
+  /** Locked language after admin's first reply (ar | en) */
+  lang?: 'ar' | 'en';
 };
 
 /** A structured agent response to the client */

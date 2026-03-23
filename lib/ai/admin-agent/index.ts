@@ -22,6 +22,15 @@ export {
   resolveEntities,
   injectResolvedEntities,
 } from './entity-resolver';
+export {
+  detectLanguage,
+  resolveSessionLanguage,
+  ZYPHON_GREETING,
+} from './language';
+export {
+  gatherStartupBriefing,
+  formatStartupBriefing,
+} from './context-builder';
 export type {
   ToolName,
   ToolDefinition,
@@ -40,3 +49,5 @@ export type {
 } from './types';
 export type { MemoryEntry, MemoryKind, SessionMemory } from './memory-manager';
 export type { ResolvedEntity, ResolutionContext } from './entity-resolver';
+export type { ZyphonLanguage } from './language';
+export type { StartupBriefing } from './context-builder';

@@ -1,7 +1,8 @@
-/* ── Admin Agent – Response Formatter ─────────────────── */
+/* ── Zyphon – Response Formatter ──────────────────────── */
 import { askGroq } from '@/lib/groq';
-import { buildResponsePrompt, IDENTITY_RESPONSE } from './prompts';
-import type { ToolResult, ExecutionResultCard } from './types';
+import { buildResponsePrompt } from './prompts';
+import type { ToolResult } from './types';
+import type { ZyphonLanguage } from './language';
 
 /**
  * Format tool results into a natural admin-facing reply.
@@ -11,6 +12,7 @@ export async function formatAgentResponse(
   intent: string,
   toolResults: { toolName: string; result: ToolResult }[],
   memoryContext?: string,
+  lang?: ZyphonLanguage,
 ): Promise<string> {
   const resultSummary = toolResults.map((r) => {
     if (r.result.success) {
@@ -25,7 +27,7 @@ export async function formatAgentResponse(
 
   try {
     const reply = await askGroq(
-      buildResponsePrompt(),
+      buildResponsePrompt(lang),
       `Intent: ${intent}${contextNote}\nResults:\n${resultSummary}`,
       500,
     );

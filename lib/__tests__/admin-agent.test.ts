@@ -881,3 +881,172 @@ describe('planner — with memory context', () => {
     expect(plan.intent).toBe('general_help');
   });
 });
+
+/* ── 15. Language detection ──────────────────────────────── */
+
+import {
+  detectLanguage,
+  resolveSessionLanguage,
+  ZYPHON_GREETING,
+} from '../ai/admin-agent/language';
+import type { ZyphonLanguage } from '../ai/admin-agent/language';
+import {
+  formatStartupBriefing,
+} from '../ai/admin-agent/context-builder';
+import type { StartupBriefing } from '../ai/admin-agent/context-builder';
+
+describe('language detection', () => {
+  it('detects Arabic text', () => {
+    expect(detectLanguage('شلون الحال')).toBe('ar');
+    expect(detectLanguage('مرحبا كيفك')).toBe('ar');
+    expect(detectLanguage('هلا والله')).toBe('ar');
+  });
+
+  it('detects English text', () => {
+    expect(detectLanguage('hello there')).toBe('en');
+    expect(detectLanguage('check stock for 205/55/R16')).toBe('en');
+    expect(detectLanguage('show today bookings')).toBe('en');
+  });
+
+  it('detects Arabic with mixed Latin (tyre sizes)', () => {
+    expect(detectLanguage('شنو stock الـ 205/55/R16')).toBe('ar');
+  });
+
+  it('detects Arabic dialect words', () => {
+    expect(detectLanguage('يلا نبلش')).toBe('ar');
+    expect(detectLanguage('خوش')).toBe('ar');
+    expect(detectLanguage('اكو شغل اليوم')).toBe('ar');
+  });
+
+  it('returns en for empty or whitespace', () => {
+    expect(detectLanguage('')).toBe('en');
+    expect(detectLanguage('   ')).toBe('en');
+  });
+});
+
+describe('resolveSessionLanguage', () => {
+  it('returns existing session language if set', () => {
+    expect(resolveSessionLanguage('en', 'مرحبا')).toBe('en');
+    expect(resolveSessionLanguage('ar', 'hello')).toBe('ar');
+  });
+
+  it('detects from message when no session language', () => {
+    expect(resolveSessionLanguage(undefined, 'مرحبا')).toBe('ar');
+    expect(resolveSessionLanguage(undefined, 'hello')).toBe('en');
+  });
+
+  it('defaults to Arabic when no message', () => {
+    expect(resolveSessionLanguage(undefined, undefined)).toBe('ar');
+    expect(resolveSessionLanguage(undefined, '')).toBe('ar');
+  });
+});
+
+describe('ZYPHON_GREETING', () => {
+  it('is the exact mandatory greeting', () => {
+    expect(ZYPHON_GREETING).toBe('شلونك عبودي جاهز تا نبلش مصايب اليوم 😁');
+  });
+});
+
+/* ── 16. Startup briefing formatter ──────────────────────── */
+
+describe('formatStartupBriefing', () => {
+  const mockData: StartupBriefing = {
+    bookingsToday: 3,
+    paidBookings: 2,
+    todayRevenue: 145.50,
+    pendingCallbacks: 1,
+    unreadMessages: 2,
+    pendingNotifications: 0,
+    lowStockCount: 4,
+    outOfStockCount: 1,
+  };
+
+  it('formats English briefing with all data', () => {
+    const result = formatStartupBriefing(mockData, 'en');
+    expect(result).toContain('3 bookings today');
+    expect(result).toContain('2 paid');
+    expect(result).toContain('£145.50');
+    expect(result).toContain('1 pending callback');
+    expect(result).toContain('2 unread messages');
+    expect(result).toContain('4 low stock items');
+    expect(result).toContain('1 out of stock');
+    expect(result).not.toContain('notification');
+  });
+
+  it('formats Arabic briefing with all data', () => {
+    const result = formatStartupBriefing(mockData, 'ar');
+    expect(result).toContain('3 حجز اليوم');
+    expect(result).toContain('2 مدفوع');
+    expect(result).toContain('£145.50');
+    expect(result).toContain('1 طلب اتصال');
+    expect(result).toContain('2 رسالة');
+    expect(result).toContain('4 تاير قرب يخلص');
+    expect(result).toContain('1 تاير خلص');
+  });
+
+  it('handles zero bookings in English', () => {
+    const empty: StartupBriefing = {
+      bookingsToday: 0, paidBookings: 0, todayRevenue: 0,
+      pendingCallbacks: 0, unreadMessages: 0, pendingNotifications: 0,
+      lowStockCount: 0, outOfStockCount: 0,
+    };
+    const result = formatStartupBriefing(empty, 'en');
+    expect(result).toBe('No bookings yet today');
+  });
+
+  it('handles zero bookings in Arabic', () => {
+    const empty: StartupBriefing = {
+      bookingsToday: 0, paidBookings: 0, todayRevenue: 0,
+      pendingCallbacks: 0, unreadMessages: 0, pendingNotifications: 0,
+      lowStockCount: 0, outOfStockCount: 0,
+    };
+    const result = formatStartupBriefing(empty, 'ar');
+    expect(result).toBe('ما في حجوزات اليوم بعد');
+  });
+
+  it('singular vs plural in English', () => {
+    const single: StartupBriefing = {
+      bookingsToday: 1, paidBookings: 1, todayRevenue: 50,
+      pendingCallbacks: 1, unreadMessages: 1, pendingNotifications: 1,
+      lowStockCount: 1, outOfStockCount: 0,
+    };
+    const result = formatStartupBriefing(single, 'en');
+    expect(result).toContain('1 booking today');
+    expect(result).not.toContain('bookings');
+    expect(result).toContain('1 pending callback');
+    expect(result).not.toContain('callbacks');
+    expect(result).toContain('1 unread message');
+    expect(result).not.toContain('messages');
+  });
+});
+
+/* ── 17. Response formatter with language ────────────────── */
+describe('response formatter — language parameter', () => {
+  it('formats with Arabic language when specified', async () => {
+    const results = [
+      {
+        toolName: 'get_low_stock_items',
+        result: {
+          success: true,
+          data: [
+            { id: 'p1', brand: 'Budget', sizeDisplay: '205/55/R16', stockNew: 2, priceNew: '48.00' },
+          ],
+        },
+      },
+    ];
+    // LLM is mocked to return null, so fallback will be used
+    const reply = await formatAgentResponse('low_stock', results, undefined, 'ar');
+    expect(reply).toContain('Budget');
+    expect(reply).toContain('1 item');
+  });
+
+  it('accepts lang parameter without error', async () => {
+    const results = [
+      { toolName: 'get_booking_by_ref', result: { success: false, error: 'Not found' } },
+    ];
+    const replyEn = await formatAgentResponse('booking_lookup', results, undefined, 'en');
+    expect(replyEn).toContain('Not found');
+    const replyAr = await formatAgentResponse('booking_lookup', results, undefined, 'ar');
+    expect(replyAr).toContain('Not found');
+  });
+});

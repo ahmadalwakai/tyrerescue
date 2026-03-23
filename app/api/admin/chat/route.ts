@@ -4,13 +4,9 @@ import { db } from '@/lib/db';
 import {
   tyreProducts,
   chatSessions,
-  bookings,
-  callMeBack,
-  contactMessages,
-  notifications,
   adminChatSettings,
 } from '@/lib/db/schema';
-import { eq, and, sql, gte, desc } from 'drizzle-orm';
+import { eq, and, gte, desc } from 'drizzle-orm';
 import { askGroq } from '@/lib/groq';
 import {
   generatePlan,
@@ -23,13 +19,16 @@ import {
   toolMap,
   formatAgentResponse,
   recall,
-  remember,
   extractSessionMemory,
   buildMemoryContext,
   summarizeIfNeeded,
   rememberEntitiesFromResults,
   resolveEntities,
   injectResolvedEntities,
+  ZYPHON_GREETING,
+  resolveSessionLanguage,
+  gatherStartupBriefing,
+  formatStartupBriefing,
 } from '@/lib/ai/admin-agent';
 import { agentRequestSchema } from '@/lib/ai/admin-agent/schemas';
 import { adjustStock } from '@/lib/inventory/stock-service';
@@ -40,6 +39,7 @@ import type {
   StockPreviewItem,
   ToolContext,
 } from '@/lib/ai/admin-agent/types';
+import type { ZyphonLanguage } from '@/lib/ai/admin-agent/language';
 
 /* ────────── Helpers ────────── */
 
@@ -141,35 +141,31 @@ async function handleStockUpdateConfirm(
   return { reply: reply || 'No changes made.' };
 }
 
-/* ────────── Greeting handler (preserved) ────────── */
+/* ────────── Greeting handler (Zyphon startup briefing) ────────── */
 
 async function handleGreeting(userId: string): Promise<{ reply: string }> {
   const today = todayStart();
   const [settings] = await db.select().from(adminChatSettings).where(eq(adminChatSettings.userId, userId)).limit(1);
-  const alreadyAsked = settings?.lastAskedAt && settings.lastAskedAt >= today;
+
+  // Gather startup briefing data in parallel
+  const briefing = await gatherStartupBriefing();
+  // Default language is Arabic for the greeting (before admin's first reply)
+  const briefingText = formatStartupBriefing(briefing, 'ar');
+
+  let greeting = ZYPHON_GREETING;
+  greeting += '\n\n' + briefingText;
+
+  // Track daily ask
   const dailyEnabled = settings?.dailyAskEnabled !== false;
-
-  // Alert counts
-  const [bk] = await db.select({ count: sql<number>`count(*)::int` }).from(bookings).where(gte(bookings.createdAt, today));
-  const [cb] = await db.select({ count: sql<number>`count(*)::int` }).from(callMeBack).where(eq(callMeBack.status, 'pending'));
-  const [msg] = await db.select({ count: sql<number>`count(*)::int` }).from(contactMessages).where(eq(contactMessages.status, 'unread'));
-  const [notif] = await db.select({ count: sql<number>`count(*)::int` }).from(notifications).where(eq(notifications.status, 'pending'));
-
-  let greeting = "Mornin'! Welcome back to the admin panel.";
+  const alreadyAsked = settings?.lastAskedAt && settings.lastAskedAt >= today;
   if (dailyEnabled && !alreadyAsked) {
-    greeting += " How many tyres did ye sell today? Just tell me the sizes and quantities.";
+    greeting += '\n\nكم تاير بعت اليوم؟ كلي الاحجام والكميات';
     if (settings) {
       await db.update(adminChatSettings).set({ lastAskedAt: new Date(), updatedAt: new Date() }).where(eq(adminChatSettings.userId, userId));
     } else {
       await db.insert(adminChatSettings).values({ userId, lastAskedAt: new Date() });
     }
   }
-  const parts: string[] = [];
-  if (bk.count > 0) parts.push(`${bk.count} new booking${bk.count > 1 ? 's' : ''} today`);
-  if (cb.count > 0) parts.push(`${cb.count} pending callback${cb.count > 1 ? 's' : ''}`);
-  if (msg.count > 0) parts.push(`${msg.count} unread message${msg.count > 1 ? 's' : ''}`);
-  if (notif.count > 0) parts.push(`${notif.count} pending notification${notif.count > 1 ? 's' : ''}`);
-  if (parts.length > 0) greeting += '\n\n' + parts.join('\n');
 
   return { reply: greeting };
 }
@@ -245,6 +241,16 @@ export async function POST(request: Request) {
   const sessionMemory = extractSessionMemory(chatSession.context);
   const memoryContext = buildMemoryContext(longTermMemory, sessionMemory);
 
+  // Resolve session language (Arabic/English)
+  const lang: ZyphonLanguage = resolveSessionLanguage(
+    chatSession.context?.lang,
+    intent !== 'greeting' ? message : undefined,
+  );
+  // Lock language in session after admin's first real message
+  if (!chatSession.context?.lang && intent !== 'greeting' && message.trim().length > 0) {
+    chatSession.context = { ...chatSession.context, lang };
+  }
+
   // Add user message
   if (intent !== 'greeting' && message.length > 0) {
     chatSession.messages.push({ role: 'user', content: message, timestamp: now });
@@ -289,7 +295,7 @@ export async function POST(request: Request) {
       // Execute the confirmed plan
       const output = await executePlan(validation.plan!, ctx);
       chatSession.context = { ...chatSession.context, pendingConfirmation: null, lastToolResults: output.results.map((r) => ({ toolName: r.toolName, result: r.result, at: now })) };
-      reply = await formatAgentResponse(validation.plan!.intent, output.results, memoryContext);
+      reply = await formatAgentResponse(validation.plan!.intent, output.results, memoryContext, lang);
       if (output.cards.length > 0) actions = [{ type: 'executed', results: output.cards }];
 
       // Remember entities from results
@@ -383,10 +389,14 @@ export async function POST(request: Request) {
           const contextBlock = memoryContext
             ? `\nRecent context:\n${memoryContext}\n`
             : '';
-          const systemPrompt = `You are an admin assistant for Tyre Rescue, a mobile tyre fitting business in Glasgow/Edinburgh, Scotland.
+          const langInstruction = lang === 'ar'
+            ? 'Respond in Arabic (Iraqi/Gulf dialect). Keep technical terms in English.'
+            : 'Respond in English.';
+          const systemPrompt = `You are Zyphon, the admin assistant for Tyre Rescue, a mobile tyre fitting business in Glasgow/Edinburgh, Scotland.
 You help the admin with operational questions about the admin panel.
 Available features: Bookings, Callbacks, Messages, Drivers, Inventory, Pricing, Availability, Testimonials, FAQ, Content, Audit Log, Analytics.
 Keep answers concise and practical. The admin is non-technical.
+${langInstruction}
 For identity questions, answer exactly: "Mr Ahmad Alwakai lead developer"${contextBlock}`;
           const helpReply = await askGroq(systemPrompt, message, 400);
           reply = helpReply || "I'm having trouble right now. Try asking about stock, bookings, or alerts instead.";
@@ -397,7 +407,7 @@ For identity questions, answer exactly: "Mr Ahmad Alwakai lead developer"${conte
         // Has clarification but tools are read-only — execute them to show context, then ask
         const output = await executePlan(plan, ctx);
         chatSession.context = { ...chatSession.context, lastToolResults: output.results.map((r) => ({ toolName: r.toolName, result: r.result, at: now })) };
-        reply = await formatAgentResponse(plan.intent, output.results, memoryContext);
+        reply = await formatAgentResponse(plan.intent, output.results, memoryContext, lang);
         if (plan.clarificationNeeded) reply += '\n\n' + plan.clarificationNeeded;
         await rememberEntitiesFromResults(userId, output.results);
       }
@@ -425,7 +435,7 @@ For identity questions, answer exactly: "Mr Ahmad Alwakai lead developer"${conte
           lastToolResults: output.results.map((r) => ({ toolName: r.toolName, result: r.result, at: now })),
           lastEntities: extractEntities(output.results),
         };
-        reply = await formatAgentResponse(plan.intent, output.results, memoryContext);
+        reply = await formatAgentResponse(plan.intent, output.results, memoryContext, lang);
         if (output.cards.some((c) => !c.success)) {
           actions = output.cards.filter((c) => !c.success).map((c) => ({ type: 'warning' as const, message: c.summary }));
         }
@@ -457,6 +467,7 @@ For identity questions, answer exactly: "Mr Ahmad Alwakai lead developer"${conte
     reply,
     actions,
     sessionId: chatSession.id,
+    lang,
     memory: memoryIndicators,
   });
 }

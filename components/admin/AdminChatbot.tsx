@@ -261,12 +261,21 @@ export function AdminChatbot() {
 
   const triggerGreeting = useCallback(async () => {
     if (greetedRef.current) return;
+    // Session-storage guard: only show startup briefing once per browser session
+    const storageKey = 'zyphon_greeted';
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(storageKey)) {
+      greetedRef.current = true;
+      return;
+    }
     greetedRef.current = true;
     const data = await sendMessage('', 'greeting');
     if (data) {
       setMessages([
         { role: 'assistant', content: data.reply, timestamp: new Date().toISOString(), actions: data.actions },
       ]);
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(storageKey, '1');
+      }
     }
   }, [sendMessage]);
 
@@ -492,22 +501,27 @@ export function AdminChatbot() {
         position="fixed"
         bottom="24px"
         right="24px"
-        w="48px"
-        h="48px"
-        borderRadius="full"
         display="flex"
         alignItems="center"
-        justifyContent="center"
+        gap="10px"
         cursor="pointer"
         zIndex={{ base: 150, md: 80 }}
         transition="transform 0.2s, box-shadow 0.2s"
-        _hover={{ transform: 'scale(1.08)', boxShadow: `0 4px 20px ${c.accentGlow}` }}
+        _hover={{ transform: 'scale(1.05)', boxShadow: `0 4px 20px ${c.accentGlow}` }}
         onClick={() => setOpen(true)}
         style={anim.scaleIn()}
-        aria-label="Open admin AI agent"
-        title="AI Admin Agent"
+        aria-label="Open Zyphon AI agent"
+        title="Zyphon – AI Admin Agent"
+        bg={c.surface}
+        borderRadius="full"
+        px="12px"
+        py="8px"
+        border={`1px solid ${c.border}`}
       >
-        <AdminAIAgentIcon size={48} animated glow />
+        <AdminAIAgentIcon size={56} animated glow />
+        <Text fontSize="13px" fontWeight="600" color={c.text} letterSpacing="0.02em" pr="4px">
+          Zyphon
+        </Text>
         {/* Alert badge */}
         {alertCount > 0 && (
           <Box
@@ -555,7 +569,7 @@ export function AdminChatbot() {
         bg={c.card}
       >
         <Text fontSize="14px" fontWeight="600" color={c.text} letterSpacing="0.02em">
-          Admin Assistant
+          Zyphon
         </Text>
         <Flex gap={1}>
           {/* Speaker toggle */}
