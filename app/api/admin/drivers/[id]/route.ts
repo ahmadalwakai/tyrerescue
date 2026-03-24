@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
-import { db, users, drivers, bookings } from '@/lib/db';
+import { db, users, drivers, bookings, notifications, bookingMessages, driverNotifications, chatSessions } from '@/lib/db';
 import { eq, and, sql, notInArray } from 'drizzle-orm';
 import { createAdminNotification } from '@/lib/notifications';
 
@@ -197,6 +197,12 @@ export async function DELETE(
       .update(bookings)
       .set({ driverId: null })
       .where(eq(bookings.driverId, id));
+
+    // Clean up non-cascading FK references before deleting user
+    await db.delete(notifications).where(eq(notifications.userId, driver.userId));
+    await db.delete(driverNotifications).where(eq(driverNotifications.driverId, id));
+    await db.delete(bookingMessages).where(eq(bookingMessages.senderId, driver.userId));
+    await db.delete(chatSessions).where(eq(chatSessions.userId, driver.userId));
 
     // Delete user (cascades to driver record and accounts)
     await db.delete(users).where(eq(users.id, driver.userId));
