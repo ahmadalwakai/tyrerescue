@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,53 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
 import { driverApi, JobSummary } from '@/api/client';
 import { useAuth } from '@/auth/context';
 import { useLocationBroadcast } from '@/hooks/useLocation';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useLivePolling } from '@/hooks/useLivePolling';
 import { JobCard } from '@/components/JobCard';
 import { EmptyState } from '@/components/EmptyState';
 import { lightHaptic } from '@/services/haptics';
 import { JobCardSkeleton } from '@/components/SkeletonLoader';
+
+function PulsingDot() {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    scale.value = withRepeat(withTiming(1.8, { duration: 1400, easing: Easing.out(Easing.ease) }), -1, true);
+    opacity.value = withRepeat(withTiming(0.2, { duration: 1400, easing: Easing.out(Easing.ease) }), -1, true);
+  }, []);
+
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <View style={pulseStyles.wrap}>
+      <Animated.View style={[pulseStyles.ring, ringStyle]} />
+      <View style={pulseStyles.dot} />
+    </View>
+  );
+}
+
+const pulseStyles = StyleSheet.create({
+  wrap: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
+  ring: { position: 'absolute', width: 20, height: 20, borderRadius: 10, backgroundColor: colors.success },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success },
+});
+
+function formatSyncTime(ms: number | null): string {
+  if (!ms) return 'Syncing…';
+  const diff = Math.floor((Date.now() - ms) / 1000);
+  if (diff < 5) return 'Just now';
+  if (diff < 60) return `${diff}s ago`;
+  return `${Math.floor(diff / 60)}m ago`;
+}
 
 export default function DashboardScreen() {
   const { user } = useAuth();
@@ -28,8 +65,10 @@ export default function DashboardScreen() {
   const [completedCount, setCompletedCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [lastSync, setLastSync] = useState<number | null>(null);
+  const [syncLabel, setSyncLabel] = useState('Syncing…');
 
-  useLocationBroadcast(isOnline, activeJobs.length > 0);
+  const { bgRunning } = useLocationBroadcast(isOnline, activeJobs.length > 0);
 
   const fetchData = useCallback(async () => {
     try {
@@ -40,6 +79,7 @@ export default function DashboardScreen() {
       setIsOnline(statusRes.isOnline);
       setActiveJobs(jobsRes.active);
       setCompletedCount(jobsRes.completed.length);
+      setLastSync(Date.now());
     } catch {
       // Silently ignore
     }
@@ -50,6 +90,16 @@ export default function DashboardScreen() {
   }, [fetchData]);
 
   useRefreshOnFocus(fetchData);
+
+  // Live polling while online
+  useLivePolling(fetchData, isOnline);
+
+  // Update sync label every 5s
+  useEffect(() => {
+    const t = setInterval(() => setSyncLabel(formatSyncTime(lastSync)), 5000);
+    setSyncLabel(formatSyncTime(lastSync));
+    return () => clearInterval(t);
+  }, [lastSync]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -99,7 +149,7 @@ export default function DashboardScreen() {
           </Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-          <View style={[styles.statusDot, isOnline ? styles.statusDotOnline : styles.statusDotOffline]} />
+          {isOnline ? <PulsingDot /> : <View style={[styles.statusDot, styles.statusDotOffline]} />}
           <Switch
             value={isOnline}
             onValueChange={handleToggleOnline}
@@ -109,6 +159,33 @@ export default function DashboardScreen() {
           />
         </View>
       </Animated.View>
+
+      {/* Live Status Panel — shown when online with no active jobs */}
+      {isOnline && activeJobs.length === 0 && (
+        <Animated.View entering={FadeInDown.duration(300).delay(90)} style={styles.livePanel}>
+          <View style={styles.livePanelHeader}>
+            <PulsingDot />
+            <Text style={styles.livePanelTitle}>Searching for jobs…</Text>
+          </View>
+          <Text style={styles.livePanelSubtitle}>Ready to receive tyre rescue assignments</Text>
+          <View style={styles.livePanelInfo}>
+            <View style={styles.liveRow}>
+              <View style={[styles.liveIndicator, { backgroundColor: colors.success }]} />
+              <Text style={styles.liveText}>Online</Text>
+            </View>
+            <View style={styles.liveRow}>
+              <View style={[styles.liveIndicator, { backgroundColor: bgRunning ? colors.success : colors.info }]} />
+              <Text style={styles.liveText}>
+                {bgRunning ? 'Location sharing active (background)' : 'Location signal active'}
+              </Text>
+            </View>
+            <View style={styles.liveRow}>
+              <View style={[styles.liveIndicator, { backgroundColor: colors.muted }]} />
+              <Text style={styles.liveText}>Last sync: {syncLabel}</Text>
+            </View>
+          </View>
+        </Animated.View>
+      )}
 
       {/* Stats */}
       <Animated.View entering={FadeInDown.duration(300).delay(120)} style={styles.statsRow}>
@@ -137,11 +214,11 @@ export default function DashboardScreen() {
         </View>
       )}
 
-      {activeJobs.length === 0 && isOnline && (
+      {activeJobs.length === 0 && !isOnline && (
         <EmptyState
-          icon="briefcase-outline"
-          title="No active jobs right now"
-          message="Stay online to receive new assignments."
+          icon="cloud-offline-outline"
+          title="You are offline"
+          message="Go online to start receiving job assignments."
         />
       )}
     </ScrollView>
@@ -191,9 +268,6 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
   },
-  statusDotOnline: {
-    backgroundColor: colors.success,
-  },
   statusDotOffline: {
     backgroundColor: colors.muted,
   },
@@ -230,5 +304,50 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     color: colors.text,
     marginBottom: spacing.sm,
+  },
+  // Live status panel
+  livePanel: {
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(34,197,94,0.2)',
+    marginBottom: spacing.lg,
+    ...cardShadow,
+  },
+  livePanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  livePanelTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.base,
+    color: colors.success,
+  },
+  livePanelSubtitle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.xs,
+    color: colors.muted,
+    marginBottom: spacing.md,
+  },
+  livePanelInfo: {
+    gap: spacing.sm,
+  },
+  liveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  liveIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  liveText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.xs,
+    color: colors.muted,
   },
 });

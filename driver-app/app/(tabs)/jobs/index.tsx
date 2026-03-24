@@ -11,6 +11,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
 import { driverApi, JobSummary } from '@/api/client';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useLivePolling } from '@/hooks/useLivePolling';
 import { JobCard } from '@/components/JobCard';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -40,6 +41,9 @@ export default function JobsListScreen() {
   }, []);
 
   useRefreshOnFocus(fetchJobs);
+
+  // Live polling every 12s while screen focused
+  useLivePolling(fetchJobs, true);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
