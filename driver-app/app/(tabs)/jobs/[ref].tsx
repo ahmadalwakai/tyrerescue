@@ -22,17 +22,21 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { mediumHaptic, heavyHaptic, errorHaptic } from '@/services/haptics';
 import { playSound } from '@/services/sound';
+import { useI18n } from '@/i18n';
 
-const DRIVER_ACTIONS: Record<string, { label: string; next: string }> = {
-  driver_assigned: { label: 'Start En Route', next: 'en_route' },
-  en_route: { label: 'Mark Arrived', next: 'arrived' },
-  arrived: { label: 'Start Work', next: 'in_progress' },
-  in_progress: { label: 'Mark Complete', next: 'completed' },
-};
+function getDriverActions(t: (key: string) => string): Record<string, { label: string; next: string }> {
+  return {
+    driver_assigned: { label: t('jobDetail.startEnRoute'), next: 'en_route' },
+    en_route: { label: t('jobDetail.markArrived'), next: 'arrived' },
+    arrived: { label: t('jobDetail.startWork'), next: 'in_progress' },
+    in_progress: { label: t('jobDetail.markComplete'), next: 'completed' },
+  };
+}
 
 export default function JobDetailScreen() {
   const { ref } = useLocalSearchParams<{ ref: string }>();
   const router = useRouter();
+  const { t, dateLocale } = useI18n();
   const [job, setJob] = useState<JobDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -62,13 +66,13 @@ export default function JobDetailScreen() {
     if (!ref) return;
     const confirmMsg =
       nextStatus === 'completed'
-        ? 'Are you sure you want to mark this job as complete?'
-        : `Update status to ${nextStatus.replace(/_/g, ' ')}?`;
+        ? t('jobDetail.confirmComplete')
+        : t('jobDetail.confirmStatusUpdate', { status: nextStatus.replace(/_/g, ' ') });
 
-    Alert.alert('Confirm', confirmMsg, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('common.confirm'), confirmMsg, [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Confirm',
+        text: t('common.confirm'),
         onPress: async () => {
           setActioning(true);
           try {
@@ -81,8 +85,8 @@ export default function JobDetailScreen() {
             }
             await fetchJob();
           } catch (err) {
-            const msg = err instanceof ApiError ? err.message : 'Failed to update status.';
-            Alert.alert('Error', msg);
+            const msg = err instanceof ApiError ? err.message : t('jobDetail.failedUpdate');
+            Alert.alert(t('common.error'), msg);
           }
           setActioning(false);
         },
@@ -92,10 +96,10 @@ export default function JobDetailScreen() {
 
   const handleAccept = async () => {
     if (!ref) return;
-    Alert.alert('Accept Job', 'Accept this assignment?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('jobDetail.acceptJob'), t('jobDetail.acceptAssignment'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Accept',
+        text: t('jobDetail.accept'),
         onPress: async () => {
           setActioning(true);
           try {
@@ -104,8 +108,8 @@ export default function JobDetailScreen() {
             playSound('job_accepted');
             await fetchJob();
           } catch (err) {
-            const msg = err instanceof ApiError ? err.message : 'Failed to accept job.';
-            Alert.alert('Error', msg);
+            const msg = err instanceof ApiError ? err.message : t('jobDetail.failedAccept');
+            Alert.alert(t('common.error'), msg);
           }
           setActioning(false);
         },
@@ -119,13 +123,13 @@ export default function JobDetailScreen() {
   const checklistItems = useMemo(() => {
     if (!job) return [];
     if (job.status === 'en_route') return [
-      { key: 'location', label: 'Correct customer location confirmed' },
-      { key: 'tools', label: 'Required tools & tyres loaded' },
+      { key: 'location', label: t('jobDetail.correctLocation') },
+      { key: 'tools', label: t('jobDetail.toolsLoaded') },
     ];
     if (job.status === 'arrived') return [
-      { key: 'parked', label: 'Vehicle safely parked' },
-      { key: 'customer', label: 'Customer aware of arrival' },
-      { key: 'tools', label: 'Tools ready to begin' },
+      { key: 'parked', label: t('jobDetail.vehicleParked') },
+      { key: 'customer', label: t('jobDetail.customerAware') },
+      { key: 'tools', label: t('jobDetail.toolsReady') },
     ];
     return [];
   }, [job?.status]);
@@ -134,10 +138,10 @@ export default function JobDetailScreen() {
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const QUICK_MESSAGES: { key: string; label: string; body: string; statuses: string[] }[] = [
-    { key: 'omw', label: "I'm on the way", body: "Hi, your Tyre Rescue driver is on the way to you now.", statuses: ['driver_assigned', 'en_route'] },
-    { key: 'nearby', label: "I'm nearby", body: "Hi, your driver is nearly with you — please be ready.", statuses: ['en_route'] },
-    { key: 'arrived', label: "I've arrived", body: "Hi, your Tyre Rescue driver has arrived at the location.", statuses: ['en_route', 'arrived'] },
-    { key: '5min', label: '5 more minutes', body: "Hi, your driver needs about 5 more minutes to finish — nearly done.", statuses: ['in_progress'] },
+    { key: 'omw', label: t('jobDetail.imOnTheWay'), body: t('jobDetail.msgOnTheWay'), statuses: ['driver_assigned', 'en_route'] },
+    { key: 'nearby', label: t('jobDetail.imNearby'), body: t('jobDetail.msgNearby'), statuses: ['en_route'] },
+    { key: 'arrived', label: t('jobDetail.iveArrived'), body: t('jobDetail.msgArrived'), statuses: ['en_route', 'arrived'] },
+    { key: '5min', label: t('jobDetail.fiveMoreMinutes'), body: t('jobDetail.msgFiveMin'), statuses: ['in_progress'] },
   ];
 
   const sendQuickMessage = async (msg: typeof QUICK_MESSAGES[0]) => {
@@ -146,9 +150,9 @@ export default function JobDetailScreen() {
     try {
       const res = await chatApi.createConversation(job.id, 'customer_driver');
       await chatApi.sendMessage(res.conversationId, msg.body);
-      Alert.alert('Sent', `Message sent to customer.`);
+      Alert.alert(t('common.sent'), t('jobDetail.messageSent'));
     } catch {
-      Alert.alert('Error', 'Could not send message.');
+      Alert.alert(t('common.error'), t('jobDetail.couldNotSend'));
     }
     setSendingQuickMsg(null);
   };
@@ -161,10 +165,10 @@ export default function JobDetailScreen() {
 
   const handleReject = async () => {
     if (!ref) return;
-    Alert.alert('Reject Job', 'Are you sure you want to reject this job?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('jobDetail.rejectJob'), t('jobDetail.confirmReject'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Reject',
+        text: t('jobDetail.reject'),
         style: 'destructive',
         onPress: async () => {
           setActioning(true);
@@ -173,8 +177,8 @@ export default function JobDetailScreen() {
             await driverApi.rejectJob(ref);
             router.back();
           } catch (err) {
-            const msg = err instanceof ApiError ? err.message : 'Failed to reject job.';
-            Alert.alert('Error', msg);
+            const msg = err instanceof ApiError ? err.message : t('jobDetail.failedReject');
+            Alert.alert(t('common.error'), msg);
           }
           setActioning(false);
         },
@@ -187,14 +191,15 @@ export default function JobDetailScreen() {
   if (!job) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Job not found.</Text>
+        <Text style={styles.errorText}>{t('jobs.jobNotFound')}</Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={styles.linkText}>Go back</Text>
+          <Text style={styles.linkText}>{t('common.goBack')}</Text>
         </Pressable>
       </View>
     );
   }
 
+  const DRIVER_ACTIONS = getDriverActions(t);
   const action = DRIVER_ACTIONS[job.status];
 
   return (
@@ -215,12 +220,12 @@ export default function JobDetailScreen() {
       <View style={styles.contextRow}>
         <View style={styles.contextChip}>
           <Ionicons name="construct-outline" size={14} color={colors.accent} />
-          <Text style={styles.contextChipText}>{job.serviceType?.replace(/_/g, ' ') || 'Service'}</Text>
+          <Text style={styles.contextChipText}>{job.serviceType?.replace(/_/g, ' ') || t('jobs.service')}</Text>
         </View>
         <View style={styles.contextChip}>
           <Ionicons name="car-outline" size={14} color={colors.accent} />
           <Text style={styles.contextChipText}>
-            {[job.vehicleReg, job.vehicleMake].filter(Boolean).join(' · ') || 'No vehicle'}
+            {[job.vehicleReg, job.vehicleMake].filter(Boolean).join(' · ') || t('jobs.noVehicle')}
           </Text>
         </View>
         {job.tyres.length > 0 && (
@@ -235,7 +240,7 @@ export default function JobDetailScreen() {
 
       {/* Customer Info */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Customer</Text>
+        <Text style={styles.cardTitle}>{t('jobDetail.customer')}</Text>
         <Text style={styles.cardValue}>{job.customerName}</Text>
         {job.customerPhone && (
           <Pressable onPress={() => Linking.openURL(`tel:${job.customerPhone}`)}>
@@ -247,7 +252,7 @@ export default function JobDetailScreen() {
       {/* Quick Status Messages */}
       {['driver_assigned', 'en_route', 'arrived', 'in_progress'].includes(job.status) && (
         <View style={styles.quickMsgSection}>
-          <Text style={styles.quickMsgTitle}>Quick Message to Customer</Text>
+          <Text style={styles.quickMsgTitle}>{t('jobDetail.quickMessage')}</Text>
           <View style={styles.quickMsgRow}>
             {QUICK_MESSAGES.filter((m) => m.statuses.includes(job.status)).map((m) => (
               <Pressable
@@ -269,20 +274,20 @@ export default function JobDetailScreen() {
 
       {/* Location */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Location</Text>
+        <Text style={styles.cardTitle}>{t('jobDetail.location')}</Text>
         <Text style={styles.cardValue}>{job.addressLine}</Text>
         {job.lat && job.lng && (
           <View style={styles.locationButtons}>
             <Pressable style={styles.navButton} onPress={openNavigation}>
               <Ionicons name="navigate-outline" size={18} color="#FFFFFF" />
-              <Text style={styles.navButtonText}>Open in Maps</Text>
+              <Text style={styles.navButtonText}>{t('jobDetail.openInMaps')}</Text>
             </Pressable>
             <Pressable
               style={[styles.navButton, styles.mapViewButton]}
               onPress={() => router.push(`/(tabs)/jobs/${ref}/map`)}
             >
               <Ionicons name="map-outline" size={18} color="#FFFFFF" />
-              <Text style={styles.navButtonText}>Live Map</Text>
+              <Text style={styles.navButtonText}>{t('jobDetail.liveMap')}</Text>
             </Pressable>
           </View>
         )}
@@ -291,9 +296,9 @@ export default function JobDetailScreen() {
       {/* Schedule */}
       {job.scheduledAt && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Scheduled</Text>
+          <Text style={styles.cardTitle}>{t('jobDetail.scheduled')}</Text>
           <Text style={styles.cardValue}>
-            {format(new Date(job.scheduledAt), 'EEEE, dd MMM yyyy · HH:mm')}
+            {format(new Date(job.scheduledAt), 'EEEE, dd MMM yyyy · HH:mm', { locale: dateLocale })}
           </Text>
         </View>
       )}
@@ -301,12 +306,12 @@ export default function JobDetailScreen() {
       {/* Vehicle */}
       {(job.vehicleReg || job.vehicleMake) && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Vehicle</Text>
+          <Text style={styles.cardTitle}>{t('jobDetail.vehicle')}</Text>
           <Text style={styles.cardValue}>
             {[job.vehicleReg, job.vehicleMake, job.vehicleModel].filter(Boolean).join(' · ')}
           </Text>
           {job.lockingNutStatus && (
-            <Text style={styles.cardMeta}>Locking nut: {job.lockingNutStatus}</Text>
+            <Text style={styles.cardMeta}>{t('jobDetail.lockingNut', { status: job.lockingNutStatus })}</Text>
           )}
         </View>
       )}
@@ -314,7 +319,7 @@ export default function JobDetailScreen() {
       {/* Tyres */}
       {job.tyres.length > 0 && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Tyres</Text>
+          <Text style={styles.cardTitle}>{t('jobDetail.tyres')}</Text>
           {job.tyres.map((t, i) => (
             <View key={t.id || i} style={styles.tyreRow}>
               <Text style={styles.cardValue}>
@@ -333,7 +338,7 @@ export default function JobDetailScreen() {
       {/* Notes */}
       {job.notes && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Notes</Text>
+          <Text style={styles.cardTitle}>{t('jobDetail.notes')}</Text>
           <Text style={styles.cardValue}>{job.notes}</Text>
         </View>
       )}
@@ -342,7 +347,7 @@ export default function JobDetailScreen() {
       {checklistItems.length > 0 && (
         <View style={styles.checklistCard}>
           <Text style={styles.cardTitle}>
-            {job.status === 'en_route' ? 'Before Arriving' : 'Before Starting'}
+            {job.status === 'en_route' ? t('jobDetail.beforeArriving') : t('jobDetail.beforeStarting')}
           </Text>
           {checklistItems.map((item) => (
             <Pressable
@@ -375,7 +380,7 @@ export default function JobDetailScreen() {
           onPress={() => Linking.openURL('tel:01412660690')}
         >
           <Ionicons name="call-outline" size={20} color="#FFFFFF" />
-          <Text style={styles.callAdminText}>Call Admin</Text>
+          <Text style={styles.callAdminText}>{t('jobDetail.callAdmin')}</Text>
         </Pressable>
         <Pressable
           style={styles.chatAdminButton}
@@ -384,12 +389,12 @@ export default function JobDetailScreen() {
               const res = await chatApi.createConversation(job.id, 'admin_driver');
               router.push(`/(tabs)/chat/${res.conversationId}`);
             } catch {
-              Alert.alert('Error', 'Could not open chat.');
+              Alert.alert(t('common.error'), t('jobDetail.couldNotOpenChat'));
             }
           }}
         >
           <Ionicons name="chatbubble-outline" size={20} color={colors.accent} />
-          <Text style={styles.chatAdminText}>Chat with Admin</Text>
+          <Text style={styles.chatAdminText}>{t('jobDetail.chatWithAdmin')}</Text>
         </Pressable>
       </View>
 
@@ -403,7 +408,7 @@ export default function JobDetailScreen() {
             pressScale={0.95}
           >
             <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.actionButtonText}>Accept Job</Text>
+            <Text style={styles.actionButtonText}>{t('jobDetail.acceptJob')}</Text>
           </AnimatedPressable>
           <AnimatedPressable
             style={[styles.actionButton, styles.rejectButton, actioning && styles.buttonDisabled]}
@@ -412,7 +417,7 @@ export default function JobDetailScreen() {
             pressScale={0.95}
           >
             <Ionicons name="close-circle-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.actionButtonText}>Reject</Text>
+            <Text style={styles.actionButtonText}>{t('jobDetail.reject')}</Text>
           </AnimatedPressable>
         </Animated.View>
       )}
@@ -426,7 +431,7 @@ export default function JobDetailScreen() {
             pressScale={0.95}
           >
             <Text style={styles.actionButtonText}>
-              {actioning ? 'Updating…' : DRIVER_ACTIONS.driver_assigned.label}
+              {actioning ? t('common.updating') : DRIVER_ACTIONS.driver_assigned.label}
             </Text>
           </AnimatedPressable>
           <AnimatedPressable
@@ -436,7 +441,7 @@ export default function JobDetailScreen() {
             pressScale={0.95}
           >
             <Ionicons name="close-circle-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.actionButtonText}>Reject</Text>
+            <Text style={styles.actionButtonText}>{t('jobDetail.reject')}</Text>
           </AnimatedPressable>
         </Animated.View>
       )}
@@ -449,7 +454,7 @@ export default function JobDetailScreen() {
           pressScale={0.95}
         >
           <Text style={styles.actionButtonText}>
-            {actioning ? 'Updating…' : action.label}
+            {actioning ? t('common.updating') : action.label}
           </Text>
         </AnimatedPressable>
       )}
@@ -457,7 +462,7 @@ export default function JobDetailScreen() {
       {/* Status History */}
       {job.statusHistory.length > 0 && (
         <View style={styles.historySection}>
-          <Text style={styles.cardTitle}>Status History</Text>
+          <Text style={styles.cardTitle}>{t('jobDetail.statusHistory')}</Text>
           {job.statusHistory.map((h) => (
             <View key={h.id} style={styles.historyRow}>
               <View style={styles.dot} />
@@ -467,7 +472,7 @@ export default function JobDetailScreen() {
                 </Text>
                 {h.createdAt && (
                   <Text style={styles.historyTime}>
-                    {format(new Date(h.createdAt), 'dd MMM, HH:mm')}
+                    {format(new Date(h.createdAt), 'dd MMM, HH:mm', { locale: dateLocale })}
                   </Text>
                 )}
               </View>

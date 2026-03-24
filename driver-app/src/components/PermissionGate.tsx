@@ -12,6 +12,7 @@ import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
+import { useI18n } from '@/i18n';
 
 interface PermissionStatus {
   location: boolean;
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function PermissionGate({ children }: Props) {
+  const { t } = useI18n();
   const [perms, setPerms] = useState<PermissionStatus | null>(null);
   const [notifDismissed, setNotifDismissed] = useState(false);
 
@@ -90,11 +92,11 @@ export function PermissionGate({ children }: Props) {
   return (
     <View style={styles.container}>
       <Ionicons name="shield-checkmark-outline" size={56} color={colors.accent} />
-      <Text style={styles.heading}>Permissions Required</Text>
+      <Text style={styles.heading}>{t('permissions.permissionsRequired')}</Text>
       <Text style={styles.subheading}>
         {needsLocation
-          ? 'Location access is required for Tyre Rescue to function. You cannot proceed without it.'
-          : 'Please enable notifications to receive job assignments and messages.'}
+          ? t('permissions.locationRequired')
+          : t('permissions.notificationsEncouraged')}
       </Text>
 
       {needsLocation && (
@@ -102,14 +104,14 @@ export function PermissionGate({ children }: Props) {
           <View style={styles.permInfo}>
             <Ionicons name="location-outline" size={24} color={colors.accent} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.permTitle}>Location</Text>
+              <Text style={styles.permTitle}>{t('permissions.locationTitle')}</Text>
               <Text style={styles.permDesc}>
-                Required to share your position with customers and calculate ETAs.
+                {t('permissions.locationDesc')}
               </Text>
             </View>
           </View>
           <Pressable style={styles.grantBtn} onPress={requestLocation}>
-            <Text style={styles.grantBtnText}>Grant</Text>
+            <Text style={styles.grantBtnText}>{t('common.grant')}</Text>
           </Pressable>
         </View>
       )}
@@ -119,27 +121,27 @@ export function PermissionGate({ children }: Props) {
           <View style={styles.permInfo}>
             <Ionicons name="notifications-outline" size={24} color={colors.accent} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.permTitle}>Notifications</Text>
+              <Text style={styles.permTitle}>{t('permissions.notificationsTitle')}</Text>
               <Text style={styles.permDesc}>
-                Required to receive new job assignments and customer messages.
+                {t('permissions.notificationsDesc')}
               </Text>
             </View>
           </View>
           <Pressable style={styles.grantBtn} onPress={requestNotifications}>
-            <Text style={styles.grantBtnText}>Grant</Text>
+            <Text style={styles.grantBtnText}>{t('common.grant')}</Text>
           </Pressable>
         </View>
       )}
 
       <Pressable style={styles.settingsBtn} onPress={openSettings}>
         <Ionicons name="settings-outline" size={18} color={colors.accent} />
-        <Text style={styles.settingsBtnText}>Open device settings</Text>
+        <Text style={styles.settingsBtnText}>{t('permissions.openDeviceSettings')}</Text>
       </Pressable>
 
       {/* Only allow skip when location IS granted but notifications are not */}
       {!needsLocation && needsNotifications && (
         <Pressable onPress={() => setNotifDismissed(true)}>
-          <Text style={styles.skipText}>Continue without notifications</Text>
+          <Text style={styles.skipText}>{t('permissions.continueWithout')}</Text>
         </Pressable>
       )}
     </View>

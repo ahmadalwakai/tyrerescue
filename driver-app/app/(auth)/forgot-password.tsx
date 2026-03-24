@@ -13,8 +13,10 @@ import {
 import { router } from 'expo-router';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
 import { driverApi, ApiError } from '@/api/client';
+import { useI18n } from '@/i18n';
 
 export default function ForgotPasswordScreen() {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -22,7 +24,7 @@ export default function ForgotPasswordScreen() {
   const handleSubmit = async () => {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed) {
-      Alert.alert('Error', 'Please enter your email address.');
+      Alert.alert(t('common.error'), t('auth.enterEmail'));
       return;
     }
 
@@ -34,8 +36,8 @@ export default function ForgotPasswordScreen() {
       const message =
         err instanceof ApiError
           ? err.message
-          : 'Something went wrong. Please try again.';
-      Alert.alert('Error', message);
+          : t('auth.somethingWrong');
+      Alert.alert(t('common.error'), message);
     } finally {
       setLoading(false);
     }
@@ -46,10 +48,9 @@ export default function ForgotPasswordScreen() {
       <View style={styles.container}>
         <View style={styles.centered}>
           <Text style={styles.successIcon}>✓</Text>
-          <Text style={styles.successTitle}>Check Your Email</Text>
+          <Text style={styles.successTitle}>{t('auth.checkEmail')}</Text>
           <Text style={styles.successText}>
-            If an account with that email exists, we've sent a password reset
-            link. Please check your inbox and spam folder.
+            {t('auth.resetEmailSent')}
           </Text>
           <Pressable
             style={({ pressed }) => [
@@ -58,7 +59,7 @@ export default function ForgotPasswordScreen() {
             ]}
             onPress={() => router.back()}
           >
-            <Text style={styles.buttonText}>Back to Login</Text>
+            <Text style={styles.buttonText}>{t('auth.backToLogin')}</Text>
           </Pressable>
         </View>
       </View>
@@ -75,22 +76,21 @@ export default function ForgotPasswordScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoBox}>
-          <Text style={styles.brand}>TYRE RESCUE</Text>
-          <Text style={styles.subtitle}>Reset Password</Text>
+          <Text style={styles.brand}>{t('auth.brand')}</Text>
+          <Text style={styles.subtitle}>{t('auth.resetPassword')}</Text>
         </View>
 
         <View style={styles.form}>
           <Text style={styles.description}>
-            Enter your email address and we'll send you a link to reset your
-            password.
+            {t('auth.resetDescription')}
           </Text>
 
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>{t('auth.email')}</Text>
           <TextInput
             style={styles.input}
             value={email}
             onChangeText={setEmail}
-            placeholder="driver@email.com"
+            placeholder={t('auth.emailPlaceholder')}
             placeholderTextColor={colors.muted}
             autoCapitalize="none"
             keyboardType="email-address"
@@ -109,7 +109,7 @@ export default function ForgotPasswordScreen() {
             disabled={loading}
           >
             <Text style={styles.buttonText}>
-              {loading ? 'Sending…' : 'Send Reset Link'}
+              {loading ? t('common.sending') : t('auth.sendResetLink')}
             </Text>
           </Pressable>
 
@@ -117,7 +117,7 @@ export default function ForgotPasswordScreen() {
             style={styles.linkButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.linkText}>Back to Login</Text>
+            <Text style={styles.linkText}>{t('auth.backToLogin')}</Text>
           </Pressable>
         </View>
       </ScrollView>

@@ -32,6 +32,7 @@ const navItems = [
   { label: 'Hero Media', href: '/admin/hero-media' },
   { label: 'Cookies', href: '/admin/cookies' },
   { label: 'Diagnostics', href: '/admin/diagnostics' },
+  { label: 'Driver Sounds', href: '/admin/driver-sounds' },
   { label: 'Audit Log', href: '/admin/audit' },
   { label: 'Notifications', href: '/admin/notifications', isNotifications: true as const },
   { label: 'Analytics', href: '/admin/analytics' },

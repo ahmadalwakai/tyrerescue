@@ -19,6 +19,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { mediumHaptic, heavyHaptic, lightHaptic } from '@/services/haptics';
 import { playSound } from '@/services/sound';
+import { useI18n } from '@/i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -35,16 +36,19 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-const DRIVER_ACTIONS: Record<string, { label: string; next: string; icon: string }> = {
-  driver_assigned: { label: 'Start En Route', next: 'en_route', icon: 'car-outline' },
-  en_route: { label: 'Arrived', next: 'arrived', icon: 'flag-outline' },
-  arrived: { label: 'Start Work', next: 'in_progress', icon: 'construct-outline' },
-  in_progress: { label: 'Complete Job', next: 'completed', icon: 'checkmark-circle-outline' },
-};
+function getMapDriverActions(t: (key: string) => string): Record<string, { label: string; next: string; icon: string }> {
+  return {
+    driver_assigned: { label: t('jobDetail.startEnRoute'), next: 'en_route', icon: 'car-outline' },
+    en_route: { label: t('jobDetail.markArrived'), next: 'arrived', icon: 'flag-outline' },
+    arrived: { label: t('jobDetail.startWork'), next: 'in_progress', icon: 'construct-outline' },
+    in_progress: { label: t('jobDetail.completeJob'), next: 'completed', icon: 'checkmark-circle-outline' },
+  };
+}
 
 export default function JobMapScreen() {
   const { ref } = useLocalSearchParams<{ ref: string }>();
   const router = useRouter();
+  const { t } = useI18n();
   const [job, setJob] = useState<JobDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [actioning, setActioning] = useState(false);
@@ -131,13 +135,13 @@ export default function JobMapScreen() {
     if (!ref) return;
     const confirmMsg =
       nextStatus === 'completed'
-        ? 'Mark this job as complete?'
-        : `Update to ${nextStatus.replace(/_/g, ' ')}?`;
+        ? t('map.confirmComplete')
+        : t('map.confirmUpdate', { status: nextStatus.replace(/_/g, ' ') });
 
-    Alert.alert('Confirm', confirmMsg, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('common.confirm'), confirmMsg, [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Confirm',
+        text: t('common.confirm'),
         onPress: async () => {
           setActioning(true);
           try {
@@ -153,8 +157,8 @@ export default function JobMapScreen() {
               router.back();
             }
           } catch (err) {
-            const msg = err instanceof ApiError ? err.message : 'Failed to update status.';
-            Alert.alert('Error', msg);
+            const msg = err instanceof ApiError ? err.message : t('jobDetail.failedUpdate');
+            Alert.alert(t('common.error'), msg);
           }
           setActioning(false);
         },
@@ -185,14 +189,15 @@ export default function JobMapScreen() {
   if (!job) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Job not found.</Text>
+        <Text style={styles.errorText}>{t('jobs.jobNotFound')}</Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={styles.linkText}>Go back</Text>
+          <Text style={styles.linkText}>{t('common.goBack')}</Text>
         </Pressable>
       </View>
     );
   }
 
+  const DRIVER_ACTIONS = getMapDriverActions(t);
   const action = DRIVER_ACTIONS[job.status];
   const custLat = job.lat ? parseFloat(job.lat) : null;
   const custLng = job.lng ? parseFloat(job.lng) : null;
@@ -209,14 +214,14 @@ export default function JobMapScreen() {
               onPress={openGoogleMapsNavigation}
             >
               <Ionicons name="map-outline" size={48} color={colors.accent} />
-              <Text style={styles.mapTapText}>Tap to open navigation</Text>
+              <Text style={styles.mapTapText}>{t('map.tapToNavigate')}</Text>
               {driverLat != null && driverLng != null && (
                 <Text style={styles.coordsText}>
-                  📍 You: {driverLat.toFixed(4)}, {driverLng.toFixed(4)}
+                  📍 {t('map.yourLocation')}: {driverLat.toFixed(4)}, {driverLng.toFixed(4)}
                 </Text>
               )}
               <Text style={styles.coordsText}>
-                🏠 Customer: {custLat.toFixed(4)}, {custLng.toFixed(4)}
+                🏠 {t('map.customerLocation')}: {custLat.toFixed(4)}, {custLng.toFixed(4)}
               </Text>
             </Pressable>
           )}
@@ -244,7 +249,7 @@ export default function JobMapScreen() {
               </View>
             )}
             {etaSource === 'estimate' && (
-              <Text style={styles.etaDisclaimer}>*straight-line estimate</Text>
+              <Text style={styles.etaDisclaimer}>{t('map.straightLineEstimate')}</Text>
             )}
           </View>
         )}
@@ -270,7 +275,7 @@ export default function JobMapScreen() {
             pressScale={0.95}
           >
             <Ionicons name="navigate" size={22} color={colors.white} />
-            <Text style={styles.quickActionLabel}>Navigate</Text>
+            <Text style={styles.quickActionLabel}>{t('map.navigate')}</Text>
           </AnimatedPressable>
 
           {job.customerPhone && (
@@ -280,7 +285,7 @@ export default function JobMapScreen() {
               pressScale={0.95}
             >
               <Ionicons name="call" size={22} color={colors.white} />
-              <Text style={styles.quickActionLabel}>Call</Text>
+              <Text style={styles.quickActionLabel}>{t('map.call')}</Text>
             </AnimatedPressable>
           )}
 
@@ -290,7 +295,7 @@ export default function JobMapScreen() {
             pressScale={0.95}
           >
             <Ionicons name="document-text-outline" size={22} color={colors.white} />
-            <Text style={styles.quickActionLabel}>Details</Text>
+            <Text style={styles.quickActionLabel}>{t('map.details')}</Text>
           </AnimatedPressable>
         </View>
 
@@ -308,7 +313,7 @@ export default function JobMapScreen() {
               color="#FFFFFF"
             />
             <Text style={styles.mainActionText}>
-              {actioning ? 'Updating…' : action.label}
+              {actioning ? t('common.updating') : action.label}
             </Text>
           </AnimatedPressable>
         )}

@@ -21,6 +21,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { lightHaptic } from '@/services/haptics';
 import { JobCardSkeleton } from '@/components/SkeletonLoader';
 import { playSound } from '@/services/sound';
+import { useI18n } from '@/i18n';
 
 function PulsingDot() {
   const scale = useSharedValue(1);
@@ -50,17 +51,18 @@ const pulseStyles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success },
 });
 
-function formatSyncTime(ms: number | null): string {
-  if (!ms) return 'Syncing…';
+function formatSyncTime(ms: number | null, t: (key: string, vars?: Record<string, string | number>) => string): string {
+  if (!ms) return t('dashboard.syncing');
   const diff = Math.floor((Date.now() - ms) / 1000);
-  if (diff < 5) return 'Just now';
-  if (diff < 60) return `${diff}s ago`;
-  return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 5) return t('dashboard.justNow');
+  if (diff < 60) return t('dashboard.secondsAgo', { count: diff });
+  return t('dashboard.minutesAgo', { count: Math.floor(diff / 60) });
 }
 
 export default function DashboardScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const { t } = useI18n();
   const [isOnline, setIsOnline] = useState(false);
   const [activeJobs, setActiveJobs] = useState<JobSummary[]>([]);
   const [upcomingJobs, setUpcomingJobs] = useState<JobSummary[]>([]);
@@ -68,7 +70,7 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [lastSync, setLastSync] = useState<number | null>(null);
-  const [syncLabel, setSyncLabel] = useState('Syncing…');
+  const [syncLabel, setSyncLabel] = useState(t('dashboard.syncing'));
 
   const { bgRunning } = useLocationBroadcast(isOnline, activeJobs.length > 0);
   const knownJobRefs = useRef<Set<string>>(new Set());
@@ -112,10 +114,10 @@ export default function DashboardScreen() {
 
   // Update sync label every 5s
   useEffect(() => {
-    const t = setInterval(() => setSyncLabel(formatSyncTime(lastSync)), 5000);
-    setSyncLabel(formatSyncTime(lastSync));
-    return () => clearInterval(t);
-  }, [lastSync]);
+    const timer = setInterval(() => setSyncLabel(formatSyncTime(lastSync, t)), 5000);
+    setSyncLabel(formatSyncTime(lastSync, t));
+    return () => clearInterval(timer);
+  }, [lastSync, t]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -130,7 +132,7 @@ export default function DashboardScreen() {
       const res = await driverApi.setOnline(value);
       setIsOnline(res.isOnline);
     } catch {
-      Alert.alert('Error', 'Failed to update status.');
+      Alert.alert(t('common.error'), t('dashboard.failedUpdateStatus'));
     }
     setToggling(false);
   };
@@ -149,19 +151,19 @@ export default function DashboardScreen() {
     >
       {/* Greeting */}
       <Animated.Text entering={FadeInDown.duration(300)} style={styles.greeting}>
-        Hello, {user?.name?.split(' ')[0] ?? 'Driver'}
+        {t('dashboard.greeting', { name: user?.name?.split(' ')[0] ?? 'Driver' })}
       </Animated.Text>
 
       {/* Online Toggle */}
       <Animated.View entering={FadeInDown.duration(300).delay(60)} style={styles.statusCard}>
         <View>
           <Text style={styles.statusLabel}>
-            {isOnline ? 'You are Online' : 'You are Offline'}
+            {isOnline ? t('dashboard.youAreOnline') : t('dashboard.youAreOffline')}
           </Text>
           <Text style={styles.statusHint}>
             {isOnline
-              ? 'Receiving new job assignments'
-              : 'Toggle on to receive jobs'}
+              ? t('dashboard.receivingJobs')
+              : t('dashboard.toggleOn')}
           </Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
@@ -181,23 +183,23 @@ export default function DashboardScreen() {
         <Animated.View entering={FadeInDown.duration(300).delay(90)} style={styles.livePanel}>
           <View style={styles.livePanelHeader}>
             <PulsingDot />
-            <Text style={styles.livePanelTitle}>Searching for jobs…</Text>
+            <Text style={styles.livePanelTitle}>{t('dashboard.searchingForJobs')}</Text>
           </View>
-          <Text style={styles.livePanelSubtitle}>Ready to receive tyre rescue assignments</Text>
+          <Text style={styles.livePanelSubtitle}>{t('dashboard.readyToReceive')}</Text>
           <View style={styles.livePanelInfo}>
             <View style={styles.liveRow}>
               <View style={[styles.liveIndicator, { backgroundColor: colors.success }]} />
-              <Text style={styles.liveText}>Online</Text>
+              <Text style={styles.liveText}>{t('common.online')}</Text>
             </View>
             <View style={styles.liveRow}>
               <View style={[styles.liveIndicator, { backgroundColor: bgRunning ? colors.success : colors.info }]} />
               <Text style={styles.liveText}>
-                {bgRunning ? 'Location sharing active (background)' : 'Location signal active'}
+                {bgRunning ? t('dashboard.locationSharingActive') : t('dashboard.locationSignalActive')}
               </Text>
             </View>
             <View style={styles.liveRow}>
               <View style={[styles.liveIndicator, { backgroundColor: colors.muted }]} />
-              <Text style={styles.liveText}>Last sync: {syncLabel}</Text>
+              <Text style={styles.liveText}>{t('dashboard.lastSync', { time: syncLabel })}</Text>
             </View>
           </View>
         </Animated.View>
@@ -207,22 +209,22 @@ export default function DashboardScreen() {
       <Animated.View entering={FadeInDown.duration(300).delay(120)} style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{activeJobs.length}</Text>
-          <Text style={styles.statLabel}>Active</Text>
+          <Text style={styles.statLabel}>{t('dashboard.active')}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{upcomingJobs.length}</Text>
-          <Text style={styles.statLabel}>Upcoming</Text>
+          <Text style={styles.statLabel}>{t('dashboard.upcoming')}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{completedCount}</Text>
-          <Text style={styles.statLabel}>Done</Text>
+          <Text style={styles.statLabel}>{t('dashboard.done')}</Text>
         </View>
       </Animated.View>
 
       {/* Active Jobs */}
       {activeJobs.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Active Jobs</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.activeJobs')}</Text>
           {activeJobs.map((job, index) => (
             <Animated.View key={job.id} entering={FadeInDown.duration(300).delay(180 + index * 60)}>
               <JobCard
@@ -237,7 +239,7 @@ export default function DashboardScreen() {
       {/* Upcoming Jobs */}
       {upcomingJobs.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Upcoming Jobs</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.upcomingJobs')}</Text>
           {upcomingJobs.map((job, index) => (
             <Animated.View key={job.id} entering={FadeInDown.duration(300).delay(240 + index * 60)}>
               <JobCard
@@ -252,8 +254,8 @@ export default function DashboardScreen() {
       {activeJobs.length === 0 && !isOnline && (
         <EmptyState
           icon="cloud-offline-outline"
-          title="You are offline"
-          message="Go online to start receiving job assignments."
+          title={t('dashboard.youAreOfflineTitle')}
+          message={t('dashboard.goOnlineMessage')}
         />
       )}
     </ScrollView>

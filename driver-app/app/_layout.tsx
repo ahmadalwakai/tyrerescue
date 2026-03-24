@@ -10,8 +10,12 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
+import { Vibration } from 'react-native';
 import { AuthProvider, useAuth } from '@/auth/context';
+import { I18nProvider } from '@/i18n';
 import { PermissionGate } from '@/components/PermissionGate';
+import { JobAlertProvider, useJobAlert } from '@/context/job-alert-context';
+import { JobAlertPopup } from '@/components/JobAlertPopup';
 import {
   registerForPushNotifications,
   unregisterPushToken,
@@ -20,7 +24,8 @@ import {
 } from '@/services/notifications';
 import { checkForUpdate } from '@/services/version-check';
 import { initOfflineQueue } from '@/services/offline-queue';
-import { preloadSounds, playSound } from '@/services/sound';
+import { preloadSounds, playSound, loadSoundConfig } from '@/services/sound';
+import { driverApi } from '@/api/client';
 
 // Import background-location to register the task at module level
 import '@/services/background-location';
@@ -31,6 +36,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
   const { user, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const { showAlert: showJobAlert } = useJobAlert();
   const notifListenerRef = useRef<ReturnType<typeof addNotificationResponseListener> | null>(null);
   const notifReceivedRef = useRef<ReturnType<typeof addNotificationReceivedListener> | null>(null);
   const splashHidden = useRef(false);
@@ -63,12 +69,21 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     checkForUpdate();
     initOfflineQueue();
     preloadSounds();
+    loadSoundConfig(() => driverApi.getSoundConfig());
 
-    // Play sound when a push notification arrives while app is foregrounded
+    // Play sound + show popup when a push notification arrives while app is foregrounded
     notifReceivedRef.current = addNotificationReceivedListener((notification) => {
       const data = notification.request.content.data;
       if (data?.type === 'new_job') {
         playSound('new_job');
+        // Extra vibration burst to ensure the driver notices
+        Vibration.vibrate([0, 500, 200, 500, 200, 500], false);
+        // Show full-screen alert popup
+        showJobAlert({
+          ref: (data.ref as string) ?? null,
+          title: notification.request.content.title ?? '',
+          body: notification.request.content.body ?? '',
+        });
       } else if (data?.type === 'chat_message') {
         playSound('new_message');
       }
@@ -99,7 +114,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
       notifListenerRef.current?.remove();
       notifReceivedRef.current?.remove();
     };
-  }, [user, router]);
+  }, [user, router, showJobAlert]);
 
   // Show permission gate when logged in (wraps the tab content)
   if (user) {
@@ -137,9 +152,14 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <AuthProvider>
-      <StatusBar style="light" />
-      <RootNavigator onReady={handleReady} />
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <JobAlertProvider>
+          <StatusBar style="light" />
+          <RootNavigator onReady={handleReady} />
+          <JobAlertPopup />
+        </JobAlertProvider>
+      </AuthProvider>
+    </I18nProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { db, drivers, driverNotifications } from '@/lib/db';
+import { db, drivers, driverNotifications, driverSoundSettings } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 
 interface ExpoPushMessage {
@@ -9,6 +9,22 @@ interface ExpoPushMessage {
   sound?: string;
   channelId?: string;
   priority?: 'default' | 'normal' | 'high';
+}
+
+/** Fetch admin-configured sound file for a given event type. Falls back to new_job.wav. */
+async function getSoundForEvent(eventType: string): Promise<string> {
+  try {
+    const [row] = await db
+      .select({ soundFile: driverSoundSettings.soundFile, enabled: driverSoundSettings.enabled })
+      .from(driverSoundSettings)
+      .where(eq(driverSoundSettings.event, eventType))
+      .limit(1);
+    if (row && row.enabled) return row.soundFile;
+    if (row && !row.enabled) return 'default'; // disabled → use system default
+  } catch {
+    // Table may not exist yet — fall back
+  }
+  return 'new_job.wav';
 }
 
 /**
@@ -51,12 +67,16 @@ export async function sendDriverPushNotification(
   // Map old 'jobs' channelId to versioned 'jobs_v2' for Android channel sound to work
   const effectiveChannelId = channelId === 'jobs' ? 'jobs_v2' : channelId;
 
+  // Resolve admin-configured sound for this event type
+  const eventType = (data?.type as string) ?? 'system';
+  const soundFile = await getSoundForEvent(eventType);
+
   const message: ExpoPushMessage = {
     to: driver.pushToken,
     title,
     body,
     data,
-    sound: effectiveChannelId === 'jobs_v2' ? 'new_job.wav' : 'default',
+    sound: soundFile,
     channelId: effectiveChannelId,
     priority: 'high',
   };

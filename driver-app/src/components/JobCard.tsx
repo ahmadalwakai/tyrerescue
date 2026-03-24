@@ -5,6 +5,7 @@ import { StatusBadge } from './StatusBadge';
 import { lightHaptic } from '@/services/haptics';
 import { format } from 'date-fns';
 import type { JobSummary } from '@/api/client';
+import { useI18n } from '@/i18n';
 
 interface JobCardProps {
   job: JobSummary;
@@ -12,6 +13,7 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, onPress }: JobCardProps) {
+  const { t, dateLocale } = useI18n();
   return (
     <AnimatedPressable
       onPress={() => {
@@ -36,11 +38,11 @@ export function JobCard({ job, onPress }: JobCardProps) {
 
       <View style={styles.footer}>
         <Text style={styles.meta}>
-          {job.serviceType === 'mobile_fitting' ? 'Fitting' : 'Emergency'}
+          {job.serviceType === 'mobile_fitting' ? t('jobs.fitting') : t('jobs.emergency')}
         </Text>
         {job.scheduledAt && (
           <Text style={styles.meta}>
-            {format(new Date(job.scheduledAt), 'dd MMM, HH:mm')}
+            {format(new Date(job.scheduledAt), 'dd MMM, HH:mm', { locale: dateLocale })}
           </Text>
         )}
         {job.tyreSizeDisplay && (

@@ -16,9 +16,11 @@ import { EmptyState } from '@/components/EmptyState';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic } from '@/services/haptics';
+import { useI18n } from '@/i18n';
 
 export default function ChatListScreen() {
   const router = useRouter();
+  const { t, dateLocale } = useI18n();
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -65,12 +67,12 @@ export default function ChatListScreen() {
               <Text style={styles.ref}>#{item.bookingRef}</Text>
               {item.channel === 'admin_driver' && (
                 <View style={styles.channelBadge}>
-                  <Text style={styles.channelBadgeText}>Admin</Text>
+                  <Text style={styles.channelBadgeText}>{t('chat.admin')}</Text>
                 </View>
               )}
             </View>
             <Text style={styles.name} numberOfLines={1}>
-              {item.channel === 'admin_driver' ? 'Tyre Rescue Admin' : (item.customerName ?? 'Customer')}
+              {item.channel === 'admin_driver' ? t('chat.tyreRescueAdmin') : (item.customerName ?? t('chat.customer'))}
             </Text>
             {item.lastMessageBody && (
               <Text style={styles.preview} numberOfLines={1}>
@@ -81,7 +83,7 @@ export default function ChatListScreen() {
           <View style={styles.rowRight}>
             {item.lastMessageAt && (
               <Text style={styles.time}>
-                {format(new Date(item.lastMessageAt), 'HH:mm')}
+                {format(new Date(item.lastMessageAt), 'HH:mm', { locale: dateLocale })}
               </Text>
             )}
             {item.unreadCount > 0 && (
@@ -96,8 +98,8 @@ export default function ChatListScreen() {
       ListEmptyComponent={
         <EmptyState
           icon="chatbubbles-outline"
-          title="No conversations"
-          message="Chat with customers about their bookings."
+          title={t('chat.noConversations')}
+          message={t('chat.chatWithCustomers')}
         />
       }
     />

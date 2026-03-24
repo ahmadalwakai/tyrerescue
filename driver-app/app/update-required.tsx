@@ -2,8 +2,10 @@ import { View, Text, StyleSheet, Pressable, Linking, Platform } from 'react-nati
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
+import { useI18n } from '@/i18n';
 
 export default function UpdateRequiredScreen() {
+  const { t } = useI18n();
   const { url, latest, notes } = useLocalSearchParams<{
     url?: string;
     latest?: string;
@@ -24,24 +26,23 @@ export default function UpdateRequiredScreen() {
         <Ionicons name="cloud-download-outline" size={64} color={colors.accent} />
       </View>
 
-      <Text style={styles.heading}>Update Required</Text>
+      <Text style={styles.heading}>{t('update.updateRequired')}</Text>
 
       <Text style={styles.body}>
-        A new version of the Tyre Rescue Driver app is available
-        {latest ? ` (v${latest})` : ''}.{'\n\n'}
-        Please update to continue using the app.
+        {t('update.newVersionAvailable', { version: latest ? ` (v${latest})` : '' })}{'\n\n'}
+        {t('update.pleaseUpdate')}
       </Text>
 
       {notes ? (
         <View style={styles.notesCard}>
-          <Text style={styles.notesTitle}>What's new</Text>
+          <Text style={styles.notesTitle}>{t('update.whatsNew')}</Text>
           <Text style={styles.notesBody}>{notes}</Text>
         </View>
       ) : null}
 
       <Pressable style={styles.updateBtn} onPress={handleUpdate}>
         <Ionicons name="download-outline" size={20} color="#FFFFFF" />
-        <Text style={styles.updateBtnText}>Download Update</Text>
+        <Text style={styles.updateBtnText}>{t('update.downloadUpdate')}</Text>
       </Pressable>
     </View>
   );

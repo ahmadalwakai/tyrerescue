@@ -16,6 +16,7 @@ import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { EmptyState } from '@/components/EmptyState';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic } from '@/services/haptics';
+import { useI18n } from '@/i18n';
 
 const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   new_job: 'briefcase',
@@ -26,6 +27,7 @@ const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const { t, dateLocale } = useI18n();
   const [items, setItems] = useState<DriverNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -100,7 +102,7 @@ export default function NotificationsScreen() {
             {item.body}
           </Text>
           <Text style={styles.time}>
-            {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
+            {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: dateLocale })}
           </Text>
         </View>
         {!item.isRead && <View style={styles.unreadDot} />}
@@ -114,10 +116,10 @@ export default function NotificationsScreen() {
       {unreadCount > 0 && (
         <View style={styles.header}>
           <Text style={styles.headerText}>
-            {unreadCount} unread
+            {t('notifications.unread', { count: unreadCount })}
           </Text>
           <AnimatedPressable onPress={() => { lightHaptic(); markAllRead(); }} pressScale={0.95}>
-            <Text style={styles.markAllText}>Mark all read</Text>
+            <Text style={styles.markAllText}>{t('notifications.markAllRead')}</Text>
           </AnimatedPressable>
         </View>
       )}
@@ -134,8 +136,8 @@ export default function NotificationsScreen() {
           loading ? null : (
             <EmptyState
               icon="notifications-off-outline"
-              title="No notifications"
-              message="You're all caught up!"
+              title={t('notifications.noNotifications')}
+              message={t('notifications.allCaughtUp')}
             />
           )
         }

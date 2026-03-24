@@ -805,6 +805,21 @@ export const driverNotifications = pgTable('driver_notifications', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// ──────────────────────────────────────────────
+// Driver App Sound Settings (admin-controlled)
+// ──────────────────────────────────────────────
+
+export const driverSoundSettings = pgTable('driver_sound_settings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  event: varchar('event', { length: 50 }).unique().notNull(), // new_job, job_accepted, job_completed, new_message
+  soundFile: varchar('sound_file', { length: 100 }).notNull().default('new_job.wav'),
+  enabled: boolean('enabled').default(true).notNull(),
+  volume: real('volume').default(1.0).notNull(),
+  vibrationEnabled: boolean('vibration_enabled').default(true).notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
 // Type exports for use throughout the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -881,3 +896,5 @@ export type DemandSnapshot = typeof demandSnapshots.$inferSelect;
 export type NewDemandSnapshot = typeof demandSnapshots.$inferInsert;
 export type DriverNotification = typeof driverNotifications.$inferSelect;
 export type NewDriverNotification = typeof driverNotifications.$inferInsert;
+export type DriverSoundSetting = typeof driverSoundSettings.$inferSelect;
+export type NewDriverSoundSetting = typeof driverSoundSettings.$inferInsert;

@@ -1,12 +1,15 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { fontSize, radius, statusColors } from '@/constants/theme';
+import { useI18n } from '@/i18n';
 
 export function StatusBadge({ status }: { status: string }) {
+  const { t } = useI18n();
   const config = statusColors[status] ?? { bg: '#3F3F46', text: '#A1A1AA', label: status };
+  const translatedLabel = t(`status.${status}`) !== `status.${status}` ? t(`status.${status}`) : config.label;
 
   return (
     <View style={[styles.badge, { backgroundColor: config.bg }]}>
-      <Text style={[styles.text, { color: config.text }]}>{config.label}</Text>
+      <Text style={[styles.text, { color: config.text }]}>{translatedLabel}</Text>
     </View>
   );
 }

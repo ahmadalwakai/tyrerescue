@@ -14,16 +14,18 @@ import { router } from 'expo-router';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
 import { useAuth } from '@/auth/context';
 import { ApiError } from '@/api/client';
+import { useI18n } from '@/i18n';
 
 export default function LoginScreen() {
   const { login } = useAuth();
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
-      Alert.alert('Error', 'Please enter your email and password.');
+      Alert.alert(t('common.error'), t('auth.enterCredentials'));
       return;
     }
 
@@ -31,8 +33,8 @@ export default function LoginScreen() {
     try {
       await login(email.trim().toLowerCase(), password);
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Something went wrong. Please try again.';
-      Alert.alert('Login Failed', message);
+      const message = err instanceof ApiError ? err.message : t('auth.somethingWrong');
+      Alert.alert(t('auth.loginFailed'), message);
     } finally {
       setLoading(false);
     }
@@ -48,17 +50,17 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoBox}>
-          <Text style={styles.brand}>TYRE RESCUE</Text>
-          <Text style={styles.subtitle}>Driver App</Text>
+          <Text style={styles.brand}>{t('auth.brand')}</Text>
+          <Text style={styles.subtitle}>{t('auth.driverApp')}</Text>
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>{t('auth.email')}</Text>
           <TextInput
             style={styles.input}
             value={email}
             onChangeText={setEmail}
-            placeholder="driver@email.com"
+            placeholder={t('auth.emailPlaceholder')}
             placeholderTextColor={colors.muted}
             autoCapitalize="none"
             keyboardType="email-address"
@@ -66,12 +68,12 @@ export default function LoginScreen() {
             textContentType="emailAddress"
           />
 
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>{t('auth.password')}</Text>
           <TextInput
             style={styles.input}
             value={password}
             onChangeText={setPassword}
-            placeholder="••••••••"
+            placeholder={t('auth.passwordPlaceholder')}
             placeholderTextColor={colors.muted}
             secureTextEntry
             autoComplete="password"
@@ -88,7 +90,7 @@ export default function LoginScreen() {
             disabled={loading}
           >
             <Text style={styles.buttonText}>
-              {loading ? 'Signing in…' : 'Sign In'}
+              {loading ? t('auth.signingIn') : t('auth.signIn')}
             </Text>
           </Pressable>
 
@@ -96,7 +98,7 @@ export default function LoginScreen() {
             style={styles.forgotButton}
             onPress={() => router.push('/(auth)/forgot-password')}
           >
-            <Text style={styles.forgotText}>Forgot Password?</Text>
+            <Text style={styles.forgotText}>{t('auth.forgotPassword')}</Text>
           </Pressable>
         </View>
       </ScrollView>

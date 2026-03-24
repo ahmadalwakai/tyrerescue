@@ -277,6 +277,12 @@ export const driverApi = {
       customerLng: number;
       etaMinutes: number | null;
     }>(`/api/tracking/${encodeURIComponent(ref)}`),
+
+  // Sound config (admin-controlled)
+  getSoundConfig: () =>
+    api<Record<string, { soundFile: string; enabled: boolean; volume: number; vibrationEnabled: boolean }>>(
+      '/api/driver/sound-config',
+    ),
 };
 
 // ── Chat types ──

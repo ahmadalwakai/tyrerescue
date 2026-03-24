@@ -19,10 +19,12 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic } from '@/services/haptics';
 import { MessageSkeleton } from '@/components/SkeletonLoader';
+import { useI18n } from '@/i18n';
 
 export default function ChatConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
+  const { t, dateLocale } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
@@ -93,7 +95,7 @@ export default function ChatConversationScreen() {
               )}
               {item.body && <Text style={styles.bubbleText}>{item.body}</Text>}
               <Text style={styles.bubbleTime}>
-                {format(new Date(item.createdAt), 'HH:mm')}
+                {format(new Date(item.createdAt), 'HH:mm', { locale: dateLocale })}
               </Text>
             </View>
           );
@@ -106,7 +108,7 @@ export default function ChatConversationScreen() {
           style={styles.input}
           value={text}
           onChangeText={setText}
-          placeholder="Type a message…"
+          placeholder={t('chat.typeMessage')}
           placeholderTextColor={colors.muted}
           multiline
           maxLength={5000}

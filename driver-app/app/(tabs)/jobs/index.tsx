@@ -18,25 +18,26 @@ import { EmptyState } from '@/components/EmptyState';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic } from '@/services/haptics';
+import { useI18n } from '@/i18n';
 
 type Tab = 'active' | 'upcoming' | 'completed';
 
-function getDayLabel(dateStr: string | null): string {
-  if (!dateStr) return 'Unknown';
+function getDayLabel(dateStr: string | null, t: (key: string) => string): string {
+  if (!dateStr) return t('jobs.unknown');
   const d = new Date(dateStr);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const diffDays = Math.round((today.getTime() - target.getTime()) / 86400000);
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
+  if (diffDays === 0) return t('jobs.today');
+  if (diffDays === 1) return t('jobs.yesterday');
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function groupByDay(jobs: JobSummary[]): { title: string; data: JobSummary[] }[] {
+function groupByDay(jobs: JobSummary[], t: (key: string) => string): { title: string; data: JobSummary[] }[] {
   const map = new Map<string, JobSummary[]>();
   for (const job of jobs) {
-    const label = getDayLabel(job.completedAt ?? job.scheduledAt ?? job.createdAt);
+    const label = getDayLabel(job.completedAt ?? job.scheduledAt ?? job.createdAt, t);
     if (!map.has(label)) map.set(label, []);
     map.get(label)!.push(job);
   }
@@ -45,6 +46,7 @@ function groupByDay(jobs: JobSummary[]): { title: string; data: JobSummary[] }[]
 
 export default function JobsListScreen() {
   const router = useRouter();
+  const { t } = useI18n();
   const [tab, setTab] = useState<Tab>('active');
   const [active, setActive] = useState<JobSummary[]>([]);
   const [upcoming, setUpcoming] = useState<JobSummary[]>([]);
@@ -77,7 +79,7 @@ export default function JobsListScreen() {
     setRefreshing(false);
   }, [fetchJobs]);
 
-  const completedSections = useMemo(() => groupByDay(completed), [completed]);
+  const completedSections = useMemo(() => groupByDay(completed, t), [completed, t]);
 
   if (loading) return <LoadingScreen />;
 
@@ -92,8 +94,8 @@ export default function JobsListScreen() {
   const emptyComponent = (
     <EmptyState
       icon={tab === 'active' ? 'briefcase-outline' : 'checkmark-done-outline'}
-      title={tab === 'active' ? 'No active jobs' : 'No completed jobs'}
-      message={tab === 'active' ? 'New jobs will appear here when assigned.' : undefined}
+      title={tab === 'active' ? t('jobs.noActiveJobs') : t('jobs.noCompletedJobs')}
+      message={tab === 'active' ? t('jobs.newJobsAppear') : undefined}
     />
   );
 
@@ -107,7 +109,7 @@ export default function JobsListScreen() {
           pressScale={0.95}
         >
           <Text style={[styles.tabText, tab === 'active' && styles.tabTextActive]}>
-            Active ({active.length})
+            {t('jobs.active')} ({active.length})
           </Text>
         </AnimatedPressable>
         <AnimatedPressable
@@ -116,7 +118,7 @@ export default function JobsListScreen() {
           pressScale={0.95}
         >
           <Text style={[styles.tabText, tab === 'upcoming' && styles.tabTextActive]}>
-            Upcoming ({upcoming.length})
+            {t('jobs.upcoming')} ({upcoming.length})
           </Text>
         </AnimatedPressable>
         <AnimatedPressable
@@ -125,7 +127,7 @@ export default function JobsListScreen() {
           pressScale={0.95}
         >
           <Text style={[styles.tabText, tab === 'completed' && styles.tabTextActive]}>
-            Completed ({completed.length})
+            {t('jobs.completed')} ({completed.length})
           </Text>
         </AnimatedPressable>
       </View>
@@ -148,8 +150,8 @@ export default function JobsListScreen() {
           ListEmptyComponent={
             <EmptyState
               icon="briefcase-outline"
-              title="No active jobs"
-              message="Jobs you're working on will appear here."
+              title={t('jobs.noActiveJobs')}
+              message={t('jobs.activeJobsEmpty')}
             />
           }
         />
@@ -173,8 +175,8 @@ export default function JobsListScreen() {
           ListEmptyComponent={
             <EmptyState
               icon="time-outline"
-              title="No upcoming jobs"
-              message="Assigned jobs waiting to start will appear here."
+              title={t('jobs.noUpcomingJobs')}
+              message={t('jobs.upcomingJobsEmpty')}
             />
           }
         />
@@ -201,7 +203,7 @@ export default function JobsListScreen() {
           ListEmptyComponent={
             <EmptyState
               icon="checkmark-done-outline"
-              title="No completed jobs"
+              title={t('jobs.noCompletedJobs')}
             />
           }
         />

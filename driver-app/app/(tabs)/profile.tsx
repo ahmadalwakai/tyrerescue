@@ -22,9 +22,11 @@ import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic, mediumHaptic, errorHaptic } from '@/services/haptics';
+import { useI18n, Locale } from '@/i18n';
 
 export default function ProfileScreen() {
   const { logout } = useAuth();
+  const { t, locale, setLocale } = useI18n();
   const [profile, setProfile] = useState<DriverProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -36,8 +38,8 @@ export default function ProfileScreen() {
   const [changingPw, setChangingPw] = useState(false);
 
   // Permission / device state
-  const [locationPerm, setLocationPerm] = useState<string>('checking…');
-  const [notifPerm, setNotifPerm] = useState<string>('checking…');
+  const [locationPerm, setLocationPerm] = useState<string>(t('profile.checking'));
+  const [notifPerm, setNotifPerm] = useState<string>(t('profile.checking'));
 
   const appVersion = Application.nativeApplicationVersion ?? '1.0.0';
   const buildNumber = Application.nativeBuildVersion ?? '1';
@@ -47,8 +49,8 @@ export default function ProfileScreen() {
       Location.getForegroundPermissionsAsync(),
       Notifications.getPermissionsAsync(),
     ]);
-    setLocationPerm(loc.status === 'granted' ? 'Granted' : 'Denied');
-    setNotifPerm(notif.status === 'granted' ? 'Granted' : 'Denied');
+    setLocationPerm(loc.status === 'granted' ? t('profile.granted') : t('profile.denied'));
+    setNotifPerm(notif.status === 'granted' ? t('profile.granted') : t('profile.denied'));
   }, []);
 
   const fetchProfile = useCallback(async () => {
@@ -76,15 +78,15 @@ export default function ProfileScreen() {
 
   const handleChangePassword = async () => {
     if (!currentPw || !newPw) {
-      Alert.alert('Error', 'Please fill in all password fields.');
+      Alert.alert(t('common.error'), t('profile.fillPasswordFields'));
       return;
     }
     if (newPw.length < 8) {
-      Alert.alert('Error', 'New password must be at least 8 characters.');
+      Alert.alert(t('common.error'), t('profile.passwordTooShort'));
       return;
     }
     if (newPw !== confirmPw) {
-      Alert.alert('Error', 'New passwords do not match.');
+      Alert.alert(t('common.error'), t('profile.passwordsNoMatch'));
       return;
     }
 
@@ -92,21 +94,21 @@ export default function ProfileScreen() {
     try {
       await driverApi.changePassword(currentPw, newPw);
       mediumHaptic();
-      Alert.alert('Success', 'Password changed successfully.');
+      Alert.alert(t('profile.success'), t('profile.passwordChanged'));
       setCurrentPw('');
       setNewPw('');
       setConfirmPw('');
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to change password.';
-      Alert.alert('Error', msg);
+      const msg = err instanceof ApiError ? err.message : t('profile.failedChangePassword');
+      Alert.alert(t('common.error'), msg);
     }
     setChangingPw(false);
   };
 
   const handleLogout = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: logout },
+    Alert.alert(t('profile.signOut'), t('profile.confirmSignOut'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('profile.signOut'), style: 'destructive', onPress: logout },
     ]);
   };
 
@@ -124,22 +126,22 @@ export default function ProfileScreen() {
       {profile && (
         <View style={styles.card}>
           <Text style={styles.name}>{profile.name}</Text>
-          <InfoRow label="Email" value={profile.email} />
-          <InfoRow label="Phone" value={profile.phone ?? '—'} />
-          <InfoRow label="Status" value={profile.status} />
-          <InfoRow label="Online" value={profile.isOnline ? 'Yes' : 'No'} />
+          <InfoRow label={t('profile.email')} value={profile.email} />
+          <InfoRow label={t('profile.phone')} value={profile.phone ?? '—'} />
+          <InfoRow label={t('profile.status')} value={profile.status} />
+          <InfoRow label={t('profile.online')} value={profile.isOnline ? t('common.yes') : t('common.no')} />
         </View>
       )}
 
       {/* Change Password */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Change Password</Text>
+        <Text style={styles.sectionTitle}>{t('profile.changePassword')}</Text>
 
         <TextInput
           style={styles.input}
           value={currentPw}
           onChangeText={setCurrentPw}
-          placeholder="Current password"
+          placeholder={t('profile.currentPassword')}
           placeholderTextColor={colors.muted}
           secureTextEntry
         />
@@ -147,7 +149,7 @@ export default function ProfileScreen() {
           style={styles.input}
           value={newPw}
           onChangeText={setNewPw}
-          placeholder="New password"
+          placeholder={t('profile.newPassword')}
           placeholderTextColor={colors.muted}
           secureTextEntry
         />
@@ -155,7 +157,7 @@ export default function ProfileScreen() {
           style={styles.input}
           value={confirmPw}
           onChangeText={setConfirmPw}
-          placeholder="Confirm new password"
+          placeholder={t('profile.confirmPassword')}
           placeholderTextColor={colors.muted}
           secureTextEntry
         />
@@ -167,35 +169,60 @@ export default function ProfileScreen() {
           pressScale={0.95}
         >
           <Text style={styles.pwButtonText}>
-            {changingPw ? 'Changing…' : 'Update Password'}
+            {changingPw ? t('profile.changingPassword') : t('profile.updatePassword')}
           </Text>
         </AnimatedPressable>
       </View>
 
       {/* Device Info & Settings */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>App & Device</Text>
-        <InfoRow label="App Version" value={`${appVersion} (${buildNumber})`} />
-        <InfoRow label="Platform" value={Platform.OS === 'android' ? 'Android' : 'iOS'} />
-        <InfoRow label="Location Permission" value={locationPerm} />
-        <InfoRow label="Notification Permission" value={notifPerm} />
+        <Text style={styles.sectionTitle}>{t('profile.appAndDevice')}</Text>
+        <InfoRow label={t('profile.appVersion')} value={`${appVersion} (${buildNumber})`} />
+        <InfoRow label={t('profile.platform')} value={Platform.OS === 'android' ? 'Android' : 'iOS'} />
+        <InfoRow label={t('profile.locationPermission')} value={locationPerm} />
+        <InfoRow label={t('profile.notificationPermission')} value={notifPerm} />
       </View>
 
       {/* Troubleshooting */}
-      {(locationPerm === 'Denied' || notifPerm === 'Denied') && (
+      {(locationPerm === t('profile.denied') || notifPerm === t('profile.denied')) && (
         <AnimatedPressable
           style={styles.settingsButton}
           onPress={() => { lightHaptic(); Linking.openSettings(); }}
           pressScale={0.95}
         >
           <Ionicons name="settings-outline" size={18} color={colors.accent} />
-          <Text style={styles.settingsButtonText}>Open device settings</Text>
+          <Text style={styles.settingsButtonText}>{t('profile.openDeviceSettings')}</Text>
         </AnimatedPressable>
       )}
 
+      {/* Language */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
+        <View style={styles.langRow}>
+          <AnimatedPressable
+            style={[styles.langButton, locale === 'en' && styles.langButtonActive]}
+            onPress={() => { lightHaptic(); setLocale('en'); }}
+            pressScale={0.95}
+          >
+            <Text style={[styles.langButtonText, locale === 'en' && styles.langButtonTextActive]}>
+              {t('profile.english')}
+            </Text>
+          </AnimatedPressable>
+          <AnimatedPressable
+            style={[styles.langButton, locale === 'ar' && styles.langButtonActive]}
+            onPress={() => { lightHaptic(); setLocale('ar'); }}
+            pressScale={0.95}
+          >
+            <Text style={[styles.langButtonText, locale === 'ar' && styles.langButtonTextActive]}>
+              {t('profile.arabic')}
+            </Text>
+          </AnimatedPressable>
+        </View>
+      </View>
+
       {/* Logout */}
       <AnimatedPressable style={styles.logoutButton} onPress={() => { errorHaptic(); handleLogout(); }} pressScale={0.95}>
-        <Text style={styles.logoutText}>Sign Out</Text>
+        <Text style={styles.logoutText}>{t('profile.signOut')}</Text>
       </AnimatedPressable>
     </ScrollView>
   );
@@ -309,6 +336,31 @@ const styles = StyleSheet.create({
   settingsButtonText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: fontSize.sm,
+    color: colors.accent,
+  },
+  langRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  langButton: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  langButtonActive: {
+    borderColor: colors.accent,
+    backgroundColor: 'rgba(249,115,22,0.1)',
+  },
+  langButtonText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: fontSize.base,
+    color: colors.muted,
+  },
+  langButtonTextActive: {
     color: colors.accent,
   },
 });

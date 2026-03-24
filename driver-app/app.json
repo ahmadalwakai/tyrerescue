@@ -85,7 +85,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#09090B"
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "extra": {
       "router": {
