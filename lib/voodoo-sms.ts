@@ -65,8 +65,12 @@ export function normalizeUkPhoneNumber(input: string): string | null {
 
 // ─── Config helpers ─────────────────────────────────────
 
-function getApiKey(): string | null {
-  return process.env.VOODOO_SMS_API_KEY || null;
+function getUid(): string | null {
+  return process.env.VOODOO_SMS_UID || process.env.VOODOO_SMS_API_KEY || null;
+}
+
+function getPassword(): string | null {
+  return process.env.VOODOO_SMS_PASS || process.env.VOODOO_SMS_API_KEY || null;
 }
 
 function getSenderId(): string {
@@ -88,12 +92,13 @@ export async function sendVoodooSms(params: SendSmsParams): Promise<SmsResult> {
     };
   }
 
-  const apiKey = getApiKey();
-  if (!apiKey) {
+  const uid = getUid();
+  const pass = getPassword();
+  if (!uid || !pass) {
     return {
       ok: false,
       provider: 'voodoo',
-      error: 'SMS service not configured (missing VOODOO_SMS_API_KEY)',
+      error: 'SMS service not configured (missing VOODOO_SMS_UID / VOODOO_SMS_PASS)',
     };
   }
 
@@ -121,8 +126,8 @@ export async function sendVoodooSms(params: SendSmsParams): Promise<SmsResult> {
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     const urlParams = new URLSearchParams({
-      uid: apiKey,
-      pass: apiKey,
+      uid,
+      pass,
       orig: senderId,
       dest: normalized,
       msg: params.message,
