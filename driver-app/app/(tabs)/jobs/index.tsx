@@ -19,7 +19,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic } from '@/services/haptics';
 
-type Tab = 'active' | 'completed';
+type Tab = 'active' | 'upcoming' | 'completed';
 
 function getDayLabel(dateStr: string | null): string {
   if (!dateStr) return 'Unknown';
@@ -47,6 +47,7 @@ export default function JobsListScreen() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('active');
   const [active, setActive] = useState<JobSummary[]>([]);
+  const [upcoming, setUpcoming] = useState<JobSummary[]>([]);
   const [completed, setCompleted] = useState<JobSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -55,6 +56,7 @@ export default function JobsListScreen() {
     try {
       const res = await driverApi.getJobs();
       setActive(res.active);
+      setUpcoming(res.upcoming ?? []);
       setCompleted(res.completed);
     } catch {
       // Silently ignore
@@ -74,7 +76,6 @@ export default function JobsListScreen() {
     setRefreshing(false);
   }, [fetchJobs]);
 
-  const jobs = tab === 'active' ? active : completed;
   const completedSections = useMemo(() => groupByDay(completed), [completed]);
 
   if (loading) return <LoadingScreen />;
@@ -109,6 +110,15 @@ export default function JobsListScreen() {
           </Text>
         </AnimatedPressable>
         <AnimatedPressable
+          style={[styles.tab, tab === 'upcoming' && styles.tabActive]}
+          onPress={() => { lightHaptic(); setTab('upcoming'); }}
+          pressScale={0.95}
+        >
+          <Text style={[styles.tabText, tab === 'upcoming' && styles.tabTextActive]}>
+            Upcoming ({upcoming.length})
+          </Text>
+        </AnimatedPressable>
+        <AnimatedPressable
           style={[styles.tab, tab === 'completed' && styles.tabActive]}
           onPress={() => { lightHaptic(); setTab('completed'); }}
           pressScale={0.95}
@@ -134,7 +144,38 @@ export default function JobsListScreen() {
               />
             </Animated.View>
           )}
-          ListEmptyComponent={emptyComponent}
+          ListEmptyComponent={
+            <EmptyState
+              icon="briefcase-outline"
+              title="No active jobs"
+              message="Jobs you're working on will appear here."
+            />
+          }
+        />
+      )}
+
+      {/* Upcoming: flat list */}
+      {tab === 'upcoming' && (
+        <FlatList
+          data={upcoming}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          refreshControl={refreshControl}
+          renderItem={({ item, index }) => (
+            <Animated.View entering={FadeInDown.duration(250).delay(index * 50)}>
+              <JobCard
+                job={item}
+                onPress={() => router.push(`/(tabs)/jobs/${item.refNumber}`)}
+              />
+            </Animated.View>
+          )}
+          ListEmptyComponent={
+            <EmptyState
+              icon="time-outline"
+              title="No upcoming jobs"
+              message="Assigned jobs waiting to start will appear here."
+            />
+          }
         />
       )}
 
@@ -156,7 +197,12 @@ export default function JobsListScreen() {
               />
             </Animated.View>
           )}
-          ListEmptyComponent={emptyComponent}
+          ListEmptyComponent={
+            <EmptyState
+              icon="checkmark-done-outline"
+              title="No completed jobs"
+            />
+          }
         />
       )}
     </View>

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Pressable,
   Alert,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -112,6 +113,46 @@ export default function JobDetailScreen() {
     ]);
   };
 
+  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+  const [sendingQuickMsg, setSendingQuickMsg] = useState<string | null>(null);
+
+  const checklistItems = useMemo(() => {
+    if (!job) return [];
+    if (job.status === 'en_route') return [
+      { key: 'location', label: 'Correct customer location confirmed' },
+      { key: 'tools', label: 'Required tools & tyres loaded' },
+    ];
+    if (job.status === 'arrived') return [
+      { key: 'parked', label: 'Vehicle safely parked' },
+      { key: 'customer', label: 'Customer aware of arrival' },
+      { key: 'tools', label: 'Tools ready to begin' },
+    ];
+    return [];
+  }, [job?.status]);
+
+  const toggleCheck = (key: string) =>
+    setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const QUICK_MESSAGES: { key: string; label: string; body: string; statuses: string[] }[] = [
+    { key: 'omw', label: "I'm on the way", body: "Hi, your Tyre Rescue driver is on the way to you now.", statuses: ['driver_assigned', 'en_route'] },
+    { key: 'nearby', label: "I'm nearby", body: "Hi, your driver is nearly with you — please be ready.", statuses: ['en_route'] },
+    { key: 'arrived', label: "I've arrived", body: "Hi, your Tyre Rescue driver has arrived at the location.", statuses: ['en_route', 'arrived'] },
+    { key: '5min', label: '5 more minutes', body: "Hi, your driver needs about 5 more minutes to finish — nearly done.", statuses: ['in_progress'] },
+  ];
+
+  const sendQuickMessage = async (msg: typeof QUICK_MESSAGES[0]) => {
+    if (!job) return;
+    setSendingQuickMsg(msg.key);
+    try {
+      const res = await chatApi.createConversation(job.id, 'customer_driver');
+      await chatApi.sendMessage(res.conversationId, msg.body);
+      Alert.alert('Sent', `Message sent to customer.`);
+    } catch {
+      Alert.alert('Error', 'Could not send message.');
+    }
+    setSendingQuickMsg(null);
+  };
+
   const openNavigation = () => {
     if (!job?.lat || !job?.lng) return;
     const url = `https://www.google.com/maps/dir/?api=1&destination=${job.lat},${job.lng}`;
@@ -170,6 +211,28 @@ export default function JobDetailScreen() {
         <StatusBadge status={job.status} />
       </View>
 
+      {/* Job Context */}
+      <View style={styles.contextRow}>
+        <View style={styles.contextChip}>
+          <Ionicons name="construct-outline" size={14} color={colors.accent} />
+          <Text style={styles.contextChipText}>{job.serviceType?.replace(/_/g, ' ') || 'Service'}</Text>
+        </View>
+        <View style={styles.contextChip}>
+          <Ionicons name="car-outline" size={14} color={colors.accent} />
+          <Text style={styles.contextChipText}>
+            {[job.vehicleReg, job.vehicleMake].filter(Boolean).join(' · ') || 'No vehicle'}
+          </Text>
+        </View>
+        {job.tyres.length > 0 && (
+          <View style={styles.contextChip}>
+            <Ionicons name="disc-outline" size={14} color={colors.accent} />
+            <Text style={styles.contextChipText}>
+              {job.tyres.reduce((s, t) => s + t.quantity, 0)} tyre{job.tyres.reduce((s, t) => s + t.quantity, 0) !== 1 ? 's' : ''}
+            </Text>
+          </View>
+        )}
+      </View>
+
       {/* Customer Info */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Customer</Text>
@@ -180,6 +243,29 @@ export default function JobDetailScreen() {
           </Pressable>
         )}
       </View>
+
+      {/* Quick Status Messages */}
+      {['driver_assigned', 'en_route', 'arrived', 'in_progress'].includes(job.status) && (
+        <View style={styles.quickMsgSection}>
+          <Text style={styles.quickMsgTitle}>Quick Message to Customer</Text>
+          <View style={styles.quickMsgRow}>
+            {QUICK_MESSAGES.filter((m) => m.statuses.includes(job.status)).map((m) => (
+              <Pressable
+                key={m.key}
+                style={[styles.quickMsgBtn, sendingQuickMsg === m.key && styles.buttonDisabled]}
+                onPress={() => sendQuickMessage(m)}
+                disabled={!!sendingQuickMsg}
+              >
+                {sendingQuickMsg === m.key ? (
+                  <ActivityIndicator size="small" color={colors.accent} />
+                ) : (
+                  <Text style={styles.quickMsgBtnText}>{m.label}</Text>
+                )}
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Location */}
       <View style={styles.card}>
@@ -249,6 +335,36 @@ export default function JobDetailScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Notes</Text>
           <Text style={styles.cardValue}>{job.notes}</Text>
+        </View>
+      )}
+
+      {/* Arrival Readiness Checklist */}
+      {checklistItems.length > 0 && (
+        <View style={styles.checklistCard}>
+          <Text style={styles.cardTitle}>
+            {job.status === 'en_route' ? 'Before Arriving' : 'Before Starting'}
+          </Text>
+          {checklistItems.map((item) => (
+            <Pressable
+              key={item.key}
+              style={styles.checklistRow}
+              onPress={() => toggleCheck(item.key)}
+            >
+              <Ionicons
+                name={checklist[item.key] ? 'checkbox' : 'square-outline'}
+                size={22}
+                color={checklist[item.key] ? colors.success : colors.muted}
+              />
+              <Text
+                style={[
+                  styles.checklistLabel,
+                  checklist[item.key] && styles.checklistLabelDone,
+                ]}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          ))}
         </View>
       )}
 
@@ -559,5 +675,80 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     fontSize: fontSize.base,
     color: colors.accent,
+  },
+  contextRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  contextChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(249,115,22,0.1)',
+    borderRadius: radius.md,
+    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+    gap: 4,
+  },
+  contextChipText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: fontSize.xs,
+    color: colors.accent,
+    textTransform: 'capitalize',
+  },
+  quickMsgSection: {
+    marginBottom: spacing.sm,
+  },
+  quickMsgTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: fontSize.xs,
+    color: colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  quickMsgRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  quickMsgBtn: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  quickMsgBtnText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: fontSize.sm,
+    color: colors.text,
+  },
+  checklistCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    ...cardShadow,
+  },
+  checklistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 6,
+  },
+  checklistLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.base,
+    color: colors.text,
+    flex: 1,
+  },
+  checklistLabelDone: {
+    color: colors.muted,
+    textDecorationLine: 'line-through',
   },
 });

@@ -19,6 +19,7 @@ const navItems = [
   { label: 'Callbacks', href: '/admin/callbacks', badgeKey: 'callbacks' as const },
   { label: 'Messages', href: '/admin/messages', badgeKey: 'messages' as const },
   { label: 'Chat', href: '/admin/chat', badgeKey: 'chat' as const },
+  { label: 'SMS', href: '/admin/sms' },
   { label: 'Invoices', href: '/admin/invoices' },
   { label: 'Drivers', href: '/admin/drivers' },
   { label: 'Inventory', href: '/admin/inventory' },

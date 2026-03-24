@@ -192,7 +192,7 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
           </Box>
         )}
 
-        {/* Driver Info + ETA */}
+        {/* Driver Info + ETA + Confidence Badges */}
         {hasDriverAssigned && data.status !== 'completed' && (
           <Box
             p={4}
@@ -236,6 +236,68 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
                     {data.status === 'arrived' ? 'Driver has arrived' : 'Job in progress'}
                   </Text>
                 </Box>
+              )}
+            </HStack>
+
+            {/* Confidence Badges */}
+            <HStack gap={2} mt={3} flexWrap="wrap">
+              {data.driverLat && data.driverLng && !isLocationStale && (
+                <HStack
+                  gap={1.5}
+                  bg="rgba(34,197,94,0.12)"
+                  px={3}
+                  py={1}
+                  borderRadius="full"
+                  align="center"
+                >
+                  <Box w="8px" h="8px" borderRadius="full" bg="green.400"
+                    css={{ animation: 'pulse 2s infinite' }} />
+                  <Text fontSize="xs" fontWeight="600" color="green.400">
+                    Live tracking active
+                  </Text>
+                </HStack>
+              )}
+              {data.status === 'en_route' && (
+                <HStack
+                  gap={1.5}
+                  bg="rgba(249,115,22,0.12)"
+                  px={3}
+                  py={1}
+                  borderRadius="full"
+                  align="center"
+                >
+                  <Text fontSize="xs" fontWeight="600" color={c.accent}>
+                    Driver on the way
+                  </Text>
+                </HStack>
+              )}
+              {data.status === 'arrived' && (
+                <HStack
+                  gap={1.5}
+                  bg="rgba(34,197,94,0.12)"
+                  px={3}
+                  py={1}
+                  borderRadius="full"
+                  align="center"
+                >
+                  <Text fontSize="xs" fontWeight="600" color="green.400">
+                    Driver at your location
+                  </Text>
+                </HStack>
+              )}
+              {data.status === 'in_progress' && (
+                <HStack
+                  gap={1.5}
+                  bg="rgba(59,130,246,0.12)"
+                  px={3}
+                  py={1}
+                  borderRadius="full"
+                  align="center"
+                >
+                  <Text fontSize="xs" fontWeight="600" color="blue.400">
+                    Work in progress
+                  </Text>
+                </HStack>
               )}
             </HStack>
           </Box>

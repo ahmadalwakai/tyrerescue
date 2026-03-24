@@ -7,9 +7,10 @@ export async function GET(request: Request) {
   try {
     const { driverId } = await requireDriverMobile(request);
 
-    const activeStatuses = ['driver_assigned', 'en_route', 'arrived', 'in_progress'];
+    const operationalStatuses = ['en_route', 'arrived', 'in_progress'];
+    const upcomingStatuses = ['driver_assigned'];
 
-    // Active jobs
+    // Active jobs (actually working on)
     const activeJobs = await db
       .select({
         id: bookings.id,
@@ -32,10 +33,39 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(bookings.driverId, driverId),
-          inArray(bookings.status, activeStatuses),
+          inArray(bookings.status, operationalStatuses),
         ),
       )
       .orderBy(desc(bookings.createdAt));
+
+    // Upcoming jobs (assigned, waiting to start)
+    const upcomingJobs = await db
+      .select({
+        id: bookings.id,
+        refNumber: bookings.refNumber,
+        status: bookings.status,
+        bookingType: bookings.bookingType,
+        serviceType: bookings.serviceType,
+        addressLine: bookings.addressLine,
+        lat: bookings.lat,
+        lng: bookings.lng,
+        tyreSizeDisplay: bookings.tyreSizeDisplay,
+        quantity: bookings.quantity,
+        customerName: bookings.customerName,
+        customerPhone: bookings.customerPhone,
+        scheduledAt: bookings.scheduledAt,
+        acceptedAt: bookings.acceptedAt,
+        assignedAt: bookings.assignedAt,
+        createdAt: bookings.createdAt,
+      })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.driverId, driverId),
+          inArray(bookings.status, upcomingStatuses),
+        ),
+      )
+      .orderBy(bookings.assignedAt);
 
     // Completed jobs (last 50)
     const completedJobs = await db
@@ -62,9 +92,10 @@ export async function GET(request: Request) {
       .orderBy(desc(bookings.completedAt))
       .limit(50);
 
-    // Get tyre info for active jobs
-    const activeWithTyres = await Promise.all(
-      activeJobs.map(async (job) => {
+    // Get tyre info for active + upcoming jobs
+    const allActiveJobs = [...activeJobs, ...upcomingJobs];
+    const jobsWithTyres = await Promise.all(
+      allActiveJobs.map(async (job) => {
         const tyres = await db
           .select({
             quantity: bookingTyres.quantity,
@@ -78,8 +109,12 @@ export async function GET(request: Request) {
       }),
     );
 
+    const activeWithTyres = jobsWithTyres.filter(j => operationalStatuses.includes(j.status));
+    const upcomingWithTyres = jobsWithTyres.filter(j => upcomingStatuses.includes(j.status));
+
     return NextResponse.json({
       active: activeWithTyres.map(serialise),
+      upcoming: upcomingWithTyres.map(serialise),
       completed: completedJobs.map(serialise),
     });
   } catch (error) {

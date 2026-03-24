@@ -179,6 +179,7 @@ export interface JobDetail extends JobSummary {
 
 export interface JobsResponse {
   active: JobSummary[];
+  upcoming: JobSummary[];
   completed: JobSummary[];
 }
 

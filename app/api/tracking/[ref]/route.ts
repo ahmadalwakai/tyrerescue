@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings, bookingStatusHistory, drivers, users } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
-import { getDrivingDistanceMiles } from '@/lib/mapbox';
+import { getDirections, metersToMiles, secondsToMinutes } from '@/lib/mapbox';
 
 interface StatusHistoryItem {
   status: string;
@@ -21,6 +21,8 @@ interface TrackingResponse {
   driverName: string | null;
   driverPhone: string | null;
   etaMinutes: number | null;
+  distanceMiles: number | null;
+  routeCoordinates: [number, number][] | null;
   statusHistory: StatusHistoryItem[];
   addressLine: string;
   scheduledAt: string | null;
@@ -73,6 +75,8 @@ export async function GET(
     let driverName: string | null = null;
     let driverPhone: string | null = null;
     let etaMinutes: number | null = null;
+    let distanceMiles: number | null = null;
+    let routeCoordinates: [number, number][] | null = null;
 
     if (booking.driverId) {
       const [driverInfo] = await db
@@ -109,18 +113,20 @@ export async function GET(
           }
         }
 
-        // Calculate ETA if driver has location
+        // Calculate ETA + route if driver has location
         if (driverLat && driverLng) {
           const customerLat = parseFloat(booking.lat);
           const customerLng = parseFloat(booking.lng);
 
-          const drivingResult = await getDrivingDistanceMiles(
+          const directions = await getDirections(
             { lat: driverLat, lng: driverLng },
             { lat: customerLat, lng: customerLng }
           );
 
-          if (drivingResult) {
-            etaMinutes = drivingResult.durationMinutes;
+          if (directions) {
+            etaMinutes = secondsToMinutes(directions.duration);
+            distanceMiles = Math.round(metersToMiles(directions.distance) * 10) / 10;
+            routeCoordinates = directions.geometry.coordinates;
           }
         }
       }
@@ -142,6 +148,8 @@ export async function GET(
       driverName,
       driverPhone,
       etaMinutes,
+      distanceMiles,
+      routeCoordinates,
       statusHistory,
       addressLine: booking.addressLine,
       scheduledAt: booking.scheduledAt?.toISOString() || null,

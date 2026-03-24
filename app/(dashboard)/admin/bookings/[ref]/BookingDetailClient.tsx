@@ -23,6 +23,7 @@ import { colorTokens as c, inputProps, textareaProps } from '@/lib/design-tokens
 import { anim } from '@/lib/animations';
 import { ChatWidget } from '@/components/chat/ChatWidget';
 import { getDriverPresenceState, PRESENCE_LABELS, PRESENCE_COLORS } from '@/lib/driver-presence';
+import { AdminTrackingMap } from '@/components/admin/AdminTrackingMap';
 
 interface RankedDriver {
   driverId: string;
@@ -274,37 +275,8 @@ export function BookingDetailClient({
   // ── Remove driver ──
   const [removeDriverLoading, setRemoveDriverLoading] = useState(false);
 
-  // ── Live driver tracking (auto-refresh) ──
-  const [liveDriver, setLiveDriver] = useState(assignedDriver);
-  useEffect(() => {
-    if (!assignedDriver?.id) { setLiveDriver(null); return; }
-    const driverId = assignedDriver.id;
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const res = await fetch(`/api/admin/drivers/locations`);
-        if (!res.ok) return;
-        const drivers: Driver[] = await res.json();
-        const d = drivers.find((d: Driver) => d.id === driverId);
-        if (d && !cancelled) setLiveDriver(d);
-      } catch { /* ignore */ }
-    };
-    poll();
-    const interval = setInterval(poll, 15_000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [assignedDriver?.id]);
-
   const driverAccepted = !!booking.acceptedAt;
   const driverActive = ['en_route', 'arrived', 'in_progress'].includes(booking.status);
-
-  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-  // Build map URL with customer pin + driver pin if assigned and has location
-  const driverHasLocation = liveDriver?.currentLat && liveDriver?.currentLng;
-  const staticMapUrl = mapboxToken
-    ? driverHasLocation
-      ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l+ef4444(${booking.lng},${booking.lat}),pin-l+3B82F6(${liveDriver!.currentLng},${liveDriver!.currentLat})/auto/600x350@2x?padding=60&access_token=${mapboxToken}`
-      : `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l+ef4444(${booking.lng},${booking.lat})/${booking.lng},${booking.lat},14,0/400x300@2x?access_token=${mapboxToken}`
-    : '';
 
   const isTerminal = isTerminalStatus;
   const nextStatuses = ADMIN_TRANSITIONS[booking.status] || [];
@@ -663,10 +635,17 @@ export function BookingDetailClient({
                 {booking.distanceSource === 'driver' ? 'nearest driver' : booking.distanceSource === 'service_area' ? 'service area' : 'depot'}
               </Text>
             )}
-            {mapboxToken && (
-              <Image src={staticMapUrl} alt="Location map" borderRadius="md" width="100%" maxW="400px" />
-            )}
           </Box>
+
+          {/* Tracking Map — upgraded dispatch map */}
+          <AdminTrackingMap
+            bookingRef={booking.refNumber}
+            bookingStatus={booking.status}
+            customerLat={booking.lat}
+            customerLng={booking.lng}
+            customerAddress={booking.addressLine}
+            assignedDriver={assignedDriver}
+          />
 
           {/* Edit save/cancel bar */}
           {editing && (
@@ -1256,71 +1235,6 @@ export function BookingDetailClient({
         </VStack>
       </GridItem>
     </Grid>
-
-    {/* ═══ Live Driver Tracking ═══ */}
-    {liveDriver && (
-      <Box mt={6} bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border}>
-        <HStack justify="space-between" mb={4}>
-          <Heading size="md" color={c.text}>Live Driver Tracking</Heading>
-          {(() => {
-            const p = getDriverPresenceState(
-              { isOnline: liveDriver.isOnline ?? false, locationAt: liveDriver.locationAt ?? null, status: liveDriver.status ?? null },
-              booking.status === 'driver_assigned' || driverActive ? booking : null,
-            );
-            return <Badge colorPalette={PRESENCE_COLORS[p]} size="sm">{PRESENCE_LABELS[p]}</Badge>;
-          })()}
-        </HStack>
-        <HStack gap={4} mb={3} flexWrap="wrap">
-          <Box>
-            <Text fontSize="sm" color={c.muted}>Driver</Text>
-            <Text fontWeight="medium" color={c.text}>{liveDriver.name}</Text>
-          </Box>
-          {liveDriver.locationAt && (
-            <Box>
-              <Text fontSize="sm" color={c.muted}>Last Location</Text>
-              <Text fontWeight="medium" color={c.text}>{formatDate(liveDriver.locationAt)}</Text>
-            </Box>
-          )}
-          {liveDriver.currentLat && liveDriver.currentLng && (
-            <Box>
-              <Text fontSize="sm" color={c.muted}>Coordinates</Text>
-              <Text fontWeight="medium" color={c.text} fontSize="sm">{Number(liveDriver.currentLat).toFixed(5)}, {Number(liveDriver.currentLng).toFixed(5)}</Text>
-            </Box>
-          )}
-        </HStack>
-        {mapboxToken && driverHasLocation && (
-          <Image
-            src={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l+ef4444(${booking.lng},${booking.lat}),pin-l+3B82F6(${liveDriver.currentLng},${liveDriver.currentLat})/auto/700x400@2x?padding=60&access_token=${mapboxToken}`}
-            alt="Driver tracking map"
-            borderRadius="md"
-            width="100%"
-          />
-        )}
-        {mapboxToken && driverHasLocation && (
-          <HStack gap={2} mt={2}>
-            <Badge colorPalette="red" size="sm">● Customer</Badge>
-            <Badge colorPalette="blue" size="sm">● Driver</Badge>
-          </HStack>
-        )}
-        {!driverHasLocation && (
-          <Text fontSize="sm" color={c.muted}>Driver location not yet available — waiting for GPS update.</Text>
-        )}
-        {/* Call Driver */}
-        {liveDriver.phone && (
-          <a href={`tel:${liveDriver.phone}`} style={{ textDecoration: 'none' }}>
-            <Button
-              mt={4}
-              size="sm"
-              bg="#22C55E"
-              color="#fff"
-              _hover={{ bg: '#16A34A' }}
-            >
-              📞 Call Driver ({liveDriver.phone})
-            </Button>
-          </a>
-        )}
-      </Box>
-    )}
 
     {/* ═══ Admin ↔ Driver Chat ═══ */}
     {assignedDriver && (

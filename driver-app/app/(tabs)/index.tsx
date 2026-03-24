@@ -7,8 +7,12 @@ import {
   ScrollView,
   RefreshControl,
   Alert,
+  Image,
+  Pressable,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Location from 'expo-location';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
 import { driverApi, JobSummary } from '@/api/client';
@@ -63,6 +67,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const [isOnline, setIsOnline] = useState(false);
   const [activeJobs, setActiveJobs] = useState<JobSummary[]>([]);
+  const [upcomingJobs, setUpcomingJobs] = useState<JobSummary[]>([]);
   const [completedCount, setCompletedCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [toggling, setToggling] = useState(false);
@@ -71,6 +76,20 @@ export default function DashboardScreen() {
 
   const { bgRunning } = useLocationBroadcast(isOnline, activeJobs.length > 0);
   const knownJobRefs = useRef<Set<string>>(new Set());
+  const [driverLat, setDriverLat] = useState<number | null>(null);
+  const [driverLng, setDriverLng] = useState<number | null>(null);
+
+  const updateDriverPosition = useCallback(async () => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setDriverLat(loc.coords.latitude);
+      setDriverLng(loc.coords.longitude);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -92,6 +111,7 @@ export default function DashboardScreen() {
       knownJobRefs.current = new Set(newRefs);
 
       setActiveJobs(jobsRes.active);
+      setUpcomingJobs(jobsRes.upcoming ?? []);
       setCompletedCount(jobsRes.completed.length);
       setLastSync(Date.now());
     } catch {
@@ -102,6 +122,14 @@ export default function DashboardScreen() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Update driver position every 15s while online
+  useEffect(() => {
+    if (!isOnline) return;
+    updateDriverPosition();
+    const iv = setInterval(updateDriverPosition, 15_000);
+    return () => clearInterval(iv);
+  }, [isOnline, updateDriverPosition]);
 
   useRefreshOnFocus(fetchData);
 
@@ -208,10 +236,75 @@ export default function DashboardScreen() {
           <Text style={styles.statLabel}>Active</Text>
         </View>
         <View style={styles.statCard}>
+          <Text style={styles.statNumber}>{upcomingJobs.length}</Text>
+          <Text style={styles.statLabel}>Upcoming</Text>
+        </View>
+        <View style={styles.statCard}>
           <Text style={styles.statNumber}>{completedCount}</Text>
-          <Text style={styles.statLabel}>Completed</Text>
+          <Text style={styles.statLabel}>Done</Text>
         </View>
       </Animated.View>
+
+      {/* Live Map Card */}
+      {isOnline && driverLat != null && driverLng != null && (
+        <Animated.View entering={FadeInDown.duration(300).delay(140)}>
+          <View style={styles.mapCard}>
+            <View style={styles.mapCardHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success }} />
+                <Text style={styles.mapCardTitle}>Your Live Location</Text>
+              </View>
+              <Text style={styles.mapCardSync}>{syncLabel}</Text>
+            </View>
+            <Pressable
+              onPress={() => {
+                if (activeJobs.length > 0) {
+                  router.push(`/(tabs)/jobs/${activeJobs[0].refNumber}/map`);
+                } else {
+                  const url = `https://www.google.com/maps/search/?api=1&query=${driverLat},${driverLng}`;
+                  Linking.openURL(url);
+                }
+              }}
+            >
+              <Image
+                source={{
+                  uri: (() => {
+                    const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? '';
+                    const dPin = `pin-l-d+3B82F6(${driverLng},${driverLat})`;
+                    const firstJob = activeJobs[0];
+                    if (firstJob?.lat && firstJob?.lng) {
+                      const cPin = `pin-l-c+ef4444(${firstJob.lng},${firstJob.lat})`;
+                      return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${dPin},${cPin}/auto/600x300@2x?padding=60&access_token=${token}`;
+                    }
+                    return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${dPin}/${driverLng},${driverLat},14,0/600x300@2x?access_token=${token}`;
+                  })(),
+                }}
+                style={styles.mapImage}
+                resizeMode="cover"
+              />
+            </Pressable>
+            <View style={styles.mapCardFooter}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#3B82F6' }} />
+                  <Text style={styles.mapLegendText}>You</Text>
+                </View>
+                {activeJobs.length > 0 && activeJobs[0]?.lat && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' }} />
+                    <Text style={styles.mapLegendText}>Customer</Text>
+                  </View>
+                )}
+              </View>
+              {activeJobs.length > 0 && (
+                <Text style={styles.mapJobHint}>
+                  Tap to view job map
+                </Text>
+              )}
+            </View>
+          </View>
+        </Animated.View>
+      )}
 
       {/* Active Jobs */}
       {activeJobs.length > 0 && (
@@ -219,6 +312,21 @@ export default function DashboardScreen() {
           <Text style={styles.sectionTitle}>Active Jobs</Text>
           {activeJobs.map((job, index) => (
             <Animated.View key={job.id} entering={FadeInDown.duration(300).delay(180 + index * 60)}>
+              <JobCard
+                job={job}
+                onPress={() => router.push(`/(tabs)/jobs/${job.refNumber}`)}
+              />
+            </Animated.View>
+          ))}
+        </View>
+      )}
+
+      {/* Upcoming Jobs */}
+      {upcomingJobs.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Upcoming Jobs</Text>
+          {upcomingJobs.map((job, index) => (
+            <Animated.View key={job.id} entering={FadeInDown.duration(300).delay(240 + index * 60)}>
               <JobCard
                 job={job}
                 onPress={() => router.push(`/(tabs)/jobs/${job.refNumber}`)}
@@ -363,5 +471,53 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: fontSize.xs,
     color: colors.muted,
+  },
+  // Map card
+  mapCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    marginBottom: spacing.lg,
+    overflow: 'hidden',
+    ...cardShadow,
+  },
+  mapCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  mapCardTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: fontSize.sm,
+    color: colors.text,
+  },
+  mapCardSync: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.xs,
+    color: colors.muted,
+  },
+  mapImage: {
+    width: '100%',
+    height: 200,
+  },
+  mapCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  mapLegendText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.xs,
+    color: colors.muted,
+  },
+  mapJobHint: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.xs,
+    color: colors.accent,
   },
 });
