@@ -41,9 +41,11 @@ export async function registerForPushNotifications(): Promise<string | null> {
     await Notifications.setNotificationChannelAsync('jobs', {
       name: 'New Jobs',
       importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
+      vibrationPattern: [0, 500, 200, 500, 200, 500],
       lightColor: '#F97316',
       sound: 'new_job.wav',
+      enableVibrate: true,
+      bypassDnd: true,
     });
 
     await Notifications.setNotificationChannelAsync('messages', {

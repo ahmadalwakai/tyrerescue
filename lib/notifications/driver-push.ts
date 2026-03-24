@@ -53,7 +53,7 @@ export async function sendDriverPushNotification(
     title,
     body,
     data,
-    sound: channelId === 'jobs' ? 'new-job.wav' : 'default',
+    sound: channelId === 'jobs' ? 'new_job.wav' : 'default',
     channelId,
     priority: 'high',
   };

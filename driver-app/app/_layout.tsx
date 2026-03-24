@@ -16,10 +16,11 @@ import {
   registerForPushNotifications,
   unregisterPushToken,
   addNotificationResponseListener,
+  addNotificationReceivedListener,
 } from '@/services/notifications';
 import { checkForUpdate } from '@/services/version-check';
 import { initOfflineQueue } from '@/services/offline-queue';
-import { preloadSounds } from '@/services/sound';
+import { preloadSounds, playSound } from '@/services/sound';
 
 // Import background-location to register the task at module level
 import '@/services/background-location';
@@ -31,6 +32,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
   const segments = useSegments();
   const router = useRouter();
   const notifListenerRef = useRef<ReturnType<typeof addNotificationResponseListener> | null>(null);
+  const notifReceivedRef = useRef<ReturnType<typeof addNotificationReceivedListener> | null>(null);
   const splashHidden = useRef(false);
 
   // Hide splash once auth state is resolved — this is the only real wait
@@ -62,6 +64,16 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     initOfflineQueue();
     preloadSounds();
 
+    // Play sound when a push notification arrives while app is foregrounded
+    notifReceivedRef.current = addNotificationReceivedListener((notification) => {
+      const data = notification.request.content.data;
+      if (data?.type === 'new_job') {
+        playSound('new_job');
+      } else if (data?.type === 'chat_message') {
+        playSound('new_message');
+      }
+    });
+
     // Handle notification taps — navigate to the relevant job
     notifListenerRef.current = addNotificationResponseListener((response) => {
       const data = response.notification.request.content.data;
@@ -85,6 +97,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
 
     return () => {
       notifListenerRef.current?.remove();
+      notifReceivedRef.current?.remove();
     };
   }, [user, router]);
 
