@@ -61,9 +61,16 @@ export default function ChatListScreen() {
             pressScale={0.98}
           >
           <View style={styles.rowLeft}>
-            <Text style={styles.ref}>#{item.bookingRef}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+              <Text style={styles.ref}>#{item.bookingRef}</Text>
+              {item.channel === 'admin_driver' && (
+                <View style={styles.channelBadge}>
+                  <Text style={styles.channelBadgeText}>Admin</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.name} numberOfLines={1}>
-              {item.customerName ?? 'Customer'}
+              {item.channel === 'admin_driver' ? 'Tyre Rescue Admin' : (item.customerName ?? 'Customer')}
             </Text>
             {item.lastMessageBody && (
               <Text style={styles.preview} numberOfLines={1}>
@@ -156,6 +163,17 @@ const styles = StyleSheet.create({
   badgeText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 11,
+    color: '#FFFFFF',
+  },
+  channelBadge: {
+    backgroundColor: colors.info,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  channelBadgeText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 10,
     color: '#FFFFFF',
   },
 });

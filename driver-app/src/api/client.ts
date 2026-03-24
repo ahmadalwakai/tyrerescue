@@ -325,7 +325,7 @@ export const chatApi = {
       `/api/chat/conversations${bookingRef ? `?bookingRef=${encodeURIComponent(bookingRef)}` : ''}`,
     ),
 
-  createConversation: (bookingId: string, channel: 'customer_admin' | 'customer_driver') =>
+  createConversation: (bookingId: string, channel: 'customer_admin' | 'customer_driver' | 'admin_driver') =>
     api<{ conversationId: string }>('/api/chat/conversations', {
       method: 'POST',
       body: { bookingId, channel },

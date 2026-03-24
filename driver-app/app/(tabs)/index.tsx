@@ -20,6 +20,7 @@ import { JobCard } from '@/components/JobCard';
 import { EmptyState } from '@/components/EmptyState';
 import { lightHaptic } from '@/services/haptics';
 import { JobCardSkeleton } from '@/components/SkeletonLoader';
+import { playSound } from '@/services/sound';
 
 function PulsingDot() {
   const scale = useSharedValue(1);
@@ -69,6 +70,7 @@ export default function DashboardScreen() {
   const [syncLabel, setSyncLabel] = useState('Syncing…');
 
   const { bgRunning } = useLocationBroadcast(isOnline, activeJobs.length > 0);
+  const knownJobRefs = useRef<Set<string>>(new Set());
 
   const fetchData = useCallback(async () => {
     try {
@@ -77,6 +79,18 @@ export default function DashboardScreen() {
         driverApi.getJobs(),
       ]);
       setIsOnline(statusRes.isOnline);
+
+      // Detect newly assigned jobs and play alert
+      const newRefs = jobsRes.active.map((j: JobSummary) => j.ref);
+      if (knownJobRefs.current.size > 0) {
+        const hasNew = newRefs.some((r: string) => !knownJobRefs.current.has(r));
+        if (hasNew) {
+          playSound('new_job');
+          lightHaptic();
+        }
+      }
+      knownJobRefs.current = new Set(newRefs);
+
       setActiveJobs(jobsRes.active);
       setCompletedCount(jobsRes.completed.length);
       setLastSync(Date.now());

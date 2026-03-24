@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
-import { driverApi, JobDetail, ApiError } from '@/api/client';
+import { driverApi, JobDetail, ApiError, chatApi } from '@/api/client';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { StatusBadge } from '@/components/StatusBadge';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -252,13 +252,30 @@ export default function JobDetailScreen() {
         </View>
       )}
 
-      {/* Amount */}
-      {job.totalAmount && (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Total</Text>
-          <Text style={styles.amountText}>£{Number(job.totalAmount).toFixed(2)}</Text>
-        </View>
-      )}
+      {/* Call Admin */}
+      <View style={styles.adminContactRow}>
+        <Pressable
+          style={styles.callAdminButton}
+          onPress={() => Linking.openURL('tel:01412660690')}
+        >
+          <Ionicons name="call-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.callAdminText}>Call Admin</Text>
+        </Pressable>
+        <Pressable
+          style={styles.chatAdminButton}
+          onPress={async () => {
+            try {
+              const res = await chatApi.createConversation(job.id, 'admin_driver');
+              router.push(`/(tabs)/chat/${res.conversationId}`);
+            } catch {
+              Alert.alert('Error', 'Could not open chat.');
+            }
+          }}
+        >
+          <Ionicons name="chatbubble-outline" size={20} color={colors.accent} />
+          <Text style={styles.chatAdminText}>Chat with Admin</Text>
+        </Pressable>
+      </View>
 
       {/* Actions */}
       {job.status === 'paid' && (
@@ -427,9 +444,41 @@ const styles = StyleSheet.create({
   tyreRow: {
     marginBottom: 6,
   },
-  amountText: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 24,
+  callAdminButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accent,
+    borderRadius: radius.xl,
+    padding: spacing.md,
+    gap: 8,
+  },
+  callAdminText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: fontSize.sm,
+    color: '#FFFFFF',
+  },
+  adminContactRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  chatAdminButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    gap: 8,
+  },
+  chatAdminText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: fontSize.sm,
     color: colors.accent,
   },
   actionRow: {

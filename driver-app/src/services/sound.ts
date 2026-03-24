@@ -3,7 +3,7 @@ import { Audio } from 'expo-av';
 type SoundEvent = 'new_job' | 'job_accepted' | 'job_completed' | 'new_message';
 
 const SOUND_FILES: Record<SoundEvent, ReturnType<typeof require>> = {
-  new_job: require('../../assets/sounds/new_job.wav'),
+  new_job: require('../../assets/sounds/new_job_alert.mp3'),
   // These three re-use the same file — swap for distinct files later.
   job_accepted: require('../../assets/sounds/new_job.wav'),
   job_completed: require('../../assets/sounds/new_job.wav'),

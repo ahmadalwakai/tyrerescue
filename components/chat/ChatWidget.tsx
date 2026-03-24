@@ -227,6 +227,7 @@ export function ChatWidget({
   /* ─── Channel label ──────────────────────────────────── */
   const channelLabel =
     channel === 'customer_admin' ? 'Customer ↔ Admin'
+    : channel === 'admin_driver' ? 'Admin ↔ Driver'
     : 'Customer ↔ Driver';
 
   const isLocked = detail?.locked ?? false;

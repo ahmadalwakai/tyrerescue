@@ -1,6 +1,6 @@
 /** Shared types for the booking-bound chat system */
 
-export type ChatChannel = 'customer_admin' | 'customer_driver';
+export type ChatChannel = 'customer_admin' | 'customer_driver' | 'admin_driver';
 export type ChatRole = 'customer' | 'admin' | 'driver';
 export type ConversationStatus = 'open' | 'closed' | 'archived';
 export type MessageType = 'text' | 'image' | 'admin_note';

@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
+  SectionList,
   RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -19,6 +20,28 @@ import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic } from '@/services/haptics';
 
 type Tab = 'active' | 'completed';
+
+function getDayLabel(dateStr: string | null): string {
+  if (!dateStr) return 'Unknown';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.round((today.getTime() - target.getTime()) / 86400000);
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function groupByDay(jobs: JobSummary[]): { title: string; data: JobSummary[] }[] {
+  const map = new Map<string, JobSummary[]>();
+  for (const job of jobs) {
+    const label = getDayLabel(job.completedAt ?? job.scheduledAt ?? job.createdAt);
+    if (!map.has(label)) map.set(label, []);
+    map.get(label)!.push(job);
+  }
+  return Array.from(map, ([title, data]) => ({ title, data }));
+}
 
 export default function JobsListScreen() {
   const router = useRouter();
@@ -52,8 +75,25 @@ export default function JobsListScreen() {
   }, [fetchJobs]);
 
   const jobs = tab === 'active' ? active : completed;
+  const completedSections = useMemo(() => groupByDay(completed), [completed]);
 
   if (loading) return <LoadingScreen />;
+
+  const refreshControl = (
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      tintColor={colors.accent}
+    />
+  );
+
+  const emptyComponent = (
+    <EmptyState
+      icon={tab === 'active' ? 'briefcase-outline' : 'checkmark-done-outline'}
+      title={tab === 'active' ? 'No active jobs' : 'No completed jobs'}
+      message={tab === 'active' ? 'New jobs will appear here when assigned.' : undefined}
+    />
+  );
 
   return (
     <View style={styles.container}>
@@ -79,34 +119,46 @@ export default function JobsListScreen() {
         </AnimatedPressable>
       </View>
 
-      {/* List */}
-      <FlatList
-        data={jobs}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.accent}
-          />
-        }
-        renderItem={({ item, index }) => (
-          <Animated.View entering={FadeInDown.duration(250).delay(index * 50)}>
-            <JobCard
-              job={item}
-              onPress={() => router.push(`/(tabs)/jobs/${item.refNumber}`)}
-            />
-          </Animated.View>
-        )}
-        ListEmptyComponent={
-          <EmptyState
-            icon={tab === 'active' ? 'briefcase-outline' : 'checkmark-done-outline'}
-            title={tab === 'active' ? 'No active jobs' : 'No completed jobs'}
-            message={tab === 'active' ? 'New jobs will appear here when assigned.' : undefined}
-          />
-        }
-      />
+      {/* Active: flat list */}
+      {tab === 'active' && (
+        <FlatList
+          data={active}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          refreshControl={refreshControl}
+          renderItem={({ item, index }) => (
+            <Animated.View entering={FadeInDown.duration(250).delay(index * 50)}>
+              <JobCard
+                job={item}
+                onPress={() => router.push(`/(tabs)/jobs/${item.refNumber}`)}
+              />
+            </Animated.View>
+          )}
+          ListEmptyComponent={emptyComponent}
+        />
+      )}
+
+      {/* Completed: section list grouped by day */}
+      {tab === 'completed' && (
+        <SectionList
+          sections={completedSections}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          refreshControl={refreshControl}
+          renderSectionHeader={({ section: { title } }) => (
+            <Text style={styles.sectionHeader}>{title}</Text>
+          )}
+          renderItem={({ item, index }) => (
+            <Animated.View entering={FadeInDown.duration(250).delay(index * 50)}>
+              <JobCard
+                job={item}
+                onPress={() => router.push(`/(tabs)/jobs/${item.refNumber}`)}
+              />
+            </Animated.View>
+          )}
+          ListEmptyComponent={emptyComponent}
+        />
+      )}
     </View>
   );
 }
@@ -144,5 +196,13 @@ const styles = StyleSheet.create({
   list: {
     padding: spacing.md,
     paddingBottom: spacing['2xl'],
+  },
+  sectionHeader: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.sm,
+    color: colors.muted,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    marginTop: spacing.sm,
   },
 });

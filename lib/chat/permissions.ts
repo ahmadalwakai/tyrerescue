@@ -43,7 +43,7 @@ export async function canAccessConversation(
   }
 
   if (user.role === 'driver') {
-    if (conv.channel !== 'customer_driver') return false;
+    if (conv.channel !== 'customer_driver' && conv.channel !== 'admin_driver') return false;
     const [driver] = await db
       .select({ id: drivers.id })
       .from(drivers)

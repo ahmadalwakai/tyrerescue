@@ -10,7 +10,7 @@ import type { ChatChannel, ChatRole } from '@/lib/chat/types';
 
 const createSchema = z.object({
   bookingId: z.string().uuid(),
-  channel: z.enum(['customer_admin', 'customer_driver']),
+  channel: z.enum(['customer_admin', 'customer_driver', 'admin_driver']),
 });
 
 /** GET /api/chat/conversations — list conversations for the current user */
@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
   }
 
   if (role === 'driver') {
-    if (channel !== 'customer_driver') {
-      return NextResponse.json({ error: 'Drivers can only use customer_driver channel' }, { status: 403 });
+    if (channel !== 'customer_driver' && channel !== 'admin_driver') {
+      return NextResponse.json({ error: 'Drivers can only use customer_driver or admin_driver channel' }, { status: 403 });
     }
     const [driver] = await db
       .select({ id: drivers.id })
@@ -75,8 +75,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // customer_driver channel requires an assigned driver
-  if (channel === 'customer_driver' && !booking.driverId) {
+  // customer_driver / admin_driver channel requires an assigned driver
+  if ((channel === 'customer_driver' || channel === 'admin_driver') && !booking.driverId) {
     return NextResponse.json({ error: 'No driver assigned to this booking yet' }, { status: 400 });
   }
 
