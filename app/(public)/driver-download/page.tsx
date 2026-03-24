@@ -68,8 +68,7 @@ export default function DriverDownloadPage() {
         </p>
 
         <a
-          href="/tyre-rescue-driver.apk"
-          download
+          href="/api/driver/download"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
