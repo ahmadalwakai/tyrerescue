@@ -1,11 +1,12 @@
 /**
  * Voodoo SMS Service — server-side only
  *
- * Sends SMS via the Voodoo SMS REST API.
+ * Sends SMS via the Voodoo SMS REST API (https://api.voodoosms.com).
+ * Auth: Bearer token via VOODOO_SMS_API_KEY.
  * Never import this from client components.
  */
 
-const VOODOO_API_BASE = 'https://www.voodoosms.com/vapi/server/sendSMS';
+const VOODOO_REST_BASE = 'https://api.voodoosms.com';
 const REQUEST_TIMEOUT_MS = 15_000;
 
 // ─── Types ──────────────────────────────────────────────
@@ -65,12 +66,8 @@ export function normalizeUkPhoneNumber(input: string): string | null {
 
 // ─── Config helpers ─────────────────────────────────────
 
-function getUid(): string | null {
-  return process.env.VOODOO_SMS_UID || process.env.VOODOO_SMS_API_KEY || null;
-}
-
-function getPassword(): string | null {
-  return process.env.VOODOO_SMS_PASS || process.env.VOODOO_SMS_API_KEY || null;
+function getApiKey(): string | null {
+  return process.env.VOODOO_SMS_API_KEY || null;
 }
 
 function getSenderId(): string {
@@ -92,13 +89,12 @@ export async function sendVoodooSms(params: SendSmsParams): Promise<SmsResult> {
     };
   }
 
-  const uid = getUid();
-  const pass = getPassword();
-  if (!uid || !pass) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
     return {
       ok: false,
       provider: 'voodoo',
-      error: 'SMS service not configured (missing VOODOO_SMS_UID / VOODOO_SMS_PASS)',
+      error: 'SMS service not configured (missing VOODOO_SMS_API_KEY)',
     };
   }
 
@@ -125,55 +121,47 @@ export async function sendVoodooSms(params: SendSmsParams): Promise<SmsResult> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-    const urlParams = new URLSearchParams({
-      uid,
-      pass,
-      orig: senderId,
-      dest: normalized,
+    const body = {
+      to: normalized,
+      from: senderId,
       msg: params.message,
-      validity: '1',
-    });
+    };
 
-    const res = await fetch(`${VOODOO_API_BASE}?${urlParams.toString()}`, {
-      method: 'GET',
+    console.log('[VoodooSMS] Sending to', normalized.slice(0, 5) + '***');
+
+    const res = await fetch(`${VOODOO_REST_BASE}/sendsms`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
 
     clearTimeout(timeout);
 
     const statusCode = res.status;
+    const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      const errorText = await res.text().catch(() => 'No response body');
-      console.error('[VoodooSMS] HTTP error:', statusCode, errorText.slice(0, 200));
+      const errMsg = data?.error?.msg || data?.error || `HTTP ${statusCode}`;
+      console.error('[VoodooSMS] API error:', statusCode, JSON.stringify(data).slice(0, 300));
       return {
         ok: false,
         provider: 'voodoo',
         statusCode,
-        error: `Voodoo API returned HTTP ${statusCode}`,
+        error: `Voodoo: ${errMsg}`,
       };
     }
 
-    const data = await res.json().catch(() => null);
-
-    // Voodoo returns { result: 200, ... } on success
-    if (data && (data.result === 200 || data.result === '200')) {
-      return {
-        ok: true,
-        provider: 'voodoo',
-        providerMessageId: data.reference_id || data.message_id || undefined,
-        statusCode,
-      };
-    }
-
-    // Non-200 result from Voodoo
-    const voodooError = data?.resultText || data?.error || 'Unknown Voodoo error';
-    console.error('[VoodooSMS] API error:', JSON.stringify(data).slice(0, 300));
+    // REST API returns { count, messages: [{ id, recipient, status }], ... }
+    const messageId = data?.messages?.[0]?.id;
     return {
-      ok: false,
+      ok: true,
       provider: 'voodoo',
+      providerMessageId: messageId || undefined,
       statusCode,
-      error: String(voodooError),
     };
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
