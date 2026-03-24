@@ -48,13 +48,16 @@ export async function sendDriverPushNotification(
     return false;
   }
 
+  // Map old 'jobs' channelId to versioned 'jobs_v2' for Android channel sound to work
+  const effectiveChannelId = channelId === 'jobs' ? 'jobs_v2' : channelId;
+
   const message: ExpoPushMessage = {
     to: driver.pushToken,
     title,
     body,
     data,
-    sound: channelId === 'jobs' ? 'new_job.wav' : 'default',
-    channelId,
+    sound: effectiveChannelId === 'jobs_v2' ? 'new_job.wav' : 'default',
+    channelId: effectiveChannelId,
     priority: 'high',
   };
 
@@ -66,10 +69,13 @@ export async function sendDriverPushNotification(
     });
 
     if (!res.ok) {
-      console.error(`[push] Failed to send to driver ${driverId}: ${res.status}`);
+      const text = await res.text().catch(() => '');
+      console.error(`[push] Failed to send to driver ${driverId}: ${res.status} ${text}`);
       return false;
     }
 
+    const result = await res.json().catch(() => null);
+    console.log(`[push] Sent to driver ${driverId}: channel=${effectiveChannelId} sound=${message.sound}`, result?.data?.status);
     return true;
   } catch (error) {
     console.error(`[push] Error sending to driver ${driverId}:`, error);

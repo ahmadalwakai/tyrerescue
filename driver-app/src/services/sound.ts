@@ -1,7 +1,7 @@
 import { Audio } from 'expo-av';
 import { Vibration, Platform } from 'react-native';
 
-type SoundEvent = 'new_job' | 'job_accepted' | 'job_completed' | 'new_message' | 'screen_tap';
+type SoundEvent = 'new_job' | 'job_accepted' | 'job_completed' | 'new_message';
 
 // Long vibration burst pattern for urgent alerts (pause, buzz, pause, buzz...)
 // Android: [wait, vibrate, wait, vibrate, ...] in ms
@@ -13,7 +13,6 @@ const SOUND_FILES: Record<SoundEvent, ReturnType<typeof require>> = {
   job_accepted: require('../../assets/sounds/new_job.wav'),
   job_completed: require('../../assets/sounds/new_job.wav'),
   new_message: require('../../assets/sounds/new_job.wav'),
-  screen_tap: require('../../assets/sounds/new_job.wav'),
 };
 
 const cache: Partial<Record<SoundEvent, Audio.Sound>> = {};
@@ -61,6 +60,6 @@ export async function playSound(event: SoundEvent): Promise<void> {
 
 /** Pre-load all sounds at app start for snappy playback */
 export async function preloadSounds(): Promise<void> {
-  const events: SoundEvent[] = ['new_job', 'job_accepted', 'job_completed', 'new_message', 'screen_tap'];
+  const events: SoundEvent[] = ['new_job', 'job_accepted', 'job_completed', 'new_message'];
   await Promise.allSettled(events.map(ensureLoaded));
 }

@@ -2,28 +2,13 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontSize } from '@/constants/theme';
-import { playSound } from '@/services/sound';
-import { lightHaptic } from '@/services/haptics';
-import { useRef } from 'react';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, 8);
-  const isFirstRender = useRef(true);
 
   return (
     <Tabs
-      screenListeners={{
-        tabPress: () => {
-          // Skip sound on initial app load
-          if (isFirstRender.current) {
-            isFirstRender.current = false;
-            return;
-          }
-          lightHaptic();
-          playSound('screen_tap');
-        },
-      }}
       screenOptions={{
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.text,
