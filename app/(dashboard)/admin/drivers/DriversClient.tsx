@@ -334,7 +334,7 @@ export function DriversClient({ drivers: initialDrivers }: Props) {
       <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflowX="auto" style={anim.fadeUp('0.5s')} display={{ base: 'none', md: 'block' }}>
         <Table.Root size="md">
           <Table.Header>
-            <Table.Row>
+            <Table.Row bg={c.bg}>
               <Table.ColumnHeader color={c.muted}>Name</Table.ColumnHeader>
               <Table.ColumnHeader color={c.muted}>Email</Table.ColumnHeader>
               <Table.ColumnHeader color={c.muted}>Phone</Table.ColumnHeader>

@@ -9,7 +9,7 @@ let cachedApiUrl: string | null = null;
 export async function getApiUrl(): Promise<string> {
   if (cachedApiUrl) return cachedApiUrl;
   const stored = await SecureStore.getItemAsync(API_URL_KEY);
-  cachedApiUrl = stored || 'https://tyrerescue.uk';
+  cachedApiUrl = stored || 'https://www.tyrerescue.uk';
   return cachedApiUrl;
 }
 
@@ -73,10 +73,19 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
     throw new ApiError('Session expired. Please log in again.', 401);
   }
 
-  const data = await res.json();
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    throw new ApiError(
+      res.ok ? 'Invalid server response' : `Request failed (${res.status})`,
+      res.status,
+    );
+  }
 
   if (!res.ok) {
-    throw new ApiError(data.error || `Request failed (${res.status})`, res.status);
+    const errBody = data as Record<string, string> | null;
+    throw new ApiError(errBody?.error || `Request failed (${res.status})`, res.status);
   }
 
   return data as T;
@@ -178,6 +187,18 @@ export const driverApi = {
     api<LoginResponse>('/api/driver/auth/login', {
       method: 'POST',
       body: { email, password },
+    }),
+
+  forgotPassword: (email: string) =>
+    api<{ success: boolean; message: string }>('/api/auth/forgot-password', {
+      method: 'POST',
+      body: { email },
+    }),
+
+  resetPassword: (token: string, password: string) =>
+    api<{ success: boolean; message: string }>('/api/auth/reset-password', {
+      method: 'POST',
+      body: { token, password },
     }),
 
   getStatus: () => api<DriverStatus>('/api/driver/status'),

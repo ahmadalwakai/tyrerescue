@@ -47,6 +47,27 @@ const config = defineConfig({
       color: `${c.muted} !important`,
       fontSize: '13px',
     },
+    // Table dark theme
+    'table': {
+      backgroundColor: `${c.card} !important`,
+    },
+    'thead': {
+      backgroundColor: `${c.bg} !important`,
+    },
+    'th': {
+      backgroundColor: `${c.bg} !important`,
+      color: `${c.muted} !important`,
+      borderColor: `${c.border} !important`,
+    },
+    'tr': {
+      backgroundColor: `${c.card} !important`,
+      borderColor: `${c.border} !important`,
+    },
+    'td': {
+      backgroundColor: `${c.card} !important`,
+      color: `${c.text} !important`,
+      borderColor: `${c.border} !important`,
+    },
   },
 });
 

@@ -12,31 +12,58 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
-import { useAuth } from '@/auth/context';
-import { ApiError } from '@/api/client';
+import { driverApi, ApiError } from '@/api/client';
 
-export default function LoginScreen() {
-  const { login } = useAuth();
+export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      Alert.alert('Error', 'Please enter your email and password.');
+  const handleSubmit = async () => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) {
+      Alert.alert('Error', 'Please enter your email address.');
       return;
     }
 
     setLoading(true);
     try {
-      await login(email.trim().toLowerCase(), password);
+      await driverApi.forgotPassword(trimmed);
+      setSent(true);
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Something went wrong. Please try again.';
-      Alert.alert('Login Failed', message);
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Something went wrong. Please try again.';
+      Alert.alert('Error', message);
     } finally {
       setLoading(false);
     }
   };
+
+  if (sent) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.centered}>
+          <Text style={styles.successIcon}>✓</Text>
+          <Text style={styles.successTitle}>Check Your Email</Text>
+          <Text style={styles.successText}>
+            If an account with that email exists, we've sent a password reset
+            link. Please check your inbox and spam folder.
+          </Text>
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.buttonText}>Back to Login</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -49,10 +76,15 @@ export default function LoginScreen() {
       >
         <View style={styles.logoBox}>
           <Text style={styles.brand}>TYRE RESCUE</Text>
-          <Text style={styles.subtitle}>Driver App</Text>
+          <Text style={styles.subtitle}>Reset Password</Text>
         </View>
 
         <View style={styles.form}>
+          <Text style={styles.description}>
+            Enter your email address and we'll send you a link to reset your
+            password.
+          </Text>
+
           <Text style={styles.label}>Email</Text>
           <TextInput
             style={styles.input}
@@ -64,18 +96,7 @@ export default function LoginScreen() {
             keyboardType="email-address"
             autoComplete="email"
             textContentType="emailAddress"
-          />
-
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••••"
-            placeholderTextColor={colors.muted}
-            secureTextEntry
-            autoComplete="password"
-            textContentType="password"
+            autoFocus
           />
 
           <Pressable
@@ -84,19 +105,19 @@ export default function LoginScreen() {
               pressed && styles.buttonPressed,
               loading && styles.buttonDisabled,
             ]}
-            onPress={handleLogin}
+            onPress={handleSubmit}
             disabled={loading}
           >
             <Text style={styles.buttonText}>
-              {loading ? 'Signing in…' : 'Sign In'}
+              {loading ? 'Sending…' : 'Send Reset Link'}
             </Text>
           </Pressable>
 
           <Pressable
-            style={styles.forgotButton}
-            onPress={() => router.push('/(auth)/forgot-password')}
+            style={styles.linkButton}
+            onPress={() => router.back()}
           >
-            <Text style={styles.forgotText}>Forgot Password?</Text>
+            <Text style={styles.linkText}>Back to Login</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -112,6 +133,12 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: spacing.xl,
   },
   logoBox: {
@@ -132,6 +159,13 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: spacing.sm,
+  },
+  description: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.sm,
+    color: colors.muted,
+    marginBottom: spacing.md,
+    lineHeight: 20,
   },
   label: {
     fontFamily: 'Inter_600SemiBold',
@@ -167,13 +201,32 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: '#FFFFFF',
   },
-  forgotButton: {
+  linkButton: {
     alignItems: 'center',
     marginTop: spacing.lg,
   },
-  forgotText: {
+  linkText: {
     fontFamily: 'Inter_400Regular',
     fontSize: fontSize.sm,
     color: colors.accent,
+  },
+  successIcon: {
+    fontSize: 48,
+    color: colors.success,
+    marginBottom: spacing.lg,
+  },
+  successTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.xl,
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  successText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.base,
+    color: colors.muted,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: spacing['2xl'],
   },
 });
