@@ -6,6 +6,7 @@ import { BookingStatus } from '@/lib/state-machine';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { jobComplete } from '@/lib/email/templates';
 import { createAdminNotification } from '@/lib/notifications';
+import { sendDriverPushNotification } from '@/lib/notifications/driver-push';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -111,6 +112,21 @@ export async function PATCH(request: Request, { params }: Props) {
       link: `/admin/bookings/${booking.refNumber}`,
       severity: newStatus === 'completed' ? 'success' : 'info',
     }).catch(console.error);
+
+    // Persist to driver notification inbox
+    const STATUS_LABELS: Record<string, string> = {
+      en_route: 'You are en route',
+      arrived: 'You have arrived',
+      in_progress: 'Work in progress',
+      completed: 'Job completed',
+    };
+    sendDriverPushNotification(
+      driver.id,
+      STATUS_LABELS[newStatus] || `Status: ${newStatus}`,
+      `Job ${booking.refNumber} — ${newStatus.replace(/_/g, ' ')}`,
+      { type: 'status_update', ref: booking.refNumber },
+      'jobs',
+    ).catch(console.error);
 
     // If marking complete, update driver status to available
     if (newStatus === 'completed') {

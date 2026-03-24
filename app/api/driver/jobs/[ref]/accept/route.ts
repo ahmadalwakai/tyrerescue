@@ -3,6 +3,7 @@ import { requireDriverMobile } from '@/lib/auth';
 import { db, bookings, bookingStatusHistory } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { createAdminNotification } from '@/lib/notifications';
+import { sendDriverPushNotification } from '@/lib/notifications/driver-push';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -69,6 +70,15 @@ export async function PATCH(request: Request, { params }: Props) {
         link: `/admin/bookings/${booking.refNumber}`,
         severity: 'info',
       }).catch(console.error);
+
+      // Persist to driver notification inbox
+      sendDriverPushNotification(
+        driver.id,
+        'Job Accepted',
+        `You accepted job ${booking.refNumber}`,
+        { type: 'status_update', ref: booking.refNumber },
+        'jobs',
+      ).catch(console.error);
 
       return NextResponse.json({ success: true, action: 'accepted' });
     }

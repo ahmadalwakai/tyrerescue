@@ -9,8 +9,7 @@ const URGENT_VIBRATION_PATTERN = [0, 500, 200, 500, 200, 500];
 const MESSAGE_VIBRATION_PATTERN = [0, 300, 150, 300];
 
 const SOUND_FILES: Record<SoundEvent, ReturnType<typeof require>> = {
-  new_job: require('../../assets/sounds/new_job_alert.mp3'),
-  // These re-use the same file — swap for distinct files later.
+  new_job: require('../../assets/sounds/new_job.wav'),
   job_accepted: require('../../assets/sounds/new_job.wav'),
   job_completed: require('../../assets/sounds/new_job.wav'),
   new_message: require('../../assets/sounds/new_job.wav'),

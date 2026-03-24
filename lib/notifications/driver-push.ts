@@ -111,3 +111,21 @@ export async function notifyDriverNewMessage(
     'messages',
   );
 }
+
+/**
+ * Notify driver of a job status update (e.g. admin cancelled, booking paid, etc.)
+ */
+export async function notifyDriverStatusUpdate(
+  driverId: string,
+  refNumber: string,
+  title: string,
+  body: string,
+): Promise<boolean> {
+  return sendDriverPushNotification(
+    driverId,
+    title,
+    body,
+    { type: 'status_update', ref: refNumber },
+    'jobs',
+  );
+}
