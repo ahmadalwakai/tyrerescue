@@ -113,7 +113,7 @@ export async function GET(request: Request) {
     const upcomingWithTyres = jobsWithTyres.filter(j => upcomingStatuses.includes(j.status));
 
     return NextResponse.json({
-      active: activeWithTyres.map(serialise),
+      active: [...activeWithTyres, ...upcomingWithTyres].map(serialise),
       upcoming: upcomingWithTyres.map(serialise),
       completed: completedJobs.map(serialise),
     });

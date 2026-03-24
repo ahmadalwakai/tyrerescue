@@ -110,7 +110,7 @@ export default function DashboardScreen() {
       }
       knownJobRefs.current = new Set(newRefs);
 
-      setActiveJobs(jobsRes.active);
+      setActiveJobs(jobsRes.upcoming ? jobsRes.active.filter((j: JobSummary) => j.status !== 'driver_assigned') : jobsRes.active);
       setUpcomingJobs(jobsRes.upcoming ?? []);
       setCompletedCount(jobsRes.completed.length);
       setLastSync(Date.now());

@@ -55,7 +55,8 @@ export default function JobsListScreen() {
   const fetchJobs = useCallback(async () => {
     try {
       const res = await driverApi.getJobs();
-      setActive(res.active);
+      // active array may include driver_assigned for backward compat; filter them out
+      setActive(res.upcoming ? res.active.filter(j => j.status !== 'driver_assigned') : res.active);
       setUpcoming(res.upcoming ?? []);
       setCompleted(res.completed);
     } catch {
