@@ -73,7 +73,6 @@ export async function registerForPushNotifications(): Promise<string | null> {
       enableVibrate: true,
       bypassDnd: true,
     });
-    console.log('[notif] Created Android channel jobs_v2 with sound new_job.wav');
 
     await Notifications.setNotificationChannelAsync('messages', {
       name: 'Messages',

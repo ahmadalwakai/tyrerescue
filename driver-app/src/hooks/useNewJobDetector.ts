@@ -21,11 +21,19 @@ export function useNewJobDetector() {
   const initializedRef = useRef(false);
   const { showAlert } = useJobAlert();
 
+  /** Reset detector state (call on logout / new session). */
+  const reset = useCallback(() => {
+    knownRefs.current = new Set();
+    initializedRef.current = false;
+  }, []);
+
   const checkForNewJobs = useCallback(
     (jobs: JobSummary[]) => {
-      const currentRefs = jobs.map((j) => j.refNumber);
+      const currentRefs = [
+        ...new Set(jobs.map((j) => j.refNumber).filter(Boolean)),
+      ];
 
-      // First call: seed knownRefs with existing jobs and skip alerting
+      // First call after reset: seed knownRefs with existing jobs, skip alerting
       if (!initializedRef.current) {
         knownRefs.current = new Set(currentRefs);
         initializedRef.current = true;
@@ -35,18 +43,14 @@ export function useNewJobDetector() {
       const newRefs = detectNewRefs(knownRefs.current, currentRefs);
 
       if (newRefs.length > 0) {
-        // Find the first new job to display in the popup
         const firstNew = jobs.find((j) => newRefs.includes(j.refNumber));
 
-        // Mark all new refs as alerted
         for (const ref of newRefs) {
           markAlerted(ref);
         }
 
-        // Fire sound + vibration
         fireNewJobAlert();
 
-        // Show full-screen popup for the first new job
         if (firstNew) {
           showAlert({
             ref: firstNew.refNumber,
@@ -56,11 +60,10 @@ export function useNewJobDetector() {
         }
       }
 
-      // Update known refs for next comparison
       knownRefs.current = new Set(currentRefs);
     },
     [showAlert],
   );
 
-  return { checkForNewJobs };
+  return { checkForNewJobs, reset };
 }
