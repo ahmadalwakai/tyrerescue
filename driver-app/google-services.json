@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "280577086683",
+    "project_id": "tyrerescuedriver",
+    "storage_bucket": "tyrerescuedriver.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:280577086683:android:dbbb651e979e2e7ec7e8fe",
+        "android_client_info": {
+          "package_name": "uk.tyrerescue.driver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBf5oa6jFd1Y3e9wAKtUa89sxLMmWGi9i4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
