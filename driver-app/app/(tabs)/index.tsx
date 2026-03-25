@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,7 @@ import { JobCard } from '@/components/JobCard';
 import { EmptyState } from '@/components/EmptyState';
 import { lightHaptic } from '@/services/haptics';
 import { JobCardSkeleton } from '@/components/SkeletonLoader';
-import { playSound } from '@/services/sound';
+import { useNewJobDetector } from '@/hooks/useNewJobDetector';
 import { useI18n } from '@/i18n';
 
 function PulsingDot() {
@@ -73,7 +73,7 @@ export default function DashboardScreen() {
   const [syncLabel, setSyncLabel] = useState(t('dashboard.syncing'));
 
   const { bgRunning } = useLocationBroadcast(isOnline, activeJobs.length > 0);
-  const knownJobRefs = useRef<Set<string>>(new Set());
+  const { checkForNewJobs } = useNewJobDetector();
 
   const fetchData = useCallback(async () => {
     try {
@@ -83,16 +83,9 @@ export default function DashboardScreen() {
       ]);
       setIsOnline(statusRes.isOnline);
 
-      // Detect newly assigned jobs and play alert
-      const newRefs = jobsRes.active.map((j: JobSummary) => j.ref);
-      if (knownJobRefs.current.size > 0) {
-        const hasNew = newRefs.some((r: string) => !knownJobRefs.current.has(r));
-        if (hasNew) {
-          playSound('new_job');
-          lightHaptic();
-        }
-      }
-      knownJobRefs.current = new Set(newRefs);
+      // Detect newly assigned jobs from both active + upcoming
+      const allVisibleJobs = [...jobsRes.active, ...(jobsRes.upcoming ?? [])];
+      checkForNewJobs(allVisibleJobs);
 
       setActiveJobs(jobsRes.upcoming ? jobsRes.active.filter((j: JobSummary) => j.status !== 'driver_assigned') : jobsRes.active);
       setUpcomingJobs(jobsRes.upcoming ?? []);

@@ -6,19 +6,31 @@ import { api } from '@/api/client';
 
 // Configure how notifications appear when app is in foreground
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowInForeground: true,
-  }),
+  handleNotification: async (notification) => {
+    const data = notification.request.content.data as Record<string, unknown> | undefined;
+    // For new_job: suppress system alert + sound — we show our own popup & play sound
+    const isNewJob = data?.type === 'new_job';
+    return {
+      shouldShowAlert: !isNewJob,
+      shouldPlaySound: false, // We play sounds ourselves; prevents double-sound
+      shouldSetBadge: false,
+      shouldShowBanner: !isNewJob,
+      shouldShowList: true,
+    };
+  },
 });
+
+let pushRegistered = false;
 
 /**
  * Register for push notifications and send token to backend.
  * Returns the Expo push token string, or null if registration fails.
+ * Idempotent within a single app session.
  */
 export async function registerForPushNotifications(): Promise<string | null> {
+  if (pushRegistered) return null;
+  pushRegistered = true;
+
   if (!Device.isDevice) {
     // Push notifications don't work on emulators
     return null;

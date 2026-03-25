@@ -52,6 +52,7 @@ export default function JobMapScreen() {
   const [job, setJob] = useState<JobDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [actioning, setActioning] = useState(false);
+  const actionLockRef = useRef(false);
   const [driverLat, setDriverLat] = useState<number | null>(null);
   const [driverLng, setDriverLng] = useState<number | null>(null);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
@@ -132,14 +133,15 @@ export default function JobMapScreen() {
   }, [fetchJob, updateDriverPosition]);
 
   const handleStatusAction = async (nextStatus: string) => {
-    if (!ref) return;
+    if (!ref || actionLockRef.current) return;
+    actionLockRef.current = true;
     const confirmMsg =
       nextStatus === 'completed'
         ? t('map.confirmComplete')
         : t('map.confirmUpdate', { status: nextStatus.replace(/_/g, ' ') });
 
     Alert.alert(t('common.confirm'), confirmMsg, [
-      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel', onPress: () => { actionLockRef.current = false; } },
       {
         text: t('common.confirm'),
         onPress: async () => {
@@ -161,9 +163,10 @@ export default function JobMapScreen() {
             Alert.alert(t('common.error'), msg);
           }
           setActioning(false);
+          actionLockRef.current = false;
         },
       },
-    ]);
+    ], { onDismiss: () => { actionLockRef.current = false; } });
   };
 
   const openGoogleMapsNavigation = () => {

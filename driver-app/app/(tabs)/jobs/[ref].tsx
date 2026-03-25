@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -41,6 +41,7 @@ export default function JobDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actioning, setActioning] = useState(false);
+  const actionLockRef = useRef(false);
 
   const fetchJob = useCallback(async () => {
     if (!ref) return;
@@ -63,14 +64,15 @@ export default function JobDetailScreen() {
   }, [fetchJob]);
 
   const handleStatusAction = async (nextStatus: string) => {
-    if (!ref) return;
+    if (!ref || actionLockRef.current) return;
+    actionLockRef.current = true;
     const confirmMsg =
       nextStatus === 'completed'
         ? t('jobDetail.confirmComplete')
         : t('jobDetail.confirmStatusUpdate', { status: nextStatus.replace(/_/g, ' ') });
 
     Alert.alert(t('common.confirm'), confirmMsg, [
-      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel', onPress: () => { actionLockRef.current = false; } },
       {
         text: t('common.confirm'),
         onPress: async () => {
@@ -89,15 +91,17 @@ export default function JobDetailScreen() {
             Alert.alert(t('common.error'), msg);
           }
           setActioning(false);
+          actionLockRef.current = false;
         },
       },
-    ]);
+    ], { onDismiss: () => { actionLockRef.current = false; } });
   };
 
   const handleAccept = async () => {
-    if (!ref) return;
+    if (!ref || actionLockRef.current) return;
+    actionLockRef.current = true;
     Alert.alert(t('jobDetail.acceptJob'), t('jobDetail.acceptAssignment'), [
-      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel', onPress: () => { actionLockRef.current = false; } },
       {
         text: t('jobDetail.accept'),
         onPress: async () => {
@@ -112,13 +116,15 @@ export default function JobDetailScreen() {
             Alert.alert(t('common.error'), msg);
           }
           setActioning(false);
+          actionLockRef.current = false;
         },
       },
-    ]);
+    ], { onDismiss: () => { actionLockRef.current = false; } });
   };
 
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
   const [sendingQuickMsg, setSendingQuickMsg] = useState<string | null>(null);
+  const [openingChat, setOpeningChat] = useState(false);
 
   const checklistItems = useMemo(() => {
     if (!job) return [];
@@ -164,9 +170,10 @@ export default function JobDetailScreen() {
   };
 
   const handleReject = async () => {
-    if (!ref) return;
+    if (!ref || actionLockRef.current) return;
+    actionLockRef.current = true;
     Alert.alert(t('jobDetail.rejectJob'), t('jobDetail.confirmReject'), [
-      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel', onPress: () => { actionLockRef.current = false; } },
       {
         text: t('jobDetail.reject'),
         style: 'destructive',
@@ -181,9 +188,10 @@ export default function JobDetailScreen() {
             Alert.alert(t('common.error'), msg);
           }
           setActioning(false);
+          actionLockRef.current = false;
         },
       },
-    ]);
+    ], { onDismiss: () => { actionLockRef.current = false; } });
   };
 
   if (loading) return <LoadingScreen />;
@@ -383,13 +391,18 @@ export default function JobDetailScreen() {
           <Text style={styles.callAdminText}>{t('jobDetail.callAdmin')}</Text>
         </Pressable>
         <Pressable
-          style={styles.chatAdminButton}
+          style={[styles.chatAdminButton, openingChat && styles.buttonDisabled]}
+          disabled={openingChat}
           onPress={async () => {
+            if (openingChat) return;
+            setOpeningChat(true);
             try {
               const res = await chatApi.createConversation(job.id, 'admin_driver');
               router.push(`/(tabs)/chat/${res.conversationId}`);
             } catch {
               Alert.alert(t('common.error'), t('jobDetail.couldNotOpenChat'));
+            } finally {
+              setOpeningChat(false);
             }
           }}
         >

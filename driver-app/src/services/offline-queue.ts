@@ -13,11 +13,15 @@ interface QueuedRequest {
 
 let queue: QueuedRequest[] = [];
 let flushing = false;
+let initialized = false;
 
 /**
  * Load any persisted queue from storage on app start.
+ * Idempotent — safe to call multiple times.
  */
 export async function initOfflineQueue(): Promise<void> {
+  if (initialized) return;
+  initialized = true;
   try {
     const stored = await SecureStore.getItemAsync(QUEUE_KEY);
     if (stored) {

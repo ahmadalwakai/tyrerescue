@@ -31,6 +31,7 @@ export default function ChatConversationScreen() {
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sendingRef = useRef(false);
 
   const fetchMessages = useCallback(async () => {
     if (!id) return;
@@ -55,7 +56,8 @@ export default function ChatConversationScreen() {
   }, [fetchMessages]);
 
   const handleSend = async () => {
-    if (!text.trim() || !id || sending) return;
+    if (!text.trim() || !id || sendingRef.current) return;
+    sendingRef.current = true;
     lightHaptic();
     setSending(true);
     try {
@@ -67,6 +69,7 @@ export default function ChatConversationScreen() {
       // Ignore
     }
     setSending(false);
+    sendingRef.current = false;
   };
 
   if (loading) return <LoadingScreen />;

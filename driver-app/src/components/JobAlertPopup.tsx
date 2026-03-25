@@ -30,6 +30,7 @@ export function JobAlertPopup() {
   const { visible, alertData, dismiss } = useJobAlert();
   const router = useRouter();
   const { t } = useI18n();
+  const navigatingRef = useRef(false);
 
   // ── Pulse animation ──
   const scale = useSharedValue(1);
@@ -38,6 +39,8 @@ export function JobAlertPopup() {
 
   useEffect(() => {
     if (visible) {
+      // Reset navigation lock when popup becomes visible
+      navigatingRef.current = false;
       animRunning.current = true;
       scale.value = withRepeat(
         withSequence(
@@ -73,6 +76,9 @@ export function JobAlertPopup() {
   }));
 
   const handleGetStarted = () => {
+    if (navigatingRef.current) return;
+    navigatingRef.current = true;
+
     // Stop animation immediately
     cancelAnimation(scale);
     cancelAnimation(shadowOpacity);

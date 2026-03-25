@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic } from '@/services/haptics';
+import { useNewJobDetector } from '@/hooks/useNewJobDetector';
 import { useI18n } from '@/i18n';
 
 type Tab = 'active' | 'upcoming' | 'completed';
@@ -53,10 +54,15 @@ export default function JobsListScreen() {
   const [completed, setCompleted] = useState<JobSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { checkForNewJobs } = useNewJobDetector();
 
   const fetchJobs = useCallback(async () => {
     try {
       const res = await driverApi.getJobs();
+      // Detect new jobs from active + upcoming
+      const allVisibleJobs = [...res.active, ...(res.upcoming ?? [])];
+      checkForNewJobs(allVisibleJobs);
+
       // active array may include driver_assigned for backward compat; filter them out
       setActive(res.upcoming ? res.active.filter(j => j.status !== 'driver_assigned') : res.active);
       setUpcoming(res.upcoming ?? []);

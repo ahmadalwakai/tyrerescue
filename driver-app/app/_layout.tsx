@@ -10,7 +10,6 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
-import { Vibration } from 'react-native';
 import { AuthProvider, useAuth } from '@/auth/context';
 import { I18nProvider } from '@/i18n';
 import { PermissionGate } from '@/components/PermissionGate';
@@ -25,6 +24,7 @@ import {
 import { checkForUpdate } from '@/services/version-check';
 import { initOfflineQueue } from '@/services/offline-queue';
 import { preloadSounds, playSound, loadSoundConfig } from '@/services/sound';
+import { markAlerted, fireNewJobAlert } from '@/services/job-alert';
 import { driverApi } from '@/api/client';
 
 // Import background-location to register the task at module level
@@ -40,6 +40,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
   const notifListenerRef = useRef<ReturnType<typeof addNotificationResponseListener> | null>(null);
   const notifReceivedRef = useRef<ReturnType<typeof addNotificationReceivedListener> | null>(null);
   const splashHidden = useRef(false);
+  const handledNotifIds = useRef(new Set<string>());
 
   // Hide splash once auth state is resolved — this is the only real wait
   useEffect(() => {
@@ -75,12 +76,14 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     notifReceivedRef.current = addNotificationReceivedListener((notification) => {
       const data = notification.request.content.data;
       if (data?.type === 'new_job') {
-        playSound('new_job');
-        // Extra vibration burst to ensure the driver notices
-        Vibration.vibrate([0, 500, 200, 500, 200, 500], false);
+        const ref = (data.ref as string) ?? null;
+        // Mark as alerted so polling detection doesn't double-fire
+        if (ref) markAlerted(ref);
+        // Fire sound + vibration via central function
+        fireNewJobAlert();
         // Show full-screen alert popup
         showJobAlert({
-          ref: (data.ref as string) ?? null,
+          ref,
           title: notification.request.content.title ?? '',
           body: notification.request.content.body ?? '',
         });
@@ -91,6 +94,9 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
 
     // Handle notification taps — navigate to the relevant job
     notifListenerRef.current = addNotificationResponseListener((response) => {
+      const nid = response.notification.request.identifier;
+      if (handledNotifIds.current.has(nid)) return;
+      handledNotifIds.current.add(nid);
       const data = response.notification.request.content.data;
       if (data?.type === 'new_job' && data?.ref) {
         router.push(`/(tabs)/jobs/${data.ref as string}`);
@@ -102,6 +108,9 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     // Handle cold-start: check if app was opened from a notification tap
     Notifications.getLastNotificationResponseAsync().then((response) => {
       if (!response) return;
+      const nid = response.notification.request.identifier;
+      if (handledNotifIds.current.has(nid)) return;
+      handledNotifIds.current.add(nid);
       const data = response.notification.request.content.data;
       if (data?.type === 'new_job' && data?.ref) {
         router.push(`/(tabs)/jobs/${data.ref as string}`);
