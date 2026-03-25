@@ -33,10 +33,6 @@ export function detectNewRefs(
   knownRefs: Set<string>,
   currentRefs: string[],
 ): string[] {
-  // On first load (knownRefs is empty), mark all current refs as known
-  // but don't alert — they're pre-existing jobs, not freshly assigned.
-  if (knownRefs.size === 0) return [];
-
   return currentRefs.filter(
     (ref) => !knownRefs.has(ref) && !alertedRefs.has(ref),
   );

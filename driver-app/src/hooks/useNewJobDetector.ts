@@ -18,11 +18,19 @@ import type { JobSummary } from '@/api/client';
  */
 export function useNewJobDetector() {
   const knownRefs = useRef<Set<string>>(new Set());
+  const initializedRef = useRef(false);
   const { showAlert } = useJobAlert();
 
   const checkForNewJobs = useCallback(
     (jobs: JobSummary[]) => {
       const currentRefs = jobs.map((j) => j.refNumber);
+
+      // First call: seed knownRefs with existing jobs and skip alerting
+      if (!initializedRef.current) {
+        knownRefs.current = new Set(currentRefs);
+        initializedRef.current = true;
+        return;
+      }
 
       const newRefs = detectNewRefs(knownRefs.current, currentRefs);
 
