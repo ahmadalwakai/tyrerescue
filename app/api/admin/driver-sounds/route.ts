@@ -1,18 +1,26 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { driverSoundSettings, users } from '@/lib/db/schema';
+import { driverSoundSettings, driverSoundAssets, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
-/** Available sound files shipped with the driver app.
- *  To add a new sound: drop the .wav file in driver-app/assets/sounds/,
- *  add it to app.json notifications.sounds array, add a require() in
- *  driver-app/src/services/sound.ts AVAILABLE_SOUNDS, and add an entry here. */
-const SOUND_LIBRARY = [
-  { file: 'new_job.wav', label: 'Urgent Alert', description: 'Default urgent notification tone' },
+/** Bundled sound files shipped with the driver app (always available). */
+const BUNDLED_SOUNDS = [
+  { file: 'new_job.wav', label: 'Urgent Alert (Default)', description: 'Default critical notification tone', bundled: true },
 ];
 
-const VALID_EVENTS = ['new_job', 'job_accepted', 'job_completed', 'new_message'] as const;
+/** All configurable event types in the driver app. */
+const VALID_EVENTS = [
+  'new_job',
+  'reassignment',
+  'upcoming_v2',
+  'job_accepted',
+  'job_completed',
+  'new_message',
+] as const;
+
+/** Critical events that cannot be disabled. */
+const CRITICAL_EVENTS = new Set<string>(['new_job', 'reassignment', 'upcoming_v2']);
 
 export async function GET() {
   const session = await auth();
@@ -20,6 +28,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Fetch current settings
   const rows = await db
     .select({
       id: driverSoundSettings.id,
@@ -34,7 +43,38 @@ export async function GET() {
     .from(driverSoundSettings)
     .leftJoin(users, eq(driverSoundSettings.updatedBy, users.id));
 
-  return NextResponse.json({ settings: rows, library: SOUND_LIBRARY });
+  // Fetch uploaded sound assets
+  const assets = await db
+    .select({
+      id: driverSoundAssets.id,
+      fileName: driverSoundAssets.fileName,
+      displayName: driverSoundAssets.displayName,
+      fileUrl: driverSoundAssets.fileUrl,
+      mimeType: driverSoundAssets.mimeType,
+      fileSize: driverSoundAssets.fileSize,
+      createdAt: driverSoundAssets.createdAt,
+    })
+    .from(driverSoundAssets);
+
+  // Build sound library: bundled + uploaded
+  const library = [
+    ...BUNDLED_SOUNDS,
+    ...assets.map((a) => ({
+      file: a.fileName,
+      label: a.displayName,
+      description: `Uploaded sound (${a.mimeType})`,
+      bundled: false,
+      id: a.id,
+      url: a.fileUrl,
+    })),
+  ];
+
+  return NextResponse.json({
+    settings: rows,
+    library,
+    events: VALID_EVENTS,
+    criticalEvents: [...CRITICAL_EVENTS],
+  });
 }
 
 export async function PATCH(request: Request) {
@@ -59,19 +99,49 @@ export async function PATCH(request: Request) {
     updates.soundFile = soundFile;
   }
   if (typeof enabled === 'boolean') {
+    // Critical events cannot be disabled
+    if (CRITICAL_EVENTS.has(event) && !enabled) {
+      return NextResponse.json(
+        { error: `Cannot disable critical event: ${event}` },
+        { status: 400 },
+      );
+    }
     updates.enabled = enabled;
   }
   if (typeof volume === 'number' && volume >= 0 && volume <= 1) {
-    updates.volume = volume;
+    // Critical events must have audible volume
+    if (CRITICAL_EVENTS.has(event) && volume < 0.3) {
+      updates.volume = 0.3;
+    } else {
+      updates.volume = volume;
+    }
   }
   if (typeof vibrationEnabled === 'boolean') {
     updates.vibrationEnabled = vibrationEnabled;
   }
 
-  await db
-    .update(driverSoundSettings)
-    .set(updates)
-    .where(eq(driverSoundSettings.event, event));
+  // Upsert: create if no row for this event, update otherwise
+  const [existing] = await db
+    .select({ id: driverSoundSettings.id })
+    .from(driverSoundSettings)
+    .where(eq(driverSoundSettings.event, event))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(driverSoundSettings)
+      .set(updates)
+      .where(eq(driverSoundSettings.event, event));
+  } else {
+    await db.insert(driverSoundSettings).values({
+      event,
+      soundFile: (updates.soundFile as string) ?? 'new_job.wav',
+      enabled: (updates.enabled as boolean) ?? true,
+      volume: (updates.volume as number) ?? 1.0,
+      vibrationEnabled: (updates.vibrationEnabled as boolean) ?? true,
+      updatedBy: session.user.id,
+    });
+  }
 
   return NextResponse.json({ success: true });
 }

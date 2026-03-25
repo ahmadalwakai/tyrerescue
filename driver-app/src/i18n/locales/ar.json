@@ -230,7 +230,10 @@
   },
   "jobAlert": {
     "title": "تم تعيين طلب جديد",
+    "titleReassignment": "تم إعادة تعيين طلب لك",
+    "titleUpcoming": "تذكير بطلب قادم",
     "getStarted": "ابدأ الآن",
+    "viewJob": "عرض الطلب",
     "dismiss": "تجاهل"
   }
 }

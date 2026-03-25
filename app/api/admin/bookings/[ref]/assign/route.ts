@@ -6,7 +6,7 @@ import { executeTransition, BookingStatus } from '@/lib/state-machine';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { driverAssigned, jobAssigned, jobCancelled } from '@/lib/email/templates';
 import { createAdminNotification } from '@/lib/notifications';
-import { notifyDriverNewJob } from '@/lib/notifications/driver-push';
+import { notifyDriverNewJob, notifyDriverReassignment } from '@/lib/notifications/driver-push';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -103,7 +103,7 @@ export async function PATCH(request: Request, { params }: Props) {
       });
 
       // Notify the newly assigned driver (non-blocking — reassignment succeeds regardless)
-      notifyDriverNewJob(driverId, booking.refNumber, booking.addressLine).catch(() => {});
+      notifyDriverReassignment(driverId, booking.refNumber, booking.addressLine).catch(() => {});
 
       return NextResponse.json({ success: true, reassigned: true });
     }

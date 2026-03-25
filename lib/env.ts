@@ -39,4 +39,8 @@ export const env = {
   // Weather API — optional, neutral pricing fallback when missing
   WEATHER_API_KEY: optional('WEATHER_API_KEY', ''),
   WEATHER_API_BASE_URL: optional('WEATHER_API_BASE_URL', 'https://api.openweathermap.org'),
+
+  // Firebase Cloud Messaging — direct push delivery (replaces Expo Push relay)
+  FCM_PROJECT_ID: optional('FCM_PROJECT_ID', ''),
+  FCM_SERVICE_ACCOUNT_JSON: optional('FCM_SERVICE_ACCOUNT_JSON', ''),
 } as const;

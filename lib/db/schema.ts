@@ -820,6 +820,21 @@ export const driverSoundSettings = pgTable('driver_sound_settings', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// ──────────────────────────────────────────────
+// Driver Sound Assets (uploaded sound files)
+// ──────────────────────────────────────────────
+
+export const driverSoundAssets = pgTable('driver_sound_assets', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  fileName: varchar('file_name', { length: 100 }).notNull(),
+  displayName: varchar('display_name', { length: 100 }).notNull(),
+  fileUrl: text('file_url').notNull(),
+  mimeType: varchar('mime_type', { length: 50 }).notNull().default('audio/wav'),
+  fileSize: integer('file_size'),
+  uploadedBy: uuid('uploaded_by').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Type exports for use throughout the application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -898,3 +913,5 @@ export type DriverNotification = typeof driverNotifications.$inferSelect;
 export type NewDriverNotification = typeof driverNotifications.$inferInsert;
 export type DriverSoundSetting = typeof driverSoundSettings.$inferSelect;
 export type NewDriverSoundSetting = typeof driverSoundSettings.$inferInsert;
+export type DriverSoundAsset = typeof driverSoundAssets.$inferSelect;
+export type NewDriverSoundAsset = typeof driverSoundAssets.$inferInsert;

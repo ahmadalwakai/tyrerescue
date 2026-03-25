@@ -20,9 +20,21 @@ import Animated, {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
-import { useJobAlert } from '@/context/job-alert-context';
+import { useJobAlert, type JobAlertType } from '@/context/job-alert-context';
 import { useI18n } from '@/i18n';
 import { lightHaptic } from '@/services/haptics';
+
+/** Map alert type to i18n title key and icon name. */
+function getAlertMeta(alertType: JobAlertType, t: (k: string) => string) {
+  switch (alertType) {
+    case 'reassignment':
+      return { title: t('jobAlert.titleReassignment'), icon: 'swap-horizontal' as const, buttonLabel: t('jobAlert.viewJob') };
+    case 'upcoming_v2':
+      return { title: t('jobAlert.titleUpcoming'), icon: 'time' as const, buttonLabel: t('jobAlert.viewJob') };
+    default:
+      return { title: t('jobAlert.title'), icon: 'car-sport' as const, buttonLabel: t('jobAlert.getStarted') };
+  }
+}
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -99,6 +111,8 @@ export function JobAlertPopup() {
 
   if (!visible || !alertData) return null;
 
+  const meta = getAlertMeta(alertData.alertType, t);
+
   return (
     <Modal
       transparent
@@ -115,11 +129,11 @@ export function JobAlertPopup() {
         >
           {/* Icon */}
           <View style={styles.iconCircle}>
-            <Ionicons name="car-sport" size={36} color="#fff" />
+            <Ionicons name={meta.icon} size={36} color="#fff" />
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>{t('jobAlert.title')}</Text>
+          <Text style={styles.title}>{meta.title}</Text>
 
           {/* Job ref */}
           {alertData.ref && (
@@ -140,7 +154,7 @@ export function JobAlertPopup() {
           >
             <Animated.View style={[styles.buttonInner, animatedButtonStyle]}>
               <Ionicons name="rocket" size={20} color="#fff" style={{ marginRight: 8 }} />
-              <Text style={styles.buttonText}>{t('jobAlert.getStarted')}</Text>
+              <Text style={styles.buttonText}>{meta.buttonLabel}</Text>
             </Animated.View>
           </AnimatedPressable>
 

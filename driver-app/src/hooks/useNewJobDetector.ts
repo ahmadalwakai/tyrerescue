@@ -3,7 +3,7 @@ import { useJobAlert } from '@/context/job-alert-context';
 import {
   detectNewRefs,
   markAlerted,
-  fireNewJobAlert,
+  fireJobAlert,
 } from '@/services/job-alert';
 import type { JobSummary } from '@/api/client';
 
@@ -46,16 +46,17 @@ export function useNewJobDetector() {
         const firstNew = jobs.find((j) => newRefs.includes(j.refNumber));
 
         for (const ref of newRefs) {
-          markAlerted(ref);
+          markAlerted(ref, 'new_job');
         }
 
-        fireNewJobAlert();
+        fireJobAlert('new_job');
 
         if (firstNew) {
           showAlert({
             ref: firstNew.refNumber,
             title: '',
             body: firstNew.addressLine ?? '',
+            alertType: 'new_job',
           });
         }
       }

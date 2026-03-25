@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     const { driverId } = await requireDriverMobile(request);
     const body = await request.json();
-    const { pushToken, platform } = body;
+    const { pushToken, platform, tokenType } = body;
 
     if (!pushToken || typeof pushToken !== 'string') {
       return NextResponse.json({ error: 'pushToken is required' }, { status: 400 });
@@ -16,11 +16,15 @@ export async function POST(request: NextRequest) {
     const validPlatforms = ['android', 'ios'];
     const safePlatform = validPlatforms.includes(platform) ? platform : 'android';
 
+    // tokenType indicates 'fcm' (native device token) or 'expo' (Expo Push token).
+    // Stored alongside the token so the backend can route delivery correctly.
+    const safeTokenType = tokenType === 'fcm' ? 'fcm' : 'expo';
+
     await db
       .update(drivers)
       .set({
         pushToken,
-        pushTokenPlatform: safePlatform,
+        pushTokenPlatform: `${safePlatform}:${safeTokenType}`,
       })
       .where(eq(drivers.id, driverId));
 

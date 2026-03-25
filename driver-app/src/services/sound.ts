@@ -1,7 +1,13 @@
 import { Audio } from 'expo-av';
 import { Vibration } from 'react-native';
 
-export type SoundEvent = 'new_job' | 'job_accepted' | 'job_completed' | 'new_message';
+export type SoundEvent =
+  | 'new_job'
+  | 'reassignment'
+  | 'upcoming_v2'
+  | 'job_accepted'
+  | 'job_completed'
+  | 'new_message';
 
 // ── Vibration patterns (Android: [wait, buzz, wait, buzz, ...] in ms) ──
 const URGENT_VIBRATION_PATTERN = [0, 500, 200, 500, 200, 500];
@@ -23,10 +29,15 @@ interface SoundEventConfig {
 
 const DEFAULT_CONFIG: Record<SoundEvent, SoundEventConfig> = {
   new_job: { soundFile: 'new_job.wav', enabled: true, volume: 1.0, vibrationEnabled: true },
+  reassignment: { soundFile: 'new_job.wav', enabled: true, volume: 1.0, vibrationEnabled: true },
+  upcoming_v2: { soundFile: 'new_job.wav', enabled: true, volume: 1.0, vibrationEnabled: true },
   job_accepted: { soundFile: 'new_job.wav', enabled: true, volume: 0.8, vibrationEnabled: false },
   job_completed: { soundFile: 'new_job.wav', enabled: true, volume: 0.8, vibrationEnabled: false },
   new_message: { soundFile: 'new_job.wav', enabled: true, volume: 0.7, vibrationEnabled: true },
 };
+
+/** Critical events — sound config cannot disable these. */
+const CRITICAL_EVENTS: Set<SoundEvent> = new Set(['new_job', 'reassignment', 'upcoming_v2']);
 
 // ── Runtime state ──
 let remoteConfig: Record<string, SoundEventConfig> | null = null;
@@ -63,9 +74,9 @@ function getConfig(event: SoundEvent): SoundEventConfig {
   const remote = remoteConfig?.[event];
   if (!remote) return fallback;
 
-  // new_job is critical — enforce safety: always enabled, always audible,
-  // always a bundled file. Bad remote config cannot silently kill it.
-  if (event === 'new_job') {
+  // Critical events — enforce safety: always enabled, always audible,
+  // always a bundled file. Bad remote config cannot silently kill them.
+  if (CRITICAL_EVENTS.has(event)) {
     return {
       soundFile:
         typeof remote.soundFile === 'string' && AVAILABLE_SOUNDS[remote.soundFile]
@@ -149,7 +160,7 @@ export async function playSound(event: SoundEvent): Promise<void> {
     await playCachedSound(config.soundFile, config.volume);
 
     if (config.vibrationEnabled) {
-      if (event === 'new_job') {
+      if (CRITICAL_EVENTS.has(event)) {
         Vibration.vibrate(URGENT_VIBRATION_PATTERN, false);
       } else if (event === 'new_message') {
         Vibration.vibrate(MESSAGE_VIBRATION_PATTERN, false);

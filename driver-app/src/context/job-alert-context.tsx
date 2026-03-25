@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
+export type JobAlertType = 'new_job' | 'reassignment' | 'upcoming_v2';
+
 export interface JobAlertData {
   ref: string | null;
   title: string;
   body: string;
+  alertType: JobAlertType;
 }
 
 interface JobAlertContextType {

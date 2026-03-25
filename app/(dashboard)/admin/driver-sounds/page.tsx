@@ -7,7 +7,7 @@ export default function AdminDriverSoundsPage() {
     <VStack align="stretch" gap={6}>
       <div>
         <Heading size="lg" color={c.text}>Driver App Sounds</Heading>
-        <Text color={c.muted} mt={1}>Control which sounds play in the driver app for each event type.</Text>
+        <Text color={c.muted} mt={1}>Control which sounds play in the driver app for each event type. Critical events cannot be disabled.</Text>
       </div>
       <DriverSoundsClient />
     </VStack>

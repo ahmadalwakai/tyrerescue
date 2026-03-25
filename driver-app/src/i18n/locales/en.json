@@ -230,7 +230,10 @@
   },
   "jobAlert": {
     "title": "New Job Assigned",
+    "titleReassignment": "Job Reassigned to You",
+    "titleUpcoming": "Upcoming Job Reminder",
     "getStarted": "Get Started",
+    "viewJob": "View Job",
     "dismiss": "Dismiss"
   }
 }

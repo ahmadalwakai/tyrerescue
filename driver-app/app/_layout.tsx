@@ -14,18 +14,17 @@ import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 import { AuthProvider, useAuth } from '@/auth/context';
 import { I18nProvider } from '@/i18n';
 import { PermissionGate } from '@/components/PermissionGate';
-import { JobAlertProvider, useJobAlert } from '@/context/job-alert-context';
+import { JobAlertProvider, useJobAlert, type JobAlertType } from '@/context/job-alert-context';
 import { JobAlertPopup } from '@/components/JobAlertPopup';
 import {
   registerForPushNotifications,
-  unregisterPushToken,
   addNotificationResponseListener,
   addNotificationReceivedListener,
 } from '@/services/notifications';
 import { checkForUpdate } from '@/services/version-check';
 import { initOfflineQueue } from '@/services/offline-queue';
 import { preloadSounds, playSound, loadSoundConfig } from '@/services/sound';
-import { markAlerted, fireNewJobAlert, isAlerted } from '@/services/job-alert';
+import { markAlerted, fireJobAlert, isAlerted } from '@/services/job-alert';
 import { useNewJobDetector } from '@/hooks/useNewJobDetector';
 import { driverApi } from '@/api/client';
 
@@ -34,17 +33,31 @@ import '@/services/background-location';
 
 SplashScreen.preventAutoHideAsync();
 
-/** Accepted type values for new-job notifications from the backend. */
-const JOB_TYPES = new Set(['new_job', 'job_assigned', 'new_assignment']);
+/** Accepted type values for critical job notifications from the backend. */
+const JOB_TYPES = new Set(['new_job', 'job_assigned', 'new_assignment', 'reassignment', 'upcoming_v2']);
+
+/** Map notification types to alert types for the popup. */
+function toAlertType(type: string | null): JobAlertType {
+  if (type === 'reassignment') return 'reassignment';
+  if (type === 'upcoming_v2') return 'upcoming_v2';
+  return 'new_job';
+}
+
+/** Map notification types to sound events. */
+function toSoundEvent(type: string | null): 'new_job' | 'reassignment' | 'upcoming_v2' {
+  if (type === 'reassignment') return 'reassignment';
+  if (type === 'upcoming_v2') return 'upcoming_v2';
+  return 'new_job';
+}
 
 /** Normalize push notification payload to handle backend key variations. */
 function normalizeNotificationPayload(data: Record<string, unknown> | undefined): {
   type: string | null;
   ref: string | null;
   conversationId: string | null;
-  isNewJob: boolean;
+  isJobAlert: boolean;
 } {
-  if (!data) return { type: null, ref: null, conversationId: null, isNewJob: false };
+  if (!data) return { type: null, ref: null, conversationId: null, isJobAlert: false };
   const type = (typeof data.type === 'string' ? data.type : null);
   const ref =
     (typeof data.ref === 'string' && data.ref) ||
@@ -53,7 +66,7 @@ function normalizeNotificationPayload(data: Record<string, unknown> | undefined)
     null;
   const conversationId =
     (typeof data.conversationId === 'string' && data.conversationId) || null;
-  return { type, ref, conversationId, isNewJob: !!type && JOB_TYPES.has(type) };
+  return { type, ref, conversationId, isJobAlert: !!type && JOB_TYPES.has(type) };
 }
 
 function RootNavigator({ onReady }: { onReady: () => void }) {
@@ -98,21 +111,27 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     preloadSounds();
     loadSoundConfig(() => driverApi.getSoundConfig());
 
-    // Play sound + show popup when a push notification arrives while app is foregrounded
+    // Play sound + show popup when a push notification arrives while app is foregrounded.
+    // The native notification (with channel sound) is also shown by the system —
+    // we play in-app sound as a supplement but the channel sound is the primary mechanism.
     notifReceivedRef.current = addNotificationReceivedListener((notification) => {
-      const { type, ref, isNewJob } = normalizeNotificationPayload(
+      const { type, ref, isJobAlert } = normalizeNotificationPayload(
         notification.request.content.data as Record<string, unknown>,
       );
 
-      if (isNewJob) {
-        const alreadyAlerted = ref ? isAlerted(ref) : false;
-        if (ref) markAlerted(ref);
+      if (isJobAlert) {
+        const eventType = toSoundEvent(type);
+        const alreadyAlerted = ref ? isAlerted(ref, eventType) : false;
+        if (ref) markAlerted(ref, eventType);
         if (!alreadyAlerted) {
-          fireNewJobAlert();
+          // In-app sound + vibration (supplement to native channel sound)
+          fireJobAlert(eventType);
+          // In-app popup (visible only while app is foregrounded)
           showJobAlert({
             ref,
             title: notification.request.content.title ?? '',
             body: notification.request.content.body ?? '',
+            alertType: toAlertType(type),
           });
         }
       } else if (type === 'chat_message') {
@@ -125,11 +144,11 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
       const nid = response.notification.request.identifier;
       if (handledNotifIds.current.has(nid)) return;
       handledNotifIds.current.add(nid);
-      const { ref, isNewJob, type, conversationId } = normalizeNotificationPayload(
+      const { ref, isJobAlert, type, conversationId } = normalizeNotificationPayload(
         response.notification.request.content.data as Record<string, unknown>,
       );
-      if (isNewJob && ref) {
-        markAlerted(ref);
+      if (isJobAlert && ref) {
+        markAlerted(ref, toSoundEvent(type));
         router.push(`/(tabs)/jobs/${ref}`);
       } else if (type === 'chat_message' && conversationId) {
         router.push(`/(tabs)/chat/${conversationId}`);
@@ -142,11 +161,11 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
       const nid = response.notification.request.identifier;
       if (handledNotifIds.current.has(nid)) return;
       handledNotifIds.current.add(nid);
-      const { ref, isNewJob, type, conversationId } = normalizeNotificationPayload(
+      const { ref, isJobAlert, type, conversationId } = normalizeNotificationPayload(
         response.notification.request.content.data as Record<string, unknown>,
       );
-      if (isNewJob && ref) {
-        markAlerted(ref);
+      if (isJobAlert && ref) {
+        markAlerted(ref, toSoundEvent(type));
         router.push(`/(tabs)/jobs/${ref}`);
       } else if (type === 'chat_message' && conversationId) {
         router.push(`/(tabs)/chat/${conversationId}`);

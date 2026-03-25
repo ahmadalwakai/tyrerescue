@@ -1,15 +1,20 @@
 import { db, drivers, driverNotifications, driverSoundSettings } from '@/lib/db';
 import { eq } from 'drizzle-orm';
+import { sendFcmNotification, isFcmConfigured } from './fcm';
 
-interface ExpoPushMessage {
-  to: string;
-  title: string;
-  body: string;
-  data?: Record<string, unknown>;
-  sound?: string;
-  channelId?: string;
-  priority?: 'default' | 'normal' | 'high';
-}
+/** Map event types to Android notification channel IDs (versioned). */
+const EVENT_CHANNEL_MAP: Record<string, string> = {
+  new_job: 'jobs_critical_v3',
+  job_assigned: 'jobs_critical_v3',
+  new_assignment: 'jobs_critical_v3',
+  reassignment: 'jobs_critical_v3',
+  upcoming_v2: 'jobs_upcoming_v2',
+  chat_message: 'messages_v2',
+  status_update: 'updates_v2',
+};
+
+/** Critical event types that require maximum urgency. */
+const CRITICAL_EVENTS = new Set(['new_job', 'job_assigned', 'new_assignment', 'reassignment', 'upcoming_v2']);
 
 /** Fetch admin-configured sound file for a given event type. Falls back to new_job.wav. */
 async function getSoundForEvent(eventType: string): Promise<string> {
@@ -20,15 +25,56 @@ async function getSoundForEvent(eventType: string): Promise<string> {
       .where(eq(driverSoundSettings.event, eventType))
       .limit(1);
     if (row && row.enabled) return row.soundFile;
-    if (row && !row.enabled) return 'default'; // disabled → use system default
+    if (row && !row.enabled) return 'default';
   } catch {
     // Table may not exist yet — fall back
   }
   return 'new_job.wav';
 }
 
+/** Detect whether a push token is an Expo token vs native FCM device token. */
+function isExpoToken(token: string): boolean {
+  return token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken[');
+}
+
 /**
- * Send a push notification to a specific driver via Expo Push API.
+ * Legacy Expo Push API fallback for devices still running old app versions
+ * with ExpoPushTokens. Used ONLY during migration — to be removed.
+ */
+async function sendViaExpoPushFallback(
+  token: string,
+  title: string,
+  body: string,
+  data?: Record<string, unknown>,
+  channelId?: string,
+  soundFile?: string,
+): Promise<boolean> {
+  try {
+    const res = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: token,
+        title,
+        body,
+        data,
+        sound: soundFile ?? 'new_job.wav',
+        channelId: channelId ?? 'jobs_critical_v3',
+        priority: 'high',
+      }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Send a push notification to a specific driver.
+ *
+ * Primary path: direct FCM HTTP v1 API (native device token).
+ * Fallback path: Expo Push relay (for old app versions with ExpoPushToken).
+ *
  * Also persists the notification to the driver_notifications table for inbox history.
  * Returns true if the notification was sent successfully.
  */
@@ -37,7 +83,7 @@ export async function sendDriverPushNotification(
   title: string,
   body: string,
   data?: Record<string, unknown>,
-  channelId = 'jobs',
+  channelId?: string,
 ): Promise<boolean> {
   // Persist to notification history regardless of push delivery
   try {
@@ -64,43 +110,61 @@ export async function sendDriverPushNotification(
     return false;
   }
 
-  // Map old 'jobs' channelId to versioned 'jobs_v2' for Android channel sound to work
-  const effectiveChannelId = channelId === 'jobs' ? 'jobs_v2' : channelId;
-
-  // Resolve admin-configured sound for this event type
   const eventType = (data?.type as string) ?? 'system';
   const soundFile = await getSoundForEvent(eventType);
+  const effectiveChannel = channelId
+    ? EVENT_CHANNEL_MAP[channelId] ?? channelId
+    : EVENT_CHANNEL_MAP[eventType] ?? 'jobs_critical_v3';
+  const isCritical = CRITICAL_EVENTS.has(eventType);
 
-  const message: ExpoPushMessage = {
-    to: driver.pushToken,
+  // Stringify data values for FCM (requires all string values)
+  const stringData: Record<string, string> = {};
+  if (data) {
+    for (const [k, v] of Object.entries(data)) {
+      stringData[k] = typeof v === 'string' ? v : JSON.stringify(v);
+    }
+  }
+
+  // ── Primary path: direct FCM ──
+  if (!isExpoToken(driver.pushToken) && isFcmConfigured()) {
+    const result = await sendFcmNotification(
+      driver.pushToken,
+      title,
+      body,
+      stringData,
+      {
+        channelId: effectiveChannel,
+        priority: 'high',
+        sound: soundFile.replace(/\.wav$/, ''),
+        notificationPriority: isCritical ? 'PRIORITY_MAX' : 'PRIORITY_HIGH',
+        vibrateTimings: isCritical
+          ? ['0s', '0.5s', '0.2s', '0.5s', '0.2s', '0.5s']
+          : ['0s', '0.3s', '0.15s', '0.3s'],
+        visibility: 'PUBLIC',
+      },
+    );
+
+    if (result.success) {
+      console.log(`[push/fcm] Sent to driver ${driverId}: channel=${effectiveChannel} msgId=${result.messageId}`);
+      return true;
+    }
+    console.error(`[push/fcm] Failed for driver ${driverId}: ${result.error}`);
+    return false;
+  }
+
+  // ── Fallback: Expo Push relay (old app versions) ──
+  const sent = await sendViaExpoPushFallback(
+    driver.pushToken,
     title,
     body,
     data,
-    sound: soundFile,
-    channelId: effectiveChannelId,
-    priority: 'high',
-  };
-
-  try {
-    const res = await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(message),
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      console.error(`[push] Failed to send to driver ${driverId}: ${res.status} ${text}`);
-      return false;
-    }
-
-    const result = await res.json().catch(() => null);
-    console.log(`[push] Sent to driver ${driverId}: channel=${effectiveChannelId} sound=${message.sound}`, result?.data?.status);
-    return true;
-  } catch (error) {
-    console.error(`[push] Error sending to driver ${driverId}:`, error);
-    return false;
+    effectiveChannel,
+    soundFile,
+  );
+  if (sent) {
+    console.log(`[push/expo-fallback] Sent to driver ${driverId}: channel=${effectiveChannel}`);
   }
+  return sent;
 }
 
 /**
@@ -116,7 +180,43 @@ export async function notifyDriverNewJob(
     'New Job Assigned',
     `Job ${refNumber} at ${address}. Tap to accept.`,
     { type: 'new_job', ref: refNumber },
-    'jobs',
+    'new_job',
+  );
+}
+
+/**
+ * Notify driver of a job reassignment.
+ */
+export async function notifyDriverReassignment(
+  driverId: string,
+  refNumber: string,
+  address: string,
+): Promise<boolean> {
+  return sendDriverPushNotification(
+    driverId,
+    'Job Reassigned to You',
+    `Job ${refNumber} at ${address}. Tap to review.`,
+    { type: 'reassignment', ref: refNumber },
+    'reassignment',
+  );
+}
+
+/**
+ * Notify driver of an upcoming scheduled job (v2 — urgent reminder).
+ */
+export async function notifyDriverUpcomingJob(
+  driverId: string,
+  refNumber: string,
+  address: string,
+  minutesUntil: number,
+): Promise<boolean> {
+  const timeLabel = minutesUntil <= 1 ? 'now' : `in ${minutesUntil} min`;
+  return sendDriverPushNotification(
+    driverId,
+    'Upcoming Job Reminder',
+    `Job ${refNumber} starts ${timeLabel}. ${address}`,
+    { type: 'upcoming_v2', ref: refNumber, minutesUntil: String(minutesUntil) },
+    'upcoming_v2',
   );
 }
 
@@ -134,7 +234,7 @@ export async function notifyDriverNewMessage(
     `Message from ${senderName}`,
     preview.length > 100 ? `${preview.slice(0, 97)}...` : preview,
     { type: 'chat_message', conversationId },
-    'messages',
+    'chat_message',
   );
 }
 
@@ -152,6 +252,6 @@ export async function notifyDriverStatusUpdate(
     title,
     body,
     { type: 'status_update', ref: refNumber },
-    'jobs',
+    'status_update',
   );
 }
