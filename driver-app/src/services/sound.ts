@@ -1,5 +1,5 @@
 import { Audio } from 'expo-av';
-import { Vibration, Platform } from 'react-native';
+import { Vibration } from 'react-native';
 
 export type SoundEvent = 'new_job' | 'job_accepted' | 'job_completed' | 'new_message';
 
@@ -32,7 +32,19 @@ const DEFAULT_CONFIG: Record<SoundEvent, SoundEventConfig> = {
 let remoteConfig: Record<string, SoundEventConfig> | null = null;
 const cache: Partial<Record<string, Audio.Sound>> = {};
 let lastPlayed = 0;
+let audioModeSet = false;
 const DEBOUNCE_MS = 600;
+
+/** Configure audio mode once — call early at app start. */
+async function ensureAudioMode(): Promise<void> {
+  if (audioModeSet) return;
+  await Audio.setAudioModeAsync({
+    playsInSilentModeIOS: true,
+    staysActiveInBackground: true,
+    shouldDuckAndroid: false,
+  });
+  audioModeSet = true;
+}
 
 /** Load admin-controlled sound config from the backend */
 export async function loadSoundConfig(apiFn: () => Promise<Record<string, SoundEventConfig>>): Promise<void> {
@@ -40,10 +52,9 @@ export async function loadSoundConfig(apiFn: () => Promise<Record<string, SoundE
     const cfg = await apiFn();
     if (cfg && typeof cfg === 'object') {
       remoteConfig = cfg;
-      console.log('[sound] Loaded remote sound config:', Object.keys(cfg).join(', '));
     }
-  } catch (err) {
-    console.warn('[sound] Failed to load remote config, using defaults', err);
+  } catch {
+    // Use defaults
   }
 }
 
@@ -51,20 +62,42 @@ function getConfig(event: SoundEvent): SoundEventConfig {
   return remoteConfig?.[event] ?? DEFAULT_CONFIG[event];
 }
 
-async function ensureLoaded(soundFile: string): Promise<Audio.Sound | null> {
-  if (cache[soundFile]) return cache[soundFile]!;
-  const source = AVAILABLE_SOUNDS[soundFile];
-  if (!source) {
-    console.warn(`[sound] Sound file "${soundFile}" not bundled, falling back to new_job.wav`);
-    const fallback = AVAILABLE_SOUNDS['new_job.wav'];
-    if (!fallback) return null;
-    const { sound } = await Audio.Sound.createAsync(fallback);
-    cache[soundFile] = sound;
-    return sound;
-  }
+async function createSound(soundFile: string): Promise<Audio.Sound | null> {
+  const source = AVAILABLE_SOUNDS[soundFile] ?? AVAILABLE_SOUNDS['new_job.wav'];
+  if (!source) return null;
   const { sound } = await Audio.Sound.createAsync(source);
   cache[soundFile] = sound;
   return sound;
+}
+
+async function ensureLoaded(soundFile: string): Promise<Audio.Sound | null> {
+  if (cache[soundFile]) return cache[soundFile]!;
+  return createSound(soundFile);
+}
+
+/**
+ * Play a cached sound, handling the Android "finished-state" issue:
+ * stopAsync() resets the player before seeking + playing.
+ * If the cached instance fails, discard it and retry with a fresh one.
+ */
+async function playCachedSound(soundFile: string, volume: number): Promise<void> {
+  const sound = await ensureLoaded(soundFile);
+  if (!sound) return;
+
+  try {
+    await sound.stopAsync();
+    await sound.setVolumeAsync(volume);
+    await sound.setPositionAsync(0);
+    await sound.playAsync();
+  } catch {
+    // Cached instance is stale/unloaded — recreate and retry once
+    delete cache[soundFile];
+    const fresh = await createSound(soundFile);
+    if (fresh) {
+      await fresh.setVolumeAsync(volume);
+      await fresh.playAsync();
+    }
+  }
 }
 
 /** Play a sound by event name. Debounces rapid triggers. */
@@ -78,18 +111,8 @@ export async function playSound(event: SoundEvent): Promise<void> {
   if (!config.enabled) return;
 
   try {
-    await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: true,
-      shouldDuckAndroid: false,
-    });
-
-    const sound = await ensureLoaded(config.soundFile);
-    if (sound) {
-      await sound.setVolumeAsync(config.volume);
-      await sound.setPositionAsync(0);
-      await sound.playAsync();
-    }
+    await ensureAudioMode();
+    await playCachedSound(config.soundFile, config.volume);
 
     if (config.vibrationEnabled) {
       if (event === 'new_job') {
@@ -107,6 +130,7 @@ export async function playSound(event: SoundEvent): Promise<void> {
 
 /** Pre-load default sounds at app start for snappy playback */
 export async function preloadSounds(): Promise<void> {
+  await ensureAudioMode();
   await Promise.allSettled(
     Object.keys(AVAILABLE_SOUNDS).map((file) => ensureLoaded(file)),
   );
