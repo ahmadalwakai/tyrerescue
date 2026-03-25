@@ -59,7 +59,31 @@ export async function loadSoundConfig(apiFn: () => Promise<Record<string, SoundE
 }
 
 function getConfig(event: SoundEvent): SoundEventConfig {
-  return remoteConfig?.[event] ?? DEFAULT_CONFIG[event];
+  const fallback = DEFAULT_CONFIG[event];
+  const remote = remoteConfig?.[event];
+  if (!remote) return fallback;
+
+  // new_job is critical — enforce safety: always enabled, always audible,
+  // always a bundled file. Bad remote config cannot silently kill it.
+  if (event === 'new_job') {
+    return {
+      soundFile:
+        typeof remote.soundFile === 'string' && AVAILABLE_SOUNDS[remote.soundFile]
+          ? remote.soundFile
+          : fallback.soundFile,
+      enabled: true,
+      volume:
+        typeof remote.volume === 'number' && remote.volume > 0 && remote.volume <= 1
+          ? remote.volume
+          : fallback.volume,
+      vibrationEnabled:
+        typeof remote.vibrationEnabled === 'boolean'
+          ? remote.vibrationEnabled
+          : fallback.vibrationEnabled,
+    };
+  }
+
+  return remote;
 }
 
 async function createSound(soundFile: string): Promise<Audio.Sound | null> {
@@ -76,27 +100,35 @@ async function ensureLoaded(soundFile: string): Promise<Audio.Sound | null> {
 }
 
 /**
- * Play a cached sound, handling the Android "finished-state" issue:
- * stopAsync() resets the player before seeking + playing.
- * If the cached instance fails, discard it and retry with a fresh one.
+ * Play a cached sound reliably on Android.
+ * Checks player status before stopping to avoid IllegalStateException
+ * on sounds that are loaded but not playing (e.g. after preload).
+ * If the cached instance is stale or unloaded, recreates and retries once.
  */
 async function playCachedSound(soundFile: string, volume: number): Promise<void> {
-  const sound = await ensureLoaded(soundFile);
+  let sound = await ensureLoaded(soundFile);
   if (!sound) return;
 
   try {
-    await sound.stopAsync();
+    const status = await sound.getStatusAsync();
+    if (!status.isLoaded) {
+      // Sound was unloaded externally — recreate
+      delete cache[soundFile];
+      sound = await createSound(soundFile);
+      if (!sound) return;
+    } else if (status.isPlaying) {
+      await sound.stopAsync();
+    }
     await sound.setVolumeAsync(volume);
     await sound.setPositionAsync(0);
     await sound.playAsync();
   } catch {
-    // Cached instance is stale/unloaded — recreate and retry once
+    // Cached instance is stale — recreate and retry once
     delete cache[soundFile];
     const fresh = await createSound(soundFile);
-    if (fresh) {
-      await fresh.setVolumeAsync(volume);
-      await fresh.playAsync();
-    }
+    if (!fresh) return;
+    await fresh.setVolumeAsync(volume);
+    await fresh.playAsync();
   }
 }
 
@@ -110,8 +142,10 @@ export async function playSound(event: SoundEvent): Promise<void> {
 
   if (!config.enabled) return;
 
+  // Audio mode setup failure must not block playback
+  try { await ensureAudioMode(); } catch { /* proceed anyway */ }
+
   try {
-    await ensureAudioMode();
     await playCachedSound(config.soundFile, config.volume);
 
     if (config.vibrationEnabled) {

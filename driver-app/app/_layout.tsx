@@ -25,7 +25,7 @@ import {
 import { checkForUpdate } from '@/services/version-check';
 import { initOfflineQueue } from '@/services/offline-queue';
 import { preloadSounds, playSound, loadSoundConfig } from '@/services/sound';
-import { markAlerted, fireNewJobAlert } from '@/services/job-alert';
+import { markAlerted, fireNewJobAlert, isAlerted } from '@/services/job-alert';
 import { useNewJobDetector } from '@/hooks/useNewJobDetector';
 import { driverApi } from '@/api/client';
 
@@ -105,13 +105,16 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
       );
 
       if (isNewJob) {
+        const alreadyAlerted = ref ? isAlerted(ref) : false;
         if (ref) markAlerted(ref);
-        fireNewJobAlert();
-        showJobAlert({
-          ref,
-          title: notification.request.content.title ?? '',
-          body: notification.request.content.body ?? '',
-        });
+        if (!alreadyAlerted) {
+          fireNewJobAlert();
+          showJobAlert({
+            ref,
+            title: notification.request.content.title ?? '',
+            body: notification.request.content.body ?? '',
+          });
+        }
       } else if (type === 'chat_message') {
         playSound('new_message');
       }
@@ -126,6 +129,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
         response.notification.request.content.data as Record<string, unknown>,
       );
       if (isNewJob && ref) {
+        markAlerted(ref);
         router.push(`/(tabs)/jobs/${ref}`);
       } else if (type === 'chat_message' && conversationId) {
         router.push(`/(tabs)/chat/${conversationId}`);
@@ -142,6 +146,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
         response.notification.request.content.data as Record<string, unknown>,
       );
       if (isNewJob && ref) {
+        markAlerted(ref);
         router.push(`/(tabs)/jobs/${ref}`);
       } else if (type === 'chat_message' && conversationId) {
         router.push(`/(tabs)/chat/${conversationId}`);

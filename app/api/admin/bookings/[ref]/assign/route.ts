@@ -102,6 +102,9 @@ export async function PATCH(request: Request, { params }: Props) {
         note: `Driver reassigned (during ${currentStatus})`,
       });
 
+      // Notify the newly assigned driver (non-blocking — reassignment succeeds regardless)
+      notifyDriverNewJob(driverId, booking.refNumber, booking.addressLine).catch(() => {});
+
       return NextResponse.json({ success: true, reassigned: true });
     }
 
