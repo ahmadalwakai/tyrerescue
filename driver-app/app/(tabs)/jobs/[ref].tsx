@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -42,6 +42,11 @@ export default function JobDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [actioning, setActioning] = useState(false);
   const actionLockRef = useRef(false);
+
+  // Reset the action lock when navigating between different jobs
+  useEffect(() => {
+    actionLockRef.current = false;
+  }, [ref]);
 
   const fetchJob = useCallback(async () => {
     if (!ref) return;

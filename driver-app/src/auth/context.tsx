@@ -8,6 +8,7 @@ import {
 } from '@/api/client';
 import { unregisterPushToken } from '@/services/notifications';
 import { stopBackgroundLocation } from '@/services/background-location';
+import { clearAlertedRefs } from '@/services/job-alert';
 
 interface User {
   id: string;
@@ -75,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await unregisterPushToken();
+    clearAlertedRefs();
     await stopBackgroundLocation();
     await clearToken();
     setTokenState(null);

@@ -10,6 +10,11 @@ import { playSound } from '@/services/sound';
 
 const alertedRefs = new Set<string>();
 
+/** Clear all alerted refs (e.g. on logout) so sounds fire again for every job on next login. */
+export function clearAlertedRefs(): void {
+  alertedRefs.clear();
+}
+
 /** Mark a ref as already alerted (e.g. from push handler). */
 export function markAlerted(ref: string) {
   alertedRefs.add(ref);

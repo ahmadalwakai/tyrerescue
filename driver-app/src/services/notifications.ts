@@ -50,12 +50,19 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   // Android notification channels — versioned so sound/vibration changes take effect
   if (Platform.OS === 'android') {
-    // Delete old stale channel that may have no sound configured
-    try {
-      await Notifications.deleteNotificationChannelAsync('jobs');
-    } catch {
-      // Channel may not exist — safe to ignore
-    }
+    // Create fallback 'jobs' channel with same config as jobs_v2.
+    // This ensures notifications sent with the old channelId still play the correct sound.
+    // Keep both channels in sync — the server maps 'jobs' → 'jobs_v2' but external
+    // integrations or cached payloads may still reference 'jobs'.
+    await Notifications.setNotificationChannelAsync('jobs', {
+      name: 'New Jobs',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 500, 200, 500, 200, 500],
+      lightColor: '#F97316',
+      sound: 'new_job.wav',
+      enableVibrate: true,
+      bypassDnd: true,
+    });
 
     await Notifications.setNotificationChannelAsync('jobs_v2', {
       name: 'New Jobs',
@@ -121,6 +128,8 @@ export async function unregisterPushToken(): Promise<void> {
   } catch {
     // Non-fatal
   }
+  // Allow registration again after logout so channels & token are re-created on next login
+  pushRegistered = false;
 }
 
 /**
