@@ -4,20 +4,19 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { api } from '@/api/client';
 
-// Configure how notifications appear when app is in foreground
+// Configure how notifications appear when app is in foreground.
+// We always show the system heads-up banner so the native Android notification
+// appears even when the app is open. Our custom JobAlertPopup overlays on top.
+// shouldPlaySound is false because we trigger sound ourselves via fireNewJobAlert()
+// to avoid double-playing (channel sound in background is handled natively by Android).
 Notifications.setNotificationHandler({
-  handleNotification: async (notification) => {
-    const data = notification.request.content.data as Record<string, unknown> | undefined;
-    // For new_job: suppress system alert + sound — we show our own popup & play sound
-    const isNewJob = data?.type === 'new_job';
-    return {
-      shouldShowAlert: !isNewJob,
-      shouldPlaySound: false, // We play sounds ourselves; prevents double-sound
-      shouldSetBadge: false,
-      shouldShowBanner: !isNewJob,
-      shouldShowList: true,
-    };
-  },
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
 });
 
 let pushRegistered = false;
