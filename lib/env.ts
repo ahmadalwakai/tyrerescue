@@ -32,6 +32,8 @@ export const env = {
   // Email providers — optional to support fallback architecture
   RESEND_API_KEY: optional('RESEND_API_KEY', ''),
   RESEND_FROM_EMAIL: optional('RESEND_FROM_EMAIL', 'support@tyrerescue.uk'),
+  ADMIN_ALERT_TO_EMAIL: optional('ADMIN_ALERT_TO_EMAIL', 'dukesttyres@gmail.com'),
+  APP_URL: optional('APP_URL', ''),
   ZEPTOMAIL_API_KEY: optional('ZEPTOMAIL_API_KEY', ''),
   ZEPTOMAIL_FROM_EMAIL: optional('ZEPTOMAIL_FROM_EMAIL', 'noreply@tyrerescue.uk'),
   ZEPTOMAIL_API_URL: optional('ZEPTOMAIL_API_URL', 'https://api.zeptomail.eu/v1.1/email'),

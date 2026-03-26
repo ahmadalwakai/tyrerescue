@@ -5,6 +5,7 @@ import { tyreCatalogue, tyreProducts } from '@/lib/db/schema';
 import { eq, ilike, or, and, sql, asc, desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { getDefaultPriceString } from '@/lib/inventory/default-price-map';
+import { isValidSeason, normalizeSeason } from '@/lib/inventory/normalize-season';
 
 /* ─── Helpers ──────────────────────────────────────────── */
 
@@ -129,7 +130,7 @@ export async function GET(request: Request) {
       aspect: r.aspect,
       rim: r.rim,
       sizeDisplay: r.sizeDisplay,
-      season: r.season,
+      season: normalizeSeason(r.season),
       priceNew: r.priceNew ? parseFloat(r.priceNew) : null,
       stockNew: r.stockNew ?? 0,
       stockOrdered: r.stockOrdered ?? 0,
@@ -164,7 +165,7 @@ const addSchema = z.object({
   isCommercial: z.boolean().default(false),
   brand: z.string().min(1).max(100).optional(),
   pattern: z.string().max(200).optional(),
-  season: z.enum(['summer', 'winter', 'allseason']).optional(),
+  season: z.unknown().optional(),
 });
 
 export async function POST(request: Request) {
@@ -182,7 +183,10 @@ export async function POST(request: Request) {
   const { sizeDisplay, width, aspect, rim, stockNew, priceNew } = parsed.data;
   const brand = parsed.data.brand || 'Budget';
   const pattern = parsed.data.pattern || 'All-Season';
-  const season = parsed.data.season || 'allseason';
+  if (parsed.data.season !== undefined && !isValidSeason(parsed.data.season)) {
+    return NextResponse.json({ error: 'Invalid season. Use allseason, summer, or winter.' }, { status: 400 });
+  }
+  const season = normalizeSeason(parsed.data.season);
 
   // Check for duplicate — same sizeDisplay + same brand
   const [existing] = await db

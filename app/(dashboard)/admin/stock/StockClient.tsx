@@ -8,6 +8,12 @@ import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { BarcodeScanModal } from '@/components/admin/BarcodeScanModal';
 import { WIDTH_OPTIONS, RIM_OPTIONS } from '@/lib/inventory/tyre-options';
+import {
+  getSeasonLabel,
+  isValidSeason,
+  normalizeSeason,
+  type CanonicalSeason,
+} from '@/lib/inventory/normalize-season';
 
 /* ─── Constants ─────────────────────────────────────────── */
 const WIDTHS = WIDTH_OPTIONS;
@@ -23,7 +29,7 @@ interface StockItem {
   aspect: number;
   rim: number;
   sizeDisplay: string;
-  season: string;
+  season: CanonicalSeason;
   priceNew: number | null;
   stockNew: number;
   stockOrdered: number;
@@ -61,6 +67,15 @@ interface ImportResult {
   errors: string[];
 }
 
+interface EditFormState {
+  brand: string;
+  sizeDisplay: string;
+  season: CanonicalSeason;
+  priceNew: string;
+  stockNew: string;
+  stockOrdered: string;
+}
+
 /* ─── Component ─────────────────────────────────────────── */
 export function StockClient() {
   const [items, setItems] = useState<StockItem[]>([]);
@@ -79,7 +94,7 @@ export function StockClient() {
 
   /* Edit state */
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<EditFormState>({
     brand: '', sizeDisplay: '', season: 'allseason',
     priceNew: '', stockNew: '', stockOrdered: '',
   });
@@ -119,7 +134,10 @@ export function StockClient() {
       if (filterAvailable !== 'all') params.set('available', filterAvailable);
       const res = await fetch(`/api/admin/stock?${params}`);
       const data = await res.json();
-      setItems(data.items || []);
+      setItems((data.items || []).map((item: StockItem) => ({
+        ...item,
+        season: normalizeSeason(item.season),
+      })));
       setPage(data.page || 1);
       setTotalPages(data.totalPages || 1);
       setTotalCount(data.totalCount || 0);
@@ -134,15 +152,13 @@ export function StockClient() {
   useEffect(() => { fetchItems(1); }, [fetchItems]);
 
   /* ─── Inline PATCH helpers ──────────────────────────────── */
-  const VALID_SEASONS = ['allseason', 'summer', 'winter'] as const;
-
   const startEdit = (item: StockItem) => {
     setEditingId(item.id);
     setEditError('');
     setEditForm({
       brand: item.brand,
       sizeDisplay: item.sizeDisplay,
-      season: item.season,
+      season: normalizeSeason(item.season),
       priceNew: item.priceNew != null ? String(item.priceNew) : '',
       stockNew: String(item.stockNew),
       stockOrdered: String(item.stockOrdered),
@@ -155,7 +171,8 @@ export function StockClient() {
     const brand = editForm.brand.trim();
     if (!brand) { setEditError('Brand is required'); return; }
     if (!editForm.sizeDisplay.trim()) { setEditError('Size is required'); return; }
-    if (!VALID_SEASONS.includes(editForm.season as typeof VALID_SEASONS[number])) {
+    const normalizedSeason = normalizeSeason(editForm.season);
+    if (!isValidSeason(normalizedSeason)) {
       setEditError('Invalid season'); return;
     }
     const priceVal = editForm.priceNew ? Number(editForm.priceNew) : null;
@@ -176,7 +193,7 @@ export function StockClient() {
         body: JSON.stringify({
           brand,
           sizeDisplay: editForm.sizeDisplay.trim(),
-          season: editForm.season,
+          season: normalizedSeason,
           priceNew: priceVal,
           stockNew: stockVal,
           stockOrdered: orderedVal,
@@ -286,7 +303,7 @@ export function StockClient() {
           priceNew: addForm.priceNew ? Number(addForm.priceNew) : null,
           brand: addForm.brand.trim() || undefined,
           pattern: addForm.pattern.trim() || undefined,
-          season: addForm.season || undefined,
+          season: normalizeSeason(addForm.season),
         }),
       });
       const data = await res.json();
@@ -466,7 +483,7 @@ export function StockClient() {
             <Box minW="110px">
               <Text fontSize="11px" color={c.muted} mb={1}>Season</Text>
               <select style={{ ...selectStyle, height: 38 }} value={addForm.season}
-                onChange={(e) => setAddForm(f => ({ ...f, season: e.target.value }))}>
+                onChange={(e) => setAddForm(f => ({ ...f, season: normalizeSeason(e.target.value) }))}>
                 <option value="allseason">All-Season</option>
                 <option value="summer">Summer</option>
                 <option value="winter">Winter</option>
@@ -845,14 +862,14 @@ export function StockClient() {
                       {isEditing ? (
                         <select style={{ ...selectStyle, height: 34, fontSize: 12 }}
                           value={editForm.season}
-                          onChange={(e) => setEditForm((f) => ({ ...f, season: e.target.value }))}>
+                          onChange={(e) => setEditForm((f) => ({ ...f, season: normalizeSeason(e.target.value) }))}>
                           <option value="allseason">All-Season</option>
                           <option value="summer">Summer</option>
                           <option value="winter">Winter</option>
                         </select>
                       ) : (
                         <Text fontSize="12px" color={c.muted} textTransform="capitalize">
-                          {item.season === 'allseason' ? 'All-Season' : item.season}
+                          {getSeasonLabel(item.season)}
                         </Text>
                       )}
                     </Box>

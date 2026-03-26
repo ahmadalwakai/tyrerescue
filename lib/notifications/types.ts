@@ -33,6 +33,27 @@ export type NotificationEntityType =
   | "payment"
   | "testimonial";
 
+export interface AdminNotificationMetadata extends Record<string, unknown> {
+  refNumber?: string;
+  bookingType?: string;
+  serviceType?: string;
+  scheduledAt?: string | null;
+  customerName?: string;
+  customerPhone?: string;
+  callbackName?: string;
+  callbackPhone?: string;
+  callbackNotes?: string;
+  chatPreview?: string;
+  chatSenderRole?: string;
+  statusFrom?: string;
+  statusTo?: string;
+  driverName?: string;
+  updateType?: string;
+  reason?: string;
+  important?: boolean;
+  adminPath?: string;
+}
+
 export interface CreateNotificationInput {
   type: NotificationType;
   title: string;
@@ -41,7 +62,7 @@ export interface CreateNotificationInput {
   entityId: string;
   severity?: NotificationSeverity;
   link?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: AdminNotificationMetadata;
   createdBy?: string;
 }
 
@@ -54,7 +75,7 @@ export interface AdminNotificationRecord {
   entityId: string;
   severity: NotificationSeverity;
   link: string | null;
-  metadata: Record<string, unknown> | null;
+  metadata: AdminNotificationMetadata | null;
   isRead: boolean;
   readAt: Date | null;
   createdBy: string | null;
@@ -71,7 +92,7 @@ export interface AdminNotificationEvent {
   entityId: string;
   link?: string;
   createdAt: string; // ISO string for serialization
-  metadata?: Record<string, unknown>;
+  metadata?: AdminNotificationMetadata;
 }
 
 export interface PushPayload {

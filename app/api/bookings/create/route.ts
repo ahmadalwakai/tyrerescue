@@ -370,6 +370,17 @@ export async function POST(
         link: `/admin/bookings/${refNumber}`,
         severity: 'info',
         createdBy: 'system',
+        metadata: {
+          refNumber,
+          bookingType: String(quote.booking_type || ''),
+          serviceType: String(quote.service_type || ''),
+          scheduledAt: quote.scheduled_at ? new Date(quote.scheduled_at).toISOString() : null,
+          customerName: data.customerName,
+          customerPhone: data.customerPhone,
+          important: true,
+          updateType: 'created',
+          adminPath: `/admin/bookings/${refNumber}`,
+        },
       }).catch(console.error);
 
       return NextResponse.json({

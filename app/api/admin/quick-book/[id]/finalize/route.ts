@@ -350,6 +350,17 @@ export async function POST(
     link: `/admin/bookings/${refNumber}`,
     severity: 'info',
     createdBy: 'system',
+    metadata: {
+      refNumber,
+      bookingType: 'emergency',
+      serviceType: SERVICE_MAP[serviceType] || 'puncture_repair',
+      scheduledAt: null,
+      customerName: qb.customerName,
+      customerPhone: qb.customerPhone,
+      important: true,
+      updateType: 'created',
+      adminPath: `/admin/bookings/${refNumber}`,
+    },
   }).catch(console.error);
 
   // Stripe Checkout URL for payment

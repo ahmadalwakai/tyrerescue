@@ -335,7 +335,8 @@ export async function PUT(request: NextRequest, { params }: Props) {
     await db.update(bookings).set(updates).where(eq(bookings.id, booking.id));
 
     // Log the edit in status history as a note
-    const editedFields = Object.keys(updates).filter((k) => k !== 'updatedAt').join(', ');
+    const editedFieldList = Object.keys(updates).filter((k) => k !== 'updatedAt');
+    const editedFields = editedFieldList.join(', ');
     await db.insert(bookingStatusHistory).values({
       bookingId: booking.id,
       fromStatus: booking.status,
@@ -343,6 +344,47 @@ export async function PUT(request: NextRequest, { params }: Props) {
       actorUserId: session.user.id,
       actorRole: 'admin',
       note: `Booking edited: ${editedFields}`,
+    });
+
+    const importantEditFields = new Set([
+      'addressLine',
+      'scheduledAt',
+      'serviceType',
+      'bookingType',
+      'quantity',
+      'subtotal',
+      'vatAmount',
+      'totalAmount',
+      'priceSnapshot',
+    ]);
+
+    const importantUpdate = editedFieldList.some((field) => importantEditFields.has(field));
+
+    createAdminNotification({
+      type: 'booking.updated',
+      title: 'Booking Updated',
+      body: `Booking ${booking.refNumber} edited: ${editedFields}`,
+      entityType: 'booking',
+      entityId: booking.id,
+      link: `/admin/bookings/${booking.refNumber}`,
+      severity: importantUpdate ? 'warning' : 'info',
+      createdBy: session.user.id,
+      metadata: {
+        refNumber: booking.refNumber,
+        bookingType: booking.bookingType,
+        serviceType: booking.serviceType,
+        scheduledAt: booking.scheduledAt ? booking.scheduledAt.toISOString() : null,
+        customerName: updates.customerName ? String(updates.customerName) : booking.customerName,
+        customerPhone: updates.customerPhone ? String(updates.customerPhone) : booking.customerPhone,
+        statusFrom: booking.status,
+        statusTo: booking.status,
+        updateType: 'admin_update',
+        important: importantUpdate,
+        adminPath: `/admin/bookings/${booking.refNumber}`,
+        editedFields: editedFieldList,
+      },
+    }).catch((notificationErr) => {
+      console.error('Failed to create admin booking update notification:', notificationErr);
     });
 
     // Notify assigned driver of changes if driver has been assigned
@@ -480,6 +522,20 @@ export async function PATCH(request: NextRequest, { params }: Props) {
       entityId: booking.id,
       link: `/admin/bookings/${booking.refNumber}`,
       severity: newStatus === 'cancelled' ? 'warning' : 'info',
+      metadata: {
+        refNumber: booking.refNumber,
+        bookingType: booking.bookingType,
+        serviceType: booking.serviceType,
+        scheduledAt: booking.scheduledAt ? booking.scheduledAt.toISOString() : null,
+        customerName: booking.customerName,
+        customerPhone: booking.customerPhone,
+        statusFrom: currentStatus,
+        statusTo: newStatus,
+        reason: typeof note === 'string' ? note : undefined,
+        updateType: 'status_change',
+        important: true,
+        adminPath: `/admin/bookings/${booking.refNumber}`,
+      },
     });
 
     // Send cancellation email to customer

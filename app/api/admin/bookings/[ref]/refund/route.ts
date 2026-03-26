@@ -149,6 +149,20 @@ export async function POST(request: Request, { params }: Props) {
         entityId: booking.id,
         link: `/admin/bookings/${booking.refNumber}`,
         severity: 'warning',
+        metadata: {
+          refNumber: booking.refNumber,
+          bookingType: booking.bookingType,
+          serviceType: booking.serviceType,
+          scheduledAt: booking.scheduledAt ? booking.scheduledAt.toISOString() : null,
+          customerName: booking.customerName,
+          customerPhone: booking.customerPhone,
+          statusFrom: currentStatus,
+          statusTo: finalStatus,
+          reason: reason.trim(),
+          updateType: 'refund',
+          important: true,
+          adminPath: `/admin/bookings/${booking.refNumber}`,
+        },
       });
 
       // Send refund email to customer

@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { tyreCatalogue, tyreProducts, bookingTyres } from '@/lib/db/schema';
 import { eq, ilike, or, and, sql, desc } from 'drizzle-orm';
+import { isValidSeason, normalizeSeason } from '@/lib/inventory/normalize-season';
 
 /**
  * GET /api/admin/inventory
@@ -49,7 +50,10 @@ export async function GET(request: Request) {
     conditions.push(eq(tyreCatalogue.tier, tier));
   }
   if (season && season !== 'all') {
-    conditions.push(eq(tyreCatalogue.season, season));
+    if (!isValidSeason(season)) {
+      return NextResponse.json({ error: 'Invalid season filter.' }, { status: 400 });
+    }
+    conditions.push(eq(tyreCatalogue.season, normalizeSeason(season)));
   }
 
   // Status filter — applied in SQL for correct pagination

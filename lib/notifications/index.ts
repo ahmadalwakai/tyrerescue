@@ -1,6 +1,7 @@
 // lib/notifications/index.ts
 
 export { createAdminNotification } from "./create-admin-notification";
+export { sendAdminEmailAlert } from './send-admin-email-alert';
 export { publishAdminEvent, addSSEListener } from "./publish-admin-event";
 export { sendWebPushToAll } from "./send-web-push";
 export { useAdminNotifications } from "./use-admin-notifications";

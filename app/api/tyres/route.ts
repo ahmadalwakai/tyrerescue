@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { tyreCatalogue, tyreProducts } from '@/lib/db/schema';
 import { eq, and, gte, lte, ilike, sql, desc, asc } from 'drizzle-orm';
 import { classifyTyre } from '@/lib/budget-inventory';
+import { isValidSeason, normalizeSeason } from '@/lib/inventory/normalize-season';
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,7 +39,10 @@ export async function GET(request: NextRequest) {
       conditions.push(ilike(tyreProducts.brand, brand));
     }
     if (season && season !== 'all') {
-      conditions.push(eq(tyreProducts.season, season));
+      if (!isValidSeason(season)) {
+        return NextResponse.json({ error: 'Invalid season filter' }, { status: 400 });
+      }
+      conditions.push(eq(tyreProducts.season, normalizeSeason(season)));
     }
     const tier = searchParams.get('tier');
     if (tier && tier !== 'all') {

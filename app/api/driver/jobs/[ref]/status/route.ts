@@ -111,6 +111,19 @@ export async function PATCH(request: Request, { params }: Props) {
       entityId: booking.id,
       link: `/admin/bookings/${booking.refNumber}`,
       severity: newStatus === 'completed' ? 'success' : 'info',
+      metadata: {
+        refNumber: booking.refNumber,
+        bookingType: booking.bookingType,
+        serviceType: booking.serviceType,
+        scheduledAt: booking.scheduledAt ? booking.scheduledAt.toISOString() : null,
+        customerName: booking.customerName,
+        customerPhone: booking.customerPhone,
+        statusFrom: currentStatus,
+        statusTo: newStatus,
+        updateType: 'driver_progress',
+        important: true,
+        adminPath: `/admin/bookings/${booking.refNumber}`,
+      },
     }).catch(console.error);
 
     // Persist to driver notification inbox

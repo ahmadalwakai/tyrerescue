@@ -8,6 +8,7 @@ import type {
 } from "./types";
 import { publishAdminEvent } from "./publish-admin-event";
 import { sendWebPushToAll } from "./send-web-push";
+import { sendAdminEmailAlert } from './send-admin-email-alert';
 
 /**
  * Central function for creating admin notifications.
@@ -35,12 +36,17 @@ export async function createAdminNotification(
         metadata: input.metadata ?? null,
         createdBy: input.createdBy ?? "system",
       })
-      .returning({ id: adminNotifications.id });
+      .returning({
+        id: adminNotifications.id,
+        createdAt: adminNotifications.createdAt,
+      });
 
     if (!record) {
       console.error("[Notifications] Failed to insert notification");
       return null;
     }
+
+    const createdAtIso = (record.createdAt ?? new Date()).toISOString();
 
     // Build the event payload
     const event: AdminNotificationEvent = {
@@ -52,7 +58,7 @@ export async function createAdminNotification(
       entityType: input.entityType,
       entityId: input.entityId,
       link: input.link,
-      createdAt: new Date().toISOString(),
+      createdAt: createdAtIso,
       metadata: input.metadata,
     };
 
@@ -87,6 +93,22 @@ export async function createAdminNotification(
         console.error('[Notifications] Web Push error:', err)
       );
     }
+
+    // Email alerts for selected important admin events.
+    // Fire-and-forget: never block request completion.
+    sendAdminEmailAlert({
+      notificationId: record.id,
+      createdAtIso,
+      type: input.type,
+      title: input.title,
+      body: input.body,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      link: input.link,
+      metadata: input.metadata,
+    }).catch((err) =>
+      console.error('[AdminEmailAlert] Unhandled send error:', err)
+    );
 
     return { id: record.id };
   } catch (error) {

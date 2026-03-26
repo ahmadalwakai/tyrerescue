@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { Pool } from '@neondatabase/serverless';
 import { parseTyreSize } from '@/lib/inventory/tyre-size';
 import { adjustStock } from '@/lib/inventory/stock-service';
+import { isValidSeason, normalizeSeason } from '@/lib/inventory/normalize-season';
 
 const updateSchema = z.object({
   priceNew: z.union([z.string(), z.number()]).nullable().optional(),
@@ -16,7 +17,7 @@ const updateSchema = z.object({
   availableNew: z.boolean().optional(),
   brand: z.string().min(1).max(100).optional(),
   sizeDisplay: z.string().min(3).max(20).optional(),
-  season: z.enum(['summer', 'winter', 'allseason']).optional(),
+  season: z.unknown().optional(),
 });
 
 /**
@@ -46,7 +47,12 @@ export async function PATCH(
   if (d.isLocalStock !== undefined) updates.isLocalStock = d.isLocalStock;
   if (d.availableNew !== undefined) updates.availableNew = d.availableNew;
   if (d.brand !== undefined) updates.brand = d.brand;
-  if (d.season !== undefined) updates.season = d.season;
+  if (d.season !== undefined) {
+    if (!isValidSeason(d.season)) {
+      return NextResponse.json({ error: 'Invalid season. Use allseason, summer, or winter.' }, { status: 400 });
+    }
+    updates.season = normalizeSeason(d.season);
+  }
   if (d.sizeDisplay !== undefined) {
     const sizeResult = parseTyreSize(d.sizeDisplay);
     if (!sizeResult.valid) {

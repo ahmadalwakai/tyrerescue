@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { callMeBack } from '@/lib/db/schema';
-import { sendEmail } from '@/lib/email/resend';
-import { baseEmailTemplate } from '@/lib/email/templates/base';
 import { createAdminNotification } from '@/lib/notifications';
 import { z } from 'zod';
 
@@ -21,7 +19,14 @@ export async function POST(request: Request) {
 
   const { name, phone, notes } = parsed.data;
 
-  await db.insert(callMeBack).values({ name, phone, notes: notes || null });
+  const [created] = await db
+    .insert(callMeBack)
+    .values({ name, phone, notes: notes || null })
+    .returning({ id: callMeBack.id });
+
+  if (!created) {
+    return NextResponse.json({ error: 'Failed to create callback request' }, { status: 500 });
+  }
 
   // Admin notification (fire-and-forget)
   createAdminNotification({
@@ -29,32 +34,19 @@ export async function POST(request: Request) {
     title: 'Callback Request',
     body: `${name} — ${phone}${notes ? ` — ${notes.slice(0, 60)}` : ''}`,
     entityType: 'callback',
-    entityId: name,
+    entityId: created.id,
     link: '/admin/callbacks',
     severity: 'warning',
     createdBy: 'system',
+    metadata: {
+      callbackName: name,
+      callbackPhone: phone,
+      callbackNotes: notes || undefined,
+      important: true,
+      updateType: 'created',
+      adminPath: '/admin/callbacks',
+    },
   }).catch(console.error);
-
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail) {
-    const html = baseEmailTemplate({
-      preheader: `Call-back request from ${name}`,
-      content: `
-        <h2 style="margin-top:0;">New Call-Back Request</h2>
-        <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="padding:8px 0;color:#666;">Name</td><td style="padding:8px 0;font-weight:600;">${name}</td></tr>
-          <tr><td style="padding:8px 0;color:#666;">Phone</td><td style="padding:8px 0;font-weight:600;">${phone}</td></tr>
-          ${notes ? `<tr><td style="padding:8px 0;color:#666;">Notes</td><td style="padding:8px 0;">${notes}</td></tr>` : ''}
-        </table>
-      `,
-    });
-
-    await sendEmail({
-      to: adminEmail,
-      subject: `Call-Back Request: ${name}`,
-      html,
-    }).catch(() => {});
-  }
 
   return NextResponse.json({ success: true }, { status: 201 });
 }

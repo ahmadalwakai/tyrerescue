@@ -69,6 +69,19 @@ export async function PATCH(request: Request, { params }: Props) {
         entityId: booking.id,
         link: `/admin/bookings/${booking.refNumber}`,
         severity: 'info',
+        metadata: {
+          refNumber: booking.refNumber,
+          bookingType: booking.bookingType,
+          serviceType: booking.serviceType,
+          scheduledAt: booking.scheduledAt ? booking.scheduledAt.toISOString() : null,
+          customerName: booking.customerName,
+          customerPhone: booking.customerPhone,
+          statusFrom: 'driver_assigned',
+          statusTo: 'driver_assigned',
+          updateType: 'driver_acceptance',
+          important: true,
+          adminPath: `/admin/bookings/${booking.refNumber}`,
+        },
       }).catch(console.error);
 
       // Persist to driver notification inbox
@@ -115,6 +128,19 @@ export async function PATCH(request: Request, { params }: Props) {
       entityId: booking.id,
       link: `/admin/bookings/${booking.refNumber}`,
       severity: 'warning',
+      metadata: {
+        refNumber: booking.refNumber,
+        bookingType: booking.bookingType,
+        serviceType: booking.serviceType,
+        scheduledAt: booking.scheduledAt ? booking.scheduledAt.toISOString() : null,
+        customerName: booking.customerName,
+        customerPhone: booking.customerPhone,
+        statusFrom: 'driver_assigned',
+        statusTo: 'paid',
+        updateType: 'driver_assignment',
+        important: true,
+        adminPath: `/admin/bookings/${booking.refNumber}`,
+      },
     }).catch(console.error);
 
     return NextResponse.json({ success: true, action: 'rejected' });

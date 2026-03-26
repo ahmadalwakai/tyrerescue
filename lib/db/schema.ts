@@ -17,6 +17,8 @@ import {
 import { sql } from 'drizzle-orm';
 import type { QuoteTyreSelectionSnapshot } from '@/lib/quote-snapshot';
 
+export type TyreSeason = 'allseason' | 'summer' | 'winter';
+
 // Users table
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
@@ -72,7 +74,7 @@ export const tyreCatalogue = pgTable('tyre_catalogue', {
   aspect: integer('aspect').notNull(),
   rim: integer('rim').notNull(),
   sizeDisplay: varchar('size_display', { length: 20 }).notNull(),
-  season: text('season').notNull().default('allseason'),
+  season: text('season').$type<TyreSeason>().notNull().default('allseason'),
   speedRating: varchar('speed_rating', { length: 5 }),
   loadIndex: integer('load_index'),
   wetGrip: varchar('wet_grip', { length: 2 }),
@@ -95,7 +97,7 @@ export const tyreProducts = pgTable('tyre_products', {
   aspect: integer('aspect').notNull(),
   rim: integer('rim').notNull(),
   sizeDisplay: varchar('size_display', { length: 20 }).notNull(),
-  season: text('season').notNull(),
+  season: text('season').$type<TyreSeason>().notNull(),
   speedRating: varchar('speed_rating', { length: 5 }),
   loadIndex: integer('load_index'),
   wetGrip: varchar('wet_grip', { length: 2 }),

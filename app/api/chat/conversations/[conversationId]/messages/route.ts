@@ -89,6 +89,23 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
     attachment,
   );
 
+  const [convContext] = await db
+    .select({
+      bookingId: bookingConversations.bookingId,
+      bookingRef: bookings.refNumber,
+      driverId: bookings.driverId,
+      customerName: bookings.customerName,
+      customerPhone: bookings.customerPhone,
+    })
+    .from(bookingConversations)
+    .innerJoin(bookings, eq(bookings.id, bookingConversations.bookingId))
+    .where(eq(bookingConversations.id, conversationId))
+    .limit(1);
+
+  const adminLink = convContext?.bookingRef
+    ? `/admin/bookings/${convContext.bookingRef}`
+    : '/admin/chat';
+
   // Notify admin when a customer or driver sends a message
   if (role !== 'admin') {
     createAdminNotification({
@@ -97,9 +114,19 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
       body: `${role === 'driver' ? 'Driver' : 'Customer'}: ${msgBody?.slice(0, 80) || 'Sent an attachment'}`,
       entityType: 'chat',
       entityId: conversationId,
-      link: `/admin/chat/${conversationId}`,
+      link: adminLink,
       severity: 'info',
       createdBy: 'system',
+      metadata: {
+        refNumber: convContext?.bookingRef,
+        customerName: convContext?.customerName,
+        customerPhone: convContext?.customerPhone,
+        chatSenderRole: role,
+        chatPreview: msgBody?.slice(0, 160) || 'Sent an attachment',
+        important: true,
+        updateType: 'created',
+        adminPath: adminLink,
+      },
     }).catch(console.error);
   }
 
@@ -107,20 +134,9 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
   if (role !== 'driver') {
     (async () => {
       try {
-        const [conv] = await db
-          .select({ bookingId: bookingConversations.bookingId })
-          .from(bookingConversations)
-          .where(eq(bookingConversations.id, conversationId))
-          .limit(1);
-        if (!conv) return;
-        const [booking] = await db
-          .select({ driverId: bookings.driverId })
-          .from(bookings)
-          .where(eq(bookings.id, conv.bookingId))
-          .limit(1);
-        if (!booking?.driverId) return;
+        if (!convContext?.driverId) return;
         await notifyDriverNewMessage(
-          booking.driverId,
+          convContext.driverId,
           conversationId,
           session.user.name ?? (role === 'admin' ? 'Admin' : 'Customer'),
           msgBody?.slice(0, 100) || 'Sent an attachment',
