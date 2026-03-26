@@ -20,6 +20,7 @@ import {
   registerForPushNotifications,
   addNotificationResponseListener,
   addNotificationReceivedListener,
+  fireLocalCriticalNotification,
 } from '@/services/notifications';
 import { checkForUpdate } from '@/services/version-check';
 import { initOfflineQueue } from '@/services/offline-queue';
@@ -124,7 +125,17 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
         const alreadyAlerted = ref ? isAlerted(ref, eventType) : false;
         if (ref) markAlerted(ref, eventType);
         if (!alreadyAlerted) {
-          // In-app sound + vibration (supplement to native channel sound)
+          // Fire local notification on the correct channel for native sound + tray entry.
+          // The remote push was suppressed by the handler; this local notification
+          // is presented on the correct channel with native sound + vibration.
+          const channelId = eventType === 'upcoming_v2' ? 'jobs_upcoming_v2' : 'jobs_critical_v3';
+          fireLocalCriticalNotification(
+            notification.request.content.title ?? 'Job Alert',
+            notification.request.content.body ?? '',
+            notification.request.content.data as Record<string, unknown>,
+            channelId,
+          );
+          // In-app vibration (supplement to native channel vibration)
           fireJobAlert(eventType);
           // In-app popup (visible only while app is foregrounded)
           showJobAlert({

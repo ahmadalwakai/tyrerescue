@@ -3,18 +3,43 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { api } from '@/api/client';
 
+/** Notification types that represent critical job alerts. */
+const JOB_ALERT_TYPES = new Set([
+  'new_job', 'job_assigned', 'new_assignment', 'reassignment', 'upcoming_v2',
+]);
+
 // Configure how notifications appear when app is in foreground.
-// We always show the system heads-up banner so the native Android notification
-// appears even when the app is open. shouldPlaySound is true so the channel
-// sound plays natively (dedupe prevents double-play with in-app sound).
+// For remote job alert pushes: suppress the system presentation because
+// expo-notifications may re-present the notification on a default channel
+// (losing the custom sound). We fire our own local notification on the
+// correct channel instead — see fireLocalCriticalNotification.
+// For local echo notifications (_localEcho flag): allow presentation so the
+// native channel sound + vibration plays.
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async (notification) => {
+    const data = notification.request.content.data as Record<string, unknown> | undefined;
+    const type = typeof data?.type === 'string' ? data.type : null;
+    const isLocalEcho = data?._localEcho === true;
+    const isJobAlert = !!type && JOB_ALERT_TYPES.has(type);
+
+    if (isJobAlert && !isLocalEcho) {
+      return {
+        shouldShowAlert: false,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+        shouldShowBanner: false,
+        shouldShowList: false,
+      };
+    }
+
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    };
+  },
 });
 
 let pushRegistered = false;
@@ -155,23 +180,26 @@ export async function unregisterPushToken(): Promise<void> {
 }
 
 /**
- * Schedule a local notification on the critical job channel.
- * Used in foreground to trigger native sound + vibration through the channel,
- * ensuring sound works even if expo-av fails.
+ * Schedule a local notification on the specified channel (defaults to critical).
+ * Uses ChannelAwareTriggerInput to deliver immediately on the correct Android
+ * notification channel, guaranteeing native sound + vibration regardless of
+ * expo-av state. The _localEcho flag prevents the notification handler from
+ * suppressing it and prevents the received-listener from re-processing it.
  */
 export async function fireLocalCriticalNotification(
   title: string,
   body: string,
   data?: Record<string, unknown>,
+  channelId = 'jobs_critical_v3',
 ): Promise<string> {
   return Notifications.scheduleNotificationAsync({
     content: {
       title,
       body,
-      data,
+      data: { ...data, _localEcho: true },
       sound: 'new_job.wav',
     },
-    trigger: null, // immediate
+    trigger: { channelId },
   });
 }
 

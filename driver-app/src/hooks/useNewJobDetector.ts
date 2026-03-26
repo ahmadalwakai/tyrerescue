@@ -5,6 +5,7 @@ import {
   markAlerted,
   fireJobAlert,
 } from '@/services/job-alert';
+import { fireLocalCriticalNotification } from '@/services/notifications';
 import type { JobSummary } from '@/api/client';
 
 /**
@@ -49,6 +50,17 @@ export function useNewJobDetector() {
           markAlerted(ref, 'new_job');
         }
 
+        // Fire local notification on critical channel for native sound + tray entry
+        if (firstNew) {
+          fireLocalCriticalNotification(
+            'New Job Assigned',
+            firstNew.addressLine ?? '',
+            { type: 'new_job', ref: firstNew.refNumber },
+            'jobs_critical_v3',
+          );
+        }
+
+        // In-app vibration (supplement to native channel vibration)
         fireJobAlert('new_job');
 
         if (firstNew) {
