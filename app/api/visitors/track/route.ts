@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { siteVisitors, visitorPageViews, visitorClicks } from '@/lib/db/schema';
 import { eq, sql, and, ne } from 'drizzle-orm';
 import { createHash } from 'crypto';
+import { parseSearchReferrer } from '@/lib/analytics/parse-search-referrer';
 
 // Simple in-memory rate limiter: max 60 requests per minute per IP
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -44,12 +45,38 @@ async function geoLookup(ip: string): Promise<{ city: string; country: string }>
       }
       return result;
     }
-  } catch { /* fallback */ }
+  } catch {
+    // fallback
+  }
+
   return { city: 'Unknown', country: 'UK' };
 }
 
 function hashIp(ip: string): string {
   return createHash('sha256').update(ip + (process.env.AUTH_SECRET || '')).digest('hex').slice(0, 16);
+}
+
+function normalizeOptionalText(value: unknown, maxLength: number): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, maxLength);
+}
+
+function normalizeKeywordText(value: string | null, maxLength: number): string | null {
+  if (!value) return null;
+
+  let decoded = value;
+  try {
+    decoded = decodeURIComponent(decoded);
+  } catch {
+    // Keep original value when decoding fails
+  }
+
+  const compact = decoded.replace(/\+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!compact) return null;
+
+  return compact.slice(0, maxLength);
 }
 
 export async function POST(request: NextRequest) {
@@ -64,7 +91,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { sessionId, path, title, buttonText, device, browser, referrer, searchEngine, searchKeyword, exiting } = body;
+    const {
+      sessionId,
+      path,
+      title,
+      buttonText,
+      device,
+      browser,
+      referrer,
+      searchEngine,
+      searchKeyword,
+      exiting,
+    } = body;
 
     if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 64) {
       return NextResponse.json({ error: 'Invalid sessionId' }, { status: 400 });
@@ -83,12 +121,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
     }
 
+    const normalizedReferrer = normalizeOptionalText(referrer, 255);
+    const parsedReferrer = normalizedReferrer
+      ? parseSearchReferrer(normalizedReferrer)
+      : { searchEngine: null, searchKeyword: null };
+
+    const normalizedEngineFromReferrer = normalizeOptionalText(parsedReferrer.searchEngine, 50);
+    const normalizedKeywordFromReferrer = normalizeKeywordText(parsedReferrer.searchKeyword, 500);
+    const normalizedEngineFromBody = normalizeOptionalText(searchEngine, 50);
+    const normalizedKeywordFromBody = normalizeKeywordText(
+      typeof searchKeyword === 'string' ? searchKeyword : null,
+      500,
+    );
+
+    const incomingSearchEngine = normalizedEngineFromReferrer ?? normalizedEngineFromBody;
+    const incomingSearchKeyword = normalizedKeywordFromReferrer ?? normalizedKeywordFromBody;
+
     const ipHash = hashIp(ip);
     const geo = await geoLookup(ip);
 
     // Upsert visitor
     const existing = await db
-      .select({ id: siteVisitors.id })
+      .select({
+        id: siteVisitors.id,
+        referrer: siteVisitors.referrer,
+        searchEngine: siteVisitors.searchEngine,
+        searchKeyword: siteVisitors.searchKeyword,
+      })
       .from(siteVisitors)
       .where(eq(siteVisitors.sessionId, sessionId))
       .limit(1);
@@ -96,14 +155,43 @@ export async function POST(request: NextRequest) {
     let visitorId: string;
 
     if (existing.length > 0) {
-      visitorId = existing[0].id;
+      const currentVisitor = existing[0];
+      visitorId = currentVisitor.id;
+
+      const currentEngine = normalizeOptionalText(currentVisitor.searchEngine, 50);
+      const currentKeyword = normalizeKeywordText(currentVisitor.searchKeyword, 500);
+      const currentReferrer = normalizeOptionalText(currentVisitor.referrer, 255);
+
+      const updates: {
+        isOnline: boolean;
+        lastHeartbeat: Date;
+        updatedAt: Date;
+        referrer?: string;
+        searchEngine?: string;
+        searchKeyword?: string;
+      } = {
+        isOnline: true,
+        lastHeartbeat: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Keep raw referrer as-is, but do not overwrite with null/empty.
+      if (normalizedReferrer && normalizedReferrer !== currentReferrer) {
+        updates.referrer = normalizedReferrer;
+      }
+
+      // Only set engine/keyword when we have meaningful values.
+      if (incomingSearchEngine && (!currentEngine || currentEngine !== incomingSearchEngine)) {
+        updates.searchEngine = incomingSearchEngine;
+      }
+
+      if (incomingSearchKeyword && (!currentKeyword || currentKeyword !== incomingSearchKeyword)) {
+        updates.searchKeyword = incomingSearchKeyword;
+      }
+
       await db
         .update(siteVisitors)
-        .set({
-          isOnline: true,
-          lastHeartbeat: new Date(),
-          updatedAt: new Date(),
-        })
+        .set(updates)
         .where(eq(siteVisitors.id, visitorId));
     } else {
       // Count previous visits by this IP
@@ -127,9 +215,9 @@ export async function POST(request: NextRequest) {
           country: geo.country,
           device: typeof device === 'string' ? device.slice(0, 20) : null,
           browser: typeof browser === 'string' ? browser.slice(0, 50) : null,
-          referrer: typeof referrer === 'string' ? referrer.slice(0, 255) : null,
-          searchEngine: typeof searchEngine === 'string' ? searchEngine.slice(0, 50) : null,
-          searchKeyword: typeof searchKeyword === 'string' ? searchKeyword.slice(0, 500) : null,
+          referrer: normalizedReferrer,
+          searchEngine: incomingSearchEngine,
+          searchKeyword: incomingSearchKeyword,
           visitCount,
           previousVisits: previousVisits.length > 0 ? previousVisits : null,
         })

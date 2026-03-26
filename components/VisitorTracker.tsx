@@ -34,40 +34,6 @@ function detectBrowser(): string {
   return 'Other';
 }
 
-function extractSearchData(): { searchEngine: string | null; searchKeyword: string | null; referrer: string } {
-  const ref = document.referrer;
-  let searchEngine: string | null = null;
-  let searchKeyword: string | null = null;
-  let referrer = 'Direct';
-
-  if (!ref) return { searchEngine, searchKeyword, referrer };
-
-  try {
-    const url = new URL(ref);
-    const host = url.hostname.toLowerCase();
-
-    if (host.includes('google'))       { searchEngine = 'Google'; referrer = 'Google'; }
-    else if (host.includes('bing'))    { searchEngine = 'Bing'; referrer = 'Bing'; }
-    else if (host.includes('yahoo'))   { searchEngine = 'Yahoo'; referrer = 'Yahoo'; }
-    else if (host.includes('duckduckgo')) { searchEngine = 'DuckDuckGo'; referrer = 'DuckDuckGo'; }
-    else if (host.includes('ecosia'))  { searchEngine = 'Ecosia'; referrer = 'Ecosia'; }
-    else if (host.includes('facebook') || host.includes('fb.')) { referrer = 'Facebook'; }
-    else if (host.includes('instagram')) { referrer = 'Instagram'; }
-    else if (host.includes('tiktok'))  { referrer = 'TikTok'; }
-    else if (host.includes('whatsapp')) { referrer = 'WhatsApp'; }
-    else if (host.includes('twitter') || host.includes('x.com')) { referrer = 'X'; }
-    else { referrer = host.replace('www.', '').split('.')[0]; }
-
-    searchKeyword = url.searchParams.get('q')
-      || url.searchParams.get('p')
-      || url.searchParams.get('query')
-      || url.searchParams.get('search_query')
-      || null;
-  } catch { /* ignore */ }
-
-  return { searchEngine, searchKeyword, referrer };
-}
-
 export function VisitorTracker() {
   const pathname = usePathname();
   const { data: session } = useSession();
@@ -78,7 +44,7 @@ export function VisitorTracker() {
 
   const isAdmin = session?.user?.role === 'admin';
 
-  const searchDataRef = useRef<{ searchEngine: string | null; searchKeyword: string | null; referrer: string } | null>(null);
+  const referrerRef = useRef<string | null>(null);
 
   const track = useCallback(
     async (extra?: { buttonText?: string }) => {
@@ -86,11 +52,11 @@ export function VisitorTracker() {
       const sessionId = getSessionId();
       if (!sessionId) return;
 
-      // Extract search data once per session
-      if (!searchDataRef.current) {
-        searchDataRef.current = extractSearchData();
+      // Capture the raw browser referrer once per session.
+      if (referrerRef.current === null) {
+        const rawReferrer = document.referrer.trim();
+        referrerRef.current = rawReferrer.length > 0 ? rawReferrer : null;
       }
-      const sd = searchDataRef.current;
 
       try {
         await fetch('/api/visitors/track', {
@@ -102,9 +68,7 @@ export function VisitorTracker() {
             title: document.title,
             device: detectDevice(),
             browser: detectBrowser(),
-            referrer: sd.referrer,
-            searchEngine: sd.searchEngine,
-            searchKeyword: sd.searchKeyword,
+            referrer: referrerRef.current,
             ...extra,
           }),
           keepalive: true,

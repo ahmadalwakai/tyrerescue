@@ -104,6 +104,22 @@ export async function GET(request: NextRequest) {
   const liveCount = Number(liveRow?.count || 0);
   const avgSessionDuration = Math.round(Number(statsRow?.avgDuration || 0));
 
+  const normalizedEngineExpr = sql<string>`
+    CASE
+      WHEN ${siteVisitors.searchEngine} IS NULL THEN NULL
+      WHEN lower(regexp_replace(btrim(${siteVisitors.searchEngine}), '\\s+', '', 'g')) LIKE '%google%' THEN 'Google'
+      WHEN lower(regexp_replace(btrim(${siteVisitors.searchEngine}), '\\s+', '', 'g')) LIKE '%bing%' THEN 'Bing'
+      WHEN lower(regexp_replace(btrim(${siteVisitors.searchEngine}), '\\s+', '', 'g')) LIKE '%yahoo%' THEN 'Yahoo'
+      WHEN lower(regexp_replace(btrim(${siteVisitors.searchEngine}), '\\s+', '', 'g')) LIKE '%duckduckgo%' THEN 'DuckDuckGo'
+      WHEN lower(regexp_replace(btrim(${siteVisitors.searchEngine}), '\\s+', '', 'g')) LIKE '%ecosia%' THEN 'Ecosia'
+      ELSE NULLIF(regexp_replace(btrim(${siteVisitors.searchEngine}), '\\s+', ' ', 'g'), '')
+    END
+  `;
+
+  const normalizedKeywordExpr = sql<string>`
+    lower(NULLIF(regexp_replace(btrim(${siteVisitors.searchKeyword}), '\\s+', ' ', 'g'), ''))
+  `;
+
   // Device breakdown
   const deviceBreakdown = await db
     .select({ device: siteVisitors.device, count: count() })
@@ -150,18 +166,18 @@ export async function GET(request: NextRequest) {
 
   // Search engine breakdown
   const engineBreakdown = await db
-    .select({ engine: siteVisitors.searchEngine, count: count() })
+    .select({ engine: normalizedEngineExpr, count: count() })
     .from(siteVisitors)
-    .where(and(periodFilter, sql`${siteVisitors.searchEngine} IS NOT NULL`))
-    .groupBy(siteVisitors.searchEngine)
+    .where(and(periodFilter, sql`${normalizedEngineExpr} IS NOT NULL`))
+    .groupBy(normalizedEngineExpr)
     .orderBy(desc(count()));
 
   // Top search keywords
   const topKeywords = await db
-    .select({ keyword: siteVisitors.searchKeyword, count: count() })
+    .select({ keyword: normalizedKeywordExpr, count: count() })
     .from(siteVisitors)
-    .where(and(periodFilter, sql`${siteVisitors.searchKeyword} IS NOT NULL`))
-    .groupBy(siteVisitors.searchKeyword)
+    .where(and(periodFilter, sql`${normalizedKeywordExpr} IS NOT NULL`))
+    .groupBy(normalizedKeywordExpr)
     .orderBy(desc(count()))
     .limit(20);
 
