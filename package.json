@@ -12,6 +12,7 @@
     "db:push": "dotenv -e .env.local -- drizzle-kit push",
     "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
     "db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
+    "db:baseline": "dotenv -e .env.local -- node scripts/db-baseline-migrations.cjs",
     "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
     "db:seed": "dotenv -e .env.local -- tsx seed.ts",
     "seed:tyres": "dotenv -e .env.local -- tsx scripts/seed-tyres.ts",

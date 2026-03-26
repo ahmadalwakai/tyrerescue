@@ -64,6 +64,20 @@
       "when": 1774377600000,
       "tag": "0008_location_source",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1774464000000,
+      "tag": "0009_driver_sound_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1774546800000,
+      "tag": "0010_quick_book_tyre_snapshot",
+      "breakpoints": true
     }
   ]
 }
