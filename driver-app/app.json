@@ -73,7 +73,8 @@
           "icon": "./assets/notification-icon.png",
           "color": "#F97316",
           "sounds": [
-            "./assets/sounds/new_job.wav"
+            "./assets/sounds/new_job.wav",
+            "./assets/sounds/unvversfiled_ringtone_021_365652.mp3"
           ]
         }
       ],

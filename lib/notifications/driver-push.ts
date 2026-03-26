@@ -4,14 +4,16 @@ import { sendFcmNotification, isFcmConfigured } from './fcm';
 
 /** Map event types to Android notification channel IDs (versioned). */
 const EVENT_CHANNEL_MAP: Record<string, string> = {
-  new_job: 'jobs_critical_v3',
-  job_assigned: 'jobs_critical_v3',
-  new_assignment: 'jobs_critical_v3',
-  reassignment: 'jobs_critical_v3',
-  upcoming_v2: 'jobs_upcoming_v2',
+  new_job: 'jobs_critical_v4',
+  job_assigned: 'jobs_critical_v4',
+  new_assignment: 'jobs_critical_v4',
+  reassignment: 'jobs_critical_v4',
+  upcoming_v2: 'jobs_upcoming_v3',
   chat_message: 'messages_v2',
   status_update: 'updates_v2',
 };
+
+const CRITICAL_SOUND_FILE = 'unvversfiled_ringtone_021_365652.mp3';
 
 /** Critical event types that require maximum urgency. */
 const CRITICAL_EVENTS = new Set(['new_job', 'job_assigned', 'new_assignment', 'reassignment', 'upcoming_v2']);
@@ -24,12 +26,20 @@ async function getSoundForEvent(eventType: string): Promise<string> {
       .from(driverSoundSettings)
       .where(eq(driverSoundSettings.event, eventType))
       .limit(1);
-    if (row && row.enabled) return row.soundFile;
-    if (row && !row.enabled) return 'default';
+
+    if (row && row.enabled) {
+      if (CRITICAL_EVENTS.has(eventType)) {
+        return row.soundFile === 'new_job.wav' ? CRITICAL_SOUND_FILE : row.soundFile;
+      }
+      return row.soundFile;
+    }
+    if (row && !row.enabled) {
+      return CRITICAL_EVENTS.has(eventType) ? CRITICAL_SOUND_FILE : 'default';
+    }
   } catch {
     // Table may not exist yet — fall back
   }
-  return 'new_job.wav';
+  return CRITICAL_EVENTS.has(eventType) ? CRITICAL_SOUND_FILE : 'new_job.wav';
 }
 
 /** Detect whether a push token is an Expo token vs native FCM device token. */
@@ -58,8 +68,8 @@ async function sendViaExpoPushFallback(
         title,
         body,
         data,
-        sound: soundFile ?? 'new_job.wav',
-        channelId: channelId ?? 'jobs_critical_v3',
+        sound: soundFile ?? CRITICAL_SOUND_FILE,
+        channelId: channelId ?? 'jobs_critical_v4',
         priority: 'high',
       }),
     });
@@ -114,7 +124,7 @@ export async function sendDriverPushNotification(
   const soundFile = await getSoundForEvent(eventType);
   const effectiveChannel = channelId
     ? EVENT_CHANNEL_MAP[channelId] ?? channelId
-    : EVENT_CHANNEL_MAP[eventType] ?? 'jobs_critical_v3';
+    : EVENT_CHANNEL_MAP[eventType] ?? 'jobs_critical_v4';
   const isCritical = CRITICAL_EVENTS.has(eventType);
 
   // Stringify data values for FCM (requires all string values)
@@ -135,7 +145,7 @@ export async function sendDriverPushNotification(
       {
         channelId: effectiveChannel,
         priority: 'high',
-        sound: soundFile.replace(/\.wav$/, ''),
+        sound: soundFile.replace(/\.(wav|mp3|ogg)$/i, ''),
         notificationPriority: isCritical ? 'PRIORITY_MAX' : 'PRIORITY_HIGH',
         vibrateTimings: isCritical
           ? ['0s', '0.5s', '0.2s', '0.5s', '0.2s', '0.5s']

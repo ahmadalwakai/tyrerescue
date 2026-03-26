@@ -39,6 +39,7 @@ interface FcmSendResult {
 }
 
 let cachedAuth: InstanceType<typeof google.auth.JWT> | null = null;
+const DEFAULT_CRITICAL_SOUND = 'unvversfiled_ringtone_021_365652';
 
 function getAuth(): InstanceType<typeof google.auth.JWT> | null {
   if (cachedAuth) return cachedAuth;
@@ -103,8 +104,8 @@ export async function sendFcmNotification(
     return { success: false, error: 'FCM not configured: missing service account or project ID' };
   }
 
-  const channel = androidConfig?.channelId ?? 'jobs_critical_v3';
-  const soundName = androidConfig?.sound ?? 'new_job';
+  const channel = androidConfig?.channelId ?? 'jobs_critical_v4';
+  const soundName = androidConfig?.sound ?? DEFAULT_CRITICAL_SOUND;
 
   const message: FcmMessage = {
     token: deviceToken,

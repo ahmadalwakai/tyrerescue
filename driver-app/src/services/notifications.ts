@@ -8,6 +8,8 @@ const JOB_ALERT_TYPES = new Set([
   'new_job', 'job_assigned', 'new_assignment', 'reassignment', 'upcoming_v2',
 ]);
 
+const CRITICAL_SOUND_FILE = 'unvversfiled_ringtone_021_365652.mp3';
+
 // Configure how notifications appear when app is in foreground.
 // For remote job alert pushes: suppress the system presentation because
 // expo-notifications may re-present the notification on a default channel
@@ -46,29 +48,29 @@ let pushRegistered = false;
 
 /**
  * Create all versioned Android notification channels.
- * New channel IDs (v3/v2) ensure fresh settings — old cached channels are abandoned.
+ * New channel IDs (v4/v3) ensure fresh settings — old cached channels are abandoned.
  */
 async function createAndroidChannels(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
   // Critical job channel — MAX importance, custom sound, vibration, bypass DND
-  await Notifications.setNotificationChannelAsync('jobs_critical_v3', {
+  await Notifications.setNotificationChannelAsync('jobs_critical_v4', {
     name: 'Job Alerts',
     importance: Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 500, 200, 500, 200, 500],
     lightColor: '#F97316',
-    sound: 'new_job.wav',
+    sound: CRITICAL_SOUND_FILE,
     enableVibrate: true,
     bypassDnd: true,
   });
 
   // Upcoming job channel — HIGH importance, sound + vibration
-  await Notifications.setNotificationChannelAsync('jobs_upcoming_v2', {
+  await Notifications.setNotificationChannelAsync('jobs_upcoming_v3', {
     name: 'Upcoming Job Reminders',
     importance: Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 400, 200, 400, 200, 400],
     lightColor: '#F97316',
-    sound: 'new_job.wav',
+    sound: CRITICAL_SOUND_FILE,
     enableVibrate: true,
     bypassDnd: true,
   });
@@ -95,7 +97,7 @@ async function createAndroidChannels(): Promise<void> {
     importance: Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 500, 200, 500, 200, 500],
     lightColor: '#F97316',
-    sound: 'new_job.wav',
+    sound: CRITICAL_SOUND_FILE,
     enableVibrate: true,
     bypassDnd: true,
   });
@@ -104,7 +106,7 @@ async function createAndroidChannels(): Promise<void> {
     importance: Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 500, 200, 500, 200, 500],
     lightColor: '#F97316',
-    sound: 'new_job.wav',
+    sound: CRITICAL_SOUND_FILE,
     enableVibrate: true,
     bypassDnd: true,
   });
@@ -190,14 +192,14 @@ export async function fireLocalCriticalNotification(
   title: string,
   body: string,
   data?: Record<string, unknown>,
-  channelId = 'jobs_critical_v3',
+  channelId = 'jobs_critical_v4',
 ): Promise<string> {
   return Notifications.scheduleNotificationAsync({
     content: {
       title,
       body,
       data: { ...data, _localEcho: true },
-      sound: 'new_job.wav',
+      sound: CRITICAL_SOUND_FILE,
     },
     trigger: { channelId },
   });

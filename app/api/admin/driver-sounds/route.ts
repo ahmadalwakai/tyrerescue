@@ -6,7 +6,12 @@ import { eq } from 'drizzle-orm';
 
 /** Bundled sound files shipped with the driver app (always available). */
 const BUNDLED_SOUNDS = [
-  { file: 'new_job.wav', label: 'Urgent Alert (Default)', description: 'Default critical notification tone', bundled: true },
+  {
+    file: 'unvversfiled_ringtone_021_365652.mp3',
+    label: 'Unvversfiled Ringtone 021 365652',
+    description: 'Default critical notification tone',
+    bundled: true,
+  },
 ];
 
 /** All configurable event types in the driver app. */
@@ -135,7 +140,7 @@ export async function PATCH(request: Request) {
   } else {
     await db.insert(driverSoundSettings).values({
       event,
-      soundFile: (updates.soundFile as string) ?? 'new_job.wav',
+      soundFile: (updates.soundFile as string) ?? 'unvversfiled_ringtone_021_365652.mp3',
       enabled: (updates.enabled as boolean) ?? true,
       volume: (updates.volume as number) ?? 1.0,
       vibrationEnabled: (updates.vibrationEnabled as boolean) ?? true,

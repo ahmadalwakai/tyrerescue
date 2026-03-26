@@ -44,8 +44,8 @@ Previous architecture relied on in-app polling (`useNewJobDetector`) as the only
 | App State | Mechanism | Sound Source |
 |-----------|-----------|-------------|
 | **Foreground** | `expo-notifications` foreground handler → `fireJobAlert()` → in-app popup + `expo-av` sound | `expo-av` Audio |
-| **Background** | FCM data message → Android system tray notification on `jobs_critical_v3` channel | Native channel sound (`new_job.wav`) |
-| **Killed** | FCM data message → Android system tray notification on `jobs_critical_v3` channel | Native channel sound (`new_job.wav`) |
+| **Background** | FCM data message → Android system tray notification on `jobs_critical_v4` channel | Native channel sound (`new_job.wav`) |
+| **Killed** | FCM data message → Android system tray notification on `jobs_critical_v4` channel | Native channel sound (`new_job.wav`) |
 | **Cold start (tap)** | `getLastNotificationResponseAsync()` → route to job + mark alerted | N/A (already heard) |
 
 Key enablers:
@@ -73,7 +73,7 @@ Key enablers:
 `upcoming` notifications were treated as silent/informational. No critical alert experience, no popup, no dedicated channel.
 
 ### After
-`upcoming_v2` is a full critical alert with its own channel (`jobs_upcoming_v2`), in-app popup, and push notification. A Vercel cron job runs every 5 minutes, finds bookings starting within 30 minutes, and pushes to assigned drivers.
+`upcoming_v2` is a full critical alert with its own channel (`jobs_upcoming_v3`), in-app popup, and push notification. A Vercel cron job runs every 5 minutes, finds bookings starting within 30 minutes, and pushes to assigned drivers.
 
 ### Dedupe
 The cron checks the `driverNotifications` table for an existing `upcoming_v2` notification for the same booking ref + driver combo before sending.
@@ -96,8 +96,8 @@ Android caches channel settings at creation time. Once a user has channel `jobs`
 
 | Channel ID | Importance | Priority | Sound | Bypass DnD | Use |
 |------------|-----------|----------|-------|-----------|-----|
-| `jobs_critical_v3` | MAX | MAX | `new_job.wav` | Yes | new_job, reassignment |
-| `jobs_upcoming_v2` | MAX | MAX | default | Yes | upcoming_v2 |
+| `jobs_critical_v4` | MAX | MAX | `new_job.wav` | Yes | new_job, reassignment |
+| `jobs_upcoming_v3` | MAX | MAX | default | Yes | upcoming_v2 |
 | `messages_v2` | HIGH | HIGH | default | No | new_message |
 | `updates_v2` | DEFAULT | DEFAULT | default | No | job_accepted, job_completed |
 | `jobs` | DEFAULT | — | — | No | Legacy (kept for compat) |

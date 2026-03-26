@@ -14,8 +14,11 @@ const URGENT_VIBRATION_PATTERN = [0, 500, 200, 500, 200, 500];
 const MESSAGE_VIBRATION_PATTERN = [0, 300, 150, 300];
 const SHORT_VIBRATION_PATTERN = [0, 200];
 
+const CRITICAL_SOUND_FILE = 'unvversfiled_ringtone_021_365652.mp3';
+
 // ── Static require() map — every bundled sound file must be listed here ──
 const AVAILABLE_SOUNDS: Record<string, ReturnType<typeof require>> = {
+  [CRITICAL_SOUND_FILE]: require('../../assets/sounds/unvversfiled_ringtone_021_365652.mp3'),
   'new_job.wav': require('../../assets/sounds/new_job.wav'),
 };
 
@@ -28,9 +31,9 @@ interface SoundEventConfig {
 }
 
 const DEFAULT_CONFIG: Record<SoundEvent, SoundEventConfig> = {
-  new_job: { soundFile: 'new_job.wav', enabled: true, volume: 1.0, vibrationEnabled: true },
-  reassignment: { soundFile: 'new_job.wav', enabled: true, volume: 1.0, vibrationEnabled: true },
-  upcoming_v2: { soundFile: 'new_job.wav', enabled: true, volume: 1.0, vibrationEnabled: true },
+  new_job: { soundFile: CRITICAL_SOUND_FILE, enabled: true, volume: 1.0, vibrationEnabled: true },
+  reassignment: { soundFile: CRITICAL_SOUND_FILE, enabled: true, volume: 1.0, vibrationEnabled: true },
+  upcoming_v2: { soundFile: CRITICAL_SOUND_FILE, enabled: true, volume: 1.0, vibrationEnabled: true },
   job_accepted: { soundFile: 'new_job.wav', enabled: true, volume: 0.8, vibrationEnabled: false },
   job_completed: { soundFile: 'new_job.wav', enabled: true, volume: 0.8, vibrationEnabled: false },
   new_message: { soundFile: 'new_job.wav', enabled: true, volume: 0.7, vibrationEnabled: true },
@@ -77,10 +80,12 @@ function getConfig(event: SoundEvent): SoundEventConfig {
   // Critical events — enforce safety: always enabled, always audible,
   // always a bundled file. Bad remote config cannot silently kill them.
   if (CRITICAL_EVENTS.has(event)) {
+    const remoteFile = typeof remote.soundFile === 'string' ? remote.soundFile : '';
+    const normalizedCriticalFile = remoteFile === 'new_job.wav' ? CRITICAL_SOUND_FILE : remoteFile;
     return {
       soundFile:
-        typeof remote.soundFile === 'string' && AVAILABLE_SOUNDS[remote.soundFile]
-          ? remote.soundFile
+        normalizedCriticalFile && AVAILABLE_SOUNDS[normalizedCriticalFile]
+          ? normalizedCriticalFile
           : fallback.soundFile,
       enabled: true,
       volume:
@@ -98,7 +103,7 @@ function getConfig(event: SoundEvent): SoundEventConfig {
 }
 
 async function createSound(soundFile: string): Promise<Audio.Sound | null> {
-  const source = AVAILABLE_SOUNDS[soundFile] ?? AVAILABLE_SOUNDS['new_job.wav'];
+  const source = AVAILABLE_SOUNDS[soundFile] ?? AVAILABLE_SOUNDS[CRITICAL_SOUND_FILE];
   if (!source) return null;
   const { sound } = await Audio.Sound.createAsync(source);
   cache[soundFile] = sound;

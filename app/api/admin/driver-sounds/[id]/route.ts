@@ -64,7 +64,7 @@ export async function DELETE(request: Request, { params }: Props) {
       // Reset to bundled default
       await db
         .update(driverSoundSettings)
-        .set({ soundFile: 'new_job.wav', updatedBy: session.user.id, updatedAt: new Date() })
+        .set({ soundFile: 'unvversfiled_ringtone_021_365652.mp3', updatedBy: session.user.id, updatedAt: new Date() })
         .where(eq(driverSoundSettings.event, usage.event));
     }
   }

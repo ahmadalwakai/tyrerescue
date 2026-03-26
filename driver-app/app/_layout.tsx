@@ -128,7 +128,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
           // Fire local notification on the correct channel for native sound + tray entry.
           // The remote push was suppressed by the handler; this local notification
           // is presented on the correct channel with native sound + vibration.
-          const channelId = eventType === 'upcoming_v2' ? 'jobs_upcoming_v2' : 'jobs_critical_v3';
+          const channelId = eventType === 'upcoming_v2' ? 'jobs_upcoming_v3' : 'jobs_critical_v4';
           fireLocalCriticalNotification(
             notification.request.content.title ?? 'Job Alert',
             notification.request.content.body ?? '',
