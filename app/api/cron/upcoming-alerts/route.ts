@@ -67,12 +67,20 @@ export async function GET() {
         (new Date(booking.scheduledAt).getTime() - now.getTime()) / 60_000,
       );
 
-      const sent = await notifyDriverUpcomingJob(
+      let sent = await notifyDriverUpcomingJob(
         booking.driverId,
         booking.refNumber,
         booking.addressLine,
         minutesUntil,
       );
+      if (!sent) {
+        sent = await notifyDriverUpcomingJob(
+          booking.driverId,
+          booking.refNumber,
+          booking.addressLine,
+          minutesUntil,
+        );
+      }
       if (sent) {
         sentCount++;
       }

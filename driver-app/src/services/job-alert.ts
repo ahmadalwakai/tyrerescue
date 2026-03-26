@@ -30,6 +30,19 @@ export function clearAlertedRef(ref: string): void {
   }
 }
 
+/** Remove dedupe keys for refs that are no longer present in current jobs. */
+export function pruneAlertedRefs(currentRefs: string[]): void {
+  const alive = new Set(currentRefs);
+  for (const key of Array.from(alertedKeys)) {
+    const sep = key.indexOf(':');
+    if (sep <= 0) continue;
+    const ref = key.slice(0, sep);
+    if (!alive.has(ref)) {
+      alertedKeys.delete(key);
+    }
+  }
+}
+
 /** Mark a ref+event as already alerted (e.g. from push handler). */
 export function markAlerted(ref: string, eventType = 'new_job') {
   alertedKeys.add(alertKey(ref, eventType));

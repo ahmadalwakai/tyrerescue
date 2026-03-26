@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { api } from '@/api/client';
@@ -23,8 +23,9 @@ Notifications.setNotificationHandler({
     const type = typeof data?.type === 'string' ? data.type : null;
     const isLocalEcho = data?._localEcho === true;
     const isJobAlert = !!type && JOB_ALERT_TYPES.has(type);
+    const isForeground = AppState.currentState === 'active';
 
-    if (isJobAlert && !isLocalEcho) {
+    if (isForeground && isJobAlert && !isLocalEcho) {
       return {
         shouldShowAlert: false,
         shouldPlaySound: false,
@@ -46,6 +47,7 @@ Notifications.setNotificationHandler({
 
 let pushRegistered = false;
 let pushRegistrationInFlight: Promise<string | null> | null = null;
+let lastRegisteredToken: string | null = null;
 
 /**
  * Create all versioned Android notification channels.
@@ -119,7 +121,6 @@ async function createAndroidChannels(): Promise<void> {
  * Idempotent within a single app session.
  */
 export async function registerForPushNotifications(): Promise<string | null> {
-  if (pushRegistered) return null;
   if (pushRegistrationInFlight) return pushRegistrationInFlight;
 
   pushRegistrationInFlight = (async () => {
@@ -152,8 +153,13 @@ export async function registerForPushNotifications(): Promise<string | null> {
         ? tokenData.data
         : JSON.stringify(tokenData.data);
     } catch (tokenErr) {
+      pushRegistered = false;
       console.error('[notif] Failed to get native device token:', tokenErr);
       return null;
+    }
+
+    if (pushRegistered && lastRegisteredToken === pushToken) {
+      return pushToken;
     }
 
     // Send native token to backend with tokenType = 'fcm'
@@ -163,6 +169,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
         body: { pushToken, platform: Platform.OS, tokenType: 'fcm' },
       });
       pushRegistered = true;
+      lastRegisteredToken = pushToken;
     } catch (regErr) {
       pushRegistered = false;
       console.error('[notif] Failed to register token with backend:', regErr);
@@ -192,6 +199,7 @@ export async function unregisterPushToken(): Promise<void> {
   }
   pushRegistered = false;
   pushRegistrationInFlight = null;
+  lastRegisteredToken = null;
 }
 
 /**

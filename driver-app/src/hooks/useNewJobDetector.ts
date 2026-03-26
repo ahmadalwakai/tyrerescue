@@ -4,6 +4,7 @@ import {
   detectNewRefs,
   markAlerted,
   fireJobAlert,
+  pruneAlertedRefs,
 } from '@/services/job-alert';
 import { fireLocalCriticalNotification } from '@/services/notifications';
 import type { JobSummary } from '@/api/client';
@@ -33,6 +34,9 @@ export function useNewJobDetector() {
       const currentRefs = [
         ...new Set(jobs.map((j) => j.refNumber).filter(Boolean)),
       ];
+
+      // Keep dedupe state aligned with current server job list.
+      pruneAlertedRefs(currentRefs);
 
       // First call after reset: seed knownRefs with existing jobs, skip alerting
       if (!initializedRef.current) {

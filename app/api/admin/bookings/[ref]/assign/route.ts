@@ -102,8 +102,11 @@ export async function PATCH(request: Request, { params }: Props) {
         note: `Driver reassigned (during ${currentStatus})`,
       });
 
-      // Notify the newly assigned driver (non-blocking business flow, but awaited to ensure send is attempted)
-      await notifyDriverReassignment(driverId, booking.refNumber, booking.addressLine);
+      // Notify the newly assigned driver; retry once on transient send failure.
+      let reassignmentPushSent = await notifyDriverReassignment(driverId, booking.refNumber, booking.addressLine);
+      if (!reassignmentPushSent) {
+        reassignmentPushSent = await notifyDriverReassignment(driverId, booking.refNumber, booking.addressLine);
+      }
 
       return NextResponse.json({ success: true, reassigned: true });
     }
@@ -223,7 +226,10 @@ export async function PATCH(request: Request, { params }: Props) {
 
     // Send push notification to driver's mobile app
     try {
-      await notifyDriverNewJob(driverId, booking.refNumber, booking.addressLine);
+      let pushSent = await notifyDriverNewJob(driverId, booking.refNumber, booking.addressLine);
+      if (!pushSent) {
+        pushSent = await notifyDriverNewJob(driverId, booking.refNumber, booking.addressLine);
+      }
     } catch (pushError) {
       console.error('Failed to send push notification to driver:', pushError);
     }
