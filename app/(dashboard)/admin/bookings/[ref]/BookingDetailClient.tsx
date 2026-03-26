@@ -477,8 +477,18 @@ export function BookingDetailClient({
     return remMins > 0 ? `${hrs}h ${remMins}m` : `${hrs}h`;
   }
 
-  function TimelineRow({ label, time, prev }: { label: string; time: string | null; prev?: string | null }) {
-    const done = !!time;
+  function TimelineRow({
+    label,
+    time,
+    prev,
+    active,
+  }: {
+    label: string;
+    time: string | null;
+    prev?: string | null;
+    active?: boolean;
+  }) {
+    const done = !!time || !!active;
     return (
       <HStack gap={3} py={2}>
         <Box w="10px" h="10px" borderRadius="full" bg={done ? 'green.400' : c.border} flexShrink={0} />
