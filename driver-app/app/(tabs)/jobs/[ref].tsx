@@ -21,7 +21,8 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { mediumHaptic, heavyHaptic, errorHaptic } from '@/services/haptics';
-import { playSound } from '@/services/sound';
+import { playSound, stopAlertSound } from '@/services/sound';
+import { clearAlertedRef } from '@/services/job-alert';
 import { useI18n } from '@/i18n';
 
 function getDriverActions(t: (key: string) => string): Record<string, { label: string; next: string }> {
@@ -113,6 +114,8 @@ export default function JobDetailScreen() {
           setActioning(true);
           try {
             await driverApi.acceptJob(ref);
+            await stopAlertSound();
+            clearAlertedRef(ref);
             mediumHaptic();
             playSound('job_accepted');
             await fetchJob();
@@ -187,6 +190,8 @@ export default function JobDetailScreen() {
           try {
             errorHaptic();
             await driverApi.rejectJob(ref);
+            await stopAlertSound();
+            clearAlertedRef(ref);
             router.back();
           } catch (err) {
             const msg = err instanceof ApiError ? err.message : t('jobDetail.failedReject');

@@ -23,6 +23,7 @@ import { colors, spacing, fontSize, radius } from '@/constants/theme';
 import { useJobAlert, type JobAlertType } from '@/context/job-alert-context';
 import { useI18n } from '@/i18n';
 import { lightHaptic } from '@/services/haptics';
+import { stopAlertSound } from '@/services/sound';
 
 /** Map alert type to i18n title key and icon name. */
 function getAlertMeta(alertType: JobAlertType, t: (k: string) => string) {
@@ -99,6 +100,7 @@ export function JobAlertPopup() {
     animRunning.current = false;
 
     const ref = alertData?.ref;
+    stopAlertSound();
     dismiss();
     lightHaptic();
 
@@ -111,6 +113,11 @@ export function JobAlertPopup() {
 
   if (!visible || !alertData) return null;
 
+  const handleDismiss = () => {
+    stopAlertSound();
+    dismiss();
+  };
+
   const meta = getAlertMeta(alertData.alertType, t);
 
   return (
@@ -119,7 +126,7 @@ export function JobAlertPopup() {
       animationType="fade"
       visible={visible}
       statusBarTranslucent
-      onRequestClose={dismiss}
+      onRequestClose={handleDismiss}
     >
       <View style={styles.overlay}>
         <Animated.View
@@ -159,7 +166,7 @@ export function JobAlertPopup() {
           </AnimatedPressable>
 
           {/* Dismiss link */}
-          <Pressable onPress={dismiss} style={styles.dismissButton} hitSlop={12}>
+          <Pressable onPress={handleDismiss} style={styles.dismissButton} hitSlop={12}>
             <Text style={styles.dismissText}>{t('jobAlert.dismiss')}</Text>
           </Pressable>
         </Animated.View>

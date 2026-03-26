@@ -45,6 +45,7 @@ Notifications.setNotificationHandler({
 });
 
 let pushRegistered = false;
+let pushRegistrationInFlight: Promise<string | null> | null = null;
 
 /**
  * Create all versioned Android notification channels.
@@ -119,52 +120,63 @@ async function createAndroidChannels(): Promise<void> {
  */
 export async function registerForPushNotifications(): Promise<string | null> {
   if (pushRegistered) return null;
-  pushRegistered = true;
+  if (pushRegistrationInFlight) return pushRegistrationInFlight;
 
-  if (!Device.isDevice) {
-    return null;
-  }
+  pushRegistrationInFlight = (async () => {
+    if (!Device.isDevice) {
+      return null;
+    }
 
-  // Check / request permission
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
+    // Check / request permission
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
 
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
 
-  if (finalStatus !== 'granted') {
-    return null;
-  }
+    if (finalStatus !== 'granted') {
+      return null;
+    }
 
-  // Create Android notification channels (must be done before any notification arrives)
-  await createAndroidChannels();
+    // Create Android notification channels (must be done before any notification arrives)
+    await createAndroidChannels();
 
-  // Get native device push token (FCM token on Android, APNs token on iOS).
-  // This bypasses the Expo Push relay entirely.
-  let pushToken: string;
+    // Get native device push token (FCM token on Android, APNs token on iOS).
+    // This bypasses the Expo Push relay entirely.
+    let pushToken: string;
+    try {
+      const tokenData = await Notifications.getDevicePushTokenAsync();
+      pushToken = typeof tokenData.data === 'string'
+        ? tokenData.data
+        : JSON.stringify(tokenData.data);
+    } catch (tokenErr) {
+      console.error('[notif] Failed to get native device token:', tokenErr);
+      return null;
+    }
+
+    // Send native token to backend with tokenType = 'fcm'
+    try {
+      await api('/api/driver/push-token', {
+        method: 'POST',
+        body: { pushToken, platform: Platform.OS, tokenType: 'fcm' },
+      });
+      pushRegistered = true;
+    } catch (regErr) {
+      pushRegistered = false;
+      console.error('[notif] Failed to register token with backend:', regErr);
+      return null;
+    }
+
+    return pushToken;
+  })();
+
   try {
-    const tokenData = await Notifications.getDevicePushTokenAsync();
-    pushToken = typeof tokenData.data === 'string'
-      ? tokenData.data
-      : JSON.stringify(tokenData.data);
-  } catch (tokenErr) {
-    console.error('[notif] Failed to get native device token:', tokenErr);
-    return null;
+    return await pushRegistrationInFlight;
+  } finally {
+    pushRegistrationInFlight = null;
   }
-
-  // Send native token to backend with tokenType = 'fcm'
-  try {
-    await api('/api/driver/push-token', {
-      method: 'POST',
-      body: { pushToken, platform: Platform.OS, tokenType: 'fcm' },
-    });
-  } catch (regErr) {
-    console.error('[notif] Failed to register token with backend:', regErr);
-  }
-
-  return pushToken;
 }
 
 /**
@@ -179,6 +191,7 @@ export async function unregisterPushToken(): Promise<void> {
     // Non-fatal
   }
   pushRegistered = false;
+  pushRegistrationInFlight = null;
 }
 
 /**

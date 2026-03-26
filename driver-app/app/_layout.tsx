@@ -24,7 +24,7 @@ import {
 } from '@/services/notifications';
 import { checkForUpdate } from '@/services/version-check';
 import { initOfflineQueue } from '@/services/offline-queue';
-import { preloadSounds, playSound, loadSoundConfig } from '@/services/sound';
+import { preloadSounds, playSound, loadSoundConfig, stopAlertSound } from '@/services/sound';
 import { markAlerted, fireJobAlert, isAlerted } from '@/services/job-alert';
 import { useNewJobDetector } from '@/hooks/useNewJobDetector';
 import { driverApi } from '@/api/client';
@@ -106,11 +106,18 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
   useEffect(() => {
     if (!user) return;
 
-    registerForPushNotifications();
+    const registerPush = () => {
+      registerForPushNotifications().catch(() => {
+        // Retry handled by interval below.
+      });
+    };
+
+    registerPush();
     checkForUpdate();
     initOfflineQueue();
     preloadSounds();
     loadSoundConfig(() => driverApi.getSoundConfig());
+    const pushRetryTimer = setInterval(registerPush, 30_000);
 
     // Play sound + show popup when a push notification arrives while app is foregrounded.
     // The native notification (with channel sound) is also shown by the system —
@@ -159,6 +166,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
         response.notification.request.content.data as Record<string, unknown>,
       );
       if (isJobAlert && ref) {
+        stopAlertSound();
         markAlerted(ref, toSoundEvent(type));
         router.push(`/(tabs)/jobs/${ref}`);
       } else if (type === 'chat_message' && conversationId) {
@@ -176,6 +184,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
         response.notification.request.content.data as Record<string, unknown>,
       );
       if (isJobAlert && ref) {
+        stopAlertSound();
         markAlerted(ref, toSoundEvent(type));
         router.push(`/(tabs)/jobs/${ref}`);
       } else if (type === 'chat_message' && conversationId) {
@@ -184,6 +193,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     });
 
     return () => {
+      clearInterval(pushRetryTimer);
       notifListenerRef.current?.remove();
       notifReceivedRef.current?.remove();
     };

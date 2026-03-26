@@ -48,6 +48,7 @@ const cache: Partial<Record<string, Audio.Sound>> = {};
 let lastPlayed = 0;
 let audioModeSet = false;
 const DEBOUNCE_MS = 600;
+let activeCriticalLoopFile: string | null = null;
 
 /** Configure audio mode once — call early at app start. */
 async function ensureAudioMode(): Promise<void> {
@@ -148,6 +149,69 @@ async function playCachedSound(soundFile: string, volume: number): Promise<void>
   }
 }
 
+async function startCriticalLoop(soundFile: string, volume: number): Promise<void> {
+  const sound = await ensureLoaded(soundFile);
+  if (!sound) return;
+
+  try {
+    const status = await sound.getStatusAsync();
+    if (!status.isLoaded) {
+      delete cache[soundFile];
+      const fresh = await createSound(soundFile);
+      if (!fresh) return;
+      await fresh.setVolumeAsync(volume);
+      await fresh.setIsLoopingAsync(true);
+      await fresh.setPositionAsync(0);
+      await fresh.playAsync();
+      activeCriticalLoopFile = soundFile;
+      return;
+    }
+
+    if (status.isPlaying && activeCriticalLoopFile === soundFile) {
+      // Already looping this alert sound.
+      return;
+    }
+
+    await stopAlertSound();
+    await sound.setVolumeAsync(volume);
+    await sound.setIsLoopingAsync(true);
+    await sound.setPositionAsync(0);
+    await sound.playAsync();
+    activeCriticalLoopFile = soundFile;
+  } catch {
+    delete cache[soundFile];
+    const fresh = await createSound(soundFile);
+    if (!fresh) return;
+    await stopAlertSound();
+    await fresh.setVolumeAsync(volume);
+    await fresh.setIsLoopingAsync(true);
+    await fresh.playAsync();
+    activeCriticalLoopFile = soundFile;
+  }
+}
+
+/** Stop the repeating critical alert sound immediately. */
+export async function stopAlertSound(): Promise<void> {
+  const loopFile = activeCriticalLoopFile;
+  activeCriticalLoopFile = null;
+  if (!loopFile) return;
+
+  const sound = cache[loopFile];
+  if (!sound) return;
+
+  try {
+    const status = await sound.getStatusAsync();
+    if (!status.isLoaded) return;
+    await sound.setIsLoopingAsync(false);
+    if (status.isPlaying) {
+      await sound.stopAsync();
+    }
+    await sound.setPositionAsync(0);
+  } catch {
+    // Non-critical
+  }
+}
+
 /** Play a sound by event name. Debounces rapid triggers. */
 export async function playSound(event: SoundEvent): Promise<void> {
   const now = Date.now();
@@ -162,7 +226,11 @@ export async function playSound(event: SoundEvent): Promise<void> {
   try { await ensureAudioMode(); } catch { /* proceed anyway */ }
 
   try {
-    await playCachedSound(config.soundFile, config.volume);
+    if (CRITICAL_EVENTS.has(event)) {
+      await startCriticalLoop(config.soundFile, config.volume);
+    } else {
+      await playCachedSound(config.soundFile, config.volume);
+    }
 
     if (config.vibrationEnabled) {
       if (CRITICAL_EVENTS.has(event)) {

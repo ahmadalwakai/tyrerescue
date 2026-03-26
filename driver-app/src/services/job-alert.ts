@@ -20,6 +20,16 @@ export function clearAlertedRefs(): void {
   alertedKeys.clear();
 }
 
+/** Clear all alerted keys for a specific booking ref (all event types). */
+export function clearAlertedRef(ref: string): void {
+  const prefix = `${ref}:`;
+  for (const key of Array.from(alertedKeys)) {
+    if (key.startsWith(prefix)) {
+      alertedKeys.delete(key);
+    }
+  }
+}
+
 /** Mark a ref+event as already alerted (e.g. from push handler). */
 export function markAlerted(ref: string, eventType = 'new_job') {
   alertedKeys.add(alertKey(ref, eventType));

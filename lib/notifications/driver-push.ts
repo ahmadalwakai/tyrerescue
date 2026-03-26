@@ -135,8 +135,16 @@ export async function sendDriverPushNotification(
     }
   }
 
+  const usesExpoToken = isExpoToken(driver.pushToken);
+
+  // Native tokens require direct FCM; never route them through Expo fallback.
+  if (!usesExpoToken && !isFcmConfigured()) {
+    console.error('[push/fcm] FCM is not configured for native push tokens');
+    return false;
+  }
+
   // ── Primary path: direct FCM ──
-  if (!isExpoToken(driver.pushToken) && isFcmConfigured()) {
+  if (!usesExpoToken) {
     const result = await sendFcmNotification(
       driver.pushToken,
       title,
