@@ -45,9 +45,7 @@ Notifications.setNotificationHandler({
   },
 });
 
-let pushRegistered = false;
 let pushRegistrationInFlight: Promise<string | null> | null = null;
-let lastRegisteredToken: string | null = null;
 
 /**
  * Create all versioned Android notification channels.
@@ -153,13 +151,8 @@ export async function registerForPushNotifications(): Promise<string | null> {
         ? tokenData.data
         : JSON.stringify(tokenData.data);
     } catch (tokenErr) {
-      pushRegistered = false;
       console.error('[notif] Failed to get native device token:', tokenErr);
       return null;
-    }
-
-    if (pushRegistered && lastRegisteredToken === pushToken) {
-      return pushToken;
     }
 
     // Send native token to backend with tokenType = 'fcm'
@@ -168,10 +161,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
         method: 'POST',
         body: { pushToken, platform: Platform.OS, tokenType: 'fcm' },
       });
-      pushRegistered = true;
-      lastRegisteredToken = pushToken;
     } catch (regErr) {
-      pushRegistered = false;
       console.error('[notif] Failed to register token with backend:', regErr);
       return null;
     }
@@ -197,9 +187,7 @@ export async function unregisterPushToken(): Promise<void> {
   } catch {
     // Non-fatal
   }
-  pushRegistered = false;
   pushRegistrationInFlight = null;
-  lastRegisteredToken = null;
 }
 
 /**
