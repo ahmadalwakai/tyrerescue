@@ -20,6 +20,7 @@ import {
   parseQuoteTyreSelectionsSnapshot,
   type QuoteTyreSelectionSnapshot,
 } from '@/lib/quote-snapshot';
+import { validateScheduledSlotForBooking } from '@/lib/availability';
 
 // Input validation schema
 const createBookingSchema = z.object({
@@ -114,6 +115,32 @@ export async function POST(
       }
 
       const quote = quoteResult.rows[0];
+
+      if (quote.booking_type === 'scheduled') {
+        if (!quote.scheduled_at) {
+          await client.query('ROLLBACK');
+          return NextResponse.json(
+            {
+              error: 'Scheduled booking is missing a scheduled service time.',
+              code: 'SCHEDULED_TIME_REQUIRED',
+            },
+            { status: 409 },
+          );
+        }
+
+        const scheduledAt = new Date(quote.scheduled_at);
+        const slotValidation = await validateScheduledSlotForBooking(scheduledAt);
+        if (!slotValidation.ok) {
+          await client.query('ROLLBACK');
+          return NextResponse.json(
+            {
+              error: slotValidation.message,
+              code: slotValidation.code,
+            },
+            { status: 409 },
+          );
+        }
+      }
 
       // Check if quote has already been used
       if (quote.used) {

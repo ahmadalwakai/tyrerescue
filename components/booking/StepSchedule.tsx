@@ -16,8 +16,12 @@ import { anim } from '@/lib/animations';
 import { API } from '@/lib/api-endpoints';
 
 interface TimeSlot {
+  slotId: string;
+  date: string;
   time: string;
   label: string;
+  timeStart: string;
+  timeEnd: string;
   available: boolean;
   spotsLeft: number;
 }
@@ -27,6 +31,13 @@ interface StepScheduleProps {
   updateState: (updates: Partial<WizardState>) => void;
   goToNext: () => void;
   goToPrev: () => void;
+}
+
+function toLocalIsoDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 export function StepSchedule({
@@ -54,7 +65,7 @@ export function StepSchedule({
       const date = new Date(today);
       date.setDate(today.getDate() + i);
 
-      const value = date.toISOString().split('T')[0];
+      const value = toLocalIsoDate(date);
       const dayName = date.toLocaleDateString('en-GB', { weekday: 'short' });
       const label = date.toLocaleDateString('en-GB', {
         day: 'numeric',
@@ -190,15 +201,10 @@ export function StepSchedule({
             <SimpleGrid columns={{ base: 2, md: 3 }} gap={2}>
               {slots.map((slot, i) => {
                 const isSelected = selectedTime === slot.time;
-                // Build time range: "9:00am — 10:00am"
-                const hour = parseInt(slot.time.split(':')[0], 10);
-                const nextHour = hour + 1;
-                const fmtH = (h: number) => { const hh = h % 12 || 12; return `${hh}:00${h < 12 ? 'am' : 'pm'}`; };
-                const timeRange = `${fmtH(hour)} — ${fmtH(nextHour)}`;
 
                 return (
                 <Button
-                  key={slot.time}
+                  key={slot.slotId}
                   style={anim.stagger('fadeUp', i, '0.4s', 0, 0.05)}
                   variant={isSelected ? 'solid' : 'outline'}
                   colorPalette={isSelected ? 'orange' : 'gray'}
@@ -211,10 +217,10 @@ export function StepSchedule({
                   gap={0}
                   color={isSelected ? undefined : c.text}
                   borderColor={isSelected ? undefined : c.border}
-                  aria-label={slot.available ? `${timeRange}${slot.spotsLeft <= 3 ? `, ${slot.spotsLeft} slots left` : ''}` : `${timeRange} — fully booked`}
+                  aria-label={slot.available ? `${slot.label}${slot.spotsLeft <= 3 ? `, ${slot.spotsLeft} slots left` : ''}` : `${slot.label} — fully booked`}
                 >
                   <Text fontWeight="600" fontSize="lg" style={{ fontFamily: 'var(--font-display)' }}>
-                    {timeRange}
+                    {slot.label}
                   </Text>
                   {slot.available ? (
                     slot.spotsLeft <= 3 ? (

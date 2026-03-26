@@ -444,6 +444,7 @@ export function BookingDetailClient({
   function formatDate(dateStr: string | null): string {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('en-GB', {
+      timeZone: 'Europe/London',
       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
   }
@@ -476,7 +477,7 @@ export function BookingDetailClient({
     return remMins > 0 ? `${hrs}h ${remMins}m` : `${hrs}h`;
   }
 
-  function TimelineRow({ label, time, prev, active }: { label: string; time: string | null; prev?: string | null; active?: boolean }) {
+  function TimelineRow({ label, time, prev }: { label: string; time: string | null; prev?: string | null }) {
     const done = !!time;
     return (
       <HStack gap={3} py={2}>
@@ -556,7 +557,7 @@ export function BookingDetailClient({
                 <Text fontSize="lg" fontWeight="medium" color={c.text}>{formatDate(booking.createdAt)}</Text>
               </Box>
               <Box>
-                <Text fontSize="sm" color={c.muted}>Scheduled</Text>
+                <Text fontSize="sm" color={c.muted}>Scheduled Service Time</Text>
                 {editing ? (
                   <Input {...inputProps} type="datetime-local" size="sm" mt={1} height="36px" value={editData.scheduledAt} onChange={(e) => ed('scheduledAt', e.target.value)} />
                 ) : (

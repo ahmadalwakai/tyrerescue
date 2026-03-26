@@ -8,6 +8,7 @@ import { bookingCancelled } from '@/lib/email/templates/booking-cancelled';
 import { jobCancelled, jobUpdated } from '@/lib/email/templates';
 import { restoreBookingStock } from '@/lib/inventory/stock-service';
 import { createAdminNotification } from '@/lib/notifications';
+import { validateScheduledSlotForBooking } from '@/lib/availability';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -211,7 +212,15 @@ export async function PUT(request: NextRequest, { params }: Props) {
 
     // Schedule
     if (body.scheduledAt !== undefined) {
-      updates.scheduledAt = body.scheduledAt ? new Date(body.scheduledAt) : null;
+      if (!body.scheduledAt) {
+        updates.scheduledAt = null;
+      } else {
+        const parsedScheduledAt = new Date(body.scheduledAt);
+        if (Number.isNaN(parsedScheduledAt.getTime())) {
+          return NextResponse.json({ error: 'Invalid scheduled service time' }, { status: 400 });
+        }
+        updates.scheduledAt = parsedScheduledAt;
+      }
     }
 
     // Notes
@@ -314,6 +323,43 @@ export async function PUT(request: NextRequest, { params }: Props) {
         nextVatAmount,
         nextTotalAmount,
       );
+    }
+
+    const nextBookingType =
+      (updates.bookingType as string | undefined) ?? booking.bookingType;
+    const nextScheduledAt =
+      updates.scheduledAt !== undefined
+        ? (updates.scheduledAt as Date | null)
+        : booking.scheduledAt;
+
+    if (nextBookingType === 'scheduled') {
+      if (!nextScheduledAt) {
+        return NextResponse.json(
+          {
+            error: 'Scheduled bookings require a scheduled service time.',
+            code: 'SCHEDULED_TIME_REQUIRED',
+          },
+          { status: 400 },
+        );
+      }
+
+      const slotValidation = await validateScheduledSlotForBooking(nextScheduledAt, {
+        excludeBookingId: booking.id,
+      });
+
+      if (!slotValidation.ok) {
+        return NextResponse.json(
+          {
+            error: slotValidation.message,
+            code: slotValidation.code,
+          },
+          { status: 409 },
+        );
+      }
+    }
+
+    if (body.bookingType === 'emergency' && body.scheduledAt === undefined && booking.scheduledAt) {
+      updates.scheduledAt = null;
     }
 
     if (Object.keys(updates).length === 0) {

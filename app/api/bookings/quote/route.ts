@@ -33,6 +33,10 @@ import {
   buildQuoteTyreSelectionsSnapshot,
   type QuoteTyreSelectionSnapshot,
 } from '@/lib/quote-snapshot';
+import {
+  londonDateTimeToUtcDate,
+  validateScheduledSlotForBooking,
+} from '@/lib/availability';
 
 // Input validation schema
 const tyreSelectionSchema = z.object({
@@ -178,10 +182,53 @@ export async function POST(
     const customerLocation = { lat: data.lat, lng: data.lng };
     const isRepairOnly = data.serviceType === 'repair' && data.tyreSelections.length === 0;
 
+    let normalizedScheduledAt: Date | null = null;
+    if (data.scheduledAt) {
+      const parsedScheduledAt = new Date(data.scheduledAt);
+      if (Number.isNaN(parsedScheduledAt.getTime())) {
+        return NextResponse.json(
+          {
+            error: 'Invalid scheduled service time.',
+            code: 'VALIDATION_ERROR',
+          },
+          { status: 400 },
+        );
+      }
+      normalizedScheduledAt = parsedScheduledAt;
+    }
+
+    if (data.bookingType === 'scheduled') {
+      if (!normalizedScheduledAt) {
+        return NextResponse.json(
+          {
+            error: 'Scheduled bookings require a scheduled service time.',
+            code: 'SCHEDULED_TIME_REQUIRED',
+          },
+          { status: 400 },
+        );
+      }
+
+      const slotValidation = await validateScheduledSlotForBooking(normalizedScheduledAt);
+      if (!slotValidation.ok) {
+        return NextResponse.json(
+          {
+            error: slotValidation.message,
+            code: slotValidation.code,
+          },
+          { status: 409 },
+        );
+      }
+
+      normalizedScheduledAt = londonDateTimeToUtcDate(
+        slotValidation.slot.date,
+        slotValidation.slot.timeStart,
+      );
+    } else {
+      normalizedScheduledAt = null;
+    }
+
     // Determine booking date for bank holiday check
-    const bookingDate = data.scheduledAt
-      ? new Date(data.scheduledAt)
-      : new Date();
+    const bookingDate = normalizedScheduledAt ?? new Date();
     const bookingDateStr = bookingDate.toISOString().split('T')[0];
 
     // --- Parallel data loading (pricing rules, bank holiday, available drivers) ---
@@ -274,7 +321,7 @@ export async function POST(
     const weatherContext = await getWeatherPricingContext({
       latitude: data.lat,
       longitude: data.lng,
-      scheduledAt: data.scheduledAt ?? null,
+      scheduledAt: normalizedScheduledAt ? normalizedScheduledAt.toISOString() : null,
     });
 
     // Repair-only fast path — no stock to lock, no transaction needed
@@ -338,7 +385,7 @@ export async function POST(
         bookingType: data.bookingType,
         serviceType: data.serviceType,
         tyreSelections: [],
-        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
+        scheduledAt: normalizedScheduledAt,
         distanceMiles: String(distanceMiles),
         breakdown: breakdown as unknown as Record<string, unknown>,
         metadata: { ...distanceResult as unknown as Record<string, unknown>, dynamicSurcharge: repairSurcharge, weatherContext: weatherContext as unknown as Record<string, unknown>, demandContext: demandContext as unknown as Record<string, unknown> },
@@ -619,7 +666,7 @@ export async function POST(
           data.bookingType,
           data.serviceType,
           JSON.stringify(snapshotSelections),
-          data.scheduledAt ? new Date(data.scheduledAt) : null,
+          normalizedScheduledAt,
           distanceMiles,
           JSON.stringify(breakdown),
           JSON.stringify({ ...distanceResult, fulfillmentOption: data.fulfillmentOption ?? null, dynamicSurcharge: tyreSurcharge, weatherContext, demandContext }),

@@ -150,6 +150,7 @@ export function BookingsTable({
   function formatDate(dateStr: string | null): string {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('en-GB', {
+      timeZone: 'Europe/London',
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -362,6 +363,7 @@ export function BookingsTable({
               <Box as="th" style={{ ...thStyle, textAlign: 'left' }}>Customer</Box>
               <Box as="th" style={{ ...thStyle, textAlign: 'left' }}>Service</Box>
               <Box as="th" style={{ ...thStyle, textAlign: 'left' }}>Type</Box>
+              <Box as="th" style={{ ...thStyle, textAlign: 'left' }}>Scheduled Service Time</Box>
               <Box as="th" style={{ ...thStyle, textAlign: 'left' }}>Status</Box>
               <Box as="th" style={{ ...thStyle, textAlign: 'right' }}>Total</Box>
               <Box as="th" style={{ ...thStyle, textAlign: 'left' }}>Created</Box>
@@ -370,7 +372,7 @@ export function BookingsTable({
           <Box as="tbody">
             {bookings.length === 0 ? (
               <Box as="tr">
-                <td colSpan={7} style={{ ...tdStyle, textAlign: 'center', padding: '48px 16px', color: c.muted, borderBottom: 'none' }}>
+                <td colSpan={8} style={{ ...tdStyle, textAlign: 'center', padding: '48px 16px', color: c.muted, borderBottom: 'none' }}>
                   No bookings found
                 </td>
               </Box>
@@ -400,6 +402,9 @@ export function BookingsTable({
                   </Box>
                   <Box as="td" style={{ ...tdStyle, textTransform: 'capitalize', color: c.muted, fontSize: '13px' }}>
                     {booking.bookingType}
+                  </Box>
+                  <Box as="td" style={{ ...tdStyle, color: c.muted, fontSize: '13px' }}>
+                    {booking.bookingType === 'scheduled' ? formatDate(booking.scheduledAt) : '-'}
                   </Box>
                   <Box as="td" style={tdStyle}>
                     <StatusBadge status={booking.status} />
@@ -448,6 +453,11 @@ export function BookingsTable({
                   <Text fontSize="sm" color={c.text} fontWeight="500">{booking.customerName}</Text>
                   <Text fontSize="12px" color={c.muted}>{formatDate(booking.createdAt)}</Text>
                 </Flex>
+                {booking.bookingType === 'scheduled' && (
+                  <Text fontSize="12px" color={c.muted} mb={1}>
+                    Scheduled Service Time: {formatDate(booking.scheduledAt)}
+                  </Text>
+                )}
                 <Flex justify="space-between">
                   <Text fontSize="12px" color={c.muted}>
                     {SERVICE_LABELS[booking.serviceType] || booking.serviceType}
