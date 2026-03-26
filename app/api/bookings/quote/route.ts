@@ -4,13 +4,12 @@ import { db } from '@/lib/db';
 import {
   tyreProducts,
   pricingRules,
-  inventoryReservations,
   drivers,
   bankHolidays,
   quotes,
   serviceAreas,
 } from '@/lib/db/schema';
-import { eq, and, sql, inArray } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import {
   calculatePricing,
   parsePricingRules,
@@ -23,7 +22,7 @@ import {
 } from '@/lib/mapbox';
 import { v4 as uuidv4 } from 'uuid';
 import { Pool } from '@neondatabase/serverless';
-import { getSurgeMultiplier, getSurgeResult } from '@/lib/surge';
+import { getSurgeResult } from '@/lib/surge';
 import { getPricingConfig, isNightWindow } from '@/lib/pricing-config';
 import { getWeatherPricingContext, type WeatherPricingContext } from '@/lib/weather';
 import {
@@ -31,6 +30,10 @@ import {
   applyDynamicSurcharge,
   type DynamicSurchargeBreakdown,
 } from '@/lib/pricing-engine';
+import {
+  buildQuoteTyreSelectionsSnapshot,
+  type QuoteTyreSelectionSnapshot,
+} from '@/lib/quote-snapshot';
 
 // Input validation schema
 const tyreSelectionSchema = z.object({
@@ -286,6 +289,27 @@ export async function POST(
             { status: 400 }
           );
         }
+
+        if (!tyre.availableNew) {
+          return NextResponse.json(
+            {
+              error: `${tyre.brand} ${tyre.pattern} is not currently sellable`,
+              code: 'TYRE_NOT_SELLABLE',
+            },
+            { status: 400 }
+          );
+        }
+
+        const livePrice = tyre.priceNew == null ? NaN : Number(tyre.priceNew);
+        if (!Number.isFinite(livePrice) || livePrice < 0) {
+          return NextResponse.json(
+            {
+              error: `${tyre.brand} ${tyre.pattern} is missing a valid unit price`,
+              code: 'TYRE_PRICE_MISSING',
+            },
+            { status: 400 }
+          );
+        }
       }
     }
 
@@ -405,6 +429,7 @@ export async function POST(
       // Lock and check stock for each tyre atomically
       const tyreDetails: QuoteResponse['tyreDetails'] = [];
       const pricingSelections: TyreSelection[] = [];
+      const quoteSelectionSnapshots: QuoteTyreSelectionSnapshot[] = [];
       const stockErrors: string[] = [];
 
       // Build backend-enforced preOrder map BEFORE stock loop
@@ -422,7 +447,11 @@ export async function POST(
 
         if (isPreOrder) {
           // Pre-order: no stock lock needed, use catalogue price
-          const price = parseFloat(tyre.priceNew?.toString() ?? '0');
+          const price = tyre.priceNew == null ? NaN : parseFloat(tyre.priceNew.toString());
+          if (!Number.isFinite(price)) {
+            stockErrors.push(`${tyre.brand} ${tyre.pattern} is missing a valid unit price`);
+            continue;
+          }
 
           tyreDetails.push({
             tyreId: tyre.id,
@@ -440,6 +469,17 @@ export async function POST(
             unitPrice: price,
             service: selection.service,
             requiresTpms: selection.requiresTpms,
+          });
+
+          quoteSelectionSnapshots.push({
+            tyreId: tyre.id,
+            quantity: selection.quantity,
+            unitPrice: price,
+            service: selection.service,
+            sizeDisplay: tyre.sizeDisplay,
+            brand: tyre.brand,
+            pattern: tyre.pattern,
+            isPreOrder: true,
           });
           continue;
         }
@@ -463,7 +503,11 @@ export async function POST(
         const row = result.rows[0];
         const stock = row.stock ?? 0;
         const available = row.available;
-        const price = parseFloat(row.price ?? '0');
+        const price = row.price == null ? NaN : parseFloat(row.price);
+        if (!Number.isFinite(price)) {
+          stockErrors.push(`${tyre.brand} ${tyre.pattern} is missing a valid unit price`);
+          continue;
+        }
 
         if (!available) {
           stockErrors.push(
@@ -491,6 +535,17 @@ export async function POST(
           unitPrice: price,
           service: selection.service,
           requiresTpms: selection.requiresTpms,
+        });
+
+        quoteSelectionSnapshots.push({
+          tyreId: tyre.id,
+          quantity: selection.quantity,
+          unitPrice: price,
+          service: selection.service,
+          sizeDisplay: tyre.sizeDisplay,
+          brand: tyre.brand,
+          pattern: tyre.pattern,
+          isPreOrder: false,
         });
       }
 
@@ -593,12 +648,8 @@ export async function POST(
         );
       }
 
-      // Build corrected selections with backend-enforced isPreOrder
-      const correctedSelections = data.tyreSelections.map((sel) => {
-        const t = tyreMap.get(sel.tyreId)!;
-        return { ...sel, isPreOrder: !t.isLocalStock || (sel.isPreOrder ?? false) };
-      });
-      const hasSpecialOrder = correctedSelections.some((s) => s.isPreOrder);
+      const snapshotSelections = buildQuoteTyreSelectionsSnapshot(quoteSelectionSnapshots);
+      const hasSpecialOrder = snapshotSelections.some((s) => Boolean(s.isPreOrder));
 
       // Store quote in database (with distance metadata for auditability)
       await client.query(
@@ -611,7 +662,7 @@ export async function POST(
           data.addressLine,
           data.bookingType,
           data.serviceType,
-          JSON.stringify(correctedSelections),
+          JSON.stringify(snapshotSelections),
           data.scheduledAt ? new Date(data.scheduledAt) : null,
           distanceMiles,
           JSON.stringify(breakdown),

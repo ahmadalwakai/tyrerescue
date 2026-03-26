@@ -8,7 +8,6 @@ import {
   bookingStatusHistory,
   tyreProducts,
   inventoryReservations,
-  quotes,
 } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { createPaymentIntent } from '@/lib/stripe';
@@ -17,6 +16,10 @@ import { auth } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import type { PricingBreakdown } from '@/lib/pricing-engine';
 import { Pool } from '@neondatabase/serverless';
+import {
+  parseQuoteTyreSelectionsSnapshot,
+  type QuoteTyreSelectionSnapshot,
+} from '@/lib/quote-snapshot';
 
 // Input validation schema
 const createBookingSchema = z.object({
@@ -59,13 +62,6 @@ interface ErrorResponse {
   error: string;
   code: string;
   details?: unknown;
-}
-
-interface TyreSelection {
-  tyreId: string;
-  quantity: number;
-  service: 'fit' | 'repair' | 'assess';
-  requiresTpms?: boolean;
 }
 
 export async function POST(
@@ -137,7 +133,20 @@ export async function POST(
 
       if (now > expiresAt) {
         // Release the reservations and restore stock
-        const tyreSelections: TyreSelection[] = quote.tyre_selections;
+        const parsedSnapshot = parseQuoteTyreSelectionsSnapshot(quote.tyre_selections);
+        if (!parsedSnapshot.ok) {
+          await client.query('ROLLBACK');
+          return NextResponse.json(
+            {
+              error: 'Quote snapshot is invalid. Please request a new quote.',
+              code: 'QUOTE_SNAPSHOT_INVALID',
+              details: parsedSnapshot.error,
+            },
+            { status: 409 }
+          );
+        }
+
+        const tyreSelections: QuoteTyreSelectionSnapshot[] = parsedSnapshot.data!;
         await releaseQuoteReservations(client, tyreSelections);
 
         // Mark quote as used (expired)
@@ -157,10 +166,23 @@ export async function POST(
       }
 
       // Parse quote data
-      const tyreSelections: TyreSelection[] = quote.tyre_selections;
+      const parsedSnapshot = parseQuoteTyreSelectionsSnapshot(quote.tyre_selections);
+      if (!parsedSnapshot.ok) {
+        await client.query('ROLLBACK');
+        return NextResponse.json(
+          {
+            error: 'Quote snapshot is invalid. Please request a new quote.',
+            code: 'QUOTE_SNAPSHOT_INVALID',
+            details: parsedSnapshot.error,
+          },
+          { status: 409 }
+        );
+      }
+
+      const tyreSelections = parsedSnapshot.data!;
       const breakdown: PricingBreakdown = quote.breakdown;
       const hasPreOrderItems = tyreSelections.some(
-        (s: TyreSelection & { isPreOrder?: boolean }) => s.isPreOrder,
+        (s) => Boolean(s.isPreOrder),
       );
 
       // Verify stock is still available (double-check against race conditions)
@@ -267,21 +289,31 @@ export async function POST(
 
       // Create booking tyres entries
       for (const selection of tyreSelections) {
-        const tyre = tyreMap.get(selection.tyreId)!;
-        const unitPrice = parseFloat(tyre.priceNew?.toString() ?? '0');
+        const tyre = tyreMap.get(selection.tyreId);
+        if (!tyre) {
+          await client.query('ROLLBACK');
+          return NextResponse.json(
+            {
+              error: `Tyre no longer exists: ${selection.tyreId}`,
+              code: 'STOCK_NO_LONGER_AVAILABLE',
+            },
+            { status: 409 }
+          );
+        }
 
         await db.insert(bookingTyres).values({
           id: uuidv4(),
           bookingId,
           tyreId: selection.tyreId,
           quantity: selection.quantity,
-          unitPrice: unitPrice.toString(),
+          unitPrice: selection.unitPrice.toFixed(2),
           service: selection.service,
         });
       }
 
       // Update inventory reservations to link to this booking
       for (const selection of tyreSelections) {
+        if (selection.isPreOrder) continue;
         await db
           .update(inventoryReservations)
           .set({ bookingId })
@@ -369,10 +401,14 @@ export async function POST(
  * Release inventory reservations and restore stock
  */
 async function releaseQuoteReservations(
-  client: any,
-  tyreSelections: TyreSelection[]
+  client: {
+    query: (queryText: string, values?: unknown[]) => Promise<unknown>;
+  },
+  tyreSelections: QuoteTyreSelectionSnapshot[]
 ) {
   for (const selection of tyreSelections) {
+    if (selection.isPreOrder) continue;
+
     // Restore stock
     await client.query(
       `UPDATE tyre_products 

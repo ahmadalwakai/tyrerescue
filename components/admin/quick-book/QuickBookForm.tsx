@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Text, VStack, HStack, Input, Button, Flex, Spinner, Textarea, IconButton } from '@chakra-ui/react';
+import { Box, Text, VStack, HStack, Input, Button, Flex, Spinner, Textarea } from '@chakra-ui/react';
 import { QuickBookMap } from './QuickBookMap';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import {
-  buildLocationWhatsAppMessage,
   buildLocationCopyMessage,
   type LocationMessageContext,
 } from '@/lib/quick-book-message-templates';
@@ -60,6 +59,10 @@ interface CreatedBooking {
     totalPrice: string | null;
     basePrice: string | null;
     surchargePercent: string | null;
+    selectedTyreProductId: string | null;
+    selectedTyreUnitPrice: string | null;
+    selectedTyreBrand: string | null;
+    selectedTyrePattern: string | null;
     priceBreakdown: {
       lineItems: PricingLineItem[];
       totalTyreCost: number;
@@ -104,6 +107,29 @@ const initialForm: FormState = {
   tyreCount: 1,
   notes: '',
 };
+
+function getApiErrorMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== 'object') return fallback;
+  const record = payload as Record<string, unknown>;
+
+  if (typeof record.error === 'string' && record.error.trim()) {
+    return record.error;
+  }
+
+  if (record.error && typeof record.error === 'object') {
+    const nested = record.error as Record<string, unknown>;
+    if (Array.isArray(nested.formErrors) && nested.formErrors.length > 0) {
+      const first = nested.formErrors[0];
+      if (typeof first === 'string' && first.trim()) return first;
+    }
+  }
+
+  if (typeof record.message === 'string' && record.message.trim()) {
+    return record.message;
+  }
+
+  return fallback;
+}
 
 export function QuickBookForm() {
   const [form, setForm] = useState<FormState>(initialForm);
@@ -241,7 +267,7 @@ export function QuickBookForm() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error?.toString() || 'Failed to create booking');
+        throw new Error(getApiErrorMessage(data, 'Failed to create booking'));
       }
 
       const data = await res.json();
@@ -267,7 +293,7 @@ export function QuickBookForm() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error?.toString() || 'Failed to finalize booking');
+        throw new Error(getApiErrorMessage(data, 'Failed to finalize booking'));
       }
 
       const data: FinalizedResult = await res.json();
@@ -485,6 +511,17 @@ export function QuickBookForm() {
 
   // ── Success state (pre-finalize) ──
   if (status === 'success' && created) {
+    const selectedTyreUnitPrice = created.booking.selectedTyreUnitPrice
+      ? Number(created.booking.selectedTyreUnitPrice)
+      : null;
+    const hasTyreSnapshot =
+      Boolean(created.booking.selectedTyreProductId) &&
+      selectedTyreUnitPrice != null &&
+      Number.isFinite(selectedTyreUnitPrice);
+    const tyreLineTotal = hasTyreSnapshot
+      ? selectedTyreUnitPrice! * form.tyreCount
+      : 0;
+
     return (
       <Box bg={c.card} p={6} borderRadius="12px" borderWidth="1px" borderColor={c.border} style={anim.fadeUp()}>
         <VStack gap={5} align="stretch">
@@ -495,6 +532,26 @@ export function QuickBookForm() {
               <Text color={c.muted} fontSize="sm">Ready to finalize into a real booking</Text>
             </Box>
           </Flex>
+
+          <Box bg={c.surface} p={4} borderRadius="8px" borderLeft={`3px solid ${hasTyreSnapshot ? '#22C55E' : '#64748B'}`}>
+            <Text color={c.text} fontSize="sm" fontWeight="600" mb={2}>Pricing Mode</Text>
+            <Text color={hasTyreSnapshot ? '#22C55E' : c.muted} fontSize="sm" fontWeight="600">
+              {hasTyreSnapshot ? 'Includes tyre product pricing' : 'Service-only pricing'}
+            </Text>
+            {hasTyreSnapshot && (
+              <VStack align="stretch" gap={1} mt={2}>
+                <Text color={c.text} fontSize="sm">
+                  {created.booking.selectedTyreBrand} {created.booking.selectedTyrePattern}
+                </Text>
+                <Text color={c.muted} fontSize="xs">
+                  Unit price: £{selectedTyreUnitPrice!.toFixed(2)} x {form.tyreCount}
+                </Text>
+                <Text color={c.accent} fontSize="sm" fontWeight="700">
+                  Tyre line: £{tyreLineTotal.toFixed(2)}
+                </Text>
+              </VStack>
+            )}
+          </Box>
 
           {/* ═══ LOCATION SECTION WITH MAP ═══ */}
           <Box bg={c.surface} p={4} borderRadius="8px" borderLeft={`3px solid #3B82F6`}>
@@ -708,26 +765,11 @@ export function QuickBookForm() {
                   </Flex>
                 ))}
 
-              {/* Admin adjustment (if saved) */}
-              {created.booking.adminAdjustmentAmount && Number(created.booking.adminAdjustmentAmount) !== 0 && (
-                <Flex justify="space-between" mb={1}>
-                  <Text color="#F59E0B" fontSize="sm">
-                    Admin adjustment{created.booking.adminAdjustmentReason ? ` — ${created.booking.adminAdjustmentReason}` : ''}
-                  </Text>
-                  <Text color="#F59E0B" fontSize="sm" fontWeight="600">
-                    £{Number(created.booking.adminAdjustmentAmount).toFixed(2)}
-                  </Text>
-                </Flex>
-              )}
-
               <Box borderTop={`1px solid ${c.border}`} mt={2} pt={2}>
                 <Flex justify="space-between">
                   <Text color={c.text} fontSize="md" fontWeight="700">Total</Text>
                   <Text color={c.accent} fontSize="xl" fontWeight="700">
-                    £{(
-                      Number(created.booking.totalPrice) +
-                      (created.booking.adminAdjustmentAmount ? Number(created.booking.adminAdjustmentAmount) : 0)
-                    ).toFixed(2)}
+                    £{Number(created.booking.totalPrice).toFixed(2)}
                   </Text>
                 </Flex>
               </Box>

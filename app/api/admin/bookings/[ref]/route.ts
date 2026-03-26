@@ -13,13 +13,6 @@ interface Props {
   params: Promise<{ ref: string }>;
 }
 
-// Fields that are always safe to edit (customer info, notes, schedule)
-const ALWAYS_EDITABLE = new Set([
-  'customerName', 'customerEmail', 'customerPhone',
-  'vehicleReg', 'vehicleMake', 'vehicleModel',
-  'notes', 'scheduledAt',
-]);
-
 // Fields that need confirmation after driver accepts (address, pricing, scope)
 const RESTRICTED_AFTER_ACCEPT = new Set([
   'addressLine', 'serviceType', 'bookingType',
@@ -31,6 +24,124 @@ const RESTRICTED_AFTER_ACCEPT = new Set([
 const TERMINAL_STATUSES = new Set([
   'completed', 'cancelled', 'refunded', 'refunded_partial', 'cancelled_refund_pending',
 ]);
+
+type EditableSnapshotLineItem = {
+  label: string;
+  amount: number;
+  type: string;
+  quantity?: number;
+  unitPrice?: number;
+};
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function toFiniteNumber(value: unknown, fallback: number): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function normalizeLineItems(raw: unknown): EditableSnapshotLineItem[] {
+  if (!Array.isArray(raw)) return [];
+
+  const items: EditableSnapshotLineItem[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+
+    const record = item as Record<string, unknown>;
+    const label = typeof record.label === 'string' ? record.label : '';
+    const type = typeof record.type === 'string' ? record.type : 'service';
+    const amount = toFiniteNumber(record.amount, NaN);
+
+    if (!label || !Number.isFinite(amount)) continue;
+
+    const normalized: EditableSnapshotLineItem = {
+      label,
+      amount: roundMoney(amount),
+      type,
+    };
+
+    if (typeof record.quantity === 'number' && Number.isFinite(record.quantity)) {
+      normalized.quantity = Math.trunc(record.quantity);
+    }
+    if (typeof record.unitPrice === 'number' && Number.isFinite(record.unitPrice)) {
+      normalized.unitPrice = roundMoney(record.unitPrice);
+    }
+
+    items.push(normalized);
+  }
+
+  return items;
+}
+
+function buildSyncedPriceSnapshot(
+  existingSnapshot: unknown,
+  subtotal: number,
+  vatAmount: number,
+  totalAmount: number,
+): Record<string, unknown> {
+  const base =
+    existingSnapshot && typeof existingSnapshot === 'object'
+      ? (existingSnapshot as Record<string, unknown>)
+      : {};
+
+  const cleanedLineItems = normalizeLineItems(base.lineItems).filter((line) => {
+    const isAdminAdjustment =
+      line.label === 'Admin adjustment' || line.label.startsWith('Admin adjustment - ');
+    return !isAdminAdjustment && line.type !== 'subtotal' && line.type !== 'total';
+  });
+
+  const impliedBaseTotal = roundMoney(subtotal + vatAmount);
+  const adminAdjustment = roundMoney(totalAmount - impliedBaseTotal);
+
+  if (adminAdjustment !== 0) {
+    cleanedLineItems.push({
+      label: 'Admin adjustment',
+      amount: adminAdjustment,
+      type: adminAdjustment >= 0 ? 'surcharge' : 'discount',
+    });
+  }
+
+  cleanedLineItems.push({
+    label: 'Subtotal',
+    amount: subtotal,
+    type: 'subtotal',
+  });
+
+  cleanedLineItems.push({
+    label: 'Total',
+    amount: totalAmount,
+    type: 'total',
+  });
+
+  const totalSurcharges = roundMoney(
+    cleanedLineItems
+      .filter((line) => line.type === 'surcharge')
+      .reduce((sum, line) => sum + Math.max(0, line.amount), 0)
+  );
+
+  const discountAmount = roundMoney(
+    cleanedLineItems
+      .filter((line) => line.type === 'discount')
+      .reduce((sum, line) => sum + Math.abs(Math.min(0, line.amount)), 0)
+  );
+
+  return {
+    ...base,
+    lineItems: cleanedLineItems,
+    subtotal,
+    vatAmount,
+    total: totalAmount,
+    totalSurcharges,
+    discountAmount,
+    isValid: true,
+  };
+}
 
 // PUT /api/admin/bookings/[ref] — edit booking fields
 export async function PUT(request: NextRequest, { params }: Props) {
@@ -146,20 +257,63 @@ export async function PUT(request: NextRequest, { params }: Props) {
     }
 
     // Pricing (admin override)
+    let pricingEdited = false;
+    let requestedSubtotal: number | null = null;
+    let requestedVatAmount: number | null = null;
+    let requestedTotalAmount: number | null = null;
+
     if (body.subtotal !== undefined) {
       const sub = parseFloat(body.subtotal);
       if (isNaN(sub) || sub < 0) return NextResponse.json({ error: 'Invalid subtotal' }, { status: 400 });
-      updates.subtotal = sub.toFixed(2);
+      requestedSubtotal = sub;
+      pricingEdited = true;
     }
     if (body.vatAmount !== undefined) {
       const vat = parseFloat(body.vatAmount);
       if (isNaN(vat) || vat < 0) return NextResponse.json({ error: 'Invalid VAT amount' }, { status: 400 });
-      updates.vatAmount = vat.toFixed(2);
+      requestedVatAmount = vat;
+      pricingEdited = true;
     }
     if (body.totalAmount !== undefined) {
       const total = parseFloat(body.totalAmount);
       if (isNaN(total) || total < 0) return NextResponse.json({ error: 'Invalid total amount' }, { status: 400 });
-      updates.totalAmount = total.toFixed(2);
+      requestedTotalAmount = total;
+      pricingEdited = true;
+    }
+
+    if (pricingEdited) {
+      const currentSubtotal = toFiniteNumber(booking.subtotal, 0);
+      const currentVatAmount = toFiniteNumber(booking.vatAmount, 0);
+      const currentTotalAmount = toFiniteNumber(booking.totalAmount, 0);
+
+      const existingAdjustment = roundMoney(currentTotalAmount - (currentSubtotal + currentVatAmount));
+
+      const nextSubtotal = roundMoney(requestedSubtotal ?? currentSubtotal);
+      const nextVatAmount = roundMoney(requestedVatAmount ?? currentVatAmount);
+
+      const nextTotalAmount = requestedTotalAmount != null
+        ? roundMoney(requestedTotalAmount)
+        : roundMoney(nextSubtotal + nextVatAmount + existingAdjustment);
+
+      if (nextSubtotal < 0) {
+        return NextResponse.json({ error: 'Subtotal must be 0 or greater' }, { status: 400 });
+      }
+      if (nextVatAmount < 0) {
+        return NextResponse.json({ error: 'VAT amount must be 0 or greater' }, { status: 400 });
+      }
+      if (nextTotalAmount < 0) {
+        return NextResponse.json({ error: 'Total amount must be 0 or greater' }, { status: 400 });
+      }
+
+      updates.subtotal = nextSubtotal.toFixed(2);
+      updates.vatAmount = nextVatAmount.toFixed(2);
+      updates.totalAmount = nextTotalAmount.toFixed(2);
+      updates.priceSnapshot = buildSyncedPriceSnapshot(
+        booking.priceSnapshot,
+        nextSubtotal,
+        nextVatAmount,
+        nextTotalAmount,
+      );
     }
 
     if (Object.keys(updates).length === 0) {

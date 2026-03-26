@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { quickBookings, pricingRules, bankHolidays } from '@/lib/db/schema';
+import { quickBookings } from '@/lib/db/schema';
 import { desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
 import { geocodeAddress } from '@/lib/mapbox';
 import { calculateDistance, SHOP_LOCATION } from '@/lib/distance';
 import {
-  calculatePricing,
-  parsePricingRules,
-} from '@/lib/pricing-engine';
+  calculateQuickBookPricing,
+  QuickBookPricingError,
+} from '@/lib/quick-book-pricing';
 import {
   buildLocationWhatsAppMessage,
   buildWhatsAppUrl,
@@ -68,6 +68,9 @@ export async function POST(request: Request) {
   let distanceKm: number | null = null;
   let basePrice: number | null = null;
   let totalPrice: number | null = null;
+  let priceBreakdown: Awaited<ReturnType<typeof calculateQuickBookPricing>>['breakdown'] | null = null;
+  let selectedTyreSnapshot: Awaited<ReturnType<typeof calculateQuickBookPricing>>['selectedTyreSnapshot'] = null;
+  let normalizedTyreSize: string | null = data.tyreSize?.trim() || null;
 
   if (data.locationMethod === 'link') {
     linkToken = randomBytes(32).toString('hex');
@@ -84,44 +87,37 @@ export async function POST(request: Request) {
     } catch { /* proceed without geocoding */ }
   }
 
-  // Calculate distance + real pricing if we have coordinates
-  let pricingBreakdown: ReturnType<typeof calculatePricing> | null = null;
   if (lat && lng) {
     try {
       const distResult = await calculateDistance({ lat, lng }, SHOP_LOCATION);
       distanceKm = distResult.drivingKm ?? distResult.straightLineKm;
     } catch { /* fallback */ }
+  }
 
-    // Real pricing — use the pricing engine with the actual service type
+  const shouldPrice = Boolean(lat && lng) || Boolean(data.tyreSize?.trim()) || data.serviceType !== 'fit';
+  if (shouldPrice) {
     try {
-      const distanceMiles = (distanceKm ?? 5) * 0.621371;
-      const rulesRows = await db.select().from(pricingRules);
-      const rules = parsePricingRules(rulesRows.map((r) => ({ key: r.key, value: r.value })));
+      const pricing = await calculateQuickBookPricing({
+        serviceType: data.serviceType,
+        tyreSize: data.tyreSize?.trim() || null,
+        tyreCount: data.tyreCount,
+        distanceMiles: (distanceKm ?? 5) * 0.621371,
+        resolveTyreFromSize: Boolean(data.tyreSize?.trim()),
+        requireTyreForFit: data.serviceType === 'fit' && Boolean(data.tyreSize?.trim()),
+      });
 
-      const todayStr = new Date().toISOString().split('T')[0];
-      const holidays = await db.select().from(bankHolidays);
-      const isBankHoliday = holidays.some((h) => h.date === todayStr);
-
-      const breakdown = calculatePricing(
-        {
-          tyreSelections: [],
-          distanceMiles,
-          bookingType: 'emergency',
-          bookingDate: new Date(),
-          isBankHoliday,
-          serviceType: data.serviceType,
-          tyreQuantity: data.tyreCount,
-        },
-        rules,
-        true,
-      );
-
-      if (breakdown.isValid) {
-        basePrice = breakdown.subtotal;
-        totalPrice = breakdown.total;
-        pricingBreakdown = breakdown;
+      basePrice = pricing.breakdown.subtotal;
+      totalPrice = pricing.breakdown.total;
+      priceBreakdown = pricing.breakdown;
+      selectedTyreSnapshot = pricing.selectedTyreSnapshot;
+      normalizedTyreSize = pricing.normalizedTyreSize ?? normalizedTyreSize;
+    } catch (error) {
+      if (error instanceof QuickBookPricingError) {
+        return NextResponse.json({ error: error.message }, { status: error.status });
       }
-    } catch { /* proceed without pricing */ }
+      console.error('[quick-book:create] pricing error', error);
+      return NextResponse.json({ error: 'Failed to calculate pricing' }, { status: 500 });
+    }
   }
 
   const initialStatus = data.locationMethod === 'link'
@@ -143,13 +139,18 @@ export async function POST(request: Request) {
       locationLinkToken: linkToken,
       locationLinkExpiry: linkExpiry,
       serviceType: data.serviceType,
-      tyreSize: data.tyreSize ?? null,
+      tyreSize: normalizedTyreSize,
       tyreCount: data.tyreCount,
+      selectedTyreProductId: selectedTyreSnapshot?.productId ?? null,
+      selectedTyreUnitPrice:
+        selectedTyreSnapshot?.unitPrice != null ? selectedTyreSnapshot.unitPrice.toFixed(2) : null,
+      selectedTyreBrand: selectedTyreSnapshot?.brand ?? null,
+      selectedTyrePattern: selectedTyreSnapshot?.pattern ?? null,
       distanceKm: distanceKm != null ? String(distanceKm) : null,
       basePrice: basePrice != null ? String(basePrice) : null,
       surchargePercent: '0.00',
       totalPrice: totalPrice != null ? String(totalPrice) : null,
-      priceBreakdown: pricingBreakdown ?? null,
+      priceBreakdown: priceBreakdown,
       status: initialStatus,
       notes: data.notes ?? null,
     })

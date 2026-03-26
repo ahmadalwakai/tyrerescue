@@ -12,10 +12,10 @@ import {
   time,
   jsonb,
   inet,
-  check,
   real,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import type { QuoteTyreSelectionSnapshot } from '@/lib/quote-snapshot';
 
 // Users table
 export const users = pgTable('users', {
@@ -386,7 +386,7 @@ export const quotes = pgTable('quotes', {
   addressLine: text('address_line').notNull(),
   bookingType: text('booking_type').notNull(),
   serviceType: text('service_type').notNull(),
-  tyreSelections: jsonb('tyre_selections').notNull(),
+  tyreSelections: jsonb('tyre_selections').$type<QuoteTyreSelectionSnapshot[]>().notNull(),
   scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
   distanceMiles: decimal('distance_miles', { precision: 5, scale: 2 }).notNull(),
   breakdown: jsonb('breakdown').notNull(),
@@ -715,6 +715,10 @@ export const quickBookings = pgTable('quick_bookings', {
   serviceType: text('service_type').notNull(), // 'fit' | 'repair' | 'assess'
   tyreSize: varchar('tyre_size', { length: 20 }),
   tyreCount: integer('tyre_count').default(1),
+  selectedTyreProductId: uuid('selected_tyre_product_id').references(() => tyreProducts.id),
+  selectedTyreUnitPrice: decimal('selected_tyre_unit_price', { precision: 10, scale: 2 }),
+  selectedTyreBrand: varchar('selected_tyre_brand', { length: 100 }),
+  selectedTyrePattern: varchar('selected_tyre_pattern', { length: 200 }),
   distanceKm: decimal('distance_km', { precision: 8, scale: 2 }),
   basePrice: decimal('base_price', { precision: 10, scale: 2 }),
   surchargePercent: decimal('surcharge_percent', { precision: 5, scale: 2 }).default('0.00'),

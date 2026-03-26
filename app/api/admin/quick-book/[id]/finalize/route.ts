@@ -6,20 +6,19 @@ import {
   bookings,
   bookingTyres,
   bookingStatusHistory,
-  pricingRules,
-  bankHolidays,
   invoices,
   invoiceItems,
   payments,
+  tyreProducts,
 } from '@/lib/db/schema';
 import { eq, count, ilike } from 'drizzle-orm';
 import { generateRefNumber } from '@/lib/utils';
 import {
-  calculatePricing,
-  parsePricingRules,
-  type PricingBreakdown,
-  type TyreSelection as PricingTyreSelection,
-} from '@/lib/pricing-engine';
+  calculateQuickBookPricing,
+  extractQuickBookTyreSnapshot,
+  QuickBookPricingError,
+  type QuickBookServiceType,
+} from '@/lib/quick-book-pricing';
 import { v4 as uuidv4 } from 'uuid';
 import { createAdminNotification } from '@/lib/notifications';
 import { createCheckoutSession } from '@/lib/stripe';
@@ -96,69 +95,69 @@ export async function POST(
   const lat = Number(qb.locationLat);
   const lng = Number(qb.locationLng);
 
-  // Calculate distance in miles
-  const distanceKm = qb.distanceKm ? Number(qb.distanceKm) : 5; // fallback 5km
-  const distanceMiles = distanceKm * 0.621371;
-
-  // Load pricing rules from DB
-  const rulesRows = await db.select().from(pricingRules);
-  const rules = parsePricingRules(rulesRows.map((r) => ({ key: r.key, value: r.value })));
-
-  // Check bank holidays
-  const todayStr = new Date().toISOString().split('T')[0];
-  const holidays = await db.select().from(bankHolidays);
-  const isBankHoliday = holidays.some(
-    (h) => h.date === todayStr
-  );
-
-  // Build pricing input
-  const serviceType = qb.serviceType as 'fit' | 'repair' | 'assess';
+  const serviceType = qb.serviceType as QuickBookServiceType;
   const quantity = qb.tyreCount ?? 1;
 
-  // The pricing engine now supports any serviceType with empty tyre selections.
-  const pricingInput = {
-    tyreSelections: [] as PricingTyreSelection[],
-    distanceMiles,
-    bookingType: 'emergency' as const,
-    bookingDate: new Date(),
-    isBankHoliday,
-    serviceType,
-    tyreQuantity: quantity,
-  };
+  const selectedTyreSnapshot = extractQuickBookTyreSnapshot({
+    selectedTyreProductId: qb.selectedTyreProductId,
+    selectedTyreUnitPrice: qb.selectedTyreUnitPrice,
+    selectedTyreBrand: qb.selectedTyreBrand,
+    selectedTyrePattern: qb.selectedTyrePattern,
+    selectedTyreSizeDisplay: qb.tyreSize,
+  });
 
-  const breakdown: PricingBreakdown = calculatePricing(pricingInput, rules, true);
-
-  if (!breakdown.isValid) {
+  if (qb.selectedTyreProductId && !qb.selectedTyreUnitPrice) {
     return NextResponse.json(
-      { error: `Pricing error: ${breakdown.error}` },
+      { error: 'Selected tyre product is missing a price snapshot' },
       { status: 400 }
     );
   }
 
-  // Apply admin adjustment if stored on the quick booking
-  const adminAdjustment = qb.adminAdjustmentAmount ? Number(qb.adminAdjustmentAmount) : 0;
-  if (adminAdjustment !== 0) {
-    const reason = qb.adminAdjustmentReason || 'Admin adjustment';
-    breakdown.lineItems.splice(
-      breakdown.lineItems.findIndex((li) => li.type === 'total'),
-      0,
-      {
-        label: `Admin adjustment${reason ? ` — ${reason}` : ''}`,
-        amount: adminAdjustment,
-        type: 'surcharge',
-      },
+  if (serviceType === 'fit' && !selectedTyreSnapshot) {
+    return NextResponse.json(
+      { error: 'Cannot finalize fit booking without a selected tyre product' },
+      { status: 400 }
     );
-    breakdown.subtotal += adminAdjustment;
-    breakdown.total += adminAdjustment;
-    breakdown.totalSurcharges += adminAdjustment;
-    // Update subtotal + total line items
-    for (const li of breakdown.lineItems) {
-      if (li.type === 'subtotal') li.amount = breakdown.subtotal;
-      if (li.type === 'total') li.amount = breakdown.total;
+  }
+
+  let priced: Awaited<ReturnType<typeof calculateQuickBookPricing>>;
+  try {
+    priced = await calculateQuickBookPricing({
+      serviceType,
+      tyreSize: qb.tyreSize ?? null,
+      tyreCount: quantity,
+      distanceMiles: (qb.distanceKm ? Number(qb.distanceKm) : 5) * 0.621371,
+      selectedTyreSnapshot,
+      resolveTyreFromSize: false,
+      requireTyreForFit: serviceType === 'fit',
+      adminAdjustmentAmount: Number(qb.adminAdjustmentAmount ?? 0),
+      adminAdjustmentReason: qb.adminAdjustmentReason,
+    });
+  } catch (error) {
+    if (error instanceof QuickBookPricingError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    console.error('[quick-book:finalize] pricing error', error);
+    return NextResponse.json({ error: 'Failed to calculate pricing' }, { status: 500 });
+  }
+
+  if (priced.selectedTyreSnapshot) {
+    const [existingTyre] = await db
+      .select({ id: tyreProducts.id })
+      .from(tyreProducts)
+      .where(eq(tyreProducts.id, priced.selectedTyreSnapshot.productId))
+      .limit(1);
+
+    if (!existingTyre) {
+      return NextResponse.json(
+        { error: 'Selected tyre product no longer exists' },
+        { status: 400 }
+      );
     }
   }
 
-  // Generate real booking
+  const breakdown = priced.breakdown;
+
   const refNumber = generateRefNumber();
   const bookingId = uuidv4();
   const customerEmail = qb.customerEmail || 'phone-booking@tyrerescue.uk';
@@ -166,155 +165,180 @@ export async function POST(
   const addressLine = qb.locationAddress || qb.locationPostcode || `${lat}, ${lng}`;
 
   const initialStatus = paymentMethod === 'stripe' ? 'awaiting_payment' : 'paid';
-
-  await db.insert(bookings).values({
-    id: bookingId,
-    refNumber,
-    userId: null,
-    status: initialStatus,
-    bookingType: 'emergency',
-    serviceType: SERVICE_MAP[serviceType] || 'puncture_repair',
-    addressLine,
-    lat: String(lat),
-    lng: String(lng),
-    distanceMiles: distanceMiles.toFixed(2),
-    distanceSource: 'service_center',
-    quantity,
-    tyreSizeDisplay: qb.tyreSize || null,
-    vehicleReg: null,
-    vehicleMake: null,
-    vehicleModel: null,
-    tyrePhotoUrl: null,
-    customerName: qb.customerName,
-    customerEmail,
-    customerPhone: qb.customerPhone,
-    scheduledAt: null,
-    priceSnapshot: breakdown,
-    subtotal: breakdown.subtotal.toFixed(2),
-    vatAmount: breakdown.vatAmount.toFixed(2),
-    totalAmount: breakdown.total.toFixed(2),
-    quoteExpiresAt: null,
-    lockingNutStatus: null,
-    hasPreOrderItems: false,
-    fulfillmentOption: null,
-    notes: qb.notes || 'Admin quick booking (phone call)',
-  });
-
-  // Stripe Checkout Session (if not cash)
   let checkoutUrl: string | null = null;
-  let stripePaymentIntentId: string | null = null;
 
-  if (paymentMethod === 'stripe') {
-    const { checkoutUrl: url, paymentIntentId, sessionId } = await createCheckoutSession(
-      breakdown.total,
-      {
-        bookingId,
-        refNumber,
-        customerEmail,
-      }
-    );
+  const invoiceNumber = await generateInvoiceNumber();
+  const issueDate = new Date();
+  const dueDate = new Date(issueDate.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    checkoutUrl = url;
-    stripePaymentIntentId = paymentIntentId;
+  const invoiceItemsData = breakdown.lineItems
+    .filter((line) => line.type !== 'subtotal' && line.type !== 'vat' && line.type !== 'total')
+    .map((line) => ({
+      description: line.label,
+      quantity: line.quantity ?? 1,
+      unitPrice: line.unitPrice ?? line.amount,
+      totalPrice: line.amount,
+    }));
 
-    // Store PI or session on booking
-    await db
-      .update(bookings)
-      .set({ stripePiId: paymentIntentId || sessionId })
-      .where(eq(bookings.id, bookingId));
-
-    // Create payment record
-    await db.insert(payments).values({
-      id: uuidv4(),
-      bookingId,
-      stripePiId: paymentIntentId || sessionId,
-      amount: breakdown.total.toFixed(2),
-      currency: 'gbp',
-      status: 'pending',
-    });
-  }
-
-  // Status history
+  const invoiceStatus = paymentMethod === 'stripe' ? 'issued' : 'paid';
   const statusNote = paymentMethod === 'stripe'
     ? 'Quick booking finalized by admin — awaiting Stripe payment'
     : 'Quick booking finalized by admin — cash payment collected';
 
-  await db.insert(bookingStatusHistory).values({
-    id: uuidv4(),
-    bookingId,
-    fromStatus: null,
-    toStatus: initialStatus,
-    actorUserId: session.user.id,
-    actorRole: 'admin',
-    note: statusNote,
-  });
+  type BookingWriteExecutor = Pick<typeof db, 'insert' | 'update'>;
 
-  // Create invoice
-  const invoiceNumber = await generateInvoiceNumber();
-  const issueDate = new Date();
-  const dueDate = new Date(issueDate.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const persistFinalizeWrites = async (executor: BookingWriteExecutor) => {
+    await executor.insert(bookings).values({
+      id: bookingId,
+      refNumber,
+      userId: null,
+      status: initialStatus,
+      bookingType: 'emergency',
+      serviceType: SERVICE_MAP[serviceType] || 'puncture_repair',
+      addressLine,
+      lat: String(lat),
+      lng: String(lng),
+      distanceMiles: ((qb.distanceKm ? Number(qb.distanceKm) : 5) * 0.621371).toFixed(2),
+      distanceSource: 'service_center',
+      quantity,
+      tyreSizeDisplay: qb.tyreSize || null,
+      vehicleReg: null,
+      vehicleMake: null,
+      vehicleModel: null,
+      tyrePhotoUrl: null,
+      customerName: qb.customerName,
+      customerEmail,
+      customerPhone: qb.customerPhone,
+      scheduledAt: null,
+      priceSnapshot: breakdown,
+      subtotal: breakdown.subtotal.toFixed(2),
+      vatAmount: breakdown.vatAmount.toFixed(2),
+      totalAmount: breakdown.total.toFixed(2),
+      quoteExpiresAt: null,
+      lockingNutStatus: null,
+      hasPreOrderItems: false,
+      fulfillmentOption: null,
+      notes: qb.notes || 'Admin quick booking (phone call)',
+    });
 
-  const invoiceItems_data = breakdown.lineItems
-    .filter((li) => li.type !== 'subtotal' && li.type !== 'vat' && li.type !== 'total')
-    .map((li) => ({
-      description: li.label,
-      quantity: li.quantity ?? 1,
-      unitPrice: li.unitPrice ?? li.amount,
-      totalPrice: li.amount,
-    }));
+    for (const selection of priced.tyreSelections) {
+      await executor.insert(bookingTyres).values({
+        id: uuidv4(),
+        bookingId,
+        tyreId: selection.tyreId,
+        quantity: selection.quantity,
+        unitPrice: selection.unitPrice.toFixed(2),
+        service: selection.service,
+      });
+    }
 
-  const invoiceStatus = paymentMethod === 'stripe' ? 'issued' : 'paid';
+    if (paymentMethod === 'stripe') {
+      const checkout = await createCheckoutSession(breakdown.total, {
+        bookingId,
+        refNumber,
+        customerEmail,
+      });
 
-  const [createdInvoice] = await db.insert(invoices).values({
-    invoiceNumber,
-    bookingId,
-    userId: null,
-    status: invoiceStatus,
-    customerName: qb.customerName,
-    customerEmail: qb.customerEmail || 'phone-booking@tyrerescue.uk',
-    customerPhone: qb.customerPhone,
-    customerAddress: addressLine,
-    companyName: COMPANY.name,
-    companyAddress: COMPANY.address,
-    companyPhone: COMPANY.phone,
-    companyEmail: COMPANY.email,
-    companyVatNumber: null,
-    issueDate,
-    dueDate,
-    subtotal: breakdown.subtotal.toFixed(2),
-    vatRate: '20.00',
-    vatAmount: breakdown.vatAmount.toFixed(2),
-    totalAmount: breakdown.total.toFixed(2),
-    notes: `Quick booking ref ${refNumber}`,
-    createdBy: session.user.id,
-    updatedBy: session.user.id,
-  }).returning();
+      checkoutUrl = checkout.checkoutUrl;
 
-  // Insert invoice line items
-  if (invoiceItems_data.length > 0 && createdInvoice) {
-    await db.insert(invoiceItems).values(
-      invoiceItems_data.map((it, i) => ({
-        invoiceId: createdInvoice.id,
-        description: it.description,
-        quantity: it.quantity,
-        unitPrice: it.unitPrice.toFixed(2),
-        totalPrice: it.totalPrice.toFixed(2),
-        sortOrder: i,
-      }))
-    );
-  }
+      await executor
+        .update(bookings)
+        .set({ stripePiId: checkout.paymentIntentId || checkout.sessionId })
+        .where(eq(bookings.id, bookingId));
 
-  // Link quick booking to real booking
-  await db
-    .update(quickBookings)
-    .set({
+      await executor.insert(payments).values({
+        id: uuidv4(),
+        bookingId,
+        stripePiId: checkout.paymentIntentId || checkout.sessionId,
+        amount: breakdown.total.toFixed(2),
+        currency: 'gbp',
+        status: 'pending',
+      });
+    }
+
+    await executor.insert(bookingStatusHistory).values({
+      id: uuidv4(),
       bookingId,
-      status: 'finalized',
-      totalPrice: breakdown.total.toFixed(2),
-      basePrice: breakdown.subtotal.toFixed(2),
-      updatedAt: new Date(),
-    })
-    .where(eq(quickBookings.id, id));
+      fromStatus: null,
+      toStatus: initialStatus,
+      actorUserId: session.user.id,
+      actorRole: 'admin',
+      note: statusNote,
+    });
+
+    const [createdInvoice] = await executor.insert(invoices).values({
+      invoiceNumber,
+      bookingId,
+      userId: null,
+      status: invoiceStatus,
+      customerName: qb.customerName,
+      customerEmail: qb.customerEmail || 'phone-booking@tyrerescue.uk',
+      customerPhone: qb.customerPhone,
+      customerAddress: addressLine,
+      companyName: COMPANY.name,
+      companyAddress: COMPANY.address,
+      companyPhone: COMPANY.phone,
+      companyEmail: COMPANY.email,
+      companyVatNumber: null,
+      issueDate,
+      dueDate,
+      subtotal: breakdown.subtotal.toFixed(2),
+      vatRate: '20.00',
+      vatAmount: breakdown.vatAmount.toFixed(2),
+      totalAmount: breakdown.total.toFixed(2),
+      notes: `Quick booking ref ${refNumber}`,
+      createdBy: session.user.id,
+      updatedBy: session.user.id,
+    }).returning();
+
+    if (invoiceItemsData.length > 0 && createdInvoice) {
+      await executor.insert(invoiceItems).values(
+        invoiceItemsData.map((line, index) => ({
+          invoiceId: createdInvoice.id,
+          description: line.description,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice.toFixed(2),
+          totalPrice: line.totalPrice.toFixed(2),
+          sortOrder: index,
+        }))
+      );
+    }
+
+    await executor
+      .update(quickBookings)
+      .set({
+        bookingId,
+        status: 'finalized',
+        totalPrice: breakdown.total.toFixed(2),
+        basePrice: breakdown.subtotal.toFixed(2),
+        selectedTyreProductId: priced.selectedTyreSnapshot?.productId ?? null,
+        selectedTyreUnitPrice:
+          priced.selectedTyreSnapshot?.unitPrice != null
+            ? priced.selectedTyreSnapshot.unitPrice.toFixed(2)
+            : null,
+        selectedTyreBrand: priced.selectedTyreSnapshot?.brand ?? null,
+        selectedTyrePattern: priced.selectedTyreSnapshot?.pattern ?? null,
+        priceBreakdown: breakdown,
+        updatedAt: new Date(),
+      })
+      .where(eq(quickBookings.id, id));
+  };
+
+  try {
+    await db.transaction(async (tx) => {
+      await persistFinalizeWrites(tx);
+    });
+  } catch (error) {
+    const isUnsupportedTransaction =
+      error instanceof Error && error.message.includes('No transactions support');
+
+    if (!isUnsupportedTransaction) {
+      throw error;
+    }
+
+    console.warn('[quick-book:finalize] transaction unsupported, falling back to non-transactional writes');
+    await persistFinalizeWrites(db);
+  }
 
   // Notify admin
   createAdminNotification({
