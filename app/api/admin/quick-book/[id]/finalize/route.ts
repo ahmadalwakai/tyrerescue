@@ -22,6 +22,9 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { createAdminNotification } from '@/lib/notifications';
 import { createCheckoutSession } from '@/lib/stripe';
+import { resolveDistance } from '@/lib/mapbox';
+import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
+import { GARAGE_ADDRESS } from '@/lib/garage';
 
 const SERVICE_MAP: Record<string, string> = {
   fit: 'tyre_replacement',
@@ -31,7 +34,7 @@ const SERVICE_MAP: Record<string, string> = {
 
 const COMPANY = {
   name: 'Tyre Rescue',
-  address: '3, 10 Gateside St, Glasgow G31 1PD',
+  address: GARAGE_ADDRESS,
   phone: '0141 266 0690',
   email: 'support@tyrerescue.uk',
 };
@@ -95,6 +98,23 @@ export async function POST(
   const lat = Number(qb.locationLat);
   const lng = Number(qb.locationLng);
 
+  const fallbackDistanceKm = qb.distanceKm ? Number(qb.distanceKm) : NaN;
+  let resolvedDistanceMiles = Number.isFinite(fallbackDistanceKm)
+    ? fallbackDistanceKm * 0.621371
+    : 5;
+  let resolvedDistanceSource: 'driver' | 'garage' = 'garage';
+
+  try {
+    const driverCandidates = await loadAvailableDriverDistanceCandidates();
+    const distanceResult = await resolveDistance({ lat, lng }, driverCandidates);
+    resolvedDistanceMiles = distanceResult.distanceMiles;
+    resolvedDistanceSource = distanceResult.distanceSource;
+  } catch (distanceError) {
+    console.error('[quick-book:finalize] distance resolution fallback', distanceError);
+  }
+
+  const resolvedDistanceKm = Math.round(resolvedDistanceMiles * 1.60934 * 100) / 100;
+
   const serviceType = qb.serviceType as QuickBookServiceType;
   const quantity = qb.tyreCount ?? 1;
 
@@ -126,7 +146,7 @@ export async function POST(
       serviceType,
       tyreSize: qb.tyreSize ?? null,
       tyreCount: quantity,
-      distanceMiles: (qb.distanceKm ? Number(qb.distanceKm) : 5) * 0.621371,
+      distanceMiles: resolvedDistanceMiles,
       selectedTyreSnapshot,
       resolveTyreFromSize: false,
       requireTyreForFit: serviceType === 'fit',
@@ -198,8 +218,8 @@ export async function POST(
       addressLine,
       lat: String(lat),
       lng: String(lng),
-      distanceMiles: ((qb.distanceKm ? Number(qb.distanceKm) : 5) * 0.621371).toFixed(2),
-      distanceSource: 'service_center',
+      distanceMiles: resolvedDistanceMiles.toFixed(2),
+      distanceSource: resolvedDistanceSource,
       quantity,
       tyreSizeDisplay: qb.tyreSize || null,
       vehicleReg: null,
@@ -311,6 +331,7 @@ export async function POST(
         status: 'finalized',
         totalPrice: breakdown.total.toFixed(2),
         basePrice: breakdown.subtotal.toFixed(2),
+        distanceKm: resolvedDistanceKm.toFixed(2),
         selectedTyreProductId: priced.selectedTyreSnapshot?.productId ?? null,
         selectedTyreUnitPrice:
           priced.selectedTyreSnapshot?.unitPrice != null

@@ -4,13 +4,14 @@ import { db } from '@/lib/db';
 import { quickBookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { calculateDistance, SHOP_LOCATION } from '@/lib/distance';
+import { resolveDistance } from '@/lib/mapbox';
 import {
   calculateQuickBookPricing,
   extractQuickBookTyreSnapshot,
   QuickBookPricingError,
   type QuickBookServiceType,
 } from '@/lib/quick-book-pricing';
+import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
 
 const updateSchema = z.object({
   locationLat: z.number().nullable().optional(),
@@ -126,8 +127,9 @@ export async function PATCH(
 
   if ((hasField('locationLat') || hasField('locationLng')) && mergedLat != null && mergedLng != null && data.distanceKm === undefined) {
     try {
-      const distResult = await calculateDistance({ lat: mergedLat, lng: mergedLng }, SHOP_LOCATION);
-      mergedDistanceKm = distResult.drivingKm ?? distResult.straightLineKm;
+      const driverCandidates = await loadAvailableDriverDistanceCandidates();
+      const distResult = await resolveDistance({ lat: mergedLat, lng: mergedLng }, driverCandidates);
+      mergedDistanceKm = Math.round(distResult.distanceMiles * 1.60934 * 100) / 100;
       updateData.distanceKm = mergedDistanceKm != null ? String(mergedDistanceKm) : null;
     } catch {
       // Keep previous distance when recalculation fails.

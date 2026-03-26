@@ -5,12 +5,12 @@ import { quickBookings } from '@/lib/db/schema';
 import { desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
-import { geocodeAddress } from '@/lib/mapbox';
-import { calculateDistance, SHOP_LOCATION } from '@/lib/distance';
+import { geocodeAddress, resolveDistance } from '@/lib/mapbox';
 import {
   calculateQuickBookPricing,
   QuickBookPricingError,
 } from '@/lib/quick-book-pricing';
+import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
 import {
   buildLocationWhatsAppMessage,
   buildWhatsAppUrl,
@@ -89,8 +89,9 @@ export async function POST(request: Request) {
 
   if (lat && lng) {
     try {
-      const distResult = await calculateDistance({ lat, lng }, SHOP_LOCATION);
-      distanceKm = distResult.drivingKm ?? distResult.straightLineKm;
+      const driverCandidates = await loadAvailableDriverDistanceCandidates();
+      const distResult = await resolveDistance({ lat, lng }, driverCandidates);
+      distanceKm = Math.round(distResult.distanceMiles * 1.60934 * 100) / 100;
     } catch { /* fallback */ }
   }
 

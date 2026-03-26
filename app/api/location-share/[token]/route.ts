@@ -3,9 +3,10 @@ import { db } from '@/lib/db';
 import { quickBookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { calculateDistance, SHOP_LOCATION } from '@/lib/distance';
+import { resolveDistance } from '@/lib/mapbox';
 import { getPricingConfig, isNightWindow } from '@/lib/pricing-config';
 import { calculateDynamicSurchargeBreakdown } from '@/lib/pricing-engine';
+import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
 
 const submitSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -88,16 +89,17 @@ export async function POST(
     return NextResponse.json({ error: 'Link expired' }, { status: 410 });
   }
 
-  // Calculate distance from shop to customer
+  // Calculate distance from nearest available driver, fallback to garage.
   let distanceKm: number | null = null;
   try {
-    const result = await calculateDistance(
+    const driverCandidates = await loadAvailableDriverDistanceCandidates();
+    const result = await resolveDistance(
       { lat: parsed.data.lat, lng: parsed.data.lng },
-      SHOP_LOCATION
+      driverCandidates,
     );
-    distanceKm = result.drivingKm ?? result.straightLineKm;
+    distanceKm = Math.round(result.distanceMiles * 1.60934 * 100) / 100;
   } catch {
-    // Fallback: use haversine already in calculateDistance
+    // Keep null; pricing falls back safely.
   }
 
   // Reprice with dynamic surcharge

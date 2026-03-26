@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Box, VStack, HStack, Text, Spinner } from '@chakra-ui/react';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { GARAGE_LOCATION } from '@/lib/garage';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 // Set Mapbox access token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
 
-// Duke Street Tyres, Glasgow (service location)
-const SHOP_LOCATION = { lat: 55.8547, lng: -4.2206 };
+const SHOP_LOCATION = GARAGE_LOCATION;
 
 interface QuickBookMapProps {
   customerLat: number;
@@ -118,7 +118,7 @@ export function QuickBookMap({
 
     shopMarker.current = new mapboxgl.Marker(shopEl)
       .setLngLat([SHOP_LOCATION.lng, SHOP_LOCATION.lat])
-      .setPopup(new mapboxgl.Popup({ offset: 15 }).setHTML('<strong>Duke Street Tyres</strong><br/>Service Location'))
+      .setPopup(new mapboxgl.Popup({ offset: 15 }).setHTML('<strong>Tyre Rescue Garage</strong><br/>Service Location'))
       .addTo(map.current);
 
     // Add customer marker (destination - green)

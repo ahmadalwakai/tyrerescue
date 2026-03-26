@@ -632,7 +632,7 @@ export function BookingDetailClient({
             {booking.distanceMiles && (
               <Text fontSize="sm" color={c.muted} mb={4}>
                 {Number(booking.distanceMiles) < 0.1 ? '< 0.1' : booking.distanceMiles} miles from{' '}
-                {booking.distanceSource === 'driver' ? 'nearest driver' : booking.distanceSource === 'service_area' ? 'service area' : 'depot'}
+                {booking.distanceSource === 'driver' ? 'nearest driver' : 'garage'}
               </Text>
             )}
           </Box>

@@ -3,10 +3,9 @@ import {
   haversineDistanceMiles,
   metersToMiles,
   secondsToMinutes,
-  SERVICE_CENTER,
   resolveDistance,
-  type DistanceResult,
 } from '../mapbox';
+import { GARAGE_LOCATION } from '../garage';
 
 // Mock global fetch for Mapbox API calls
 const mockFetch = vi.fn();
@@ -58,10 +57,10 @@ describe('secondsToMinutes', () => {
   });
 });
 
-describe('SERVICE_CENTER', () => {
+describe('GARAGE_LOCATION', () => {
   it('has Glasgow coordinates', () => {
-    expect(SERVICE_CENTER.lat).toBeCloseTo(55.85, 1);
-    expect(SERVICE_CENTER.lng).toBeCloseTo(-4.22, 1);
+    expect(GARAGE_LOCATION.lat).toBeCloseTo(55.85, 1);
+    expect(GARAGE_LOCATION.lng).toBeCloseTo(-4.22, 1);
   });
 });
 
@@ -90,7 +89,7 @@ describe('resolveDistance', () => {
     // 8000 meters = ~5 miles, 600 seconds = 10 minutes
     mockMapboxDirections(8000, 600);
 
-    const result = await resolveDistance(customer, drivers, []);
+    const result = await resolveDistance(customer, drivers);
 
     expect(result.distanceSource).toBe('driver');
     expect(result.distanceProvider).toBe('mapbox');
@@ -110,7 +109,7 @@ describe('resolveDistance', () => {
     // 2nd mock for drv-far-fast: 8000m, 600s (10 min)
     mockMapboxDirections(8000, 600);
 
-    const result = await resolveDistance(customer, drivers, []);
+    const result = await resolveDistance(customer, drivers);
 
     expect(result.distanceSource).toBe('driver');
     // Should select faster driver by duration, not by haversine
@@ -118,35 +117,34 @@ describe('resolveDistance', () => {
     expect(result.durationMinutes).toBe(10);
   });
 
-  it('falls back to service area when no drivers available', async () => {
-    const areas = [{ id: 'area-1', lat: 55.86, lng: -4.25 }];
+  it('falls back to garage when no drivers available', async () => {
     mockMapboxDirections(10000, 900);
 
-    const result = await resolveDistance(customer, [], areas);
+    const result = await resolveDistance(customer, []);
 
-    expect(result.distanceSource).toBe('service_area');
+    expect(result.distanceSource).toBe('garage');
     expect(result.distanceProvider).toBe('mapbox');
-    expect(result.selectedServiceAreaId).toBe('area-1');
     expect(result.selectedDriverId).toBeNull();
+    expect(result.fallbackReason).toBe('No available drivers; using garage fallback');
   });
 
-  it('falls back to SERVICE_CENTER when no drivers and no areas', async () => {
+  it('uses garage coordinates when no drivers are available', async () => {
     mockMapboxDirections(50000, 3600);
 
-    const result = await resolveDistance(customer, [], []);
+    const result = await resolveDistance(customer, []);
 
-    expect(result.distanceSource).toBe('service_center');
+    expect(result.distanceSource).toBe('garage');
     expect(result.distanceProvider).toBe('mapbox');
-    expect(result.originLat).toBeCloseTo(SERVICE_CENTER.lat, 1);
-    expect(result.originLng).toBeCloseTo(SERVICE_CENTER.lng, 1);
-    expect(result.fallbackReason).toBe('No drivers or service areas available');
+    expect(result.originLat).toBeCloseTo(GARAGE_LOCATION.lat, 1);
+    expect(result.originLng).toBeCloseTo(GARAGE_LOCATION.lng, 1);
+    expect(result.fallbackReason).toBe('No available drivers; using garage fallback');
   });
 
   it('uses haversine when all Mapbox calls fail for drivers', async () => {
     const drivers = [{ id: 'drv-1', lat: 55.86, lng: -4.25 }];
     mockMapboxFail();
 
-    const result = await resolveDistance(customer, drivers, []);
+    const result = await resolveDistance(customer, drivers);
 
     expect(result.distanceSource).toBe('driver');
     expect(result.distanceProvider).toBe('haversine');
@@ -155,29 +153,24 @@ describe('resolveDistance', () => {
     expect(result.distanceMiles).toBeGreaterThan(0);
   });
 
-  it('uses haversine from SERVICE_CENTER as absolute last resort', async () => {
+  it('uses haversine from garage as absolute last resort', async () => {
     // All Mapbox calls fail
-    mockMapboxFail(); // SERVICE_CENTER attempt
+    mockMapboxFail(); // garage attempt
 
-    const result = await resolveDistance(customer, [], []);
+    const result = await resolveDistance(customer, []);
 
-    expect(result.distanceSource).toBe('service_center');
+    expect(result.distanceSource).toBe('garage');
     expect(result.distanceProvider).toBe('haversine');
-    expect(result.fallbackReason).toBe('All Mapbox calls failed, haversine from SERVICE_CENTER');
+    expect(result.fallbackReason).toBe('No available drivers; mapbox unavailable, using haversine from garage');
     expect(result.distanceMiles).toBeGreaterThan(0);
   });
 
-  it('skips to service areas when Mapbox fails for drivers but works for areas', async () => {
+  it('uses driver haversine fallback when drivers exist and Mapbox fails', async () => {
     const drivers = [{ id: 'drv-1', lat: 55.86, lng: -4.25 }];
-    const areas = [{ id: 'area-1', lat: 55.86, lng: -4.25 }];
-    mockMapboxFail(); // driver fails
-    mockMapboxDirections(10000, 900); // area succeeds
+    mockMapboxFail();
 
-    // With the current fallback chain, when Mapbox fails for drivers it uses
-    // haversine for driver (since drivers exist) — it doesn't skip to areas
-    const result = await resolveDistance(customer, drivers, areas);
+    const result = await resolveDistance(customer, drivers);
 
-    // Driver haversine fallback is used since drivers exist
     expect(result.distanceSource).toBe('driver');
     expect(result.distanceProvider).toBe('haversine');
   });
@@ -186,7 +179,7 @@ describe('resolveDistance', () => {
     const drivers = [{ id: 'drv-1', lat: 55.86, lng: -4.25 }];
     mockMapboxDirections(8000, 600);
 
-    const result = await resolveDistance(customer, drivers, []);
+    const result = await resolveDistance(customer, drivers);
 
     // Verify all metadata fields are present
     expect(result).toHaveProperty('distanceMiles');
@@ -200,6 +193,5 @@ describe('resolveDistance', () => {
     expect(result).toHaveProperty('distanceMeters', 8000);
     expect(result).toHaveProperty('durationSeconds', 600);
     expect(result).toHaveProperty('selectedDriverId', 'drv-1');
-    expect(result).toHaveProperty('selectedServiceAreaId', null);
   });
 });

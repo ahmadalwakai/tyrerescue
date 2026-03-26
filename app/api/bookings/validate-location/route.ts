@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { resolveDistance, haversineDistanceMiles, SERVICE_CENTER, type DistanceResult } from '@/lib/mapbox';
+import { resolveDistance, type DistanceResult } from '@/lib/mapbox';
 import { db } from '@/lib/db';
-import { serviceAreas, pricingRules, drivers } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { pricingRules } from '@/lib/db/schema';
 import { parsePricingRules } from '@/lib/pricing-engine';
+import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
 
 const validateLocationSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -16,7 +16,7 @@ const validateLocationSchema = z.object({
  * POST /api/bookings/validate-location
  *
  * Driver-based distance validation.
- * Priority: nearest driver → nearest service area → SERVICE_CENTER.
+ * Priority: nearest available driver → garage fallback.
  * Single source of truth for max distance: pricingRules.max_service_miles (default 190).
  */
 export async function POST(request: NextRequest) {
@@ -33,93 +33,34 @@ export async function POST(request: NextRequest) {
 
     const { lat, lng } = validation.data;
 
-    // Load pricing rules, drivers, and service areas in parallel.
-    // Use explicit column selection for serviceAreas to avoid crashes
-    // when DB schema is missing optional columns (e.g. "priority").
+    // Load pricing rules and available drivers in parallel.
     let rulesRows: Array<{ key: string; value: string }>;
-    let driverRows: Array<{ id: string; currentLat: string | null; currentLng: string | null; locationSource: string | null }>;
-    let areaRows: Array<{ id: string; name: string | null; centerLat: string | null; centerLng: string | null; radiusMiles: string | null }>;
+    let driverCandidates: Array<{ id: string; lat: number; lng: number }>;
 
     try {
-      const [r, d, a] = await Promise.all([
+      const [r, d] = await Promise.all([
         db.select().from(pricingRules),
-        db.select({
-          id: drivers.id,
-          currentLat: drivers.currentLat,
-          currentLng: drivers.currentLng,
-          locationSource: drivers.locationSource,
-        })
-          .from(drivers)
-          .where(and(eq(drivers.isOnline, true), eq(drivers.status, 'available'))),
-        db.select({
-          id: serviceAreas.id,
-          name: serviceAreas.name,
-          centerLat: serviceAreas.centerLat,
-          centerLng: serviceAreas.centerLng,
-          radiusMiles: serviceAreas.radiusMiles,
-        })
-          .from(serviceAreas)
-          .where(eq(serviceAreas.active, true)),
+        loadAvailableDriverDistanceCandidates(),
       ]);
       rulesRows = r.map((row) => ({ key: row.key, value: row.value }));
-      driverRows = d.map((row) => ({ id: row.id, currentLat: row.currentLat, currentLng: row.currentLng, locationSource: row.locationSource }));
-      areaRows = a.map((row) => ({ id: row.id, name: row.name, centerLat: row.centerLat, centerLng: row.centerLng, radiusMiles: row.radiusMiles }));
+      driverCandidates = d;
     } catch (dbError) {
-      // DB query failed (e.g. schema mismatch) — fall back to driver-only or SERVICE_CENTER
+      // DB query failed — allow garage fallback resolution.
       console.error('validate-location DB error (falling back):', dbError);
       rulesRows = [];
-      driverRows = [];
-      areaRows = [];
+      driverCandidates = [];
     }
 
     const parsedRules = parsePricingRules(rulesRows);
     const maxServiceMiles = parsedRules.max_service_miles;
 
-    // Build driver candidates — prefer mobile app sourced locations
-    const driverCandidates = driverRows
-      .filter((d) => d.currentLat != null && d.currentLng != null)
-      .map((d) => ({
-        id: d.id,
-        lat: parseFloat(d.currentLat!),
-        lng: parseFloat(d.currentLng!),
-        isMobile: d.locationSource === 'mobile_app',
-      }))
-      .filter((d) => !isNaN(d.lat) && !isNaN(d.lng))
-      .sort((a, b) => (a.isMobile === b.isMobile ? 0 : a.isMobile ? -1 : 1))
-      .map(({ id, lat, lng }) => ({ id, lat, lng }));
-
-    // Build service area candidates
-    const areaCandidates = areaRows
-      .filter((a) => a.centerLat != null && a.centerLng != null)
-      .map((a) => ({
-        id: a.id,
-        lat: Number(a.centerLat),
-        lng: Number(a.centerLng),
-      }));
-
-    // Resolve distance: driver → service area → SERVICE_CENTER
-    const result: DistanceResult = await resolveDistance(
-      { lat, lng },
-      driverCandidates,
-      areaCandidates,
-    );
+    // Resolve distance: driver → garage.
+    const result: DistanceResult = await resolveDistance({ lat, lng }, driverCandidates);
 
     const distanceMiles = result.distanceMiles;
     const valid = distanceMiles <= maxServiceMiles;
 
-    // Find nearest area name for human-readable message
-    let nearestAreaName = 'Glasgow';
-    if (areaCandidates.length > 0) {
-      let best = Infinity;
-      for (const a of areaRows) {
-        if (!a.centerLat || !a.centerLng) continue;
-        const d = haversineDistanceMiles(
-          { lat: Number(a.centerLat), lng: Number(a.centerLng) },
-          { lat, lng },
-        );
-        if (d < best) { best = d; nearestAreaName = a.name || 'Glasgow'; }
-      }
-    }
+    const nearestAreaName = 'Glasgow';
 
     console.log('[validate-location]', {
       lat, lng, distanceMiles: result.distanceMiles,
@@ -136,7 +77,7 @@ export async function POST(request: NextRequest) {
       distanceProvider: result.distanceProvider,
       selectedDriverId: result.selectedDriverId,
       message: valid
-        ? `Location is ${Math.round(distanceMiles)} miles from ${result.distanceSource === 'driver' ? 'nearest driver' : nearestAreaName}`
+        ? `Location is ${Math.round(distanceMiles)} miles from ${result.distanceSource === 'driver' ? 'nearest driver' : 'garage'}`
         : `We do not currently cover your area (${Math.round(distanceMiles)} miles). Call 0141 266 0690 to discuss.`,
     });
   } catch (error) {

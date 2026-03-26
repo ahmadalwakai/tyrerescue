@@ -4,12 +4,10 @@ import { db } from '@/lib/db';
 import {
   tyreProducts,
   pricingRules,
-  drivers,
   bankHolidays,
   quotes,
-  serviceAreas,
 } from '@/lib/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import {
   calculatePricing,
   parsePricingRules,
@@ -20,6 +18,7 @@ import {
   resolveDistance,
   type DistanceResult,
 } from '@/lib/mapbox';
+import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
 import { v4 as uuidv4 } from 'uuid';
 import { Pool } from '@neondatabase/serverless';
 import { getSurgeResult } from '@/lib/surge';
@@ -185,26 +184,11 @@ export async function POST(
       : new Date();
     const bookingDateStr = bookingDate.toISOString().split('T')[0];
 
-    // --- Parallel data loading (pricing rules, bank holiday, drivers, service areas) ---
-    const [rulesRows, holidayResult, driverRows, areaRows] = await Promise.all([
+    // --- Parallel data loading (pricing rules, bank holiday, available drivers) ---
+    const [rulesRows, holidayResult, driverCandidates] = await Promise.all([
       db.select().from(pricingRules),
       db.select().from(bankHolidays).where(eq(bankHolidays.date, bookingDateStr)).limit(1),
-      db.select({
-        id: drivers.id,
-        currentLat: drivers.currentLat,
-        currentLng: drivers.currentLng,
-        locationAt: drivers.locationAt,
-        locationSource: drivers.locationSource,
-      })
-        .from(drivers)
-        .where(and(eq(drivers.isOnline, true), eq(drivers.status, 'available'))),
-      db.select({
-        id: serviceAreas.id,
-        name: serviceAreas.name,
-        centerLat: serviceAreas.centerLat,
-        centerLng: serviceAreas.centerLng,
-        radiusMiles: serviceAreas.radiusMiles,
-      }).from(serviceAreas).where(eq(serviceAreas.active, true)),
+      loadAvailableDriverDistanceCandidates(),
     ]);
 
     const parsedRules = parsePricingRules(
@@ -212,36 +196,9 @@ export async function POST(
     );
     const isBankHoliday = holidayResult.length > 0;
 
-    // Build driver candidates — skip drivers with invalid coordinates
-    // Sort mobile_app sourced locations first (authoritative operational source)
-    const driverCandidates = driverRows
-      .filter((d) => d.currentLat != null && d.currentLng != null)
-      .map((d) => ({
-        id: d.id,
-        lat: parseFloat(d.currentLat!),
-        lng: parseFloat(d.currentLng!),
-        isMobile: d.locationSource === 'mobile_app',
-      }))
-      .filter((d) => !isNaN(d.lat) && !isNaN(d.lng))
-      .sort((a, b) => (a.isMobile === b.isMobile ? 0 : a.isMobile ? -1 : 1))
-      .map(({ id, lat, lng }) => ({ id, lat, lng }));
-
-    // Build service area candidates
-    const areaCandidates = areaRows
-      .filter((a) => a.centerLat != null && a.centerLng != null)
-      .map((a) => ({
-        id: a.id,
-        lat: Number(a.centerLat),
-        lng: Number(a.centerLng),
-      }));
-
-    // --- Resolve distance (driver → service area → SERVICE_CENTER) ---
-    console.log('[DISTANCE CALC]', { driverCount: driverCandidates.length, areaCount: areaCandidates.length });
-    const distanceResult = await resolveDistance(
-      customerLocation,
-      driverCandidates,
-      areaCandidates,
-    );
+    // --- Resolve distance (driver → garage) ---
+    console.log('[DISTANCE CALC]', { driverCount: driverCandidates.length });
+    const distanceResult = await resolveDistance(customerLocation, driverCandidates);
 
     const distanceMiles = distanceResult.distanceMiles;
 
@@ -408,7 +365,6 @@ export async function POST(
           distanceProvider: distanceResult.distanceProvider,
           distanceSource: distanceResult.distanceSource,
           selectedDriverId: distanceResult.selectedDriverId,
-          selectedServiceAreaId: distanceResult.selectedServiceAreaId,
           fallbackReason: distanceResult.fallbackReason,
         },
       });
@@ -692,7 +648,6 @@ export async function POST(
           distanceProvider: distanceResult.distanceProvider,
           distanceSource: distanceResult.distanceSource,
           selectedDriverId: distanceResult.selectedDriverId,
-          selectedServiceAreaId: distanceResult.selectedServiceAreaId,
           fallbackReason: distanceResult.fallbackReason,
         },
       });

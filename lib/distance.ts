@@ -3,8 +3,13 @@
  * Haversine + optional Mapbox driving directions.
  */
 
-/** Duke Street Tyres, Glasgow */
-export const SHOP_LOCATION = { lat: 55.8547, lng: -4.2206 } as const;
+import { GARAGE_LOCATION } from '@/lib/garage';
+
+/** Shared garage location source of truth. */
+export { GARAGE_LOCATION };
+
+/** @deprecated Use GARAGE_LOCATION. */
+export const SHOP_LOCATION = GARAGE_LOCATION;
 
 export interface DistanceResult {
   straightLineKm: number;
@@ -39,12 +44,12 @@ function toRad(deg: number): number {
 const KM_TO_MILES = 0.621371;
 
 /**
- * Calculate distance from shop (or custom origin) to destination.
+ * Calculate distance from garage (or custom origin) to destination.
  * Uses Mapbox driving directions when MAPBOX_TOKEN is set.
  */
 export async function calculateDistance(
   destination: { lat: number; lng: number },
-  origin: { lat: number; lng: number } = SHOP_LOCATION
+  origin: { lat: number; lng: number } = GARAGE_LOCATION
 ): Promise<DistanceResult> {
   const straightLineKm = haversineKm(origin, destination);
   const straightLineMiles = straightLineKm * KM_TO_MILES;

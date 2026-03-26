@@ -244,6 +244,12 @@ export async function POST(
         (sum, s) => sum + s.quantity,
         0
       );
+      const normalizedDistanceSource =
+        quote.metadata?.distanceSource === 'driver'
+          ? 'driver'
+          : quote.metadata?.distanceSource
+            ? 'garage'
+            : null;
 
       await db.insert(bookings).values({
         id: bookingId,
@@ -256,7 +262,7 @@ export async function POST(
         lat: quote.lat.toString(),
         lng: quote.lng.toString(),
         distanceMiles: quote.distance_miles.toString(),
-        distanceSource: quote.metadata?.distanceSource ?? null,
+        distanceSource: normalizedDistanceSource,
         quantity: totalQuantity,
         tyreSizeDisplay: data.tyreSizeDisplay || null,
         vehicleReg: data.vehicleReg || null,

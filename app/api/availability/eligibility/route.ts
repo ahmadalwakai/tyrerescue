@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { drivers, users, serviceAreas, pricingRules, bookings } from '@/lib/db/schema';
+import { drivers, users, pricingRules, bookings } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { resolveDistance } from '@/lib/mapbox';
 import { parsePricingRules } from '@/lib/pricing-engine';
@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Load pricing rules, drivers, active bookings, and service areas in parallel.
-    const [rulesRows, allDrivers, activeBookingRows, areas] = await Promise.all([
+    // Load pricing rules, drivers, and active bookings in parallel.
+    const [rulesRows, allDrivers, activeBookingRows] = await Promise.all([
       db.select().from(pricingRules),
       db
         .select({
@@ -48,14 +48,6 @@ export async function POST(request: NextRequest) {
         .where(
           inArray(bookings.status, ['driver_assigned', 'en_route', 'arrived', 'in_progress']),
         ),
-      db
-        .select({
-          id: serviceAreas.id,
-          lat: serviceAreas.centerLat,
-          lng: serviceAreas.centerLng,
-        })
-        .from(serviceAreas)
-        .where(eq(serviceAreas.active, true)),
     ]);
 
     // Build active booking map
@@ -99,19 +91,10 @@ export async function POST(request: NextRequest) {
         lng: Number(d.lng),
       }));
 
-    const areaCandidates = areas
-      .filter((a) => a.lat && a.lng)
-      .map((a) => ({
-        id: a.id,
-        lat: Number(a.lat),
-        lng: Number(a.lng),
-      }));
-
-    // Resolve distance using the fallback chain
+    // Resolve distance using fallback chain: nearest driver → garage.
     const result = await resolveDistance(
       { lat, lng },
       freshDrivers.map((d) => ({ id: d.id, lat: d.lat, lng: d.lng })),
-      areaCandidates,
     );
 
     const eligible = result.distanceMiles <= maxServiceMiles;
@@ -168,7 +151,7 @@ export async function POST(request: NextRequest) {
       message: eligible
         ? freshDrivers.length > 0
           ? `Nearest driver approximately ${etaLabel} away`
-          : `Estimated arrival ${etaLabel} (from service center)`
+          : `Estimated arrival ${etaLabel} (from garage)`
         : 'This location is outside our emergency service area',
     });
   } catch (error) {
