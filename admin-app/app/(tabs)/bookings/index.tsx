@@ -1,14 +1,19 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
-import { Screen } from '@/ui/Screen';
-import { InputField } from '@/ui/InputField';
-import { StateView } from '@/ui/StateView';
-import { StatusPill } from '@/ui/StatusPill';
-import { PrimaryButton } from '@/ui/PrimaryButton';
-import { colors } from '@/ui/theme';
+import {
+  Screen,
+  SectionHeader,
+  InputField,
+  StateView,
+  StatusChip,
+  PrimaryButton,
+  ListRow,
+  colors,
+  spacing,
+} from '@/ui';
 
 type BookingItem = {
   refNumber: string;
@@ -47,88 +52,98 @@ export default function BookingsListScreen() {
 
   const errorMessage = error instanceof Error ? error.message : null;
 
+  const handleApplyFilters = () => {
+    setAppliedSearch(search);
+    setAppliedStatus(status || 'all');
+  };
+
   return (
     <Screen>
-      <Text style={styles.title}>Bookings</Text>
-      <Text style={styles.subtitle}>Search by ref, customer, email, or tyre size</Text>
-
-      <View style={styles.filters}>
-        <InputField label="Search" value={search} onChangeText={setSearch} placeholder="TR-12345 or customer name" />
+      {/* Filter Section */}
+      <View style={styles.filterPanel}>
+        <InputField
+          label="Search"
+          value={search}
+          onChangeText={setSearch}
+          placeholder="ref, customer, email, tyre"
+          keyboardType="default"
+        />
         <InputField
           label="Status"
           value={status}
           onChangeText={setStatus}
-          placeholder="all | paid | driver_assigned | completed"
+          placeholder="all, pending, confirmed, completed"
+          keyboardType="default"
         />
         <PrimaryButton
-          title={isFetching ? 'Refreshing...' : 'Apply filters'}
-          onPress={() => {
-            setAppliedSearch(search);
-            setAppliedStatus(status || 'all');
-          }}
+          title={isFetching ? 'Searching...' : 'Apply Filters'}
+          onPress={handleApplyFilters}
           disabled={isFetching}
+          size="md"
         />
       </View>
 
-      <StateView loading={isLoading} error={errorMessage} empty={!data?.items?.length} emptyLabel="No bookings found." />
+      {/* Results Section */}
+      <SectionHeader
+        title="Bookings"
+        subtitle={data?.totalCount ? `${data.totalCount} total` : undefined}
+        action="Refresh"
+        onActionPress={() => refetch()}
+      />
 
-      {data?.items?.map((booking) => (
-        <Pressable key={booking.refNumber} style={styles.row} onPress={() => router.push(`/(tabs)/bookings/${booking.refNumber}`)}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.ref}>{booking.refNumber}</Text>
-            <Text style={styles.meta}>{booking.customerName} • {booking.serviceType}</Text>
-            <Text style={styles.meta}>Driver: {booking.driverName || 'Unassigned'}</Text>
-            <Text style={styles.meta}>GBP {booking.totalAmount}</Text>
-          </View>
-          <StatusPill label={booking.status} />
-        </Pressable>
-      ))}
+      <StateView
+        loading={isLoading}
+        error={errorMessage}
+        empty={!data?.items?.length}
+        emptyLabel="No bookings found. Try adjusting your filters."
+      />
+
+      {data?.items && data.items.length > 0 && (
+        <View style={styles.bookingsList}>
+          {data.items.map((booking, index) => (
+            <ListRow
+              key={booking.refNumber}
+              title={booking.refNumber}
+              subtitle={`${booking.customerName} • ${booking.serviceType}`}
+              rightContent={<StatusChip status={booking.status} />}
+              onPress={() => router.push(`/(tabs)/bookings/${booking.refNumber}`)}
+              divider={index < data.items.length - 1}
+            />
+          ))}
+        </View>
+      )}
 
       <View style={styles.footer}>
-        <Text style={styles.meta}>Total {data?.totalCount ?? 0} bookings</Text>
-        <PrimaryButton title="Manual refresh" onPress={() => refetch()} tone="neutral" />
+        <PrimaryButton
+          title="Manual Refresh"
+          onPress={() => refetch()}
+          variant="neutral"
+          size="sm"
+        />
       </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  subtitle: {
-    marginTop: 4,
-    marginBottom: 10,
-    color: colors.muted,
-    fontSize: 13,
-  },
-  filters: {
-    marginBottom: 12,
-  },
-  row: {
+  filterPanel: {
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 12,
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
   },
-  ref: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  meta: {
-    marginTop: 2,
-    fontSize: 12,
-    color: colors.muted,
+  bookingsList: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: spacing.lg,
   },
   footer: {
-    marginTop: 6,
-    marginBottom: 18,
+    marginTop: spacing.lg,
+    marginBottom: spacing.xl,
   },
 });

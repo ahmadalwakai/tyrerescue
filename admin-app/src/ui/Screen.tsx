@@ -1,12 +1,20 @@
 import { PropsWithChildren } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '@/ui/theme';
+import { colors, spacing } from '@/ui/theme';
 
-export function Screen({ children }: PropsWithChildren) {
+interface ScreenProps extends PropsWithChildren {
+  contentStyle?: ViewStyle;
+}
+
+/**
+ * Screen - Main screen wrapper with safe area, scrollable content
+ * Provides consistent dark background and padding
+ */
+export function Screen({ children, contentStyle }: ScreenProps) {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, contentStyle]} keyboardShouldPersistTaps="handled">
         <View>{children}</View>
       </ScrollView>
     </SafeAreaView>
@@ -19,7 +27,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   content: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: spacing.lg,
+    paddingBottom: spacing['3xl'],
   },
 });

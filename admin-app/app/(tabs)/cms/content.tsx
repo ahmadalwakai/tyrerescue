@@ -85,12 +85,12 @@ const styles = StyleSheet.create({
   },
   value: {
     marginTop: 4,
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 12,
   },
   label: {
     marginTop: 2,
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 11,
   },
 });

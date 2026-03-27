@@ -5,7 +5,7 @@ import { Screen } from '@/ui/Screen';
 import { Card } from '@/ui/Card';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusPill } from '@/ui/StatusPill';
+import { StatusChip } from "@/ui/StatusPill";
 import { colors } from '@/ui/theme';
 
 type Testimonial = {
@@ -48,7 +48,7 @@ export default function TestimonialsScreen() {
         <Card key={item.id}>
           <Text style={styles.author}>{item.authorName}</Text>
           <Text style={styles.body}>{item.content}</Text>
-          <StatusPill label={item.featured ? 'featured' : 'standard'} />
+          <StatusChip status={item.featured ? 'featured' : 'standard'} />
           <PrimaryButton
             title={item.featured ? 'Unfeature' : 'Feature'}
             onPress={() => mutation.mutate({ id: item.id, featured: !item.featured })}
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   },
   body: {
     marginTop: 4,
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 12,
   },
 });

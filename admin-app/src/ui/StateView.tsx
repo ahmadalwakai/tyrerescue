@@ -1,18 +1,21 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { colors } from '@/ui/theme';
+import { colors, spacing, typography } from '@/ui/theme';
 
-interface Props {
+interface StateViewProps {
   loading?: boolean;
   error?: string | null;
   empty?: boolean;
   emptyLabel?: string;
 }
 
-export function StateView({ loading, error, empty, emptyLabel = 'No results found.' }: Props) {
+/**
+ * StateView - Displays loading, error, or empty states with consistent styling
+ */
+export function StateView({ loading, error, empty, emptyLabel = 'No results found.' }: StateViewProps) {
   if (loading) {
     return (
       <View style={styles.wrap}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
   }
@@ -38,18 +41,18 @@ export function StateView({ loading, error, empty, emptyLabel = 'No results foun
 
 const styles = StyleSheet.create({
   wrap: {
-    paddingVertical: 20,
+    paddingVertical: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   error: {
-    color: colors.danger,
-    fontSize: 14,
+    color: colors.error,
+    fontSize: typography.size.base,
     textAlign: 'center',
   },
   empty: {
-    color: colors.muted,
-    fontSize: 14,
+    color: colors.textMuted,
+    fontSize: typography.size.base,
     textAlign: 'center',
   },
 });

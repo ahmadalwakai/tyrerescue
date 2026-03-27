@@ -5,7 +5,7 @@ import { Screen } from '@/ui/Screen';
 import { Card } from '@/ui/Card';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusPill } from '@/ui/StatusPill';
+import { StatusChip } from "@/ui/StatusPill";
 import { colors } from '@/ui/theme';
 
 type NotificationResponse = {
@@ -64,7 +64,7 @@ export default function NotificationsScreen() {
               <Text style={styles.name}>{item.title}</Text>
               <Text style={styles.meta}>{item.body}</Text>
             </View>
-            <StatusPill label={item.severity} />
+            <StatusChip status={item.severity} />
           </View>
           <Text style={styles.meta}>{item.createdAt || ''}</Text>
         </Card>
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 2,
     marginBottom: 8,
-    color: colors.muted,
+    color: colors.textMuted,
   },
   section: {
     marginTop: 8,
@@ -113,6 +113,6 @@ const styles = StyleSheet.create({
   meta: {
     marginTop: 2,
     fontSize: 12,
-    color: colors.muted,
+    color: colors.textMuted,
   },
 });

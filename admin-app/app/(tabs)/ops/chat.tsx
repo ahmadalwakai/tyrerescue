@@ -7,7 +7,7 @@ import { Card } from '@/ui/Card';
 import { InputField } from '@/ui/InputField';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusPill } from '@/ui/StatusPill';
+import { StatusChip } from "@/ui/StatusPill";
 import { colors } from '@/ui/theme';
 
 type Conversation = {
@@ -83,7 +83,7 @@ export default function ChatScreen() {
               <Text style={styles.meta}>Booking: {conversation.bookingRef || 'N/A'}</Text>
               <Text style={styles.meta}>Channel: {conversation.channel}</Text>
             </View>
-            <StatusPill label={conversation.status} />
+            <StatusChip status={conversation.status} />
           </View>
           <PrimaryButton title="Open" onPress={() => setSelectedConversationId(conversation.id)} />
         </Card>
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 3,
     marginBottom: 10,
-    color: colors.muted,
+    color: colors.textMuted,
   },
   rowTop: {
     flexDirection: 'row',
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   meta: {
     marginTop: 2,
     fontSize: 12,
-    color: colors.muted,
+    color: colors.textMuted,
   },
   sectionTitle: {
     fontSize: 16,

@@ -31,6 +31,6 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 4,
     marginBottom: 10,
-    color: colors.muted,
+    color: colors.textMuted,
   },
 });

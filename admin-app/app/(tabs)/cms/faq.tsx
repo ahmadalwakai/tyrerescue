@@ -7,7 +7,7 @@ import { Card } from '@/ui/Card';
 import { InputField } from '@/ui/InputField';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusPill } from '@/ui/StatusPill';
+import { StatusChip } from "@/ui/StatusPill";
 import { colors } from '@/ui/theme';
 
 type FaqItem = {
@@ -70,10 +70,10 @@ export default function FaqScreen() {
         <Card key={item.id}>
           <Text style={styles.question}>{item.question}</Text>
           <Text style={styles.answer}>{item.answer}</Text>
-          <StatusPill label={item.active ? 'active' : 'inactive'} />
+          <StatusChip status={item.active ? 'active' : 'inactive'} />
           <PrimaryButton
             title={item.active ? 'Deactivate' : 'Activate'}
-            tone="neutral"
+            variant="neutral"
             onPress={() => toggleMutation.mutate({ id: item.id, active: !item.active })}
             disabled={toggleMutation.isPending}
           />
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   answer: {
-    color: colors.muted,
+    color: colors.textMuted,
     marginTop: 4,
     fontSize: 12,
   },

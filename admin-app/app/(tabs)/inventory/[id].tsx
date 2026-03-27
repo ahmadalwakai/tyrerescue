@@ -87,7 +87,7 @@ export default function InventoryDetailScreen() {
             <Text style={styles.section}>Danger zone</Text>
             <PrimaryButton
               title={deleteMutation.isPending ? 'Deleting...' : 'Delete product'}
-              tone="danger"
+              variant="danger"
               disabled={deleteMutation.isPending}
               onPress={() => {
                 Alert.alert('Delete product', 'This cannot be undone.', [
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   meta: {
     marginTop: 4,
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 13,
   },
 });

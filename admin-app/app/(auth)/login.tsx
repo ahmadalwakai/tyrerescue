@@ -58,10 +58,10 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 4,
     fontSize: 14,
-    color: colors.muted,
+    color: colors.textMuted,
   },
   error: {
-    color: colors.danger,
+    color: colors.error,
     marginTop: 4,
     marginBottom: 4,
   },

@@ -8,7 +8,7 @@ import { Card } from '@/ui/Card';
 import { InputField } from '@/ui/InputField';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusPill } from '@/ui/StatusPill';
+import { StatusChip } from "@/ui/StatusPill";
 import { colors } from '@/ui/theme';
 
 type InvoiceDetail = {
@@ -59,7 +59,7 @@ export default function InvoiceDetailScreen() {
         <>
           <Card>
             <Text style={styles.title}>{data.invoice.invoiceNumber}</Text>
-            <StatusPill label={data.invoice.status} />
+            <StatusChip status={data.invoice.status} />
             <Text style={styles.meta}>{data.invoice.customerName}</Text>
             <Text style={styles.meta}>{data.invoice.customerEmail}</Text>
             <Text style={styles.meta}>GBP {data.invoice.totalAmount}</Text>
@@ -82,7 +82,7 @@ export default function InvoiceDetailScreen() {
             />
             <PrimaryButton
               title={deleteMutation.isPending ? 'Deleting...' : 'Delete invoice'}
-              tone="danger"
+              variant="danger"
               disabled={deleteMutation.isPending}
               onPress={() =>
                 Alert.alert('Delete invoice', 'This performs a soft delete.', [
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   },
   meta: {
     marginTop: 3,
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 12,
   },
 });

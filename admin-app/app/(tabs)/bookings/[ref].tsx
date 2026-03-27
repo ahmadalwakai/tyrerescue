@@ -8,7 +8,7 @@ import { Card } from '@/ui/Card';
 import { InputField } from '@/ui/InputField';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusPill } from '@/ui/StatusPill';
+import { StatusChip } from "@/ui/StatusPill";
 import { colors } from '@/ui/theme';
 
 type BookingDetailResponse = {
@@ -89,7 +89,7 @@ export default function BookingDetailScreen() {
         <>
           <Card>
             <Text style={styles.ref}>{data.booking.refNumber}</Text>
-            <StatusPill label={data.booking.status} />
+            <StatusChip status={data.booking.status} />
             <Text style={styles.meta}>{data.booking.customerName}</Text>
             <Text style={styles.meta}>{data.booking.customerPhone}</Text>
             <Text style={styles.meta}>{data.booking.customerEmail}</Text>
@@ -134,7 +134,7 @@ export default function BookingDetailScreen() {
               title={refundMutation.isPending ? 'Refunding...' : 'Issue refund'}
               onPress={() => refundMutation.mutate()}
               disabled={!refundReason || refundMutation.isPending}
-              tone="danger"
+              variant="danger"
             />
           </Card>
 
@@ -142,7 +142,7 @@ export default function BookingDetailScreen() {
             <Text style={styles.sectionTitle}>Recent timeline</Text>
             {data.statusHistory.slice(0, 8).map((entry) => (
               <View key={entry.id} style={styles.timelineRow}>
-                <StatusPill label={entry.toStatus} />
+                <StatusChip status={entry.toStatus} />
                 <Text style={styles.meta}>{entry.note || 'No note'}</Text>
                 <Text style={styles.tiny}>{entry.createdAt || ''}</Text>
               </View>
@@ -169,11 +169,11 @@ const styles = StyleSheet.create({
   },
   meta: {
     marginTop: 4,
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 13,
   },
   hint: {
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 12,
     marginBottom: 4,
   },
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   tiny: {
     fontSize: 11,
-    color: colors.muted,
+    color: colors.textMuted,
     marginTop: 4,
   },
 });

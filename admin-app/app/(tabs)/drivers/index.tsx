@@ -8,7 +8,7 @@ import { Card } from '@/ui/Card';
 import { InputField } from '@/ui/InputField';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusPill } from '@/ui/StatusPill';
+import { StatusChip } from "@/ui/StatusPill";
 import { colors } from '@/ui/theme';
 
 type DriverRow = {
@@ -75,7 +75,7 @@ export default function DriversScreen() {
             <Text style={styles.meta}>{driver.email}</Text>
             <Text style={styles.meta}>{driver.phone || 'No phone'}</Text>
           </View>
-          <StatusPill label={driver.status} />
+          <StatusChip status={driver.status} />
         </Pressable>
       ))}
 
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   meta: {
     marginTop: 2,
     fontSize: 12,
-    color: colors.muted,
+    color: colors.textMuted,
   },
   sectionTitle: {
     fontSize: 16,

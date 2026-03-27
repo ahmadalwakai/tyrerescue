@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   },
   meta: {
     marginTop: 2,
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 12,
   },
 });

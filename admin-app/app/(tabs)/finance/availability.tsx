@@ -7,7 +7,7 @@ import { Card } from '@/ui/Card';
 import { InputField } from '@/ui/InputField';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusPill } from '@/ui/StatusPill';
+import { StatusChip } from "@/ui/StatusPill";
 import { colors } from '@/ui/theme';
 
 type Slot = {
@@ -78,11 +78,11 @@ export default function AvailabilityScreen() {
               <Text style={styles.slot}>{slot.date} {slot.timeStart}-{slot.timeEnd}</Text>
               <Text style={styles.meta}>Occupancy {slot.occupancy}/{slot.maxBookings}</Text>
             </View>
-            <StatusPill label={slot.active ? 'active' : 'inactive'} />
+            <StatusChip status={slot.active ? 'active' : 'inactive'} />
           </View>
           <PrimaryButton
             title={slot.active ? 'Deactivate' : 'Activate'}
-            tone="neutral"
+            variant="neutral"
             onPress={() => toggleMutation.mutate({ id: slot.id, active: !slot.active })}
             disabled={toggleMutation.isPending}
           />
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   meta: {
     marginTop: 2,
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 12,
   },
 });

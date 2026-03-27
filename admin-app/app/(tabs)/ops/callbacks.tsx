@@ -5,7 +5,7 @@ import { Screen } from '@/ui/Screen';
 import { Card } from '@/ui/Card';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusPill } from '@/ui/StatusPill';
+import { StatusChip } from "@/ui/StatusPill";
 import { colors } from '@/ui/theme';
 
 type CallbackItem = {
@@ -54,7 +54,7 @@ export default function CallbacksScreen() {
               <Text style={styles.meta}>{item.phone}</Text>
               <Text style={styles.meta}>{item.notes || 'No notes'}</Text>
             </View>
-            <StatusPill label={item.status} />
+            <StatusChip status={item.status} />
           </View>
           <PrimaryButton
             title="Mark resolved"
@@ -63,7 +63,7 @@ export default function CallbacksScreen() {
           />
           <PrimaryButton
             title="Dismiss"
-            tone="neutral"
+            variant="neutral"
             onPress={() => mutation.mutate({ id: item.id, status: 'dismissed' })}
             disabled={item.status === 'dismissed' || mutation.isPending}
           />
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 3,
     marginBottom: 10,
-    color: colors.muted,
+    color: colors.textMuted,
   },
   rowTop: {
     flexDirection: 'row',
@@ -97,6 +97,6 @@ const styles = StyleSheet.create({
   meta: {
     marginTop: 2,
     fontSize: 12,
-    color: colors.muted,
+    color: colors.textMuted,
   },
 });

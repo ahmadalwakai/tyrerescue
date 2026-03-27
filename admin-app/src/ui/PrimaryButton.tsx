@@ -1,43 +1,61 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { colors } from '@/ui/theme';
+import { colors, radius, spacing, typography } from '@/ui/theme';
 
-interface Props {
+interface PrimaryButtonProps {
   title: string;
   onPress: () => void;
   disabled?: boolean;
-  tone?: 'primary' | 'danger' | 'neutral';
+  variant?: 'primary' | 'danger' | 'neutral' | 'success';
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export function PrimaryButton({ title, onPress, disabled, tone = 'primary' }: Props) {
-  const backgroundColor =
-    tone === 'danger' ? colors.danger : tone === 'neutral' ? '#324A5F' : colors.primary;
+/**
+ * PrimaryButton - Call-to-action button with design system styling
+ */
+export function PrimaryButton({
+  title,
+  onPress,
+  disabled,
+  variant = 'primary',
+  size = 'md',
+}: PrimaryButtonProps) {
+  const bgColor =
+    variant === 'danger'
+      ? colors.error
+      : variant === 'success'
+        ? colors.success
+        : variant === 'neutral'
+          ? colors.border
+          : colors.primary;
+
+  const height = size === 'sm' ? 36 : size === 'lg' ? 52 : 44;
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor, opacity: disabled ? 0.55 : pressed ? 0.85 : 1 },
+        { backgroundColor: bgColor, height, opacity: disabled ? 0.5 : pressed ? 0.8 : 1 },
       ]}
       onPress={onPress}
       disabled={disabled}
     >
-      <Text style={styles.label}>{title}</Text>
+      <Text style={[styles.label, { fontSize: typography.size[size === 'sm' ? 'xs' : size === 'lg' ? 'base' : 'sm'] }]}>
+        {title}
+      </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 42,
-    borderRadius: 10,
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
-    marginTop: 8,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.sm,
   },
   label: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+    color: colors.text,
+    fontWeight: typography.weight.semibold as any,
   },
 });

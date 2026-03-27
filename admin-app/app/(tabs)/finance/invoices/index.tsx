@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { Screen } from '@/ui/Screen';
 import { StateView } from '@/ui/StateView';
-import { StatusPill } from '@/ui/StatusPill';
+import { StatusChip } from "@/ui/StatusPill";
 import { colors } from '@/ui/theme';
 
 type InvoiceItem = {
@@ -42,7 +42,7 @@ export default function InvoicesScreen() {
           <Text style={styles.name}>{item.invoiceNumber}</Text>
           <Text style={styles.meta}>{item.customerName}</Text>
           <Text style={styles.meta}>GBP {item.totalAmount}</Text>
-          <StatusPill label={item.status} />
+          <StatusChip status={item.status} />
         </Pressable>
       ))}
     </Screen>
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   meta: {
-    color: colors.muted,
+    color: colors.textMuted,
     marginTop: 2,
     fontSize: 12,
   },

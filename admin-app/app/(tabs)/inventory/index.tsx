@@ -7,7 +7,7 @@ import { Screen } from '@/ui/Screen';
 import { InputField } from '@/ui/InputField';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusPill } from '@/ui/StatusPill';
+import { StatusChip } from "@/ui/StatusPill";
 import { colors } from '@/ui/theme';
 
 type InventoryItem = {
@@ -67,7 +67,7 @@ export default function InventoryScreen() {
             <Text style={styles.meta}>Stock: {item.stockNew ?? 0} • GBP {item.priceNew || '-'}</Text>
           </Pressable>
           {item.productId ? (
-            <StatusPill label="active" />
+            <StatusChip status="active" />
           ) : (
             <PrimaryButton
               title={activateMutation.isPending ? '...' : 'Activate'}
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   },
   meta: {
     marginTop: 2,
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 12,
   },
 });

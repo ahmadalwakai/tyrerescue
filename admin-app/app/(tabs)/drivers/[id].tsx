@@ -8,7 +8,7 @@ import { Card } from '@/ui/Card';
 import { InputField } from '@/ui/InputField';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusPill } from '@/ui/StatusPill';
+import { StatusChip } from "@/ui/StatusPill";
 import { colors } from '@/ui/theme';
 
 type DriverDetail = {
@@ -67,7 +67,7 @@ export default function DriverDetailScreen() {
         <>
           <Card>
             <Text style={styles.name}>{data.name}</Text>
-            <StatusPill label={data.status} />
+            <StatusChip status={data.status} />
             <Text style={styles.meta}>{data.email}</Text>
             <Text style={styles.meta}>{data.phone || 'No phone'}</Text>
             <Text style={styles.meta}>Total jobs: {data.totalJobs}</Text>
@@ -95,7 +95,7 @@ export default function DriverDetailScreen() {
             <PrimaryButton
               title={deleteMutation.isPending ? 'Deleting...' : 'Delete driver'}
               onPress={onDelete}
-              tone="danger"
+              variant="danger"
               disabled={deleteMutation.isPending}
             />
           </Card>
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   meta: {
     marginTop: 4,
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 13,
   },
 });
