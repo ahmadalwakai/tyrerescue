@@ -1,5 +1,4 @@
 {
-  "extends": "expo/tsconfig.base.json",
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
@@ -19,5 +18,9 @@
   "include": [
     "**/*.ts",
     "**/*.tsx"
-  ]
+  ],
+  "exclude": [
+    "tyre-rescue-admin/**"
+  ],
+  "extends": "expo/tsconfig.base"
 }
