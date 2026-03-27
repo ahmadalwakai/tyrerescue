@@ -8,8 +8,8 @@ import { Card } from '@/ui/Card';
 import { InputField } from '@/ui/InputField';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusChip } from "@/ui/StatusPill";
-import { colors } from '@/ui/theme';
+import { StatusChip } from '@/ui/StatusPill';
+import { colors, spacing, typography } from '@/ui/theme';
 
 type DriverDetail = {
   id: string;
@@ -81,7 +81,7 @@ export default function DriverDetailScreen() {
               label="Status"
               value={status}
               onChangeText={setStatus}
-              placeholder="offline | available | en_route | arrived | in_progress"
+              placeholder="e.g. offline, available"
             />
             <PrimaryButton
               title={updateMutation.isPending ? 'Updating...' : 'Save'}
@@ -107,20 +107,20 @@ export default function DriverDetailScreen() {
 
 const styles = StyleSheet.create({
   name: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: typography.size.xxl,
+    fontWeight: typography.weight.bold,
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   meta: {
-    marginTop: 4,
+    marginTop: spacing.xs,
     color: colors.textMuted,
-    fontSize: 13,
+    fontSize: typography.size.sm,
   },
 });

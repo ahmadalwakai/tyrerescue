@@ -8,15 +8,18 @@ import { Card } from '@/ui/Card';
 import { InputField } from '@/ui/InputField';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { colors } from '@/ui/theme';
+import { colors, spacing, typography } from '@/ui/theme';
 
-type InventoryProduct = {
-  id: string;
+/** Shape returned by GET /api/mobile/admin/inventory */
+type InventoryListItem = {
+  catalogueId: string;
+  productId: string | null;
   brand: string;
   pattern: string;
   sizeDisplay: string;
   season: string;
-  stockNew: number;
+  tier: string;
+  stockNew: number | null;
   priceNew: string | null;
 };
 
@@ -27,12 +30,14 @@ export default function InventoryDetailScreen() {
   const [stockNew, setStockNew] = useState('');
   const [priceNew, setPriceNew] = useState('');
 
-  const { data, isLoading, error } = useQuery<InventoryProduct>({
+  const { data, isLoading, error } = useQuery<InventoryListItem>({
     queryKey: ['inventory-product', id],
     queryFn: async () => {
-      const response = await apiClient.get<{ items: InventoryProduct[] }>(`/api/mobile/admin/inventory?status=active&perPage=200`);
-      const product = response.items.find((entry) => entry.id === id || (entry as unknown as { productId?: string }).productId === id);
-      if (!product) throw new Error('Product not found in active inventory payload');
+      const response = await apiClient.get<{ items: InventoryListItem[] }>(
+        `/api/mobile/admin/inventory?status=active&perPage=200`,
+      );
+      const product = response.items.find((entry) => entry.productId === id);
+      if (!product) throw new Error('Product not found');
       return product;
     },
     enabled: Boolean(id),
@@ -68,14 +73,14 @@ export default function InventoryDetailScreen() {
         <>
           <Card>
             <Text style={styles.title}>{data.brand} {data.pattern}</Text>
-            <Text style={styles.meta}>{data.sizeDisplay} • {data.season}</Text>
-            <Text style={styles.meta}>Stock {data.stockNew} • GBP {data.priceNew || '-'}</Text>
+            <Text style={styles.meta}>{data.sizeDisplay} · {data.season}</Text>
+            <Text style={styles.meta}>Stock: {data.stockNew ?? 0} · {data.priceNew ? `£${data.priceNew}` : 'No price'}</Text>
           </Card>
 
           <Card>
             <Text style={styles.section}>Update stock and price</Text>
-            <InputField label="Stock new" value={stockNew} onChangeText={setStockNew} placeholder={String(data.stockNew)} />
-            <InputField label="Price new" value={priceNew} onChangeText={setPriceNew} placeholder={data.priceNew || '0'} />
+            <InputField label="Stock" value={stockNew} onChangeText={setStockNew} placeholder={String(data.stockNew ?? 0)} keyboardType="numeric" />
+            <InputField label="Price" value={priceNew} onChangeText={setPriceNew} placeholder={data.priceNew ?? '0'} keyboardType="decimal-pad" />
             <PrimaryButton
               title={saveMutation.isPending ? 'Saving...' : 'Save changes'}
               onPress={() => saveMutation.mutate()}
@@ -105,19 +110,20 @@ export default function InventoryDetailScreen() {
 
 const styles = StyleSheet.create({
   title: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: typography.size.xxl,
+    fontWeight: typography.weight.bold,
     color: colors.text,
+    marginBottom: spacing.xs,
   },
   section: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
     color: colors.text,
-    marginBottom: 6,
+    marginBottom: spacing.sm,
   },
   meta: {
-    marginTop: 4,
+    marginTop: spacing.xs,
     color: colors.textMuted,
-    fontSize: 13,
+    fontSize: typography.size.sm,
   },
 });

@@ -1,77 +1,151 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Screen, ActionTile, SectionHeader, colors, spacing } from '@/ui';
+import { Screen, colors, radius, spacing, typography } from '@/ui';
 
-const MORE_MENU_ITEMS = [
+type MoreSection = {
+  title: string;
+  items: Array<{
+    id: string;
+    label: string;
+    description: string;
+    route: '/(tabs)/ops' | '/(tabs)/finance' | '/(tabs)/cms' | '/(tabs)/insights';
+  }>;
+};
+
+const MORE_SECTIONS: MoreSection[] = [
   {
-    id: 'ops',
-    label: 'Operations',
-    icon: '⚙️',
-    route: '/(tabs)/ops',
+    title: 'Operations & Dispatch',
+    items: [
+      {
+        id: 'ops',
+        label: 'Operations',
+        description: 'Manage live jobs, dispatch, and driver activity',
+        route: '/(tabs)/ops',
+      },
+    ],
   },
   {
-    id: 'finance',
-    label: 'Finance',
-    icon: '💰',
-    route: '/(tabs)/finance',
+    title: 'Finance & Billing',
+    items: [
+      {
+        id: 'finance',
+        label: 'Finance',
+        description: 'Revenue reports, invoices, and refund history',
+        route: '/(tabs)/finance',
+      },
+    ],
   },
   {
-    id: 'cms',
-    label: 'Content',
-    icon: '📝',
-    route: '/(tabs)/cms',
+    title: 'Content & CMS',
+    items: [
+      {
+        id: 'cms',
+        label: 'Content',
+        description: 'Manage tyre listings, pricing, and service areas',
+        route: '/(tabs)/cms',
+      },
+    ],
   },
   {
-    id: 'insights',
-    label: 'Insights',
-    icon: '📊',
-    route: '/(tabs)/insights',
+    title: 'Analytics',
+    items: [
+      {
+        id: 'insights',
+        label: 'Analytics',
+        description: 'Traffic, conversion, and booking performance insights',
+        route: '/(tabs)/insights',
+      },
+    ],
   },
 ];
 
 /**
- * More Menu - Secondary navigation for less frequently used features
+ * More screen — secondary navigation for overflow modules.
+ * All items here are navigable but hidden from the primary tab bar.
  */
 export default function MoreScreen() {
   const router = useRouter();
 
-  const handleMenuPress = (route: string) => {
-    router.push(route as any);
-  };
-
   return (
-    <Screen contentStyle={styles.content}>
-      <SectionHeader title="More Options" />
-
-      <View style={styles.grid}>
-        {MORE_MENU_ITEMS.map((item) => (
-          <View key={item.id} style={styles.tileContainer}>
-            <ActionTile
-              title={item.label}
-              icon={<Text style={styles.iconText}>{item.icon}</Text>}
-              onPress={() => handleMenuPress(item.route)}
-            />
+    <Screen>
+      {MORE_SECTIONS.map((section) => (
+        <View key={section.title} style={styles.section}>
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+          <View style={styles.menuGroup}>
+            {section.items.map((item, index) => (
+              <Pressable
+                key={item.id}
+                style={({ pressed }) => [
+                  styles.menuItem,
+                  index < section.items.length - 1 && styles.menuItemDivider,
+                  pressed && styles.menuItemPressed,
+                ]}
+                onPress={() => router.push(item.route)}
+              >
+                <View style={styles.menuItemContent}>
+                  <Text style={styles.menuItemLabel}>{item.label}</Text>
+                  <Text style={styles.menuItemDescription}>{item.description}</Text>
+                </View>
+                <Text style={styles.chevron}>›</Text>
+              </Pressable>
+            ))}
           </View>
-        ))}
-      </View>
+        </View>
+      ))}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    paddingTop: 0,
+  section: {
+    marginBottom: spacing.xl,
   },
-  grid: {
+  sectionTitle: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+    color: colors.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xs,
+  },
+  menuGroup: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  menuItem: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -spacing.md,
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
   },
-  tileContainer: {
-    width: '50%',
-    paddingHorizontal: spacing.md,
+  menuItemDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  iconText: {
-    fontSize: 28,
+  menuItemPressed: {
+    backgroundColor: colors.surfaceLight,
+  },
+  menuItemContent: {
+    flex: 1,
+  },
+  menuItemLabel: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.semibold,
+    color: colors.text,
+  },
+  menuItemDescription: {
+    fontSize: typography.size.sm,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
+  chevron: {
+    fontSize: 20,
+    color: colors.textMuted,
+    lineHeight: 22,
   },
 });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
@@ -7,8 +7,10 @@ import { Screen } from '@/ui/Screen';
 import { InputField } from '@/ui/InputField';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusChip } from "@/ui/StatusPill";
-import { colors } from '@/ui/theme';
+import { StatusChip } from '@/ui/StatusPill';
+import { ListRow } from '@/ui/ListRow';
+import { SectionHeader } from '@/ui/SectionHeader';
+import { colors, radius, spacing } from '@/ui/theme';
 
 type InventoryItem = {
   catalogueId: string;
@@ -48,9 +50,8 @@ export default function InventoryScreen() {
 
   return (
     <Screen>
-      <Text style={styles.title}>Inventory</Text>
-      <InputField label="Search" value={search} onChangeText={setSearch} placeholder="Brand, pattern, size" />
-      <InputField label="Status" value={status} onChangeText={setStatus} placeholder="active | inactive | all" />
+      <InputField label="Search" value={search} onChangeText={setSearch} placeholder="Brand, pattern, or size" />
+      <InputField label="Filter" value={status} onChangeText={setStatus} placeholder="active, inactive, or all" />
 
       <StateView
         loading={isLoading}
@@ -59,54 +60,56 @@ export default function InventoryScreen() {
         emptyLabel="No products found"
       />
 
-      {data?.items?.map((item) => (
-        <View key={item.catalogueId} style={styles.row}>
-          <Pressable style={{ flex: 1 }} onPress={() => item.productId && router.push(`/(tabs)/inventory/${item.productId}`)}>
-            <Text style={styles.name}>{item.brand} {item.pattern}</Text>
-            <Text style={styles.meta}>{item.sizeDisplay} • {item.season} • {item.tier}</Text>
-            <Text style={styles.meta}>Stock: {item.stockNew ?? 0} • GBP {item.priceNew || '-'}</Text>
-          </Pressable>
-          {item.productId ? (
-            <StatusChip status="active" />
-          ) : (
-            <PrimaryButton
-              title={activateMutation.isPending ? '...' : 'Activate'}
-              onPress={() => activateMutation.mutate(item.catalogueId)}
-              disabled={activateMutation.isPending}
-            />
-          )}
-        </View>
-      ))}
+      {data?.items && data.items.length > 0 && (
+        <>
+          <SectionHeader
+            title="Products"
+            subtitle={data.totalCount ? `${data.totalCount} total` : undefined}
+          />
+          <View style={styles.list}>
+            {data.items.map((item, index) => (
+              <ListRow
+                key={item.catalogueId}
+                title={`${item.brand} ${item.pattern}`}
+                subtitle={`${item.sizeDisplay} · Stock: ${item.stockNew ?? 0}`}
+                rightContent={
+                  item.productId ? (
+                    (item.stockNew ?? 0) === 0 ? (
+                      <StatusChip status="out_of_stock" label="Out of stock" />
+                    ) : (
+                      <StatusChip status="active" />
+                    )
+                  ) : (
+                    <PrimaryButton
+                      title={activateMutation.isPending ? '...' : 'Activate'}
+                      onPress={() => activateMutation.mutate(item.catalogueId)}
+                      disabled={activateMutation.isPending}
+                      size="sm"
+                    />
+                  )
+                }
+                onPress={
+                  item.productId
+                    ? () => router.push(`/(tabs)/inventory/${item.productId}`)
+                    : undefined
+                }
+                divider={index < data.items.length - 1}
+              />
+            ))}
+          </View>
+        </>
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  row: {
-    backgroundColor: '#FFFFFF',
-    borderColor: colors.border,
+  list: {
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  name: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  meta: {
-    marginTop: 2,
-    color: colors.textMuted,
-    fontSize: 12,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    marginBottom: spacing.lg,
   },
 });

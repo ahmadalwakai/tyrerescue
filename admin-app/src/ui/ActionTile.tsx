@@ -3,14 +3,14 @@ import { colors, radius, spacing, typography } from '@/ui/theme';
 
 interface ActionTileProps {
   title: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   onPress: () => void;
   variant?: 'default' | 'primary' | 'danger';
 }
 
 /**
- * ActionTile - Quick action button with icon and label
- * Used for common operations like "New Booking", "View Reports", etc.
+ * ActionTile - Quick action button with optional icon and label
+ * Used for common operations like "New Booking", "Assign Driver", etc.
  */
 export function ActionTile({ title, icon, onPress, variant = 'default' }: ActionTileProps) {
   const bgColor =
@@ -18,7 +18,7 @@ export function ActionTile({ title, icon, onPress, variant = 'default' }: Action
       ? colors.primary
       : variant === 'danger'
         ? colors.error
-        : colors.surface;
+        : colors.surfaceLight;
 
   const textColor =
     variant === 'primary' || variant === 'danger' ? colors.text : colors.text;
@@ -27,11 +27,13 @@ export function ActionTile({ title, icon, onPress, variant = 'default' }: Action
     <Pressable
       style={({ pressed }) => [
         styles.tile,
-        { backgroundColor: bgColor, opacity: pressed ? 0.8 : 1 },
+        { backgroundColor: pressed ? (variant === 'default' ? colors.borderStrong : bgColor) : bgColor },
       ]}
       onPress={onPress}
     >
-      <View style={styles.iconContainer}>{icon}</View>
+      {icon !== undefined && icon !== null && (
+        <View style={styles.iconContainer}>{icon}</View>
+      )}
       <Text style={[styles.title, { color: textColor }]}>{title}</Text>
     </Pressable>
   );
@@ -42,6 +44,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.lg,
     marginBottom: spacing.md,
+    minHeight: 72,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -58,7 +61,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: typography.size.md,
-    fontWeight: typography.weight.semibold as any,
+    fontWeight: typography.weight.semibold,
     textAlign: 'center',
   },
 });

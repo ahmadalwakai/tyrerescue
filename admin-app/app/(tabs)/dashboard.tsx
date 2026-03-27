@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { apiClient } from '@/api/client';
 import { usePollingQuery } from '@/hooks/usePollingQuery';
@@ -11,6 +11,7 @@ import {
   StateView,
   StatusChip,
   colors,
+  radius,
   spacing,
 } from '@/ui';
 
@@ -46,39 +47,43 @@ export default function DashboardScreen() {
 
   const errorMessage = error instanceof Error ? error.message : null;
 
-  const handleQuickAction = (route: string) => {
-    router.push(route as any);
-  };
-
   return (
     <Screen>
       {/* KPI Strip */}
       <View style={styles.kpiGrid}>
-        <KPICard
-          label="Active Bookings"
-          value={data?.stats.activeBookings ?? 0}
-          size="sm"
-          trend="up"
-          trendValue="+5 today"
-        />
-        <KPICard
-          label="Online Drivers"
-          value={data?.stats.onlineDrivers ?? 0}
-          size="sm"
-          trend="neutral"
-        />
-        <KPICard
-          label="Revenue"
-          value={data?.stats.totalRevenue ? `£${data.stats.totalRevenue}` : '—'}
-          size="sm"
-        />
-        <KPICard
-          label="Pending"
-          value={data?.stats.pendingPayments ?? 0}
-          size="sm"
-          trend="down"
-          trendValue="2 overdue"
-        />
+        <View style={styles.kpiCell}>
+          <KPICard
+            label="Active Bookings"
+            value={data?.stats.activeBookings ?? 0}
+            size="sm"
+            trend="up"
+            trendValue="+5 today"
+          />
+        </View>
+        <View style={styles.kpiCell}>
+          <KPICard
+            label="Online Drivers"
+            value={data?.stats.onlineDrivers ?? 0}
+            size="sm"
+            trend="neutral"
+          />
+        </View>
+        <View style={styles.kpiCell}>
+          <KPICard
+            label="Revenue"
+            value={data?.stats.totalRevenue ? `£${data.stats.totalRevenue}` : '—'}
+            size="sm"
+          />
+        </View>
+        <View style={styles.kpiCell}>
+          <KPICard
+            label="Pending"
+            value={data?.stats.pendingPayments ?? 0}
+            size="sm"
+            trend="down"
+            trendValue="2 overdue"
+          />
+        </View>
       </View>
 
       {/* Quick Actions */}
@@ -86,37 +91,33 @@ export default function DashboardScreen() {
       <View style={styles.actionGrid}>
         <View style={styles.actionCell}>
           <ActionTile
-            title="New Booking"
-            icon={<Text style={styles.actionIcon}>+</Text>}
-            onPress={() => handleQuickAction('/new-booking')}
+            title="Bookings"
+            onPress={() => router.push('/(tabs)/bookings')}
             variant="primary"
           />
         </View>
         <View style={styles.actionCell}>
           <ActionTile
-            title="Dispatch"
-            icon={<Text style={styles.actionIcon}>📍</Text>}
-            onPress={() => handleQuickAction('/(tabs)/drivers')}
+            title="Drivers"
+            onPress={() => router.push('/(tabs)/drivers')}
           />
         </View>
         <View style={styles.actionCell}>
           <ActionTile
-            title="Messages"
-            icon={<Text style={styles.actionIcon}>💬</Text>}
-            onPress={() => handleQuickAction('/messages')}
+            title="Inventory"
+            onPress={() => router.push('/(tabs)/inventory')}
           />
         </View>
         <View style={styles.actionCell}>
           <ActionTile
-            title="Reports"
-            icon={<Text style={styles.actionIcon}>📊</Text>}
-            onPress={() => handleQuickAction('/(tabs)/insights')}
+            title="Analytics"
+            onPress={() => router.push('/(tabs)/insights')}
           />
         </View>
       </View>
 
       {/* Recent Bookings Section */}
-      <SectionHeader title="Recent Bookings" action="View All" onActionPress={() => handleQuickAction('/(tabs)/bookings')} />
+      <SectionHeader title="Recent Bookings" action="View All" onActionPress={() => router.push('/(tabs)/bookings')} />
 
       <StateView loading={isLoading} error={errorMessage} empty={!data?.latestBookings?.length} />
 
@@ -126,7 +127,7 @@ export default function DashboardScreen() {
             <ListRow
               key={booking.refNumber}
               title={booking.refNumber}
-              subtitle={booking.customerName}
+              subtitle={booking.totalAmount ? `${booking.customerName} · £${booking.totalAmount}` : booking.customerName}
               rightContent={<StatusChip status={booking.status} />}
               onPress={() => router.push(`/(tabs)/bookings/${booking.refNumber}`)}
               divider
@@ -145,6 +146,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginBottom: spacing.lg,
   },
+  kpiCell: {
+    width: '48%',
+    flexGrow: 1,
+  },
   actionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -152,16 +157,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   actionCell: {
-    width: '50%',
-  },
-  actionIcon: {
-    fontSize: 28,
+    width: '48%',
   },
   bookingsList: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     overflow: 'hidden',
   },
 });

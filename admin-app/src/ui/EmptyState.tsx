@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontSize: typography.size.lg,
-    fontWeight: typography.weight.semibold as any,
+    fontWeight: typography.weight.semibold,
     marginBottom: spacing.sm,
     textAlign: 'center',
   },
@@ -59,6 +59,6 @@ const styles = StyleSheet.create({
   action: {
     color: colors.primary,
     fontSize: typography.size.base,
-    fontWeight: typography.weight.semibold as any,
+    fontWeight: typography.weight.semibold,
   },
 });

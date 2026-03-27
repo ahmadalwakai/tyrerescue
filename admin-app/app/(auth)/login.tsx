@@ -6,7 +6,7 @@ import { Screen } from '@/ui/Screen';
 import { Card } from '@/ui/Card';
 import { InputField } from '@/ui/InputField';
 import { PrimaryButton } from '@/ui/PrimaryButton';
-import { colors } from '@/ui/theme';
+import { colors, spacing, typography } from '@/ui/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -30,17 +30,22 @@ export default function LoginScreen() {
   };
 
   return (
-    <Screen>
+    <Screen centered>
       <View style={styles.header}>
-        <Text style={styles.title}>Tyre Rescue Admin</Text>
+        <Text style={styles.brand}>Tyre Rescue</Text>
+        <Text style={styles.title}>Admin Console</Text>
         <Text style={styles.subtitle}>Internal operations mobile console</Text>
       </View>
 
-      <Card>
-        <InputField label="Email" value={email} onChangeText={setEmail} placeholder="admin@tyrerescue.uk" />
+      <Card style={styles.formCard}>
+        <InputField label="Email" value={email} onChangeText={setEmail} placeholder="admin@tyrerescue.uk" keyboardType="email-address" />
         <InputField label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <PrimaryButton title={submitting ? 'Signing in...' : 'Sign in'} onPress={handleLogin} disabled={submitting} />
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+        <PrimaryButton title={submitting ? 'Signing in…' : 'Sign in'} onPress={handleLogin} disabled={submitting} />
       </Card>
     </Screen>
   );
@@ -48,21 +53,42 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    marginBottom: 16,
+    marginBottom: spacing['2xl'],
+    alignItems: 'center',
+  },
+  brand: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.primary,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: spacing.sm,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: typography.size.xxl,
+    fontWeight: typography.weight.bold,
     color: colors.text,
+    textAlign: 'center',
   },
   subtitle: {
-    marginTop: 4,
-    fontSize: 14,
+    marginTop: spacing.xs,
+    fontSize: typography.size.sm,
     color: colors.textMuted,
+    textAlign: 'center',
   },
-  error: {
+  formCard: {
+    gap: spacing.sm,
+  },
+  errorBox: {
+    backgroundColor: colors.errorBg,
+    borderWidth: 1,
+    borderColor: colors.error,
+    borderRadius: 8,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  errorText: {
     color: colors.error,
-    marginTop: 4,
-    marginBottom: 4,
+    fontSize: typography.size.sm,
   },
 });

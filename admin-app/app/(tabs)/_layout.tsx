@@ -19,7 +19,7 @@ export default function TabsLayout() {
         headerTitleStyle: {
           color: colors.text,
           fontSize: typography.size.lg,
-          fontWeight: typography.weight.semibold as any,
+          fontWeight: typography.weight.semibold,
         },
         tabBarStyle: {
           backgroundColor: colors.bg,
@@ -33,7 +33,7 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
           fontSize: typography.size.xs,
-          fontWeight: typography.weight.semibold as any,
+          fontWeight: typography.weight.semibold,
         },
         headerRight: () => (
           <Pressable
@@ -48,6 +48,7 @@ export default function TabsLayout() {
         ),
       }}
     >
+      {/* ── Visible primary tabs ── */}
       <Tabs.Screen
         name="dashboard"
         options={{
@@ -88,6 +89,24 @@ export default function TabsLayout() {
           headerShown: true,
         }}
       />
+
+      {/* ── Overflow modules — navigable via More, hidden from tab bar ── */}
+      <Tabs.Screen
+        name="ops"
+        options={{ tabBarButton: () => null, headerShown: true, title: 'Operations' }}
+      />
+      <Tabs.Screen
+        name="finance"
+        options={{ tabBarButton: () => null, headerShown: true, title: 'Finance' }}
+      />
+      <Tabs.Screen
+        name="cms"
+        options={{ tabBarButton: () => null, headerShown: true, title: 'Content' }}
+      />
+      <Tabs.Screen
+        name="insights"
+        options={{ tabBarButton: () => null, headerShown: true, title: 'Analytics' }}
+      />
     </Tabs>
   );
 }
@@ -97,7 +116,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.lg,
   },
   logoutText: {
-    fontWeight: typography.weight.semibold as any,
+    fontWeight: typography.weight.semibold,
     fontSize: typography.size.sm,
   },
 });

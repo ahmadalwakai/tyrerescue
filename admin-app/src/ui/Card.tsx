@@ -1,6 +1,6 @@
 import { PropsWithChildren } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import { colors, radius, spacing, shadows } from '@/ui/theme';
+import { colors, radius, spacing } from '@/ui/theme';
 
 interface CardProps extends PropsWithChildren {
   style?: ViewStyle;

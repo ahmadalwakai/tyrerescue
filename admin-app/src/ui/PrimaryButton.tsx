@@ -56,6 +56,6 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.text,
-    fontWeight: typography.weight.semibold as any,
+    fontWeight: typography.weight.semibold,
   },
 });

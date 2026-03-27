@@ -1,13 +1,13 @@
-import { StyleSheet, View } from 'react-native';
-import { useEffect, useRef } from 'react';
+import { StyleSheet, View, type DimensionValue, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
 import { Animated } from 'react-native';
 import { colors, radius, spacing } from '@/ui/theme';
 
 interface LoadingSkeletonProps {
-  width?: number | string;
+  width?: DimensionValue;
   height?: number;
   borderRadius?: number;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -19,10 +19,17 @@ export function LoadingSkeleton({
   borderRadius = radius.md,
   style,
 }: LoadingSkeletonProps) {
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
+  const [shimmerAnim] = useState(() => new Animated.Value(0));
+
+  const opacity = useMemo(
+    () => shimmerAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.5, 1, 0.5] }),
+    [shimmerAnim],
+  );
 
   useEffect(() => {
+    let active = true;
     const loop = () => {
+      if (!active) return;
       shimmerAnim.setValue(0);
       Animated.timing(shimmerAnim, {
         toValue: 1,
@@ -31,12 +38,11 @@ export function LoadingSkeleton({
       }).start(() => loop());
     };
     loop();
-  }, []);
-
-  const opacity = shimmerAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.5, 1, 0.5],
-  });
+    return () => {
+      active = false;
+      shimmerAnim.stopAnimation();
+    };
+  }, [shimmerAnim]);
 
   return (
     <Animated.View
@@ -57,7 +63,7 @@ export function LoadingSkeleton({
 /**
  * SkeletonLine - Helper for creating skeleton lines
  */
-export function SkeletonLine({ style }: { style?: any }) {
+export function SkeletonLine({ style }: { style?: StyleProp<ViewStyle> }) {
   return <LoadingSkeleton height={16} style={[{ marginBottom: spacing.md }, style]} />;
 }
 

@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.textMuted,
-    fontWeight: typography.weight.medium as any,
+    fontWeight: typography.weight.medium,
     marginBottom: spacing.xs,
   },
   valueRow: {
@@ -71,14 +71,14 @@ const styles = StyleSheet.create({
   },
   value: {
     color: colors.text,
-    fontWeight: typography.weight.bold as any,
+    fontWeight: typography.weight.bold,
   },
   unit: {
     color: colors.textMuted,
-    fontWeight: typography.weight.medium as any,
+    fontWeight: typography.weight.medium,
   },
   trend: {
     marginTop: spacing.sm,
-    fontWeight: typography.weight.medium as any,
+    fontWeight: typography.weight.medium,
   },
 });

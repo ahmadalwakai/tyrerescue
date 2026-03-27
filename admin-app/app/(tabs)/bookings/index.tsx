@@ -12,6 +12,7 @@ import {
   PrimaryButton,
   ListRow,
   colors,
+  radius,
   spacing,
 } from '@/ui';
 
@@ -112,15 +113,6 @@ export default function BookingsListScreen() {
           ))}
         </View>
       )}
-
-      <View style={styles.footer}>
-        <PrimaryButton
-          title="Manual Refresh"
-          onPress={() => refetch()}
-          variant="neutral"
-          size="sm"
-        />
-      </View>
     </Screen>
   );
 }
@@ -130,7 +122,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     padding: spacing.lg,
     marginBottom: spacing.xl,
   },
@@ -138,12 +130,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     overflow: 'hidden',
     marginBottom: spacing.lg,
-  },
-  footer: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.xl,
   },
 });

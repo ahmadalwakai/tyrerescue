@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontSize: typography.size.lg,
-    fontWeight: typography.weight.semibold as any,
+    fontWeight: typography.weight.semibold,
   },
   subtitle: {
     color: colors.textMuted,
@@ -58,6 +58,6 @@ const styles = StyleSheet.create({
   action: {
     color: colors.primary,
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.semibold as any,
+    fontWeight: typography.weight.semibold,
   },
 });

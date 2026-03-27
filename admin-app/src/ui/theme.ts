@@ -103,6 +103,11 @@ export const statusColors: Record<string, { bg: string; text: string; label: str
     text: '#FFE4B5',
     label: 'On Hold',
   },
+  out_of_stock: {
+    bg: '#78350F',
+    text: '#FDE68A',
+    label: 'Out of Stock',
+  },
 };
 
 // ============ DRIVER STATUS COLORS ============
@@ -160,10 +165,10 @@ export const typography = {
     display: 32,  // Display - hero title
   },
   weight: {
-    normal: '400',
-    medium: '500',
-    semibold: '600',
-    bold: '700',
+    normal: '400' as const,
+    medium: '500' as const,
+    semibold: '600' as const,
+    bold: '700' as const,
   },
   lineHeight: {
     tight: 1.2,

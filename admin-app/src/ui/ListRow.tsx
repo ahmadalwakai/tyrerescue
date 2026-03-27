@@ -49,7 +49,10 @@ export function ListRow({
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => pressed && styles.pressed}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [pressed && styles.pressed]}
+      >
         {content}
       </Pressable>
     );
@@ -71,7 +74,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   pressed: {
-    opacity: 0.6,
+    backgroundColor: colors.surfaceLight,
   },
   leftContent: {
     width: 48,
@@ -87,7 +90,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontSize: typography.size.base,
-    fontWeight: typography.weight.semibold as any,
+    fontWeight: typography.weight.semibold,
   },
   subtitle: {
     color: colors.textMuted,
@@ -100,6 +103,6 @@ const styles = StyleSheet.create({
   rightText: {
     color: colors.textMuted,
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium as any,
+    fontWeight: typography.weight.medium,
   },
 });

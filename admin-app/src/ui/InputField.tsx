@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, type KeyboardTypeOptions, View } from 'react-native';
 import { colors, radius, spacing, typography } from '@/ui/theme';
 
 interface InputFieldProps {
@@ -8,7 +8,7 @@ interface InputFieldProps {
   placeholder?: string;
   secureTextEntry?: boolean;
   editable?: boolean;
-  keyboardType?: any;
+  keyboardType?: KeyboardTypeOptions;
 }
 
 /**
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     color: colors.textSecondary,
     marginBottom: spacing.xs,
-    fontWeight: typography.weight.semibold as any,
+    fontWeight: typography.weight.semibold,
   },
   input: {
     borderWidth: 1,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
@@ -8,8 +8,10 @@ import { Card } from '@/ui/Card';
 import { InputField } from '@/ui/InputField';
 import { PrimaryButton } from '@/ui/PrimaryButton';
 import { StateView } from '@/ui/StateView';
-import { StatusChip } from "@/ui/StatusPill";
-import { colors } from '@/ui/theme';
+import { StatusChip } from '@/ui/StatusPill';
+import { ListRow } from '@/ui/ListRow';
+import { SectionHeader } from '@/ui/SectionHeader';
+import { colors, radius, spacing } from '@/ui/theme';
 
 type DriverRow = {
   id: string;
@@ -58,7 +60,6 @@ export default function DriversScreen() {
 
   return (
     <Screen>
-      <Text style={styles.title}>Drivers</Text>
       <InputField label="Search" value={search} onChangeText={setSearch} placeholder="Name, email, or phone" />
 
       <StateView
@@ -68,23 +69,27 @@ export default function DriversScreen() {
         emptyLabel="No drivers found"
       />
 
-      {data?.items?.map((driver) => (
-        <Pressable key={driver.id} style={styles.row} onPress={() => router.push(`/(tabs)/drivers/${driver.id}`)}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{driver.name}</Text>
-            <Text style={styles.meta}>{driver.email}</Text>
-            <Text style={styles.meta}>{driver.phone || 'No phone'}</Text>
-          </View>
-          <StatusChip status={driver.status} />
-        </Pressable>
-      ))}
+      {data?.items && data.items.length > 0 && (
+        <View style={styles.driversList}>
+          {data.items.map((driver, index) => (
+            <ListRow
+              key={driver.id}
+              title={driver.name}
+              subtitle={driver.email}
+              rightContent={<StatusChip status={driver.status} />}
+              onPress={() => router.push(`/(tabs)/drivers/${driver.id}`)}
+              divider={index < data.items.length - 1}
+            />
+          ))}
+        </View>
+      )}
 
+      <SectionHeader title="Add driver" subtitle={data?.totalCount ? `${data.totalCount} total` : undefined} />
       <Card>
-        <Text style={styles.sectionTitle}>Create driver</Text>
         <InputField label="Name" value={createName} onChangeText={setCreateName} />
-        <InputField label="Email" value={createEmail} onChangeText={setCreateEmail} />
-        <InputField label="Phone" value={createPhone} onChangeText={setCreatePhone} />
-        <InputField label="Temporary password" value={createPassword} onChangeText={setCreatePassword} />
+        <InputField label="Email" value={createEmail} onChangeText={setCreateEmail} keyboardType="email-address" />
+        <InputField label="Phone" value={createPhone} onChangeText={setCreatePhone} keyboardType="phone-pad" />
+        <InputField label="Temporary password" value={createPassword} onChangeText={setCreatePassword} secureTextEntry />
         <PrimaryButton
           title={createDriver.isPending ? 'Creating...' : 'Create driver'}
           onPress={() => createDriver.mutate()}
@@ -96,36 +101,12 @@ export default function DriversScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  row: {
-    backgroundColor: '#FFFFFF',
+  driversList: {
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  meta: {
-    marginTop: 2,
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 8,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    marginBottom: spacing.lg,
   },
 });
