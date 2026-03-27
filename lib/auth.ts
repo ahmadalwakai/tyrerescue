@@ -247,7 +247,7 @@ export async function signMobileToken(payload: {
   email: string;
   name: string;
   role: string;
-  driverId: string;
+  driverId?: string;
 }): Promise<string> {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
@@ -259,7 +259,7 @@ export async function signMobileToken(payload: {
 
 export async function verifyMobileToken(token: string) {
   const { payload } = await jwtVerify(token, MOBILE_JWT_SECRET);
-  return payload as { id: string; email: string; name: string; role: string; driverId: string; sub: string };
+  return payload as { id: string; email: string; name: string; role: string; driverId?: string; sub: string };
 }
 
 /** General auth helper that works for both web sessions and mobile Bearer tokens (any role) */
@@ -299,6 +299,7 @@ export async function requireDriverMobile(request?: Request) {
       try {
         const payload = await verifyMobileToken(token);
         if (payload.role !== 'driver') throw new Error('Forbidden');
+        if (!payload.driverId) throw new Error('Unauthorized');
         return {
           user: {
             id: payload.id,
@@ -323,4 +324,33 @@ export async function requireDriverMobile(request?: Request) {
     .limit(1);
   if (!driver) throw new Error('Driver record not found');
   return { user: session.user, driverId: driver.id };
+}
+
+/** Auth helper that works for web session and mobile Bearer tokens (admin only) */
+export async function requireAdminMobile(request?: Request) {
+  // Try Bearer token first (mobile)
+  if (request) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const payload = await verifyMobileToken(token);
+        if (payload.role !== 'admin') throw new Error('Forbidden');
+        return {
+          user: {
+            id: payload.id,
+            email: payload.email,
+            name: payload.name,
+            role: 'admin' as const,
+          },
+        };
+      } catch {
+        throw new Error('Unauthorized');
+      }
+    }
+  }
+
+  // Fall back to web session
+  const session = await requireAdmin();
+  return { user: session.user };
 }

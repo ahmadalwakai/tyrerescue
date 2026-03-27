@@ -167,6 +167,12 @@ export function StepTyreSelection({
   const handleRequestQuote = async () => {
     if (cart.length === 0) return;
 
+    // Scheduled bookings must pick a slot before requesting a quote.
+    if (state.bookingType === 'scheduled') {
+      goToNext();
+      return;
+    }
+
     setIsQuoting(true);
     setQuoteError(null);
 
@@ -441,7 +447,9 @@ export function StepTyreSelection({
               <Text>Getting quote...</Text>
             </HStack>
           ) : (
-            `Get Quote (${totalItems} tyre${totalItems !== 1 ? 's' : ''})`
+            state.bookingType === 'scheduled'
+              ? `Continue (${totalItems} tyre${totalItems !== 1 ? 's' : ''})`
+              : `Get Quote (${totalItems} tyre${totalItems !== 1 ? 's' : ''})`
           )}
         </Button>
       </HStack>
@@ -478,7 +486,7 @@ export function StepTyreSelection({
               minH="48px"
               px={6}
             >
-              {isQuoting ? <Spinner size="sm" /> : 'Get Quote'}
+              {isQuoting ? <Spinner size="sm" /> : (state.bookingType === 'scheduled' ? 'Continue' : 'Get Quote')}
             </Button>
           </HStack>
         </Box>

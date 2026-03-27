@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Tyre Rescue Admin",
+    "slug": "tyre-rescue-admin",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "tyrerescueadmin",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "uk.tyrerescue.admin",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-splash-screen"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
+  }
+}
