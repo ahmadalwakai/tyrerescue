@@ -1,11 +1,15 @@
 import { Tabs, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/auth/context';
 import { colors, spacing, typography } from '@/ui/theme';
 
 export default function TabsLayout() {
   const { logout } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const bottomPad = Math.max(insets.bottom, 8);
 
   return (
     <Tabs
@@ -25,15 +29,16 @@ export default function TabsLayout() {
           backgroundColor: colors.bg,
           borderTopWidth: 1,
           borderTopColor: colors.border,
-          paddingBottom: spacing.sm,
-          paddingTop: spacing.sm,
-          height: 64,
+          paddingBottom: bottomPad,
+          paddingTop: spacing.xs,
+          height: 56 + bottomPad,
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: typography.size.xs,
+          fontSize: 11,
           fontWeight: typography.weight.semibold,
+          marginTop: -2,
         },
         headerRight: () => (
           <Pressable
@@ -53,8 +58,11 @@ export default function TabsLayout() {
         name="dashboard"
         options={{
           title: 'Dashboard',
-          tabBarLabel: 'Dashboard',
+          tabBarLabel: 'Home',
           headerShown: true,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="grid-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -63,6 +71,9 @@ export default function TabsLayout() {
           title: 'Bookings',
           tabBarLabel: 'Bookings',
           headerShown: true,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -71,14 +82,20 @@ export default function TabsLayout() {
           title: 'Drivers',
           tabBarLabel: 'Drivers',
           headerShown: true,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="car-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="inventory"
         options={{
           title: 'Inventory',
-          tabBarLabel: 'Inventory',
+          tabBarLabel: 'Stock',
           headerShown: true,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cube-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -87,6 +104,9 @@ export default function TabsLayout() {
           title: 'More',
           tabBarLabel: 'More',
           headerShown: true,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="ellipsis-horizontal" size={size} color={color} />
+          ),
         }}
       />
 
