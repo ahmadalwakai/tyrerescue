@@ -21,7 +21,11 @@
     "extra": {
       "router": {
         "origin": false
+      },
+      "eas": {
+        "projectId": "09deae22-c83b-4bf7-b6ee-85a5f8946d15"
       }
-    }
+    },
+    "owner": "ahmadawadalwakai"
   }
 }
