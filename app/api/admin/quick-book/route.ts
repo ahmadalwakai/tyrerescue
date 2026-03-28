@@ -87,11 +87,23 @@ export async function POST(request: Request) {
     } catch { /* proceed without geocoding */ }
   }
 
+  // Track service origin for map display
+  let serviceOriginLat: number | null = null;
+  let serviceOriginLng: number | null = null;
+  let serviceOriginSource: 'driver' | 'garage' | null = null;
+  let serviceOriginDriverId: string | null = null;
+  let durationMinutes: number | null = null;
+
   if (lat && lng) {
     try {
       const driverCandidates = await loadAvailableDriverDistanceCandidates();
       const distResult = await resolveDistance({ lat, lng }, driverCandidates);
       distanceKm = Math.round(distResult.distanceMiles * 1.60934 * 100) / 100;
+      serviceOriginLat = distResult.originLat;
+      serviceOriginLng = distResult.originLng;
+      serviceOriginSource = distResult.distanceSource as 'driver' | 'garage';
+      serviceOriginDriverId = distResult.selectedDriverId ?? null;
+      durationMinutes = distResult.durationMinutes ?? null;
     } catch { /* fallback */ }
   }
 
@@ -109,7 +121,17 @@ export async function POST(request: Request) {
 
       basePrice = pricing.breakdown.subtotal;
       totalPrice = pricing.breakdown.total;
-      priceBreakdown = pricing.breakdown;
+      // Extend priceBreakdown with service origin info for map display
+      priceBreakdown = {
+        ...pricing.breakdown,
+        serviceOrigin: serviceOriginLat && serviceOriginLng ? {
+          lat: serviceOriginLat,
+          lng: serviceOriginLng,
+          source: serviceOriginSource,
+          driverId: serviceOriginDriverId,
+          etaMinutes: durationMinutes,
+        } : null,
+      };
       selectedTyreSnapshot = pricing.selectedTyreSnapshot;
       normalizedTyreSize = pricing.normalizedTyreSize ?? normalizedTyreSize;
     } catch (error) {
@@ -119,6 +141,31 @@ export async function POST(request: Request) {
       console.error('[quick-book:create] pricing error', error);
       return NextResponse.json({ error: 'Failed to calculate pricing' }, { status: 500 });
     }
+  }
+
+  // Ensure service origin is stored even if pricing was skipped
+  if (!priceBreakdown && serviceOriginLat && serviceOriginLng) {
+    priceBreakdown = {
+      lineItems: [],
+      totalTyreCost: 0,
+      totalServiceFee: 0,
+      calloutFee: 0,
+      totalSurcharges: 0,
+      discountAmount: 0,
+      surgeMultiplier: 1,
+      subtotal: 0,
+      vatAmount: 0,
+      total: 0,
+      quoteExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      isValid: true,
+      serviceOrigin: {
+        lat: serviceOriginLat,
+        lng: serviceOriginLng,
+        source: serviceOriginSource,
+        driverId: serviceOriginDriverId,
+        etaMinutes: durationMinutes,
+      },
+    };
   }
 
   const initialStatus = data.locationMethod === 'link'

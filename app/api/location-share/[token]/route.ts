@@ -91,6 +91,12 @@ export async function POST(
 
   // Calculate distance from nearest available driver, fallback to garage.
   let distanceKm: number | null = null;
+  let serviceOriginLat: number | null = null;
+  let serviceOriginLng: number | null = null;
+  let serviceOriginSource: 'driver' | 'garage' | null = null;
+  let serviceOriginDriverId: string | null = null;
+  let durationMinutes: number | null = null;
+  
   try {
     const driverCandidates = await loadAvailableDriverDistanceCandidates();
     const result = await resolveDistance(
@@ -98,6 +104,11 @@ export async function POST(
       driverCandidates,
     );
     distanceKm = Math.round(result.distanceMiles * 1.60934 * 100) / 100;
+    serviceOriginLat = result.originLat;
+    serviceOriginLng = result.originLng;
+    serviceOriginSource = result.distanceSource as 'driver' | 'garage';
+    serviceOriginDriverId = result.selectedDriverId ?? null;
+    durationMinutes = result.durationMinutes ?? null;
   } catch {
     // Keep null; pricing falls back safely.
   }
@@ -127,6 +138,36 @@ export async function POST(
     }
   } catch { /* proceed without surcharge */ }
 
+  // Build updated priceBreakdown with service origin
+  const existingBreakdown = booking.priceBreakdown as Record<string, unknown> | null;
+  const updatedPriceBreakdown = existingBreakdown ? {
+    ...existingBreakdown,
+    serviceOrigin: serviceOriginLat && serviceOriginLng ? {
+      lat: serviceOriginLat,
+      lng: serviceOriginLng,
+      source: serviceOriginSource,
+      driverId: serviceOriginDriverId,
+      etaMinutes: durationMinutes,
+    } : null,
+  } : serviceOriginLat && serviceOriginLng ? {
+    lineItems: [],
+    totalTyreCost: 0,
+    totalServiceFee: 0,
+    calloutFee: 0,
+    totalSurcharges: 0,
+    discountAmount: 0,
+    subtotal: 0,
+    vatAmount: 0,
+    total: 0,
+    serviceOrigin: {
+      lat: serviceOriginLat,
+      lng: serviceOriginLng,
+      source: serviceOriginSource,
+      driverId: serviceOriginDriverId,
+      etaMinutes: durationMinutes,
+    },
+  } : null;
+
   await db
     .update(quickBookings)
     .set({
@@ -137,6 +178,7 @@ export async function POST(
       distanceKm: distanceKm != null ? String(distanceKm) : null,
       surchargePercent: String(surchargePercent),
       totalPrice: totalPrice != null ? String(totalPrice) : booking.totalPrice,
+      priceBreakdown: updatedPriceBreakdown,
       status: 'location_received',
       updatedAt: new Date(),
     })

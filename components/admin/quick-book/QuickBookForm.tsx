@@ -73,6 +73,13 @@ interface CreatedBooking {
       subtotal: number;
       vatAmount: number;
       total: number;
+      serviceOrigin?: {
+        lat: number;
+        lng: number;
+        source: 'driver' | 'garage';
+        driverId: string | null;
+        etaMinutes: number | null;
+      } | null;
     } | null;
     adminAdjustmentAmount: string | null;
     adminAdjustmentReason: string | null;
@@ -564,6 +571,9 @@ export function QuickBookForm() {
                   <QuickBookMap
                     customerLat={Number(created.booking.locationLat)}
                     customerLng={Number(created.booking.locationLng)}
+                    serviceOriginLat={created.booking.priceBreakdown?.serviceOrigin?.lat}
+                    serviceOriginLng={created.booking.priceBreakdown?.serviceOrigin?.lng}
+                    serviceOriginSource={created.booking.priceBreakdown?.serviceOrigin?.source}
                     showRoute={true}
                     onRouteCalculated={(km, mins) => setRouteInfo({ drivingKm: km, drivingMinutes: mins })}
                   />

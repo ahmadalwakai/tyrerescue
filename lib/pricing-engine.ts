@@ -77,6 +77,14 @@ export interface PricingBreakdown {
   quoteExpiresAt: Date;
   isValid: boolean;
   error?: string;
+  /** Service origin info for map display (driver or garage location) */
+  serviceOrigin?: {
+    lat: number;
+    lng: number;
+    source: 'driver' | 'garage' | null;
+    driverId: string | null;
+    etaMinutes: number | null;
+  } | null;
 }
 
 /**
@@ -111,14 +119,14 @@ export function parsePricingRules(
     max_service_miles: getNum('max_service_miles', 190),
     quote_expiry_minutes: getNum('quote_expiry_minutes', 15),
     surge_pricing_enabled: getBool('surge_pricing_enabled', false),
-    callout_0_5: getNum('callout_0_5', 0.0),
-    callout_5_10: getNum('callout_5_10', 10.0),
-    callout_10_15: getNum('callout_10_15', 20.0),
-    callout_15_20: getNum('callout_15_20', 30.0),
-    callout_20_30: getNum('callout_20_30', 45.0),
-    callout_30_40: getNum('callout_30_40', 60.0),
+    callout_0_5: getNum('callout_0_5', 10.0),
+    callout_5_10: getNum('callout_5_10', 18.0),
+    callout_10_15: getNum('callout_10_15', 28.0),
+    callout_15_20: getNum('callout_15_20', 39.0),
+    callout_20_30: getNum('callout_20_30', 55.0),
+    callout_30_40: getNum('callout_30_40', 75.0),
     callout_40_base: getNum('callout_40_base', 60.0),
-    callout_40_per_mile: getNum('callout_40_per_mile', 1.5),
+    callout_40_per_mile: getNum('callout_40_per_mile', 1.85),
   };
 }
 

@@ -359,6 +359,7 @@ export function SuccessContent({ booking }: SuccessContentProps) {
               width="full"
               size="lg"
               disabled
+              style={{ color: '#ffffff' }}
             >
               Live Tracking - Available Once Driver Assigned
             </Button>

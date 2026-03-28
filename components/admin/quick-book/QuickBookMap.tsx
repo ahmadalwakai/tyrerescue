@@ -10,11 +10,15 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 // Set Mapbox access token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
 
-const SHOP_LOCATION = GARAGE_LOCATION;
-
 interface QuickBookMapProps {
   customerLat: number;
   customerLng: number;
+  /** Service origin latitude (driver or garage). Falls back to GARAGE_LOCATION if not provided. */
+  serviceOriginLat?: number | null;
+  /** Service origin longitude (driver or garage). Falls back to GARAGE_LOCATION if not provided. */
+  serviceOriginLng?: number | null;
+  /** Source of service origin: 'driver' or 'garage'. */
+  serviceOriginSource?: 'driver' | 'garage' | null;
   showRoute?: boolean;
   onRouteCalculated?: (drivingKm: number | null, drivingMinutes: number | null) => void;
 }
@@ -22,9 +26,18 @@ interface QuickBookMapProps {
 export function QuickBookMap({
   customerLat,
   customerLng,
+  serviceOriginLat,
+  serviceOriginLng,
+  serviceOriginSource,
   showRoute = true,
   onRouteCalculated,
 }: QuickBookMapProps) {
+  // Use provided service origin or fall back to garage
+  const serviceLocation = (serviceOriginLat != null && serviceOriginLng != null)
+    ? { lat: serviceOriginLat, lng: serviceOriginLng }
+    : GARAGE_LOCATION;
+  const isDriverOrigin = serviceOriginSource === 'driver';
+  
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const shopMarker = useRef<mapboxgl.Marker | null>(null);
@@ -37,9 +50,9 @@ export function QuickBookMap({
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    // Calculate center point between shop and customer
-    const centerLat = (SHOP_LOCATION.lat + customerLat) / 2;
-    const centerLng = (SHOP_LOCATION.lng + customerLng) / 2;
+    // Calculate center point between service origin and customer
+    const centerLat = (serviceLocation.lat + customerLat) / 2;
+    const centerLng = (serviceLocation.lng + customerLng) / 2;
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
@@ -82,7 +95,7 @@ export function QuickBookMap({
 
       // Fit bounds to show both markers
       const bounds = new mapboxgl.LngLatBounds();
-      bounds.extend([SHOP_LOCATION.lng, SHOP_LOCATION.lat]);
+      bounds.extend([serviceLocation.lng, serviceLocation.lat]);
       bounds.extend([customerLng, customerLat]);
 
       map.current!.fitBounds(bounds, {
@@ -96,7 +109,7 @@ export function QuickBookMap({
       }
     });
 
-    // Add shop marker (origin - orange)
+    // Add service origin marker (orange)
     const shopEl = document.createElement('div');
     shopEl.className = 'shop-marker';
     shopEl.style.width = '28px';
@@ -116,9 +129,10 @@ export function QuickBookMap({
     shopInner.style.backgroundColor = 'white';
     shopEl.appendChild(shopInner);
 
+    const markerLabel = isDriverOrigin ? '<strong>Driver Location</strong><br/>Nearest Available' : '<strong>Tyre Rescue Garage</strong><br/>Service Location';
     shopMarker.current = new mapboxgl.Marker(shopEl)
-      .setLngLat([SHOP_LOCATION.lng, SHOP_LOCATION.lat])
-      .setPopup(new mapboxgl.Popup({ offset: 15 }).setHTML('<strong>Tyre Rescue Garage</strong><br/>Service Location'))
+      .setLngLat([serviceLocation.lng, serviceLocation.lat])
+      .setPopup(new mapboxgl.Popup({ offset: 15 }).setHTML(markerLabel))
       .addTo(map.current);
 
     // Add customer marker (destination - green)
@@ -164,7 +178,7 @@ export function QuickBookMap({
 
     // Fit bounds to show both markers
     const bounds = new mapboxgl.LngLatBounds();
-    bounds.extend([SHOP_LOCATION.lng, SHOP_LOCATION.lat]);
+    bounds.extend([serviceLocation.lng, serviceLocation.lat]);
     bounds.extend([customerLng, customerLat]);
 
     map.current.fitBounds(bounds, {
@@ -182,12 +196,12 @@ export function QuickBookMap({
   const fetchRoute = async () => {
     if (!map.current) return;
 
-    const coordKey = `${SHOP_LOCATION.lng},${SHOP_LOCATION.lat};${customerLng},${customerLat}`;
+    const coordKey = `${serviceLocation.lng},${serviceLocation.lat};${customerLng},${customerLat}`;
     if (lastRouteCoords.current === coordKey) return;
 
     try {
       const response = await fetch(
-        `https://api.mapbox.com/directions/v5/mapbox/driving/${SHOP_LOCATION.lng},${SHOP_LOCATION.lat};${customerLng},${customerLat}?geometries=geojson&overview=full&access_token=${mapboxgl.accessToken}`
+        `https://api.mapbox.com/directions/v5/mapbox/driving/${serviceLocation.lng},${serviceLocation.lat};${customerLng},${customerLat}?geometries=geojson&overview=full&access_token=${mapboxgl.accessToken}`
       );
 
       if (!response.ok) return;
@@ -265,7 +279,7 @@ export function QuickBookMap({
               border="2px solid"
               borderColor="#09090B"
             />
-            <Text color={c.text}>Service</Text>
+            <Text color={c.text}>{isDriverOrigin ? 'Driver' : 'Service'}</Text>
           </HStack>
           <HStack gap={2}>
             <Box

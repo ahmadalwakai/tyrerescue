@@ -57,22 +57,25 @@ export function CallMeBack() {
     return (
       <Box
         position="fixed"
-        bottom={{ base: '20px', md: '28px' }}
-        left={{ base: '20px', md: '28px' }}
+        top="50%"
+        left="0"
+        transform="translateY(-50%)"
         zIndex={1100}
       >
         <Button
           bg={c.accent}
           color="white"
           fontWeight="700"
-          fontSize="14px"
-          borderRadius="8px"
-          px={5}
-          py={3}
-          minH="44px"
+          fontSize="12px"
+          borderRadius="0 8px 8px 0"
+          px={2}
+          py={6}
+          minH="auto"
+          h="auto"
           _hover={{ bg: c.accentHover }}
           onClick={() => setState('open')}
-          boxShadow="0 4px 20px rgba(0,0,0,0.3)"
+          boxShadow="2px 0 12px rgba(0,0,0,0.3)"
+          style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
         >
           CALL ME BACK
         </Button>

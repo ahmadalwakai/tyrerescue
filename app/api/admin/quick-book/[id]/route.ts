@@ -125,12 +125,24 @@ export async function PATCH(
       ? data.distanceKm
       : (existing.distanceKm ? Number(existing.distanceKm) : null);
 
+  // Track service origin for map display
+  let serviceOriginLat: number | null = null;
+  let serviceOriginLng: number | null = null;
+  let serviceOriginSource: 'driver' | 'garage' | null = null;
+  let serviceOriginDriverId: string | null = null;
+  let durationMinutes: number | null = null;
+
   if ((hasField('locationLat') || hasField('locationLng')) && mergedLat != null && mergedLng != null && data.distanceKm === undefined) {
     try {
       const driverCandidates = await loadAvailableDriverDistanceCandidates();
       const distResult = await resolveDistance({ lat: mergedLat, lng: mergedLng }, driverCandidates);
       mergedDistanceKm = Math.round(distResult.distanceMiles * 1.60934 * 100) / 100;
       updateData.distanceKm = mergedDistanceKm != null ? String(mergedDistanceKm) : null;
+      serviceOriginLat = distResult.originLat;
+      serviceOriginLng = distResult.originLng;
+      serviceOriginSource = distResult.distanceSource as 'driver' | 'garage';
+      serviceOriginDriverId = distResult.selectedDriverId ?? null;
+      durationMinutes = distResult.durationMinutes ?? null;
     } catch {
       // Keep previous distance when recalculation fails.
     }
@@ -182,7 +194,17 @@ export async function PATCH(
       updateData.tyreSize = priced.normalizedTyreSize;
       updateData.basePrice = priced.breakdown.subtotal.toFixed(2);
       updateData.totalPrice = priced.breakdown.total.toFixed(2);
-      updateData.priceBreakdown = priced.breakdown;
+      // Extend priceBreakdown with service origin info for map display
+      updateData.priceBreakdown = {
+        ...priced.breakdown,
+        serviceOrigin: serviceOriginLat && serviceOriginLng ? {
+          lat: serviceOriginLat,
+          lng: serviceOriginLng,
+          source: serviceOriginSource,
+          driverId: serviceOriginDriverId,
+          etaMinutes: durationMinutes,
+        } : (existing.priceBreakdown as Record<string, unknown> | null)?.serviceOrigin ?? null,
+      };
       updateData.selectedTyreProductId = priced.selectedTyreSnapshot?.productId ?? null;
       updateData.selectedTyreUnitPrice =
         priced.selectedTyreSnapshot?.unitPrice != null
