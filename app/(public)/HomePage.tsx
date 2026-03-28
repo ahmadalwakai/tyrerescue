@@ -85,6 +85,34 @@ const marqueeItems = [
   'QUALITY TYRES',
 ];
 
+interface PartnerCompany {
+  name: string;
+  url: string;
+  badges: string[];
+  description: string;
+}
+
+const partnerCompanies: PartnerCompany[] = [
+  {
+    name: 'Speedy Van',
+    url: 'https://www.speedy-van.co.uk/',
+    badges: ['24/7 Availability', 'GPS-Tracked Fleet'],
+    description: 'A reliable delivery partner assisting with tyre logistics across central Scotland.',
+  },
+  {
+    name: 'VanJet',
+    url: 'https://www.van-jet.com/',
+    badges: ['Same-Day Delivery', 'Nationwide Coverage'],
+    description: 'Supporting our emergency callout operations with rapid courier services.',
+  },
+  {
+    name: 'VanItGo',
+    url: 'https://www.vanitgo.com/',
+    badges: ['Express Service', 'Eco-Friendly Fleet'],
+    description: 'Helping us maintain fast turnaround times for scheduled mobile tyre fitting.',
+  },
+];
+
 const cssKeyframes = `
   @keyframes marquee {
     from { transform: translateX(0); }
@@ -1095,6 +1123,145 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
               </Box>
             ))}
           </Box>
+        </Box>
+
+        {/* ═══════════════════════════════════════════════════
+            SECTION: TRUSTED TRANSPORT PARTNERS
+        ═══════════════════════════════════════════════════ */}
+        <Box
+          as="section"
+          id="partners"
+          aria-labelledby="partners-heading"
+          bg={colors.bg}
+          py={{ base: '60px', md: '80px' }}
+          px={{ base: 4, md: 8 }}
+        >
+          <Container maxW="1200px">
+            <AnimatedSection>
+              <Box textAlign="center" mb={{ base: 10, md: 12 }}>
+                <Text
+                  fontSize="11px"
+                  color={colors.accent}
+                  letterSpacing="0.2em"
+                  mb={3}
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  OUR NETWORK
+                </Text>
+                <Text
+                  as="h2"
+                  id="partners-heading"
+                  fontSize={{ base: '32px', md: '48px' }}
+                  color={colors.textPrimary}
+                  lineHeight="1.1"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  Trusted Transport Partners
+                </Text>
+                <Box h="2px" w="60px" bg={colors.accent} mt={4} mx="auto" />
+                <Text
+                  fontSize="14px"
+                  color={colors.textSecondary}
+                  maxW="600px"
+                  mx="auto"
+                  mt={4}
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  We work with trusted logistics partners to ensure your tyres arrive quickly and reliably.
+                </Text>
+              </Box>
+
+              <SimpleGrid columns={{ base: 1, md: 3 }} gap={{ base: 6, md: 8 }}>
+                {partnerCompanies.map((partner) => (
+                  <Box
+                    key={partner.name}
+                    bg={colors.card}
+                    borderWidth="1px"
+                    borderColor={colors.border}
+                    p={{ base: 6, md: 8 }}
+                    position="relative"
+                    transition="all 0.3s"
+                    _hover={{
+                      borderColor: 'rgba(249,115,22,0.35)',
+                      transform: 'translateY(-4px)',
+                    }}
+                    style={{
+                      clipPath: 'polygon(0 0, 100% 0, 100% 92%, 92% 100%, 0 100%)',
+                    }}
+                  >
+                    <Text
+                      as="h3"
+                      fontSize={{ base: '20px', md: '24px' }}
+                      color={colors.textPrimary}
+                      mb={3}
+                      style={{ fontFamily: 'var(--font-display)' }}
+                    >
+                      {partner.name}
+                    </Text>
+
+                    <Flex gap={2} flexWrap="wrap" mb={4}>
+                      {partner.badges.map((badge) => (
+                        <Box
+                          key={badge}
+                          bg={colors.surface}
+                          px={3}
+                          py={1}
+                          borderWidth="1px"
+                          borderColor={colors.border}
+                        >
+                          <Text
+                            fontSize="10px"
+                            color={colors.accent}
+                            letterSpacing="0.1em"
+                            style={{ fontFamily: 'var(--font-body)' }}
+                          >
+                            {badge.toUpperCase()}
+                          </Text>
+                        </Box>
+                      ))}
+                    </Flex>
+
+                    <Text
+                      fontSize="13px"
+                      color={colors.textSecondary}
+                      lineHeight="1.6"
+                      mb={4}
+                      style={{ fontFamily: 'var(--font-body)' }}
+                    >
+                      {partner.description}
+                    </Text>
+
+                    <ChakraLink
+                      href={partner.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      display="inline-flex"
+                      alignItems="center"
+                      gap={2}
+                      fontSize="12px"
+                      color={colors.accent}
+                      letterSpacing="0.1em"
+                      _hover={{ color: colors.textPrimary }}
+                      transition="color 0.2s"
+                      style={{ fontFamily: 'var(--font-body)' }}
+                    >
+                      VISIT WEBSITE →
+                    </ChakraLink>
+                  </Box>
+                ))}
+              </SimpleGrid>
+
+              <Text
+                fontSize="11px"
+                color={colors.textSecondary}
+                textAlign="center"
+                mt={8}
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                Partner listings are for reference only and do not imply endorsement. Services are provided independently.
+              </Text>
+            </AnimatedSection>
+          </Container>
         </Box>
 
         {/* ═══════════════════════════════════════════════════
