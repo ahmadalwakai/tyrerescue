@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     description:
-      'Flat tyre? Call 0141 266 0690 now. 24/7 emergency mobile tyre fitting Glasgow & Edinburgh. 45 min avg response. From £49. We come to you.',
+      '24/7 mobile tyre fitting, emergency tyre replacement, puncture repair, battery replacement, and roadside assistance across Scotland. Fast coverage in Glasgow and Edinburgh. Call 0141 266 0690.',
     keywords: [
       'mobile tyre fitting glasgow',
       'mobile tyre fitting near me',

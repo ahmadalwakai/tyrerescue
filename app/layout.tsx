@@ -9,7 +9,7 @@ import { FloatingContactBar } from '@/components/ui/FloatingContactBar';
 import { VisitorTracker } from '@/components/VisitorTracker';
 import { PageviewTracker } from '@/components/analytics/PageviewTracker';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { getLocalBusinessSchema, getWebSiteSchema } from '@/lib/seo/schemas';
+import { getLocalBusinessSchema, getWebSiteSchema, getOrganizationSchema } from '@/lib/seo/schemas';
 import { getSiteUrl } from '@/lib/config/site';
 import { GA_MEASUREMENT_ID } from '@/lib/analytics/gtag';
 import Script from 'next/script';
@@ -30,11 +30,14 @@ const bebasNeue = Bebas_Neue({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Mobile Tyre Fitting Glasgow & Edinburgh | 24/7 | Tyre Rescue',
+    default: 'Mobile Tyre Fitting Across Scotland | 24/7 | Tyre Rescue',
     template: '%s | Tyre Rescue',
   },
   description:
-    'Flat tyre? Call 0141 266 0690 now. 24/7 emergency mobile tyre fitting Glasgow & Edinburgh. 45 min avg response. From £49. We come to you.',
+    '24/7 mobile tyre fitting, emergency tyre replacement, puncture repair, battery replacement, and roadside assistance across Scotland. Fast coverage in Glasgow and Edinburgh. Call 0141 266 0690.',
+  alternates: {
+    canonical: 'https://www.tyrerescue.uk',
+  },
   keywords: [
     'mobile tyre fitting glasgow',
     'mobile tyre fitting near me',
@@ -70,9 +73,9 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL(getSiteUrl()),
   openGraph: {
-    title: 'Tyre Rescue — 24/7 Mobile Tyre Fitting Glasgow & Edinburgh',
+    title: 'Tyre Rescue — 24/7 Mobile Tyre Fitting Across Scotland',
     description:
-      'Flat tyre? Call 0141 266 0690. 24/7 emergency mobile tyre fitting Glasgow & Edinburgh. 45 min response.',
+      '24/7 mobile tyre fitting across Scotland. Emergency tyre replacement, puncture repair, roadside assistance. Fast coverage in Glasgow and Edinburgh.',
     url: getSiteUrl(),
     siteName: 'Tyre Rescue',
     locale: 'en_GB',
@@ -88,9 +91,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Tyre Rescue — 24/7 Mobile Tyre Fitting',
+    title: 'Tyre Rescue — 24/7 Mobile Tyre Fitting Across Scotland',
     description:
-      'Flat tyre? Call 0141 266 0690. 24/7 emergency mobile tyre fitting Glasgow & Edinburgh. 45 min response.',
+      '24/7 mobile tyre fitting across Scotland. Emergency tyre replacement, puncture repair, roadside assistance. Fast coverage in Glasgow and Edinburgh.',
     images: ['/images/home/slide-1.png'],
   },
   icons: {
@@ -128,6 +131,7 @@ export default function RootLayout({
       <head>
         <JsonLd data={getLocalBusinessSchema()} />
         <JsonLd data={getWebSiteSchema()} />
+        <JsonLd data={getOrganizationSchema()} />
         <Script id="gtag-consent-default" strategy="beforeInteractive">
           {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;
 gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',functionality_storage:'denied',personalization_storage:'denied',security_storage:'granted'});

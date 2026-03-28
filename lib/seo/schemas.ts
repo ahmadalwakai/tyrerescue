@@ -27,7 +27,7 @@ export function getLocalBusinessSchema(baseUrl: string = DEFAULT_BASE_URL) {
     name: 'Tyre Rescue',
     alternateName: 'Duke Street Tyres',
     description:
-      'Emergency mobile tyre fitting service in Glasgow and Edinburgh. 24 hours a day, 7 days a week.',
+      '24/7 mobile tyre fitting, emergency tyre replacement, and puncture repair across Scotland. Fast coverage in Glasgow and Edinburgh.',
     url: baseUrl,
     telephone: PHONE,
     email: EMAIL,
@@ -40,6 +40,7 @@ export function getLocalBusinessSchema(baseUrl: string = DEFAULT_BASE_URL) {
     openingHours: 'Mo-Su 00:00-23:59',
     priceRange: '£20–£200',
     areaServed: [
+      { '@type': 'AdministrativeArea', name: 'Scotland' },
       { '@type': 'City', name: 'Glasgow' },
       { '@type': 'City', name: 'Edinburgh' },
       { '@type': 'City', name: 'Dundee' },
@@ -121,6 +122,33 @@ export function getWebSiteSchema(baseUrl: string = DEFAULT_BASE_URL) {
       target: `${baseUrl}/tyres?q={search_term_string}`,
       'query-input': 'required name=search_term_string',
     },
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Organization — site-wide brand identity                           */
+/* ------------------------------------------------------------------ */
+export function getOrganizationSchema(baseUrl: string = DEFAULT_BASE_URL) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Tyre Rescue',
+    alternateName: 'Duke Street Tyres',
+    url: baseUrl,
+    logo: `${baseUrl}/icon-512x512.png`,
+    contactPoint: {
+      '@type': 'ContactPoint',
+      telephone: PHONE,
+      contactType: 'customer service',
+      areaServed: 'GB',
+      availableLanguage: 'English',
+    },
+    address: ADDRESS,
+    sameAs: [
+      'https://www.facebook.com/share/1Bt1ZFNkXN/',
+      'https://www.instagram.com/dukestreettyres/',
+      'https://uk.trustpilot.com/review/tyrerescue.uk',
+    ],
   };
 }
 

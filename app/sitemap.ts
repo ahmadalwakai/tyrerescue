@@ -72,19 +72,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     serviceCities.map((citySlug) => ({
       url: `${baseUrl}/${service.slug}/${citySlug}`,
       lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.9,
+      changeFrequency: 'monthly' as const,
+      priority: 0.85,
     })),
   );
 
   // SEO — service × city × area pages (e.g. /mobile-tyre-fitting/glasgow/govan)
+  // Lower priority (0.5) for area pages as they are high-volume generated pages
   const serviceAreaRoutes: MetadataRoute.Sitemap = services.flatMap((service) =>
     serviceCities.flatMap((citySlug) =>
       getAreasForCity(citySlug).map((area) => ({
         url: `${baseUrl}/${service.slug}/${citySlug}/${area.slug}`,
         lastModified: new Date(),
         changeFrequency: 'monthly' as const,
-        priority: 0.7,
+        priority: 0.5,
       })),
     ),
   );
