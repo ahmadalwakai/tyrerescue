@@ -120,15 +120,16 @@ async function resolveSellableTyreBySize(tyreSize: string): Promise<QuickBookTyr
 function applyAdminAdjustment(
   baseBreakdown: PricingBreakdown,
   adjustmentAmount: number,
-  adjustmentReason: string | null | undefined,
+  _adjustmentReason: string | null | undefined,
 ): PricingBreakdown {
   const breakdown: PricingBreakdown = {
     ...baseBreakdown,
-    lineItems: [...baseBreakdown.lineItems],
+    lineItems: baseBreakdown.lineItems.map((line) => ({ ...line })),
   };
 
   const normalizedAdjustment = Math.round(adjustmentAmount * 100) / 100;
 
+  // Remove any old Admin adjustment line items (legacy cleanup)
   breakdown.lineItems = breakdown.lineItems.filter((line) => {
     if (line.label !== 'Admin adjustment' && !line.label.startsWith('Admin adjustment - ')) {
       return true;
@@ -137,18 +138,33 @@ function applyAdminAdjustment(
   });
 
   if (normalizedAdjustment !== 0) {
-    const lineItem: PricingLineItem = {
-      label: adjustmentReason
-        ? `Admin adjustment - ${adjustmentReason}`
-        : 'Admin adjustment',
-      amount: normalizedAdjustment,
-      type: normalizedAdjustment >= 0 ? 'surcharge' : 'discount',
-    };
+    // Find the service fee line item to merge adjustment into (Fitting fee or Repair fee)
+    // This hides the admin adjustment from customers by rolling it into the service fee
+    const serviceFeeIndex = breakdown.lineItems.findIndex(
+      (line) => line.label === 'Fitting fee' || line.label === 'Repair fee'
+    );
 
-    const totalIndex = breakdown.lineItems.findIndex((line) => line.type === 'total');
-    const insertIndex = totalIndex >= 0 ? totalIndex : breakdown.lineItems.length;
-    breakdown.lineItems.splice(insertIndex, 0, lineItem);
+    if (serviceFeeIndex >= 0) {
+      // Merge admin adjustment into the existing service fee
+      const serviceFee = breakdown.lineItems[serviceFeeIndex];
+      serviceFee.amount = Math.round((serviceFee.amount + normalizedAdjustment) * 100) / 100;
+      
+      // Update unitPrice if it exists (for proper display)
+      if (serviceFee.unitPrice !== undefined && serviceFee.quantity) {
+        serviceFee.unitPrice = Math.round((serviceFee.amount / serviceFee.quantity) * 100) / 100;
+      }
+    } else {
+      // Fallback: if no service fee found, add adjustment to first 'service' type line or as hidden surcharge
+      const serviceIndex = breakdown.lineItems.findIndex((line) => line.type === 'service');
+      if (serviceIndex >= 0) {
+        breakdown.lineItems[serviceIndex].amount = Math.round(
+          (breakdown.lineItems[serviceIndex].amount + normalizedAdjustment) * 100
+        ) / 100;
+      }
+      // If no service line at all, adjustment still affects totals below
+    }
 
+    // Update totals
     breakdown.subtotal = Math.round((breakdown.subtotal + normalizedAdjustment) * 100) / 100;
     breakdown.total = Math.round((breakdown.total + normalizedAdjustment) * 100) / 100;
 
@@ -159,6 +175,7 @@ function applyAdminAdjustment(
     }
   }
 
+  // Update subtotal and total line items
   for (const line of breakdown.lineItems) {
     if (line.type === 'subtotal') line.amount = breakdown.subtotal;
     if (line.type === 'total') line.amount = breakdown.total;

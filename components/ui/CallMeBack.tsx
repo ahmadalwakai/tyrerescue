@@ -10,12 +10,22 @@ type FormState = 'idle' | 'open' | 'submitting' | 'success' | 'error';
 
 const HIDDEN_PREFIXES = ['/admin', '/dashboard', '/driver'];
 
+// Custom event name for opening the call me back form from anywhere (e.g., Nav)
+export const CALL_ME_BACK_OPEN_EVENT = 'callMeBackOpen';
+
 export function CallMeBack() {
   const pathname = usePathname();
   const [state, setState] = useState<FormState>('idle');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Listen for external open events (e.g., from Nav button)
+  useEffect(() => {
+    const handleOpenEvent = () => setState('open');
+    window.addEventListener(CALL_ME_BACK_OPEN_EVENT, handleOpenEvent);
+    return () => window.removeEventListener(CALL_ME_BACK_OPEN_EVENT, handleOpenEvent);
+  }, []);
 
   useEffect(() => {
     if (state === 'success') {
@@ -53,34 +63,9 @@ export function CallMeBack() {
 
   if (hidden) return null;
 
+  // No floating button - form is triggered via nav button (CALL_ME_BACK_OPEN_EVENT)
   if (state === 'idle') {
-    return (
-      <Box
-        position="fixed"
-        top="50%"
-        left="0"
-        transform="translateY(-50%)"
-        zIndex={1100}
-      >
-        <Button
-          bg={c.accent}
-          color="white"
-          fontWeight="700"
-          fontSize="12px"
-          borderRadius="0 8px 8px 0"
-          px={2}
-          py={6}
-          minH="auto"
-          h="auto"
-          _hover={{ bg: c.accentHover }}
-          onClick={() => setState('open')}
-          boxShadow="2px 0 12px rgba(0,0,0,0.3)"
-          style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
-        >
-          CALL ME BACK
-        </Button>
-      </Box>
-    );
+    return null;
   }
 
   return (

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Box, Container, Flex, Text, Link as ChakraLink, VStack } from '@chakra-ui/react';
 import Link from 'next/link';
 import { colorTokens } from '@/lib/design-tokens';
+import { CALL_ME_BACK_OPEN_EVENT } from '@/components/ui/CallMeBack';
 
 const colors = {
   bg: colorTokens.bg,
@@ -196,6 +197,25 @@ export function Nav() {
                   <Link href="/login">Sign In</Link>
                 </ChakraLink>
               )}
+              {/* Call Me Back button - triggers modal */}
+              <Box
+                as="button"
+                display={{ base: 'none', sm: 'flex' }}
+                alignItems="center"
+                gap="6px"
+                fontSize="13px"
+                color={colors.textSecondary}
+                bg="transparent"
+                border="none"
+                cursor="pointer"
+                _hover={{ color: colors.accent }}
+                transition="color 0.2s"
+                style={{ fontFamily: 'var(--font-body)' }}
+                onClick={() => window.dispatchEvent(new Event(CALL_ME_BACK_OPEN_EVENT))}
+              >
+                <Text as="span" fontSize="14px">📞</Text>
+                Call Back
+              </Box>
               <ChakraLink
                 asChild
                 px="24px"
@@ -287,6 +307,25 @@ export function Nav() {
                 <Link href="/login">SIGN IN</Link>
               </ChakraLink>
             )}
+            {/* Call Back button for mobile */}
+            <Box
+              as="button"
+              fontSize="24px"
+              color={colors.textSecondary}
+              letterSpacing="0.1em"
+              bg="transparent"
+              border="none"
+              cursor="pointer"
+              _hover={{ color: colors.accent }}
+              transition="color 0.2s"
+              style={{ fontFamily: 'var(--font-display)' }}
+              onClick={() => {
+                setMobileOpen(false);
+                window.dispatchEvent(new Event(CALL_ME_BACK_OPEN_EVENT));
+              }}
+            >
+              📞 CALL BACK
+            </Box>
           </VStack>
         </Box>
       )}

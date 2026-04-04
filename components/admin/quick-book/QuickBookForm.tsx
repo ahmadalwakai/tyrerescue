@@ -796,17 +796,48 @@ export function QuickBookForm() {
           {/* ═══ ADMIN ADJUSTMENT ═══ */}
           <Box bg={c.surface} p={4} borderRadius="8px" borderLeft="3px solid #F59E0B">
             {!showAdjustment ? (
-              <Button
-                w="100%"
-                variant="outline"
-                borderColor="#F59E0B"
-                color="#F59E0B"
-                fontWeight="600"
-                borderRadius="8px"
-                onClick={() => setShowAdjustment(true)}
-              >
-                ➕ Add Price Adjustment
-              </Button>
+              <VStack gap={2} align="stretch">
+                {created.booking.adminAdjustmentAmount && Number(created.booking.adminAdjustmentAmount) !== 0 ? (
+                  <>
+                    <Flex justify="space-between" align="center">
+                      <Text color="#F59E0B" fontSize="sm" fontWeight="600">
+                        ✓ Adjustment Applied (included in Fitting fee)
+                      </Text>
+                      <Text color="#F59E0B" fontSize="sm" fontWeight="700">
+                        {Number(created.booking.adminAdjustmentAmount) >= 0 ? '+' : ''}£{Number(created.booking.adminAdjustmentAmount).toFixed(2)}
+                      </Text>
+                    </Flex>
+                    {created.booking.adminAdjustmentReason && (
+                      <Text color={c.muted} fontSize="xs">
+                        Reason: {created.booking.adminAdjustmentReason}
+                      </Text>
+                    )}
+                    <Button
+                      w="100%"
+                      variant="outline"
+                      borderColor="#F59E0B"
+                      color="#F59E0B"
+                      fontWeight="600"
+                      borderRadius="8px"
+                      onClick={() => setShowAdjustment(true)}
+                    >
+                      ✏️ Edit Adjustment
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    w="100%"
+                    variant="outline"
+                    borderColor="#F59E0B"
+                    color="#F59E0B"
+                    fontWeight="600"
+                    borderRadius="8px"
+                    onClick={() => setShowAdjustment(true)}
+                  >
+                    ➕ Add Price Adjustment
+                  </Button>
+                )}
+              </VStack>
             ) : (
               <VStack gap={3} align="stretch">
                 <Text color={c.text} fontSize="sm" fontWeight="600">Manual Price Adjustment</Text>

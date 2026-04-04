@@ -4,9 +4,12 @@ import { quickBookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { resolveDistance } from '@/lib/mapbox';
-import { getPricingConfig, isNightWindow } from '@/lib/pricing-config';
-import { calculateDynamicSurchargeBreakdown } from '@/lib/pricing-engine';
 import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
+import {
+  calculateQuickBookPricing,
+  extractQuickBookTyreSnapshot,
+  type QuickBookServiceType,
+} from '@/lib/quick-book-pricing';
 
 const submitSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -113,60 +116,63 @@ export async function POST(
     // Keep null; pricing falls back safely.
   }
 
-  // Reprice with dynamic surcharge
-  let surchargePercent = 0;
-  let totalPrice: number | null = null;
-  const basePrice = booking.basePrice ? Number(booking.basePrice) : null;
+  // Recalculate pricing with actual distance
+  let basePrice: number | null = booking.basePrice ? Number(booking.basePrice) : null;
+  let totalPrice: number | null = booking.totalPrice ? Number(booking.totalPrice) : null;
+  let priceBreakdown: Record<string, unknown> | null = booking.priceBreakdown as Record<string, unknown> | null;
+
+  const distanceMiles = distanceKm != null ? distanceKm * 0.621371 : 5;
+  const serviceType = (booking.serviceType ?? 'fit') as QuickBookServiceType;
 
   try {
-    const config = await getPricingConfig();
-    const surchargeBreakdown = calculateDynamicSurchargeBreakdown({
-      isNight: isNightWindow(config),
-      nightSurchargePercent: Number(config.nightSurchargePercent ?? 15),
-      manualSurchargeActive: config.manualSurchargeActive ?? false,
-      manualSurchargePercent: Number(config.manualSurchargePercent ?? 0),
-      demandSurchargePercent: Number(config.demandSurchargePercent ?? 0),
-      isReturningVisitor: false, // customer link — not visitor-tracked
-      cookieReturnSurchargePercent: 0,
-      maxTotalSurchargePercent: Number(config.maxTotalSurchargePercent ?? 25),
+    const tyreSnapshot = extractQuickBookTyreSnapshot({
+      selectedTyreProductId: booking.selectedTyreProductId,
+      selectedTyreUnitPrice: booking.selectedTyreUnitPrice,
+      selectedTyreBrand: booking.selectedTyreBrand,
+      selectedTyrePattern: booking.selectedTyrePattern,
+      selectedTyreSizeDisplay: booking.tyreSize,
     });
-    surchargePercent = surchargeBreakdown.cappedPercent;
 
-    if (basePrice) {
-      const surchargeAmount = basePrice * (surchargePercent / 100);
-      totalPrice = Math.round((basePrice + surchargeAmount) * 100) / 100;
+    const priced = await calculateQuickBookPricing({
+      serviceType,
+      tyreSize: booking.tyreSize ?? null,
+      tyreCount: booking.tyreCount ?? 1,
+      distanceMiles,
+      selectedTyreSnapshot: tyreSnapshot,
+      resolveTyreFromSize: !tyreSnapshot && Boolean(booking.tyreSize?.trim()),
+      requireTyreForFit: false, // Don't fail if tyre not found - keep existing pricing
+      adminAdjustmentAmount: Number(booking.adminAdjustmentAmount ?? 0),
+      adminAdjustmentReason: booking.adminAdjustmentReason,
+    });
+
+    basePrice = priced.breakdown.subtotal;
+    totalPrice = priced.breakdown.total;
+    priceBreakdown = {
+      ...priced.breakdown,
+      serviceOrigin: serviceOriginLat && serviceOriginLng ? {
+        lat: serviceOriginLat,
+        lng: serviceOriginLng,
+        source: serviceOriginSource,
+        driverId: serviceOriginDriverId,
+        etaMinutes: durationMinutes,
+      } : null,
+    };
+  } catch (pricingError) {
+    console.error('[location-share] pricing error, keeping existing price', pricingError);
+    // Keep existing price but update service origin
+    if (priceBreakdown) {
+      priceBreakdown = {
+        ...priceBreakdown,
+        serviceOrigin: serviceOriginLat && serviceOriginLng ? {
+          lat: serviceOriginLat,
+          lng: serviceOriginLng,
+          source: serviceOriginSource,
+          driverId: serviceOriginDriverId,
+          etaMinutes: durationMinutes,
+        } : null,
+      };
     }
-  } catch { /* proceed without surcharge */ }
-
-  // Build updated priceBreakdown with service origin
-  const existingBreakdown = booking.priceBreakdown as Record<string, unknown> | null;
-  const updatedPriceBreakdown = existingBreakdown ? {
-    ...existingBreakdown,
-    serviceOrigin: serviceOriginLat && serviceOriginLng ? {
-      lat: serviceOriginLat,
-      lng: serviceOriginLng,
-      source: serviceOriginSource,
-      driverId: serviceOriginDriverId,
-      etaMinutes: durationMinutes,
-    } : null,
-  } : serviceOriginLat && serviceOriginLng ? {
-    lineItems: [],
-    totalTyreCost: 0,
-    totalServiceFee: 0,
-    calloutFee: 0,
-    totalSurcharges: 0,
-    discountAmount: 0,
-    subtotal: 0,
-    vatAmount: 0,
-    total: 0,
-    serviceOrigin: {
-      lat: serviceOriginLat,
-      lng: serviceOriginLng,
-      source: serviceOriginSource,
-      driverId: serviceOriginDriverId,
-      etaMinutes: durationMinutes,
-    },
-  } : null;
+  }
 
   await db
     .update(quickBookings)
@@ -176,9 +182,9 @@ export async function POST(
       locationAddress: parsed.data.address ?? null,
       locationLinkUsed: true,
       distanceKm: distanceKm != null ? String(distanceKm) : null,
-      surchargePercent: String(surchargePercent),
-      totalPrice: totalPrice != null ? String(totalPrice) : booking.totalPrice,
-      priceBreakdown: updatedPriceBreakdown,
+      basePrice: basePrice != null ? basePrice.toFixed(2) : booking.basePrice,
+      totalPrice: totalPrice != null ? totalPrice.toFixed(2) : booking.totalPrice,
+      priceBreakdown,
       status: 'location_received',
       updatedAt: new Date(),
     })

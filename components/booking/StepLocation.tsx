@@ -551,41 +551,43 @@ export function StepLocation({
         </Box>
       )}
 
-      {/* Navigation buttons */}
-      <Flex gap={3} mt={5} style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.1s both' }}>
-        <Button
-          variant="outline"
-          onClick={goToPrev}
-          flex={1}
-          h="52px"
-          bg="transparent"
-          borderColor={c.border}
-          borderRadius="6px"
-          color={c.text}
-          fontSize="15px"
-          fontWeight={500}
-          fontFamily="var(--font-body)"
-          _hover={{ borderColor: c.accent }}
-        >
-          Back
-        </Button>
-        {canContinue && (
+      {/* Navigation buttons - only show when location selected */}
+      {selectedLocation && (
+        <Flex gap={3} mt={5} style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.1s both' }}>
           <Button
-            onClick={handleContinue}
+            variant="outline"
+            onClick={goToPrev}
             flex={1}
             h="52px"
-            bg={c.accent}
+            bg="transparent"
+            borderColor={c.border}
             borderRadius="6px"
-            color="#09090B"
-            fontSize="20px"
-            letterSpacing="0.05em"
-            fontFamily="var(--font-display)"
-            _hover={{ bg: c.accentHover }}
+            color={c.text}
+            fontSize="15px"
+            fontWeight={500}
+            fontFamily="var(--font-body)"
+            _hover={{ borderColor: c.accent }}
           >
-            CONTINUE →
+            Back
           </Button>
-        )}
-      </Flex>
+          {canContinue && (
+            <Button
+              onClick={handleContinue}
+              flex={1}
+              h="52px"
+              bg={c.accent}
+              borderRadius="6px"
+              color="#09090B"
+              fontSize="20px"
+              letterSpacing="0.05em"
+              fontFamily="var(--font-display)"
+              _hover={{ bg: c.accentHover }}
+            >
+              CONTINUE →
+            </Button>
+          )}
+        </Flex>
+      )}
     </Box>
   );
 }

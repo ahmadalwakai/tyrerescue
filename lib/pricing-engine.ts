@@ -550,6 +550,26 @@ export function calculatePricing(
   const surchargeResult = calculateSurcharges(input, rules);
   lineItems.push(...surchargeResult.lineItems);
 
+  // Component 4b: Rural area surcharge (30+ miles = 1.5x, 45+ miles = 2x)
+  let ruralMultiplier = 1.0;
+  let ruralSurchargeLineItem: PricingLineItem | null = null;
+  
+  if (input.distanceMiles >= 45) {
+    ruralMultiplier = 2.0;
+    ruralSurchargeLineItem = {
+      label: 'Rural area surcharge (100%)',
+      amount: 0, // Will be calculated below
+      type: 'surcharge',
+    };
+  } else if (input.distanceMiles >= 30) {
+    ruralMultiplier = 1.5;
+    ruralSurchargeLineItem = {
+      label: 'Rural area surcharge (50%)',
+      amount: 0, // Will be calculated below
+      type: 'surcharge',
+    };
+  }
+
   // Component 5: Multi-tyre discount
   const totalTyres = isServiceOnly
     ? (input.tyreQuantity || 1)
@@ -563,12 +583,24 @@ export function calculatePricing(
     lineItems.push(discountResult.lineItem);
   }
 
-  // Calculate pre-surge subtotal
-  const preSurgeSubtotal = tyreCostTotal
+  // Calculate base subtotal (before rural surcharge)
+  const baseSubtotal = tyreCostTotal
     .plus(serviceFeeTotal)
     .plus(calloutResult.fee)
     .plus(surchargeResult.total)
     .minus(discountResult.discountAmount);
+
+  // Apply rural area surcharge (30+ miles = 1.5x, 45+ miles = 2x)
+  let ruralSurchargeAmount = new Decimal(0);
+  if (ruralMultiplier > 1.0 && ruralSurchargeLineItem) {
+    // Surcharge is the additional amount (e.g., 50% of base = 0.5 * base)
+    ruralSurchargeAmount = baseSubtotal.times(ruralMultiplier - 1);
+    ruralSurchargeLineItem.amount = ruralSurchargeAmount.toNumber();
+    lineItems.push(ruralSurchargeLineItem);
+  }
+
+  // Calculate pre-surge subtotal (including rural surcharge)
+  const preSurgeSubtotal = baseSubtotal.plus(ruralSurchargeAmount);
 
   // Component 6: Surge multiplier
   const surgeResult = applySurgeMultiplier(
@@ -609,7 +641,7 @@ export function calculatePricing(
     totalTyreCost: tyreCostTotal.toNumber(),
     totalServiceFee: serviceFeeTotal.toNumber(),
     calloutFee: calloutResult.fee.toNumber(),
-    totalSurcharges: surchargeResult.total.toNumber(),
+    totalSurcharges: surchargeResult.total.plus(ruralSurchargeAmount).toNumber(),
     discountAmount: discountResult.discountAmount.toNumber(),
     surgeMultiplier: surgeResult.multiplier,
     subtotal: surgeResult.adjustedSubtotal.toNumber(),
