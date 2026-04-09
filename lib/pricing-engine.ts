@@ -246,28 +246,28 @@ function calculateCalloutFee(
   let label: string;
 
   if (distanceMiles <= 5) {
-    fee = new Decimal(rules.callout_0_5);
+    fee = new Decimal(rules.callout_0_5).times(0.67);
     label = 'Callout (0-5 miles)';
   } else if (distanceMiles <= 10) {
-    fee = new Decimal(rules.callout_5_10);
+    fee = new Decimal(rules.callout_5_10).times(0.67);
     label = 'Callout (5-10 miles)';
   } else if (distanceMiles <= 15) {
-    fee = new Decimal(rules.callout_10_15);
+    fee = new Decimal(rules.callout_10_15).times(0.67);
     label = 'Callout (10-15 miles)';
   } else if (distanceMiles <= 20) {
-    fee = new Decimal(rules.callout_15_20);
+    fee = new Decimal(rules.callout_15_20).times(0.67);
     label = 'Callout (15-20 miles)';
   } else if (distanceMiles <= 30) {
-    fee = new Decimal(rules.callout_20_30);
+    fee = new Decimal(rules.callout_20_30).times(0.67);
     label = 'Callout (20-30 miles)';
   } else if (distanceMiles <= 40) {
-    fee = new Decimal(rules.callout_30_40);
+    fee = new Decimal(rules.callout_30_40).times(0.67);
     label = 'Callout (30-40 miles)';
   } else {
     // Over 40 miles: base + per mile rate
     const extraMiles = distanceMiles - 40;
-    fee = new Decimal(rules.callout_40_base).plus(
-      new Decimal(rules.callout_40_per_mile).times(extraMiles)
+    fee = new Decimal(rules.callout_40_base).times(0.67).plus(
+      new Decimal(rules.callout_40_per_mile).times(0.67).times(extraMiles)
     );
     label = `Callout (${Math.round(distanceMiles)} miles)`;
   }
