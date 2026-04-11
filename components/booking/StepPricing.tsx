@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Box, VStack, HStack, Text, Button, Separator, Spinner } from '@chakra-ui/react';
 import { WizardState, WizardStep, updateCartQuantity, removeFromCart } from './types';
 import { CartSummary } from './CartSummary';
-import { formatPrice, PricingBreakdown, PricingLineItem } from '@/lib/pricing-engine';
+import { formatPrice, PricingBreakdown, PricingLineItem, getDisplayBreakdown } from '@/lib/pricing-engine';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { API } from '@/lib/api-endpoints';
@@ -522,12 +522,15 @@ export function StepPricing({
 
   const breakdown = state.breakdown as PricingBreakdown | null;
 
+  // Get display breakdown with rural surcharge hidden and redistributed
+  const displayBreakdown = useMemo(() => breakdown ? getDisplayBreakdown(breakdown) : null, [breakdown]);
+
   // Group line items by type — must be above early returns to preserve hook order
-  const tyreItems = useMemo(() => breakdown?.lineItems.filter(item => item.type === 'tyre') ?? [], [breakdown]);
-  const serviceItems = useMemo(() => breakdown?.lineItems.filter(item => item.type === 'service') ?? [], [breakdown]);
-  const calloutItems = useMemo(() => breakdown?.lineItems.filter(item => item.type === 'callout') ?? [], [breakdown]);
-  const surchargeItems = useMemo(() => breakdown?.lineItems.filter(item => item.type === 'surcharge') ?? [], [breakdown]);
-  const discountItems = useMemo(() => breakdown?.lineItems.filter(item => item.type === 'discount') ?? [], [breakdown]);
+  const tyreItems = useMemo(() => displayBreakdown?.lineItems.filter(item => item.type === 'tyre') ?? [], [displayBreakdown]);
+  const serviceItems = useMemo(() => displayBreakdown?.lineItems.filter(item => item.type === 'service') ?? [], [displayBreakdown]);
+  const calloutItems = useMemo(() => displayBreakdown?.lineItems.filter(item => item.type === 'callout') ?? [], [displayBreakdown]);
+  const surchargeItems = useMemo(() => displayBreakdown?.lineItems.filter(item => item.type === 'surcharge') ?? [], [displayBreakdown]);
+  const discountItems = useMemo(() => displayBreakdown?.lineItems.filter(item => item.type === 'discount') ?? [], [displayBreakdown]);
 
   if (!breakdown) {
     // Error state (API error or response validation failure)

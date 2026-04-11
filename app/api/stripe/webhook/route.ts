@@ -102,11 +102,18 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   const paymentIntentId = paymentIntent.id;
   const bookingId = paymentIntent.metadata?.bookingId;
   const refNumber = paymentIntent.metadata?.refNumber;
+  const paymentType = paymentIntent.metadata?.type;
 
-  console.log(`Processing payment success for ${paymentIntentId}, booking ${bookingId}`);
+  console.log(`Processing payment success for ${paymentIntentId}, booking ${bookingId}, type: ${paymentType || 'full'}`);
 
   if (!bookingId) {
     console.error('Payment intent missing bookingId metadata:', paymentIntentId);
+    return;
+  }
+
+  // Handle deposit payments separately
+  if (paymentType === 'deposit') {
+    await handleDepositPaymentSucceeded(paymentIntent);
     return;
   }
 
@@ -164,11 +171,12 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     });
   }
 
-  // Update booking status to paid
+  // Update booking status to paid (full payment)
   await db
     .update(bookings)
     .set({
       status: 'paid',
+      paymentType: 'full',
       updatedAt: new Date(),
     })
     .where(eq(bookings.id, bookingId));
@@ -368,6 +376,102 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     link: `/admin/bookings/${refNumber}`,
     severity: 'success',
     metadata: { stripeId: paymentIntentId, amount: paymentIntent.amount, currency: paymentIntent.currency },
+  });
+}
+
+/**
+ * Handle deposit payment success
+ * 
+ * This is idempotent - skips if depositPaidAt already set.
+ */
+async function handleDepositPaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+  const paymentIntentId = paymentIntent.id;
+  const bookingId = paymentIntent.metadata?.bookingId;
+  const refNumber = paymentIntent.metadata?.refNumber;
+
+  console.log(`Processing deposit payment success for ${paymentIntentId}, booking ${bookingId}`);
+
+  if (!bookingId) {
+    console.error('Deposit payment intent missing bookingId metadata:', paymentIntentId);
+    return;
+  }
+
+  // Get the booking
+  const [booking] = await db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .limit(1);
+
+  if (!booking) {
+    console.error('Booking not found for deposit payment:', bookingId);
+    return;
+  }
+
+  // Idempotency: skip if deposit already marked as paid
+  if (booking.depositPaidAt) {
+    console.log(`Deposit for booking ${bookingId} already processed, skipping`);
+    return;
+  }
+
+  // Calculate remaining balance
+  const totalInPence = Math.round(Number(booking.totalAmount) * 100);
+  const depositAmountPence = paymentIntent.amount;
+  const remainingBalancePence = totalInPence - depositAmountPence;
+
+  // Update booking with deposit info
+  await db
+    .update(bookings)
+    .set({
+      status: 'deposit_paid',
+      paymentType: 'deposit',
+      depositAmountPence,
+      depositPaidAt: new Date(),
+      remainingBalancePence,
+      stripeDepositPiId: paymentIntentId,
+      updatedAt: new Date(),
+    })
+    .where(eq(bookings.id, bookingId));
+
+  // Record payment
+  await db.insert(payments).values({
+    id: uuidv4(),
+    bookingId,
+    stripePiId: paymentIntentId,
+    amount: (depositAmountPence / 100).toString(),
+    currency: paymentIntent.currency,
+    status: 'succeeded',
+    stripePayload: paymentIntent as unknown as Record<string, unknown>,
+  });
+
+  // Record status history
+  await db.insert(bookingStatusHistory).values({
+    id: uuidv4(),
+    bookingId,
+    fromStatus: 'awaiting_payment',
+    toStatus: 'deposit_paid',
+    actorUserId: null,
+    actorRole: 'system',
+    note: `Deposit of £${(depositAmountPence / 100).toFixed(2)} paid via Stripe (${paymentIntentId}). Balance due on-site: £${(remainingBalancePence / 100).toFixed(2)}`,
+  });
+
+  console.log(`Deposit ${paymentIntentId} processed successfully for booking ${refNumber || bookingId}`);
+
+  // Admin notification
+  await createAdminNotification({
+    type: 'payment.received',
+    title: 'Deposit Received',
+    body: `£${(depositAmountPence / 100).toFixed(2)} deposit from ${booking.customerEmail} — ${refNumber || booking.refNumber}. Balance due: £${(remainingBalancePence / 100).toFixed(2)}`,
+    entityType: 'payment',
+    entityId: paymentIntentId,
+    link: `/admin/bookings/${refNumber || booking.refNumber}`,
+    severity: 'success',
+    metadata: {
+      stripeId: paymentIntentId,
+      depositAmount: depositAmountPence,
+      remainingBalance: remainingBalancePence,
+      currency: paymentIntent.currency,
+    },
   });
 }
 

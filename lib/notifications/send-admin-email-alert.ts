@@ -1,4 +1,3 @@
-import { Resend } from 'resend';
 import type {
   AdminNotificationMetadata,
   CreateNotificationInput,
@@ -42,17 +41,62 @@ const meaningfulBookingUpdateKinds = new Set([
   'admin_update',
 ]);
 
-let resendClient: Resend | null = null;
-
-function getResendClient(): Resend | null {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return null;
-
-  if (!resendClient) {
-    resendClient = new Resend(apiKey);
+/**
+ * Send email via ZeptoMail API
+ */
+async function sendViaZeptoMail(options: {
+  to: string;
+  from: string;
+  subject: string;
+  html: string;
+  text: string;
+  headers?: Record<string, string>;
+}): Promise<{ success: boolean; error?: string }> {
+  const apiKey = process.env.ZEPTOMAIL_API_KEY;
+  if (!apiKey) {
+    return { success: false, error: 'ZEPTOMAIL_API_KEY is not configured' };
   }
 
-  return resendClient;
+  const apiUrl = process.env.ZEPTOMAIL_API_URL || 'https://api.zeptomail.eu/v1.1/email';
+
+  const body = {
+    from: {
+      address: options.from,
+      name: 'Tyre Rescue',
+    },
+    to: [{ email_address: { address: options.to } }],
+    subject: options.subject,
+    htmlbody: options.html,
+    textbody: options.text,
+  };
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Zoho-enczapikey ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (response.ok) {
+      return { success: true };
+    }
+
+    let errorMessage = `ZeptoMail error ${response.status}`;
+    try {
+      const json = (await response.json()) as Record<string, unknown>;
+      if (typeof json.message === 'string') errorMessage = json.message;
+    } catch {
+      // Can't parse error body
+    }
+    return { success: false, error: errorMessage };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown ZeptoMail error';
+    return { success: false, error: message };
+  }
 }
 
 function getBaseAppUrl(): string {
@@ -309,9 +353,8 @@ export async function sendAdminEmailAlert(input: SendAdminEmailAlertInput): Prom
   try {
     if (!shouldSendEmail(input)) return;
 
-    const client = getResendClient();
-    if (!client) {
-      console.warn('[AdminEmailAlert] Skipped: RESEND_API_KEY is not configured');
+    if (!process.env.ZEPTOMAIL_API_KEY) {
+      console.warn('[AdminEmailAlert] Skipped: ZEPTOMAIL_API_KEY is not configured');
       return;
     }
 
@@ -332,10 +375,10 @@ export async function sendAdminEmailAlert(input: SendAdminEmailAlertInput): Prom
     });
 
     const toEmail = process.env.ADMIN_ALERT_TO_EMAIL || DEFAULT_TO_EMAIL;
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'support@tyrerescue.uk';
+    const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL || 'support@tyrerescue.uk';
 
-    const result = await client.emails.send({
-      from: `Tyre Rescue <${fromEmail}>`,
+    const result = await sendViaZeptoMail({
+      from: fromEmail,
       to: toEmail,
       subject,
       html: template.html,
@@ -346,8 +389,8 @@ export async function sendAdminEmailAlert(input: SendAdminEmailAlertInput): Prom
       },
     });
 
-    if (result.error) {
-      console.error('[AdminEmailAlert] Resend error:', result.error.message, {
+    if (!result.success) {
+      console.error('[AdminEmailAlert] ZeptoMail error:', result.error, {
         notificationId: input.notificationId,
         eventType: input.type,
       });

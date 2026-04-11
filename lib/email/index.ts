@@ -21,4 +21,4 @@ export type {
 } from './types';
 
 // Config
-export { emailConfig, hasZeptoMail, hasResend, getPrimaryProvider } from './config';
+export { emailConfig, hasZeptoMail, getPrimaryProvider } from './config';

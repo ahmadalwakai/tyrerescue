@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       lte(tyreProducts.stockNew, LOW_STOCK_THRESHOLD)
     );
 
-  const adminEmail = process.env.ADMIN_EMAIL || process.env.RESEND_FROM_EMAIL || 'support@tyrerescue.uk';
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.ZEPTOMAIL_FROM_EMAIL || 'support@tyrerescue.uk';
 
   // Send individual alerts for each low-stock item
   for (const tyre of lowStock) {

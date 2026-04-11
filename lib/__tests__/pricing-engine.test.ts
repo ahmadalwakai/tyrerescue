@@ -3,9 +3,12 @@ import {
   calculatePricing,
   calculateHybridPricing,
   parsePricingRules,
+  getDisplayBreakdown,
   type PricingRules,
   type PricingInput,
   type HybridPricingInput,
+  type PricingBreakdown,
+  type PricingLineItem,
 } from '../pricing-engine';
 
 function defaultRules(overrides: Partial<PricingRules> = {}): PricingRules {
@@ -455,5 +458,198 @@ describe('calculateHybridPricing', () => {
     // Check rounding: no more than 2 decimal places
     const decimalPart = result.finalPrice.toString().split('.')[1] ?? '';
     expect(decimalPart.length).toBeLessThanOrEqual(2);
+  });
+});
+
+// ─── getDisplayBreakdown Tests ──────────────────────────────────────────────
+
+describe('getDisplayBreakdown', () => {
+  /**
+   * Helper to create a mock breakdown for testing
+   */
+  function mockBreakdown(lineItems: PricingLineItem[], total: number): PricingBreakdown {
+    return {
+      lineItems,
+      totalTyreCost: 0,
+      totalServiceFee: 0,
+      calloutFee: 0,
+      totalSurcharges: 0,
+      discountAmount: 0,
+      surgeMultiplier: 1,
+      subtotal: total,
+      vatAmount: 0,
+      total,
+      quoteExpiresAt: new Date(),
+      isValid: true,
+    };
+  }
+
+  it('returns items unchanged when no rural surcharge exists', () => {
+    const lineItems: PricingLineItem[] = [
+      { label: 'Tyre', amount: 80, type: 'tyre' },
+      { label: 'Fitting fee', amount: 20, type: 'service' },
+      { label: 'Subtotal', amount: 100, type: 'subtotal' },
+      { label: 'Total', amount: 100, type: 'total' },
+    ];
+    const breakdown = mockBreakdown(lineItems, 100);
+
+    const display = getDisplayBreakdown(breakdown);
+
+    expect(display.lineItems).toHaveLength(4);
+    expect(display.lineItems.find(i => i.label === 'Tyre')?.amount).toBe(80);
+    expect(display.lineItems.find(i => i.label === 'Fitting fee')?.amount).toBe(20);
+    expect(display.total).toBe(100);
+  });
+
+  it('removes rural surcharge and redistributes across 2 line items', () => {
+    // 80 + 20 = 100 base, rural surcharge 50 (50% of 100)
+    // Total = 150
+    // Redistribution: 80/100 * 50 = 40 → tyre becomes 120
+    //                 20/100 * 50 = 10 → fitting becomes 30
+    const lineItems: PricingLineItem[] = [
+      { label: 'Tyre', amount: 80, type: 'tyre' },
+      { label: 'Fitting fee', amount: 20, type: 'service' },
+      { label: 'Rural area surcharge (50%)', amount: 50, type: 'surcharge' },
+      { label: 'Subtotal', amount: 150, type: 'subtotal' },
+      { label: 'Total', amount: 150, type: 'total' },
+    ];
+    const breakdown = mockBreakdown(lineItems, 150);
+
+    const display = getDisplayBreakdown(breakdown);
+
+    // Rural surcharge should be removed
+    expect(display.lineItems.find(i => i.label.includes('Rural'))).toBeUndefined();
+
+    // Non-summary items should be redistributed
+    const tyreItem = display.lineItems.find(i => i.label === 'Tyre');
+    const fittingItem = display.lineItems.find(i => i.label === 'Fitting fee');
+
+    expect(tyreItem?.amount).toBe(120); // 80 + 40
+    expect(fittingItem?.amount).toBe(30); // 20 + 10
+
+    // Total should still match
+    expect(display.total).toBe(150);
+  });
+
+  it('removes rural surcharge and redistributes across 3 line items', () => {
+    // 60 tyre + 20 service + 20 callout = 100 base
+    // Rural surcharge 100 (100% of 100)
+    // Total = 200
+    // Each gets proportional share: 60/100*100=60, 20/100*100=20, 20/100*100=20
+    const lineItems: PricingLineItem[] = [
+      { label: 'Tyre', amount: 60, type: 'tyre' },
+      { label: 'Fitting fee', amount: 20, type: 'service' },
+      { label: 'Callout', amount: 20, type: 'callout' },
+      { label: 'Rural area surcharge (100%)', amount: 100, type: 'surcharge' },
+      { label: 'Subtotal', amount: 200, type: 'subtotal' },
+      { label: 'Total', amount: 200, type: 'total' },
+    ];
+    const breakdown = mockBreakdown(lineItems, 200);
+
+    const display = getDisplayBreakdown(breakdown);
+
+    // Rural surcharge removed
+    expect(display.lineItems.find(i => i.label.includes('Rural'))).toBeUndefined();
+
+    // Items redistributed
+    expect(display.lineItems.find(i => i.label === 'Tyre')?.amount).toBe(120); // 60 + 60
+    expect(display.lineItems.find(i => i.label === 'Fitting fee')?.amount).toBe(40); // 20 + 20
+    expect(display.lineItems.find(i => i.label === 'Callout')?.amount).toBe(40); // 20 + 20
+
+    // Sum of display items equals original total
+    const displaySum = display.lineItems
+      .filter(i => !['subtotal', 'vat', 'total'].includes(i.type))
+      .reduce((sum, i) => sum + i.amount, 0);
+    expect(displaySum).toBe(200);
+  });
+
+  it('handles rounding remainder by assigning to largest item', () => {
+    // Create a scenario where rounding causes a penny difference
+    // 33.33 + 33.33 + 33.34 = 100
+    // Rural surcharge = 10
+    // Each proportion: 33.33/100 * 10 = 3.333 → rounds to 3.33
+    //                  33.33/100 * 10 = 3.333 → rounds to 3.33
+    //                  33.34/100 * 10 = 3.334 → rounds to 3.33
+    // Sum: 9.99 → remainder of 0.01 goes to largest
+    const lineItems: PricingLineItem[] = [
+      { label: 'Item A', amount: 33.33, type: 'tyre' },
+      { label: 'Item B', amount: 33.33, type: 'service' },
+      { label: 'Item C', amount: 33.34, type: 'callout' },
+      { label: 'Rural area surcharge (50%)', amount: 10, type: 'surcharge' },
+      { label: 'Subtotal', amount: 110, type: 'subtotal' },
+      { label: 'Total', amount: 110, type: 'total' },
+    ];
+    const breakdown = mockBreakdown(lineItems, 110);
+
+    const display = getDisplayBreakdown(breakdown);
+
+    // Sum of redistributable items should equal original (110 total - summary rows)
+    const displaySum = display.lineItems
+      .filter(i => !['subtotal', 'vat', 'total'].includes(i.type))
+      .reduce((sum, i) => sum + Math.round(i.amount * 100), 0);
+
+    const originalSum = lineItems
+      .filter(i => !['subtotal', 'vat', 'total'].includes(i.type))
+      .reduce((sum, i) => sum + Math.round(i.amount * 100), 0);
+
+    // Allow 1 pence tolerance due to floating point
+    expect(Math.abs(displaySum - originalSum)).toBeLessThanOrEqual(1);
+  });
+
+  it('preserves subtotal, vatAmount, and total from original breakdown', () => {
+    const lineItems: PricingLineItem[] = [
+      { label: 'Tyre', amount: 80, type: 'tyre' },
+      { label: 'Rural area surcharge (50%)', amount: 40, type: 'surcharge' },
+      { label: 'Subtotal', amount: 100, type: 'subtotal' },
+      { label: 'VAT', amount: 20, type: 'vat' },
+      { label: 'Total', amount: 120, type: 'total' },
+    ];
+    const breakdown: PricingBreakdown = {
+      lineItems,
+      totalTyreCost: 80,
+      totalServiceFee: 0,
+      calloutFee: 0,
+      totalSurcharges: 40,
+      discountAmount: 0,
+      surgeMultiplier: 1,
+      subtotal: 100,
+      vatAmount: 20,
+      total: 120,
+      quoteExpiresAt: new Date(),
+      isValid: true,
+    };
+
+    const display = getDisplayBreakdown(breakdown);
+
+    expect(display.subtotal).toBe(100);
+    expect(display.vatAmount).toBe(20);
+    expect(display.total).toBe(120);
+  });
+
+  it('handles discount items correctly during redistribution', () => {
+    // 100 tyre - 10 discount + 50 rural surcharge = 140
+    // Redistribution: rural surcharge split between tyre and discount
+    // tyre: 100/90 * 50 = 55.56 → tyre becomes 155.56
+    // discount: -10/90 * 50 = -5.56 → discount becomes -15.56
+    const lineItems: PricingLineItem[] = [
+      { label: 'Tyre', amount: 100, type: 'tyre' },
+      { label: 'Multi-tyre discount', amount: -10, type: 'discount' },
+      { label: 'Rural area surcharge (50%)', amount: 50, type: 'surcharge' },
+      { label: 'Subtotal', amount: 140, type: 'subtotal' },
+      { label: 'Total', amount: 140, type: 'total' },
+    ];
+    const breakdown = mockBreakdown(lineItems, 140);
+
+    const display = getDisplayBreakdown(breakdown);
+
+    // Rural surcharge removed
+    expect(display.lineItems.find(i => i.label.includes('Rural'))).toBeUndefined();
+
+    // Sum should still equal total (excluding summary rows)
+    const displaySum = display.lineItems
+      .filter(i => !['subtotal', 'vat', 'total'].includes(i.type))
+      .reduce((sum, i) => sum + Math.round(i.amount * 100), 0);
+
+    expect(displaySum).toBe(14000); // 140 * 100 pence
   });
 });

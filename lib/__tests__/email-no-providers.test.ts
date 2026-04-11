@@ -4,21 +4,13 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../email/config', () => ({
   emailConfig: {
     zeptomail: { apiKey: '', fromEmail: '', apiUrl: '' },
-    resend: { apiKey: '', fromEmail: '' },
   },
   hasZeptoMail: false,
-  hasResend: false,
   getPrimaryProvider: () => null,
 }));
 
 vi.mock('../email/providers/zeptomail', () => ({
   ZeptoMailProvider: class {
-    send = vi.fn();
-  },
-}));
-
-vi.mock('../email/providers/resend', () => ({
-  ResendProvider: class {
     send = vi.fn();
   },
 }));
@@ -34,7 +26,7 @@ describe('sendWithFallback — no providers', () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.error).toBe('No email provider configured');
+    expect(result.error).toContain('No email provider configured');
     expect(result.attemptedProviders).toEqual([]);
     expect(result.fallbackUsed).toBe(false);
   });

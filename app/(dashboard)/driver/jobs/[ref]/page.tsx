@@ -102,6 +102,11 @@ export default async function DriverJobDetailPage({ params }: Props) {
     vehicleMake: booking.vehicleMake,
     vehicleModel: booking.vehicleModel,
     lockingNutStatus: booking.lockingNutStatus,
+    paymentType: booking.paymentType,
+    depositAmountPence: booking.depositAmountPence,
+    depositPaidAt: booking.depositPaidAt?.toISOString() ?? null,
+    remainingBalancePence: booking.remainingBalancePence,
+    totalAmount: booking.totalAmount.toString(),
   };
 
   const tyresData = tyres.map((t) => ({

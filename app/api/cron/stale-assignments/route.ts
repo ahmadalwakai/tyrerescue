@@ -83,7 +83,7 @@ export async function GET(request: Request) {
 
   const adminUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
   const { subject, html } = adminStaleAssignment({ staleBookings, adminUrl });
-  const adminEmail = process.env.ADMIN_EMAIL || process.env.RESEND_FROM_EMAIL || 'support@tyrerescue.uk';
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.ZEPTOMAIL_FROM_EMAIL || 'support@tyrerescue.uk';
 
   await sendEmail({ to: adminEmail, subject, html });
 

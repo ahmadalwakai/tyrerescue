@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text, VStack, HStack, Input, Button, Flex, Spinner, Textarea } from '@chakra-ui/react';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { loadStripe, type StripeElementsOptions } from '@stripe/stripe-js';
 import { QuickBookMap } from './QuickBookMap';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
@@ -9,6 +11,9 @@ import {
   buildLocationCopyMessage,
   type LocationMessageContext,
 } from '@/lib/quick-book-message-templates';
+
+// Load Stripe outside of component to avoid recreating on every render
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 type LocationMethod = 'address' | 'link';
 type FormStatus = 'idle' | 'submitting' | 'success' | 'error' | 'polling' | 'finalizing';
@@ -90,9 +95,11 @@ interface FinalizedResult {
   bookingId: string;
   refNumber: string;
   invoiceNumber: string;
-  paymentMethod: 'stripe' | 'cash';
+  paymentMethod: 'stripe' | 'cash' | 'deposit';
   paymentUrl: string | null;
   stripeClientSecret: string | null;
+  depositAmountPence: number | null;
+  remainingBalancePence: number | null;
   breakdown: {
     subtotal: number;
     vatAmount: number;
@@ -138,6 +145,136 @@ function getApiErrorMessage(payload: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Filter rural area surcharge from line items for display.
+ * The surcharge amount is redistributed to other items using the pricing engine's
+ * getDisplayBreakdown helper when a full breakdown is available.
+ * For partial breakdowns, we simply filter out the rural surcharge.
+ */
+function filterRuralSurchargeForDisplay<T extends { label: string; amount: number; type: string }>(
+  lineItems: T[]
+): T[] {
+  return lineItems.filter(item => !item.label.toLowerCase().includes('rural area'));
+}
+
+/**
+ * Stripe Elements form for deposit payment
+ */
+interface DepositCheckoutFormProps {
+  depositAmount: number;
+  remainingBalance: number;
+  bookingId: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+function DepositCheckoutFormInner({
+  depositAmount,
+  remainingBalance,
+  bookingId,
+  onSuccess,
+  onCancel,
+}: DepositCheckoutFormProps) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsProcessing(true);
+    setErrorMessage(null);
+
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/admin/bookings`,
+      },
+      redirect: 'if_required',
+    });
+
+    if (error) {
+      setErrorMessage(error.message || 'Payment failed. Please try again.');
+      setIsProcessing(false);
+    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+      onSuccess();
+    } else if (paymentIntent && paymentIntent.status === 'processing') {
+      // Payment still processing
+      onSuccess();
+    } else {
+      setErrorMessage('Payment status unknown. Please check booking status.');
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <VStack gap={4} align="stretch">
+        <Box bg="rgba(139, 92, 246, 0.1)" p={4} borderRadius="8px">
+          <Flex justify="space-between" mb={2}>
+            <Text color={c.muted} fontSize="sm">Deposit (20%)</Text>
+            <Text color="#8B5CF6" fontSize="lg" fontWeight="700">£{depositAmount.toFixed(2)}</Text>
+          </Flex>
+          <Flex justify="space-between">
+            <Text color={c.muted} fontSize="sm">Balance due on-site</Text>
+            <Text color={c.text} fontSize="md" fontWeight="600">£{remainingBalance.toFixed(2)}</Text>
+          </Flex>
+        </Box>
+
+        <Box bg={c.surface} p={4} borderRadius="8px">
+          <PaymentElement
+            options={{
+              layout: 'tabs',
+            }}
+          />
+        </Box>
+
+        {errorMessage && (
+          <Text color="red.400" fontSize="sm">{errorMessage}</Text>
+        )}
+
+        <HStack gap={3}>
+          <Button
+            type="submit"
+            flex={1}
+            h="56px"
+            bg="#8B5CF6"
+            color="white"
+            fontWeight="700"
+            borderRadius="8px"
+            disabled={!stripe || isProcessing}
+          >
+            {isProcessing ? <Spinner size="sm" /> : `Pay £${depositAmount.toFixed(2)} Deposit`}
+          </Button>
+          <Button
+            type="button"
+            flex={1}
+            h="56px"
+            variant="outline"
+            borderColor={c.border}
+            color={c.text}
+            fontWeight="600"
+            borderRadius="8px"
+            onClick={onCancel}
+            disabled={isProcessing}
+          >
+            Cancel
+          </Button>
+        </HStack>
+
+        <Text color={c.muted} fontSize="xs" textAlign="center">
+          The remaining £{remainingBalance.toFixed(2)} will be collected on-site.
+        </Text>
+      </VStack>
+    </form>
+  );
+}
+
 export function QuickBookForm() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [status, setStatus] = useState<FormStatus>('idle');
@@ -154,6 +291,18 @@ export function QuickBookForm() {
   // Email send state
   const [emailSending, setEmailSending] = useState(false);
   const [emailResult, setEmailResult] = useState<{ ok: boolean; message?: string; error?: string } | null>(null);
+
+  // Deposit payment dialog state
+  const [depositDialogOpen, setDepositDialogOpen] = useState(false);
+  const [depositClientSecret, setDepositClientSecret] = useState<string | null>(null);
+  const [depositInfo, setDepositInfo] = useState<{
+    depositAmount: number;
+    remainingBalance: number;
+    bookingId: string;
+  } | null>(null);
+  const [depositLoading, setDepositLoading] = useState(false);
+  const [depositError, setDepositError] = useState<string | null>(null);
+  const [depositSuccess, setDepositSuccess] = useState(false);
 
   // Route/distance info (from map)
   const [routeInfo, setRouteInfo] = useState<{ drivingKm: number | null; drivingMinutes: number | null } | null>(null);
@@ -287,7 +436,7 @@ export function QuickBookForm() {
   }, [form]);
 
   // ── Finalize into real booking ──
-  const handleFinalize = useCallback(async (paymentMethod: 'stripe' | 'cash') => {
+  const handleFinalize = useCallback(async (paymentMethod: 'stripe' | 'cash' | 'deposit') => {
     if (!created?.booking.id) return;
     setIsFinalizing(true);
     setError('');
@@ -306,10 +455,15 @@ export function QuickBookForm() {
       const data: FinalizedResult = await res.json();
       setFinalized(data);
 
-      // If Stripe payment: redirect to Stripe checkout page
-      // Use window.location.href for mobile compatibility (window.open is blocked on mobile)
+      // If Stripe full payment: redirect to Stripe checkout page
       if (paymentMethod === 'stripe' && data.paymentUrl) {
         window.location.href = data.paymentUrl;
+      }
+
+      // If deposit payment: open the deposit dialog
+      if (paymentMethod === 'deposit') {
+        // Now create the deposit PaymentIntent
+        await initiateDepositPayment(data.bookingId);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -317,6 +471,55 @@ export function QuickBookForm() {
       setIsFinalizing(false);
     }
   }, [created?.booking.id]);
+
+  // ── Initiate deposit payment (create PaymentIntent) ──
+  const initiateDepositPayment = useCallback(async (bookingId: string) => {
+    setDepositLoading(true);
+    setDepositError(null);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/deposit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(getApiErrorMessage(data, 'Failed to create deposit payment'));
+      }
+
+      const data = await res.json();
+      setDepositClientSecret(data.clientSecret);
+      setDepositInfo({
+        depositAmount: data.depositAmount,
+        remainingBalance: data.remainingBalance,
+        bookingId,
+      });
+      setDepositDialogOpen(true);
+    } catch (err) {
+      setDepositError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setDepositLoading(false);
+    }
+  }, []);
+
+  // ── Handle deposit payment success ──
+  const handleDepositSuccess = useCallback(() => {
+    setDepositDialogOpen(false);
+    setDepositSuccess(true);
+    // Refresh booking state
+    if (finalized) {
+      setFinalized({
+        ...finalized,
+      });
+    }
+  }, [finalized]);
+
+  // ── Close deposit dialog without completing ──
+  const closeDepositDialog = useCallback(() => {
+    setDepositDialogOpen(false);
+    setDepositClientSecret(null);
+    // Note: booking is still created but deposit not paid - user can retry
+  }, []);
 
   // ── Save admin price adjustment ──
   const handleSaveAdjustment = useCallback(async () => {
@@ -445,74 +648,182 @@ export function QuickBookForm() {
     setShowAdjustment(false);
     setAdjustmentAmount('');
     setAdjustmentReason('');
+    // Reset deposit state
+    setDepositDialogOpen(false);
+    setDepositClientSecret(null);
+    setDepositInfo(null);
+    setDepositLoading(false);
+    setDepositError(null);
+    setDepositSuccess(false);
   };
 
   // ── Finalized success state ──
   if (finalized) {
-    return (
-      <Box bg={c.card} p={6} borderRadius="12px" borderWidth="1px" borderColor={c.border} style={anim.fadeUp()}>
-        <VStack gap={4} align="stretch">
-          <Flex align="center" gap={3}>
-            <Text fontSize="32px">{finalized.paymentMethod === 'stripe' ? '💳' : '✅'}</Text>
-            <Box>
-              <Text color={c.text} fontSize="lg" fontWeight="600">
-                {finalized.paymentMethod === 'stripe' ? 'Awaiting Stripe Payment' : 'Booking Created — Paid'}
-              </Text>
-              <Text color={c.accent} fontSize="md" fontWeight="700">{finalized.refNumber}</Text>
-              {finalized.paymentMethod === 'stripe' && (
-                <Text color={c.muted} fontSize="xs">Redirected to Stripe checkout page</Text>
-              )}
-            </Box>
-          </Flex>
+    const isDepositPayment = finalized.paymentMethod === 'deposit';
+    const isDepositPaid = depositSuccess;
+    const depositAmount = finalized.depositAmountPence ? finalized.depositAmountPence / 100 : 0;
+    const remainingBalance = finalized.remainingBalancePence ? finalized.remainingBalancePence / 100 : 0;
 
-          <Box bg={c.surface} p={4} borderRadius="8px">
-            <Text color={c.muted} fontSize="xs" mb={2}>Pricing Breakdown</Text>
-            {finalized.breakdown.lineItems
-              .filter((li) => li.type !== 'subtotal' && li.type !== 'vat' && li.type !== 'total')
-              .map((li, i) => (
-                <Flex key={i} justify="space-between" mb={1}>
-                  <Text color={li.label.startsWith('Admin adjustment') ? '#F59E0B' : c.text} fontSize="sm">{li.label}</Text>
-                  <Text color={li.amount < 0 ? '#22C55E' : li.label.startsWith('Admin adjustment') ? '#F59E0B' : c.text} fontSize="sm">
-                    {li.amount < 0 ? '-' : ''}£{Math.abs(li.amount).toFixed(2)}
+    return (
+      <>
+        <Box bg={c.card} p={6} borderRadius="12px" borderWidth="1px" borderColor={c.border} style={anim.fadeUp()}>
+          <VStack gap={4} align="stretch">
+            <Flex align="center" gap={3}>
+              <Text fontSize="32px">
+                {isDepositPayment
+                  ? isDepositPaid ? '✅' : '💰'
+                  : finalized.paymentMethod === 'stripe' ? '💳' : '✅'}
+              </Text>
+              <Box>
+                <Text color={c.text} fontSize="lg" fontWeight="600">
+                  {isDepositPayment
+                    ? isDepositPaid
+                      ? 'Deposit Paid — Booking Created'
+                      : 'Awaiting Deposit Payment'
+                    : finalized.paymentMethod === 'stripe'
+                      ? 'Awaiting Stripe Payment'
+                      : 'Booking Created — Paid'}
+                </Text>
+                <Text color={c.accent} fontSize="md" fontWeight="700">{finalized.refNumber}</Text>
+                {finalized.paymentMethod === 'stripe' && (
+                  <Text color={c.muted} fontSize="xs">Redirected to Stripe checkout page</Text>
+                )}
+                {isDepositPayment && isDepositPaid && (
+                  <Text color="#22C55E" fontSize="xs">Balance of £{remainingBalance.toFixed(2)} to collect on-site</Text>
+                )}
+              </Box>
+            </Flex>
+
+            {/* Deposit info banner when deposit is paid */}
+            {isDepositPayment && isDepositPaid && (
+              <Box bg="rgba(34, 197, 94, 0.1)" p={4} borderRadius="8px" borderLeft="3px solid #22C55E">
+                <Flex justify="space-between" mb={2}>
+                  <Text color={c.muted} fontSize="sm">Deposit Paid</Text>
+                  <Text color="#22C55E" fontSize="lg" fontWeight="700">£{depositAmount.toFixed(2)}</Text>
+                </Flex>
+                <Flex justify="space-between">
+                  <Text color={c.text} fontSize="sm" fontWeight="600">Collect on arrival</Text>
+                  <Text color={c.accent} fontSize="lg" fontWeight="700">£{remainingBalance.toFixed(2)}</Text>
+                </Flex>
+              </Box>
+            )}
+
+            <Box bg={c.surface} p={4} borderRadius="8px">
+              <Text color={c.muted} fontSize="xs" mb={2}>Pricing Breakdown</Text>
+              {filterRuralSurchargeForDisplay(finalized.breakdown.lineItems)
+                .filter((li) => li.type !== 'subtotal' && li.type !== 'vat' && li.type !== 'total')
+                .map((li, i) => (
+                  <Flex key={i} justify="space-between" mb={1}>
+                    <Text color={li.label.startsWith('Admin adjustment') ? '#F59E0B' : c.text} fontSize="sm">{li.label}</Text>
+                    <Text color={li.amount < 0 ? '#22C55E' : li.label.startsWith('Admin adjustment') ? '#F59E0B' : c.text} fontSize="sm">
+                      {li.amount < 0 ? '-' : ''}£{Math.abs(li.amount).toFixed(2)}
+                    </Text>
+                  </Flex>
+                ))}
+              <Box borderTop={`1px solid ${c.border}`} mt={2} pt={2}>
+                <Flex justify="space-between" mt={1}>
+                  <Text color={c.text} fontSize="md" fontWeight="700">Total</Text>
+                  <Text color={c.accent} fontSize="xl" fontWeight="700">
+                    £{finalized.breakdown.total.toFixed(2)}
                   </Text>
                 </Flex>
-              ))}
-            <Box borderTop={`1px solid ${c.border}`} mt={2} pt={2}>
-              <Flex justify="space-between" mt={1}>
-                <Text color={c.text} fontSize="md" fontWeight="700">Total</Text>
-                <Text color={c.accent} fontSize="xl" fontWeight="700">
-                  £{finalized.breakdown.total.toFixed(2)}
-                </Text>
-              </Flex>
+              </Box>
             </Box>
-          </Box>
 
-          <Box bg={c.surface} p={3} borderRadius="8px">
-            <Text color={c.muted} fontSize="xs">Invoice</Text>
-            <Text color={c.text} fontSize="sm" fontWeight="600">{finalized.invoiceNumber}</Text>
-          </Box>
+            <Box bg={c.surface} p={3} borderRadius="8px">
+              <Text color={c.muted} fontSize="xs">Invoice</Text>
+              <Text color={c.text} fontSize="sm" fontWeight="600">{finalized.invoiceNumber}</Text>
+            </Box>
 
-          <HStack gap={3}>
-            <a href={`/admin/bookings/${finalized.refNumber}`} style={{ flex: 1 }}>
-              <Button w="100%" bg={c.accent} color="#09090B" h="48px" fontWeight="700" borderRadius="8px">
-                View Booking
+            <HStack gap={3}>
+              <a href={`/admin/bookings/${finalized.refNumber}`} style={{ flex: 1 }}>
+                <Button w="100%" bg={c.accent} color="#09090B" h="48px" fontWeight="700" borderRadius="8px">
+                  View Booking
+                </Button>
+              </a>
+              <Button
+                flex={1}
+                h="48px"
+                variant="outline"
+                borderColor={c.border}
+                color={c.text}
+                fontWeight="600"
+                borderRadius="8px"
+                onClick={handleReset}
+              >
+                New Booking
               </Button>
-            </a>
-            <Button
-              flex={1}
-              h="48px"
-              variant="outline"
-              borderColor={c.border}
-              color={c.text}
-              fontWeight="600"
-              borderRadius="8px"
-              onClick={handleReset}
+            </HStack>
+          </VStack>
+        </Box>
+
+        {/* Deposit payment dialog */}
+        {depositDialogOpen && depositClientSecret && depositInfo && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0,0,0,0.8)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 16,
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) closeDepositDialog();
+            }}
+          >
+            <Box
+              bg={c.card}
+              borderRadius="12px"
+              border={`1px solid ${c.border}`}
+              maxW="480px"
+              w="100%"
+              maxH="90vh"
+              overflowY="auto"
+              p={6}
             >
-              New Booking
-            </Button>
-          </HStack>
-        </VStack>
-      </Box>
+              <Flex justify="space-between" align="center" mb={4}>
+                <Text fontSize="lg" fontWeight="700" color={c.text}>💰 Pay Deposit</Text>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  color={c.muted}
+                  onClick={closeDepositDialog}
+                >
+                  ✕
+                </Button>
+              </Flex>
+              <Elements
+                stripe={stripePromise}
+                options={{
+                  clientSecret: depositClientSecret,
+                  appearance: {
+                    theme: 'night',
+                    variables: {
+                      colorPrimary: '#F97316',
+                      colorBackground: '#18181B',
+                      colorText: '#FAFAFA',
+                      colorDanger: '#EF4444',
+                      borderRadius: '8px',
+                    },
+                  },
+                }}
+              >
+                <DepositCheckoutFormInner
+                  depositAmount={depositInfo.depositAmount}
+                  remainingBalance={depositInfo.remainingBalance}
+                  bookingId={depositInfo.bookingId}
+                  onSuccess={handleDepositSuccess}
+                  onCancel={closeDepositDialog}
+                />
+              </Elements>
+            </Box>
+          </div>
+        )}
+      </>
     );
   }
 
@@ -763,17 +1074,19 @@ export function QuickBookForm() {
             <Box bg={c.surface} p={4} borderRadius="8px" borderLeft={`3px solid #22C55E`}>
               <Text color={c.text} fontSize="sm" fontWeight="600" mb={3}>💰 Price Breakdown</Text>
 
-              {/* Line items from pricing engine */}
+              {/* Line items from pricing engine (rural surcharge hidden) */}
               {created.booking.priceBreakdown?.lineItems
-                ?.filter((li) => li.type !== 'subtotal' && li.type !== 'vat' && li.type !== 'total')
-                .map((li, i) => (
-                  <Flex key={i} justify="space-between" mb={1}>
-                    <Text color={c.text} fontSize="sm">{li.label}</Text>
-                    <Text color={li.amount < 0 ? '#22C55E' : c.text} fontSize="sm">
-                      {li.amount < 0 ? '-' : ''}£{Math.abs(li.amount).toFixed(2)}
-                    </Text>
-                  </Flex>
-                ))}
+                ? filterRuralSurchargeForDisplay(created.booking.priceBreakdown.lineItems)
+                    .filter((li) => li.type !== 'subtotal' && li.type !== 'vat' && li.type !== 'total')
+                    .map((li, i) => (
+                      <Flex key={i} justify="space-between" mb={1}>
+                        <Text color={c.text} fontSize="sm">{li.label}</Text>
+                        <Text color={li.amount < 0 ? '#22C55E' : c.text} fontSize="sm">
+                          {li.amount < 0 ? '-' : ''}£{Math.abs(li.amount).toFixed(2)}
+                        </Text>
+                      </Flex>
+                    ))
+                : null}
 
               <Box borderTop={`1px solid ${c.border}`} mt={2} pt={2}>
                 <Flex justify="space-between">
@@ -907,11 +1220,24 @@ export function QuickBookForm() {
                   h="56px"
                   fontWeight="700"
                   borderRadius="8px"
-                  fontSize="15px"
+                  fontSize="14px"
                   onClick={() => handleFinalize('stripe')}
-                  disabled={isFinalizing}
+                  disabled={isFinalizing || depositLoading}
                 >
-                  {isFinalizing ? <Spinner size="sm" /> : '💳 Pay with Stripe'}
+                  {isFinalizing ? <Spinner size="sm" /> : '💳 Pay Full'}
+                </Button>
+                <Button
+                  flex={1}
+                  bg="#8B5CF6"
+                  color="white"
+                  h="56px"
+                  fontWeight="700"
+                  borderRadius="8px"
+                  fontSize="14px"
+                  onClick={() => handleFinalize('deposit')}
+                  disabled={isFinalizing || depositLoading}
+                >
+                  {depositLoading ? <Spinner size="sm" /> : '💰 Pay Deposit (20%)'}
                 </Button>
                 <Button
                   flex={1}
@@ -920,16 +1246,19 @@ export function QuickBookForm() {
                   h="56px"
                   fontWeight="700"
                   borderRadius="8px"
-                  fontSize="15px"
+                  fontSize="14px"
                   onClick={() => handleFinalize('cash')}
-                  disabled={isFinalizing}
+                  disabled={isFinalizing || depositLoading}
                 >
-                  {isFinalizing ? <Spinner size="sm" /> : '💵 Cash Collected'}
+                  {isFinalizing ? <Spinner size="sm" /> : '💵 Cash'}
                 </Button>
               </HStack>
               <Text color={c.muted} fontSize="xs" textAlign="center">
-                Stripe opens Stripe checkout in new tab. Cash marks booking as paid.
+                Pay Full: Stripe checkout • Deposit: 20% now, balance on-site • Cash: marks as paid
               </Text>
+              {depositError && (
+                <Text color="red.400" fontSize="xs">{depositError}</Text>
+              )}
             </VStack>
           </Box>
 

@@ -24,7 +24,7 @@ export interface EmailResult {
   error?: string;
 }
 
-export type EmailProviderName = 'zeptomail' | 'resend';
+export type EmailProviderName = 'zeptomail';
 
 export interface EmailProviderResult extends EmailResult {
   provider: EmailProviderName;

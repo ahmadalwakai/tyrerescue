@@ -22,7 +22,7 @@ export type EmailOptions = CanonicalEmailOptions;
 export type EmailResult = CanonicalEmailResult;
 
 /**
- * Send an email via the provider orchestrator (ZeptoMail → Resend fallback).
+ * Send an email via the provider orchestrator (ZeptoMail).
  * On success: updates notifications table status to sent, records sent_at
  * On failure: increments attempts counter, records last_error, keeps status as failed
  */

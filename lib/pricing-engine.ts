@@ -740,6 +740,157 @@ export function formatPrice(amount: number): string {
   }).format(amount);
 }
 
+// ─── Display Breakdown (Hide Rural Surcharge) ───────────────────────────────
+
+/**
+ * Display-only line item type (same shape as PricingLineItem)
+ */
+export interface DisplayLineItem {
+  label: string;
+  quantity?: number;
+  unitPrice?: number;
+  amount: number;
+  type: 'tyre' | 'service' | 'callout' | 'surcharge' | 'discount' | 'subtotal' | 'vat' | 'total';
+}
+
+/**
+ * Display breakdown with rural surcharge hidden and redistributed
+ */
+export interface DisplayBreakdown {
+  lineItems: DisplayLineItem[];
+  subtotal: number;
+  vatAmount: number;
+  total: number;
+}
+
+/**
+ * Check if a line item is a rural area surcharge (to be hidden from display)
+ */
+function isRuralSurcharge(item: PricingLineItem): boolean {
+  return item.type === 'surcharge' && item.label.toLowerCase().includes('rural area');
+}
+
+/**
+ * Get display-friendly breakdown with rural surcharge hidden.
+ * 
+ * The rural surcharge is redistributed proportionally across remaining
+ * non-summary line items (tyres, services, callout, other surcharges, discounts)
+ * so the displayed total still matches the charged total exactly.
+ * 
+ * Uses integer pence math with rounding. Any remainder (positive or negative)
+ * is assigned to the largest line item to ensure exact total match.
+ * 
+ * @param breakdown - The raw pricing breakdown from calculatePricing
+ * @returns DisplayBreakdown with rural surcharge hidden and redistributed
+ */
+export function getDisplayBreakdown(breakdown: PricingBreakdown): DisplayBreakdown {
+  // Find rural surcharge line items
+  const ruralItems = breakdown.lineItems.filter(isRuralSurcharge);
+  const ruralTotalPounds = ruralItems.reduce((sum, item) => sum + item.amount, 0);
+  
+  // If no rural surcharge, return items as-is (excluding subtotal/vat/total summary rows)
+  if (ruralTotalPounds === 0 || ruralItems.length === 0) {
+    return {
+      lineItems: breakdown.lineItems
+        .filter(item => !isRuralSurcharge(item))
+        .map(item => ({ ...item })),
+      subtotal: breakdown.subtotal,
+      vatAmount: breakdown.vatAmount,
+      total: breakdown.total,
+    };
+  }
+
+  // Convert to pence for integer math
+  const ruralTotalPence = Math.round(ruralTotalPounds * 100);
+
+  // Get redistributable items (exclude summary rows and rural surcharges)
+  const redistributableTypes: PricingLineItem['type'][] = ['tyre', 'service', 'callout', 'surcharge', 'discount'];
+  const itemsToRedistribute = breakdown.lineItems.filter(
+    item => redistributableTypes.includes(item.type) && !isRuralSurcharge(item) && item.amount !== 0
+  );
+
+  // Calculate pre-surcharge subtotal (sum of redistributable items)
+  const preSubtotalPence = itemsToRedistribute.reduce(
+    (sum, item) => sum + Math.round(item.amount * 100),
+    0
+  );
+
+  // Build display items with redistributed amounts
+  const displayItems: DisplayLineItem[] = [];
+  let distributedTotalPence = 0;
+  let largestItemIndex = -1;
+  let largestItemAmount = 0;
+
+  for (const item of breakdown.lineItems) {
+    // Skip rural surcharge items entirely
+    if (isRuralSurcharge(item)) continue;
+
+    // Copy item to display item
+    const displayItem: DisplayLineItem = { ...item };
+
+    // Redistribute rural surcharge to eligible items
+    if (redistributableTypes.includes(item.type) && item.amount !== 0 && preSubtotalPence !== 0) {
+      const itemPence = Math.round(item.amount * 100);
+      const proportion = itemPence / preSubtotalPence;
+      const additionPence = Math.round(ruralTotalPence * proportion);
+      const newAmountPence = itemPence + additionPence;
+      
+      displayItem.amount = newAmountPence / 100;
+      distributedTotalPence += additionPence;
+
+      // Update unit price if item has quantity (for consistent display)
+      if (displayItem.quantity && displayItem.quantity > 0) {
+        displayItem.unitPrice = newAmountPence / 100 / displayItem.quantity;
+      }
+
+      // Track largest item for rounding remainder
+      if (Math.abs(newAmountPence) > largestItemAmount) {
+        largestItemAmount = Math.abs(newAmountPence);
+        largestItemIndex = displayItems.length;
+      }
+    }
+
+    displayItems.push(displayItem);
+  }
+
+  // Fix rounding remainder - assign to largest item
+  const remainderPence = ruralTotalPence - distributedTotalPence;
+  if (remainderPence !== 0 && largestItemIndex >= 0) {
+    const largestItem = displayItems[largestItemIndex];
+    const currentPence = Math.round(largestItem.amount * 100);
+    largestItem.amount = (currentPence + remainderPence) / 100;
+    
+    // Update unit price if applicable
+    if (largestItem.quantity && largestItem.quantity > 0) {
+      largestItem.unitPrice = largestItem.amount / largestItem.quantity;
+    }
+  }
+
+  // Dev mode assertion: verify displayed total matches original
+  if (process.env.NODE_ENV !== 'production') {
+    const displayTotal = displayItems
+      .filter(item => !['subtotal', 'vat', 'total'].includes(item.type))
+      .reduce((sum, item) => sum + Math.round(item.amount * 100), 0);
+    
+    const expectedTotal = breakdown.lineItems
+      .filter(item => !['subtotal', 'vat', 'total'].includes(item.type))
+      .reduce((sum, item) => sum + Math.round(item.amount * 100), 0);
+
+    if (Math.abs(displayTotal - expectedTotal) > 1) {
+      throw new Error(
+        `getDisplayBreakdown total mismatch: display=${displayTotal} pence, expected=${expectedTotal} pence`
+      );
+    }
+  }
+
+  return {
+    lineItems: displayItems,
+    subtotal: breakdown.subtotal,
+    vatAmount: breakdown.vatAmount,
+    total: breakdown.total,
+  };
+}
+
 /**
  * Default pricing rules for seeding
  */

@@ -12,13 +12,8 @@ vi.mock('../email/config', () => ({
       fromEmail: 'noreply@tyrerescue.uk',
       apiUrl: 'https://api.zeptomail.eu/v1.1/email',
     },
-    resend: {
-      apiKey: '',
-      fromEmail: 'support@tyrerescue.uk',
-    },
   },
   hasZeptoMail: true,
-  hasResend: false,
   getPrimaryProvider: () => 'zeptomail' as const,
 }));
 

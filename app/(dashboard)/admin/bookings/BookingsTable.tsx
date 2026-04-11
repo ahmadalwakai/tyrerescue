@@ -26,6 +26,7 @@ interface Booking {
   totalAmount: string;
   scheduledAt: string | null;
   createdAt: string | null;
+  paymentType: string | null;
 }
 
 interface Props {
@@ -410,7 +411,23 @@ export function BookingsTable({
                     <StatusBadge status={booking.status} />
                   </Box>
                   <Box as="td" style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, fontFamily: 'var(--font-body)', letterSpacing: '-0.01em' }}>
-                    {formatCurrency(booking.totalAmount)}
+                    <HStack justify="flex-end" gap={2}>
+                      {booking.paymentType === 'deposit' && (
+                        <Box
+                          as="span"
+                          fontSize="10px"
+                          fontWeight="600"
+                          px="6px"
+                          py="2px"
+                          borderRadius="full"
+                          bg="rgba(59,130,246,0.15)"
+                          color="#3B82F6"
+                        >
+                          20% paid
+                        </Box>
+                      )}
+                      <Text as="span">{formatCurrency(booking.totalAmount)}</Text>
+                    </HStack>
                   </Box>
                   <Box as="td" style={{ ...tdStyle, color: c.muted, fontSize: '13px' }}>
                     {formatDate(booking.createdAt)}
@@ -462,9 +479,25 @@ export function BookingsTable({
                   <Text fontSize="12px" color={c.muted}>
                     {SERVICE_LABELS[booking.serviceType] || booking.serviceType}
                   </Text>
-                  <Text fontSize="sm" fontWeight="700" color={c.text}>
-                    {formatCurrency(booking.totalAmount)}
-                  </Text>
+                  <HStack gap={2}>
+                    {booking.paymentType === 'deposit' && (
+                      <Box
+                        as="span"
+                        fontSize="10px"
+                        fontWeight="600"
+                        px="6px"
+                        py="2px"
+                        borderRadius="full"
+                        bg="rgba(59,130,246,0.15)"
+                        color="#3B82F6"
+                      >
+                        20% paid
+                      </Box>
+                    )}
+                    <Text fontSize="sm" fontWeight="700" color={c.text}>
+                      {formatCurrency(booking.totalAmount)}
+                    </Text>
+                  </HStack>
                 </Flex>
               </NextLink>
             </Box>

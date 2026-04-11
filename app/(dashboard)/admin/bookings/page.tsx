@@ -76,6 +76,7 @@ export default async function AdminBookingsPage({ searchParams }: Props) {
         totalAmount: bookings.totalAmount,
         scheduledAt: bookings.scheduledAt,
         createdAt: bookings.createdAt,
+        paymentType: bookings.paymentType,
       })
       .from(bookings)
       .where(whereClause)

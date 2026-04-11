@@ -29,9 +29,7 @@ export const env = {
   VOODOO_SMS_SENDER_ID: optional('VOODOO_SMS_SENDER_ID', 'TyreRescue'),
   VOODOO_SMS_ENABLED: optional('VOODOO_SMS_ENABLED', 'true'),
 
-  // Email providers — optional to support fallback architecture
-  RESEND_API_KEY: optional('RESEND_API_KEY', ''),
-  RESEND_FROM_EMAIL: optional('RESEND_FROM_EMAIL', 'support@tyrerescue.uk'),
+  // Email provider (ZeptoMail)
   ADMIN_ALERT_TO_EMAIL: optional('ADMIN_ALERT_TO_EMAIL', 'dukesttyres@gmail.com'),
   APP_URL: optional('APP_URL', ''),
   ZEPTOMAIL_API_KEY: optional('ZEPTOMAIL_API_KEY', ''),

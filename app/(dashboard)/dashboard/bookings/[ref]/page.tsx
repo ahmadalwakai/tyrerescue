@@ -126,6 +126,24 @@ export default async function CustomerBookingDetailPage(
                 <Text fontWeight="700" fontSize="lg" color={c.accent}>£{Number(booking.totalAmount).toFixed(2)}</Text>
               </HStack>
             </Box>
+
+            {/* Deposit payment info */}
+            {booking.paymentType === 'deposit' && booking.depositPaidAt && (
+              <Box bg="rgba(34, 197, 94, 0.1)" p={3} borderRadius="md" mt={2}>
+                <HStack justify="space-between" mb={1}>
+                  <Text fontSize="sm" color="#22C55E" fontWeight="600">Deposit paid</Text>
+                  <Text fontSize="sm" color="#22C55E" fontWeight="700">
+                    £{booking.depositAmountPence ? (booking.depositAmountPence / 100).toFixed(2) : '0.00'}
+                  </Text>
+                </HStack>
+                <HStack justify="space-between">
+                  <Text fontSize="sm" color={c.text}>Balance due on-site</Text>
+                  <Text fontSize="sm" color={c.accent} fontWeight="700">
+                    £{booking.remainingBalancePence ? (booking.remainingBalancePence / 100).toFixed(2) : '0.00'}
+                  </Text>
+                </HStack>
+              </Box>
+            )}
           </VStack>
         </Box>
       </SimpleGrid>

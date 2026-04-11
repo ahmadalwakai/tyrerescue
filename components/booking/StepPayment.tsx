@@ -16,7 +16,7 @@ import {
   useElements,
 } from '@stripe/react-stripe-js';
 import { loadStripe, type StripeElementsOptions } from '@stripe/stripe-js';
-import { formatPrice, PricingBreakdown } from '@/lib/pricing-engine';
+import { formatPrice, PricingBreakdown, getDisplayBreakdown } from '@/lib/pricing-engine';
 import { trackConversion } from '@/lib/analytics/gtag';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
@@ -109,12 +109,15 @@ function CheckoutForm({
     }
   };
 
+  // Get display breakdown with rural surcharge hidden and redistributed
+  const displayBreakdown = useMemo(() => getDisplayBreakdown(breakdown), [breakdown]);
+
   // Filter items to display
-  const mainItems = useMemo(() => breakdown.lineItems.filter(
+  const mainItems = useMemo(() => displayBreakdown.lineItems.filter(
     item => item.type === 'tyre' || item.type === 'service' || item.type === 'callout'
-  ), [breakdown]);
-  const surchargeItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'surcharge'), [breakdown]);
-  const discountItems = useMemo(() => breakdown.lineItems.filter(item => item.type === 'discount'), [breakdown]);
+  ), [displayBreakdown]);
+  const surchargeItems = useMemo(() => displayBreakdown.lineItems.filter(item => item.type === 'surcharge'), [displayBreakdown]);
+  const discountItems = useMemo(() => displayBreakdown.lineItems.filter(item => item.type === 'discount'), [displayBreakdown]);
 
   return (
     <form onSubmit={handleSubmit}>

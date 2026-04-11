@@ -61,10 +61,11 @@ export async function POST(
   }
 
   // Parse body — paymentMethod defaults to 'stripe'
-  let paymentMethod: 'stripe' | 'cash' = 'stripe';
+  let paymentMethod: 'stripe' | 'cash' | 'deposit' = 'stripe';
   try {
     const body = await request.json();
     if (body.paymentMethod === 'cash') paymentMethod = 'cash';
+    if (body.paymentMethod === 'deposit') paymentMethod = 'deposit';
   } catch {
     // empty body → default to stripe
   }
@@ -184,8 +185,14 @@ export async function POST(
 
   const addressLine = qb.locationAddress || qb.locationPostcode || `${lat}, ${lng}`;
 
-  const initialStatus = paymentMethod === 'stripe' ? 'awaiting_payment' : 'paid';
+  // Determine initial status based on payment method
+  const initialStatus = paymentMethod === 'cash' ? 'paid' : 'awaiting_payment';
   let checkoutUrl: string | null = null;
+
+  // Calculate deposit amounts for deposit payment
+  const totalInPence = Math.round(breakdown.total * 100);
+  const depositAmountPence = paymentMethod === 'deposit' ? Math.round(totalInPence * 0.20) : null;
+  const remainingBalancePence = depositAmountPence ? totalInPence - depositAmountPence : null;
 
   const invoiceNumber = await generateInvoiceNumber();
   const issueDate = new Date();
@@ -200,9 +207,11 @@ export async function POST(
       totalPrice: line.amount,
     }));
 
-  const invoiceStatus = paymentMethod === 'stripe' ? 'issued' : 'paid';
+  const invoiceStatus = paymentMethod === 'cash' ? 'paid' : 'issued';
   const statusNote = paymentMethod === 'stripe'
     ? 'Quick booking finalized by admin — awaiting Stripe payment'
+    : paymentMethod === 'deposit'
+    ? 'Quick booking finalized by admin — awaiting deposit payment'
     : 'Quick booking finalized by admin — cash payment collected';
 
   type BookingWriteExecutor = Pick<typeof db, 'insert' | 'update'>;
@@ -213,6 +222,9 @@ export async function POST(
       refNumber,
       userId: null,
       status: initialStatus,
+      paymentType: paymentMethod,
+      depositAmountPence,
+      remainingBalancePence,
       bookingType: 'emergency',
       serviceType: SERVICE_MAP[serviceType] || 'puncture_repair',
       addressLine,
@@ -384,7 +396,7 @@ export async function POST(
     },
   }).catch(console.error);
 
-  // Stripe Checkout URL for payment
+  // Stripe Checkout URL for payment (only for full stripe payment)
   const paymentUrl = checkoutUrl;
 
   return NextResponse.json({
@@ -394,6 +406,9 @@ export async function POST(
     paymentMethod,
     paymentUrl,
     stripeClientSecret: null,
+    // Deposit info for deposit payment method
+    depositAmountPence: paymentMethod === 'deposit' ? depositAmountPence : null,
+    remainingBalancePence: paymentMethod === 'deposit' ? remainingBalancePence : null,
     breakdown: {
       subtotal: breakdown.subtotal,
       vatAmount: breakdown.vatAmount,

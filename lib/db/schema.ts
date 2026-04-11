@@ -146,6 +146,12 @@ export const bookings = pgTable('bookings', {
   vatAmount: decimal('vat_amount', { precision: 10, scale: 2 }).notNull(),
   totalAmount: decimal('total_amount', { precision: 10, scale: 2 }).notNull(),
   stripePiId: varchar('stripe_pi_id', { length: 255 }),
+  // Deposit payment fields
+  paymentType: text('payment_type'), // 'cash' | 'full' | 'deposit'
+  depositAmountPence: integer('deposit_amount_pence'),
+  depositPaidAt: timestamp('deposit_paid_at', { withTimezone: true }),
+  remainingBalancePence: integer('remaining_balance_pence'),
+  stripeDepositPiId: varchar('stripe_deposit_pi_id', { length: 255 }),
   quoteExpiresAt: timestamp('quote_expires_at', { withTimezone: true }),
   lockingNutStatus: text('locking_nut_status'),
   hasPreOrderItems: boolean('has_pre_order_items').default(false),

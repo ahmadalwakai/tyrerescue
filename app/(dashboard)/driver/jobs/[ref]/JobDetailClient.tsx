@@ -45,6 +45,12 @@ interface Booking {
   vehicleMake: string | null;
   vehicleModel: string | null;
   lockingNutStatus: string | null;
+  // Deposit payment fields
+  paymentType: string | null;
+  depositAmountPence: number | null;
+  depositPaidAt: string | null;
+  remainingBalancePence: number | null;
+  totalAmount: string | null;
 }
 
 interface Tyre {
@@ -229,6 +235,34 @@ export function JobDetailClient({ booking, tyres, statusHistory, currentUserId }
       {/* Left column - Main info */}
       <GridItem>
         <VStack align="stretch" gap={6}>
+          {/* Deposit Collection Banner - prominent! */}
+          {booking.paymentType === 'deposit' && booking.depositPaidAt && booking.remainingBalancePence && (
+            <Box
+              bg="rgba(249, 115, 22, 0.15)"
+              p={{ base: 4, md: 6 }}
+              borderRadius="md"
+              borderWidth="2px"
+              borderColor={c.accent}
+              style={anim.fadeUp('0.3s')}
+            >
+              <HStack justify="space-between" align="center">
+                <Box>
+                  <Text fontSize="lg" fontWeight="700" color={c.accent}>
+                    💰 Collect on Arrival
+                  </Text>
+                  <Text fontSize="sm" color={c.muted} mt={1}>
+                    Deposit of £{booking.depositAmountPence ? (booking.depositAmountPence / 100).toFixed(2) : '0.00'} already paid
+                  </Text>
+                </Box>
+                <Box textAlign="right">
+                  <Text fontSize="2xl" fontWeight="800" color={c.accent}>
+                    £{(booking.remainingBalancePence / 100).toFixed(2)}
+                  </Text>
+                </Box>
+              </HStack>
+            </Box>
+          )}
+
           {/* Status */}
           <Box bg={c.card} p={{ base: 4, md: 6 }} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.5s')}>
             <Box display="flex" flexDirection={{ base: 'column', sm: 'row' }} justifyContent="space-between" gap={3}>
