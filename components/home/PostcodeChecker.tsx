@@ -164,19 +164,20 @@ export function PostcodeChecker() {
         borderRadius="12px"
         p={{ base: 3, md: 4 }}
       >
-        <Text
-          as="label"
+        <label
           htmlFor="hero-postcode"
-          fontSize="11px"
-          color={c.accent}
-          letterSpacing="0.12em"
-          textTransform="uppercase"
-          fontWeight="700"
-          display="block"
-          mb={2}
+          style={{
+            display: 'block',
+            marginBottom: 8,
+            fontSize: '11px',
+            color: c.accent,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            fontWeight: 700,
+          }}
         >
           Check coverage instantly
-        </Text>
+        </label>
         <Stack direction={{ base: 'column', md: 'row' }} gap={2}>
           <Input
             id="hero-postcode"

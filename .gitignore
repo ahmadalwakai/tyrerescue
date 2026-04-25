@@ -46,3 +46,4 @@ next-env.d.ts
 .vercel
 build.log
 .vercel
+build-output.log
