@@ -21,6 +21,175 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ─── Mobile sticky CTA bar — reserve space below content ─ */
+@media (max-width: 767px) {
+  body {
+    /* sticky-cta-bar is ~76px tall (10px py + 56px button + 10px) plus iOS safe area */
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.sticky-cta-bar { /* hook for future tweaks; layout in component */ }
+
+/* ─── Hero 3-step flow — sequential highlight loop ────── */
+/*
+  Cycle: 4.8s. Each step holds at rest (0.7 opacity, scale 1),
+  rises briefly to highlighted state, then returns to rest.
+  Stagger: step1 = 0s, step2 = 1.6s, step3 = 3.2s. After 4.8s
+  the whole cycle restarts smoothly because steps are at rest.
+  Composited: only opacity + transform on the row, plus
+  background-color/border-color/box-shadow on the badge.
+*/
+@keyframes flowStepRow {
+  0%, 100% { opacity: 0.72; transform: translateY(0) scale(1); }
+  6%       { opacity: 1;    transform: translateY(-3px) scale(1.04); }
+  22%      { opacity: 1;    transform: translateY(-1px) scale(1.02); }
+  35%      { opacity: 0.72; transform: translateY(0) scale(1); }
+}
+
+@keyframes flowStepBadge {
+  0%, 100% {
+    background-color: rgba(249,115,22,0.12);
+    border-color: rgba(249,115,22,0.35);
+    box-shadow: 0 0 0 0 rgba(249,115,22,0);
+  }
+  10% {
+    background-color: rgba(249,115,22,0.28);
+    border-color: rgba(249,115,22,0.7);
+    box-shadow: 0 0 0 6px rgba(249,115,22,0.10);
+  }
+  35% {
+    background-color: rgba(249,115,22,0.12);
+    border-color: rgba(249,115,22,0.35);
+    box-shadow: 0 0 0 0 rgba(249,115,22,0);
+  }
+}
+
+.flow-step {
+  animation: flowStepRow 4.8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+.flow-step .flow-step-badge {
+  animation: flowStepBadge 4.8s ease-in-out infinite;
+  will-change: background-color, border-color, box-shadow;
+}
+
+.flow-step-1, .flow-step-1 .flow-step-badge { animation-delay: 0s; }
+.flow-step-2, .flow-step-2 .flow-step-badge { animation-delay: 1.6s; }
+.flow-step-3, .flow-step-3 .flow-step-badge { animation-delay: 3.2s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-step,
+  .flow-step .flow-step-badge {
+    animation: none !important;
+  }
+  .flow-step { opacity: 1 !important; transform: none !important; }
+}
+
+/* ─── Hero "sense of speed" micro-animations ─────────── */
+
+/* "45 minutes" — brighter accent + soft warm shimmer */
+.speed-text {
+  color: #FAFAFA;
+  background-image: linear-gradient(
+    90deg,
+    #FAFAFA 0%,
+    #FAFAFA 38%,
+    #FDBA74 50%,
+    #FAFAFA 62%,
+    #FAFAFA 100%
+  );
+  background-size: 220% 100%;
+  background-position: 100% center;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: speedTextShimmer 3.2s linear infinite;
+  will-change: background-position;
+}
+
+@keyframes speedTextShimmer {
+  0%   { background-position: 100% center; }
+  100% { background-position: -100% center; }
+}
+
+/* Three forward-pointing chevrons that flow rightward */
+.speed-arrows {
+  color: #F97316;
+  line-height: 1;
+}
+.speed-arrows svg {
+  opacity: 0.25;
+  animation: speedArrowFlow 1.4s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+.speed-arrows svg:nth-child(1) { animation-delay: 0s; }
+.speed-arrows svg:nth-child(2) { animation-delay: 0.18s; margin-left: -3px; }
+.speed-arrows svg:nth-child(3) { animation-delay: 0.36s; margin-left: -3px; }
+
+@keyframes speedArrowFlow {
+  0%, 100% { opacity: 0.2;  transform: translateX(-2px); }
+  50%      { opacity: 1;    transform: translateX(2px); }
+}
+
+/* Clock icon — quick tick rotation pulse */
+.speed-clock {
+  display: inline-flex;
+  animation: speedClockTick 2.4s ease-in-out infinite;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+@keyframes speedClockTick {
+  0%, 60%, 100% { transform: rotate(0deg); }
+  70%           { transform: rotate(12deg); }
+  80%           { transform: rotate(0deg); }
+}
+
+/* 3-step connector line — moving highlight that streams forward */
+.flow-connector {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgba(161,161,170,0.25) 0%,
+    rgba(161,161,170,0.25) 100%
+  );
+}
+.flow-connector::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(249,115,22,0) 0%,
+    rgba(249,115,22,0.85) 50%,
+    rgba(249,115,22,0) 100%
+  );
+  transform: translateX(-100%);
+  animation: connectorFlow 4.8s linear infinite;
+  will-change: transform;
+}
+.flow-connector-1::after { animation-delay: 1.4s; }
+.flow-connector-2::after { animation-delay: 3.0s; }
+
+@keyframes connectorFlow {
+  0%   { transform: translateX(-100%); }
+  18%  { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speed-text {
+    animation: none !important;
+    background: none !important;
+    -webkit-text-fill-color: #FAFAFA !important;
+    color: #FAFAFA !important;
+  }
+  .speed-arrows svg { animation: none !important; opacity: 0.6 !important; transform: none !important; }
+  .speed-clock      { animation: none !important; transform: none !important; }
+  .flow-connector::after { animation: none !important; opacity: 0 !important; }
+}
+
 /* ─── Shared Animation Keyframes ─────────────────────── */
 
 @keyframes fadeUp {
@@ -148,6 +317,64 @@ body {
   background: linear-gradient(90deg, #27272A 25%, #3F3F46 50%, #27272A 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ─── Hero Headline Continuous Shimmer ────────────────── */
+/*
+  A narrow orange band sweeps left-to-right through the h1 text once
+  every 5s. Outside the sweep the text is solid white, so it remains
+  fully readable at all times.
+
+  Fixes vs previous attempt:
+  - No display:inline (h1 stays block; background-clip needs block context)
+  - No animation in this class (would be overridden by the component's
+    inline style anyway — both animations live there instead)
+  - .hero-headline-accent class pins accent words to solid orange so they
+    don't inherit transparent fill from the parent gradient
+*/
+
+@keyframes heroHeadlineShimmer {
+  0%   { background-position: 100% center; }
+  100% { background-position: -100% center; }
+}
+
+.hero-headline-shimmer {
+  /* Gradient: solid white either side, narrow orange band at centre.
+     background-size: 300% means the gradient is 3× element width;
+     the animation scrolls it from right (+100%) to left (-100%),
+     producing a clear orange sweep across the text. */
+  background-image: linear-gradient(
+    90deg,
+    #FAFAFA  0%,
+    #FAFAFA 38%,
+    #F97316 50%,
+    #FAFAFA 62%,
+    #FAFAFA 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% center;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  will-change: background-position;
+}
+
+/* Accent words ("You", "— 24/7") stay solid orange regardless of
+   where the shimmer band is. Chakra applies color via a CSS class
+   (not inline style), so we use an explicit className to override. */
+.hero-headline-shimmer .hero-headline-accent {
+  -webkit-text-fill-color: #F97316;
+  background: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-headline-shimmer {
+    -webkit-text-fill-color: #FAFAFA !important;
+    background: none !important;
+  }
+  .hero-headline-shimmer .hero-headline-accent {
+    -webkit-text-fill-color: #F97316 !important;
+  }
 }
 
 /* ─── Card Lift ───────────────────────────────────────── */
@@ -404,14 +631,44 @@ body {
 
 /* ─── Hero CTA Premium Animations ─────────────────────── */
 
-.hero-cta-call {
-  animation: heroCallGlow 3s ease-in-out infinite;
+/*
+  Pulse: shadow breathes from resting state to a brighter orange glow,
+  with a very slight scale (1 → 1.012) to give a tactile heartbeat feel.
+  Transform and box-shadow are both compositor-friendly properties.
+  boxShadow is NOT set on the element via props — CSS owns it fully.
+*/
+
+@keyframes heroCallPulse {
+  0%   {
+    box-shadow: 0 10px 36px rgba(249,115,22,0.55), 0 1px 0 rgba(255,255,255,0.10) inset;
+    transform: scale(1);
+  }
+  50%  {
+    box-shadow: 0 14px 48px rgba(249,115,22,0.80), 0 0 0 8px rgba(249,115,22,0.10), 0 1px 0 rgba(255,255,255,0.10) inset;
+    transform: scale(1.015);
+  }
+  100% {
+    box-shadow: 0 10px 36px rgba(249,115,22,0.55), 0 1px 0 rgba(255,255,255,0.10) inset;
+    transform: scale(1);
+  }
 }
 
-@keyframes heroCallGlow {
-  0%   { box-shadow: 0 4px 20px rgba(249,115,22,0.35), 0 0 0 0 rgba(249,115,22,0.2), 0 0 0 1px rgba(255,255,255,0.06) inset; }
-  50%  { box-shadow: 0 6px 28px rgba(249,115,22,0.5), 0 0 0 6px rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.08) inset; transform: scale(1.008); }
-  100% { box-shadow: 0 4px 20px rgba(249,115,22,0.35), 0 0 0 0 rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.06) inset; transform: scale(1); }
+.hero-cta-call {
+  box-shadow: 0 10px 36px rgba(249,115,22,0.55), 0 1px 0 rgba(255,255,255,0.10) inset;
+  animation: heroCallPulse 2.4s ease-in-out infinite;
+}
+
+/* Hover/active must win over the animation */
+.hero-cta-call:hover {
+  animation: none;
+  box-shadow: 0 18px 52px rgba(249,115,22,0.75), 0 1px 0 rgba(255,255,255,0.12) inset !important;
+  transform: translateY(-3px) !important;
+}
+
+.hero-cta-call:active {
+  animation: none;
+  transform: scale(0.97) !important;
+  box-shadow: 0 4px 16px rgba(249,115,22,0.4) !important;
 }
 
 /* ─── Hero CTA Glass Panel (desktop only) ─────────────── */
@@ -428,7 +685,11 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-cta-call { animation: none !important; }
+  .hero-cta-call {
+    animation: none !important;
+    box-shadow: 0 10px 36px rgba(249,115,22,0.55), 0 1px 0 rgba(255,255,255,0.10) inset !important;
+    transform: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

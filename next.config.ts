@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    // Prefer AVIF then WebP — both ~30-50% smaller than the JPEG/PNG fallback.
+    formats: ['image/avif', 'image/webp'],
+    // Cache optimized images for 30 days at the CDN edge (default is 60s).
+    minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
       {
         protocol: 'https',
@@ -19,6 +23,13 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        // Long-cache hero / static images that rarely change.
+        source: '/images/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
       {
         source: '/(.*)',
         headers: [

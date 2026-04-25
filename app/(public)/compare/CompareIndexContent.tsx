@@ -179,7 +179,7 @@ export function CompareIndexContent() {
                 { stat: '45 min', label: 'Avg Response' },
                 { stat: '24/7', label: 'Emergency Service' },
                 { stat: '4.8★', label: 'Trustpilot' },
-                { stat: 'From £49', label: 'Starting Price' },
+                { stat: 'Callout £49 + tyre', label: 'Starting Price' },
               ].map((item) => (
                 <Box key={item.label}>
                   <Text fontSize={{ base: '22px', md: '28px' }} fontWeight="700" color={colors.accent} style={{ fontFamily: 'var(--font-display)' }}>

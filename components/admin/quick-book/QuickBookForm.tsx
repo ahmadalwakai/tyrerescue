@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Text, VStack, HStack, Input, Button, Flex, Spinner, Textarea } from '@chakra-ui/react';
+import { Box, Text, VStack, HStack, Stack, Input, Button, Flex, Spinner, Textarea } from '@chakra-ui/react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe, type StripeElementsOptions } from '@stripe/stripe-js';
 import { QuickBookMap } from './QuickBookMap';
@@ -136,6 +136,15 @@ function getApiErrorMessage(payload: unknown, fallback: string): string {
       const first = nested.formErrors[0];
       if (typeof first === 'string' && first.trim()) return first;
     }
+    if (nested.fieldErrors && typeof nested.fieldErrors === 'object') {
+      const entries = Object.entries(nested.fieldErrors as Record<string, unknown>);
+      const parts: string[] = [];
+      for (const [field, msgs] of entries) {
+        const first = Array.isArray(msgs) ? msgs[0] : msgs;
+        if (typeof first === 'string' && first.trim()) parts.push(`${field}: ${first}`);
+      }
+      if (parts.length) return parts.join('; ');
+    }
   }
 
   if (typeof record.message === 'string' && record.message.trim()) {
@@ -215,10 +224,10 @@ function DepositCheckoutFormInner({
   return (
     <form onSubmit={handleSubmit}>
       <VStack gap={4} align="stretch">
-        <Box bg="rgba(139, 92, 246, 0.1)" p={4} borderRadius="8px">
+        <Box bg="rgba(249, 115, 22, 0.08)" border={`1px solid ${c.border}`} p={4} borderRadius="8px">
           <Flex justify="space-between" mb={2}>
             <Text color={c.muted} fontSize="sm">Deposit (20%)</Text>
-            <Text color="#8B5CF6" fontSize="lg" fontWeight="700">£{depositAmount.toFixed(2)}</Text>
+            <Text color={c.accent} fontSize="lg" fontWeight="700">£{depositAmount.toFixed(2)}</Text>
           </Flex>
           <Flex justify="space-between">
             <Text color={c.muted} fontSize="sm">Balance due on-site</Text>
@@ -243,8 +252,8 @@ function DepositCheckoutFormInner({
             type="submit"
             flex={1}
             h="56px"
-            bg="#8B5CF6"
-            color="white"
+            bg={c.accent}
+            color="#09090B"
             fontWeight="700"
             borderRadius="8px"
             disabled={!stripe || isProcessing}
@@ -301,8 +310,11 @@ export function QuickBookForm() {
     bookingId: string;
   } | null>(null);
   const [depositLoading, setDepositLoading] = useState(false);
+  const [stripeRetryLoading, setStripeRetryLoading] = useState(false);
+  const [stripeRetryError, setStripeRetryError] = useState<string | null>(null);
   const [depositError, setDepositError] = useState<string | null>(null);
   const [depositSuccess, setDepositSuccess] = useState(false);
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
 
   // Route/distance info (from map)
   const [routeInfo, setRouteInfo] = useState<{ drivingKm: number | null; drivingMinutes: number | null } | null>(null);
@@ -455,9 +467,11 @@ export function QuickBookForm() {
       const data: FinalizedResult = await res.json();
       setFinalized(data);
 
-      // If Stripe full payment: redirect to Stripe checkout page
+      // If Stripe full payment: open Stripe checkout in a new tab so admin
+      // stays on the booking page. They can retry from here if Stripe is
+      // cancelled or closed.
       if (paymentMethod === 'stripe' && data.paymentUrl) {
-        window.location.href = data.paymentUrl;
+        window.open(data.paymentUrl, '_blank', 'noopener,noreferrer');
       }
 
       // If deposit payment: open the deposit dialog
@@ -514,12 +528,64 @@ export function QuickBookForm() {
     }
   }, [finalized]);
 
+  // ── Retry full Stripe payment (regenerate checkout URL) ──
+  const retryStripePayment = useCallback(async () => {
+    if (!created?.booking.id) return;
+    setStripeRetryLoading(true);
+    setStripeRetryError(null);
+    try {
+      const res = await fetch(`/api/admin/quick-book/${created.booking.id}/checkout-session`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(getApiErrorMessage(data, 'Failed to regenerate Stripe checkout'));
+      }
+      const data = await res.json();
+      if (data.checkoutUrl) {
+        window.open(data.checkoutUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err) {
+      setStripeRetryError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setStripeRetryLoading(false);
+    }
+  }, [created?.booking.id]);
+
   // ── Close deposit dialog without completing ──
   const closeDepositDialog = useCallback(() => {
+    setConfirmCloseOpen(true);
+  }, []);
+
+  const confirmCloseDeposit = useCallback(async () => {
+    setConfirmCloseOpen(false);
     setDepositDialogOpen(false);
     setDepositClientSecret(null);
-    // Note: booking is still created but deposit not paid - user can retry
-  }, []);
+    setDepositInfo(null);
+    setDepositError(null);
+
+    // Roll back the unpaid booking on the server so admin can pick a different
+    // payment method (or retry deposit) from a clean state.
+    if (created?.booking.id) {
+      try {
+        const res = await fetch(`/api/admin/quick-book/${created.booking.id}/finalize`, {
+          method: 'DELETE',
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setError(getApiErrorMessage(data, 'Could not cancel pending booking'));
+          return;
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not cancel pending booking');
+        return;
+      }
+    }
+
+    // Return admin to the payment-method selector
+    setFinalized(null);
+    setDepositSuccess(false);
+  }, [created?.booking.id]);
 
   // ── Save admin price adjustment ──
   const handleSaveAdjustment = useCallback(async () => {
@@ -661,6 +727,7 @@ export function QuickBookForm() {
   if (finalized) {
     const isDepositPayment = finalized.paymentMethod === 'deposit';
     const isDepositPaid = depositSuccess;
+    const isStripePayment = finalized.paymentMethod === 'stripe';
     const depositAmount = finalized.depositAmountPence ? finalized.depositAmountPence / 100 : 0;
     const remainingBalance = finalized.remainingBalancePence ? finalized.remainingBalancePence / 100 : 0;
 
@@ -734,6 +801,59 @@ export function QuickBookForm() {
               <Text color={c.muted} fontSize="xs">Invoice</Text>
               <Text color={c.text} fontSize="sm" fontWeight="600">{finalized.invoiceNumber}</Text>
             </Box>
+
+            {isDepositPayment && !isDepositPaid && (
+              <Button
+                w="100%"
+                h="48px"
+                variant="outline"
+                borderColor={c.accent}
+                color={c.accent}
+                bg="transparent"
+                fontWeight="700"
+                borderRadius="8px"
+                _hover={{ bg: 'rgba(249, 115, 22, 0.08)' }}
+                onClick={() => initiateDepositPayment(finalized.bookingId)}
+                disabled={depositLoading}
+              >
+                {depositLoading ? <Spinner size="sm" /> : `💰 Retry Deposit Payment (£${depositAmount.toFixed(2)})`}
+              </Button>
+            )}
+
+            {isStripePayment && (
+              <VStack gap={2} align="stretch">
+                <Box bg="rgba(249, 115, 22, 0.08)" p={3} borderRadius="8px" borderLeft={`3px solid ${c.accent}`}>
+                  <Text color={c.text} fontSize="sm" fontWeight="600">
+                    Stripe Checkout opened in a new tab
+                  </Text>
+                  <Text color={c.muted} fontSize="xs" mt={1}>
+                    If the customer cancels or closes the tab, click Retry below to send a fresh checkout link.
+                  </Text>
+                </Box>
+                <Button
+                  w="100%"
+                  h="48px"
+                  variant="outline"
+                  borderColor={c.accent}
+                  color={c.accent}
+                  bg="transparent"
+                  fontWeight="700"
+                  borderRadius="8px"
+                  _hover={{ bg: 'rgba(249, 115, 22, 0.08)' }}
+                  onClick={retryStripePayment}
+                  disabled={stripeRetryLoading}
+                >
+                  {stripeRetryLoading ? <Spinner size="sm" /> : `💳 Retry Stripe Payment (£${finalized.breakdown.total.toFixed(2)})`}
+                </Button>
+                {stripeRetryError && (
+                  <Text color="red.400" fontSize="sm">{stripeRetryError}</Text>
+                )}
+              </VStack>
+            )}
+
+            {depositError && (
+              <Text color="red.400" fontSize="sm">{depositError}</Text>
+            )}
 
             <HStack gap={3}>
               <a href={`/admin/bookings/${finalized.refNumber}`} style={{ flex: 1 }}>
@@ -820,6 +940,73 @@ export function QuickBookForm() {
                   onCancel={closeDepositDialog}
                 />
               </Elements>
+            </Box>
+          </div>
+        )}
+
+        {/* Styled confirm-close modal (replaces window.confirm) */}
+        {confirmCloseOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 10000,
+              background: 'rgba(0,0,0,0.85)',
+              backdropFilter: 'blur(6px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 16,
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setConfirmCloseOpen(false);
+            }}
+          >
+            <Box
+              bg={c.card}
+              borderRadius="12px"
+              border={`1px solid ${c.border}`}
+              maxW="420px"
+              w="100%"
+              p={6}
+              boxShadow="0 20px 60px rgba(0,0,0,0.5)"
+            >
+              <Flex align="center" gap={3} mb={3}>
+                <Text fontSize="28px">⚠️</Text>
+                <Text fontSize="lg" fontWeight="700" color={c.text}>
+                  Close without paying?
+                </Text>
+              </Flex>
+              <Text color={c.muted} fontSize="sm" mb={5} lineHeight="1.5">
+                The booking has already been created and will remain{' '}
+                <Text as="span" color="#F59E0B" fontWeight="600">awaiting payment</Text>.
+                You can re-open the deposit payment from the booking screen.
+              </Text>
+              <HStack gap={3}>
+                <Button
+                  flex={1}
+                  h="44px"
+                  variant="outline"
+                  borderColor={c.border}
+                  color={c.text}
+                  fontWeight="600"
+                  borderRadius="8px"
+                  onClick={() => setConfirmCloseOpen(false)}
+                >
+                  Keep Paying
+                </Button>
+                <Button
+                  flex={1}
+                  h="44px"
+                  bg="#EF4444"
+                  color="white"
+                  fontWeight="700"
+                  borderRadius="8px"
+                  onClick={confirmCloseDeposit}
+                >
+                  Close Anyway
+                </Button>
+              </HStack>
             </Box>
           </div>
         )}
@@ -1212,12 +1399,17 @@ export function QuickBookForm() {
           <Box bg={c.surface} p={4} borderRadius="8px" borderLeft={`3px solid ${c.accent}`}>
             <Text color={c.text} fontSize="sm" fontWeight="600" mb={3}>💳 Payment Method</Text>
             <VStack gap={2}>
-              <HStack gap={3} w="100%">
+              <Stack
+                direction={{ base: 'column', md: 'row' }}
+                gap={2}
+                w="100%"
+              >
                 <Button
                   flex={1}
+                  w="100%"
                   bg={c.accent}
                   color="#09090B"
-                  h="56px"
+                  h="52px"
                   fontWeight="700"
                   borderRadius="8px"
                   fontSize="14px"
@@ -1228,12 +1420,16 @@ export function QuickBookForm() {
                 </Button>
                 <Button
                   flex={1}
-                  bg="#8B5CF6"
-                  color="white"
-                  h="56px"
+                  w="100%"
+                  variant="outline"
+                  borderColor={c.accent}
+                  color={c.accent}
+                  bg="transparent"
+                  h="52px"
                   fontWeight="700"
                   borderRadius="8px"
                   fontSize="14px"
+                  _hover={{ bg: 'rgba(249, 115, 22, 0.08)' }}
                   onClick={() => handleFinalize('deposit')}
                   disabled={isFinalizing || depositLoading}
                 >
@@ -1241,9 +1437,10 @@ export function QuickBookForm() {
                 </Button>
                 <Button
                   flex={1}
+                  w="100%"
                   bg="#22C55E"
                   color="white"
-                  h="56px"
+                  h="52px"
                   fontWeight="700"
                   borderRadius="8px"
                   fontSize="14px"
@@ -1252,7 +1449,7 @@ export function QuickBookForm() {
                 >
                   {isFinalizing ? <Spinner size="sm" /> : '💵 Cash'}
                 </Button>
-              </HStack>
+              </Stack>
               <Text color={c.muted} fontSize="xs" textAlign="center">
                 Pay Full: Stripe checkout • Deposit: 20% now, balance on-site • Cash: marks as paid
               </Text>

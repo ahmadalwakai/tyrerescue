@@ -13,13 +13,18 @@ import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { colorTokens } from '@/lib/design-tokens';
 import type { City } from '@/lib/cities';
+import {
+  SERVICE_PRICING,
+  PRICING_DISCLAIMER,
+  PRICING_DISCLAIMER_HREF,
+} from '@/lib/pricing';
 
 const c = colorTokens;
 
 const services = [
-  { title: 'Emergency Callout', desc: 'Driver to you within 45 minutes, 24/7.', price: 'From £49' },
-  { title: 'Tyre Fitting', desc: 'Quality tyres fitted at your location.', price: 'From £20' },
-  { title: 'Puncture Repair', desc: 'Professional assessment and repair on-site.', price: 'From £25' },
+  { title: 'Emergency Callout', desc: 'Driver to you within 45 minutes, 24/7.', price: SERVICE_PRICING.emergency.label },
+  { title: 'Tyre Fitting', desc: 'Quality tyres fitted at your location.', price: SERVICE_PRICING.fitting.label },
+  { title: 'Puncture Repair', desc: 'Professional assessment and repair on-site.', price: SERVICE_PRICING.punctureRepair.label },
 ];
 
 export function CityServiceContent({ city }: { city: City }) {
@@ -176,6 +181,18 @@ export function CityServiceContent({ city }: { city: City }) {
                 </Box>
               ))}
             </SimpleGrid>
+            <Text
+              fontSize="13px"
+              color={c.muted}
+              mt={6}
+              lineHeight="1.6"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              * {PRICING_DISCLAIMER}.{' '}
+              <ChakraLink asChild color={c.accent} textDecoration="underline">
+                <Link href={PRICING_DISCLAIMER_HREF}>See full pricing FAQ</Link>
+              </ChakraLink>
+            </Text>
           </Container>
         </Box>
 

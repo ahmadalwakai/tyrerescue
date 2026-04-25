@@ -9,14 +9,14 @@ import { homepageMedia } from '../lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 const altTextUpdates: Record<string, string> = {
-  '/images/home/slide-1.png': 'Tyre technician fitting a new tyre on a customer vehicle at their driveway',
-  '/images/home/slide-2.png': 'Emergency roadside tyre change being performed on a dark motorway hard shoulder',
-  '/images/home/slide-3.png': 'Mobile fitter using a hydraulic jack to lift a car for tyre replacement at home',
-  '/images/home/slide-4.png': 'Close-up of a freshly fitted premium tyre on a polished alloy wheel',
-  '/images/home/slide-5.png': 'White mobile tyre fitting van equipped and ready for callout in Glasgow',
-  '/images/home/slide-6.png': 'Gloved hand checking tyre tread depth with a gauge during inspection',
-  '/images/home/slide-7.png': 'Sedan on a residential street in Glasgow receiving a front tyre replacement',
-  '/images/home/slide-8.png': 'Technician tightening wheel bolts after completing an emergency tyre change',
+  '/images/home/slide-1.webp': 'Tyre technician fitting a new tyre on a customer vehicle at their driveway',
+  '/images/home/slide-2.webp': 'Emergency roadside tyre change being performed on a dark motorway hard shoulder',
+  '/images/home/slide-3.webp': 'Mobile fitter using a hydraulic jack to lift a car for tyre replacement at home',
+  '/images/home/slide-4.webp': 'Close-up of a freshly fitted premium tyre on a polished alloy wheel',
+  '/images/home/slide-5.webp': 'White mobile tyre fitting van equipped and ready for callout in Glasgow',
+  '/images/home/slide-6.webp': 'Gloved hand checking tyre tread depth with a gauge during inspection',
+  '/images/home/slide-7.webp': 'Sedan on a residential street in Glasgow receiving a front tyre replacement',
+  '/images/home/slide-8.webp': 'Technician tightening wheel bolts after completing an emergency tyre change',
 };
 
 async function main() {

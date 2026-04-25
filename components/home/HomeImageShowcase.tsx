@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Box, Flex, Text } from '@chakra-ui/react';
 import { colorTokens } from '@/lib/design-tokens';
@@ -63,6 +63,24 @@ function HomeImageShowcaseInner({ slides = homeSlides }: HomeImageShowcaseProps)
   // Track image load errors for graceful fallback
   const [errors, setErrors] = useState<Set<string>>(() => new Set());
 
+  // Track which slide indices have been (or are about to be) shown so that
+  // we only mount their <Image>. The first slide is always mounted (LCP).
+  // After idle/first paint we lazily mount the rest so they're warm before
+  // autoplay reaches them, but they don't compete with the LCP request.
+  const [mountAll, setMountAll] = useState(false);
+  useEffect(() => {
+    if (mountAll) return;
+    const cb = () => setMountAll(true);
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const id = (window as unknown as { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback(cb, { timeout: 2500 });
+      return () => {
+        (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(id);
+      };
+    }
+    const t = setTimeout(cb, 1500);
+    return () => clearTimeout(t);
+  }, [mountAll]);
+
   if (slides.length === 0) return null;
 
   return (
@@ -86,6 +104,8 @@ function HomeImageShowcaseInner({ slides = homeSlides }: HomeImageShowcaseProps)
         const isActive = i === activeIndex;
         const hasError = errors.has(slide.id);
         const animTransform = getSlideTransform(slide.animationStyle, isActive);
+        // Render only: the LCP slide, the active slide, and (after idle) all others.
+        const shouldMount = i === 0 || isActive || mountAll;
 
         return (
           <Box
@@ -113,14 +133,16 @@ function HomeImageShowcaseInner({ slides = homeSlides }: HomeImageShowcaseProps)
                   {slide.alt}
                 </Text>
               </Box>
-            ) : (
+            ) : shouldMount ? (
               <Image
                 src={slide.src}
                 alt={slide.alt}
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 45vw"
                 priority={slide.priority}
-                quality={80}
+                fetchPriority={slide.priority ? 'high' : 'low'}
+                loading={slide.priority ? 'eager' : 'lazy'}
+                quality={60}
                 style={{
                   objectFit: 'cover',
                   objectPosition: slide.objectPosition,
@@ -129,7 +151,7 @@ function HomeImageShowcaseInner({ slides = homeSlides }: HomeImageShowcaseProps)
                   setErrors((prev) => new Set(prev).add(slide.id))
                 }
               />
-            )}
+            ) : null}
           </Box>
         );
       })}

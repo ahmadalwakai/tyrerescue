@@ -3,6 +3,8 @@
  * Every function returns a plain object ready for JSON.stringify.
  */
 
+import { SERVICE_PRICING, PRICE_RANGE_DISPLAY } from '@/lib/pricing';
+
 const DEFAULT_BASE_URL = 'https://www.tyrerescue.uk';
 const SITE_URL = DEFAULT_BASE_URL;
 const PHONE = '+441412660690';
@@ -38,7 +40,7 @@ export function getLocalBusinessSchema(baseUrl: string = DEFAULT_BASE_URL) {
       longitude: -4.2206,
     },
     openingHours: 'Mo-Su 00:00-23:59',
-    priceRange: '£20–£200',
+    priceRange: PRICE_RANGE_DISPLAY,
     areaServed: [
       { '@type': 'AdministrativeArea', name: 'Scotland' },
       { '@type': 'City', name: 'Glasgow' },
@@ -78,10 +80,18 @@ export function getLocalBusinessSchema(baseUrl: string = DEFAULT_BASE_URL) {
         itemOffered: {
           '@type': 'Service',
           name: 'Emergency Mobile Tyre Fitting',
-          description: '24/7 emergency tyre replacement at your location across Glasgow and Edinburgh',
+          description:
+            '24/7 emergency tyre replacement at your location across Glasgow and Edinburgh. Callout fee from £49 + tyre price.',
         },
-        price: '49',
         priceCurrency: 'GBP',
+        priceSpecification: {
+          '@type': 'PriceSpecification',
+          priceCurrency: 'GBP',
+          minPrice: SERVICE_PRICING.emergency.from,
+          maxPrice: SERVICE_PRICING.emergency.typicalMax,
+          description:
+            'Includes £49 emergency callout fee. Tyre price varies by size and brand.',
+        },
         availability: 'https://schema.org/InStock',
       },
       {
@@ -89,20 +99,33 @@ export function getLocalBusinessSchema(baseUrl: string = DEFAULT_BASE_URL) {
         itemOffered: {
           '@type': 'Service',
           name: 'Mobile Tyre Fitting',
-          description: 'Scheduled tyre fitting at home, work, or roadside',
+          description:
+            'Scheduled tyre fitting at home, work, or roadside. Fitting fee from £20 per tyre + tyre price.',
         },
-        price: '20',
         priceCurrency: 'GBP',
+        priceSpecification: {
+          '@type': 'PriceSpecification',
+          priceCurrency: 'GBP',
+          minPrice: SERVICE_PRICING.fitting.from,
+          maxPrice: SERVICE_PRICING.fitting.typicalMax,
+          description:
+            'Includes £20 per-tyre fitting fee. Tyre price varies by size and brand.',
+        },
       },
       {
         '@type': 'Offer',
         itemOffered: {
           '@type': 'Service',
           name: 'Puncture Repair',
-          description: 'On-the-spot puncture repair where possible',
+          description: 'On-the-spot puncture repair where possible. Complete service price.',
         },
-        price: '25',
         priceCurrency: 'GBP',
+        priceSpecification: {
+          '@type': 'PriceSpecification',
+          priceCurrency: 'GBP',
+          minPrice: SERVICE_PRICING.punctureRepair.from,
+          maxPrice: SERVICE_PRICING.punctureRepair.typicalMax,
+        },
       },
     ],
   };

@@ -567,7 +567,7 @@ First check that all four tyres are at the correct pressure. If the pull persist
 
 If you've spotted any of these signs, don't wait. Driving on damaged or worn tyres in Scotland's wet conditions is dangerous and potentially illegal.
 
-**For Glasgow and Edinburgh:** Call Tyre Rescue on 0141 266 0690. We'll come to your location, assess all four tyres, and replace whatever's needed. Mobile fitting from £20 per tyre, available 24/7.
+**For Glasgow and Edinburgh:** Call Tyre Rescue on 0141 266 0690. We'll come to your location, assess all four tyres, and replace whatever's needed. Mobile fitting from £20 per tyre + the tyre price (varies by size and brand), available 24/7.
 
 ## Frequently Asked Questions
 
@@ -638,7 +638,7 @@ Trustpilot, Google Reviews, and word of mouth are your best guides. Look for rec
 - **Coverage:** Glasgow, Edinburgh, Dundee, Stirling, Falkirk, Paisley and surrounding areas
 - **Hours:** 24/7, 365 days a year
 - **Response Time:** 45 minutes average
-- **Starting Price:** From £49 (emergency callout)
+- **Starting Price:** Callout from £49 + tyre price (emergency)
 - **Trustpilot:** 4.8/5 stars
 - **Key Features:** Live GPS tracking of your fitter, instant online booking, budget to premium tyre range
 - **Best For:** Emergency callouts, out-of-hours fitting, anyone who values convenience
@@ -724,7 +724,7 @@ With Tyre Rescue, booking takes under 2 minutes:
 ## Frequently Asked Questions
 
 ### How much does mobile tyre fitting cost in Scotland?
-Prices typically start from £49 for emergency callout including fitting. The total cost depends on the tyre brand and size you choose. Budget tyres for standard cars start from around £55 fitted.
+Prices typically start at a £49 emergency callout fee plus the tyre price. The total cost depends on the tyre brand and size you choose. Budget tyres for standard cars start from around £55, so a typical emergency replacement is from around £104 (£49 callout + £55 tyre).
 
 ### How quickly can a mobile tyre fitter get to me?
 Tyre Rescue averages 45-minute response times in Glasgow and Edinburgh. Most appointment-based services require at least a few hours' notice or next-day booking.
@@ -780,7 +780,7 @@ Larger tyres cost more. A 205/55 R16 (common on family cars) will cost significa
 ### 3. Fitting Type
 - **Garage fitting:** Usually £10–£20 per tyre fitting fee (on top of tyre cost)
 - **Mobile fitting:** Often included in the total price, or £15–£25 per tyre
-- **Emergency mobile callout:** Callout fee from £49, then per-tyre pricing
+- **Emergency mobile callout:** Callout fee from £49, plus the tyre price
 
 ### 4. Vehicle Type
 Standard passenger cars are cheapest to fit. SUVs, 4x4s, and vans cost more due to heavier wheels and larger tyres. Run-flat tyres can also add £5–£10 per tyre.
@@ -845,7 +845,7 @@ Emergency callouts (outside standard hours, or immediate response) typically cos
 - **Emergency callout fee:** £49–£79
 - **Tyre cost:** Same as standard pricing
 - **Fitting:** Usually included in the callout fee
-- **No surge pricing with Tyre Rescue** — our emergency callout is a flat rate from £49
+- **No surge pricing with Tyre Rescue** — our emergency callout fee is a flat £49 (tyre price extra)
 
 ### What Counts as an Emergency?
 - Flat tyre where you can't drive

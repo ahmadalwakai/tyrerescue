@@ -54,7 +54,15 @@ export async function POST(request: Request) {
   const body = await request.json();
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    const flat = parsed.error.flatten();
+    const fieldMessages = Object.entries(flat.fieldErrors)
+      .map(([field, msgs]) => `${field}: ${(msgs as string[] | undefined)?.[0] ?? 'invalid'}`)
+      .join('; ');
+    const message = flat.formErrors[0] || fieldMessages || 'Invalid request';
+    return NextResponse.json(
+      { error: message, details: flat },
+      { status: 400 },
+    );
   }
 
   const data = parsed.data;

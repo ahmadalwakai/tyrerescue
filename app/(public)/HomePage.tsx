@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Box,
   Container,
@@ -17,9 +17,15 @@ import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { colorTokens, inputProps, textareaProps } from '@/lib/design-tokens';
 import { HomeImageShowcase } from '@/components/home/HomeImageShowcase';
+import { PostcodeChecker } from '@/components/home/PostcodeChecker';
 import type { HomeSlide } from '@/components/home/homeImageSlides';
 import { cities } from '@/lib/cities';
 import { services as seoServices, serviceCities } from '@/lib/areas';
+import {
+  SERVICE_PRICING,
+  PRICING_DISCLAIMER,
+  PRICING_DISCLAIMER_HREF,
+} from '@/lib/pricing';
 import { homepageFAQItems } from '@/lib/content/faq';
 import { TrustpilotReviewCollector } from '@/components/ui/TrustpilotReviewCollector';
 import { AIOptimizedSection } from '@/components/seo/AIOptimizedSection';
@@ -42,21 +48,21 @@ const services = [
     title: 'Emergency Callout',
     description:
       'Flat tyre near me? Our emergency mobile tyre fitters respond across Glasgow and Edinburgh within 45 minutes, 24 hours a day, 7 days a week.',
-    price: 'From £49',
+    price: SERVICE_PRICING.emergency.label,
   },
   {
     num: '02',
     title: 'Mobile Tyre Fitting',
     description:
-      'New tyres fitted at your location. We are the mobile tyre shop that comes to you \u2014 at home, at work, or at the roadside across Glasgow.',
-    price: 'From £20',
+      'New tyres fitted at your location. We are the mobile tyre shop that comes to you — at home, at work, or at the roadside across Glasgow.',
+    price: SERVICE_PRICING.fitting.label,
   },
   {
     num: '03',
     title: 'Puncture Repair',
     description:
       'Professional tyre repair near me service. Where possible we repair your tyre on the spot. Faster and cheaper than a full tyre replacement.',
-    price: 'From £25',
+    price: SERVICE_PRICING.punctureRepair.label,
   },
 ];
 
@@ -144,23 +150,14 @@ type FallingSquare = {
 };
 
 const heroFallingSquares: FallingSquare[] = [
-  // far — smallest, slowest, darkest, edges only
-  { id: 'f1', x: 4,  size: 8,  depth: 'far', variant: 'fill',    driftX: 3,  rotate: 4,  duration: 38, delay: -5 },
-  { id: 'f2', x: 14, size: 12, depth: 'far', variant: 'outline', driftX: -2, rotate: -3, duration: 34, delay: -18 },
-  { id: 'f3', x: 88, size: 8,  depth: 'far', variant: 'fill',    driftX: -3, rotate: 3,  duration: 40, delay: -10 },
-  { id: 'f4', x: 94, size: 12, depth: 'far', variant: 'outline', driftX: 2,  rotate: -2, duration: 36, delay: -26 },
-  { id: 'f5', x: 8,  size: 8,  depth: 'far', variant: 'outline', driftX: 4,  rotate: -4, duration: 42, delay: -15 },
-  { id: 'f6', x: 91, size: 8,  depth: 'far', variant: 'fill',    driftX: -2, rotate: 2,  duration: 37, delay: -32 },
-
-  // mid — mixed black + dark orange tones, varied speed
+  // Reduced from 14 to 6 squares to cut Lighthouse "non-composited animations"
+  // count and main-thread paint cost. Hidden entirely on mobile via CSS.
+  // mid — black + dark orange, transform/opacity only (composited)
   { id: 'm1', x: 78, size: 16, depth: 'mid', variant: 'fill',    driftX: -5, rotate: 5,  duration: 28, delay: -4 },
-  { id: 'm2', x: 83, size: 20, depth: 'mid', variant: 'outline', driftX: 3,  rotate: -3, duration: 26, delay: -14 },
-  { id: 'm3', x: 11, size: 16, depth: 'mid', variant: 'blur',    driftX: 4,  rotate: -4, duration: 30, delay: -8 },
-  { id: 'm4', x: 19, size: 12, depth: 'mid', variant: 'fill',    driftX: -3, rotate: 3,  duration: 25, delay: -21 },
-  { id: 'm5', x: 75, size: 16, depth: 'mid', variant: 'outline', driftX: -4, rotate: -2, duration: 27, delay: -12 },
-  { id: 'm6', x: 9,  size: 20, depth: 'mid', variant: 'fill',    driftX: 3,  rotate: 4,  duration: 24, delay: -28 },
-
-  // accent — orange, fewest, restrained
+  { id: 'm2', x: 11, size: 16, depth: 'mid', variant: 'outline', driftX: 4,  rotate: -4, duration: 30, delay: -8 },
+  { id: 'm3', x: 19, size: 12, depth: 'mid', variant: 'fill',    driftX: -3, rotate: 3,  duration: 25, delay: -21 },
+  { id: 'm4', x: 75, size: 16, depth: 'mid', variant: 'outline', driftX: -4, rotate: -2, duration: 27, delay: -12 },
+  // accent — orange, restrained
   { id: 'a1', x: 86, size: 16, depth: 'accent', variant: 'outline', driftX: -3, rotate: 3, duration: 22, delay: -6 },
   { id: 'a2', x: 7,  size: 12, depth: 'accent', variant: 'fill',    driftX: 2,  rotate: -2, duration: 24, delay: -16 },
 ];
@@ -174,6 +171,7 @@ function HeroFallingSquares() {
       overflow="hidden"
       pointerEvents="none"
       aria-hidden
+      display={{ base: 'none', md: 'block' }}
     >
       {heroFallingSquares.map((sq) => (
         <Box
@@ -181,7 +179,7 @@ function HeroFallingSquares() {
           as="span"
           position="absolute"
           top="-30px"
-          display={{ base: sq.depth === 'far' ? 'none' : 'block', md: 'block' }}
+          display="block"
           className={`hero-sq depth-${sq.depth} variant-${sq.variant}`}
           w={`${sq.size}px`}
           h={`${sq.size}px`}
@@ -190,6 +188,7 @@ function HeroFallingSquares() {
             left: `${sq.x}%`,
             animationDuration: `${sq.duration}s`,
             animationDelay: `${sq.delay}s`,
+            willChange: 'transform',
             '--sq-dx': `${sq.driftX}px`,
             '--sq-rot': `${sq.rotate}deg`,
           } as React.CSSProperties}
@@ -583,21 +582,11 @@ function ContactSection() {
 
 // ─── Main Component ──────────────────────────────────────
 export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
-  const [heroOffset, setHeroOffset] = useState(0);
   const stat1 = useCountUp(97, 1500);
   const stat2 = useCountUp(4.8, 1500, 1);
   const stat3 = useCountUp(45, 1500);
   const [timelineVisible, setTimelineVisible] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
-
-  const handleScroll = useCallback(() => {
-    setHeroOffset(window.scrollY * 0.3);
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -636,7 +625,6 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
             inset={0}
             style={{
               background: 'radial-gradient(ellipse at top right, rgba(249,115,22,0.06) 0%, transparent 60%)',
-              transform: `translateY(${heroOffset}px)`,
             }}
           />
           <Box
@@ -682,14 +670,15 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
               {/* Left column — 55% */}
               <Box flex={{ lg: '0 0 55%' }}>
                 <Text
-                  fontSize="11px"
-                  fontWeight="500"
-                  letterSpacing="0.2em"
+                  fontSize="10px"
+                  fontWeight="600"
+                  letterSpacing="0.22em"
                   color={colors.accent}
-                  mb={6}
+                  mb={4}
                   style={{
                     fontFamily: 'var(--font-body)',
                     animation: 'fadeUp 0.5s ease-out both',
+                    opacity: 0.85,
                   }}
                 >
                   EMERGENCY MOBILE TYRE FITTING
@@ -703,61 +692,24 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                 >
                   <Text
                     as="h1"
-                    color={colors.textPrimary}
-                    lineHeight="0.92"
-                    mb="0.06em"
+                    className="hero-headline-shimmer"
+                    lineHeight="1"
+                    mb={0}
                     style={{
                       fontFamily: 'var(--font-display)',
-                      fontSize: 'clamp(52px, 10vw, 140px)',
-                      animation: 'slideInLeft 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s both',
+                      fontSize: 'clamp(44px, 8vw, 108px)',
+                      letterSpacing: '-0.01em',
+                      animation: 'slideInLeft 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s both, heroHeadlineShimmer 5s linear 1s infinite',
                     }}
                   >
-                    {'GLASGOW'.split('').map((ch, i) => {
-                      if (ch === 'O' && i === 5) {
-                        return <GlasgowO key={i} delay={`${i * 0.12}s`} />;
-                      }
-
-                      return (
-                        <Box as="span" key={i} className="neon-char" style={{ animationDelay: `${i * 0.12}s` }}>
-                          {ch}
-                        </Box>
-                      );
-                    })}
-                  </Text>
-                  <Text
-                    as="span"
-                    display="block"
-                    color={colors.textPrimary}
-                    lineHeight="0.92"
-                    mb="0.06em"
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: 'clamp(52px, 10vw, 140px)',
-                      animation: 'slideInRight 0.7s cubic-bezier(0.16,1,0.3,1) 0.45s both',
-                    }}
-                  >
-                    {'EDINBURGH'.split('').map((ch, i) => (
-                      <span key={i} className="neon-char wave-char" style={{ animationDelay: `${(i + 7) * 0.12}s, ${i * 0.08}s` }}>
-                        {ch}
-                      </span>
-                    ))}
-                  </Text>
-                  <Text
-                    as="span"
-                    display="block"
-                    color={colors.textPrimary}
-                    lineHeight="0.92"
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: 'clamp(52px, 10vw, 140px)',
-                      animation: 'slideInLeft 0.7s cubic-bezier(0.16,1,0.3,1) 0.7s both',
-                    }}
-                  >
-                    {'DUNDEE'.split('').map((ch, i) => (
-                      <span key={i} className="neon-char wave-char" style={{ animationDelay: `${(i + 16) * 0.12}s, ${i * 0.08}s` }}>
-                        {ch}
-                      </span>
-                    ))}
+                    24/7 Emergency{' '}
+                    <Text as="span" className="hero-headline-accent" style={{ fontFamily: 'var(--font-display)' }}>
+                      Mobile Tyre Fitting
+                    </Text>{' '}
+                    Across{' '}
+                    <Text as="span" className="hero-headline-accent" style={{ fontFamily: 'var(--font-display)' }}>
+                      Central Scotland
+                    </Text>
                   </Text>
                 </Box>
 
@@ -765,149 +717,350 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                 <Box
                   h="2px"
                   bg={colors.accent}
-                  my="24px"
+                  mt="28px"
+                  mb="20px"
                   style={{
                     animation: 'lineGrow 0.6s ease-out 0.3s both',
                   }}
                 />
 
-                <Text
-                  fontSize="17px"
-                  color={colors.textSecondary}
-                  maxW="440px"
-                  lineHeight="1.6"
+                <Flex
+                  as="ul"
+                  listStyleType="none"
+                  direction={{ base: 'column', md: 'row' }}
+                  align={{ base: 'flex-start', md: 'center' }}
+                  gap={{ base: '10px', md: '20px' }}
+                  maxW="540px"
                   style={{
                     fontFamily: 'var(--font-body)',
                     animation: 'fadeUp 0.6s ease-out 0.4s both',
+                    color: 'rgba(161,161,170,0.9)',
                   }}
                 >
-                  Flat tyre? Our certified mobile fitters come to your exact location, 24 hours a day.
+                  {/* On-site in 45 minutes */}
+                  <Flex as="li" align="center" gap="10px" lineHeight="1.6">
+                    <Box as="span" color={colors.accent} display="inline-flex" className="speed-clock" aria-hidden="true">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+                    </Box>
+                    <Text as="span" fontSize={{ base: '15px', md: '16px' }}>
+                      Fast response in Glasgow, Edinburgh &amp; surrounding areas · Fitting from £20 + tyre price{' '}
+                      <Text as="span" className="speed-text" fontWeight="700">45 min avg</Text>
+                      <Box as="span" className="speed-arrows" aria-hidden="true" display="inline-flex" alignItems="center" ml="6px" verticalAlign="-2px">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+                      </Box>
+                    </Text>
+                  </Flex>
+                </Flex>
+
+                {/* Pricing footnote */}
+                <Text
+                  as="p"
+                  mt="12px"
+                  fontSize={{ base: '12px', md: '13px' }}
+                  color="rgba(161,161,170,0.75)"
+                  lineHeight="1.5"
+                  maxW="540px"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  * {PRICING_DISCLAIMER}.{' '}
+                  <ChakraLink
+                    href={PRICING_DISCLAIMER_HREF}
+                    color={colors.accent}
+                    textDecoration="underline"
+                    _hover={{ opacity: 0.8 }}
+                  >
+                    See full pricing FAQ
+                  </ChakraLink>
                 </Text>
+
+                {/* Instant coverage check */}
+                <Box mt="24px" style={{ animation: 'fadeUp 0.6s ease-out 0.45s both' }}>
+                  <PostcodeChecker />
+                </Box>
 
                 {/* Buttons */}
                 <Box
                   className="hero-cta-panel"
-                  mt="40px"
-                  maxW={{ md: '520px' }}
+                  mt="36px"
+                  maxW={{ base: '100%', md: '480px' }}
                   style={{ animation: 'fadeUp 0.6s ease-out 0.5s both' }}
                 >
-                <Flex
-                  direction="column"
-                  gap={{ base: '14px', md: '16px' }}
-                >
-                  {/* 1. CALL NOW — Primary */}
+                  {/* Primary CTA */}
                   <ChakraLink
                     href={`tel:${PHONE_NUMBER.replace(/\s/g, '')}`}
                     className="hero-cta-call"
                     display="inline-flex"
                     alignItems="center"
                     justifyContent="center"
-                    gap="10px"
+                    gap="12px"
                     w="100%"
-                    h={{ base: '58px', md: '60px' }}
-                    bg="linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
+                    h={{ base: '72px', md: '76px' }}
+                    px={{ base: '24px', md: '32px' }}
+                    bg="linear-gradient(135deg, #f97316 0%, #c2410c 100%)"
                     color="white"
-                    fontSize={{ base: '18px', md: '20px' }}
-                    fontWeight="800"
-                    letterSpacing="0.04em"
+                    fontSize={{ base: '22px', md: '24px' }}
+                    fontWeight="900"
+                    letterSpacing="0.05em"
                     borderRadius="14px"
-                    transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
-                    boxShadow="0 4px 20px rgba(249,115,22,0.35), 0 0 0 1px rgba(255,255,255,0.06) inset"
-                    _hover={{ transform: 'translateY(-3px)', boxShadow: '0 12px 40px rgba(249,115,22,0.6), 0 0 0 1px rgba(255,255,255,0.12) inset' }}
+                    transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
+                    _hover={{ transform: 'translateY(-3px)' }}
                     _active={{ transform: 'scale(0.97)' }}
                     aria-label="Call now"
+                    mb={{ base: '12px', md: '10px' }}
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                    CALL NOW
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    Call Now
                   </ChakraLink>
 
-                  {/* 2. EMERGENCY CALLOUT — Strong secondary */}
+                  {/* Trust reassurance badges — sit under primary CTA */}
+                  <Flex
+                    as="ul"
+                    listStyleType="none"
+                    wrap="wrap"
+                    gap={{ base: '6px', md: '8px' }}
+                    mb={{ base: '14px', md: '12px' }}
+                    aria-label="Service guarantees"
+                    style={{ fontFamily: 'var(--font-body)' }}
+                  >
+                    {/* No hidden fees */}
+                    <Flex
+                      as="li"
+                      align="center"
+                      gap="6px"
+                      px="10px"
+                      py="6px"
+                      borderRadius="999px"
+                      bg="rgba(249,115,22,0.08)"
+                      borderWidth="1px"
+                      borderColor="rgba(249,115,22,0.25)"
+                      color="rgba(250,250,250,0.85)"
+                    >
+                      <Box as="span" color={colors.accent} display="inline-flex" aria-hidden="true">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      </Box>
+                      <Text as="span" fontSize="11px" fontWeight="600" letterSpacing="0.01em">No hidden fees</Text>
+                    </Flex>
+
+                    {/* Pay after service */}
+                    <Flex
+                      as="li"
+                      align="center"
+                      gap="6px"
+                      px="10px"
+                      py="6px"
+                      borderRadius="999px"
+                      bg="rgba(249,115,22,0.08)"
+                      borderWidth="1px"
+                      borderColor="rgba(249,115,22,0.25)"
+                      color="rgba(250,250,250,0.85)"
+                    >
+                      <Box as="span" color={colors.accent} display="inline-flex" aria-hidden="true">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><line x1="2" y1="11" x2="22" y2="11"/></svg>
+                      </Box>
+                      <Text as="span" fontSize="11px" fontWeight="600" letterSpacing="0.01em">Pay after service</Text>
+                    </Flex>
+
+                    {/* 24/7 available */}
+                    <Flex
+                      as="li"
+                      align="center"
+                      gap="6px"
+                      px="10px"
+                      py="6px"
+                      borderRadius="999px"
+                      bg="rgba(249,115,22,0.08)"
+                      borderWidth="1px"
+                      borderColor="rgba(249,115,22,0.25)"
+                      color="rgba(250,250,250,0.85)"
+                    >
+                      <Box as="span" color={colors.accent} display="inline-flex" aria-hidden="true">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+                      </Box>
+                      <Text as="span" fontSize="11px" fontWeight="600" letterSpacing="0.01em">24/7 available</Text>
+                    </Flex>
+
+                    {/* Fully insured */}
+                    <Flex
+                      as="li"
+                      align="center"
+                      gap="6px"
+                      px="10px"
+                      py="6px"
+                      borderRadius="999px"
+                      bg="rgba(249,115,22,0.08)"
+                      borderWidth="1px"
+                      borderColor="rgba(249,115,22,0.25)"
+                      color="rgba(250,250,250,0.85)"
+                    >
+                      <Box as="span" color={colors.accent} display="inline-flex" aria-hidden="true">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z"/></svg>
+                      </Box>
+                      <Text as="span" fontSize="11px" fontWeight="600" letterSpacing="0.01em">Fully insured</Text>
+                    </Flex>
+                  </Flex>
+
+                  {/* Secondary CTA — visually subdued vs primary */}
                   <ChakraLink
                     asChild
-                    className="hero-cta-emergency"
+                    className="hero-cta-book"
                     w="100%"
-                    h={{ base: '54px', md: '56px' }}
+                    h={{ base: '52px', md: '52px' }}
                     display="inline-flex"
                     alignItems="center"
                     justifyContent="center"
-                    bg="rgba(249,115,22,0.12)"
-                    color={colors.accent}
-                    fontSize={{ base: '17px', md: '19px' }}
-                    fontWeight="700"
-                    letterSpacing="0.04em"
-                    borderRadius="12px"
-                    borderWidth="1.5px"
-                    borderColor="rgba(249,115,22,0.4)"
-                    transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
-                    boxShadow="0 2px 12px rgba(249,115,22,0.1)"
-                    _hover={{ bg: 'rgba(249,115,22,0.22)', borderColor: colors.accent, transform: 'translateY(-2px)', boxShadow: '0 6px 24px rgba(249,115,22,0.25)' }}
+                    bg="transparent"
+                    color="rgba(250,250,250,0.65)"
+                    fontSize={{ base: '15px', md: '16px' }}
+                    fontWeight="600"
+                    letterSpacing="0.03em"
+                    borderRadius="10px"
+                    borderWidth="1px"
+                    borderColor="rgba(255,255,255,0.15)"
+                    transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
+                    _hover={{ color: 'rgba(250,250,250,0.9)', borderColor: 'rgba(249,115,22,0.45)', bg: 'rgba(249,115,22,0.06)' }}
                     _active={{ transform: 'scale(0.98)' }}
-                    style={{ fontFamily: 'var(--font-display)' }}
+                    style={{ fontFamily: 'var(--font-body)' }}
                   >
-                    <Link href="/emergency">EMERGENCY CALLOUT</Link>
+                    <Link href="/book">Book Online</Link>
                   </ChakraLink>
 
-                  {/* 3+4. Bottom row: SCHEDULE + WHATSAPP */}
-                  <Flex direction={{ base: 'column', md: 'row' }} gap={{ base: '14px', md: '12px' }}>
-                    {/* 3. SCHEDULE A FITTING — Refined planned CTA */}
-                    <ChakraLink
-                      asChild
-                      className="hero-cta-schedule"
-                      w="100%"
-                      flex={{ md: '1' }}
-                      h={{ base: '54px', md: '52px' }}
-                      display="inline-flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      bg="rgba(24,24,27,0.6)"
-                      color={colors.textPrimary}
-                      fontSize="17px"
-                      fontWeight="700"
-                      letterSpacing="0.04em"
-                      borderRadius="12px"
-                      borderWidth="1px"
-                      borderColor={colors.border}
-                      transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
-                      boxShadow="0 2px 12px rgba(0,0,0,0.15)"
-                      _hover={{ borderColor: 'rgba(249,115,22,0.5)', color: colors.accent, transform: 'translateY(-2px)', boxShadow: '0 6px 24px rgba(249,115,22,0.18)' }}
-                      _active={{ transform: 'scale(0.98)' }}
-                      style={{ fontFamily: 'var(--font-display)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
-                    >
-                      <Link href="/book">SCHEDULE A FITTING</Link>
-                    </ChakraLink>
+                  {/* Tertiary CTA — instant quote (no phone call needed) */}
+                  <ChakraLink
+                    asChild
+                    mt="10px"
+                    w="100%"
+                    h={{ base: '52px', md: '52px' }}
+                    display="inline-flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    gap="8px"
+                    bg="transparent"
+                    color={colors.accent}
+                    fontSize={{ base: '15px', md: '16px' }}
+                    fontWeight="700"
+                    letterSpacing="0.03em"
+                    borderRadius="10px"
+                    borderWidth="1.5px"
+                    borderColor={colors.accent}
+                    transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
+                    _hover={{ bg: 'rgba(249,115,22,0.12)', color: '#FAFAFA' }}
+                    _active={{ transform: 'scale(0.98)' }}
+                    style={{ fontFamily: 'var(--font-body)' }}
+                  >
+                    <Link href="/quote">Get Instant Quote</Link>
+                  </ChakraLink>
 
-                    {/* 4. WHATSAPP US — Distinct green CTA */}
-                    <ChakraLink
-                      href="https://wa.me/447423262955"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hero-cta-whatsapp"
-                      w="100%"
-                      flex={{ md: '1' }}
-                      h={{ base: '54px', md: '52px' }}
-                      display="inline-flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      gap="8px"
-                      bg="rgba(37,211,102,0.08)"
-                      color="#25D366"
-                      fontSize="17px"
-                      fontWeight="700"
-                      letterSpacing="0.04em"
-                      borderRadius="12px"
+                {/* 3-step process */}
+                <Flex
+                  mt="24px"
+                  direction={{ base: 'column', md: 'row' }}
+                  align={{ base: 'stretch', md: 'center' }}
+                  justify="space-between"
+                  gap={{ base: '10px', md: '8px' }}
+                  style={{ fontFamily: 'var(--font-body)' }}
+                  aria-label="How it works"
+                >
+                  {/* Step 1 — Call */}
+                  <Flex align="center" gap="10px" flex="1" className="flow-step flow-step-1">
+                    <Flex
+                      w="32px"
+                      h="32px"
+                      flexShrink={0}
+                      align="center"
+                      justify="center"
+                      borderRadius="50%"
+                      bg="rgba(249,115,22,0.12)"
+                      color={colors.accent}
                       borderWidth="1px"
-                      borderColor="rgba(37,211,102,0.3)"
-                      transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
-                      boxShadow="0 2px 12px rgba(37,211,102,0.08)"
-                      _hover={{ bg: 'rgba(37,211,102,0.14)', borderColor: '#25D366', transform: 'translateY(-2px)', boxShadow: '0 6px 24px rgba(37,211,102,0.25)' }}
-                      _active={{ transform: 'scale(0.98)' }}
-                      style={{ fontFamily: 'var(--font-display)' }}
+                      borderColor="rgba(249,115,22,0.35)"
+                      className="flow-step-badge"
+                      aria-hidden="true"
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.174.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.174-.297-.019-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.174-.008-.372-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
-                      WHATSAPP US
-                    </ChakraLink>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    </Flex>
+                    <Text fontSize="13px" fontWeight="600" color="rgba(250,250,250,0.85)" lineHeight="1.2">Call Us</Text>
                   </Flex>
+
+                  {/* Connector */}
+                  <Box
+                    display={{ base: 'none', md: 'block' }}
+                    flex="0 0 16px"
+                    h="1px"
+                    bg="rgba(161,161,170,0.25)"
+                    className="flow-connector flow-connector-1"
+                    aria-hidden="true"
+                  />
+
+                  {/* Step 2 — We Come to You */}
+                  <Flex align="center" gap="10px" flex="1" className="flow-step flow-step-2">
+                    <Flex
+                      w="32px"
+                      h="32px"
+                      flexShrink={0}
+                      align="center"
+                      justify="center"
+                      borderRadius="50%"
+                      bg="rgba(249,115,22,0.12)"
+                      color={colors.accent}
+                      borderWidth="1px"
+                      borderColor="rgba(249,115,22,0.35)"
+                      className="flow-step-badge"
+                      aria-hidden="true"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17h2l1-3h11l1 3h3v-5l-3-2-1-4H6l-1 4-2 2v5z"/><circle cx="7.5" cy="17.5" r="1.7"/><circle cx="16.5" cy="17.5" r="1.7"/></svg>
+                    </Flex>
+                    <Text fontSize="13px" fontWeight="600" color="rgba(250,250,250,0.85)" lineHeight="1.2">We Come to You</Text>
+                  </Flex>
+
+                  {/* Connector */}
+                  <Box
+                    display={{ base: 'none', md: 'block' }}
+                    flex="0 0 16px"
+                    h="1px"
+                    bg="rgba(161,161,170,0.25)"
+                    className="flow-connector flow-connector-2"
+                    aria-hidden="true"
+                  />
+
+                  {/* Step 3 — Tyre Fixed */}
+                  <Flex align="center" gap="10px" flex="1" className="flow-step flow-step-3">
+                    <Flex
+                      w="32px"
+                      h="32px"
+                      flexShrink={0}
+                      align="center"
+                      justify="center"
+                      borderRadius="50%"
+                      bg="rgba(249,115,22,0.12)"
+                      color={colors.accent}
+                      borderWidth="1px"
+                      borderColor="rgba(249,115,22,0.35)"
+                      className="flow-step-badge"
+                      aria-hidden="true"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </Flex>
+                    <Text fontSize="13px" fontWeight="600" color="rgba(250,250,250,0.85)" lineHeight="1.2">Tyre Fixed</Text>
+                  </Flex>
+                </Flex>
+
+                {/* Trust line */}
+                <Flex
+                  mt="18px"
+                  align="center"
+                  gap="8px"
+                  wrap="wrap"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  <Text as="span" color="#FACC15" fontSize="13px" lineHeight="1" aria-hidden="true">★</Text>
+                  <Text as="span" fontSize="12px" color="rgba(161,161,170,0.7)" fontWeight="500">4.8 Rating</Text>
+                  <Text as="span" fontSize="12px" color="rgba(161,161,170,0.4)">·</Text>
+                  <Text as="span" fontSize="12px" color="rgba(161,161,170,0.7)" fontWeight="500">97 Google Reviews</Text>
+                  <Text as="span" fontSize="12px" color="rgba(161,161,170,0.4)">·</Text>
+                  <Text as="span" fontSize="12px" color="rgba(161,161,170,0.7)" fontWeight="500">45 min avg in Glasgow &amp; Edinburgh</Text>
                 </Flex>
                 </Box>
 
@@ -1405,6 +1558,24 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                 </Box>
               </AnimatedSection>
             ))}
+            <AnimatedSection>
+              <Text
+                fontSize="13px"
+                color={colors.textSecondary}
+                lineHeight="1.6"
+                mt={6}
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                * {PRICING_DISCLAIMER}{' '}
+                <Link
+                  href={PRICING_DISCLAIMER_HREF}
+                  style={{ color: colors.accent, textDecoration: 'underline' }}
+                >
+                  See full pricing FAQ
+                </Link>
+                .
+              </Text>
+            </AnimatedSection>
           </Container>
         </Box>
 

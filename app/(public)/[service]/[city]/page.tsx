@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: { params: Promise<{ service: 
       title: `${service.name} in ${location} — Tyre Rescue`,
       description,
       url: `https://www.tyrerescue.uk/${service.slug}/${city.slug}`,
-      images: [{ url: 'https://www.tyrerescue.uk/images/home/slide-1.png', width: 1200, height: 630, alt: `${service.name} in ${location}` }],
+      images: [{ url: 'https://www.tyrerescue.uk/images/home/slide-1.webp', width: 1200, height: 630, alt: `${service.name} in ${location}` }],
     },
     alternates: {
       canonical: `https://www.tyrerescue.uk/${service.slug}/${city.slug}`,

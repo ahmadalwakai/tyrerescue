@@ -26,7 +26,7 @@ export const services: ServiceSEO[] = [
     metaTitleTemplate: 'Mobile Tyre Fitting {location} | 24/7 | Tyre Rescue',
     metaDescTemplate: 'Mobile tyre fitting in {location}. Our certified fitters come to your exact location 24 hours a day. Emergency and scheduled service. Call 0141 266 0690.',
     heroText: 'Professional mobile tyre fitting at your location in {location}. We come to you.',
-    priceFrom: 'From £20',
+    priceFrom: 'Fitting from £20 + tyre price',
   },
   {
     slug: 'emergency-tyre-fitting',
@@ -35,7 +35,7 @@ export const services: ServiceSEO[] = [
     metaTitleTemplate: 'Emergency Tyre Fitting {location} | 45 Min Response | Tyre Rescue',
     metaDescTemplate: 'Emergency tyre fitting in {location}. Flat tyre? Our mobile fitters respond within 45 minutes, 24 hours a day. Call 0141 266 0690 now.',
     heroText: 'Emergency tyre fitting in {location}. Rapid response, any time of day or night.',
-    priceFrom: 'From £49',
+    priceFrom: 'Callout from £49 + tyre price',
   },
   {
     slug: 'tyre-repair',
@@ -44,7 +44,7 @@ export const services: ServiceSEO[] = [
     metaTitleTemplate: 'Tyre Repair {location} | Mobile Service | Tyre Rescue',
     metaDescTemplate: 'Professional tyre repair in {location}. We repair punctures and damage at your location. No garage visit needed. Call 0141 266 0690.',
     heroText: 'Expert tyre repair at your location in {location}. Fast, professional, affordable.',
-    priceFrom: 'From £25',
+    priceFrom: 'Repair from £25',
   },
   {
     slug: 'puncture-repair',
@@ -53,7 +53,7 @@ export const services: ServiceSEO[] = [
     metaTitleTemplate: 'Puncture Repair {location} | Mobile Tyre Fitter | Tyre Rescue',
     metaDescTemplate: 'Mobile puncture repair in {location}. Nail in your tyre? Slow puncture? Our fitters come to you and repair on the spot. Call 0141 266 0690.',
     heroText: 'Fast puncture repair at your location in {location}. We fix it while you wait.',
-    priceFrom: 'From £25',
+    priceFrom: 'Repair from £25',
   },
   {
     slug: 'tyre-fitting',
@@ -62,7 +62,7 @@ export const services: ServiceSEO[] = [
     metaTitleTemplate: 'Tyre Fitting {location} | New Tyres Fitted | Tyre Rescue',
     metaDescTemplate: 'New tyre fitting in {location}. Budget, mid-range and premium tyres fitted at your home or workplace. Call 0141 266 0690 to book.',
     heroText: 'New tyres fitted at your location in {location}. All major brands available.',
-    priceFrom: 'From £20',
+    priceFrom: 'Fitting from £20 + tyre price',
   },
 ];
 

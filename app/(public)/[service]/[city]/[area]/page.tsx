@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: { params: Promise<{ service: 
       title: `${service.name} in ${area.name}, ${city.name} | Tyre Rescue`,
       description: `${service.name} in ${area.name} (${area.postcode}). ~${estimatedArrival} min response. Call 0141 266 0690.`,
       url: `https://www.tyrerescue.uk/${service.slug}/${city.slug}/${area.slug}`,
-      images: [{ url: 'https://www.tyrerescue.uk/images/home/slide-1.png', width: 1200, height: 630, alt: `${service.name} in ${area.name}, ${city.name}` }],
+      images: [{ url: 'https://www.tyrerescue.uk/images/home/slide-1.webp', width: 1200, height: 630, alt: `${service.name} in ${area.name}, ${city.name}` }],
     },
     alternates: {
       canonical: `https://www.tyrerescue.uk/${service.slug}/${city.slug}/${area.slug}`,

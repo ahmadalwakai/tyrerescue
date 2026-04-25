@@ -22,15 +22,15 @@
     },
     {
       "path": "/api/cron/stale-assignments",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 4 * * *"
     },
     {
       "path": "/api/cron/demand-pricing",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 5 * * *"
     },
     {
       "path": "/api/cron/upcoming-alerts",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }

@@ -82,7 +82,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/images/home/slide-1.png',
+        url: '/images/home/slide-1.webp',
         width: 1200,
         height: 630,
         alt: 'Tyre Rescue mobile tyre fitting service van',
@@ -94,7 +94,7 @@ export const metadata: Metadata = {
     title: 'Tyre Rescue — 24/7 Mobile Tyre Fitting Across Scotland',
     description:
       '24/7 mobile tyre fitting across Scotland. Emergency tyre replacement, puncture repair, roadside assistance. Fast coverage in Glasgow and Edinburgh.',
-    images: ['/images/home/slide-1.png'],
+    images: ['/images/home/slide-1.webp'],
   },
   icons: {
     icon: [
@@ -129,23 +129,28 @@ export default function RootLayout({
   return (
     <html lang="en-GB" className={`${inter.variable} ${bebasNeue.variable}`} suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+        <link rel="dns-prefetch" href="https://widget.trustpilot.com" />
         <JsonLd data={getLocalBusinessSchema()} />
         <JsonLd data={getWebSiteSchema()} />
         <JsonLd data={getOrganizationSchema()} />
-        <Script id="gtag-consent-default" strategy="beforeInteractive">
-          {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;
-gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',functionality_storage:'denied',personalization_storage:'denied',security_storage:'granted'});
-gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{send_page_view:false});gtag('config','AW-16460953081');`}
-        </Script>
+        {/* Consent default must be set before gtag.js loads. Inline & minimal. */}
+        <script
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{
+            __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}window.gtag=gtag;gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',functionality_storage:'denied',personalization_storage:'denied',security_storage:'granted'});gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{send_page_view:false});gtag('config','AW-16460953081');`,
+          }}
+        />
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         <Script
           src="https://widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
         <a
           href="#main-content"

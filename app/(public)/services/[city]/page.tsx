@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ city: str
       title: `Mobile Tyre Fitting ${city.name} | Tyre Rescue`,
       description: `24/7 emergency mobile tyre fitting in ${city.name}`,
       url: `https://www.tyrerescue.uk/services/${city.slug}`,
-      images: [{ url: 'https://www.tyrerescue.uk/images/home/slide-1.png', width: 1200, height: 630, alt: `Mobile tyre fitting in ${city.name}` }],
+      images: [{ url: 'https://www.tyrerescue.uk/images/home/slide-1.webp', width: 1200, height: 630, alt: `Mobile tyre fitting in ${city.name}` }],
     },
     alternates: {
       canonical: `https://www.tyrerescue.uk/mobile-tyre-fitting/${city.slug}`,

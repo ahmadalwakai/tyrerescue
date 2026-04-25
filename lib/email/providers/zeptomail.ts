@@ -11,7 +11,10 @@ export class ZeptoMailProvider implements EmailSender {
   private apiUrl: string;
 
   constructor() {
-    this.apiKey = emailConfig.zeptomail.apiKey;
+    // The env value may or may not include the "Zoho-enczapikey " prefix;
+    // strip it so we don't double it in the Authorization header.
+    const rawKey = emailConfig.zeptomail.apiKey.trim();
+    this.apiKey = rawKey.replace(/^Zoho-enczapikey\s+/i, '');
     this.fromEmail = emailConfig.zeptomail.fromEmail;
     this.apiUrl = emailConfig.zeptomail.apiUrl;
   }

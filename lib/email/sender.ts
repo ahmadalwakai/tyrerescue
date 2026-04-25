@@ -25,8 +25,13 @@ export interface FallbackEmailResult extends EmailProviderResult {
   fallbackUsed: boolean;
 }
 
+// Retry policy for transient ZeptoMail failures (5xx, network errors).
+// Tuned to recover from brief upstream blips without delaying API responses too long.
+const MAX_RETRIES = 2; // total attempts = 1 + MAX_RETRIES = 3
+const RETRY_BACKOFF_MS = [500, 1500] as const;
+
 /**
- * Send email via ZeptoMail.
+ * Send email via ZeptoMail with retry on transient failures.
  */
 export async function sendWithFallback(
   options: EmailOptions
@@ -46,7 +51,19 @@ export async function sendWithFallback(
 
   attemptedProviders.push('zeptomail');
   const provider = getZeptoMail();
-  const result = await provider.send(options);
+
+  let result = await provider.send(options);
+  let attempt = 0;
+
+  while (!result.success && result.retriable && attempt < MAX_RETRIES) {
+    const wait = RETRY_BACKOFF_MS[attempt] ?? 1500;
+    await new Promise((resolve) => setTimeout(resolve, wait));
+    attempt++;
+    console.warn(
+      `[email] ZeptoMail send failed (attempt ${attempt}/${MAX_RETRIES + 1}), retrying: ${result.error}`,
+    );
+    result = await provider.send(options);
+  }
 
   return {
     ...result,

@@ -43,4 +43,13 @@ export const env = {
   // Firebase Cloud Messaging — direct push delivery (replaces Expo Push relay)
   FCM_PROJECT_ID: optional('FCM_PROJECT_ID', ''),
   FCM_SERVICE_ACCOUNT_JSON: optional('FCM_SERVICE_ACCOUNT_JSON', ''),
+
+  // DVLA Vehicle Enquiry Service (free trade key — apply at
+  // dvladigital.blog.gov.uk). Optional: when blank the VRM lookup falls
+  // back to a deterministic mock so dev/preview environments still work.
+  DVLA_API_KEY: optional('DVLA_API_KEY', ''),
+  DVLA_API_URL: optional(
+    'DVLA_API_URL',
+    'https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles'
+  ),
 } as const;

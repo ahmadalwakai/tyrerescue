@@ -58,8 +58,21 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 
+// Cap the number of hero slides to limit JS hydration cost and image bytes.
+const MAX_HERO_SLIDES = 5;
+
+// Build an imageSrcSet matching the Next/Image `sizes` attribute used in
+// HomeImageShowcase so the preload hints the optimal width.
+const HERO_IMAGE_SIZES = '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 45vw';
+
+function nextImageOptimizedUrl(src: string, width: number, quality = 60): string {
+  // Mirror Next.js _next/image URL format for the LCP preload so the browser
+  // fetches the same optimized variant Next/Image will render.
+  return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=${quality}`;
+}
+
 export default async function Page() {
-  // Fetch active hero slides from DB
+  // Fetch active hero slides from DB (cap to MAX_HERO_SLIDES)
   const dbSlides = await db
     .select({
       id: homepageMedia.id,
@@ -73,7 +86,8 @@ export default async function Page() {
     })
     .from(homepageMedia)
     .where(eq(homepageMedia.isActive, true))
-    .orderBy(asc(homepageMedia.sortOrder));
+    .orderBy(asc(homepageMedia.sortOrder))
+    .limit(MAX_HERO_SLIDES);
 
   // Only pass DB slides if there are any; otherwise undefined falls back to hardcoded
   const heroSlides: HomeSlide[] | undefined =
@@ -85,8 +99,24 @@ export default async function Page() {
         }))
       : undefined;
 
+  // Server-side preload of the LCP hero image. Next/Image's `priority` only
+  // injects the preload after the client component mounts, which on slow
+  // mobile networks delays LCP by 2–4s. Emitting a `<link rel="preload">`
+  // here makes the browser start the fetch during HTML parse.
+  const lcpSrc = heroSlides?.[0]?.src ?? '/images/home/slide-1.webp';
+
   return (
     <>
+      <link
+        rel="preload"
+        as="image"
+        href={nextImageOptimizedUrl(lcpSrc, 1080)}
+        imageSrcSet={
+          [640, 750, 828, 1080, 1200].map((w) => `${nextImageOptimizedUrl(lcpSrc, w)} ${w}w`).join(', ')
+        }
+        imageSizes={HERO_IMAGE_SIZES}
+        fetchPriority="high"
+      />
       <HomePage heroSlides={heroSlides} />
       <JsonLd data={getFAQSchema(homepageFAQItems)} />
       <script

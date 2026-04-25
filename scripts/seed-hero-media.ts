@@ -11,7 +11,7 @@ const db = drizzle(sql, { schema });
 
 const slides = [
   {
-    src: '/images/home/slide-1.png',
+    src: '/images/home/slide-1.webp',
     alt: 'Tyre Rescue mobile tyre fitting service — professional technician at work',
     eyebrow: 'MOBILE FITTING',
     title: 'We Come to You',
@@ -21,7 +21,7 @@ const slides = [
     animationStyle: 'fadeZoom',
   },
   {
-    src: '/images/home/slide-2.png',
+    src: '/images/home/slide-2.webp',
     alt: 'Tyre Rescue emergency roadside tyre assistance',
     eyebrow: 'EMERGENCY CALLOUT',
     title: '45 Min Response',
@@ -31,7 +31,7 @@ const slides = [
     animationStyle: 'fadeZoom',
   },
   {
-    src: '/images/home/slide-3.png',
+    src: '/images/home/slide-3.webp',
     alt: 'Professional tyre fitting on a customer driveway',
     eyebrow: 'DRIVEWAY SERVICE',
     title: 'At Your Door',
@@ -41,7 +41,7 @@ const slides = [
     animationStyle: 'fadeZoom',
   },
   {
-    src: '/images/home/slide-4.png',
+    src: '/images/home/slide-4.webp',
     alt: 'Close-up of a premium tyre and alloy wheel fitted by Tyre Rescue',
     eyebrow: 'QUALITY TYRES',
     title: 'Premium Brands',
@@ -51,7 +51,7 @@ const slides = [
     animationStyle: 'fadeZoom',
   },
   {
-    src: '/images/home/slide-5.png',
+    src: '/images/home/slide-5.webp',
     alt: 'Tyre Rescue branded service van ready for dispatch',
     eyebrow: 'FAST DISPATCH',
     title: 'Always Ready',
@@ -61,7 +61,7 @@ const slides = [
     animationStyle: 'fadeZoom',
   },
   {
-    src: '/images/home/slide-6.png',
+    src: '/images/home/slide-6.webp',
     alt: 'Technician inspecting tyre tread during a mobile fitting appointment',
     eyebrow: 'EXPERT FITTERS',
     title: 'Certified Team',
@@ -71,7 +71,7 @@ const slides = [
     animationStyle: 'fadeZoom',
   },
   {
-    src: '/images/home/slide-7.png',
+    src: '/images/home/slide-7.webp',
     alt: 'Customer vehicle receiving a tyre change at home in Glasgow',
     eyebrow: 'CONVENIENCE',
     title: 'No Garage Needed',
@@ -81,7 +81,7 @@ const slides = [
     animationStyle: 'fadeZoom',
   },
   {
-    src: '/images/home/slide-8.png',
+    src: '/images/home/slide-8.webp',
     alt: 'Tyre Rescue completing a roadside tyre rescue safely',
     eyebrow: 'ROADSIDE RESCUE',
     title: 'Safe & Professional',

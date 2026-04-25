@@ -92,14 +92,18 @@ interface ErrorResponse {
 /**
  * Apply dynamic surcharge layer on top of a base pricing breakdown.
  * Mutates the breakdown in-place: adds surcharge line item, adjusts subtotal/VAT/total.
+ *
+ * Night surcharge is gated to emergency bookings only — scheduled bookings are
+ * planned in advance and don't carry an out-of-hours premium.
  */
 async function applyDynamicLayer(
   breakdown: PricingBreakdown,
-  isReturning: boolean
+  isReturning: boolean,
+  bookingType: 'emergency' | 'scheduled'
 ): Promise<{ surchargeBreakdown: DynamicSurchargeBreakdown | null }> {
   try {
     const config = await getPricingConfig();
-    const night = isNightWindow(config);
+    const night = bookingType === 'emergency' && isNightWindow(config);
 
     const surchargeInput = {
       isNight: night,
@@ -372,7 +376,7 @@ export async function POST(
       }
 
       // Apply dynamic surcharge layer (night/manual/demand/returning visitor)
-      const { surchargeBreakdown: repairSurcharge } = await applyDynamicLayer(breakdown, isReturningVisitor);
+      const { surchargeBreakdown: repairSurcharge } = await applyDynamicLayer(breakdown, isReturningVisitor, data.bookingType);
 
       const quoteId = uuidv4();
       const expiresAt = new Date(breakdown.quoteExpiresAt);
@@ -610,7 +614,7 @@ export async function POST(
       }
 
       // Apply dynamic surcharge layer (night/manual/demand/returning visitor)
-      const { surchargeBreakdown: tyreSurcharge } = await applyDynamicLayer(breakdown, isReturningVisitor);
+      const { surchargeBreakdown: tyreSurcharge } = await applyDynamicLayer(breakdown, isReturningVisitor, data.bookingType);
 
       // Generate quote ID and expiry
       const quoteId = uuidv4();

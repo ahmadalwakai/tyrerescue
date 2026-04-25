@@ -52,200 +52,226 @@ export function FloatingContactBar() {
   if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
 
   return (
-    <Box
-      position="fixed"
-      bottom={{ base: '20px', md: '24px' }}
-      right={{ base: '16px', md: '24px' }}
-      zIndex={50}
-      className="floating-action-stack"
-    >
-      {/* ── Desktop ─────────────────────────────────────── */}
-      <Flex
-        display={{ base: 'none', md: 'flex' }}
-        direction="column"
-        align="flex-end"
-        gap="10px"
+    <>
+      {/* ── Desktop floating dock ─────────────────────── */}
+      <Box
+        position="fixed"
+        bottom="24px"
+        right="24px"
+        zIndex={50}
+        display={{ base: 'none', md: 'block' }}
+        className="floating-action-stack"
       >
-        {/* Scroll-to-top — secondary, above dock */}
-        <Box
-          as="button"
-          className="floating-top-btn"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          w="36px"
-          h="36px"
-          borderRadius="10px"
-          bg="rgba(24,24,27,0.85)"
-          color="#A1A1AA"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          cursor="pointer"
-          border="1px solid rgba(63,63,70,0.6)"
-          opacity={showTop ? 1 : 0}
-          pointerEvents={showTop ? 'auto' : 'none'}
-          transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
-          transform={showTop ? 'translateY(0)' : 'translateY(8px)'}
-          _hover={{
-            bg: 'rgba(39,39,42,0.95)',
-            color: '#F97316',
-            borderColor: 'rgba(249,115,22,0.3)',
-          }}
-          aria-label="Back to top"
-          style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
-        >
-          <ChevronUpIcon />
-        </Box>
+        <Flex direction="column" align="flex-end" gap="10px">
+          {/* Scroll-to-top — secondary, above dock */}
+          <Box
+            as="button"
+            className="floating-top-btn"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            w="36px"
+            h="36px"
+            borderRadius="10px"
+            bg="rgba(24,24,27,0.85)"
+            color="#A1A1AA"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            cursor="pointer"
+            border="1px solid rgba(63,63,70,0.6)"
+            opacity={showTop ? 1 : 0}
+            pointerEvents={showTop ? 'auto' : 'none'}
+            transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+            transform={showTop ? 'translateY(0)' : 'translateY(8px)'}
+            _hover={{
+              bg: 'rgba(39,39,42,0.95)',
+              color: '#F97316',
+              borderColor: 'rgba(249,115,22,0.3)',
+            }}
+            aria-label="Back to top"
+            style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
+          >
+            <ChevronUpIcon />
+          </Box>
 
-        {/* Contact dock — glass pill */}
+          {/* Contact dock — glass pill */}
+          <Flex
+            gap="6px"
+            align="center"
+            bg="rgba(24,24,27,0.8)"
+            borderRadius="16px"
+            border="1px solid rgba(63,63,70,0.5)"
+            p="5px"
+            boxShadow="0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset"
+            style={{ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
+          >
+            <ChakraLink
+              href={`tel:${PHONE_TEL}`}
+              className="floating-call-btn"
+              onClick={() => trackCallClick('floating_desktop')}
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              gap="7px"
+              h="42px"
+              px="14px"
+              bg="linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
+              color="white"
+              borderRadius="12px"
+              fontSize="13px"
+              fontWeight="700"
+              letterSpacing="0.01em"
+              transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
+              _hover={{
+                transform: 'translateY(-1px)',
+                boxShadow: '0 4px 20px rgba(249,115,22,0.45)',
+              }}
+              _active={{ transform: 'scale(0.97)' }}
+              aria-label={`Call ${PHONE_NUMBER}`}
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              <PhoneIcon size={16} />
+              {PHONE_NUMBER}
+            </ChakraLink>
+            <ChakraLink
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="floating-wa-btn"
+              onClick={() => trackWhatsAppClick('floating_desktop')}
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              gap="7px"
+              h="42px"
+              px="14px"
+              bg="linear-gradient(135deg, #25D366 0%, #1DA851 100%)"
+              color="white"
+              borderRadius="12px"
+              fontSize="13px"
+              fontWeight="700"
+              letterSpacing="0.01em"
+              transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
+              _hover={{
+                transform: 'translateY(-1px)',
+                boxShadow: '0 4px 20px rgba(37,211,102,0.4)',
+              }}
+              _active={{ transform: 'scale(0.97)' }}
+              aria-label="WhatsApp us"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              <WhatsAppIcon size={16} />
+              WhatsApp
+            </ChakraLink>
+          </Flex>
+        </Flex>
+      </Box>
+
+      {/* ── Mobile scroll-to-top (floats above sticky bar) ─ */}
+      <Box
+        as="button"
+        className="floating-top-btn sticky-cta-top"
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        display={{ base: 'flex', md: 'none' }}
+        position="fixed"
+        right="14px"
+        zIndex={49}
+        w="40px"
+        h="40px"
+        borderRadius="12px"
+        bg="rgba(24,24,27,0.9)"
+        color="#A1A1AA"
+        alignItems="center"
+        justifyContent="center"
+        cursor="pointer"
+        border="1px solid rgba(63,63,70,0.5)"
+        boxShadow="0 4px 16px rgba(0,0,0,0.35)"
+        opacity={showTop ? 1 : 0}
+        pointerEvents={showTop ? 'auto' : 'none'}
+        transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
+        transform={showTop ? 'translateY(0)' : 'translateY(8px)'}
+        _active={{ transform: 'scale(0.9)' }}
+        aria-label="Back to top"
+        style={{
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 92px)',
+        }}
+      >
+        <ChevronUpIcon />
+      </Box>
+
+      {/* ── Mobile sticky bottom CTA bar ──────────────── */}
+      <Box
+        display={{ base: 'block', md: 'none' }}
+        position="fixed"
+        left={0}
+        right={0}
+        bottom={0}
+        zIndex={50}
+        className="sticky-cta-bar"
+        bg="rgba(9,9,11,0.92)"
+        borderTop="1px solid rgba(63,63,70,0.5)"
+        boxShadow="0 -8px 32px rgba(0,0,0,0.45)"
+        style={{
+          backdropFilter: 'blur(18px)',
+          WebkitBackdropFilter: 'blur(18px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
+      >
         <Flex
-          gap="6px"
+          gap="10px"
           align="center"
-          bg="rgba(24,24,27,0.8)"
-          borderRadius="16px"
-          border="1px solid rgba(63,63,70,0.5)"
-          p="5px"
-          boxShadow="0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset"
-          style={{ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
+          px="12px"
+          py="10px"
         >
           <ChakraLink
             href={`tel:${PHONE_TEL}`}
             className="floating-call-btn"
-            onClick={() => trackCallClick('floating_desktop')}
+            onClick={() => trackCallClick('sticky_mobile')}
+            flex="1"
             display="flex"
             alignItems="center"
             justifyContent="center"
-            gap="7px"
-            h="42px"
-            px="14px"
-            bg="linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
+            gap="10px"
+            h="56px"
+            bg="linear-gradient(135deg, #f97316 0%, #c2410c 100%)"
             color="white"
-            borderRadius="12px"
-            fontSize="13px"
-            fontWeight="700"
-            letterSpacing="0.01em"
-            transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
-            _hover={{
-              transform: 'translateY(-1px)',
-              boxShadow: '0 4px 20px rgba(249,115,22,0.45)',
-            }}
+            borderRadius="14px"
+            fontSize="18px"
+            fontWeight="900"
+            letterSpacing="0.05em"
+            transition="all 0.2s cubic-bezier(0.4,0,0.2,1)"
             _active={{ transform: 'scale(0.97)' }}
             aria-label={`Call ${PHONE_NUMBER}`}
-            style={{ fontFamily: 'var(--font-body)' }}
+            style={{ fontFamily: 'var(--font-display)' }}
           >
-            <PhoneIcon size={16} />
-            {PHONE_NUMBER}
+            <PhoneIcon size={22} />
+            Call Now
           </ChakraLink>
+
           <ChakraLink
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="floating-wa-btn"
-            onClick={() => trackWhatsAppClick('floating_desktop')}
+            onClick={() => trackWhatsAppClick('sticky_mobile')}
             display="flex"
             alignItems="center"
             justifyContent="center"
-            gap="7px"
-            h="42px"
-            px="14px"
+            w="56px"
+            h="56px"
+            flexShrink={0}
             bg="linear-gradient(135deg, #25D366 0%, #1DA851 100%)"
             color="white"
-            borderRadius="12px"
-            fontSize="13px"
-            fontWeight="700"
-            letterSpacing="0.01em"
-            transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
-            _hover={{
-              transform: 'translateY(-1px)',
-              boxShadow: '0 4px 20px rgba(37,211,102,0.4)',
-            }}
-            _active={{ transform: 'scale(0.97)' }}
+            borderRadius="14px"
+            transition="all 0.2s cubic-bezier(0.4,0,0.2,1)"
+            _active={{ transform: 'scale(0.92)' }}
             aria-label="WhatsApp us"
-            style={{ fontFamily: 'var(--font-body)' }}
           >
-            <WhatsAppIcon size={16} />
-            WhatsApp
+            <WhatsAppIcon size={24} />
           </ChakraLink>
         </Flex>
-      </Flex>
-
-      {/* ── Mobile ──────────────────────────────────────── */}
-      <Flex
-        display={{ base: 'flex', md: 'none' }}
-        direction="column"
-        gap="12px"
-        align="center"
-      >
-        {/* Scroll-to-top — compact, top of stack */}
-        <Box
-          as="button"
-          className="floating-top-btn"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          w="38px"
-          h="38px"
-          borderRadius="12px"
-          bg="rgba(24,24,27,0.85)"
-          color="#A1A1AA"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          cursor="pointer"
-          border="1px solid rgba(63,63,70,0.5)"
-          boxShadow="0 4px 16px rgba(0,0,0,0.3)"
-          opacity={showTop ? 1 : 0}
-          pointerEvents={showTop ? 'auto' : 'none'}
-          transition="all 0.3s cubic-bezier(0.4,0,0.2,1)"
-          transform={showTop ? 'translateY(0)' : 'translateY(8px)'}
-          _active={{ transform: 'scale(0.9)' }}
-          aria-label="Back to top"
-          style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
-        >
-          <ChevronUpIcon />
-        </Box>
-
-        <ChakraLink
-          href={WHATSAPP_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="floating-wa-btn"
-          onClick={() => trackWhatsAppClick('floating_mobile')}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          w="52px"
-          h="52px"
-          borderRadius="16px"
-          bg="linear-gradient(135deg, #25D366 0%, #1DA851 100%)"
-          color="white"
-          boxShadow="0 4px 20px rgba(37,211,102,0.3), 0 0 0 1px rgba(255,255,255,0.06) inset"
-          transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
-          _hover={{ boxShadow: '0 6px 28px rgba(37,211,102,0.45)' }}
-          _active={{ transform: 'scale(0.92)' }}
-          aria-label="WhatsApp us"
-        >
-          <WhatsAppIcon size={22} />
-        </ChakraLink>
-
-        <ChakraLink
-          href={`tel:${PHONE_TEL}`}
-          className="floating-call-btn"
-          onClick={() => trackCallClick('floating_mobile')}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          w="60px"
-          h="60px"
-          borderRadius="18px"
-          bg="linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
-          color="white"
-          boxShadow="0 4px 24px rgba(249,115,22,0.35), 0 0 0 1px rgba(255,255,255,0.08) inset"
-          transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
-          _hover={{ boxShadow: '0 6px 32px rgba(249,115,22,0.5)' }}
-          _active={{ transform: 'scale(0.92)' }}
-          aria-label={`Call ${PHONE_NUMBER}`}
-        >
-          <PhoneIcon size={24} />
-        </ChakraLink>
-      </Flex>
-    </Box>
+      </Box>
+    </>
   );
 }

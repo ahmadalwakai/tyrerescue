@@ -22,7 +22,7 @@ export interface HomeSlide {
 export const homeSlides: HomeSlide[] = [
   {
     id: 'slide-1',
-    src: '/images/home/slide-1.png',
+    src: '/images/home/slide-1.webp',
     alt: 'Tyre technician fitting a new tyre on a customer vehicle at their driveway',
     eyebrow: 'MOBILE FITTING',
     title: 'We Come to You',
@@ -32,7 +32,7 @@ export const homeSlides: HomeSlide[] = [
   },
   {
     id: 'slide-2',
-    src: '/images/home/slide-2.png',
+    src: '/images/home/slide-2.webp',
     alt: 'Emergency roadside tyre change being performed on a dark motorway hard shoulder',
     eyebrow: 'EMERGENCY CALLOUT',
     title: '45 Min Response',
@@ -41,7 +41,7 @@ export const homeSlides: HomeSlide[] = [
   },
   {
     id: 'slide-3',
-    src: '/images/home/slide-3.png',
+    src: '/images/home/slide-3.webp',
     alt: 'Mobile fitter using a hydraulic jack to lift a car for tyre replacement at home',
     eyebrow: 'DRIVEWAY SERVICE',
     title: 'At Your Door',
@@ -50,7 +50,7 @@ export const homeSlides: HomeSlide[] = [
   },
   {
     id: 'slide-4',
-    src: '/images/home/slide-4.png',
+    src: '/images/home/slide-4.webp',
     alt: 'Close-up of a freshly fitted premium tyre on a polished alloy wheel',
     eyebrow: 'QUALITY TYRES',
     title: 'Premium Brands',
@@ -59,7 +59,7 @@ export const homeSlides: HomeSlide[] = [
   },
   {
     id: 'slide-5',
-    src: '/images/home/slide-5.png',
+    src: '/images/home/slide-5.webp',
     alt: 'White mobile tyre fitting van equipped and ready for callout in Glasgow',
     eyebrow: 'FAST DISPATCH',
     title: 'Always Ready',
@@ -68,7 +68,7 @@ export const homeSlides: HomeSlide[] = [
   },
   {
     id: 'slide-6',
-    src: '/images/home/slide-6.png',
+    src: '/images/home/slide-6.webp',
     alt: 'Gloved hand checking tyre tread depth with a gauge during inspection',
     eyebrow: 'EXPERT FITTERS',
     title: 'Certified Team',
@@ -77,7 +77,7 @@ export const homeSlides: HomeSlide[] = [
   },
   {
     id: 'slide-7',
-    src: '/images/home/slide-7.png',
+    src: '/images/home/slide-7.webp',
     alt: 'Sedan on a residential street in Glasgow receiving a front tyre replacement',
     eyebrow: 'CONVENIENCE',
     title: 'No Garage Needed',
@@ -86,7 +86,7 @@ export const homeSlides: HomeSlide[] = [
   },
   {
     id: 'slide-8',
-    src: '/images/home/slide-8.png',
+    src: '/images/home/slide-8.webp',
     alt: 'Technician tightening wheel bolts after completing an emergency tyre change',
     eyebrow: 'ROADSIDE RESCUE',
     title: 'Safe & Professional',

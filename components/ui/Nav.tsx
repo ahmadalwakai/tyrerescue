@@ -18,6 +18,7 @@ const colors = {
 
 const navLinks = [
   { label: 'Home', href: '/' },
+  { label: 'Get Quote', href: '/quote' },
   { label: 'Emergency', href: '/emergency' },
   { label: 'Book', href: '/book' },
   { label: 'Track', href: '/tracking' },

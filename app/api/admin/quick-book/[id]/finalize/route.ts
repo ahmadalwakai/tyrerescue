@@ -265,11 +265,19 @@ export async function POST(
     }
 
     if (paymentMethod === 'stripe') {
-      const checkout = await createCheckoutSession(breakdown.total, {
-        bookingId,
-        refNumber,
-        customerEmail,
-      });
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.tyrerescue.uk';
+      const checkout = await createCheckoutSession(
+        breakdown.total,
+        {
+          bookingId,
+          refNumber,
+          customerEmail,
+        },
+        {
+          successUrl: `${baseUrl}/admin/bookings/${refNumber}?stripe=success`,
+          cancelUrl: `${baseUrl}/admin/bookings/${refNumber}?stripe=cancelled`,
+        }
+      );
 
       checkoutUrl = checkout.checkoutUrl;
 
@@ -416,4 +424,102 @@ export async function POST(
       lineItems: breakdown.lineItems,
     },
   });
+}
+
+/**
+ * DELETE /api/admin/quick-book/[id]/finalize
+ *
+ * Cancels (rolls back) a finalized quick booking that has not yet been paid.
+ * Used when the admin closes the deposit/payment dialog and wants to choose a
+ * different payment method. Removes the bookings row and dependent rows so the
+ * quick booking can be re-finalized.
+ *
+ * Refuses if:
+ *  - quick booking has no linked bookingId (nothing to undo)
+ *  - the booking is already paid / past awaiting_payment
+ *  - a deposit has already been paid (depositPaidAt set)
+ */
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const session = await auth();
+  if (!session || session.user.role !== 'admin') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const [qb] = await db
+    .select()
+    .from(quickBookings)
+    .where(eq(quickBookings.id, id))
+    .limit(1);
+
+  if (!qb) {
+    return NextResponse.json({ error: 'Quick booking not found' }, { status: 404 });
+  }
+
+  if (!qb.bookingId) {
+    // Nothing to undo — already in pre-finalize state
+    return NextResponse.json({ ok: true, alreadyReset: true });
+  }
+
+  const [booking] = await db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.id, qb.bookingId))
+    .limit(1);
+
+  if (booking) {
+    if (booking.status !== 'awaiting_payment' && booking.status !== 'pending') {
+      return NextResponse.json(
+        { error: `Cannot cancel: booking status is "${booking.status}"` },
+        { status: 409 }
+      );
+    }
+    if (booking.depositPaidAt) {
+      return NextResponse.json(
+        { error: 'Cannot cancel: deposit has already been paid' },
+        { status: 409 }
+      );
+    }
+  }
+
+  type BookingWriteExecutor = Pick<typeof db, 'delete' | 'update'>;
+
+  const performRollback = async (executor: BookingWriteExecutor) => {
+    if (!qb.bookingId) return;
+
+    // Delete dependent rows that don't cascade from bookings
+    await executor.delete(payments).where(eq(payments.bookingId, qb.bookingId));
+    await executor
+      .delete(bookingStatusHistory)
+      .where(eq(bookingStatusHistory.bookingId, qb.bookingId));
+    // invoiceItems cascade from invoices.id; invoices have no cascade from bookings
+    await executor.delete(invoices).where(eq(invoices.bookingId, qb.bookingId));
+    // bookingTyres cascade from bookings.id
+    await executor.delete(bookings).where(eq(bookings.id, qb.bookingId));
+
+    await executor
+      .update(quickBookings)
+      .set({ bookingId: null, status: 'pending_location', updatedAt: new Date() })
+      .where(eq(quickBookings.id, id));
+  };
+
+  try {
+    await db.transaction(async (tx) => {
+      await performRollback(tx);
+    });
+  } catch (error) {
+    const isUnsupportedTransaction =
+      error instanceof Error && error.message.includes('No transactions support');
+    if (!isUnsupportedTransaction) {
+      console.error('[quick-book:cancel-finalize] failed', error);
+      return NextResponse.json({ error: 'Failed to cancel booking' }, { status: 500 });
+    }
+    console.warn('[quick-book:cancel-finalize] transaction unsupported, falling back');
+    await performRollback(db);
+  }
+
+  return NextResponse.json({ ok: true });
 }

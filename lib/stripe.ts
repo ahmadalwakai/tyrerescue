@@ -4,7 +4,20 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing STRIPE_SECRET_KEY environment variable');
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+// Strip whitespace, surrounding quotes, and any non-printable/non-ASCII chars
+// that would otherwise break the Authorization header.
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+  .trim()
+  .replace(/^["']|["']$/g, '')
+  .replace(/[^\x20-\x7E]/g, '');
+
+if (!/^sk_(test|live)_[A-Za-z0-9]+$/.test(stripeSecretKey)) {
+  throw new Error(
+    'STRIPE_SECRET_KEY is malformed (expected "sk_test_..." or "sk_live_..." with no whitespace or non-ASCII characters)'
+  );
+}
+
+export const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2026-02-25.clover',
   typescript: true,
 });
@@ -55,6 +68,10 @@ export async function createCheckoutSession(
     bookingId: string;
     refNumber: string;
     customerEmail: string;
+  },
+  options?: {
+    successUrl?: string;
+    cancelUrl?: string;
   }
 ) {
   const amountInPence = Math.round(amount * 100);
@@ -83,8 +100,8 @@ export async function createCheckoutSession(
       bookingId: metadata.bookingId,
       refNumber: metadata.refNumber,
     },
-    success_url: `${baseUrl}/success/${metadata.refNumber}`,
-    cancel_url: `${baseUrl}/book?ref=${metadata.refNumber}`,
+    success_url: options?.successUrl ?? `${baseUrl}/success/${metadata.refNumber}`,
+    cancel_url: options?.cancelUrl ?? `${baseUrl}/book?ref=${metadata.refNumber}`,
   });
 
   return {

@@ -40,7 +40,7 @@ export const competitors: CompetitorComparison[] = [
       { feature: 'Mobile Service', tyreRescue: 'Yes — we come to you anywhere in Scotland', competitor: 'Limited — mainly garage-based with select mobile options', winner: 'tyrerescue' },
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — 24 hours, 7 days a week', competitor: 'No — standard business hours only', winner: 'tyrerescue' },
       { feature: 'Average Response Time', tyreRescue: '45 minutes average', competitor: 'Appointment-based, next available slot', winner: 'tyrerescue' },
-      { feature: 'Starting Price', tyreRescue: 'From £49 (emergency callout)', competitor: 'From £45 (garage visit)', winner: 'tie' },
+      { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £45 (garage visit, tyre extra)', winner: 'tie' },
       { feature: 'Coverage Area', tyreRescue: 'Glasgow, Edinburgh, Dundee, Stirling, Falkirk, Paisley + surrounding areas', competitor: 'Nationwide chain with local branches', winner: 'tie' },
       { feature: 'Tyre Brands', tyreRescue: 'Budget to premium — Michelin, Continental, Bridgestone', competitor: 'Wide range — budget to premium', winner: 'tie' },
       { feature: 'Puncture Repair', tyreRescue: 'Mobile puncture repair — we come to you', competitor: 'In-store puncture repair', winner: 'tyrerescue' },
@@ -51,7 +51,7 @@ export const competitors: CompetitorComparison[] = [
     faq: [
       {
         question: 'Is Tyre Rescue cheaper than Kwik Fit?',
-        answer: 'Tyre Rescue mobile tyre fitting starts from £49 for emergency callout, comparable to Kwik Fit garage prices. However, you save time and fuel by not driving to a garage — our fitters come to your home, office, or roadside.',
+        answer: 'Tyre Rescue mobile tyre fitting starts with a £49 emergency callout fee plus the tyre price (varies by size and brand). That is comparable to Kwik Fit garage prices once you add the tyre. The big saving is your time and fuel — our fitters come to your home, office, or roadside.',
       },
       {
         question: 'Does Kwik Fit offer 24/7 mobile tyre fitting?',
@@ -84,7 +84,7 @@ export const competitors: CompetitorComparison[] = [
       { feature: 'Mobile Service', tyreRescue: 'Yes — fully mobile, we come to any location', competitor: 'Yes — mobile fitting available in some areas', winner: 'tyrerescue' },
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — round the clock, every day', competitor: 'No — limited mobile hours', winner: 'tyrerescue' },
       { feature: 'Average Response Time', tyreRescue: '45 minutes average', competitor: 'Pre-booked appointments, typically next day', winner: 'tyrerescue' },
-      { feature: 'Starting Price', tyreRescue: 'From £49', competitor: 'From £50 (mobile fitting surcharge)', winner: 'tyrerescue' },
+      { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £50 (mobile fitting surcharge, tyre extra)', winner: 'tyrerescue' },
       { feature: 'Coverage Area', tyreRescue: 'Central Scotland — Glasgow, Edinburgh, Dundee, Stirling and more', competitor: 'Select UK areas with mobile service', winner: 'tie' },
       { feature: 'Tyre Brands', tyreRescue: 'Budget to premium — competitive pricing', competitor: 'Wide range of brands available', winner: 'tie' },
       { feature: 'Puncture Repair', tyreRescue: 'Yes — mobile puncture repair included', competitor: 'Garage-based repairs, some locations offer mobile', winner: 'tyrerescue' },
@@ -99,7 +99,7 @@ export const competitors: CompetitorComparison[] = [
       },
       {
         question: 'Is Tyre Rescue better value than National Tyres?',
-        answer: 'Tyre Rescue starts from £49 with no hidden mobile surcharges. National Tyres may add a mobile fitting fee on top of tyre prices. Factor in the time and fuel saved not driving to a garage, and Tyre Rescue often works out more cost-effective.',
+        answer: 'Tyre Rescue starts with a £49 callout fee plus the tyre price, with no hidden mobile surcharges. National Tyres may add a mobile fitting fee on top of tyre prices. Factor in the time and fuel saved not driving to a garage, and Tyre Rescue often works out more cost-effective.',
       },
       {
         question: 'Can I get an emergency tyre change from National Tyres?',
@@ -128,7 +128,7 @@ export const competitors: CompetitorComparison[] = [
       { feature: 'Mobile Service', tyreRescue: 'Yes — fully mobile across Scotland', competitor: 'Limited mobile service, mainly fleet-focused', winner: 'tyrerescue' },
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — 24/7 in Glasgow, Edinburgh and beyond', competitor: 'Roadside assistance via fleet contract', winner: 'tyrerescue' },
       { feature: 'Average Response Time', tyreRescue: '45 minutes average', competitor: 'Varies — appointment-based for consumers', winner: 'tyrerescue' },
-      { feature: 'Starting Price', tyreRescue: 'From £49', competitor: 'From £45 (in-centre)', winner: 'tie' },
+      { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £45 (in-centre, tyre extra)', winner: 'tie' },
       { feature: 'Coverage Area', tyreRescue: 'Central Scotland focus — deep local knowledge', competitor: 'Nationwide chain, limited Scottish centres', winner: 'tyrerescue' },
       { feature: 'Tyre Brands', tyreRescue: 'Budget to premium selection', competitor: 'Wide brand range, strong fleet partnerships', winner: 'tie' },
       { feature: 'Puncture Repair', tyreRescue: 'Mobile puncture repair — at your location', competitor: 'In-centre repair', winner: 'tyrerescue' },
@@ -143,7 +143,7 @@ export const competitors: CompetitorComparison[] = [
       },
       {
         question: 'How does ATS Euromaster pricing compare to Tyre Rescue?',
-        answer: 'ATS Euromaster in-centre prices start around £45. Tyre Rescue starts from £49 including the mobile callout — meaning you save on travel time and fuel. For emergency situations, only Tyre Rescue offers round-the-clock mobile service.',
+        answer: 'ATS Euromaster in-centre fitting starts around £45 plus the tyre. Tyre Rescue starts at a £49 mobile callout fee plus the tyre price — meaning you save on travel time and fuel. For emergency situations, only Tyre Rescue offers round-the-clock mobile service.',
       },
       {
         question: 'Does ATS Euromaster have centres in Scotland?',
@@ -172,7 +172,7 @@ export const competitors: CompetitorComparison[] = [
       { feature: 'Mobile Service', tyreRescue: 'Yes — fully mobile tyre fitting', competitor: 'Halfords Mobile Expert (limited areas)', winner: 'tyrerescue' },
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — always available', competitor: 'No — garage hours only', winner: 'tyrerescue' },
       { feature: 'Average Response Time', tyreRescue: '45 minutes average', competitor: 'Pre-booked only', winner: 'tyrerescue' },
-      { feature: 'Starting Price', tyreRescue: 'From £49', competitor: 'From £40 (in-store tyre only)', winner: 'tie' },
+      { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £40 (in-store tyre only)', winner: 'tie' },
       { feature: 'Coverage Area', tyreRescue: 'Glasgow, Edinburgh, Dundee, Stirling, Falkirk, Paisley', competitor: 'Nationwide garage network', winner: 'tie' },
       { feature: 'Tyre Brands', tyreRescue: 'Full range — budget to premium', competitor: 'Wide retail range', winner: 'tie' },
       { feature: 'Puncture Repair', tyreRescue: 'Mobile puncture repair', competitor: 'In-store puncture repair', winner: 'tyrerescue' },
@@ -191,7 +191,7 @@ export const competitors: CompetitorComparison[] = [
       },
       {
         question: 'Which is more affordable — Halfords or Tyre Rescue?',
-        answer: 'Halfords in-store fitting may start slightly cheaper for the tyre alone, but once you add your travel time and fuel costs, Tyre Rescue\'s mobile service (from £49 including callout) is very competitive — and far more convenient.',
+        answer: 'Halfords in-store fitting may start slightly cheaper for the tyre alone, but once you add your travel time and fuel costs, Tyre Rescue\'s mobile service (£49 callout fee + tyre price) is very competitive — and far more convenient.',
       },
     ],
     summary:
