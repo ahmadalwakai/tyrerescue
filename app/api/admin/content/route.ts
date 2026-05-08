@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { pricingRules } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { revalidateSeoPaths } from '@/lib/seo/revalidate';
+import { serviceCities } from '@/lib/areas';
 
 const putSchema = z.object({
   items: z.array(
@@ -46,6 +48,16 @@ export async function PUT(request: Request) {
       });
     }
   }
+
+  // Pricing rules feed every quote and the price-per-city pages, so
+  // invalidate the static pricing surfaces. Per-city price pages are
+  // included because they render copy derived from these rules.
+  revalidateSeoPaths([
+    '/pricing',
+    '/pricing-faq',
+    '/book',
+    ...serviceCities.map((city) => `/mobile-tyre-fitting-${city}-price`),
+  ]);
 
   return NextResponse.json({ success: true });
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db, homepageMedia } from '@/lib/db';
 import { z } from 'zod';
+import { revalidateSeoPaths } from '@/lib/seo/revalidate';
 
 const schema = z.object({
   animationStyle: z.enum(['fade', 'fadeZoom', 'fadePan', 'crossfade']),
@@ -24,6 +25,8 @@ export async function PUT(request: NextRequest) {
     animationStyle: parsed.data.animationStyle,
     updatedAt: new Date(),
   });
+
+  revalidateSeoPaths(['/']);
 
   return NextResponse.json({ success: true, animationStyle: parsed.data.animationStyle });
 }

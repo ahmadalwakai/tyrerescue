@@ -8,6 +8,10 @@ import { CityQuoteWidget } from './CityQuoteWidget';
 
 // ── Static params ────────────────────────────────────────
 
+// All 6 city-price pages are prebuilt and refreshed weekly via ISR.
+export const revalidate = 604800; // 7 days
+export const dynamicParams = true;
+
 export function generateStaticParams() {
   return priceCitySlugs.map((city) => ({ city }));
 }

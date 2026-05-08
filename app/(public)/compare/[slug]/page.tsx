@@ -8,6 +8,10 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+// Comparison pages prebuilt + weekly ISR so price/feature edits roll out quickly.
+export const revalidate = 604800; // 7 days
+export const dynamicParams = true;
+
 export async function generateStaticParams() {
   return competitors.map((c) => ({ slug: c.slug }));
 }

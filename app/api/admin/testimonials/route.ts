@@ -4,6 +4,10 @@ import { db } from '@/lib/db';
 import { testimonials } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { revalidateSeoPaths } from '@/lib/seo/revalidate';
+
+// Pages that render testimonials. Keep narrow to avoid mass cache flush.
+const TESTIMONIAL_PATHS = ['/'];
 
 const createSchema = z.object({
   authorName: z.string().min(1).max(255),
@@ -38,6 +42,8 @@ export async function POST(request: Request) {
     approved: true,
   });
 
+  revalidateSeoPaths(TESTIMONIAL_PATHS);
+
   return NextResponse.json({ success: true }, { status: 201 });
 }
 
@@ -57,6 +63,8 @@ export async function PATCH(request: Request) {
 
   await db.update(testimonials).set(updates).where(eq(testimonials.id, parsed.data.id));
 
+  revalidateSeoPaths(TESTIMONIAL_PATHS);
+
   return NextResponse.json({ success: true });
 }
 
@@ -71,6 +79,8 @@ export async function DELETE(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   await db.delete(testimonials).where(eq(testimonials.id, parsed.data.id));
+
+  revalidateSeoPaths(TESTIMONIAL_PATHS);
 
   return NextResponse.json({ success: true });
 }

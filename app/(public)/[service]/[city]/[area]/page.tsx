@@ -1,23 +1,21 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { services, serviceCities, getAreasForCity, getServiceBySlug, getAreaBySlug } from '@/lib/areas';
+import { getAreasForCity, getServiceBySlug, getAreaBySlug } from '@/lib/areas';
 import { getCityBySlug } from '@/lib/cities';
 import { ServiceAreaContent } from '@/components/seo/ServiceAreaContent';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getServiceSchema, getBreadcrumbSchema } from '@/lib/seo/schemas';
 import { getNeighborhoodEnrichment } from '@/lib/data/neighborhoodEnrichment';
+import { getPriorityServiceAreaParams } from '@/lib/seo/priority';
+
+// Hybrid rendering: prebuild only the highest-priority routes, generate the
+// remaining ~3,000 service-area pages on-demand and cache for 7 days. Keeps
+// SEO coverage intact while avoiding a static-export explosion on Vercel.
+export const revalidate = 604800; // 7 days
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const params: { service: string; city: string; area: string }[] = [];
-  for (const service of services) {
-    for (const citySlug of serviceCities) {
-      const areas = getAreasForCity(citySlug);
-      for (const area of areas) {
-        params.push({ service: service.slug, city: citySlug, area: area.slug });
-      }
-    }
-  }
-  return params;
+  return getPriorityServiceAreaParams();
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ service: string; city: string; area: string }> }): Promise<Metadata> {

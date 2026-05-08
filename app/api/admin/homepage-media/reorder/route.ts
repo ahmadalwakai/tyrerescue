@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db, homepageMedia } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { revalidateSeoPaths } from '@/lib/seo/revalidate';
 
 const reorderSchema = z.object({
   /** Ordered array of slide IDs in the desired sort order */
@@ -30,6 +31,8 @@ export async function PUT(request: NextRequest) {
   );
 
   await Promise.all(updates);
+
+  revalidateSeoPaths(['/']);
 
   return NextResponse.json({ success: true });
 }

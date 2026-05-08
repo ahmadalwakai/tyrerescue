@@ -5,6 +5,11 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { getArticleSchema, getBreadcrumbSchema } from '@/lib/seo/schemas';
 import { BlogArticleContent } from './BlogArticleContent';
 
+// Daily ISR so admin-published edits land within 24h without redeploy.
+// On-demand revalidation via /api/revalidate can be wired into publishing flow.
+export const revalidate = 86400; // 24 hours
+export const dynamicParams = true;
+
 export function generateStaticParams() {
   return articles.map((a) => ({ slug: a.slug }));
 }

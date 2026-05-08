@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db, homepageMedia } from '@/lib/db';
 import { eq, asc } from 'drizzle-orm';
 import { z } from 'zod';
+import { revalidateSeoPaths } from '@/lib/seo/revalidate';
 
 /** GET /api/admin/homepage-media — list all slides (admin only) */
 export async function GET() {
@@ -57,6 +58,8 @@ export async function POST(request: NextRequest) {
     .insert(homepageMedia)
     .values({ ...parsed.data, sortOrder: nextOrder })
     .returning();
+
+  revalidateSeoPaths(['/']);
 
   return NextResponse.json(slide, { status: 201 });
 }

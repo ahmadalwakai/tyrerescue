@@ -1,19 +1,19 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { services, serviceCities, getAreasForCity, getServiceBySlug } from '@/lib/areas';
+import { getAreasForCity, getServiceBySlug } from '@/lib/areas';
 import { getCityBySlug } from '@/lib/cities';
 import { ServiceCityContent } from '@/components/seo/ServiceCityContent';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getServiceSchema, getBreadcrumbSchema } from '@/lib/seo/schemas';
+import { getPriorityServiceCityParams } from '@/lib/seo/priority';
+
+// All 95 service-city combinations are prebuilt; ISR refresh weekly so the
+// pricing/landmark copy stays in sync with config changes without rebuilds.
+export const revalidate = 604800; // 7 days
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const params: { service: string; city: string }[] = [];
-  for (const service of services) {
-    for (const citySlug of serviceCities) {
-      params.push({ service: service.slug, city: citySlug });
-    }
-  }
-  return params;
+  return getPriorityServiceCityParams();
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ service: string; city: string }> }): Promise<Metadata> {

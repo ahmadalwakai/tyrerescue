@@ -4,6 +4,10 @@ import { db } from '@/lib/db';
 import { faqs } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { revalidateSeoPaths } from '@/lib/seo/revalidate';
+
+// Pages that render the FAQ list.
+const FAQ_PATHS = ['/faq', '/pricing-faq', '/'];
 
 const createSchema = z.object({
   question: z.string().min(1),
@@ -37,6 +41,8 @@ export async function POST(request: Request) {
     displayOrder: parsed.data.displayOrder ?? null,
   });
 
+  revalidateSeoPaths(FAQ_PATHS);
+
   return NextResponse.json({ success: true }, { status: 201 });
 }
 
@@ -58,6 +64,8 @@ export async function PATCH(request: Request) {
 
   await db.update(faqs).set(updates).where(eq(faqs.id, parsed.data.id));
 
+  revalidateSeoPaths(FAQ_PATHS);
+
   return NextResponse.json({ success: true });
 }
 
@@ -72,6 +80,8 @@ export async function DELETE(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   await db.delete(faqs).where(eq(faqs.id, parsed.data.id));
+
+  revalidateSeoPaths(FAQ_PATHS);
 
   return NextResponse.json({ success: true });
 }

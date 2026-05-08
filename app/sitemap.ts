@@ -1,4 +1,4 @@
-import { MetadataRoute } from 'next';
+import type { MetadataRoute } from 'next';
 import { cities } from '@/lib/cities';
 import { db } from '@/lib/db';
 import { tyreProducts } from '@/lib/db/schema';
@@ -9,135 +9,159 @@ import { competitors } from '@/lib/data/competitors';
 import { getSiteUrl } from '@/lib/config/site';
 import { priceCitySlugs } from '@/lib/seo/cities';
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = getSiteUrl();
+/**
+ * Sitemap is split via `generateSitemaps()` so no single file exceeds
+ * Google's 50,000-URL limit and so route groups can be regenerated
+ * independently. Next.js automatically exposes:
+ *   - /sitemap.xml          — the auto-generated sitemap index
+ *   - /sitemap/[id].xml     — each individual group below
+ */
 
-  // Static pages
+type SitemapId = 'main' | 'cities' | 'areas' | 'blog' | 'tyres';
+
+export function generateSitemaps(): { id: SitemapId }[] {
+  return [
+    { id: 'main' },
+    { id: 'cities' },
+    { id: 'areas' },
+    { id: 'blog' },
+    { id: 'tyres' },
+  ];
+}
+
+export default async function sitemap({
+  id,
+}: {
+  id: Promise<string>;
+}): Promise<MetadataRoute.Sitemap> {
+  const sectionId = (await id) as SitemapId;
+  const baseUrl = getSiteUrl();
   const now = new Date();
 
-  const staticPages = [
-    '',
-    '/emergency',
-    '/book',
-    '/tyres',
-    '/faq',
-    '/contact',
-    '/privacy-policy',
-    '/terms-of-service',
-    '/refund-policy',
-    '/cookie-policy',
-  ];
-
-  const staticRoutes: MetadataRoute.Sitemap = staticPages.map((route) => ({
-    url: `${baseUrl}${route}`,
-    lastModified: now,
-    changeFrequency: 'weekly',
-    priority: route === '' ? 1 : 0.8,
-  }));
-
-  // Pricing pages
-  const pricingRoutes: MetadataRoute.Sitemap = [
-    {
-      url: `${baseUrl}/pricing`,
+  if (sectionId === 'main') {
+    const staticPages: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
+      { path: '', priority: 1, freq: 'daily' },
+      { path: '/emergency', priority: 0.9, freq: 'weekly' },
+      { path: '/book', priority: 0.9, freq: 'weekly' },
+      { path: '/tyres', priority: 0.8, freq: 'weekly' },
+      { path: '/pricing', priority: 0.9, freq: 'weekly' },
+      { path: '/pricing-faq', priority: 0.7, freq: 'monthly' },
+      { path: '/faq', priority: 0.7, freq: 'monthly' },
+      { path: '/contact', priority: 0.7, freq: 'monthly' },
+      { path: '/privacy-policy', priority: 0.3, freq: 'monthly' },
+      { path: '/terms-of-service', priority: 0.3, freq: 'monthly' },
+      { path: '/refund-policy', priority: 0.3, freq: 'monthly' },
+      { path: '/cookie-policy', priority: 0.3, freq: 'monthly' },
+    ];
+    return staticPages.map(({ path, priority, freq }) => ({
+      url: `${baseUrl}${path}`,
       lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/pricing-faq`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    },
-  ];
-
-  // City-specific pricing pages (e.g. /mobile-tyre-fitting-glasgow-price)
-  const cityPriceRoutes: MetadataRoute.Sitemap = priceCitySlugs.map((slug) => ({
-    url: `${baseUrl}/mobile-tyre-fitting-${slug}-price`,
-    lastModified: now,
-    changeFrequency: 'weekly' as const,
-    priority: 0.8,
-  }));
-
-  // City service pages (legacy)
-  const cityRoutes: MetadataRoute.Sitemap = cities.map((city) => ({
-    url: `${baseUrl}/services/${city.slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'monthly' as const,
-    priority: 0.8,
-  }));
-
-  // SEO — service × city pages (e.g. /mobile-tyre-fitting/glasgow)
-  const serviceCityRoutes: MetadataRoute.Sitemap = services.flatMap((service) =>
-    serviceCities.map((citySlug) => ({
-      url: `${baseUrl}/${service.slug}/${citySlug}`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
-      priority: 0.85,
-    })),
-  );
-
-  // SEO — service × city × area pages (e.g. /mobile-tyre-fitting/glasgow/govan)
-  // Lower priority (0.5) for area pages as they are high-volume generated pages
-  const serviceAreaRoutes: MetadataRoute.Sitemap = services.flatMap((service) =>
-    serviceCities.flatMap((citySlug) =>
-      getAreasForCity(citySlug).map((area) => ({
-        url: `${baseUrl}/${service.slug}/${citySlug}/${area.slug}`,
-        lastModified: new Date(),
-        changeFrequency: 'monthly' as const,
-        priority: 0.5,
-      })),
-    ),
-  );
-
-  // Tyre product pages
-  let tyreRoutes: MetadataRoute.Sitemap = [];
-  try {
-    const tyres = await db
-      .select({ slug: tyreProducts.slug })
-      .from(tyreProducts)
-      .where(eq(tyreProducts.availableNew, true));
-    tyreRoutes = tyres.map((tyre) => ({
-      url: `${baseUrl}/tyres/${tyre.slug}`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.6,
+      changeFrequency: freq,
+      priority,
     }));
-  } catch {
-    // DB unavailable at build time — skip tyre pages
   }
 
-  // Blog routes
-  const blogRoutes: MetadataRoute.Sitemap = [
-    {
-      url: `${baseUrl}/blog`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    ...articles.map((article) => ({
-      url: `${baseUrl}/blog/${article.slug}`,
-      lastModified: new Date(article.lastModified),
-      changeFrequency: 'monthly' as const,
-      priority: 0.7,
-    })),
-  ];
+  if (sectionId === 'cities') {
+    const out: MetadataRoute.Sitemap = [];
 
-  // Competitor comparison routes
-  const compareRoutes: MetadataRoute.Sitemap = [
-    {
-      url: `${baseUrl}/compare`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    ...competitors.map((comp) => ({
-      url: `${baseUrl}/compare/${comp.slug}`,
-      lastModified: new Date(comp.lastModified),
-      changeFrequency: 'monthly' as const,
-      priority: 0.7,
-    })),
-  ];
+    // /[service]/[city] — 5 services × 19 cities = 95 URLs
+    for (const service of services) {
+      for (const citySlug of serviceCities) {
+        out.push({
+          url: `${baseUrl}/${service.slug}/${citySlug}`,
+          lastModified: now,
+          changeFrequency: 'weekly',
+          priority: 0.85,
+        });
+      }
+    }
 
-  return [...staticRoutes, ...pricingRoutes, ...cityPriceRoutes, ...cityRoutes, ...serviceCityRoutes, ...serviceAreaRoutes, ...tyreRoutes, ...blogRoutes, ...compareRoutes];
+    // Legacy /services/[city] (canonical points to /mobile-tyre-fitting/[city])
+    for (const city of cities) {
+      out.push({
+        url: `${baseUrl}/services/${city.slug}`,
+        lastModified: now,
+        changeFrequency: 'monthly',
+        priority: 0.6,
+      });
+    }
+
+    // /mobile-tyre-fitting-[city]-price
+    for (const slug of priceCitySlugs) {
+      out.push({
+        url: `${baseUrl}/mobile-tyre-fitting-${slug}-price`,
+        lastModified: now,
+        changeFrequency: 'weekly',
+        priority: 0.8,
+      });
+    }
+
+    return out;
+  }
+
+  if (sectionId === 'areas') {
+    const out: MetadataRoute.Sitemap = [];
+    for (const service of services) {
+      for (const citySlug of serviceCities) {
+        for (const area of getAreasForCity(citySlug)) {
+          out.push({
+            url: `${baseUrl}/${service.slug}/${citySlug}/${area.slug}`,
+            lastModified: now,
+            changeFrequency: 'monthly',
+            priority: 0.5,
+          });
+        }
+      }
+    }
+    return out;
+  }
+
+  if (sectionId === 'blog') {
+    return [
+      {
+        url: `${baseUrl}/blog`,
+        lastModified: now,
+        changeFrequency: 'weekly',
+        priority: 0.8,
+      },
+      ...articles.map((article) => ({
+        url: `${baseUrl}/blog/${article.slug}`,
+        lastModified: new Date(article.lastModified),
+        changeFrequency: 'monthly' as const,
+        priority: 0.7,
+      })),
+      {
+        url: `${baseUrl}/compare`,
+        lastModified: now,
+        changeFrequency: 'monthly',
+        priority: 0.7,
+      },
+      ...competitors.map((comp) => ({
+        url: `${baseUrl}/compare/${comp.slug}`,
+        lastModified: new Date(comp.lastModified),
+        changeFrequency: 'monthly' as const,
+        priority: 0.7,
+      })),
+    ];
+  }
+
+  if (sectionId === 'tyres') {
+    try {
+      const tyres = await db
+        .select({ slug: tyreProducts.slug })
+        .from(tyreProducts)
+        .where(eq(tyreProducts.availableNew, true));
+      return tyres.map((tyre) => ({
+        url: `${baseUrl}/tyres/${tyre.slug}`,
+        lastModified: now,
+        changeFrequency: 'weekly' as const,
+        priority: 0.6,
+      }));
+    } catch {
+      // DB unavailable at build time — emit empty sitemap rather than failing build.
+      return [];
+    }
+  }
+
+  return [];
 }

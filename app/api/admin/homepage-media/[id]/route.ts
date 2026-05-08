@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db, homepageMedia } from '@/lib/db';
 import { eq, and, ne, asc, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import { revalidateSeoPaths } from '@/lib/seo/revalidate';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -57,6 +58,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: 'Slide not found' }, { status: 404 });
   }
 
+  revalidateSeoPaths(['/']);
+
   return NextResponse.json(updated);
 }
 
@@ -94,6 +97,8 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
   }
 
   await db.delete(homepageMedia).where(eq(homepageMedia.id, id));
+
+  revalidateSeoPaths(['/']);
 
   return NextResponse.json({ success: true });
 }

@@ -3,6 +3,11 @@ import { notFound } from 'next/navigation';
 import { cities, getCityBySlug } from '@/lib/cities';
 import { CityServiceContent } from './CityServiceContent';
 
+// Legacy /services/[city] route. Canonical points at /mobile-tyre-fitting/[city];
+// kept for backward-compatible inbound links. ISR weekly to avoid rebuild churn.
+export const revalidate = 604800; // 7 days
+export const dynamicParams = true;
+
 export async function generateStaticParams() {
   return cities.map((c) => ({ city: c.slug }));
 }
