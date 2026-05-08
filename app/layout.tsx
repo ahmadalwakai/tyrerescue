@@ -11,7 +11,7 @@ import { PageviewTracker } from '@/components/analytics/PageviewTracker';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getLocalBusinessSchema, getWebSiteSchema, getOrganizationSchema } from '@/lib/seo/schemas';
 import { getSiteUrl } from '@/lib/config/site';
-import { GA_MEASUREMENT_ID } from '@/lib/analytics/gtag';
+import { GA_MEASUREMENT_ID, ADS_CONVERSION_IDS } from '@/lib/analytics/gtag';
 import Script from 'next/script';
 import './globals.css';
 
@@ -139,7 +139,7 @@ export default function RootLayout({
         <script
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{
-            __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}window.gtag=gtag;gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',functionality_storage:'denied',personalization_storage:'denied',security_storage:'granted'});gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{send_page_view:false});gtag('config','AW-16460953081');`,
+            __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}window.gtag=gtag;gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',functionality_storage:'denied',personalization_storage:'denied',security_storage:'granted'});gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{send_page_view:false});${ADS_CONVERSION_IDS.map((id) => `gtag('config','${id}');`).join('')}`,
           }}
         />
         <Script

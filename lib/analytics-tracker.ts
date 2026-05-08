@@ -80,7 +80,14 @@ export function getVisitorInfo(): {
  * Silently fails if no consent or if request fails.
  */
 export async function trackEvent(
-  eventType: 'page_view' | 'call_click' | 'whatsapp_click' | 'booking_start' | 'booking_complete',
+  eventType:
+    | 'page_view'
+    | 'call_click'
+    | 'whatsapp_click'
+    | 'booking_start'
+    | 'booking_complete'
+    | 'booking_paid'
+    | 'quote_started',
   metadata?: Record<string, string>
 ): Promise<void> {
   // Always fire — server decides what to store based on consent
