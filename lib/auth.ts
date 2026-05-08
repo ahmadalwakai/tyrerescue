@@ -1,3 +1,9 @@
+// IMPORTANT: this side-effect import must run before NextAuth() is called so
+// it can sanitize AUTH_URL / NEXTAUTH_URL in production. Without it, a stale
+// `NEXTAUTH_URL=http://localhost:3000` in Vercel env would make Google OAuth
+// redirect real users to localhost.
+import '@/lib/config/auth-url-guard';
+
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
