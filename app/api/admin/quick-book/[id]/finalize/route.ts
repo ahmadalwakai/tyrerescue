@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getAppOrigin } from '@/lib/config/site';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
@@ -25,6 +26,7 @@ import { createCheckoutSession } from '@/lib/stripe';
 import { resolveDistance } from '@/lib/mapbox';
 import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
 import { GARAGE_ADDRESS } from '@/lib/garage';
+import { commitReservationsForBooking } from '@/lib/inventory/stock-service';
 
 const SERVICE_MAP: Record<string, string> = {
   fit: 'tyre_replacement',
@@ -265,7 +267,7 @@ export async function POST(
     }
 
     if (paymentMethod === 'stripe') {
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.tyrerescue.uk';
+      const baseUrl = getAppOrigin();
       const checkout = await createCheckoutSession(
         breakdown.total,
         {
@@ -379,6 +381,24 @@ export async function POST(
 
     console.warn('[quick-book:finalize] transaction unsupported, falling back to non-transactional writes');
     await persistFinalizeWrites(db);
+  }
+
+  // Cash quick bookings are paid + confirmed at finalize time. Webhook
+  // never fires for these, so deduct physical stock here. Idempotent via
+  // commitReservationsForBooking's sale-movement marker.
+  if (paymentMethod === 'cash') {
+    const commitResult = await commitReservationsForBooking({
+      bookingId,
+      actor: 'admin',
+      actorUserId: session.user.id,
+      note: `Quick booking ${refNumber}: cash payment`,
+    });
+    if (!commitResult.success) {
+      console.error(
+        `[quick-book:finalize] stock commit failed for ${refNumber}:`,
+        commitResult.error,
+      );
+    }
   }
 
   // Notify admin

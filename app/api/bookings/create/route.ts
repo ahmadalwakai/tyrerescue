@@ -9,7 +9,7 @@ import {
   tyreProducts,
   inventoryReservations,
 } from '@/lib/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, isNull } from 'drizzle-orm';
 import { createPaymentIntent } from '@/lib/stripe';
 import { generateRefNumber } from '@/lib/utils';
 import { auth } from '@/lib/auth';
@@ -230,11 +230,15 @@ export async function POST(
           continue;
         }
 
-        // Stock was already reserved in quote, so we check current stock
-        // is non-negative (reservation already decremented it)
-        const currentStock = tyre.stockNew ?? 0;
+        if (selection.isPreOrder) continue;
 
-        if (currentStock < 0) {
+        // Stock model: physical stock is unchanged at quote time.
+        // Available = physical - active reservations (excluding ours).
+        // Our quote already holds an unreleased reservation row (linked or unlinked
+        // until the update later in this transaction), so the only safe check here
+        // is that physical stock can still cover our requested quantity.
+        const physical = tyre.stockNew ?? 0;
+        if (physical < selection.quantity) {
           stockErrors.push(
             `${tyre.brand} ${tyre.pattern} is no longer available`
           );
@@ -344,7 +348,10 @@ export async function POST(
         });
       }
 
-      // Update inventory reservations to link to this booking
+      // Link this quote's reservations to the booking. Only target reservations
+      // that are still unlinked (booking_id IS NULL) so we don't accidentally
+      // grab reservations that belong to another in-flight quote/booking for
+      // the same tyre.
       for (const selection of tyreSelections) {
         if (selection.isPreOrder) continue;
         await db
@@ -353,7 +360,8 @@ export async function POST(
           .where(
             and(
               eq(inventoryReservations.tyreId, selection.tyreId),
-              eq(inventoryReservations.released, false)
+              eq(inventoryReservations.released, false),
+              isNull(inventoryReservations.bookingId),
             )
           );
       }
@@ -442,7 +450,11 @@ export async function POST(
 }
 
 /**
- * Release inventory reservations and restore stock
+ * Release inventory reservations for an unused/expired quote.
+ *
+ * Quote-level reservations never deduct physical stock, so releasing them
+ * just marks the reservation rows as released. No stock restoration here —
+ * that only applies to paid bookings (see restoreBookingStock).
  */
 async function releaseQuoteReservations(
   client: {
@@ -453,20 +465,12 @@ async function releaseQuoteReservations(
   for (const selection of tyreSelections) {
     if (selection.isPreOrder) continue;
 
-    // Restore stock
     await client.query(
-      `UPDATE tyre_products 
-       SET stock_new = stock_new + $1,
-           updated_at = NOW()
-       WHERE id = $2`,
-      [selection.quantity, selection.tyreId]
-    );
-
-    // Mark reservations as released
-    await client.query(
-      `UPDATE inventory_reservations 
-       SET released = true 
-       WHERE tyre_id = $1 AND released = false`,
+      `UPDATE inventory_reservations
+          SET released = true
+        WHERE tyre_id = $1
+          AND booking_id IS NULL
+          AND released = false`,
       [selection.tyreId]
     );
   }

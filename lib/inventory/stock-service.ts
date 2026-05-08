@@ -101,6 +101,24 @@ export interface RestoreBookingStockParams {
   note?: string;
 }
 
+export interface CommitReservationsParams {
+  bookingId: string;
+  actor: MovementActor;
+  actorUserId?: string | null;
+  note?: string;
+}
+
+export type CommitReservationsResult = {
+  success: true;
+  /** True if a sale movement already existed and we made no changes. */
+  alreadyCommitted: boolean;
+  committedTyres: Array<{ tyreId: string; quantity: number; stockAfter: number }>;
+} | {
+  success: false;
+  error: string;
+  code: 'NOT_FOUND' | 'INSUFFICIENT_STOCK' | 'DB_ERROR';
+};
+
 export interface LogMovementParams {
   tyreId: string;
   bookingId?: string | null;
@@ -274,6 +292,146 @@ export async function reserveStock(params: ReserveStockParams): Promise<ReserveS
   }
 }
 
+// ── Commit Reservations (payment success) ──────────────
+
+/**
+ * Atomically deduct physical stock for a paid booking and mark its
+ * reservations as released/committed.
+ *
+ * Idempotent: if a sale movement already exists for this booking the call
+ * is a no-op. Safe to call from both /api/bookings/confirm and the Stripe
+ * webhook (whichever wins the race).
+ *
+ * Race-safe: uses SELECT ... FOR UPDATE on every tyre row and a conditional
+ * UPDATE that prevents stock_new from going negative.
+ */
+export async function commitReservationsForBooking(
+  params: CommitReservationsParams,
+): Promise<CommitReservationsResult> {
+  const { bookingId, actorUserId, note } = params;
+
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    await client.query("SET LOCAL statement_timeout = '8s'");
+
+    // Idempotency: if any 'sale' movement already exists for this booking,
+    // the stock has already been deducted — exit cleanly.
+    const { rows: existingSale } = await client.query(
+      `SELECT id FROM inventory_movements
+        WHERE booking_id = $1 AND movement_type = 'sale'
+        LIMIT 1`,
+      [bookingId],
+    );
+    if (existingSale.length > 0) {
+      await client.query('COMMIT');
+      return { success: true, alreadyCommitted: true, committedTyres: [] };
+    }
+
+    // Load the booking_tyres for this booking. We deduct from physical
+    // stock based on the booking_tyres rows (the source of truth for what
+    // the customer actually paid for); reservation rows are only used to
+    // mark the temporary hold as consumed.
+    const { rows: bookingTyreRows } = await client.query(
+      `SELECT tyre_id, quantity
+         FROM booking_tyres
+        WHERE booking_id = $1
+          AND tyre_id IS NOT NULL`,
+      [bookingId],
+    );
+
+    if (bookingTyreRows.length === 0) {
+      await client.query('COMMIT');
+      return { success: true, alreadyCommitted: false, committedTyres: [] };
+    }
+
+    // Aggregate quantities per tyre (defensive: a booking could in theory
+    // have multiple rows for the same tyre id).
+    const qtyByTyre = new Map<string, number>();
+    for (const row of bookingTyreRows) {
+      qtyByTyre.set(row.tyre_id, (qtyByTyre.get(row.tyre_id) ?? 0) + sanitizeInt(row.quantity));
+    }
+
+    const committed: Array<{ tyreId: string; quantity: number; stockAfter: number }> = [];
+
+    // Deduct stock per tyre under a row-level lock.
+    for (const [tyreId, qty] of qtyByTyre) {
+      if (qty <= 0) continue;
+
+      const { rows: lockedRows } = await client.query(
+        `SELECT id, stock_new FROM tyre_products WHERE id = $1 FOR UPDATE`,
+        [tyreId],
+      );
+
+      if (lockedRows.length === 0) {
+        await client.query('ROLLBACK');
+        return {
+          success: false,
+          error: `Tyre ${tyreId} not found at commit time`,
+          code: 'NOT_FOUND',
+        };
+      }
+
+      const updateResult = await client.query(
+        `UPDATE tyre_products
+            SET stock_new = stock_new - $1,
+                updated_at = NOW()
+          WHERE id = $2 AND stock_new >= $1
+          RETURNING stock_new`,
+        [qty, tyreId],
+      );
+
+      if (updateResult.rowCount === 0) {
+        // Stock went negative — this should be impossible because the quote
+        // held a reservation, but we refuse to oversell.
+        await client.query('ROLLBACK');
+        return {
+          success: false,
+          error: `Insufficient stock at commit time for tyre ${tyreId} (requested ${qty})`,
+          code: 'INSUFFICIENT_STOCK',
+        };
+      }
+
+      const stockAfter = sanitizeInt(updateResult.rows[0]?.stock_new);
+      committed.push({ tyreId, quantity: qty, stockAfter });
+
+      // Log the sale movement — also serves as the idempotency marker
+      // for any future replay of the webhook/confirm.
+      await client.query(
+        `INSERT INTO inventory_movements
+           (id, tyre_id, booking_id, movement_type, quantity_delta, stock_after, actor_user_id, note)
+         VALUES (gen_random_uuid(), $1, $2, 'sale', $3, $4, $5, $6)`,
+        [tyreId, bookingId, -qty, stockAfter, actorUserId ?? null, note ?? `Sold via booking ${bookingId}`],
+      );
+    }
+
+    // Mark all unreleased reservations for this booking as released —
+    // they are now consumed by the sale, not soft-held.
+    await client.query(
+      `UPDATE inventory_reservations
+          SET released = true
+        WHERE booking_id = $1 AND released = false`,
+      [bookingId],
+    );
+
+    await client.query('COMMIT');
+    return { success: true, alreadyCommitted: false, committedTyres: committed };
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[commitReservationsForBooking] error:', err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Unknown DB error',
+      code: 'DB_ERROR',
+    };
+  } finally {
+    client.release();
+    await pool.end();
+  }
+}
+
 // ── Release Reservations ───────────────────────────────
 
 export async function releaseReservations(params: ReleaseReservationsParams): Promise<ReleaseResult> {
@@ -369,8 +527,20 @@ export async function releaseReservations(params: ReleaseReservationsParams): Pr
   }
 }
 
-// ── Restore Booking Stock (refund/cancel) ──────────────
+// ── Restore Booking Stock (refund/cancel after sale) ───
 
+/**
+ * Restore physical stock for a booking that was previously paid (sale).
+ *
+ * Idempotency / correctness rules:
+ *   - If the booking has no 'sale' movement, no stock was ever deducted on
+ *     its behalf (e.g. cancelled while still awaiting_payment) — we only
+ *     mark any unreleased reservations as released and do NOT add stock.
+ *   - If a restore movement (refund-restore / cancel-restore) already
+ *     exists for the booking, we treat it as already restored and skip.
+ *   - Otherwise we add stock back per booking_tyres row and log a restore
+ *     movement so this becomes the new idempotency marker.
+ */
 export async function restoreBookingStock(params: RestoreBookingStockParams): Promise<ReleaseResult> {
   const { bookingId, reason, actorUserId, note } = params;
 
@@ -388,53 +558,76 @@ export async function restoreBookingStock(params: RestoreBookingStockParams): Pr
       [bookingId],
     );
 
-    if (bookingTyreRows.length === 0) {
-      await client.query('COMMIT');
-      return { success: true, releasedCount: 0, restoredProducts: [] };
-    }
-
-    // Check if reservations were already released for this booking
-    const { rows: existingReleased } = await client.query(
-      `SELECT id FROM inventory_reservations WHERE booking_id = $1 AND released = true LIMIT 1`,
-      [bookingId],
-    );
-
-    // Release any unreleased reservations first
+    // Always release any unreleased reservations (cheap, idempotent).
     const { rows: unreleased } = await client.query(
-      `SELECT id, tyre_id, quantity FROM inventory_reservations WHERE booking_id = $1 AND released = false FOR UPDATE`,
+      `SELECT id FROM inventory_reservations WHERE booking_id = $1 AND released = false FOR UPDATE`,
       [bookingId],
     );
-
     if (unreleased.length > 0) {
-      const unreleasedIds = unreleased.map((r: { id: string }) => r.id);
       await client.query(
         `UPDATE inventory_reservations SET released = true WHERE id = ANY($1)`,
-        [unreleasedIds],
+        [unreleased.map((r: { id: string }) => r.id)],
       );
     }
 
-    // If reservations were already released, stock was already restored — skip
-    if (existingReleased.length > 0 && unreleased.length === 0) {
+    if (bookingTyreRows.length === 0) {
       await client.query('COMMIT');
-      return { success: true, releasedCount: 0, restoredProducts: [] };
+      return { success: true, releasedCount: unreleased.length, restoredProducts: [] };
     }
 
-    // Restore stock for each booking tyre
+    // Was the stock ever deducted for this booking? Look for a sale movement.
+    const { rows: saleRows } = await client.query(
+      `SELECT id FROM inventory_movements
+        WHERE booking_id = $1 AND movement_type = 'sale'
+        LIMIT 1`,
+      [bookingId],
+    );
+
+    if (saleRows.length === 0) {
+      // Booking was never paid → nothing to restore. Releasing the
+      // reservation above is enough.
+      await client.query('COMMIT');
+      return { success: true, releasedCount: unreleased.length, restoredProducts: [] };
+    }
+
+    // Already restored? Look for a prior restore movement.
+    const { rows: restoreRows } = await client.query(
+      `SELECT id FROM inventory_movements
+        WHERE booking_id = $1
+          AND movement_type IN ('refund-restore', 'cancel-restore')
+        LIMIT 1`,
+      [bookingId],
+    );
+    if (restoreRows.length > 0) {
+      await client.query('COMMIT');
+      return { success: true, releasedCount: unreleased.length, restoredProducts: [] };
+    }
+
+    // Restore stock for each booking tyre under a row lock.
     const restoredProducts: Array<{ productId: string; quantityRestored: number }> = [];
 
     for (const bt of bookingTyreRows) {
+      const qty = sanitizeInt(bt.quantity);
+      if (qty <= 0) continue;
+
+      // Lock the row so a concurrent commit/refund cannot interleave.
+      await client.query(
+        `SELECT id FROM tyre_products WHERE id = $1 FOR UPDATE`,
+        [bt.tyre_id],
+      );
+
       const { rows: prodRows } = await client.query(
         `UPDATE tyre_products SET stock_new = stock_new + $1, updated_at = NOW() WHERE id = $2 RETURNING stock_new`,
-        [bt.quantity, bt.tyre_id],
+        [qty, bt.tyre_id],
       );
 
       if (prodRows.length > 0) {
-        restoredProducts.push({ productId: bt.tyre_id, quantityRestored: bt.quantity });
+        restoredProducts.push({ productId: bt.tyre_id, quantityRestored: qty });
 
         await client.query(
           `INSERT INTO inventory_movements (id, tyre_id, booking_id, movement_type, quantity_delta, stock_after, actor_user_id, note)
            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7)`,
-          [bt.tyre_id, bookingId, mapReasonToMovementType(reason, bt.quantity), bt.quantity, prodRows[0].stock_new, actorUserId ?? null, note ?? `${reason}: restored ${bt.quantity}`],
+          [bt.tyre_id, bookingId, mapReasonToMovementType(reason, qty), qty, prodRows[0].stock_new, actorUserId ?? null, note ?? `${reason}: restored ${qty}`],
         );
       }
     }

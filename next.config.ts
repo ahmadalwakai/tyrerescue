@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     // Cache optimized images for 30 days at the CDN edge (default is 60s).
     minimumCacheTTL: 60 * 60 * 24 * 30,
+    // Next.js 16 restricts qualities to [75] by default. Allow the values we
+    // actually use across the app (HomeImageShowcase uses 60).
+    qualities: [60, 75],
     remotePatterns: [
       {
         protocol: 'https',

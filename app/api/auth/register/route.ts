@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAppOrigin } from '@/lib/config/site';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { db } from '@/lib/db';
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
       expiresAt,
     });
 
-    const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+    const siteUrl = getAppOrigin();
     const verifyUrl = `${siteUrl}/verify-email/${verifyToken}`;
 
     // Send welcome email

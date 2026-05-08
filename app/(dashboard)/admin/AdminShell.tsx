@@ -22,6 +22,7 @@ const navItems = [
   { label: 'SMS', href: '/admin/sms' },
   { label: 'Invoices', href: '/admin/invoices' },
   { label: 'Drivers', href: '/admin/drivers' },
+  { label: 'Customers', href: '/admin/customers' },
   { label: 'Inventory', href: '/admin/inventory' },
   { label: 'Current Stock', href: '/admin/stock' },
   { label: 'Pricing', href: '/admin/pricing' },

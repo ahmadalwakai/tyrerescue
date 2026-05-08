@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { getAppOrigin } from '@/lib/config/site';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing STRIPE_SECRET_KEY environment variable');
@@ -75,7 +76,7 @@ export async function createCheckoutSession(
   }
 ) {
   const amountInPence = Math.round(amount * 100);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.tyrerescue.uk';
+  const baseUrl = getAppOrigin();
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',

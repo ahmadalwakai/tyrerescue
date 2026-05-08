@@ -4,10 +4,19 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Box, Flex, Link as ChakraLink } from '@chakra-ui/react';
 import { trackCallClick, trackWhatsAppClick } from '@/lib/analytics/gtag';
+import { WhatsAppQuickHelpSheet } from '@/components/ui/WhatsAppQuickHelpSheet';
+import {
+  buildWhatsAppHref,
+  DEFAULT_WHATSAPP_PHONE,
+  FALLBACK_WHATSAPP_MESSAGE,
+} from '@/lib/contact/whatsapp-options';
 
 const PHONE_NUMBER = process.env.NEXT_PUBLIC_PHONE_NUMBER || '0141 266 0690';
 const PHONE_TEL = PHONE_NUMBER.replace(/\s/g, '');
-const WHATSAPP_URL = 'https://wa.me/447423262955';
+const WHATSAPP_PHONE = DEFAULT_WHATSAPP_PHONE;
+// Href fallback used when JavaScript fails: still opens WhatsApp directly
+// with a safe default message, matching prior behaviour.
+const WHATSAPP_URL = buildWhatsAppHref(FALLBACK_WHATSAPP_MESSAGE, WHATSAPP_PHONE);
 
 const HIDDEN_PREFIXES = ['/admin', '/dashboard', '/driver'];
 
@@ -42,6 +51,7 @@ function ChevronUpIcon() {
 export function FloatingContactBar() {
   const pathname = usePathname();
   const [showTop, setShowTop] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setShowTop(window.scrollY > 400);
@@ -49,7 +59,22 @@ export function FloatingContactBar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Close the sheet on route change so it never lingers across pages.
+  useEffect(() => {
+    setSheetOpen(false);
+  }, [pathname]);
+
   if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
+
+  const openSheet = (label: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Preserve href fallback for no-JS / blocked popups: only intercept when
+    // we can actually open the sheet. Modifier keys / middle-click bypass.
+    if (e.defaultPrevented) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button === 1) return;
+    e.preventDefault();
+    trackWhatsAppClick(label);
+    setSheetOpen(true);
+  };
 
   return (
     <>
@@ -137,7 +162,7 @@ export function FloatingContactBar() {
               target="_blank"
               rel="noopener noreferrer"
               className="floating-wa-btn"
-              onClick={() => trackWhatsAppClick('floating_desktop')}
+              onClick={openSheet('floating_desktop')}
               display="flex"
               alignItems="center"
               justifyContent="center"
@@ -254,7 +279,7 @@ export function FloatingContactBar() {
             target="_blank"
             rel="noopener noreferrer"
             className="floating-wa-btn"
-            onClick={() => trackWhatsAppClick('sticky_mobile')}
+            onClick={openSheet('sticky_mobile')}
             display="flex"
             alignItems="center"
             justifyContent="center"
@@ -272,6 +297,15 @@ export function FloatingContactBar() {
           </ChakraLink>
         </Flex>
       </Box>
+
+      {/* WhatsApp Quick Help Sheet — replaces the immediate WhatsApp open
+          on click. The plain links above remain as a no-JS fallback. */}
+      <WhatsAppQuickHelpSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        phoneNumber={PHONE_NUMBER}
+        whatsappPhone={WHATSAPP_PHONE}
+      />
     </>
   );
 }

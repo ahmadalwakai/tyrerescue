@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getAppOrigin } from '@/lib/config/site';
 import { requireAdmin } from '@/lib/auth';
 import { db, invoices, invoiceItems, auditLogs } from '@/lib/db';
 import { eq, asc } from 'drizzle-orm';
@@ -54,7 +55,7 @@ export async function POST(_request: Request, props: Props) {
     });
 
     // Build email
-    const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+    const siteUrl = getAppOrigin();
     const emailData = invoiceEmail({
       customerName: invoice.customerName,
       invoiceNumber: invoice.invoiceNumber,

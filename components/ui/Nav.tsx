@@ -217,8 +217,13 @@ export function Nav() {
                 <Text as="span" fontSize="14px">📞</Text>
                 Call Back
               </Box>
+              {/* Header EMERGENCY hidden on mobile so it does not visually compete
+                  with the hero "Call Now" primary CTA. Mobile users still get
+                  EMERGENCY in the mobile menu overlay below. */}
               <ChakraLink
                 asChild
+                display={{ base: 'none', md: 'inline-flex' }}
+                alignItems="center"
                 px="24px"
                 py="10px"
                 bg={colors.accent}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { tyreCatalogue, tyreProducts } from '@/lib/db/schema';
-import { eq, and, gte, lte, ilike, sql, desc, asc } from 'drizzle-orm';
+import { tyreCatalogue, tyreProducts, inventoryReservations } from '@/lib/db/schema';
+import { eq, and, gte, lte, ilike, sql, desc, asc, inArray } from 'drizzle-orm';
 import { classifyTyre } from '@/lib/budget-inventory';
 import { isValidSeason, normalizeSeason } from '@/lib/inventory/normalize-season';
 
@@ -112,6 +112,46 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // Subtract live (unreleased, unexpired) reservations from physical stock so
+    // customers see what's actually available to buy. The catalogue uses the
+    // same "stock" terminology — we expose available stock as `stockNew` and
+    // include `physicalStock` for admin/debug consumers.
+    const tyreIds = tyresWithPrices.map((t) => t.id);
+    const reservedByTyre = new Map<string, number>();
+    if (tyreIds.length > 0) {
+      const reservedRows = await db
+        .select({
+          tyreId: inventoryReservations.tyreId,
+          reserved: sql<number>`coalesce(sum(${inventoryReservations.quantity}), 0)::int`,
+        })
+        .from(inventoryReservations)
+        .where(
+          and(
+            inArray(inventoryReservations.tyreId, tyreIds),
+            eq(inventoryReservations.released, false),
+            sql`${inventoryReservations.expiresAt} > NOW()`,
+          ),
+        )
+        .groupBy(inventoryReservations.tyreId);
+      for (const row of reservedRows) {
+        if (row.tyreId) reservedByTyre.set(row.tyreId, row.reserved ?? 0);
+      }
+    }
+
+    const tyresWithAvailability = tyresWithPrices.map((t) => {
+      const physical = t.stockNew ?? 0;
+      const reserved = reservedByTyre.get(t.id) ?? 0;
+      const available = Math.max(0, physical - reserved);
+      return {
+        ...t,
+        // Customer-facing stock count: only what is actually buyable.
+        stockNew: available,
+        physicalStock: physical,
+        reservedStock: reserved,
+        availableStock: available,
+      };
+    });
+
     const brands = await db
       .selectDistinct({ brand: tyreProducts.brand })
       .from(tyreProducts)
@@ -119,7 +159,7 @@ export async function GET(request: NextRequest) {
       .orderBy(asc(tyreProducts.brand));
 
     return NextResponse.json({
-      tyres: tyresWithPrices,
+      tyres: tyresWithAvailability,
       pagination: { page, limit, totalCount, totalPages },
       filters: { brands: brands.map((b) => b.brand) },
     });

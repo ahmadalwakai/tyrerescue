@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { tyreCatalogue, tyreProducts, bookingTyres } from '@/lib/db/schema';
-import { eq, ilike, or, and, sql, desc } from 'drizzle-orm';
+import { tyreCatalogue, tyreProducts, bookingTyres, inventoryReservations } from '@/lib/db/schema';
+import { eq, ilike, or, and, sql, desc, inArray } from 'drizzle-orm';
 import { isValidSeason, normalizeSeason } from '@/lib/inventory/normalize-season';
 
 /**
@@ -109,7 +109,46 @@ export async function GET(request: Request) {
   const totalPages = Math.ceil(totalCount / perPage);
   const activeCount = Number(activeCountResult[0]?.count || 0);
 
-  return NextResponse.json({ items, page, totalPages, totalCount, activeCount });
+  // Compute reserved & available stock per product so admin can see
+  // physical / reserved / available side-by-side.
+  const productIds = items
+    .map((i) => i.productId)
+    .filter((id): id is string => !!id);
+  const reservedByProduct = new Map<string, number>();
+  if (productIds.length > 0) {
+    const reservedRows = await db
+      .select({
+        tyreId: inventoryReservations.tyreId,
+        reserved: sql<number>`coalesce(sum(${inventoryReservations.quantity}), 0)::int`,
+      })
+      .from(inventoryReservations)
+      .where(
+        and(
+          inArray(inventoryReservations.tyreId, productIds),
+          eq(inventoryReservations.released, false),
+          sql`${inventoryReservations.expiresAt} > NOW()`,
+        ),
+      )
+      .groupBy(inventoryReservations.tyreId);
+    for (const row of reservedRows) {
+      if (row.tyreId) reservedByProduct.set(row.tyreId, row.reserved ?? 0);
+    }
+  }
+
+  const itemsWithAvailability = items.map((item) => {
+    const physical = item.stockNew ?? 0;
+    const reserved = item.productId ? reservedByProduct.get(item.productId) ?? 0 : 0;
+    const available = Math.max(0, physical - reserved);
+    return {
+      ...item,
+      // Keep stockNew as physical (admin source of truth) and add derived fields.
+      physicalStock: physical,
+      reservedStock: reserved,
+      availableStock: available,
+    };
+  });
+
+  return NextResponse.json({ items: itemsWithAvailability, page, totalPages, totalCount, activeCount });
 }
 
 /**

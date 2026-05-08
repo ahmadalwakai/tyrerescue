@@ -29,7 +29,10 @@ export async function GET(request: Request) {
 
   const result = await releaseReservations({
     reservationIds: expired.map(r => r.id),
-    restoreStock: true,
+    // Quote-time reservations never deducted physical stock (the customer
+    // hadn't paid), so expiring them does not restore any stock — it just
+    // removes the soft-hold so the tyre is available again.
+    restoreStock: false,
     reason: 'quote-release',
     actor: 'cron',
     note: 'Cron: expired reservation release',

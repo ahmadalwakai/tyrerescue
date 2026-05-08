@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getAppOrigin } from '@/lib/config/site';
 import { db } from '@/lib/db';
 import { bookings, bookingStatusHistory, drivers, users } from '@/lib/db/schema';
 import { eq, and, inArray, lte } from 'drizzle-orm';
@@ -81,7 +82,7 @@ export async function GET(request: Request) {
     };
   });
 
-  const adminUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+  const adminUrl = getAppOrigin();
   const { subject, html } = adminStaleAssignment({ staleBookings, adminUrl });
   const adminEmail = process.env.ADMIN_EMAIL || process.env.ZEPTOMAIL_FROM_EMAIL || 'support@tyrerescue.uk';
 

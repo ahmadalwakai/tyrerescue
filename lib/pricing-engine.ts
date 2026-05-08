@@ -771,24 +771,30 @@ function isRuralSurcharge(item: PricingLineItem): boolean {
 }
 
 /**
- * Get display-friendly breakdown with rural surcharge hidden.
- * 
- * The rural surcharge is redistributed proportionally across remaining
- * non-summary line items (tyres, services, callout, other surcharges, discounts)
- * so the displayed total still matches the charged total exactly.
- * 
- * Uses integer pence math with rounding. Any remainder (positive or negative)
- * is assigned to the largest line item to ensure exact total match.
- * 
+ * Get display-friendly breakdown with rural surcharge folded into the
+ * callout line item.
+ *
+ * Trust requirement: tyre, service, and discount lines must always equal
+ * their canonical cart-side values (unitPrice * quantity). Hiding the rural
+ * surcharge by inflating the tyre line breaks parity with the cart and
+ * destroys customer trust. The rural surcharge is therefore absorbed into
+ * the distance-based callout fee, which is where customers naturally expect
+ * mileage-driven cost. The callout label is updated to make the higher
+ * number transparent.
+ *
+ * If no callout line exists (e.g. a configuration where callout is free),
+ * the rural surcharge is left as its own visible line item so totals still
+ * reconcile honestly.
+ *
  * @param breakdown - The raw pricing breakdown from calculatePricing
- * @returns DisplayBreakdown with rural surcharge hidden and redistributed
+ * @returns DisplayBreakdown with rural surcharge folded into callout
  */
 export function getDisplayBreakdown(breakdown: PricingBreakdown): DisplayBreakdown {
   // Find rural surcharge line items
   const ruralItems = breakdown.lineItems.filter(isRuralSurcharge);
   const ruralTotalPounds = ruralItems.reduce((sum, item) => sum + item.amount, 0);
-  
-  // If no rural surcharge, return items as-is (excluding subtotal/vat/total summary rows)
+
+  // If no rural surcharge, return items as-is (excluding rural rows)
   if (ruralTotalPounds === 0 || ruralItems.length === 0) {
     return {
       lineItems: breakdown.lineItems
@@ -800,78 +806,51 @@ export function getDisplayBreakdown(breakdown: PricingBreakdown): DisplayBreakdo
     };
   }
 
-  // Convert to pence for integer math
+  // Convert to pence for integer math (avoids floating point drift)
   const ruralTotalPence = Math.round(ruralTotalPounds * 100);
 
-  // Get redistributable items (exclude summary rows and rural surcharges)
-  const redistributableTypes: PricingLineItem['type'][] = ['tyre', 'service', 'callout', 'surcharge', 'discount'];
-  const itemsToRedistribute = breakdown.lineItems.filter(
-    item => redistributableTypes.includes(item.type) && !isRuralSurcharge(item) && item.amount !== 0
-  );
+  // Locate the callout line item — the only line we fold the rural surcharge into
+  const calloutIndex = breakdown.lineItems.findIndex(item => item.type === 'callout');
 
-  // Calculate pre-surcharge subtotal (sum of redistributable items)
-  const preSubtotalPence = itemsToRedistribute.reduce(
-    (sum, item) => sum + Math.round(item.amount * 100),
-    0
-  );
-
-  // Build display items with redistributed amounts
   const displayItems: DisplayLineItem[] = [];
-  let distributedTotalPence = 0;
-  let largestItemIndex = -1;
-  let largestItemAmount = 0;
+  let folded = false;
 
   for (const item of breakdown.lineItems) {
-    // Skip rural surcharge items entirely
-    if (isRuralSurcharge(item)) continue;
-
-    // Copy item to display item
-    const displayItem: DisplayLineItem = { ...item };
-
-    // Redistribute rural surcharge to eligible items
-    if (redistributableTypes.includes(item.type) && item.amount !== 0 && preSubtotalPence !== 0) {
-      const itemPence = Math.round(item.amount * 100);
-      const proportion = itemPence / preSubtotalPence;
-      const additionPence = Math.round(ruralTotalPence * proportion);
-      const newAmountPence = itemPence + additionPence;
-      
-      displayItem.amount = newAmountPence / 100;
-      distributedTotalPence += additionPence;
-
-      // Update unit price if item has quantity (for consistent display)
-      if (displayItem.quantity && displayItem.quantity > 0) {
-        displayItem.unitPrice = newAmountPence / 100 / displayItem.quantity;
+    if (isRuralSurcharge(item)) {
+      // If we have no callout to absorb into, keep rural surcharge visible
+      // so the total still reconciles honestly. This is an unrealistic edge
+      // case (rural starts at 30+ miles, where callout is never zero) but is
+      // handled defensively.
+      if (calloutIndex === -1) {
+        displayItems.push({ ...item });
       }
-
-      // Track largest item for rounding remainder
-      if (Math.abs(newAmountPence) > largestItemAmount) {
-        largestItemAmount = Math.abs(newAmountPence);
-        largestItemIndex = displayItems.length;
-      }
+      continue;
     }
 
-    displayItems.push(displayItem);
-  }
-
-  // Fix rounding remainder - assign to largest item
-  const remainderPence = ruralTotalPence - distributedTotalPence;
-  if (remainderPence !== 0 && largestItemIndex >= 0) {
-    const largestItem = displayItems[largestItemIndex];
-    const currentPence = Math.round(largestItem.amount * 100);
-    largestItem.amount = (currentPence + remainderPence) / 100;
-    
-    // Update unit price if applicable
-    if (largestItem.quantity && largestItem.quantity > 0) {
-      largestItem.unitPrice = largestItem.amount / largestItem.quantity;
+    if (item.type === 'callout' && !folded) {
+      const newAmountPence = Math.round(item.amount * 100) + ruralTotalPence;
+      const newAmount = newAmountPence / 100;
+      // Make the higher number transparent — this is a long-distance fee,
+      // not a tyre price increase.
+      const baseLabel = item.label.replace(/\s*\(includes long-distance fee\)\s*$/i, '');
+      displayItems.push({
+        ...item,
+        amount: newAmount,
+        label: `${baseLabel} (includes long-distance fee)`,
+      });
+      folded = true;
+      continue;
     }
+
+    displayItems.push({ ...item });
   }
 
-  // Dev mode assertion: verify displayed total matches original
+  // Dev mode assertion: verify displayed line items still sum to original
   if (process.env.NODE_ENV !== 'production') {
     const displayTotal = displayItems
       .filter(item => !['subtotal', 'vat', 'total'].includes(item.type))
       .reduce((sum, item) => sum + Math.round(item.amount * 100), 0);
-    
+
     const expectedTotal = breakdown.lineItems
       .filter(item => !['subtotal', 'vat', 'total'].includes(item.type))
       .reduce((sum, item) => sum + Math.round(item.amount * 100), 0);

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getAppOrigin } from '@/lib/config/site';
 import { requireDriverMobile } from '@/lib/auth';
 import { db, drivers, bookings, bookingStatusHistory } from '@/lib/db';
 import { eq, and } from 'drizzle-orm';
@@ -152,7 +153,7 @@ export async function PATCH(request: Request, { params }: Props) {
 
       // Send job complete email to customer
       try {
-        const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+        const siteUrl = getAppOrigin();
         const reviewUrl = `${siteUrl}/review/${booking.refNumber}`;
 
         const completeEmail = jobComplete({

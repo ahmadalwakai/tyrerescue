@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAppOrigin } from '@/lib/config/site';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { db } from '@/lib/db';
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     // Send password reset email
     try {
-      const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+      const siteUrl = getAppOrigin();
       const resetUrl = `${siteUrl}/reset-password/${token}`;
 
       const resetEmail = resetPassword({

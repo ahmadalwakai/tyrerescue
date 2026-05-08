@@ -461,6 +461,107 @@ describe('calculateHybridPricing', () => {
   });
 });
 
+// ─── Cart vs Summary Parity (Production Trust Regression) ──────────────────
+
+describe('cart vs summary parity', () => {
+  it('1 tyre at £85 — summary tyre line equals cart total (£85)', () => {
+    const breakdown = calculatePricing(
+      defaultInput({
+        tyreSelections: [{ tyreId: 't1', quantity: 1, unitPrice: 85, service: 'fit' }],
+        distanceMiles: 5,
+      }),
+      defaultRules()
+    );
+
+    const display = getDisplayBreakdown(breakdown);
+    const tyre = display.lineItems.find(i => i.type === 'tyre');
+    expect(tyre?.amount).toBe(85);
+    expect(tyre?.unitPrice).toBe(85);
+    expect(tyre?.quantity).toBe(1);
+  });
+
+  it('2 tyres at £85 — summary tyre line equals cart total (£170)', () => {
+    const breakdown = calculatePricing(
+      defaultInput({
+        tyreSelections: [{ tyreId: 't1', quantity: 2, unitPrice: 85, service: 'fit' }],
+        distanceMiles: 5,
+      }),
+      defaultRules()
+    );
+
+    const display = getDisplayBreakdown(breakdown);
+    const tyre = display.lineItems.find(i => i.type === 'tyre');
+    expect(tyre?.amount).toBe(170);
+    expect(tyre?.quantity).toBe(2);
+  });
+
+  it('1 tyre at £85 at 59 miles (rural 100%) — tyre line still £85, surcharge folded into callout (regression)', () => {
+    // Reproduces the production bug from the screenshot.
+    const breakdown = calculatePricing(
+      defaultInput({
+        tyreSelections: [{ tyreId: 't1', quantity: 1, unitPrice: 85, service: 'fit' }],
+        distanceMiles: 59,
+      }),
+      defaultRules()
+    );
+
+    const display = getDisplayBreakdown(breakdown);
+
+    // Cart vs summary parity: tyre line MUST equal unitPrice * quantity
+    const tyre = display.lineItems.find(i => i.type === 'tyre');
+    expect(tyre?.amount).toBe(85);
+
+    // Fitting line MUST equal canonical fitting fee * quantity
+    const fitting = display.lineItems.find(i => i.type === 'service');
+    expect(fitting?.amount).toBe(20);
+
+    // Rural surcharge must NOT appear as its own line — folded into callout
+    expect(
+      display.lineItems.find(i => i.label.toLowerCase().includes('rural'))
+    ).toBeUndefined();
+    const callout = display.lineItems.find(i => i.type === 'callout');
+    expect(callout?.label).toMatch(/long-distance fee/i);
+
+    // Display line items must sum to the displayed total (allow 1p rounding)
+    const sum = display.lineItems
+      .filter(i => !['subtotal', 'vat', 'total'].includes(i.type))
+      .reduce((s, i) => s + Math.round(i.amount * 100), 0);
+    expect(Math.abs(sum - Math.round(display.total * 100))).toBeLessThanOrEqual(1);
+  });
+
+  it('1 tyre at £85 — payable total includes £85 once only', () => {
+    const breakdown = calculatePricing(
+      defaultInput({
+        tyreSelections: [{ tyreId: 't1', quantity: 1, unitPrice: 85, service: 'fit' }],
+        distanceMiles: 5,
+      }),
+      defaultRules()
+    );
+
+    // Tyre cost in breakdown is exactly £85 (not doubled anywhere)
+    expect(breakdown.totalTyreCost).toBe(85);
+
+    // Total = tyre + fitting + callout + minimum-order rule
+    // = 85 + 20 + 0 = 105 (above £50 minimum)
+    expect(breakdown.total).toBe(105);
+  });
+
+  it('2 tyres at £85 — payable total includes £170 once only', () => {
+    const breakdown = calculatePricing(
+      defaultInput({
+        tyreSelections: [{ tyreId: 't1', quantity: 2, unitPrice: 85, service: 'fit' }],
+        distanceMiles: 5,
+      }),
+      defaultRules()
+    );
+
+    expect(breakdown.totalTyreCost).toBe(170);
+    // 2 tyres × £85 + 2 × £20 fitting − 5% multi-tyre discount on £40 service = £208
+    // Wait: discount is 5% of service fee (£40) = £2 → 170 + 40 − 2 + 0 = £208
+    expect(breakdown.total).toBe(208);
+  });
+});
+
 // ─── getDisplayBreakdown Tests ──────────────────────────────────────────────
 
 describe('getDisplayBreakdown', () => {
@@ -501,99 +602,91 @@ describe('getDisplayBreakdown', () => {
     expect(display.total).toBe(100);
   });
 
-  it('removes rural surcharge and redistributes across 2 line items', () => {
-    // 80 + 20 = 100 base, rural surcharge 50 (50% of 100)
-    // Total = 150
-    // Redistribution: 80/100 * 50 = 40 → tyre becomes 120
-    //                 20/100 * 50 = 10 → fitting becomes 30
+  it('removes rural surcharge and folds it into the callout line item', () => {
+    // 80 tyre + 20 fitting + 30 callout = 130 base, rural surcharge 65 (50% of 130)
+    // Expected display: tyre stays 80, fitting stays 20, callout becomes 30 + 65 = 95
     const lineItems: PricingLineItem[] = [
       { label: 'Tyre', amount: 80, type: 'tyre' },
       { label: 'Fitting fee', amount: 20, type: 'service' },
-      { label: 'Rural area surcharge (50%)', amount: 50, type: 'surcharge' },
-      { label: 'Subtotal', amount: 150, type: 'subtotal' },
-      { label: 'Total', amount: 150, type: 'total' },
+      { label: 'Callout (35 miles)', amount: 30, type: 'callout' },
+      { label: 'Rural area surcharge (50%)', amount: 65, type: 'surcharge' },
+      { label: 'Subtotal', amount: 195, type: 'subtotal' },
+      { label: 'Total', amount: 195, type: 'total' },
     ];
-    const breakdown = mockBreakdown(lineItems, 150);
-
-    const display = getDisplayBreakdown(breakdown);
-
-    // Rural surcharge should be removed
-    expect(display.lineItems.find(i => i.label.includes('Rural'))).toBeUndefined();
-
-    // Non-summary items should be redistributed
-    const tyreItem = display.lineItems.find(i => i.label === 'Tyre');
-    const fittingItem = display.lineItems.find(i => i.label === 'Fitting fee');
-
-    expect(tyreItem?.amount).toBe(120); // 80 + 40
-    expect(fittingItem?.amount).toBe(30); // 20 + 10
-
-    // Total should still match
-    expect(display.total).toBe(150);
-  });
-
-  it('removes rural surcharge and redistributes across 3 line items', () => {
-    // 60 tyre + 20 service + 20 callout = 100 base
-    // Rural surcharge 100 (100% of 100)
-    // Total = 200
-    // Each gets proportional share: 60/100*100=60, 20/100*100=20, 20/100*100=20
-    const lineItems: PricingLineItem[] = [
-      { label: 'Tyre', amount: 60, type: 'tyre' },
-      { label: 'Fitting fee', amount: 20, type: 'service' },
-      { label: 'Callout', amount: 20, type: 'callout' },
-      { label: 'Rural area surcharge (100%)', amount: 100, type: 'surcharge' },
-      { label: 'Subtotal', amount: 200, type: 'subtotal' },
-      { label: 'Total', amount: 200, type: 'total' },
-    ];
-    const breakdown = mockBreakdown(lineItems, 200);
+    const breakdown = mockBreakdown(lineItems, 195);
 
     const display = getDisplayBreakdown(breakdown);
 
     // Rural surcharge removed
-    expect(display.lineItems.find(i => i.label.includes('Rural'))).toBeUndefined();
+    expect(display.lineItems.find(i => i.label.toLowerCase().includes('rural'))).toBeUndefined();
 
-    // Items redistributed
-    expect(display.lineItems.find(i => i.label === 'Tyre')?.amount).toBe(120); // 60 + 60
-    expect(display.lineItems.find(i => i.label === 'Fitting fee')?.amount).toBe(40); // 20 + 20
-    expect(display.lineItems.find(i => i.label === 'Callout')?.amount).toBe(40); // 20 + 20
+    // Tyre and fitting must equal cart values (not redistributed)
+    expect(display.lineItems.find(i => i.type === 'tyre')?.amount).toBe(80);
+    expect(display.lineItems.find(i => i.type === 'service')?.amount).toBe(20);
 
-    // Sum of display items equals original total
-    const displaySum = display.lineItems
-      .filter(i => !['subtotal', 'vat', 'total'].includes(i.type))
-      .reduce((sum, i) => sum + i.amount, 0);
-    expect(displaySum).toBe(200);
+    // Callout absorbs the rural surcharge with a transparent label
+    const callout = display.lineItems.find(i => i.type === 'callout');
+    expect(callout?.amount).toBe(95);
+    expect(callout?.label).toMatch(/long-distance fee/i);
+
+    // Total preserved
+    expect(display.total).toBe(195);
   });
 
-  it('handles rounding remainder by assigning to largest item', () => {
-    // Create a scenario where rounding causes a penny difference
-    // 33.33 + 33.33 + 33.34 = 100
-    // Rural surcharge = 10
-    // Each proportion: 33.33/100 * 10 = 3.333 → rounds to 3.33
-    //                  33.33/100 * 10 = 3.333 → rounds to 3.33
-    //                  33.34/100 * 10 = 3.334 → rounds to 3.33
-    // Sum: 9.99 → remainder of 0.01 goes to largest
+  it('keeps tyre line equal to cart unit-price * quantity even with rural surcharge (regression)', () => {
+    // Reproduces the production bug: 1 tyre at £85, 59 miles, rural 100%.
+    // Cart shows £85; summary must also show £85 for the tyre line.
     const lineItems: PricingLineItem[] = [
-      { label: 'Item A', amount: 33.33, type: 'tyre' },
-      { label: 'Item B', amount: 33.33, type: 'service' },
-      { label: 'Item C', amount: 33.34, type: 'callout' },
-      { label: 'Rural area surcharge (50%)', amount: 10, type: 'surcharge' },
-      { label: 'Subtotal', amount: 110, type: 'subtotal' },
-      { label: 'Total', amount: 110, type: 'total' },
+      { label: 'Tyre', quantity: 1, unitPrice: 85, amount: 85, type: 'tyre' },
+      { label: 'Fitting fee', quantity: 1, unitPrice: 20, amount: 20, type: 'service' },
+      { label: 'Callout (59 miles)', amount: 25.38, type: 'callout' },
+      { label: 'Rural area surcharge (100%)', amount: 130.38, type: 'surcharge' },
+      { label: 'Subtotal', amount: 260.76, type: 'subtotal' },
+      { label: 'Total', amount: 260.76, type: 'total' },
     ];
-    const breakdown = mockBreakdown(lineItems, 110);
+    const breakdown = mockBreakdown(lineItems, 260.76);
 
     const display = getDisplayBreakdown(breakdown);
 
-    // Sum of redistributable items should equal original (110 total - summary rows)
+    const tyre = display.lineItems.find(i => i.type === 'tyre');
+    expect(tyre?.amount).toBe(85);
+    expect(tyre?.unitPrice).toBe(85);
+    expect(tyre?.quantity).toBe(1);
+
+    // Fitting unchanged
+    expect(display.lineItems.find(i => i.type === 'service')?.amount).toBe(20);
+
+    // Callout absorbs rural surcharge: 25.38 + 130.38 = 155.76
+    const callout = display.lineItems.find(i => i.type === 'callout');
+    expect(callout?.amount).toBeCloseTo(155.76, 2);
+
+    // Total preserved
+    expect(display.total).toBeCloseTo(260.76, 2);
+  });
+
+  it('also folds rural surcharge into callout when discounts are present', () => {
+    // 100 tyre + 20 callout - 10 discount + 55 rural surcharge = 165
+    const lineItems: PricingLineItem[] = [
+      { label: 'Tyre', amount: 100, type: 'tyre' },
+      { label: 'Callout (35 miles)', amount: 20, type: 'callout' },
+      { label: 'Multi-tyre discount', amount: -10, type: 'discount' },
+      { label: 'Rural area surcharge (50%)', amount: 55, type: 'surcharge' },
+      { label: 'Subtotal', amount: 165, type: 'subtotal' },
+      { label: 'Total', amount: 165, type: 'total' },
+    ];
+    const breakdown = mockBreakdown(lineItems, 165);
+
+    const display = getDisplayBreakdown(breakdown);
+
+    expect(display.lineItems.find(i => i.label.toLowerCase().includes('rural'))).toBeUndefined();
+    expect(display.lineItems.find(i => i.type === 'tyre')?.amount).toBe(100);
+    expect(display.lineItems.find(i => i.type === 'discount')?.amount).toBe(-10);
+    expect(display.lineItems.find(i => i.type === 'callout')?.amount).toBe(75);
+
     const displaySum = display.lineItems
       .filter(i => !['subtotal', 'vat', 'total'].includes(i.type))
       .reduce((sum, i) => sum + Math.round(i.amount * 100), 0);
-
-    const originalSum = lineItems
-      .filter(i => !['subtotal', 'vat', 'total'].includes(i.type))
-      .reduce((sum, i) => sum + Math.round(i.amount * 100), 0);
-
-    // Allow 1 pence tolerance due to floating point
-    expect(Math.abs(displaySum - originalSum)).toBeLessThanOrEqual(1);
+    expect(displaySum).toBe(16500);
   });
 
   it('preserves subtotal, vatAmount, and total from original breakdown', () => {
@@ -626,11 +719,10 @@ describe('getDisplayBreakdown', () => {
     expect(display.total).toBe(120);
   });
 
-  it('handles discount items correctly during redistribution', () => {
-    // 100 tyre - 10 discount + 50 rural surcharge = 140
-    // Redistribution: rural surcharge split between tyre and discount
-    // tyre: 100/90 * 50 = 55.56 → tyre becomes 155.56
-    // discount: -10/90 * 50 = -5.56 → discount becomes -15.56
+  it('keeps rural surcharge visible when there is no callout to fold it into', () => {
+    // Edge case: no callout line item. Rather than smearing the surcharge
+    // into the tyre/discount lines (which would break parity with the cart),
+    // keep it visible so the total still reconciles honestly.
     const lineItems: PricingLineItem[] = [
       { label: 'Tyre', amount: 100, type: 'tyre' },
       { label: 'Multi-tyre discount', amount: -10, type: 'discount' },
@@ -642,14 +734,16 @@ describe('getDisplayBreakdown', () => {
 
     const display = getDisplayBreakdown(breakdown);
 
-    // Rural surcharge removed
-    expect(display.lineItems.find(i => i.label.includes('Rural'))).toBeUndefined();
+    // Tyre and discount lines remain at their canonical values
+    expect(display.lineItems.find(i => i.type === 'tyre')?.amount).toBe(100);
+    expect(display.lineItems.find(i => i.type === 'discount')?.amount).toBe(-10);
 
-    // Sum should still equal total (excluding summary rows)
+    // Rural surcharge is preserved (fallback) so totals reconcile
+    expect(display.lineItems.find(i => i.label.toLowerCase().includes('rural'))?.amount).toBe(50);
+
     const displaySum = display.lineItems
       .filter(i => !['subtotal', 'vat', 'total'].includes(i.type))
       .reduce((sum, i) => sum + Math.round(i.amount * 100), 0);
-
-    expect(displaySum).toBe(14000); // 140 * 100 pence
+    expect(displaySum).toBe(14000);
   });
 });

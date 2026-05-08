@@ -141,19 +141,30 @@ function CheckoutForm({
           >
             <VStack gap={3} align="stretch">
               {/* Main line items */}
-              {mainItems.map((item, index) => (
-                <HStack key={index} justify="space-between">
-                  <Box>
-                    <Text color={c.muted}>{item.label}</Text>
-                    {item.quantity && item.quantity > 1 && item.unitPrice && (
-                      <Text fontSize="xs" color={c.muted}>
-                        {formatPrice(item.unitPrice)} x {item.quantity}
-                      </Text>
-                    )}
-                  </Box>
-                  <Text color={c.text}>{formatPrice(item.amount)}</Text>
-                </HStack>
-              ))}
+              {mainItems.map((item, index) => {
+                // Customer-facing labels: keep callout label intact (carries
+                // distance + long-distance fee disclosure when applicable);
+                // normalise tyre/service labels for clarity.
+                let displayLabel = item.label;
+                if (item.type === 'tyre') {
+                  displayLabel = item.quantity && item.quantity > 1 ? 'Tyres' : 'Tyre';
+                } else if (item.type === 'service' && /fitting fee/i.test(item.label)) {
+                  displayLabel = 'Fitting';
+                }
+                return (
+                  <HStack key={index} justify="space-between">
+                    <Box>
+                      <Text color={c.muted}>{displayLabel}</Text>
+                      {item.quantity && item.quantity > 1 && item.unitPrice && (
+                        <Text fontSize="xs" color={c.muted}>
+                          {formatPrice(item.unitPrice)} x {item.quantity}
+                        </Text>
+                      )}
+                    </Box>
+                    <Text color={c.text}>{formatPrice(item.amount)}</Text>
+                  </HStack>
+                );
+              })}
 
               {/* Surcharges */}
               {surchargeItems.map((item, index) => (

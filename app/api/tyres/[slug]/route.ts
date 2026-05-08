@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { tyreProducts } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { tyreProducts, inventoryReservations } from '@/lib/db/schema';
+import { eq, and, sql } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
@@ -20,6 +20,24 @@ export async function GET(
       return NextResponse.json({ error: 'Tyre not found' }, { status: 404 });
     }
 
+    // Subtract live reservations so customers see real availability.
+    const [reserved] = await db
+      .select({
+        reserved: sql<number>`coalesce(sum(${inventoryReservations.quantity}), 0)::int`,
+      })
+      .from(inventoryReservations)
+      .where(
+        and(
+          eq(inventoryReservations.tyreId, tyre.id),
+          eq(inventoryReservations.released, false),
+          sql`${inventoryReservations.expiresAt} > NOW()`,
+        ),
+      );
+
+    const physical = tyre.stockNew ?? 0;
+    const reservedQty = reserved?.reserved ?? 0;
+    const available = Math.max(0, physical - reservedQty);
+
     return NextResponse.json({
       tyre: {
         id: tyre.id,
@@ -37,7 +55,11 @@ export async function GET(
         noiseDb: tyre.noiseDb,
         runFlat: tyre.runFlat,
         priceNew: tyre.priceNew ? parseFloat(tyre.priceNew) : null,
-        stockNew: tyre.stockNew,
+        // stockNew is the customer-facing available count.
+        stockNew: available,
+        physicalStock: physical,
+        reservedStock: reservedQty,
+        availableStock: available,
         availableNew: tyre.availableNew,
         images: tyre.images,
         slug: tyre.slug,

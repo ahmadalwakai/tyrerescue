@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getOutboundUrl } from '@/lib/config/site';
 import { requireAdmin } from '@/lib/auth';
 import { db, bookings, drivers, bookingStatusHistory, tyreProducts, bookingTyres, users } from '@/lib/db';
 import { eq } from 'drizzle-orm';
@@ -163,8 +164,8 @@ export async function PATCH(request: Request, { params }: Props) {
       },
     });
 
-    // Send notification emails
-    const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+    // Send notification emails — outbound customer link must always be production URL.
+    const siteUrl = getOutboundUrl();
     const trackingUrl = `${siteUrl}/tracking/${booking.refNumber}`;
 
     // Get tyre summary for job assigned email

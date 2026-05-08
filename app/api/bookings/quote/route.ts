@@ -491,11 +491,12 @@ export async function POST(
           continue;
         }
 
-        // SELECT FOR UPDATE SKIP LOCKED to prevent race conditions
+        // Lock the tyre row to serialize quote creation against concurrent quotes/sales.
+        // SKIP LOCKED so two requests for the same tyre don't both succeed thinking they got the last one.
         const result = await client.query(
           `SELECT id, stock_new as stock, available_new as available, price_new as price
-           FROM tyre_products 
-           WHERE id = $1 
+           FROM tyre_products
+           WHERE id = $1
            FOR UPDATE SKIP LOCKED`,
           [selection.tyreId]
         );
@@ -508,7 +509,7 @@ export async function POST(
         }
 
         const row = result.rows[0];
-        const stock = row.stock ?? 0;
+        const physicalStock = row.stock ?? 0;
         const available = row.available;
         const price = row.price == null ? NaN : parseFloat(row.price);
         if (!Number.isFinite(price)) {
@@ -516,13 +517,26 @@ export async function POST(
           continue;
         }
 
+        // Available stock = physical - active (unreleased, unexpired) reservations.
+        // Quotes never decrement physical stock; they only insert a reservation row.
+        const reservedRow = await client.query(
+          `SELECT COALESCE(SUM(quantity), 0)::int AS reserved
+             FROM inventory_reservations
+            WHERE tyre_id = $1
+              AND released = false
+              AND expires_at > NOW()`,
+          [selection.tyreId]
+        );
+        const reservedQty = reservedRow.rows[0]?.reserved ?? 0;
+        const availableStock = Math.max(0, physicalStock - reservedQty);
+
         if (!available) {
           stockErrors.push(
             `${tyre.brand} ${tyre.pattern} is not currently available`
           );
-        } else if (stock < selection.quantity) {
+        } else if (availableStock < selection.quantity) {
           stockErrors.push(
-            `Insufficient stock for ${tyre.brand} ${tyre.pattern}. Requested: ${selection.quantity}, Available: ${stock}`
+            `Insufficient stock for ${tyre.brand} ${tyre.pattern}. Requested: ${selection.quantity}, Available: ${availableStock}`
           );
         }
 
@@ -533,7 +547,7 @@ export async function POST(
           sizeDisplay: tyre.sizeDisplay,
           quantity: selection.quantity,
           unitPrice: price,
-          available: !!available && stock >= selection.quantity,
+          available: !!available && availableStock >= selection.quantity,
         });
 
         pricingSelections.push({
@@ -620,31 +634,14 @@ export async function POST(
       const quoteId = uuidv4();
       const expiresAt = new Date(breakdown.quoteExpiresAt);
 
-      // Decrement stock and create reservations within the same transaction
+      // Create temporary reservations within the same transaction.
+      // IMPORTANT: physical stock is NOT decremented here. Quotes only soft-reserve
+      // stock; physical deduction happens on payment success (see /api/bookings/confirm
+      // and /api/stripe/webhook). Reservations expire automatically (see
+      // /api/cron/release-reservations) so unpaid quotes do not block stock forever.
       for (const selection of data.tyreSelections) {
-        // Skip stock decrement for pre-order items (use backend-enforced map)
+        // Skip reservation for pre-order items (use backend-enforced map)
         if (preOrderMap.get(selection.tyreId)) continue;
-
-        // Atomic decrement with check
-        const updateResult = await client.query(
-          `UPDATE tyre_products 
-           SET stock_new = stock_new - $1,
-               updated_at = NOW()
-           WHERE id = $2 AND stock_new >= $1
-           RETURNING id`,
-          [selection.quantity, selection.tyreId]
-        );
-
-        if (updateResult.rowCount === 0) {
-          await client.query('ROLLBACK');
-          return NextResponse.json(
-            {
-              error: 'Stock changed during processing. Please try again.',
-              code: 'STOCK_CHANGED',
-            },
-            { status: 409 }
-          );
-        }
 
         // Create inventory reservation
         const reservationId = uuidv4();
@@ -652,6 +649,16 @@ export async function POST(
           `INSERT INTO inventory_reservations (id, tyre_id, booking_id, quantity, expires_at, released)
            VALUES ($1, $2, NULL, $3, $4, false)`,
           [reservationId, selection.tyreId, selection.quantity, expiresAt]
+        );
+
+        // Audit trail: log a 'reserve' movement with quantityDelta=0 (stock unchanged)
+        // so admin can see soft-reservations in the movement log.
+        await client.query(
+          `INSERT INTO inventory_movements (id, tyre_id, booking_id, movement_type, quantity_delta, stock_after, actor_user_id, note)
+           VALUES (gen_random_uuid(), $1, NULL, 'reserve', 0,
+                   COALESCE((SELECT stock_new FROM tyre_products WHERE id = $1), 0),
+                   NULL, $2)`,
+          [selection.tyreId, `Quote ${quoteId}: soft-reserved ${selection.quantity}`]
         );
       }
 

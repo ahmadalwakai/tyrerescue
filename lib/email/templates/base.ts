@@ -10,8 +10,10 @@ export interface BaseEmailProps {
   siteUrl?: string;
 }
 
+import { getAppOrigin } from '@/lib/config/site';
+
 export function baseEmailTemplate({ preheader, content, isMarketing = false, siteUrl }: BaseEmailProps): string {
-  const url = siteUrl || process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+  const url = siteUrl || getAppOrigin();
   
   return `
 <!DOCTYPE html>

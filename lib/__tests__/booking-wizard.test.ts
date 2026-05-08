@@ -326,13 +326,13 @@ describe('Drivers online count', () => {
   });
 
   it('renders correct count string for plural drivers', () => {
-    const count = 3;
+    const count: number = 3;
     const label = `${count} driver${count !== 1 ? 's' : ''} online`;
     expect(label).toBe('3 drivers online');
   });
 
   it('renders correct count string for single driver', () => {
-    const count = 1;
+    const count: number = 1;
     const label = `${count} driver${count !== 1 ? 's' : ''} online`;
     expect(label).toBe('1 driver online');
   });

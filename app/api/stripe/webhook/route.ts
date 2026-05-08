@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getOutboundUrl } from '@/lib/config/site';
 import { db } from '@/lib/db';
 import {
   bookings,
@@ -11,7 +12,7 @@ import {
 } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { constructWebhookEvent, stripe } from '@/lib/stripe';
-import { createNotificationAndSend } from '@/lib/email/resend';
+import { sendBookingEmailOnce } from '@/lib/email/resend';
 import {
   bookingConfirmed,
   paymentReceipt,
@@ -19,7 +20,7 @@ import {
 } from '@/lib/email/templates';
 import { v4 as uuidv4 } from 'uuid';
 import type Stripe from 'stripe';
-import { logInventoryMovement, releaseReservations } from '@/lib/inventory/stock-service';
+import { logInventoryMovement, releaseReservations, commitReservationsForBooking } from '@/lib/inventory/stock-service';
 import { createAdminNotification } from '@/lib/notifications';
 
 // Disable body parsing - we need the raw body for signature verification
@@ -192,44 +193,29 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     note: `Payment confirmed via Stripe (${paymentIntentId})`,
   });
 
-  // Mark inventory reservations as permanent (no longer soft-reserved)
-  // The stock was already decremented during quote creation
-  await db
-    .update(inventoryReservations)
-    .set({ released: false })
-    .where(
-      and(
-        eq(inventoryReservations.bookingId, bookingId),
-        eq(inventoryReservations.released, false)
-      )
+  // Atomically deduct physical stock and consume reservations.
+  // Idempotent: if /api/bookings/confirm already processed this booking,
+  // commitReservationsForBooking returns alreadyCommitted=true and stock
+  // is unchanged. Replayed Stripe events are therefore safe.
+  const commitResult = await commitReservationsForBooking({
+    bookingId,
+    actor: 'webhook',
+    note: `Stripe webhook: ${paymentIntentId}`,
+  });
+  if (!commitResult.success) {
+    console.error(
+      `[webhook] stock commit failed for booking ${bookingId}:`,
+      commitResult.error,
     );
+  } else if (commitResult.alreadyCommitted) {
+    console.log(`[webhook] stock already committed for booking ${bookingId}`);
+  }
 
-  // Record inventory movements for audit
+  // Load booking tyres for downstream email rendering.
   const tyresInBooking = await db
     .select()
     .from(bookingTyres)
     .where(eq(bookingTyres.bookingId, bookingId));
-
-  for (const bookingTyre of tyresInBooking) {
-    if (!bookingTyre.tyreId) continue;
-    const [tyre] = await db
-      .select()
-      .from(tyreProducts)
-      .where(eq(tyreProducts.id, bookingTyre.tyreId))
-      .limit(1);
-
-    if (tyre) {
-      await logInventoryMovement({
-        tyreId: bookingTyre.tyreId,
-        bookingId,
-        movementType: 'sale',
-        quantityDelta: -bookingTyre.quantity,
-        stockAfter: tyre.stockNew ?? 0,
-        actor: 'webhook',
-        note: `Sold via booking ${refNumber}`,
-      });
-    }
-  }
 
   // Build tyre summary for email
   const tyreSummary = tyresInBooking.length > 0
@@ -255,7 +241,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     vatAmount: number;
     total: number;
   };
-  const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+  const siteUrl = getOutboundUrl();
   const trackingUrl = `${siteUrl}/tracking/${refNumber}`;
 
   // Send booking confirmation email to customer
@@ -272,7 +258,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       trackingUrl,
     });
 
-    await createNotificationAndSend({
+    await sendBookingEmailOnce({
       to: booking.customerEmail,
       subject: confirmedEmail.subject,
       html: confirmedEmail.html,
@@ -281,7 +267,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       bookingId,
     });
 
-    console.log(`Booking confirmation email sent for ${refNumber}`);
+    console.log(`Booking confirmation email dispatch attempted for ${refNumber}`);
   } catch (emailError) {
     console.error('Failed to send booking confirmation email:', emailError);
   }
@@ -313,7 +299,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       vatNumber: vatNumberVal,
     });
 
-    await createNotificationAndSend({
+    await sendBookingEmailOnce({
       to: booking.customerEmail,
       subject: receiptEmail.subject,
       html: receiptEmail.html,
@@ -322,7 +308,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       bookingId,
     });
 
-    console.log(`Payment receipt email sent for ${refNumber}`);
+    console.log(`Payment receipt email dispatch attempted for ${refNumber}`);
   } catch (emailError) {
     console.error('Failed to send payment receipt email:', emailError);
   }
@@ -350,7 +336,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
         `${siteUrl}/admin/bookings/${booking.id}`
       );
 
-      await createNotificationAndSend({
+      await sendBookingEmailOnce({
         to: adminEmail,
         subject: adminNotification.subject,
         html: adminNotification.html,
@@ -358,7 +344,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
         bookingId,
       });
 
-      console.log(`Admin notification sent for ${refNumber}`);
+      console.log(`Admin notification dispatch attempted for ${refNumber}`);
     } catch (adminEmailError) {
       console.error('Failed to send admin notification:', adminEmailError);
     }
@@ -457,6 +443,20 @@ async function handleDepositPaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
   console.log(`Deposit ${paymentIntentId} processed successfully for booking ${refNumber || bookingId}`);
 
+  // Deposit also confirms the booking — deduct physical stock now.
+  // Customer has paid (partially) and the tyre is committed to them.
+  const commitResult = await commitReservationsForBooking({
+    bookingId,
+    actor: 'webhook',
+    note: `Stripe webhook deposit: ${paymentIntentId}`,
+  });
+  if (!commitResult.success) {
+    console.error(
+      `[webhook:deposit] stock commit failed for booking ${bookingId}:`,
+      commitResult.error,
+    );
+  }
+
   // Admin notification
   await createAdminNotification({
     type: 'payment.received',
@@ -545,12 +545,13 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
       note: `Payment failed: ${paymentIntent.last_payment_error?.message || 'Unknown error'}`,
     });
 
-    // Release reserved stock back to inventory
+    // Release reserved stock — physical stock was never deducted at quote
+    // time, so we only mark the reservation rows as released (no restore).
     try {
       const releaseResult = await releaseReservations({
         bookingId,
-        restoreStock: true,
-        reason: 'cancel',
+        restoreStock: false,
+        reason: 'quote-release',
         actor: 'webhook',
         note: `Payment failed for ${paymentIntentId}`,
       });

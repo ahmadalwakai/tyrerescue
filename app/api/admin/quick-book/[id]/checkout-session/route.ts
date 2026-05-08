@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getAppOrigin } from '@/lib/config/site';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { quickBookings, bookings, payments } from '@/lib/db/schema';
@@ -57,7 +58,7 @@ export async function POST(
     );
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.tyrerescue.uk';
+  const baseUrl = getAppOrigin();
   const customerEmail = booking.customerEmail || 'phone-booking@tyrerescue.uk';
 
   const checkout = await createCheckoutSession(

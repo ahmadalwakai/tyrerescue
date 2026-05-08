@@ -111,6 +111,7 @@ export async function proxy(request: NextRequest) {
     '/forgot-password',
     '/emergency',
     '/book',
+    '/quote',
     '/pricing',
     '/pricing-faq',
     '/tyres',

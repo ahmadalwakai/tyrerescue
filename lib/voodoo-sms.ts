@@ -157,6 +157,9 @@ export async function sendVoodooSms(params: SendSmsParams): Promise<SmsResult> {
 
     // REST API returns { count, messages: [{ id, recipient, status }], ... }
     const messageId = data?.messages?.[0]?.id;
+    console.log(
+      `[VoodooSMS] Sent to ${normalized.slice(0, 5)}*** (status ${statusCode}, id ${messageId ?? 'n/a'})`,
+    );
     return {
       ok: true,
       provider: 'voodoo',

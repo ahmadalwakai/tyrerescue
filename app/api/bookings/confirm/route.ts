@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
+import { getOutboundUrl } from '@/lib/config/site';
+import { hasZeptoMail } from '@/lib/email';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import {
   bookings,
   bookingStatusHistory,
   payments,
-  inventoryReservations,
-  inventoryMovements,
   tyreProducts,
   bookingTyres,
   pricingRules,
 } from '@/lib/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { getPaymentIntent } from '@/lib/stripe';
-import { createNotificationAndSend } from '@/lib/email/resend';
+import { sendBookingEmailOnce } from '@/lib/email/resend';
 import {
   bookingConfirmed,
   paymentReceipt,
@@ -23,6 +24,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { createAdminNotification } from '@/lib/notifications';
 import { sendVoodooSms } from '@/lib/voodoo-sms';
 import { buildBookingConfirmationSmsMessage } from '@/lib/quick-book-message-templates';
+import { commitReservationsForBooking } from '@/lib/inventory/stock-service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -143,74 +145,90 @@ export async function POST(request: NextRequest) {
       note: `Payment confirmed via client-side verification (${paymentIntentId})`,
     });
 
-    // 7. Mark inventory reservations permanent
-    await db
-      .update(inventoryReservations)
-      .set({ released: false })
-      .where(
-        and(
-          eq(inventoryReservations.bookingId, booking.id),
-          eq(inventoryReservations.released, false),
-        ),
+    // 7. Atomically deduct physical stock and consume reservations.
+    //    This is idempotent: if the webhook already committed the same
+    //    booking, commitReservationsForBooking returns alreadyCommitted=true
+    //    and stock is unchanged.
+    const commitResult = await commitReservationsForBooking({
+      bookingId: booking.id,
+      actor: 'system',
+      note: `Confirm route: payment ${paymentIntentId}`,
+    });
+    if (!commitResult.success) {
+      console.error(
+        `[confirm] stock commit failed for ${booking.refNumber}:`,
+        commitResult.error,
       );
+      // Do not fail the request — the booking is paid; alert via logs and
+      // let admin reconcile. Returning an error here would prompt the user
+      // to retry payment, which would be wrong.
+    }
 
-    // 8. Record inventory movements
+    // 8. Load booking_tyres for downstream email rendering.
     const tyresInBooking = await db
       .select()
       .from(bookingTyres)
       .where(eq(bookingTyres.bookingId, booking.id));
 
-    for (const bookingTyre of tyresInBooking) {
-      if (!bookingTyre.tyreId) continue;
-      const [tyre] = await db
-        .select()
-        .from(tyreProducts)
-        .where(eq(tyreProducts.id, bookingTyre.tyreId))
-        .limit(1);
-
-      if (tyre) {
-        await db.insert(inventoryMovements).values({
-          id: uuidv4(),
-          tyreId: bookingTyre.tyreId,
-          bookingId: booking.id,
-          movementType: 'sale',
-          quantityDelta: -bookingTyre.quantity,
-          stockAfter: tyre.stockNew ?? 0,
-          actorUserId: null,
-          note: `Sold via booking ${booking.refNumber}`,
-        });
-      }
-    }
-
-    // 9. Send emails (fire-and-forget — don't block response)
-    sendConfirmationEmails(booking, tyresInBooking).catch((err) =>
-      console.error('Email dispatch error:', err),
+    // Structured visibility for production triage. customerEmail must be
+    // present (it's required at booking creation) but log explicitly so a
+    // missing/blank value shows up in Vercel logs immediately.
+    console.log(
+      `[booking-confirm] ref=${booking.refNumber} customerEmailPresent=${Boolean(booking.customerEmail)} customerPhonePresent=${Boolean(booking.customerPhone)} emailProviderConfigured=${hasZeptoMail}`,
     );
 
-    // 9b. Send booking confirmation SMS (fire-and-forget)
+    // 9. Send emails after the response is returned. We use `after()` from
+    // next/server (rather than fire-and-forget `.catch()`) because on Vercel
+    // serverless the function instance can be frozen the moment the response
+    // is sent, aborting any in-flight HTTP requests to the email provider —
+    // which is exactly why customer confirmation emails were not arriving.
+    after(async () => {
+      try {
+        await sendConfirmationEmails(booking, tyresInBooking);
+      } catch (err) {
+        console.error('[confirm] Email dispatch error:', err);
+      }
+    });
+
+    // 9b. Send booking confirmation SMS after response (same reasoning as above).
+    // Outbound customer link MUST always be the production URL — using
+    // getAppOrigin() here would send `http://localhost:3000/tracking/...`
+    // to a real customer phone number when running locally.
     if (booking.customerPhone) {
-      const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
-      sendVoodooSms({
-        to: booking.customerPhone,
-        message: buildBookingConfirmationSmsMessage({
-          customerName: booking.customerName,
-          refNumber: booking.refNumber,
-          trackingUrl: `${siteUrl}/tracking/${booking.refNumber}`,
-        }),
-      }).catch((err) => console.error('Booking confirmation SMS error:', err));
+      const siteUrl = getOutboundUrl();
+      after(async () => {
+        try {
+          await sendVoodooSms({
+            to: booking.customerPhone,
+            message: buildBookingConfirmationSmsMessage({
+              customerName: booking.customerName,
+              refNumber: booking.refNumber,
+              trackingUrl: `${siteUrl}/tracking/${booking.refNumber}`,
+            }),
+          });
+        } catch (err) {
+          console.error('[confirm] Booking confirmation SMS error:', err);
+        }
+      });
     }
 
-    // 10. Admin notification (fire-and-forget)
-    createAdminNotification({
-      type: 'payment.received',
-      title: 'Payment Received',
-      body: `£${parseFloat(booking.totalAmount?.toString() ?? '0').toFixed(2)} from ${booking.customerName} — ${booking.refNumber}`,
-      entityType: 'payment',
-      entityId: booking.id,
-      link: `/admin/bookings/${booking.refNumber}`,
-      severity: 'success',
-      metadata: { refNumber: booking.refNumber, amount: booking.totalAmount },
-    }).catch(console.error);
+    // 10. Admin notification (after response)
+    after(async () => {
+      try {
+        await createAdminNotification({
+          type: 'payment.received',
+          title: 'Payment Received',
+          body: `£${parseFloat(booking.totalAmount?.toString() ?? '0').toFixed(2)} from ${booking.customerName} — ${booking.refNumber}`,
+          entityType: 'payment',
+          entityId: booking.id,
+          link: `/admin/bookings/${booking.refNumber}`,
+          severity: 'success',
+          metadata: { refNumber: booking.refNumber, amount: booking.totalAmount },
+        });
+      } catch (err) {
+        console.error('[confirm] Admin notification error:', err);
+      }
+    });
 
     return NextResponse.json({ status: 'paid' });
   } catch (error) {
@@ -230,7 +248,8 @@ async function sendConfirmationEmails(
   booking: typeof bookings.$inferSelect,
   tyresInBooking: (typeof bookingTyres.$inferSelect)[],
 ) {
-  const siteUrl = process.env.NEXTAUTH_URL || 'https://www.tyrerescue.uk';
+  // Customer-facing email link: must always be the production URL.
+  const siteUrl = getOutboundUrl();
   const trackingUrl = `${siteUrl}/tracking/${booking.refNumber}`;
 
   // Build tyre summary
@@ -267,7 +286,7 @@ async function sendConfirmationEmails(
       quantity: booking.quantity,
       trackingUrl,
     });
-    await createNotificationAndSend({
+    await sendBookingEmailOnce({
       to: booking.customerEmail,
       subject: confirmedEmail.subject,
       html: confirmedEmail.html,
@@ -305,7 +324,7 @@ async function sendConfirmationEmails(
       vatRegistered: vatMap.get('vat_registered') === 'true',
       vatNumber: vatMap.get('vat_number') || '',
     });
-    await createNotificationAndSend({
+    await sendBookingEmailOnce({
       to: booking.customerEmail,
       subject: receiptEmail.subject,
       html: receiptEmail.html,
@@ -339,7 +358,7 @@ async function sendConfirmationEmails(
         },
         `${siteUrl}/admin/bookings/${booking.id}`,
       );
-      await createNotificationAndSend({
+      await sendBookingEmailOnce({
         to: adminEmail,
         subject: adminNotification.subject,
         html: adminNotification.html,

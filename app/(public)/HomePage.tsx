@@ -775,17 +775,12 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                   </ChakraLink>
                 </Text>
 
-                {/* Instant coverage check */}
-                <Box mt="24px" style={{ animation: 'fadeUp 0.6s ease-out 0.45s both' }}>
-                  <PostcodeChecker />
-                </Box>
-
                 {/* Buttons */}
                 <Box
                   className="hero-cta-panel"
-                  mt="36px"
+                  mt="32px"
                   maxW={{ base: '100%', md: '480px' }}
-                  style={{ animation: 'fadeUp 0.6s ease-out 0.5s both' }}
+                  style={{ animation: 'fadeUp 0.6s ease-out 0.45s both' }}
                 >
                   {/* Primary CTA */}
                   <ChakraLink
@@ -902,44 +897,19 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                     </Flex>
                   </Flex>
 
-                  {/* Secondary CTA — visually subdued vs primary */}
+                  {/* Secondary CTA — instant quote for non-emergency users */}
                   <ChakraLink
                     asChild
                     className="hero-cta-book"
                     w="100%"
-                    h={{ base: '52px', md: '52px' }}
-                    display="inline-flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    bg="transparent"
-                    color="rgba(250,250,250,0.65)"
-                    fontSize={{ base: '15px', md: '16px' }}
-                    fontWeight="600"
-                    letterSpacing="0.03em"
-                    borderRadius="10px"
-                    borderWidth="1px"
-                    borderColor="rgba(255,255,255,0.15)"
-                    transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
-                    _hover={{ color: 'rgba(250,250,250,0.9)', borderColor: 'rgba(249,115,22,0.45)', bg: 'rgba(249,115,22,0.06)' }}
-                    _active={{ transform: 'scale(0.98)' }}
-                    style={{ fontFamily: 'var(--font-body)' }}
-                  >
-                    <Link href="/book">Book Online</Link>
-                  </ChakraLink>
-
-                  {/* Tertiary CTA — instant quote (no phone call needed) */}
-                  <ChakraLink
-                    asChild
-                    mt="10px"
-                    w="100%"
-                    h={{ base: '52px', md: '52px' }}
+                    h={{ base: '56px', md: '56px' }}
                     display="inline-flex"
                     alignItems="center"
                     justifyContent="center"
                     gap="8px"
                     bg="transparent"
                     color={colors.accent}
-                    fontSize={{ base: '15px', md: '16px' }}
+                    fontSize={{ base: '16px', md: '16px' }}
                     fontWeight="700"
                     letterSpacing="0.03em"
                     borderRadius="10px"
@@ -1062,6 +1032,11 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                   <Text as="span" fontSize="12px" color="rgba(161,161,170,0.4)">·</Text>
                   <Text as="span" fontSize="12px" color="rgba(161,161,170,0.7)" fontWeight="500">45 min avg in Glasgow &amp; Edinburgh</Text>
                 </Flex>
+
+                {/* Coverage check — supporting form below the main CTAs */}
+                <Box mt="24px">
+                  <PostcodeChecker />
+                </Box>
                 </Box>
 
                 {/* Stats */}

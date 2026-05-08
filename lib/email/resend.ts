@@ -10,7 +10,7 @@
 
 import { db } from '@/lib/db';
 import { notifications } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { sendWithFallback } from './sender';
 import type {
   EmailOptions as CanonicalEmailOptions,
@@ -114,8 +114,62 @@ export async function createNotificationAndSend(
 }
 
 /**
- * Send email with retry logic (exponential backoff)
+ * Send a booking-related email at most once per (bookingId, type).
+ *
+ * Used by both the client-side confirm route and the Stripe webhook so that
+ * whichever path fires first wins, and the second path is a no-op. This avoids
+ * customers receiving duplicate booking-confirmed / payment-receipt / admin
+ * emails when both confirmation paths run for the same booking.
+ *
+ * Idempotency model:
+ *   - SELECT existing notification rows for (bookingId, type) where status='sent'.
+ *   - If any exist, skip the send and return { skipped: true }.
+ *   - Otherwise create the notification row + send (via createNotificationAndSend).
+ *
+ * There is a small race window between the SELECT and the INSERT. In practice
+ * the confirm route finishes well before Stripe retries the webhook, so this
+ * is acceptable. The trade-off is preferred over silently swallowing the first
+ * send when a unique constraint isn't yet present in the schema.
  */
+export async function sendBookingEmailOnce(
+  options: CreateNotificationAndSendOptions & { bookingId: string },
+): Promise<
+  | (EmailResult & { notificationId: string; skipped: false })
+  | { success: true; skipped: true; reason: string }
+> {
+  const existing = await db
+    .select({ id: notifications.id })
+    .from(notifications)
+    .where(
+      and(
+        eq(notifications.bookingId, options.bookingId),
+        eq(notifications.type, options.type),
+        eq(notifications.status, 'sent'),
+      ),
+    )
+    .limit(1);
+
+  if (existing.length > 0) {
+    console.log(
+      `[email] Skipping ${options.type} for booking ${options.bookingId} — already sent (notification ${existing[0].id})`,
+    );
+    return { success: true, skipped: true, reason: 'already-sent' };
+  }
+
+  const result = await createNotificationAndSend(options);
+
+  if (result.success) {
+    console.log(
+      `[email] Sent ${options.type} for booking ${options.bookingId} (notification ${result.notificationId}, messageId ${result.messageId ?? 'n/a'})`,
+    );
+  } else {
+    console.error(
+      `[email] Failed to send ${options.type} for booking ${options.bookingId} (notification ${result.notificationId}): ${result.error ?? 'unknown error'}`,
+    );
+  }
+
+  return { ...result, skipped: false };
+}
 export async function sendEmailWithRetry(
   options: EmailOptions,
   maxAttempts: number = 3
