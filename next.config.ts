@@ -44,12 +44,16 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
+              // Scripts: Stripe, Mapbox, Google Tag Manager (gtag.js loader), GA4, Google Ads, Clarity, Facebook Pixel, Trustpilot.
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://api.mapbox.com https://www.googletagmanager.com https://www.google-analytics.com https://www.googleadservices.com https://www.clarity.ms https://connect.facebook.net https://widget.trustpilot.com",
               "style-src 'self' 'unsafe-inline' https://api.mapbox.com https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://api.mapbox.com https://*.blob.vercel-storage.com https://tile.openstreetmap.org https://www.google-analytics.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.facebook.com https://pagead2.googlesyndication.com",
+              // Images / pixels: GA4, GTM, Google Ads conversion pixels (googleadservices, doubleclick, google.com cross-domain ping), Facebook Pixel.
+              "img-src 'self' data: blob: https://api.mapbox.com https://*.blob.vercel-storage.com https://tile.openstreetmap.org https://www.google-analytics.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://stats.g.doubleclick.net https://www.google.com https://www.google.co.uk https://www.facebook.com https://pagead2.googlesyndication.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "connect-src 'self' https://api.mapbox.com https://*.mapbox.com https://api.stripe.com https://events.mapbox.com https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.clarity.ms https://www.facebook.com https://pagead2.googlesyndication.com https://widget.trustpilot.com",
-              "frame-src https://js.stripe.com https://hooks.stripe.com https://widget.trustpilot.com",
+              // XHR/beacon: GA4 collect, GTM container, Google Ads conversion (googleadservices + doubleclick + td.doubleclick.net for conversion linker), analytics.google.com, Stripe API, Mapbox, Clarity, Facebook, Trustpilot.
+              "connect-src 'self' https://api.mapbox.com https://*.mapbox.com https://api.stripe.com https://events.mapbox.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://stats.g.doubleclick.net https://td.doubleclick.net https://www.google.com https://www.google.co.uk https://www.clarity.ms https://www.facebook.com https://pagead2.googlesyndication.com https://widget.trustpilot.com",
+              // Frames: Stripe checkout, Trustpilot widget, Google Ads conversion iframe (td/bid doubleclick).
+              "frame-src https://js.stripe.com https://hooks.stripe.com https://widget.trustpilot.com https://td.doubleclick.net https://bid.g.doubleclick.net",
               "worker-src 'self' blob:",
               "object-src 'none'",
               "base-uri 'self'",
