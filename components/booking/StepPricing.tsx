@@ -6,6 +6,7 @@ import { WizardState, WizardStep, updateCartQuantity, removeFromCart } from './t
 import { CartSummary } from './CartSummary';
 import { formatPrice, PricingBreakdown, PricingLineItem, getDisplayBreakdown } from '@/lib/pricing-engine';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { trackCallClick } from '@/lib/analytics/gtag';
 import { anim } from '@/lib/animations';
 import { API } from '@/lib/api-endpoints';
 
@@ -546,7 +547,7 @@ export function StepPricing({
             </Text>
             <Text color={c.muted} fontSize="sm">
               Please call us on{' '}
-              <a href="tel:01412660690" style={{ color: c.accent, fontWeight: 500 }}>
+              <a href="tel:01412660690" style={{ color: c.accent, fontWeight: 500 }} onClick={() => trackCallClick('booking_step_pricing_quote_error')}>
                 0141 266 0690
               </a>
             </Text>
@@ -579,7 +580,7 @@ export function StepPricing({
             </Text>
             <Text color={c.muted} fontSize="sm">
               Need help? Call{' '}
-              <a href="tel:01412660690" style={{ color: c.accent, fontWeight: 500 }}>
+              <a href="tel:01412660690" style={{ color: c.accent, fontWeight: 500 }} onClick={() => trackCallClick('booking_step_pricing_timeout')}>
                 0141 266 0690
               </a>
             </Text>

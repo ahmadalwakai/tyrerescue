@@ -13,6 +13,7 @@ import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { colorTokens } from '@/lib/design-tokens';
+import { trackCallClick } from '@/lib/analytics/gtag';
 import type { ServiceSEO, Area } from '@/lib/areas';
 import type { City } from '@/lib/cities';
 import { services } from '@/lib/areas';
@@ -99,6 +100,7 @@ export function ServiceCityContent({ service, city, areas }: { service: ServiceS
             <Flex gap={{ base: '14px', md: '16px' }} direction="column">
               <ChakraLink
                 href="tel:01412660690"
+                onClick={() => trackCallClick(`city_hero:${city.slug}`)}
                 className="hero-cta-call"
                 display="inline-flex"
                 alignItems="center"
@@ -545,6 +547,7 @@ export function ServiceCityContent({ service, city, areas }: { service: ServiceS
             </Text>
             <ChakraLink
               href="tel:01412660690"
+              onClick={() => trackCallClick(`city_cta_main:${city.slug}`)}
               display="inline-block"
               fontSize={{ base: '28px', md: '48px' }}
               color={c.bg}
@@ -557,6 +560,7 @@ export function ServiceCityContent({ service, city, areas }: { service: ServiceS
             <Flex direction={{ base: 'column', sm: 'row' }} gap={4} justify="center" mt={6}>
               <ChakraLink
                 href="tel:01412660690"
+                onClick={() => trackCallClick(`city_cta_button:${city.slug}`)}
                 px={8} py={4} bg={c.bg} color={c.accent}
                 fontSize="18px" letterSpacing="0.05em" borderRadius="4px"
                 textAlign="center" w={{ base: '100%', sm: 'auto' }}

@@ -13,14 +13,16 @@ export const GA_MEASUREMENT_ID =
  * Google Ads conversion (AW-) IDs to register via gtag('config', ...).
  * Multiple IDs may be supplied via NEXT_PUBLIC_GOOGLE_ADS_IDS as a comma-separated list.
  *
- * Defaults install BOTH:
- *   - AW-11162561655 (current Google Ads account — required by Ads diagnostics)
- *   - AW-16460953081 (legacy account — kept until confirmed it can be removed)
+ * Default = the single active Google Ads account: AW-11162561655
+ * (Untitled account, customer ID 163-535-5721, campaign "New Search 26/07").
+ *
+ * The legacy AW-16460953081 tag was removed and will only load if it is
+ * explicitly listed in NEXT_PUBLIC_GOOGLE_ADS_IDS — never by default.
  */
 export const ADS_CONVERSION_IDS: string[] = (
   process.env.NEXT_PUBLIC_GOOGLE_ADS_IDS
     ? process.env.NEXT_PUBLIC_GOOGLE_ADS_IDS.split(',')
-    : ['AW-11162561655', 'AW-16460953081']
+    : ['AW-11162561655']
 )
   .map((id) => id.trim())
   .filter((id) => /^AW-\d+$/.test(id));
@@ -32,25 +34,26 @@ export const ADS_CONVERSION_ID: string = ADS_CONVERSION_IDS[0] ?? 'AW-1116256165
  * Phone-call ads conversion send_to value (format: AW-XXXX/LABEL).
  * Configure via NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION.
  *
- * Default = the legacy AW-16460953081 call label that was previously hard-coded.
- * No label is known for AW-11162561655 yet — set the env var once it is created
- * in the Google Ads UI. We do NOT invent a label for the new account.
+ * No default — the conversion label for AW-11162561655 has not been issued yet,
+ * and we must NOT invent one. If unset, the call-conversion event is skipped
+ * (GA4 click_call / call_now_click events still fire).
  */
 export const ADS_PHONE_CONVERSION: string | null =
   process.env.NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION &&
   /^AW-\d+\/.+/.test(process.env.NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION)
     ? process.env.NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION
-    : 'AW-16460953081/4-0_CMK70YwcEPnrmKk9';
+    : null;
 
 /**
- * Booking-purchase ads conversion send_to value (e.g. AW-XXXX/LABEL).
- * Optional. If unset we still fire GA4 'purchase'.
- *
- * Default = legacy 'AW-16460953081' (preserves prior behaviour). Replace with a
- * proper AW-11162561655/LABEL once the conversion action is created in Ads.
+ * Booking-purchase ads conversion send_to value (format: AW-XXXX/LABEL).
+ * Optional. If unset we still fire GA4 'purchase' / 'booking_paid' but skip
+ * the Google Ads conversion ping. No default — must come from env.
  */
 export const ADS_BOOKING_CONVERSION: string | null =
-  process.env.NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION ?? 'AW-16460953081';
+  process.env.NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION &&
+  /^AW-\d+\/.+/.test(process.env.NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION)
+    ? process.env.NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION
+    : null;
 
 declare global {
   interface Window {

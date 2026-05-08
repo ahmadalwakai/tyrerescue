@@ -13,6 +13,7 @@ import {
 } from '@chakra-ui/react';
 import { WizardState } from './types';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
+import { trackCallClick } from '@/lib/analytics/gtag';
 import { anim } from '@/lib/animations';
 import { API } from '@/lib/api-endpoints';
 
@@ -671,7 +672,7 @@ export function StepTyreDetails({
               Please search for it before the appointment, or call us to discuss options.
             </Text>
             <Text fontSize="14px" mt={2}>
-              <a href="tel:01412660690" style={{ color: '#fc8181', fontWeight: 600 }}>
+              <a href="tel:01412660690" style={{ color: '#fc8181', fontWeight: 600 }} onClick={() => trackCallClick('booking_step_tyre_details_locking_nut')}>
                 0141 266 0690
               </a>
             </Text>

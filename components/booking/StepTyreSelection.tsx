@@ -23,6 +23,7 @@ import {
 import { CartSummary } from './CartSummary';
 import { formatPrice } from '@/lib/pricing-engine';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { trackCallClick } from '@/lib/analytics/gtag';
 import { anim } from '@/lib/animations';
 import { API } from '@/lib/api-endpoints';
 
@@ -261,7 +262,7 @@ export function StepTyreSelection({
           <Text color={c.muted} fontSize="sm" mb={4}>
             We can still help! Call us and we will source the right tyres for you.
           </Text>
-          <a href="tel:01412660690" style={{ textDecoration: 'none' }}>
+          <a href="tel:01412660690" style={{ textDecoration: 'none' }} onClick={() => trackCallClick('booking_step_tyre_selection_no_tyres')}>
             <Button colorPalette="orange" size="sm">
               Call 0141 266 0690
             </Button>

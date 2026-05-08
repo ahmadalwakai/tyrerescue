@@ -7,6 +7,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { WizardState } from './types';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { inputProps } from '@/lib/design-tokens';
+import { trackCallClick } from '@/lib/analytics/gtag';
 import { API } from '@/lib/api-endpoints';
 
 interface MapboxFeature {
@@ -542,7 +543,7 @@ export function StepLocation({
               </Text>
               <Text fontSize="13px" color="red.400" mt={1} style={{ fontFamily: 'var(--font-body)' }}>
                 Call us:{' '}
-                <a href="tel:01412660690" style={{ color: c.accent, textDecoration: 'none', fontWeight: 600 }}>
+                <a href="tel:01412660690" style={{ color: c.accent, textDecoration: 'none', fontWeight: 600 }} onClick={() => trackCallClick('booking_step_location_out_of_area')}>
                   0141 266 0690
                 </a>
               </Text>

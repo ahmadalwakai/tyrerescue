@@ -6,6 +6,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { WizardState } from './types';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { trackCallClick } from '@/lib/analytics/gtag';
 import { API } from '@/lib/api-endpoints';
 
 if (process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
@@ -337,7 +338,7 @@ export function StepEligibility({
           </Text>
           <Text color={c.muted} fontSize="13px" style={{ fontFamily: 'var(--font-body)' }}>
             Call us:{' '}
-            <a href="tel:01412660690" style={{ color: c.accent, fontWeight: 600 }}>
+            <a href="tel:01412660690" style={{ color: c.accent, fontWeight: 600 }} onClick={() => trackCallClick('booking_step_eligibility')}>
               0141 266 0690
             </a>
           </Text>
