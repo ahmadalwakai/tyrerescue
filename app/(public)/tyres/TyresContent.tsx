@@ -19,6 +19,7 @@ import {
 import { TyreCard } from '@/components/tyres/TyreCard';
 import { colorTokens as c, inputProps, selectProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { trackCallClick } from '@/lib/analytics/gtag';
 
 interface Tyre {
   id: string;
@@ -340,7 +341,7 @@ export function TyresContent() {
                 </Text>
                 <Text fontWeight="semibold" color={c.text}>
                   Call us:{' '}
-                  <ChakraLink href="tel:01412660690" color={c.accent}>
+                  <ChakraLink href="tel:01412660690" color={c.accent} onClick={() => trackCallClick('tyres_no_results')}>
                     0141 266 0690
                   </ChakraLink>
                 </Text>

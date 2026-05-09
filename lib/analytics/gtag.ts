@@ -13,11 +13,7 @@ export const GA_MEASUREMENT_ID =
  * Google Ads conversion (AW-) IDs to register via gtag('config', ...).
  * Multiple IDs may be supplied via NEXT_PUBLIC_GOOGLE_ADS_IDS as a comma-separated list.
  *
- * Default = the single active Google Ads account: AW-11162561655
- * (Untitled account, customer ID 163-535-5721, campaign "New Search 26/07").
- *
- * The legacy AW-16460953081 tag was removed and will only load if it is
- * explicitly listed in NEXT_PUBLIC_GOOGLE_ADS_IDS — never by default.
+ * Default = the single active Google Ads account: AW-11162561655.
  */
 export const ADS_CONVERSION_IDS: string[] = (
   process.env.NEXT_PUBLIC_GOOGLE_ADS_IDS

@@ -19,6 +19,7 @@ import {
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { getStockBadge as getStockBadgeBase0 } from '@/lib/inventory/stock-domain';
+import { trackCallClick } from '@/lib/analytics/gtag';
 
 interface TyreData {
   id: string;
@@ -367,7 +368,7 @@ export function TyreDetailClient({ tyre, relatedTyres }: Props) {
             </Text>
             <HStack justify="center" gap={4}>
               <Button asChild colorPalette="orange" size="lg">
-                <a href="tel:01412660690">Call 0141 266 0690</a>
+                <a href="tel:01412660690" onClick={() => trackCallClick('tyre_detail_cta')}>Call 0141 266 0690</a>
               </Button>
               <Button asChild variant="outline" colorPalette="orange" size="lg">
                 <NextLink href="/emergency">Book Emergency Callout</NextLink>

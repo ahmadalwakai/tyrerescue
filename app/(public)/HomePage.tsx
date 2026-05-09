@@ -28,6 +28,7 @@ import {
 } from '@/lib/pricing';
 import { homepageFAQItems } from '@/lib/content/faq';
 import { TrustpilotReviewCollector } from '@/components/ui/TrustpilotReviewCollector';
+import { trackCallClick } from '@/lib/analytics/gtag';
 import { AIOptimizedSection } from '@/components/seo/AIOptimizedSection';
 
 const colors = {
@@ -785,6 +786,7 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                   {/* Primary CTA */}
                   <ChakraLink
                     href={`tel:${PHONE_NUMBER.replace(/\s/g, '')}`}
+                    onClick={() => trackCallClick('home_hero')}
                     className="hero-cta-call"
                     display="inline-flex"
                     alignItems="center"
@@ -1182,6 +1184,7 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
 
                   <ChakraLink
                     href={`tel:${PHONE_NUMBER.replace(/\s/g, '')}`}
+                    onClick={() => trackCallClick('home_workshop_card')}
                     display="block"
                     color={colors.accent}
                     letterSpacing="0.02em"
@@ -1576,7 +1579,7 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
                 <Box mt={4}>
                   <Text fontSize="13px" color={colors.textSecondary} style={{ fontFamily: 'var(--font-body)' }}>
                     Call us anytime:{' '}
-                    <ChakraLink href="tel:01412660690" color={colors.accent} _hover={{ opacity: 0.8 }}>0141 266 0690</ChakraLink>
+                    <ChakraLink href="tel:01412660690" color={colors.accent} _hover={{ opacity: 0.8 }} onClick={() => trackCallClick('home_guarantee')}>0141 266 0690</ChakraLink>
                   </Text>
                 </Box>
               </Flex>
@@ -2150,6 +2153,7 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
             </Text>
             <ChakraLink
               href={`tel:${PHONE_NUMBER.replace(/\s/g, '')}`}
+              onClick={() => trackCallClick('home_bottom_cta_phone')}
               display="inline-block"
               color={colors.bg}
               mb={4}
@@ -2173,6 +2177,7 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
             <Flex direction={{ base: 'column', sm: 'row' }} gap={4} justify="center">
               <ChakraLink
                 href={`tel:${PHONE_NUMBER.replace(/\s/g, '')}`}
+                onClick={() => trackCallClick('home_bottom_cta_button')}
                 px={8}
                 py={4}
                 bg={colors.bg}

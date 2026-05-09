@@ -13,6 +13,7 @@ import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { colorTokens } from '@/lib/design-tokens';
 import type { City } from '@/lib/cities';
+import { trackCallClick } from '@/lib/analytics/gtag';
 import {
   SERVICE_PRICING,
   PRICING_DISCLAIMER,
@@ -216,6 +217,7 @@ export function CityServiceContent({ city }: { city: City }) {
               mb={4}
               _hover={{ opacity: 0.7 }}
               style={{ fontFamily: 'var(--font-display)' }}
+              onClick={() => trackCallClick(`city_service_hero:${city.slug}`)}
             >
               CALL 0141 266 0690
             </ChakraLink>
@@ -232,6 +234,7 @@ export function CityServiceContent({ city }: { city: City }) {
                 textAlign="center"
                 w={{ base: '100%', sm: 'auto' }}
                 minH="48px"
+                onClick={() => trackCallClick(`city_service_button:${city.slug}`)}
                 display="inline-flex"
                 alignItems="center"
                 justifyContent="center"

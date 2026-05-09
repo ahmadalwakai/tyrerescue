@@ -16,6 +16,7 @@ import { Footer } from '@/components/ui/Footer';
 import { AIOptimizedSection } from '@/components/seo/AIOptimizedSection';
 import { colorTokens } from '@/lib/design-tokens';
 import type { CompetitorComparison } from '@/lib/data/competitors';
+import { trackCallClick } from '@/lib/analytics/gtag';
 
 const colors = {
   bg: colorTokens.bg,
@@ -285,6 +286,7 @@ export function ComparisonContent({ data }: { data: CompetitorComparison }) {
                 _hover={{ bg: 'rgba(249,115,22,0.1)' }}
                 transition="all 0.2s"
                 style={{ fontFamily: 'var(--font-body)' }}
+                onClick={() => trackCallClick(`compare:${data.slug}`)}
               >
                 Call 0141 266 0690
               </ChakraLink>

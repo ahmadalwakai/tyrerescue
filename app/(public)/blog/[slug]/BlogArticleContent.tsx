@@ -16,6 +16,7 @@ import { colorTokens } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { injectSmartLinks } from '@/lib/linking';
 import type { BlogArticle } from '@/lib/blog/articles';
+import { trackCallClick } from '@/lib/analytics/gtag';
 
 const colors = {
   bg: colorTokens.bg,
@@ -273,6 +274,7 @@ export function BlogArticleContent({
             <Flex gap={4} justify="center" wrap="wrap">
               <Link
                 href="tel:+441412660690"
+                onClick={() => trackCallClick(`blog:${article.slug}`)}
                 style={{
                   display: 'inline-block',
                   background: colors.accent,

@@ -12,6 +12,7 @@ import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { colorTokens } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { trackCallClick } from '@/lib/analytics/gtag';
 
 const colors = {
   bg: colorTokens.bg,
@@ -63,6 +64,7 @@ export function ContactContent() {
                 fontWeight="700"
                 color={colors.accent}
                 _hover={{ opacity: 0.8 }}
+                onClick={() => trackCallClick('contact_page')}
               >
                 0141 266 0690
               </ChakraLink>
