@@ -13,12 +13,12 @@ export const GA_MEASUREMENT_ID =
  * Google Ads conversion (AW-) IDs to register via gtag('config', ...).
  * Multiple IDs may be supplied via NEXT_PUBLIC_GOOGLE_ADS_IDS as a comma-separated list.
  *
- * Default = the single active Google Ads account: AW-11162561655.
+ * Default = both active Google Ads accounts: AW-11162561655 and AW-18149847027.
  */
 export const ADS_CONVERSION_IDS: string[] = (
   process.env.NEXT_PUBLIC_GOOGLE_ADS_IDS
     ? process.env.NEXT_PUBLIC_GOOGLE_ADS_IDS.split(',')
-    : ['AW-11162561655']
+    : ['AW-11162561655', 'AW-18149847027']
 )
   .map((id) => id.trim())
   .filter((id) => /^AW-\d+$/.test(id));
