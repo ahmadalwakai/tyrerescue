@@ -3,8 +3,7 @@ import { db } from '@/lib/db';
 import { quickBookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { resolveDistance } from '@/lib/mapbox';
-import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
+import { distanceResultToKm, resolveQuickBookDistance } from '@/lib/quick-book-distance';
 import {
   calculateQuickBookPricing,
   extractQuickBookTyreSnapshot,
@@ -101,12 +100,8 @@ export async function POST(
   let durationMinutes: number | null = null;
   
   try {
-    const driverCandidates = await loadAvailableDriverDistanceCandidates();
-    const result = await resolveDistance(
-      { lat: parsed.data.lat, lng: parsed.data.lng },
-      driverCandidates,
-    );
-    distanceKm = Math.round(result.distanceMiles * 1.60934 * 100) / 100;
+    const result = await resolveQuickBookDistance({ lat: parsed.data.lat, lng: parsed.data.lng });
+    distanceKm = distanceResultToKm(result);
     serviceOriginLat = result.originLat;
     serviceOriginLng = result.originLng;
     serviceOriginSource = result.distanceSource as 'driver' | 'garage';

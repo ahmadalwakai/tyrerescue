@@ -312,7 +312,7 @@ export function QuickBookMap({
           <VStack align="end" gap={0}>
             <HStack gap={1}>
               <Text color={c.muted}>🚗</Text>
-              <Text color={c.accent} fontWeight="600">{routeInfo.km.toFixed(1)} km</Text>
+              <Text color={c.accent} fontWeight="600">{(routeInfo.km * 0.621371).toFixed(1)} miles</Text>
             </HStack>
             <HStack gap={1}>
               <Text color={c.muted}>⏱</Text>

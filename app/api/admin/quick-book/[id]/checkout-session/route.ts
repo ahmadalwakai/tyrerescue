@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAppOrigin } from '@/lib/config/site';
-import { auth } from '@/lib/auth';
+import { requireAdminMobile } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { quickBookings, bookings, payments } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -15,12 +15,13 @@ import { createCheckoutSession } from '@/lib/stripe';
  * Checkout and clicks "Retry Stripe Payment".
  */
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await auth();
-  if (!session || session.user.role !== 'admin') {
+  try {
+    await requireAdminMobile(request);
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

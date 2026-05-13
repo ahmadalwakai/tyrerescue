@@ -10,9 +10,9 @@
  * Manual fallback always available for users who don't have / don't know
  * their reg or whose vehicle isn't in our dataset.
  *
- * Gated by `NEXT_PUBLIC_VRM_ENABLED` — when off, the page renders a
- * polite "coming soon" notice in production. In dev (no flag) we still
- * render the full UI so the flow can be exercised against the mock.
+ * VRM lookup is gated by `NEXT_PUBLIC_VRM_ENABLED`. When off, the page
+ * still renders the manual tyre-size quote flow so customers can get a
+ * price without waiting for DVLA trade access.
  */
 
 import { useCallback, useState } from 'react';
@@ -33,7 +33,7 @@ const VRM_ENABLED = process.env.NEXT_PUBLIC_VRM_ENABLED === 'true';
 export function QuotePageClient() {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [tyreSize, setTyreSize] = useState<TyreSize | null>(null);
-  const [manualMode, setManualMode] = useState(false);
+  const [manualMode, setManualMode] = useState(!VRM_ENABLED);
 
   const handleResolved = useCallback((v: Vehicle, t: TyreSize | null) => {
     setVehicle(v);
@@ -57,28 +57,12 @@ export function QuotePageClient() {
           Get an instant quote
         </Heading>
         <Text color={c.muted} fontSize="16px" mb={8} maxW="640px">
-          Tell us your reg and we&apos;ll work out the right tyre size for your vehicle, then
-          show you a live price range — no phone call needed.
+          {VRM_ENABLED
+            ? 'Tell us your reg and we\'ll work out the right tyre size for your vehicle, then show you a live price range — no phone call needed.'
+            : 'Choose your tyre size and service to get a live price range — no phone call needed.'}
         </Text>
 
-        {!VRM_ENABLED && process.env.NODE_ENV === 'production' ? (
-          <Box
-            p={6}
-            bg={c.surface}
-            borderWidth="1px"
-            borderColor={c.border}
-            borderRadius="12px"
-          >
-            <Text fontWeight="700" fontSize="18px" mb={2}>
-              Instant quote is coming soon.
-            </Text>
-            <Text color={c.muted}>
-              While we wait for our DVLA trade key to be approved, please call us or use the
-              regular booking form for an instant quote.
-            </Text>
-          </Box>
-        ) : (
-          <Stack gap={8}>
+        <Stack gap={8}>
             <Box
               p={{ base: 4, md: 6 }}
               borderWidth="1px"
@@ -86,7 +70,7 @@ export function QuotePageClient() {
               borderRadius="12px"
               bg="rgba(24,24,27,0.65)"
             >
-              {!manualMode && (
+              {VRM_ENABLED && !manualMode && (
                 <>
                   <VrmLookup onResolved={handleResolved} onManualFallback={handleManualFallback} />
                   <Flex mt={4} justify="flex-end">
@@ -97,9 +81,11 @@ export function QuotePageClient() {
               {manualMode && (
                 <>
                   <ManualSizeInput initial={tyreSize} onChange={handleManualChange} />
-                  <Flex mt={4} justify="flex-end">
-                    <ManualSizeToggle onClick={() => setManualMode(false)} />
-                  </Flex>
+                  {VRM_ENABLED && (
+                    <Flex mt={4} justify="flex-end">
+                      <ManualSizeToggle onClick={() => setManualMode(false)} />
+                    </Flex>
+                  )}
                 </>
               )}
             </Box>
@@ -119,7 +105,6 @@ export function QuotePageClient() {
               </Box>
             )}
           </Stack>
-        )}
       </Container>
       <Footer />
     </Box>

@@ -19,6 +19,7 @@ const footerLinks = {
     { label: 'Home', href: '/' },
     { label: 'Blog', href: '/blog' },
     { label: 'Compare', href: '/compare' },
+    { label: 'Help', href: '/help' },
     { label: 'Contact', href: '/contact' },
     { label: 'FAQ', href: '/faq' },
   ],

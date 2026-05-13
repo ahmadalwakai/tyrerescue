@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Tyre Rescue Assisted Chat",
+    "slug": "tyre-rescue-assisted-chat",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "tyrerescueassistedchat",
+    "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
+    "platforms": [
+      "android",
+      "web"
+    ],
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#09090B"
+    },
+    "android": {
+      "package": "uk.tyrerescue.assistedchat",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#09090B"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "backgroundColor": "#09090B",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "7b51b2be-7b4e-484e-bb94-82628e8253e5"
+      }
+    },
+    "owner": "ahmadawadalwakai"
+  }
+}

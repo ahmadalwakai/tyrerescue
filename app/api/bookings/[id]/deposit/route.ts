@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { auth, requireAdminMobile } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { stripe } from '@/lib/stripe';
+import { getAppOrigin } from '@/lib/config/site';
 
 /**
  * POST /api/bookings/[id]/deposit
@@ -20,12 +21,20 @@ export async function POST(
 ) {
   try {
     const { id: bookingId } = await params;
-    
-    // Check admin auth
-    const session = await auth();
-    if (!session || session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Check admin auth. Web Quick Book uses the NextAuth session; the Expo
+    // assisted-chat app uses the existing mobile Bearer token.
+    try {
+      await requireAdminMobile(request);
+    } catch {
+      const session = await auth();
+      if (!session || session.user.role !== 'admin') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
+
+    const body = await request.json().catch(() => ({})) as { mode?: unknown };
+    const mode = body.mode === 'checkout' ? 'checkout' : 'elements';
 
     // Load the booking
     const [booking] = await db
@@ -64,6 +73,68 @@ export async function POST(
     const totalInPence = Math.round(Number(booking.totalAmount) * 100);
     const depositAmountPence = booking.depositAmountPence ?? Math.round(totalInPence * 0.20);
     const remainingBalancePence = totalInPence - depositAmountPence;
+
+    if (mode === 'checkout') {
+      const baseUrl = getAppOrigin();
+      const session = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        payment_method_types: ['card'],
+        customer_email: booking.customerEmail !== 'phone-booking@tyrerescue.uk'
+          ? booking.customerEmail
+          : undefined,
+        line_items: [
+          {
+            price_data: {
+              currency: 'gbp',
+              unit_amount: depositAmountPence,
+              product_data: {
+                name: `Tyre Rescue deposit — ${booking.refNumber}`,
+                description: `Deposit payment. Balance due on-site: £${(remainingBalancePence / 100).toFixed(2)}`,
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        metadata: {
+          bookingId,
+          refNumber: booking.refNumber,
+          type: 'deposit',
+        },
+        payment_intent_data: {
+          metadata: {
+            bookingId,
+            refNumber: booking.refNumber,
+            type: 'deposit',
+            customerEmail: booking.customerEmail,
+          },
+        },
+        success_url: `${baseUrl}/admin/bookings/${booking.refNumber}?deposit=success`,
+        cancel_url: `${baseUrl}/admin/bookings/${booking.refNumber}?deposit=cancelled`,
+      });
+
+      const paymentIntentId =
+        typeof session.payment_intent === 'string' ? session.payment_intent : null;
+
+      await db
+        .update(bookings)
+        .set({
+          stripeDepositPiId: paymentIntentId,
+          depositAmountPence,
+          remainingBalancePence,
+          updatedAt: new Date(),
+        })
+        .where(eq(bookings.id, bookingId));
+
+      return NextResponse.json({
+        checkoutUrl: session.url,
+        sessionId: session.id,
+        paymentIntentId,
+        depositAmountPence,
+        remainingBalancePence,
+        depositAmount: depositAmountPence / 100,
+        remainingBalance: remainingBalancePence / 100,
+      });
+    }
 
     // Create PaymentIntent with idempotency key to prevent duplicates
     const idempotencyKey = `deposit_${bookingId}`;

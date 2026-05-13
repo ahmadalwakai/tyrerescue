@@ -1,13 +1,7 @@
 import { trackEvent } from '@/lib/analytics-tracker';
 
-/**
- * GA4 measurement ID. Env-overridable via NEXT_PUBLIC_GA_MEASUREMENT_ID.
- * The gtag.js loader script is requested with this ID.
- */
-export const GA_MEASUREMENT_ID =
-  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID.startsWith('G-')
-    ? process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
-    : 'G-MLH80KPV1T';
+/** GA4 measurement ID used by the global gtag.js install in app/layout.tsx. */
+export const GA_MEASUREMENT_ID = 'G-MLH80KPV1T';
 
 /**
  * Google Ads conversion (AW-) IDs to register via gtag('config', ...).

@@ -2,9 +2,9 @@ import { Metadata } from 'next';
 import { ContactContent } from './ContactContent';
 
 export const metadata: Metadata = {
-  title: 'Contact Tyre Rescue | Mobile Tyre Fitter Glasgow | Duke Street Tyres',
+  title: 'Contact Tyre Rescue | Mobile Tyre Fitting Support Glasgow',
   description:
-    'Contact our mobile tyre fitting team in Glasgow. Call 0141 266 0690 for immediate tyre repair near you. Duke Street Tyres — serving Glasgow and Edinburgh.',
+    'Contact Tyre Rescue for mobile tyre fitting support, emergency tyre replacement, booking help, payments, cancellations and refunds. Call 0141 266 0690.',
   alternates: { canonical: 'https://www.tyrerescue.uk/contact' },
 };
 

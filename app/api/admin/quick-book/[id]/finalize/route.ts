@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAppOrigin } from '@/lib/config/site';
-import { auth } from '@/lib/auth';
+import { requireAdminMobile } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
   quickBookings,
@@ -57,17 +57,24 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await auth();
-  if (!session || session.user.role !== 'admin') {
+  let session: Awaited<ReturnType<typeof requireAdminMobile>>;
+  try {
+    session = await requireAdminMobile(request);
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   // Parse body — paymentMethod defaults to 'stripe'
   let paymentMethod: 'stripe' | 'cash' | 'deposit' = 'stripe';
+  let depositPercent = 0.20; // default 20% (existing quick-book behaviour)
   try {
     const body = await request.json();
     if (body.paymentMethod === 'cash') paymentMethod = 'cash';
     if (body.paymentMethod === 'deposit') paymentMethod = 'deposit';
+    if (typeof body.depositPercent === 'number' && Number.isFinite(body.depositPercent)) {
+      const clamped = Math.min(0.5, Math.max(0.05, body.depositPercent));
+      depositPercent = Math.round(clamped * 10000) / 10000;
+    }
   } catch {
     // empty body → default to stripe
   }
@@ -193,7 +200,7 @@ export async function POST(
 
   // Calculate deposit amounts for deposit payment
   const totalInPence = Math.round(breakdown.total * 100);
-  const depositAmountPence = paymentMethod === 'deposit' ? Math.round(totalInPence * 0.20) : null;
+  const depositAmountPence = paymentMethod === 'deposit' ? Math.round(totalInPence * depositPercent) : null;
   const remainingBalancePence = depositAmountPence ? totalInPence - depositAmountPence : null;
 
   const invoiceNumber = await generateInvoiceNumber();
@@ -460,12 +467,13 @@ export async function POST(
  *  - a deposit has already been paid (depositPaidAt set)
  */
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await auth();
-  if (!session || session.user.role !== 'admin') {
+  try {
+    await requireAdminMobile(request);
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

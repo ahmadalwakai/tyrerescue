@@ -46,6 +46,48 @@ const NOINDEX_PREFIXES = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  /* ─── CORS for assisted-chat-app (Expo web on :8081) ─── */
+  // Narrowly scoped: only the API surface the app calls, only localhost dev
+  // origins. Production origins never appear here, so behaviour is unchanged.
+  const ALLOWED_DEV_ORIGINS = new Set([
+    'http://localhost:8081',
+    'http://127.0.0.1:8081',
+  ]);
+  const requestOrigin = request.headers.get('origin');
+  const isAssistedChatApi =
+    pathname.startsWith('/api/mobile/') ||
+    pathname === '/api/admin/quick-book' ||
+    pathname.startsWith('/api/admin/quick-book/') ||
+    (pathname.startsWith('/api/bookings/') && pathname.endsWith('/deposit')) ||
+    pathname.startsWith('/api/tyres/');
+  const allowOrigin =
+    isAssistedChatApi && requestOrigin && ALLOWED_DEV_ORIGINS.has(requestOrigin)
+      ? requestOrigin
+      : null;
+
+  if (request.method === 'OPTIONS' && isAssistedChatApi && allowOrigin) {
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': allowOrigin,
+        Vary: 'Origin',
+        'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+        'Access-Control-Allow-Headers':
+          request.headers.get('access-control-request-headers') ||
+          'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
+      },
+    });
+  }
+
+  function withCors<R extends NextResponse>(res: R): R {
+    if (allowOrigin) {
+      res.headers.set('Access-Control-Allow-Origin', allowOrigin);
+      res.headers.append('Vary', 'Origin');
+    }
+    return res;
+  }
+
   /* ─── Canonical host + protocol redirect (production only) ─── */
   const host = request.headers.get('host') ?? '';
   const forwardedProto = request.headers.get('x-forwarded-proto');
@@ -73,7 +115,8 @@ export async function proxy(request: NextRequest) {
   if (
     pathname.startsWith('/api/') &&
     ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) &&
-    !pathname.startsWith('/api/stripe/webhook')
+    !pathname.startsWith('/api/stripe/webhook') &&
+    !allowOrigin
   ) {
     const origin = request.headers.get('origin');
     const host = request.headers.get('host');
@@ -115,6 +158,7 @@ export async function proxy(request: NextRequest) {
     '/pricing',
     '/pricing-faq',
     '/tyres',
+    '/help',
     '/faq',
     '/contact',
     '/privacy-policy',
@@ -162,7 +206,7 @@ export async function proxy(request: NextRequest) {
     if (NOINDEX_PREFIXES.some((p) => pathname.startsWith(p))) {
       response.headers.set('X-Robots-Tag', 'noindex, nofollow');
     }
-    return response;
+    return withCors(response);
   }
 
   // Protected routes require authentication

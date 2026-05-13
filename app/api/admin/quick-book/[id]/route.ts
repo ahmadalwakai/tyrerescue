@@ -1,19 +1,21 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireAdminMobile } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { quickBookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { resolveDistance } from '@/lib/mapbox';
 import {
   calculateQuickBookPricing,
   extractQuickBookTyreSnapshot,
   QuickBookPricingError,
   type QuickBookServiceType,
 } from '@/lib/quick-book-pricing';
-import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
+import { distanceResultToKm, resolveQuickBookDistance } from '@/lib/quick-book-distance';
+import { GARAGE_ADDRESS } from '@/lib/garage';
 
 const updateSchema = z.object({
+  customerName: z.string().min(1).max(255).optional(),
+  customerPhone: z.string().min(5).max(20).optional(),
   locationLat: z.number().nullable().optional(),
   locationLng: z.number().nullable().optional(),
   locationAddress: z.string().nullable().optional(),
@@ -33,12 +35,13 @@ const updateSchema = z.object({
 });
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await auth();
-  if (!session || session.user.role !== 'admin') {
+  try {
+    await requireAdminMobile(request);
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -60,8 +63,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await auth();
-  if (!session || session.user.role !== 'admin') {
+  try {
+    await requireAdminMobile(request);
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -87,6 +91,8 @@ export async function PATCH(
   const data = parsed.data;
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
 
+  if (data.customerName !== undefined) updateData.customerName = data.customerName;
+  if (data.customerPhone !== undefined) updateData.customerPhone = data.customerPhone;
   if (data.locationLat !== undefined) updateData.locationLat = data.locationLat != null ? String(data.locationLat) : null;
   if (data.locationLng !== undefined) updateData.locationLng = data.locationLng != null ? String(data.locationLng) : null;
   if (data.locationAddress !== undefined) updateData.locationAddress = data.locationAddress;
@@ -134,9 +140,8 @@ export async function PATCH(
 
   if ((hasField('locationLat') || hasField('locationLng')) && mergedLat != null && mergedLng != null && data.distanceKm === undefined) {
     try {
-      const driverCandidates = await loadAvailableDriverDistanceCandidates();
-      const distResult = await resolveDistance({ lat: mergedLat, lng: mergedLng }, driverCandidates);
-      mergedDistanceKm = Math.round(distResult.distanceMiles * 1.60934 * 100) / 100;
+      const distResult = await resolveQuickBookDistance({ lat: mergedLat, lng: mergedLng });
+      mergedDistanceKm = distanceResultToKm(distResult);
       updateData.distanceKm = mergedDistanceKm != null ? String(mergedDistanceKm) : null;
       serviceOriginLat = distResult.originLat;
       serviceOriginLng = distResult.originLng;
@@ -202,6 +207,8 @@ export async function PATCH(
           lng: serviceOriginLng,
           source: serviceOriginSource,
           driverId: serviceOriginDriverId,
+          label: serviceOriginSource === 'garage' ? 'Garage' : 'Service origin',
+          address: serviceOriginSource === 'garage' ? GARAGE_ADDRESS : null,
           etaMinutes: durationMinutes,
         } : (existing.priceBreakdown as Record<string, unknown> | null)?.serviceOrigin ?? null,
       };

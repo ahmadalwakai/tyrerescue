@@ -46,6 +46,7 @@ export default async function sitemap({
       { path: '/tyres', priority: 0.8, freq: 'weekly' },
       { path: '/pricing', priority: 0.9, freq: 'weekly' },
       { path: '/pricing-faq', priority: 0.7, freq: 'monthly' },
+      { path: '/help', priority: 0.7, freq: 'monthly' },
       { path: '/faq', priority: 0.7, freq: 'monthly' },
       { path: '/contact', priority: 0.7, freq: 'monthly' },
       { path: '/privacy-policy', priority: 0.3, freq: 'monthly' },

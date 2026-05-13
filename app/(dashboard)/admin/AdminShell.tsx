@@ -16,6 +16,7 @@ import { NotificationNavBadge } from '@/components/admin/NotificationNavBadge';
 const navItems = [
   { label: 'Bookings', href: '/admin/bookings' },
   { label: 'Quick Book', href: '/admin/quick-book' },
+  { label: 'Assisted Chat', href: '/admin/assisted-chat' },
   { label: 'Callbacks', href: '/admin/callbacks', badgeKey: 'callbacks' as const },
   { label: 'Messages', href: '/admin/messages', badgeKey: 'messages' as const },
   { label: 'Chat', href: '/admin/chat', badgeKey: 'chat' as const },

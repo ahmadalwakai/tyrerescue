@@ -1,16 +1,17 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireAdminMobile } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { quickBookings } from '@/lib/db/schema';
 import { desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
-import { geocodeAddress, resolveDistance } from '@/lib/mapbox';
+import { geocodeAddress } from '@/lib/mapbox';
+import { getAppOrigin } from '@/lib/config/site';
 import {
   calculateQuickBookPricing,
   QuickBookPricingError,
 } from '@/lib/quick-book-pricing';
-import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
+import { distanceResultToKm, resolveQuickBookDistance } from '@/lib/quick-book-distance';
 import {
   buildLocationWhatsAppMessage,
   buildWhatsAppUrl,
@@ -30,9 +31,10 @@ const createSchema = z.object({
   notes: z.string().optional(),
 });
 
-export async function GET() {
-  const session = await auth();
-  if (!session || session.user.role !== 'admin') {
+export async function GET(request: Request) {
+  try {
+    await requireAdminMobile(request);
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -46,8 +48,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session || session.user.role !== 'admin') {
+  let session: Awaited<ReturnType<typeof requireAdminMobile>>;
+  try {
+    session = await requireAdminMobile(request);
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -104,9 +108,8 @@ export async function POST(request: Request) {
 
   if (lat && lng) {
     try {
-      const driverCandidates = await loadAvailableDriverDistanceCandidates();
-      const distResult = await resolveDistance({ lat, lng }, driverCandidates);
-      distanceKm = Math.round(distResult.distanceMiles * 1.60934 * 100) / 100;
+      const distResult = await resolveQuickBookDistance({ lat, lng });
+      distanceKm = distanceResultToKm(distResult);
       serviceOriginLat = distResult.originLat;
       serviceOriginLng = distResult.originLng;
       serviceOriginSource = distResult.distanceSource as 'driver' | 'garage';
@@ -212,7 +215,9 @@ export async function POST(request: Request) {
     })
     .returning();
 
-  const siteUrl = 'https://www.tyrerescue.uk';
+  // Use env-aware origin so local-dev API emits localhost links the
+  // assisted-chat-app can poll, while production keeps emitting SITE_URL.
+  const siteUrl = getAppOrigin();
   const locationLink = linkToken ? `${siteUrl}/locate/${linkToken}` : null;
   
   // Use beautiful message templates for WhatsApp

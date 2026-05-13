@@ -1,0 +1,28 @@
+{
+  "cli": {
+    "version": ">= 15.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://www.tyrerescue.uk",
+        "EXPO_PUBLIC_MAPBOX_TOKEN": "replace-with-mapbox-public-token"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://www.tyrerescue.uk",
+        "EXPO_PUBLIC_MAPBOX_TOKEN": "replace-with-mapbox-public-token"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  },
+  "submit": {}
+}

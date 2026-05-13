@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { randomBytes } from 'crypto';
+import { requireAdminMobile } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { quickBookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -14,6 +15,7 @@ import {
   buildWhatsAppUrl,
 } from '@/lib/quick-book-message-templates';
 import { createNotificationAndSend } from '@/lib/email/resend';
+import { getAppOrigin } from '@/lib/config/site';
 
 const schema = z.object({
   quickBookingId: z.string().uuid(),
@@ -30,8 +32,9 @@ interface SendLinkResponse {
 }
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session || session.user.role !== 'admin') {
+  try {
+    await requireAdminMobile(request);
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -43,17 +46,37 @@ export async function POST(request: Request) {
 
   const { quickBookingId, method } = parsed.data;
 
-  const [booking] = await db
+  const [bookingRow] = await db
     .select()
     .from(quickBookings)
     .where(eq(quickBookings.id, quickBookingId))
     .limit(1);
 
-  if (!booking || !booking.locationLinkToken) {
+  if (!bookingRow) {
+    return NextResponse.json({ error: 'Quick booking not found' }, { status: 404 });
+  }
+
+  // Lazily issue a location-share token if one was never minted (e.g. quick
+  // bookings created via the assisted-chat flow start with locationMethod=
+  // 'address'). Token TTL matches the original POST handler (2 hours).
+  let booking = bookingRow;
+  if (!booking.locationLinkToken) {
+    const linkToken = randomBytes(32).toString('hex');
+    const linkExpiry = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    await db
+      .update(quickBookings)
+      .set({ locationLinkToken: linkToken, locationLinkExpiry: linkExpiry, updatedAt: new Date() })
+      .where(eq(quickBookings.id, quickBookingId));
+    booking = { ...booking, locationLinkToken: linkToken, locationLinkExpiry: linkExpiry };
+  }
+
+  if (!booking.locationLinkToken) {
     return NextResponse.json({ error: 'No location link available' }, { status: 404 });
   }
 
-  const siteUrl = 'https://www.tyrerescue.uk';
+  // Use env-aware origin so local-dev API emits localhost links and
+  // production keeps emitting SITE_URL. SMS/WhatsApp/email all reuse this.
+  const siteUrl = getAppOrigin();
   const locationLink = `${siteUrl}/locate/${booking.locationLinkToken}`;
   const name = booking.customerName;
   const phone = booking.customerPhone;
