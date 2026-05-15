@@ -7,8 +7,7 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://www.tyrerescue.uk",
-        "EXPO_PUBLIC_MAPBOX_TOKEN": "replace-with-mapbox-public-token"
+        "EXPO_PUBLIC_API_BASE_URL": "https://www.tyrerescue.uk"
       },
       "android": {
         "buildType": "apk"
@@ -16,8 +15,7 @@
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://www.tyrerescue.uk",
-        "EXPO_PUBLIC_MAPBOX_TOKEN": "replace-with-mapbox-public-token"
+        "EXPO_PUBLIC_API_BASE_URL": "https://www.tyrerescue.uk"
       },
       "android": {
         "buildType": "apk"
