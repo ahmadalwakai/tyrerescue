@@ -13,7 +13,7 @@ import {
   type TextStyle,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAssistedChatDraft } from '@/hooks/useAssistedChatDraft';
 import { useAssistedChatPrice } from '@/hooks/useAssistedChatPrice';
 import { useAssistedChatDispatch } from '@/hooks/useAssistedChatDispatch';
@@ -58,6 +58,7 @@ import {
   normalizeAssistedChatTyreSize,
   type AssistedChatStage,
   type AssistedChatTimelineItem,
+  type AssistedChatTimelineStep,
 } from '@/lib/assisted-chat-workflow';
 
 interface ParsedCallNotes {
@@ -352,6 +353,10 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const [editingStage, setEditingStage] = useState<AssistedChatStage | null>(null);
   const [mapSummaryOpen, setMapSummaryOpen] = useState(false);
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
+
+  const insets = useSafeAreaInsets();
+  const bottomBarPaddingBottom = Math.max(insets.bottom + 8, 16);
+  const scrollPaddingBottom = 132 + bottomBarPaddingBottom;
 
   // ── Push Notifications ─────────────────────────────────────────────────────
 
@@ -1079,6 +1084,25 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const primaryDisabledReason = editingStage ? null : workflow.primaryActionDisabledReason;
   const stageTitle = editingStage ? `Editing ${stageLabel(editingStage)}` : stageLabel(workflow.currentStage);
 
+  const handleSelectTimelineStep = (step: AssistedChatTimelineStep) => {
+    const targetStage = stageForTimelineStep(step, { quoteConfirmed });
+    const blockedReason = blockedReasonForStage(targetStage, {
+      hasCustomerDetails: Boolean(draft.customer.name.trim() || draft.customer.phone.trim() || draft.customer.email.trim()),
+      hasLocation,
+      hasTyre,
+      hasPrice: Boolean(draft.quote && !draft.priceNeedsRefresh),
+      hasSavedQuote: Boolean(savedQuoteRef),
+      quoteConfirmed,
+      hasPaymentChoice: Boolean(draft.paymentChoice),
+    });
+    setEditingStage(targetStage);
+    if (blockedReason) {
+      flashNotice({ kind: 'info', text: blockedReason });
+    } else {
+      setActionNotice(null);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
@@ -1124,7 +1148,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollPaddingBottom }]} keyboardShouldPersistTaps="handled">
         {!api.hasAdminToken ? <InlineNotice kind="warn">No admin token. Log in to enable API calls.</InlineNotice> : null}
         {actionNotice ? <StatusBanner kind={actionNotice.kind} message={actionNotice.text} /> : null}
         {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind === 'ok' ? 'ok' : quoteActions.message.kind === 'err' ? 'err' : 'info'} message={quoteActions.message.text} /> : null}
@@ -1136,7 +1160,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
           <AppButton label="Quotes" variant="secondary" onPress={() => setQuotesOpen(true)} style={styles.toolButton} />
         </View>
 
-        <Timeline items={workflow.timeline} />
+        <Timeline items={workflow.timeline} onSelect={handleSelectTimelineStep} />
 
         <View style={styles.summaryStack}>
           <SummaryCard
@@ -1239,14 +1263,13 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
             selectedPaymentOption,
             dispatch,
             handleCopyCustomerDetails,
-            handleCopyLocationDetails,
           })}
         </View>
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { paddingBottom: bottomBarPaddingBottom }]}>
         {editingStage ? (
           <AppButton label="Back" variant="ghost" onPress={() => setEditingStage(null)} style={styles.backButton} />
         ) : null}
@@ -1327,7 +1350,7 @@ interface RenderActiveStageArgs {
   selectedPaymentOption: AdminQuotePaymentOption;
   dispatch: ReturnType<typeof useAssistedChatDispatch>;
   handleCopyCustomerDetails: () => void | Promise<void>;
-  handleCopyLocationDetails: () => void | Promise<void>;
+
 }
 
 function renderActiveStage(args: RenderActiveStageArgs) {
@@ -1362,7 +1385,6 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     selectedPaymentOption,
     dispatch,
     handleCopyCustomerDetails,
-    handleCopyLocationDetails,
   } = args;
 
   if (activeStage === 'CUSTOMER') {
@@ -1416,9 +1438,9 @@ function renderActiveStage(args: RenderActiveStageArgs) {
 
   if (activeStage === 'LOCATION') {
     return (
-      <Pressable onLongPress={handleCopyLocationDetails} delayLongPress={350}>
+      <View>
         <LocationSection draft={draft} update={update} locationShare={locationShare} showInlineActions={false} />
-      </Pressable>
+      </View>
     );
   }
 
@@ -1564,16 +1586,26 @@ function stageLabel(stage: AssistedChatStage): string {
   return stage.charAt(0) + stage.slice(1).toLowerCase().replace(/_/g, ' ');
 }
 
-function Timeline({ items }: { items: AssistedChatTimelineItem[] }) {
+function Timeline({
+  items,
+  onSelect,
+}: {
+  items: AssistedChatTimelineItem[];
+  onSelect: (step: AssistedChatTimelineStep) => void;
+}) {
   return (
     <View style={styles.timeline}>
       {items.map((item) => (
-        <View
+        <Pressable
           key={item.key}
-          style={[
+          onPress={() => onSelect(item.key)}
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${item.label} section`}
+          style={({ pressed }) => [
             styles.timelineItem,
             item.state === 'done' && styles.timelineItemDone,
             item.state === 'active' && styles.timelineItemActive,
+            pressed && styles.timelineItemPressed,
           ]}
         >
           <Text
@@ -1586,10 +1618,70 @@ function Timeline({ items }: { items: AssistedChatTimelineItem[] }) {
           >
             {item.label}
           </Text>
-        </View>
+        </Pressable>
       ))}
     </View>
   );
+}
+
+function stageForTimelineStep(
+  step: AssistedChatTimelineStep,
+  ctx: { quoteConfirmed: boolean },
+): AssistedChatStage {
+  switch (step) {
+    case 'CUSTOMER':
+      return 'CUSTOMER';
+    case 'LOCATION':
+      return 'LOCATION';
+    case 'TYRE':
+      return 'TYRE';
+    case 'PRICE':
+      return 'PRICE';
+    case 'QUOTE':
+      return ctx.quoteConfirmed ? 'PAYMENT' : 'CONFIRMATION';
+    case 'PAYMENT':
+      return 'PAYMENT';
+    case 'DISPATCH':
+      return 'READY_TO_DISPATCH';
+  }
+}
+
+function blockedReasonForStage(
+  stage: AssistedChatStage,
+  ctx: {
+    hasCustomerDetails: boolean;
+    hasLocation: boolean;
+    hasTyre: boolean;
+    hasPrice: boolean;
+    hasSavedQuote: boolean;
+    quoteConfirmed: boolean;
+    hasPaymentChoice: boolean;
+  },
+): string | null {
+  switch (stage) {
+    case 'CUSTOMER':
+    case 'LOCATION':
+      return null;
+    case 'TYRE':
+      if (!ctx.hasLocation) return 'Confirm location before adding tyre details.';
+      return null;
+    case 'PRICE':
+      if (!ctx.hasLocation) return 'Complete location before pricing.';
+      if (!ctx.hasTyre) return 'Add tyre details before pricing.';
+      return null;
+    case 'QUOTE':
+    case 'CONFIRMATION':
+      if (!ctx.hasPrice) return 'Get a price before saving a quote.';
+      return null;
+    case 'PAYMENT':
+      if (!ctx.hasSavedQuote) return 'Save a quote before choosing payment.';
+      return null;
+    case 'READY_TO_DISPATCH':
+    case 'DISPATCHED':
+      if (!ctx.quoteConfirmed) return 'Confirm the quote before dispatch.';
+      if (!ctx.hasPaymentChoice) return 'Choose a payment option before dispatch.';
+      return null;
+  }
 }
 
 function SummaryCard({
@@ -2004,6 +2096,7 @@ const styles = StyleSheet.create({
   },
   timelineItemDone: { borderColor: colors.successBorder, backgroundColor: colors.successBg },
   timelineItemActive: { borderColor: colors.accent, backgroundColor: 'rgba(249,115,22,0.14)' },
+  timelineItemPressed: { opacity: 0.72 },
   timelineText: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '800' },
   timelineTextDone: { color: colors.success },
   timelineTextActive: { color: colors.accent },

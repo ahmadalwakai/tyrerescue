@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
+  PanGestureHandler,
   PinchGestureHandler,
   State,
+  type PanGestureHandlerGestureEvent,
+  type PanGestureHandlerStateChangeEvent,
   type PinchGestureHandlerGestureEvent,
   type PinchGestureHandlerStateChangeEvent,
 } from 'react-native-gesture-handler';
@@ -17,7 +20,7 @@ import { colors, fontSize, radius } from './theme';
 const GARAGE_LOCATION = { lat: 55.8547, lng: -4.2206 } as const;
 const GARAGE_LABEL = 'Tyre Rescue Garage';
 const MAP_MIN_ZOOM = 1;
-const MAP_MAX_ZOOM = 1.75;
+const MAP_MAX_ZOOM = 4;
 
 interface Props {
   draft: AssistedChatDraft;
@@ -240,7 +243,11 @@ export function LocationSection({
   const [mapImageFailed, setMapImageFailed] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [mapZoom, setMapZoom] = useState(1);
+  const [mapPan, setMapPan] = useState({ x: 0, y: 0 });
   const mapPinchStartZoom = useRef(1);
+  const mapPanStart = useRef({ x: 0, y: 0 });
+  const pinchHandlerRef = useRef(null);
+  const panHandlerRef = useRef(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const search = useCallback(async (query: string) => {
@@ -418,6 +425,7 @@ export function LocationSection({
   useEffect(() => {
     setMapImageFailed(false);
     setMapZoom(1);
+    setMapPan({ x: 0, y: 0 });
   }, [staticMapUrl]);
 
   const [pollClock, setPollClock] = useState(Date.now());
@@ -441,7 +449,13 @@ export function LocationSection({
   const lastCheckedSeconds = secondsSince(locationShare.lastPollAt, pollClock);
 
   const zoomInMap = () => setMapZoom((value) => Math.min(MAP_MAX_ZOOM, Number((value + 0.15).toFixed(2))));
-  const zoomOutMap = () => setMapZoom((value) => Math.max(MAP_MIN_ZOOM, Number((value - 0.15).toFixed(2))));
+  const zoomOutMap = () => {
+    setMapZoom((value) => {
+      const next = Math.max(MAP_MIN_ZOOM, Number((value - 0.15).toFixed(2)));
+      if (next <= MAP_MIN_ZOOM) setMapPan({ x: 0, y: 0 });
+      return next;
+    });
+  };
   const handleMapPinchStateChange = (event: PinchGestureHandlerStateChangeEvent) => {
     const { state } = event.nativeEvent;
     if (state === State.BEGAN) {
@@ -450,11 +464,28 @@ export function LocationSection({
     }
 
     if (state === State.END || state === State.CANCELLED || state === State.FAILED) {
-      setMapZoom((value) => Number(clampMapZoom(value).toFixed(2)));
+      setMapZoom((value) => {
+        const clamped = Number(clampMapZoom(value).toFixed(2));
+        if (clamped <= MAP_MIN_ZOOM) setMapPan({ x: 0, y: 0 });
+        return clamped;
+      });
     }
   };
   const handleMapPinch = (event: PinchGestureHandlerGestureEvent) => {
     setMapZoom(Number(clampMapZoom(mapPinchStartZoom.current * event.nativeEvent.scale).toFixed(2)));
+  };
+  const handleMapPanStateChange = (event: PanGestureHandlerStateChangeEvent) => {
+    const { state } = event.nativeEvent;
+    if (state === State.BEGAN) {
+      mapPanStart.current = mapPan;
+    }
+  };
+  const handleMapPan = (event: PanGestureHandlerGestureEvent) => {
+    if (mapZoom <= MAP_MIN_ZOOM) return;
+    setMapPan({
+      x: mapPanStart.current.x + event.nativeEvent.translationX,
+      y: mapPanStart.current.y + event.nativeEvent.translationY,
+    });
   };
 
   return (
@@ -533,29 +564,51 @@ export function LocationSection({
       {hasCoords ? (
         <View style={styles.confirmedBox}>
           <View style={[styles.mapWrap, mapExpanded && styles.mapWrapExpanded]}>
-            <PinchGestureHandler
-              onGestureEvent={handleMapPinch}
-              onHandlerStateChange={handleMapPinchStateChange}
+            <PanGestureHandler
+              ref={panHandlerRef}
+              simultaneousHandlers={pinchHandlerRef}
+              minPointers={1}
+              maxPointers={1}
+              avgTouches
+              enabled={mapZoom > MAP_MIN_ZOOM}
+              onGestureEvent={handleMapPan}
+              onHandlerStateChange={handleMapPanStateChange}
             >
-              <View style={styles.mapGestureLayer}>
-                {staticMapUrl && !mapImageFailed ? (
-                  <Image
-                    source={{ uri: staticMapUrl }}
-                    style={[styles.mapPreview, { transform: [{ scale: mapZoom }] }]}
-                    resizeMode="cover"
-                    alt="Garage to customer route map preview"
-                    onError={() => setMapImageFailed(true)}
-                  />
-                ) : (
-                  <View style={styles.mapFallback}>
-                    <Text style={styles.mapFallbackTitle}>Route map preview unavailable</Text>
-                    <Text style={styles.mapFallbackText}>
-                      Open directions or refresh the route to use live navigation.
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </PinchGestureHandler>
+              <PinchGestureHandler
+                ref={pinchHandlerRef}
+                simultaneousHandlers={panHandlerRef}
+                onGestureEvent={handleMapPinch}
+                onHandlerStateChange={handleMapPinchStateChange}
+              >
+                <View style={styles.mapGestureLayer}>
+                  {staticMapUrl && !mapImageFailed ? (
+                    <Image
+                      source={{ uri: staticMapUrl }}
+                      style={[
+                        styles.mapPreview,
+                        {
+                          transform: [
+                            { translateX: mapPan.x },
+                            { translateY: mapPan.y },
+                            { scale: mapZoom },
+                          ],
+                        },
+                      ]}
+                      resizeMode="cover"
+                      alt="Garage to customer route map preview"
+                      onError={() => setMapImageFailed(true)}
+                    />
+                  ) : (
+                    <View style={styles.mapFallback}>
+                      <Text style={styles.mapFallbackTitle}>Route map preview unavailable</Text>
+                      <Text style={styles.mapFallbackText}>
+                        Open directions or refresh the route to use live navigation.
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </PinchGestureHandler>
+            </PanGestureHandler>
             <View style={styles.mapTopOverlay}>
               <View style={styles.legendPill}>
                 <View style={[styles.legendDot, styles.garageDot]} />
