@@ -7,7 +7,7 @@ import {
   buildAdminAlertEmailTemplate,
   type AdminAlertTemplateField,
 } from './admin-email-templates';
-import { getAppOrigin } from '@/lib/config/site';
+import { getOutboundUrl } from '@/lib/config/site';
 
 type EmailEventCategory =
   | 'Emergency Call Out'
@@ -101,10 +101,10 @@ async function sendViaZeptoMail(options: {
 }
 
 function getBaseAppUrl(): string {
-  // getAppOrigin() already enforces the production guard and trims the
-  // trailing slash. DEFAULT_APP_URL retained as documentation only.
+  // getOutboundUrl() always returns the canonical production URL, ensuring
+  // admin alert links are never pointing at localhost.
   void DEFAULT_APP_URL;
-  return getAppOrigin();
+  return getOutboundUrl();
 }
 
 function toAbsoluteAdminUrl(pathOrUrl: string | undefined, fallbackPath: string): string {

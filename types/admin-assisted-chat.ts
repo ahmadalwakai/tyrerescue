@@ -68,6 +68,10 @@ export interface AssistedChatQuoteBreakdown {
 export interface AssistedChatDraft {
   /** ID of the underlying quick_bookings row (created on first "Get price"). */
   quickBookingId: string | null;
+  /** Saved internal admin quote id, when this priced draft has been stored. */
+  savedQuoteId: string | null;
+  /** Human-friendly saved internal quote ref, e.g. TRQ-1048. */
+  savedQuoteRef: string | null;
   customer: AssistedChatCustomer;
   location: AssistedChatLocation;
   tyre: AssistedChatTyreSelection;

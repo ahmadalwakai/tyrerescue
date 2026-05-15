@@ -33,6 +33,10 @@ interface Props {
   afterGetPriceSlot?: ReactNode;
   /** Optional slot rendered after the payment buttons (e.g. customer message card / payment recovery). */
   afterPaymentSlot?: ReactNode;
+  /** Guided screens use the sticky primary CTA instead of an inline Get price button. */
+  showGetPriceAction?: boolean;
+  /** Guided screens render exactly one payment selector elsewhere. */
+  showPaymentOptions?: boolean;
 }
 
 export function PriceSummary({
@@ -54,6 +58,8 @@ export function PriceSummary({
   priceNeedsRefresh,
   afterGetPriceSlot,
   afterPaymentSlot,
+  showGetPriceAction = true,
+  showPaymentOptions = true,
 }: Props) {
   const baseTotal = quote?.total ?? 0;
   const effectiveTotal = baseTotal + lockingNutCharge;
@@ -82,13 +88,15 @@ export function PriceSummary({
           <StatusBanner kind="warn" message="Price needs refresh. Address or tyre details changed after the last quote." />
         </View>
       ) : null}
-      <AppButton
-        label={loading ? stageLabels[Math.max(0, stageIdx)] + '…' : 'Get price'}
-        onPress={onGetPrice}
-        loading={loading}
-        disabled={loading || pricingBlocked === true}
-        fullWidth
-      />
+      {showGetPriceAction ? (
+        <AppButton
+          label={loading ? stageLabels[Math.max(0, stageIdx)] + '…' : 'Get price'}
+          onPress={onGetPrice}
+          loading={loading}
+          disabled={loading || pricingBlocked === true}
+          fullWidth
+        />
+      ) : null}
 
       {error ? (
         <View style={{ marginTop: 10 }}>
@@ -156,7 +164,7 @@ export function PriceSummary({
         </View>
       ) : null}
 
-      {quote ? (
+      {quote && showPaymentOptions ? (
         <View style={{ marginTop: 14, gap: 8 }}>
           <Text style={styles.payLabel}>Choose payment</Text>
           <View style={{ gap: 8 }}>

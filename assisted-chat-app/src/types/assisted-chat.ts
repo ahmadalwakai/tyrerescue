@@ -64,6 +64,8 @@ export interface AssistedChatDraft {
   tyre: AssistedChatTyreSelection;
   lockingNut: AssistedChatLockingWheelNut;
   quickBookingId: string | null;
+  savedQuoteId: string | null;
+  savedQuoteRef: string | null;
   note: string;
   quote: AssistedChatQuoteBreakdown | null;
   priceNeedsRefresh: boolean;

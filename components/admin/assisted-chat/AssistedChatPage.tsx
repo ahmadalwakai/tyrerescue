@@ -16,6 +16,7 @@ import {
 } from '@chakra-ui/react';
 import { colorTokens as c, inputProps, textareaProps } from '@/lib/design-tokens';
 import { QuickBookMap } from '@/components/admin/quick-book/QuickBookMap';
+import { AdminQuotePanel } from '@/components/admin/assisted-chat/AdminQuotePanel';
 import { useAssistedChatDraft } from '@/lib/hooks/useAssistedChatDraft';
 import type {
   AssistedChatPaymentChoice,
@@ -24,6 +25,7 @@ import type {
   AssistedChatServiceOrigin,
   LockingNutAnswer,
 } from '@/types/admin-assisted-chat';
+import type { AdminQuote } from '@/types/admin-quotes';
 
 const GBP = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
 
@@ -461,7 +463,14 @@ export function AssistedChatPage() {
         serviceOrigin: breakdown.serviceOrigin ?? null,
         distanceKm: distanceKmStr ? Number(distanceKmStr) : null,
       };
-      update({ quickBookingId: qbId, quote: next, paymentChoice: null, dispatchedRefNumber: null });
+      update({
+        quickBookingId: qbId,
+        savedQuoteId: null,
+        savedQuoteRef: null,
+        quote: next,
+        paymentChoice: null,
+        dispatchedRefNumber: null,
+      });
     },
     [update],
   );
@@ -850,6 +859,63 @@ export function AssistedChatPage() {
     setCopyState('idle');
     syncedRef.current = false;
   };
+
+  const handleApplySavedQuote = useCallback(
+    (quote: AdminQuote) => {
+      const total = quote.priceAmount / 100;
+      const nextQuote: AssistedChatQuoteBreakdown = {
+        subtotal: total,
+        vatAmount: 0,
+        total,
+        lineItems: [
+          {
+            label: `Saved quote ${quote.quoteRef}`,
+            amount: total,
+            type: 'quote',
+          },
+        ],
+        serviceOrigin: null,
+        distanceKm: null,
+      };
+      update({
+        quickBookingId: quote.quickBookingId,
+        savedQuoteId: quote.id,
+        savedQuoteRef: quote.quoteRef,
+        customer: {
+          ...draft.customer,
+          name: quote.customerName ?? draft.customer.name,
+          phone: quote.customerPhone ?? draft.customer.phone,
+        },
+        location: {
+          label: quote.address ?? '',
+          lat: quote.latitude,
+          lng: quote.longitude,
+          postcode: quote.postcode,
+        },
+        tyre: {
+          size: quote.tyreSize ?? '',
+          quantity: quote.quantity,
+        },
+        lockingNut: {
+          answer:
+            quote.lockingWheelNutStatus === 'yes' || quote.lockingWheelNutStatus === 'no'
+              ? quote.lockingWheelNutStatus
+              : 'unknown',
+          chargeGbp: quote.lockingWheelNutChargePence ? quote.lockingWheelNutChargePence / 100 : null,
+        },
+        note: quote.internalNotes ?? '',
+        quote: nextQuote,
+        paymentChoice: null,
+        dispatchedRefNumber: null,
+      });
+      setPhoneInput(quote.customerPhone ?? '');
+      setAddressInput(quote.address ?? '');
+      setTyreSizeInput(quote.tyreSize ?? '');
+      setNoteInput(quote.internalNotes ?? '');
+      setLockingNutChargeInput(quote.lockingWheelNutChargePence ? String(quote.lockingWheelNutChargePence / 100) : '');
+    },
+    [draft.customer, update],
+  );
 
   // ── Build chat transcript ──
   const transcript = useMemo<ChatLine[]>(() => {
@@ -1287,6 +1353,17 @@ export function AssistedChatPage() {
                 </Text>
               )}
             </Box>
+
+            {/* ── Saved quote actions ── */}
+            {draft.quote && (
+              <AdminQuotePanel
+                draft={draft}
+                effectiveTotal={effectiveTotal}
+                lockingNutCharge={lockingNutCharge}
+                update={update}
+                onApplyQuote={handleApplySavedQuote}
+              />
+            )}
 
             {/* ── Payment choices ── */}
             {draft.quote && (

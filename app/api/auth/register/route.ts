@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAppOrigin } from '@/lib/config/site';
+import { getOutboundUrl } from '@/lib/config/site';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { db } from '@/lib/db';
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       expiresAt,
     });
 
-    const siteUrl = getAppOrigin();
+    const siteUrl = getOutboundUrl();
     const verifyUrl = `${siteUrl}/verify-email/${verifyToken}`;
 
     // Send welcome email

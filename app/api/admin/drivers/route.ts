@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAppOrigin } from '@/lib/config/site';
+import { getOutboundUrl } from '@/lib/config/site';
 import { requireAdmin, hashPassword } from '@/lib/auth';
 import { db, users, drivers } from '@/lib/db';
 import { eq } from 'drizzle-orm';
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
 
     // Send welcome email to driver with credentials
     try {
-      const siteUrl = getAppOrigin();
+      const siteUrl = getOutboundUrl();
       const welcomeEmail = driverWelcome({
         name: name.trim(),
         email: email.toLowerCase(),

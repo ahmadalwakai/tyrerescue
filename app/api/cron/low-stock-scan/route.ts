@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAppOrigin } from '@/lib/config/site';
+import { getOutboundUrl } from '@/lib/config/site';
 import { db } from '@/lib/db';
 import { tyreProducts } from '@/lib/db/schema';
 import { lte, sql } from 'drizzle-orm';
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const siteUrl = getAppOrigin();
+  const siteUrl = getOutboundUrl();
 
   // Find products with low stock
   const lowStock = await db

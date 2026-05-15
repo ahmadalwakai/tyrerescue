@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
+import { normalizeAssistedChatTyreSize } from '@/lib/assisted-chat-workflow';
 import type {
   AssistedChatDraft,
   AssistedChatQuoteBreakdown,
@@ -62,6 +63,8 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
 
       update({
         quickBookingId,
+        savedQuoteId: null,
+        savedQuoteRef: null,
         quote,
         priceNeedsRefresh: false,
         paymentChoice: null,
@@ -76,8 +79,9 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
     if (inflight.current) return;
     setError(null);
 
-    if (!draft.tyre.size.trim()) {
-      setError('Enter a tyre size before pricing.');
+    const normalizedTyreSize = normalizeAssistedChatTyreSize(draft.tyre.size);
+    if (!normalizedTyreSize) {
+      setError('Enter a valid tyre size before pricing.');
       return;
     }
     if (draft.tyre.quantity < 1) {
@@ -116,7 +120,7 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
             locationLat: draft.location.lat,
             locationLng: draft.location.lng,
             serviceType: 'fit',
-            tyreSize: draft.tyre.size.trim(),
+            tyreSize: normalizedTyreSize,
             tyreCount: draft.tyre.quantity,
             notes: draft.note || undefined,
           });
@@ -134,7 +138,7 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
           locationLng: draft.location.lng,
           locationAddress: draft.location.address || null,
           locationPostcode: draft.location.postcode || null,
-          tyreSize: draft.tyre.size.trim(),
+          tyreSize: normalizedTyreSize,
           tyreCount: draft.tyre.quantity,
           notes: draft.note || null,
           adminAdjustmentAmount: 0,
@@ -150,13 +154,30 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
       const [result] = await Promise.all([apiCall, runStagedDelay()]);
       applyQuote(result.quickBookingId, result.breakdown, result.distanceKm);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      // Stale quick_booking row (deleted by another admin, expired cleanup,
+      // or wiped DB in dev) — clear the saved id so the next press creates
+      // a fresh one. Never crash, never loop.
+      if (err instanceof ApiError && err.status === 404 && draft.quickBookingId) {
+        update({
+          quickBookingId: null,
+          savedQuoteId: null,
+          savedQuoteRef: null,
+          quote: null,
+          priceNeedsRefresh: true,
+          paymentChoice: null,
+          paymentLink: null,
+          dispatchedRefNumber: null,
+        });
+        setError('This quick booking session expired. Tap Get Price again to start a new one.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
     } finally {
       setLoading(false);
       setStageIdx(-1);
       inflight.current = false;
     }
-  }, [draft, applyQuote, runStagedDelay]);
+  }, [draft, applyQuote, runStagedDelay, update]);
 
   return {
     getPrice,

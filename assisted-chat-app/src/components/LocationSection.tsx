@@ -1,27 +1,39 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { api } from '@/lib/api';
+import {
+  PinchGestureHandler,
+  State,
+  type PinchGestureHandlerGestureEvent,
+  type PinchGestureHandlerStateChangeEvent,
+} from 'react-native-gesture-handler';
 import { copyToClipboard } from '@/lib/clipboard';
 import { extractPostcode, getMapboxToken, searchMapboxAddress, type MapboxFeature } from '@/lib/mapbox';
-import type {
-  AssistedChatDraft,
-  AssistedChatLocationMethod,
-  AssistedChatQuoteBreakdown,
-  QuickBookCreateResponse,
-  QuickBookGetResponse,
-  SendLinkResponse,
-} from '@/types/assisted-chat';
+import { isValidUkPhone } from '@/lib/money';
+import type { AssistedChatDraft, AssistedChatLocationMethod } from '@/types/assisted-chat';
+import type { LocationShareMessage, LocationShareMethod, LocationShareProgress } from '@/hooks/useAssistedChatLocationShare';
 import { AppButton, FieldLabel, SectionCard, StatusBanner } from './ui';
 import { colors, fontSize, radius } from './theme';
 
-const PLACEHOLDER_NAME = 'Walk-in customer';
-const PLACEHOLDER_PHONE = '0000000000';
 const GARAGE_LOCATION = { lat: 55.8547, lng: -4.2206 } as const;
 const GARAGE_LABEL = 'Tyre Rescue Garage';
+const MAP_MIN_ZOOM = 1;
+const MAP_MAX_ZOOM = 1.75;
 
 interface Props {
   draft: AssistedChatDraft;
   update: (patch: Partial<AssistedChatDraft>) => void;
+  locationShare: {
+    busy: LocationShareMethod | null;
+    message: LocationShareMessage | null;
+    isPolling: LocationShareProgress['isPolling'];
+    lastPollAt: LocationShareProgress['lastPollAt'];
+    lastPollingError: LocationShareProgress['lastPollingError'];
+    staleReason: LocationShareProgress['staleReason'];
+    setMessage: (message: LocationShareMessage | null) => void;
+    requestLink: (method: LocationShareMethod) => Promise<void>;
+  };
+  showInlineActions?: boolean;
+  displayMode?: 'full' | 'mapOnly';
 }
 
 interface RouteInfo {
@@ -36,6 +48,128 @@ interface DirectionsResponse {
     duration?: number;
     geometry?: string;
   }>;
+}
+
+type LocationRequestState =
+  | 'IDLE'
+  | 'CREATING_LINK'
+  | 'LINK_READY'
+  | 'WAITING_FOR_CUSTOMER'
+  | 'POLLING'
+  | 'LOCATION_RECEIVED'
+  | 'ROUTE_READY'
+  | 'FAILED'
+  | 'EXPIRED_OR_STALE';
+
+interface LocationRequestViewState {
+  state: LocationRequestState;
+  label: string;
+  detail: string;
+  helper: string | null;
+  tone: 'idle' | 'busy' | 'ok' | 'warn' | 'err';
+}
+
+function secondsSince(timestamp: number | null, now: number): number | null {
+  if (!timestamp) return null;
+  return Math.max(0, Math.floor((now - timestamp) / 1000));
+}
+
+function buildLocationRequestViewState({
+  busy,
+  hasLink,
+  hasCoords,
+  hasRoute,
+  isPolling,
+  lastPollingError,
+  staleReason,
+  message,
+}: {
+  busy: LocationShareMethod | null;
+  hasLink: boolean;
+  hasCoords: boolean;
+  hasRoute: boolean;
+  isPolling: boolean;
+  lastPollingError: string | null;
+  staleReason: string | null;
+  message: LocationShareMessage | null;
+}): LocationRequestViewState {
+  if (staleReason) {
+    return {
+      state: 'EXPIRED_OR_STALE',
+      label: 'Request expired or no longer available',
+      detail: 'Send a fresh location link to continue.',
+      helper: staleReason,
+      tone: 'err',
+    };
+  }
+
+  if (message?.kind === 'err' || lastPollingError) {
+    return {
+      state: 'FAILED',
+      label: 'Location request failed',
+      detail: message?.text ?? lastPollingError ?? 'Try sending the link again if the customer is stuck.',
+      helper: hasLink ? 'Try sending the link again if the customer is stuck.' : null,
+      tone: 'err',
+    };
+  }
+
+  if (hasRoute) {
+    return {
+      state: 'ROUTE_READY',
+      label: 'Route calculated',
+      detail: 'Customer location and route are ready.',
+      helper: null,
+      tone: 'ok',
+    };
+  }
+
+  if (hasCoords) {
+    return {
+      state: 'LOCATION_RECEIVED',
+      label: 'Location received',
+      detail: 'Customer coordinates have arrived.',
+      helper: null,
+      tone: 'ok',
+    };
+  }
+
+  if (busy) {
+    return {
+      state: 'CREATING_LINK',
+      label: 'Creating secure location link...',
+      detail: 'Preparing the request for the customer.',
+      helper: 'Please keep this screen open for a moment.',
+      tone: 'busy',
+    };
+  }
+
+  if (hasLink && isPolling) {
+    return {
+      state: 'POLLING',
+      label: 'Checking for location every few seconds...',
+      detail: "Keep this screen open. We are listening for the customer's location.",
+      helper: 'Try sending the link again if the customer is stuck.',
+      tone: 'busy',
+    };
+  }
+
+  if (hasLink) {
+    return {
+      state: 'WAITING_FOR_CUSTOMER',
+      label: 'Waiting for customer to share location...',
+      detail: "Keep this screen open. We are listening for the customer's location.",
+      helper: 'Try sending the link again if the customer is stuck.',
+      tone: 'warn',
+    };
+  }
+
+  return {
+    state: 'IDLE',
+    label: 'No location request yet',
+    detail: 'Send a secure link when the customer needs to share their position.',
+    helper: null,
+    tone: 'idle',
+  };
 }
 
 function encodeSigned(value: number): string {
@@ -64,19 +198,29 @@ function encodePolyline(points: Array<{ lat: number; lng: number }>): string {
     .join('');
 }
 
-function quoteFromBooking(booking: QuickBookCreateResponse['booking']): AssistedChatQuoteBreakdown | null {
-  if (!booking.priceBreakdown) return null;
-  return {
-    subtotal: booking.priceBreakdown.subtotal,
-    vatAmount: booking.priceBreakdown.vatAmount,
-    total: booking.priceBreakdown.total,
-    lineItems: booking.priceBreakdown.lineItems,
-    serviceOrigin: booking.priceBreakdown.serviceOrigin ?? null,
-    distanceKm: booking.distanceKm ? Number(booking.distanceKm) : null,
-  };
+function clampMapZoom(value: number): number {
+  return Math.min(MAP_MAX_ZOOM, Math.max(MAP_MIN_ZOOM, value));
 }
 
-export function LocationSection({ draft, update }: Props) {
+function buildLiveRoutePathOverlays(encodedPolyline: string | null, fallbackPolyline: string | null): string[] {
+  const polyline = encodedPolyline ?? fallbackPolyline;
+  if (!polyline) return [];
+  const encoded = encodeURIComponent(polyline);
+  return [
+    `path-9+111827-0.28(${encoded})`,
+    `path-6+f97316-0.96(${encoded})`,
+    `path-2+fff7ed-0.9(${encoded})`,
+  ];
+}
+
+export function LocationSection({
+  draft,
+  update,
+  locationShare,
+  showInlineActions = true,
+  displayMode = 'full',
+}: Props) {
+  const { busy, message, setMessage, requestLink } = locationShare;
   const [addressInput, setAddressInput] = useState(draft.location.address);
   const [lastAddress, setLastAddress] = useState(draft.location.address);
   if (lastAddress !== draft.location.address) {
@@ -87,8 +231,6 @@ export function LocationSection({ draft, update }: Props) {
   const [suggestions, setSuggestions] = useState<MapboxFeature[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searching, setSearching] = useState(false);
-  const [busy, setBusy] = useState<'copy' | 'whatsapp' | 'sms' | 'email' | null>(null);
-  const [message, setMessage] = useState<{ kind: 'ok' | 'err' | 'info' | 'warn'; text: string } | null>(null);
   const [routeInfo, setRouteInfo] = useState<RouteInfo>({
     encodedPolyline: null,
     drivingKm: null,
@@ -98,33 +240,8 @@ export function LocationSection({ draft, update }: Props) {
   const [mapImageFailed, setMapImageFailed] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [mapZoom, setMapZoom] = useState(1);
+  const mapPinchStartZoom = useRef(1);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const applyBooking = useCallback(
-    (booking: QuickBookCreateResponse['booking'], extra?: Partial<AssistedChatDraft['location']>) => {
-      const lat = booking.locationLat ? Number(booking.locationLat) : null;
-      const lng = booking.locationLng ? Number(booking.locationLng) : null;
-      const quote = quoteFromBooking(booking);
-      update({
-        quickBookingId: booking.id,
-        location: {
-          ...draft.location,
-          ...extra,
-          address: booking.locationAddress ?? extra?.address ?? draft.location.address,
-          lat,
-          lng,
-          postcode: booking.locationPostcode ?? extra?.postcode ?? draft.location.postcode,
-          status: lat != null && lng != null ? 'received' : extra?.status ?? draft.location.status,
-        },
-        quote: quote ?? draft.quote,
-        priceNeedsRefresh: false,
-        paymentChoice: null,
-        paymentLink: null,
-        dispatchedRefNumber: null,
-      });
-    },
-    [draft.location, draft.quote, update],
-  );
 
   const search = useCallback(async (query: string) => {
     if (query.trim().length < 3) {
@@ -201,109 +318,6 @@ export function LocationSection({ draft, update }: Props) {
       dispatchedRefNumber: null,
     });
   };
-
-  const ensureQuickBooking = useCallback(
-    async (method: AssistedChatLocationMethod): Promise<{ id: string; locationLink: string | null; whatsappLink: string | null }> => {
-      if (draft.quickBookingId) {
-        return {
-          id: draft.quickBookingId,
-          locationLink: draft.location.link,
-          whatsappLink: draft.location.whatsappLink,
-        };
-      }
-      const created = await api.post<QuickBookCreateResponse>('/api/admin/quick-book', {
-        customerName: draft.customer.name.trim() || PLACEHOLDER_NAME,
-        customerPhone: draft.customer.phone.trim() || PLACEHOLDER_PHONE,
-        customerEmail: draft.customer.email.trim() || undefined,
-        locationMethod: method,
-        locationAddress: method === 'address' ? draft.location.address : undefined,
-        locationLat: method === 'address' && draft.location.lat != null ? draft.location.lat : undefined,
-        locationLng: method === 'address' && draft.location.lng != null ? draft.location.lng : undefined,
-        serviceType: 'fit',
-        tyreSize: draft.tyre.size.trim() || undefined,
-        tyreCount: draft.tyre.quantity,
-        notes: draft.note || undefined,
-      });
-      applyBooking(created.booking, {
-        method,
-        link: created.locationLink,
-        whatsappLink: created.whatsappLink,
-        status: method === 'link' ? 'pending' : created.booking.locationLat ? 'received' : 'idle',
-      });
-      return {
-        id: created.booking.id,
-        locationLink: created.locationLink,
-        whatsappLink: created.whatsappLink,
-      };
-    },
-    [applyBooking, draft],
-  );
-
-  const requestLink = useCallback(
-    async (method: 'copy' | 'whatsapp' | 'sms' | 'email') => {
-      setMessage(null);
-      setBusy(method);
-      try {
-        const ensured = await ensureQuickBooking('link');
-        const result = await api.post<SendLinkResponse>('/api/admin/quick-book/send-link', {
-          quickBookingId: ensured.id,
-          method,
-        });
-        if (!result.ok && result.error) {
-          setMessage({ kind: 'err', text: result.error });
-          return;
-        }
-
-        const rawLocationLink = method === 'copy' ? result.link ?? ensured.locationLink : ensured.locationLink;
-        const whatsappLink = method === 'whatsapp' ? result.link ?? ensured.whatsappLink : ensured.whatsappLink;
-        update({
-          location: {
-            ...draft.location,
-            method: 'link',
-            link: rawLocationLink,
-            whatsappLink,
-            status: 'pending',
-          },
-          ...(draft.quote || draft.priceNeedsRefresh
-            ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null }
-            : {}),
-        });
-
-        if (method === 'copy') {
-          const ok = await copyToClipboard(result.message ?? result.link ?? '');
-          setMessage({ kind: ok ? 'ok' : 'err', text: ok ? 'Location message copied.' : 'Could not copy location message.' });
-        } else if (method === 'whatsapp' && result.link) {
-          await Linking.openURL(result.link);
-          setMessage({ kind: 'ok', text: 'WhatsApp opened.' });
-        } else if (method === 'sms') {
-          setMessage({ kind: 'ok', text: result.message ?? 'SMS sent successfully.' });
-        } else if (method === 'email') {
-          setMessage({ kind: 'ok', text: result.message ?? 'Email sent successfully.' });
-        }
-      } catch (err) {
-        setMessage({ kind: 'err', text: err instanceof Error ? err.message : 'Location link action failed.' });
-      } finally {
-        setBusy(null);
-      }
-    },
-    [draft.location, draft.priceNeedsRefresh, draft.quote, ensureQuickBooking, update],
-  );
-
-  useEffect(() => {
-    if (draft.location.method !== 'link' || draft.location.status !== 'pending' || !draft.quickBookingId) return;
-    const interval = setInterval(async () => {
-      try {
-        const data = await api.get<QuickBookGetResponse>(`/api/admin/quick-book/${draft.quickBookingId}`);
-        if (data.booking.locationLat && data.booking.locationLng) {
-          applyBooking(data.booking, { method: 'link' });
-          setMessage({ kind: 'ok', text: 'Location shared by customer.' });
-        }
-      } catch {
-        // Keep polling; transient network errors should not reset the operator flow.
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [applyBooking, draft.location.method, draft.location.status, draft.quickBookingId]);
 
   const openMaps = async () => {
     if (draft.location.lat == null || draft.location.lng == null) return;
@@ -386,14 +400,11 @@ export function LocationSection({ draft, update }: Props) {
         { lat: draft.location.lat!, lng: draft.location.lng! },
       ])
     : null;
+  const routePathOverlays = buildLiveRoutePathOverlays(routeInfo.encodedPolyline, fallbackPolyline);
   const overlays = hasCoords
     ? [
         `pin-s-g+f97316(${GARAGE_LOCATION.lng},${GARAGE_LOCATION.lat})`,
-        routeInfo.encodedPolyline
-          ? `path-5+f97316-0.85(${encodeURIComponent(routeInfo.encodedPolyline)})`
-          : fallbackPolyline
-          ? `path-4+f97316-0.65(${encodeURIComponent(fallbackPolyline)})`
-          : null,
+        ...routePathOverlays,
         `pin-s-c+22c55e(${draft.location.lng},${draft.location.lat})`,
       ].filter(Boolean)
     : [];
@@ -409,11 +420,47 @@ export function LocationSection({ draft, update }: Props) {
     setMapZoom(1);
   }, [staticMapUrl]);
 
-  const zoomInMap = () => setMapZoom((value) => Math.min(1.75, Number((value + 0.15).toFixed(2))));
-  const zoomOutMap = () => setMapZoom((value) => Math.max(1, Number((value - 0.15).toFixed(2))));
+  const [pollClock, setPollClock] = useState(Date.now());
+  useEffect(() => {
+    if (!locationShare.isPolling || !locationShare.lastPollAt) return;
+    const interval = setInterval(() => setPollClock(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [locationShare.isPolling, locationShare.lastPollAt]);
+
+  const hasRoute = hasCoords && (distanceMiles != null || eta != null);
+  const requestViewState = buildLocationRequestViewState({
+    busy,
+    hasLink: Boolean(draft.location.link),
+    hasCoords,
+    hasRoute,
+    isPolling: locationShare.isPolling,
+    lastPollingError: locationShare.lastPollingError,
+    staleReason: locationShare.staleReason,
+    message,
+  });
+  const lastCheckedSeconds = secondsSince(locationShare.lastPollAt, pollClock);
+
+  const zoomInMap = () => setMapZoom((value) => Math.min(MAP_MAX_ZOOM, Number((value + 0.15).toFixed(2))));
+  const zoomOutMap = () => setMapZoom((value) => Math.max(MAP_MIN_ZOOM, Number((value - 0.15).toFixed(2))));
+  const handleMapPinchStateChange = (event: PinchGestureHandlerStateChangeEvent) => {
+    const { state } = event.nativeEvent;
+    if (state === State.BEGAN) {
+      mapPinchStartZoom.current = mapZoom;
+      return;
+    }
+
+    if (state === State.END || state === State.CANCELLED || state === State.FAILED) {
+      setMapZoom((value) => Number(clampMapZoom(value).toFixed(2)));
+    }
+  };
+  const handleMapPinch = (event: PinchGestureHandlerGestureEvent) => {
+    setMapZoom(Number(clampMapZoom(mapPinchStartZoom.current * event.nativeEvent.scale).toFixed(2)));
+  };
 
   return (
-    <SectionCard title="Location">
+    <SectionCard title={displayMode === 'mapOnly' ? 'Route map' : 'Location'}>
+      {displayMode === 'full' ? (
+        <>
       <View style={styles.modeRow}>
         {(['address', 'link'] as const).map((method) => (
           <Pressable
@@ -468,35 +515,47 @@ export function LocationSection({ draft, update }: Props) {
         <View style={styles.linkBox}>
           <Text style={styles.linkHelp}>A location sharing link will be generated. Send via WhatsApp, SMS, email, or copy it. Expires in 2 hours.</Text>
           {draft.location.link ? <Text style={styles.linkText} selectable>{draft.location.link}</Text> : null}
-          {draft.location.status === 'pending' ? <StatusBanner kind="warn" message="Waiting for customer location. Polling every 3 seconds." /> : null}
-          <View style={styles.actionGrid}>
-            <AppButton label="Copy" variant="secondary" onPress={() => requestLink('copy')} loading={busy === 'copy'} fullWidth />
-            <AppButton label="WhatsApp" variant="secondary" onPress={() => requestLink('whatsapp')} loading={busy === 'whatsapp'} fullWidth />
-            <AppButton label="SMS" variant="secondary" onPress={() => requestLink('sms')} loading={busy === 'sms'} fullWidth />
-            <AppButton label="Email" variant="secondary" onPress={() => requestLink('email')} loading={busy === 'email'} disabled={!draft.customer.email.trim()} fullWidth />
-          </View>
+          <LocationRequestStatusCard
+            viewState={requestViewState}
+            lastCheckedSeconds={lastCheckedSeconds}
+            hasLink={Boolean(draft.location.link)}
+            canSendWhatsApp={Boolean(draft.customer.phone.trim())}
+            canSendSms={isValidUkPhone(draft.customer.phone)}
+            canSendEmail={Boolean(draft.customer.email.trim())}
+            busy={busy}
+            requestLink={requestLink}
+          />
         </View>
       )}
+        </>
+      ) : null}
 
       {hasCoords ? (
         <View style={styles.confirmedBox}>
           <View style={[styles.mapWrap, mapExpanded && styles.mapWrapExpanded]}>
-            {staticMapUrl && !mapImageFailed ? (
-              <Image
-                source={{ uri: staticMapUrl }}
-                style={[styles.mapPreview, { transform: [{ scale: mapZoom }] }]}
-                resizeMode="cover"
-                alt="Garage to customer route map preview"
-                onError={() => setMapImageFailed(true)}
-              />
-            ) : (
-              <View style={styles.mapFallback}>
-                <Text style={styles.mapFallbackTitle}>Route map preview unavailable</Text>
-                <Text style={styles.mapFallbackText}>
-                  Open directions or refresh the route to use live navigation.
-                </Text>
+            <PinchGestureHandler
+              onGestureEvent={handleMapPinch}
+              onHandlerStateChange={handleMapPinchStateChange}
+            >
+              <View style={styles.mapGestureLayer}>
+                {staticMapUrl && !mapImageFailed ? (
+                  <Image
+                    source={{ uri: staticMapUrl }}
+                    style={[styles.mapPreview, { transform: [{ scale: mapZoom }] }]}
+                    resizeMode="cover"
+                    alt="Garage to customer route map preview"
+                    onError={() => setMapImageFailed(true)}
+                  />
+                ) : (
+                  <View style={styles.mapFallback}>
+                    <Text style={styles.mapFallbackTitle}>Route map preview unavailable</Text>
+                    <Text style={styles.mapFallbackText}>
+                      Open directions or refresh the route to use live navigation.
+                    </Text>
+                  </View>
+                )}
               </View>
-            )}
+            </PinchGestureHandler>
             <View style={styles.mapTopOverlay}>
               <View style={styles.legendPill}>
                 <View style={[styles.legendDot, styles.garageDot]} />
@@ -518,40 +577,46 @@ export function LocationSection({ draft, update }: Props) {
               <View style={styles.mapZoomRow}>
                 <Pressable
                   onPress={zoomOutMap}
-                  disabled={mapZoom <= 1}
+                  disabled={mapZoom <= MAP_MIN_ZOOM}
                   accessibilityLabel="Zoom route map out"
                   style={({ pressed }) => [
                     styles.mapControlButton,
                     styles.mapZoomButton,
-                    mapZoom <= 1 && styles.mapControlButtonDisabled,
-                    pressed && mapZoom > 1 && styles.mapControlButtonPressed,
+                    mapZoom <= MAP_MIN_ZOOM && styles.mapControlButtonDisabled,
+                    pressed && mapZoom > MAP_MIN_ZOOM && styles.mapControlButtonPressed,
                   ]}
                 >
-                  <Text style={[styles.mapControlText, mapZoom <= 1 && styles.mapControlTextDisabled]}>-</Text>
+                  <Text style={[styles.mapControlText, mapZoom <= MAP_MIN_ZOOM && styles.mapControlTextDisabled]}>-</Text>
                 </Pressable>
                 <Pressable
                   onPress={zoomInMap}
-                  disabled={mapZoom >= 1.75}
+                  disabled={mapZoom >= MAP_MAX_ZOOM}
                   accessibilityLabel="Zoom route map in"
                   style={({ pressed }) => [
                     styles.mapControlButton,
                     styles.mapZoomButton,
-                    mapZoom >= 1.75 && styles.mapControlButtonDisabled,
-                    pressed && mapZoom < 1.75 && styles.mapControlButtonPressed,
+                    mapZoom >= MAP_MAX_ZOOM && styles.mapControlButtonDisabled,
+                    pressed && mapZoom < MAP_MAX_ZOOM && styles.mapControlButtonPressed,
                   ]}
                 >
-                  <Text style={[styles.mapControlText, mapZoom >= 1.75 && styles.mapControlTextDisabled]}>+</Text>
+                  <Text style={[styles.mapControlText, mapZoom >= MAP_MAX_ZOOM && styles.mapControlTextDisabled]}>+</Text>
                 </Pressable>
               </View>
             </View>
             <View style={styles.mapBottomOverlay}>
-              <Text style={styles.mapRouteTitle}>{GARAGE_LABEL} route</Text>
+              <View style={styles.mapRouteHeader}>
+                <Text style={styles.mapRouteTitle} numberOfLines={1}>{GARAGE_LABEL} route</Text>
+                <View style={styles.routeStatusPill}>
+                  <View style={styles.routeStatusDot} />
+                  <Text style={styles.routeStatusText}>Active</Text>
+                </View>
+              </View>
               <Text style={styles.mapRouteMeta}>
                 {routeLoading
-                  ? 'Calculating route...'
+                  ? 'Calculating active route...'
                   : distanceMiles != null && eta != null
-                  ? `${distanceMiles.toFixed(1)} mi · ${eta} min`
-                  : 'Route preview'}
+                  ? `Live route · ${distanceMiles.toFixed(1)} mi · ${eta} min`
+                  : 'Live route preview'}
               </Text>
             </View>
           </View>
@@ -571,6 +636,7 @@ export function LocationSection({ draft, update }: Props) {
             <Text style={styles.coordsText}>{draft.location.lat?.toFixed(6)}, {draft.location.lng?.toFixed(6)}</Text>
             {draft.location.address ? <Text style={styles.addressText}>{draft.location.address}</Text> : null}
           </View>
+          {showInlineActions ? (
           <View style={styles.actionGrid}>
             <AppButton label="Google Maps" variant="secondary" onPress={openMaps} fullWidth />
             <AppButton label="Directions" variant="secondary" onPress={openDirections} fullWidth />
@@ -579,12 +645,103 @@ export function LocationSection({ draft, update }: Props) {
             <AppButton label="Copy coords" variant="secondary" onPress={copyCoords} fullWidth />
             <AppButton label="Refresh route" variant="ghost" onPress={fetchGarageRoute} loading={routeLoading} fullWidth />
           </View>
+          ) : null}
         </View>
       ) : null}
 
       {message ? <View style={{ marginTop: 10 }}><StatusBanner kind={message.kind} message={message.text} /></View> : null}
     </SectionCard>
   );
+}
+
+function LocationRequestStatusCard({
+  viewState,
+  lastCheckedSeconds,
+  hasLink,
+  canSendWhatsApp,
+  canSendSms,
+  canSendEmail,
+  busy,
+  requestLink,
+}: {
+  viewState: LocationRequestViewState;
+  lastCheckedSeconds: number | null;
+  hasLink: boolean;
+  canSendWhatsApp: boolean;
+  canSendSms: boolean;
+  canSendEmail: boolean;
+  busy: LocationShareMethod | null;
+  requestLink: (method: LocationShareMethod) => Promise<void>;
+}) {
+  const showActions = hasLink || viewState.state === 'EXPIRED_OR_STALE' || viewState.state === 'FAILED';
+  const linkDone = !['IDLE', 'CREATING_LINK', 'FAILED', 'EXPIRED_OR_STALE'].includes(viewState.state);
+  const shareDone = viewState.state === 'LOCATION_RECEIVED' || viewState.state === 'ROUTE_READY';
+  const routeDone = viewState.state === 'ROUTE_READY';
+  const listeningActive = viewState.state === 'WAITING_FOR_CUSTOMER' || viewState.state === 'POLLING';
+  const routeActive = viewState.state === 'LOCATION_RECEIVED';
+
+  return (
+    <View style={[styles.requestCard, getRequestCardToneStyle(viewState.tone)]}>
+      <View style={styles.requestHeader}>
+        <View style={[styles.requestChip, getRequestChipToneStyle(viewState.tone)]}>
+          <Text style={[styles.requestChipText, getRequestChipTextToneStyle(viewState.tone)]}>{viewState.state.replace(/_/g, ' ')}</Text>
+        </View>
+        {lastCheckedSeconds != null ? <Text style={styles.requestLastChecked}>Last checked {lastCheckedSeconds}s ago</Text> : null}
+      </View>
+
+      <Text style={styles.requestTitle}>{viewState.label}</Text>
+      <Text style={styles.requestDetail}>{viewState.detail}</Text>
+      {viewState.helper ? <Text style={styles.requestHelper}>{viewState.helper}</Text> : null}
+
+      <View style={styles.requestSteps}>
+        <LocationRequestStep label="Link" done={linkDone} active={viewState.state === 'CREATING_LINK' || viewState.state === 'LINK_READY'} />
+        <LocationRequestStep label="Share" done={shareDone} active={listeningActive} />
+        <LocationRequestStep label="Route" done={routeDone} active={routeActive} />
+      </View>
+
+      {showActions ? (
+        <View style={styles.requestActions}>
+          <AppButton label="Copy again" variant="secondary" onPress={() => requestLink('copy')} loading={busy === 'copy'} style={styles.requestActionButton} />
+          <AppButton label="WhatsApp" variant="secondary" onPress={() => requestLink('whatsapp')} loading={busy === 'whatsapp'} disabled={!canSendWhatsApp} style={styles.requestActionButton} />
+          <AppButton label="SMS" variant="secondary" onPress={() => requestLink('sms')} loading={busy === 'sms'} disabled={!canSendSms} style={styles.requestActionButton} />
+          <AppButton label="Email" variant="secondary" onPress={() => requestLink('email')} loading={busy === 'email'} disabled={!canSendEmail} style={styles.requestActionButton} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function LocationRequestStep({ label, done, active }: { label: string; done: boolean; active: boolean }) {
+  return (
+    <View style={styles.requestStep}>
+      <View style={[styles.requestStepDot, done && styles.requestStepDotDone, active && styles.requestStepDotActive]} />
+      <Text style={[styles.requestStepLabel, (done || active) && styles.requestStepLabelActive]} numberOfLines={1}>{label}</Text>
+    </View>
+  );
+}
+
+function getRequestCardToneStyle(tone: LocationRequestViewState['tone']) {
+  if (tone === 'busy') return styles.requestCard_busy;
+  if (tone === 'ok') return styles.requestCard_ok;
+  if (tone === 'warn') return styles.requestCard_warn;
+  if (tone === 'err') return styles.requestCard_err;
+  return styles.requestCard_idle;
+}
+
+function getRequestChipToneStyle(tone: LocationRequestViewState['tone']) {
+  if (tone === 'busy') return styles.requestChip_busy;
+  if (tone === 'ok') return styles.requestChip_ok;
+  if (tone === 'warn') return styles.requestChip_warn;
+  if (tone === 'err') return styles.requestChip_err;
+  return styles.requestChip_idle;
+}
+
+function getRequestChipTextToneStyle(tone: LocationRequestViewState['tone']) {
+  if (tone === 'busy') return styles.requestChipText_busy;
+  if (tone === 'ok') return styles.requestChipText_ok;
+  if (tone === 'warn') return styles.requestChipText_warn;
+  if (tone === 'err') return styles.requestChipText_err;
+  return styles.requestChipText_idle;
 }
 
 const styles = StyleSheet.create({
@@ -608,7 +765,7 @@ const styles = StyleSheet.create({
   modeLabel: { color: colors.text, fontSize: fontSize.sm, fontWeight: '700' },
   modeLabelActive: { color: colors.accent },
   input: {
-    minHeight: 44,
+    minHeight: 48,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.md,
@@ -638,6 +795,56 @@ const styles = StyleSheet.create({
   linkBox: { marginTop: 12, gap: 10 },
   linkHelp: { color: colors.muted, fontSize: fontSize.sm, lineHeight: 19 },
   linkText: { color: colors.accent, fontSize: fontSize.sm, lineHeight: 18 },
+  requestCard: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: 10,
+    gap: 8,
+  },
+  requestCard_idle: { backgroundColor: colors.card, borderColor: colors.border },
+  requestCard_busy: { backgroundColor: colors.infoBg, borderColor: colors.infoBorder },
+  requestCard_ok: { backgroundColor: colors.successBg, borderColor: colors.successBorder },
+  requestCard_warn: { backgroundColor: colors.warningBg, borderColor: colors.warningBorder },
+  requestCard_err: { backgroundColor: colors.dangerBg, borderColor: colors.dangerBorder },
+  requestHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  requestChip: {
+    minHeight: 28,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 1,
+  },
+  requestChip_idle: { backgroundColor: colors.surface, borderColor: colors.border },
+  requestChip_busy: { backgroundColor: colors.card, borderColor: colors.infoBorder },
+  requestChip_ok: { backgroundColor: colors.card, borderColor: colors.successBorder },
+  requestChip_warn: { backgroundColor: colors.card, borderColor: colors.warningBorder },
+  requestChip_err: { backgroundColor: colors.card, borderColor: colors.dangerBorder },
+  requestChipText_idle: { color: colors.muted },
+  requestChipText_busy: { color: colors.info },
+  requestChipText_ok: { color: colors.success },
+  requestChipText_warn: { color: colors.warning },
+  requestChipText_err: { color: colors.danger },
+  requestChipText: { fontSize: fontSize.xs, fontWeight: '900' },
+  requestLastChecked: { color: colors.muted, fontSize: fontSize.xs, flexShrink: 0 },
+  requestTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
+  requestDetail: { color: colors.muted, fontSize: fontSize.sm, lineHeight: 18 },
+  requestHelper: { color: colors.subtle, fontSize: fontSize.xs, lineHeight: 16 },
+  requestSteps: { flexDirection: 'row', gap: 8 },
+  requestStep: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  requestStepDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: colors.borderStrong,
+  },
+  requestStepDotDone: { backgroundColor: colors.success },
+  requestStepDotActive: { backgroundColor: colors.accent },
+  requestStepLabel: { color: colors.subtle, fontSize: fontSize.xs, fontWeight: '700', flexShrink: 1 },
+  requestStepLabelActive: { color: colors.text },
+  requestActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  requestActionButton: { flexGrow: 1, flexBasis: 128, minHeight: 48 },
   actionGrid: { marginTop: 10, gap: 8 },
   confirmedBox: { marginTop: 12, gap: 10 },
   mapWrap: {
@@ -652,6 +859,9 @@ const styles = StyleSheet.create({
   },
   mapWrapExpanded: {
     height: 520,
+  },
+  mapGestureLayer: {
+    flex: 1,
   },
   mapPreview: {
     width: '100%',
@@ -717,7 +927,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   mapControlButton: {
-    minHeight: 34,
+    minHeight: 48,
     borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: 'rgba(15,23,42,0.14)',
@@ -730,7 +940,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   mapZoomButton: {
-    width: 38,
+    width: 48,
   },
   mapControlButtonPressed: {
     backgroundColor: '#F3F4F6',
@@ -760,8 +970,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  mapRouteTitle: { color: '#111827', fontSize: fontSize.sm, fontWeight: '800' },
+  mapRouteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  mapRouteTitle: { color: '#111827', fontSize: fontSize.sm, fontWeight: '800', flexShrink: 1 },
   mapRouteMeta: { color: '#4B5563', fontSize: fontSize.xs, marginTop: 2 },
+  routeStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(34,197,94,0.14)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  routeStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#16A34A',
+  },
+  routeStatusText: {
+    color: '#14532D',
+    fontSize: 10,
+    fontWeight: '900',
+  },
   metricRow: { flexDirection: 'row', gap: 8 },
   metricCard: {
     flex: 1,

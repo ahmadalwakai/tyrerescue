@@ -15,7 +15,7 @@ import {
   buildWhatsAppUrl,
 } from '@/lib/quick-book-message-templates';
 import { createNotificationAndSend } from '@/lib/email/resend';
-import { getAppOrigin } from '@/lib/config/site';
+import { getOutboundUrl } from '@/lib/config/site';
 
 const schema = z.object({
   quickBookingId: z.string().uuid(),
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
   // Use env-aware origin so local-dev API emits localhost links and
   // production keeps emitting SITE_URL. SMS/WhatsApp/email all reuse this.
-  const siteUrl = getAppOrigin();
+  const siteUrl = getOutboundUrl();
   const locationLink = `${siteUrl}/locate/${booking.locationLinkToken}`;
   const name = booking.customerName;
   const phone = booking.customerPhone;

@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 44,
+    minHeight: 48,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderColor: colors.border,
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentText,
   },
   input: {
-    minHeight: 44,
+    minHeight: 48,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.md,

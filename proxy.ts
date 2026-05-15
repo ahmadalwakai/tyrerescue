@@ -56,8 +56,12 @@ export async function proxy(request: NextRequest) {
   const requestOrigin = request.headers.get('origin');
   const isAssistedChatApi =
     pathname.startsWith('/api/mobile/') ||
+    pathname === '/api/admin/quotes' ||
+    pathname.startsWith('/api/admin/quotes/') ||
     pathname === '/api/admin/quick-book' ||
     pathname.startsWith('/api/admin/quick-book/') ||
+    pathname === '/api/admin/bookings' ||
+    pathname.startsWith('/api/admin/bookings/') ||
     (pathname.startsWith('/api/bookings/') && pathname.endsWith('/deposit')) ||
     pathname.startsWith('/api/tyres/');
   const allowOrigin =

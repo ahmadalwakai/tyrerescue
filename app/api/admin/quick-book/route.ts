@@ -6,7 +6,7 @@ import { desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
 import { geocodeAddress } from '@/lib/mapbox';
-import { getAppOrigin } from '@/lib/config/site';
+import { getOutboundUrl } from '@/lib/config/site';
 import {
   calculateQuickBookPricing,
   QuickBookPricingError,
@@ -217,7 +217,7 @@ export async function POST(request: Request) {
 
   // Use env-aware origin so local-dev API emits localhost links the
   // assisted-chat-app can poll, while production keeps emitting SITE_URL.
-  const siteUrl = getAppOrigin();
+  const siteUrl = getOutboundUrl();
   const locationLink = linkToken ? `${siteUrl}/locate/${linkToken}` : null;
   
   // Use beautiful message templates for WhatsApp

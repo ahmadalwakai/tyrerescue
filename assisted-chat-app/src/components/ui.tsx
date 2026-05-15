@@ -155,7 +155,7 @@ export function StatusBanner({ kind, message }: StatusBannerProps) {
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 44,
+    minHeight: 48,
     paddingHorizontal: 14,
     borderRadius: radius.md,
     borderWidth: 1,

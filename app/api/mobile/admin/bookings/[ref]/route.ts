@@ -130,16 +130,66 @@ export async function PUT(request: Request, { params }: Props) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
+  const TERMINAL = new Set(['completed', 'cancelled', 'refunded', 'refunded_partial', 'cancelled_refund_pending']);
+  if (TERMINAL.has(booking.status)) {
+    return NextResponse.json({ error: `Cannot edit booking in ${booking.status} status` }, { status: 400 });
+  }
+
   const body = await request.json();
   const updates: Record<string, unknown> = {};
 
-  if (body.customerName !== undefined) updates.customerName = String(body.customerName || '').trim();
-  if (body.customerEmail !== undefined) updates.customerEmail = String(body.customerEmail || '').trim().toLowerCase();
-  if (body.customerPhone !== undefined) updates.customerPhone = String(body.customerPhone || '').trim();
+  if (body.customerName !== undefined) {
+    const v = String(body.customerName || '').trim();
+    if (v.length < 2) return NextResponse.json({ error: 'Customer name too short' }, { status: 400 });
+    updates.customerName = v;
+  }
+  if (body.customerEmail !== undefined) {
+    const v = String(body.customerEmail || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))
+      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
+    updates.customerEmail = v;
+  }
+  if (body.customerPhone !== undefined) {
+    const v = String(body.customerPhone || '').trim();
+    if (v.length < 5) return NextResponse.json({ error: 'Invalid phone number' }, { status: 400 });
+    updates.customerPhone = v;
+  }
   if (body.addressLine !== undefined) updates.addressLine = String(body.addressLine || '').trim();
   if (body.notes !== undefined) updates.notes = body.notes ? String(body.notes).trim() : null;
+  if (body.vehicleReg !== undefined) updates.vehicleReg = body.vehicleReg ? String(body.vehicleReg).trim().toUpperCase() : null;
+  if (body.vehicleMake !== undefined) updates.vehicleMake = body.vehicleMake ? String(body.vehicleMake).trim() : null;
+  if (body.vehicleModel !== undefined) updates.vehicleModel = body.vehicleModel ? String(body.vehicleModel).trim() : null;
+  if (body.tyreSizeDisplay !== undefined) updates.tyreSizeDisplay = body.tyreSizeDisplay ? String(body.tyreSizeDisplay).trim() : null;
+  if (body.quantity !== undefined) {
+    const q = parseInt(String(body.quantity), 10);
+    if (q >= 1 && q <= 20) updates.quantity = q;
+  }
+  if (body.lockingNutStatus !== undefined) {
+    const allowed = ['standard', 'has_key', 'no_key'];
+    if (allowed.includes(body.lockingNutStatus)) updates.lockingNutStatus = body.lockingNutStatus;
+  }
+  if (body.serviceType !== undefined) {
+    const allowed = ['tyre_replacement', 'puncture_repair', 'locking_nut_removal'];
+    if (allowed.includes(body.serviceType)) updates.serviceType = body.serviceType;
+  }
+  if (body.bookingType !== undefined) {
+    const allowed = ['emergency', 'scheduled'];
+    if (allowed.includes(body.bookingType)) updates.bookingType = body.bookingType;
+  }
   if (body.scheduledAt !== undefined) {
     updates.scheduledAt = body.scheduledAt ? new Date(body.scheduledAt) : null;
+  }
+  if (body.subtotal !== undefined) {
+    const v = parseFloat(String(body.subtotal));
+    if (Number.isFinite(v) && v >= 0) updates.subtotal = v.toFixed(2);
+  }
+  if (body.vatAmount !== undefined) {
+    const v = parseFloat(String(body.vatAmount));
+    if (Number.isFinite(v) && v >= 0) updates.vatAmount = v.toFixed(2);
+  }
+  if (body.totalAmount !== undefined) {
+    const v = parseFloat(String(body.totalAmount));
+    if (Number.isFinite(v) && v >= 0) updates.totalAmount = v.toFixed(2);
   }
 
   if (Object.keys(updates).length === 0) {
@@ -147,15 +197,15 @@ export async function PUT(request: Request, { params }: Props) {
   }
 
   updates.updatedAt = new Date();
-
   await db.update(bookings).set(updates).where(eq(bookings.id, booking.id));
+
   await db.insert(bookingStatusHistory).values({
     bookingId: booking.id,
     fromStatus: booking.status,
     toStatus: booking.status,
     actorUserId: user.id,
     actorRole: 'admin',
-    note: 'Booking edited via mobile admin app',
+    note: `Booking edited via mobile admin app: ${Object.keys(updates).filter((k) => k !== 'updatedAt').join(', ')}`,
   });
 
   return NextResponse.json({ success: true });

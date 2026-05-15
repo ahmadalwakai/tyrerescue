@@ -68,3 +68,48 @@ export async function PATCH(request: Request, { params }: Props) {
 
   return NextResponse.json({ success: true });
 }
+
+// DELETE /api/mobile/admin/bookings/[ref]/assign — remove assigned driver
+export async function DELETE(request: Request, { params }: Props) {
+  const user = await getMobileAdminUser(request);
+  if (!user) return unauthorizedResponse();
+
+  const { ref } = await params;
+
+  const [booking] = await db.select().from(bookings).where(eq(bookings.refNumber, ref)).limit(1);
+  if (!booking) {
+    return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+  }
+  if (!booking.driverId) {
+    return NextResponse.json({ error: 'No driver assigned' }, { status: 400 });
+  }
+  if (['en_route', 'arrived', 'in_progress'].includes(booking.status)) {
+    return NextResponse.json(
+      { error: `Cannot remove driver while job is ${booking.status}` },
+      { status: 400 },
+    );
+  }
+
+  await db
+    .update(bookings)
+    .set({
+      driverId: null,
+      assignedAt: null,
+      acceptedAt: null,
+      acceptanceDeadline: null,
+      status: 'paid',
+      updatedAt: new Date(),
+    })
+    .where(eq(bookings.id, booking.id));
+
+  await db.insert(bookingStatusHistory).values({
+    bookingId: booking.id,
+    fromStatus: booking.status,
+    toStatus: 'paid',
+    actorUserId: user.id,
+    actorRole: 'admin',
+    note: 'Driver removed by mobile admin app',
+  });
+
+  return NextResponse.json({ success: true });
+}

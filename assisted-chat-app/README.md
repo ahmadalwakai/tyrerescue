@@ -131,21 +131,25 @@ npx eas-cli build --platform android --profile preview
 
 This produces an `.apk` (not `.aab`). No Google Play submit is configured.
 
-## Known issue (security/auth)
+## Auth model
 
-The existing admin endpoints reused by this app
-(`/api/admin/quick-book/*`, `/api/admin/quick-book/send-link`) currently
-gate access via `await auth()` (web session cookie). They do not check
-`authMobile()`/Bearer. Therefore, even with `EXPO_PUBLIC_ADMIN_TOKEN`
-set, those endpoints will return 401 from this Expo app until the routes
-are extended to also accept Bearer tokens (e.g. via `authMobile()` and a
-role check).
+The admin endpoints reused by this app
+(`/api/admin/quick-book`, `/api/admin/quick-book/[id]`,
+`/api/admin/quick-book/[id]/finalize`,
+`/api/admin/quick-book/[id]/checkout-session`,
+`/api/admin/quick-book/send-link`) gate access via `requireAdminMobile()`
+(`lib/auth.ts`), which accepts **either** the web admin session cookie
+(NextAuth) **or** a Bearer mobile JWT signed with `NEXTAUTH_SECRET`.
 
-The user-supplied requirements explicitly forbade adding any auth
-screen, route protection, or modifying the existing apps, so this app
-ships exactly as specified and surfaces a clear in-app warning when the
-token is missing. Resolving the 401 requires either:
+This Expo app:
 
-- Extending the relevant API routes server-side to accept Bearer tokens
-  (small change to four route files), or
-- Setting up a reverse proxy that injects the admin session cookie.
+1. POSTs `email`/`password` to `/api/mobile/admin/auth/login`.
+2. Receives `{ token, user }` and persists `{ token, user }` in
+   AsyncStorage under `assistedChat.adminToken.v1`.
+3. Attaches `Authorization: Bearer <token>` to every protected request via
+   `src/lib/api.ts`.
+4. Clears the stored token on any 401 response and returns the user to
+   the login screen via the `setOnUnauthorized` hook in `useAdminSession`.
+
+`EXPO_PUBLIC_ADMIN_TOKEN` is supported as an optional dev-only fallback
+when no operator has logged in yet — useful for quick local debugging.

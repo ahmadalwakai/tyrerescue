@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { api } from '@/lib/api';
+import { compactAssistedChatTyreSize, normalizeAssistedChatTyreSize } from '@/lib/assisted-chat-workflow';
 import type { AssistedChatDraft, TyreSizeSuggestion } from '@/types/assisted-chat';
 import { AppButton, FieldLabel, SectionCard } from './ui';
 import { colors, fontSize, radius } from './theme';
@@ -26,6 +27,13 @@ export function TyreSelectionSection({ draft, update }: Props) {
   const [searched, setSearched] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const updateConfirmedSize = (size: string) => {
+    update({
+      tyre: { ...draft.tyre, size },
+      ...(draft.quote ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null } : {}),
+    });
+  };
+
   const search = useCallback(async (q: string) => {
     if (!q || q.length < 2) {
       setSuggestions([]);
@@ -46,10 +54,12 @@ export function TyreSelectionSection({ draft, update }: Props) {
 
   const handleChange = (value: string) => {
     setSizeInput(value);
-    update({
-      tyre: { ...draft.tyre, size: value },
-      ...(draft.quote ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null } : {}),
-    });
+    const normalizedSize = normalizeAssistedChatTyreSize(value);
+    if (normalizedSize && draft.tyre.size !== normalizedSize) {
+      updateConfirmedSize(normalizedSize);
+    } else if (!normalizedSize && draft.tyre.size) {
+      updateConfirmedSize('');
+    }
     setShowSugs(true);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => search(value), 200);
@@ -57,10 +67,7 @@ export function TyreSelectionSection({ draft, update }: Props) {
 
   const select = (size: string) => {
     setSizeInput(size);
-    update({
-      tyre: { ...draft.tyre, size },
-      ...(draft.quote ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null } : {}),
-    });
+    updateConfirmedSize(size);
     setSuggestions([]);
     setShowSugs(false);
   };
@@ -73,9 +80,10 @@ export function TyreSelectionSection({ draft, update }: Props) {
     });
   };
 
-  const trimmedSize = draft.tyre.size.trim().toLowerCase();
+  const normalizedInputSize = normalizeAssistedChatTyreSize(sizeInput);
+  const compactInputSize = compactAssistedChatTyreSize(sizeInput);
   const matchedSuggestion = suggestions.find(
-    (s) => s.size.toLowerCase() === trimmedSize,
+    (s) => compactAssistedChatTyreSize(s.size) === compactInputSize,
   );
   // Stock confidence is derived from the existing `/api/tyres/sizes` API
   // which already returns `count` per size. We never invent quantities; if
@@ -103,7 +111,7 @@ export function TyreSelectionSection({ draft, update }: Props) {
       stockLabel = `In stock (${count} available)`;
       stockTone = 'ok';
     }
-  } else if (showSugs && searched && trimmedSize.length >= 2 && suggestions.length === 0) {
+  } else if (showSugs && searched && sizeInput.trim().length >= 2 && suggestions.length === 0) {
     stockLabel = 'No matching in-stock size';
     stockTone = 'err';
   }
@@ -143,6 +151,9 @@ export function TyreSelectionSection({ draft, update }: Props) {
         ) : null}
         {showSugs && searched && suggestions.length === 0 && sizeInput.length >= 2 ? (
           <Text style={styles.empty}>No in-stock tyres match that size.</Text>
+        ) : null}
+        {sizeInput.trim().length > 0 && !normalizedInputSize ? (
+          <Text style={styles.empty}>Enter the full tyre size before continuing.</Text>
         ) : null}
         {stockLabel ? (
           <Text
@@ -192,7 +203,7 @@ export function TyreSelectionSection({ draft, update }: Props) {
 
 const styles = StyleSheet.create({
   input: {
-    minHeight: 44,
+    minHeight: 48,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.md,
@@ -229,7 +240,7 @@ const styles = StyleSheet.create({
   qtyBtn: { width: 56 },
   qtyDisplay: {
     minWidth: 56,
-    minHeight: 44,
+    minHeight: 48,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.md,

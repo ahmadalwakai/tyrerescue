@@ -20,7 +20,9 @@
       "package": "uk.tyrerescue.assistedchat",
       "versionCode": 1,
       "permissions": [
-        "INTERNET"
+        "INTERNET",
+        "POST_NOTIFICATIONS",
+        "VIBRATE"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -33,7 +35,16 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#09090B",
+          "defaultChannel": "admin_bookings",
+          "androidMode": "default"
+        }
+      ]
     ],
     "extra": {
       "router": {

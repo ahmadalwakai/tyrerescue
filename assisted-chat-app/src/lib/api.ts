@@ -33,6 +33,13 @@ function inferBaseUrl(): string {
 
 export const API_BASE_URL = inferBaseUrl();
 
+// Dev-only diagnostic so engineers can see exactly which Next.js host the
+// app will hit. Never logs tokens, credentials, or env values besides the
+// resolved base URL. Production/EAS builds skip this entirely.
+if (__DEV__) {
+  console.log('[api] resolved base URL:', API_BASE_URL);
+}
+
 // Admin Bearer token holder.
 //
 // The server accepts a Bearer mobile JWT signed with the existing
@@ -112,6 +119,8 @@ export const api = {
   get: <T>(p: string) => request<T>('GET', p),
   post: <T>(p: string, b?: unknown) => request<T>('POST', p, b),
   patch: <T>(p: string, b?: unknown) => request<T>('PATCH', p, b),
+  put: <T>(p: string, b?: unknown) => request<T>('PUT', p, b),
+  del: <T>(p: string) => request<T>('DELETE', p),
   baseUrl: API_BASE_URL,
   get hasAdminToken() {
     return currentToken !== null;

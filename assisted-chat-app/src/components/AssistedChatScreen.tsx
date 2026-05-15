@@ -1,41 +1,64 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Linking,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  type TextStyle,
 } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAssistedChatDraft } from '@/hooks/useAssistedChatDraft';
 import { useAssistedChatPrice } from '@/hooks/useAssistedChatPrice';
 import { useAssistedChatDispatch } from '@/hooks/useAssistedChatDispatch';
+import { useAssistedChatLocationShare } from '@/hooks/useAssistedChatLocationShare';
+import { useAssistedChatQuoteActions } from '@/hooks/useAssistedChatQuoteActions';
 import { useTodayBookings, type TodayBookingItem } from '@/hooks/useTodayBookings';
 import { useRecentCustomers } from '@/hooks/useRecentCustomers';
 import { useDuplicateBookingWarning } from '@/hooks/useDuplicateBookingWarning';
-import type { RecentCustomer } from '@/types/assisted-chat';
+import type {
+  AssistedChatDraft,
+  AssistedChatPaymentChoice,
+  RecentCustomer,
+  StripePaymentLinkState,
+} from '@/types/assisted-chat';
+import type { AdminQuote, AdminQuotePaymentOption, AdminQuoteStatus } from '@/types/admin-quotes';
 import { LocationSection } from './LocationSection';
 import { TyreSelectionSection } from './TyreSelectionSection';
 import { LockingWheelNutSection } from './LockingWheelNutSection';
 import { PriceSummary } from './PriceSummary';
-import { ActionButtons } from './ActionButtons';
 import { TodayBookingsModal } from './TodayBookingsModal';
 import { RecentCustomersModal } from './RecentCustomersModal';
 import { DuplicateBookingWarning } from './DuplicateBookingWarning';
-import { CustomerMessageCard } from './CustomerMessageCard';
-import { FailedActionRecovery } from './FailedActionRecovery';
-import { PaymentLinkCard } from './PaymentLinkCard';
-import { SectionCard, FieldLabel, InlineNotice, AppButton } from './ui';
-import { colors, fontSize, radius } from './theme';
+import { AdminQuotesModal } from './AdminQuotesModal';
+import { AdminBookingsModal } from './AdminBookingsModal';
+import { AdminVisitorsModal } from './AdminVisitorsModal';
+import { AdminInvoicesModal } from './AdminInvoicesModal';
+import { AdminStockModal } from './AdminStockModal';
+import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
+import { colors, fontSize, radius, space } from './theme';
 import { api } from '@/lib/api';
 import { buildCustomerMessage, buildWhatsAppUrl } from '@/lib/customer-message';
 import { copyToClipboard } from '@/lib/clipboard';
-import { formatGbp } from '@/lib/money';
-
-type WorkflowStepState = 'done' | 'active' | 'todo';
+import { formatGbp, isValidUkPhone } from '@/lib/money';
+import {
+  registerAdminPushNotifications,
+  clearAdminBadge,
+  unregisterAdminPushNotifications,
+} from '@/lib/notifications';
+import {
+  getAssistedChatWorkflow,
+  hasAssistedChatTyre,
+  normalizeAssistedChatTyreSize,
+  type AssistedChatStage,
+  type AssistedChatTimelineItem,
+} from '@/lib/assisted-chat-workflow';
 
 interface ParsedCallNotes {
   customerName?: string;
@@ -46,14 +69,48 @@ interface ParsedCallNotes {
   quantity?: number;
   lockingNutAnswer?: 'yes' | 'no' | 'unknown';
   lockingNutCharge?: number | null;
-  paymentChoice?: 'cash' | 'deposit' | 'full';
+  paymentChoice?: AssistedChatPaymentChoice;
   driverNote?: string;
 }
+
+interface AssistedChatScreenProps {
+  user?: { name: string; email: string } | null;
+  onLogout?: () => void | Promise<void>;
+}
+
+interface SheetAction {
+  id: string;
+  label: string;
+  description?: string;
+  disabledReason?: string | null;
+  destructive?: boolean;
+  onPress: () => void | Promise<void>;
+}
+
+interface ActionNotice {
+  kind: 'ok' | 'err' | 'info' | 'warn';
+  text: string;
+}
+
+const GBP = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
+
+const PAYMENT_OPTIONS: ReadonlyArray<{ value: AdminQuotePaymentOption; label: string; description: string }> = [
+  { value: 'DEPOSIT_15', label: 'Deposit 15%', description: 'Customer pays 15% now and the balance on arrival.' },
+  { value: 'CASH_ON_ARRIVAL', label: 'Cash on arrival', description: 'Driver collects cash when the job is complete.' },
+  { value: 'FULL_PAYMENT', label: 'Full payment', description: 'Customer completes the full Stripe payment.' },
+  { value: 'PAYMENT_LINK', label: 'Send payment link', description: 'Send a secure payment link before dispatch.' },
+];
+
+const CONFIRMED_QUOTE_STATUSES: readonly AdminQuoteStatus[] = [
+  'CONFIRMED_BY_PHONE',
+  'PAYMENT_PENDING',
+  'PAID',
+];
 
 function normalizeTyreSizeFromText(text: string): string | undefined {
   const match = text.match(/\b(\d{3})\s*[\/ -]?\s*(\d{2})\s*(?:[\/ -]?\s*r\s*|[\/ -]+)(\d{2})\b/i);
   if (!match) return undefined;
-  return `${match[1]}/${match[2]}/R${match[3]}`;
+  return normalizeAssistedChatTyreSize(`${match[1]}/${match[2]}/R${match[3]}`) ?? undefined;
 }
 
 function parseCallNotes(text: string): ParsedCallNotes {
@@ -100,7 +157,7 @@ function parseCallNotes(text: string): ParsedCallNotes {
   }
 
   if (/\bdeposit\b/.test(lower)) parsed.paymentChoice = 'deposit';
-  else if (/\b(?:full payment|pay full|paid full)\b/.test(lower)) parsed.paymentChoice = 'full';
+  else if (/\b(?:full payment|pay full|paid full|payment link)\b/.test(lower)) parsed.paymentChoice = 'full';
   else if (/\bcash\b/.test(lower)) parsed.paymentChoice = 'cash';
 
   const driverNote = normalized.match(/\b(?:driver note|note)\s*[:\-]?\s+(.+)$/i)?.[1];
@@ -109,9 +166,169 @@ function parseCallNotes(text: string): ParsedCallNotes {
   return parsed;
 }
 
-interface AssistedChatScreenProps {
-  user?: { name: string; email: string } | null;
-  onLogout?: () => void | Promise<void>;
+function formatPence(pence: number): string {
+  if (!Number.isFinite(pence)) return GBP.format(0);
+  return GBP.format(pence / 100);
+}
+
+function getQuotePricePence(quote: AdminQuote | null, effectiveTotal: number): number {
+  return quote?.priceAmount ?? Math.round(effectiveTotal * 100);
+}
+
+function getDepositSummary(priceAmountPence: number): { depositAmountPence: number; remainingBalancePence: number } {
+  const depositAmountPence = Math.round((priceAmountPence * 15) / 100);
+  return { depositAmountPence, remainingBalancePence: priceAmountPence - depositAmountPence };
+}
+
+function isQuoteConfirmed(quote: AdminQuote | null): boolean {
+  if (!quote) return false;
+  return Boolean(
+    quote.confirmedAt ||
+      quote.selectedPaymentOption ||
+      CONFIRMED_QUOTE_STATUSES.includes(quote.quoteStatus),
+  );
+}
+
+function formatQuoteDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'unknown';
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+}
+
+function formatQuoteExpiryStatus(quote: AdminQuote | null, hasSavedQuote: boolean): string | null {
+  if (!hasSavedQuote) return null;
+  if (!quote) return 'Valid until unknown';
+  if (quote.isExpired) return 'Expired';
+  const expiresAt = new Date(quote.expiresAt);
+  const remainingMs = expiresAt.getTime() - Date.now();
+  if (!Number.isFinite(remainingMs) || Number.isNaN(expiresAt.getTime())) return 'Valid until unknown';
+  if (remainingMs <= 0) return 'Expired';
+  const remainingMinutes = Math.max(1, Math.round(remainingMs / 60000));
+  if (remainingMinutes < 120) {
+    const hours = Math.floor(remainingMinutes / 60);
+    const minutes = remainingMinutes % 60;
+    return hours > 0 ? `Expires in ${hours}h ${minutes}m` : `Expires in ${minutes}m`;
+  }
+  return `Valid until ${formatQuoteDateTime(quote.expiresAt)}`;
+}
+
+function paymentOptionLabel(option: AdminQuotePaymentOption | null | undefined): string {
+  if (!option) return 'Not selected';
+  return PAYMENT_OPTIONS.find((item) => item.value === option)?.label ?? option;
+}
+
+function paymentChoiceLabel(choice: AssistedChatPaymentChoice | null): string {
+  if (choice === 'deposit') return 'Deposit 15%';
+  if (choice === 'cash') return 'Cash on arrival';
+  if (choice === 'full') return 'Full payment link';
+  return 'Not selected';
+}
+
+function hasDraftContent(draft: AssistedChatDraft): boolean {
+  return Boolean(
+    draft.customer.phone ||
+      draft.customer.name ||
+      draft.customer.email ||
+      draft.location.address ||
+      draft.location.lat != null ||
+      draft.tyre.size ||
+      draft.note ||
+      draft.quote ||
+      draft.dispatchedRefNumber,
+  );
+}
+
+function buildCustomerDetails(draft: AssistedChatDraft): string {
+  const lines: string[] = ['Customer details'];
+  lines.push(`Name: ${draft.customer.name.trim() || 'New customer'}`);
+  if (draft.customer.phone.trim()) lines.push(`Phone: ${draft.customer.phone.trim()}`);
+  if (draft.customer.email.trim()) lines.push(`Email: ${draft.customer.email.trim()}`);
+  return lines.join('\n');
+}
+
+function buildLocationDetails(draft: AssistedChatDraft): string {
+  const lines: string[] = ['Location details'];
+  if (draft.location.address.trim()) lines.push(`Address: ${draft.location.address.trim()}`);
+  if (draft.location.postcode) lines.push(`Postcode: ${draft.location.postcode}`);
+  if (draft.location.lat != null && draft.location.lng != null) {
+    lines.push(`Coordinates: ${draft.location.lat.toFixed(6)}, ${draft.location.lng.toFixed(6)}`);
+  }
+  if (draft.location.link) lines.push(`Location link: ${draft.location.link}`);
+  lines.push(`Status: ${draft.location.status}`);
+  return lines.join('\n');
+}
+
+function buildJobDetails(
+  draft: AssistedChatDraft,
+  effectiveTotal: number,
+  lockingNutCharge: number,
+  selectedPaymentOption: AdminQuotePaymentOption,
+): string {
+  const lines: string[] = ['Tyre Rescue Assisted Chat draft'];
+  if (draft.customer.name.trim()) lines.push(`Customer: ${draft.customer.name.trim()}`);
+  if (draft.customer.phone.trim()) lines.push(`Phone: ${draft.customer.phone.trim()}`);
+  if (draft.location.address.trim()) lines.push(`Address: ${draft.location.address.trim()}`);
+  if (draft.location.lat != null && draft.location.lng != null) {
+    lines.push(`Coordinates: ${draft.location.lat.toFixed(6)}, ${draft.location.lng.toFixed(6)}`);
+  }
+  if (draft.tyre.size.trim()) lines.push(`Tyre size: ${draft.tyre.size.trim()}`);
+  lines.push(`Quantity: ${draft.tyre.quantity}`);
+  lines.push(
+    `Locking wheel nut: ${
+      draft.lockingNut.answer === 'yes'
+        ? 'Customer has it'
+        : draft.lockingNut.answer === 'no'
+        ? 'Customer does not have it'
+        : 'Unknown'
+    }`,
+  );
+  if (lockingNutCharge > 0) lines.push(`Locking wheel nut removal: ${formatGbp(lockingNutCharge)}`);
+  if (draft.note.trim()) lines.push(`Driver note: ${draft.note.trim()}`);
+  if (draft.quote) lines.push(`Total: ${formatGbp(effectiveTotal)}`);
+  if (draft.savedQuoteRef) lines.push(`Quote ref: ${draft.savedQuoteRef}`);
+  lines.push(`Payment option: ${paymentOptionLabel(selectedPaymentOption)}`);
+  if (draft.paymentLink) {
+    lines.push(`Payment link: ${draft.paymentLink.paymentUrl}`);
+    lines.push(`Payment link amount: ${formatPence(draft.paymentLink.amountPence)}`);
+    if (draft.paymentLink.remainingBalancePence != null) {
+      lines.push(`Balance on arrival: ${formatPence(draft.paymentLink.remainingBalancePence)}`);
+    }
+  }
+  if (draft.dispatchedRefNumber) lines.push(`Booking ref: ${draft.dispatchedRefNumber}`);
+  return lines.join('\n');
+}
+
+function buildPaymentMessage(paymentLink: StripePaymentLinkState, draft: AssistedChatDraft, effectiveTotal: number): string {
+  const lines: string[] = [];
+  lines.push('Hi, this is Tyre Rescue.');
+  lines.push(
+    paymentLink.kind === 'deposit'
+      ? 'Your booking is ready. Please pay the 15% deposit using this secure payment link:'
+      : 'Your booking is ready. Please complete the full payment using this secure payment link:',
+  );
+  lines.push(paymentLink.paymentUrl);
+  lines.push('');
+  lines.push(`Reference: ${paymentLink.refNumber}`);
+  lines.push(paymentLink.kind === 'deposit' ? `Deposit due now: ${formatPence(paymentLink.amountPence)}` : `Amount due: ${formatPence(paymentLink.amountPence)}`);
+  if (paymentLink.remainingBalancePence != null) lines.push(`Balance due on-site: ${formatPence(paymentLink.remainingBalancePence)}`);
+  lines.push(`Total: ${formatGbp(effectiveTotal)}`);
+  if (draft.location.address) lines.push(`Address: ${draft.location.address}`);
+  if (draft.tyre.size) lines.push(`Tyres: ${draft.tyre.quantity} x ${draft.tyre.size}`);
+  return lines.join('\n');
+}
+
+function genericWhatsAppUrl(message: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
+function openBookingUrl(refNumber: string): Promise<void> {
+  return Linking.openURL(`${api.baseUrl}/admin/bookings/${encodeURIComponent(refNumber)}`);
 }
 
 export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps = {}) {
@@ -120,10 +337,71 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const [noteSynced, setNoteSynced] = useState(false);
   const [callNotesInput, setCallNotesInput] = useState('');
   const [callAssistMessage, setCallAssistMessage] = useState<string | null>(null);
+  const [phoneInput, setPhoneInput] = useState(draft.customer.phone);
+  const [phoneSynced, setPhoneSynced] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [recentOpen, setRecentOpen] = useState(false);
+  const [quotesOpen, setQuotesOpen] = useState(false);
+  const [bookingsOpen, setBookingsOpen] = useState(false);
+  const [visitorsOpen, setVisitorsOpen] = useState(false);
+  const [invoicesOpen, setInvoicesOpen] = useState(false);
+  const [stockOpen, setStockOpen] = useState(false);
+  const [duplicateAck, setDuplicateAck] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [editingStage, setEditingStage] = useState<AssistedChatStage | null>(null);
+  const [mapSummaryOpen, setMapSummaryOpen] = useState(false);
+  const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
+
+  // ── Push Notifications ─────────────────────────────────────────────────────
+
+  // Register for push notifications once the admin is authenticated.
+  useEffect(() => {
+    if (!api.hasAdminToken) return;
+    void registerAdminPushNotifications();
+  }, []);
+
+  // Open the bookings modal when the admin taps a notification.
+  const notifResponseRef = useRef<Notifications.Subscription | null>(null);
+  useEffect(() => {
+    notifResponseRef.current = Notifications.addNotificationResponseReceivedListener(() => {
+      setBookingsOpen(true);
+      void clearAdminBadge();
+    });
+    return () => {
+      notifResponseRef.current?.remove();
+    };
+  }, []);
+
+  // Clear the badge whenever the bookings modal is opened.
+  useEffect(() => {
+    if (bookingsOpen) void clearAdminBadge();
+  }, [bookingsOpen]);
+
+  // Clear badge when app comes back to the foreground.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void clearAdminBadge();
+    });
+    return () => sub.remove();
+  }, []);
+
+  // Unregister on logout.
+  const handleLogout = useCallback(async () => {
+    await unregisterAdminPushNotifications();
+    await onLogout?.();
+  }, [onLogout]);
+
+  // ──────────────────────────────────────────────────────────────────────────
 
   if (hydrated && !noteSynced) {
     setNoteSynced(true);
     setNoteInput(draft.note);
+  }
+
+  if (hydrated && !phoneSynced) {
+    setPhoneSynced(true);
+    setPhoneInput(draft.customer.phone);
   }
 
   const lockingNutCharge =
@@ -134,24 +412,25 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const effectiveTotal = baseTotal + lockingNutCharge;
 
   const price = useAssistedChatPrice({ draft, update });
+  const locationShare = useAssistedChatLocationShare({ draft, update });
+  const quoteActions = useAssistedChatQuoteActions({ draft, update, effectiveTotal, lockingNutCharge });
   const todayBookings = useTodayBookings();
   const recentCustomers = useRecentCustomers();
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [recentOpen, setRecentOpen] = useState(false);
-  // Operator can dismiss the duplicate warning per-draft. Reset whenever
-  // the dispatched ref clears (i.e. operator started a new booking).
-  const [duplicateAck, setDuplicateAck] = useState(false);
-
   const duplicateMatch = useDuplicateBookingWarning({
     draft,
     todayBookings: todayBookings.items,
     recentCustomers: recentCustomers.items,
   });
 
-  // Append a real booking to today's local history right after the server
-  // confirms finalize. Uses the real `refNumber` returned by the existing
-  // /api/admin/quick-book/[id]/finalize endpoint — no fake refs are ever
-  // invented locally. Dedup is enforced inside useTodayBookings.
+  const activeQuote = draft.savedQuoteId && quoteActions.currentQuote?.id === draft.savedQuoteId
+    ? quoteActions.currentQuote
+    : null;
+  const savedQuoteRef = activeQuote?.quoteRef ?? draft.savedQuoteRef;
+  const quoteConfirmed = isQuoteConfirmed(activeQuote);
+  const quotePricePence = getQuotePricePence(activeQuote, effectiveTotal);
+  const selectedPaymentOption = activeQuote?.selectedPaymentOption ?? quoteActions.selectedPaymentOption;
+  const quoteExpiryStatus = formatQuoteExpiryStatus(activeQuote, Boolean(savedQuoteRef));
+
   const handleBookingCreated = useCallback(
     ({
       response,
@@ -160,9 +439,9 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       paymentLink,
     }: {
       response: { bookingId: string; refNumber: string };
-      paymentChoice: 'cash' | 'deposit' | 'full';
+      paymentChoice: AssistedChatPaymentChoice;
       effectiveTotal: number;
-      paymentLink: { paymentUrl: string } | null;
+      paymentLink: StripePaymentLinkState | null;
     }) => {
       if (!response.refNumber) return;
       const item: TodayBookingItem = {
@@ -178,9 +457,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
         quantity: draft.tyre.quantity,
       };
       todayBookings.addBooking(item);
-      // Mirror the operational fields into the recent-customers cache so the
-      // operator can re-use them later. Only fires on real success.
-      const recent: RecentCustomer = {
+      recentCustomers.saveCustomer({
         customerPhone: draft.customer.phone || undefined,
         customerName: draft.customer.name || undefined,
         customerEmail: draft.customer.email || undefined,
@@ -193,10 +470,9 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
         note: draft.note || undefined,
         lastUsedAtIso: new Date().toISOString(),
         lastBookingReference: response.refNumber,
-      };
-      recentCustomers.saveCustomer(recent);
+      });
     },
-    [draft, todayBookings, recentCustomers],
+    [draft, recentCustomers, todayBookings],
   );
 
   const dispatch = useAssistedChatDispatch({
@@ -206,42 +482,91 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     onBookingCreated: handleBookingCreated,
   });
 
-  const handleClear = () => {
+  const workflow = useMemo(
+    () => getAssistedChatWorkflow({
+      draft,
+      quoteStatus: activeQuote?.quoteStatus ?? null,
+      quoteConfirmedAt: activeQuote?.confirmedAt ?? null,
+      quoteSelectedPaymentOption: activeQuote?.selectedPaymentOption ?? null,
+      quoteExpired: activeQuote?.isExpired ?? false,
+      quoteBusy: quoteActions.busy !== null,
+      priceLoading: price.loading,
+      dispatchBusy: dispatch.busy,
+      canUseApi: api.hasAdminToken,
+    }),
+    [activeQuote, dispatch.busy, draft, price.loading, quoteActions.busy],
+  );
+
+  const activeStage = editingStage ?? workflow.currentStage;
+  const hasLocation = draft.location.lat != null && draft.location.lng != null;
+  const hasTyre = hasAssistedChatTyre(draft);
+  const customerName = draft.customer.name.trim() || 'New customer';
+  const customerPhone = draft.customer.phone.trim();
+  const customerMessage = buildCustomerMessage({ draft, effectiveTotal, paymentChoice: draft.paymentChoice });
+  const draftHasContent = hasDraftContent(draft);
+
+  const flashNotice = useCallback((notice: ActionNotice) => {
+    setActionNotice(notice);
+    setTimeout(() => setActionNotice(null), 2200);
+  }, []);
+
+  const handleClear = useCallback(() => {
     clear();
     setNoteInput('');
     setCallNotesInput('');
     setCallAssistMessage(null);
     setNoteSynced(false);
+    setPhoneInput('');
+    setPhoneSynced(false);
     setDuplicateAck(false);
-  };
+    setEditingStage(null);
+    setMapSummaryOpen(false);
+    quoteActions.setMessage(null);
+    locationShare.setMessage(null);
+  }, [clear, locationShare, quoteActions]);
 
-  // True when there's enough draft content that overwriting would be lossy.
-  const draftHasContent = Boolean(
-    draft.customer.phone ||
-      draft.customer.name ||
-      draft.customer.email ||
-      draft.location.address ||
-      draft.location.lat != null ||
-      draft.tyre.size ||
-      draft.note ||
-      draft.quote ||
-      draft.dispatchedRefNumber,
-  );
-
-  const [phoneInput, setPhoneInput] = useState(draft.customer.phone);
-  const [phoneSynced, setPhoneSynced] = useState(false);
-  if (hydrated && !phoneSynced) {
-    setPhoneSynced(true);
-    setPhoneInput(draft.customer.phone);
-  }
-  const handlePhoneBlur = () => {
+  const handlePhoneBlur = useCallback(() => {
     update({ customer: { ...draft.customer, phone: phoneInput.trim() } });
-  };
+  }, [draft.customer, phoneInput, update]);
+
+  const customerWhatsAppNumber = useMemo(() => {
+    const raw = draft.customer.phone ?? '';
+    const digits = raw.replace(/\D+/g, '');
+    if (!digits) return null;
+    if (raw.trim().startsWith('+')) return digits;
+    if (digits.startsWith('44')) return digits;
+    if (digits.startsWith('0')) return `44${digits.slice(1)}`;
+    return digits;
+  }, [draft.customer.phone]);
+
+  const customerDialNumber = useMemo(() => {
+    const raw = (draft.customer.phone ?? '').trim();
+    if (!raw) return null;
+    const cleaned = raw.replace(/[^\d+]/g, '');
+    return cleaned || null;
+  }, [draft.customer.phone]);
+
+  const handleOpenWhatsApp = useCallback(async () => {
+    if (!customerWhatsAppNumber) return;
+    const url = buildWhatsAppUrl(draft.customer.phone, customerMessage) ?? `https://wa.me/${customerWhatsAppNumber}`;
+    try {
+      await Linking.openURL(url);
+    } catch {
+      flashNotice({ kind: 'err', text: 'Could not open WhatsApp.' });
+    }
+  }, [customerMessage, customerWhatsAppNumber, draft.customer.phone, flashNotice]);
+
+  const handleCallCustomer = useCallback(async () => {
+    if (!customerDialNumber) return;
+    try {
+      await Linking.openURL(`tel:${customerDialNumber}`);
+    } catch {
+      flashNotice({ kind: 'err', text: 'Could not start the call.' });
+    }
+  }, [customerDialNumber, flashNotice]);
 
   const handleUseRecent = useCallback(
     (item: RecentCustomer) => {
-      // Replace operational fields only — do not invent any booking state
-      // or call any API.
       update({
         customer: {
           phone: item.customerPhone ?? '',
@@ -249,7 +574,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
           email: item.customerEmail ?? '',
         },
         location: {
-          method: item.lat != null && item.lng != null ? 'address' : 'address',
+          method: 'address',
           address: item.customerAddress ?? '',
           lat: item.lat ?? null,
           lng: item.lng ?? null,
@@ -266,152 +591,82 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
         quickBookingId: null,
         quote: null,
         priceNeedsRefresh: false,
+        savedQuoteId: null,
+        savedQuoteRef: null,
         paymentChoice: null,
         paymentLink: null,
         dispatchedRefNumber: null,
       });
       setPhoneInput(item.customerPhone ?? '');
       setNoteInput(item.note ?? '');
+      setRecentOpen(false);
       setDuplicateAck(false);
+      setEditingStage(null);
     },
     [update],
   );
 
-  // Normalize a UK-leaning phone number to digits only, defaulting a leading
-  // 0 to the +44 country code so wa.me accepts it. Returns null when the
-  // input has no usable digits, so the header button can stay disabled.
-  const customerWhatsAppNumber = (() => {
-    const raw = draft.customer.phone ?? '';
-    const digits = raw.replace(/\D+/g, '');
-    if (!digits) return null;
-    if (raw.trim().startsWith('+')) return digits;
-    if (digits.startsWith('44')) return digits;
-    if (digits.startsWith('0')) return `44${digits.slice(1)}`;
-    return digits;
-  })();
-
-  const handleOpenWhatsApp = useCallback(async () => {
-    if (!customerWhatsAppNumber) return;
-    const message = buildCustomerMessage({
-      draft,
-      effectiveTotal,
-      paymentChoice: draft.paymentChoice,
-    });
-    const url =
-      buildWhatsAppUrl(draft.customer.phone, message) ??
-      `https://wa.me/${customerWhatsAppNumber}`;
-    try {
-      await Linking.openURL(url);
-    } catch {
-      // Best-effort — if WhatsApp/web isn't available the OS will surface its
-      // own error. We deliberately don't block the operator with an alert.
-    }
-  }, [customerWhatsAppNumber, draft, effectiveTotal]);
-
-  const customerDialNumber = (() => {
-    const raw = (draft.customer.phone ?? '').trim();
-    if (!raw) return null;
-    const cleaned = raw.replace(/[^\d+]/g, '');
-    return cleaned || null;
-  })();
-
-  const handleCallCustomer = useCallback(async () => {
-    if (!customerDialNumber) return;
-    try {
-      await Linking.openURL(`tel:${customerDialNumber}`);
-    } catch {
-      // tel: is unsupported on web/desktop browsers — silently no-op so the
-      // operator can fall back to WhatsApp or copy the number.
-    }
-  }, [customerDialNumber]);
-
-  const handleSendToDriver = () => {
-    // Reuses the existing finalize endpoint — same as choosing payment.
-    if (!draft.paymentChoice) return;
-    dispatch.choosePaymentAndDispatch(draft.paymentChoice);
-  };
-
-  const customerMessage = buildCustomerMessage({
-    draft,
-    effectiveTotal,
-    paymentChoice: draft.paymentChoice,
-  });
-
-  const hasCustomer = Boolean(
-    draft.customer.phone.trim() || draft.customer.name.trim() || draft.customer.email.trim(),
+  const handleUseQuote = useCallback(
+    (quote: AdminQuote) => {
+      const total = quote.priceAmount / 100;
+      update({
+        customer: {
+          phone: quote.customerPhone ?? '',
+          name: quote.customerName ?? '',
+          email: draft.customer.email,
+        },
+        location: {
+          method: 'address',
+          address: quote.address ?? '',
+          lat: quote.latitude,
+          lng: quote.longitude,
+          postcode: quote.postcode,
+          link: null,
+          whatsappLink: null,
+          status: quote.latitude != null && quote.longitude != null ? 'received' : 'idle',
+        },
+        tyre: {
+          size: quote.tyreSize ?? '',
+          quantity: quote.quantity,
+        },
+        lockingNut: {
+          answer:
+            quote.lockingWheelNutStatus === 'yes' || quote.lockingWheelNutStatus === 'no'
+              ? quote.lockingWheelNutStatus
+              : 'unknown',
+          chargeGbp: quote.lockingWheelNutChargePence ? quote.lockingWheelNutChargePence / 100 : null,
+        },
+        quickBookingId: quote.quickBookingId,
+        savedQuoteId: quote.id,
+        savedQuoteRef: quote.quoteRef,
+        note: quote.internalNotes ?? '',
+        quote: {
+          subtotal: total,
+          vatAmount: 0,
+          total,
+          lineItems: [{ label: `Saved quote ${quote.quoteRef}`, amount: total, type: 'quote' }],
+          distanceKm: null,
+          serviceOrigin: null,
+        },
+        priceNeedsRefresh: quote.isExpired,
+        paymentChoice: null,
+        paymentLink: null,
+        dispatchedRefNumber: null,
+      });
+      quoteActions.acceptExternalQuote(quote);
+      setPhoneInput(quote.customerPhone ?? '');
+      setNoteInput(quote.internalNotes ?? '');
+      setQuotesOpen(false);
+      setDuplicateAck(false);
+      setEditingStage(null);
+    },
+    [draft.customer.email, quoteActions, update],
   );
-  const hasLocation = draft.location.lat != null && draft.location.lng != null;
-  const hasTyre = Boolean(draft.tyre.size.trim() && draft.tyre.quantity >= 1);
-  const hasQuote = Boolean(draft.quote);
-  const hasPaymentChoice = Boolean(draft.paymentChoice);
-  const hasDispatched = Boolean(draft.dispatchedRefNumber);
-
-  const workflowSteps: Array<{ label: string; value: string; state: WorkflowStepState }> = [
-    {
-      label: 'Customer',
-      value: hasCustomer ? draft.customer.phone || draft.customer.name || draft.customer.email : 'Add details',
-      state: hasCustomer ? 'done' : 'active',
-    },
-    {
-      label: 'Location',
-      value: hasLocation ? 'Confirmed' : draft.location.method === 'link' && draft.location.status === 'pending' ? 'Waiting for link' : 'Needed',
-      state: hasLocation ? 'done' : hasCustomer ? 'active' : 'todo',
-    },
-    {
-      label: 'Tyre',
-      value: hasTyre ? `${draft.tyre.size} x ${draft.tyre.quantity}` : 'Needed',
-      state: hasTyre ? 'done' : hasLocation ? 'active' : 'todo',
-    },
-    {
-      label: 'Price',
-      value: draft.priceNeedsRefresh ? 'Needs refresh' : hasQuote ? formatGbp(effectiveTotal) : hasLocation && hasTyre ? 'Ready' : 'Blocked',
-      state: draft.priceNeedsRefresh ? 'active' : hasQuote ? 'done' : hasLocation && hasTyre ? 'active' : 'todo',
-    },
-    {
-      label: 'Payment',
-      value: hasPaymentChoice ? draft.paymentChoice!.toUpperCase() : 'Choose',
-      state: hasPaymentChoice ? 'done' : hasQuote ? 'active' : 'todo',
-    },
-    {
-      label: 'Dispatch',
-      value: hasDispatched ? draft.dispatchedRefNumber! : 'Send',
-      state: hasDispatched ? 'done' : hasPaymentChoice ? 'active' : 'todo',
-    },
-  ];
-
-  const nextAction = (() => {
-    if (!hasLocation) {
-      const locationAction = draft.location.method === 'link' && draft.location.status === 'pending'
-        ? 'Wait for the customer location link, or switch to Enter Address if they can read the address out.'
-        : 'Confirm the customer location before pricing.';
-      return hasCustomer ? locationAction : `Ask for the customer name or phone number, then ${locationAction.toLowerCase()}`;
-    }
-    if (!hasTyre) return 'Enter the tyre size and quantity, then pick an in-stock match.';
-    if (draft.priceNeedsRefresh) return 'Tap Get price again because the address or tyre details changed.';
-    if (!hasQuote) return 'Tap Get price to calculate the callout, distance, tyre and fitting total.';
-    if (!hasPaymentChoice) {
-      return hasCustomer
-        ? 'Choose how the customer will pay: deposit, cash, or full payment.'
-        : 'Add customer details if possible, then choose deposit, cash, or full payment.';
-    }
-    if (!hasDispatched) return 'Send it to driver, then share the customer message or payment link.';
-    return 'Booking is created. Clear the draft when you are ready for the next customer.';
-  })();
-
-  const pricingDisabledReason = (() => {
-    if (!hasLocation) return 'Price is locked until the customer location is confirmed.';
-    if (!hasTyre) return 'Enter a tyre size before getting the price.';
-    return null;
-  })();
-
-  const handleCopyCustomerMessage = useCallback(async () => {
-    await copyToClipboard(customerMessage);
-  }, [customerMessage]);
 
   const handleApplyCallNotes = useCallback(() => {
     const parsed = parseCallNotes(callNotesInput);
     const applied: string[] = [];
-    const patch: Partial<typeof draft> = {};
+    const patch: Partial<AssistedChatDraft> = {};
 
     if (parsed.customerName || parsed.customerPhone || parsed.customerEmail) {
       patch.customer = {
@@ -473,9 +728,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     }
 
     if (parsed.driverNote) {
-      const nextNote = draft.note.trim()
-        ? `${draft.note.trim()}\n${parsed.driverNote}`
-        : parsed.driverNote;
+      const nextNote = draft.note.trim() ? `${draft.note.trim()}\n${parsed.driverNote}` : parsed.driverNote;
       patch.note = nextNote;
       setNoteInput(nextNote);
       applied.push('driver note');
@@ -492,6 +745,327 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     setCallAssistMessage(`Applied: ${applied.join(', ')}.`);
   }, [callNotesInput, draft, update]);
 
+  const handleCopyCustomerDetails = useCallback(async () => {
+    const ok = await copyToClipboard(buildCustomerDetails(draft));
+    flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Customer details copied.' : 'Could not copy customer details.' });
+  }, [draft, flashNotice]);
+
+  const handleCopyLocationDetails = useCallback(async () => {
+    const ok = await copyToClipboard(buildLocationDetails(draft));
+    flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Location details copied.' : 'Could not copy location details.' });
+  }, [draft, flashNotice]);
+
+  const handleCopyJobDetails = useCallback(async () => {
+    const ok = await copyToClipboard(buildJobDetails(draft, effectiveTotal, lockingNutCharge, selectedPaymentOption));
+    flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Job details copied.' : 'Could not copy job details.' });
+  }, [draft, effectiveTotal, flashNotice, lockingNutCharge, selectedPaymentOption]);
+
+  const handleCopyCustomerMessage = useCallback(async () => {
+    const ok = await copyToClipboard(customerMessage);
+    flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Customer message copied.' : 'Could not copy customer message.' });
+  }, [customerMessage, flashNotice]);
+
+  const handleCopyPaymentLink = useCallback(async () => {
+    if (!draft.paymentLink) return;
+    const ok = await copyToClipboard(draft.paymentLink.paymentUrl);
+    flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Payment link copied.' : 'Could not copy payment link.' });
+  }, [draft.paymentLink, flashNotice]);
+
+  const handleOpenPaymentLink = useCallback(async () => {
+    if (!draft.paymentLink) return;
+    try {
+      await Linking.openURL(draft.paymentLink.paymentUrl);
+    } catch {
+      flashNotice({ kind: 'err', text: 'Could not open payment link.' });
+    }
+  }, [draft.paymentLink, flashNotice]);
+
+  const handleWhatsAppPaymentLink = useCallback(async () => {
+    if (!draft.paymentLink) return;
+    const message = buildPaymentMessage(draft.paymentLink, draft, effectiveTotal);
+    const url = buildWhatsAppUrl(draft.customer.phone, message) ?? genericWhatsAppUrl(message);
+    try {
+      await Linking.openURL(url);
+    } catch {
+      const ok = await copyToClipboard(message);
+      flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Payment message copied.' : 'Could not open WhatsApp.' });
+    }
+  }, [draft, effectiveTotal, flashNotice]);
+
+  const handleOpenMaps = useCallback(async () => {
+    if (draft.location.lat == null || draft.location.lng == null) return;
+    await Linking.openURL(`https://www.google.com/maps?q=${draft.location.lat},${draft.location.lng}`);
+  }, [draft.location.lat, draft.location.lng]);
+
+  const handleOpenDirections = useCallback(async () => {
+    if (draft.location.lat == null || draft.location.lng == null) return;
+    await Linking.openURL(
+      `https://www.google.com/maps/dir/?api=1&origin=55.8547,-4.2206&destination=${draft.location.lat},${draft.location.lng}&travelmode=driving`,
+    );
+  }, [draft.location.lat, draft.location.lng]);
+
+  const handleOpenWaze = useCallback(async () => {
+    if (draft.location.lat == null || draft.location.lng == null) return;
+    await Linking.openURL(`https://waze.com/ul?ll=${draft.location.lat},${draft.location.lng}&navigate=yes`);
+  }, [draft.location.lat, draft.location.lng]);
+
+  const handleCopyRoute = useCallback(async () => {
+    if (draft.location.lat == null || draft.location.lng == null) return;
+    const routeUrl = `https://www.google.com/maps/dir/?api=1&origin=55.8547,-4.2206&destination=${draft.location.lat},${draft.location.lng}&travelmode=driving`;
+    const ok = await copyToClipboard(routeUrl);
+    flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Route link copied.' : 'Could not copy route link.' });
+  }, [draft.location.lat, draft.location.lng, flashNotice]);
+
+  const handleCopyCoords = useCallback(async () => {
+    if (draft.location.lat == null || draft.location.lng == null) return;
+    const ok = await copyToClipboard(`${draft.location.lat.toFixed(6)}, ${draft.location.lng.toFixed(6)}`);
+    flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Coordinates copied.' : 'Could not copy coordinates.' });
+  }, [draft.location.lat, draft.location.lng, flashNotice]);
+
+  const handleReviewDispatch = useCallback(() => {
+    setReviewOpen(true);
+  }, []);
+
+  const handleSendToDriver = useCallback(() => {
+    if (!draft.paymentChoice) return;
+    setReviewOpen(false);
+    dispatch.choosePaymentAndDispatch(draft.paymentChoice);
+  }, [dispatch, draft.paymentChoice]);
+
+  const handlePrimaryAction = useCallback(async () => {
+    if (editingStage) {
+      setEditingStage(null);
+      return;
+    }
+
+    if (workflow.primaryActionDisabled) return;
+
+    if (workflow.currentStage === 'CUSTOMER') {
+      setEditingStage('LOCATION');
+      return;
+    }
+
+    if (workflow.currentStage === 'LOCATION') {
+      const method = draft.customer.phone.trim()
+        ? 'whatsapp'
+        : draft.customer.email.trim()
+        ? 'email'
+        : 'copy';
+      await locationShare.requestLink(method);
+      return;
+    }
+
+    if (workflow.currentStage === 'PRICE') {
+      await price.getPrice();
+      return;
+    }
+
+    if (workflow.currentStage === 'QUOTE') {
+      await quoteActions.saveQuote();
+      return;
+    }
+
+    if (workflow.currentStage === 'CONFIRMATION') {
+      await quoteActions.confirmQuote();
+      return;
+    }
+
+    if (workflow.currentStage === 'PAYMENT') {
+      setEditingStage('PAYMENT');
+      return;
+    }
+
+    if (workflow.currentStage === 'READY_TO_DISPATCH') {
+      handleReviewDispatch();
+      return;
+    }
+
+    if (workflow.currentStage === 'DISPATCHED' && draft.dispatchedRefNumber) {
+      await openBookingUrl(draft.dispatchedRefNumber).catch(() => {
+        flashNotice({ kind: 'err', text: 'Could not open booking.' });
+      });
+    }
+  }, [draft, editingStage, flashNotice, handleReviewDispatch, locationShare, price, quoteActions, workflow]);
+
+  const sheetActions = useMemo<SheetAction[]>(() => {
+    const actions: SheetAction[] = [];
+    const locationShareRelevant = !hasLocation || draft.location.status === 'pending' || Boolean(draft.location.link);
+    const noToken = api.hasAdminToken ? null : 'Log in again before using admin actions.';
+
+    if (locationShareRelevant) {
+      actions.push(
+        {
+          id: 'copy-location-link',
+          label: 'Copy location link',
+          description: 'Generate or copy the customer location request.',
+          disabledReason: noToken,
+          onPress: () => locationShare.requestLink('copy'),
+        },
+        {
+          id: 'location-whatsapp',
+          label: 'Send via WhatsApp',
+          description: 'Open WhatsApp with the location request.',
+          disabledReason: noToken ?? (!draft.customer.phone.trim() ? 'Add a customer phone number first.' : null),
+          onPress: () => locationShare.requestLink('whatsapp'),
+        },
+        {
+          id: 'location-sms',
+          label: 'Send via SMS',
+          description: 'Send the location request by SMS.',
+          disabledReason: noToken ?? (!isValidUkPhone(draft.customer.phone) ? 'Add a valid UK phone number first.' : null),
+          onPress: () => locationShare.requestLink('sms'),
+        },
+        {
+          id: 'location-email',
+          label: 'Send via Email',
+          description: 'Email the location request to the customer.',
+          disabledReason: noToken ?? (!draft.customer.email.trim() ? 'Add a customer email first.' : null),
+          onPress: () => locationShare.requestLink('email'),
+        },
+      );
+    }
+
+    if (hasLocation) {
+      actions.push(
+        { id: 'open-maps', label: 'Open Google Maps', description: 'Open the customer pin.', onPress: handleOpenMaps },
+        { id: 'open-directions', label: 'Open Directions', description: 'Open garage to customer directions.', onPress: handleOpenDirections },
+        { id: 'open-waze', label: 'Open Waze', description: 'Open Waze navigation.', onPress: handleOpenWaze },
+        { id: 'copy-route', label: 'Copy route link', description: 'Copy a Google Maps directions link.', onPress: handleCopyRoute },
+        { id: 'copy-coords', label: 'Copy coordinates', description: 'Copy the customer coordinates.', onPress: handleCopyCoords },
+      );
+    }
+
+    actions.push(
+      {
+        id: 'copy-quote-message',
+        label: 'Copy quote message',
+        description: 'Copy the saved quote or confirmation message.',
+        disabledReason: draft.quote ? null : 'Get a price before copying a quote message.',
+        onPress: quoteActions.copyConfirmedMessage,
+      },
+      {
+        id: 'send-quote',
+        label: 'Send quote',
+        description: 'Save if needed, then open WhatsApp and copy the quote.',
+        disabledReason: draft.quote ? null : 'Get a price before sending a quote.',
+        onPress: quoteActions.sendQuote,
+      },
+      {
+        id: 'copy-customer-message',
+        label: 'Copy customer message',
+        description: 'Copy the current booking message.',
+        disabledReason: draft.quote || draft.dispatchedRefNumber ? null : 'Get a price before copying the customer message.',
+        onPress: handleCopyCustomerMessage,
+      },
+      {
+        id: 'send-customer-whatsapp',
+        label: 'Send customer WhatsApp',
+        description: 'Open WhatsApp with the current booking message.',
+        disabledReason: draft.customer.phone.trim() ? null : 'Add a customer phone number first.',
+        onPress: handleOpenWhatsApp,
+      },
+      {
+        id: 'copy-job-details',
+        label: 'Copy job details',
+        description: 'Copy customer, tyre, price, payment, and note details.',
+        disabledReason: draftHasContent ? null : 'There is no draft to copy yet.',
+        onPress: handleCopyJobDetails,
+      },
+    );
+
+    if (quoteActions.selectedPaymentOption === 'PAYMENT_LINK' || quoteActions.confirmResult?.paymentInstruction) {
+      actions.push({
+        id: 'copy-payment-instructions',
+        label: 'Copy payment instructions',
+        description: 'Copy the saved quote payment instruction.',
+        disabledReason: draft.quote ? null : 'Get a price before copying payment instructions.',
+        onPress: quoteActions.copyPaymentInstruction,
+      });
+    }
+
+    if (draft.paymentLink) {
+      actions.push(
+        { id: 'copy-payment-link', label: 'Copy payment link', description: 'Copy the Stripe payment link.', onPress: handleCopyPaymentLink },
+        { id: 'open-payment-link', label: 'Open payment link', description: 'Open the Stripe payment link.', onPress: handleOpenPaymentLink },
+        { id: 'whatsapp-payment-link', label: 'WhatsApp payment link', description: 'Send the payment link to the customer.', onPress: handleWhatsAppPaymentLink },
+      );
+    }
+
+    actions.push({
+      id: 'admin-bookings',
+      label: 'All bookings',
+      description: 'Browse, search, and filter all admin bookings.',
+      disabledReason: noToken,
+      onPress: () => setBookingsOpen(true),
+    });
+
+    actions.push({
+      id: 'admin-visitors',
+      label: '🌐 Visitors',
+      description: 'Real-time visitor analytics and live feed.',
+      disabledReason: noToken,
+      onPress: () => setVisitorsOpen(true),
+    });
+
+    actions.push({
+      id: 'admin-invoices',
+      label: '📄 Invoices',
+      description: 'Browse, send, and manage customer invoices.',
+      disabledReason: noToken,
+      onPress: () => setInvoicesOpen(true),
+    });
+
+    actions.push({
+      id: 'admin-stock',
+      label: '🛞 Stock',
+      description: 'Manage tyre stock levels, prices and availability.',
+      disabledReason: noToken,
+      onPress: () => setStockOpen(true),
+    });
+
+    actions.push({
+      id: 'clear-draft',
+      label: 'Clear draft',
+      description: 'Reset this operator workflow.',
+      disabledReason: draftHasContent ? null : 'Draft is already empty.',
+      destructive: true,
+      onPress: handleClear,
+    });
+
+    if (onLogout) {
+      actions.push({
+        id: 'logout',
+        label: 'Log out',
+        description: 'End this admin session.',
+        onPress: () => {
+          void handleLogout();
+        },
+      });
+    }
+
+    return actions;
+  }, [
+    draft,
+    draftHasContent,
+    handleClear,
+    handleCopyCoords,
+    handleCopyCustomerMessage,
+    handleCopyJobDetails,
+    handleCopyPaymentLink,
+    handleCopyRoute,
+    handleOpenDirections,
+    handleOpenMaps,
+    handleOpenPaymentLink,
+    handleOpenWaze,
+    handleOpenWhatsApp,
+    handleWhatsAppPaymentLink,
+    hasLocation,
+    locationShare,
+    handleLogout,
+    onLogout,
+    quoteActions,
+  ]);
+
   if (!hydrated) {
     return (
       <SafeAreaView style={styles.loading}>
@@ -500,371 +1074,212 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     );
   }
 
+  const primaryLabel = editingStage ? 'Done Editing' : workflow.primaryActionLabel;
+  const primaryDisabled = editingStage ? false : workflow.primaryActionDisabled;
+  const primaryDisabledReason = editingStage ? null : workflow.primaryActionDisabledReason;
+  const stageTitle = editingStage ? `Editing ${stageLabel(editingStage)}` : stageLabel(workflow.currentStage);
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <View style={styles.headerTitleRow}>
-              <Text style={styles.headerTitle}>Assisted Chat</Text>
-              <Pressable
-                onPress={() => setHistoryOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel={`Open today's bookings list. ${todayBookings.count} bookings created today.`}
-                style={({ pressed }) => [
-                  styles.counterPill,
-                  pressed && styles.counterPillPressed,
-                ]}
-              >
-                <Text style={styles.counterLabel}>Bookings today</Text>
-                <Text style={styles.counterValue}>{todayBookings.count}</Text>
-              </Pressable>
-            </View>
-            <Text style={styles.headerSub}>
-              {user?.name ? `Signed in as ${user.name}` : 'Operator booking flow'}
-            </Text>
+      <View style={styles.header}>
+        <View style={styles.headerTextBlock}>
+          <Text style={styles.headerTitle}>Assisted Chat</Text>
+          <Text style={styles.headerCustomer} numberOfLines={1}>{customerName}</Text>
+          <Text style={styles.headerPhone} numberOfLines={1}>{customerPhone || (user?.name ? `Signed in as ${user.name}` : 'No phone added')}</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <View style={styles.statusChip}>
+            <Text style={styles.statusChipText}>{stageTitle}</Text>
           </View>
-          <View style={styles.headerActions}>
-            <View style={styles.headerActionRow}>
-              <Pressable
-                onPress={customerWhatsAppNumber ? handleOpenWhatsApp : undefined}
-                disabled={!customerWhatsAppNumber}
-                accessibilityRole="button"
-                accessibilityLabel="Open WhatsApp chat with customer"
-                style={({ pressed }) => [
-                  styles.whatsappBtn,
-                  pressed && customerWhatsAppNumber && styles.whatsappBtnPressed,
-                  !customerWhatsAppNumber && styles.whatsappBtnDisabled,
-                ]}
-              >
-                <View style={styles.whatsappIconWrap}>
-                  <View style={styles.whatsappBubble}>
-                    <Text style={styles.whatsappBubbleGlyph}>☎</Text>
-                  </View>
-                  <View style={styles.whatsappBubbleTail} />
-                </View>
-                <Text style={styles.whatsappLabel}>WhatsApp</Text>
-              </Pressable>
-              <Pressable
-                onPress={customerDialNumber ? handleCallCustomer : undefined}
-                disabled={!customerDialNumber}
-                accessibilityRole="button"
-                accessibilityLabel="Call customer"
-                style={({ pressed }) => [
-                  styles.callBtn,
-                  pressed && customerDialNumber && styles.callBtnPressed,
-                  !customerDialNumber && styles.callBtnDisabled,
-                ]}
-              >
-                <View style={styles.callIconWrap}>
-                  <Text style={styles.callIconGlyph}>☎</Text>
-                </View>
-                <Text style={styles.callLabel}>Call</Text>
-              </Pressable>
-            </View>
-            <View style={styles.headerActionRow}>
-              <AppButton
-                label="Clear draft"
-                variant="ghost"
-                onPress={handleClear}
-                style={styles.headerBtn}
-              />
-              {onLogout ? (
-                <AppButton
-                  label="Log out"
-                  variant="ghost"
-                  onPress={() => {
-                    void onLogout();
-                  }}
-                  style={styles.headerBtn}
-                />
-              ) : null}
-            </View>
+          <View style={styles.headerContactRow}>
+            <Pressable
+              onPress={customerDialNumber ? handleCallCustomer : undefined}
+              disabled={!customerDialNumber}
+              accessibilityRole="button"
+              accessibilityLabel="Call customer"
+              style={({ pressed }) => [
+                styles.compactContactButton,
+                styles.callButton,
+                pressed && customerDialNumber && styles.contactButtonPressed,
+                !customerDialNumber && styles.contactButtonDisabled,
+              ]}
+            >
+              <Text style={styles.compactContactLabel}>Call</Text>
+            </Pressable>
+            <Pressable
+              onPress={customerWhatsAppNumber ? handleOpenWhatsApp : undefined}
+              disabled={!customerWhatsAppNumber}
+              accessibilityRole="button"
+              accessibilityLabel="Open WhatsApp chat with customer"
+              style={({ pressed }) => [
+                styles.compactContactButton,
+                styles.whatsappButton,
+                pressed && customerWhatsAppNumber && styles.contactButtonPressed,
+                !customerWhatsAppNumber && styles.contactButtonDisabled,
+              ]}
+            >
+              <Text style={styles.compactContactLabel}>WA</Text>
+            </Pressable>
           </View>
         </View>
+      </View>
 
-        {!api.hasAdminToken ? (
-          <InlineNotice kind="warn">
-            No admin token. Log in to enable API calls.
-          </InlineNotice>
-        ) : null}
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        {!api.hasAdminToken ? <InlineNotice kind="warn">No admin token. Log in to enable API calls.</InlineNotice> : null}
+        {actionNotice ? <StatusBanner kind={actionNotice.kind} message={actionNotice.text} /> : null}
+        {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind === 'ok' ? 'ok' : quoteActions.message.kind === 'err' ? 'err' : 'info'} message={quoteActions.message.text} /> : null}
+        {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
 
-        <View style={styles.recentRow}>
-          <AppButton
-            label="Recent customers"
-            variant="secondary"
-            onPress={() => setRecentOpen(true)}
-            style={styles.recentBtn}
+        <View style={styles.toolRow}>
+          <AppButton label={`Bookings ${todayBookings.count}`} variant="secondary" onPress={() => setHistoryOpen(true)} style={styles.toolButton} />
+          <AppButton label="Recent customers" variant="secondary" onPress={() => setRecentOpen(true)} style={styles.toolButton} />
+          <AppButton label="Quotes" variant="secondary" onPress={() => setQuotesOpen(true)} style={styles.toolButton} />
+        </View>
+
+        <Timeline items={workflow.timeline} />
+
+        <View style={styles.summaryStack}>
+          <SummaryCard
+            title="Customer"
+            value={customerName}
+            detail={customerPhone || draft.customer.email || 'No contact details yet'}
+            done={Boolean(draft.customer.name.trim() || draft.customer.phone.trim() || draft.customer.email.trim())}
+            active={activeStage === 'CUSTOMER'}
+            onPress={() => setEditingStage('CUSTOMER')}
+            onLongPress={handleCopyCustomerDetails}
           />
-        </View>
-
-        <View style={styles.operatorPanel}>
-          <View style={styles.operatorPanelHeader}>
-            <Text style={styles.operatorPanelTitle}>Next best action</Text>
-            {draft.updatedAt ? (
-              <Text style={styles.operatorPanelMeta}>Draft saved</Text>
-            ) : null}
-          </View>
-          <Text style={styles.operatorNextText}>{nextAction}</Text>
-          <View style={styles.workflowGrid}>
-            {workflowSteps.map((step) => (
-              <View
-                key={step.label}
-                style={[
-                  styles.workflowPill,
-                  step.state === 'done' && styles.workflowPillDone,
-                  step.state === 'active' && styles.workflowPillActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.workflowLabel,
-                    step.state === 'done' && styles.workflowLabelDone,
-                    step.state === 'active' && styles.workflowLabelActive,
-                  ]}
-                >
-                  {step.label}
-                </Text>
-                <Text
-                  style={[
-                    styles.workflowValue,
-                    step.state === 'done' && styles.workflowValueDone,
-                    step.state === 'active' && styles.workflowValueActive,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {step.value}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <SectionCard
-          title="Smart call notes"
-          helperText="Paste rough call notes and apply obvious details. Address still needs selecting from suggestions for coordinates."
-        >
-          <TextInput
-            value={callNotesInput}
-            onChangeText={(value) => {
-              setCallNotesInput(value);
-              setCallAssistMessage(null);
-            }}
-            placeholder="Example: customer is Ali, 07700 900123, address 3 Gateside Street, needs 205/55R16 x2, cash, note side street"
-            placeholderTextColor={colors.subtle}
-            style={styles.callNotesInput}
-            multiline
-            textAlignVertical="top"
-          />
-          <View style={styles.callNotesActions}>
-            <AppButton
-              label="Apply notes"
-              variant="secondary"
-              onPress={handleApplyCallNotes}
-              disabled={!callNotesInput.trim()}
-              style={styles.callNotesButton}
+          {hasLocation || draft.location.status === 'pending' ? (
+            <SummaryCard
+              title="Location"
+              value={hasLocation ? 'Confirmed' : 'Waiting for share'}
+              detail={draft.location.address || draft.location.link || 'Location link sent'}
+              done={hasLocation}
+              active={activeStage === 'LOCATION'}
+              onPress={() => setEditingStage('LOCATION')}
+              onLongPress={handleCopyLocationDetails}
+              rightLabel={hasLocation ? (mapSummaryOpen ? 'Hide map' : 'Show map') : undefined}
+              onRightPress={hasLocation ? () => setMapSummaryOpen((value) => !value) : undefined}
             />
-            <AppButton
-              label="Clear notes"
-              variant="ghost"
-              onPress={() => {
-                setCallNotesInput('');
-                setCallAssistMessage(null);
-              }}
-              disabled={!callNotesInput.trim()}
-              style={styles.callNotesButton}
-            />
-          </View>
-          {callAssistMessage ? (
-            <View style={{ marginTop: 10 }}>
-              <InlineNotice kind={callAssistMessage.startsWith('Applied:') ? 'info' : 'warn'}>
-                {callAssistMessage}
-              </InlineNotice>
-            </View>
           ) : null}
-        </SectionCard>
-
-        {/* ── Main assisted chat card ── */}
-        <View style={styles.mainCard}>
-          <View style={styles.mainCardInner}>
-            {/* Customer phone (kept; used by WhatsApp/Call header buttons). */}
-            <SectionCard title="Customer">
-              <FieldLabel>Customer name</FieldLabel>
-              <TextInput
-                value={draft.customer.name}
-                onChangeText={(name) => update({ customer: { ...draft.customer, name } })}
-                placeholder="Name"
-                placeholderTextColor={colors.subtle}
-                style={styles.phoneInput}
-              />
-              <View style={{ height: 10 }} />
-              <FieldLabel>Customer phone (optional)</FieldLabel>
-              <TextInput
-                value={phoneInput}
-                onChangeText={setPhoneInput}
-                onBlur={handlePhoneBlur}
-                placeholder="07… or 0141…"
-                placeholderTextColor={colors.subtle}
-                keyboardType="phone-pad"
-                style={styles.phoneInput}
-              />
-              <View style={{ height: 10 }} />
-              <FieldLabel>Customer email (optional)</FieldLabel>
-              <TextInput
-                value={draft.customer.email}
-                onChangeText={(email) => update({ customer: { ...draft.customer, email } })}
-                placeholder="you@example.com"
-                placeholderTextColor={colors.subtle}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={styles.phoneInput}
-              />
-            </SectionCard>
-
-            <LocationSection draft={draft} update={update} />
-
-            <TyreSelectionSection draft={draft} update={update} />
-            <LockingWheelNutSection draft={draft} update={update} />
-
-            <SectionCard title="Optional note">
-              <FieldLabel>Admin note (optional)</FieldLabel>
-              <TextInput
-                value={noteInput}
-                onChangeText={setNoteInput}
-                onBlur={() => update({ note: noteInput })}
-                placeholder="Anything the driver should know"
-                placeholderTextColor={colors.subtle}
-                style={styles.note}
-                multiline
-                textAlignVertical="top"
-              />
-            </SectionCard>
-
-            <PriceSummary
-              quote={draft.quote}
-              lockingNutCharge={lockingNutCharge}
-              loading={price.loading}
-              stageIdx={price.stageIdx}
-              stageLabels={price.stageLabels}
-              error={price.error}
-              onGetPrice={price.getPrice}
-              onChoosePayment={dispatch.choosePaymentAndDispatch}
-              paymentChoice={draft.paymentChoice}
-              paymentBusy={dispatch.busy}
-              paymentError={dispatch.error}
-              paymentLink={draft.paymentLink}
-              dispatchedRefNumber={draft.dispatchedRefNumber}
-              pricingBlocked={!hasLocation || !hasTyre}
-              priceNeedsRefresh={draft.priceNeedsRefresh}
-              beforeGetPriceSlot={
-                <>
-                  {pricingDisabledReason ? (
-                    <View style={{ marginBottom: 10 }}>
-                      <InlineNotice kind="info">{pricingDisabledReason}</InlineNotice>
-                    </View>
-                  ) : null}
-                  <DuplicateBookingWarning
-                    match={duplicateMatch}
-                    acknowledged={duplicateAck}
-                    onReview={() => setHistoryOpen(true)}
-                    onContinueAnyway={() => setDuplicateAck(true)}
-                  />
-                </>
-              }
-              afterGetPriceSlot={
-                price.error ? (
-                  <FailedActionRecovery
-                    title="Price could not be calculated."
-                    message={price.error}
-                    actions={[
-                      { label: 'Retry', variant: 'primary', onPress: price.getPrice },
-                      { label: 'Copy details', variant: 'secondary', onPress: handleCopyCustomerMessage },
-                    ]}
-                  />
-                ) : null
-              }
-              afterPaymentSlot={
-                <View style={{ marginTop: 12, gap: 12 }}>
-                  {dispatch.error ? (
-                    <FailedActionRecovery
-                      title={
-                        draft.paymentChoice === 'cash'
-                          ? 'Booking could not be created.'
-                          : 'Payment link could not be created.'
-                      }
-                      message={dispatch.error}
-                      actions={[
-                        {
-                          label: 'Retry',
-                          variant: 'primary',
-                          onPress: () => {
-                            if (draft.paymentChoice) {
-                              dispatch.choosePaymentAndDispatch(draft.paymentChoice);
-                            }
-                          },
-                        },
-                        { label: 'Copy message', variant: 'secondary', onPress: handleCopyCustomerMessage },
-                        { label: 'Open WhatsApp', variant: 'secondary', onPress: handleOpenWhatsApp },
-                      ]}
-                    />
-                  ) : null}
-                  {draft.paymentLink ? (
-                    <PaymentLinkCard
-                      paymentLink={draft.paymentLink}
-                      draft={draft}
-                      effectiveTotal={effectiveTotal}
-                    />
-                  ) : null}
-                  {(draft.paymentChoice || draft.dispatchedRefNumber) ? (
-                    <CustomerMessageCard
-                      message={customerMessage}
-                      customerPhone={draft.customer.phone}
-                    />
-                  ) : null}
-                </View>
-              }
+          {hasLocation && mapSummaryOpen && activeStage !== 'LOCATION' ? (
+            <LocationSection draft={draft} update={update} locationShare={locationShare} showInlineActions={false} displayMode="mapOnly" />
+          ) : null}
+          {hasTyre ? (
+            <SummaryCard
+              title="Tyre"
+              value={`${draft.tyre.size} x ${draft.tyre.quantity}`}
+              detail={draft.lockingNut.answer === 'no' ? 'Locking wheel nut removal may apply' : 'Tyre details ready'}
+              done
+              active={activeStage === 'TYRE'}
+              onPress={() => setEditingStage('TYRE')}
             />
-          </View>
+          ) : null}
+          {draft.quote && !draft.priceNeedsRefresh ? (
+            <SummaryCard
+              title="Price"
+              value={formatGbp(effectiveTotal)}
+              detail={draft.quote.distanceKm != null ? `${(draft.quote.distanceKm * 0.621371).toFixed(1)} mi pricing distance` : 'Price ready'}
+              done
+              active={activeStage === 'PRICE'}
+              onPress={() => setEditingStage('PRICE')}
+            />
+          ) : null}
+          {savedQuoteRef ? (
+            <SummaryCard
+              title="Quote"
+              value={`Quote ${savedQuoteRef}`}
+              detail={quoteExpiryStatus ?? 'Valid until unknown'}
+              done={quoteConfirmed}
+              active={activeStage === 'QUOTE' || activeStage === 'CONFIRMATION'}
+              onPress={() => setEditingStage(quoteConfirmed ? 'PAYMENT' : 'CONFIRMATION')}
+              onLongPress={quoteActions.copyConfirmedMessage}
+            />
+          ) : null}
+          {draft.paymentChoice ? (
+            <SummaryCard
+              title="Payment"
+              value={paymentChoiceLabel(draft.paymentChoice)}
+              detail={draft.paymentLink ? 'Payment link ready' : quoteConfirmed ? 'Quote payment option selected' : 'Selected before confirmation'}
+              done={quoteConfirmed}
+              active={activeStage === 'PAYMENT'}
+              onPress={() => setEditingStage('PAYMENT')}
+            />
+          ) : null}
         </View>
 
-        {/* External actions outside the main card. */}
-        <ActionButtons
-          draft={draft}
-          effectiveTotal={effectiveTotal}
-          lockingNutCharge={lockingNutCharge}
-          onSendToDriver={handleSendToDriver}
-          dispatchBusy={dispatch.busy}
-          dispatchError={dispatch.error}
-          dispatchRecoverySlot={
-            dispatch.error ? (
-              <FailedActionRecovery
-                title="Booking could not be sent to driver."
-                message={dispatch.error}
-                actions={[
-                  {
-                    label: 'Retry',
-                    variant: 'primary',
-                    onPress: handleSendToDriver,
-                  },
-                  { label: 'Copy details', variant: 'secondary', onPress: handleCopyCustomerMessage },
-                  { label: 'Open WhatsApp', variant: 'secondary', onPress: handleOpenWhatsApp },
-                ]}
-              />
-            ) : null
-          }
-        />
+        <View style={styles.activeStepBlock}>
+          {renderActiveStage({
+            activeStage,
+            draft,
+            update,
+            phoneInput,
+            setPhoneInput,
+            handlePhoneBlur,
+            noteInput,
+            setNoteInput,
+            callNotesInput,
+            setCallNotesInput,
+            callAssistMessage,
+            setCallAssistMessage,
+            handleApplyCallNotes,
+            locationShare,
+            price,
+            lockingNutCharge,
+            effectiveTotal,
+            duplicateMatch,
+            duplicateAck,
+            setDuplicateAck,
+            setHistoryOpen,
+            quoteActions,
+            activeQuote,
+            savedQuoteRef,
+            quoteConfirmed,
+            quoteExpiryStatus,
+            quotePricePence,
+            selectedPaymentOption,
+            dispatch,
+            handleCopyCustomerDetails,
+            handleCopyLocationDetails,
+          })}
+        </View>
 
-        <View style={{ height: 24 }} />
+        <View style={styles.bottomSpacer} />
       </ScrollView>
-      <TodayBookingsModal
-        visible={historyOpen}
-        items={todayBookings.items}
-        onClose={() => setHistoryOpen(false)}
+
+      <View style={styles.bottomBar}>
+        {editingStage ? (
+          <AppButton label="Back" variant="ghost" onPress={() => setEditingStage(null)} style={styles.backButton} />
+        ) : null}
+        <AppButton label="More" variant="secondary" onPress={() => setMoreOpen(true)} style={styles.moreButton} />
+        <View style={styles.primaryWrap}>
+          <AppButton
+            label={primaryLabel}
+            variant={primaryDisabled ? 'secondary' : 'primary'}
+            onPress={() => {
+              void handlePrimaryAction();
+            }}
+            loading={!editingStage && (price.loading || quoteActions.busy === 'save' || quoteActions.busy === 'confirm' || dispatch.busy)}
+            disabled={primaryDisabled}
+            style={styles.primaryButton}
+            fullWidth
+          />
+          {primaryDisabledReason ? <Text style={styles.primaryReason}>{primaryDisabledReason}</Text> : null}
+        </View>
+      </View>
+
+      <GuidedActionSheet visible={moreOpen} title="More" actions={sheetActions} onClose={() => setMoreOpen(false)} />
+      <DispatchReviewSheet
+        visible={reviewOpen}
+        draft={draft}
+        activeQuote={activeQuote}
+        selectedPaymentOption={selectedPaymentOption}
+        effectiveTotal={effectiveTotal}
+        quoteConfirmed={quoteConfirmed}
+        dispatchBusy={dispatch.busy}
+        onClose={() => setReviewOpen(false)}
+        onSend={handleSendToDriver}
       />
+      <TodayBookingsModal visible={historyOpen} items={todayBookings.items} onClose={() => setHistoryOpen(false)} />
       <RecentCustomersModal
         visible={recentOpen}
         items={recentCustomers.items}
@@ -872,245 +1287,893 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
         onClose={() => setRecentOpen(false)}
         onUseCustomer={handleUseRecent}
       />
+      <AdminQuotesModal visible={quotesOpen} onClose={() => setQuotesOpen(false)} onUseQuote={handleUseQuote} />
+      <AdminBookingsModal visible={bookingsOpen} onClose={() => setBookingsOpen(false)} />
+      <AdminVisitorsModal visible={visitorsOpen} onClose={() => setVisitorsOpen(false)} />
+      <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
+      <AdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
     </SafeAreaView>
   );
 }
 
+interface RenderActiveStageArgs {
+  activeStage: AssistedChatStage;
+  draft: AssistedChatDraft;
+  update: (patch: Partial<AssistedChatDraft>) => void;
+  phoneInput: string;
+  setPhoneInput: (value: string) => void;
+  handlePhoneBlur: () => void;
+  noteInput: string;
+  setNoteInput: (value: string) => void;
+  callNotesInput: string;
+  setCallNotesInput: (value: string) => void;
+  callAssistMessage: string | null;
+  setCallAssistMessage: (value: string | null) => void;
+  handleApplyCallNotes: () => void;
+  locationShare: ReturnType<typeof useAssistedChatLocationShare>;
+  price: ReturnType<typeof useAssistedChatPrice>;
+  lockingNutCharge: number;
+  effectiveTotal: number;
+  duplicateMatch: ReturnType<typeof useDuplicateBookingWarning>;
+  duplicateAck: boolean;
+  setDuplicateAck: (value: boolean) => void;
+  setHistoryOpen: (value: boolean) => void;
+  quoteActions: ReturnType<typeof useAssistedChatQuoteActions>;
+  activeQuote: AdminQuote | null;
+  savedQuoteRef: string | null;
+  quoteConfirmed: boolean;
+  quoteExpiryStatus: string | null;
+  quotePricePence: number;
+  selectedPaymentOption: AdminQuotePaymentOption;
+  dispatch: ReturnType<typeof useAssistedChatDispatch>;
+  handleCopyCustomerDetails: () => void | Promise<void>;
+  handleCopyLocationDetails: () => void | Promise<void>;
+}
+
+function renderActiveStage(args: RenderActiveStageArgs) {
+  const {
+    activeStage,
+    draft,
+    update,
+    phoneInput,
+    setPhoneInput,
+    handlePhoneBlur,
+    noteInput,
+    setNoteInput,
+    callNotesInput,
+    setCallNotesInput,
+    callAssistMessage,
+    setCallAssistMessage,
+    handleApplyCallNotes,
+    locationShare,
+    price,
+    lockingNutCharge,
+    effectiveTotal,
+    duplicateMatch,
+    duplicateAck,
+    setDuplicateAck,
+    setHistoryOpen,
+    quoteActions,
+    activeQuote,
+    savedQuoteRef,
+    quoteConfirmed,
+    quoteExpiryStatus,
+    quotePricePence,
+    selectedPaymentOption,
+    dispatch,
+    handleCopyCustomerDetails,
+    handleCopyLocationDetails,
+  } = args;
+
+  if (activeStage === 'CUSTOMER') {
+    return (
+      <View style={styles.stepStack}>
+        <Pressable onLongPress={handleCopyCustomerDetails} delayLongPress={350}>
+          <SectionCard title="Customer">
+            <FieldLabel>Customer name</FieldLabel>
+            <TextInput
+              value={draft.customer.name}
+              onChangeText={(name) => update({ customer: { ...draft.customer, name } })}
+              placeholder="Name"
+              placeholderTextColor={colors.subtle}
+              style={styles.input}
+            />
+            <View style={styles.fieldGap} />
+            <FieldLabel>Customer phone</FieldLabel>
+            <TextInput
+              value={phoneInput}
+              onChangeText={setPhoneInput}
+              onBlur={handlePhoneBlur}
+              placeholder="07... or 0141..."
+              placeholderTextColor={colors.subtle}
+              keyboardType="phone-pad"
+              style={styles.input}
+            />
+            <View style={styles.fieldGap} />
+            <FieldLabel>Customer email</FieldLabel>
+            <TextInput
+              value={draft.customer.email}
+              onChangeText={(email) => update({ customer: { ...draft.customer, email } })}
+              placeholder="you@example.com"
+              placeholderTextColor={colors.subtle}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+            />
+          </SectionCard>
+        </Pressable>
+        <CallNotesCard
+          callNotesInput={callNotesInput}
+          setCallNotesInput={setCallNotesInput}
+          callAssistMessage={callAssistMessage}
+          setCallAssistMessage={setCallAssistMessage}
+          handleApplyCallNotes={handleApplyCallNotes}
+        />
+      </View>
+    );
+  }
+
+  if (activeStage === 'LOCATION') {
+    return (
+      <Pressable onLongPress={handleCopyLocationDetails} delayLongPress={350}>
+        <LocationSection draft={draft} update={update} locationShare={locationShare} showInlineActions={false} />
+      </Pressable>
+    );
+  }
+
+  if (activeStage === 'TYRE') {
+    return (
+      <View style={styles.stepStack}>
+        <TyreSelectionSection draft={draft} update={update} />
+        <LockingWheelNutSection draft={draft} update={update} />
+        <SectionCard title="Driver note">
+          <FieldLabel>Admin note</FieldLabel>
+          <TextInput
+            value={noteInput}
+            onChangeText={setNoteInput}
+            onBlur={() => update({ note: noteInput })}
+            placeholder="Anything the driver should know"
+            placeholderTextColor={colors.subtle}
+            style={styles.note}
+            multiline
+            textAlignVertical="top"
+          />
+        </SectionCard>
+      </View>
+    );
+  }
+
+  if (activeStage === 'PRICE') {
+    const hasLocation = draft.location.lat != null && draft.location.lng != null;
+    const hasTyre = hasAssistedChatTyre(draft);
+    const pricingDisabledReason = !hasLocation
+      ? 'Price is locked until the customer location is confirmed.'
+      : !hasTyre
+      ? 'Enter a tyre size before getting the price.'
+      : null;
+    return (
+      <PriceSummary
+        quote={draft.quote}
+        lockingNutCharge={lockingNutCharge}
+        loading={price.loading}
+        stageIdx={price.stageIdx}
+        stageLabels={price.stageLabels}
+        error={price.error}
+        onGetPrice={price.getPrice}
+        onChoosePayment={(choice) => update({ paymentChoice: choice })}
+        paymentChoice={draft.paymentChoice}
+        paymentBusy={dispatch.busy}
+        paymentError={dispatch.error}
+        paymentLink={draft.paymentLink}
+        dispatchedRefNumber={draft.dispatchedRefNumber}
+        pricingBlocked={!hasLocation || !hasTyre}
+        priceNeedsRefresh={draft.priceNeedsRefresh}
+        showGetPriceAction={false}
+        showPaymentOptions={false}
+        beforeGetPriceSlot={
+          <>
+            {pricingDisabledReason ? (
+              <View style={styles.inlineNoticeWrap}>
+                <InlineNotice kind="info">{pricingDisabledReason}</InlineNotice>
+              </View>
+            ) : null}
+            <DuplicateBookingWarning
+              match={duplicateMatch}
+              acknowledged={duplicateAck}
+              onReview={() => setHistoryOpen(true)}
+              onContinueAnyway={() => setDuplicateAck(true)}
+            />
+          </>
+        }
+      />
+    );
+  }
+
+  if (activeStage === 'QUOTE') {
+    return (
+      <QuoteStepCard
+        activeQuote={activeQuote}
+        savedQuoteRef={savedQuoteRef}
+        quoteConfirmed={quoteConfirmed}
+        quoteExpiryStatus={quoteExpiryStatus}
+        quotePricePence={quotePricePence}
+        selectedPaymentOption={selectedPaymentOption}
+        effectiveTotal={effectiveTotal}
+        onLongPress={quoteActions.copyConfirmedMessage}
+      />
+    );
+  }
+
+  if (activeStage === 'CONFIRMATION' || activeStage === 'PAYMENT') {
+    return (
+      <View style={styles.stepStack}>
+        <QuoteStepCard
+          activeQuote={activeQuote}
+          savedQuoteRef={savedQuoteRef}
+          quoteConfirmed={quoteConfirmed}
+          quoteExpiryStatus={quoteExpiryStatus}
+          quotePricePence={quotePricePence}
+          selectedPaymentOption={selectedPaymentOption}
+          effectiveTotal={effectiveTotal}
+          onLongPress={quoteActions.copyConfirmedMessage}
+        />
+        <PaymentSelector
+          selectedPaymentOption={selectedPaymentOption}
+          quotePricePence={quotePricePence}
+          disabled={quoteActions.busy !== null || Boolean(activeQuote?.selectedPaymentOption)}
+          onSelect={quoteActions.selectPaymentOption}
+        />
+        {activeQuote?.selectedPaymentOption ? <InlineNotice kind="info">Payment is locked to the confirmed quote option.</InlineNotice> : null}
+      </View>
+    );
+  }
+
+  if (activeStage === 'READY_TO_DISPATCH') {
+    return (
+      <SectionCard title="Ready to dispatch">
+        <Text style={styles.bodyText}>Review the job before sending it to the driver.</Text>
+        <View style={styles.readySummary}>
+          <DetailRow label="Payment" value={paymentChoiceLabel(draft.paymentChoice)} />
+          <DetailRow label="Quote" value={savedQuoteRef ? `Quote ${savedQuoteRef}` : 'Saved quote unavailable'} />
+          <DetailRow label="Total" value={formatGbp(effectiveTotal)} />
+        </View>
+      </SectionCard>
+    );
+  }
+
+  return (
+    <SectionCard title="Dispatched">
+      <Text style={styles.bodyText}>Booking {draft.dispatchedRefNumber ?? 'created'} is ready.</Text>
+      {draft.paymentLink ? (
+        <View style={styles.paymentLinkSummary}>
+          <Text style={styles.paymentLinkTitle}>{draft.paymentLink.kind === 'deposit' ? 'Deposit payment link' : 'Full payment link'}</Text>
+          <Text style={styles.paymentLinkMeta}>{draft.paymentLink.paymentUrl}</Text>
+          <Text style={styles.paymentLinkMeta}>Amount: {formatPence(draft.paymentLink.amountPence)}</Text>
+          {draft.paymentLink.remainingBalancePence != null ? (
+            <Text style={styles.paymentLinkMeta}>Balance on arrival: {formatPence(draft.paymentLink.remainingBalancePence)}</Text>
+          ) : null}
+        </View>
+      ) : null}
+    </SectionCard>
+  );
+}
+
+function stageLabel(stage: AssistedChatStage): string {
+  if (stage === 'READY_TO_DISPATCH') return 'Ready to dispatch';
+  return stage.charAt(0) + stage.slice(1).toLowerCase().replace(/_/g, ' ');
+}
+
+function Timeline({ items }: { items: AssistedChatTimelineItem[] }) {
+  return (
+    <View style={styles.timeline}>
+      {items.map((item) => (
+        <View
+          key={item.key}
+          style={[
+            styles.timelineItem,
+            item.state === 'done' && styles.timelineItemDone,
+            item.state === 'active' && styles.timelineItemActive,
+          ]}
+        >
+          <Text
+            style={[
+              styles.timelineText,
+              item.state === 'done' && styles.timelineTextDone,
+              item.state === 'active' && styles.timelineTextActive,
+            ]}
+            numberOfLines={1}
+          >
+            {item.label}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function SummaryCard({
+  title,
+  value,
+  detail,
+  done,
+  active,
+  rightLabel,
+  onPress,
+  onLongPress,
+  onRightPress,
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  done: boolean;
+  active: boolean;
+  rightLabel?: string;
+  onPress: () => void;
+  onLongPress?: () => void | Promise<void>;
+  onRightPress?: () => void;
+}) {
+  const cardStyle = [
+    styles.summaryCard,
+    done && styles.summaryCardDone,
+    active && styles.summaryCardActive,
+  ];
+  const content = (
+    <View style={styles.summaryMain}>
+      <Text style={styles.summaryTitle}>{title}</Text>
+      <Text style={styles.summaryValue} numberOfLines={1}>{value}</Text>
+      <Text style={styles.summaryDetail} numberOfLines={2}>{detail}</Text>
+    </View>
+  );
+
+  if (rightLabel && onRightPress) {
+    return (
+      <View style={cardStyle}>
+        <Pressable
+          onPress={onPress}
+          onLongPress={onLongPress}
+          delayLongPress={350}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.summaryMainButton, pressed && styles.summaryCardPressed]}
+        >
+          {content}
+        </Pressable>
+        <Pressable onPress={onRightPress} style={styles.summaryRightButton} accessibilityRole="button">
+          <Text style={styles.summaryRightText}>{rightLabel}</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        cardStyle,
+        pressed && styles.summaryCardPressed,
+      ]}
+    >
+      {content}
+    </Pressable>
+  );
+}
+
+function CallNotesCard({
+  callNotesInput,
+  setCallNotesInput,
+  callAssistMessage,
+  setCallAssistMessage,
+  handleApplyCallNotes,
+}: {
+  callNotesInput: string;
+  setCallNotesInput: (value: string) => void;
+  callAssistMessage: string | null;
+  setCallAssistMessage: (value: string | null) => void;
+  handleApplyCallNotes: () => void;
+}) {
+  return (
+    <SectionCard title="Smart call notes" helperText="Paste rough call notes and apply obvious details. Address still needs selecting from suggestions for coordinates.">
+      <TextInput
+        value={callNotesInput}
+        onChangeText={(value) => {
+          setCallNotesInput(value);
+          setCallAssistMessage(null);
+        }}
+        placeholder="Example: customer is Ali, 07700 900123, address 3 Gateside Street, needs 205/55R16 x2, cash, note side street"
+        placeholderTextColor={colors.subtle}
+        style={styles.callNotesInput}
+        multiline
+        textAlignVertical="top"
+      />
+      <View style={styles.callNotesActions}>
+        <AppButton label="Apply notes" variant="secondary" onPress={handleApplyCallNotes} disabled={!callNotesInput.trim()} style={styles.flexActionButton} />
+        <AppButton
+          label="Clear notes"
+          variant="ghost"
+          onPress={() => {
+            setCallNotesInput('');
+            setCallAssistMessage(null);
+          }}
+          disabled={!callNotesInput.trim()}
+          style={styles.flexActionButton}
+        />
+      </View>
+      {callAssistMessage ? (
+        <View style={styles.inlineNoticeTop}>
+          <InlineNotice kind={callAssistMessage.startsWith('Applied:') ? 'info' : 'warn'}>{callAssistMessage}</InlineNotice>
+        </View>
+      ) : null}
+    </SectionCard>
+  );
+}
+
+function QuoteStepCard({
+  activeQuote,
+  savedQuoteRef,
+  quoteConfirmed,
+  quoteExpiryStatus,
+  quotePricePence,
+  selectedPaymentOption,
+  effectiveTotal,
+  onLongPress,
+}: {
+  activeQuote: AdminQuote | null;
+  savedQuoteRef: string | null;
+  quoteConfirmed: boolean;
+  quoteExpiryStatus: string | null;
+  quotePricePence: number;
+  selectedPaymentOption: AdminQuotePaymentOption;
+  effectiveTotal: number;
+  onLongPress: () => void | Promise<void>;
+}) {
+  return (
+    <Pressable onLongPress={onLongPress} delayLongPress={350}>
+      <SectionCard title="Quote">
+        <View style={styles.quoteHeaderBox}>
+          <Text style={styles.quoteTitle}>{savedQuoteRef ? `Quote ${savedQuoteRef}` : 'Quote not saved'}</Text>
+          <Text style={styles.quoteTotal}>{formatGbp(effectiveTotal)}</Text>
+        </View>
+        <View style={styles.detailRows}>
+          <DetailRow label="Saved state" value={savedQuoteRef ? 'Saved' : 'Not saved'} />
+          <DetailRow label="Confirmation" value={quoteConfirmed ? 'Confirmed by phone' : 'Not confirmed'} />
+          {quoteExpiryStatus ? <DetailRow label="Expiry" value={quoteExpiryStatus} /> : null}
+          <DetailRow label="Quote status" value={activeQuote?.quoteStatus ?? (savedQuoteRef ? 'Saved' : 'Draft')} />
+          <DetailRow label="Selected payment" value={paymentOptionLabel(selectedPaymentOption)} />
+          <DetailRow label="Full price" value={formatPence(quotePricePence)} />
+        </View>
+      </SectionCard>
+    </Pressable>
+  );
+}
+
+function PaymentSelector({
+  selectedPaymentOption,
+  quotePricePence,
+  disabled,
+  onSelect,
+}: {
+  selectedPaymentOption: AdminQuotePaymentOption;
+  quotePricePence: number;
+  disabled: boolean;
+  onSelect: (option: AdminQuotePaymentOption) => void;
+}) {
+  const deposit = getDepositSummary(quotePricePence);
+  return (
+    <SectionCard title="Payment">
+      <View style={styles.paymentList}>
+        {PAYMENT_OPTIONS.map((option) => {
+          const selected = selectedPaymentOption === option.value;
+          const detail = option.value === 'DEPOSIT_15'
+            ? `Deposit ${formatPence(deposit.depositAmountPence)}. Remaining ${formatPence(deposit.remainingBalancePence)}.`
+            : option.description;
+          return (
+            <Pressable
+              key={option.value}
+              onPress={disabled ? undefined : () => onSelect(option.value)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected, disabled }}
+              style={({ pressed }) => [
+                styles.paymentOption,
+                selected && styles.paymentOptionSelected,
+                pressed && !disabled && styles.paymentOptionPressed,
+                disabled && styles.paymentOptionDisabled,
+              ]}
+            >
+              <View style={styles.radioOuter}>{selected ? <View style={styles.radioInner} /> : null}</View>
+              <View style={styles.paymentCopy}>
+                <Text style={[styles.paymentLabel, selected && styles.paymentLabelSelected]}>{option.label}</Text>
+                <Text style={styles.paymentDetail}>{detail}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+    </SectionCard>
+  );
+}
+
+function GuidedActionSheet({ visible, title, actions, onClose }: { visible: boolean; title: string; actions: SheetAction[]; onClose: () => void }) {
+  return (
+    <Modal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose}>
+      <Pressable style={styles.sheetBackdrop} onPress={onClose}>
+        <Pressable style={styles.actionSheet} onPress={() => {}}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>{title}</Text>
+            <AppButton label="Close" variant="ghost" onPress={onClose} style={styles.sheetCloseButton} />
+          </View>
+          <ScrollView contentContainerStyle={styles.sheetList}>
+            {actions.map((action) => {
+              const disabled = Boolean(action.disabledReason);
+              return (
+                <Pressable
+                  key={action.id}
+                  onPress={disabled ? undefined : () => {
+                    onClose();
+                    void action.onPress();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled }}
+                  style={({ pressed }) => [
+                    styles.sheetAction,
+                    action.destructive && styles.sheetActionDanger,
+                    disabled && styles.sheetActionDisabled,
+                    pressed && !disabled && styles.sheetActionPressed,
+                  ]}
+                >
+                  <Text style={[styles.sheetActionLabel, action.destructive && styles.sheetActionDangerLabel]}>{action.label}</Text>
+                  {action.description ? <Text style={styles.sheetActionDescription}>{action.description}</Text> : null}
+                  {action.disabledReason ? <Text style={styles.sheetActionReason}>{action.disabledReason}</Text> : null}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function DispatchReviewSheet({
+  visible,
+  draft,
+  activeQuote,
+  selectedPaymentOption,
+  effectiveTotal,
+  quoteConfirmed,
+  dispatchBusy,
+  onClose,
+  onSend,
+}: {
+  visible: boolean;
+  draft: AssistedChatDraft;
+  activeQuote: AdminQuote | null;
+  selectedPaymentOption: AdminQuotePaymentOption;
+  effectiveTotal: number;
+  quoteConfirmed: boolean;
+  dispatchBusy: boolean;
+  onClose: () => void;
+  onSend: () => void;
+}) {
+  const distanceMiles = draft.quote?.distanceKm != null ? draft.quote.distanceKm * 0.621371 : null;
+  const driveTime = draft.quote?.serviceOrigin?.etaMinutes ?? null;
+  const canSend = Boolean(draft.paymentChoice && draft.quote && draft.quickBookingId && quoteConfirmed && !draft.dispatchedRefNumber);
+  const disabledReason = !draft.quote
+    ? 'Get a price before dispatching.'
+    : !draft.quickBookingId
+    ? 'Get a current quick booking before dispatching.'
+    : !quoteConfirmed
+    ? 'Confirm the saved quote before dispatching.'
+    : !draft.paymentChoice
+    ? 'Choose a payment option before dispatching.'
+    : draft.dispatchedRefNumber
+    ? `Already dispatched as ${draft.dispatchedRefNumber}.`
+    : null;
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
+      <View style={styles.reviewBackdrop}>
+        <View style={styles.reviewSheet}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>Review dispatch</Text>
+            <AppButton label="Close" variant="ghost" onPress={onClose} style={styles.sheetCloseButton} />
+          </View>
+          <ScrollView contentContainerStyle={styles.reviewContent}>
+            <DetailRow label="Customer" value={draft.customer.name.trim() || 'New customer'} />
+            <DetailRow label="Phone" value={draft.customer.phone.trim() || 'Not set'} />
+            <DetailRow label="Tyres" value={draft.tyre.size.trim() ? `${draft.tyre.quantity} x ${draft.tyre.size.trim()}` : `Quantity ${draft.tyre.quantity}`} />
+            <DetailRow label="Address/location" value={draft.location.address.trim() || draft.location.status} />
+            <DetailRow label="Price" value={formatGbp(effectiveTotal)} />
+            <DetailRow label="Quote ref" value={activeQuote?.quoteRef ?? draft.savedQuoteRef ?? 'Not saved'} />
+            <DetailRow label="Selected payment" value={paymentOptionLabel(selectedPaymentOption)} />
+            <DetailRow label="Payment status" value={draft.paymentLink ? 'Payment link ready' : draft.paymentChoice ? paymentChoiceLabel(draft.paymentChoice) : 'Not selected'} />
+            <DetailRow label="Distance" value={distanceMiles != null ? `${distanceMiles.toFixed(1)} miles` : 'Not available'} />
+            <DetailRow label="Drive time" value={driveTime != null ? `${driveTime} minutes` : 'Not available'} />
+            <DetailRow label="Driver/admin note" value={draft.note.trim() || 'None'} />
+            {disabledReason ? <StatusBanner kind="warn" message={disabledReason} /> : null}
+          </ScrollView>
+          <View style={styles.reviewActions}>
+            <AppButton
+              label="Send to Driver"
+              variant={canSend ? 'primary' : 'secondary'}
+              onPress={onSend}
+              disabled={!canSend || dispatchBusy}
+              loading={dispatchBusy}
+              style={styles.reviewPrimary}
+              fullWidth
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.detailRow}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={styles.detailValue}>{value}</Text>
+    </View>
+  );
+}
+
+const baseInput: TextStyle = {
+  minHeight: 48,
+  borderColor: colors.border,
+  borderWidth: 1,
+  borderRadius: radius.md,
+  paddingHorizontal: 12,
+  paddingVertical: 10,
+  fontSize: fontSize.md,
+  color: colors.text,
+  backgroundColor: colors.inputBg,
+};
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  scroll: { padding: 12, gap: 12 },
-  recentRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  recentBtn: { minHeight: 36, paddingHorizontal: 12 },
-  operatorPanel: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    padding: 12,
-    gap: 10,
-  },
-  operatorPanelHeader: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.bg,
+    gap: 10,
   },
-  operatorPanelTitle: {
-    color: colors.accent,
-    fontSize: fontSize.sm,
-    fontWeight: '800',
+  headerTextBlock: { flex: 1, minWidth: 0 },
+  headerTitle: { color: colors.text, fontSize: fontSize.xl, fontWeight: '800' },
+  headerCustomer: { color: colors.text, fontSize: fontSize.md, fontWeight: '700', marginTop: 2 },
+  headerPhone: { color: colors.muted, fontSize: fontSize.xs, marginTop: 2 },
+  headerRight: { alignItems: 'flex-end', gap: 8 },
+  statusChip: {
+    minHeight: 28,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  operatorPanelMeta: {
-    color: colors.subtle,
-    fontSize: fontSize.xs,
-    fontWeight: '600',
+  statusChipText: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '800' },
+  headerContactRow: { flexDirection: 'row', gap: 8 },
+  compactContactButton: {
+    minHeight: 48,
+    minWidth: 54,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    paddingHorizontal: 10,
   },
-  operatorNextText: {
-    color: colors.text,
-    fontSize: fontSize.md,
-    lineHeight: 20,
-    fontWeight: '700',
-  },
-  workflowGrid: {
+  callButton: { backgroundColor: colors.accent, borderColor: colors.accent },
+  whatsappButton: { backgroundColor: '#25D366', borderColor: '#1FB855' },
+  compactContactLabel: { color: '#FFFFFF', fontSize: fontSize.sm, fontWeight: '800' },
+  contactButtonPressed: { opacity: 0.82 },
+  contactButtonDisabled: { opacity: 0.38 },
+  scroll: { padding: 12, gap: 12, paddingBottom: 148 },
+  toolRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  toolButton: { flexGrow: 1, flexBasis: 104 },
+  timeline: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    padding: 8,
   },
-  workflowPill: {
-    minWidth: 112,
+  timelineItem: {
+    minHeight: 34,
     flexGrow: 1,
-    flexBasis: 112,
+    flexBasis: 76,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    backgroundColor: colors.bg,
+  },
+  timelineItemDone: { borderColor: colors.successBorder, backgroundColor: colors.successBg },
+  timelineItemActive: { borderColor: colors.accent, backgroundColor: 'rgba(249,115,22,0.14)' },
+  timelineText: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '800' },
+  timelineTextDone: { color: colors.success },
+  timelineTextActive: { color: colors.accent },
+  summaryStack: { gap: 8 },
+  summaryCard: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    padding: 10,
+  },
+  summaryCardDone: { borderColor: colors.successBorder },
+  summaryCardActive: { borderColor: colors.accent },
+  summaryCardPressed: { backgroundColor: colors.card },
+  summaryMain: { flex: 1, minWidth: 0 },
+  summaryMainButton: { flex: 1, minWidth: 0, minHeight: 48, justifyContent: 'center', borderRadius: radius.sm },
+  summaryTitle: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '800', letterSpacing: 0.4 },
+  summaryValue: { color: colors.text, fontSize: fontSize.md, fontWeight: '800', marginTop: 2 },
+  summaryDetail: { color: colors.subtle, fontSize: fontSize.xs, marginTop: 2, lineHeight: 16 },
+  summaryRightButton: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+  },
+  summaryRightText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '800' },
+  activeStepBlock: { gap: 12 },
+  stepStack: { gap: 12 },
+  input: baseInput,
+  fieldGap: { height: 10 },
+  note: { ...baseInput, minHeight: 96, textAlignVertical: 'top' },
+  callNotesInput: { ...baseInput, minHeight: 92, lineHeight: 20, textAlignVertical: 'top' },
+  callNotesActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  flexActionButton: { flexGrow: 1, flexBasis: 130 },
+  inlineNoticeTop: { marginTop: 10 },
+  inlineNoticeWrap: { marginBottom: 10 },
+  quoteHeaderBox: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    padding: 12,
+    gap: 4,
+  },
+  quoteTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
+  quoteTotal: { color: colors.accent, fontSize: fontSize.xl, fontWeight: '900' },
+  detailRows: { marginTop: 10, gap: 8 },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingBottom: 8,
+  },
+  detailLabel: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '700', flex: 1 },
+  detailValue: { color: colors.text, fontSize: fontSize.sm, fontWeight: '700', flex: 1.35, textAlign: 'right' },
+  paymentList: { gap: 8 },
+  paymentOption: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  paymentOptionSelected: { borderColor: colors.accent, backgroundColor: 'rgba(249,115,22,0.12)' },
+  paymentOptionPressed: { borderColor: colors.borderStrong, backgroundColor: colors.surface },
+  paymentOptionDisabled: { opacity: 0.62 },
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
+  paymentCopy: { flex: 1, minWidth: 0 },
+  paymentLabel: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
+  paymentLabelSelected: { color: colors.accent },
+  paymentDetail: { color: colors.muted, fontSize: fontSize.xs, marginTop: 3, lineHeight: 16 },
+  bodyText: { color: colors.text, fontSize: fontSize.sm, lineHeight: 20, marginBottom: 10 },
+  readySummary: { gap: 8, marginBottom: 12 },
+  paymentLinkSummary: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    padding: 12,
+    gap: 5,
+  },
+  paymentLinkTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
+  paymentLinkMeta: { color: colors.muted, fontSize: fontSize.xs, lineHeight: 17 },
+  bottomSpacer: { height: 8 },
+  bottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.bg,
+  },
+  backButton: { minWidth: 76, minHeight: 56 },
+  moreButton: { minWidth: 84, minHeight: 56 },
+  primaryWrap: { flex: 1, minWidth: 0 },
+  primaryButton: { minHeight: 56 },
+  primaryReason: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '700', marginTop: 5 },
+  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.62)', justifyContent: 'flex-end' },
+  actionSheet: {
+    maxHeight: '86%',
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    padding: 14,
+  },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  sheetTitle: { flex: 1, color: colors.text, fontSize: fontSize.lg, fontWeight: '900' },
+  sheetCloseButton: { minWidth: 86 },
+  sheetList: { gap: 8, paddingBottom: space.md },
+  sheetAction: {
+    minHeight: 56,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
     backgroundColor: colors.bg,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    gap: 2,
-  },
-  workflowPillDone: {
-    borderColor: colors.successBorder,
-    backgroundColor: colors.successBg,
-  },
-  workflowPillActive: {
-    borderColor: colors.accent,
-    backgroundColor: 'rgba(249,115,22,0.12)',
-  },
-  workflowLabel: {
-    color: colors.muted,
-    fontSize: fontSize.xs,
-    fontWeight: '800',
-  },
-  workflowLabelDone: { color: colors.success },
-  workflowLabelActive: { color: colors.accent },
-  workflowValue: {
-    color: colors.subtle,
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-  },
-  workflowValueDone: { color: colors.text },
-  workflowValueActive: { color: colors.text },
-  callNotesInput: {
-    minHeight: 86,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: fontSize.md,
-    color: colors.text,
-    backgroundColor: colors.inputBg,
-    lineHeight: 20,
-  },
-  callNotesActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 10,
-  },
-  callNotesButton: {
-    minHeight: 38,
-    flexGrow: 1,
-  },
-  header: {
-    paddingVertical: 4,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  headerActions: {
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: 6,
-  },
-  headerActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  headerTitle: {
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-    color: colors.text,
-    letterSpacing: 0.2,
-  },
-  counterPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: radius.sm,
-    borderColor: colors.border,
-    borderWidth: 1,
-    backgroundColor: colors.card,
-  },
-  counterPillPressed: {
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.surface,
-  },
-  counterLabel: {
-    fontSize: fontSize.xs,
-    color: colors.muted,
-    letterSpacing: 0.5,
-  },
-  counterValue: {
-    fontSize: fontSize.sm,
-    color: colors.accent,
-    fontWeight: '700',
-  },
-  headerSub: { fontSize: fontSize.xs, color: colors.muted, marginTop: 2 },
-  headerBtn: { minHeight: 32, paddingHorizontal: 10 },
-  whatsappBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    minHeight: 32,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: radius.md,
-    backgroundColor: '#25D366',
-    borderWidth: 1,
-    borderColor: '#1FB855',
-  },
-  whatsappBtnPressed: { backgroundColor: '#1FB855' },
-  whatsappBtnDisabled: { opacity: 0.4 },
-  whatsappIconWrap: { width: 18, height: 18, alignItems: 'center', justifyContent: 'center' },
-  whatsappBubble: {
-    width: 18,
-    height: 16,
-    borderRadius: 9,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
     justifyContent: 'center',
   },
-  whatsappBubbleGlyph: { color: '#25D366', fontSize: 10, fontWeight: '900', lineHeight: 12 },
-  whatsappBubbleTail: {
-    position: 'absolute',
-    bottom: -1,
-    left: 1,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 4,
-    borderRightWidth: 0,
-    borderTopWidth: 5,
-    borderLeftColor: '#FFFFFF',
-    borderRightColor: 'transparent',
-    borderTopColor: '#FFFFFF',
-    borderStyle: 'solid',
-  },
-  whatsappLabel: { color: '#FFFFFF', fontWeight: '700', fontSize: fontSize.sm },
-  callBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    minHeight: 32,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent,
+  sheetActionPressed: { backgroundColor: colors.card, borderColor: colors.borderStrong },
+  sheetActionDisabled: { opacity: 0.58 },
+  sheetActionDanger: { borderColor: colors.dangerBorder, backgroundColor: colors.dangerBg },
+  sheetActionLabel: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
+  sheetActionDangerLabel: { color: colors.danger },
+  sheetActionDescription: { color: colors.muted, fontSize: fontSize.xs, lineHeight: 16, marginTop: 3 },
+  sheetActionReason: { color: colors.warning, fontSize: fontSize.xs, lineHeight: 16, marginTop: 4, fontWeight: '700' },
+  reviewBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.62)', justifyContent: 'flex-end' },
+  reviewSheet: {
+    maxHeight: '88%',
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  callBtnPressed: { opacity: 0.85 },
-  callBtnDisabled: { opacity: 0.4 },
-  callIconWrap: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
-  callIconGlyph: { color: '#FFFFFF', fontSize: 12, fontWeight: '900', lineHeight: 14 },
-  callLabel: { color: '#FFFFFF', fontWeight: '700', fontSize: fontSize.sm },
-  mainCard: {
+    borderColor: colors.border,
     backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: 12,
+    padding: 14,
   },
-  mainCardInner: { gap: 12 },
-  phoneInput: {
-    minHeight: 44,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: fontSize.md,
-    color: colors.text,
-    backgroundColor: colors.inputBg,
-  },
-  note: {
-    minHeight: 96,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    padding: 12,
-    backgroundColor: colors.inputBg,
-    color: colors.text,
-    fontSize: fontSize.md,
-  },
+  reviewContent: { gap: 8, paddingBottom: 12 },
+  reviewActions: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10 },
+  reviewPrimary: { minHeight: 56 },
 });

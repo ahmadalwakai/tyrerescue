@@ -22,6 +22,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type Stripe from 'stripe';
 import { logInventoryMovement, releaseReservations, commitReservationsForBooking } from '@/lib/inventory/stock-service';
 import { createAdminNotification } from '@/lib/notifications';
+import { sendAdminExpoPush } from '@/lib/notifications/expo-admin-push';
 
 // Disable body parsing - we need the raw body for signature verification
 export const runtime = 'nodejs';
@@ -362,6 +363,13 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     link: `/admin/bookings/${refNumber}`,
     severity: 'success',
     metadata: { stripeId: paymentIntentId, amount: paymentIntent.amount, currency: paymentIntent.currency },
+  });
+
+  // Send Expo push notification to admin mobile app (fire-and-forget)
+  void sendAdminExpoPush({
+    title: '💳 New Booking Paid',
+    body: `${booking.customerName} — £${(paymentIntent.amount / 100).toFixed(2)} · ${refNumber}`,
+    data: { refNumber, screen: 'bookings' },
   });
 }
 

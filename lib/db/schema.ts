@@ -16,6 +16,11 @@ import {
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import type { QuoteTyreSelectionSnapshot } from '@/lib/quote-snapshot';
+import type {
+  AdminQuoteConfirmationMethod,
+  AdminQuotePaymentOption,
+  AdminQuoteStatus,
+} from '@/types/admin-quotes';
 
 export type TyreSeason = 'allseason' | 'summer' | 'winter';
 
@@ -742,6 +747,40 @@ export const quickBookings = pgTable('quick_bookings', {
 });
 
 // ──────────────────────────────────────────────
+// Admin Quote Drafts (internal operator quotes only)
+// ──────────────────────────────────────────────
+
+export const adminQuoteDrafts = pgTable('admin_quote_drafts', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  quoteRef: varchar('quote_ref', { length: 20 })
+    .notNull()
+    .unique()
+    .default(sql`'TRQ-' || nextval('admin_quote_ref_seq'::regclass)`),
+  customerName: varchar('customer_name', { length: 255 }),
+  customerPhone: varchar('customer_phone', { length: 30 }),
+  address: text('address'),
+  postcode: varchar('postcode', { length: 20 }),
+  latitude: decimal('latitude', { precision: 9, scale: 6 }),
+  longitude: decimal('longitude', { precision: 9, scale: 6 }),
+  tyreSize: varchar('tyre_size', { length: 20 }),
+  quantity: integer('quantity').notNull().default(1),
+  lockingWheelNutStatus: text('locking_wheel_nut_status'),
+  lockingWheelNutChargePence: integer('locking_wheel_nut_charge_pence').default(0),
+  priceAmount: integer('price_amount').notNull(),
+  currency: varchar('currency', { length: 3 }).notNull().default('GBP'),
+  quoteStatus: text('quote_status').$type<AdminQuoteStatus>().notNull().default('DRAFT'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+  confirmationMethod: text('confirmation_method').$type<AdminQuoteConfirmationMethod>(),
+  selectedPaymentOption: text('selected_payment_option').$type<AdminQuotePaymentOption>(),
+  quickBookingId: uuid('quick_booking_id').references(() => quickBookings.id, { onDelete: 'set null' }),
+  createdByAdminId: uuid('created_by_admin_id').references(() => users.id, { onDelete: 'set null' }),
+  internalNotes: text('internal_notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+});
+
+// ──────────────────────────────────────────────
 // Demand Snapshots (hourly intelligence)
 // ──────────────────────────────────────────────
 
@@ -833,6 +872,19 @@ export const driverSoundSettings = pgTable('driver_sound_settings', {
 });
 
 // ──────────────────────────────────────────────
+// Admin Expo Push Tokens (assisted-chat admin app)
+// ──────────────────────────────────────────────
+
+export const adminPushTokens = pgTable('admin_push_tokens', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  platform: text('platform').notNull().default('android'), // 'android' | 'ios'
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ──────────────────────────────────────────────
 // Driver Sound Assets (uploaded sound files)
 // ──────────────────────────────────────────────
 
@@ -919,6 +971,8 @@ export type PricingConfig = typeof pricingConfig.$inferSelect;
 export type NewPricingConfig = typeof pricingConfig.$inferInsert;
 export type QuickBooking = typeof quickBookings.$inferSelect;
 export type NewQuickBooking = typeof quickBookings.$inferInsert;
+export type AdminQuoteDraft = typeof adminQuoteDrafts.$inferSelect;
+export type NewAdminQuoteDraft = typeof adminQuoteDrafts.$inferInsert;
 export type DemandSnapshot = typeof demandSnapshots.$inferSelect;
 export type NewDemandSnapshot = typeof demandSnapshots.$inferInsert;
 export type DriverNotification = typeof driverNotifications.$inferSelect;

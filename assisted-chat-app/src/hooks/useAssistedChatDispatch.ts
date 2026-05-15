@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import type {
   AssistedChatDraft,
   AssistedChatPaymentChoice,
@@ -123,7 +123,25 @@ export function useAssistedChatDispatch({
           paymentLink,
         });
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        // Stale quick_booking — wipe the dead id so the operator can
+        // re-price/dispatch from a fresh session. The dispatch step itself
+        // does not auto-create a new booking because totals/breakdowns must
+        // be recomputed via Get Price first.
+        if (err instanceof ApiError && err.status === 404) {
+          update({
+            quickBookingId: null,
+            savedQuoteId: null,
+            savedQuoteRef: null,
+            quote: null,
+            priceNeedsRefresh: true,
+            paymentChoice: null,
+            paymentLink: null,
+            dispatchedRefNumber: null,
+          });
+          setError('This quick booking session expired. Tap Get Price to start a new one before dispatching.');
+        } else {
+          setError(err instanceof Error ? err.message : 'Unknown error');
+        }
       } finally {
         setBusy(false);
         inflight.current = false;

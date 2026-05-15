@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { AssistedChatDraft } from '@/types/assisted-chat';
 import { AppButton, StatusBanner } from './ui';
 import { copyToClipboard } from '@/lib/clipboard';
+import { hasAssistedChatTyre } from '@/lib/assisted-chat-workflow';
 import { formatGbp } from '@/lib/money';
 import { colors, fontSize } from './theme';
 import { useState } from 'react';
@@ -79,14 +80,13 @@ export function ActionButtons({
 
   const baseDisabled =
     dispatchBusy ||
-    !draft.tyre.size.trim() ||
-    draft.tyre.quantity < 1 ||
+    !hasAssistedChatTyre(draft) ||
     !draft.quote ||
     !draft.paymentChoice;
   const sendDisabled = baseDisabled;
   const sendHint = (() => {
     if (draft.dispatchedRefNumber) return null;
-    if (!draft.tyre.size.trim()) return 'Enter the tyre size before sending to driver.';
+    if (!hasAssistedChatTyre(draft)) return 'Enter a valid tyre size before sending to driver.';
     if (!draft.quote) return 'Get the price before sending to driver.';
     if (!draft.paymentChoice) return 'Choose deposit, cash, or full payment before sending.';
     return null;

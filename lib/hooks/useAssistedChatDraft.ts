@@ -9,6 +9,8 @@ const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 export const EMPTY_DRAFT: AssistedChatDraft = {
   quickBookingId: null,
+  savedQuoteId: null,
+  savedQuoteRef: null,
   customer: { phone: '', name: '' },
   location: { label: '', lat: null, lng: null, postcode: null },
   tyre: { size: '', quantity: 1 },
