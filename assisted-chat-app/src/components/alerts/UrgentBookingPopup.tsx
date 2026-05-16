@@ -29,7 +29,7 @@ const VIBRATION_PATTERN: ReadonlyArray<number> = [0, 500, 250, 500, 250, 900];
 // On web there are no notification channels, so we play the same asset
 // via the HTML Audio element from inside the popup effect.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const URGENT_SOUND_MODULE = require('../../../assets/sounds/urgent-booking.mp3') as
+const URGENT_SOUND_MODULE = require('../../../assets/sounds/urgent_booking.mp3') as
   | string
   | number
   | { default?: string; uri?: string };
@@ -38,7 +38,7 @@ const URGENT_SOUND_MODULE = require('../../../assets/sounds/urgent-booking.mp3')
 // `require()` of an asset usually returns a numeric asset id (not a URL)
 // in the web bundler, so we hardcode the dev-server path that Metro
 // guarantees. Verified at runtime via `/assets/assets/sounds/urgent-booking.mp3`.
-const WEB_URGENT_SOUND_FALLBACK_URL = '/assets/assets/sounds/urgent-booking.mp3';
+const WEB_URGENT_SOUND_FALLBACK_URL = '/assets/assets/sounds/urgent_booking.mp3';
 
 function resolveWebSoundUrl(): string | null {
   if (Platform.OS !== 'web') return null;

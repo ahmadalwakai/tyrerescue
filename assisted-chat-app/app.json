@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "uk.tyrerescue.assistedchat",
-      "versionCode": 1,
+      "versionCode": 2,
       "permissions": [
         "INTERNET",
         "POST_NOTIFICATIONS",
@@ -44,7 +44,7 @@
           "defaultChannel": "admin_bookings",
           "androidMode": "default",
           "sounds": [
-            "./assets/sounds/urgent-booking.mp3"
+            "./assets/sounds/urgent_booking.mp3"
           ]
         }
       ]

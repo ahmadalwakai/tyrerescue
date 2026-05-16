@@ -83,7 +83,7 @@ function getPublicVisibility(): Notifications.AndroidNotificationVisibility | un
 //   from the managed workflow. The notification will silently fall back
 //   to the system default sound in those environments. Real APK builds
 //   are the only place this custom sound is guaranteed to play.
-const URGENT_SOUND: string = 'urgent-booking.mp3';
+const URGENT_SOUND: string = 'urgent_booking.mp3';
 
 async function setupAndroidChannels(): Promise<void> {
   if (Platform.OS !== 'android') return;
