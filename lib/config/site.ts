@@ -87,3 +87,26 @@ export function getAppOrigin(): string {
 export function getOutboundUrl(): string {
   return SITE_URL;
 }
+
+/**
+ * Origin for URLs that should be reachable on the same host that handled
+ * the incoming request. Use this for self-referential admin/operator
+ * features (e.g. the in-app tracking links generated for a booking) where
+ * the user is going to click the URL on the same machine/network they just
+ * called the API from. Falls back to `getAppOrigin()` if the request has
+ * no usable Host header.
+ */
+export function resolveRequestOrigin(request: Request): string {
+  try {
+    const url = new URL(request.url);
+    const forwardedProto = request.headers.get('x-forwarded-proto');
+    const forwardedHost = request.headers.get('x-forwarded-host');
+    const host = forwardedHost || request.headers.get('host') || url.host;
+    if (!host) return getAppOrigin();
+    const proto =
+      forwardedProto || (looksLocal(host) ? 'http' : url.protocol.replace(':', '') || 'https');
+    return stripTrailingSlash(`${proto}://${host}`);
+  } catch {
+    return getAppOrigin();
+  }
+}

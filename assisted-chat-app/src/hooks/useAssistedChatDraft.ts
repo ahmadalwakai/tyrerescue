@@ -29,9 +29,11 @@ export const EMPTY_DRAFT: AssistedChatDraft = {
   note: '',
   quote: null,
   priceNeedsRefresh: false,
+  manualPriceGbp: null,
   paymentChoice: null,
   paymentLink: null,
   dispatchedRefNumber: null,
+  dispatchedBookingId: null,
   updatedAt: 0,
 };
 
@@ -77,9 +79,14 @@ export function useAssistedChatDraft() {
               note: typeof parsed.note === 'string' ? parsed.note : EMPTY_DRAFT.note,
               quote: parsed.quote ?? null,
               priceNeedsRefresh: Boolean(parsed.priceNeedsRefresh),
+              manualPriceGbp:
+                typeof parsed.manualPriceGbp === 'number' && Number.isFinite(parsed.manualPriceGbp)
+                  ? parsed.manualPriceGbp
+                  : null,
               paymentChoice: parsed.paymentChoice ?? null,
               paymentLink: parsed.paymentLink ?? null,
               dispatchedRefNumber: parsed.dispatchedRefNumber ?? null,
+              dispatchedBookingId: typeof parsed.dispatchedBookingId === 'string' ? parsed.dispatchedBookingId : null,
               updatedAt: parsed.updatedAt,
             };
             setDraft(merged);

@@ -75,6 +75,7 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
         paymentChoice: null,
         paymentLink: null,
         dispatchedRefNumber: null,
+        dispatchedBookingId: null,
       });
     },
     [draft.location, draft.quote, update],
@@ -145,20 +146,24 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
             status: 'pending',
           },
           ...(draft.quote || draft.priceNeedsRefresh
-            ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null }
+            ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null, dispatchedBookingId: null }
             : {}),
         });
 
+        const linkToCopy = rawLocationLink ?? result.link ?? '';
         if (method === 'copy') {
           const ok = await copyToClipboard(result.message ?? result.link ?? '');
           setMessage({ kind: ok ? 'ok' : 'err', text: ok ? 'Location message copied.' : 'Could not copy location message.' });
         } else if (method === 'whatsapp' && result.link) {
+          const copied = linkToCopy ? await copyToClipboard(linkToCopy) : false;
           await Linking.openURL(result.link);
-          setMessage({ kind: 'ok', text: 'WhatsApp opened.' });
+          setMessage({ kind: 'ok', text: copied ? 'WhatsApp opened and link copied.' : 'WhatsApp opened.' });
         } else if (method === 'sms') {
-          setMessage({ kind: 'ok', text: result.message ?? 'SMS sent successfully.' });
+          const copied = linkToCopy ? await copyToClipboard(linkToCopy) : false;
+          setMessage({ kind: 'ok', text: copied ? `${result.message ?? 'SMS sent successfully.'} Link copied.` : result.message ?? 'SMS sent successfully.' });
         } else if (method === 'email') {
-          setMessage({ kind: 'ok', text: result.message ?? 'Email sent successfully.' });
+          const copied = linkToCopy ? await copyToClipboard(linkToCopy) : false;
+          setMessage({ kind: 'ok', text: copied ? `${result.message ?? 'Email sent successfully.'} Link copied.` : result.message ?? 'Email sent successfully.' });
         }
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) {
@@ -179,6 +184,7 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
             paymentChoice: null,
             paymentLink: null,
             dispatchedRefNumber: null,
+            dispatchedBookingId: null,
           });
           setMessage({
             kind: 'err',
@@ -235,6 +241,7 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
             paymentChoice: null,
             paymentLink: null,
             dispatchedRefNumber: null,
+            dispatchedBookingId: null,
           });
           setMessage({
             kind: 'err',

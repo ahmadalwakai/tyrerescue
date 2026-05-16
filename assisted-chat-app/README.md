@@ -153,3 +153,103 @@ This Expo app:
 
 `EXPO_PUBLIC_ADMIN_TOKEN` is supported as an optional dev-only fallback
 when no operator has logged in yet — useful for quick local debugging.
+
+
+## Urgent customer-booking alert system
+
+This APK is intended for internal/admin distribution and uses every reliable
+Expo path to surface a customer emergency booking as fast as possible.
+
+### What is implemented
+
+- Android notification channels (created on first launch):
+  - `urgent-bookings` — MAX importance, custom sound
+    (`urgent-booking.mp3`), strong vibration pattern, lock-screen visibility
+    PUBLIC where supported, orange LED.
+  - `default` — standard importance for everything else.
+  - `admin_bookings` — kept for back-compat with previously registered
+    push tokens.
+- Custom sound: `assets/sounds/urgent-booking.mp3`, registered in
+  `expo.plugins["expo-notifications"].sounds`. The Expo config plugin
+  bundles it into Android `res/raw/` at build time. Expo Go and web
+  preview fall back to the system default sound.
+- Local urgent notification triggered while the app is foregrounded so
+  the operator hears the channel sound + feels vibration even when the
+  device would otherwise stay silent.
+- Full-screen in-app `UrgentBookingPopup` with dark overlay, pulsing red
+  banner, customer summary, "Open bookings" / "Dismiss for now" buttons,
+  and `Vibration.vibrate(...)` on open.
+- 20s polling fallback (`useNewCustomerBookingAlert`) for cases where
+  the push notification is delayed or dropped by the OEM.
+- 60s reminder cadence while the popup remains open and the booking is
+  not yet resolved.
+- Notification tap → `assistedChat.pendingOpenBookings.v1` AsyncStorage
+  flag; `AssistedChatScreen` consumes it on mount so a cold-start push
+  tap still opens the bookings modal.
+- Per-booking-id dedupe: one popup + one sound per booking id; dismiss
+  hides the popup but keeps the "All bookings" red shimmer active until
+  the operator actually opens the bookings list.
+- `NotificationReliabilityCard` exposes one-tap shortcuts to Android
+  notification settings + app settings via `Linking.openSettings()` /
+  `Linking.sendIntent('android.settings.APP_NOTIFICATION_SETTINGS', ...)`.
+
+### Backend push payload (no new endpoints — uses the existing token registry)
+
+Push tokens are still registered through `POST /api/mobile/admin/push-token`
+exactly as before. **The mobile app cannot show a push by itself — the
+backend MUST send one when a customer creates an emergency booking.**
+
+Send via Expo Push API (`https://exp.host/--/api/v2/push/send`) to every
+admin token currently in the registry, with payload:
+
+```json
+{
+  "to": "ExponentPushToken[...]",
+  "channelId": "urgent-bookings",
+  "priority": "high",
+  "sound": "urgent-booking.mp3",
+  "title": "Emergency booking received",
+  "body": "Open Assisted Chat now",
+  "data": { "type": "urgent_booking", "bookingId": "<uuid>" }
+}
+```
+
+If the custom sound is not yet available on a given build, fall back to
+`"sound": "default"`. The `data.type === "urgent_booking"` marker is what
+triggers the cold-start "open bookings" path on tap.
+
+### Android admin device setup checklist
+
+Open the app's "Notification setup" card (or system Settings) and enable:
+
+1. Notifications → **Allow notifications**.
+2. Notifications → **Urgent bookings** channel → Importance **Urgent**,
+   **Sound on**, **Vibrate on**, **Show on lock screen** = full content.
+3. Battery → **Unrestricted** (Samsung: also Sleeping/Deep-sleeping apps
+   list → remove this app; Xiaomi: Autostart on + Battery saver = No
+   restrictions; OnePlus/Oppo/Vivo: Battery → Don't optimise).
+4. Do Not Disturb → add this app to the exceptions list if DND is used.
+5. Sound profile is not silent (channel sound cannot override silent mode
+   unless DND override is granted).
+6. Keep the device connected to Wi-Fi or mobile data so Expo/FCM can
+   reach it.
+
+### Honest limitations
+
+Expo/Android cannot guarantee a 100% forceful popup over lock screen or
+other apps on every device. What this implementation actually delivers:
+
+- **Foreground:** guaranteed `UrgentBookingPopup` + vibration. Sound plays
+  if the channel sound is not muted by the user / DND.
+- **Background:** high-priority push notification via the
+  `urgent-bookings` channel. Heads-up banner where the OEM honours it.
+- **Locked screen:** lock-screen notification (PUBLIC visibility) where
+  device settings allow. No reliable full-screen-intent in the Expo
+  managed workflow.
+- **Killed app:** push delivery depends on Android, FCM, and the OEM
+  battery optimiser. Aggressive killers (Samsung, Xiaomi, Huawei,
+  OnePlus, Oppo, Vivo) can silently drop pushes — this is why the setup
+  checklist above is mandatory for the admin device.
+
+Full-screen intents and bypass-DND require native Android changes beyond
+the Expo managed workflow and are intentionally not claimed here.

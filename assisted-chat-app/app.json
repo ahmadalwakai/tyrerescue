@@ -42,7 +42,10 @@
           "icon": "./assets/icon.png",
           "color": "#09090B",
           "defaultChannel": "admin_bookings",
-          "androidMode": "default"
+          "androidMode": "default",
+          "sounds": [
+            "./assets/sounds/urgent-booking.mp3"
+          ]
         }
       ]
     ],

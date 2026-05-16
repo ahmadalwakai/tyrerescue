@@ -52,6 +52,8 @@ export async function proxy(request: NextRequest) {
   const ALLOWED_DEV_ORIGINS = new Set([
     'http://localhost:8081',
     'http://127.0.0.1:8081',
+    'http://localhost:8082',
+    'http://127.0.0.1:8082',
   ]);
   const requestOrigin = request.headers.get('origin');
   const isAssistedChatApi =
@@ -190,6 +192,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/blog') ||
     pathname.startsWith('/compare') ||
     pathname.startsWith('/tracking') ||
+    pathname.startsWith('/track/') ||
     pathname.startsWith('/locate/') ||
     pathname.startsWith('/success/') ||
     pathname.startsWith('/services/') ||

@@ -30,7 +30,7 @@ export function TyreSelectionSection({ draft, update }: Props) {
   const updateConfirmedSize = (size: string) => {
     update({
       tyre: { ...draft.tyre, size },
-      ...(draft.quote ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null } : {}),
+      ...(draft.quote ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null, dispatchedBookingId: null } : {}),
     });
   };
 
@@ -76,7 +76,7 @@ export function TyreSelectionSection({ draft, update }: Props) {
     const clamped = Math.max(1, Math.min(10, Math.round(q)));
     update({
       tyre: { ...draft.tyre, quantity: clamped },
-      ...(draft.quote ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null } : {}),
+      ...(draft.quote ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null, dispatchedBookingId: null } : {}),
     });
   };
 
@@ -118,6 +118,9 @@ export function TyreSelectionSection({ draft, update }: Props) {
 
   return (
     <SectionCard title="Tyre size and quantity">
+      {!sizeInput.trim() && !draft.tyre.size ? (
+        <Text style={styles.empty}>Enter the tyre size to continue. Suggestions appear as you type.</Text>
+      ) : null}
       <FieldLabel>Tyre size (in-stock only)</FieldLabel>
       <View>
         <TextInput

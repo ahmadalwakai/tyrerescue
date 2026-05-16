@@ -11,6 +11,8 @@ interface Props {
   paymentLink: StripePaymentLinkState;
   draft: AssistedChatDraft;
   effectiveTotal: number;
+  /** Manual admin override in GBP. When set, a small badge tells the operator the link uses the manual price. */
+  manualPriceGbp?: number | null;
 }
 
 function moneyFromPence(pence: number): string {
@@ -50,7 +52,7 @@ function genericWhatsAppUrl(message: string): string {
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
 }
 
-export function PaymentLinkCard({ paymentLink, draft, effectiveTotal }: Props) {
+export function PaymentLinkCard({ paymentLink, draft, effectiveTotal, manualPriceGbp = null }: Props) {
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'err'>('idle');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
@@ -103,6 +105,9 @@ export function PaymentLinkCard({ paymentLink, draft, effectiveTotal }: Props) {
           <Text style={styles.metaText}>
             Balance on-site: {moneyFromPence(paymentLink.remainingBalancePence)}
           </Text>
+        ) : null}
+        {manualPriceGbp != null && Number.isFinite(manualPriceGbp) ? (
+          <Text style={styles.metaText}>Manual price used for payment</Text>
         ) : null}
       </View>
       <Text style={styles.linkText} selectable>

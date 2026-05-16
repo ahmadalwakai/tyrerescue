@@ -1,3 +1,14 @@
+/*
+  Establish CSS cascade layer order so Tailwind utilities win against
+  Chakra UI v3 / Emotion's `@layer reset` (which contains a
+  `*{ margin:0; padding:0 }` reset). Without this, classes like
+  `px-4`, `mx-auto`, `pt-6` etc. silently resolve to 0 because the
+  unordered cascade puts Chakra's `reset` layer AFTER Tailwind's
+  `utilities` layer. Declaring the order up-front guarantees
+  `utilities` is the last (highest-priority) layer.
+*/
+@layer reset, base, tokens, recipes, theme, components, utilities;
+
 @import "tailwindcss";
 
 :root {

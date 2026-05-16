@@ -272,7 +272,7 @@ export function LocationSection({
         method,
         status: method === 'link' && draft.location.link ? 'pending' : draft.location.status,
       },
-      ...(draft.quote ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null } : {}),
+      ...(draft.quote ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null, dispatchedBookingId: null } : {}),
     });
     setMessage(null);
   };
@@ -294,6 +294,7 @@ export function LocationSection({
       paymentChoice: null,
       paymentLink: null,
       dispatchedRefNumber: null,
+      dispatchedBookingId: null,
     });
     setShowSuggestions(true);
     if (timer.current) clearTimeout(timer.current);
@@ -323,6 +324,7 @@ export function LocationSection({
       paymentChoice: null,
       paymentLink: null,
       dispatchedRefNumber: null,
+      dispatchedBookingId: null,
     });
   };
 
@@ -508,6 +510,22 @@ export function LocationSection({
             </Text>
           </Pressable>
         ))}
+        <Pressable
+          onPress={() => requestLink('copy')}
+          disabled={busy === 'copy'}
+          style={({ pressed }) => [
+            styles.modeButton,
+            styles.copyLinkButton,
+            pressed && styles.modeButtonPressed,
+            busy === 'copy' && styles.copyLinkButtonBusy,
+          ]}
+        >
+          {busy === 'copy' ? (
+            <ActivityIndicator color={colors.accent} />
+          ) : (
+            <Text style={[styles.modeLabel, styles.copyLinkLabel]}>Copy Link</Text>
+          )}
+        </Pressable>
       </View>
 
       {draft.location.method === 'address' ? (
@@ -737,7 +755,7 @@ function LocationRequestStatusCard({
     <View style={[styles.requestCard, getRequestCardToneStyle(viewState.tone)]}>
       <View style={styles.requestHeader}>
         <View style={[styles.requestChip, getRequestChipToneStyle(viewState.tone)]}>
-          <Text style={[styles.requestChipText, getRequestChipTextToneStyle(viewState.tone)]}>{viewState.state.replace(/_/g, ' ')}</Text>
+          <Text style={[styles.requestChipText, getRequestChipTextToneStyle(viewState.tone)]}>{toneLabel(viewState.tone)}</Text>
         </View>
         {lastCheckedSeconds != null ? <Text style={styles.requestLastChecked}>Last checked {lastCheckedSeconds}s ago</Text> : null}
       </View>
@@ -758,6 +776,16 @@ function LocationRequestStatusCard({
           <AppButton label="WhatsApp" variant="secondary" onPress={() => requestLink('whatsapp')} loading={busy === 'whatsapp'} disabled={!canSendWhatsApp} style={styles.requestActionButton} />
           <AppButton label="SMS" variant="secondary" onPress={() => requestLink('sms')} loading={busy === 'sms'} disabled={!canSendSms} style={styles.requestActionButton} />
           <AppButton label="Email" variant="secondary" onPress={() => requestLink('email')} loading={busy === 'email'} disabled={!canSendEmail} style={styles.requestActionButton} />
+        </View>
+      ) : null}
+      {showActions && (!canSendWhatsApp || !canSendSms || !canSendEmail) ? (
+        <View style={styles.requestHints}>
+          {!canSendWhatsApp || !canSendSms ? (
+            <Text style={styles.requestHint}>WhatsApp and SMS need a valid customer phone number.</Text>
+          ) : null}
+          {!canSendEmail ? (
+            <Text style={styles.requestHint}>Email send needs a customer email address.</Text>
+          ) : null}
         </View>
       ) : null}
     </View>
@@ -797,6 +825,21 @@ function getRequestChipTextToneStyle(tone: LocationRequestViewState['tone']) {
   return styles.requestChipText_idle;
 }
 
+function toneLabel(tone: LocationRequestViewState['tone']): string {
+  switch (tone) {
+    case 'busy':
+      return 'Working';
+    case 'ok':
+      return 'Ready';
+    case 'warn':
+      return 'Waiting';
+    case 'err':
+      return 'Needs attention';
+    default:
+      return 'Idle';
+  }
+}
+
 const styles = StyleSheet.create({
   modeRow: { flexDirection: 'row', gap: 8 },
   modeButton: {
@@ -817,6 +860,15 @@ const styles = StyleSheet.create({
   modeButtonPressed: { borderColor: colors.borderStrong },
   modeLabel: { color: colors.text, fontSize: fontSize.sm, fontWeight: '700' },
   modeLabelActive: { color: colors.accent },
+  copyLinkButton: {
+    flex: 0,
+    minWidth: 110,
+    paddingHorizontal: 14,
+    borderColor: colors.accent,
+    backgroundColor: 'rgba(249,115,22,0.08)',
+  },
+  copyLinkButtonBusy: { opacity: 0.7 },
+  copyLinkLabel: { color: colors.accent },
   input: {
     minHeight: 48,
     borderColor: colors.border,
@@ -898,6 +950,8 @@ const styles = StyleSheet.create({
   requestStepLabelActive: { color: colors.text },
   requestActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   requestActionButton: { flexGrow: 1, flexBasis: 128, minHeight: 48 },
+  requestHints: { marginTop: 6, gap: 2 },
+  requestHint: { color: colors.subtle, fontSize: fontSize.xs, lineHeight: 16 },
   actionGrid: { marginTop: 10, gap: 8 },
   confirmedBox: { marginTop: 12, gap: 10 },
   mapWrap: {

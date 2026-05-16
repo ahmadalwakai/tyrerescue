@@ -61,6 +61,9 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
         distanceKm: distanceKm ? Number(distanceKm) : null,
       };
 
+      // Note: `manualPriceGbp` is deliberately preserved across re-pricing.
+      // Only EditQuotePriceModal (or a 404 reset) can change/clear it; the
+      // operator's typed final price must survive a fresh engine recalc.
       update({
         quickBookingId,
         savedQuoteId: null,
@@ -70,6 +73,7 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
         paymentChoice: null,
         paymentLink: null,
         dispatchedRefNumber: null,
+        dispatchedBookingId: null,
       });
     },
     [update],
@@ -164,9 +168,11 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
           savedQuoteRef: null,
           quote: null,
           priceNeedsRefresh: true,
+          manualPriceGbp: null,
           paymentChoice: null,
           paymentLink: null,
           dispatchedRefNumber: null,
+          dispatchedBookingId: null,
         });
         setError('This quick booking session expired. Tap Get Price again to start a new one.');
       } else {

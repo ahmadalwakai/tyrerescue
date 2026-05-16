@@ -899,7 +899,42 @@ export const driverSoundAssets = pgTable('driver_sound_assets', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// ──────────────────────────────────────────────
+// Tracking Sessions (assisted-chat live driver tracking)
+// ──────────────────────────────────────────────
+//
+// One row per booking dispatched from the Assisted Chat mobile app that
+// needs browser-based live tracking (driver may not have the native driver
+// app open). Two opaque tokens are generated:
+//   - customer_token: read-only, embedded in the customer tracking URL
+//   - driver_token:   write-capable (start/location/finish), embedded in the
+//                     driver tracking URL
+// Tokens are 64-char hex (randomBytes(32).toString('hex')), matching the
+// existing locationLinkToken convention. Latest driver location is kept
+// inline; route history is intentionally out of scope for the MVP.
+
+export const trackingSessions = pgTable('tracking_sessions', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: uuid('booking_id').notNull().references(() => bookings.id, { onDelete: 'cascade' }).unique(),
+  customerToken: varchar('customer_token', { length: 64 }).notNull().unique(),
+  driverToken: varchar('driver_token', { length: 64 }).notNull().unique(),
+  status: text('status').notNull().default('pending'), // 'pending' | 'in_progress' | 'completed' | 'expired'
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  lastLatitude: decimal('last_latitude', { precision: 9, scale: 6 }),
+  lastLongitude: decimal('last_longitude', { precision: 9, scale: 6 }),
+  lastAccuracy: real('last_accuracy'),
+  lastHeading: real('last_heading'),
+  lastSpeed: real('last_speed'),
+  lastUpdatedAt: timestamp('last_updated_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+});
+
 // Type exports for use throughout the application
+export type TrackingSession = typeof trackingSessions.$inferSelect;
+export type NewTrackingSession = typeof trackingSessions.$inferInsert;
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Driver = typeof drivers.$inferSelect;

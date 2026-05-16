@@ -9,6 +9,7 @@ import type {
 } from '@/types/assisted-chat';
 
 const LOCKING_NUT_REASON = 'Locking wheel nut removal';
+const MANUAL_PRICE_REASON = 'Manual admin price override';
 
 export interface UseAssistedChatDispatchArgs {
   draft: AssistedChatDraft;
@@ -58,10 +59,23 @@ export function useAssistedChatDispatch({
       update({ paymentChoice: choice });
 
       try {
-        if (lockingNutCharge > 0) {
+        // Build the admin adjustment so the backend stores the price the
+        // operator actually decided. Manual override wins over locking nut
+        // because the operator's typed value is already the final charge.
+        const engineBaseTotal = draft.quote.total;
+        let adjustmentAmount = 0;
+        let adjustmentReason: string | null = null;
+        if (draft.manualPriceGbp != null && Number.isFinite(draft.manualPriceGbp)) {
+          adjustmentAmount = Math.round((draft.manualPriceGbp - engineBaseTotal) * 100) / 100;
+          adjustmentReason = MANUAL_PRICE_REASON;
+        } else if (lockingNutCharge > 0) {
+          adjustmentAmount = lockingNutCharge;
+          adjustmentReason = LOCKING_NUT_REASON;
+        }
+        if (adjustmentReason !== null) {
           await api.patch(`/api/admin/quick-book/${draft.quickBookingId}`, {
-            adminAdjustmentAmount: lockingNutCharge,
-            adminAdjustmentReason: LOCKING_NUT_REASON,
+            adminAdjustmentAmount: adjustmentAmount,
+            adminAdjustmentReason: adjustmentReason,
           });
         }
 
@@ -104,6 +118,7 @@ export function useAssistedChatDispatch({
         setResult(response);
         update({
           dispatchedRefNumber: response.refNumber,
+          dispatchedBookingId: response.bookingId,
           paymentChoice: choice,
           paymentLink,
           quote: response.breakdown
@@ -119,7 +134,14 @@ export function useAssistedChatDispatch({
         onBookingCreated?.({
           response,
           paymentChoice: choice,
-          effectiveTotal: (response.breakdown?.total ?? draft.quote.total) + lockingNutCharge,
+          // When a manual price override is in effect, the locking-nut amount
+          // has already been absorbed into `manualPriceGbp`, so the backend
+          // breakdown total IS the final figure. Otherwise add the locking
+          // nut on top of the engine total as before.
+          effectiveTotal:
+            draft.manualPriceGbp != null
+              ? (response.breakdown?.total ?? draft.quote.total)
+              : (response.breakdown?.total ?? draft.quote.total) + lockingNutCharge,
           paymentLink,
         });
       } catch (err) {
@@ -134,9 +156,11 @@ export function useAssistedChatDispatch({
             savedQuoteRef: null,
             quote: null,
             priceNeedsRefresh: true,
+            manualPriceGbp: null,
             paymentChoice: null,
             paymentLink: null,
             dispatchedRefNumber: null,
+            dispatchedBookingId: null,
           });
           setError('This quick booking session expired. Tap Get Price to start a new one before dispatching.');
         } else {

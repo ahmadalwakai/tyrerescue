@@ -69,9 +69,21 @@ export interface AssistedChatDraft {
   note: string;
   quote: AssistedChatQuoteBreakdown | null;
   priceNeedsRefresh: boolean;
+  /**
+   * Operator-entered manual final price in GBP that overrides the engine
+   * total for display, quote save, and dispatch. Null means use the engine
+   * total. Cleared automatically whenever a fresh price is pulled.
+   */
+  manualPriceGbp: number | null;
   paymentChoice: AssistedChatPaymentChoice | null;
   paymentLink: StripePaymentLinkState | null;
   dispatchedRefNumber: string | null;
+  /**
+   * Booking UUID returned by the finalize endpoint. Persisted so the live
+   * tracking card can resume after a screen reload (tracking endpoints are
+   * keyed by bookingId, not by ref number).
+   */
+  dispatchedBookingId: string | null;
   updatedAt: number;
 }
 

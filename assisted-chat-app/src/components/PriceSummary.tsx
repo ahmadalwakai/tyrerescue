@@ -37,6 +37,12 @@ interface Props {
   showGetPriceAction?: boolean;
   /** Guided screens render exactly one payment selector elsewhere. */
   showPaymentOptions?: boolean;
+  /**
+   * Manual admin price override in GBP. When set, the breakdown is
+   * relabelled as a calculated reference ("Calculated breakdown") and the
+   * final highlighted row shows the manual price instead.
+   */
+  manualPriceGbp?: number | null;
 }
 
 export function PriceSummary({
@@ -60,9 +66,15 @@ export function PriceSummary({
   afterPaymentSlot,
   showGetPriceAction = true,
   showPaymentOptions = true,
+  manualPriceGbp = null,
 }: Props) {
   const baseTotal = quote?.total ?? 0;
-  const effectiveTotal = baseTotal + lockingNutCharge;
+  const calculatedTotal = baseTotal + lockingNutCharge;
+  const hasManualOverride =
+    typeof manualPriceGbp === 'number' && Number.isFinite(manualPriceGbp);
+  // The customer-payable figure used for deposit/cash/full button labels and
+  // the customer-facing sentence. Manual override wins over the engine total.
+  const effectiveTotal = hasManualOverride ? (manualPriceGbp as number) : calculatedTotal;
   const depositPercent = 0.15;
   const deposit = effectiveTotal * depositPercent;
   const priceLines = quote?.lineItems.filter((line) => line.type !== 'subtotal' && line.type !== 'total') ?? [];
@@ -81,7 +93,7 @@ export function PriceSummary({
   ].filter(Boolean) as string[];
 
   return (
-    <SectionCard title="Price">
+    <SectionCard title={hasManualOverride ? 'Calculated breakdown' : 'Price'}>
       {beforeGetPriceSlot}
       {priceNeedsRefresh ? (
         <View style={{ marginBottom: 10 }}>
@@ -104,6 +116,12 @@ export function PriceSummary({
         </View>
       ) : null}
       {afterGetPriceSlot}
+
+      {!quote && !loading && !error ? (
+        <Text style={styles.emptyHint}>
+          Price will appear after location and tyre details are ready.
+        </Text>
+      ) : null}
 
       {quote ? (
         <View style={styles.breakdown}>
@@ -136,9 +154,22 @@ export function PriceSummary({
 
           <View style={styles.divider} />
           <View style={styles.row}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>{formatGbp(effectiveTotal)}</Text>
+            <Text style={styles.totalLabel}>
+              {hasManualOverride ? 'Calculated total' : 'Total'}
+            </Text>
+            <Text style={styles.totalValue}>{formatGbp(calculatedTotal)}</Text>
           </View>
+
+          {hasManualOverride ? (
+            <>
+              <View style={styles.divider} />
+              <View style={[styles.row, styles.finalRow]}>
+                <Text style={styles.finalLabel}>Final quote price</Text>
+                <Text style={styles.finalValue}>{formatGbp(effectiveTotal)}</Text>
+              </View>
+              <Text style={styles.manualNoteText}>Manual override applied</Text>
+            </>
+          ) : null}
 
           {customerPriceSentence ? (
             <View style={styles.sayBox}>
@@ -233,6 +264,24 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 4 },
   totalLabel: { color: colors.text, fontSize: fontSize.lg, fontWeight: '700' },
   totalValue: { color: colors.text, fontSize: fontSize.lg, fontWeight: '700' },
+  finalRow: {
+    backgroundColor: colors.infoBg,
+    borderWidth: 1,
+    borderColor: colors.infoBorder,
+    borderRadius: radius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  finalLabel: { color: colors.text, fontSize: fontSize.lg, fontWeight: '800' },
+  finalValue: { color: colors.text, fontSize: fontSize.lg, fontWeight: '800' },
+  manualNoteText: {
+    marginTop: 4,
+    color: colors.warning,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
   sayBox: {
     marginTop: 8,
     borderWidth: 1,
@@ -245,6 +294,13 @@ const styles = StyleSheet.create({
   sayText: { color: colors.info, fontSize: fontSize.sm, fontWeight: '700', lineHeight: 19 },
   meta: { marginTop: 6, color: colors.subtle, fontSize: fontSize.xs },
   warnMeta: { marginTop: 6, color: colors.warning, fontSize: fontSize.xs, fontWeight: '700' },
+  emptyHint: {
+    marginTop: 12,
+    color: colors.muted,
+    fontSize: fontSize.sm,
+    fontStyle: 'italic',
+    lineHeight: 19,
+  },
   warningStack: { marginTop: 8, gap: 6 },
   payLabel: { color: colors.muted, fontWeight: '700', fontSize: fontSize.xs, letterSpacing: 1 },
 });

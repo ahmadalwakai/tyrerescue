@@ -10,9 +10,9 @@ interface Props {
 }
 
 const OPTIONS: { value: LockingNutAnswer; label: string }[] = [
-  { value: 'yes', label: 'Yes, customer has it' },
-  { value: 'no', label: 'No, customer does not have it' },
-  { value: 'unknown', label: 'Unknown' },
+  { value: 'yes', label: 'Yes, customer has the key' },
+  { value: 'no', label: 'No, key is missing' },
+  { value: 'unknown', label: 'Not asked yet' },
 ];
 
 export function LockingWheelNutSection({ draft, update }: Props) {
@@ -93,6 +93,9 @@ export function LockingWheelNutSection({ draft, update }: Props) {
 
       {draft.lockingNut.answer === 'no' ? (
         <View style={{ marginTop: 12 }}>
+          <Text style={styles.warning}>
+            A removal charge will be added to the price. Confirm the amount with the customer before pricing.
+          </Text>
           <FieldLabel>Locking wheel nut removal charge (GBP)</FieldLabel>
           <TextInput
             value={chargeInput}
@@ -168,4 +171,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.inputBg,
   },
   error: { marginTop: 6, color: colors.danger, fontSize: fontSize.xs },
+  warning: {
+    marginBottom: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.warningBorder,
+    backgroundColor: colors.warningBg,
+    color: colors.warning,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    lineHeight: 16,
+  },
 });

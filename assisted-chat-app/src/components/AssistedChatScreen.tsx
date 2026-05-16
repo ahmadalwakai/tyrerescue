@@ -4,6 +4,7 @@ import {
   AppState,
   Linking,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +23,10 @@ import { useAssistedChatQuoteActions } from '@/hooks/useAssistedChatQuoteActions
 import { useTodayBookings, type TodayBookingItem } from '@/hooks/useTodayBookings';
 import { useRecentCustomers } from '@/hooks/useRecentCustomers';
 import { useDuplicateBookingWarning } from '@/hooks/useDuplicateBookingWarning';
+import { useNewCustomerBookingAlert } from '@/hooks/useNewCustomerBookingAlert';
+import { useBookingTracking } from '@/hooks/useBookingTracking';
+import { BookingTrackingCard } from './tracking/BookingTrackingCard';
+import { AlertActionButton } from './ui/AlertActionButton';
 import type {
   AssistedChatDraft,
   AssistedChatPaymentChoice,
@@ -33,6 +38,8 @@ import { LocationSection } from './LocationSection';
 import { TyreSelectionSection } from './TyreSelectionSection';
 import { LockingWheelNutSection } from './LockingWheelNutSection';
 import { PriceSummary } from './PriceSummary';
+import { CompactQuoteCard, type CompactQuoteStatus } from './quote/CompactQuoteCard';
+import { EditQuotePriceModal } from './quote/EditQuotePriceModal';
 import { TodayBookingsModal } from './TodayBookingsModal';
 import { RecentCustomersModal } from './RecentCustomersModal';
 import { DuplicateBookingWarning } from './DuplicateBookingWarning';
@@ -51,7 +58,13 @@ import {
   registerAdminPushNotifications,
   clearAdminBadge,
   unregisterAdminPushNotifications,
+  consumePendingOpenBookings,
+  setPendingOpenBookings,
+  isUrgentBookingNotificationData,
+  getDismissedUrgentBookingId,
+  setDismissedUrgentBookingId,
 } from '@/lib/notifications';
+import { UrgentBookingPopup } from './alerts/UrgentBookingPopup';
 import {
   getAssistedChatWorkflow,
   hasAssistedChatTyre,
@@ -60,6 +73,13 @@ import {
   type AssistedChatTimelineItem,
   type AssistedChatTimelineStep,
 } from '@/lib/assisted-chat-workflow';
+import {
+  deriveOperatorWorkflowSteps,
+  deriveNextBestAction,
+  stageForStepId,
+} from '@/lib/operator-workflow-state';
+import { OperatorStepProgress } from './workflow/OperatorStepProgress';
+import { NextBestActionCard } from './workflow/NextBestActionCard';
 
 interface ParsedCallNotes {
   customerName?: string;
@@ -188,6 +208,20 @@ function isQuoteConfirmed(quote: AdminQuote | null): boolean {
       quote.selectedPaymentOption ||
       CONFIRMED_QUOTE_STATUSES.includes(quote.quoteStatus),
   );
+}
+
+function computeCompactQuoteStatus(args: {
+  activeQuote: AdminQuote | null;
+  savedQuoteRef: string | null;
+  quoteConfirmed: boolean;
+  paymentLink: StripePaymentLinkState | null;
+}): CompactQuoteStatus {
+  const { activeQuote, savedQuoteRef, quoteConfirmed, paymentLink } = args;
+  if (activeQuote?.quoteStatus === 'PAID') return 'PAYMENT_CONFIRMED';
+  if (paymentLink) return 'PAYMENT_LINK_SENT';
+  if (quoteConfirmed) return 'CONFIRMED';
+  if (savedQuoteRef) return 'SAVED';
+  return 'NOT_SAVED';
 }
 
 function formatQuoteDateTime(value: string): string {
@@ -353,6 +387,8 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const [editingStage, setEditingStage] = useState<AssistedChatStage | null>(null);
   const [mapSummaryOpen, setMapSummaryOpen] = useState(false);
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
+  const [editPriceOpen, setEditPriceOpen] = useState(false);
+  const [breakdownVisible, setBreakdownVisible] = useState(false);
 
   const insets = useSafeAreaInsets();
   const bottomBarPaddingBottom = Math.max(insets.bottom + 8, 16);
@@ -361,15 +397,27 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   // ── Push Notifications ─────────────────────────────────────────────────────
 
   // Register for push notifications once the admin is authenticated.
+  // Skipped on web — expo-notifications push tokens are not available there
+  // and the calls would just produce noisy console warnings.
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     if (!api.hasAdminToken) return;
     void registerAdminPushNotifications();
   }, []);
 
   // Open the bookings modal when the admin taps a notification.
+  // For urgent_booking payloads we also persist a pending flag so that if
+  // the tap arrives before this component is fully mounted (cold start),
+  // the modal still opens on first render via the consumePendingOpenBookings
+  // effect below.
   const notifResponseRef = useRef<Notifications.Subscription | null>(null);
   useEffect(() => {
-    notifResponseRef.current = Notifications.addNotificationResponseReceivedListener(() => {
+    if (Platform.OS === 'web') return;
+    notifResponseRef.current = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      if (isUrgentBookingNotificationData(data)) {
+        void setPendingOpenBookings();
+      }
       setBookingsOpen(true);
       void clearAdminBadge();
     });
@@ -378,10 +426,118 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     };
   }, []);
 
+  // Cold-start path: if a push notification tap stored the pending flag
+  // before this screen mounted, open the bookings modal once.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    void (async () => {
+      const pending = await consumePendingOpenBookings();
+      if (pending) {
+        setBookingsOpen(true);
+        void clearAdminBadge();
+      }
+    })();
+  }, []);
+
+  const {
+    hasNewCustomerBooking,
+    latestNewBooking,
+    markBookingsSeen,
+    triggerForegroundUrgentAlert,
+  } = useNewCustomerBookingAlert();
+
+  // Urgent in-app popup state — separate from the persistent shimmer.
+  const [urgentPopupOpen, setUrgentPopupOpen] = useState(false);
+  const dismissedUrgentBookingIdRef = useRef<string | null>(null);
+  // Hydrated from AsyncStorage on mount so a previously acknowledged
+  // urgent booking does not re-trigger the popup + sound after the
+  // operator closes and reopens the app.
+  const [dismissedHydrated, setDismissedHydrated] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const saved = await getDismissedUrgentBookingId();
+      if (cancelled) return;
+      dismissedUrgentBookingIdRef.current = saved;
+      setDismissedHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const urgentBookingId = latestNewBooking?.id ?? null;
+  const urgentBookingIsUrgent = Boolean(latestNewBooking?.isUrgent);
+
+  // Show the urgent popup the first time we detect a new emergency booking,
+  // unless the operator has already dismissed THIS booking id or the
+  // bookings modal is already open.
+  useEffect(() => {
+    if (!dismissedHydrated) return;
+    if (!hasNewCustomerBooking) return;
+    if (!urgentBookingIsUrgent || !urgentBookingId) return;
+    if (bookingsOpen) return;
+    if (dismissedUrgentBookingIdRef.current === urgentBookingId) return;
+    setUrgentPopupOpen(true);
+    void triggerForegroundUrgentAlert();
+  }, [
+    dismissedHydrated,
+    hasNewCustomerBooking,
+    urgentBookingId,
+    urgentBookingIsUrgent,
+    bookingsOpen,
+    triggerForegroundUrgentAlert,
+  ]);
+
+  // While the popup is visible and the booking is unresolved, fire a
+  // reminder alert at most every 60s (the hook itself enforces the
+  // cooldown — this interval just gives it the opportunity).
+  useEffect(() => {
+    if (!urgentPopupOpen) return;
+    const id = setInterval(() => {
+      void triggerForegroundUrgentAlert();
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [urgentPopupOpen, triggerForegroundUrgentAlert]);
+
   // Clear the badge whenever the bookings modal is opened.
   useEffect(() => {
-    if (bookingsOpen) void clearAdminBadge();
-  }, [bookingsOpen]);
+    if (bookingsOpen) {
+      void clearAdminBadge();
+      setUrgentPopupOpen(false);
+      // Persist this booking id as acknowledged so reopening the app
+      // does not bring the popup back. We keep the local ref in sync.
+      if (urgentBookingId) {
+        dismissedUrgentBookingIdRef.current = urgentBookingId;
+        void setDismissedUrgentBookingId(urgentBookingId);
+      }
+      // Also clear the visual "new booking" alert on the toolbar button
+      // regardless of how the modal was opened (push tap, More-actions, etc.).
+      void markBookingsSeen();
+    }
+  }, [bookingsOpen, markBookingsSeen, urgentBookingId]);
+
+  const handleUrgentOpenBookings = useCallback(() => {
+    setUrgentPopupOpen(false);
+    if (urgentBookingId) {
+      dismissedUrgentBookingIdRef.current = urgentBookingId;
+      void setDismissedUrgentBookingId(urgentBookingId);
+    }
+    void markBookingsSeen();
+    setBookingsOpen(true);
+  }, [markBookingsSeen, urgentBookingId]);
+
+  const handleUrgentDismiss = useCallback(() => {
+    // Close the popup but keep the All-bookings red shimmer active until
+    // the operator actually opens the bookings list. Persist so the
+    // popup + sound do not return when the app is reopened.
+    setUrgentPopupOpen(false);
+    if (urgentBookingId) {
+      dismissedUrgentBookingIdRef.current = urgentBookingId;
+      void setDismissedUrgentBookingId(urgentBookingId);
+    }
+  }, [urgentBookingId]);
 
   // Clear badge when app comes back to the foreground.
   useEffect(() => {
@@ -414,7 +570,12 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       ? draft.lockingNut.chargeGbp
       : 0;
   const baseTotal = draft.quote?.total ?? 0;
-  const effectiveTotal = baseTotal + lockingNutCharge;
+  const engineEffectiveTotal = baseTotal + lockingNutCharge;
+  // When the operator has typed a manual final price, that overrides the
+  // engine total everywhere the customer-facing price is used (display,
+  // saved quote priceAmount, finalize adjustment). Locking nut is absorbed
+  // into the manual figure to avoid double counting.
+  const effectiveTotal = draft.manualPriceGbp != null ? draft.manualPriceGbp : engineEffectiveTotal;
 
   const price = useAssistedChatPrice({ draft, update });
   const locationShare = useAssistedChatLocationShare({ draft, update });
@@ -486,6 +647,11 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     lockingNutCharge,
     onBookingCreated: handleBookingCreated,
   });
+
+  // Live tracking session for the dispatched booking. Hook is a no-op when
+  // dispatchedBookingId is null; auto-ensures (idempotent) the first time we
+  // see a booking id, then polls /tracking every 8s.
+  const bookingTracking = useBookingTracking({ bookingId: draft.dispatchedBookingId });
 
   const workflow = useMemo(
     () => getAssistedChatWorkflow({
@@ -601,6 +767,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
         paymentChoice: null,
         paymentLink: null,
         dispatchedRefNumber: null,
+        dispatchedBookingId: null,
       });
       setPhoneInput(item.customerPhone ?? '');
       setNoteInput(item.note ?? '');
@@ -657,6 +824,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
         paymentChoice: null,
         paymentLink: null,
         dispatchedRefNumber: null,
+        dispatchedBookingId: null,
       });
       quoteActions.acceptExternalQuote(quote);
       setPhoneInput(quote.customerPhone ?? '');
@@ -1071,14 +1239,6 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     quoteActions,
   ]);
 
-  if (!hydrated) {
-    return (
-      <SafeAreaView style={styles.loading}>
-        <ActivityIndicator color={colors.accent} />
-      </SafeAreaView>
-    );
-  }
-
   const primaryLabel = editingStage ? 'Done Editing' : workflow.primaryActionLabel;
   const primaryDisabled = editingStage ? false : workflow.primaryActionDisabled;
   const primaryDisabledReason = editingStage ? null : workflow.primaryActionDisabledReason;
@@ -1102,6 +1262,129 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       setActionNotice(null);
     }
   };
+
+  // Operator workflow projection: shared progress/next-action state derived
+  // from the existing draft + workflow + quote/dispatch flags. Keeps the new
+  // OperatorStepProgress + NextBestActionCard in lockstep with the legacy
+  // Timeline/SummaryCard stack without changing any backend behaviour.
+  const hasPrice = Boolean(draft.quote && !draft.priceNeedsRefresh);
+  const hasSavedQuote = Boolean(savedQuoteRef);
+  const operatorDerivationInput = {
+    draft,
+    activeStage,
+    hasLocation,
+    hasTyre,
+    hasPrice,
+    priceLoading: price.loading,
+    hasSavedQuote,
+    quoteConfirmed,
+    dispatchBusy: dispatch.busy,
+    locationPolling: locationShare.isPolling,
+    hasDispatched: Boolean(draft.dispatchedRefNumber),
+    hasPaymentLink: Boolean(draft.paymentLink),
+  };
+  const operatorSteps = useMemo(
+    () => deriveOperatorWorkflowSteps(operatorDerivationInput),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      activeStage,
+      draft,
+      hasLocation,
+      hasTyre,
+      hasPrice,
+      hasSavedQuote,
+      quoteConfirmed,
+      price.loading,
+      dispatch.busy,
+      locationShare.isPolling,
+    ],
+  );
+  const activeOperatorStepId = useMemo(() => {
+    // Reuse the same mapping the chip uses for the active stage so the
+    // highlighted chip always matches the open SectionCard.
+    switch (activeStage) {
+      case 'CUSTOMER':
+        return 'customer' as const;
+      case 'LOCATION':
+        return 'location' as const;
+      case 'TYRE':
+        return draft.lockingNut.answer === 'unknown' && hasTyre ? ('lockingNut' as const) : ('tyre' as const);
+      case 'PRICE':
+      case 'QUOTE':
+      case 'CONFIRMATION':
+        return 'quote' as const;
+      case 'PAYMENT':
+        return 'payment' as const;
+      case 'READY_TO_DISPATCH':
+      case 'DISPATCHED':
+        return 'dispatch' as const;
+    }
+  }, [activeStage, draft.lockingNut.answer, hasTyre]);
+  const nextBestAction = useMemo(
+    () =>
+      deriveNextBestAction({
+        ...operatorDerivationInput,
+        primaryActionLabel: primaryLabel,
+        primaryActionDisabled: primaryDisabled,
+        primaryActionDisabledReason: primaryDisabledReason,
+        onPrimaryPress: handlePrimaryAction,
+        primaryLoading: price.loading || dispatch.busy || quoteActions.busy !== null,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      activeStage,
+      draft,
+      hasLocation,
+      hasTyre,
+      hasPrice,
+      hasSavedQuote,
+      quoteConfirmed,
+      price.loading,
+      dispatch.busy,
+      locationShare.isPolling,
+      primaryLabel,
+      primaryDisabled,
+      primaryDisabledReason,
+      handlePrimaryAction,
+      quoteActions.busy,
+    ],
+  );
+
+  const handleSelectOperatorStep = useCallback(
+    (stepId: typeof operatorSteps[number]['id']) => {
+      const targetStage = stageForStepId(stepId, {
+        quoteConfirmed,
+        hasPrice,
+        hasSavedQuote,
+      });
+      const blockedReason = blockedReasonForStage(targetStage, {
+        hasCustomerDetails: Boolean(
+          draft.customer.name.trim() || draft.customer.phone.trim() || draft.customer.email.trim(),
+        ),
+        hasLocation,
+        hasTyre,
+        hasPrice,
+        hasSavedQuote,
+        quoteConfirmed,
+        hasPaymentChoice: Boolean(draft.paymentChoice),
+      });
+      setEditingStage(targetStage);
+      if (blockedReason) {
+        flashNotice({ kind: 'info', text: blockedReason });
+      } else {
+        setActionNotice(null);
+      }
+    },
+    [draft, flashNotice, hasLocation, hasPrice, hasSavedQuote, hasTyre, quoteConfirmed],
+  );
+
+  if (!hydrated) {
+    return (
+      <SafeAreaView style={styles.loading}>
+        <ActivityIndicator color={colors.accent} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -1156,11 +1439,40 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
 
         <View style={styles.toolRow}>
           <AppButton label={`Bookings ${todayBookings.count}`} variant="secondary" onPress={() => setHistoryOpen(true)} style={styles.toolButton} />
+          <AlertActionButton
+            label="All bookings"
+            active={hasNewCustomerBooking}
+            badgeLabel="New"
+            onPress={() => {
+              markBookingsSeen();
+              setBookingsOpen(true);
+            }}
+            style={styles.toolButton}
+            testID="all-bookings-alert-button"
+          />
           <AppButton label="Recent customers" variant="secondary" onPress={() => setRecentOpen(true)} style={styles.toolButton} />
           <AppButton label="Quotes" variant="secondary" onPress={() => setQuotesOpen(true)} style={styles.toolButton} />
         </View>
 
-        <Timeline items={workflow.timeline} onSelect={handleSelectTimelineStep} />
+        <NextBestActionCard
+          title={nextBestAction.title}
+          body={nextBestAction.body}
+          status={nextBestAction.status}
+          // Suppress the duplicate CTA when the next-best step is already the
+          // active section: the bottom bar (and the section itself) already
+          // expose the same primary action, so the card becomes guidance-only.
+          primaryLabel={nextBestAction.id === activeOperatorStepId ? undefined : nextBestAction.primaryLabel}
+          onPrimaryPress={nextBestAction.id === activeOperatorStepId ? undefined : nextBestAction.onPrimaryPress}
+          loading={nextBestAction.loading}
+          disabled={nextBestAction.disabled}
+          disabledReason={primaryDisabledReason ?? undefined}
+        />
+
+        <OperatorStepProgress
+          steps={operatorSteps}
+          activeStepId={activeOperatorStepId}
+          onStepPress={handleSelectOperatorStep}
+        />
 
         <View style={styles.summaryStack}>
           <SummaryCard
@@ -1263,7 +1575,21 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
             selectedPaymentOption,
             dispatch,
             handleCopyCustomerDetails,
+            engineEffectiveTotal,
+            setEditPriceOpen,
+            breakdownVisible,
+            setBreakdownVisible,
           })}
+          {activeStage === 'DISPATCHED' && draft.dispatchedBookingId ? (
+            <BookingTrackingCard
+              data={bookingTracking.data}
+              ensureFailed={bookingTracking.ensureFailed}
+              busy={bookingTracking.busy}
+              customerPhone={draft.customer.phone.trim() || null}
+              onRetryEnsure={() => { void bookingTracking.ensure(); }}
+              onRefresh={() => { void bookingTracking.refresh(); }}
+            />
+          ) : null}
         </View>
 
         <View style={styles.bottomSpacer} />
@@ -1312,9 +1638,23 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       />
       <AdminQuotesModal visible={quotesOpen} onClose={() => setQuotesOpen(false)} onUseQuote={handleUseQuote} />
       <AdminBookingsModal visible={bookingsOpen} onClose={() => setBookingsOpen(false)} />
+      <UrgentBookingPopup
+        visible={urgentPopupOpen}
+        booking={latestNewBooking}
+        onOpenBookings={handleUrgentOpenBookings}
+        onDismiss={handleUrgentDismiss}
+      />
       <AdminVisitorsModal visible={visitorsOpen} onClose={() => setVisitorsOpen(false)} />
       <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
       <AdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
+      <EditQuotePriceModal
+        visible={editPriceOpen}
+        currentPriceGbp={effectiveTotal}
+        engineBaseTotal={baseTotal}
+        quickBookingId={draft.quickBookingId}
+        onClose={() => setEditPriceOpen(false)}
+        onSaved={(newPrice) => update({ manualPriceGbp: newPrice })}
+      />
     </SafeAreaView>
   );
 }
@@ -1350,6 +1690,10 @@ interface RenderActiveStageArgs {
   selectedPaymentOption: AdminQuotePaymentOption;
   dispatch: ReturnType<typeof useAssistedChatDispatch>;
   handleCopyCustomerDetails: () => void | Promise<void>;
+  engineEffectiveTotal: number;
+  setEditPriceOpen: (value: boolean) => void;
+  breakdownVisible: boolean;
+  setBreakdownVisible: (value: boolean) => void;
 
 }
 
@@ -1385,6 +1729,10 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     selectedPaymentOption,
     dispatch,
     handleCopyCustomerDetails,
+    engineEffectiveTotal,
+    setEditPriceOpen,
+    breakdownVisible,
+    setBreakdownVisible,
   } = args;
 
   if (activeStage === 'CUSTOMER') {
@@ -1474,79 +1822,179 @@ function renderActiveStage(args: RenderActiveStageArgs) {
       : !hasTyre
       ? 'Enter a tyre size before getting the price.'
       : null;
+    const status = computeCompactQuoteStatus({
+      activeQuote,
+      savedQuoteRef,
+      quoteConfirmed,
+      paymentLink: draft.paymentLink,
+    });
     return (
-      <PriceSummary
-        quote={draft.quote}
-        lockingNutCharge={lockingNutCharge}
-        loading={price.loading}
-        stageIdx={price.stageIdx}
-        stageLabels={price.stageLabels}
-        error={price.error}
-        onGetPrice={price.getPrice}
-        onChoosePayment={(choice) => update({ paymentChoice: choice })}
-        paymentChoice={draft.paymentChoice}
-        paymentBusy={dispatch.busy}
-        paymentError={dispatch.error}
-        paymentLink={draft.paymentLink}
-        dispatchedRefNumber={draft.dispatchedRefNumber}
-        pricingBlocked={!hasLocation || !hasTyre}
-        priceNeedsRefresh={draft.priceNeedsRefresh}
-        showGetPriceAction={false}
-        showPaymentOptions={false}
-        beforeGetPriceSlot={
-          <>
-            {pricingDisabledReason ? (
-              <View style={styles.inlineNoticeWrap}>
-                <InlineNotice kind="info">{pricingDisabledReason}</InlineNotice>
-              </View>
-            ) : null}
-            <DuplicateBookingWarning
-              match={duplicateMatch}
-              acknowledged={duplicateAck}
-              onReview={() => setHistoryOpen(true)}
-              onContinueAnyway={() => setDuplicateAck(true)}
-            />
-          </>
-        }
-      />
+      <View style={styles.stepStack}>
+        {pricingDisabledReason ? (
+          <View style={styles.inlineNoticeWrap}>
+            <InlineNotice kind="info">{pricingDisabledReason}</InlineNotice>
+          </View>
+        ) : null}
+        <DuplicateBookingWarning
+          match={duplicateMatch}
+          acknowledged={duplicateAck}
+          onReview={() => setHistoryOpen(true)}
+          onContinueAnyway={() => setDuplicateAck(true)}
+        />
+        <CompactQuoteCard
+          displayedPriceGbp={effectiveTotal}
+          isManualPrice={draft.manualPriceGbp != null}
+          originalCalculatedPriceGbp={engineEffectiveTotal}
+          status={status}
+          savedQuoteRef={savedQuoteRef}
+          expiryText={quoteExpiryStatus}
+          priceNeedsRefresh={draft.priceNeedsRefresh}
+          priceLoading={price.loading}
+          missingQuickBooking={!draft.quickBookingId || !draft.quote}
+          saveBusy={quoteActions.busy === 'save'}
+          payBusy={dispatch.busy && draft.paymentChoice === 'full'}
+          onEditPrice={() => setEditPriceOpen(true)}
+          onSaveQuote={() => { void quoteActions.saveQuote(); }}
+          onPay={() => { void dispatch.choosePaymentAndDispatch('full'); }}
+          onToggleBreakdown={() => setBreakdownVisible(!breakdownVisible)}
+          breakdownVisible={breakdownVisible}
+        />
+        {breakdownVisible ? (
+          <PriceSummary
+            quote={draft.quote}
+            lockingNutCharge={lockingNutCharge}
+            loading={price.loading}
+            stageIdx={price.stageIdx}
+            stageLabels={price.stageLabels}
+            error={price.error}
+            onGetPrice={price.getPrice}
+            onChoosePayment={(choice) => update({ paymentChoice: choice })}
+            paymentChoice={draft.paymentChoice}
+            paymentBusy={dispatch.busy}
+            paymentError={dispatch.error}
+            paymentLink={draft.paymentLink}
+            dispatchedRefNumber={draft.dispatchedRefNumber}
+            pricingBlocked={!hasLocation || !hasTyre}
+            priceNeedsRefresh={draft.priceNeedsRefresh}
+            manualPriceGbp={draft.manualPriceGbp}
+            showGetPriceAction={false}
+            showPaymentOptions={false}
+          />
+        ) : null}
+        {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
+        {draft.paymentLink ? <PaymentLinkInline link={draft.paymentLink} isManualPrice={draft.manualPriceGbp != null} /> : null}
+      </View>
     );
   }
 
   if (activeStage === 'QUOTE') {
+    const status = computeCompactQuoteStatus({
+      activeQuote,
+      savedQuoteRef,
+      quoteConfirmed,
+      paymentLink: draft.paymentLink,
+    });
     return (
-      <QuoteStepCard
-        activeQuote={activeQuote}
-        savedQuoteRef={savedQuoteRef}
-        quoteConfirmed={quoteConfirmed}
-        quoteExpiryStatus={quoteExpiryStatus}
-        quotePricePence={quotePricePence}
-        selectedPaymentOption={selectedPaymentOption}
-        effectiveTotal={effectiveTotal}
-        onLongPress={quoteActions.copyConfirmedMessage}
-      />
+      <View style={styles.stepStack}>
+        <CompactQuoteCard
+          displayedPriceGbp={effectiveTotal}
+          isManualPrice={draft.manualPriceGbp != null}
+          originalCalculatedPriceGbp={engineEffectiveTotal}
+          status={status}
+          savedQuoteRef={savedQuoteRef}
+          expiryText={quoteExpiryStatus}
+          priceNeedsRefresh={draft.priceNeedsRefresh}
+          priceLoading={price.loading}
+          missingQuickBooking={!draft.quickBookingId || !draft.quote}
+          saveBusy={quoteActions.busy === 'save'}
+          payBusy={dispatch.busy && draft.paymentChoice === 'full'}
+          onEditPrice={() => setEditPriceOpen(true)}
+          onSaveQuote={() => { void quoteActions.saveQuote(); }}
+          onPay={() => { void dispatch.choosePaymentAndDispatch('full'); }}
+          onToggleBreakdown={() => setBreakdownVisible(!breakdownVisible)}
+          breakdownVisible={breakdownVisible}
+        />
+        {breakdownVisible && draft.quote ? (
+          <PriceSummary
+            quote={draft.quote}
+            lockingNutCharge={lockingNutCharge}
+            loading={price.loading}
+            stageIdx={price.stageIdx}
+            stageLabels={price.stageLabels}
+            error={price.error}
+            onGetPrice={price.getPrice}
+            onChoosePayment={(choice) => update({ paymentChoice: choice })}
+            paymentChoice={draft.paymentChoice}
+            paymentBusy={dispatch.busy}
+            paymentError={dispatch.error}
+            paymentLink={draft.paymentLink}
+            dispatchedRefNumber={draft.dispatchedRefNumber}
+            pricingBlocked={false}
+            priceNeedsRefresh={draft.priceNeedsRefresh}
+            manualPriceGbp={draft.manualPriceGbp}
+            showGetPriceAction={false}
+            showPaymentOptions={false}
+          />
+        ) : null}
+        {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind} message={quoteActions.message.text} /> : null}
+        {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
+        {draft.paymentLink ? <PaymentLinkInline link={draft.paymentLink} isManualPrice={draft.manualPriceGbp != null} /> : null}
+      </View>
     );
   }
 
   if (activeStage === 'CONFIRMATION' || activeStage === 'PAYMENT') {
+    const status = computeCompactQuoteStatus({
+      activeQuote,
+      savedQuoteRef,
+      quoteConfirmed,
+      paymentLink: draft.paymentLink,
+    });
     return (
       <View style={styles.stepStack}>
-        <QuoteStepCard
-          activeQuote={activeQuote}
+        <CompactQuoteCard
+          displayedPriceGbp={effectiveTotal}
+          isManualPrice={draft.manualPriceGbp != null}
+          originalCalculatedPriceGbp={engineEffectiveTotal}
+          status={status}
           savedQuoteRef={savedQuoteRef}
-          quoteConfirmed={quoteConfirmed}
-          quoteExpiryStatus={quoteExpiryStatus}
-          quotePricePence={quotePricePence}
-          selectedPaymentOption={selectedPaymentOption}
-          effectiveTotal={effectiveTotal}
-          onLongPress={quoteActions.copyConfirmedMessage}
+          expiryText={quoteExpiryStatus}
+          priceNeedsRefresh={draft.priceNeedsRefresh}
+          priceLoading={price.loading}
+          missingQuickBooking={!draft.quickBookingId || !draft.quote}
+          saveBusy={quoteActions.busy === 'save'}
+          payBusy={dispatch.busy && draft.paymentChoice === 'full'}
+          onEditPrice={() => setEditPriceOpen(true)}
+          onSaveQuote={() => { void quoteActions.saveQuote(); }}
+          onPay={() => { void dispatch.choosePaymentAndDispatch('full'); }}
+          onToggleBreakdown={() => setBreakdownVisible(!breakdownVisible)}
+          breakdownVisible={breakdownVisible}
         />
-        <PaymentSelector
-          selectedPaymentOption={selectedPaymentOption}
-          quotePricePence={quotePricePence}
-          disabled={quoteActions.busy !== null || Boolean(activeQuote?.selectedPaymentOption)}
-          onSelect={quoteActions.selectPaymentOption}
-        />
-        {activeQuote?.selectedPaymentOption ? <InlineNotice kind="info">Payment is locked to the confirmed quote option.</InlineNotice> : null}
+        {breakdownVisible && draft.quote ? (
+          <PriceSummary
+            quote={draft.quote}
+            lockingNutCharge={lockingNutCharge}
+            loading={price.loading}
+            stageIdx={price.stageIdx}
+            stageLabels={price.stageLabels}
+            error={price.error}
+            onGetPrice={price.getPrice}
+            onChoosePayment={(choice) => update({ paymentChoice: choice })}
+            paymentChoice={draft.paymentChoice}
+            paymentBusy={dispatch.busy}
+            paymentError={dispatch.error}
+            paymentLink={draft.paymentLink}
+            dispatchedRefNumber={draft.dispatchedRefNumber}
+            pricingBlocked={false}
+            priceNeedsRefresh={draft.priceNeedsRefresh}
+            manualPriceGbp={draft.manualPriceGbp}
+            showGetPriceAction={false}
+            showPaymentOptions={false}
+          />
+        ) : null}
+        {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind} message={quoteActions.message.text} /> : null}
+        {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
+        {draft.paymentLink ? <PaymentLinkInline link={draft.paymentLink} isManualPrice={draft.manualPriceGbp != null} /> : null}
       </View>
     );
   }
@@ -1838,6 +2286,29 @@ function QuoteStepCard({
         </View>
       </SectionCard>
     </Pressable>
+  );
+}
+
+function PaymentLinkInline({ link, isManualPrice = false }: { link: StripePaymentLinkState; isManualPrice?: boolean }) {
+  const kindLabel = link.kind === 'deposit' ? 'Deposit payment link' : 'Full payment link';
+  const handleOpen = (): void => {
+    void Linking.openURL(link.paymentUrl);
+  };
+  const handleCopy = (): void => {
+    void copyToClipboard(link.paymentUrl);
+  };
+  return (
+    <SectionCard title={kindLabel}>
+      <Text style={styles.paymentLinkMeta} numberOfLines={2}>{link.paymentUrl}</Text>
+      <Text style={styles.paymentLinkMeta}>Amount: {formatPence(link.amountPence)}</Text>
+      {isManualPrice ? (
+        <Text style={styles.paymentLinkMeta}>Manual price used for payment</Text>
+      ) : null}
+      <View style={styles.paymentLinkActions}>
+        <AppButton label="Copy link" variant="secondary" onPress={handleCopy} style={styles.flexActionButton} />
+        <AppButton label="Open" variant="ghost" onPress={handleOpen} style={styles.flexActionButton} />
+      </View>
+    </SectionCard>
   );
 }
 
@@ -2204,6 +2675,7 @@ const styles = StyleSheet.create({
   },
   paymentLinkTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
   paymentLinkMeta: { color: colors.muted, fontSize: fontSize.xs, lineHeight: 17 },
+  paymentLinkActions: { flexDirection: 'row', gap: 10, marginTop: 6, flexWrap: 'wrap' },
   bottomSpacer: { height: 8 },
   bottomBar: {
     position: 'absolute',
