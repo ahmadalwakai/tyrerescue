@@ -13,7 +13,6 @@ import {
   View,
   type TextStyle,
 } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAssistedChatDraft } from '@/hooks/useAssistedChatDraft';
 import { useAssistedChatPrice } from '@/hooks/useAssistedChatPrice';
@@ -62,9 +61,12 @@ import {
   setPendingOpenBookings,
   getDismissedUrgentBookingId,
   setDismissedUrgentBookingId,
+  addAdminNotificationResponseListener,
+  type NotificationSubscription,
 } from '@/lib/notifications';
 import {
-  initializeUrgentAlerts,
+  ensureUrgentAlertsArmed,
+  type UrgentAlertsReadinessState,
   showLocalUrgentBookingAlert,
   isUrgentBookingNotificationData,
   clearTopicSubscriptionFlag,
@@ -133,6 +135,8 @@ const CONFIRMED_QUOTE_STATUSES: readonly AdminQuoteStatus[] = [
   'PAYMENT_PENDING',
   'PAID',
 ];
+
+const ALERT_ARM_RETRY_DELAYS_MS = [3000, 10000, 30000, 30000, 30000, 30000];
 
 function normalizeTyreSizeFromText(text: string): string | undefined {
   const match = text.match(/\b(\d{3})\s*[\/ -]?\s*(\d{2})\s*(?:[\/ -]?\s*r\s*|[\/ -]+)(\d{2})\b/i);
@@ -396,6 +400,8 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const [editPriceOpen, setEditPriceOpen] = useState(false);
   const [breakdownVisible, setBreakdownVisible] = useState(false);
   const [notifSetupOpen, setNotifSetupOpen] = useState(false);
+  const [alertReadinessState, setAlertReadinessState] = useState<UrgentAlertsReadinessState>('checking');
+  const [armingCycle, setArmingCycle] = useState(0);
 
   const insets = useSafeAreaInsets();
   const bottomBarPaddingBottom = Math.max(insets.bottom + 8, 16);
@@ -403,13 +409,62 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
 
   // ── Push Notifications ─────────────────────────────────────────────────────
 
-  // Register for push notifications once the admin is authenticated.
-  // Skipped on web — expo-notifications push tokens are not available there
-  // and the calls would just produce noisy console warnings.
+  // Register and confirm urgent alert readiness after login/app startup.
+  // We keep retrying while the app is open so the operator gets an explicit
+  // armed/not-armed state instead of assuming alerts are active.
   useEffect(() => {
     if (Platform.OS === 'web') return;
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleRetry = (attempt: number) => {
+      const retryIndex = Math.min(attempt, ALERT_ARM_RETRY_DELAYS_MS.length - 1);
+      const delay = ALERT_ARM_RETRY_DELAYS_MS[retryIndex];
+      retryTimer = setTimeout(() => {
+        void runAttempt(attempt + 1);
+      }, delay);
+    };
+
+    const runAttempt = async (attempt: number) => {
+      if (cancelled) return;
+      setAlertReadinessState('checking');
+      const result = await ensureUrgentAlertsArmed();
+      if (cancelled) return;
+
+      if (result.armed) {
+        setAlertReadinessState('armed');
+        if (__DEV__ && result.snapshot.tokenSuffix) {
+          console.log(
+            `[urgent-alerts] ALERT_SYSTEM_ARMED tokenSuffix=${result.snapshot.tokenSuffix}`,
+          );
+        }
+        return;
+      }
+
+      setAlertReadinessState('not_armed');
+      scheduleRetry(attempt);
+    };
+
+    if (!api.hasAdminToken) {
+      setAlertReadinessState('not_armed');
+      return () => {
+        cancelled = true;
+        if (retryTimer) clearTimeout(retryTimer);
+      };
+    }
+
+    void runAttempt(0);
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [armingCycle, api.hasAdminToken]);
+
+  const handleRetryUrgentAlertArming = useCallback(() => {
+    if (Platform.OS === 'web') return;
     if (!api.hasAdminToken) return;
-    void initializeUrgentAlerts();
+    setAlertReadinessState('checking');
+    setArmingCycle((v) => v + 1);
   }, []);
 
   // Open the bookings modal when the admin taps a notification.
@@ -417,11 +472,10 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   // the tap arrives before this component is fully mounted (cold start),
   // the modal still opens on first render via the consumePendingOpenBookings
   // effect below.
-  const notifResponseRef = useRef<Notifications.Subscription | null>(null);
+  const notifResponseRef = useRef<NotificationSubscription | null>(null);
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    notifResponseRef.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data;
+    notifResponseRef.current = addAdminNotificationResponseListener((data) => {
       if (isUrgentBookingNotificationData(data)) {
         void setPendingOpenBookings();
       }
@@ -558,8 +612,19 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const handleLogout = useCallback(async () => {
     await unregisterAdminPushNotifications();
     await clearTopicSubscriptionFlag();
+    setAlertReadinessState('not_armed');
     await onLogout?.();
   }, [onLogout]);
+
+  const alertReadinessLabel =
+    alertReadinessState === 'checking'
+      ? 'Checking urgent alerts...'
+      : alertReadinessState === 'armed'
+      ? 'Urgent alerts armed'
+      : 'Urgent alerts not armed';
+
+  const canRetryAlertArming =
+    Platform.OS !== 'web' && api.hasAdminToken && alertReadinessState !== 'checking';
 
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -1422,6 +1487,25 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
           <Text style={styles.headerTitle}>Assisted Chat</Text>
           <Text style={styles.headerCustomer} numberOfLines={1}>{customerName}</Text>
           <Text style={styles.headerPhone} numberOfLines={1}>{customerPhone || (user?.name ? `Signed in as ${user.name}` : 'No phone added')}</Text>
+          <Pressable
+            onPress={canRetryAlertArming ? handleRetryUrgentAlertArming : undefined}
+            accessibilityRole="button"
+            accessibilityLabel="Urgent alert readiness"
+            style={({ pressed }) => [
+              styles.alertReadinessPill,
+              alertReadinessState === 'armed'
+                ? styles.alertReadinessPillArmed
+                : alertReadinessState === 'not_armed'
+                ? styles.alertReadinessPillNotArmed
+                : null,
+              pressed && canRetryAlertArming && styles.alertReadinessPillPressed,
+            ]}
+          >
+            <Text style={styles.alertReadinessText}>{alertReadinessLabel}</Text>
+            {alertReadinessState === 'not_armed' ? (
+              <Text style={styles.alertReadinessRetryText}>Tap to retry</Text>
+            ) : null}
+          </Pressable>
         </View>
         <View style={styles.headerRight}>
           <View style={styles.statusChip}>
@@ -2573,6 +2657,29 @@ const styles = StyleSheet.create({
   headerTitle: { color: colors.text, fontSize: fontSize.xl, fontWeight: '800' },
   headerCustomer: { color: colors.text, fontSize: fontSize.md, fontWeight: '700', marginTop: 2 },
   headerPhone: { color: colors.muted, fontSize: fontSize.xs, marginTop: 2 },
+  alertReadinessPill: {
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    backgroundColor: colors.card,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
+    minHeight: 34,
+    justifyContent: 'center',
+  },
+  alertReadinessPillArmed: {
+    borderColor: colors.successBorder,
+    backgroundColor: colors.successBg,
+  },
+  alertReadinessPillNotArmed: {
+    borderColor: colors.warning,
+    backgroundColor: 'rgba(245,158,11,0.14)',
+  },
+  alertReadinessPillPressed: { opacity: 0.78 },
+  alertReadinessText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '700' },
+  alertReadinessRetryText: { color: colors.warning, fontSize: fontSize.xs, marginTop: 2, fontWeight: '700' },
   headerRight: { alignItems: 'flex-end', gap: 8 },
   statusChip: {
     minHeight: 28,

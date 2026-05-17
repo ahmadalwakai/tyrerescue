@@ -29,52 +29,58 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return NextResponse.json({ ok: false, error: 'Invalid JSON body' }, { status: 400 });
   }
 
   const { token, platform } = body as { token?: string; platform?: string };
 
   if (!token || typeof token !== 'string' || token.trim().length === 0) {
-    return NextResponse.json({ error: 'token is required' }, { status: 400 });
+    return NextResponse.json({ ok: false, error: 'token is required' }, { status: 400 });
   }
 
   // Reject Expo push tokens — this endpoint is for native FCM tokens only.
   if (token.startsWith('ExponentPushToken[')) {
     return NextResponse.json(
-      { error: 'Use /api/mobile/admin/push-token for Expo tokens' },
+      { ok: false, error: 'Use /api/mobile/admin/push-token for Expo tokens' },
       { status: 400 },
     );
   }
 
   const safePlatform = platform === 'ios' ? 'ios' : 'android';
 
-  // Remove any stale native tokens for this user (one device at a time).
-  // We scope the delete to non-Expo tokens so the Expo push token is kept.
-  const existingRows = await db
-    .select({ id: adminPushTokens.id, token: adminPushTokens.token })
-    .from(adminPushTokens)
-    .where(eq(adminPushTokens.userId, user.id));
+  try {
+    // Remove any stale native tokens for this user (one device at a time).
+    // We scope the delete to non-Expo tokens so the Expo push token is kept.
+    const existingRows = await db
+      .select({ id: adminPushTokens.id, token: adminPushTokens.token })
+      .from(adminPushTokens)
+      .where(eq(adminPushTokens.userId, user.id));
 
-  const staleNativeIds = existingRows
-    .filter((r) => !r.token.startsWith('ExponentPushToken['))
-    .map((r) => r.id);
+    const staleNativeIds = existingRows
+      .filter((r) => !r.token.startsWith('ExponentPushToken['))
+      .map((r) => r.id);
 
-  for (const id of staleNativeIds) {
-    await db.delete(adminPushTokens).where(eq(adminPushTokens.id, id));
+    for (const id of staleNativeIds) {
+      await db.delete(adminPushTokens).where(eq(adminPushTokens.id, id));
+    }
+
+    // Insert the new native FCM token.
+    await db
+      .insert(adminPushTokens)
+      .values({ userId: user.id, token: token.trim(), platform: safePlatform })
+      .onConflictDoUpdate({
+        target: adminPushTokens.token,
+        set: { userId: user.id, platform: safePlatform, updatedAt: new Date() },
+      });
+
+    console.log(`[native-alert-token] Native token registered user=${user.id} tokenSuffix=${token.trim().slice(-8)}`);
+
+    return NextResponse.json({ ok: true, registered: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to register native token';
+    console.error(`[native-alert-token] registration failed user=${user.id} error=${message}`);
+    return NextResponse.json({ ok: false, error: 'Failed to register native token' }, { status: 500 });
   }
-
-  // Insert the new native FCM token.
-  await db
-    .insert(adminPushTokens)
-    .values({ userId: user.id, token: token.trim(), platform: safePlatform })
-    .onConflictDoUpdate({
-      target: adminPushTokens.token,
-      set: { userId: user.id, platform: safePlatform, updatedAt: new Date() },
-    });
-
-  console.log(`[native-alert-token] Native token registered user=${user.id} tokenSuffix=${token.trim().slice(-8)}`);
-
-  return NextResponse.json({ ok: true });
 }
 
 /**

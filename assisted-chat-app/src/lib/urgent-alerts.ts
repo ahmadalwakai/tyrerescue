@@ -11,6 +11,23 @@ import {
 export { isUrgentBookingNotificationData } from './notifications';
 
 export type UrgentAlertsStatus = 'active' | 'no_permission' | 'unavailable';
+export type UrgentAlertsReadinessState = 'checking' | 'armed' | 'not_armed';
+
+interface NativeTokenRegisterResponse {
+  ok?: boolean;
+  registered?: boolean;
+  error?: string;
+}
+
+export interface UrgentAlertsReadinessSnapshot {
+  tokenSuffix: string | null;
+  registeredAt: number | null;
+}
+
+export interface EnsureUrgentAlertsArmedResult {
+  armed: boolean;
+  snapshot: UrgentAlertsReadinessSnapshot;
+}
 
 /**
  * AsyncStorage key that records whether this device has already subscribed
@@ -22,6 +39,43 @@ const TOPIC_SUBSCRIBED_KEY = 'assistedChat.urgentBookingTopicSubscribed.v1';
 const TOPIC_SUBSCRIBED_TOKEN_KEY = 'assistedChat.urgentBookingTopicSubscribedToken.v1';
 const DIRECT_TOKEN_REGISTERED_KEY = 'assistedChat.directFcmRegistered.v1';
 const DIRECT_TOKEN_REGISTERED_TOKEN_KEY = 'assistedChat.directFcmRegisteredToken.v1';
+const DIRECT_TOKEN_REGISTERED_SUFFIX_KEY = 'assistedChat.directFcmRegisteredSuffix.v1';
+const DIRECT_TOKEN_REGISTERED_AT_KEY = 'assistedChat.directFcmRegisteredAt.v1';
+
+const tokenSuffix = (token: string): string => token.slice(-8);
+
+async function readReadinessSnapshot(): Promise<UrgentAlertsReadinessSnapshot> {
+  try {
+    const [suffix, atRaw] = await Promise.all([
+      AsyncStorage.getItem(DIRECT_TOKEN_REGISTERED_SUFFIX_KEY),
+      AsyncStorage.getItem(DIRECT_TOKEN_REGISTERED_AT_KEY),
+    ]);
+    const atNum = atRaw ? Number(atRaw) : NaN;
+    return {
+      tokenSuffix: suffix ?? null,
+      registeredAt: Number.isFinite(atNum) ? atNum : null,
+    };
+  } catch {
+    return { tokenSuffix: null, registeredAt: null };
+  }
+}
+
+export async function getUrgentAlertsReadinessSnapshot(): Promise<UrgentAlertsReadinessSnapshot> {
+  return readReadinessSnapshot();
+}
+
+async function clearDirectReadinessSnapshot(): Promise<void> {
+  try {
+    await Promise.all([
+      AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_KEY),
+      AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_TOKEN_KEY),
+      AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_SUFFIX_KEY),
+      AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_AT_KEY),
+    ]);
+  } catch {
+    // ignore
+  }
+}
 
 /**
  * Initialize urgent alerts on admin app startup.
@@ -57,6 +111,7 @@ export async function registerDirectUrgentBookingToken(): Promise<boolean> {
   try {
     const fcmToken = await getDeviceFcmToken();
     if (!fcmToken) {
+      await clearDirectReadinessSnapshot();
       console.log('[urgent-alerts] FCM device token unavailable — direct token registration skipped');
       return false;
     }
@@ -66,24 +121,65 @@ export async function registerDirectUrgentBookingToken(): Promise<boolean> {
       AsyncStorage.getItem(DIRECT_TOKEN_REGISTERED_TOKEN_KEY),
     ]);
     if (existing === '1' && existingToken === fcmToken) {
+      const snapshot = await readReadinessSnapshot();
+      if (!snapshot.tokenSuffix || !snapshot.registeredAt) {
+        await Promise.all([
+          AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_SUFFIX_KEY, tokenSuffix(fcmToken)),
+          AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_AT_KEY, String(Date.now())),
+        ]);
+      }
       return true;
     }
 
-    await api.post('/api/mobile/admin/native-alert-token', {
+    const response = await api.post<NativeTokenRegisterResponse>('/api/mobile/admin/native-alert-token', {
       token: fcmToken,
       platform: 'android',
     });
 
+    if (!response?.ok || !response?.registered) {
+      await clearDirectReadinessSnapshot();
+      console.error('[urgent-alerts] native token registration not confirmed by backend');
+      return false;
+    }
+
+    const registeredAt = Date.now();
+    const suffix = tokenSuffix(fcmToken);
+
     await Promise.all([
       AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_KEY, '1'),
       AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_TOKEN_KEY, fcmToken),
+      AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_SUFFIX_KEY, suffix),
+      AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_AT_KEY, String(registeredAt)),
     ]);
 
-    console.log(`[urgent-alerts] direct FCM token registered tokenSuffix=${fcmToken.slice(-8)}`);
+    console.log(`[urgent-alerts] direct FCM token registered tokenSuffix=${suffix}`);
     return true;
   } catch (err) {
+    await clearDirectReadinessSnapshot();
     console.error('[urgent-alerts] direct token registration failed:', err);
     return false;
+  }
+}
+
+export async function ensureUrgentAlertsArmed(): Promise<EnsureUrgentAlertsArmedResult> {
+  if (Platform.OS === 'web') {
+    return { armed: false, snapshot: { tokenSuffix: null, registeredAt: null } };
+  }
+
+  try {
+    await registerAdminPushNotifications();
+    const directRegistered = await registerDirectUrgentBookingToken();
+    await subscribeToUrgentBookingTopic();
+    const snapshot = await readReadinessSnapshot();
+    return {
+      armed: directRegistered && Boolean(snapshot.tokenSuffix) && Boolean(snapshot.registeredAt),
+      snapshot,
+    };
+  } catch {
+    return {
+      armed: false,
+      snapshot: await readReadinessSnapshot(),
+    };
   }
 }
 
@@ -155,6 +251,8 @@ export async function clearTopicSubscriptionFlag(): Promise<void> {
       AsyncStorage.removeItem(TOPIC_SUBSCRIBED_TOKEN_KEY),
       AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_KEY),
       AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_TOKEN_KEY),
+      AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_SUFFIX_KEY),
+      AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_AT_KEY),
     ]);
   } catch {
     // ignore
