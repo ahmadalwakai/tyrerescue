@@ -7,6 +7,10 @@ import { api } from './api';
 // ─── Channel IDs ─────────────────────────────────────────────────────────────
 
 export const URGENT_BOOKINGS_CHANNEL_ID = 'urgent-bookings';
+// v1 channel matches the channel ID used by the backend FCM topic send.
+// Both channels share the same settings — v1 is targeted by FCM-delivered
+// messages, while urgent-bookings is used for Expo relay and local alerts.
+export const URGENT_BOOKINGS_V1_CHANNEL_ID = 'urgent_bookings_v1';
 export const DEFAULT_CHANNEL_ID = 'default';
 // Legacy channel kept for backward compatibility with the app.json
 // `defaultChannel` and any push tokens already registered on the backend.
@@ -114,6 +118,25 @@ async function setupAndroidChannels(): Promise<void> {
     });
   } catch (err) {
     console.warn('[notif] failed to set up default channel:', err);
+  }
+
+  // urgent_bookings_v1: targeted by FCM topic messages from the backend.
+  // Same sound/vibration settings as urgent-bookings — exists so the two
+  // delivery paths (Expo relay + FCM topic) both land on a high-importance
+  // channel without duplicating configuration.
+  try {
+    await Notifications.setNotificationChannelAsync(URGENT_BOOKINGS_V1_CHANNEL_ID, {
+      name: 'Urgent bookings (native)',
+      importance: getImportance('MAX'),
+      sound: URGENT_SOUND,
+      vibrationPattern: [0, 500, 250, 500, 250, 900],
+      enableVibrate: true,
+      lightColor: '#F97316',
+      bypassDnd: false,
+      ...(publicVisibility !== undefined ? { lockscreenVisibility: publicVisibility } : {}),
+    });
+  } catch (err) {
+    console.warn('[notif] failed to set up urgent_bookings_v1 channel:', err);
   }
 
   // Keep the legacy channel in sync so any push payload still targeting
@@ -317,5 +340,44 @@ export async function setDismissedUrgentBookingId(bookingId: string): Promise<vo
     await AsyncStorage.setItem(DISMISSED_URGENT_BOOKING_ID_KEY, bookingId);
   } catch {
     // ignore — best-effort
+  }
+}
+
+// ─── Raw FCM Device Token (for topic subscription) ───────────────────────────
+
+/**
+ * Get the raw Android FCM device token (not the Expo push token).
+ *
+ * This is the native token required by the FCM Instance ID API for topic
+ * subscription. The app posts it to the backend once, which subscribes it
+ * to the `urgent_bookings` topic. After that, the backend sends one topic
+ * message and FCM delivers it to all subscribed devices.
+ *
+ * Returns null on web, iOS simulator, or if token retrieval fails.
+ * The token is never shown to the admin.
+ */
+export async function getDeviceFcmToken(): Promise<string | null> {
+  if (Platform.OS === 'web') return null;
+  if (!Device.isDevice) return null;
+  try {
+    const tokenData = await Notifications.getDevicePushTokenAsync();
+    if (tokenData.type === 'android' && tokenData.data) return tokenData.data;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get the current notification permission status without triggering a
+ * permission request. Used by urgent-alerts.ts for status display.
+ */
+export async function getUrgentAlertsPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {
+  if (Platform.OS === 'web') return 'undetermined';
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    return status;
+  } catch {
+    return 'undetermined';
   }
 }

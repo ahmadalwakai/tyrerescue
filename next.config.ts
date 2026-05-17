@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Allow the Expo web dev apps (assisted-chat, driver-app) to call the Next.js
+  // dev server cross-origin. This only applies in development; production CORS
+  // is handled by the proxy function.
+  allowedDevOrigins: [
+    'http://localhost:8081',
+    'http://localhost:8082',
+    'http://127.0.0.1:8081',
+    'http://127.0.0.1:8082',
+  ],
   images: {
     // Prefer AVIF then WebP — both ~30-50% smaller than the JPEG/PNG fallback.
     formats: ['image/avif', 'image/webp'],

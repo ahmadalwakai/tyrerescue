@@ -1,0 +1,40 @@
+<resources>
+    <string name="app_name">Tyre Rescue Alert</string>
+    <string name="title_setup">Setup</string>
+    <string name="title_alert">Emergency Booking</string>
+
+    <!-- Setup screen -->
+    <string name="setup_heading">Tyre Rescue Alert — Setup</string>
+    <string name="setup_permission_label">Notification permission:</string>
+    <string name="setup_battery_label">Battery restriction checklist:</string>
+    <string name="setup_battery_instructions">
+        Open Android Settings → Apps → Tyre Rescue Alert → Battery → Unrestricted.\n
+        Also check: Notifications → Urgent bookings → Sound enabled.\n
+        Lock screen notifications: enabled.\n
+        Do Not Disturb: off, or add this app to priority list.
+    </string>
+    <string name="setup_fcm_token_label">FCM device token (copy and register in backend):</string>
+    <string name="permission_granted">✅ Granted</string>
+    <string name="permission_denied">❌ Denied — tap Open app settings to fix</string>
+    <string name="fcm_token_loading">Loading…</string>
+    <string name="fcm_token_error">Error loading token. Check Firebase config.</string>
+    <string name="fcm_token_not_ready">Token not ready yet.</string>
+    <string name="fcm_token_copied">FCM token copied to clipboard.</string>
+    <string name="btn_copy_token">Copy FCM token</string>
+    <string name="btn_open_settings">Open app settings</string>
+    <string name="btn_test_alert">Test local urgent alert</string>
+    <string name="test_alert_sent">Test alert sent — check your notification tray.</string>
+
+    <!-- Alert screen -->
+    <string name="alert_heading">Emergency booking received</string>
+    <string name="alert_booking_id_label">Booking ID:</string>
+    <string name="alert_booking_id_unknown">Unknown</string>
+    <string name="alert_phone_label">Customer phone:</string>
+    <string name="alert_phone_not_included">Not included in push data</string>
+    <string name="alert_created_at_label">Received:</string>
+    <string name="alert_created_at_not_included">Not included in push data</string>
+    <string name="btn_open_booking">Open booking</string>
+    <string name="btn_acknowledge">Acknowledge</string>
+    <string name="alert_acknowledged">Acknowledged.</string>
+    <string name="alert_no_booking_id">No booking ID in notification.</string>
+</resources>

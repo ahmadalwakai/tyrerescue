@@ -881,3 +881,50 @@ body {
     transition: none !important;
   }
 }
+
+/* ─── Live tracking pulse + ping ─────────────────────────────────────────
+   Used by HTML markers inside Mapbox GL maps (LiveTrackingMap.tsx)
+   and by the live status dot in TrackingStatusBanner.tsx. Slow, calm,
+   non-flashing. */
+@keyframes trPulseRing {
+  0%   { transform: translate(-50%, -50%) scale(0.7); opacity: 0.55; }
+  80%  { opacity: 0.05; }
+  100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+}
+.tr-pulse-ring {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: trPulseRing 2.6s ease-out infinite;
+}
+@keyframes trPing {
+  0%   { transform: translate(-50%, -50%) scale(0.6); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+}
+.tr-ping {
+  position: absolute;
+  left: 50%; top: 50%;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: trPing 900ms ease-out forwards;
+}
+@keyframes trLiveDot {
+  0%   { transform: scale(0.85); opacity: 0.5; }
+  50%  { transform: scale(1.5);  opacity: 0; }
+  100% { transform: scale(0.85); opacity: 0; }
+}
+.tr-live-dot {
+  animation: trLiveDot 2.4s ease-out infinite;
+}
+@keyframes trFlash {
+  0%   { background-color: rgba(249, 115, 22, 0.22); }
+  100% { background-color: transparent; }
+}
+.tr-flash {
+  animation: trFlash 1s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tr-pulse-ring, .tr-live-dot, .tr-ping, .tr-flash { animation: none !important; }
+}

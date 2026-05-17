@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { createAdminNotification } from '@/lib/notifications';
+import { sendUrgentBookingTopicPush } from '@/lib/notifications/urgent-booking-push';
 import {
   bookings,
   bookingTyres,
@@ -400,6 +401,23 @@ export async function POST(
       );
 
       await client.query('COMMIT');
+
+      // Send urgent push for customer emergency bookings immediately on creation.
+      // Fires before payment so the admin is alerted as soon as the customer
+      // submits — not only after the Stripe webhook fires minutes later.
+      // Idempotency: the quote is atomically marked used=true in the same
+      // transaction above, so this code path only runs once per booking.
+      // Admin quick-book finalize uses a separate route; this file is always
+      // a customer-originated booking.
+      if (quote.booking_type === 'emergency') {
+        void sendUrgentBookingTopicPush({
+          bookingId,
+          customerPhone: data.customerPhone,
+          createdAt: new Date().toISOString(),
+          title: 'Emergency booking received',
+          body: `${data.customerName} — awaiting payment`,
+        }).catch((err: unknown) => console.error('[booking:create] urgent push failed:', err));
+      }
 
       // Notify admin of new booking (fire-and-forget)
       createAdminNotification({

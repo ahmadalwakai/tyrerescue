@@ -101,6 +101,7 @@ export function AdminTrackingMap({
   });
   const [expanded, setExpanded] = useState(false);
   const [freshLabel, setFreshLabel] = useState(freshnessLabel(assignedDriver?.locationAt ?? null));
+  const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'done'>('idle');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isActiveJob = ['driver_assigned', 'en_route', 'arrived', 'in_progress'].includes(bookingStatus);
@@ -137,6 +138,14 @@ export function AdminTrackingMap({
       /* ignore */
     }
   }, [bookingRef, liveDriver]);
+
+  /** Manual refresh handler with "Checking... → Updated ✓" feedback. */
+  const handleManualRefresh = useCallback(async () => {
+    setRefreshState('loading');
+    await fetchTracking();
+    setRefreshState('done');
+    window.setTimeout(() => setRefreshState('idle'), 1_500);
+  }, [fetchTracking]);
 
   // Start/stop poll based on driver+visibility
   useEffect(() => {
@@ -250,6 +259,18 @@ export function AdminTrackingMap({
         borderRadius="md"
         alignItems="center"
       >
+        {/* Live pulsing dot — shows whenever GPS is "fresh" enough that we
+            consider the session actively reporting. */}
+        {driverHasLocation && (freshLabel.color === 'green' || freshLabel.color === 'yellow') && (
+          <Box
+            w="8px"
+            h="8px"
+            borderRadius="full"
+            bg={freshLabel.color === 'green' ? '#22C55E' : '#F59E0B'}
+            className="tr-live-dot"
+            aria-label="Live tracking active"
+          />
+        )}
         {/* Driver presence */}
         {presenceState ? (
           <Badge colorPalette={PRESENCE_COLORS[presenceState]} size="sm" variant="solid">
@@ -306,8 +327,8 @@ export function AdminTrackingMap({
             🗺 Open in Maps
           </Button>
         </a>
-        <Button size={compact ? 'xs' : 'sm'} variant="outline" borderColor={c.border} color={c.text} _hover={{ borderColor: c.accent }} onClick={fetchTracking}>
-          🔄 Refresh
+        <Button size={compact ? 'xs' : 'sm'} variant="outline" borderColor={c.border} color={c.text} _hover={{ borderColor: c.accent }} onClick={handleManualRefresh} disabled={refreshState === 'loading'}>
+          {refreshState === 'loading' ? '⏳ Checking...' : refreshState === 'done' ? '✓ Updated' : '🔄 Refresh'}
         </Button>
       </HStack>
     );
@@ -424,8 +445,8 @@ export function AdminTrackingMap({
               )}
               {driverHasLocation && liveDriver?.locationAt && (
                 <Text fontSize="xs" color={c.muted}>
-                  GPS: {Number(liveDriver.currentLat!).toFixed(5)}, {Number(liveDriver.currentLng!).toFixed(5)}
-                  {' · '}Last update: {freshLabel.text}
+                  {/* Raw GPS coordinates intentionally hidden from the user UI. */}
+                  Last update: {freshLabel.text}
                 </Text>
               )}
             </VStack>

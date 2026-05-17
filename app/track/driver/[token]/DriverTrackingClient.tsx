@@ -11,6 +11,90 @@ import {
 } from '@/lib/tracking/tracking-format';
 import type { TrackingPoint, TrackingRouteMode, TrackingStatus } from '@/types/tracking';
 
+// ── Translations ────────────────────────────────────────────────────────────────────────────────
+const T = {
+  ar: {
+    brand: 'تاير ريسكيو — السائق',
+    heading: (ref: string | null) => ref ? `طلب ${ref}` : 'التتبع المباشر',
+    keepOpen: 'خلي هاي الصفحة مفتوحة إلى أن تخلص الشغل. إذا تغلقها ينقطع التتبع.',
+    pressStart: 'اضغط ابدأ الرحلة حتى الإدارة والعميل يشوفون موقعك.',
+    destination: 'الوجهة',
+    startJourney: 'ابدأ الرحلة',
+    starting: 'جاري البدء...',
+    finishJourney: 'إنهاء الرحلة',
+    finishing: 'جاري الإنهاء...',
+    openMap: 'افتح الخريطة',
+    callCustomer: 'اتصل بالعميل',
+    refreshNow: 'تحديث الآن',
+    lastFix: (t: string) => `آخر إرسال للموقع ${t}`,
+    permissionDenied: 'مطلوب إذن الموقع لمشاركة رحلتك. فعّله من إعدادات المتصفح ثم أعد تحميل الصفحة.',
+    directFallback: 'يُظهر المسافة المستقيمة — المسار التفصيلي غير متاح مؤقتاً.',
+    loadingError: 'التتبع غير متاح',
+    loading: 'جاري التحميل...',
+    confirmTitle: 'هل تريد إنهاء الرحلة؟',
+    confirmBody: 'بعدها راح يتوقف التتبع ولا تقدر ترجع.',
+    confirmNo: 'لا، رجوع',
+    confirmYes: 'نعم، إنهاء',
+    toggleLang: 'English',
+    refreshing: 'جاري التحديث...',
+    refreshed: 'تم التحديث ✓',
+    bannerLabels: {
+      trackingActive: 'التتبع شغال',
+      tracking: 'التتبع',
+      reconnecting: 'الإشارة ضعيفة... نحاول الاتصال',
+      weakSignal: 'الإشارة ضعيفة',
+      goodSignal: 'الإشارة قوية',
+      trackingPaused: 'التتبع متوقف مؤقتاً',
+      completed: 'انتهت الرحلة',
+      distance: 'المسافة',
+      lastUpdate: 'آخر تحديث',
+      eta: 'الوقت المتوقع',
+      etaSuffixMin: 'دقيقة',
+    },
+  },
+  en: {
+    brand: 'Tyre Rescue — Driver',
+    heading: (ref: string | null) => ref ? `Booking ${ref}` : 'Live tracking',
+    keepOpen: 'Keep this page open until the job is finished. Closing it will stop sharing your location.',
+    pressStart: 'Press Start journey so the office and customer can see your location.',
+    destination: 'Destination',
+    startJourney: 'Start journey',
+    starting: 'Starting...',
+    finishJourney: 'Finish journey',
+    finishing: 'Finishing...',
+    openMap: 'Open map',
+    callCustomer: 'Call customer',
+    refreshNow: 'Refresh now',
+    lastFix: (t: string) => `Last fix sent ${t}`,
+    permissionDenied: 'Location permission is required to share your journey. Enable it in your browser settings, then reload this page.',
+    directFallback: 'Direct distance shown — turn-by-turn route temporarily unavailable.',
+    loadingError: 'Tracking unavailable',
+    loading: 'Loading...',
+    confirmTitle: 'Finish the journey?',
+    confirmBody: 'Tracking will stop and cannot be restarted.',
+    confirmNo: 'No, go back',
+    confirmYes: 'Yes, finish',
+    toggleLang: 'عربي',
+    refreshing: 'Checking...',
+    refreshed: 'Updated ✓',
+    bannerLabels: {
+      trackingActive: 'Live tracking active',
+      tracking: 'Tracking',
+      reconnecting: 'Reconnecting…',
+      weakSignal: 'Weak signal',
+      goodSignal: 'Good signal',
+      trackingPaused: 'Tracking paused',
+      completed: 'Completed',
+      distance: 'Distance',
+      lastUpdate: 'Last update',
+      eta: 'ETA',
+      etaSuffixMin: 'min',
+    },
+  },
+} as const;
+
+type Lang = keyof typeof T;
+
 interface DriverTrackingState {
   status: TrackingStatus;
   startedAt: string | null;
@@ -29,6 +113,7 @@ interface DriverTrackingResponse {
   customerAddress: string | null;
   customerLat: number | null;
   customerLng: number | null;
+  customerPhone: string | null;
   state: DriverTrackingState;
 }
 
@@ -60,6 +145,10 @@ export function DriverTrackingClient({ token }: Props) {
   const [busy, setBusy] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [routeMode, setRouteMode] = useState<TrackingRouteMode>('none');
+  const [lang, setLang] = useState<Lang>('ar');
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const t = T[lang];
 
   const mountedRef = useRef(true);
   const watchIdRef = useRef<number | null>(null);
@@ -193,8 +282,8 @@ export function DriverTrackingClient({ token }: Props) {
     }
   }, [token, startWatching]);
 
-  const handleFinish = useCallback(async () => {
-    if (!window.confirm('Mark this job as finished and stop sharing your location?')) return;
+  const confirmFinish = useCallback(async () => {
+    setShowConfirm(false);
     setBusy(true);
     try {
       const res = await fetch(`/api/tracking/driver/${token}/finish`, { method: 'POST' });
@@ -203,8 +292,8 @@ export function DriverTrackingClient({ token }: Props) {
         setSnapshot((prev) => (prev ? { ...prev, state: json.state } : prev));
         stopWatching();
       } else {
-        const body = await res.json().catch(() => ({}));
-        setError(body?.error || 'Failed to finish');
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        setError(body?.error ?? 'Failed to finish');
       }
     } finally {
       setBusy(false);
@@ -215,14 +304,28 @@ export function DriverTrackingClient({ token }: Props) {
     const lat = snapshot?.customerLat;
     const lng = snapshot?.customerLng;
     if (lat == null || lng == null) return;
-    // Universal Google Maps directions link. Works in Android/iOS as a deep
-    // link via the OS handler; falls back to the web map on desktop.
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+    // Use the geo: URI scheme — opens the OS default maps app on Android
+    // and Apple Maps on iOS. No Google dependency.
+    const url = `geo:${lat},${lng}?q=${lat},${lng}`;
     window.open(url, '_blank', 'noopener');
   }, [snapshot?.customerLat, snapshot?.customerLng]);
 
-  const handleRefresh = useCallback(() => {
-    void loadSnapshot();
+  const handleCallCustomer = useCallback(() => {
+    const phone = snapshot?.customerPhone;
+    if (!phone) return;
+    window.location.href = `tel:${phone}`;
+  }, [snapshot?.customerPhone]);
+
+  const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'done'>('idle');
+  const handleRefresh = useCallback(async () => {
+    setRefreshState('loading');
+    await loadSnapshot();
+    if (!mountedRef.current) return;
+    setRefreshState('done');
+    // Briefly show "Updated ✓" then return to idle copy.
+    window.setTimeout(() => {
+      if (mountedRef.current) setRefreshState('idle');
+    }, 1_500);
   }, [loadSnapshot]);
 
   const derivedStatus: TrackingStatus | null = useMemo(() => {
@@ -257,7 +360,7 @@ export function DriverTrackingClient({ token }: Props) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 text-center">
         <div className="max-w-md">
-          <h1 className="mb-3 text-2xl font-bold text-white">Driver tracking unavailable</h1>
+          <h1 className="mb-3 text-2xl font-bold text-white">{t.loadingError}</h1>
           <p className="mb-6 text-zinc-400">{error}</p>
         </div>
       </div>
@@ -266,39 +369,55 @@ export function DriverTrackingClient({ token }: Props) {
   if (!snapshot || !derivedStatus) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-300">
-        Loading...
+        {t.loading}
       </div>
     );
   }
 
   const isDone = derivedStatus === 'completed' || derivedStatus === 'expired';
+  const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100" dir={dir}>
+      {/* Language toggle */}
+      <div className="flex justify-end px-4 pt-3">
+        <button
+          type="button"
+          onClick={() => setLang((l) => (l === 'ar' ? 'en' : 'ar'))}
+          className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-zinc-800 active:scale-95"
+        >
+          {t.toggleLang}
+        </button>
+      </div>
+
       <div
-        className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pb-10 pt-5 sm:gap-5 sm:px-6"
+        className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pb-10 pt-3 sm:gap-5 sm:px-6"
         style={{
-          paddingTop: 'max(env(safe-area-inset-top), 1.25rem)',
           paddingBottom: 'max(env(safe-area-inset-bottom), 2.5rem)',
         }}
       >
         <header className="space-y-1">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-            Tyre Rescue — Driver
+            {t.brand}
           </p>
           <h1 className="text-xl font-semibold text-white sm:text-2xl">
-            {snapshot.refNumber ? `Booking ${snapshot.refNumber}` : 'Live tracking'}
+            {t.heading(snapshot.refNumber)}
           </h1>
         </header>
 
-        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm leading-relaxed text-amber-200">
-          Keep this page open until the job is finished. Closing it will stop sharing your location.
-        </div>
+        {derivedStatus === 'pending' ? (
+          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm leading-relaxed text-amber-200">
+            {t.pressStart}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm leading-relaxed text-amber-200">
+            {t.keepOpen}
+          </div>
+        )}
 
         {permissionDenied && (
           <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm leading-relaxed text-red-200">
-            Location permission is required to share your journey. Enable it in your browser settings,
-            then reload this page.
+            {t.permissionDenied}
           </div>
         )}
 
@@ -311,6 +430,7 @@ export function DriverTrackingClient({ token }: Props) {
           }
           lastUpdatedAt={derivedStatus !== 'pending' ? snapshot.state.lastUpdatedAt : null}
           isLive={derivedStatus === 'in_progress'}
+          labels={t.bannerLabels}
         />
 
         <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
@@ -325,7 +445,7 @@ export function DriverTrackingClient({ token }: Props) {
           </div>
           {routeMode === 'direct' && driverPoint && customerPoint && (
             <p className="border-t border-zinc-800 bg-zinc-900 px-4 py-2 text-[11px] text-zinc-400">
-              Direct distance shown — turn-by-turn route temporarily unavailable.
+              {t.directFallback}
             </p>
           )}
         </section>
@@ -333,7 +453,7 @@ export function DriverTrackingClient({ token }: Props) {
         {snapshot.customerAddress && (
           <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-              Destination
+              {t.destination}
             </p>
             <p className="mt-1 text-sm leading-relaxed text-zinc-100">
               {snapshot.customerAddress}
@@ -346,20 +466,20 @@ export function DriverTrackingClient({ token }: Props) {
             <button
               type="button"
               disabled={busy}
-              onClick={handleStart}
+              onClick={() => { void handleStart(); }}
               className="h-12 w-full rounded-xl bg-orange-500 text-base font-semibold text-white shadow-lg shadow-orange-500/20 transition active:translate-y-px disabled:opacity-60"
             >
-              {busy ? 'Starting...' : 'Start journey'}
+              {busy ? t.starting : t.startJourney}
             </button>
           )}
           {!isDone && derivedStatus !== 'pending' && (
             <button
               type="button"
               disabled={busy}
-              onClick={handleFinish}
+              onClick={() => setShowConfirm(true)}
               className="h-12 w-full rounded-xl bg-emerald-600 text-base font-semibold text-white shadow-lg shadow-emerald-600/20 transition active:translate-y-px disabled:opacity-60"
             >
-              {busy ? 'Finishing...' : 'Finish job'}
+              {busy ? t.finishing : t.finishJourney}
             </button>
           )}
           <button
@@ -368,25 +488,72 @@ export function DriverTrackingClient({ token }: Props) {
             disabled={snapshot.customerLat == null || snapshot.customerLng == null}
             className="h-11 w-full rounded-xl border border-zinc-700 bg-zinc-900 text-sm font-medium text-zinc-100 transition active:translate-y-px disabled:opacity-50"
           >
-            Open in Maps
+            {t.openMap}
           </button>
+          {snapshot.customerPhone && (
+            <button
+              type="button"
+              onClick={handleCallCustomer}
+              className="h-11 w-full rounded-xl border border-zinc-700 bg-zinc-900 text-sm font-medium text-zinc-100 transition active:translate-y-px"
+            >
+              {t.callCustomer}
+            </button>
+          )}
           <button
             type="button"
-            onClick={handleRefresh}
-            className="h-11 w-full rounded-xl border border-zinc-800 bg-transparent text-sm font-medium text-zinc-400 transition hover:text-white active:translate-y-px"
+            onClick={() => { void handleRefresh(); }}
+            disabled={refreshState === 'loading'}
+            className="h-11 w-full rounded-xl border border-zinc-800 bg-transparent text-sm font-medium text-zinc-400 transition hover:text-white active:translate-y-px disabled:opacity-60"
           >
-            Refresh now
+            {refreshState === 'loading'
+              ? t.refreshing
+              : refreshState === 'done'
+                ? t.refreshed
+                : t.refreshNow}
           </button>
         </div>
 
         {snapshot.state.lastUpdatedAt && (
           <p className="text-center text-[11px] text-zinc-500">
-            Last fix sent {formatLastUpdated(snapshot.state.lastUpdatedAt)}.
+            {t.lastFix(formatLastUpdated(snapshot.state.lastUpdatedAt))}
           </p>
         )}
 
         {error && <p className="text-sm text-red-300">{error}</p>}
       </div>
+
+      {/* ── Finish confirmation modal ────────────────────────────────────── */}
+      {showConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+          onClick={() => setShowConfirm(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            dir={dir}
+          >
+            <h2 className="mb-2 text-lg font-semibold text-white">{t.confirmTitle}</h2>
+            <p className="mb-6 text-sm text-zinc-400">{t.confirmBody}</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirm(false)}
+                className="h-11 flex-1 rounded-xl border border-zinc-700 bg-zinc-800 text-sm font-medium text-zinc-100 transition active:scale-95"
+              >
+                {t.confirmNo}
+              </button>
+              <button
+                type="button"
+                onClick={() => { void confirmFinish(); }}
+                className="h-11 flex-1 rounded-xl bg-emerald-600 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition active:scale-95"
+              >
+                {t.confirmYes}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

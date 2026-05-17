@@ -1,7 +1,9 @@
 import type { TrackingPoint } from '@/types/tracking';
 
 /** Default staleness threshold for the UI ("Tracking paused" copy). */
-export const TRACKING_STALE_SECONDS = 60;
+export const TRACKING_STALE_SECONDS = 90;
+/** Below this many seconds → "Good signal". */
+export const TRACKING_GOOD_SECONDS = 30;
 
 const METERS_PER_MILE = 1609.344;
 
@@ -76,3 +78,30 @@ export function calculateDirectDistanceMiles(
   const meters = 2 * R * Math.asin(Math.sqrt(h));
   return meters / METERS_PER_MILE;
 }
+
+// ── Live-feel helpers ─────────────────────────────────────────────────────
+
+/**
+ * Coarse health bucket derived from the age of the last GPS fix. Drives
+ * the human-friendly "Good signal / Weak signal / Tracking paused" copy
+ * shown on customer, driver and admin tracking surfaces.
+ */
+export type TrackingHealth = 'good' | 'weak' | 'lost' | 'completed' | 'idle';
+
+export function getTrackingHealth(
+  lastUpdatedAt: string | Date | null,
+  opts?: { isCompleted?: boolean; isActive?: boolean },
+): TrackingHealth {
+  if (opts?.isCompleted) return 'completed';
+  if (!lastUpdatedAt) return opts?.isActive ? 'lost' : 'idle';
+  const date = lastUpdatedAt instanceof Date ? lastUpdatedAt : new Date(lastUpdatedAt);
+  const secs = (Date.now() - date.getTime()) / 1_000;
+  if (!Number.isFinite(secs) || secs < 0) return 'good';
+  if (secs <= TRACKING_GOOD_SECONDS) return 'good';
+  if (secs <= TRACKING_STALE_SECONDS) return 'weak';
+  return 'lost';
+}
+
+/** Distance in miles below which we call the driver "nearby". */
+export const NEARBY_MILES = 0.5;
+

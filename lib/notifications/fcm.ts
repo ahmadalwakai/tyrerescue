@@ -21,8 +21,11 @@ interface FcmAndroidNotification {
   default_sound?: boolean;
 }
 
+// A message can target either a single device token or a topic.
+// Only one of `token` or `topic` should be set per message.
 interface FcmMessage {
-  token: string;
+  token?: string;
+  topic?: string;
   notification?: { title: string; body: string };
   data?: Record<string, string>;
   android?: {
@@ -135,6 +138,7 @@ export async function sendFcmNotification(
     const url = `https://fcm.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/messages:send`;
 
     const res = await fetch(url, {
+
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -152,5 +156,158 @@ export async function sendFcmNotification(
     return { success: true, messageId: result.name ?? undefined };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'FCM send error' };
+  }
+}
+
+/**
+ * Send a notification to an FCM topic (e.g. "urgent_bookings").
+ *
+ * All devices subscribed to that topic receive the message simultaneously.
+ * The backend never needs to iterate over individual device tokens.
+ * Requires the same service account auth as sendFcmNotification().
+ */
+export async function sendFcmTopicNotification(
+  topic: string,
+  title: string,
+  body: string,
+  data?: Record<string, string>,
+  androidConfig?: {
+    channelId?: string;
+    priority?: 'normal' | 'high';
+    sound?: string;
+    notificationPriority?: FcmAndroidNotification['notification_priority'];
+    vibrateTimings?: string[];
+    visibility?: FcmAndroidNotification['visibility'];
+  },
+): Promise<FcmSendResult> {
+  const auth = getAuth();
+  const projectId = getProjectId();
+
+  if (!auth || !projectId) {
+    return { success: false, error: 'FCM not configured: missing service account or project ID' };
+  }
+
+  const channel = androidConfig?.channelId ?? 'urgent_bookings_v1';
+  const soundName = androidConfig?.sound ?? 'urgent_booking';
+
+  const message: FcmMessage = {
+    topic,
+    notification: { title, body },
+    data: data ?? undefined,
+    android: {
+      priority: androidConfig?.priority ?? 'high',
+      ttl: '300s',
+      notification: {
+        channel_id: channel,
+        sound: soundName,
+        notification_priority: androidConfig?.notificationPriority ?? 'PRIORITY_MAX',
+        default_vibrate_timings: false,
+        vibrate_timings: androidConfig?.vibrateTimings ?? ['0s', '0.5s', '0.25s', '0.5s', '0.25s', '0.9s'],
+        visibility: androidConfig?.visibility ?? 'PUBLIC',
+      },
+    },
+  };
+
+  try {
+    const tokenRes = await auth.getAccessToken();
+    const accessToken = tokenRes.token;
+    if (!accessToken) {
+      return { success: false, error: 'Failed to obtain FCM access token' };
+    }
+
+    const url = `https://fcm.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/messages:send`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      return { success: false, error: `FCM topic ${res.status}: ${text}` };
+    }
+
+    const result = await res.json() as { name?: string };
+    return { success: true, messageId: result.name ?? undefined };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'FCM topic send error' };
+  }
+}
+
+interface TopicSubscriptionResult {
+  successCount: number;
+  failureCount: number;
+  error?: string;
+}
+
+/**
+ * Subscribe one or more raw FCM device tokens to a topic via the
+ * Firebase Instance ID API.
+ *
+ * Use the same service-account OAuth2 token as sendFcmNotification().
+ * After subscription, sendFcmTopicNotification(topic, ...) delivers to all
+ * subscribed devices without the backend managing individual tokens.
+ *
+ * Endpoint: POST https://iid.googleapis.com/iid/v1:batchAdd
+ */
+export async function subscribeTokensToFcmTopic(
+  tokens: string[],
+  topic: string,
+): Promise<TopicSubscriptionResult> {
+  if (tokens.length === 0) {
+    return { successCount: 0, failureCount: 0 };
+  }
+
+  const auth = getAuth();
+  if (!auth) {
+    return { successCount: 0, failureCount: tokens.length, error: 'FCM service account not configured' };
+  }
+
+  try {
+    const tokenRes = await auth.getAccessToken();
+    const accessToken = tokenRes.token;
+    if (!accessToken) {
+      return { successCount: 0, failureCount: tokens.length, error: 'Failed to obtain FCM access token' };
+    }
+
+    const res = await fetch('https://iid.googleapis.com/iid/v1:batchAdd', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'access_token_auth': 'true',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: `/topics/${topic}`,
+        registration_tokens: tokens,
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      return { successCount: 0, failureCount: tokens.length, error: `IID API ${res.status}: ${text}` };
+    }
+
+    const result = await res.json() as { results?: Array<{ error?: string }> };
+    let successCount = 0;
+    let failureCount = 0;
+    for (const r of result.results ?? []) {
+      if (r.error) {
+        failureCount++;
+      } else {
+        successCount++;
+      }
+    }
+    return { successCount, failureCount };
+  } catch (err) {
+    return {
+      successCount: 0,
+      failureCount: tokens.length,
+      error: err instanceof Error ? err.message : 'IID subscription error',
+    };
   }
 }

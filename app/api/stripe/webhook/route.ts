@@ -22,6 +22,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type Stripe from 'stripe';
 import { logInventoryMovement, releaseReservations, commitReservationsForBooking } from '@/lib/inventory/stock-service';
 import { createAdminNotification } from '@/lib/notifications';
+import { ensureTrackingSession } from '@/lib/tracking-session';
 import { sendAdminExpoPush } from '@/lib/notifications/expo-admin-push';
 
 // Disable body parsing - we need the raw body for signature verification
@@ -194,6 +195,12 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     note: `Payment confirmed via Stripe (${paymentIntentId})`,
   });
 
+  // Ensure a tracking session exists for this booking — fire-and-forget.
+  // If it fails, the booking itself is unaffected.
+  ensureTrackingSession(bookingId).catch((err) =>
+    console.error('[webhook] ensureTracking failed:', err),
+  );
+
   // Atomically deduct physical stock and consume reservations.
   // Idempotent: if /api/bookings/confirm already processed this booking,
   // commitReservationsForBooking returns alreadyCommitted=true and stock
@@ -365,10 +372,13 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     metadata: { stripeId: paymentIntentId, amount: paymentIntent.amount, currency: paymentIntent.currency },
   });
 
-  // Send Expo push notification to admin mobile app (fire-and-forget)
+  // Payment-received notification (fire-and-forget).
+  // The urgent booking push was already sent at booking creation time
+  // (POST /api/bookings/create), so we never resend it here to avoid
+  // duplicate alerts for the same emergency booking.
   void sendAdminExpoPush({
-    title: '💳 New Booking Paid',
-    body: `${booking.customerName} — £${(paymentIntent.amount / 100).toFixed(2)} · ${refNumber}`,
+    title: 'Payment received',
+    body: `${booking.customerName ?? 'Customer'} \u2014 \u00a3${(paymentIntent.amount / 100).toFixed(2)} \u00b7 ${refNumber}`,
     data: { refNumber, screen: 'bookings' },
   });
 }

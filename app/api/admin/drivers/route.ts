@@ -1,11 +1,34 @@
 import { NextResponse } from 'next/server';
 import { getOutboundUrl } from '@/lib/config/site';
-import { requireAdmin, hashPassword } from '@/lib/auth';
+import { requireAdmin, requireAdminMobile, hashPassword } from '@/lib/auth';
 import { db, users, drivers } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { driverWelcome } from '@/lib/email/templates';
 import { createAdminNotification } from '@/lib/notifications';
+
+/** GET /api/admin/drivers — list all drivers (Bearer or session auth) */
+export async function GET(request: Request) {
+  try {
+    await requireAdminMobile(request);
+    const rows = await db
+      .select({
+        id: drivers.id,
+        name: users.name,
+        phone: users.phone,
+        isOnline: drivers.isOnline,
+        status: drivers.status,
+        currentLat: drivers.currentLat,
+        currentLng: drivers.currentLng,
+        locationAt: drivers.locationAt,
+      })
+      .from(drivers)
+      .innerJoin(users, eq(drivers.userId, users.id));
+    return NextResponse.json(rows);
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+}
 
 export async function POST(request: Request) {
   try {

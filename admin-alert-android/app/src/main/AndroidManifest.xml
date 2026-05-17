@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ─── Permissions ─────────────────────────────────────────────── -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- REQUEST_IGNORE_BATTERY_OPTIMIZATIONS shows a system dialog letting
+         the user exempt this app from battery restrictions. Used on the
+         Setup screen — the user must accept manually. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <application
+        android:name=".AdminAlertApplication"
+        android:allowBackup="false"
+        android:icon="@drawable/ic_notification"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/ic_notification"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AdminAlert"
+        android:networkSecurityConfig="@xml/network_security_config">
+
+        <!-- ─── Main launch activity ────────────────────────────────── -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- ─── Setup screen ────────────────────────────────────────── -->
+        <activity
+            android:name=".SetupActivity"
+            android:exported="false"
+            android:label="@string/title_setup" />
+
+        <!-- ─── Alert screen — opened when push notification is tapped ─ -->
+        <!--
+             Deep link: tyrerescue-assisted://bookings/{bookingId}
+             NOTE: This scheme does NOT conflict with the existing Expo app
+             (uk.tyrerescue.assistedchat) because the Expo app currently uses
+             the scheme "tyrerescueassistedchat" (no hyphen).
+             See docs/admin-alert-native-setup.md for the required Expo change
+             if you want both apps to share a deep link scheme.
+        -->
+        <activity
+            android:name=".AlertActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:showOnLockScreen="true"
+            android:label="@string/title_alert">
+
+            <!-- Tap from push notification -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="tyrerescue-assisted"
+                      android:host="bookings" />
+            </intent-filter>
+
+            <!-- Fallback HTTPS deep link -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                      android:host="www.tyrerescue.uk"
+                      android:pathPrefix="/admin/bookings" />
+            </intent-filter>
+        </activity>
+
+        <!-- ─── Firebase Cloud Messaging service ────────────────────── -->
+        <service
+            android:name=".fcm.AdminAlertFcmService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Default FCM notification channel used when no channel_id is
+             specified in the push payload. Overridden by the
+             urgent_bookings_v1 channel for all admin-alert pushes. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="urgent_bookings_v1" />
+
+        <!-- Default notification icon -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+
+        <!-- Default notification color (Tyre Rescue orange) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_color" />
+
+    </application>
+
+</manifest>

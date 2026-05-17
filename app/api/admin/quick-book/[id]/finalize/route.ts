@@ -27,6 +27,8 @@ import { resolveDistance } from '@/lib/mapbox';
 import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
 import { GARAGE_ADDRESS } from '@/lib/garage';
 import { commitReservationsForBooking } from '@/lib/inventory/stock-service';
+import { ensureTrackingSession } from '@/lib/tracking-session';
+
 
 const SERVICE_MAP: Record<string, string> = {
   fit: 'tyre_replacement',
@@ -430,6 +432,12 @@ export async function POST(
       adminPath: `/admin/bookings/${refNumber}`,
     },
   }).catch(console.error);
+
+  // Ensure a tracking session for this booking — fire-and-forget so it
+  // never blocks the finalize response even if the DB call is slow.
+  ensureTrackingSession(bookingId).catch((err) =>
+    console.error('[finalize] ensureTracking failed:', err),
+  );
 
   // Stripe Checkout URL for payment (only for full stripe payment)
   const paymentUrl = checkoutUrl;

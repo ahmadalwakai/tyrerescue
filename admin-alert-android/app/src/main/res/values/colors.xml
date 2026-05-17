@@ -1,0 +1,11 @@
+<resources>
+    <!-- Tyre Rescue orange — used as notification accent colour -->
+    <color name="notification_color">#F97316</color>
+    <color name="colorPrimary">#F97316</color>
+    <color name="colorPrimaryDark">#EA6A0A</color>
+    <color name="colorAccent">#F97316</color>
+    <color name="colorBackground">#09090B</color>
+    <color name="colorSurface">#18181B</color>
+    <color name="colorOnSurface">#FAFAFA</color>
+    <color name="colorDanger">#EF4444</color>
+</resources>

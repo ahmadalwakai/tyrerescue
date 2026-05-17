@@ -1,0 +1,10 @@
+<resources>
+    <!-- AdminAlert theme — dark background, orange accent -->
+    <style name="Theme.AdminAlert" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/colorBackground</item>
+        <item name="android:textColorPrimary">@color/colorOnSurface</item>
+    </style>
+</resources>

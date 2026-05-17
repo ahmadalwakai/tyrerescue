@@ -25,6 +25,7 @@ export async function GET(
       addressLine: bookings.addressLine,
       lat: bookings.lat,
       lng: bookings.lng,
+      customerPhone: bookings.customerPhone,
     })
     .from(bookings)
     .where(eq(bookings.id, session.bookingId))
@@ -36,6 +37,7 @@ export async function GET(
     customerAddress: booking?.addressLine ?? null,
     customerLat: booking?.lat != null ? Number(booking.lat) : null,
     customerLng: booking?.lng != null ? Number(booking.lng) : null,
+    customerPhone: booking?.customerPhone ?? null,
     state: toPublicState(session),
   });
 }

@@ -1,0 +1,91 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'com.google.gms.google-services'
+}
+
+android {
+    namespace 'uk.tyrerescue.adminalert'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "uk.tyrerescue.adminalert"
+        minSdk 26          // Android 8.0 — required for notification channels
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    signingConfigs {
+        release {
+            // Pass credentials as Gradle properties — never hardcode passwords.
+            // Example:
+            //   .\gradlew.bat assembleRelease \
+            //     -PADMIN_ALERT_KEYSTORE_PATH="C:/tyrerescue/android-keys/admin-alert-release.keystore" \
+            //     -PADMIN_ALERT_KEYSTORE_PASSWORD="..." \
+            //     -PADMIN_ALERT_KEY_ALIAS="admin-alert-key" \
+            //     -PADMIN_ALERT_KEY_PASSWORD="..."
+            storeFile file(findProperty("ADMIN_ALERT_KEYSTORE_PATH")
+                ?: "C:/tyrerescue/android-keys/admin-alert-release.keystore")
+            storePassword findProperty("ADMIN_ALERT_KEYSTORE_PASSWORD")
+            keyAlias findProperty("ADMIN_ALERT_KEY_ALIAS") ?: "admin-alert-key"
+            keyPassword findProperty("ADMIN_ALERT_KEY_PASSWORD")
+        }
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+        }
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                          'proguard-rules.pro'
+        }
+    }
+
+    // Fail clearly if release signing credentials are absent.
+    tasks.whenTaskAdded { task ->
+        if (task.name in ['assembleRelease', 'bundleRelease']) {
+            task.doFirst {
+                if (!findProperty('ADMIN_ALERT_KEYSTORE_PASSWORD') || !findProperty('ADMIN_ALERT_KEY_PASSWORD')) {
+                    throw new GradleException(
+                        'Missing release signing credentials. ' +
+                        'Pass ADMIN_ALERT_KEYSTORE_PASSWORD and ADMIN_ALERT_KEY_PASSWORD as Gradle properties.'
+                    )
+                }
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    buildFeatures {
+        viewBinding true
+    }
+}
+
+dependencies {
+    // Firebase BoM — pin all Firebase versions together
+    implementation platform('com.google.firebase:firebase-bom:32.7.2')
+    implementation 'com.google.firebase:firebase-messaging-ktx'
+
+    // AndroidX
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+
+    // Coroutines
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+}

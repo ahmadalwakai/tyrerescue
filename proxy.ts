@@ -64,6 +64,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/api/admin/quick-book/') ||
     pathname === '/api/admin/bookings' ||
     pathname.startsWith('/api/admin/bookings/') ||
+    pathname === '/api/admin/drivers' ||
+    pathname.startsWith('/api/admin/drivers/') ||
     (pathname.startsWith('/api/bookings/') && pathname.endsWith('/deposit')) ||
     pathname.startsWith('/api/tyres/');
   const allowOrigin =

@@ -26,6 +26,7 @@ import { useDuplicateBookingWarning } from '@/hooks/useDuplicateBookingWarning';
 import { useNewCustomerBookingAlert } from '@/hooks/useNewCustomerBookingAlert';
 import { useBookingTracking } from '@/hooks/useBookingTracking';
 import { BookingTrackingCard } from './tracking/BookingTrackingCard';
+import { DriverAssignSection } from './tracking/DriverAssignSection';
 import { AlertActionButton } from './ui/AlertActionButton';
 import type {
   AssistedChatDraft,
@@ -55,16 +56,21 @@ import { buildCustomerMessage, buildWhatsAppUrl } from '@/lib/customer-message';
 import { copyToClipboard } from '@/lib/clipboard';
 import { formatGbp, isValidUkPhone } from '@/lib/money';
 import {
-  registerAdminPushNotifications,
   clearAdminBadge,
   unregisterAdminPushNotifications,
   consumePendingOpenBookings,
   setPendingOpenBookings,
-  isUrgentBookingNotificationData,
   getDismissedUrgentBookingId,
   setDismissedUrgentBookingId,
 } from '@/lib/notifications';
+import {
+  initializeUrgentAlerts,
+  showLocalUrgentBookingAlert,
+  isUrgentBookingNotificationData,
+  clearTopicSubscriptionFlag,
+} from '@/lib/urgent-alerts';
 import { UrgentBookingPopup } from './alerts/UrgentBookingPopup';
+import { NotificationReliabilityCard } from './alerts/NotificationReliabilityCard';
 import {
   getAssistedChatWorkflow,
   hasAssistedChatTyre,
@@ -389,6 +395,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
   const [editPriceOpen, setEditPriceOpen] = useState(false);
   const [breakdownVisible, setBreakdownVisible] = useState(false);
+  const [notifSetupOpen, setNotifSetupOpen] = useState(false);
 
   const insets = useSafeAreaInsets();
   const bottomBarPaddingBottom = Math.max(insets.bottom + 8, 16);
@@ -402,7 +409,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   useEffect(() => {
     if (Platform.OS === 'web') return;
     if (!api.hasAdminToken) return;
-    void registerAdminPushNotifications();
+    void initializeUrgentAlerts();
   }, []);
 
   // Open the bookings modal when the admin taps a notification.
@@ -550,6 +557,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   // Unregister on logout.
   const handleLogout = useCallback(async () => {
     await unregisterAdminPushNotifications();
+    await clearTopicSubscriptionFlag();
     await onLogout?.();
   }, [onLogout]);
 
@@ -652,6 +660,8 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   // dispatchedBookingId is null; auto-ensures (idempotent) the first time we
   // see a booking id, then polls /tracking every 8s.
   const bookingTracking = useBookingTracking({ bookingId: draft.dispatchedBookingId });
+  // Phone number of the driver selected by the operator in DriverAssignSection.
+  const [selectedDriverPhone, setSelectedDriverPhone] = useState<string | null>(null);
 
   const workflow = useMemo(
     () => getAssistedChatWorkflow({
@@ -1197,6 +1207,24 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     });
 
     actions.push({
+      id: 'notification-setup',
+      label: 'Notification setup',
+      description: 'Check urgent alert status and open notification settings.',
+      onPress: () => { setMoreOpen(false); setNotifSetupOpen(true); },
+    });
+
+    if (__DEV__ && urgentBookingId) {
+      actions.push({
+        id: 'test-urgent-alert',
+        label: 'Test urgent alert (dev)',
+        description: 'Trigger a local urgent booking alert for the current booking.',
+        onPress: () => {
+          void showLocalUrgentBookingAlert({ bookingId: urgentBookingId });
+        },
+      });
+    }
+
+    actions.push({
       id: 'clear-draft',
       label: 'Clear draft',
       description: 'Reset this operator workflow.',
@@ -1237,6 +1265,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     handleLogout,
     onLogout,
     quoteActions,
+    urgentBookingId,
   ]);
 
   const primaryLabel = editingStage ? 'Done Editing' : workflow.primaryActionLabel;
@@ -1581,14 +1610,24 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
             setBreakdownVisible,
           })}
           {activeStage === 'DISPATCHED' && draft.dispatchedBookingId ? (
-            <BookingTrackingCard
-              data={bookingTracking.data}
-              ensureFailed={bookingTracking.ensureFailed}
-              busy={bookingTracking.busy}
-              customerPhone={draft.customer.phone.trim() || null}
-              onRetryEnsure={() => { void bookingTracking.ensure(); }}
-              onRefresh={() => { void bookingTracking.refresh(); }}
-            />
+            <>
+              <DriverAssignSection
+                bookingId={draft.dispatchedBookingId}
+                trackingData={bookingTracking.data}
+                customerLat={draft.location.lat}
+                customerLng={draft.location.lng}
+                onSelectDriver={(phone) => setSelectedDriverPhone(phone)}
+              />
+              <BookingTrackingCard
+                data={bookingTracking.data}
+                ensureFailed={bookingTracking.ensureFailed}
+                busy={bookingTracking.busy}
+                customerPhone={draft.customer.phone.trim() || null}
+                driverPhone={selectedDriverPhone}
+                onRetryEnsure={() => { void bookingTracking.ensure(); }}
+                onRefresh={() => { void bookingTracking.refresh(); }}
+              />
+            </>
           ) : null}
         </View>
 
@@ -1647,6 +1686,27 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       <AdminVisitorsModal visible={visitorsOpen} onClose={() => setVisitorsOpen(false)} />
       <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
       <AdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
+      <Modal
+        visible={notifSetupOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setNotifSetupOpen(false)}
+        accessibilityViewIsModal
+      >
+        <View style={styles.notifSetupOverlay}>
+          <View style={styles.notifSetupSheet}>
+            <NotificationReliabilityCard />
+            <Pressable
+              onPress={() => setNotifSetupOpen(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Close notification setup"
+              style={({ pressed }) => [styles.notifSetupClose, pressed && styles.notifSetupClosePressed]}
+            >
+              <Text style={styles.notifSetupCloseLabel}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
       <EditQuotePriceModal
         visible={editPriceOpen}
         currentPriceGbp={effectiveTotal}
@@ -2741,4 +2801,24 @@ const styles = StyleSheet.create({
   reviewContent: { gap: 8, paddingBottom: 12 },
   reviewActions: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10 },
   reviewPrimary: { minHeight: 56 },
+  notifSetupOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
+  },
+  notifSetupSheet: {
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    padding: space.lg,
+    gap: space.md,
+  },
+  notifSetupClose: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+  },
+  notifSetupClosePressed: { opacity: 0.7 },
+  notifSetupCloseLabel: { color: colors.text, fontSize: fontSize.md, fontWeight: '600' },
 });

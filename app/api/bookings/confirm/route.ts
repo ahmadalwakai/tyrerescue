@@ -25,6 +25,7 @@ import { createAdminNotification } from '@/lib/notifications';
 import { sendVoodooSms } from '@/lib/voodoo-sms';
 import { buildBookingConfirmationSmsMessage } from '@/lib/quick-book-message-templates';
 import { commitReservationsForBooking } from '@/lib/inventory/stock-service';
+import { ensureTrackingSession } from '@/lib/tracking-session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -213,7 +214,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 10. Admin notification (after response)
+    // Ensure tracking session for this confirmed booking — fire-and-forget.
+    // If it fails the booking is unaffected; admin can retry from the tracking card.
+    after(() => {
+      ensureTrackingSession(booking.id).catch((err) =>
+        console.error('[confirm] ensureTracking failed:', err),
+      );
+    });
+
     after(async () => {
+
       try {
         await createAdminNotification({
           type: 'payment.received',

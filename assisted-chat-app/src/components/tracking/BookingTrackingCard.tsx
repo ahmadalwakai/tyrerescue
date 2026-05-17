@@ -48,7 +48,7 @@ const SUB: Record<TrackingDerivedStatus, string | null> = {
   expired: 'Generate a new tracking session if needed.',
 };
 
-const STALE_AFTER_MS = 60_000;
+const STALE_AFTER_MS = 90_000;
 
 function isStale(iso: string | null): boolean {
   if (!iso) return false;
@@ -106,38 +106,28 @@ export function BookingTrackingCard({
   onRetryEnsure,
   onRefresh,
 }: Props) {
-  const [copyNotice, setCopyNotice] = useState<string | null>(null);
   const [mapVisible, setMapVisible] = useState(true);
   const [techVisible, setTechVisible] = useState(false);
 
-  const flash = useCallback((msg: string) => {
-    setCopyNotice(msg);
-    setTimeout(() => setCopyNotice(null), 1800);
+  type BtnState = 'idle' | 'loading' | 'success' | 'error';
+  const [customerCopyState, setCustomerCopyState] = useState<BtnState>('idle');
+  const [customerSendState, setCustomerSendState] = useState<BtnState>('idle');
+  const [driverCopyState, setDriverCopyState] = useState<BtnState>('idle');
+  const [driverSendState, setDriverSendState] = useState<BtnState>('idle');
+
+  const resetAfter = useCallback((set: (s: BtnState) => void) => {
+    setTimeout(() => set('idle'), 2_000);
   }, []);
 
-  const shareViaSms = useCallback(
-    async (label: string, url: string, phone: string | null) => {
-      if (!phone) return;
-      const body = encodeURIComponent(`${label}: ${url}`);
-      const target = `sms:${phone}?body=${body}`;
-      const ok = await Linking.canOpenURL(target).catch(() => false);
-      if (ok) {
-        await Linking.openURL(target);
-        flash('SMS draft opened');
-      }
+  const withBtnState = useCallback(
+    (set: (s: BtnState) => void, action: () => Promise<void>) => {
+      set('loading');
+      action().then(
+        () => { set('success'); resetAfter(set); },
+        () => { set('error');   resetAfter(set); },
+      );
     },
-    [flash],
-  );
-
-  const shareViaWhatsApp = useCallback(
-    async (label: string, url: string, phone: string | null) => {
-      if (!phone) return;
-      const waUrl = buildWhatsAppUrl(phone, `${label}: ${url}`);
-      if (!waUrl) return;
-      await Linking.openURL(waUrl).catch(() => undefined);
-      flash('WhatsApp opened');
-    },
-    [flash],
+    [resetAfter],
   );
 
   const customerHasPhone = useMemo(
@@ -149,12 +139,14 @@ export function BookingTrackingCard({
     [driverPhone],
   );
 
-  // Derive paused-when-stale on the client (backend uses 75s; UI uses 60s).
+  // If the driver's GPS ping is older than 90s, surface a "Tracking
+  // paused" status so the operator gets a clear signal that the live
+  // location is stale (matches the customer & driver pages).
   const derivedStatus: TrackingDerivedStatus | null = useMemo(() => {
     if (!data) return null;
-    const s = data.state.status;
-    if (s === 'in_progress' && isStale(data.state.lastUpdatedAt)) return 'paused';
-    return s;
+    const raw = data.state.status;
+    if (raw === 'in_progress' && isStale(data.state.lastUpdatedAt)) return 'paused';
+    return raw;
   }, [data]);
 
   const driverPoint = useMemo(
@@ -206,7 +198,13 @@ export function BookingTrackingCard({
 
   const { state, customerUrl, driverUrl, refNumber, customerAddress } = data;
   const tone = TONE[derivedStatus];
-  const title = TITLE[derivedStatus];
+  // Promote "Driver is nearby" copy when the trip is live and the driver
+  // is within 0.5 mi of the customer — same threshold used by the public
+  // customer tracking page so operators see the same beat.
+  const title =
+    derivedStatus === 'in_progress' && distanceMiles != null && distanceMiles < 0.5
+      ? 'Driver is nearby'
+      : TITLE[derivedStatus];
   const sub = SUB[derivedStatus];
   const showLiveMetrics =
     derivedStatus === 'in_progress' || derivedStatus === 'paused';
@@ -268,62 +266,88 @@ export function BookingTrackingCard({
       {/* ── Customer tracking link ───────────────────────── */}
       <View style={styles.linkBlock}>
         <Text style={styles.linkLabel}>Customer tracking link</Text>
-        <Text style={styles.linkUrl} numberOfLines={1} ellipsizeMode="middle">
-          {customerUrl}
-        </Text>
         <View style={styles.linkActions}>
           <AppButton
-            label="Copy"
+            label={
+              customerCopyState === 'success' ? 'Copied ✓'
+              : customerCopyState === 'error'   ? 'Could not copy. Try again.'
+              : 'Copy'
+            }
+            loading={customerCopyState === 'loading'}
             variant="secondary"
-            onPress={async () => {
-              const ok = await copyToClipboard(customerUrl);
-              if (ok) flash('Customer link copied');
-            }}
+            disabled={customerCopyState === 'loading'}
+            onPress={() =>
+              withBtnState(setCustomerCopyState, async () => {
+                const ok = await copyToClipboard(customerUrl);
+                if (!ok) throw new Error('copy failed');
+              })
+            }
           />
           <AppButton
-            label="SMS"
+            label={
+              customerSendState === 'loading' ? 'Sending...'
+              : customerSendState === 'success' ? 'Sent ✓'
+              : customerSendState === 'error'   ? 'Could not send. Try again.'
+              : 'Send to customer'
+            }
+            loading={customerSendState === 'loading'}
             variant="secondary"
-            onPress={() => shareViaSms('Live tracking', customerUrl, customerPhone)}
-            disabled={!customerHasPhone}
-          />
-          <AppButton
-            label="WhatsApp"
-            variant="secondary"
-            onPress={() => shareViaWhatsApp('Live tracking', customerUrl, customerPhone)}
-            disabled={!customerHasPhone}
+            disabled={!customerHasPhone || customerSendState === 'loading'}
+            onPress={() =>
+              withBtnState(setCustomerSendState, async () => {
+                if (!customerPhone) throw new Error('no phone');
+                const msg = `Your Tyre Rescue booking is confirmed.\nYou can track your driver here:\n${customerUrl}`;
+                const waUrl = buildWhatsAppUrl(customerPhone, msg);
+                if (!waUrl) throw new Error('no wa url');
+                await Linking.openURL(waUrl);
+              })
+            }
           />
         </View>
         {!customerHasPhone ? (
-          <Text style={styles.hint}>Add a customer phone to enable SMS / WhatsApp.</Text>
+          <Text style={styles.hint}>Add a customer phone to enable sending.</Text>
         ) : null}
       </View>
 
       {/* ── Driver tracking link ─────────────────────────── */}
       <View style={styles.linkBlock}>
         <Text style={styles.linkLabel}>Driver tracking link</Text>
-        <Text style={styles.linkUrl} numberOfLines={1} ellipsizeMode="middle">
-          {driverUrl}
-        </Text>
         <View style={styles.linkActions}>
           <AppButton
-            label="Copy"
+            label={
+              driverCopyState === 'success' ? 'Copied ✓'
+              : driverCopyState === 'error'   ? 'Could not copy. Try again.'
+              : 'Copy'
+            }
+            loading={driverCopyState === 'loading'}
             variant="secondary"
-            onPress={async () => {
-              const ok = await copyToClipboard(driverUrl);
-              if (ok) flash('Driver link copied');
-            }}
+            disabled={driverCopyState === 'loading'}
+            onPress={() =>
+              withBtnState(setDriverCopyState, async () => {
+                const ok = await copyToClipboard(driverUrl);
+                if (!ok) throw new Error('copy failed');
+              })
+            }
           />
           <AppButton
-            label="Resend SMS"
+            label={
+              driverSendState === 'loading' ? 'Sending...'
+              : driverSendState === 'success' ? 'Sent ✓'
+              : driverSendState === 'error'   ? 'Could not send. Try again.'
+              : 'Send to driver'
+            }
+            loading={driverSendState === 'loading'}
             variant="secondary"
-            onPress={() => shareViaSms('Open to broadcast your location', driverUrl, driverPhone ?? null)}
-            disabled={!driverHasPhone}
-          />
-          <AppButton
-            label="WhatsApp"
-            variant="secondary"
-            onPress={() => shareViaWhatsApp('Open to broadcast your location', driverUrl, driverPhone ?? null)}
-            disabled={!driverHasPhone}
+            disabled={!driverHasPhone || driverSendState === 'loading'}
+            onPress={() =>
+              withBtnState(setDriverSendState, async () => {
+                if (!driverPhone) throw new Error('no phone');
+                const msg = `New Tyre Rescue job.\nOpen this page, press Start journey, and keep it open until the job is finished:\n${driverUrl}`;
+                const waUrl = buildWhatsAppUrl(driverPhone, msg);
+                if (!waUrl) throw new Error('no wa url');
+                await Linking.openURL(waUrl);
+              })
+            }
           />
         </View>
         {!driverHasPhone ? (
@@ -375,7 +399,6 @@ export function BookingTrackingCard({
         ) : null}
       </View>
 
-      {copyNotice ? <Text style={styles.notice}>{copyNotice}</Text> : null}
     </View>
   );
 }

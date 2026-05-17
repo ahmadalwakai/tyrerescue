@@ -6,7 +6,9 @@ import { TrackingStatusBanner } from '@/components/tracking/TrackingStatusBanner
 import {
   calculateDirectDistanceMiles,
   formatDistanceMiles,
+  getTrackingHealth,
   isTrackingStale,
+  NEARBY_MILES,
 } from '@/lib/tracking/tracking-format';
 import type { TrackingPoint, TrackingRouteMode, TrackingStatus } from '@/types/tracking';
 
@@ -112,6 +114,10 @@ export function CustomerTrackingClient({ token }: Props) {
   const derivedStatus: TrackingStatus | null = useMemo(() => {
     if (!data) return null;
     const raw = data.state.status;
+    // If the driver's last GPS ping is older than the staleness threshold
+    // (currently 90s), present the trip as "paused" so the customer gets
+    // a clear "Tracking paused" hint instead of a frozen pin. The trip
+    // itself is still in progress server-side — only the UI label flips.
     if (raw === 'in_progress' && isTrackingStale(data.state.lastUpdatedAt)) {
       return 'paused';
     }
@@ -137,10 +143,69 @@ export function CustomerTrackingClient({ token }: Props) {
     [driverPoint, customerPoint],
   );
 
+  // Track whether the driver is getting closer between ticks. We compare
+  // the latest distance against the previous one in a ref so the badge
+  // only shows when the trip is in_progress and the distance dropped by
+  // a meaningful amount (≥ 30m, ~0.02 miles) to avoid GPS jitter flicker.
+  const prevDistanceRef = useRef<number | null>(null);
+  const [closerSince, setCloserSince] = useState<number | null>(null);
+  useEffect(() => {
+    if (distanceMiles == null) return;
+    const prev = prevDistanceRef.current;
+    if (prev != null && prev - distanceMiles > 0.02) {
+      setCloserSince(Date.now());
+    }
+    prevDistanceRef.current = distanceMiles;
+  }, [distanceMiles]);
+  // Auto-hide the "getting closer" badge after 8s of no improvement.
+  const liveNow = Date.now();
+  const showGettingCloser =
+    closerSince != null && liveNow - closerSince < 8_000 && derivedStatus === 'in_progress';
+
+  // Human-friendly headline + body shown inside the status banner.
+  const humanCopy = useMemo(() => {
+    if (!derivedStatus) return { title: undefined, body: undefined };
+    if (derivedStatus === 'pending') {
+      return {
+        title: 'Waiting for driver to start',
+        body: 'You will see the live location the moment the driver sets off.',
+      };
+    }
+    if (derivedStatus === 'completed') {
+      return {
+        title: 'Job completed',
+        body: 'The driver has finished the job. Thank you for choosing Tyre Rescue.',
+      };
+    }
+    if (derivedStatus === 'expired') {
+      return { title: 'Tracking link expired', body: 'This tracking link is no longer active.' };
+    }
+    if (derivedStatus === 'paused') {
+      return {
+        title: 'Tracking paused',
+        body: 'Driver location has not updated recently. We will resume as soon as the signal returns.',
+      };
+    }
+    // in_progress
+    if (distanceMiles != null && distanceMiles < NEARBY_MILES) {
+      return {
+        title: 'Driver is nearby',
+        body: 'The driver is almost at your location — please keep an eye out for the van.',
+      };
+    }
+    return {
+      title: 'Driver is on the way',
+      body: 'Live location updates every few seconds.',
+    };
+  }, [derivedStatus, distanceMiles]);
+
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-300">
-        Loading tracking...
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
+        <div className="flex flex-col items-center gap-3 text-zinc-400">
+          <div className="h-10 w-10 animate-pulse rounded-full border-2 border-orange-500/30 border-t-orange-500" />
+          <p className="text-sm">Loading live map...</p>
+        </div>
       </div>
     );
   }
@@ -169,6 +234,14 @@ export function CustomerTrackingClient({ token }: Props) {
       ? formatDistanceMiles(distanceMiles)
       : null;
 
+  // Health is reported by the banner itself, but we use it here to gate
+  // the "Driver is getting closer" hint — a stale signal shouldn't claim
+  // the driver is closing the gap.
+  const health = getTrackingHealth(data.state.lastUpdatedAt, {
+    isCompleted: derivedStatus === 'completed',
+    isActive: derivedStatus === 'in_progress' || derivedStatus === 'paused',
+  });
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div
@@ -194,10 +267,18 @@ export function CustomerTrackingClient({ token }: Props) {
 
         <TrackingStatusBanner
           status={derivedStatus}
+          title={humanCopy.title}
+          body={humanCopy.body}
           distanceLabel={distanceLabel}
           lastUpdatedAt={derivedStatus !== 'pending' ? data.state.lastUpdatedAt : null}
           isLive={derivedStatus === 'in_progress'}
         />
+
+        {showGettingCloser && health === 'good' && (
+          <p className="-mt-2 px-1 text-center text-xs font-medium text-emerald-300">
+            Driver is getting closer
+          </p>
+        )}
 
         <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
           <div className="relative h-[55vh] min-h-[320px] w-full">

@@ -1,0 +1,11 @@
+# admin-alert-android/.gitignore
+.gradle/
+local.properties
+*.iml
+.idea/
+build/
+app/build/
+app/google-services.json
+app/release/
+*.apk
+*.aab
