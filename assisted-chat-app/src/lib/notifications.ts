@@ -11,10 +11,22 @@ export const URGENT_BOOKINGS_CHANNEL_ID = 'urgent-bookings';
 // Both channels share the same settings — v1 is targeted by FCM-delivered
 // messages, while urgent-bookings is used for Expo relay and local alerts.
 export const URGENT_BOOKINGS_V1_CHANNEL_ID = 'urgent_bookings_v1';
+// v2 channel is the CURRENT urgent channel used by both the backend FCM
+// push helper and the in-app local notification scheduler. We bump the id
+// because Android notification channel settings are sticky: once a channel
+// is created on a device, code changes to sound/importance do not apply
+// until the user uninstalls the app OR the channel id changes. v1 was
+// created on some installs without a working sound, so we move forward to
+// v2 to guarantee a fresh, audible channel on the next APK install.
+export const URGENT_BOOKINGS_V2_CHANNEL_ID = 'urgent_bookings_v2';
 export const DEFAULT_CHANNEL_ID = 'default';
 // Legacy channel kept for backward compatibility with the app.json
 // `defaultChannel` and any push tokens already registered on the backend.
 export const LEGACY_BOOKINGS_CHANNEL_ID = 'admin_bookings';
+
+export interface NotificationSubscription {
+  remove: () => void;
+}
 
 // AsyncStorage key consumed by AssistedChatScreen on mount: when the user
 // taps a push notification while the app is killed/background, expo-router
@@ -139,6 +151,25 @@ async function setupAndroidChannels(): Promise<void> {
     console.warn('[notif] failed to set up urgent_bookings_v1 channel:', err);
   }
 
+  // urgent_bookings_v2: CURRENT urgent channel. Created with a fresh id so
+  // Android picks up the bundled raw sound on first install. The backend
+  // FCM push helper and the in-app local notification scheduler both
+  // target this channel.
+  try {
+    await Notifications.setNotificationChannelAsync(URGENT_BOOKINGS_V2_CHANNEL_ID, {
+      name: 'Urgent bookings',
+      importance: getImportance('MAX'),
+      sound: URGENT_SOUND,
+      vibrationPattern: [0, 500, 250, 500, 250, 900],
+      enableVibrate: true,
+      lightColor: '#F97316',
+      bypassDnd: false,
+      ...(publicVisibility !== undefined ? { lockscreenVisibility: publicVisibility } : {}),
+    });
+  } catch (err) {
+    console.warn('[notif] failed to set up urgent_bookings_v2 channel:', err);
+  }
+
   // Keep the legacy channel in sync so any push payload still targeting
   // `admin_bookings` keeps working at MAX importance.
   try {
@@ -179,6 +210,22 @@ export async function presentLocalUrgentBookingNotification(args: {
   }
 }
 
+export function addAdminNotificationReceivedListener(
+  listener: () => void,
+): NotificationSubscription | null {
+  if (Platform.OS === 'web') return null;
+  return Notifications.addNotificationReceivedListener(listener);
+}
+
+export function addAdminNotificationResponseListener(
+  listener: (data: unknown) => void,
+): NotificationSubscription | null {
+  if (Platform.OS === 'web') return null;
+  return Notifications.addNotificationResponseReceivedListener((response) => {
+    listener(response.notification.request.content.data);
+  });
+}
+
 async function scheduleNotificationSafe(args: {
   title: string;
   body: string;
@@ -193,7 +240,7 @@ async function scheduleNotificationSafe(args: {
       vibrate: [0, 500, 250, 500, 250, 900],
       data: { type: 'urgent_booking', bookingId: args.bookingId },
       ...(Platform.OS === 'android'
-        ? { channelId: URGENT_BOOKINGS_CHANNEL_ID }
+        ? { channelId: URGENT_BOOKINGS_V2_CHANNEL_ID }
         : {}),
     },
     trigger: null,
@@ -258,6 +305,8 @@ export async function registerAdminPushNotifications(): Promise<string | null> {
       })
       .catch((err: unknown) => console.error('[notif] failed to upload push token:', err));
 
+    console.log(`[notif] Expo push token registered tokenSuffix=${token.slice(-8)}`);
+
     return token;
   })();
 
@@ -283,7 +332,10 @@ export async function clearAdminBadge(): Promise<void> {
 export async function unregisterAdminPushNotifications(): Promise<void> {
   registrationInFlight = null;
   try {
-    await api.del('/api/mobile/admin/push-token');
+    await Promise.allSettled([
+      api.del('/api/mobile/admin/push-token'),
+      api.del('/api/mobile/admin/native-alert-token'),
+    ]);
   } catch {
     // Best-effort.
   }
@@ -362,8 +414,15 @@ export async function getDeviceFcmToken(): Promise<string | null> {
   try {
     const tokenData = await Notifications.getDevicePushTokenAsync();
     if (tokenData.type === 'android' && tokenData.data) return tokenData.data;
+    if (__DEV__) {
+      console.warn('[notif] unexpected device push token type:', tokenData.type);
+    }
     return null;
-  } catch {
+  } catch (err) {
+    // Without a valid Firebase Android app config (google-services.json
+    // matching this package), raw FCM token retrieval fails and the device
+    // cannot subscribe to urgent_bookings topic for background delivery.
+    console.warn('[notif] failed to get raw Android FCM token:', err);
     return null;
   }
 }

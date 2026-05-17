@@ -72,6 +72,8 @@ export async function POST(request: NextRequest) {
       set: { userId: user.id, platform: safePlatform, updatedAt: new Date() },
     });
 
+  console.log(`[native-alert-token] Native token registered user=${user.id} tokenSuffix=${token.trim().slice(-8)}`);
+
   return NextResponse.json({ ok: true });
 }
 
@@ -97,6 +99,8 @@ export async function DELETE(request: NextRequest) {
   for (const id of nativeIds) {
     await db.delete(adminPushTokens).where(eq(adminPushTokens.id, id));
   }
+
+  console.log(`[native-alert-token] Native tokens unregistered user=${user.id} removed=${nativeIds.length}`);
 
   return NextResponse.json({ ok: true });
 }

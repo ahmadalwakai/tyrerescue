@@ -19,6 +19,9 @@ export type UrgentAlertsStatus = 'active' | 'no_permission' | 'unavailable';
  * The flag is a simple "1" string; its presence means "subscribed".
  */
 const TOPIC_SUBSCRIBED_KEY = 'assistedChat.urgentBookingTopicSubscribed.v1';
+const TOPIC_SUBSCRIBED_TOKEN_KEY = 'assistedChat.urgentBookingTopicSubscribedToken.v1';
+const DIRECT_TOKEN_REGISTERED_KEY = 'assistedChat.directFcmRegistered.v1';
+const DIRECT_TOKEN_REGISTERED_TOKEN_KEY = 'assistedChat.directFcmRegisteredToken.v1';
 
 /**
  * Initialize urgent alerts on admin app startup.
@@ -37,9 +40,50 @@ export async function initializeUrgentAlerts(): Promise<void> {
   if (Platform.OS === 'web') return;
   try {
     await registerAdminPushNotifications();
+    await registerDirectUrgentBookingToken();
     await subscribeToUrgentBookingTopic();
   } catch (err) {
     console.error('[urgent-alerts] initialization error:', err);
+  }
+}
+
+/**
+ * Register this device's raw Android FCM token so backend can send direct
+ * token messages (primary urgent path).
+ */
+export async function registerDirectUrgentBookingToken(): Promise<boolean> {
+  if (Platform.OS !== 'android') return false;
+
+  try {
+    const fcmToken = await getDeviceFcmToken();
+    if (!fcmToken) {
+      console.log('[urgent-alerts] FCM device token unavailable — direct token registration skipped');
+      return false;
+    }
+
+    const [existing, existingToken] = await Promise.all([
+      AsyncStorage.getItem(DIRECT_TOKEN_REGISTERED_KEY),
+      AsyncStorage.getItem(DIRECT_TOKEN_REGISTERED_TOKEN_KEY),
+    ]);
+    if (existing === '1' && existingToken === fcmToken) {
+      return true;
+    }
+
+    await api.post('/api/mobile/admin/native-alert-token', {
+      token: fcmToken,
+      platform: 'android',
+    });
+
+    await Promise.all([
+      AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_KEY, '1'),
+      AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_TOKEN_KEY, fcmToken),
+    ]);
+
+    console.log(`[urgent-alerts] direct FCM token registered tokenSuffix=${fcmToken.slice(-8)}`);
+    return true;
+  } catch (err) {
+    console.error('[urgent-alerts] direct token registration failed:', err);
+    return false;
   }
 }
 
@@ -73,18 +117,24 @@ export async function subscribeToUrgentBookingTopic(): Promise<boolean> {
   // equivalent but requires a server round-trip.
 
   try {
-    // Skip if already subscribed in this installation.
-    const existing = await AsyncStorage.getItem(TOPIC_SUBSCRIBED_KEY);
-    if (existing === '1') return true;
-
     const fcmToken = await getDeviceFcmToken();
     if (!fcmToken) {
       console.log('[urgent-alerts] FCM device token unavailable — topic subscription skipped');
       return false;
     }
 
+    // Skip if we've already subscribed this exact token.
+    const [existing, existingToken] = await Promise.all([
+      AsyncStorage.getItem(TOPIC_SUBSCRIBED_KEY),
+      AsyncStorage.getItem(TOPIC_SUBSCRIBED_TOKEN_KEY),
+    ]);
+    if (existing === '1' && existingToken === fcmToken) return true;
+
     await api.post('/api/mobile/admin/topic-subscribe', { token: fcmToken });
-    await AsyncStorage.setItem(TOPIC_SUBSCRIBED_KEY, '1');
+    await Promise.all([
+      AsyncStorage.setItem(TOPIC_SUBSCRIBED_KEY, '1'),
+      AsyncStorage.setItem(TOPIC_SUBSCRIBED_TOKEN_KEY, fcmToken),
+    ]);
     console.log('[urgent-alerts] subscribed to urgent_bookings FCM topic');
     return true;
   } catch (err) {
@@ -100,7 +150,12 @@ export async function subscribeToUrgentBookingTopic(): Promise<boolean> {
  */
 export async function clearTopicSubscriptionFlag(): Promise<void> {
   try {
-    await AsyncStorage.removeItem(TOPIC_SUBSCRIBED_KEY);
+    await Promise.all([
+      AsyncStorage.removeItem(TOPIC_SUBSCRIBED_KEY),
+      AsyncStorage.removeItem(TOPIC_SUBSCRIBED_TOKEN_KEY),
+      AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_KEY),
+      AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_TOKEN_KEY),
+    ]);
   } catch {
     // ignore
   }

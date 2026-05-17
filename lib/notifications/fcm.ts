@@ -29,7 +29,7 @@ interface FcmMessage {
   notification?: { title: string; body: string };
   data?: Record<string, string>;
   android?: {
-    priority?: 'normal' | 'high';
+    priority?: 'normal' | 'high' | 'NORMAL' | 'HIGH';
     ttl?: string;
     notification?: FcmAndroidNotification;
   };
@@ -39,6 +39,7 @@ interface FcmSendResult {
   success: boolean;
   messageId?: string;
   error?: string;
+  errorCode?: string;
 }
 
 let cachedAuth: InstanceType<typeof google.auth.JWT> | null = null;
@@ -95,6 +96,7 @@ export async function sendFcmNotification(
     channelId?: string;
     priority?: 'normal' | 'high';
     sound?: string;
+    defaultSound?: boolean;
     notificationPriority?: FcmAndroidNotification['notification_priority'];
     vibrateTimings?: string[];
     visibility?: FcmAndroidNotification['visibility'];
@@ -120,6 +122,7 @@ export async function sendFcmNotification(
       notification: {
         channel_id: channel,
         sound: soundName,
+        default_sound: androidConfig?.defaultSound,
         notification_priority: androidConfig?.notificationPriority ?? 'PRIORITY_MAX',
         default_vibrate_timings: false,
         vibrate_timings: androidConfig?.vibrateTimings ?? ['0s', '0.5s', '0.2s', '0.5s', '0.2s', '0.5s'],
@@ -160,6 +163,78 @@ export async function sendFcmNotification(
 }
 
 /**
+ * Send a data-only message to a single FCM registration token.
+ *
+ * This path intentionally omits the notification block so Android can
+ * deliver directly to FirebaseMessagingService while app is backgrounded
+ * or killed.
+ */
+export async function sendFcmDataMessageToToken(
+  deviceToken: string,
+  data: Record<string, string>,
+  androidConfig?: {
+    priority?: 'normal' | 'high' | 'NORMAL' | 'HIGH';
+    ttl?: string;
+  },
+): Promise<FcmSendResult> {
+  const auth = getAuth();
+  const projectId = getProjectId();
+
+  if (!auth || !projectId) {
+    return { success: false, error: 'FCM not configured: missing service account or project ID' };
+  }
+
+  const message: FcmMessage = {
+    token: deviceToken,
+    data,
+    android: {
+      priority: androidConfig?.priority ?? 'HIGH',
+      ttl: androidConfig?.ttl ?? '300s',
+    },
+  };
+
+  try {
+    const tokenRes = await auth.getAccessToken();
+    const accessToken = tokenRes.token;
+    if (!accessToken) {
+      return { success: false, error: 'Failed to obtain FCM access token' };
+    }
+
+    const url = `https://fcm.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/messages:send`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      let errorCode: string | undefined;
+      try {
+        const parsed = JSON.parse(text) as { error?: { status?: string; details?: Array<{ errorCode?: string }> } };
+        errorCode = parsed.error?.details?.[0]?.errorCode ?? parsed.error?.status;
+      } catch {
+        // Keep raw text fallback below.
+      }
+      return {
+        success: false,
+        error: `FCM token ${res.status}: ${text}`,
+        errorCode,
+      };
+    }
+
+    const result = await res.json() as { name?: string };
+    return { success: true, messageId: result.name ?? undefined };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'FCM token send error' };
+  }
+}
+
+/**
  * Send a notification to an FCM topic (e.g. "urgent_bookings").
  *
  * All devices subscribed to that topic receive the message simultaneously.
@@ -173,8 +248,11 @@ export async function sendFcmTopicNotification(
   data?: Record<string, string>,
   androidConfig?: {
     channelId?: string;
-    priority?: 'normal' | 'high';
+    priority?: 'normal' | 'high' | 'NORMAL' | 'HIGH';
+    ttl?: string;
+    includeNotification?: boolean;
     sound?: string;
+    defaultSound?: boolean;
     notificationPriority?: FcmAndroidNotification['notification_priority'];
     vibrateTimings?: string[];
     visibility?: FcmAndroidNotification['visibility'];
@@ -189,22 +267,26 @@ export async function sendFcmTopicNotification(
 
   const channel = androidConfig?.channelId ?? 'urgent_bookings_v1';
   const soundName = androidConfig?.sound ?? 'urgent_booking';
+  const includeNotification = androidConfig?.includeNotification !== false;
 
   const message: FcmMessage = {
     topic,
-    notification: { title, body },
+    notification: includeNotification ? { title, body } : undefined,
     data: data ?? undefined,
     android: {
       priority: androidConfig?.priority ?? 'high',
-      ttl: '300s',
-      notification: {
-        channel_id: channel,
-        sound: soundName,
-        notification_priority: androidConfig?.notificationPriority ?? 'PRIORITY_MAX',
-        default_vibrate_timings: false,
-        vibrate_timings: androidConfig?.vibrateTimings ?? ['0s', '0.5s', '0.25s', '0.5s', '0.25s', '0.9s'],
-        visibility: androidConfig?.visibility ?? 'PUBLIC',
-      },
+      ttl: androidConfig?.ttl ?? '300s',
+      notification: includeNotification
+        ? {
+          channel_id: channel,
+          sound: soundName,
+          default_sound: androidConfig?.defaultSound,
+          notification_priority: androidConfig?.notificationPriority ?? 'PRIORITY_MAX',
+          default_vibrate_timings: false,
+          vibrate_timings: androidConfig?.vibrateTimings ?? ['0s', '0.5s', '0.25s', '0.5s', '0.25s', '0.9s'],
+          visibility: androidConfig?.visibility ?? 'PUBLIC',
+        }
+        : undefined,
     },
   };
 

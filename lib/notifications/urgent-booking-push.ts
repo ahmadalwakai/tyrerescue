@@ -1,4 +1,7 @@
-import { isFcmConfigured, sendFcmTopicNotification } from './fcm';
+import { and, eq, inArray } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { adminPushTokens } from '@/lib/db/schema';
+import { isFcmConfigured, sendFcmDataMessageToToken, sendFcmTopicNotification } from './fcm';
 import { sendAdminExpoPush } from './expo-admin-push';
 
 /**
@@ -11,9 +14,13 @@ const URGENT_BOOKINGS_TOPIC = 'urgent_bookings';
 /**
  * Android notification channel that must exist on the receiving device.
  * Created by the Assisted Chat app on startup via expo-notifications.
- * Must match `URGENT_BOOKINGS_V1_CHANNEL_ID` in the app's notifications.ts.
+ * Must match `URGENT_BOOKINGS_V2_CHANNEL_ID` in the app's notifications.ts.
+ *
+ * v2: bumped from v1 because Android channel settings are sticky. Devices
+ * that had v1 created without a working sound never get a sound update
+ * unless the channel id changes (or the user uninstalls + reinstalls).
  */
-const URGENT_CHANNEL_ID = 'urgent_bookings_v1';
+const URGENT_CHANNEL_ID = 'urgent_bookings_v2';
 
 interface UrgentBookingPushArgs {
   bookingId: string;
@@ -45,38 +52,137 @@ interface UrgentBookingPushArgs {
  */
 export async function sendUrgentBookingTopicPush(args: UrgentBookingPushArgs): Promise<void> {
   const title = args.title ?? 'Emergency booking received';
-  const body = args.body ?? 'Open Assisted Chat now';
+  const body = args.body ?? 'A new emergency booking needs immediate action.';
 
   const data: Record<string, string> = {
     type: 'urgent_booking',
-    bookingId: args.bookingId,
+    bookingId: String(args.bookingId),
+    title,
+    body,
   };
-  if (args.customerPhone) data.customerPhone = args.customerPhone;
-  if (args.createdAt) data.createdAt = args.createdAt;
+  if (args.customerPhone) data.customerPhone = String(args.customerPhone);
+  if (args.createdAt) data.createdAt = String(args.createdAt);
+
+  let directTokensFound = 0;
+  let directSuccessCount = 0;
+  let directFailureCount = 0;
+  let topicFallbackAttempted = false;
+  let topicFallbackSucceeded = false;
 
   if (isFcmConfigured()) {
-    const result = await sendFcmTopicNotification(
-      URGENT_BOOKINGS_TOPIC,
-      title,
-      body,
-      data,
-      {
-        channelId: URGENT_CHANNEL_ID,
-        priority: 'high',
-        sound: 'urgent_booking',
-        notificationPriority: 'PRIORITY_MAX',
-        vibrateTimings: ['0s', '0.5s', '0.25s', '0.5s', '0.25s', '0.9s'],
-        visibility: 'PUBLIC',
-      },
-    );
+    try {
+      const rows = await db
+        .select({ token: adminPushTokens.token, platform: adminPushTokens.platform })
+        .from(adminPushTokens)
+        .where(eq(adminPushTokens.platform, 'android'));
 
-    if (result.success) {
-      console.log(`[urgent-booking-push] FCM topic message sent (messageId: ${result.messageId ?? 'unknown'})`);
-    } else {
-      console.error(`[urgent-booking-push] FCM topic send failed: ${result.error}`);
-      // Attempt Expo fallback so the alert is not lost
-      void sendExpoFallback(title, body, args.bookingId);
+      const directTokens = Array.from(
+        new Set(
+          rows
+            .map((r) => r.token.trim())
+            .filter((token) => token.length > 0)
+            .filter((token) => !token.startsWith('ExponentPushToken[')),
+        ),
+      );
+
+      directTokensFound = directTokens.length;
+
+      const settled = await Promise.allSettled(
+        directTokens.map(async (token) => {
+          const suffix = token.slice(-8);
+          const result = await sendFcmDataMessageToToken(token, data, {
+            priority: 'HIGH',
+            ttl: '300s',
+          });
+          return { token, suffix, result };
+        }),
+      );
+
+      const invalidOrUnregistered: string[] = [];
+
+      for (const item of settled) {
+        if (item.status !== 'fulfilled') {
+          directFailureCount++;
+          console.error('[urgent-booking-push] direct send failed before FCM response');
+          continue;
+        }
+
+        const { token, suffix, result } = item.value;
+        if (result.success) {
+          directSuccessCount++;
+          console.log(`[urgent-booking-push] direct send success tokenSuffix=${suffix} bookingId=${args.bookingId}`);
+          continue;
+        }
+
+        directFailureCount++;
+        console.error(
+          `[urgent-booking-push] direct send failed tokenSuffix=${suffix} bookingId=${args.bookingId} error=${result.error ?? 'unknown'}`,
+        );
+
+        const code = (result.errorCode ?? '').toUpperCase();
+        if (
+          code === 'UNREGISTERED'
+          || code === 'INVALID_ARGUMENT'
+          || (result.error ?? '').toUpperCase().includes('UNREGISTERED')
+        ) {
+          invalidOrUnregistered.push(token);
+        }
+      }
+
+      const staleTokens = Array.from(new Set(invalidOrUnregistered));
+      if (staleTokens.length > 0) {
+        await db
+          .delete(adminPushTokens)
+          .where(
+            and(
+              eq(adminPushTokens.platform, 'android'),
+              inArray(adminPushTokens.token, staleTokens),
+            ),
+          );
+        for (const token of staleTokens) {
+          console.warn(
+            `[urgent-booking-push] removed invalid token tokenSuffix=${token.slice(-8)}`,
+          );
+        }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[urgent-booking-push] direct token phase error bookingId=${args.bookingId} error=${message}`);
     }
+
+    const shouldAttemptTopicFallback =
+      directTokensFound === 0
+      || directSuccessCount === 0
+      || directFailureCount > 0;
+
+    if (shouldAttemptTopicFallback) {
+      topicFallbackAttempted = true;
+      try {
+        const result = await sendFcmTopicNotification(
+          URGENT_BOOKINGS_TOPIC,
+          title,
+          body,
+          data,
+          {
+            priority: 'HIGH',
+            ttl: '300s',
+            includeNotification: false,
+          },
+        );
+        topicFallbackSucceeded = result.success;
+        if (!result.success) {
+          console.error(`[urgent-booking-push] topic fallback failed bookingId=${args.bookingId} error=${result.error}`);
+        }
+      } catch (err) {
+        topicFallbackSucceeded = false;
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[urgent-booking-push] topic fallback exception bookingId=${args.bookingId} error=${message}`);
+      }
+    }
+
+    console.log(
+      `[urgent-booking-push] summary bookingId=${args.bookingId} directTokensFound=${directTokensFound} directSendSuccess=${directSuccessCount} directSendFailure=${directFailureCount} topicFallbackAttempted=${topicFallbackAttempted ? 'yes' : 'no'} topicFallback=${topicFallbackSucceeded ? 'success' : 'failure'}`,
+    );
     return;
   }
 
