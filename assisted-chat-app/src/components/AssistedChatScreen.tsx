@@ -70,6 +70,7 @@ import {
   showLocalUrgentBookingAlert,
   isUrgentBookingNotificationData,
   clearTopicSubscriptionFlag,
+  openFullScreenIntentSettings,
 } from '@/lib/urgent-alerts';
 import { UrgentBookingPopup } from './alerts/UrgentBookingPopup';
 import { NotificationReliabilityCard } from './alerts/NotificationReliabilityCard';
@@ -401,6 +402,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const [breakdownVisible, setBreakdownVisible] = useState(false);
   const [notifSetupOpen, setNotifSetupOpen] = useState(false);
   const [alertReadinessState, setAlertReadinessState] = useState<UrgentAlertsReadinessState>('checking');
+  const [fullScreenIntentGranted, setFullScreenIntentGranted] = useState<boolean>(true);
   const [armingCycle, setArmingCycle] = useState(0);
 
   const insets = useSafeAreaInsets();
@@ -430,6 +432,8 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       setAlertReadinessState('checking');
       const result = await ensureUrgentAlertsArmed();
       if (cancelled) return;
+
+      setFullScreenIntentGranted(result.fullScreenIntentGranted);
 
       if (result.armed) {
         setAlertReadinessState('armed');
@@ -463,9 +467,17 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const handleRetryUrgentAlertArming = useCallback(() => {
     if (Platform.OS === 'web') return;
     if (!api.hasAdminToken) return;
+    if (Platform.OS === 'android' && !fullScreenIntentGranted) {
+      // Deep-link directly to the per-app full-screen intent permission
+      // page (Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT on API 34+,
+      // falls back to app notification settings on older devices).
+      void openFullScreenIntentSettings();
+      setArmingCycle((v) => v + 1);
+      return;
+    }
     setAlertReadinessState('checking');
     setArmingCycle((v) => v + 1);
-  }, []);
+  }, [fullScreenIntentGranted]);
 
   // Open the bookings modal when the admin taps a notification.
   // For urgent_booking payloads we also persist a pending flag so that if
@@ -621,6 +633,8 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       ? 'Checking urgent alerts...'
       : alertReadinessState === 'armed'
       ? 'Urgent alerts armed'
+      : !fullScreenIntentGranted
+      ? 'Full-screen alerts blocked'
       : 'Urgent alerts not armed';
 
   const canRetryAlertArming =
@@ -1503,7 +1517,9 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
           >
             <Text style={styles.alertReadinessText}>{alertReadinessLabel}</Text>
             {alertReadinessState === 'not_armed' ? (
-              <Text style={styles.alertReadinessRetryText}>Tap to retry</Text>
+              <Text style={styles.alertReadinessRetryText}>
+                {!fullScreenIntentGranted ? 'Tap to grant permission' : 'Tap to retry'}
+              </Text>
             ) : null}
           </Pressable>
         </View>

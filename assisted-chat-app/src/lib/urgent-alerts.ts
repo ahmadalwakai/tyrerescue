@@ -1,14 +1,23 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { api } from './api';
+import { api, API_BASE_URL, getAdminToken } from './api';
 import {
   registerAdminPushNotifications,
   getDeviceFcmToken,
   getUrgentAlertsPermissionStatus,
   presentLocalUrgentBookingNotification,
 } from './notifications';
+import {
+  startUrgentWatcher,
+  stopUrgentWatcher,
+  canUseFullScreenIntent,
+  openFullScreenIntentSettings,
+  setUrgentWatcherAuth,
+  clearUrgentWatcherAuth,
+} from './urgent-watcher';
 
 export { isUrgentBookingNotificationData } from './notifications';
+export { canUseFullScreenIntent, openFullScreenIntentSettings } from './urgent-watcher';
 
 export type UrgentAlertsStatus = 'active' | 'no_permission' | 'unavailable';
 export type UrgentAlertsReadinessState = 'checking' | 'armed' | 'not_armed';
@@ -27,6 +36,8 @@ export interface UrgentAlertsReadinessSnapshot {
 export interface EnsureUrgentAlertsArmedResult {
   armed: boolean;
   snapshot: UrgentAlertsReadinessSnapshot;
+  fullScreenIntentGranted: boolean;
+  watcherStarted: boolean;
 }
 
 /**
@@ -163,7 +174,12 @@ export async function registerDirectUrgentBookingToken(): Promise<boolean> {
 
 export async function ensureUrgentAlertsArmed(): Promise<EnsureUrgentAlertsArmedResult> {
   if (Platform.OS === 'web') {
-    return { armed: false, snapshot: { tokenSuffix: null, registeredAt: null } };
+    return {
+      armed: false,
+      snapshot: { tokenSuffix: null, registeredAt: null },
+      fullScreenIntentGranted: true,
+      watcherStarted: false,
+    };
   }
 
   try {
@@ -171,14 +187,36 @@ export async function ensureUrgentAlertsArmed(): Promise<EnsureUrgentAlertsArmed
     const directRegistered = await registerDirectUrgentBookingToken();
     await subscribeToUrgentBookingTopic();
     const snapshot = await readReadinessSnapshot();
+    const tokenReady =
+      directRegistered && Boolean(snapshot.tokenSuffix) && Boolean(snapshot.registeredAt);
+
+    const fullScreenIntentGranted = await canUseFullScreenIntent();
+
+    let watcherStarted = false;
+    if (tokenReady && fullScreenIntentGranted) {
+      // Push the current admin JWT + API base into the watcher service so its
+      // native polling fallback can authenticate while the JS engine is
+      // suspended. Must be set BEFORE starting the watcher so the very first
+      // poll has credentials.
+      const adminToken = getAdminToken();
+      if (adminToken) {
+        await setUrgentWatcherAuth(adminToken, API_BASE_URL);
+      }
+      watcherStarted = await startUrgentWatcher();
+    }
+
     return {
-      armed: directRegistered && Boolean(snapshot.tokenSuffix) && Boolean(snapshot.registeredAt),
+      armed: tokenReady && fullScreenIntentGranted && watcherStarted,
       snapshot,
+      fullScreenIntentGranted,
+      watcherStarted,
     };
   } catch {
     return {
       armed: false,
       snapshot: await readReadinessSnapshot(),
+      fullScreenIntentGranted: false,
+      watcherStarted: false,
     };
   }
 }
@@ -245,6 +283,16 @@ export async function subscribeToUrgentBookingTopic(): Promise<boolean> {
  * Call on admin logout alongside `unregisterAdminPushNotifications`.
  */
 export async function clearTopicSubscriptionFlag(): Promise<void> {
+  try {
+    await clearUrgentWatcherAuth();
+  } catch {
+    // ignore
+  }
+  try {
+    await stopUrgentWatcher();
+  } catch {
+    // ignore
+  }
   try {
     await Promise.all([
       AsyncStorage.removeItem(TOPIC_SUBSCRIBED_KEY),

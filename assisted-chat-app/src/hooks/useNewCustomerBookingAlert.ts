@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
 import { api, ApiError } from '@/lib/api';
-import { presentLocalUrgentBookingNotification } from '@/lib/notifications';
+import {
+  addAdminNotificationReceivedListener,
+  presentLocalUrgentBookingNotification,
+} from '@/lib/notifications';
 
 /**
  * Detects when a NEW booking lands on the system after the operator has
@@ -256,12 +258,12 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
   // Web has no expo-notifications push surface, so skip the listener there.
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    const sub = Notifications.addNotificationReceivedListener(() => {
+    const sub = addAdminNotificationReceivedListener(() => {
       if (!mountedRef.current) return;
       setHasNewCustomerBooking(true);
       void fetchOnce();
     });
-    return () => sub.remove();
+    return () => sub?.remove();
   }, [fetchOnce]);
 
   const markBookingsSeen = useCallback(async () => {

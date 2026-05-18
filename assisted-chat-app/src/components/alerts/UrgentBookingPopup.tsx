@@ -10,9 +10,29 @@ import {
   Vibration,
   View,
 } from 'react-native';
+import { useAudioPlayer } from 'expo-audio';
 import type { BookingAlertSummary } from '@/hooks/useNewCustomerBookingAlert';
 import { AppButton } from '../ui';
 import { colors, fontSize, radius, space } from '../theme';
+import {
+  isNativeUrgentSoundAvailable,
+  playNativeUrgentSound,
+  stopNativeUrgentSound,
+} from '@/lib/native-urgent-sound';
+
+// Bundled native sound asset. Same file used by the notification channel
+// (copied to android/app/src/main/res/raw/urgent_booking.mp3 by the
+// expo-notifications config plugin), and loaded here directly via
+// expo-audio so the foreground popup plays a sound that does NOT depend on
+// the Android notification channel being audible (channel sound is sticky
+// and can be silently dropped in foreground / on stale installs).
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const URGENT_SOUND_NATIVE_SOURCE = require('../../../assets/sounds/urgent_booking.mp3');
+
+// Minimum gap before the same booking id can re-trigger sound playback.
+// Prevents spam if the popup re-renders quickly for the same alert while
+// still allowing a reminder beep if the operator leaves it unresolved.
+const SOUND_REPEAT_INTERVAL_MS = 60_000;
 
 interface UrgentBookingPopupProps {
   visible: boolean;
@@ -29,10 +49,7 @@ const VIBRATION_PATTERN: ReadonlyArray<number> = [0, 500, 250, 500, 250, 900];
 // On web there are no notification channels, so we play the same asset
 // via the HTML Audio element from inside the popup effect.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const URGENT_SOUND_MODULE = require('../../../assets/sounds/urgent_booking.mp3') as
-  | string
-  | number
-  | { default?: string; uri?: string };
+const URGENT_SOUND_MODULE = require('../../../assets/sounds/urgent_booking.mp3') as string | number | { default?: string; uri?: string };
 
 // Metro/Expo web serves project assets at `/assets/<path-from-project-root>`.
 // `require()` of an asset usually returns a numeric asset id (not a URL)
@@ -141,6 +158,21 @@ export function UrgentBookingPopup({
   // starts immediately.
   const webAudioRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Native (Android/iOS) audio player. Loaded once at mount; expo-audio
+  // owns lifecycle and releases the underlying resource when the component
+  // unmounts. On web the hook is a no-op for our purposes — we keep the
+  // separate HTMLAudioElement path below to preserve existing browser
+  // behaviour and avoid double-playback.
+  const nativePlayer = useAudioPlayer(
+    Platform.OS === 'web' ? null : URGENT_SOUND_NATIVE_SOURCE,
+  );
+  // Last bookingId we played sound for + timestamp. Used to suppress
+  // spam re-plays for the same alert and to allow one reminder beep
+  // after SOUND_REPEAT_INTERVAL_MS while the popup remains open.
+  const lastSoundBookingIdRef = useRef<string | null>(null);
+  const lastSoundPlayedAtRef = useRef<number>(0);
+  const nativeReminderTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Register the autoplay unlock listeners once per popup mount. They
   // remove themselves after the first user gesture.
   useEffect(() => {
@@ -193,6 +225,67 @@ export function UrgentBookingPopup({
       } catch {
         // ignore — vibration is best-effort
       }
+
+      // Native foreground popup sound. On Android we prefer the bundled
+      // Kotlin MediaPlayer module (reliable while app is foregrounded),
+      // and fall back to expo-audio if that module is not linked.
+      const bookingId = booking?.id ?? null;
+      if (__DEV__) {
+        console.log('[urgent-popup] open', {
+          platform: Platform.OS,
+          bookingId,
+          nativeAvailable: isNativeUrgentSoundAvailable(),
+        });
+      }
+      const playUrgentSoundOnce = () => {
+        lastSoundPlayedAtRef.current = Date.now();
+        if (__DEV__) {
+          console.log('[urgent-popup] playUrgentSoundOnce', { bookingId });
+        }
+        // Try native MediaPlayer first.
+        playNativeUrgentSound()
+          .then((ok) => {
+            if (ok) {
+              if (__DEV__) console.log('[urgent-popup] native sound played');
+              return;
+            }
+            // Fallback to expo-audio.
+            try {
+              nativePlayer.seekTo(0);
+              nativePlayer.play();
+              if (__DEV__) console.log('[urgent-popup] expo-audio fallback played');
+            } catch (err) {
+              if (__DEV__) console.warn('[urgent-popup] expo-audio fallback failed:', err);
+            }
+          })
+          .catch((err) => {
+            if (__DEV__) console.warn('[urgent-popup] native sound rejected:', err);
+            try {
+              nativePlayer.seekTo(0);
+              nativePlayer.play();
+            } catch (innerErr) {
+              if (__DEV__) console.warn('[urgent-popup] expo-audio fallback failed:', innerErr);
+            }
+          });
+      };
+      const now = Date.now();
+      const sameBooking = bookingId && lastSoundBookingIdRef.current === bookingId;
+      const cooledDown = now - lastSoundPlayedAtRef.current >= SOUND_REPEAT_INTERVAL_MS;
+      if (bookingId && (!sameBooking || cooledDown)) {
+        lastSoundBookingIdRef.current = bookingId;
+        playUrgentSoundOnce();
+      }
+      // Reminder timer: if the popup stays open longer than the cooldown
+      // without being acknowledged, beep again once. Cleared on unmount.
+      if (nativeReminderTimerRef.current) {
+        clearInterval(nativeReminderTimerRef.current);
+        nativeReminderTimerRef.current = null;
+      }
+      nativeReminderTimerRef.current = setInterval(() => {
+        if (Date.now() - lastSoundPlayedAtRef.current >= SOUND_REPEAT_INTERVAL_MS) {
+          playUrgentSoundOnce();
+        }
+      }, SOUND_REPEAT_INTERVAL_MS);
     } else {
       // Web fallback: play the bundled urgent sound directly, looping
       // until the operator opens or dismisses the popup.
@@ -236,6 +329,20 @@ export function UrgentBookingPopup({
         } catch {
           // ignore
         }
+        if (nativeReminderTimerRef.current) {
+          clearInterval(nativeReminderTimerRef.current);
+          nativeReminderTimerRef.current = null;
+        }
+        try {
+          // Stop any in-flight foreground beep when popup closes.
+          // The underlying audio resource is released automatically by
+          // expo-audio when the hosting component unmounts.
+          nativePlayer.pause();
+        } catch {
+          // ignore — best-effort
+        }
+        // Also stop the native MediaPlayer in case it is still playing.
+        void stopNativeUrgentSound();
       } else if (webAudioRef.current) {
         if (webAudioRetryRef.current) {
           clearInterval(webAudioRetryRef.current);
@@ -250,7 +357,7 @@ export function UrgentBookingPopup({
         webAudioRef.current = null;
       }
     };
-  }, [visible, pulse, shimmer]);
+  }, [visible, pulse, shimmer, booking?.id, nativePlayer]);
 
   const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.55] });
   // Shimmer travels from off-left to off-right of the button. We add the

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fontSize, radius, space } from './theme';
-import { api, API_BASE_URL } from '@/lib/api';
+import { api, API_BASE_URL, getAdminToken } from '@/lib/api';
 import {
   useAdminInvoices,
   useInvoiceDetail,
@@ -310,7 +310,9 @@ function InvoiceDetailView({ invoiceId, onClose, onEdit, onAction, actionLoading
   const busy = actionLoading === invoiceId;
 
   function openPdf() {
-    const url = `${API_BASE_URL}/api/mobile/admin/invoices/${invoiceId}/pdf`;
+    const token = getAdminToken();
+    const qs = token ? `?token=${encodeURIComponent(token)}` : '';
+    const url = `${API_BASE_URL}/api/mobile/admin/invoices/${invoiceId}/pdf${qs}`;
     void Linking.openURL(url);
   }
 
