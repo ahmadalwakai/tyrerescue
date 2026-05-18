@@ -18,6 +18,7 @@ import com.google.firebase.messaging.RemoteMessage
 class UrgentBookingMessagingService : FirebaseMessagingService() {
 
   override fun onMessageReceived(remoteMessage: RemoteMessage) {
+    Log.i(TAG, "onMessageReceived entered")
     super.onMessageReceived(remoteMessage)
 
     try {

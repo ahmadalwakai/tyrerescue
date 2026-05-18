@@ -89,22 +89,19 @@ export async function sendUrgentBookingTopicPush(args: UrgentBookingPushArgs): P
 
       directTokensFound = directTokens.length;
 
+      // DATA-ONLY high priority FCM. We intentionally do NOT include a
+      // `notification` payload (top-level or android.notification) for direct
+      // Android token sends. A notification payload causes Android to deliver
+      // through the system tray when the app is backgrounded and bypass
+      // FirebaseMessagingService.onMessageReceived — which would prevent the
+      // native UrgentBookingMessagingService from posting the full-screen /
+      // call-style notification and launching UrgentBookingAlertActivity.
       const settled = await Promise.allSettled(
         directTokens.map(async (token) => {
           const suffix = token.slice(-8);
           const result = await sendFcmDataMessageToToken(token, data, {
             priority: 'HIGH',
             ttl: '300s',
-            notification: {
-              title,
-              body,
-              channelId: URGENT_CHANNEL_ID,
-              sound: URGENT_SOUND,
-              notificationPriority: 'PRIORITY_HIGH',
-              visibility: 'PUBLIC',
-              defaultVibrateTimings: false,
-              vibrateTimings: ['0s', '0.5s', '0.25s', '0.5s', '0.25s', '0.9s'],
-            },
           });
           return { token, suffix, result };
         }),
