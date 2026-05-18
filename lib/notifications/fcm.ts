@@ -12,6 +12,8 @@ import { google } from 'googleapis';
  */
 
 interface FcmAndroidNotification {
+  title?: string;
+  body?: string;
   channel_id: string;
   sound?: string;
   notification_priority?: 'PRIORITY_MIN' | 'PRIORITY_LOW' | 'PRIORITY_DEFAULT' | 'PRIORITY_HIGH' | 'PRIORITY_MAX';
@@ -163,11 +165,11 @@ export async function sendFcmNotification(
 }
 
 /**
- * Send a data-only message to a single FCM registration token.
+ * Send a data message to a single FCM registration token.
  *
- * This path intentionally omits the notification block so Android can
- * deliver directly to FirebaseMessagingService while app is backgrounded
- * or killed.
+ * By default this omits notification fields so Android can deliver directly
+ * to FirebaseMessagingService. Callers may opt into an Android notification
+ * fallback without adding a top-level notification payload.
  */
 export async function sendFcmDataMessageToToken(
   deviceToken: string,
@@ -175,6 +177,17 @@ export async function sendFcmDataMessageToToken(
   androidConfig?: {
     priority?: 'normal' | 'high' | 'NORMAL' | 'HIGH';
     ttl?: string;
+    notification?: {
+      title: string;
+      body: string;
+      channelId: string;
+      sound?: string;
+      defaultSound?: boolean;
+      notificationPriority?: FcmAndroidNotification['notification_priority'];
+      defaultVibrateTimings?: boolean;
+      vibrateTimings?: string[];
+      visibility?: FcmAndroidNotification['visibility'];
+    };
   },
 ): Promise<FcmSendResult> {
   const auth = getAuth();
@@ -190,6 +203,19 @@ export async function sendFcmDataMessageToToken(
     android: {
       priority: androidConfig?.priority ?? 'HIGH',
       ttl: androidConfig?.ttl ?? '300s',
+      notification: androidConfig?.notification
+        ? {
+          title: androidConfig.notification.title,
+          body: androidConfig.notification.body,
+          channel_id: androidConfig.notification.channelId,
+          sound: androidConfig.notification.sound,
+          default_sound: androidConfig.notification.defaultSound,
+          notification_priority: androidConfig.notification.notificationPriority ?? 'PRIORITY_HIGH',
+          default_vibrate_timings: androidConfig.notification.defaultVibrateTimings ?? false,
+          vibrate_timings: androidConfig.notification.vibrateTimings ?? ['0s', '0.5s', '0.25s', '0.5s', '0.25s', '0.9s'],
+          visibility: androidConfig.notification.visibility ?? 'PUBLIC',
+        }
+        : undefined,
     },
   };
 
