@@ -1,7 +1,7 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { adminPushTokens } from '@/lib/db/schema';
-import { isFcmConfigured, sendFcmNotification, sendFcmTopicNotification } from './fcm';
+import { isFcmConfigured, sendFcmDataMessageToToken, sendFcmTopicNotification } from './fcm';
 import { sendAdminExpoPush } from './expo-admin-push';
 
 /**
@@ -14,13 +14,14 @@ const URGENT_BOOKINGS_TOPIC = 'urgent_bookings';
 /**
  * Android notification channel that must exist on the receiving device.
  * Created by the Assisted Chat app on startup via expo-notifications.
- * Must match `URGENT_BOOKINGS_V2_CHANNEL_ID` in the app's notifications.ts.
+ * Must match `URGENT_BOOKINGS_V3_CHANNEL_ID` in the app's notifications.ts.
  *
- * v2: bumped from v1 because Android channel settings are sticky. Devices
- * that had v1 created without a working sound never get a sound update
- * unless the channel id changes (or the user uninstalls + reinstalls).
+ * v3: bumped from v2 because Android channel settings are sticky. Devices that
+ * had v2 created with the wrong sound/importance never receive updated settings
+ * unless the channel id changes (or the user uninstalls + reinstalls). v1/v2
+ * are kept only in historical comments — no active code path targets them.
  */
-const URGENT_CHANNEL_ID = 'urgent_bookings_v2';
+const URGENT_CHANNEL_ID = 'urgent_bookings_v3';
 const URGENT_SOUND = 'urgent_booking';
 
 interface UrgentBookingPushArgs {
@@ -91,18 +92,19 @@ export async function sendUrgentBookingTopicPush(args: UrgentBookingPushArgs): P
       const settled = await Promise.allSettled(
         directTokens.map(async (token) => {
           const suffix = token.slice(-8);
-          // Include a notification block so Android's FCM SDK can display
-          // the alert via the system tray even when the app process is
-          // killed or restricted by aggressive battery management (Samsung,
-          // Xiaomi, etc.). Data-only messages cannot wake a killed app on
-          // these OEMs, which is why the alert previously only appeared
-          // while the app was open.
-          const result = await sendFcmNotification(token, title, body, data, {
-            channelId: URGENT_CHANNEL_ID,
-            sound: URGENT_SOUND,
-            priority: 'high',
-            notificationPriority: 'PRIORITY_MAX',
-            visibility: 'PUBLIC',
+          const result = await sendFcmDataMessageToToken(token, data, {
+            priority: 'HIGH',
+            ttl: '300s',
+            notification: {
+              title,
+              body,
+              channelId: URGENT_CHANNEL_ID,
+              sound: URGENT_SOUND,
+              notificationPriority: 'PRIORITY_HIGH',
+              visibility: 'PUBLIC',
+              defaultVibrateTimings: false,
+              vibrateTimings: ['0s', '0.5s', '0.25s', '0.5s', '0.25s', '0.9s'],
+            },
           });
           return { token, suffix, result };
         }),

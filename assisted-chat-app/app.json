@@ -22,6 +22,8 @@
       "permissions": [
         "INTERNET",
         "POST_NOTIFICATIONS",
+        "USE_FULL_SCREEN_INTENT",
+        "WAKE_LOCK",
         "VIBRATE"
       ],
       "adaptiveIcon": {
@@ -41,13 +43,14 @@
         {
           "icon": "./assets/icon.png",
           "color": "#09090B",
-          "defaultChannel": "admin_bookings",
+          "defaultChannel": "urgent_bookings_v3",
           "androidMode": "default",
           "sounds": [
             "./assets/sounds/urgent_booking.mp3"
           ]
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "extra": {
       "router": {

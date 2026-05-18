@@ -11,14 +11,18 @@ export const URGENT_BOOKINGS_CHANNEL_ID = 'urgent-bookings';
 // Both channels share the same settings — v1 is targeted by FCM-delivered
 // messages, while urgent-bookings is used for Expo relay and local alerts.
 export const URGENT_BOOKINGS_V1_CHANNEL_ID = 'urgent_bookings_v1';
-// v2 channel is the CURRENT urgent channel used by both the backend FCM
+// v2 channel kept for migration reference only — no active code targets it.
+// Channels are sticky on Android; if v2 was created with a bad sound, the only
+// way to recover is to bump the id (or have the user uninstall).
+export const URGENT_BOOKINGS_V2_CHANNEL_ID = 'urgent_bookings_v2';
+// v3 channel is the CURRENT urgent channel used by both the backend FCM
 // push helper and the in-app local notification scheduler. We bump the id
 // because Android notification channel settings are sticky: once a channel
 // is created on a device, code changes to sound/importance do not apply
-// until the user uninstalls the app OR the channel id changes. v1 was
-// created on some installs without a working sound, so we move forward to
-// v2 to guarantee a fresh, audible channel on the next APK install.
-export const URGENT_BOOKINGS_V2_CHANNEL_ID = 'urgent_bookings_v2';
+// until the user uninstalls the app OR the channel id changes. v2 shipped
+// to some Samsung devices without a working sound, so we move forward to
+// v3 to guarantee a fresh, audible channel on the next APK install.
+export const URGENT_BOOKINGS_V3_CHANNEL_ID = 'urgent_bookings_v3';
 export const DEFAULT_CHANNEL_ID = 'default';
 // Legacy channel kept for backward compatibility with the app.json
 // `defaultChannel` and any push tokens already registered on the backend.
@@ -151,12 +155,12 @@ async function setupAndroidChannels(): Promise<void> {
     console.warn('[notif] failed to set up urgent_bookings_v1 channel:', err);
   }
 
-  // urgent_bookings_v2: CURRENT urgent channel. Created with a fresh id so
+  // urgent_bookings_v3: CURRENT urgent channel. Created with a fresh id so
   // Android picks up the bundled raw sound on first install. The backend
   // FCM push helper and the in-app local notification scheduler both
   // target this channel.
   try {
-    await Notifications.setNotificationChannelAsync(URGENT_BOOKINGS_V2_CHANNEL_ID, {
+    await Notifications.setNotificationChannelAsync(URGENT_BOOKINGS_V3_CHANNEL_ID, {
       name: 'Urgent bookings',
       importance: getImportance('MAX'),
       sound: URGENT_SOUND,
@@ -167,7 +171,7 @@ async function setupAndroidChannels(): Promise<void> {
       ...(publicVisibility !== undefined ? { lockscreenVisibility: publicVisibility } : {}),
     });
   } catch (err) {
-    console.warn('[notif] failed to set up urgent_bookings_v2 channel:', err);
+    console.warn('[notif] failed to set up urgent_bookings_v3 channel:', err);
   }
 
   // Keep the legacy channel in sync so any push payload still targeting
@@ -240,7 +244,7 @@ async function scheduleNotificationSafe(args: {
       vibrate: [0, 500, 250, 500, 250, 900],
       data: { type: 'urgent_booking', bookingId: args.bookingId },
       ...(Platform.OS === 'android'
-        ? { channelId: URGENT_BOOKINGS_V2_CHANNEL_ID }
+        ? { channelId: URGENT_BOOKINGS_V3_CHANNEL_ID }
         : {}),
     },
     trigger: null,
