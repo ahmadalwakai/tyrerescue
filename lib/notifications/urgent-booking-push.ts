@@ -1,7 +1,7 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { adminPushTokens } from '@/lib/db/schema';
-import { isFcmConfigured, sendFcmDataMessageToToken, sendFcmTopicNotification } from './fcm';
+import { isFcmConfigured, sendFcmNotification, sendFcmTopicNotification } from './fcm';
 import { sendAdminExpoPush } from './expo-admin-push';
 
 /**
@@ -21,6 +21,7 @@ const URGENT_BOOKINGS_TOPIC = 'urgent_bookings';
  * unless the channel id changes (or the user uninstalls + reinstalls).
  */
 const URGENT_CHANNEL_ID = 'urgent_bookings_v2';
+const URGENT_SOUND = 'urgent_booking';
 
 interface UrgentBookingPushArgs {
   bookingId: string;
@@ -90,9 +91,18 @@ export async function sendUrgentBookingTopicPush(args: UrgentBookingPushArgs): P
       const settled = await Promise.allSettled(
         directTokens.map(async (token) => {
           const suffix = token.slice(-8);
-          const result = await sendFcmDataMessageToToken(token, data, {
-            priority: 'HIGH',
-            ttl: '300s',
+          // Include a notification block so Android's FCM SDK can display
+          // the alert via the system tray even when the app process is
+          // killed or restricted by aggressive battery management (Samsung,
+          // Xiaomi, etc.). Data-only messages cannot wake a killed app on
+          // these OEMs, which is why the alert previously only appeared
+          // while the app was open.
+          const result = await sendFcmNotification(token, title, body, data, {
+            channelId: URGENT_CHANNEL_ID,
+            sound: URGENT_SOUND,
+            priority: 'high',
+            notificationPriority: 'PRIORITY_MAX',
+            visibility: 'PUBLIC',
           });
           return { token, suffix, result };
         }),
@@ -166,7 +176,13 @@ export async function sendUrgentBookingTopicPush(args: UrgentBookingPushArgs): P
           {
             priority: 'HIGH',
             ttl: '300s',
-            includeNotification: false,
+            // Include the notification block so the topic fan-out also
+            // reaches killed/background apps via the Android system tray.
+            includeNotification: true,
+            channelId: URGENT_CHANNEL_ID,
+            sound: URGENT_SOUND,
+            notificationPriority: 'PRIORITY_MAX',
+            visibility: 'PUBLIC',
           },
         );
         topicFallbackSucceeded = result.success;
