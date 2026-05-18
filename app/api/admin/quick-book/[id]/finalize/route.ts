@@ -22,6 +22,7 @@ import {
 } from '@/lib/quick-book-pricing';
 import { v4 as uuidv4 } from 'uuid';
 import { createAdminNotification } from '@/lib/notifications';
+import { sendUrgentBookingTopicPush } from '@/lib/notifications/urgent-booking-push';
 import { createCheckoutSession } from '@/lib/stripe';
 import { resolveDistance } from '@/lib/mapbox';
 import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
@@ -409,6 +410,16 @@ export async function POST(
       );
     }
   }
+
+  // Send urgent push for finalized admin emergency quick bookings.
+  // Fire-and-forget so finalize is never blocked by notification delivery.
+  void sendUrgentBookingTopicPush({
+    bookingId,
+    customerPhone: qb.customerPhone,
+    createdAt: new Date().toISOString(),
+    title: 'Emergency booking received',
+    body: `${qb.customerName} — ${paymentMethod === 'cash' ? 'paid' : 'awaiting payment'}`,
+  }).catch((err: unknown) => console.error('[quick-book:finalize] urgent push failed:', err));
 
   // Notify admin
   createAdminNotification({
