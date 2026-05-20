@@ -71,6 +71,7 @@ export default function DashboardScreen() {
   const [toggling, setToggling] = useState(false);
   const [lastSync, setLastSync] = useState<number | null>(null);
   const [syncLabel, setSyncLabel] = useState(t('dashboard.syncing'));
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const { bgRunning } = useLocationBroadcast(isOnline, activeJobs.length > 0);
   const { checkForNewJobs } = useNewJobDetector();
@@ -91,8 +92,10 @@ export default function DashboardScreen() {
       setUpcomingJobs(jobsRes.upcoming ?? []);
       setCompletedCount(jobsRes.completed.length);
       setLastSync(Date.now());
-    } catch {
-      // Silently ignore
+      setFetchError(null);
+    } catch (err) {
+      const msg = err instanceof Error && err.message ? err.message : 'Network error';
+      setFetchError(msg);
     }
   }, []);
 
@@ -124,8 +127,12 @@ export default function DashboardScreen() {
     try {
       const res = await driverApi.setOnline(value);
       setIsOnline(res.isOnline);
-    } catch {
-      Alert.alert(t('common.error'), t('dashboard.failedUpdateStatus'));
+    } catch (err) {
+      const serverMsg = err instanceof Error && err.message ? err.message : null;
+      Alert.alert(
+        t('common.error'),
+        serverMsg ?? t('dashboard.failedUpdateStatus'),
+      );
     }
     setToggling(false);
   };
@@ -146,6 +153,15 @@ export default function DashboardScreen() {
       <Animated.Text entering={FadeInDown.duration(300)} style={styles.greeting}>
         {t('dashboard.greeting', { name: user?.name?.split(' ')[0] ?? 'Driver' })}
       </Animated.Text>
+
+      {/* Network / auth error banner — surfaces the *real* server message instead of silent failure */}
+      {fetchError && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText} numberOfLines={3}>
+            {fetchError}
+          </Text>
+        </View>
+      )}
 
       {/* Online Toggle */}
       <Animated.View entering={FadeInDown.duration(300).delay(60)} style={styles.statusCard}>
@@ -281,6 +297,19 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.06)',
     marginBottom: spacing.lg,
     ...cardShadow,
+  },
+  errorBanner: {
+    backgroundColor: 'rgba(220, 38, 38, 0.15)',
+    borderColor: 'rgba(220, 38, 38, 0.4)',
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  errorBannerText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: fontSize.sm,
+    color: '#FCA5A5',
   },
   statusLabel: {
     fontFamily: 'Inter_700Bold',
