@@ -22,10 +22,12 @@ import androidx.core.app.NotificationManagerCompat
  */
 object DriverJobAlertNotifier {
   private const val TAG = "DriverJobAlertNotifier"
-  // Bumped to v2 because Android caches NotificationChannel importance from
-  // the first creation; existing installs need a fresh channel id to pick up
-  // the IMPORTANCE_MAX upgrade required for Samsung lock-screen pop-ups.
-  const val CHANNEL_ID = "driver_jobs_urgent_v2"
+  // Channel id is bumped whenever the alert config changes, because Android
+  // caches NotificationChannel importance and sound URI from the first
+  // creation. v5: full-screen-intent gating, dropped background
+  // startActivity path, IMPORTANCE_HIGH-or-MAX with custom sound +
+  // CATEGORY_CALL for new driver jobs.
+  const val CHANNEL_ID = "driver_jobs_urgent_v5"
   private const val CHANNEL_NAME = "New driver jobs"
   private const val CHANNEL_DESCRIPTION = "High-priority alerts for newly assigned jobs"
   private const val GRANT_NOTIF_ID = 9998
@@ -40,12 +42,16 @@ object DriverJobAlertNotifier {
 
   data class JobAlertPayload(
     val ref: String?,
+    val jobId: String? = null,
+    val assignmentId: String? = null,
     val title: String,
     val body: String,
     val address: String?,
     val deepLink: String?,
     val amountToCollectPence: String? = null,
     val paymentStatus: String? = null,
+    val paymentType: String? = null,
+    val jobPricePence: String? = null,
   )
 
   fun postAlert(context: Context, payload: JobAlertPayload, sourceTag: String) {
@@ -76,27 +82,38 @@ object DriverJobAlertNotifier {
       flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
       putExtra(EXTRA_TYPE, "driver_new_job")
       payload.ref?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_REF, it) }
+      payload.jobId?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_JOB_ID, it) }
+      payload.assignmentId?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_ASSIGNMENT_ID, it) }
       putExtra(EXTRA_TITLE, payload.title)
       putExtra(EXTRA_BODY, payload.body)
       payload.address?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_ADDRESS, it) }
       payload.deepLink?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_URL, it) }
       payload.amountToCollectPence?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_AMOUNT_TO_COLLECT_PENCE, it) }
       payload.paymentStatus?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_PAYMENT_STATUS, it) }
+      payload.paymentType?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_PAYMENT_TYPE, it) }
+      payload.jobPricePence?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_JOB_PRICE_PENCE, it) }
     }
     val fullScreenPi = PendingIntent.getActivity(context, 1, fullScreenIntent, pendingFlags)
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+    // Decide whether the OS will honour a full-screen intent. On Android 14+
+    // the user must have granted USE_FULL_SCREEN_INTENT in app-info; below
+    // 14 the permission is granted at install time so we always allow it.
+    val canUseFullScreen: Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
       try {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val canUseFullScreen = manager.canUseFullScreenIntent()
-        Log.i(TAG, "[native-alert] canUseFullScreenIntent refSuffix=$refSuffix allowed=$canUseFullScreen")
-        if (!canUseFullScreen) {
+        val allowed = manager.canUseFullScreenIntent()
+        Log.i(TAG, "[native-alert] canUseFullScreenIntent refSuffix=$refSuffix allowed=$allowed")
+        if (!allowed) {
           Log.w(TAG, "[native-alert] full-screen permission missing refSuffix=$refSuffix")
           postFullScreenIntentGrantNotification(context)
         }
+        allowed
       } catch (err: Exception) {
         Log.w(TAG, "[native-alert] permission check failed refSuffix=$refSuffix", err)
+        false
       }
+    } else {
+      true
     }
 
     val soundUri = resolveSoundUri(context)
@@ -105,14 +122,25 @@ object DriverJobAlertNotifier {
       .setSmallIcon(R.drawable.notification_icon)
       .setContentTitle(payload.title)
       .setContentText(payload.body)
+      .setStyle(NotificationCompat.BigTextStyle().bigText(buildBigText(payload)))
       .setPriority(NotificationCompat.PRIORITY_MAX)
       .setCategory(NotificationCompat.CATEGORY_CALL)
       .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-      .setAutoCancel(false)
+      .setAutoCancel(true)
       .setContentIntent(contentIntent)
-      .setFullScreenIntent(fullScreenPi, true)
       .setVibrate(VIBRATION_PATTERN)
       .setSound(soundUri)
+      .setDefaults(0)
+
+    // Only attach the full-screen intent when the OS will honour it. When
+    // blocked we fall back to a heads-up notification only — a clear "Tap
+    // to open job" message — and surface the reason to the React UI via
+    // DriverAlertWatcherModule.canUseFullScreenIntent().
+    if (canUseFullScreen) {
+      builder.setFullScreenIntent(fullScreenPi, true)
+    } else {
+      builder.setContentText("Tap to open job")
+    }
 
     val notificationId = if (!payload.ref.isNullOrBlank()) {
       payload.ref.hashCode()
@@ -122,19 +150,21 @@ object DriverJobAlertNotifier {
 
     try {
       NotificationManagerCompat.from(context).notify(notificationId, builder.build())
-      Log.i(TAG, "[native-alert] notification posted source=$sourceTag refSuffix=$refSuffix notificationId=$notificationId")
+      Log.i(
+        TAG,
+        "[native-alert] notification posted source=$sourceTag refSuffix=$refSuffix notificationId=$notificationId fullScreenIntent=$canUseFullScreen channel=$CHANNEL_ID",
+      )
     } catch (err: Exception) {
       Log.e(TAG, "[native-alert] notification post failed source=$sourceTag", err)
     }
 
-    // Pre-Q fallback: directly launch the alert activity.
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-      try {
-        context.startActivity(fullScreenIntent)
-      } catch (err: Exception) {
-        Log.w(TAG, "direct Activity launch failed source=$sourceTag", err)
-      }
-    }
+    // NOTE: we deliberately do NOT call context.startActivity(fullScreenIntent)
+    // from a background context. Android 10+ blocks background activity
+    // starts in most cases, and on Android 12+ even the foreground service
+    // grant is throttled. The only reliable path is the notification's
+    // setFullScreenIntent above; if the user has blocked that permission
+    // the heads-up notification is the visible alert and React UI prompts
+    // them to grant full-screen permission.
   }
 
   fun ensureChannel(context: Context) {
@@ -202,10 +232,31 @@ object DriverJobAlertNotifier {
 
   const val EXTRA_TYPE = "type"
   const val EXTRA_REF = "ref"
+  const val EXTRA_JOB_ID = "jobId"
+  const val EXTRA_ASSIGNMENT_ID = "assignmentId"
   const val EXTRA_TITLE = "title"
   const val EXTRA_BODY = "body"
   const val EXTRA_ADDRESS = "address"
   const val EXTRA_URL = "url"
   const val EXTRA_AMOUNT_TO_COLLECT_PENCE = "amountToCollectPence"
   const val EXTRA_PAYMENT_STATUS = "paymentStatus"
+  const val EXTRA_PAYMENT_TYPE = "paymentType"
+  const val EXTRA_JOB_PRICE_PENCE = "jobPricePence"
+
+  private fun buildBigText(payload: JobAlertPayload): String {
+    val lines = mutableListOf<String>()
+    lines.add(payload.body)
+    payload.address?.takeIf { it.isNotBlank() }?.let { lines.add(it) }
+    val price = payload.jobPricePence?.toLongOrNull()
+    if (price != null && price > 0) {
+      lines.add("Price: \u00A3${String.format("%.2f", price / 100.0)}")
+    }
+    val collect = payload.amountToCollectPence?.toLongOrNull()
+    if (collect != null && collect > 0) {
+      lines.add("Collect: \u00A3${String.format("%.2f", collect / 100.0)}")
+    } else if (payload.paymentStatus == "paid" || collect == 0L) {
+      lines.add("Nothing to collect")
+    }
+    return lines.joinToString("\n")
+  }
 }

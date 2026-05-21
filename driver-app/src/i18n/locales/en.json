@@ -86,12 +86,14 @@
     "service": "Service",
     "noVehicle": "No vehicle",
     "collect": "Collect",
+    "jobPrice": "Job price",
     "nothingToCollect": "Nothing to collect",
     "confirmCollection": "Confirm collection with admin"
   },
   "jobDetail": {
     "customer": "Customer",
     "payment": "Payment",
+    "jobPrice": "Job price",
     "paymentMethod": "Payment method",
     "paymentStatus": "Payment status",
     "amountToCollect": "Amount to collect",

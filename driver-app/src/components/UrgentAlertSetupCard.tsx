@@ -1,19 +1,30 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Platform, Alert } from 'react-native';
+import * as Device from 'expo-device';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic } from '@/services/haptics';
 import { DriverAlertWatcher } from '@/services/driver-watcher';
 
+// Brands with aggressive battery-management OEM layers that silently kill
+// background services / delay FCM data messages even after standard Android
+// battery + notification permissions are granted. The only mitigation is to
+// tell the driver to exclude the app manually in the OEM's settings UI.
+const AGGRESSIVE_BATTERY_BRANDS = ['samsung', 'xiaomi', 'huawei', 'honor', 'oppo', 'vivo', 'realme', 'oneplus'];
+const deviceBrand = (Device.brand ?? Device.manufacturer ?? '').toLowerCase();
+const isAggressiveBatteryBrand = AGGRESSIVE_BATTERY_BRANDS.some((b) => deviceBrand.includes(b));
+
 interface SetupState {
   armed: boolean;
+  notificationsAllowed: boolean;
   fullScreenAllowed: boolean;
   batteryUnrestricted: boolean;
 }
 
 const initialState: SetupState = {
   armed: false,
+  notificationsAllowed: true,
   fullScreenAllowed: true,
   batteryUnrestricted: true,
 };
@@ -28,13 +39,15 @@ export function UrgentAlertSetupCard() {
       return;
     }
     try {
-      const [armed, fsi, batt] = await Promise.all([
+      const [armed, notif, fsi, batt] = await Promise.all([
         DriverAlertWatcher.isArmed(),
+        DriverAlertWatcher.areNotificationsEnabled(),
         DriverAlertWatcher.canUseFullScreenIntent(),
         DriverAlertWatcher.isIgnoringBatteryOptimizations(),
       ]);
       setState({
         armed,
+        notificationsAllowed: notif,
         fullScreenAllowed: fsi,
         batteryUnrestricted: batt,
       });
@@ -56,6 +69,14 @@ export function UrgentAlertSetupCard() {
   const handleOpenFullScreen = async () => {
     lightHaptic();
     await DriverAlertWatcher.openFullScreenAlertSettings();
+    setTimeout(() => {
+      void refresh();
+    }, 800);
+  };
+
+  const handleOpenNotifications = async () => {
+    lightHaptic();
+    await DriverAlertWatcher.openAppNotificationSettings();
     setTimeout(() => {
       void refresh();
     }, 800);
@@ -92,6 +113,14 @@ export function UrgentAlertSetupCard() {
         warnText={loading ? 'Checking…' : 'Inactive — sign in again'}
       />
       <Row
+        label="Notifications"
+        ok={state.notificationsAllowed}
+        okText="Allowed"
+        warnText="Denied by Android — tap to allow"
+        actionLabel={state.notificationsAllowed ? undefined : 'Open settings'}
+        onPress={handleOpenNotifications}
+      />
+      <Row
         label="Full-screen alerts"
         ok={state.fullScreenAllowed}
         okText="Allowed"
@@ -118,6 +147,22 @@ export function UrgentAlertSetupCard() {
           <Text style={styles.secondaryButtonText}>Send test alert</Text>
         </AnimatedPressable>
       </View>
+
+      {isAggressiveBatteryBrand ? (
+        <View style={styles.oemHint}>
+          <Ionicons name="warning" size={16} color="#f59e0b" />
+          <View style={styles.oemHintText}>
+            <Text style={styles.oemHintTitle}>
+              {deviceBrand.includes('samsung') ? 'Samsung device detected' : `${deviceBrand} device detected`}
+            </Text>
+            <Text style={styles.oemHintBody}>
+              {deviceBrand.includes('samsung')
+                ? 'Open Settings → Device care → Battery → Background usage limits, and make sure TyreRescue Driver is NOT in "Sleeping apps" or "Deep sleeping apps". Also turn OFF "Pause app activity if unused" under Settings → Apps → TyreRescue Driver → Battery. Without this, lock-screen alerts may be delayed or silently dropped.'
+                : 'This brand aggressively kills background apps. Open your device settings and exclude TyreRescue Driver from any battery saver / app standby / auto-launch restrictions. Without this, lock-screen alerts may be delayed.'}
+            </Text>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -237,5 +282,32 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     fontSize: fontSize.sm,
     color: colors.accent,
+  },
+  oemHint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(245,158,11,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.30)',
+  },
+  oemHintText: {
+    flex: 1,
+  },
+  oemHintTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.sm,
+    color: '#f59e0b',
+    marginBottom: 2,
+    textTransform: 'capitalize',
+  },
+  oemHintBody: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.xs,
+    color: colors.muted,
+    lineHeight: 16,
   },
 });

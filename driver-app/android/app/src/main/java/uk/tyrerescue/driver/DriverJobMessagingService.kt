@@ -20,37 +20,53 @@ class DriverJobMessagingService : FirebaseMessagingService() {
     try {
       val data = remoteMessage.data
       val messageId = remoteMessage.messageId ?: "unknown"
-      val dataType = data["type"] ?: "missing"
+      val rawType = data["type"] ?: "missing"
       val dataKeys = data.keys.sorted().joinToString(",")
 
       Log.i(TAG, "[native-fcm] onMessageReceived messageId=$messageId from=${remoteMessage.from ?: "unknown"}")
-      Log.i(TAG, "[native-fcm] data keys=$dataKeys type=$dataType")
+      Log.i(TAG, "[native-fcm] data keys=$dataKeys type=$rawType priority=${remoteMessage.priority} originalPriority=${remoteMessage.originalPriority}")
 
-      if (dataType != "driver_new_job") {
-        Log.i(TAG, "[native-fcm] ignored type=$dataType")
+      // Accept canonical type plus legacy aliases the backend may have emitted
+      // historically. All normalize internally to "driver_new_job" so the
+      // alert path is identical regardless of producer.
+      val accepted = ACCEPTED_TYPES.contains(rawType)
+      if (!accepted) {
+        // Log every key when ignored so payload mismatches surface in logcat.
+        for ((k, v) in data) {
+          Log.i(TAG, "[native-fcm] ignored key=$k value=${v.take(120)}")
+        }
+        Log.i(TAG, "[native-fcm] ignored type=$rawType (no match) keys=$dataKeys")
         return
       }
 
-      Log.i(TAG, "[native-fcm] driver_new_job accepted")
+      Log.i(TAG, "[native-fcm] driver_new_job accepted (rawType=$rawType)")
 
-      val ref = data["ref"] ?: data["bookingRef"]
+      val ref = data["ref"] ?: data["bookingRef"] ?: data["jobRef"]
+      val jobId = data["jobId"]
+      val assignmentId = data["assignmentId"]
       val title = data["title"] ?: "New job assigned"
       val body = data["body"] ?: "Tap to view the assigned job."
-      val address = data["address"]
-      val deepLink = data["url"]
-      val amountToCollectPence = data["amountToCollectPence"]
+      val address = data["address"] ?: data["location"]
+      val deepLink = data["url"] ?: data["deepLink"]
+      val amountToCollectPence = data["amountToCollectPence"] ?: data["collectAmount"]
       val paymentStatus = data["paymentStatus"]
+      val paymentType = data["paymentType"]
+      val jobPricePence = data["jobPricePence"] ?: data["price"]
 
       DriverJobAlertNotifier.postAlert(
         this,
         DriverJobAlertNotifier.JobAlertPayload(
           ref = ref,
+          jobId = jobId,
+          assignmentId = assignmentId,
           title = title,
           body = body,
           address = address,
           deepLink = deepLink,
           amountToCollectPence = amountToCollectPence,
           paymentStatus = paymentStatus,
+          paymentType = paymentType,
+          jobPricePence = jobPricePence,
         ),
         sourceTag = "fcm",
       )
@@ -67,5 +83,25 @@ class DriverJobMessagingService : FirebaseMessagingService() {
 
   companion object {
     private const val TAG = "DriverJobMessagingService"
+
+    /**
+     * Accepted "type" values for the new-driver-job alert path. The first
+     * entry is the canonical value; the remainder are legacy aliases that
+     * different backend versions or relay paths may have emitted. Any of
+     * these is normalised to driver_new_job at the alert layer.
+     */
+    private val ACCEPTED_TYPES: Set<String> = setOf(
+      "driver_new_job",
+      "JOB_ASSIGNED",
+      "DRIVER_JOB_ASSIGNED",
+      "new_driver_job",
+      // Backend's internal eventType values that mean the same thing —
+      // include them defensively so a future routing change can't silently
+      // drop the alert.
+      "new_job",
+      "job_assigned",
+      "new_assignment",
+      "reassignment",
+    )
   }
 }

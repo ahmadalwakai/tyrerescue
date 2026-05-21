@@ -3,12 +3,60 @@ import { eq } from 'drizzle-orm';
 import { sendFcmNotification, sendFcmDataMessageToToken, isFcmConfigured } from './fcm';
 import type { PaymentSummary } from '@/lib/payments/driver-payment';
 
+/**
+ * FCM HTTP v1 error codes / patterns that mean the device's registration
+ * token is no longer valid (app uninstalled, token rotated, push disabled).
+ * When we see these we MUST clear the token from the DB so we stop trying
+ * to deliver to it. See:
+ * https://firebase.google.com/docs/cloud-messaging/manage-tokens#detect-invalid-token-responses-from-the-fcm-backend
+ */
+const STALE_TOKEN_CODES = new Set([
+  'UNREGISTERED',
+  'NOT_FOUND',
+  'INVALID_ARGUMENT',
+  'INVALID_REGISTRATION',
+  'SENDER_ID_MISMATCH',
+]);
+
+function isStaleTokenError(errorCode: string | undefined, errorText: string | undefined): boolean {
+  if (errorCode && STALE_TOKEN_CODES.has(errorCode)) return true;
+  if (!errorText) return false;
+  const t = errorText.toLowerCase();
+  return (
+    t.includes('registration-token-not-registered') ||
+    t.includes('invalid-registration-token') ||
+    t.includes('requested entity was not found') ||
+    t.includes('unregistered')
+  );
+}
+
+async function clearStaleDriverToken(
+  driverId: string,
+  tokenSuffix: string,
+  reason: string,
+): Promise<void> {
+  try {
+    await db
+      .update(drivers)
+      .set({ pushToken: null, pushTokenPlatform: null })
+      .where(eq(drivers.id, driverId));
+    console.warn(
+      `[driver-push] cleared stale FCM token driverId=${driverId} tokenSuffix=${tokenSuffix} reason=${reason}`,
+    );
+  } catch (err) {
+    console.error(
+      `[driver-push] failed to clear stale FCM token driverId=${driverId} tokenSuffix=${tokenSuffix}:`,
+      err,
+    );
+  }
+}
+
 /** Map event types to Android notification channel IDs (versioned). */
 const EVENT_CHANNEL_MAP: Record<string, string> = {
-  new_job: 'jobs_critical_v4',
-  job_assigned: 'jobs_critical_v4',
-  new_assignment: 'jobs_critical_v4',
-  reassignment: 'jobs_critical_v4',
+  new_job: 'driver_jobs_urgent_v5',
+  job_assigned: 'driver_jobs_urgent_v5',
+  new_assignment: 'driver_jobs_urgent_v5',
+  reassignment: 'driver_jobs_urgent_v5',
   upcoming_v2: 'jobs_upcoming_v3',
   chat_message: 'messages_v2',
   status_update: 'updates_v2',
@@ -70,7 +118,7 @@ async function sendViaExpoPushFallback(
         body,
         data,
         sound: soundFile ?? CRITICAL_SOUND_FILE,
-        channelId: channelId ?? 'jobs_critical_v4',
+        channelId: channelId ?? 'driver_jobs_urgent_v5',
         priority: 'high',
       }),
     });
@@ -133,7 +181,7 @@ export async function sendDriverPushNotification(
   const soundFile = await getSoundForEvent(eventType);
   const effectiveChannel = channelId
     ? EVENT_CHANNEL_MAP[channelId] ?? channelId
-    : EVENT_CHANNEL_MAP[eventType] ?? 'jobs_critical_v4';
+    : EVENT_CHANNEL_MAP[eventType] ?? 'driver_jobs_urgent_v5';
   const isCritical = CRITICAL_EVENTS.has(eventType);
 
   // Stringify data values for FCM (requires all string values)
@@ -173,16 +221,29 @@ export async function sendDriverPushNotification(
       // Defensive: ensure address is present as a top-level data key when known.
       if (typeof data?.address === 'string' && data.address.length > 0) {
         nativeData.address = data.address;
+        // Provide both legacy "location" alias and canonical "address" so
+        // the native handler accepts either.
+        nativeData.location = data.address;
       }
       // jobId is the canonical bookings.id (UUID); useful to dedupe + open detail.
       if (typeof data?.jobId === 'string' && data.jobId.length > 0) {
         nativeData.jobId = data.jobId;
       }
+      if (typeof data?.assignmentId === 'string' && data.assignmentId.length > 0) {
+        nativeData.assignmentId = data.assignmentId;
+      }
+      // Currency-collected aliasing for older clients.
+      if (typeof data?.amountToCollectPence === 'string' && data.amountToCollectPence.length > 0) {
+        nativeData.collectAmount = data.amountToCollectPence;
+      }
+      if (typeof data?.jobPricePence === 'string' && data.jobPricePence.length > 0) {
+        nativeData.price = data.jobPricePence;
+      }
 
       const tokenSuffix = driver.pushToken.slice(-6);
       const bookingRef = (data?.ref as string) ?? 'unknown';
       console.log(
-        `[driver-push] native data-only driver_new_job attempt driverId=${driverId} bookingRef=${bookingRef} platform=android:fcm hasToken=true tokenSuffix=${tokenSuffix}`,
+        `[driver-push] native data-only driver_new_job attempt driverId=${driverId} bookingRef=${bookingRef} type=driver_new_job platform=android:fcm hasToken=true tokenSuffix=${tokenSuffix}`,
       );
 
       const dataResult = await sendFcmDataMessageToToken(
@@ -196,15 +257,16 @@ export async function sendDriverPushNotification(
 
       if (dataResult.success) {
         console.log(
-          `[driver-push] native data-only driver_new_job sent driverId=${driverId} bookingRef=${bookingRef} messageId=${dataResult.messageId}`,
+          `[driver-push] native data-only driver_new_job sent driverId=${driverId} bookingRef=${bookingRef} messageId=${dataResult.messageId} tokenSuffix=${tokenSuffix}`,
         );
-        console.log(`[push/fcm-data] Sent to driver ${driverId}: type=driver_new_job msgId=${dataResult.messageId}`);
         return true;
       }
       console.error(
-        `[driver-push] native data-only driver_new_job skipped driverId=${driverId} bookingRef=${bookingRef} reason=fcm_error error=${dataResult.error}`,
+        `[driver-push] native data-only driver_new_job FAILED driverId=${driverId} bookingRef=${bookingRef} tokenSuffix=${tokenSuffix} error=${dataResult.error} errorCode=${dataResult.errorCode ?? 'none'}`,
       );
-      console.error(`[push/fcm-data] Failed for driver ${driverId}: ${dataResult.error}`);
+      if (isStaleTokenError(dataResult.errorCode, dataResult.error)) {
+        await clearStaleDriverToken(driverId, tokenSuffix, dataResult.errorCode ?? 'token_invalid');
+      }
       return false;
     }
 
@@ -229,7 +291,13 @@ export async function sendDriverPushNotification(
       console.log(`[push/fcm] Sent to driver ${driverId}: channel=${effectiveChannel} msgId=${result.messageId}`);
       return true;
     }
-    console.error(`[push/fcm] Failed for driver ${driverId}: ${result.error}`);
+    const tokenSuffix = driver.pushToken.slice(-6);
+    console.error(
+      `[push/fcm] Failed for driver ${driverId} tokenSuffix=${tokenSuffix} errorCode=${result.errorCode ?? 'none'}: ${result.error}`,
+    );
+    if (isStaleTokenError(result.errorCode, result.error)) {
+      await clearStaleDriverToken(driverId, tokenSuffix, result.errorCode ?? 'token_invalid');
+    }
     return false;
   }
 
@@ -273,6 +341,7 @@ export async function notifyDriverNewJob(
       paymentType: String(payment?.type ?? 'unknown'),
       paymentStatus: String(payment?.status ?? 'unknown'),
       amountToCollectPence: String(payment?.amountToCollectPence ?? ''),
+      jobPricePence: String(payment?.totalAmountPence ?? ''),
     },
     'new_job',
   );
@@ -300,6 +369,7 @@ export async function notifyDriverReassignment(
       paymentType: String(payment?.type ?? 'unknown'),
       paymentStatus: String(payment?.status ?? 'unknown'),
       amountToCollectPence: String(payment?.amountToCollectPence ?? ''),
+      jobPricePence: String(payment?.totalAmountPence ?? ''),
     },
     'reassignment',
   );

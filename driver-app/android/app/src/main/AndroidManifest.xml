@@ -4,6 +4,7 @@
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -27,6 +28,8 @@
     <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/notification_icon"/>
     <meta-data android:name="expo.modules.notifications.default_notification_color" android:resource="@color/notification_icon_color"/>
     <meta-data android:name="expo.modules.notifications.default_notification_icon" android:resource="@drawable/notification_icon"/>
+    <!-- Default channel for FCM data fallbacks; must match DriverJobAlertNotifier.CHANNEL_ID. -->
+    <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="driver_jobs_urgent_v5"/>
     <meta-data android:name="expo.modules.updates.ENABLED" android:value="false"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
@@ -51,7 +54,7 @@
       net for FCM, and ensures the full-screen alert path can fire even when
       the OS would otherwise put the app in cached state.
     -->
-    <service android:name=".DriverAlertWatcherService" android:enabled="true" android:exported="false" android:foregroundServiceType="dataSync" android:stopWithTask="false"/>
+    <service android:name=".DriverAlertWatcherService" android:enabled="true" android:exported="false" android:foregroundServiceType="remoteMessaging" android:stopWithTask="false"/>
     <!--
       Re-arms the watcher service after device reboot when the driver is
       still logged in (armed flag persisted in SharedPreferences).
@@ -63,7 +66,7 @@
         <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
       </intent-filter>
     </receiver>
-    <activity android:name=".DriverJobAlertActivity" android:exported="false" android:showWhenLocked="true" android:turnScreenOn="true" android:theme="@style/AppTheme"/>
+    <activity android:name=".DriverJobAlertActivity" android:exported="false" android:showWhenLocked="true" android:turnScreenOn="true" android:excludeFromRecents="true" android:taskAffinity="" android:launchMode="singleInstance" android:noHistory="false" android:theme="@style/AppTheme"/>
     <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode|smallestScreenSize|locale|layoutDirection" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:screenOrientation="portrait">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>

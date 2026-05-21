@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Linking,
   Modal,
@@ -10,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { colors, fontSize, radius, space } from './theme';
@@ -45,30 +47,60 @@ function formatRelative(at: string | null): string {
   return `${hr}h ago`;
 }
 
-function paymentLine(item: ActiveJobItem): string {
+function paymentLines(item: ActiveJobItem): string[] {
   const p = item.payment;
-  if (!p) return 'Payment: unknown';
+  if (!p) return ['Payment: unknown'];
+  const out: string[] = [];
+  if (p.totalAmountPence != null && p.totalAmountPence > 0) {
+    out.push(`Job price: ${gbpFormatter.format(p.totalAmountPence / 100)}`);
+  }
   if (p.status === 'paid' || p.amountToCollectPence === 0) {
-    return 'Paid · nothing to collect';
+    out.push('Paid · nothing to collect');
+  } else if (p.amountToCollectPence > 0) {
+    out.push(`Amount to collect: ${gbpFormatter.format(p.amountToCollectPence / 100)}`);
+  } else {
+    out.push('Confirm with driver');
   }
-  if (p.amountToCollectPence > 0) {
-    return `Collect ${gbpFormatter.format(p.amountToCollectPence / 100)}`;
-  }
-  return 'Confirm with driver';
+  return out;
 }
 
 export function ActiveJobsModal({ visible, onClose }: Props) {
   const { items, loading, error, lastUpdated, refresh } = useActiveJobs(visible);
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
+  const [reassignTarget, setReassignTarget] = useState<ActiveJobItem | null>(null);
+  const [copyingRef, setCopyingRef] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!visible) setSelectedRef(null);
+    if (!visible) {
+      setSelectedRef(null);
+      setReassignTarget(null);
+    }
   }, [visible]);
 
   const selectedItem = useMemo(
     () => items.find((j) => j.bookingRef === selectedRef) ?? null,
     [items, selectedRef],
   );
+
+  const handleCopyTracking = useCallback(async (item: ActiveJobItem) => {
+    setCopyingRef(item.bookingRef);
+    try {
+      const data = await api.post<{ customerUrl: string }>(
+        `/api/admin/bookings/${encodeURIComponent(item.bookingId)}/tracking/ensure`,
+      );
+      if (data?.customerUrl) {
+        await Clipboard.setStringAsync(data.customerUrl);
+        Alert.alert('Tracking link copied', data.customerUrl);
+      } else {
+        Alert.alert('Tracking link', 'No tracking URL returned.');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to fetch tracking link';
+      Alert.alert('Copy failed', msg);
+    } finally {
+      setCopyingRef(null);
+    }
+  }, []);
 
   return (
     <Modal
@@ -79,7 +111,7 @@ export function ActiveJobsModal({ visible, onClose }: Props) {
     >
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <Text style={styles.title}>Active jobs</Text>
+          <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">Active jobs</Text>
           <Pressable
             onPress={onClose}
             accessibilityRole="button"
@@ -122,45 +154,76 @@ export function ActiveJobsModal({ visible, onClose }: Props) {
             ) : null
           }
           renderItem={({ item }) => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Open live map for ${item.bookingRef}`}
-              onPress={() => setSelectedRef(item.bookingRef)}
-              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-            >
-              <View style={styles.rowHeader}>
-                <Text style={styles.rowRef}>#{item.bookingRef}</Text>
-                <Text style={[styles.rowStatus, item.driver.isStale && styles.rowStatusStale]}>
-                  {STATUS_LABEL[item.status] ?? item.status}
+            <View style={styles.row}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Open live map for ${item.bookingRef}`}
+                onPress={() => setSelectedRef(item.bookingRef)}
+                style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
+              >
+                <View style={styles.rowHeader}>
+                  <Text style={styles.rowRef}>#{item.bookingRef}</Text>
+                  <Text style={[styles.rowStatus, item.driver.isStale && styles.rowStatusStale]}>
+                    {STATUS_LABEL[item.status] ?? item.status}
+                  </Text>
+                </View>
+                <Text style={styles.rowPrimary}>{item.customer.name || 'Customer'}</Text>
+                {item.customer.address ? (
+                  <Text style={styles.rowAddress} numberOfLines={2}>
+                    {item.customer.address}
+                  </Text>
+                ) : null}
+                <View style={styles.rowFacts}>
+                  <Text style={styles.rowFact}>
+                    {item.distanceMiles != null ? `${item.distanceMiles.toFixed(1)} mi` : '— mi'}
+                  </Text>
+                  <Text style={styles.rowFactSep}>·</Text>
+                  <Text style={styles.rowFact}>
+                    {item.etaMinutes != null ? `${item.etaMinutes} min` : '— min'}
+                  </Text>
+                  <Text style={styles.rowFactSep}>·</Text>
+                  <Text
+                    style={[styles.rowFact, item.driver.isStale && styles.rowFactStale]}
+                  >
+                    GPS {item.driver.locationAt ? formatRelative(item.driver.locationAt) : 'unknown'}
+                  </Text>
+                </View>
+                <Text style={styles.rowDriver}>
+                  Driver: {item.driver.name}
+                  {item.driver.phone ? ` · ${item.driver.phone}` : ''}
                 </Text>
-              </View>
-              <Text style={styles.rowPrimary}>{item.customer.name || 'Customer'}</Text>
-              {item.customer.address ? (
-                <Text style={styles.rowAddress} numberOfLines={2}>
-                  {item.customer.address}
-                </Text>
-              ) : null}
-              <View style={styles.rowFacts}>
-                <Text style={styles.rowFact}>
-                  {item.distanceMiles != null ? `${item.distanceMiles.toFixed(1)} mi` : '— mi'}
-                </Text>
-                <Text style={styles.rowFactSep}>·</Text>
-                <Text style={styles.rowFact}>
-                  {item.etaMinutes != null ? `${item.etaMinutes} min` : '— min'}
-                </Text>
-                <Text style={styles.rowFactSep}>·</Text>
-                <Text
-                  style={[styles.rowFact, item.driver.isStale && styles.rowFactStale]}
+                {paymentLines(item).map((line, idx) => (
+                  <Text key={idx} style={styles.rowPayment}>
+                    {line}
+                  </Text>
+                ))}
+              </Pressable>
+              <View style={styles.rowActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Copy tracking link"
+                  onPress={() => handleCopyTracking(item)}
+                  disabled={copyingRef === item.bookingRef}
+                  style={({ pressed }) => [
+                    styles.rowActionBtn,
+                    pressed && styles.btnPressed,
+                    copyingRef === item.bookingRef && styles.btnDisabled,
+                  ]}
                 >
-                  GPS {item.driver.locationAt ? formatRelative(item.driver.locationAt) : 'unknown'}
-                </Text>
+                  <Text style={styles.rowActionText}>
+                    {copyingRef === item.bookingRef ? 'Copying…' : 'Copy tracking link'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Reassign driver"
+                  onPress={() => setReassignTarget(item)}
+                  style={({ pressed }) => [styles.rowActionBtn, pressed && styles.btnPressed]}
+                >
+                  <Text style={styles.rowActionText}>Reassign driver</Text>
+                </Pressable>
               </View>
-              <Text style={styles.rowDriver}>
-                Driver: {item.driver.name}
-                {item.driver.phone ? ` · ${item.driver.phone}` : ''}
-              </Text>
-              <Text style={styles.rowPayment}>{paymentLine(item)}</Text>
-            </Pressable>
+            </View>
           )}
           refreshing={loading && items.length > 0}
           onRefresh={refresh}
@@ -177,6 +240,15 @@ export function ActiveJobsModal({ visible, onClose }: Props) {
         visible={selectedItem != null}
         job={selectedItem}
         onClose={() => setSelectedRef(null)}
+      />
+      <ReassignDriverModal
+        visible={reassignTarget != null}
+        target={reassignTarget}
+        onClose={() => setReassignTarget(null)}
+        onSuccess={() => {
+          setReassignTarget(null);
+          refresh();
+        }}
       />
     </Modal>
   );
@@ -206,16 +278,7 @@ function getMapboxToken(): string {
   return (process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? '').trim();
 }
 
-function buildMapHtml(
-  token: string,
-  driver: { lat: number; lng: number } | null,
-  customer: { lat: number; lng: number } | null,
-  geometry: RouteResponse['geometry'],
-): string {
-  const center = driver ?? customer ?? { lat: 55.8642, lng: -4.2518 };
-  const driverJson = driver ? JSON.stringify([driver.lng, driver.lat]) : 'null';
-  const customerJson = customer ? JSON.stringify([customer.lng, customer.lat]) : 'null';
-  const coordsJson = geometry ? JSON.stringify(geometry.coordinates) : 'null';
+function buildMapHtml(token: string): string {
   return `<!doctype html><html><head>
 <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet" />
@@ -225,23 +288,42 @@ function buildMapHtml(
 <div id="m"></div>
 <script>
 mapboxgl.accessToken = ${JSON.stringify(token)};
-var driver = ${driverJson};
-var customer = ${customerJson};
-var coords = ${coordsJson};
-var map = new mapboxgl.Map({container:'m',style:'mapbox://styles/mapbox/dark-v11',center:[${center.lng},${center.lat}],zoom:13,attributionControl:false});
+var map = new mapboxgl.Map({container:'m',style:'mapbox://styles/mapbox/dark-v11',center:[-4.2518,55.8642],zoom:11,attributionControl:false});
+var driverMarker = null, customerMarker = null;
+var pendingState = null, loaded = false;
 function pin(color){var el=document.createElement('div');el.style.cssText='width:18px;height:18px;border-radius:50%;background:'+color+';border:3px solid #09090B;box-shadow:0 2px 8px rgba(0,0,0,0.5)';return el;}
-map.on('load', function(){
-  if (customer) new mapboxgl.Marker({element:pin('#22c55e')}).setLngLat(customer).addTo(map);
-  if (driver) new mapboxgl.Marker({element:pin('#F97316')}).setLngLat(driver).addTo(map);
-  if (driver && customer){
-    var b = new mapboxgl.LngLatBounds().extend(driver).extend(customer);
-    map.fitBounds(b,{padding:80,maxZoom:15,duration:0});
+function applyState(s){
+  if(!s) return;
+  if(s.customer){
+    if(!customerMarker) customerMarker = new mapboxgl.Marker({element:pin('#22c55e')}).setLngLat(s.customer).addTo(map);
+    else customerMarker.setLngLat(s.customer);
   }
-  if (coords && coords.length >= 2){
-    map.addSource('r',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:coords}}});
-    map.addLayer({id:'rl',type:'line',source:'r',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#F97316','line-width':4,'line-opacity':0.9}});
+  if(s.driver){
+    if(!driverMarker) driverMarker = new mapboxgl.Marker({element:pin('#F97316')}).setLngLat(s.driver).addTo(map);
+    else driverMarker.setLngLat(s.driver);
   }
-});
+  if(s.driver && s.customer){
+    var b = new mapboxgl.LngLatBounds().extend(s.driver).extend(s.customer);
+    map.fitBounds(b,{padding:80,maxZoom:15,duration:300});
+  } else if(s.driver){ map.easeTo({center:s.driver,duration:300}); }
+  else if(s.customer){ map.easeTo({center:s.customer,duration:300}); }
+  var src = map.getSource('r');
+  if(s.coords && s.coords.length >= 2){
+    var data = {type:'Feature',geometry:{type:'LineString',coordinates:s.coords}};
+    if(src){ src.setData(data); }
+    else {
+      map.addSource('r',{type:'geojson',data:data});
+      map.addLayer({id:'rl',type:'line',source:'r',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#F97316','line-width':4,'line-opacity':0.9}});
+    }
+  } else if(src){
+    if(map.getLayer('rl')) map.removeLayer('rl');
+    map.removeSource('r');
+  }
+}
+window.__applyState = function(json){
+  try { var s = JSON.parse(json); if(loaded) applyState(s); else pendingState = s; } catch(e){}
+};
+map.on('load', function(){ loaded = true; if(pendingState){ applyState(pendingState); pendingState = null; } });
 </script></body></html>`;
 }
 
@@ -251,6 +333,19 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const aliveRef = useRef(true);
   const token = useMemo(() => getMapboxToken(), []);
+  const html = useMemo(() => (token ? buildMapHtml(token) : ''), [token]);
+  const webRef = useRef<WebView>(null);
+
+  const driverPin = route?.driverLocation
+    ? { lat: route.driverLocation.lat, lng: route.driverLocation.lng }
+    : job?.driver.lat != null && job?.driver.lng != null
+      ? { lat: job.driver.lat, lng: job.driver.lng }
+      : null;
+  const customerPin = route?.customerLocation
+    ? { lat: route.customerLocation.lat, lng: route.customerLocation.lng }
+    : job?.customer.lat != null && job?.customer.lng != null
+      ? { lat: job.customer.lat, lng: job.customer.lng }
+      : null;
 
   useEffect(() => {
     aliveRef.current = true;
@@ -286,19 +381,30 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
     };
   }, [visible, job]);
 
+  useEffect(() => {
+    if (!token || !visible || !job) return;
+    const state = {
+      driver: driverPin ? [driverPin.lng, driverPin.lat] : null,
+      customer: customerPin ? [customerPin.lng, customerPin.lat] : null,
+      coords: route?.geometry?.coordinates ?? null,
+    };
+    const json = JSON.stringify(state).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    webRef.current?.injectJavaScript(
+      `window.__applyState && window.__applyState('${json}'); true;`,
+    );
+  }, [
+    token,
+    visible,
+    job,
+    driverPin?.lat,
+    driverPin?.lng,
+    customerPin?.lat,
+    customerPin?.lng,
+    route?.geometry,
+  ]);
+
   if (!job) return null;
 
-  const driverPin = route?.driverLocation
-    ? { lat: route.driverLocation.lat, lng: route.driverLocation.lng }
-    : job.driver.lat != null && job.driver.lng != null
-      ? { lat: job.driver.lat, lng: job.driver.lng }
-      : null;
-  const customerPin = route?.customerLocation
-    ? { lat: route.customerLocation.lat, lng: route.customerLocation.lng }
-    : job.customer.lat != null && job.customer.lng != null
-      ? { lat: job.customer.lat, lng: job.customer.lng }
-      : null;
-  const html = buildMapHtml(token, driverPin, customerPin, route?.geometry ?? null);
   const isStale = route?.driverLocation?.isStale ?? job.driver.isStale;
   const lastFix = route?.driverLocation?.locationAt ?? job.driver.locationAt;
   const distance = route?.distanceMiles ?? job.distanceMiles;
@@ -359,6 +465,7 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
             })()
           ) : (
             <WebView
+              ref={webRef}
               originWhitelist={['*']}
               source={{ html }}
               style={styles.web}
@@ -366,6 +473,8 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
               domStorageEnabled
               scrollEnabled={false}
               androidLayerType="hardware"
+              mixedContentMode="always"
+              setSupportMultipleWindows={false}
             />
           )}
         </View>
@@ -377,14 +486,17 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
             </Text>
             <Text style={styles.summarySep}>·</Text>
             <Text style={styles.summaryValue}>
-              {duration != null
-                ? `${duration} min${route?.source === 'haversine' ? '*' : ''}`
-                : '— min'}
+              {duration != null ? `${duration} min` : '— min'}
             </Text>
           </View>
           <Text style={[styles.summaryMeta, isStale && styles.summaryMetaStale]}>
             GPS {lastFix ? formatRelative(lastFix) : 'unknown'} · {route?.source ?? 'pending'}
           </Text>
+          {route?.source === 'haversine' ? (
+            <Text style={styles.summaryApprox}>
+              Approximate line — live ETA unavailable
+            </Text>
+          ) : null}
           {error ? <Text style={styles.errorInline}>{error}</Text> : null}
         </View>
 
@@ -434,7 +546,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  title: { color: colors.text, fontSize: fontSize.xl, fontWeight: '700' },
+  title: { color: colors.text, fontSize: fontSize.xl, fontWeight: '700', flex: 1 },
   subtitle: { color: colors.muted, fontSize: fontSize.sm, marginTop: 2 },
   closeBtn: {
     paddingHorizontal: space.md,
@@ -491,6 +603,31 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   rowPressed: { opacity: 0.7 },
+  rowMain: { gap: 4 },
+  rowActions: {
+    flexDirection: 'row',
+    gap: space.sm,
+    marginTop: space.sm,
+    paddingTop: space.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  rowActionBtn: {
+    flex: 1,
+    paddingVertical: space.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    backgroundColor: colors.bg,
+  },
+  rowActionText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '600' },
+  btnDisabled: { opacity: 0.5 },
+  summaryApprox: {
+    color: colors.warning,
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+  },
   rowHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -574,4 +711,172 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionBtnText: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
+  pickerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  pickerSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    maxHeight: '80%',
+    paddingBottom: space.lg,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  pickerTitle: { color: colors.text, fontSize: fontSize.lg, fontWeight: '700' },
+  pickerItem: {
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  pickerItemDisabled: { opacity: 0.45 },
+  pickerName: { color: colors.text, fontSize: fontSize.md, fontWeight: '600' },
+  pickerMeta: { color: colors.muted, fontSize: fontSize.xs, marginTop: 2 },
 });
+
+interface DriverListItem {
+  id: string;
+  name: string;
+  phone: string | null;
+  isOnline: boolean;
+  status: string;
+  currentLat: number | null;
+  currentLng: number | null;
+  locationAt: string | null;
+}
+
+interface ReassignProps {
+  visible: boolean;
+  target: ActiveJobItem | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function ReassignDriverModal({ visible, target, onClose, onSuccess }: ReassignProps) {
+  const [drivers, setDrivers] = useState<DriverListItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible || !target) return;
+    let alive = true;
+    setLoading(true);
+    setErr(null);
+    api
+      .get<DriverListItem[]>('/api/admin/drivers')
+      .then((data) => {
+        if (alive) setDrivers(Array.isArray(data) ? data : []);
+      })
+      .catch((e) => {
+        if (alive) setErr(e instanceof Error ? e.message : 'Failed to load drivers');
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [visible, target]);
+
+  const handlePick = useCallback(
+    async (driver: DriverListItem) => {
+      if (!target) return;
+      setSubmitting(driver.id);
+      try {
+        await api.patch(
+          `/api/admin/bookings/${encodeURIComponent(target.bookingRef)}/assign`,
+          { driverId: driver.id },
+        );
+        Alert.alert('Driver reassigned', `${driver.name} assigned to #${target.bookingRef}.`);
+        onSuccess();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Failed to reassign';
+        Alert.alert('Reassign failed', msg);
+      } finally {
+        setSubmitting(null);
+      }
+    },
+    [target, onSuccess],
+  );
+
+  if (!target) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.pickerBackdrop} onPress={onClose}>
+        <Pressable style={styles.pickerSheet} onPress={(e) => e.stopPropagation()}>
+          <View style={styles.pickerHeader}>
+            <Text style={styles.pickerTitle}>Reassign #{target.bookingRef}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onClose}
+              style={({ pressed }) => [styles.closeBtn, pressed && styles.btnPressed]}
+            >
+              <Text style={styles.closeBtnText}>Close</Text>
+            </Pressable>
+          </View>
+          {err ? (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorBannerText}>{err}</Text>
+            </View>
+          ) : null}
+          {loading ? (
+            <View style={{ padding: space.xl, alignItems: 'center' }}>
+              <ActivityIndicator color={colors.accent} />
+            </View>
+          ) : (
+            <FlatList
+              data={drivers}
+              keyExtractor={(d) => d.id}
+              ListEmptyComponent={
+                <View style={{ padding: space.xl, alignItems: 'center' }}>
+                  <Text style={{ color: colors.muted }}>No drivers available.</Text>
+                </View>
+              }
+              renderItem={({ item }) => {
+                const isCurrent = target.driver.id === item.id;
+                const isBusy = submitting === item.id;
+                return (
+                  <Pressable
+                    onPress={() => handlePick(item)}
+                    disabled={isCurrent || isBusy || submitting != null}
+                    style={({ pressed }) => [
+                      styles.pickerItem,
+                      pressed && styles.btnPressed,
+                      isCurrent && styles.pickerItemDisabled,
+                    ]}
+                  >
+                    <Text style={styles.pickerName}>
+                      {item.name} {isCurrent ? '(current)' : ''}
+                    </Text>
+                    <Text style={styles.pickerMeta}>
+                      {item.isOnline ? 'Online' : 'Offline'} · {item.status}
+                      {item.phone ? ` · ${item.phone}` : ''}
+                      {isBusy ? ' · assigning…' : ''}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+            />
+          )}
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}

@@ -56,12 +56,13 @@ class DriverAlertWatcherService : Service() {
     try {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
         // Android 14+ requires foregroundServiceType to match a granted use case.
-        // dataSync/remoteMessaging are appropriate; we register both flags so
-        // the service also lives alongside any future FCM-driven flow.
+        // The watcher exists to receive remote-messaging fallbacks for FCM, so
+        // remoteMessaging matches the manifest declaration and avoids OEM
+        // battery optimisations applied to dataSync services.
         startForeground(
           NOTIF_ID,
           notification,
-          ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+          ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING,
         )
       } else {
         startForeground(NOTIF_ID, notification)
@@ -135,7 +136,9 @@ class DriverAlertWatcherService : Service() {
         return
       }
 
-      val url = URL("${baseUrl.trimEnd('/')}/api/driver/urgent-jobs-poll")
+      val armedSince = prefs.getLong(PREFS_ARMED_SINCE_KEY, 0L)
+      val sinceParam = if (armedSince > 0L) "?since=$armedSince" else ""
+      val url = URL("${baseUrl.trimEnd('/')}/api/driver/urgent-jobs-poll$sinceParam")
       conn = (url.openConnection() as HttpURLConnection).apply {
         requestMethod = "GET"
         setRequestProperty("Authorization", "Bearer $token")
@@ -178,6 +181,8 @@ class DriverAlertWatcherService : Service() {
           deepLink = null,
           amountToCollectPence = job.optString("amountToCollectPence", "").takeIf { it.isNotBlank() },
           paymentStatus = job.optString("paymentStatus", "").takeIf { it.isNotBlank() },
+          paymentType = job.optString("paymentType", "").takeIf { it.isNotBlank() },
+          jobPricePence = job.optString("jobPricePence", "").takeIf { it.isNotBlank() },
         ),
         sourceTag = "poll",
       )

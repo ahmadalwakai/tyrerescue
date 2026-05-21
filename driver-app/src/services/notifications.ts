@@ -55,7 +55,7 @@ async function createAndroidChannels(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
   // Critical job channel — MAX importance, custom sound, vibration, bypass DND
-  await Notifications.setNotificationChannelAsync('jobs_critical_v4', {
+  await Notifications.setNotificationChannelAsync('driver_jobs_urgent_v5', {
     name: 'Job Alerts',
     importance: Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 500, 200, 500, 200, 500],
@@ -202,7 +202,7 @@ export async function fireLocalCriticalNotification(
   title: string,
   body: string,
   data?: Record<string, unknown>,
-  channelId = 'jobs_critical_v4',
+  channelId = 'driver_jobs_urgent_v5',
 ): Promise<string> {
   return Notifications.scheduleNotificationAsync({
     content: {

@@ -10,13 +10,18 @@ import { useI18n } from '@/i18n';
 const GBP_FORMATTER = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
 
 function paymentLine(payment: PaymentSummary, t: (k: string) => string): string {
+  const lines: string[] = [];
+  if (payment.totalAmountPence != null && payment.totalAmountPence > 0) {
+    lines.push(`${t('jobs.jobPrice')}: ${GBP_FORMATTER.format(payment.totalAmountPence / 100)}`);
+  }
   if (payment.status === 'paid' || payment.amountToCollectPence === 0) {
-    return t('jobs.nothingToCollect');
+    lines.push(t('jobs.nothingToCollect'));
+  } else if (payment.status === 'unknown') {
+    lines.push(t('jobs.confirmCollection'));
+  } else {
+    lines.push(`${t('jobs.collect')} ${GBP_FORMATTER.format(payment.amountToCollectPence / 100)}`);
   }
-  if (payment.status === 'unknown') {
-    return t('jobs.confirmCollection');
-  }
-  return `${t('jobs.collect')} ${GBP_FORMATTER.format(payment.amountToCollectPence / 100)}`;
+  return lines.join('\n');
 }
 
 interface JobCardProps {

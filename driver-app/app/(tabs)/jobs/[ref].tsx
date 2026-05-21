@@ -91,7 +91,15 @@ function PaymentCard({
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{t('jobDetail.payment')}</Text>
-      <Text style={styles.cardMeta}>{t('jobDetail.paymentMethod')}</Text>
+      {payment.totalAmountPence != null && payment.totalAmountPence > 0 && (
+        <>
+          <Text style={styles.cardMeta}>{t('jobDetail.jobPrice')}</Text>
+          <Text style={[styles.cardValue, { fontSize: fontSize.lg, fontWeight: '700' }]}>
+            {formatGbpFromPence(payment.totalAmountPence)}
+          </Text>
+        </>
+      )}
+      <Text style={[styles.cardMeta, { marginTop: 8 }]}>{t('jobDetail.paymentMethod')}</Text>
       <Text style={styles.cardValue}>{methodLabel}</Text>
       <Text style={[styles.cardMeta, { marginTop: 8 }]}>{t('jobDetail.paymentStatus')}</Text>
       <Text style={styles.cardValue}>{statusLabel}</Text>

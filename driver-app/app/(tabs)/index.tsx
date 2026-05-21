@@ -18,6 +18,7 @@ import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useLivePolling } from '@/hooks/useLivePolling';
 import { JobCard } from '@/components/JobCard';
 import { EmptyState } from '@/components/EmptyState';
+import { AlertReadinessPill } from '@/components/AlertReadinessPill';
 import { lightHaptic } from '@/services/haptics';
 import { JobCardSkeleton } from '@/components/SkeletonLoader';
 import { useNewJobDetector } from '@/hooks/useNewJobDetector';
@@ -157,6 +158,11 @@ export default function DashboardScreen() {
       <Animated.Text entering={FadeInDown.duration(300)} style={styles.greeting}>
         {t('dashboard.greeting', { name: user?.name?.split(' ')[0] ?? 'Driver' })}
       </Animated.Text>
+
+      {/* Alert readiness pill — surfaces full-screen permission, watcher
+          state and battery-optimisation status so drivers know if a
+          backgrounded/locked-screen alert will actually appear. */}
+      <AlertReadinessPill />
 
       {/* Network / auth error banner — surfaces the *real* server message instead of silent failure */}
       {fetchError && (

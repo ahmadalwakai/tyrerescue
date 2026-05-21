@@ -111,7 +111,7 @@ export async function sendFcmNotification(
     return { success: false, error: 'FCM not configured: missing service account or project ID' };
   }
 
-  const channel = androidConfig?.channelId ?? 'jobs_critical_v4';
+  const channel = androidConfig?.channelId ?? 'driver_jobs_urgent_v5';
   const soundName = androidConfig?.sound ?? DEFAULT_CRITICAL_SOUND;
 
   const message: FcmMessage = {
@@ -154,7 +154,14 @@ export async function sendFcmNotification(
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      return { success: false, error: `FCM ${res.status}: ${text}` };
+      let errorCode: string | undefined;
+      try {
+        const parsed = JSON.parse(text) as { error?: { status?: string; details?: Array<{ errorCode?: string }> } };
+        errorCode = parsed.error?.details?.[0]?.errorCode ?? parsed.error?.status;
+      } catch {
+        // Keep raw text fallback below.
+      }
+      return { success: false, error: `FCM ${res.status}: ${text}`, errorCode };
     }
 
     const result = await res.json() as { name?: string };

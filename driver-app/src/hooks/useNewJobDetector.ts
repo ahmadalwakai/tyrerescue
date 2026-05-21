@@ -60,7 +60,7 @@ export function useNewJobDetector() {
             'New Job Assigned',
             firstNew.addressLine ?? '',
             { type: 'new_job', ref: firstNew.refNumber },
-            'jobs_critical_v4',
+            'driver_jobs_urgent_v5',
           );
         }
 

@@ -86,12 +86,14 @@
     "service": "خدمة",
     "noVehicle": "بدون مركبة",
     "collect": "تحصيل",
+    "jobPrice": "سعر الطلب",
     "nothingToCollect": "لا يوجد مبلغ للتحصيل",
     "confirmCollection": "تأكيد التحصيل مع الإدارة"
   },
   "jobDetail": {
     "customer": "العميل",
     "payment": "الدفع",
+    "jobPrice": "سعر الطلب",
     "paymentMethod": "طريقة الدفع",
     "paymentStatus": "حالة الدفع",
     "amountToCollect": "المبلغ المطلوب تحصيله",

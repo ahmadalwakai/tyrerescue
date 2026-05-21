@@ -8,6 +8,8 @@ interface DriverAlertWatcherNative {
   openFullScreenAlertSettings(): Promise<boolean>;
   isIgnoringBatteryOptimizations(): Promise<boolean>;
   openBatterySettings(): Promise<boolean>;
+  areNotificationsEnabled(): Promise<boolean>;
+  openAppNotificationSettings(): Promise<boolean>;
   simulateAlert(): Promise<boolean>;
 }
 
@@ -104,6 +106,27 @@ export const DriverAlertWatcher = {
       return await native.simulateAlert();
     } catch (err) {
       console.warn('[driver-watcher] simulateAlert failed', err);
+      return false;
+    }
+  },
+
+  async areNotificationsEnabled(): Promise<boolean> {
+    if (!isAndroid || !native) return true;
+    if (typeof native.areNotificationsEnabled !== 'function') return true;
+    try {
+      return await native.areNotificationsEnabled();
+    } catch {
+      return false;
+    }
+  },
+
+  async openAppNotificationSettings(): Promise<boolean> {
+    if (!isAndroid || !native) return notAvailable('openAppNotificationSettings', false);
+    if (typeof native.openAppNotificationSettings !== 'function') return false;
+    try {
+      return await native.openAppNotificationSettings();
+    } catch (err) {
+      console.warn('[driver-watcher] openAppNotificationSettings failed', err);
       return false;
     }
   },

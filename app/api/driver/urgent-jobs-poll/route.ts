@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, gt } from 'drizzle-orm';
 import { db, bookings } from '@/lib/db';
 import { requireDriverMobile } from '@/lib/auth';
 import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
@@ -21,13 +21,33 @@ interface PollJob {
   title: string;
   body: string;
   paymentStatus: string;
+  paymentType: string;
+  jobPricePence: string;
   amountToCollectPence: string;
+  confirmWithAdmin: string;
   assignedAt: string | null;
 }
 
 export async function GET(request: Request) {
   try {
     const { driverId } = await requireDriverMobile(request);
+
+    // Optional ?since=<unixMs>: caller (native watcher) passes its armed
+    // timestamp so we only return jobs assigned after the watcher armed.
+    // Mirrors the assisted-chat-app urgent-poll contract.
+    const url = new URL(request.url);
+    const sinceParam = url.searchParams.get('since');
+    const sinceMs = sinceParam ? Number(sinceParam) : NaN;
+    const sinceDate =
+      Number.isFinite(sinceMs) && sinceMs > 0 ? new Date(sinceMs) : null;
+
+    const whereClauses = [
+      eq(bookings.driverId, driverId),
+      eq(bookings.status, 'driver_assigned'),
+    ];
+    if (sinceDate) {
+      whereClauses.push(gt(bookings.assignedAt, sinceDate));
+    }
 
     const [row] = await db
       .select({
@@ -46,12 +66,7 @@ export async function GET(request: Request) {
         stripePiId: bookings.stripePiId,
       })
       .from(bookings)
-      .where(
-        and(
-          eq(bookings.driverId, driverId),
-          eq(bookings.status, 'driver_assigned'),
-        ),
-      )
+      .where(and(...whereClauses))
       .orderBy(desc(bookings.assignedAt), desc(bookings.createdAt))
       .limit(1);
 
@@ -79,7 +94,10 @@ export async function GET(request: Request) {
       title: 'New Job Assigned',
       body: `Job ${row.refNumber} at ${row.addressLine}. Tap to accept.`,
       paymentStatus: String(payment.status ?? 'unknown'),
+      paymentType: String(payment.type ?? 'unknown'),
+      jobPricePence: String(payment.totalAmountPence ?? 0),
       amountToCollectPence: String(payment.amountToCollectPence ?? 0),
+      confirmWithAdmin: payment.status === 'unknown' ? '1' : '0',
       assignedAt: row.assignedAt ? row.assignedAt.toISOString() : null,
     };
 

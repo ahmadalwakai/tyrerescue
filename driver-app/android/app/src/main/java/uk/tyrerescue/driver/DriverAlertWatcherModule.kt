@@ -127,6 +127,40 @@ class DriverAlertWatcherModule(reactContext: ReactApplicationContext) :
   }
 
   @ReactMethod
+  fun areNotificationsEnabled(promise: Promise) {
+    try {
+      val ctx: Context = reactApplicationContext.applicationContext
+      val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+      promise.resolve(nm.areNotificationsEnabled())
+    } catch (err: Exception) {
+      promise.reject("E_NOTIF_CHECK", err)
+    }
+  }
+
+  @ReactMethod
+  fun openAppNotificationSettings(promise: Promise) {
+    try {
+      val ctx: Context = reactApplicationContext.applicationContext
+      val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+        putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      }
+      try {
+        ctx.startActivity(intent)
+      } catch (_: Exception) {
+        val fallback = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+          data = Uri.parse("package:${ctx.packageName}")
+          addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        ctx.startActivity(fallback)
+      }
+      promise.resolve(true)
+    } catch (err: Exception) {
+      promise.reject("E_NOTIF_OPEN", err)
+    }
+  }
+
+  @ReactMethod
   fun simulateAlert(promise: Promise) {
     try {
       val ctx: Context = reactApplicationContext.applicationContext

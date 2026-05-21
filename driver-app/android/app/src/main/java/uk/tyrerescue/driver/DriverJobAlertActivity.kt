@@ -47,12 +47,14 @@ class DriverJobAlertActivity : AppCompatActivity() {
     val deepLink = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_URL).orEmpty()
     val amountToCollectPence = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_AMOUNT_TO_COLLECT_PENCE).orEmpty()
     val paymentStatus = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_PAYMENT_STATUS).orEmpty()
+    val paymentType = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_PAYMENT_TYPE).orEmpty()
+    val jobPricePence = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_JOB_PRICE_PENCE).orEmpty()
 
     Log.i(TAG, "onCreate refSuffix=$refSuffix")
 
     try {
       enableLockScreenDisplay()
-      setContentView(buildContentView(ref, title, body, address, deepLink, amountToCollectPence, paymentStatus))
+      setContentView(buildContentView(ref, title, body, address, deepLink, amountToCollectPence, paymentStatus, paymentType, jobPricePence))
       startAlertSignals(refSuffix)
     } catch (err: Exception) {
       Log.e(TAG, "Failed to initialize driver job alert UI", err)
@@ -97,6 +99,8 @@ class DriverJobAlertActivity : AppCompatActivity() {
     deepLink: String,
     amountToCollectPence: String,
     paymentStatus: String,
+    paymentType: String,
+    jobPricePence: String,
   ): LinearLayout {
     val root = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
@@ -139,14 +143,23 @@ class DriverJobAlertActivity : AppCompatActivity() {
 
     val paymentView = TextView(this).apply {
       val pence = amountToCollectPence.toLongOrNull()
-      text = when {
-        paymentStatus == "paid" || pence == 0L -> "No cash to collect"
-        pence != null && pence > 0 -> {
-          val pounds = pence / 100.0
-          "Collect on arrival: \u00A3${String.format("%.2f", pounds)}"
-        }
+      val price = jobPricePence.toLongOrNull()
+      val priceLine = if (price != null && price > 0) {
+        "Job price: \u00A3${String.format("%.2f", price / 100.0)}"
+      } else null
+      val methodLine = when (paymentType) {
+        "cash" -> "Payment: Cash on completion"
+        "full" -> "Payment: Paid online (full)"
+        "deposit" -> if (paymentStatus == "deposit_paid") "Payment: Deposit paid online" else "Payment: Deposit (unpaid)"
+        else -> null
+      }
+      val collectLine = when {
+        paymentStatus == "paid" || pence == 0L -> "Nothing to collect"
+        pence != null && pence > 0 -> "Collect on arrival: \u00A3${String.format("%.2f", pence / 100.0)}"
+        paymentStatus == "unknown" -> "Confirm payment with admin"
         else -> "Confirm payment with admin"
       }
+      text = listOfNotNull(priceLine, methodLine, collectLine).joinToString("\n")
       setTextColor(Color.parseColor("#F97316"))
       textSize = 18f
       gravity = Gravity.CENTER
