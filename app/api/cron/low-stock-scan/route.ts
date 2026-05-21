@@ -13,10 +13,17 @@ export const dynamic = 'force-dynamic';
 
 const LOW_STOCK_THRESHOLD = 3;
 
+// Paused: low-stock auto-emails disabled. Set LOW_STOCK_EMAILS_ENABLED=1 to resume.
+const EMAILS_PAUSED = process.env.LOW_STOCK_EMAILS_ENABLED !== '1';
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (EMAILS_PAUSED) {
+    return NextResponse.json({ paused: true, lowStockItems: 0 });
   }
 
   const siteUrl = getOutboundUrl();
