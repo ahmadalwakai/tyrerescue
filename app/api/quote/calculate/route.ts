@@ -2,6 +2,13 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { calculateQuote } from '@/lib/quote';
 import type { QuoteResult } from '@/types/vehicle';
+import {
+  checkRateLimit,
+  getClientIp,
+  logSecurityRejection,
+  RATE_LIMITS,
+  rateLimitedResponse,
+} from '@/lib/security';
 
 export const runtime = 'nodejs';
 
@@ -22,6 +29,19 @@ interface ErrorResponse {
 }
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`quote-calculate:${ip}`, RATE_LIMITS.quoteCalculate);
+  if (!rl.ok) {
+    logSecurityRejection({
+      req: request,
+      reason: 'rate_limited',
+      route: '/api/quote/calculate',
+      status: 429,
+      routeKey: 'quote-calculate',
+    });
+    return rateLimitedResponse(rl);
+  }
+
   let json: unknown;
   try {
     json = await request.json();

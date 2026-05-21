@@ -30,6 +30,7 @@ import { homepageFAQItems } from '@/lib/content/faq';
 import { TrustpilotReviewCollector } from '@/components/ui/TrustpilotReviewCollector';
 import { trackCallClick } from '@/lib/analytics/gtag';
 import { AIOptimizedSection } from '@/components/seo/AIOptimizedSection';
+import { HONEYPOT_FIELD } from '@/lib/security/honeypot';
 
 const colors = {
   bg: colorTokens.bg,
@@ -454,11 +455,15 @@ function ContactSection() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
+  // Honeypot — must remain empty.
+  const [companyWebsite, setCompanyWebsite] = useState('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [errorText, setErrorText] = useState<string | null>(null);
 
   async function handleSubmit() {
     if (!name.trim() || !email.trim() || !message.trim()) return;
     setStatus('submitting');
+    setErrorText(null);
     try {
       const res = await fetch('/api/contact', {
         method: 'POST',
@@ -468,15 +473,33 @@ function ContactSection() {
           email: email.trim(),
           phone: phone.trim() || undefined,
           message: message.trim(),
+          [HONEYPOT_FIELD]: companyWebsite,
         }),
       });
       if (res.ok) {
         setStatus('success');
         setName(''); setEmail(''); setPhone(''); setMessage('');
       } else {
+        let friendly = 'Something went wrong. Please try again.';
+        try {
+          const data = await res.json();
+          if (res.status === 429) {
+            friendly = typeof data?.error === 'string'
+              ? data.error
+              : 'Too many attempts. Please try again shortly.';
+          } else if (data?.code === 'SUSPICIOUS_SUBMISSION') {
+            friendly = 'We could not process this request. Please try again.';
+          } else if (typeof data?.error === 'string') {
+            friendly = data.error;
+          }
+        } catch {
+          // ignore
+        }
+        setErrorText(friendly);
         setStatus('error');
       }
     } catch {
+      setErrorText('Something went wrong. Please try again.');
       setStatus('error');
     }
   }
@@ -545,8 +568,28 @@ function ContactSection() {
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessage(e.target.value)}
                 />
               </Box>
+              {/* Honeypot: visually hidden, off the tab order, not labelled for users. */}
+              <Box
+                aria-hidden="true"
+                position="absolute"
+                left="-10000px"
+                top="auto"
+                width="1px"
+                height="1px"
+                overflow="hidden"
+                pointerEvents="none"
+              >
+                <Input
+                  type="text"
+                  name="companyWebsite"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={companyWebsite}
+                  onChange={(e) => setCompanyWebsite(e.target.value)}
+                />
+              </Box>
               {status === 'error' && (
-                <Text color="#EF4444" fontSize="sm" mt={2} role="alert">Something went wrong. Please try again.</Text>
+                <Text color="#EF4444" fontSize="sm" mt={2} role="alert">{errorText ?? 'Something went wrong. Please try again.'}</Text>
               )}
               <Box mt={6}>
                 <Box

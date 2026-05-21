@@ -22,6 +22,13 @@ import {
   type QuoteTyreSelectionSnapshot,
 } from '@/lib/quote-snapshot';
 import { validateScheduledSlotForBooking } from '@/lib/availability';
+import {
+  checkRateLimit,
+  getClientIp,
+  logSecurityRejection,
+  RATE_LIMITS,
+  rateLimitedResponse,
+} from '@/lib/security';
 
 // Input validation schema
 const createBookingSchema = z.object({
@@ -69,6 +76,20 @@ interface ErrorResponse {
 export async function POST(
   request: NextRequest
 ): Promise<NextResponse<CreateBookingResponse | ErrorResponse>> {
+  // Per-IP rate limit. Booking creation triggers Stripe PaymentIntent creation
+  // and DB writes — strictest limit applied here.
+  const clientIp = getClientIp(request);
+  const rl = checkRateLimit(`booking-create:${clientIp}`, RATE_LIMITS.bookingCreate);
+  if (!rl.ok) {
+    logSecurityRejection({
+      req: request,
+      reason: 'rate_limited',
+      route: '/api/bookings/create',
+      status: 429,
+      routeKey: 'booking-create',
+    });
+    return rateLimitedResponse(rl) as NextResponse<ErrorResponse>;
+  }
   try {
     // Check for authenticated user (optional)
     const session = await auth();

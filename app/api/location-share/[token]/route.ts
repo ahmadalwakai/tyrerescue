@@ -9,11 +9,18 @@ import {
   extractQuickBookTyreSnapshot,
   type QuickBookServiceType,
 } from '@/lib/quick-book-pricing';
+import {
+  checkRateLimit,
+  getClientIp,
+  logSecurityRejection,
+  RATE_LIMITS,
+  rateLimitedResponse,
+} from '@/lib/security';
 
 const submitSchema = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
-  address: z.string().optional(),
+  address: z.string().max(300).optional(),
 });
 
 export async function GET(
@@ -61,6 +68,20 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  // Per-IP rate limit to slow brute-forcing of share tokens.
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`location-share:${ip}`, RATE_LIMITS.locationShare);
+  if (!rl.ok) {
+    logSecurityRejection({
+      req: request,
+      reason: 'rate_limited',
+      route: '/api/location-share',
+      status: 429,
+      routeKey: 'location-share',
+    });
+    return rateLimitedResponse(rl);
+  }
+
   const { token } = await params;
 
   if (!token || token.length !== 64) {

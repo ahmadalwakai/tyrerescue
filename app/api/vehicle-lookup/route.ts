@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import {
+  checkRateLimit,
+  getClientIp,
+  logSecurityRejection,
+  RATE_LIMITS,
+  rateLimitedResponse,
+} from '@/lib/security';
 
 const regSchema = z
   .string()
@@ -18,6 +25,21 @@ interface DvlaVehicle {
 }
 
 export async function GET(request: NextRequest) {
+  // Light per-IP rate limit. DVLA is a paid third-party — we don't want bots
+  // to drain the quota.
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`vehicle-lookup:${ip}`, RATE_LIMITS.vehicleLookup);
+  if (!rl.ok) {
+    logSecurityRejection({
+      req: request,
+      reason: 'rate_limited',
+      route: '/api/vehicle-lookup',
+      status: 429,
+      routeKey: 'vehicle-lookup',
+    });
+    return rateLimitedResponse(rl);
+  }
+
   const reg = request.nextUrl.searchParams.get('reg');
 
   const parsed = regSchema.safeParse(reg);

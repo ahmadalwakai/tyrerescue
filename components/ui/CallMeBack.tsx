@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Box, Text, Input, Button, VStack, Flex } from '@chakra-ui/react';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { trackCallbackSubmit } from '@/lib/analytics/gtag';
+import { HONEYPOT_FIELD } from '@/lib/security/honeypot';
 
 type FormState = 'idle' | 'open' | 'submitting' | 'success' | 'error';
 
@@ -19,6 +20,9 @@ export function CallMeBack() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
+  // Honeypot — must remain empty. Real users never see/focus this field.
+  const [companyWebsite, setCompanyWebsite] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Listen for external open events (e.g., from Nav button)
   useEffect(() => {
@@ -44,19 +48,42 @@ export function CallMeBack() {
   async function handleSubmit() {
     if (!name.trim() || !phone.trim()) return;
     setState('submitting');
+    setErrorMessage(null);
     try {
       const res = await fetch('/api/call-back', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), phone: phone.trim(), notes: notes.trim() || undefined }),
+        body: JSON.stringify({
+          name: name.trim(),
+          phone: phone.trim(),
+          notes: notes.trim() || undefined,
+          [HONEYPOT_FIELD]: companyWebsite,
+        }),
       });
       if (res.ok) {
         trackCallbackSubmit();
         setState('success');
       } else {
+        let friendly = 'Something went wrong. Please try again.';
+        try {
+          const data = await res.json();
+          if (res.status === 429) {
+            friendly = typeof data?.error === 'string'
+              ? data.error
+              : 'Too many attempts. Please try again shortly.';
+          } else if (data?.code === 'SUSPICIOUS_SUBMISSION') {
+            friendly = 'We could not process this request. Please try again.';
+          } else if (typeof data?.error === 'string') {
+            friendly = data.error;
+          }
+        } catch {
+          // Ignore JSON parse errors — fall through to generic message.
+        }
+        setErrorMessage(friendly);
         setState('error');
       }
     } catch {
+      setErrorMessage('Something went wrong. Please try again.');
       setState('error');
     }
   }
@@ -109,7 +136,7 @@ export function CallMeBack() {
               Something went wrong
             </Text>
             <Text color={c.muted} fontSize="sm" textAlign="center">
-              Please try again or call us directly.
+              {errorMessage ?? 'Please try again or call us directly.'}
             </Text>
             <Button size="sm" bg={c.card} color={c.text} onClick={() => setState('open')}>
               Try Again
@@ -161,6 +188,27 @@ export function CallMeBack() {
                 placeholder="Brief description"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+              />
+            </Box>
+
+            {/* Honeypot: visually hidden, off the tab order, not labelled for users. */}
+            <Box
+              aria-hidden="true"
+              position="absolute"
+              left="-10000px"
+              top="auto"
+              width="1px"
+              height="1px"
+              overflow="hidden"
+              pointerEvents="none"
+            >
+              <Input
+                type="text"
+                name="companyWebsite"
+                tabIndex={-1}
+                autoComplete="off"
+                value={companyWebsite}
+                onChange={(e) => setCompanyWebsite(e.target.value)}
               />
             </Box>
 

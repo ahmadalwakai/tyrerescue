@@ -37,6 +37,13 @@ import {
   londonDateTimeToUtcDate,
   validateScheduledSlotForBooking,
 } from '@/lib/availability';
+import {
+  checkRateLimit,
+  getClientIp,
+  logSecurityRejection,
+  RATE_LIMITS,
+  rateLimitedResponse,
+} from '@/lib/security';
 
 // Input validation schema
 const tyreSelectionSchema = z.object({
@@ -161,6 +168,20 @@ export async function POST(
   request: NextRequest
 ): Promise<NextResponse<QuoteResponse | ErrorResponse>> {
   const startTime = Date.now();
+  // Per-IP rate limit for quote generation (public mutation that touches DB +
+  // external pricing services). Best-effort in-memory.
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`booking-quote:${ip}`, RATE_LIMITS.bookingQuote);
+  if (!rl.ok) {
+    logSecurityRejection({
+      req: request,
+      reason: 'rate_limited',
+      route: '/api/bookings/quote',
+      status: 429,
+      routeKey: 'booking-quote',
+    });
+    return rateLimitedResponse(rl) as NextResponse<ErrorResponse>;
+  }
   try {
     // Detect returning visitor from cookie header
     const visitCountRaw = request.headers.get('x-visit-count');

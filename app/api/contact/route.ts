@@ -7,19 +7,69 @@ import { baseEmailTemplate } from '@/lib/email/templates/base';
 import { askGroqJSON } from '@/lib/groq';
 import { createAdminNotification } from '@/lib/notifications';
 import { z } from 'zod';
+import {
+  checkRateLimit,
+  getClientIp,
+  HONEYPOT_FIELD,
+  isHoneypotFilled,
+  logSecurityRejection,
+  RATE_LIMITS,
+  rateLimitedResponse,
+  suspiciousSubmissionResponse,
+  validationErrorResponse,
+} from '@/lib/security';
+
+const ROUTE_KEY = 'contact';
+const ROUTE_PATH = '/api/contact';
 
 const schema = z.object({
-  name: z.string().min(1).max(100),
-  email: z.string().email().max(255),
-  phone: z.string().max(20).optional(),
-  message: z.string().min(1).max(2000),
+  name: z.string().trim().min(1).max(80),
+  email: z.string().trim().email().max(254),
+  phone: z.string().trim().max(30).optional(),
+  message: z.string().trim().min(1).max(1000),
+  // Honeypot — must be empty / absent for real users.
+  [HONEYPOT_FIELD]: z.string().max(200).optional(),
 });
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return validationErrorResponse({ _root: ['Invalid JSON body.'] });
+  }
+
+  // Honeypot first — fail fast and cheap on obvious bots.
+  if (isHoneypotFilled(body)) {
+    logSecurityRejection({
+      req: request,
+      reason: 'honeypot_filled',
+      route: ROUTE_PATH,
+      status: 400,
+      routeKey: ROUTE_KEY,
+    });
+    return suspiciousSubmissionResponse();
+  }
+
+  // Per-IP per-route rate limit (best-effort, in-memory).
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`${ROUTE_KEY}:${ip}`, RATE_LIMITS.contact);
+  if (!rl.ok) {
+    logSecurityRejection({
+      req: request,
+      reason: 'rate_limited',
+      route: ROUTE_PATH,
+      status: 429,
+      routeKey: ROUTE_KEY,
+    });
+    return rateLimitedResponse(rl);
+  }
+
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return validationErrorResponse(
+      parsed.error.flatten().fieldErrors as Record<string, string[] | undefined>,
+    );
   }
 
   const { name, email, phone, message } = parsed.data;

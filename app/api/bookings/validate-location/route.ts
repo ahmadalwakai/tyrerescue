@@ -5,11 +5,18 @@ import { db } from '@/lib/db';
 import { pricingRules } from '@/lib/db/schema';
 import { parsePricingRules } from '@/lib/pricing-engine';
 import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
+import {
+  checkRateLimit,
+  getClientIp,
+  logSecurityRejection,
+  RATE_LIMITS,
+  rateLimitedResponse,
+} from '@/lib/security';
 
 const validateLocationSchema = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
-  address: z.string().optional(),
+  address: z.string().max(300).optional(),
 });
 
 /**
@@ -20,6 +27,20 @@ const validateLocationSchema = z.object({
  * Single source of truth for max distance: pricingRules.max_service_miles (default 190).
  */
 export async function POST(request: NextRequest) {
+  // Light per-IP rate limit. Used during the booking wizard so the limit is
+  // generous; primary intent is to stop scripted enumeration of map points.
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`validate-location:${ip}`, RATE_LIMITS.validateLocation);
+  if (!rl.ok) {
+    logSecurityRejection({
+      req: request,
+      reason: 'rate_limited',
+      route: '/api/bookings/validate-location',
+      status: 429,
+      routeKey: 'validate-location',
+    });
+    return rateLimitedResponse(rl);
+  }
   try {
     const body = await request.json();
     const validation = validateLocationSchema.safeParse(body);
