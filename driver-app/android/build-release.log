@@ -1,0 +1,1240 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.0.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:shared:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:compileJava NO-SOURCE
+> Task :gradle-plugin:shared:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:processResources NO-SOURCE
+> Task :gradle-plugin:shared:processResources NO-SOURCE
+> Task :gradle-plugin:shared:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:classes UP-TO-DATE
+> Task :gradle-plugin:shared:jar UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:jar UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:settings-plugin:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:jar UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:jar UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-dev-launcher-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-module-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-dev-launcher-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-module-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-dev-launcher-gradle-plugin:processResources UP-TO-DATE
+> Task :expo-module-gradle-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:jar UP-TO-DATE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:jar UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:jar UP-TO-DATE
+> Task :expo-module-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :expo-module-gradle-plugin:compileJava NO-SOURCE
+> Task :expo-module-gradle-plugin:classes UP-TO-DATE
+> Task :expo-dev-launcher-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :expo-dev-launcher-gradle-plugin:compileJava NO-SOURCE
+> Task :expo-dev-launcher-gradle-plugin:classes UP-TO-DATE
+> Task :expo-module-gradle-plugin:jar UP-TO-DATE
+> Task :expo-dev-launcher-gradle-plugin:jar UP-TO-DATE
+
+> Configure project :
+[32m[ExpoRootProject][0m Using the following versions:
+  - buildTools:  [32m36.0.0[0m
+  - minSdk:      [32m24[0m
+  - compileSdk:  [32m36[0m
+  - targetSdk:   [32m36[0m
+  - ndk:         [32m27.1.12297006[0m
+  - kotlin:      [32m2.1.20[0m
+  - ksp:         [32m2.1.20-2.0.1[0m
+
+> Configure project :app
+ ??  [33mApplying gradle plugin[0m '[32mexpo-max-sdk-override-plugin[0m'
+  [expo-max-sdk-override-plugin] This plugin will find all permissions declared with `android:maxSdkVersion`. If there exists a declaration with the `android:maxSdkVersion` annotation and another one without, the plugin will remove the annotation from the final merged manifest. In order to see a log with the changes run a clean build of the app.
+ ??  [33mApplying gradle plugin[0m '[32mexpo-dev-launcher-gradle-plugin[0m'
+
+> Configure project :expo
+
+Using expo modules
+  - [32mexpo-log-box[0m (55.0.7)
+  - [32mexpo-constants[0m (55.0.9)
+  - [32mexpo-dev-client[0m (55.0.18)
+  - [32mexpo-dev-launcher[0m (55.0.19)
+  - [32mexpo-dev-menu[0m (55.0.16)
+  - [32mexpo-dev-menu-interface[0m (55.0.1)
+  - [32mexpo-json-utils[0m (55.0.0)
+  - [32mexpo-manifests[0m (55.0.11)
+
+> Configure project :expo-modules-core
+Linking react-native-worklets native libs into expo-modules-core build tasks
+task ':react-native-worklets:mergeDebugNativeLibs'
+task ':react-native-worklets:mergeReleaseNativeLibs'
+
+> Configure project :expo
+  - [32mexpo-modules-core[0m (55.0.16)
+  - [32mexpo-updates-interface[0m (55.1.3)
+  - [33m[?][0m [32mexpo-dom-webview[0m (55.0.3)
+  - [33m[?][0m [32mexpo-application[0m (55.0.10)
+  - [33m[?][0m [32mexpo-asset[0m (55.0.10)
+  - [33m[?][0m [32mexpo-av[0m (16.0.8)
+  - [33m[?][0m [32mexpo-device[0m (55.0.10)
+  - [33m[?][0m [32mexpo-file-system[0m (55.0.11)
+  - [33m[?][0m [32mexpo-font[0m (55.0.4)
+  - [33m[?][0m [32mexpo-haptics[0m (55.0.9)
+  - [33m[?][0m [32mexpo-image[0m (55.0.6)
+  - [33m[?][0m [32mexpo-keep-awake[0m (55.0.4)
+  - [33m[?][0m [32mexpo-linking[0m (55.0.8)
+  - [33m[?][0m [32mexpo-localization[0m (55.0.9)
+  - [33m[?][0m [32mexpo-location[0m (55.1.4)
+  - [33m[?][0m [32mexpo-notifications[0m (55.0.13)
+  - [33m[?][0m [32mexpo-router[0m (55.0.7)
+  - [33m[?][0m [32mexpo-secure-store[0m (55.0.9)
+  - [33m[?][0m [32mexpo-splash-screen[0m (55.0.12)
+  - [33m[?][0m [32mexpo-task-manager[0m (55.0.10)
+  - [33m[?][0m [32munimodules-app-loader[0m (55.0.2)
+
+
+> Task :expo-dev-client:preBuild UP-TO-DATE
+> Task :expo-dev-launcher:preBuild UP-TO-DATE
+> Task :expo-modules-core:preBuild UP-TO-DATE
+> Task :expo-dev-menu:preBuild UP-TO-DATE
+> Task :expo-dev-menu-interface:preBuild UP-TO-DATE
+> Task :expo-dev-launcher:preReleaseBuild UP-TO-DATE
+> Task :expo-dev-client:preReleaseBuild UP-TO-DATE
+> Task :expo-updates-interface:preBuild UP-TO-DATE
+> Task :expo-dev-menu:preReleaseBuild UP-TO-DATE
+> Task :expo-log-box:preBuild UP-TO-DATE
+> Task :expo-json-utils:preBuild UP-TO-DATE
+> Task :expo-dev-menu-interface:preReleaseBuild UP-TO-DATE
+> Task :expo-manifests:preBuild UP-TO-DATE
+> Task :expo-modules-core:preReleaseBuild UP-TO-DATE
+> Task :expo-log-box:preReleaseBuild UP-TO-DATE
+> Task :expo-json-utils:preReleaseBuild UP-TO-DATE
+> Task :expo-manifests:preReleaseBuild UP-TO-DATE
+> Task :expo:generatePackagesList UP-TO-DATE
+> Task :expo:preBuild UP-TO-DATE
+> Task :expo:preReleaseBuild UP-TO-DATE
+> Task :react-native-gesture-handler:generateCodegenSchemaFromJavaScript UP-TO-DATE
+> Task :react-native-safe-area-context:generateCodegenSchemaFromJavaScript UP-TO-DATE
+> Task :react-native-screens:generateCodegenSchemaFromJavaScript UP-TO-DATE
+> Task :app:generateAutolinkingNewArchitectureFiles UP-TO-DATE
+> Task :react-native-gesture-handler:generateCodegenArtifactsFromSchema UP-TO-DATE
+> Task :react-native-safe-area-context:generateCodegenArtifactsFromSchema UP-TO-DATE
+> Task :react-native-gesture-handler:preBuild UP-TO-DATE
+> Task :react-native-safe-area-context:preBuild UP-TO-DATE
+> Task :expo-updates-interface:preReleaseBuild UP-TO-DATE
+> Task :react-native-gesture-handler:preReleaseBuild UP-TO-DATE
+> Task :react-native-screens:generateCodegenArtifactsFromSchema UP-TO-DATE
+> Task :react-native-screens:preBuild UP-TO-DATE
+> Task :react-native-safe-area-context:preReleaseBuild UP-TO-DATE
+> Task :app:generateAutolinkingPackageList UP-TO-DATE
+> Task :app:generateCodegenSchemaFromJavaScript SKIPPED
+> Task :app:generateCodegenArtifactsFromSchema SKIPPED
+> Task :app:generateReactNativeEntryPoint UP-TO-DATE
+> Task :react-native-screens:preReleaseBuild UP-TO-DATE
+> Task :react-native-worklets:assertMinimalReactNativeVersionTask
+> Task :react-native-reanimated:assertMinimalReactNativeVersionTask
+> Task :react-native-worklets:assertNewArchitectureEnabledTask SKIPPED
+> Task :react-native-reanimated:assertNewArchitectureEnabledTask SKIPPED
+> Task :react-native-worklets:generateCodegenSchemaFromJavaScript UP-TO-DATE
+> Task :react-native-worklets:generateCodegenArtifactsFromSchema UP-TO-DATE
+> Task :react-native-worklets:prepareWorkletsHeadersForPrefabs UP-TO-DATE
+> Task :react-native-worklets:preBuild
+> Task :react-native-worklets:preReleaseBuild
+> Task :expo-log-box:mergeReleaseJniLibFolders
+> Task :expo-json-utils:mergeReleaseJniLibFolders
+> Task :react-native-safe-area-context:mergeReleaseJniLibFolders
+> Task :expo-dev-menu-interface:mergeReleaseJniLibFolders
+> Task :expo:mergeReleaseJniLibFolders
+> Task :react-native-gesture-handler:mergeReleaseJniLibFolders
+> Task :expo-modules-core:mergeReleaseJniLibFolders
+> Task :expo-dev-launcher:mergeReleaseJniLibFolders
+> Task :expo-manifests:mergeReleaseJniLibFolders
+> Task :expo-dev-client:mergeReleaseJniLibFolders
+> Task :expo-dev-menu:mergeReleaseJniLibFolders
+> Task :expo-updates-interface:mergeReleaseJniLibFolders
+> Task :react-native-gesture-handler:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-modules-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-json-utils:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo:mergeReleaseNativeLibs NO-SOURCE
+> Task :react-native-safe-area-context:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-dev-launcher:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-dev-client:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-log-box:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-dev-menu:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-updates-interface:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-dev-menu-interface:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-manifests:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-dev-menu:copyReleaseJniLibsProjectOnly
+> Task :expo-dev-client:copyReleaseJniLibsProjectOnly
+> Task :expo-dev-menu-interface:copyReleaseJniLibsProjectOnly
+> Task :expo-manifests:copyReleaseJniLibsProjectOnly
+> Task :expo-json-utils:copyReleaseJniLibsProjectOnly
+> Task :expo:copyReleaseJniLibsProjectOnly
+> Task :react-native-safe-area-context:copyReleaseJniLibsProjectOnly
+> Task :expo-updates-interface:copyReleaseJniLibsProjectOnly
+> Task :expo-dev-launcher:copyReleaseJniLibsProjectOnly
+> Task :expo-log-box:copyReleaseJniLibsProjectOnly
+> Task :expo-dev-client:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-dev-menu:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-log-box:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-dev-menu-interface:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-json-utils:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-dev-launcher:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-manifests:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-updates-interface:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-modules-core:generateReleaseBuildConfig
+> Task :react-native-gesture-handler:generateReleaseBuildConfig
+> Task :expo:generateReleaseBuildConfig
+> Task :react-native-safe-area-context:generateReleaseBuildConfig
+> Task :react-native-gesture-handler:generateReleaseResValues
+> Task :expo-modules-core:generateReleaseResValues
+> Task :expo-log-box:generateReleaseBuildConfig
+> Task :expo:generateReleaseResValues
+> Task :expo-dev-menu:generateReleaseBuildConfig
+> Task :react-native-safe-area-context:generateReleaseResValues
+> Task :expo-json-utils:generateReleaseBuildConfig
+> Task :expo-dev-menu-interface:generateReleaseBuildConfig
+> Task :expo-updates-interface:generateReleaseBuildConfig
+> Task :expo-log-box:generateReleaseResValues
+> Task :expo-json-utils:generateReleaseResValues
+> Task :expo-updates-interface:generateReleaseResValues
+> Task :expo-dev-menu-interface:generateReleaseResValues
+> Task :expo-dev-menu:generateReleaseResValues
+> Task :expo-manifests:generateReleaseBuildConfig
+> Task :expo-manifests:generateReleaseResValues
+> Task :expo:generateReleaseResources
+> Task :react-native-gesture-handler:generateReleaseResources
+> Task :react-native-safe-area-context:generateReleaseResources
+> Task :expo-modules-core:generateReleaseResources
+> Task :expo-log-box:generateReleaseResources
+> Task :expo-dev-menu-interface:generateReleaseResources
+> Task :expo-updates-interface:generateReleaseResources
+> Task :expo-dev-menu:generateReleaseResources
+> Task :expo-manifests:generateReleaseResources
+> Task :react-native-reanimated:assertWorkletsVersionTask
+> Task :react-native-reanimated:generateCodegenSchemaFromJavaScript UP-TO-DATE
+> Task :react-native-reanimated:generateCodegenArtifactsFromSchema UP-TO-DATE
+> Task :react-native-reanimated:prepareReanimatedHeadersForPrefabs UP-TO-DATE
+> Task :react-native-reanimated:preBuild
+> Task :react-native-reanimated:preReleaseBuild
+> Task :react-native-gesture-handler:packageReleaseResources
+> Task :expo:packageReleaseResources
+> Task :expo-dev-menu-interface:packageReleaseResources
+> Task :expo-dev-menu:packageReleaseResources
+> Task :react-native-safe-area-context:packageReleaseResources
+> Task :expo-updates-interface:packageReleaseResources
+> Task :react-native-reanimated:mergeReleaseJniLibFolders
+> Task :react-native-reanimated:generateReleaseBuildConfig
+> Task :react-native-reanimated:generateReleaseResValues
+> Task :expo-manifests:packageReleaseResources
+> Task :react-native-reanimated:generateReleaseResources
+> Task :expo-modules-core:packageReleaseResources
+> Task :react-native-reanimated:packageReleaseResources
+> Task :expo-modules-core:parseReleaseLocalResources
+> Task :react-native-reanimated:parseReleaseLocalResources
+
+> Task :expo-constants:createExpoConfig
+env: load .env
+The NODE_ENV environment variable is required but was not specified. Ensure the project is bundled with Expo CLI or NODE_ENV is set. Using only .env.local and .env
+env: export EXPO_PUBLIC_MAPBOX_TOKEN
+
+> Task :expo-constants:preBuild
+> Task :app:preBuild
+> Task :app:preReleaseBuild
+> Task :expo-constants:preReleaseBuild
+> Task :app:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :expo-constants:mergeReleaseJniLibFolders
+> Task :expo-constants:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo-manifests:parseReleaseLocalResources
+> Task :expo-dev-menu-interface:parseReleaseLocalResources
+> Task :expo-constants:copyReleaseJniLibsProjectOnly
+> Task :expo-constants:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-manifests:javaPreCompileRelease
+> Task :expo-modules-core:javaPreCompileRelease
+> Task :expo-constants:generateReleaseBuildConfig
+> Task :expo-constants:generateReleaseResValues
+> Task :expo-constants:generateReleaseResources
+> Task :expo-constants:packageReleaseResources
+> Task :expo-constants:parseReleaseLocalResources
+> Task :expo-manifests:generateReleaseRFile
+> Task :expo-dev-menu-interface:generateReleaseRFile
+> Task :react-native-reanimated:generateReleaseRFile
+> Task :expo-dev-menu-interface:javaPreCompileRelease
+> Task :expo-constants:javaPreCompileRelease
+> Task :expo-json-utils:generateReleaseResources
+> Task :expo-log-box:packageReleaseResources
+> Task :react-native-reanimated:javaPreCompileRelease
+> Task :expo-dev-menu:parseReleaseLocalResources
+> Task :expo-updates-interface:parseReleaseLocalResources
+> Task :expo-dev-client:generateReleaseResValues
+> Task :expo-json-utils:packageReleaseResources
+> Task :expo-dev-client:generateReleaseResources
+> Task :expo-json-utils:parseReleaseLocalResources
+> Task :react-native-safe-area-context:parseReleaseLocalResources
+> Task :expo-dev-menu:generateReleaseRFile
+> Task :expo-modules-core:generateReleaseRFile
+> Task :expo-log-box:javaPreCompileRelease
+> Task :expo-json-utils:javaPreCompileRelease
+> Task :expo-updates-interface:javaPreCompileRelease
+> Task :expo-dev-client:packageReleaseResources
+> Task :expo-updates-interface:generateReleaseRFile
+> Task :expo-json-utils:generateReleaseRFile
+> Task :expo-dev-menu:writeReleaseAarMetadata
+> Task :react-native-gesture-handler:javaPreCompileRelease
+> Task :expo-constants:generateReleaseRFile
+> Task :expo-dev-client:generateReleaseBuildConfig
+> Task :expo-dev-menu-interface:writeReleaseAarMetadata
+> Task :expo-log-box:parseReleaseLocalResources
+> Task :expo-dev-client:writeReleaseAarMetadata
+> Task :expo-manifests:writeReleaseAarMetadata
+> Task :react-native-safe-area-context:javaPreCompileRelease
+> Task :expo-log-box:writeReleaseAarMetadata
+> Task :expo-dev-client:parseReleaseLocalResources
+> Task :react-native-safe-area-context:generateReleaseRFile
+> Task :expo-dev-client:javaPreCompileRelease
+> Task :expo-json-utils:writeReleaseAarMetadata
+> Task :react-native-gesture-handler:parseReleaseLocalResources
+> Task :expo-constants:extractDeepLinksRelease
+> Task :react-native-reanimated:writeReleaseAarMetadata
+> Task :expo-constants:writeReleaseAarMetadata
+> Task :expo:javaPreCompileRelease
+> Task :react-native-gesture-handler:writeReleaseAarMetadata
+> Task :expo-log-box:generateReleaseRFile
+> Task :expo-dev-client:extractDeepLinksRelease
+> Task :expo:extractDeepLinksRelease
+> Task :expo-dev-client:generateReleaseRFile
+> Task :expo:writeReleaseAarMetadata
+> Task :expo-dev-menu:extractDeepLinksRelease
+> Task :expo-dev-menu-interface:extractDeepLinksRelease
+> Task :expo-modules-core:writeReleaseAarMetadata
+> Task :expo-dev-launcher:generateReleaseResValues
+> Task :expo-updates-interface:writeReleaseAarMetadata
+> Task :expo-dev-launcher:dataBindingMergeDependencyArtifactsRelease
+> Task :expo-dev-client:dataBindingMergeDependencyArtifactsRelease
+> Task :expo-dev-menu:javaPreCompileRelease
+> Task :expo-json-utils:extractDeepLinksRelease
+> Task :expo-dev-launcher:generateReleaseResources
+> Task :expo:parseReleaseLocalResources
+> Task :expo-manifests:extractDeepLinksRelease
+> Task :expo-log-box:extractDeepLinksRelease
+> Task :app:checkReleaseDuplicateClasses UP-TO-DATE
+> Task :react-native-gesture-handler:generateReleaseRFile
+> Task :expo:generateReleaseRFile
+> Task :expo-modules-core:extractDeepLinksRelease
+> Task :expo-updates-interface:extractDeepLinksRelease
+> Task :expo-dev-launcher:packageReleaseResources
+
+> Task :react-native-screens:configureCMakeRelWithDebInfo[arm64-v8a]
+[CXX5304] This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+[CXX5304] This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+[CXX5304] Observed package id 'platform-tools' in inconsistent location 'C:\Users\Administrator\AppData\Local\Android\Sdk\platform-tools.backup' (Expected 'C:\Users\Administrator\AppData\Local\Android\Sdk\platform-tools')
+[CXX5304] Observed package id 'platform-tools' in inconsistent location 'C:\Users\Administrator\AppData\Local\Android\Sdk\platform-tools.backup' (Expected 'C:\Users\Administrator\AppData\Local\Android\Sdk\platform-tools')
+[CXX5304] Already observed package id 'platform-tools' in 'C:\Users\Administrator\AppData\Local\Android\Sdk\platform-tools'. Skipping duplicate at 'C:\Users\Administrator\AppData\Local\Android\Sdk\platform-tools.backup'
+[CXX5304] Already observed package id 'platform-tools' in 'C:\Users\Administrator\AppData\Local\Android\Sdk\platform-tools'. Skipping duplicate at 'C:\Users\Administrator\AppData\Local\Android\Sdk\platform-tools.backup'
+
+> Task :expo-dev-launcher:parseReleaseLocalResources
+> Task :expo-dev-menu:processReleaseManifest
+> Task :expo:processReleaseManifest
+> Task :expo-updates-interface:processReleaseManifest
+> Task :expo-dev-client:processReleaseManifest
+> Task :expo-json-utils:processReleaseManifest
+> Task :react-native-reanimated:extractDeepLinksRelease
+
+> Task :expo-modules-core:processReleaseManifest
+C:\tyrerescue\driver-app\node_modules\expo-modules-core\android\src\main\AndroidManifest.xml:8:9-11:45 Warning:
+	meta-data#com.facebook.soloader.enabled@android:value was tagged at AndroidManifest.xml:8 to replace other declarations but no other declaration present
+
+> Task :expo-constants:processReleaseManifest
+> Task :react-native-gesture-handler:extractDeepLinksRelease
+> Task :expo-manifests:processReleaseManifest
+> Task :expo-log-box:processReleaseManifest
+> Task :expo-dev-menu-interface:processReleaseManifest
+> Task :expo-dev-menu:compileReleaseLibraryResources
+> Task :expo:compileReleaseLibraryResources
+> Task :expo-log-box:compileReleaseLibraryResources
+> Task :expo-constants:compileReleaseLibraryResources
+> Task :expo-dev-menu-interface:compileReleaseLibraryResources
+> Task :expo-json-utils:compileReleaseLibraryResources
+> Task :expo-manifests:compileReleaseLibraryResources
+> Task :app:buildKotlinToolingMetadata UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-modules-core:compileReleaseLibraryResources
+> Task :expo-updates-interface:compileReleaseLibraryResources
+> Task :expo-dev-menu:prepareReleaseArtProfile UP-TO-DATE
+> Task :expo:prepareReleaseArtProfile UP-TO-DATE
+> Task :app:generateReleaseBuildConfig UP-TO-DATE
+> Task :expo-json-utils:prepareReleaseArtProfile UP-TO-DATE
+> Task :expo-dev-menu-interface:prepareReleaseArtProfile UP-TO-DATE
+> Task :expo-log-box:prepareReleaseArtProfile UP-TO-DATE
+> Task :react-native-reanimated:compileReleaseLibraryResources
+> Task :react-native-gesture-handler:compileReleaseLibraryResources
+> Task :expo-modules-core:prepareReleaseArtProfile UP-TO-DATE
+> Task :expo-constants:prepareReleaseArtProfile UP-TO-DATE
+> Task :react-native-reanimated:prepareReleaseArtProfile UP-TO-DATE
+> Task :react-native-gesture-handler:prepareReleaseArtProfile UP-TO-DATE
+> Task :expo-updates-interface:prepareReleaseArtProfile UP-TO-DATE
+> Task :expo-dev-client:dataBindingGenBaseClassesRelease
+> Task :expo-manifests:prepareReleaseArtProfile UP-TO-DATE
+> Task :react-native-reanimated:processReleaseManifest
+> Task :expo-dev-menu:mergeReleaseShaders
+> Task :react-native-gesture-handler:processReleaseManifest
+> Task :expo-dev-menu:compileReleaseShaders NO-SOURCE
+> Task :expo-dev-menu:generateReleaseAssets UP-TO-DATE
+> Task :expo-dev-menu-interface:mergeReleaseShaders
+> Task :expo-constants:mergeReleaseShaders
+> Task :expo-manifests:mergeReleaseShaders
+> Task :expo-constants:compileReleaseShaders NO-SOURCE
+> Task :expo-constants:generateReleaseAssets UP-TO-DATE
+> Task :expo-modules-core:mergeReleaseShaders
+> Task :expo-manifests:compileReleaseShaders NO-SOURCE
+> Task :expo-manifests:generateReleaseAssets UP-TO-DATE
+> Task :expo-log-box:mergeReleaseShaders
+> Task :expo-dev-menu-interface:compileReleaseShaders NO-SOURCE
+> Task :expo-dev-menu:mergeReleaseAssets
+> Task :react-native-gesture-handler:mergeReleaseShaders
+> Task :expo:mergeReleaseShaders
+> Task :expo-updates-interface:mergeReleaseShaders
+> Task :expo-dev-client:compileReleaseLibraryResources
+> Task :expo-dev-menu-interface:generateReleaseAssets UP-TO-DATE
+> Task :expo-modules-core:compileReleaseShaders NO-SOURCE
+> Task :expo-modules-core:generateReleaseAssets UP-TO-DATE
+> Task :expo-json-utils:mergeReleaseShaders
+> Task :expo-log-box:compileReleaseShaders NO-SOURCE
+> Task :expo-log-box:generateReleaseAssets UP-TO-DATE
+> Task :react-native-gesture-handler:compileReleaseShaders NO-SOURCE
+> Task :react-native-gesture-handler:generateReleaseAssets UP-TO-DATE
+> Task :expo-dev-client:prepareReleaseArtProfile UP-TO-DATE
+> Task :expo-updates-interface:compileReleaseShaders NO-SOURCE
+> Task :expo-updates-interface:generateReleaseAssets UP-TO-DATE
+> Task :expo-json-utils:compileReleaseShaders NO-SOURCE
+> Task :expo-json-utils:generateReleaseAssets UP-TO-DATE
+> Task :expo:compileReleaseShaders NO-SOURCE
+> Task :expo-manifests:mergeReleaseAssets
+> Task :expo-dev-menu-interface:mergeReleaseAssets
+> Task :react-native-reanimated:mergeReleaseShaders
+> Task :react-native-reanimated:compileReleaseShaders NO-SOURCE
+> Task :react-native-reanimated:generateReleaseAssets UP-TO-DATE
+> Task :expo:generateReleaseAssets UP-TO-DATE
+> Task :expo-log-box:mergeReleaseAssets
+> Task :react-native-gesture-handler:mergeReleaseAssets
+> Task :expo-dev-client:mergeReleaseShaders
+> Task :expo-updates-interface:mergeReleaseAssets
+> Task :expo-modules-core:mergeReleaseAssets
+> Task :react-native-reanimated:mergeReleaseAssets
+> Task :expo-dev-client:compileReleaseShaders NO-SOURCE
+> Task :expo-dev-client:generateReleaseAssets UP-TO-DATE
+> Task :expo-json-utils:mergeReleaseAssets
+> Task :expo:mergeReleaseAssets
+> Task :expo-constants:mergeReleaseAssets
+> Task :expo-dev-client:mergeReleaseAssets
+> Task :expo-dev-menu-interface:extractProguardFiles
+> Task :expo-dev-client:extractProguardFiles
+> Task :expo:extractProguardFiles
+> Task :expo-log-box:extractProguardFiles
+> Task :expo-dev-menu:extractProguardFiles
+> Task :react-native-gesture-handler:extractProguardFiles
+> Task :expo-dev-client:prepareLintJarForPublish UP-TO-DATE
+> Task :expo-dev-menu:prepareLintJarForPublish UP-TO-DATE
+> Task :expo-log-box:prepareLintJarForPublish UP-TO-DATE
+> Task :expo:prepareLintJarForPublish UP-TO-DATE
+> Task :expo-log-box:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-dev-client:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo:stripReleaseDebugSymbols NO-SOURCE
+> Task :react-native-gesture-handler:prepareLintJarForPublish UP-TO-DATE
+> Task :expo-modules-core:extractProguardFiles
+> Task :expo-json-utils:extractProguardFiles
+> Task :expo-dev-menu-interface:prepareLintJarForPublish UP-TO-DATE
+> Task :react-native-reanimated:processReleaseJavaRes NO-SOURCE
+> Task :expo-manifests:extractProguardFiles
+> Task :expo-dev-menu-interface:stripReleaseDebugSymbols NO-SOURCE
+> Task :react-native-gesture-handler:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :expo-constants:extractProguardFiles
+> Task :expo-modules-core:prepareLintJarForPublish UP-TO-DATE
+> Task :expo-dev-menu:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-json-utils:prepareLintJarForPublish UP-TO-DATE
+> Task :expo-manifests:prepareLintJarForPublish UP-TO-DATE
+> Task :expo-log-box:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-dev-client:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-updates-interface:extractProguardFiles
+> Task :expo:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-log-box:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :expo-manifests:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-constants:prepareLintJarForPublish UP-TO-DATE
+> Task :expo-updates-interface:prepareLintJarForPublish UP-TO-DATE
+> Task :expo-modules-core:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :expo-dev-client:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :expo:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :expo-json-utils:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-dev-menu-interface:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-dev-menu-interface:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :expo-updates-interface:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-constants:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-dev-menu:copyReleaseJniLibsProjectAndLocalJars
+> Task :react-native-reanimated:extractProguardFiles
+> Task :expo-dev-menu:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :expo-manifests:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-json-utils:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-manifests:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :react-native-reanimated:prepareLintJarForPublish UP-TO-DATE
+> Task :expo-json-utils:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :react-native-reanimated:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :expo-constants:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-updates-interface:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-constants:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :expo-updates-interface:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :expo-dev-launcher:dataBindingGenBaseClassesRelease
+> Task :expo:writeReleaseLintModelMetadata
+> Task :expo-modules-core:writeReleaseLintModelMetadata
+> Task :expo-dev-menu-interface:writeReleaseLintModelMetadata
+> Task :expo-manifests:writeReleaseLintModelMetadata
+> Task :expo-dev-menu:writeReleaseLintModelMetadata
+> Task :expo-log-box:writeReleaseLintModelMetadata
+> Task :expo-json-utils:writeReleaseLintModelMetadata
+> Task :expo-updates-interface:writeReleaseLintModelMetadata
+> Task :expo-dev-client:writeReleaseLintModelMetadata
+> Task :expo-dev-launcher:generateReleaseBuildConfig
+> Task :expo-constants:writeReleaseLintModelMetadata
+> Task :react-native-gesture-handler:writeReleaseLintModelMetadata
+> Task :react-native-reanimated:writeReleaseLintModelMetadata
+> Task :expo-dev-launcher:javaPreCompileRelease
+> Task :expo-dev-launcher:writeReleaseAarMetadata
+> Task :expo-dev-launcher:extractDeepLinksRelease
+> Task :expo-dev-launcher:compileReleaseLibraryResources
+> Task :expo-dev-launcher:prepareReleaseArtProfile UP-TO-DATE
+> Task :expo-dev-launcher:mergeReleaseShaders
+> Task :expo-dev-launcher:processReleaseManifest
+> Task :expo-dev-launcher:compileReleaseShaders NO-SOURCE
+> Task :expo-dev-launcher:generateReleaseAssets UP-TO-DATE
+> Task :expo-dev-launcher:generateReleaseRFile
+> Task :expo-dev-launcher:mergeReleaseAssets
+> Task :expo-dev-launcher:extractProguardFiles
+> Task :expo-dev-launcher:prepareLintJarForPublish UP-TO-DATE
+> Task :expo-dev-launcher:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo-dev-launcher:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-dev-launcher:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :expo-dev-launcher:writeReleaseLintModelMetadata
+> Task :react-native-reanimated:mergeReleaseJavaResource
+> Task :react-native-safe-area-context:writeReleaseAarMetadata
+> Task :react-native-safe-area-context:extractDeepLinksRelease
+> Task :react-native-safe-area-context:compileReleaseLibraryResources
+> Task :react-native-safe-area-context:prepareReleaseArtProfile UP-TO-DATE
+> Task :react-native-safe-area-context:mergeReleaseShaders
+> Task :react-native-safe-area-context:compileReleaseShaders NO-SOURCE
+> Task :react-native-safe-area-context:generateReleaseAssets UP-TO-DATE
+> Task :react-native-safe-area-context:mergeReleaseAssets
+
+> Task :react-native-safe-area-context:processReleaseManifest
+package="com.th3rdwave.safeareacontext" found in source AndroidManifest.xml: C:\tyrerescue\driver-app\node_modules\react-native-safe-area-context\android\src\main\AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.th3rdwave.safeareacontext" from the source AndroidManifest.xml: C:\tyrerescue\driver-app\node_modules\react-native-safe-area-context\android\src\main\AndroidManifest.xml.
+
+> Task :react-native-safe-area-context:extractProguardFiles
+> Task :react-native-safe-area-context:prepareLintJarForPublish UP-TO-DATE
+> Task :react-native-safe-area-context:stripReleaseDebugSymbols NO-SOURCE
+> Task :react-native-safe-area-context:copyReleaseJniLibsProjectAndLocalJars
+> Task :react-native-safe-area-context:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :react-native-safe-area-context:writeReleaseLintModelMetadata
+> Task :react-native-worklets:configureCMakeRelWithDebInfo[arm64-v8a]
+
+> Task :app:createBundleReleaseJsAndAssets
+env: load .env
+env: export EXPO_PUBLIC_MAPBOX_TOKEN
+
+> Task :react-native-screens:buildCMakeRelWithDebInfo[arm64-v8a]
+
+> Task :react-native-safe-area-context:compileReleaseKotlin
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-safe-area-context/android/src/main/java/com/th3rdwave/safeareacontext/SafeAreaView.kt:9:8 'class UIManagerModule : ReactContextBaseJavaModule, OnBatchCompleteListener, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-safe-area-context/android/src/main/java/com/th3rdwave/safeareacontext/SafeAreaView.kt:50:54 'class UIManagerModule : ReactContextBaseJavaModule, OnBatchCompleteListener, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-safe-area-context/android/src/main/java/com/th3rdwave/safeareacontext/SafeAreaView.kt:59:23 'val uiImplementation: UIImplementation!' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-safe-area-context/android/src/main/java/com/th3rdwave/safeareacontext/SafeAreaViewShadowNode.kt:9:32 'class LayoutShadowNode : ReactShadowNodeImpl' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-safe-area-context/android/src/main/java/com/th3rdwave/safeareacontext/SafeAreaViewShadowNode.kt:110:61 'class NativeViewHierarchyOptimizer : Any' is deprecated. Deprecated in Java.
+
+> Task :react-native-screens:configureCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-safe-area-context:compileReleaseJavaWithJavac
+> Task :react-native-safe-area-context:processReleaseJavaRes
+> Task :react-native-safe-area-context:bundleLibRuntimeToDirRelease
+> Task :react-native-safe-area-context:bundleLibRuntimeToJarRelease
+> Task :react-native-safe-area-context:bundleLibCompileToJarRelease
+> Task :react-native-safe-area-context:generateReleaseLintModel
+> Task :react-native-safe-area-context:createFullJarRelease
+> Task :react-native-safe-area-context:extractReleaseAnnotations
+> Task :react-native-safe-area-context:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :react-native-safe-area-context:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :react-native-safe-area-context:mergeReleaseJavaResource
+> Task :react-native-safe-area-context:generateReleaseLintVitalModel
+> Task :react-native-safe-area-context:syncReleaseLibJars
+> Task :react-native-safe-area-context:bundleReleaseLocalLintAar
+> Task :react-native-worklets:buildCMakeRelWithDebInfo[arm64-v8a][worklets]
+> Task :react-native-screens:buildCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-screens:configureCMakeRelWithDebInfo[x86]
+> Task :react-native-worklets:configureCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-safe-area-context:lintVitalAnalyzeRelease
+> Task :react-native-screens:buildCMakeRelWithDebInfo[x86]
+> Task :react-native-screens:configureCMakeRelWithDebInfo[x86_64]
+
+> Task :app:createBundleReleaseJsAndAssets
+Starting Metro Bundler
+
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+
+> Task :react-native-worklets:buildCMakeRelWithDebInfo[armeabi-v7a][worklets]
+> Task :react-native-screens:buildCMakeRelWithDebInfo[x86_64]
+> Task :react-native-screens:mergeReleaseJniLibFolders
+> Task :react-native-screens:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :react-native-screens:generateReleaseBuildConfig
+> Task :react-native-screens:generateReleaseResValues
+> Task :react-native-screens:generateReleaseResources
+> Task :react-native-screens:mergeReleaseNativeLibs
+> Task :react-native-screens:packageReleaseResources
+> Task :react-native-screens:javaPreCompileRelease
+> Task :react-native-screens:writeReleaseAarMetadata
+> Task :react-native-screens:extractDeepLinksRelease
+> Task :react-native-screens:parseReleaseLocalResources
+> Task :react-native-screens:prepareReleaseArtProfile UP-TO-DATE
+> Task :react-native-screens:mergeReleaseShaders
+> Task :react-native-screens:compileReleaseShaders NO-SOURCE
+> Task :react-native-screens:generateReleaseAssets UP-TO-DATE
+> Task :react-native-screens:processReleaseManifest
+> Task :react-native-screens:copyReleaseJniLibsProjectOnly
+> Task :react-native-screens:generateReleaseRFile
+> Task :react-native-screens:mergeReleaseAssets
+> Task :react-native-screens:extractProguardFiles
+> Task :react-native-screens:prepareLintJarForPublish UP-TO-DATE
+> Task :react-native-screens:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :react-native-screens:writeReleaseLintModelMetadata
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ  0.0% (0/1)
+
+> Task :react-native-screens:stripReleaseDebugSymbols
+> Task :react-native-screens:copyReleaseJniLibsProjectAndLocalJars
+> Task :react-native-screens:compileReleaseLibraryResources
+> Task :react-native-worklets:configureCMakeRelWithDebInfo[x86]
+> Task :react-native-screens:compileReleaseKotlin
+> Task :react-native-worklets:buildCMakeRelWithDebInfo[x86][worklets]
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ  1.0% (1/1)
+
+> Task :react-native-screens:compileReleaseKotlin
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/RNScreensPackage.kt:62:9 The corresponding parameter in the supertype 'BaseReactPackage' is named 'name'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/RNScreensPackage.kt:63:9 The corresponding parameter in the supertype 'BaseReactPackage' is named 'reactContext'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/RNScreensPackage.kt:76:17 'constructor(name: String, className: String, canOverrideExistingModule: Boolean, needsEagerInit: Boolean, hasConstants: Boolean, isCxxModule: Boolean, isTurboModule: Boolean): ReactModuleInfo' is deprecated. This constructor is deprecated and will be removed in the future. Use ReactModuleInfo(String, String, boolean, boolean, boolean, boolean)].
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt:24:8 'class UIManagerModule : ReactContextBaseJavaModule, OnBatchCompleteListener, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt:54:77 Unchecked cast of '(CoordinatorLayout.Behavior<View!>?..CoordinatorLayout.Behavior<*>?)' to 'BottomSheetBehavior<Screen>'.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt:426:42 'class UIManagerModule : ReactContextBaseJavaModule, OnBatchCompleteListener, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenContainerViewManager.kt:6:8 'class LayoutShadowNode : ReactShadowNodeImpl' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenContainerViewManager.kt:56:78 'class LayoutShadowNode : ReactShadowNodeImpl' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackFragment.kt:222:31 'var targetElevation: Float' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackFragment.kt:225:13 'fun setHasOptionsMenu(p0: Boolean): Unit' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackFragment.kt:404:18 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackFragment.kt:411:22 'fun onPrepareOptionsMenu(p0: Menu): Unit' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackFragment.kt:414:18 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackFragment.kt:419:22 'fun onCreateOptionsMenu(p0: Menu, p1: MenuInflater): Unit' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfig.kt:441:22 'val reactNativeHost: ReactNativeHost' is deprecated. You should not use ReactNativeHost directly in the New Architecture. Use ReactHost instead.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigShadowNode.kt:4:8 'class LayoutShadowNode : ReactShadowNodeImpl' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigShadowNode.kt:10:5 'class LayoutShadowNode : ReactShadowNodeImpl' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:9:8 'class LayoutShadowNode : ReactShadowNodeImpl' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfigViewManager.kt:37:78 'class LayoutShadowNode : ReactShadowNodeImpl' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackViewManager.kt:6:8 'class LayoutShadowNode : ReactShadowNodeImpl' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackViewManager.kt:65:78 'class LayoutShadowNode : ReactShadowNodeImpl' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenWindowTraits.kt:48:42 'fun replaceSystemWindowInsets(p0: Int, p1: Int, p2: Int, p3: Int): WindowInsetsCompat' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenWindowTraits.kt:49:39 'val systemWindowInsetLeft: Int' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenWindowTraits.kt:51:39 'val systemWindowInsetRight: Int' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenWindowTraits.kt:52:39 'val systemWindowInsetBottom: Int' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreensShadowNode.kt:4:8 'class LayoutShadowNode : ReactShadowNodeImpl' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreensShadowNode.kt:5:8 'class NativeViewHierarchyManager : Any' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreensShadowNode.kt:6:8 'class NativeViewHierarchyOptimizer : Any' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreensShadowNode.kt:7:8 'class UIManagerModule : ReactContextBaseJavaModule, OnBatchCompleteListener, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreensShadowNode.kt:11:5 'class LayoutShadowNode : ReactShadowNodeImpl' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreensShadowNode.kt:12:63 'class NativeViewHierarchyOptimizer : Any' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreensShadowNode.kt:14:34 'class UIManagerModule : ReactContextBaseJavaModule, OnBatchCompleteListener, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreensShadowNode.kt:14:106 'class NativeViewHierarchyManager : Any' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/BottomSheetDialogRootView.kt:7:8 'object ReactFeatureFlags : Any' is deprecated. Use com.facebook.react.internal.featureflags.ReactNativeFeatureFlags instead.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/BottomSheetDialogRootView.kt:25:13 'object ReactFeatureFlags : Any' is deprecated. Use com.facebook.react.internal.featureflags.ReactNativeFeatureFlags instead.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/BottomSheetDialogRootView.kt:32:9 The corresponding parameter in the supertype 'ReactViewGroup' is named 'left'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/BottomSheetDialogRootView.kt:33:9 The corresponding parameter in the supertype 'ReactViewGroup' is named 'top'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/BottomSheetDialogRootView.kt:34:9 The corresponding parameter in the supertype 'ReactViewGroup' is named 'right'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/BottomSheetDialogRootView.kt:35:9 The corresponding parameter in the supertype 'ReactViewGroup' is named 'bottom'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/BottomSheetDialogRootView.kt:71:9 The corresponding parameter in the supertype 'RootView' is named 'childView'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/BottomSheetDialogRootView.kt:72:9 The corresponding parameter in the supertype 'RootView' is named 'ev'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/BottomSheetDialogRootView.kt:79:46 The corresponding parameter in the supertype 'RootView' is named 'ev'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/BottomSheetDialogRootView.kt:83:9 The corresponding parameter in the supertype 'RootView' is named 'childView'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/BottomSheetDialogRootView.kt:84:9 The corresponding parameter in the supertype 'RootView' is named 'ev'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/BottomSheetDialogRootView.kt:95:34 The corresponding parameter in the supertype 'RootView' is named 't'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/DimmingView.kt:63:9 The corresponding parameter in the supertype 'ReactCompoundView' is named 'touchX'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/DimmingView.kt:64:9 The corresponding parameter in the supertype 'ReactCompoundView' is named 'touchY'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/DimmingView.kt:68:9 The corresponding parameter in the supertype 'ReactCompoundViewGroup' is named 'touchX'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/bottomsheet/DimmingView.kt:69:9 The corresponding parameter in the supertype 'ReactCompoundViewGroup' is named 'touchY'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/tabs/TabsHostViewManager.kt:37:9 The corresponding parameter in the supertype 'TabsHostViewManager' is named 'view'. This may cause problems when calling this function with named arguments.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/safearea/SafeAreaView.kt:19:8 'class UIManagerModule : ReactContextBaseJavaModule, OnBatchCompleteListener, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/safearea/SafeAreaView.kt:153:45 'fun consumeDisplayCutout(): WindowInsetsCompat' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/safearea/SafeAreaView.kt:194:58 'class UIManagerModule : ReactContextBaseJavaModule, OnBatchCompleteListener, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/safearea/SafeAreaView.kt:201:31 'val uiImplementation: UIImplementation!' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/safearea/paper/SafeAreaViewShadowNode.kt:7:8 'class LayoutShadowNode : ReactShadowNodeImpl' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/safearea/paper/SafeAreaViewShadowNode.kt:8:8 'class NativeViewHierarchyOptimizer : Any' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/safearea/paper/SafeAreaViewShadowNode.kt:14:32 'class LayoutShadowNode : ReactShadowNodeImpl' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/safearea/paper/SafeAreaViewShadowNode.kt:83:63 'class NativeViewHierarchyOptimizer : Any' is deprecated. Deprecated in Java.
+
+> Task :react-native-screens:compileReleaseJavaWithJavac
+> Task :react-native-screens:processReleaseJavaRes
+> Task :react-native-screens:generateReleaseLintModel
+> Task :react-native-screens:extractReleaseAnnotations
+> Task :react-native-screens:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :react-native-screens:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :react-native-screens:mergeReleaseJavaResource
+> Task :react-native-screens:bundleLibCompileToJarRelease
+> Task :react-native-screens:bundleLibRuntimeToJarRelease
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 16.0% (13/47)
+
+> Task :react-native-screens:createFullJarRelease
+> Task :react-native-screens:syncReleaseLibJars
+> Task :react-native-screens:bundleLibRuntimeToDirRelease
+> Task :react-native-screens:bundleReleaseLocalLintAar
+> Task :react-native-screens:generateReleaseLintVitalModel
+> Task :react-native-worklets:configureCMakeRelWithDebInfo[x86_64]
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 16.0% ( 35/101)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 16.0% ( 43/125)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 16.0% ( 48/144)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 16.0% ( 64/237)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 16.0% (106/309)
+
+> Task :react-native-screens:lintVitalAnalyzeRelease
+> Task :react-native-worklets:buildCMakeRelWithDebInfo[x86_64][worklets]
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 17.6% (167/398)
+
+> Task :react-native-worklets:externalNativeBuildRelease
+> Task :react-native-worklets:generateJsonModelRelease
+> Task :react-native-worklets:prefabReleaseConfigurePackage
+> Task :react-native-worklets:prefabReleasePackage
+> Task :react-native-worklets:mergeReleaseJniLibFolders
+> Task :react-native-worklets:generateReleaseBuildConfig
+> Task :react-native-worklets:generateReleaseResValues
+> Task :react-native-worklets:generateReleaseResources
+> Task :react-native-worklets:packageReleaseResources
+> Task :react-native-worklets:javaPreCompileRelease
+> Task :react-native-worklets:writeReleaseAarMetadata
+> Task :react-native-worklets:extractDeepLinksRelease
+> Task :react-native-worklets:parseReleaseLocalResources
+> Task :react-native-worklets:prepareReleaseArtProfile UP-TO-DATE
+> Task :react-native-worklets:compileReleaseLibraryResources
+> Task :react-native-worklets:processReleaseManifest
+> Task :react-native-worklets:mergeReleaseShaders
+> Task :react-native-worklets:compileReleaseShaders NO-SOURCE
+> Task :react-native-worklets:generateReleaseAssets UP-TO-DATE
+> Task :react-native-worklets:mergeReleaseAssets
+> Task :react-native-worklets:generateReleaseRFile
+> Task :react-native-worklets:processReleaseJavaRes NO-SOURCE
+> Task :expo-modules-core:configureCMakeRelWithDebInfo[arm64-v8a]
+> Task :expo-modules-core:configureCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-worklets:mergeReleaseNativeLibs
+> Task :expo-modules-core:configureCMakeRelWithDebInfo[x86]
+> Task :expo-modules-core:configureCMakeRelWithDebInfo[x86_64]
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 27.4% (257/509)
+
+> Task :react-native-worklets:compileReleaseJavaWithJavac
+Note: C:\tyrerescue\driver-app\node_modules\react-native-worklets\android\src\main\java\com\swmansion\worklets\WorkletsMessageQueueThreadBase.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: C:\tyrerescue\driver-app\node_modules\react-native-worklets\android\src\main\java\com\swmansion\worklets\WorkletsPackage.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :react-native-worklets:bundleLibCompileToJarRelease
+> Task :react-native-worklets:extractProguardFiles
+> Task :react-native-worklets:bundleLibRuntimeToJarRelease
+> Task :react-native-worklets:bundleLibRuntimeToDirRelease
+> Task :react-native-worklets:generateReleaseLintModel
+> Task :react-native-worklets:createFullJarRelease
+> Task :react-native-worklets:prepareLintJarForPublish UP-TO-DATE
+> Task :react-native-worklets:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :react-native-worklets:extractReleaseAnnotations
+> Task :react-native-worklets:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :react-native-worklets:mergeReleaseConsumerProguardFiles
+> Task :react-native-worklets:copyReleaseJniLibsProjectOnly
+> Task :react-native-worklets:mergeReleaseJavaResource
+> Task :react-native-worklets:writeReleaseLintModelMetadata
+> Task :react-native-worklets:syncReleaseLibJars
+> Task :react-native-worklets:generateReleaseLintVitalModel
+> Task :react-native-worklets:stripReleaseDebugSymbols
+> Task :react-native-worklets:copyReleaseJniLibsProjectAndLocalJars
+> Task :react-native-worklets:bundleReleaseLocalLintAar
+> Task :react-native-reanimated:configureCMakeRelWithDebInfo[arm64-v8a]
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 35.7% (342/599)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 40.4% (417/656)
+
+> Task :react-native-reanimated:configureCMakeRelWithDebInfo[armeabi-v7a]
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 43.3% (470/723)
+
+> Task :react-native-worklets:lintVitalAnalyzeRelease
+> Task :react-native-reanimated:configureCMakeRelWithDebInfo[x86]
+> Task :expo-modules-core:compileReleaseKotlin
+> Task :expo-modules-core:buildCMakeRelWithDebInfo[arm64-v8a]
+> Task :react-native-reanimated:configureCMakeRelWithDebInfo[x86_64]
+> Task :react-native-reanimated:generateJsonModelRelease
+> Task :react-native-reanimated:prefabReleaseConfigurePackage UP-TO-DATE
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 43.9% (490/982)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 43.9% ( 501/1012)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 43.9% ( 503/1041)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 43.9% ( 506/1081)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 43.9% ( 517/1109)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 43.9% ( 557/1151)
+
+> Task :react-native-reanimated:buildCMakeRelWithDebInfo[arm64-v8a][reanimated]
+> Task :react-native-gesture-handler:configureCMakeRelWithDebInfo[arm64-v8a]
+> Task :expo-modules-core:buildCMakeRelWithDebInfo[armeabi-v7a]
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 43.9% ( 602/1191)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 43.9% ( 614/1200)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 43.9% ( 661/1215)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 43.9% ( 708/1236)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 43.9% ( 803/1258)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 61.0% ( 991/1283)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 61.0% (1009/1319)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 61.0% (1019/1334)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 61.0% (1034/1367)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 61.0% (1047/1379)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæÔûæ 61.8% (1106/1407)
+
+> Task :expo-modules-core:compileReleaseKotlin
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-modules-core/android/src/main/java/expo/modules/apploader/AppLoaderProvider.kt:34:52 Unchecked cast of 'Class<*>!' to 'Class<out HeadlessAppLoader>'.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:13:8 'class UIManagerModule : ReactContextBaseJavaModule, OnBatchCompleteListener, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:21:8 'typealias ErrorManagerModule = JSLoggerModule' is deprecated. Use JSLoggerModule instead.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:59:13 'val hostingRuntimeContext: MainRuntime' is deprecated. Use AppContext.runtimeContext instead.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:257:21 'typealias ErrorManagerModule = JSLoggerModule' is deprecated. Use JSLoggerModule instead.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:366:21 'val DEFAULT: Int' is deprecated. UIManagerType.DEFAULT will be deleted in the next release of React Native. Use [LEGACY] instead.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:367:10 'class UIManagerModule : ReactContextBaseJavaModule, OnBatchCompleteListener, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/defaultmodules/NativeModulesProxyModule.kt:16:5 'fun Constants(legacyConstantsProvider: () -> Map<String, Any?>): Unit' is deprecated. Use `Constant` or `Property` instead.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/views/ViewDefinitionBuilder.kt:464:16 'val errorManager: JSLoggerModule?' is deprecated. Use AppContext.jsLogger instead.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/views/ViewDefinitionBuilder.kt:464:30 'fun reportExceptionToLogBox(codedException: CodedException): Unit' is deprecated. Use appContext.jsLogger.error(...) instead.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/views/ViewManagerDefinition.kt:41:16 'val errorManager: JSLoggerModule?' is deprecated. Use AppContext.jsLogger instead.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/views/ViewManagerDefinition.kt:41:30 'fun reportExceptionToLogBox(codedException: CodedException): Unit' is deprecated. Use appContext.jsLogger.error(...) instead.
+
+> Task :expo-modules-core:buildCMakeRelWithDebInfo[x86]
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæÔûæ 67.3% (1168/1424)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæ 73.3% (1238/1446)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæÔûæ 75.0% (1271/1494)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæÔûæ 77.8% (1347/1551)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæ 81.7% (1443/1602)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæ 81.7% (1446/1611)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæ 81.7% (1453/1623)
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæÔûæ 86.1% (1549/1675)
+
+> Task :expo-modules-core:buildCMakeRelWithDebInfo[x86_64]
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæÔûæ 93.0% (1679/1741)
+
+> Task :expo-modules-core:mergeReleaseNativeLibs
+
+> Task :expo-modules-core:compileReleaseJavaWithJavac
+Note: C:\tyrerescue\driver-app\node_modules\expo-modules-core\android\src\main\java\expo\modules\adapters\react\ModuleRegistryAdapter.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :expo-modules-core:processReleaseJavaRes
+> Task :expo-modules-core:generateReleaseLintModel
+> Task :expo-modules-core:extractReleaseAnnotations
+> Task :expo-modules-core:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :expo-modules-core:mergeReleaseConsumerProguardFiles
+> Task :expo-modules-core:mergeReleaseJavaResource
+> Task :expo-modules-core:copyReleaseJniLibsProjectOnly
+> Task :expo-modules-core:generateReleaseLintVitalModel
+> Task :expo-modules-core:stripReleaseDebugSymbols
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæ 94.8% (1764/1812)
+
+> Task :expo-modules-core:bundleLibCompileToJarRelease
+> Task :expo-modules-core:bundleLibRuntimeToJarRelease
+> Task :expo-modules-core:syncReleaseLibJars
+> Task :expo-dev-client:compileReleaseKotlin NO-SOURCE
+> Task :expo-dev-menu-interface:compileReleaseKotlin NO-SOURCE
+> Task :expo-modules-core:createFullJarRelease
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæ 96.4% (1842/1882)
+
+> Task :expo-modules-core:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-dev-client:compileReleaseJavaWithJavac
+> Task :expo-dev-client:bundleLibRuntimeToDirRelease
+> Task :expo-dev-client:bundleLibCompileToJarRelease
+> Task :expo-dev-client:bundleLibRuntimeToJarRelease
+> Task :expo-dev-client:processReleaseJavaRes NO-SOURCE
+> Task :expo-dev-client:createFullJarRelease
+> Task :expo-dev-client:generateReleaseLintModel
+> Task :expo-dev-client:extractReleaseAnnotations
+> Task :expo-dev-client:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :expo-dev-client:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :expo-dev-client:mergeReleaseJavaResource
+> Task :expo-dev-client:generateReleaseLintVitalModel
+> Task :expo-dev-client:syncReleaseLibJars
+> Task :expo-modules-core:bundleReleaseLocalLintAar
+> Task :expo-dev-client:bundleReleaseLocalLintAar
+> Task :expo-modules-core:bundleLibRuntimeToDirRelease
+> Task :expo-json-utils:compileReleaseKotlin
+> Task :expo-json-utils:compileReleaseJavaWithJavac
+> Task :expo-json-utils:bundleLibRuntimeToDirRelease
+> Task :expo-json-utils:bundleLibCompileToJarRelease
+> Task :expo-json-utils:bundleLibRuntimeToJarRelease
+
+> Task :expo-constants:compileReleaseKotlin
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-constants/android/src/main/java/expo/modules/constants/ConstantsModule.kt:13:5 'fun Constants(legacyConstantsProvider: () -> Map<String, Any?>): Unit' is deprecated. Use `Constant` or `Property` instead.
+
+> Task :expo-json-utils:processReleaseJavaRes
+> Task :expo-json-utils:createFullJarRelease
+> Task :expo-json-utils:generateReleaseLintModel
+> Task :expo-json-utils:extractReleaseAnnotations
+> Task :expo-json-utils:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :expo-json-utils:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :expo-json-utils:mergeReleaseJavaResource
+> Task :expo-json-utils:syncReleaseLibJars
+> Task :expo-json-utils:bundleReleaseLocalLintAar
+> Task :expo-json-utils:generateReleaseLintVitalModel
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæ 99.9% (1905/1905)
+
+> Task :expo-dev-client:lintVitalAnalyzeRelease
+> Task :expo-updates-interface:compileReleaseKotlin
+> Task :expo-dev-menu-interface:compileReleaseJavaWithJavac
+> Task :expo-dev-menu-interface:bundleLibCompileToJarRelease
+> Task :expo-dev-menu-interface:bundleLibRuntimeToDirRelease
+> Task :expo-dev-menu-interface:processReleaseJavaRes NO-SOURCE
+> Task :expo-dev-menu-interface:bundleLibRuntimeToJarRelease
+> Task :expo-json-utils:lintVitalAnalyzeRelease
+> Task :expo-dev-menu-interface:generateReleaseLintModel
+> Task :expo-constants:compileReleaseJavaWithJavac
+> Task :expo-dev-menu-interface:createFullJarRelease
+> Task :expo-constants:bundleLibRuntimeToDirRelease
+> Task :expo-constants:bundleLibCompileToJarRelease
+> Task :expo-dev-menu-interface:extractReleaseAnnotations
+> Task :expo-dev-menu-interface:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :expo-dev-menu-interface:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :expo-constants:processReleaseJavaRes
+> Task :expo-dev-menu-interface:mergeReleaseJavaResource
+> Task :expo-dev-menu-interface:syncReleaseLibJars
+> Task :expo-constants:bundleLibRuntimeToJarRelease
+> Task :expo-dev-menu:compileReleaseKotlin
+> Task :expo-dev-menu-interface:bundleReleaseLocalLintAar
+> Task :expo-dev-menu-interface:generateReleaseLintVitalModel
+> Task :expo-constants:generateReleaseLintModel
+> Task :expo-updates-interface:compileReleaseJavaWithJavac
+> Task :expo-updates-interface:bundleLibRuntimeToDirRelease
+> Task :expo-constants:createFullJarRelease
+
+> Task :expo-dev-launcher:compileReleaseKotlin
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-dev-launcher/android/src/main/java/expo/modules/devlauncher/DevLauncherPackage.kt:15:16 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+
+> Task :expo-updates-interface:bundleLibCompileToJarRelease
+> Task :expo-constants:extractReleaseAnnotations
+> Task :expo-constants:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :expo-updates-interface:bundleLibRuntimeToJarRelease
+> Task :expo-updates-interface:processReleaseJavaRes
+> Task :expo-constants:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :expo-constants:generateReleaseLintVitalModel
+> Task :expo-constants:mergeReleaseJavaResource
+> Task :expo-updates-interface:createFullJarRelease
+> Task :expo-constants:syncReleaseLibJars
+> Task :expo-updates-interface:generateReleaseLintModel
+> Task :expo-constants:bundleReleaseLocalLintAar
+> Task :expo-updates-interface:extractReleaseAnnotations
+> Task :expo-updates-interface:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :expo-updates-interface:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :expo-updates-interface:generateReleaseLintVitalModel
+> Task :expo-updates-interface:mergeReleaseJavaResource
+> Task :expo-updates-interface:syncReleaseLibJars
+> Task :expo-updates-interface:bundleReleaseLocalLintAar
+> Task :expo-constants:lintVitalAnalyzeRelease
+> Task :expo-dev-menu-interface:lintVitalAnalyzeRelease
+
+> Task :expo-manifests:compileReleaseKotlin
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-manifests/android/src/main/java/expo/modules/manifests/core/EmbeddedManifest.kt:19:16 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-manifests/android/src/main/java/expo/modules/manifests/core/EmbeddedManifest.kt:19:86 'fun getLegacyID(): String' is deprecated. Prefer scopeKey or projectId depending on use case.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-manifests/android/src/main/java/expo/modules/manifests/core/ExpoUpdatesManifest.kt:16:16 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-manifests/android/src/main/java/expo/modules/manifests/core/Manifest.kt:13:3 Deprecations and opt-ins on a method overridden from 'Any' may not be reported.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo-manifests/android/src/main/java/expo/modules/manifests/core/Manifest.kt:15:12 'fun getRawJson(): JSONObject' is deprecated. Prefer to use specific field getters.
+
+> Task :expo-updates-interface:lintVitalAnalyzeRelease
+> Task :expo-log-box:compileReleaseKotlin
+> Task :expo-dev-menu:compileReleaseJavaWithJavac
+> Task :expo-dev-menu:processReleaseJavaRes
+> Task :expo-dev-menu:bundleLibRuntimeToJarRelease
+> Task :expo-dev-menu:bundleLibCompileToJarRelease
+> Task :expo-dev-menu:bundleLibRuntimeToDirRelease
+> Task :expo-dev-menu:generateReleaseLintModel
+> Task :expo-dev-menu:createFullJarRelease
+> Task :expo-dev-menu:extractReleaseAnnotations
+> Task :expo-dev-menu:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :expo-dev-menu:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :expo-dev-menu:mergeReleaseJavaResource
+> Task :expo-dev-menu:generateReleaseLintVitalModel
+> Task :expo-dev-menu:syncReleaseLibJars
+> Task :expo-dev-menu:bundleReleaseLocalLintAar
+> Task :expo-manifests:compileReleaseJavaWithJavac
+> Task :expo-manifests:bundleLibCompileToJarRelease
+> Task :expo-manifests:processReleaseJavaRes
+> Task :expo-manifests:bundleLibRuntimeToJarRelease
+> Task :expo-manifests:generateReleaseLintModel
+> Task :expo-manifests:bundleLibRuntimeToDirRelease
+> Task :expo-manifests:createFullJarRelease
+> Task :expo-manifests:extractReleaseAnnotations
+> Task :expo-manifests:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :expo-manifests:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :expo-manifests:mergeReleaseJavaResource
+> Task :expo-manifests:generateReleaseLintVitalModel
+
+> Task :app:createBundleReleaseJsAndAssets
+Android Bundled 239535ms node_modules\expo-router\entry.js (1905 modules)
+
+> Task :expo-manifests:syncReleaseLibJars
+> Task :expo-manifests:bundleReleaseLocalLintAar
+> Task :expo-log-box:compileReleaseJavaWithJavac
+> Task :expo-log-box:bundleLibCompileToJarRelease
+> Task :expo-log-box:processReleaseJavaRes
+> Task :expo-log-box:bundleLibRuntimeToJarRelease
+> Task :expo-log-box:bundleLibRuntimeToDirRelease
+> Task :expo-log-box:generateReleaseLintModel
+> Task :expo-log-box:createFullJarRelease
+> Task :expo-log-box:extractReleaseAnnotations
+> Task :expo-log-box:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :expo-log-box:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :expo-log-box:generateReleaseLintVitalModel
+> Task :expo-log-box:mergeReleaseJavaResource
+> Task :expo-dev-menu:lintVitalAnalyzeRelease
+
+> Task :app:createBundleReleaseJsAndAssets
+Android node_modules\expo-router\entry.js ÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûôÔûæ 99.9% (1905/1905)
+Writing bundle output to: android\app\build\generated\assets\react\release\index.android.bundle
+Writing sourcemap output to: android\app\build\intermediates\sourcemaps\react\release\index.android.bundle.packager.map
+Copying 64 asset files
+Done writing bundle output
+Done writing sourcemap output
+
+> Task :expo-log-box:syncReleaseLibJars
+> Task :expo-log-box:bundleReleaseLocalLintAar
+> Task :expo-manifests:lintVitalAnalyzeRelease
+> Task :expo-dev-launcher:compileReleaseJavaWithJavac
+> Task :expo-dev-launcher:bundleLibRuntimeToDirRelease
+> Task :expo-dev-launcher:bundleLibRuntimeToJarRelease
+> Task :expo-dev-launcher:processReleaseJavaRes
+> Task :expo-dev-launcher:bundleLibCompileToJarRelease
+> Task :expo-dev-launcher:createFullJarRelease
+> Task :expo-dev-launcher:generateReleaseLintModel
+> Task :expo-dev-launcher:extractReleaseAnnotations
+> Task :expo-dev-launcher:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :expo-dev-launcher:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :expo-dev-launcher:mergeReleaseJavaResource
+> Task :expo-dev-launcher:generateReleaseLintVitalModel
+> Task :expo-dev-launcher:syncReleaseLibJars
+> Task :expo-dev-launcher:bundleReleaseLocalLintAar
+> Task :expo-dev-launcher:lintVitalAnalyzeRelease
+> Task :expo-modules-core:lintVitalAnalyzeRelease
+> Task :expo-log-box:lintVitalAnalyzeRelease
+> Task :react-native-reanimated:buildCMakeRelWithDebInfo[armeabi-v7a][reanimated]
+
+> Task :expo:compileReleaseKotlin
+w: file:///C:/tyrerescue/driver-app/node_modules/expo/android/src/main/java/expo/modules/ExpoModulesPackage.kt:34:16 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo/android/src/main/java/expo/modules/ReactActivityDelegateWrapper.kt:22:8 'class ReactInstanceManager : Any' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo/android/src/main/java/expo/modules/ReactActivityDelegateWrapper.kt:102:16 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo/android/src/main/java/expo/modules/ReactActivityDelegateWrapper.kt:102:43 'class ReactInstanceManager : Any' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo/android/src/main/java/expo/modules/ReactActivityDelegateWrapper.kt:103:21 'val reactInstanceManager: ReactInstanceManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo/android/src/main/java/expo/modules/fetch/ExpoFetchModule.kt:31:39 'constructor(reactContext: ReactContext): ForwardingCookieHandler' is deprecated. Use the default constructor.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo/android/src/main/java/expo/modules/fetch/NativeResponse.kt:42:16 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///C:/tyrerescue/driver-app/node_modules/expo/android/src/main/java/expo/modules/fetch/NativeResponse.kt:44:11 'fun deallocate(): Unit' is deprecated. Use sharedObjectDidRelease() instead.
+
+> Task :expo:compileReleaseJavaWithJavac
+> Task :expo:processReleaseJavaRes
+> Task :expo:bundleLibCompileToJarRelease
+> Task :expo:bundleLibRuntimeToDirRelease
+> Task :expo:generateReleaseLintModel
+> Task :expo:extractReleaseAnnotations
+> Task :expo:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :expo:mergeReleaseConsumerProguardFiles
+> Task :expo:mergeReleaseJavaResource
+> Task :expo:bundleLibRuntimeToJarRelease
+> Task :expo:syncReleaseLibJars
+> Task :expo:createFullJarRelease
+> Task :expo:bundleReleaseLocalLintAar
+> Task :expo:generateReleaseLintVitalModel
+> Task :expo:lintVitalAnalyzeRelease
+> Task :app:configureCMakeRelWithDebInfo[arm64-v8a]
+> Task :react-native-reanimated:buildCMakeRelWithDebInfo[x86][reanimated]
+> Task :react-native-reanimated:buildCMakeRelWithDebInfo[x86_64][reanimated]
+> Task :react-native-reanimated:externalNativeBuildRelease
+> Task :react-native-reanimated:prefabReleasePackage
+
+> Task :react-native-reanimated:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :react-native-reanimated:bundleLibCompileToJarRelease
+> Task :react-native-reanimated:generateReleaseLintModel
+> Task :react-native-reanimated:bundleLibRuntimeToJarRelease
+> Task :react-native-reanimated:bundleLibRuntimeToDirRelease
+> Task :react-native-reanimated:extractReleaseAnnotations
+> Task :react-native-reanimated:createFullJarRelease
+> Task :react-native-reanimated:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :react-native-reanimated:mergeReleaseConsumerProguardFiles
+> Task :react-native-reanimated:syncReleaseLibJars
+> Task :react-native-reanimated:generateReleaseLintVitalModel
+> Task :react-native-reanimated:mergeReleaseNativeLibs
+> Task :react-native-reanimated:copyReleaseJniLibsProjectOnly
+> Task :react-native-reanimated:stripReleaseDebugSymbols
+> Task :react-native-reanimated:lintVitalAnalyzeRelease
+> Task :react-native-reanimated:copyReleaseJniLibsProjectAndLocalJars
+> Task :react-native-reanimated:bundleReleaseLocalLintAar
+> Task :react-native-gesture-handler:buildCMakeRelWithDebInfo[arm64-v8a]
+> Task :react-native-gesture-handler:configureCMakeRelWithDebInfo[armeabi-v7a]
+> Task :app:buildCMakeRelWithDebInfo[arm64-v8a]
+> Task :react-native-gesture-handler:buildCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-gesture-handler:configureCMakeRelWithDebInfo[x86]
+> Task :app:configureCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-gesture-handler:buildCMakeRelWithDebInfo[x86]
+> Task :react-native-gesture-handler:configureCMakeRelWithDebInfo[x86_64]
+> Task :app:buildCMakeRelWithDebInfo[armeabi-v7a]
+> Task :react-native-gesture-handler:buildCMakeRelWithDebInfo[x86_64]
+> Task :react-native-gesture-handler:mergeReleaseNativeLibs
+> Task :react-native-gesture-handler:copyReleaseJniLibsProjectOnly
+> Task :react-native-gesture-handler:stripReleaseDebugSymbols
+> Task :react-native-gesture-handler:copyReleaseJniLibsProjectAndLocalJars
+> Task :app:configureCMakeRelWithDebInfo[x86]
+> Task :app:buildCMakeRelWithDebInfo[x86]
+
+> Task :react-native-gesture-handler:compileReleaseKotlin
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-gesture-handler/android/src/main/java/com/swmansion/gesturehandler/react/Extensions.kt:8:8 'class UIManagerModule : ReactContextBaseJavaModule, OnBatchCompleteListener, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-gesture-handler/android/src/main/java/com/swmansion/gesturehandler/react/Extensions.kt:13:29 'class UIManagerModule : ReactContextBaseJavaModule, OnBatchCompleteListener, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-gesture-handler/android/src/main/java/com/swmansion/gesturehandler/react/Extensions.kt:14:32 'class UIManagerModule : ReactContextBaseJavaModule, OnBatchCompleteListener, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///C:/tyrerescue/driver-app/node_modules/react-native-gesture-handler/android/src/main/java/com/swmansion/gesturehandler/react/RNGestureHandlerModule.kt:173:53 This synthetic property is based on the getter function 'fun getRootViewTag(): Int' from Kotlin. In the future, synthetic properties will be available only if the base getter function came from Java. Consider replacing this property access with a 'getRootViewTag()' function call.
+
+> Task :react-native-gesture-handler:compileReleaseJavaWithJavac
+> Task :react-native-gesture-handler:bundleLibCompileToJarRelease
+> Task :react-native-gesture-handler:processReleaseJavaRes
+> Task :react-native-gesture-handler:bundleLibRuntimeToJarRelease
+> Task :react-native-gesture-handler:generateReleaseLintModel
+> Task :react-native-gesture-handler:createFullJarRelease
+> Task :react-native-gesture-handler:extractReleaseAnnotations
+> Task :react-native-gesture-handler:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :react-native-gesture-handler:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :react-native-gesture-handler:mergeReleaseJavaResource
+> Task :react-native-gesture-handler:syncReleaseLibJars
+> Task :react-native-gesture-handler:bundleReleaseLocalLintAar
+> Task :react-native-gesture-handler:generateReleaseLintVitalModel
+> Task :react-native-gesture-handler:bundleLibRuntimeToDirRelease
+> Task :app:configureCMakeRelWithDebInfo[x86_64]
+> Task :app:buildCMakeRelWithDebInfo[x86_64]
+> Task :app:mergeReleaseNativeLibs UP-TO-DATE
+> Task :app:stripReleaseDebugSymbols UP-TO-DATE
+> Task :app:extractReleaseNativeSymbolTables UP-TO-DATE
+> Task :app:mergeReleaseNativeDebugMetadata UP-TO-DATE
+> Task :app:checkReleaseAarMetadata UP-TO-DATE
+> Task :app:generateReleaseResValues
+> Task :app:processReleaseGoogleServices UP-TO-DATE
+> Task :app:mapReleaseSourceSetPaths UP-TO-DATE
+> Task :app:generateReleaseResources UP-TO-DATE
+> Task :react-native-gesture-handler:lintVitalAnalyzeRelease
+> Task :app:packageReleaseResources
+> Task :app:createReleaseCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksRelease UP-TO-DATE
+> Task :app:parseReleaseLocalResources
+
+> Task :app:processReleaseMainManifest
+C:\tyrerescue\driver-app\android\app\src\main\AndroidManifest.xml Warning:
+	provider#expo.modules.filesystem.FileSystemFileProvider@android:authorities was tagged at AndroidManifest.xml:0 to replace other declarations but no other declaration present
+
+> Task :app:expoReleaseOverrideMaxSdkConflicts
+[33m---------- Expo Max Sdk Override Plugin ----------[0m
+[32m>>> No 'android:maxSdkVersion' conflicts found[0m
+[33m--------------------------------------------------[0m
+
+> Task :app:processReleaseManifest
+> Task :app:javaPreCompileRelease UP-TO-DATE
+> Task :app:desugarReleaseFileDependencies UP-TO-DATE
+> Task :app:mergeReleaseStartupProfile UP-TO-DATE
+> Task :app:mergeReleaseResources
+> Task :app:mergeExtDexRelease UP-TO-DATE
+> Task :app:mergeReleaseArtProfile UP-TO-DATE
+> Task :app:mergeReleaseShaders UP-TO-DATE
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:extractReleaseVersionControlInfo UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:compressReleaseAssets
+> Task :app:collectReleaseDependencies
+> Task :app:sdkReleaseDependencyData
+> Task :app:validateSigningRelease UP-TO-DATE
+> Task :app:writeReleaseAppMetadata UP-TO-DATE
+> Task :app:writeReleaseSigningConfigVersions UP-TO-DATE
+> Task :app:processReleaseManifestForPackage
+> Task :app:processReleaseResources
+> Task :app:optimizeReleaseResources
+> Task :app:compileReleaseKotlin
+> Task :app:compileReleaseJavaWithJavac
+> Task :app:dexBuilderRelease
+> Task :app:mergeReleaseGlobalSynthetics UP-TO-DATE
+> Task :app:generateReleaseLintVitalReportModel
+> Task :app:processReleaseJavaRes UP-TO-DATE
+> Task :app:lintVitalAnalyzeRelease
+> Task :app:mergeReleaseJavaResource
+> Task :app:lintVitalReportRelease
+> Task :app:lintVitalRelease
+> Task :app:mergeDexRelease
+> Task :app:compileReleaseArtProfile
+> Task :app:packageRelease
+> Task :app:createReleaseApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleRelease
+
+[Incubating] Problems report is available at: file:///C:/tyrerescue/driver-app/android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.0.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 10m 41s
+758 actionable tasks: 605 executed, 153 up-to-date

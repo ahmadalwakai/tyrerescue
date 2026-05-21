@@ -23,6 +23,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic, mediumHaptic, errorHaptic } from '@/services/haptics';
 import { useI18n, Locale } from '@/i18n';
+import { UrgentAlertSetupCard } from '@/components/UrgentAlertSetupCard';
 
 export default function ProfileScreen() {
   const { logout } = useAuth();
@@ -182,6 +183,9 @@ export default function ProfileScreen() {
         <InfoRow label={t('profile.locationPermission')} value={locationPerm} />
         <InfoRow label={t('profile.notificationPermission')} value={notifPerm} />
       </View>
+
+      {/* Urgent alert setup (Android only) */}
+      <UrgentAlertSetupCard />
 
       {/* Troubleshooting */}
       {(locationPerm === t('profile.denied') || notifPerm === t('profile.denied')) && (

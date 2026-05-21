@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db, bookings, bookingTyres, tyreProducts, bookingStatusHistory } from '@/lib/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { requireDriverMobile } from '@/lib/auth';
+import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
 
 export async function GET(
   request: Request,
@@ -87,6 +88,16 @@ export async function GET(
       subtotal: booking.subtotal?.toString() ?? null,
       vatAmount: booking.vatAmount?.toString() ?? null,
       totalAmount: booking.totalAmount?.toString() ?? null,
+      payment: computeDriverPaymentSummary({
+        paymentType: booking.paymentType,
+        totalAmount: booking.totalAmount?.toString() ?? null,
+        subtotal: booking.subtotal?.toString() ?? null,
+        vatAmount: booking.vatAmount?.toString() ?? null,
+        depositAmountPence: booking.depositAmountPence,
+        remainingBalancePence: booking.remainingBalancePence,
+        depositPaidAt: booking.depositPaidAt,
+        stripePiId: booking.stripePiId,
+      }),
       createdAt: booking.createdAt?.toISOString() ?? null,
       tyres: tyres.map((t) => ({
         id: t.id,

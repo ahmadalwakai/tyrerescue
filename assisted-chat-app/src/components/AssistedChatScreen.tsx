@@ -48,6 +48,7 @@ import { AdminBookingsModal } from './AdminBookingsModal';
 import { AdminVisitorsModal } from './AdminVisitorsModal';
 import { AdminInvoicesModal } from './AdminInvoicesModal';
 import { AdminStockModal } from './AdminStockModal';
+import { ActiveJobsModal } from './ActiveJobsModal';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 import { api } from '@/lib/api';
@@ -392,6 +393,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const [visitorsOpen, setVisitorsOpen] = useState(false);
   const [invoicesOpen, setInvoicesOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
+  const [activeJobsOpen, setActiveJobsOpen] = useState(false);
   const [duplicateAck, setDuplicateAck] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -739,8 +741,35 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   // dispatchedBookingId is null; auto-ensures (idempotent) the first time we
   // see a booking id, then polls /tracking every 8s.
   const bookingTracking = useBookingTracking({ bookingId: draft.dispatchedBookingId });
-  // Phone number of the driver selected by the operator in DriverAssignSection.
-  const [selectedDriverPhone, setSelectedDriverPhone] = useState<string | null>(null);
+  // Phone of the driver selected by the operator in DriverAssignSection.
+  // Tracked only so the assign section can highlight the current pick.
+  const [, setSelectedDriverPhone] = useState<string | null>(null);
+
+  // Driver chat (admin_driver channel). Creates the conversation on demand
+  // then routes the operator to the admin web booking page where the
+  // ChatWidget is mounted.
+  const [driverChatBusy, setDriverChatBusy] = useState(false);
+  const [driverChatError, setDriverChatError] = useState<string | null>(null);
+  const handleOpenDriverChat = useCallback(async () => {
+    const bookingId = draft.dispatchedBookingId;
+    const refNumber = draft.dispatchedRefNumber;
+    if (!bookingId || !refNumber) return;
+    setDriverChatBusy(true);
+    setDriverChatError(null);
+    try {
+      await api.post('/api/chat/conversations', { bookingId, channel: 'admin_driver' });
+      await Linking.openURL(`${api.baseUrl}/admin/bookings/${encodeURIComponent(refNumber)}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Could not open driver chat';
+      setDriverChatError(
+        msg.includes('400') || msg.toLowerCase().includes('driver')
+          ? 'Assign a driver first.'
+          : msg,
+      );
+    } finally {
+      setDriverChatBusy(false);
+    }
+  }, [draft.dispatchedBookingId, draft.dispatchedRefNumber]);
 
   const workflow = useMemo(
     () => getAssistedChatWorkflow({
@@ -1580,6 +1609,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
             testID="all-bookings-alert-button"
           />
           <AppButton label="Recent customers" variant="secondary" onPress={() => setRecentOpen(true)} style={styles.toolButton} />
+          <AppButton label="Active jobs" variant="secondary" onPress={() => setActiveJobsOpen(true)} style={styles.toolButton} />
           <AppButton label="Quotes" variant="secondary" onPress={() => setQuotesOpen(true)} style={styles.toolButton} />
         </View>
 
@@ -1723,10 +1753,20 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
                 ensureFailed={bookingTracking.ensureFailed}
                 busy={bookingTracking.busy}
                 customerPhone={draft.customer.phone.trim() || null}
-                driverPhone={selectedDriverPhone}
                 onRetryEnsure={() => { void bookingTracking.ensure(); }}
                 onRefresh={() => { void bookingTracking.refresh(); }}
               />
+              <AppButton
+                label={driverChatBusy ? 'Opening…' : 'Chat with driver'}
+                variant="secondary"
+                onPress={() => { void handleOpenDriverChat(); }}
+                loading={driverChatBusy}
+                disabled={driverChatBusy}
+                fullWidth
+              />
+              {driverChatError ? (
+                <Text style={styles.driverChatError}>{driverChatError}</Text>
+              ) : null}
             </>
           ) : null}
         </View>
@@ -1786,6 +1826,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       <AdminVisitorsModal visible={visitorsOpen} onClose={() => setVisitorsOpen(false)} />
       <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
       <AdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
+      <ActiveJobsModal visible={activeJobsOpen} onClose={() => setActiveJobsOpen(false)} />
       <Modal
         visible={notifSetupOpen}
         transparent
@@ -2880,6 +2921,7 @@ const styles = StyleSheet.create({
   primaryWrap: { flex: 1, minWidth: 0 },
   primaryButton: { minHeight: 56 },
   primaryReason: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '700', marginTop: 5 },
+  driverChatError: { color: colors.danger, fontSize: fontSize.xs, marginTop: 6 },
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.62)', justifyContent: 'flex-end' },
   actionSheet: {
     maxHeight: '86%',

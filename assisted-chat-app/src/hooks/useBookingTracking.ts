@@ -24,9 +24,7 @@ export interface BookingTrackingData {
   customerLat: number | null;
   customerLng: number | null;
   customerToken: string;
-  driverToken: string;
   customerUrl: string;
-  driverUrl: string;
   state: BookingTrackingState;
 }
 
@@ -38,9 +36,7 @@ interface AdminGetResponse {
   customerLat?: number | null;
   customerLng?: number | null;
   customerToken?: string;
-  driverToken?: string;
   customerUrl?: string;
-  driverUrl?: string;
   state?: BookingTrackingState;
 }
 
@@ -51,9 +47,7 @@ interface AdminEnsureResponse {
   customerLat: number | null;
   customerLng: number | null;
   customerToken: string;
-  driverToken: string;
   customerUrl: string;
-  driverUrl: string;
   state: BookingTrackingState;
 }
 
@@ -106,9 +100,7 @@ export function useBookingTracking({ bookingId, autoEnsure = true }: Args) {
         customerLat: res.customerLat ?? null,
         customerLng: res.customerLng ?? null,
         customerToken: res.customerToken,
-        driverToken: res.driverToken,
         customerUrl: res.customerUrl,
-        driverUrl: res.driverUrl,
         state: res.state,
       });
       setEnsureFailed(false);
@@ -134,7 +126,7 @@ export function useBookingTracking({ bookingId, autoEnsure = true }: Args) {
       const res = await api.get<AdminGetResponse>(`/api/admin/bookings/${id}/tracking`);
       if (!mountedRef.current) return;
       if (!res.exists) return;
-      if (!res.customerToken || !res.driverToken || !res.customerUrl || !res.driverUrl || !res.state) return;
+      if (!res.customerToken || !res.customerUrl || !res.state) return;
       setData({
         bookingId: res.bookingId,
         refNumber: res.refNumber ?? null,
@@ -142,9 +134,7 @@ export function useBookingTracking({ bookingId, autoEnsure = true }: Args) {
         customerLat: res.customerLat ?? null,
         customerLng: res.customerLng ?? null,
         customerToken: res.customerToken,
-        driverToken: res.driverToken,
         customerUrl: res.customerUrl,
-        driverUrl: res.driverUrl,
         state: res.state,
       });
       setError(null);

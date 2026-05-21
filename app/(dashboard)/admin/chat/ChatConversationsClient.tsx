@@ -20,6 +20,7 @@ import type { ConversationSummary } from '@/lib/chat/types';
 const CHANNEL_LABELS: Record<string, string> = {
   customer_admin: 'Customer ↔ Admin',
   customer_driver: 'Customer ↔ Driver',
+  admin_driver: 'Driver ↔ Admin',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -106,6 +107,7 @@ export function ChatConversationsClient() {
             <option value="">All Channels</option>
             <option value="customer_admin">Customer ↔ Admin</option>
             <option value="customer_driver">Customer ↔ Driver</option>
+            <option value="admin_driver">Driver ↔ Admin</option>
           </NativeSelect.Field>
         </NativeSelect.Root>
       </Flex>

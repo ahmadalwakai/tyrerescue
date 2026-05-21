@@ -11,10 +11,20 @@ import {
 const ACTIVE_INTERVAL = 15_000; // 15s when job active (foreground)
 const IDLE_INTERVAL = 60_000; // 60s when idle (foreground)
 
-export function useLocationBroadcast(isOnline: boolean, hasActiveJob: boolean) {
+export function useLocationBroadcast(
+  isOnline: boolean,
+  hasActiveJob: boolean,
+  activeBookingRef?: string | null,
+) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const activeRefRef = useRef<string | null>(activeBookingRef ?? null);
   const [bgRunning, setBgRunning] = useState(false);
+
+  // Keep ref in sync without re-creating the polling interval on every change.
+  useEffect(() => {
+    activeRefRef.current = activeBookingRef ?? null;
+  }, [activeBookingRef]);
 
   const sendForegroundLocation = useCallback(async () => {
     try {
@@ -24,7 +34,11 @@ export function useLocationBroadcast(isOnline: boolean, hasActiveJob: boolean) {
       const loc = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
-      await driverApi.updateLocation(loc.coords.latitude, loc.coords.longitude);
+      await driverApi.updateLocation(
+        loc.coords.latitude,
+        loc.coords.longitude,
+        activeRefRef.current,
+      );
     } catch {
       // Silently ignore — network or permission errors
     }

@@ -1,6 +1,7 @@
 import { db, drivers, driverNotifications, driverSoundSettings } from '@/lib/db';
 import { eq } from 'drizzle-orm';
-import { sendFcmNotification, isFcmConfigured } from './fcm';
+import { sendFcmNotification, sendFcmDataMessageToToken, isFcmConfigured } from './fcm';
+import type { PaymentSummary } from '@/lib/payments/driver-payment';
 
 /** Map event types to Android notification channel IDs (versioned). */
 const EVENT_CHANNEL_MAP: Record<string, string> = {
@@ -117,6 +118,14 @@ export async function sendDriverPushNotification(
     .limit(1);
 
   if (!driver?.pushToken) {
+    const eventType = (data?.type as string) ?? 'system';
+    if (CRITICAL_EVENTS.has(eventType)) {
+      console.warn(
+        `[driver-push] native data-only driver_new_job skipped driverId=${driverId} bookingRef=${
+          (data?.ref as string) ?? 'unknown'
+        } reason=no_push_token`,
+      );
+    }
     return false;
   }
 
@@ -145,6 +154,60 @@ export async function sendDriverPushNotification(
 
   // ── Primary path: direct FCM ──
   if (!usesExpoToken) {
+    // For critical job-assignment events, send a data-only message so the
+    // driver-app's native DriverJobMessagingService can wake the screen via
+    // a full-screen-intent. Top-level `notification` blocks would otherwise
+    // bypass that service when the app is backgrounded/killed on Android.
+    if (isCritical) {
+      // Build a strict data-only payload. Every value must be a string.
+      const nativeData: Record<string, string> = {
+        ...stringData,
+        type: 'driver_new_job',
+        title,
+        body,
+      };
+      if (typeof data?.ref === 'string') {
+        nativeData.ref = data.ref;
+        nativeData.bookingRef = data.ref;
+      }
+      // Defensive: ensure address is present as a top-level data key when known.
+      if (typeof data?.address === 'string' && data.address.length > 0) {
+        nativeData.address = data.address;
+      }
+      // jobId is the canonical bookings.id (UUID); useful to dedupe + open detail.
+      if (typeof data?.jobId === 'string' && data.jobId.length > 0) {
+        nativeData.jobId = data.jobId;
+      }
+
+      const tokenSuffix = driver.pushToken.slice(-6);
+      const bookingRef = (data?.ref as string) ?? 'unknown';
+      console.log(
+        `[driver-push] native data-only driver_new_job attempt driverId=${driverId} bookingRef=${bookingRef} platform=android:fcm hasToken=true tokenSuffix=${tokenSuffix}`,
+      );
+
+      const dataResult = await sendFcmDataMessageToToken(
+        driver.pushToken,
+        nativeData,
+        {
+          priority: 'HIGH',
+          ttl: '300s',
+        },
+      );
+
+      if (dataResult.success) {
+        console.log(
+          `[driver-push] native data-only driver_new_job sent driverId=${driverId} bookingRef=${bookingRef} messageId=${dataResult.messageId}`,
+        );
+        console.log(`[push/fcm-data] Sent to driver ${driverId}: type=driver_new_job msgId=${dataResult.messageId}`);
+        return true;
+      }
+      console.error(
+        `[driver-push] native data-only driver_new_job skipped driverId=${driverId} bookingRef=${bookingRef} reason=fcm_error error=${dataResult.error}`,
+      );
+      console.error(`[push/fcm-data] Failed for driver ${driverId}: ${dataResult.error}`);
+      return false;
+    }
+
     const result = await sendFcmNotification(
       driver.pushToken,
       title,
@@ -187,17 +250,30 @@ export async function sendDriverPushNotification(
 
 /**
  * Notify driver of a new job assignment.
+ *
+ * `payment` (optional) is forwarded into the FCM data payload so the driver
+ * app can render "Collect £X" inline without a follow-up fetch.
  */
 export async function notifyDriverNewJob(
   driverId: string,
   refNumber: string,
   address: string,
+  payment?: PaymentSummary | null,
+  jobId?: string | null,
 ): Promise<boolean> {
   return sendDriverPushNotification(
     driverId,
     'New Job Assigned',
     `Job ${refNumber} at ${address}. Tap to accept.`,
-    { type: 'new_job', ref: refNumber },
+    {
+      type: 'new_job',
+      ref: refNumber,
+      address,
+      jobId: jobId ?? '',
+      paymentType: String(payment?.type ?? 'unknown'),
+      paymentStatus: String(payment?.status ?? 'unknown'),
+      amountToCollectPence: String(payment?.amountToCollectPence ?? ''),
+    },
     'new_job',
   );
 }
@@ -209,12 +285,22 @@ export async function notifyDriverReassignment(
   driverId: string,
   refNumber: string,
   address: string,
+  payment?: PaymentSummary | null,
+  jobId?: string | null,
 ): Promise<boolean> {
   return sendDriverPushNotification(
     driverId,
     'Job Reassigned to You',
     `Job ${refNumber} at ${address}. Tap to review.`,
-    { type: 'reassignment', ref: refNumber },
+    {
+      type: 'reassignment',
+      ref: refNumber,
+      address,
+      jobId: jobId ?? '',
+      paymentType: String(payment?.type ?? 'unknown'),
+      paymentStatus: String(payment?.status ?? 'unknown'),
+      amountToCollectPence: String(payment?.amountToCollectPence ?? ''),
+    },
     'reassignment',
   );
 }

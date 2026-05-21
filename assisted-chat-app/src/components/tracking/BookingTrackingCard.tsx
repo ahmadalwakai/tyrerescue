@@ -16,8 +16,6 @@ interface Props {
   busy: boolean;
   /** Phone number from the draft. Used to gate SMS/WhatsApp share buttons. */
   customerPhone: string | null;
-  /** Optional driver phone (rare in assisted-chat flow; usually null). */
-  driverPhone?: string | null;
   /** Called when operator taps "Retry" after a failed ensure. */
   onRetryEnsure: () => void;
   /** Called when operator taps "Refresh now" to force a poll. */
@@ -102,7 +100,6 @@ export function BookingTrackingCard({
   ensureFailed,
   busy,
   customerPhone,
-  driverPhone,
   onRetryEnsure,
   onRefresh,
 }: Props) {
@@ -112,8 +109,6 @@ export function BookingTrackingCard({
   type BtnState = 'idle' | 'loading' | 'success' | 'error';
   const [customerCopyState, setCustomerCopyState] = useState<BtnState>('idle');
   const [customerSendState, setCustomerSendState] = useState<BtnState>('idle');
-  const [driverCopyState, setDriverCopyState] = useState<BtnState>('idle');
-  const [driverSendState, setDriverSendState] = useState<BtnState>('idle');
 
   const resetAfter = useCallback((set: (s: BtnState) => void) => {
     setTimeout(() => set('idle'), 2_000);
@@ -133,10 +128,6 @@ export function BookingTrackingCard({
   const customerHasPhone = useMemo(
     () => !!(customerPhone && customerPhone.trim().length > 0),
     [customerPhone],
-  );
-  const driverHasPhone = useMemo(
-    () => !!(driverPhone && driverPhone.trim().length > 0),
-    [driverPhone],
   );
 
   // If the driver's GPS ping is older than 90s, surface a "Tracking
@@ -196,7 +187,7 @@ export function BookingTrackingCard({
     );
   }
 
-  const { state, customerUrl, driverUrl, refNumber, customerAddress } = data;
+  const { state, customerUrl, refNumber, customerAddress } = data;
   const tone = TONE[derivedStatus];
   // Promote "Driver is nearby" copy when the trip is live and the driver
   // is within 0.5 mi of the customer — same threshold used by the public
@@ -306,52 +297,6 @@ export function BookingTrackingCard({
         </View>
         {!customerHasPhone ? (
           <Text style={styles.hint}>Add a customer phone to enable sending.</Text>
-        ) : null}
-      </View>
-
-      {/* ── Driver tracking link ─────────────────────────── */}
-      <View style={styles.linkBlock}>
-        <Text style={styles.linkLabel}>Driver tracking link</Text>
-        <View style={styles.linkActions}>
-          <AppButton
-            label={
-              driverCopyState === 'success' ? 'Copied ✓'
-              : driverCopyState === 'error'   ? 'Could not copy. Try again.'
-              : 'Copy'
-            }
-            loading={driverCopyState === 'loading'}
-            variant="secondary"
-            disabled={driverCopyState === 'loading'}
-            onPress={() =>
-              withBtnState(setDriverCopyState, async () => {
-                const ok = await copyToClipboard(driverUrl);
-                if (!ok) throw new Error('copy failed');
-              })
-            }
-          />
-          <AppButton
-            label={
-              driverSendState === 'loading' ? 'Sending...'
-              : driverSendState === 'success' ? 'Sent ✓'
-              : driverSendState === 'error'   ? 'Could not send. Try again.'
-              : 'Send to driver'
-            }
-            loading={driverSendState === 'loading'}
-            variant="secondary"
-            disabled={!driverHasPhone || driverSendState === 'loading'}
-            onPress={() =>
-              withBtnState(setDriverSendState, async () => {
-                if (!driverPhone) throw new Error('no phone');
-                const msg = `New Tyre Rescue job.\nOpen this page, press Start journey, and keep it open until the job is finished:\n${driverUrl}`;
-                const waUrl = buildWhatsAppUrl(driverPhone, msg);
-                if (!waUrl) throw new Error('no wa url');
-                await Linking.openURL(waUrl);
-              })
-            }
-          />
-        </View>
-        {!driverHasPhone ? (
-          <Text style={styles.hint}>Driver phone not on file — share the link manually.</Text>
         ) : null}
       </View>
 

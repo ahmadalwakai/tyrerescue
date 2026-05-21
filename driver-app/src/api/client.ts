@@ -150,6 +150,23 @@ export interface JobSummary {
   totalAmount?: string | null;
   createdAt: string | null;
   tyres?: JobTyre[];
+  payment?: PaymentSummary | null;
+}
+
+export type PaymentType = 'cash' | 'full' | 'deposit' | null;
+export type PaymentStatus = 'unpaid' | 'deposit_paid' | 'paid' | 'unknown';
+
+export interface PaymentSummary {
+  type: PaymentType;
+  status: PaymentStatus;
+  subtotalPence: number | null;
+  vatAmountPence: number | null;
+  totalAmountPence: number | null;
+  depositAmountPence: number | null;
+  remainingBalancePence: number | null;
+  amountToCollectPence: number;
+  stripePiId: string | null;
+  depositPaidAt: string | null;
 }
 
 export interface JobDetail extends JobSummary {
@@ -167,6 +184,7 @@ export interface JobDetail extends JobSummary {
   acceptanceDeadline: string | null;
   subtotal: string | null;
   vatAmount: string | null;
+  payment?: PaymentSummary | null;
   tyres: (JobTyre & { id: string })[];
   statusHistory: {
     id: string;
@@ -210,10 +228,10 @@ export const driverApi = {
       body: { is_online: isOnline },
     }),
 
-  updateLocation: (lat: number, lng: number) =>
-    api<{ success: boolean }>('/api/driver/location', {
+  updateLocation: (lat: number, lng: number, bookingRef?: string | null) =>
+    api<{ success: boolean; bridgedBookingRef: string | null }>('/api/driver/location', {
       method: 'POST',
-      body: { lat, lng },
+      body: bookingRef ? { lat, lng, bookingRef } : { lat, lng },
     }),
 
   getProfile: () => api<DriverProfile>('/api/driver/profile'),
@@ -277,6 +295,32 @@ export const driverApi = {
       customerLng: number;
       etaMinutes: number | null;
     }>(`/api/tracking/${encodeURIComponent(ref)}`),
+
+  // Driver-owned in-app route (Mapbox directions). The driver's current
+  // GPS is sent in the query string so the server can build a fresh
+  // route without forcing another /api/driver/location round-trip first.
+  getJobRoute: (
+    ref: string,
+    driverLat: number | null,
+    driverLng: number | null,
+  ) => {
+    const params = new URLSearchParams();
+    if (driverLat != null) params.set('lat', driverLat.toFixed(6));
+    if (driverLng != null) params.set('lng', driverLng.toFixed(6));
+    const qs = params.toString();
+    const path = `/api/driver/jobs/${encodeURIComponent(ref)}/route${qs ? `?${qs}` : ''}`;
+    return api<{
+      bookingRef: string;
+      status: string;
+      customerLocation: { lat: number; lng: number; address: string | null } | null;
+      driverLocation: { lat: number; lng: number } | null;
+      distanceMiles: number | null;
+      durationMinutes: number | null;
+      geometry: { type: 'LineString'; coordinates: [number, number][] } | null;
+      source: 'mapbox' | 'haversine' | 'none';
+      lastUpdatedAt: string;
+    }>(path);
+  },
 
   // Sound config (admin-controlled)
   getSoundConfig: () =>

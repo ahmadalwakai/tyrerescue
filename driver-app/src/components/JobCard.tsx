@@ -4,8 +4,20 @@ import { AnimatedPressable } from './AnimatedPressable';
 import { StatusBadge } from './StatusBadge';
 import { lightHaptic } from '@/services/haptics';
 import { format } from 'date-fns';
-import type { JobSummary } from '@/api/client';
+import type { JobSummary, PaymentSummary } from '@/api/client';
 import { useI18n } from '@/i18n';
+
+const GBP_FORMATTER = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
+
+function paymentLine(payment: PaymentSummary, t: (k: string) => string): string {
+  if (payment.status === 'paid' || payment.amountToCollectPence === 0) {
+    return t('jobs.nothingToCollect');
+  }
+  if (payment.status === 'unknown') {
+    return t('jobs.confirmCollection');
+  }
+  return `${t('jobs.collect')} ${GBP_FORMATTER.format(payment.amountToCollectPence / 100)}`;
+}
 
 interface JobCardProps {
   job: JobSummary;
@@ -49,6 +61,20 @@ export function JobCard({ job, onPress }: JobCardProps) {
           <Text style={styles.meta}>{job.tyreSizeDisplay}</Text>
         )}
       </View>
+
+      {job.payment && (
+        <Text
+          style={[
+            styles.collect,
+            job.payment.status === 'paid' || job.payment.amountToCollectPence === 0
+              ? styles.collectMuted
+              : styles.collectActive,
+          ]}
+          numberOfLines={1}
+        >
+          {paymentLine(job.payment, t)}
+        </Text>
+      )}
     </AnimatedPressable>
   );
 }
@@ -95,5 +121,16 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontFamily: 'Inter_400Regular',
     fontSize: fontSize.xs,
+  },
+  collect: {
+    marginTop: spacing.sm,
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: fontSize.sm,
+  },
+  collectActive: {
+    color: colors.accent,
+  },
+  collectMuted: {
+    color: colors.muted,
   },
 });

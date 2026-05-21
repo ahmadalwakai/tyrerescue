@@ -2,86 +2,124 @@ import { NextResponse } from 'next/server';
 import { db, bookings, bookingTyres, tyreProducts } from '@/lib/db';
 import { eq, and, inArray, desc } from 'drizzle-orm';
 import { requireDriverMobile } from '@/lib/auth';
+import { computeDriverPaymentSummary, type PaymentSummary } from '@/lib/payments/driver-payment';
+
+const OPERATIONAL_STATUSES = ['en_route', 'arrived', 'in_progress'] as const;
+const UPCOMING_STATUSES = ['driver_assigned'] as const;
+
+const JOB_LIST_SELECTION = {
+  id: bookings.id,
+  refNumber: bookings.refNumber,
+  status: bookings.status,
+  bookingType: bookings.bookingType,
+  serviceType: bookings.serviceType,
+  addressLine: bookings.addressLine,
+  lat: bookings.lat,
+  lng: bookings.lng,
+  tyreSizeDisplay: bookings.tyreSizeDisplay,
+  quantity: bookings.quantity,
+  customerName: bookings.customerName,
+  customerPhone: bookings.customerPhone,
+  scheduledAt: bookings.scheduledAt,
+  acceptedAt: bookings.acceptedAt,
+  assignedAt: bookings.assignedAt,
+  completedAt: bookings.completedAt,
+  totalAmount: bookings.totalAmount,
+  subtotal: bookings.subtotal,
+  vatAmount: bookings.vatAmount,
+  paymentType: bookings.paymentType,
+  depositAmountPence: bookings.depositAmountPence,
+  remainingBalancePence: bookings.remainingBalancePence,
+  depositPaidAt: bookings.depositPaidAt,
+  stripePiId: bookings.stripePiId,
+  createdAt: bookings.createdAt,
+} as const;
+
+interface RawJobRow {
+  id: string;
+  refNumber: string;
+  status: string;
+  bookingType: string;
+  serviceType: string;
+  addressLine: string;
+  lat: string | null;
+  lng: string | null;
+  tyreSizeDisplay: string | null;
+  quantity: number | null;
+  customerName: string;
+  customerPhone: string | null;
+  scheduledAt: Date | null;
+  acceptedAt: Date | null;
+  assignedAt: Date | null;
+  completedAt: Date | null;
+  totalAmount: string | null;
+  subtotal: string | null;
+  vatAmount: string | null;
+  paymentType: string | null;
+  depositAmountPence: number | null;
+  remainingBalancePence: number | null;
+  depositPaidAt: Date | null;
+  stripePiId: string | null;
+  createdAt: Date | null;
+}
+
+interface TyreRef {
+  quantity: number;
+  brand: string | null;
+  pattern: string | null;
+}
+
+interface SerialisedJob {
+  id: string;
+  refNumber: string;
+  status: string;
+  bookingType: string;
+  serviceType: string;
+  addressLine: string;
+  lat: string | null;
+  lng: string | null;
+  tyreSizeDisplay: string | null;
+  quantity: string | null;
+  customerName: string;
+  customerPhone: string | null;
+  scheduledAt: string | null;
+  acceptedAt: string | null;
+  assignedAt: string | null;
+  completedAt: string | null;
+  totalAmount: string | null;
+  createdAt: string | null;
+  payment: PaymentSummary;
+  tyres: TyreRef[];
+}
 
 export async function GET(request: Request) {
   try {
     const { driverId } = await requireDriverMobile(request);
 
-    const operationalStatuses = ['en_route', 'arrived', 'in_progress'];
-    const upcomingStatuses = ['driver_assigned'];
-
-    // Active jobs (actually working on)
-    const activeJobs = await db
-      .select({
-        id: bookings.id,
-        refNumber: bookings.refNumber,
-        status: bookings.status,
-        bookingType: bookings.bookingType,
-        serviceType: bookings.serviceType,
-        addressLine: bookings.addressLine,
-        lat: bookings.lat,
-        lng: bookings.lng,
-        tyreSizeDisplay: bookings.tyreSizeDisplay,
-        quantity: bookings.quantity,
-        customerName: bookings.customerName,
-        customerPhone: bookings.customerPhone,
-        scheduledAt: bookings.scheduledAt,
-        acceptedAt: bookings.acceptedAt,
-        createdAt: bookings.createdAt,
-      })
+    const activeRows = (await db
+      .select(JOB_LIST_SELECTION)
       .from(bookings)
       .where(
         and(
           eq(bookings.driverId, driverId),
-          inArray(bookings.status, operationalStatuses),
+          inArray(bookings.status, [...OPERATIONAL_STATUSES]),
         ),
       )
-      .orderBy(desc(bookings.createdAt));
+      .orderBy(desc(bookings.createdAt))) as RawJobRow[];
 
-    // Upcoming jobs (assigned, waiting to start)
-    const upcomingJobs = await db
-      .select({
-        id: bookings.id,
-        refNumber: bookings.refNumber,
-        status: bookings.status,
-        bookingType: bookings.bookingType,
-        serviceType: bookings.serviceType,
-        addressLine: bookings.addressLine,
-        lat: bookings.lat,
-        lng: bookings.lng,
-        tyreSizeDisplay: bookings.tyreSizeDisplay,
-        quantity: bookings.quantity,
-        customerName: bookings.customerName,
-        customerPhone: bookings.customerPhone,
-        scheduledAt: bookings.scheduledAt,
-        acceptedAt: bookings.acceptedAt,
-        assignedAt: bookings.assignedAt,
-        createdAt: bookings.createdAt,
-      })
+    const upcomingRows = (await db
+      .select(JOB_LIST_SELECTION)
       .from(bookings)
       .where(
         and(
           eq(bookings.driverId, driverId),
-          inArray(bookings.status, upcomingStatuses),
+          inArray(bookings.status, [...UPCOMING_STATUSES]),
         ),
       )
-      .orderBy(bookings.assignedAt);
+      .orderBy(bookings.assignedAt)) as RawJobRow[];
 
-    // Completed jobs (last 50)
-    const completedJobs = await db
-      .select({
-        id: bookings.id,
-        refNumber: bookings.refNumber,
-        status: bookings.status,
-        bookingType: bookings.bookingType,
-        serviceType: bookings.serviceType,
-        addressLine: bookings.addressLine,
-        tyreSizeDisplay: bookings.tyreSizeDisplay,
-        customerName: bookings.customerName,
-        completedAt: bookings.completedAt,
-        totalAmount: bookings.totalAmount,
-        createdAt: bookings.createdAt,
-      })
+    const completedRows = (await db
+      .select(JOB_LIST_SELECTION)
       .from(bookings)
       .where(
         and(
@@ -90,33 +128,16 @@ export async function GET(request: Request) {
         ),
       )
       .orderBy(desc(bookings.completedAt))
-      .limit(50);
+      .limit(50)) as RawJobRow[];
 
-    // Get tyre info for active + upcoming jobs
-    const allActiveJobs = [...activeJobs, ...upcomingJobs];
-    const jobsWithTyres = await Promise.all(
-      allActiveJobs.map(async (job) => {
-        const tyres = await db
-          .select({
-            quantity: bookingTyres.quantity,
-            brand: tyreProducts.brand,
-            pattern: tyreProducts.pattern,
-          })
-          .from(bookingTyres)
-          .leftJoin(tyreProducts, eq(bookingTyres.tyreId, tyreProducts.id))
-          .where(eq(bookingTyres.bookingId, job.id));
-        return { ...job, tyres };
-      }),
-    );
+    const idsNeedingTyres = [...activeRows, ...upcomingRows].map((j) => j.id);
+    const tyreMap = await fetchTyreMap(idsNeedingTyres);
 
-    const activeWithTyres = jobsWithTyres.filter(j => operationalStatuses.includes(j.status));
-    const upcomingWithTyres = jobsWithTyres.filter(j => upcomingStatuses.includes(j.status));
+    const active = activeRows.map((row) => serialiseJob(row, tyreMap.get(row.id) ?? []));
+    const upcoming = upcomingRows.map((row) => serialiseJob(row, tyreMap.get(row.id) ?? []));
+    const completed = completedRows.map((row) => serialiseJob(row, []));
 
-    return NextResponse.json({
-      active: [...activeWithTyres, ...upcomingWithTyres].map(serialise),
-      upcoming: upcomingWithTyres.map(serialise),
-      completed: completedJobs.map(serialise),
-    });
+    return NextResponse.json({ active, upcoming, completed });
   } catch (error) {
     if (error instanceof Error && error.message.includes('Unauthorized'))
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -126,11 +147,62 @@ export async function GET(request: Request) {
   }
 }
 
-function serialise(row: Record<string, unknown>) {
-  return Object.fromEntries(
-    Object.entries(row).map(([k, v]) => [
-      k,
-      v instanceof Date ? v.toISOString() : typeof v === 'object' && v !== null ? v : v?.toString() ?? null,
-    ]),
-  );
+async function fetchTyreMap(bookingIds: string[]): Promise<Map<string, TyreRef[]>> {
+  const map = new Map<string, TyreRef[]>();
+  if (bookingIds.length === 0) return map;
+
+  const rows = await db
+    .select({
+      bookingId: bookingTyres.bookingId,
+      quantity: bookingTyres.quantity,
+      brand: tyreProducts.brand,
+      pattern: tyreProducts.pattern,
+    })
+    .from(bookingTyres)
+    .leftJoin(tyreProducts, eq(bookingTyres.tyreId, tyreProducts.id))
+    .where(inArray(bookingTyres.bookingId, bookingIds));
+
+  for (const row of rows) {
+    if (row.bookingId == null) continue;
+    const list = map.get(row.bookingId) ?? [];
+    list.push({ quantity: row.quantity, brand: row.brand, pattern: row.pattern });
+    map.set(row.bookingId, list);
+  }
+  return map;
+}
+
+function serialiseJob(row: RawJobRow, tyres: TyreRef[]): SerialisedJob {
+  const payment = computeDriverPaymentSummary({
+    paymentType: row.paymentType,
+    totalAmount: row.totalAmount,
+    subtotal: row.subtotal,
+    vatAmount: row.vatAmount,
+    depositAmountPence: row.depositAmountPence,
+    remainingBalancePence: row.remainingBalancePence,
+    depositPaidAt: row.depositPaidAt,
+    stripePiId: row.stripePiId,
+  });
+
+  return {
+    id: row.id,
+    refNumber: row.refNumber,
+    status: row.status,
+    bookingType: row.bookingType,
+    serviceType: row.serviceType,
+    addressLine: row.addressLine,
+    lat: row.lat?.toString() ?? null,
+    lng: row.lng?.toString() ?? null,
+    tyreSizeDisplay: row.tyreSizeDisplay,
+    quantity: row.quantity != null ? row.quantity.toString() : null,
+    customerName: row.customerName,
+    customerPhone: row.customerPhone,
+    scheduledAt: row.scheduledAt?.toISOString() ?? null,
+    acceptedAt: row.acceptedAt?.toISOString() ?? null,
+    assignedAt: row.assignedAt?.toISOString() ?? null,
+    completedAt: row.completedAt?.toISOString() ?? null,
+    totalAmount: row.totalAmount?.toString() ?? null,
+    createdAt: row.createdAt?.toISOString() ?? null,
+    payment,
+    tyres,
+  };
 }

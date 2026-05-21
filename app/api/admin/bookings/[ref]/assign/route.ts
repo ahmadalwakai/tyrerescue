@@ -8,6 +8,7 @@ import { createNotificationAndSend } from '@/lib/email/resend';
 import { driverAssigned, jobAssigned, jobCancelled } from '@/lib/email/templates';
 import { createAdminNotification } from '@/lib/notifications';
 import { notifyDriverNewJob, notifyDriverReassignment } from '@/lib/notifications/driver-push';
+import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -104,9 +105,19 @@ export async function PATCH(request: Request, { params }: Props) {
       });
 
       // Notify the newly assigned driver; retry once on transient send failure.
-      let reassignmentPushSent = await notifyDriverReassignment(driverId, booking.refNumber, booking.addressLine);
+      const reassignPayment = computeDriverPaymentSummary({
+        paymentType: booking.paymentType,
+        totalAmount: booking.totalAmount?.toString() ?? null,
+        subtotal: booking.subtotal?.toString() ?? null,
+        vatAmount: booking.vatAmount?.toString() ?? null,
+        depositAmountPence: booking.depositAmountPence,
+        remainingBalancePence: booking.remainingBalancePence,
+        depositPaidAt: booking.depositPaidAt,
+        stripePiId: booking.stripePiId,
+      });
+      let reassignmentPushSent = await notifyDriverReassignment(driverId, booking.refNumber, booking.addressLine, reassignPayment, booking.id);
       if (!reassignmentPushSent) {
-        reassignmentPushSent = await notifyDriverReassignment(driverId, booking.refNumber, booking.addressLine);
+        reassignmentPushSent = await notifyDriverReassignment(driverId, booking.refNumber, booking.addressLine, reassignPayment, booking.id);
       }
 
       return NextResponse.json({ success: true, reassigned: true });
@@ -239,11 +250,27 @@ export async function PATCH(request: Request, { params }: Props) {
       }
     }
 
-    // Send push notification to driver's mobile app
+    // Send push notification to driver's mobile app.
+    // Retry once after a short delay if the first attempt fails (e.g. transient
+    // FCM blip or a token that's just been refreshed). Never call again on
+    // success — duplicates create overlapping full-screen alerts.
     try {
-      let pushSent = await notifyDriverNewJob(driverId, booking.refNumber, booking.addressLine);
-      if (!pushSent) {
-        pushSent = await notifyDriverNewJob(driverId, booking.refNumber, booking.addressLine);
+      const newJobPayment = computeDriverPaymentSummary({
+        paymentType: booking.paymentType,
+        totalAmount: booking.totalAmount?.toString() ?? null,
+        subtotal: booking.subtotal?.toString() ?? null,
+        vatAmount: booking.vatAmount?.toString() ?? null,
+        depositAmountPence: booking.depositAmountPence,
+        remainingBalancePence: booking.remainingBalancePence,
+        depositPaidAt: booking.depositPaidAt,
+        stripePiId: booking.stripePiId,
+      });
+      const firstResult = await notifyDriverNewJob(driverId, booking.refNumber, booking.addressLine, newJobPayment, booking.id);
+      if (!firstResult) {
+        console.error(`[assign] driver push first attempt failed driverId=${driverId} ref=${booking.refNumber}`);
+        await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+        const retryResult = await notifyDriverNewJob(driverId, booking.refNumber, booking.addressLine, newJobPayment, booking.id);
+        console.warn(`[assign] driver push retry driverId=${driverId} ref=${booking.refNumber} success=${retryResult}`);
       }
     } catch (pushError) {
       console.error('Failed to send push notification to driver:', pushError);

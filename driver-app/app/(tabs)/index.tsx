@@ -73,7 +73,11 @@ export default function DashboardScreen() {
   const [syncLabel, setSyncLabel] = useState(t('dashboard.syncing'));
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const { bgRunning } = useLocationBroadcast(isOnline, activeJobs.length > 0);
+  const { bgRunning } = useLocationBroadcast(
+    isOnline,
+    activeJobs.length > 0,
+    activeJobs[0]?.refNumber ?? null,
+  );
   const { checkForNewJobs } = useNewJobDetector();
 
   const fetchData = useCallback(async () => {

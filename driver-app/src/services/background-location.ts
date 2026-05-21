@@ -1,8 +1,10 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import * as SecureStore from 'expo-secure-store';
 import { api, getToken } from '@/api/client';
 
 const BACKGROUND_LOCATION_TASK = 'background-location-task';
+export const ACTIVE_BOOKING_REF_KEY = 'active_booking_ref';
 
 // Define the background task BEFORE anything else
 TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
@@ -14,15 +16,16 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
   const token = await getToken();
   if (!token) return;
 
+  const activeRef = await SecureStore.getItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => null);
+
   // Send the most recent location
   const latest = locations[locations.length - 1];
   try {
     await api('/api/driver/location', {
       method: 'POST',
-      body: {
-        lat: latest.coords.latitude,
-        lng: latest.coords.longitude,
-      },
+      body: activeRef
+        ? { lat: latest.coords.latitude, lng: latest.coords.longitude, bookingRef: activeRef }
+        : { lat: latest.coords.latitude, lng: latest.coords.longitude },
     });
   } catch {
     // Silently ignore — network errors are expected when backgrounded

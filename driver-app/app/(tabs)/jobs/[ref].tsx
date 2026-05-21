@@ -14,8 +14,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import * as SecureStore from 'expo-secure-store';
 import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
-import { driverApi, JobDetail, ApiError, chatApi } from '@/api/client';
+import { driverApi, JobDetail, ApiError, chatApi, PaymentSummary } from '@/api/client';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { StatusBadge } from '@/components/StatusBadge';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -23,7 +24,84 @@ import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { mediumHaptic, heavyHaptic, errorHaptic } from '@/services/haptics';
 import { playSound, stopAlertSound } from '@/services/sound';
 import { clearAlertedRef } from '@/services/job-alert';
+import { ACTIVE_BOOKING_REF_KEY } from '@/services/background-location';
 import { useI18n } from '@/i18n';
+
+const ACTIVE_JOB_STATUSES = new Set([
+  'driver_assigned',
+  'en_route',
+  'arrived',
+  'in_progress',
+]);
+
+const gbpFormatter = new Intl.NumberFormat('en-GB', {
+  style: 'currency',
+  currency: 'GBP',
+});
+
+function formatGbpFromPence(pence: number | null | undefined): string | null {
+  if (pence == null || !Number.isFinite(pence)) return null;
+  return gbpFormatter.format(pence / 100);
+}
+
+function PaymentCard({
+  payment,
+  t,
+}: {
+  payment: PaymentSummary | null;
+  t: (key: string) => string;
+}) {
+  if (!payment) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>{t('jobDetail.payment')}</Text>
+        <Text style={styles.cardMeta}>{t('jobDetail.notAvailable')}</Text>
+      </View>
+    );
+  }
+
+  const methodLabel =
+    payment.type === 'cash'
+      ? t('jobDetail.paymentMethodCash')
+      : payment.type === 'full'
+        ? t('jobDetail.paymentMethodFull')
+        : payment.type === 'deposit'
+          ? t('jobDetail.paymentMethodDeposit')
+          : t('jobDetail.paymentMethodUnknown');
+
+  const statusLabel =
+    payment.status === 'paid'
+      ? t('jobDetail.paymentStatusPaid')
+      : payment.status === 'deposit_paid'
+        ? t('jobDetail.paymentStatusDepositPaid')
+        : payment.status === 'unpaid'
+          ? t('jobDetail.paymentStatusUnpaid')
+          : t('jobDetail.paymentStatusUnknown');
+
+  let amountLabel: string;
+  if (payment.status === 'paid' || payment.amountToCollectPence === 0) {
+    amountLabel = t('jobDetail.nothingToCollect');
+  } else if (payment.status === 'unknown') {
+    amountLabel = t('jobDetail.confirmWithAdmin');
+  } else {
+    amountLabel =
+      formatGbpFromPence(payment.amountToCollectPence) ?? t('jobDetail.notAvailable');
+  }
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>{t('jobDetail.payment')}</Text>
+      <Text style={styles.cardMeta}>{t('jobDetail.paymentMethod')}</Text>
+      <Text style={styles.cardValue}>{methodLabel}</Text>
+      <Text style={[styles.cardMeta, { marginTop: 8 }]}>{t('jobDetail.paymentStatus')}</Text>
+      <Text style={styles.cardValue}>{statusLabel}</Text>
+      <Text style={[styles.cardMeta, { marginTop: 8 }]}>{t('jobDetail.amountToCollect')}</Text>
+      <Text style={[styles.cardValue, { fontSize: fontSize.lg, fontWeight: '700' }]}>
+        {amountLabel}
+      </Text>
+    </View>
+  );
+}
 
 function getDriverActions(t: (key: string) => string): Record<string, { label: string; next: string }> {
   return {
@@ -63,6 +141,41 @@ export default function JobDetailScreen() {
 
   useRefreshOnFocus(fetchJob);
 
+  // Track active booking ref so the location bridge knows which booking's
+  // tracking session to update. Cleared on unmount or when the job leaves the
+  // active set (completed/cancelled).
+  useEffect(() => {
+    if (!ref) return;
+    if (job && ACTIVE_JOB_STATUSES.has(job.status)) {
+      SecureStore.setItemAsync(ACTIVE_BOOKING_REF_KEY, ref).catch(() => {});
+    } else if (job) {
+      // Job loaded but no longer active.
+      SecureStore.getItemAsync(ACTIVE_BOOKING_REF_KEY)
+        .then((stored) => {
+          if (stored === ref) {
+            return SecureStore.deleteItemAsync(ACTIVE_BOOKING_REF_KEY);
+          }
+          return undefined;
+        })
+        .catch(() => {});
+    }
+  }, [ref, job?.status]);
+
+  useEffect(() => {
+    return () => {
+      // On unmount, clear ONLY if this screen owned the key.
+      if (!ref) return;
+      SecureStore.getItemAsync(ACTIVE_BOOKING_REF_KEY)
+        .then((stored) => {
+          if (stored === ref) {
+            return SecureStore.deleteItemAsync(ACTIVE_BOOKING_REF_KEY);
+          }
+          return undefined;
+        })
+        .catch(() => {});
+    };
+  }, [ref]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchJob();
@@ -94,33 +207,6 @@ export default function JobDetailScreen() {
             await fetchJob();
           } catch (err) {
             const msg = err instanceof ApiError ? err.message : t('jobDetail.failedUpdate');
-            Alert.alert(t('common.error'), msg);
-          }
-          setActioning(false);
-          actionLockRef.current = false;
-        },
-      },
-    ], { onDismiss: () => { actionLockRef.current = false; } });
-  };
-
-  const handleAccept = async () => {
-    if (!ref || actionLockRef.current) return;
-    actionLockRef.current = true;
-    Alert.alert(t('jobDetail.acceptJob'), t('jobDetail.acceptAssignment'), [
-      { text: t('common.cancel'), style: 'cancel', onPress: () => { actionLockRef.current = false; } },
-      {
-        text: t('jobDetail.accept'),
-        onPress: async () => {
-          setActioning(true);
-          try {
-            await driverApi.acceptJob(ref);
-            await stopAlertSound();
-            clearAlertedRef(ref);
-            mediumHaptic();
-            playSound('job_accepted');
-            await fetchJob();
-          } catch (err) {
-            const msg = err instanceof ApiError ? err.message : t('jobDetail.failedAccept');
             Alert.alert(t('common.error'), msg);
           }
           setActioning(false);
@@ -267,6 +353,9 @@ export default function JobDetailScreen() {
         )}
       </View>
 
+      {/* Payment */}
+      <PaymentCard payment={job.payment ?? null} t={t} />
+
       {/* Quick Status Messages */}
       {['driver_assigned', 'en_route', 'arrived', 'in_progress'].includes(job.status) && (
         <View style={styles.quickMsgSection}>
@@ -296,16 +385,19 @@ export default function JobDetailScreen() {
         <Text style={styles.cardValue}>{job.addressLine}</Text>
         {job.lat && job.lng && (
           <View style={styles.locationButtons}>
-            <Pressable style={styles.navButton} onPress={openNavigation}>
+            <Pressable
+              style={styles.navButton}
+              onPress={() => router.push(`/(tabs)/jobs/${ref}/route`)}
+            >
               <Ionicons name="navigate-outline" size={18} color="#FFFFFF" />
-              <Text style={styles.navButtonText}>{t('jobDetail.openInMaps')}</Text>
+              <Text style={styles.navButtonText}>Start in-app route</Text>
             </Pressable>
             <Pressable
               style={[styles.navButton, styles.mapViewButton]}
-              onPress={() => router.push(`/(tabs)/jobs/${ref}/map`)}
+              onPress={openNavigation}
             >
-              <Ionicons name="map-outline" size={18} color="#FFFFFF" />
-              <Text style={styles.navButtonText}>{t('jobDetail.liveMap')}</Text>
+              <Ionicons name="open-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.navButtonText}>{t('jobDetail.openInMaps')}</Text>
             </Pressable>
           </View>
         )}
@@ -422,29 +514,6 @@ export default function JobDetailScreen() {
       </View>
 
       {/* Actions */}
-      {job.status === 'paid' && (
-        <Animated.View entering={FadeInDown.duration(300)} style={styles.actionRow}>
-          <AnimatedPressable
-            style={[styles.actionButton, styles.acceptButton, actioning && styles.buttonDisabled]}
-            onPress={handleAccept}
-            disabled={actioning}
-            pressScale={0.95}
-          >
-            <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.actionButtonText}>{t('jobDetail.acceptJob')}</Text>
-          </AnimatedPressable>
-          <AnimatedPressable
-            style={[styles.actionButton, styles.rejectButton, actioning && styles.buttonDisabled]}
-            onPress={handleReject}
-            disabled={actioning}
-            pressScale={0.95}
-          >
-            <Ionicons name="close-circle-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.actionButtonText}>{t('jobDetail.reject')}</Text>
-          </AnimatedPressable>
-        </Animated.View>
-      )}
-
       {job.status === 'driver_assigned' && (
         <Animated.View entering={FadeInDown.duration(300)} style={styles.actionRow}>
           <AnimatedPressable

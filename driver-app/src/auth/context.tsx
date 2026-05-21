@@ -3,6 +3,7 @@ import {
   getToken,
   setToken as storeToken,
   clearToken,
+  getApiUrl,
   LoginResponse,
   driverApi,
 } from '@/api/client';
@@ -10,6 +11,7 @@ import { unregisterPushToken } from '@/services/notifications';
 import { stopBackgroundLocation } from '@/services/background-location';
 import { clearAlertedRefs } from '@/services/job-alert';
 import { stopAlertSound } from '@/services/sound';
+import { DriverAlertWatcher } from '@/services/driver-watcher';
 
 interface User {
   id: string;
@@ -56,6 +58,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: 'driver',
             driverId: profile.driverId,
           });
+          // Re-arm the native alert watcher with the restored credentials.
+          try {
+            const baseUrl = await getApiUrl();
+            await DriverAlertWatcher.startWatcher(baseUrl, stored);
+          } catch (err) {
+            console.warn('[driver-watcher] re-arm on restore failed', err);
+          }
         }
       } catch {
         // Token invalid or expired — clear it
@@ -73,10 +82,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await storeToken(res.token);
     setTokenState(res.token);
     setUser(res.user);
+    try {
+      const baseUrl = await getApiUrl();
+      await DriverAlertWatcher.startWatcher(baseUrl, res.token);
+    } catch (err) {
+      console.warn('[driver-watcher] arm on login failed', err);
+    }
   }, []);
 
   const logout = useCallback(async () => {
     await stopAlertSound();
+    try {
+      await DriverAlertWatcher.stopWatcher();
+    } catch (err) {
+      console.warn('[driver-watcher] disarm on logout failed', err);
+    }
     await unregisterPushToken();
     clearAlertedRefs();
     await stopBackgroundLocation();

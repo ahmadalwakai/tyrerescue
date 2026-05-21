@@ -1,8 +1,7 @@
-import { useCallback, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppButton, SectionCard } from '@/components/ui';
 import { colors, fontSize, radius, space } from '@/components/theme';
-import { buildWhatsAppUrl } from '@/lib/customer-message';
 import { useDriverList, type DriverListItem } from '@/hooks/useDriverList';
 import type { BookingTrackingData } from '@/hooks/useBookingTracking';
 
@@ -16,8 +15,6 @@ interface Props {
   /** Called when the operator selects or deselects a driver. */
   onSelectDriver?: (phone: string | null) => void;
 }
-
-type SendState = 'idle' | 'loading' | 'success' | 'error';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -64,43 +61,14 @@ export function DriverAssignSection({
 }: Props) {
   const { drivers, loading, error, reload } = useDriverList();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [sendState, setSendState] = useState<SendState>('idle');
 
   const selectedDriver = drivers.find((d) => d.id === selectedId) ?? null;
-  const driverUrl = trackingData?.driverUrl ?? null;
+  const trackingReady = trackingData?.customerUrl != null;
 
   const customerPoint =
     customerLat != null && customerLng != null
       ? { lat: customerLat, lng: customerLng }
       : null;
-
-  const handleSend = useCallback(() => {
-    if (!selectedDriver || !driverUrl || !selectedDriver.phone) return;
-    setSendState('loading');
-    const msg = `New Tyre Rescue job.\nOpen this page, press Start journey, and keep it open until the job is finished:\n${driverUrl}`;
-    const waUrl = buildWhatsAppUrl(selectedDriver.phone, msg);
-    if (!waUrl) {
-      setSendState('error');
-      setTimeout(() => setSendState('idle'), 2_000);
-      return;
-    }
-    Linking.openURL(waUrl)
-      .then(() => {
-        setSendState('success');
-        setTimeout(() => setSendState('idle'), 2_000);
-      })
-      .catch(() => {
-        setSendState('error');
-        setTimeout(() => setSendState('idle'), 2_000);
-      });
-  }, [selectedDriver, driverUrl]);
-
-  const sendLabel =
-    sendState === 'loading' ? 'Sending...'
-    : sendState === 'success' ? 'Sent ✓'
-    : sendState === 'error'   ? 'Could not send. Try again.'
-    : selectedDriver && !selectedDriver.phone ? 'Driver phone is missing'
-    : 'Send job + tracking';
 
   return (
     <SectionCard title="Assign driver">
@@ -146,23 +114,11 @@ export function DriverAssignSection({
         <Text style={styles.selectedLabel}>Selected driver: {selectedDriver.name}</Text>
       ) : null}
 
-      {driverUrl ? (
-        <AppButton
-          label={sendLabel}
-          variant="primary"
-          loading={sendState === 'loading'}
-          disabled={
-            !selectedDriver ||
-            !selectedDriver.phone ||
-            sendState === 'loading'
-          }
-          onPress={handleSend}
-          fullWidth
-          style={{ marginTop: space.sm }}
-        />
-      ) : (
-        <Text style={styles.hint}>Tracking links will appear once the booking is confirmed.</Text>
-      )}
+      <Text style={styles.hint}>
+        {trackingReady
+          ? 'Assign the driver in the admin panel — they will receive a push when assigned. The driver app reports tracking automatically.'
+          : 'Tracking will activate once the booking is confirmed.'}
+      </Text>
     </SectionCard>
   );
 }

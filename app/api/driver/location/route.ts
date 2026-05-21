@@ -1,35 +1,35 @@
 import { NextResponse } from 'next/server';
-import { db, drivers, driverLocationHistory, bookings } from '@/lib/db';
+import { db, drivers, driverLocationHistory, bookings, trackingSessions } from '@/lib/db';
 import { eq, and, inArray } from 'drizzle-orm';
 import { requireDriverMobile } from '@/lib/auth';
+import { z } from 'zod';
+
+const ACTIVE_STATUSES = ['driver_assigned', 'en_route', 'arrived', 'in_progress'] as const;
+
+const bodySchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  bookingRef: z.string().min(1).optional(),
+});
 
 export async function POST(request: Request) {
   try {
-    // Determine authentication source — mobile JWT vs web session
     const authHeader = request.headers.get('authorization');
     const isMobileApp = !!(authHeader?.startsWith('Bearer '));
 
     const { driverId } = await requireDriverMobile(request);
-    const { lat, lng } = await request.json();
 
-    // Validate coordinates
-    if (typeof lat !== 'number' || typeof lng !== 'number') {
+    const parsed = bodySchema.safeParse(await request.json());
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'lat and lng must be numbers' },
-        { status: 400 }
+        { error: 'Invalid body', details: parsed.error.flatten() },
+        { status: 400 },
       );
     }
-
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      return NextResponse.json(
-        { error: 'Invalid coordinates' },
-        { status: 400 }
-      );
-    }
+    const { lat, lng, bookingRef } = parsed.data;
 
     const locationSource = isMobileApp ? 'mobile_app' : 'web_portal';
 
-    // Get driver record
     const [driver] = await db
       .select({
         id: drivers.id,
@@ -49,9 +49,6 @@ export async function POST(request: Request) {
     }
 
     // Web portal must NOT overwrite fresh mobile app location.
-    // If the last source was mobile_app and it's less than 5 minutes old,
-    // silently accept the web update for history but don't overwrite the
-    // authoritative mobile location.
     const mobileLocationIsFresh =
       driver.locationSource === 'mobile_app' &&
       driver.locationAt &&
@@ -71,30 +68,47 @@ export async function POST(request: Request) {
         .where(eq(drivers.id, driver.id));
     }
 
-    // Always record location history regardless of source
-    const [activeBooking] = await db
-      .select({ id: bookings.id })
+    // Active booking lookup: prefer caller-supplied ref (current job), else first active.
+    const activeBookings = await db
+      .select({ id: bookings.id, refNumber: bookings.refNumber })
       .from(bookings)
       .where(
         and(
           eq(bookings.driverId, driver.id),
-          inArray(bookings.status, ['driver_assigned', 'en_route', 'arrived', 'in_progress'])
-        )
-      )
-      .limit(1);
+          inArray(bookings.status, [...ACTIVE_STATUSES]),
+        ),
+      );
+
+    const targetedBooking = bookingRef
+      ? activeBookings.find((b) => b.refNumber === bookingRef) ?? null
+      : activeBookings[0] ?? null;
 
     await db.insert(driverLocationHistory).values({
       driverId: driver.id,
-      bookingId: activeBooking?.id ?? null,
+      bookingId: targetedBooking?.id ?? null,
       lat: lat.toString(),
       lng: lng.toString(),
     });
+
+    // Bridge to trackingSessions so customer/admin tracking surfaces use the
+    // driver's native GPS rather than relying on a separate beacon.
+    if (shouldUpdatePrimary && targetedBooking) {
+      await db
+        .update(trackingSessions)
+        .set({
+          lastLatitude: lat.toString(),
+          lastLongitude: lng.toString(),
+          lastUpdatedAt: new Date(),
+        })
+        .where(eq(trackingSessions.bookingId, targetedBooking.id));
+    }
 
     return NextResponse.json({
       success: true,
       lat,
       lng,
       source: locationSource,
+      bridgedBookingRef: targetedBooking?.refNumber ?? null,
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {

@@ -161,6 +161,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
         method: 'POST',
         body: { pushToken, platform: Platform.OS, tokenType: 'fcm' },
       });
+      console.log('[notif] Driver FCM token registered');
     } catch (regErr) {
       console.error('[notif] Failed to register token with backend:', regErr);
       return null;
