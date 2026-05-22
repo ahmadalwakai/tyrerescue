@@ -50,10 +50,12 @@ class DriverJobAlertActivity : AppCompatActivity() {
     val paymentType = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_PAYMENT_TYPE).orEmpty()
     val jobPricePence = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_JOB_PRICE_PENCE).orEmpty()
 
+    Log.i(TAG, "DRIVER_ALERT_ACTIVITY_ON_CREATE refSuffix=$refSuffix")
     Log.i(TAG, "onCreate refSuffix=$refSuffix")
 
     try {
       enableLockScreenDisplay()
+      Log.i(TAG, "DRIVER_ALERT_ACTIVITY_LOCKSCREEN_FLAGS_SET refSuffix=$refSuffix")
       setContentView(buildContentView(ref, title, body, address, deepLink, amountToCollectPence, paymentStatus, paymentType, jobPricePence))
       startAlertSignals(refSuffix)
     } catch (err: Exception) {
@@ -170,6 +172,7 @@ class DriverJobAlertActivity : AppCompatActivity() {
       text = "Open job"
       textSize = 18f
       setOnClickListener {
+        Log.i(TAG, "DRIVER_ALERT_ACTION_ACCEPT refSuffix=${ref.takeLast(8).ifBlank { "unknown" }}")
         Log.i(TAG, "open job pressed refSuffix=${ref.takeLast(8).ifBlank { "unknown" }}")
         openDeepLink(
           ref = ref,
@@ -184,6 +187,7 @@ class DriverJobAlertActivity : AppCompatActivity() {
       textSize = 18f
       setPadding(0, 16, 0, 0)
       setOnClickListener {
+        Log.i(TAG, "DRIVER_ALERT_ACTION_ACCEPT refSuffix=${ref.takeLast(8).ifBlank { "unknown" }} action=start_route")
         Log.i(TAG, "start route pressed refSuffix=${ref.takeLast(8).ifBlank { "unknown" }}")
         openDeepLink(
           ref = ref,
@@ -198,6 +202,7 @@ class DriverJobAlertActivity : AppCompatActivity() {
       textSize = 18f
       setPadding(0, 20, 0, 0)
       setOnClickListener {
+        Log.i(TAG, "DRIVER_ALERT_ACTION_REJECT refSuffix=${ref.takeLast(8).ifBlank { "unknown" }}")
         Log.i(TAG, "dismiss pressed refSuffix=${ref.takeLast(8).ifBlank { "unknown" }}")
         stopAlertSignals()
         finish()

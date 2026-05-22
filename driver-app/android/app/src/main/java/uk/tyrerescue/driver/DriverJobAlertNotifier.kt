@@ -56,6 +56,7 @@ object DriverJobAlertNotifier {
 
   fun postAlert(context: Context, payload: JobAlertPayload, sourceTag: String) {
     val refSuffix = payload.ref?.takeLast(8) ?: "unknown"
+    Log.i(TAG, "DRIVER_NATIVE_NOTIFY_ATTEMPT source=$sourceTag refSuffix=$refSuffix")
     Log.i(TAG, "[native-alert] notify requested source=$sourceTag refSuffix=$refSuffix")
 
     // Dedupe across FCM and polling fallback. We only suppress duplicates
@@ -103,7 +104,10 @@ object DriverJobAlertNotifier {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val allowed = manager.canUseFullScreenIntent()
         Log.i(TAG, "[native-alert] canUseFullScreenIntent refSuffix=$refSuffix allowed=$allowed")
-        if (!allowed) {
+        if (allowed) {
+          Log.i(TAG, "DRIVER_FULLSCREEN_INTENT_ALLOWED refSuffix=$refSuffix")
+        } else {
+          Log.w(TAG, "DRIVER_FULLSCREEN_INTENT_BLOCKED refSuffix=$refSuffix reason=permission_denied_api34")
           Log.w(TAG, "[native-alert] full-screen permission missing refSuffix=$refSuffix")
           postFullScreenIntentGrantNotification(context)
         }
@@ -152,9 +156,14 @@ object DriverJobAlertNotifier {
       NotificationManagerCompat.from(context).notify(notificationId, builder.build())
       Log.i(
         TAG,
+        "DRIVER_NATIVE_NOTIFY_SUCCESS source=$sourceTag refSuffix=$refSuffix notificationId=$notificationId fullScreenIntent=$canUseFullScreen channel=$CHANNEL_ID",
+      )
+      Log.i(
+        TAG,
         "[native-alert] notification posted source=$sourceTag refSuffix=$refSuffix notificationId=$notificationId fullScreenIntent=$canUseFullScreen channel=$CHANNEL_ID",
       )
     } catch (err: Exception) {
+      Log.e(TAG, "DRIVER_NATIVE_NOTIFY_FAIL source=$sourceTag refSuffix=$refSuffix error=${err.message}", err)
       Log.e(TAG, "[native-alert] notification post failed source=$sourceTag", err)
     }
 

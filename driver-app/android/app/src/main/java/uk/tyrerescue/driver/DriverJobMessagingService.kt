@@ -1,5 +1,6 @@
 package uk.tyrerescue.driver
 
+import android.content.Context
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -23,6 +24,7 @@ class DriverJobMessagingService : FirebaseMessagingService() {
       val rawType = data["type"] ?: "missing"
       val dataKeys = data.keys.sorted().joinToString(",")
 
+      Log.i(TAG, "DRIVER_FCM_MESSAGE_RECEIVED messageId=$messageId from=${remoteMessage.from ?: "unknown"} type=$rawType priority=${remoteMessage.priority} originalPriority=${remoteMessage.originalPriority} keys=$dataKeys")
       Log.i(TAG, "[native-fcm] onMessageReceived messageId=$messageId from=${remoteMessage.from ?: "unknown"}")
       Log.i(TAG, "[native-fcm] data keys=$dataKeys type=$rawType priority=${remoteMessage.priority} originalPriority=${remoteMessage.originalPriority}")
 
@@ -40,6 +42,7 @@ class DriverJobMessagingService : FirebaseMessagingService() {
       }
 
       Log.i(TAG, "[native-fcm] driver_new_job accepted (rawType=$rawType)")
+      Log.i(TAG, "DRIVER_FCM_URGENT_JOB_PARSED rawType=$rawType refSuffix=${(data["ref"] ?: data["bookingRef"] ?: data["jobRef"] ?: "unknown").takeLast(8)}")
 
       val ref = data["ref"] ?: data["bookingRef"] ?: data["jobRef"]
       val jobId = data["jobId"]
@@ -78,7 +81,22 @@ class DriverJobMessagingService : FirebaseMessagingService() {
   override fun onNewToken(token: String) {
     super.onNewToken(token)
     val suffix = token.takeLast(8)
-    Log.i(TAG, "FCM token refreshed, suffix=$suffix")
+    Log.i(TAG, "DRIVER_FCM_TOKEN_REFRESHED suffix=$suffix")
+    // Persist token + dirty flag so the JS layer's next register tick (every
+    // 30s while logged in) re-uploads to the backend even if the cached
+    // device token has since rotated. This is belt-and-braces; expo's
+    // getDevicePushTokenAsync will also return the fresh token directly.
+    try {
+      applicationContext
+        .getSharedPreferences(DriverAlertWatcherService.PREFS_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .putString("last_fcm_token", token)
+        .putLong("last_fcm_token_at", System.currentTimeMillis())
+        .putBoolean("fcm_token_dirty", true)
+        .apply()
+    } catch (err: Exception) {
+      Log.w(TAG, "failed to persist refreshed FCM token", err)
+    }
   }
 
   companion object {

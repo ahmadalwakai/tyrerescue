@@ -41,7 +41,7 @@ async function clearStaleDriverToken(
       .set({ pushToken: null, pushTokenPlatform: null })
       .where(eq(drivers.id, driverId));
     console.warn(
-      `[driver-push] cleared stale FCM token driverId=${driverId} tokenSuffix=${tokenSuffix} reason=${reason}`,
+      `[driver-push] staleTokensRemoved driverId=${driverId} tokenSuffix=${tokenSuffix} reason=${reason} count=1`,
     );
   } catch (err) {
     console.error(
@@ -144,6 +144,12 @@ export async function sendDriverPushNotification(
   data?: Record<string, unknown>,
   channelId?: string,
 ): Promise<boolean> {
+  const payloadType = (data?.type as string) ?? 'system';
+  console.log(
+    `[driver-push] driverPushStarted driverId=${driverId} payloadType=${payloadType} bookingRef=${
+      (data?.ref as string) ?? 'unknown'
+    }`,
+  );
   // Persist to notification history regardless of push delivery
   try {
     await db.insert(driverNotifications).values({
@@ -166,6 +172,9 @@ export async function sendDriverPushNotification(
     .limit(1);
 
   if (!driver?.pushToken) {
+    console.warn(
+      `[driver-push] noTokenForDriver driverId=${driverId} payloadType=${payloadType} tokensFound=0`,
+    );
     const eventType = (data?.type as string) ?? 'system';
     if (CRITICAL_EVENTS.has(eventType)) {
       console.warn(
@@ -176,6 +185,10 @@ export async function sendDriverPushNotification(
     }
     return false;
   }
+
+  console.log(
+    `[driver-push] tokensFound driverId=${driverId} payloadType=${payloadType} tokensFound=1 tokenSuffix=${driver.pushToken.slice(-8)}`,
+  );
 
   const eventType = (data?.type as string) ?? 'system';
   const soundFile = await getSoundForEvent(eventType);
@@ -257,12 +270,15 @@ export async function sendDriverPushNotification(
 
       if (dataResult.success) {
         console.log(
+          `[driver-push] pushSendSuccess driverId=${driverId} payloadType=driver_new_job bookingRef=${bookingRef} messageId=${dataResult.messageId} tokenSuffix=${tokenSuffix} transport=fcm-v1-data`,
+        );
+        console.log(
           `[driver-push] native data-only driver_new_job sent driverId=${driverId} bookingRef=${bookingRef} messageId=${dataResult.messageId} tokenSuffix=${tokenSuffix}`,
         );
         return true;
       }
       console.error(
-        `[driver-push] native data-only driver_new_job FAILED driverId=${driverId} bookingRef=${bookingRef} tokenSuffix=${tokenSuffix} error=${dataResult.error} errorCode=${dataResult.errorCode ?? 'none'}`,
+        `[driver-push] pushSendFailure driverId=${driverId} payloadType=driver_new_job bookingRef=${bookingRef} tokenSuffix=${tokenSuffix} error=${dataResult.error} errorCode=${dataResult.errorCode ?? 'none'}`,
       );
       if (isStaleTokenError(dataResult.errorCode, dataResult.error)) {
         await clearStaleDriverToken(driverId, tokenSuffix, dataResult.errorCode ?? 'token_invalid');
@@ -288,10 +304,16 @@ export async function sendDriverPushNotification(
     );
 
     if (result.success) {
+      console.log(
+        `[driver-push] pushSendSuccess driverId=${driverId} payloadType=${payloadType} channel=${effectiveChannel} messageId=${result.messageId} transport=fcm-v1-notification`,
+      );
       console.log(`[push/fcm] Sent to driver ${driverId}: channel=${effectiveChannel} msgId=${result.messageId}`);
       return true;
     }
     const tokenSuffix = driver.pushToken.slice(-6);
+    console.error(
+      `[driver-push] pushSendFailure driverId=${driverId} payloadType=${payloadType} tokenSuffix=${tokenSuffix} errorCode=${result.errorCode ?? 'none'} error=${result.error}`,
+    );
     console.error(
       `[push/fcm] Failed for driver ${driverId} tokenSuffix=${tokenSuffix} errorCode=${result.errorCode ?? 'none'}: ${result.error}`,
     );

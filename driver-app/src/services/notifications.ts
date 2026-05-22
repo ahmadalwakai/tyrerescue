@@ -122,7 +122,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
   if (pushRegistrationInFlight) return pushRegistrationInFlight;
 
   pushRegistrationInFlight = (async () => {
+    console.log('[notif] DRIVER_FCM_TOKEN_REGISTER_START platform=' + Platform.OS);
     if (!Device.isDevice) {
+      console.warn('[notif] DRIVER_FCM_TOKEN_REGISTER_FAIL reason=not_a_device');
       return null;
     }
 
@@ -136,6 +138,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     }
 
     if (finalStatus !== 'granted') {
+      console.warn('[notif] DRIVER_FCM_TOKEN_REGISTER_FAIL reason=permission_denied status=' + finalStatus);
       return null;
     }
 
@@ -151,9 +154,11 @@ export async function registerForPushNotifications(): Promise<string | null> {
         ? tokenData.data
         : JSON.stringify(tokenData.data);
     } catch (tokenErr) {
-      console.error('[notif] Failed to get native device token:', tokenErr);
+      console.error('[notif] DRIVER_FCM_TOKEN_REGISTER_FAIL reason=device_token_error', tokenErr);
       return null;
     }
+
+    const tokenSuffix = pushToken.length > 8 ? pushToken.slice(-8) : pushToken;
 
     // Send native token to backend with tokenType = 'fcm'
     try {
@@ -161,9 +166,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
         method: 'POST',
         body: { pushToken, platform: Platform.OS, tokenType: 'fcm' },
       });
-      console.log('[notif] Driver FCM token registered');
+      console.log('[notif] DRIVER_FCM_TOKEN_REGISTER_SUCCESS tokenSuffix=' + tokenSuffix + ' platform=' + Platform.OS);
     } catch (regErr) {
-      console.error('[notif] Failed to register token with backend:', regErr);
+      console.error('[notif] DRIVER_FCM_TOKEN_REGISTER_FAIL reason=backend_post_error tokenSuffix=' + tokenSuffix, regErr);
       return null;
     }
 
