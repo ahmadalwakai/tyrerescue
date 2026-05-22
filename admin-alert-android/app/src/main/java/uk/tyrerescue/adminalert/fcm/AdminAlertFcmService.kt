@@ -75,8 +75,10 @@ class AdminAlertFcmService : FirebaseMessagingService() {
         val bookingId     = data[DATA_BOOKING_ID] ?: ""
         val customerPhone = data[DATA_CUSTOMER_PHONE] ?: ""
         val createdAt     = data[DATA_CREATED_AT] ?: ""
-        val title         = message.notification?.title ?: "Emergency booking received"
-        val body          = message.notification?.body  ?: "Open Assisted Chat now"
+        // Prefer title/body from data (DATA-ONLY messages) and fall back to
+        // the notification block for legacy mixed payloads.
+        val title         = data["title"] ?: message.notification?.title ?: "Emergency booking received"
+        val body          = data["body"]  ?: message.notification?.body  ?: "Open Assisted Chat now"
 
         NotificationHelper.showUrgentBookingNotification(
             context       = applicationContext,

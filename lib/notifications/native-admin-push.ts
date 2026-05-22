@@ -74,11 +74,17 @@ export async function sendNativeAdminAlertPush(
   let failed = 0;
 
   for (const token of nativeTokens) {
+    // DATA-ONLY message: omit the FCM `notification` block so our native
+    // AdminAlertFcmService.onMessageReceived() is always invoked, even when
+    // the app is backgrounded / the screen is locked. Without this, Android
+    // displays the system tray notification directly and our service (which
+    // attaches the full-screen intent) never runs — so the lockscreen
+    // pop-up never appears.
     const result = await sendFcmNotification(
       token,
       title,
       body,
-      data,
+      { ...data, title, body },
       {
         channelId:            'urgent_bookings_v1',
         priority:             'high',
@@ -86,6 +92,7 @@ export async function sendNativeAdminAlertPush(
         notificationPriority: 'PRIORITY_MAX',
         vibrateTimings:       ['0s', '0.5s', '0.25s', '0.5s', '0.25s', '0.9s'],
         visibility:           'PUBLIC',
+        includeNotification:  false,
       },
     );
 

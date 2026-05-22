@@ -6,6 +6,13 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Required for the AlertActivity to launch over the lockscreen from
+         a notification's full-screen intent. Android 14+ requires the
+         operator to grant this manually in app settings. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- Needed to keep the CPU awake long enough to launch the Activity
+         and turn the screen on when an urgent push arrives. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- REQUEST_IGNORE_BATTERY_OPTIMIZATIONS shows a system dialog letting
          the user exempt this app from battery restrictions. Used on the
          Setup screen — the user must accept manually. -->
@@ -51,7 +58,9 @@
             android:name=".AlertActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:showOnLockScreen="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:excludeFromRecents="false"
             android:label="@string/title_alert">
 
             <!-- Tap from push notification -->

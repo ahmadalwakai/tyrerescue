@@ -1,8 +1,12 @@
 package uk.tyrerescue.adminalert
 
+import android.app.KeyguardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -33,6 +37,7 @@ class AlertActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        showOverLockscreen()
         setContentView(R.layout.activity_alert)
 
         val bookingId     = intent.getStringExtra(EXTRA_BOOKING_ID) ?: extractBookingIdFromUri()
@@ -40,6 +45,28 @@ class AlertActivity : AppCompatActivity() {
         val createdAt     = intent.getStringExtra(EXTRA_CREATED_AT) ?: ""
 
         bindViews(bookingId, customerPhone, createdAt)
+    }
+
+    /**
+     * Launch the Activity over the lockscreen when triggered by a full-screen
+     * notification intent. Combines the modern API (Android 8.1+) with the
+     * legacy WindowManager flags so older devices behave the same way.
+     */
+    @Suppress("DEPRECATION")
+    private fun showOverLockscreen() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+            val km = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+            km?.requestDismissKeyguard(this, null)
+        } else {
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+            )
+        }
     }
 
     // ─── Extract booking id from deep link URI ────────────────────────────────

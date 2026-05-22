@@ -150,6 +150,27 @@ object NotificationHelper {
         val soundUri = resolveUrgentSoundUri(context)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
+        // Full-screen intent: launches AlertActivity over the lockscreen when
+        // the screen is off / the device is locked. Without this, Android only
+        // shows a heads-up notification and the operator may miss the alert.
+        // Android 14+ requires the USE_FULL_SCREEN_INTENT permission to be
+        // granted manually — see SetupActivity for the grant prompt.
+        val fullScreenIntent = Intent(context, AlertActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(AlertActivity.EXTRA_BOOKING_ID,     bookingId)
+            putExtra(AlertActivity.EXTRA_CUSTOMER_PHONE, customerPhone)
+            putExtra(AlertActivity.EXTRA_CREATED_AT,     createdAt)
+            putExtra("fullScreen", true)
+        }
+        val fullScreenPending = PendingIntent.getActivity(
+            context,
+            notificationIdCounter.get() + 3,
+            fullScreenIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
         val notification = NotificationCompat.Builder(context, CHANNEL_URGENT_BOOKINGS)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
@@ -161,7 +182,8 @@ object NotificationHelper {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setVibrate(VIBRATION_PATTERN)
             .setSound(soundUri)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setCategory(NotificationCompat.CATEGORY_CALL)
+            .setFullScreenIntent(fullScreenPending, true)
             .addAction(
                 R.drawable.ic_notification,
                 "Open booking",
