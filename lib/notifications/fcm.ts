@@ -99,6 +99,7 @@ export async function sendFcmNotification(
     priority?: 'normal' | 'high';
     sound?: string;
     defaultSound?: boolean;
+    includeNotification?: boolean;
     notificationPriority?: FcmAndroidNotification['notification_priority'];
     vibrateTimings?: string[];
     visibility?: FcmAndroidNotification['visibility'];
@@ -113,23 +114,26 @@ export async function sendFcmNotification(
 
   const channel = androidConfig?.channelId ?? 'driver_jobs_urgent_v5';
   const soundName = androidConfig?.sound ?? DEFAULT_CRITICAL_SOUND;
+  const includeNotification = androidConfig?.includeNotification !== false;
 
   const message: FcmMessage = {
     token: deviceToken,
-    notification: { title, body },
+    notification: includeNotification ? { title, body } : undefined,
     data: data ?? undefined,
     android: {
       priority: androidConfig?.priority ?? 'high',
       ttl: '300s',
-      notification: {
-        channel_id: channel,
-        sound: soundName,
-        default_sound: androidConfig?.defaultSound,
-        notification_priority: androidConfig?.notificationPriority ?? 'PRIORITY_MAX',
-        default_vibrate_timings: false,
-        vibrate_timings: androidConfig?.vibrateTimings ?? ['0s', '0.5s', '0.2s', '0.5s', '0.2s', '0.5s'],
-        visibility: androidConfig?.visibility ?? 'PUBLIC',
-      },
+      notification: includeNotification
+        ? {
+          channel_id: channel,
+          sound: soundName,
+          default_sound: androidConfig?.defaultSound,
+          notification_priority: androidConfig?.notificationPriority ?? 'PRIORITY_MAX',
+          default_vibrate_timings: false,
+          vibrate_timings: androidConfig?.vibrateTimings ?? ['0s', '0.5s', '0.2s', '0.5s', '0.2s', '0.5s'],
+          visibility: androidConfig?.visibility ?? 'PUBLIC',
+        }
+        : undefined,
     },
   };
 

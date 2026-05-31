@@ -153,15 +153,8 @@ export default function JobRouteScreen() {
       try {
         const data = await driverApi.getJobRoute(ref, lat, lng);
         setRouteData(data);
-        // Push the same coordinate to the dispatch tracking session so admin
-        // and customer maps stay in sync via /api/driver/location.
-        if (lat != null && lng != null) {
-          driverApi
-            .updateLocation(lat, lng, ref)
-            .catch(() => {
-              // Best-effort — background-location task is the primary path.
-            });
-        }
+        // Location is published by useLocationBroadcast (dashboard tab) and
+        // by the background-location task — no extra POST from here.
       } catch (err) {
         if (err instanceof ApiError && err.status !== 401) {
           // Keep previous map state visible; surface only on first failure.

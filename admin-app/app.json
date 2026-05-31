@@ -38,6 +38,10 @@
           "resizeMode": "contain",
           "backgroundColor": "#09090B"
         }
+      ],
+      [
+        "@rnmapbox/maps",
+        {}
       ]
     ],
     "extra": {

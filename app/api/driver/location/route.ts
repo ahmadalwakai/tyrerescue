@@ -12,6 +12,34 @@ const bodySchema = z.object({
   bookingRef: z.string().min(1).optional(),
 });
 
+// ── Per-driver write throttle ─────────────────────────────────────────────
+// Best-effort, in-memory only (each serverless instance has its own map).
+// Hard-caps how often a single driver can write a location, regardless of
+// how many client tabs/components/devices are running. Clients should
+// throttle themselves first; this is a defence-in-depth guard against
+// runaway loops or buggy old clients.
+const MIN_WRITE_INTERVAL_MS = 8_000;
+const RETRY_AFTER_SECONDS_ON_LIMIT = 30;
+const driverLastWriteAt = new Map<string, number>();
+
+function takeThrottleSlot(
+  driverId: string,
+): { allowed: true } | { allowed: false; retryAfterSeconds: number } {
+  const now = Date.now();
+  const last = driverLastWriteAt.get(driverId);
+  if (last != null && now - last < MIN_WRITE_INTERVAL_MS) {
+    return { allowed: false, retryAfterSeconds: RETRY_AFTER_SECONDS_ON_LIMIT };
+  }
+  driverLastWriteAt.set(driverId, now);
+  if (driverLastWriteAt.size > 500) {
+    const cutoff = now - 10 * 60 * 1000;
+    for (const [k, ts] of driverLastWriteAt) {
+      if (ts < cutoff) driverLastWriteAt.delete(k);
+    }
+  }
+  return { allowed: true };
+}
+
 export async function POST(request: Request) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -27,6 +55,17 @@ export async function POST(request: Request) {
       );
     }
     const { lat, lng, bookingRef } = parsed.data;
+
+    const slot = takeThrottleSlot(driverId);
+    if (!slot.allowed) {
+      return NextResponse.json(
+        { error: 'Too many location updates', retryAfterSeconds: slot.retryAfterSeconds },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(slot.retryAfterSeconds) },
+        },
+      );
+    }
 
     const locationSource = isMobileApp ? 'mobile_app' : 'web_portal';
 

@@ -13,10 +13,13 @@ import * as Notifications from 'expo-notifications';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
 import { useI18n } from '@/i18n';
+import { DriverAlertWatcher } from '@/services/driver-watcher';
 
 interface PermissionStatus {
   location: boolean;
   notifications: boolean;
+  fullScreen: boolean;
+  battery: boolean;
 }
 
 interface Props {
@@ -29,13 +32,21 @@ export function PermissionGate({ children }: Props) {
   const [notifDismissed, setNotifDismissed] = useState(false);
 
   const check = useCallback(async () => {
-    const [loc, notif] = await Promise.all([
+    const [loc, notif, fullScreen, battery] = await Promise.all([
       Location.getForegroundPermissionsAsync(),
       Notifications.getPermissionsAsync(),
+      DriverAlertWatcher.canUseFullScreenIntent(),
+      DriverAlertWatcher.isIgnoringBatteryOptimizations(),
     ]);
     setPerms({
       location: loc.status === 'granted',
       notifications: notif.status === 'granted',
+      // On iOS / non-native builds canUseFullScreenIntent() resolves true,
+      // so this requirement only blocks on Android where it matters.
+      fullScreen: fullScreen === true,
+      // On iOS / non-native builds isIgnoringBatteryOptimizations() resolves
+      // true, so this only blocks on Android where Doze can kill FCM delivery.
+      battery: battery === true,
     });
   }, []);
 
@@ -48,12 +59,22 @@ export function PermissionGate({ children }: Props) {
     return () => sub.remove();
   }, [check]);
 
-  if (!perms || (perms.location && (perms.notifications || notifDismissed))) {
+  if (
+    !perms ||
+    (perms.location &&
+      perms.fullScreen &&
+      perms.battery &&
+      (perms.notifications || notifDismissed))
+  ) {
     return <>{children}</>;
   }
 
   // Location is mandatory — always show gate if not granted
   const needsLocation = !perms.location;
+  // Full-screen alert permission is mandatory on Android 14+ (cannot be skipped)
+  const needsFullScreen = !perms.fullScreen;
+  // Battery-optimisation exemption is mandatory so Doze cannot drop FCM alerts
+  const needsBattery = !perms.battery;
   // Notifications can be skipped but with a warning
   const needsNotifications = !perms.notifications && !notifDismissed;
 
@@ -81,6 +102,20 @@ export function PermissionGate({ children }: Props) {
     }
   };
 
+  const requestFullScreen = async () => {
+    await DriverAlertWatcher.openFullScreenAlertSettings();
+    // Re-check happens automatically on AppState 'active' when returning,
+    // but trigger an immediate check as well.
+    check();
+  };
+
+  const requestBattery = async () => {
+    await DriverAlertWatcher.openBatterySettings();
+    // Re-check happens automatically on AppState 'active' when returning,
+    // but trigger an immediate check as well.
+    check();
+  };
+
   const openSettings = () => {
     if (Platform.OS === 'android') {
       Linking.openSettings();
@@ -96,7 +131,11 @@ export function PermissionGate({ children }: Props) {
       <Text style={styles.subheading}>
         {needsLocation
           ? t('permissions.locationRequired')
-          : t('permissions.notificationsEncouraged')}
+          : needsFullScreen
+            ? t('permissions.fullScreenRequired')
+            : needsBattery
+              ? t('permissions.batteryRequired')
+              : t('permissions.notificationsEncouraged')}
       </Text>
 
       {needsLocation && (
@@ -111,6 +150,40 @@ export function PermissionGate({ children }: Props) {
             </View>
           </View>
           <Pressable style={styles.grantBtn} onPress={requestLocation}>
+            <Text style={styles.grantBtnText}>{t('common.grant')}</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {needsFullScreen && (
+        <View style={styles.permRow}>
+          <View style={styles.permInfo}>
+            <Ionicons name="alarm-outline" size={24} color={colors.accent} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.permTitle}>{t('permissions.fullScreenTitle')}</Text>
+              <Text style={styles.permDesc}>
+                {t('permissions.fullScreenDesc')}
+              </Text>
+            </View>
+          </View>
+          <Pressable style={styles.grantBtn} onPress={requestFullScreen}>
+            <Text style={styles.grantBtnText}>{t('common.grant')}</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {needsBattery && (
+        <View style={styles.permRow}>
+          <View style={styles.permInfo}>
+            <Ionicons name="battery-charging-outline" size={24} color={colors.accent} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.permTitle}>{t('permissions.batteryTitle')}</Text>
+              <Text style={styles.permDesc}>
+                {t('permissions.batteryDesc')}
+              </Text>
+            </View>
+          </View>
+          <Pressable style={styles.grantBtn} onPress={requestBattery}>
             <Text style={styles.grantBtnText}>{t('common.grant')}</Text>
           </Pressable>
         </View>
@@ -138,8 +211,8 @@ export function PermissionGate({ children }: Props) {
         <Text style={styles.settingsBtnText}>{t('permissions.openDeviceSettings')}</Text>
       </Pressable>
 
-      {/* Only allow skip when location IS granted but notifications are not */}
-      {!needsLocation && needsNotifications && (
+      {/* Only allow skip when location, full-screen AND battery ARE granted but notifications are not */}
+      {!needsLocation && !needsFullScreen && !needsBattery && needsNotifications && (
         <Pressable onPress={() => setNotifDismissed(true)}>
           <Text style={styles.skipText}>{t('permissions.continueWithout')}</Text>
         </Pressable>

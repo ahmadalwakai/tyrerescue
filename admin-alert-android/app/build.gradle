@@ -75,9 +75,11 @@ android {
 }
 
 dependencies {
-    // Firebase BoM — pin all Firebase versions together
-    implementation platform('com.google.firebase:firebase-bom:34.13.0')
-    implementation 'com.google.firebase:firebase-messaging-ktx'
+    // Firebase BoM — pin all Firebase versions together.
+    // BoM 33+ merged -ktx libraries into the main artifacts, so use
+    // firebase-messaging (not firebase-messaging-ktx).
+    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    implementation 'com.google.firebase:firebase-messaging'
 
     // AndroidX
     implementation 'androidx.core:core-ktx:1.12.0'

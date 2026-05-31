@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -31,6 +32,7 @@ class DriverJobAlertActivity : AppCompatActivity() {
 
   private var mediaPlayer: MediaPlayer? = null
   private var vibrator: Vibrator? = null
+  private var wakeLock: PowerManager.WakeLock? = null
   private val handler = Handler(Looper.getMainLooper())
   private val stopAlarmRunnable = Runnable {
     stopAlertSignals()
@@ -71,6 +73,28 @@ class DriverJobAlertActivity : AppCompatActivity() {
 
   private fun enableLockScreenDisplay() {
     try {
+      // Acquire a temporary wake lock that forces the display on. On many
+      // OEM devices setTurnScreenOn(true) alone does NOT power a fully-off
+      // screen back on from a background activity launch, so the alert
+      // appears to do nothing over the lock screen. ACQUIRE_CAUSES_WAKEUP
+      // guarantees the screen lights up; the lock auto-releases after a
+      // timeout so it can never drain the battery.
+      try {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
+        @Suppress("DEPRECATION")
+        val lock = powerManager?.newWakeLock(
+          PowerManager.FULL_WAKE_LOCK or
+            PowerManager.ACQUIRE_CAUSES_WAKEUP or
+            PowerManager.ON_AFTER_RELEASE,
+          "TyreRescueDriver:JobAlertWakeLock",
+        )
+        lock?.acquire(WAKE_LOCK_TIMEOUT_MS)
+        wakeLock = lock
+        Log.i(TAG, "wake lock acquired")
+      } catch (err: Exception) {
+        Log.w(TAG, "Failed to acquire wake lock", err)
+      }
+
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
         setShowWhenLocked(true)
         setTurnScreenOn(true)
@@ -293,6 +317,13 @@ class DriverJobAlertActivity : AppCompatActivity() {
     } catch (err: Exception) {
       Log.e(TAG, "Failed to stop vibration", err)
     }
+
+    try {
+      wakeLock?.let { if (it.isHeld) it.release() }
+      wakeLock = null
+    } catch (err: Exception) {
+      Log.e(TAG, "Failed to release wake lock", err)
+    }
   }
 
   private fun openDeepLink(ref: String, fallbackPath: String, providedLink: String?) {
@@ -339,5 +370,6 @@ class DriverJobAlertActivity : AppCompatActivity() {
   companion object {
     private const val TAG = "DriverJobAlertActivity"
     private const val ALERT_TIMEOUT_MS = 60_000L
+    private const val WAKE_LOCK_TIMEOUT_MS = 60_000L
   }
 }

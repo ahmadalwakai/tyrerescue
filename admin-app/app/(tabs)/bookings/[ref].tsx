@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
@@ -139,13 +139,45 @@ export default function BookingDetailScreen() {
           <Card>
             <Text style={styles.sectionTitle}>Assign driver</Text>
             {suggestedDriver.data?.rankedDrivers?.[0] && (
-              <View style={styles.suggestionBox}>
-                <Text style={styles.suggestionLabel}>Top suggestion</Text>
+              <Pressable
+                style={styles.suggestionBox}
+                onPress={() => setDriverId(suggestedDriver.data!.rankedDrivers[0].driverId)}
+              >
+                <Text style={styles.suggestionLabel}>Top suggestion · tap to select</Text>
                 <Text style={styles.suggestionName}>{suggestedDriver.data.rankedDrivers[0].name}</Text>
                 <Text style={styles.hint}>{suggestedDriver.data.rankedDrivers[0].reason}</Text>
-              </View>
+              </Pressable>
             )}
-            <InputField label="Driver ID" value={driverId} onChangeText={setDriverId} placeholder="Paste driver id" />
+
+            {data.availableDrivers.length > 0 ? (
+              <View style={styles.driverList}>
+                <Text style={styles.hint}>Available drivers</Text>
+                {data.availableDrivers.map((d) => {
+                  const selected = d.id === driverId;
+                  return (
+                    <Pressable
+                      key={d.id}
+                      style={[styles.driverRow, selected && styles.driverRowSelected]}
+                      onPress={() => setDriverId(d.id)}
+                    >
+                      <View style={styles.driverRowText}>
+                        <Text style={[styles.driverName, selected && styles.driverNameSelected]}>{d.name}</Text>
+                        <Text style={styles.tiny}>
+                          {d.isOnline ? 'Online' : 'Offline'}
+                          {d.status ? ` · ${d.status}` : ''}
+                        </Text>
+                      </View>
+                      {selected ? <Text style={styles.driverCheck}>✓</Text> : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : (
+              <Text style={styles.hint}>No available drivers right now.</Text>
+            )}
+
+            {/* Manual fallback — paste a driver id directly if needed. */}
+            <InputField label="Driver ID" value={driverId} onChangeText={setDriverId} placeholder="Or paste driver id" />
             <PrimaryButton
               title={assignMutation.isPending ? 'Assigning...' : 'Assign driver'}
               onPress={() => assignMutation.mutate()}
@@ -256,6 +288,42 @@ const styles = StyleSheet.create({
     fontWeight: typography.weight.semibold,
     color: colors.text,
     marginBottom: spacing.xs,
+  },
+  driverList: {
+    marginBottom: spacing.md,
+  },
+  driverRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.sm,
+  },
+  driverRowSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.surfaceLight,
+  },
+  driverRowText: {
+    flex: 1,
+  },
+  driverName: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
+    color: colors.text,
+  },
+  driverNameSelected: {
+    color: colors.primary,
+    fontWeight: typography.weight.semibold,
+  },
+  driverCheck: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.bold,
+    color: colors.primary,
+    marginLeft: spacing.sm,
   },
   timelineRow: {
     flexDirection: 'row',

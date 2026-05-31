@@ -3,6 +3,7 @@ import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import Mapbox from '@rnmapbox/maps';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/auth/context';
@@ -10,6 +11,10 @@ import { AppQueryProvider } from '@/providers/query-provider';
 import { colors } from '@/ui/theme';
 
 SplashScreen.preventAutoHideAsync();
+
+// Mapbox needs a public access token before any map renders. Sourced from
+// EXPO_PUBLIC_MAPBOX_TOKEN (mirrors the web app's NEXT_PUBLIC_MAPBOX_TOKEN).
+Mapbox.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? null);
 
 function RootNavigator() {
   const { user, isLoading } = useAuth();

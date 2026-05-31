@@ -4,6 +4,7 @@ export default function DriversLayout() {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ title: 'Drivers' }} />
+      <Stack.Screen name="tracking" options={{ title: 'Live Tracking' }} />
       <Stack.Screen name="[id]" options={{ title: 'Driver Detail' }} />
     </Stack>
   );

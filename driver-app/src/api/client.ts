@@ -42,9 +42,11 @@ interface ApiOptions {
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  retryAfterSeconds: number | null;
+  constructor(message: string, status: number, retryAfterSeconds: number | null = null) {
     super(message);
     this.status = status;
+    this.retryAfterSeconds = retryAfterSeconds;
     this.name = 'ApiError';
   }
 }
@@ -71,6 +73,15 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
   if (res.status === 401) {
     await clearToken();
     throw new ApiError('Session expired. Please log in again.', 401);
+  }
+
+  if (res.status === 429) {
+    const headerVal = res.headers.get('Retry-After');
+    const parsed = headerVal ? parseInt(headerVal, 10) : NaN;
+    const retryAfterSeconds = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    // Drain body silently — never throw raw HTML/JSON parse errors at the caller.
+    await res.json().catch(() => null);
+    throw new ApiError('Too many requests', 429, retryAfterSeconds);
   }
 
   let data: unknown;

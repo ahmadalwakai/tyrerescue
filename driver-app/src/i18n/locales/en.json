@@ -222,6 +222,13 @@
     "locationDesc": "Required to share your position with customers and calculate ETAs.",
     "notificationsTitle": "Notifications",
     "notificationsDesc": "Required to receive new job assignments and customer messages.",
+    "fullScreenRequired": "Full-screen alerts must be enabled so new jobs wake your screen and show over the lock screen. You cannot proceed without it.",
+    "fullScreenTitle": "Full-screen job alerts",
+    "fullScreenDesc": "Required so new job alerts light up your screen and appear over the lock screen, even when the phone is locked.",
+    "batteryRequired": "Battery optimisation must be turned off so the app keeps receiving new jobs when the screen is off. You cannot proceed without it.",
+    "batteryTitle": "Unrestricted battery",
+    "batteryDesc": "Required so the phone does not put the app to sleep and miss new job alerts while locked.",
+    "grant": "Grant",
     "openDeviceSettings": "Open device settings",
     "continueWithout": "Continue without notifications"
   },

@@ -167,13 +167,41 @@ object DriverJobAlertNotifier {
       Log.e(TAG, "[native-alert] notification post failed source=$sourceTag", err)
     }
 
-    // NOTE: we deliberately do NOT call context.startActivity(fullScreenIntent)
-    // from a background context. Android 10+ blocks background activity
-    // starts in most cases, and on Android 12+ even the foreground service
-    // grant is throttled. The only reliable path is the notification's
-    // setFullScreenIntent above; if the user has blocked that permission
-    // the heads-up notification is the visible alert and React UI prompts
-    // them to grant full-screen permission.
+    // Belt-and-braces: when the device is locked or the screen is off, the
+    // notification-shade full-screen-intent path is unreliable on many OEMs
+    // (Samsung One UI, Xiaomi MIUI, etc.) — it often degrades to a silent
+    // heads-up that only surfaces once the user unlocks, which is exactly the
+    // "works when unlocked, nothing when locked" symptom. A high-priority FCM
+    // data message grants the app a short background-activity-start window, so
+    // we directly launch the alert Activity in that case. The Activity is
+    // launchMode="singleInstance", so this never double-stacks with the
+    // full-screen intent if the OS also honours it.
+    //
+    // IMPORTANT: this direct-launch path must run regardless of
+    // canUseFullScreenIntent(). On Android 14+ the full-screen-intent
+    // permission is denied by default for a driver app, so gating this block
+    // on canUseFullScreen meant the lock-screen Activity (which is what plays
+    // the looping sound + vibration) was NEVER launched when locked. The
+    // BAL grant from a high-priority FCM data message still lets us launch
+    // the Activity directly even without the full-screen-intent permission.
+    try {
+      val powerManager = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+      val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+      val screenOff = powerManager?.isInteractive == false
+      val locked = keyguardManager?.isKeyguardLocked == true
+      if (screenOff || locked) {
+        context.startActivity(fullScreenIntent)
+        Log.i(TAG, "[native-alert] direct lock-screen launch refSuffix=$refSuffix screenOff=$screenOff locked=$locked canUseFullScreen=$canUseFullScreen")
+        Log.i(TAG, "DRIVER_ALERT_DIRECT_LAUNCH refSuffix=$refSuffix screenOff=$screenOff locked=$locked canUseFullScreen=$canUseFullScreen")
+      } else {
+        Log.i(TAG, "[native-alert] device interactive+unlocked refSuffix=$refSuffix — relying on heads-up + full-screen intent")
+      }
+    } catch (err: Exception) {
+      // BAL window may have elapsed or the OEM blocked it — the
+      // setFullScreenIntent above (when permitted) remains the primary path.
+      Log.w(TAG, "DRIVER_ALERT_DIRECT_LAUNCH_FAIL refSuffix=$refSuffix: ${err.message}")
+      Log.w(TAG, "[native-alert] direct lock-screen launch blocked refSuffix=$refSuffix: ${err.message}", err)
+    }
   }
 
   fun ensureChannel(context: Context) {

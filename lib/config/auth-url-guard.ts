@@ -33,6 +33,13 @@ function looksLocal(value: string | undefined): boolean {
 function enforceAuthUrl(): void {
   if (process.env.NODE_ENV !== 'production') return;
 
+  // During `next build` (static analysis / page-data collection) this module
+  // is imported many times while `.env.local` — which legitimately holds the
+  // localhost dev URL — is loaded. The override only matters when actually
+  // handling requests at runtime, so skip the build phase to avoid spamming
+  // the build log with override warnings for a non-issue.
+  if (process.env.NEXT_PHASE === 'phase-production-build') return;
+
   const authUrl = process.env.AUTH_URL;
   const nextAuthUrl = process.env.NEXTAUTH_URL;
 

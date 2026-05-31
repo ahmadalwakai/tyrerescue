@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { Screen } from '@/ui/Screen';
@@ -11,7 +12,7 @@ import { StateView } from '@/ui/StateView';
 import { StatusChip } from '@/ui/StatusPill';
 import { ListRow } from '@/ui/ListRow';
 import { SectionHeader } from '@/ui/SectionHeader';
-import { colors, radius, spacing } from '@/ui/theme';
+import { colors, radius, spacing, typography } from '@/ui/theme';
 
 type DriverRow = {
   id: string;
@@ -60,6 +61,12 @@ export default function DriversScreen() {
 
   return (
     <Screen>
+      <Pressable style={styles.trackButton} onPress={() => router.push('/(tabs)/drivers/tracking')}>
+        <Ionicons name="map-outline" size={18} color={colors.primary} />
+        <Text style={styles.trackButtonText}>Live driver map</Text>
+        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={styles.trackButtonChevron} />
+      </Pressable>
+
       <InputField label="Search" value={search} onChangeText={setSearch} placeholder="Name, email, or phone" />
 
       <StateView
@@ -108,5 +115,25 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     overflow: 'hidden',
     marginBottom: spacing.lg,
+  },
+  trackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  trackButtonText: {
+    color: colors.text,
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+  },
+  trackButtonChevron: {
+    marginLeft: 'auto',
   },
 });
