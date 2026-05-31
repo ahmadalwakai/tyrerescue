@@ -13,15 +13,15 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
 import { driverApi, ApiError } from '@/api/client';
+import { useSingleFlight } from '@/hooks/useSingleFlight';
 
 export default function ResetPasswordScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
-  const handleReset = async () => {
+  const { isRunning: loading, run: handleReset } = useSingleFlight(async () => {
     if (!password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in both fields.');
       return;
@@ -51,7 +51,6 @@ export default function ResetPasswordScreen() {
       return;
     }
 
-    setLoading(true);
     try {
       await driverApi.resetPassword(token, password);
       setDone(true);
@@ -61,10 +60,8 @@ export default function ResetPasswordScreen() {
           ? err.message
           : 'Something went wrong. Please try again.';
       Alert.alert('Error', message);
-    } finally {
-      setLoading(false);
     }
-  };
+  });
 
   if (done) {
     return (
@@ -140,7 +137,7 @@ export default function ResetPasswordScreen() {
               pressed && styles.buttonPressed,
               loading && styles.buttonDisabled,
             ]}
-            onPress={handleReset}
+            onPress={() => void handleReset()}
             disabled={loading}
           >
             <Text style={styles.buttonText}>

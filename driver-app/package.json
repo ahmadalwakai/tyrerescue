@@ -9,7 +9,9 @@
     "ios": "expo run:ios",
     "prebuild": "expo prebuild",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "android:release": "cd android && $env:NODE_ENV='production'; ./gradlew.bat assembleRelease",
+    "android:release:clean": "cd android && $env:NODE_ENV='production'; ./gradlew.bat clean assembleRelease --warning-mode all"
   },
   "dependencies": {
     "@expo-google-fonts/bebas-neue": "^0.2.3",

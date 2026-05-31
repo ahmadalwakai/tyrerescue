@@ -14,21 +14,19 @@ import { router } from 'expo-router';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
 import { driverApi, ApiError } from '@/api/client';
 import { useI18n } from '@/i18n';
+import { useSingleFlight } from '@/hooks/useSingleFlight';
 
 export default function ForgotPasswordScreen() {
   const { t } = useI18n();
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const handleSubmit = async () => {
+  const { isRunning: loading, run: handleSubmit } = useSingleFlight(async () => {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed) {
       Alert.alert(t('common.error'), t('auth.enterEmail'));
       return;
     }
-
-    setLoading(true);
     try {
       await driverApi.forgotPassword(trimmed);
       setSent(true);
@@ -38,10 +36,8 @@ export default function ForgotPasswordScreen() {
           ? err.message
           : t('auth.somethingWrong');
       Alert.alert(t('common.error'), message);
-    } finally {
-      setLoading(false);
     }
-  };
+  });
 
   if (sent) {
     return (
@@ -105,7 +101,7 @@ export default function ForgotPasswordScreen() {
               pressed && styles.buttonPressed,
               loading && styles.buttonDisabled,
             ]}
-            onPress={handleSubmit}
+            onPress={() => void handleSubmit()}
             disabled={loading}
           >
             <Text style={styles.buttonText}>

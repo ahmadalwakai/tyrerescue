@@ -18,6 +18,7 @@ import * as SecureStore from 'expo-secure-store';
 import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
 import { driverApi, JobDetail, ApiError, chatApi, PaymentSummary } from '@/api/client';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { StatusBadge } from '@/components/StatusBadge';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
@@ -226,7 +227,12 @@ export default function JobDetailScreen() {
 
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
   const [sendingQuickMsg, setSendingQuickMsg] = useState<string | null>(null);
-  const [openingChat, setOpeningChat] = useState(false);
+  const quickMsgLockRef = useRef(false);
+  // Single-flight guard for opening the in-app route map so a double-tap
+  // cannot push the route screen twice onto the navigation stack.
+  const navLockRef = useRef(false);
+  // Separate guard for launching the external maps app.
+  const extNavLockRef = useRef(false);
 
   const checklistItems = useMemo(() => {
     if (!job) return [];
@@ -253,7 +259,8 @@ export default function JobDetailScreen() {
   ];
 
   const sendQuickMessage = async (msg: typeof QUICK_MESSAGES[0]) => {
-    if (!job) return;
+    if (!job || quickMsgLockRef.current) return;
+    quickMsgLockRef.current = true;
     setSendingQuickMsg(msg.key);
     try {
       const res = await chatApi.createConversation(job.id, 'customer_driver');
@@ -263,12 +270,39 @@ export default function JobDetailScreen() {
       Alert.alert(t('common.error'), t('jobDetail.couldNotSend'));
     }
     setSendingQuickMsg(null);
+    quickMsgLockRef.current = false;
+  };
+
+  const { isRunning: openingChat, run: openAdminChat } = useSingleFlight(async () => {
+    if (!job) return;
+    try {
+      const res = await chatApi.createConversation(job.id, 'admin_driver');
+      router.push(`/(tabs)/chat/${res.conversationId}`);
+    } catch {
+      Alert.alert(t('common.error'), t('jobDetail.couldNotOpenChat'));
+    }
+  });
+
+  const openRoute = () => {
+    if (!ref || navLockRef.current) return;
+    navLockRef.current = true;
+    router.push(`/(tabs)/jobs/${ref}/route`);
+    // Release shortly after so the screen can be re-opened later, but not
+    // within the double-tap window that would stack two route screens.
+    setTimeout(() => {
+      navLockRef.current = false;
+    }, 800);
   };
 
   const openNavigation = () => {
-    if (!job?.lat || !job?.lng) return;
+    if (!job?.lat || !job?.lng || extNavLockRef.current) return;
+    extNavLockRef.current = true;
     const url = `https://www.google.com/maps/dir/?api=1&destination=${job.lat},${job.lng}`;
-    Linking.openURL(url);
+    Linking.openURL(url).finally(() => {
+      setTimeout(() => {
+        extNavLockRef.current = false;
+      }, 800);
+    });
   };
 
   const handleReject = async () => {
@@ -395,7 +429,7 @@ export default function JobDetailScreen() {
           <View style={styles.locationButtons}>
             <Pressable
               style={styles.navButton}
-              onPress={() => router.push(`/(tabs)/jobs/${ref}/route`)}
+              onPress={openRoute}
             >
               <Ionicons name="navigate-outline" size={18} color="#FFFFFF" />
               <Text style={styles.navButtonText}>Start in-app route</Text>
@@ -503,18 +537,7 @@ export default function JobDetailScreen() {
         <Pressable
           style={[styles.chatAdminButton, openingChat && styles.buttonDisabled]}
           disabled={openingChat}
-          onPress={async () => {
-            if (openingChat) return;
-            setOpeningChat(true);
-            try {
-              const res = await chatApi.createConversation(job.id, 'admin_driver');
-              router.push(`/(tabs)/chat/${res.conversationId}`);
-            } catch {
-              Alert.alert(t('common.error'), t('jobDetail.couldNotOpenChat'));
-            } finally {
-              setOpeningChat(false);
-            }
-          }}
+          onPress={() => void openAdminChat()}
         >
           <Ionicons name="chatbubble-outline" size={20} color={colors.accent} />
           <Text style={styles.chatAdminText}>{t('jobDetail.chatWithAdmin')}</Text>

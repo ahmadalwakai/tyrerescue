@@ -127,6 +127,8 @@ export default function JobRouteScreen() {
   const router = useRouter();
   const { t } = useI18n();
   const token = useMemo(() => getMapboxToken(), []);
+  // Guard so a double-tap cannot launch the external maps app twice.
+  const extNavLockRef = useRef(false);
 
   const [job, setJob] = useState<JobDetail | null>(null);
   const [routeData, setRouteData] = useState<RouteData | null>(null);
@@ -289,18 +291,26 @@ export default function JobRouteScreen() {
   );
 
   const handleOpenExternal = useCallback(() => {
+    if (extNavLockRef.current) return;
     const customerLat = parseLatLng(job?.lat);
     const customerLng = parseLatLng(job?.lng);
     if (customerLat == null || customerLng == null) return;
+    extNavLockRef.current = true;
     const url = Platform.select({
       android: `google.navigation:q=${customerLat},${customerLng}`,
       default: `https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}&travelmode=driving`,
     });
-    Linking.openURL(url).catch(() => {
-      Linking.openURL(
-        `https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}`,
-      );
-    });
+    Linking.openURL(url)
+      .catch(() => {
+        Linking.openURL(
+          `https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}`,
+        );
+      })
+      .finally(() => {
+        setTimeout(() => {
+          extNavLockRef.current = false;
+        }, 800);
+      });
   }, [job?.lat, job?.lng]);
 
   const customerCoord: Coordinate | null = (() => {

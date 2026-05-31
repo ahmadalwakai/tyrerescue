@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { useRef } from 'react';
 import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
 import { AnimatedPressable } from './AnimatedPressable';
 import { StatusBadge } from './StatusBadge';
@@ -31,9 +32,16 @@ interface JobCardProps {
 
 export function JobCard({ job, onPress }: JobCardProps) {
   const { t, dateLocale } = useI18n();
+  // Guard against a rapid double-tap pushing the detail screen twice.
+  const navLockRef = useRef(false);
   return (
     <AnimatedPressable
       onPress={() => {
+        if (navLockRef.current) return;
+        navLockRef.current = true;
+        setTimeout(() => {
+          navLockRef.current = false;
+        }, 800);
         lightHaptic();
         onPress();
       }}

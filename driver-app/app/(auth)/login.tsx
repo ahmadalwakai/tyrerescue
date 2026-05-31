@@ -15,29 +15,29 @@ import { colors, spacing, fontSize, radius } from '@/constants/theme';
 import { useAuth } from '@/auth/context';
 import { ApiError } from '@/api/client';
 import { useI18n } from '@/i18n';
+import { useSingleFlight } from '@/hooks/useSingleFlight';
 
 export default function LoginScreen() {
   const { login } = useAuth();
   const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const { isRunning: loading, run: runLogin } = useSingleFlight(async () => {
     if (!email.trim() || !password) {
       Alert.alert(t('common.error'), t('auth.enterCredentials'));
       return;
     }
-
-    setLoading(true);
     try {
       await login(email.trim().toLowerCase(), password);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : t('auth.somethingWrong');
       Alert.alert(t('auth.loginFailed'), message);
-    } finally {
-      setLoading(false);
     }
+  });
+
+  const handleLogin = () => {
+    void runLogin();
   };
 
   return (

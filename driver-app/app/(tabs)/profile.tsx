@@ -24,6 +24,7 @@ import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic, mediumHaptic, errorHaptic } from '@/services/haptics';
 import { useI18n, Locale } from '@/i18n';
 import { UrgentAlertSetupCard } from '@/components/UrgentAlertSetupCard';
+import { useSingleFlight } from '@/hooks/useSingleFlight';
 
 export default function ProfileScreen() {
   const { logout } = useAuth();
@@ -36,7 +37,6 @@ export default function ProfileScreen() {
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
-  const [changingPw, setChangingPw] = useState(false);
 
   // Permission / device state
   const [locationPerm, setLocationPerm] = useState<string>(t('profile.checking'));
@@ -77,7 +77,7 @@ export default function ProfileScreen() {
     setRefreshing(false);
   }, [fetchProfile]);
 
-  const handleChangePassword = async () => {
+  const { isRunning: changingPw, run: handleChangePassword } = useSingleFlight(async () => {
     if (!currentPw || !newPw) {
       Alert.alert(t('common.error'), t('profile.fillPasswordFields'));
       return;
@@ -91,7 +91,6 @@ export default function ProfileScreen() {
       return;
     }
 
-    setChangingPw(true);
     try {
       await driverApi.changePassword(currentPw, newPw);
       mediumHaptic();
@@ -103,13 +102,14 @@ export default function ProfileScreen() {
       const msg = err instanceof ApiError ? err.message : t('profile.failedChangePassword');
       Alert.alert(t('common.error'), msg);
     }
-    setChangingPw(false);
-  };
+  });
+
+  const { isRunning: loggingOut, run: runLogout } = useSingleFlight(logout);
 
   const handleLogout = () => {
     Alert.alert(t('profile.signOut'), t('profile.confirmSignOut'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('profile.signOut'), style: 'destructive', onPress: logout },
+      { text: t('profile.signOut'), style: 'destructive', onPress: () => void runLogout() },
     ]);
   };
 
@@ -165,7 +165,7 @@ export default function ProfileScreen() {
 
         <AnimatedPressable
           style={[styles.pwButton, changingPw && styles.buttonDisabled]}
-          onPress={handleChangePassword}
+          onPress={() => void handleChangePassword()}
           disabled={changingPw}
           pressScale={0.95}
         >
@@ -225,7 +225,7 @@ export default function ProfileScreen() {
       </View>
 
       {/* Logout */}
-      <AnimatedPressable style={styles.logoutButton} onPress={() => { errorHaptic(); handleLogout(); }} pressScale={0.95}>
+      <AnimatedPressable style={[styles.logoutButton, loggingOut && styles.buttonDisabled]} onPress={() => { errorHaptic(); handleLogout(); }} disabled={loggingOut} pressScale={0.95}>
         <Text style={styles.logoutText}>{t('profile.signOut')}</Text>
       </AnimatedPressable>
     </ScrollView>
