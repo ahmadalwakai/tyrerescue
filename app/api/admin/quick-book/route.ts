@@ -11,6 +11,8 @@ import {
   calculateQuickBookPricing,
   QuickBookPricingError,
 } from '@/lib/quick-book-pricing';
+import type { PricingContext } from '@/lib/pricing-engine';
+import { getWeatherPricingContext, type WeatherPricingContext } from '@/lib/weather';
 import { distanceResultToKm, resolveQuickBookDistance } from '@/lib/quick-book-distance';
 import {
   buildLocationWhatsAppMessage,
@@ -28,6 +30,16 @@ const createSchema = z.object({
   serviceType: z.enum(['fit', 'repair', 'assess']),
   tyreSize: z.string().optional(),
   tyreCount: z.number().int().min(1).max(10).default(1),
+  adminAdjustmentAmount: z.number().optional(),
+  adminAdjustmentReason: z.string().max(500).nullable().optional(),
+  pricingContext: z.enum([
+    'scheduled_mobile_fitting',
+    'scheduled_garage_fitting',
+    'emergency_mobile_fitting',
+    'admin_quick_book',
+    'assisted_chat',
+    'manual_quote',
+  ]).optional(),
   notes: z.string().optional(),
 });
 
@@ -83,6 +95,8 @@ export async function POST(request: Request) {
   let priceBreakdown: Awaited<ReturnType<typeof calculateQuickBookPricing>>['breakdown'] | null = null;
   let selectedTyreSnapshot: Awaited<ReturnType<typeof calculateQuickBookPricing>>['selectedTyreSnapshot'] = null;
   let normalizedTyreSize: string | null = data.tyreSize?.trim() || null;
+  let weatherContext: WeatherPricingContext | null = null;
+  const pricingContext: PricingContext = data.pricingContext ?? 'admin_quick_book';
 
   if (data.locationMethod === 'link') {
     linkToken = randomBytes(32).toString('hex');
@@ -116,6 +130,15 @@ export async function POST(request: Request) {
       serviceOriginDriverId = distResult.selectedDriverId ?? null;
       durationMinutes = distResult.durationMinutes ?? null;
     } catch { /* fallback */ }
+
+    try {
+      weatherContext = await getWeatherPricingContext({
+        latitude: lat,
+        longitude: lng,
+      });
+    } catch {
+      weatherContext = null;
+    }
   }
 
   const shouldPrice = Boolean(lat && lng) || Boolean(data.tyreSize?.trim()) || data.serviceType !== 'fit';
@@ -128,6 +151,11 @@ export async function POST(request: Request) {
         distanceMiles: (distanceKm ?? 5) * 0.621371,
         resolveTyreFromSize: Boolean(data.tyreSize?.trim()),
         requireTyreForFit: data.serviceType === 'fit' && Boolean(data.tyreSize?.trim()),
+        adminAdjustmentAmount: data.adminAdjustmentAmount ?? 0,
+        adminAdjustmentReason: data.adminAdjustmentReason,
+        pricingContext,
+        durationMinutes,
+        weatherContext,
       });
 
       basePrice = pricing.breakdown.subtotal;
@@ -135,6 +163,7 @@ export async function POST(request: Request) {
       // Extend priceBreakdown with service origin info for map display
       priceBreakdown = {
         ...pricing.breakdown,
+        pricingContext,
         serviceOrigin: serviceOriginLat && serviceOriginLng ? {
           lat: serviceOriginLat,
           lng: serviceOriginLng,
@@ -158,6 +187,8 @@ export async function POST(request: Request) {
   if (!priceBreakdown && serviceOriginLat && serviceOriginLng) {
     priceBreakdown = {
       lineItems: [],
+      pricingContext,
+      pricingEngineVersion: 'canonical-context-weather-traffic-v1',
       totalTyreCost: 0,
       totalServiceFee: 0,
       calloutFee: 0,
@@ -210,6 +241,8 @@ export async function POST(request: Request) {
       surchargePercent: '0.00',
       totalPrice: totalPrice != null ? String(totalPrice) : null,
       priceBreakdown: priceBreakdown,
+      adminAdjustmentAmount: data.adminAdjustmentAmount != null ? String(data.adminAdjustmentAmount) : '0.00',
+      adminAdjustmentReason: data.adminAdjustmentReason ?? null,
       status: initialStatus,
       notes: data.notes ?? null,
     })

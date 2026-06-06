@@ -208,6 +208,9 @@ export function InstantQuote({
               {quantity} × {tyreSize.width}/{tyreSize.aspect}R{tyreSize.rim} · includes fitting fee of £
               {quote.fittingFee} per tyre
             </Text>
+            <Text fontSize="12px" color={c.muted} mt={2} fontWeight="600">
+              Estimate only. Final price is confirmed during booking.
+            </Text>
             {quote.surcharge && (
               <Flex
                 mt={2}
@@ -251,7 +254,7 @@ export function InstantQuote({
         disabled={!quote}
         onClick={handleBook}
       >
-        Book this quote
+        Continue to booking
       </Button>
     </Box>
   );

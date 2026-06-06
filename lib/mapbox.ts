@@ -124,12 +124,13 @@ const MAPBOX_TIMEOUT_MS = 8_000;
 
 /** Warn once if token looks like a placeholder */
 let _tokenWarned = false;
-function warnIfPlaceholderToken(token: string) {
-  if (_tokenWarned) return;
-  if (token.length < 20 || /^sk\.x+$/i.test(token)) {
+function warnIfPlaceholderToken(token: string): boolean {
+  const isPlaceholder = token.length < 20 || /^sk\.x+$/i.test(token);
+  if (isPlaceholder && !_tokenWarned) {
     console.warn('[MAPBOX] Secret token appears to be a placeholder — directions will fail, falling back to haversine');
     _tokenWarned = true;
   }
+  return isPlaceholder;
 }
 
 export async function getDirections(
@@ -140,7 +141,9 @@ export async function getDirections(
   if (!token) {
     throw new Error('Missing MAPBOX_SECRET_TOKEN environment variable');
   }
-  warnIfPlaceholderToken(token);
+  if (warnIfPlaceholderToken(token)) {
+    return null;
+  }
 
   const url = `${MAPBOX_BASE_URL}/directions/v5/mapbox/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?access_token=${token}&geometries=geojson&overview=full`;
 

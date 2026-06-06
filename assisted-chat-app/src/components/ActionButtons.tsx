@@ -54,7 +54,15 @@ export function ActionButtons({
       lines.push(`Locking wheel nut removal: ${formatGbp(lockingNutCharge)}`);
     }
     if (draft.note.trim()) lines.push(`Note: ${draft.note.trim()}`);
-    if (draft.quote) lines.push(`Total: ${formatGbp(effectiveTotal)}`);
+    if (
+      draft.quote?.fittingPrice != null &&
+      Number.isFinite(draft.quote.fittingPrice) &&
+      draft.quote.fittingPrice > 0
+    ) {
+      lines.push(`Fitting at your location: ${formatGbp(draft.quote.fittingPrice)}`);
+    } else if (draft.quote) {
+      lines.push(`Total: ${formatGbp(effectiveTotal)}`);
+    }
     if (draft.paymentChoice) {
       const map = {
         cash: `Cash (${formatGbp(effectiveTotal)})`,

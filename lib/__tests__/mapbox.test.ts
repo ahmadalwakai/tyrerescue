@@ -12,7 +12,7 @@ const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
 beforeEach(() => {
-  vi.stubEnv('MAPBOX_SECRET_TOKEN', 'test-token');
+  vi.stubEnv('MAPBOX_SECRET_TOKEN', 'sk_test_mocktoken1234567890');
   mockFetch.mockReset();
 });
 

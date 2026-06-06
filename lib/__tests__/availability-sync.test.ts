@@ -7,6 +7,13 @@ vi.mock('@/lib/db/schema', () => ({
 }));
 
 describe('availability sync candidate generation', () => {
+  it('marks pre-10am slots as unavailable for public booking', async () => {
+    const { isPublicBookingScheduleSlot } = await import('../availability');
+
+    expect(isPublicBookingScheduleSlot({ timeStart: '09:00' })).toBe(false);
+    expect(isPublicBookingScheduleSlot({ timeStart: '10:00' })).toBe(true);
+  });
+
   it('generates same-day future slots plus the next days', async () => {
     const { buildAvailabilitySlotCandidates } = await import('../availability-sync');
 
@@ -17,7 +24,7 @@ describe('availability sync candidate generation', () => {
       now: new Date('2026-06-06T11:30:00Z'),
     });
 
-    expect(slots).toHaveLength(23);
+    expect(slots).toHaveLength(21);
     expect(slots[0]).toEqual({
       date: '2026-06-06',
       timeStart: '13:00',
@@ -30,13 +37,13 @@ describe('availability sync candidate generation', () => {
     });
     expect(slots[5]).toEqual({
       date: '2026-06-07',
-      timeStart: '09:00',
-      timeEnd: '10:00',
+      timeStart: '10:00',
+      timeEnd: '11:00',
     });
-    expect(slots[14]).toEqual({
+    expect(slots[13]).toEqual({
       date: '2026-06-08',
-      timeStart: '09:00',
-      timeEnd: '10:00',
+      timeStart: '10:00',
+      timeEnd: '11:00',
     });
   });
 });

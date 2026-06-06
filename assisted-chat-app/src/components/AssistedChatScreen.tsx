@@ -339,7 +339,15 @@ function buildJobDetails(
   );
   if (lockingNutCharge > 0) lines.push(`Locking wheel nut removal: ${formatGbp(lockingNutCharge)}`);
   if (draft.note.trim()) lines.push(`Driver note: ${draft.note.trim()}`);
-  if (draft.quote) lines.push(`Total: ${formatGbp(effectiveTotal)}`);
+  if (
+    draft.quote?.fittingPrice != null &&
+    Number.isFinite(draft.quote.fittingPrice) &&
+    draft.quote.fittingPrice > 0
+  ) {
+    lines.push(`Fitting at your location: ${formatGbp(draft.quote.fittingPrice)}`);
+  } else if (draft.quote) {
+    lines.push(`Total: ${formatGbp(effectiveTotal)}`);
+  }
   if (draft.savedQuoteRef) lines.push(`Quote ref: ${draft.savedQuoteRef}`);
   lines.push(`Payment option: ${paymentOptionLabel(selectedPaymentOption)}`);
   if (draft.paymentLink) {
@@ -366,7 +374,15 @@ function buildPaymentMessage(paymentLink: StripePaymentLinkState, draft: Assiste
   lines.push(`Reference: ${paymentLink.refNumber}`);
   lines.push(paymentLink.kind === 'deposit' ? `Deposit due now: ${formatPence(paymentLink.amountPence)}` : `Amount due: ${formatPence(paymentLink.amountPence)}`);
   if (paymentLink.remainingBalancePence != null) lines.push(`Balance due on-site: ${formatPence(paymentLink.remainingBalancePence)}`);
-  lines.push(`Total: ${formatGbp(effectiveTotal)}`);
+  if (
+    draft.quote?.fittingPrice != null &&
+    Number.isFinite(draft.quote.fittingPrice) &&
+    draft.quote.fittingPrice > 0
+  ) {
+    lines.push(`Fitting at your location: ${formatGbp(draft.quote.fittingPrice)}`);
+  } else {
+    lines.push(`Total: ${formatGbp(effectiveTotal)}`);
+  }
   if (draft.location.address) lines.push(`Address: ${draft.location.address}`);
   if (draft.tyre.size) lines.push(`Tyres: ${draft.tyre.quantity} x ${draft.tyre.size}`);
   return lines.join('\n');
@@ -662,11 +678,19 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       ? draft.lockingNut.chargeGbp
       : 0;
   const baseTotal = draft.quote?.total ?? 0;
-  const engineEffectiveTotal = baseTotal + lockingNutCharge;
+  const backendBaseTotal = Math.round(
+    (baseTotal -
+      (
+        typeof draft.quote?.adminAdjustmentAmount === 'number' &&
+        Number.isFinite(draft.quote.adminAdjustmentAmount)
+          ? draft.quote.adminAdjustmentAmount
+          : 0
+      )) * 100,
+  ) / 100;
+  const engineEffectiveTotal = baseTotal;
   // When the operator has typed a manual final price, that overrides the
-  // engine total everywhere the customer-facing price is used (display,
-  // saved quote priceAmount, finalize adjustment). Locking nut is absorbed
-  // into the manual figure to avoid double counting.
+  // backend total everywhere the customer-facing price is used. The override
+  // is stored as a backend admin adjustment before save/finalize.
   const effectiveTotal = draft.manualPriceGbp != null ? draft.manualPriceGbp : engineEffectiveTotal;
 
   const price = useAssistedChatPrice({ draft, update });
@@ -1989,10 +2013,15 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       <EditQuotePriceModal
         visible={editPriceOpen}
         currentPriceGbp={effectiveTotal}
-        engineBaseTotal={baseTotal}
+        engineBaseTotal={backendBaseTotal}
         quickBookingId={draft.quickBookingId}
         onClose={() => setEditPriceOpen(false)}
-        onSaved={(newPrice) => update({ manualPriceGbp: newPrice })}
+        onSaved={(newPrice, quote) =>
+          update({
+            manualPriceGbp: newPrice,
+            ...(quote ? { quote, priceNeedsRefresh: false } : {}),
+          })
+        }
       />
     </SafeAreaView>
   );
@@ -2760,6 +2789,8 @@ function DispatchReviewSheet({
   onSend: () => void;
 }) {
   const distanceMiles = draft.quote?.distanceKm != null ? draft.quote.distanceKm * 0.621371 : null;
+  const isFittingAtLocationQuote =
+    typeof draft.quote?.fittingPrice === 'number' && Number.isFinite(draft.quote.fittingPrice);
   const driveTime = draft.quote?.serviceOrigin?.etaMinutes ?? null;
   const canSend = Boolean(draft.paymentChoice && draft.quote && draft.quickBookingId && quoteConfirmed && !draft.dispatchedRefNumber);
   const disabledReason = !draft.quote
@@ -2791,7 +2822,9 @@ function DispatchReviewSheet({
             <DetailRow label="Quote ref" value={activeQuote?.quoteRef ?? draft.savedQuoteRef ?? 'Not saved'} />
             <DetailRow label="Selected payment" value={paymentOptionLabel(selectedPaymentOption)} />
             <DetailRow label="Payment status" value={draft.paymentLink ? 'Payment link ready' : draft.paymentChoice ? paymentChoiceLabel(draft.paymentChoice) : 'Not selected'} />
-            <DetailRow label="Distance" value={distanceMiles != null ? `${distanceMiles.toFixed(1)} miles` : 'Not available'} />
+            {!isFittingAtLocationQuote ? (
+              <DetailRow label="Distance" value={distanceMiles != null ? `${distanceMiles.toFixed(1)} miles` : 'Not available'} />
+            ) : null}
             <DetailRow label="Drive time" value={driveTime != null ? `${driveTime} minutes` : 'Not available'} />
             <DetailRow label="Driver/admin note" value={draft.note.trim() || 'None'} />
             {disabledReason ? <StatusBanner kind="warn" message={disabledReason} /> : null}

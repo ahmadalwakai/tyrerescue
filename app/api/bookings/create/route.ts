@@ -252,6 +252,12 @@ export async function POST(
 
       const tyreSelections = parsedSnapshot.data!;
       const breakdown: PricingBreakdown = quote.breakdown;
+      const fittingLocation =
+        quote.metadata?.fittingLocation === 'shop'
+          ? 'shop'
+          : quote.metadata?.fittingLocation === 'mobile'
+            ? 'mobile'
+            : null;
       const hasPreOrderItems = tyreSelections.some(
         (s) => Boolean(s.isPreOrder),
       );
@@ -354,7 +360,9 @@ export async function POST(
         vatAmount: breakdown.vatAmount.toString(),
         totalAmount: breakdown.total.toString(),
         quoteExpiresAt: expiresAt,
-        notes: data.notes || null,
+        notes: [data.notes || null, fittingLocation ? `Fitting location: ${fittingLocation}` : null]
+          .filter(Boolean)
+          .join('\n') || null,
         hasPreOrderItems,
         fulfillmentOption: data.fulfillmentOption ?? null,
         // UTM attribution
@@ -422,7 +430,7 @@ export async function POST(
       });
 
       // Create Stripe Payment Intent
-      const { clientSecret, paymentIntentId } = await createPaymentIntent(
+      const { clientSecret, paymentIntentId, amountInPence } = await createPaymentIntent(
         breakdown.total,
         {
           bookingId,
@@ -430,6 +438,17 @@ export async function POST(
           customerEmail: data.customerEmail,
         }
       );
+      const expectedAmountPence = Math.round(Number(breakdown.total) * 100);
+      if (amountInPence !== expectedAmountPence) {
+        await client.query('ROLLBACK');
+        return NextResponse.json(
+          {
+            error: 'Payment amount mismatch',
+            code: 'PAYMENT_AMOUNT_MISMATCH',
+          },
+          { status: 500 },
+        );
+      }
 
       // Update booking with Stripe Payment Intent ID
       await db

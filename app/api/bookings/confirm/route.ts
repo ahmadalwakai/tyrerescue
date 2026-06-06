@@ -10,9 +10,8 @@ import {
   payments,
   tyreProducts,
   bookingTyres,
-  pricingRules,
 } from '@/lib/db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { getPaymentIntent } from '@/lib/stripe';
 import { sendBookingEmailOnce } from '@/lib/email/resend';
 import {
@@ -87,6 +86,23 @@ export async function POST(request: NextRequest) {
     // Ensure this PaymentIntent actually belongs to this booking
     if (pi.metadata?.bookingId !== booking.id) {
       return NextResponse.json({ error: 'Payment mismatch' }, { status: 400 });
+    }
+
+    const expectedAmountPence = Math.round(Number(booking.totalAmount) * 100);
+    if (pi.amount !== expectedAmountPence) {
+      console.error('[confirm] PAYMENT_AMOUNT_MISMATCH', {
+        refNumber: booking.refNumber,
+        paymentIntentId,
+        expectedAmountPence,
+        actualAmountPence: pi.amount,
+      });
+      return NextResponse.json(
+        {
+          error: 'Payment amount mismatch',
+          code: 'PAYMENT_AMOUNT_MISMATCH',
+        },
+        { status: 400 },
+      );
     }
 
     // 3. Idempotency: check if payment record already exists
@@ -310,12 +326,6 @@ async function sendConfirmationEmails(
 
   // Customer: payment receipt
   try {
-    const vatRules = await db
-      .select({ key: pricingRules.key, value: pricingRules.value })
-      .from(pricingRules)
-      .where(inArray(pricingRules.key, ['vat_registered', 'vat_number']));
-    const vatMap = new Map(vatRules.map((r) => [r.key, r.value]));
-
     const receiptEmail = paymentReceipt({
       customerName: booking.customerName,
       refNumber: booking.refNumber,
@@ -331,8 +341,8 @@ async function sendConfirmationEmails(
       subtotal: priceSnapshot.subtotal,
       vatAmount: priceSnapshot.vatAmount,
       total: priceSnapshot.total,
-      vatRegistered: vatMap.get('vat_registered') === 'true',
-      vatNumber: vatMap.get('vat_number') || '',
+      vatRegistered: false,
+      vatNumber: '',
     });
     await sendBookingEmailOnce({
       to: booking.customerEmail,

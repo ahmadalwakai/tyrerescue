@@ -25,7 +25,7 @@ export default async function InvoicesPage() {
     <VStack align="stretch" gap={6}>
       <Box style={{ animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both' }}>
         <Heading size="lg" color={c.text}>Invoices</Heading>
-        <Text color={c.muted} mt={1}>Download VAT invoices for your completed bookings</Text>
+        <Text color={c.muted} mt={1}>Download invoices for your completed bookings</Text>
       </Box>
 
       {invoiceable.length === 0 ? (

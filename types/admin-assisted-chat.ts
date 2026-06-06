@@ -61,6 +61,8 @@ export interface AssistedChatQuoteBreakdown {
   /** Engine total (includes locking-nut adjustment when sent through PATCH). */
   total: number;
   lineItems: AssistedChatQuoteLine[];
+  adminAdjustmentAmount?: number | null;
+  adminAdjustmentReason?: string | null;
   serviceOrigin: AssistedChatServiceOrigin | null;
   distanceKm: number | null;
 }

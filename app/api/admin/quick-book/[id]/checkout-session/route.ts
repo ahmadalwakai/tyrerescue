@@ -74,6 +74,16 @@ export async function POST(
       cancelUrl: `${baseUrl}/admin/bookings/${booking.refNumber}?stripe=cancelled`,
     }
   );
+  const expectedAmountPence = Math.round(Number(booking.totalAmount) * 100);
+  if (checkout.amountInPence !== expectedAmountPence) {
+    return NextResponse.json(
+      {
+        error: 'Payment amount mismatch',
+        code: 'PAYMENT_AMOUNT_MISMATCH',
+      },
+      { status: 500 },
+    );
+  }
 
   await db
     .update(bookings)

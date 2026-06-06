@@ -29,8 +29,8 @@ interface SyncResult {
 export function AvailabilityClient({ slots }: { slots: Slot[] }) {
   const router = useRouter();
   const [newDate, setNewDate] = useState('');
-  const [newStart, setNewStart] = useState('09:00');
-  const [newEnd, setNewEnd] = useState('10:00');
+  const [newStart, setNewStart] = useState('10:00');
+  const [newEnd, setNewEnd] = useState('11:00');
   const [newMax, setNewMax] = useState('2');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -84,8 +84,8 @@ export function AvailabilityClient({ slots }: { slots: Slot[] }) {
       }
 
       setNewDate('');
-      setNewStart('09:00');
-      setNewEnd('10:00');
+      setNewStart('10:00');
+      setNewEnd('11:00');
       setNewMax('2');
       await refresh();
     } finally {

@@ -49,7 +49,7 @@ export async function GET(_request: Request, props: Props) {
       invoice: {
         ...invoice,
         subtotal: invoice.subtotal?.toString() ?? '0',
-        vatRate: invoice.vatRate?.toString() ?? '20',
+        vatRate: invoice.vatRate?.toString() ?? '0',
         vatAmount: invoice.vatAmount?.toString() ?? '0',
         totalAmount: invoice.totalAmount?.toString() ?? '0',
         issueDate: invoice.issueDate?.toISOString() ?? null,

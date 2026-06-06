@@ -31,6 +31,7 @@ class MockClient {
 let mockClient: MockClient;
 
 vi.mock('@neondatabase/serverless', () => ({
+  neon: vi.fn(() => vi.fn()),
   Pool: vi.fn(function MockPool() {
     return {
       connect: vi.fn(async () => mockClient),

@@ -3,6 +3,7 @@ import {
   calculatePricing,
   calculateHybridPricing,
   parsePricingRules,
+  resolvePricingContext,
   getDisplayBreakdown,
   type PricingRules,
   type PricingInput,
@@ -26,7 +27,7 @@ function defaultRules(overrides: Partial<PricingRules> = {}): PricingRules {
     max_service_miles: 190,
     quote_expiry_minutes: 15,
     surge_pricing_enabled: false,
-    callout_0_5: 0,
+    callout_0_5: 5,
     callout_5_10: 10,
     callout_10_15: 20,
     callout_15_20: 30,
@@ -72,13 +73,13 @@ describe('calculatePricing', () => {
   });
 
   it('calculates correct callout fee for 0-5 mile range', () => {
-    const rules = defaultRules({ callout_0_5: 0 });
+    const rules = defaultRules({ callout_0_5: 5 });
     const input = defaultInput({ distanceMiles: 3 });
 
     const result = calculatePricing(input, rules);
 
     expect(result.isValid).toBe(true);
-    expect(result.calloutFee).toBe(0);
+    expect(result.calloutFee).toBe(5);
   });
 
   it('calculates correct callout fee for 10-15 mile range', () => {
@@ -102,6 +103,61 @@ describe('calculatePricing', () => {
     expect(result.calloutFee).toBe(67.5);
   });
 
+  it('does not add a callout fee for scheduled shop fitting', () => {
+    const rules = defaultRules({ max_service_miles: 30, callout_10_15: 20 });
+    const input = defaultInput({
+      bookingType: 'scheduled',
+      fittingLocation: 'shop',
+      distanceMiles: 45,
+    });
+
+    const result = calculatePricing(input, rules);
+
+    expect(result.isValid).toBe(true);
+    expect(result.calloutFee).toBe(0);
+    expect(result.total).toBe(100);
+    expect(result.lineItems.some((item) => item.type === 'callout')).toBe(false);
+    expect(result.lineItems.some((item) => /rural/i.test(item.label))).toBe(false);
+  });
+
+  it('uses fitting-at-location helper for scheduled mobile fitting', () => {
+    const rules = defaultRules({ callout_10_15: 20 });
+    const input = defaultInput({
+      bookingType: 'scheduled',
+      fittingLocation: 'mobile',
+      distanceMiles: 11,
+    });
+
+    const result = calculatePricing(input, rules);
+
+    expect(result.isValid).toBe(true);
+    expect(result.calloutFee).toBe(0);
+    expect(result.fittingPrice).toBe(200.2);
+    expect(result.tyrePrice).toBe(80);
+    expect(result.totalPrice).toBe(280.2);
+    expect(result.total).toBe(280.2);
+    expect(result.lineItems).toContainEqual({
+      label: 'Fitting at your location',
+      amount: 200.2,
+      type: 'service',
+    });
+    expect(result.lineItems.some((item) => item.type === 'callout')).toBe(false);
+  });
+
+  it('returns manual quote state for mobile fitting over 100 miles', () => {
+    const result = calculatePricing(
+      defaultInput({
+        bookingType: 'scheduled',
+        fittingLocation: 'mobile',
+        distanceMiles: 100.1,
+      }),
+      defaultRules(),
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.error).toBe('FITTING_LOCATION_MANUAL_QUOTE_REQUIRED');
+  });
+
   it('adds emergency surcharge for emergency bookings', () => {
     const rules = defaultRules({ emergency_surcharge: 30 });
     const input = defaultInput({ bookingType: 'emergency' });
@@ -110,6 +166,112 @@ describe('calculatePricing', () => {
 
     expect(result.isValid).toBe(true);
     expect(result.totalSurcharges).toBe(30);
+  });
+
+  it('resolves scheduled mobile fitting context without emergency surcharge', () => {
+    const result = calculatePricing(
+      defaultInput({
+        bookingType: 'scheduled',
+        pricingContext: 'scheduled_mobile_fitting',
+        fittingLocation: 'mobile',
+        distanceMiles: 5,
+      }),
+      defaultRules({ emergency_surcharge: 30 }),
+    );
+
+    expect(result.isValid).toBe(true);
+    expect(result.pricingContext).toBe('scheduled_mobile_fitting');
+    expect(result.emergencySurcharge).toBe(0);
+    expect(result.fittingPrice).toBe(122.65);
+  });
+
+  it('keeps emergency mobile fitting context and applies emergency surcharge', () => {
+    const result = calculatePricing(
+      defaultInput({
+        bookingType: 'emergency',
+        pricingContext: 'emergency_mobile_fitting',
+        fittingLocation: 'mobile',
+        distanceMiles: 5,
+      }),
+      defaultRules({ emergency_surcharge: 30 }),
+    );
+
+    expect(result.isValid).toBe(true);
+    expect(result.pricingContext).toBe('emergency_mobile_fitting');
+    expect(result.emergencySurcharge).toBe(30);
+    expect(result.fittingPrice).toBe(152.65);
+    expect(result.totalSurcharges).toBe(30);
+  });
+
+  it('defaults missing emergency surcharge rule to zero with metadata', () => {
+    const result = calculatePricing(
+      defaultInput({
+        bookingType: 'emergency',
+        pricingContext: 'emergency_mobile_fitting',
+        fittingLocation: 'mobile',
+        distanceMiles: 5,
+        emergencySurchargeRulePresent: false,
+      }),
+      defaultRules({ emergency_surcharge: 30 }),
+    );
+
+    expect(result.isValid).toBe(true);
+    expect(result.emergencySurcharge).toBe(0);
+    expect(result.emergencySurchargeSource).toBe('missing_rule_default_zero');
+  });
+
+  it('returns VAT as zero for canonical pricing', () => {
+    const result = calculatePricing(
+      defaultInput({
+        pricingContext: 'scheduled_mobile_fitting',
+        fittingLocation: 'mobile',
+        distanceMiles: 5,
+      }),
+      defaultRules(),
+    );
+
+    expect(result.vatRate).toBe(0);
+    expect(result.vatAmount).toBe(0);
+  });
+
+  it('keeps mobile quote valid when weather lookup falls back to unknown', () => {
+    const result = calculatePricing(
+      defaultInput({
+        pricingContext: 'scheduled_mobile_fitting',
+        fittingLocation: 'mobile',
+        weatherSurcharge: 0,
+        weatherSurchargeCode: 'UNKNOWN',
+      }),
+      defaultRules(),
+    );
+
+    expect(result.isValid).toBe(true);
+    expect(result.weatherSurcharge).toBe(0);
+    expect(result.weatherSurchargeCode).toBe('UNKNOWN');
+  });
+
+  it('applies weather and traffic to canonical mobile fitting price', () => {
+    const result = calculatePricing(
+      defaultInput({
+        pricingContext: 'scheduled_mobile_fitting',
+        fittingLocation: 'mobile',
+        distanceMiles: 5,
+        weatherSurcharge: 10,
+        weatherSurchargeCode: 'HEAVY_RAIN',
+        trafficSurcharge: 15,
+        trafficSurchargeCode: 'HEAVY_TRAFFIC',
+        trafficDelayMinutes: 30,
+      }),
+      defaultRules(),
+    );
+
+    expect(result.isValid).toBe(true);
+    expect(result.mobileFittingBasePrice).toBe(122.65);
+    expect(result.weatherSurcharge).toBe(10);
+    expect(result.trafficSurcharge).toBe(15);
+    expect(result.fittingPrice).toBe(147.65);
+    expect(result.tyrePrice).toBe(80);
+    expect(result.total).toBe(227.65);
   });
 
   it('calculates repair-only pricing without tyre selections', () => {
@@ -217,6 +379,23 @@ describe('parsePricingRules', () => {
       { key: 'surge_pricing_enabled', value: 'true' },
     ]);
     expect(rules.surge_pricing_enabled).toBe(true);
+  });
+});
+
+describe('resolvePricingContext', () => {
+  it('maps scheduled + mobile to scheduled_mobile_fitting', () => {
+    expect(resolvePricingContext({ bookingType: 'scheduled', fittingLocation: 'mobile' }))
+      .toBe('scheduled_mobile_fitting');
+  });
+
+  it('maps emergency + mobile to emergency_mobile_fitting', () => {
+    expect(resolvePricingContext({ bookingType: 'emergency', fittingLocation: 'mobile' }))
+      .toBe('emergency_mobile_fitting');
+  });
+
+  it('maps scheduled + shop to scheduled_garage_fitting', () => {
+    expect(resolvePricingContext({ bookingType: 'scheduled', fittingLocation: 'shop' }))
+      .toBe('scheduled_garage_fitting');
   });
 });
 
@@ -390,14 +569,14 @@ describe('calculateHybridPricing', () => {
   });
 
   it('produces correct finalPrice for normal booking (no multipliers)', () => {
-    // 1 tyre at £80, fitting £20, callout £0 (0-5 miles), no surcharges
+    // 1 tyre at £80, fitting £20, callout £5 (0-5 miles), no surcharges
     const rules = defaultRules();
     const result = calculateHybridPricing(hybridInput(), rules);
 
-    // 80 + 20 = 100
+    // 80 + 20 + 5 = 105
     expect(result.basePrice).toBe(80);
     expect(result.tyreServiceFee).toBe(20);
-    expect(result.finalPrice).toBe(100);
+    expect(result.finalPrice).toBe(105);
   });
 
   it('produces correct finalPrice with light rain weather', () => {
@@ -407,8 +586,8 @@ describe('calculateHybridPricing', () => {
       rules,
     );
 
-    // 100 * 1.03 = 103
-    expect(result.finalPrice).toBe(103);
+    // 105 * 1.03 = 108.15
+    expect(result.finalPrice).toBe(108.15);
     expect(result.pricingReasons).toContain('Light rain');
   });
 
@@ -419,8 +598,8 @@ describe('calculateHybridPricing', () => {
       rules,
     );
 
-    // 100 * 1.10 = 110
-    expect(result.finalPrice).toBe(110);
+    // 105 * 1.10 = 115.5
+    expect(result.finalPrice).toBe(115.5);
   });
 
   it('produces correct finalPrice with snow/ice weather', () => {
@@ -430,8 +609,8 @@ describe('calculateHybridPricing', () => {
       rules,
     );
 
-    // 100 * 1.25 = 125
-    expect(result.finalPrice).toBe(125);
+    // 105 * 1.25 = 131.25
+    expect(result.finalPrice).toBe(131.25);
   });
 
   it('produces correct finalPrice with high demand + heavy rain', () => {
@@ -444,8 +623,8 @@ describe('calculateHybridPricing', () => {
       rules,
     );
 
-    // base 100 * 1.15 demand = 115, then 115 * 1.10 weather = 126.5
-    expect(result.finalPrice).toBe(126.5);
+    // base 105 * 1.15 demand = 120.75, then 120.75 * 1.10 weather = 132.82
+    expect(result.finalPrice).toBe(132.82);
   });
 
   it('final price is always rounded to 2 decimal places', () => {
@@ -542,8 +721,8 @@ describe('cart vs summary parity', () => {
     expect(breakdown.totalTyreCost).toBe(85);
 
     // Total = tyre + fitting + callout + minimum-order rule
-    // = 85 + 20 + 0 = 105 (above £50 minimum)
-    expect(breakdown.total).toBe(105);
+    // = 85 + 20 + 5 = 110 (above £50 minimum)
+    expect(breakdown.total).toBe(110);
   });
 
   it('2 tyres at £85 — payable total includes £170 once only', () => {
@@ -556,9 +735,8 @@ describe('cart vs summary parity', () => {
     );
 
     expect(breakdown.totalTyreCost).toBe(170);
-    // 2 tyres × £85 + 2 × £20 fitting − 5% multi-tyre discount on £40 service = £208
-    // Wait: discount is 5% of service fee (£40) = £2 → 170 + 40 − 2 + 0 = £208
-    expect(breakdown.total).toBe(208);
+    // 2 tyres × £85 + 2 × £20 fitting − 5% service discount + £5 callout = £213
+    expect(breakdown.total).toBe(213);
   });
 });
 

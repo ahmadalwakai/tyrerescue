@@ -26,7 +26,7 @@ export function welcome(data: WelcomeEmailData): { subject: string; html: string
       <li>Book emergency and scheduled tyre fittings</li>
       <li>Track your bookings in real-time</li>
       <li>View your booking history</li>
-      <li>Download VAT invoices</li>
+      <li>Download invoices</li>
       <li>Save your vehicles and addresses</li>
     </ul>
 

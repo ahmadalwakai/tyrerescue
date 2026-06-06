@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Box, VStack, HStack, Text, Button, Separator, Spinner } from '@chakra-ui/react';
-import { WizardState, WizardStep, updateCartQuantity, removeFromCart } from './types';
-import { CartSummary } from './CartSummary';
-import { formatPrice, PricingBreakdown, PricingLineItem, getDisplayBreakdown } from '@/lib/pricing-engine';
+import { Box, VStack, HStack, Text, Button, Spinner } from '@chakra-ui/react';
+import { WizardState, WizardStep } from './types';
+import { formatPrice, PricingBreakdown } from '@/lib/pricing-engine';
+import { FITTING_AT_LOCATION_LABEL } from '@/lib/fitting-location-pricing';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { trackCallClick } from '@/lib/analytics/gtag';
 import { anim } from '@/lib/animations';
@@ -115,6 +115,8 @@ export function StepPricing({
   const lastFetchKeyRef = useRef('');
   const recoveryCountRef = useRef(0);
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isRepairIntent =
+    state.serviceType === 'repair' || state.conditionAssessment === 'repair';
 
   const handleSlotUnavailable = useCallback(() => {
     updateState({
@@ -129,22 +131,43 @@ export function StepPricing({
 
   // Stable fingerprint of selectedTyres for dependency tracking
   const tyreFingerprint = useMemo(
-    () => state.selectedTyres.map(t => `${t.tyreId}:${t.quantity}:${t.service}`).join('|'),
-    [state.selectedTyres],
+    () =>
+      isRepairIntent
+        ? ''
+        : state.selectedTyres.map(t => `${t.tyreId}:${t.quantity}:${t.service}`).join('|'),
+    [isRepairIntent, state.selectedTyres],
   );
 
   // State-driven auto-recovery: reacts to pricing state, not just mount
   useEffect(() => {
+    if (isRepairIntent) {
+      const hasStaleRepairCart = state.selectedTyres.length > 0;
+      const hasStaleTyrePricing =
+        state.breakdown?.lineItems.some(item => item.type === 'tyre') ?? false;
+
+      if (hasStaleRepairCart || hasStaleTyrePricing) {
+        updateState({
+          selectedTyres: [],
+          fulfillmentOption: null,
+          quoteId: null,
+          breakdown: null,
+          quoteExpiresAt: null,
+        });
+        return;
+      }
+    }
+
     // Already have a valid quote — nothing to do
     if (state.quoteId && state.breakdown) return;
 
     // Cannot fetch without location
     if (!state.lat || !state.lng) return;
 
-    const isRepair = state.serviceType === 'repair' && state.selectedTyres.length === 0;
-    const hasTyres = state.selectedTyres.length > 0;
+    const isRepair = isRepairIntent;
+    const hasTyres = !isRepair && state.selectedTyres.length > 0;
     // Emergency flow with assess/fit but no tyre selection step — treat as service-only quote
-    const isEmergencyNoTyres = state.bookingType === 'emergency' && state.selectedTyres.length === 0;
+    const isEmergencyNoTyres =
+      !isRepair && state.bookingType === 'emergency' && state.selectedTyres.length === 0;
 
     // Emergency replacement/assess needs auto tyre lookup (no tyre-selection step)
     const needsAutoTyreLookup =
@@ -154,7 +177,16 @@ export function StepPricing({
     if (!isRepair && !hasTyres && !isEmergencyNoTyres) return;
 
     // Build a stable key from request inputs to avoid duplicate fetches
-    const fetchKey = `${state.lat}|${state.lng}|${state.bookingType}|${state.serviceType}|${tyreFingerprint}`;
+    const fetchKey = [
+      state.lat,
+      state.lng,
+      state.bookingType,
+      state.serviceType,
+      isRepair ? `repair:${state.quantity || 1}` : tyreFingerprint,
+      state.fittingLocation ?? '',
+      state.scheduledDate ?? '',
+      state.scheduledTime ?? '',
+    ].join('|');
 
     // Already fetched (or fetching) for these exact inputs
     if (fetchKey === lastFetchKeyRef.current) return;
@@ -230,6 +262,7 @@ export function StepPricing({
             tyreSelections: finalTyreSelections,
             quantity: isSendingAsRepair ? (state.quantity || 1) : undefined,
             fulfillmentOption: state.fulfillmentOption ?? undefined,
+            fittingLocation: state.fittingLocation ?? undefined,
             scheduledAt:
               state.scheduledDate && state.scheduledTime
                 ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
@@ -307,12 +340,15 @@ export function StepPricing({
     state.lng,
     state.serviceType,
     state.bookingType,
+    isRepairIntent,
     tyreFingerprint,
     updateState,
     state.conditionAssessment,
     state.address,
     state.quantity,
+    state.tyreSize,
     state.fulfillmentOption,
+    state.fittingLocation,
     state.scheduledDate,
     state.scheduledTime,
     state.selectedTyres,
@@ -377,79 +413,16 @@ export function StepPricing({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Handle cart edits → re-quote
-  const handleCartChange = useCallback(
-    async (newCart: typeof state.selectedTyres) => {
-      updateState({ selectedTyres: newCart });
-
-      if (newCart.length === 0) {
-        updateState({ breakdown: null, quoteId: null, quoteExpiresAt: null });
-        return;
-      }
-
-      setIsRefreshing(true);
-      setIsExpired(false);
-
-      try {
-        const vc2 = typeof localStorage !== 'undefined' ? localStorage.getItem('tr_visit_count') || '1' : '1';
-        const res = await fetch(API.BOOKINGS_QUOTE, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-visit-count': vc2 },
-          body: JSON.stringify({
-            lat: state.lat,
-            lng: state.lng,
-            addressLine: state.address,
-            bookingType: state.bookingType,
-            serviceType: state.conditionAssessment === 'repair' ? 'repair' : 'fit',
-            tyreSelections: newCart.map((tyre) => ({
-              tyreId: tyre.tyreId,
-              quantity: tyre.quantity,
-              service: tyre.service,
-              requiresTpms: false,
-              isPreOrder: tyre.isPreOrder ?? false,
-            })),
-            scheduledAt:
-              state.scheduledDate && state.scheduledTime
-                ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
-                : undefined,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          if (isSlotUnavailablePayload(data)) {
-            handleSlotUnavailable();
-            throw new Error(apiErrorMessage(data, SLOT_UNAVAILABLE_MESSAGE));
-          }
-          throw new Error(apiErrorMessage(data, 'Failed to refresh quote'));
-        }
-
-        if (!data.quoteId || !data.breakdown) {
-          throw new Error('Incomplete quote response');
-        }
-
-        updateState({
-          quoteId: data.quoteId,
-          breakdown: data.breakdown,
-          quoteExpiresAt: data.expiresAt,
-        });
-      } catch (err) {
-        setRepairQuoteError(err instanceof Error ? err.message : 'Failed to refresh quote. Please try again.');
-      } finally {
-        setIsRefreshing(false);
-      }
-    },
-    [state, updateState, handleSlotUnavailable],
-  );
-
   // Refresh quote (without cart changes)
   const handleRefreshQuote = useCallback(async () => {
     setIsRefreshing(true);
     setIsExpired(false);
 
     try {
+      const refreshAsRepairIntent =
+        state.serviceType === 'repair' || state.conditionAssessment === 'repair';
       const isEmergencyNeedsTyre =
+        !refreshAsRepairIntent &&
         state.bookingType === 'emergency' &&
         state.selectedTyres.length === 0 &&
         state.conditionAssessment !== 'repair' &&
@@ -472,7 +445,11 @@ export function StepPricing({
       let refreshTyreSelections: TyreSel[];
       let refreshAsRepair = false;
 
-      if (autoTyre) {
+      if (refreshAsRepairIntent) {
+        refreshAsRepair = true;
+        refreshServiceType = 'repair';
+        refreshTyreSelections = [];
+      } else if (autoTyre) {
         refreshServiceType = autoTyre.service;
         refreshTyreSelections = [{
           tyreId: autoTyre.tyreId,
@@ -509,6 +486,7 @@ export function StepPricing({
           tyreSelections: refreshTyreSelections,
           quantity: refreshAsRepair ? (state.quantity || 1) : undefined,
           fulfillmentOption: state.fulfillmentOption ?? undefined,
+          fittingLocation: state.fittingLocation ?? undefined,
           scheduledAt: state.scheduledDate && state.scheduledTime
             ? new Date(`${state.scheduledDate}T${state.scheduledTime}`).toISOString()
             : undefined,
@@ -546,6 +524,7 @@ export function StepPricing({
               }],
             }
           : {}),
+        ...(refreshAsRepair ? { selectedTyres: [] } : {}),
       });
     } catch (error) {
       setRepairQuoteError(error instanceof Error ? error.message : 'Failed to refresh quote. Please try again.');
@@ -561,20 +540,20 @@ export function StepPricing({
     setRepairQuoteError(null);
     setLoadingTimedOut(false);
     // Clear stale quote state to trigger the recovery effect
-    updateState({ quoteId: null, breakdown: null, quoteExpiresAt: null });
-  }, [updateState]);
+    updateState({
+      quoteId: null,
+      breakdown: null,
+      quoteExpiresAt: null,
+      ...(isRepairIntent ? { selectedTyres: [], fulfillmentOption: null } : {}),
+    });
+  }, [isRepairIntent, updateState]);
 
   const breakdown = state.breakdown as PricingBreakdown | null;
-
-  // Get display breakdown with rural surcharge hidden and redistributed
-  const displayBreakdown = useMemo(() => breakdown ? getDisplayBreakdown(breakdown) : null, [breakdown]);
-
-  // Group line items by type — must be above early returns to preserve hook order
-  const tyreItems = useMemo(() => displayBreakdown?.lineItems.filter(item => item.type === 'tyre') ?? [], [displayBreakdown]);
-  const serviceItems = useMemo(() => displayBreakdown?.lineItems.filter(item => item.type === 'service') ?? [], [displayBreakdown]);
-  const calloutItems = useMemo(() => displayBreakdown?.lineItems.filter(item => item.type === 'callout') ?? [], [displayBreakdown]);
-  const surchargeItems = useMemo(() => displayBreakdown?.lineItems.filter(item => item.type === 'surcharge') ?? [], [displayBreakdown]);
-  const discountItems = useMemo(() => displayBreakdown?.lineItems.filter(item => item.type === 'discount') ?? [], [displayBreakdown]);
+  const isFittingAtLocationQuote =
+    typeof breakdown?.fittingPrice === 'number';
+  const quoteDisplayText = isFittingAtLocationQuote
+    ? `${FITTING_AT_LOCATION_LABEL}: ${formatPrice(breakdown?.total ?? 0)}`
+    : `Total: ${formatPrice(breakdown?.total ?? 0)}`;
 
   if (!breakdown) {
     // Error state (API error or response validation failure)
@@ -710,124 +689,18 @@ export function StepPricing({
         )}
       </Box>
 
-      {/* Editable Cart */}
-      {state.selectedTyres.length > 0 && (
-        <Box style={anim.fadeUp('0.4s', '0.05s')}>
-          <CartSummary cart={state.selectedTyres} onChange={handleCartChange} />
-          {goToStep && (
-            <Box
-              as="button"
-              mt={2}
-              fontSize="sm"
-              color={c.accent}
-              _hover={{ textDecoration: 'underline' }}
-              onClick={() => goToStep('tyre-selection')}
-            >
-              Add more tyres
-            </Box>
-          )}
-        </Box>
-      )}
-
-      {/* Price Breakdown */}
-      <Box borderWidth="1px" borderColor={c.border} borderRadius="lg" overflow="hidden" style={anim.fadeUp('0.5s', '0.1s')}>
-        {/* Tyre Items */}
-        {tyreItems.length > 0 && (
-          <VStack gap={0} align="stretch">
-            {tyreItems.map((item, index) => (
-              <LineItemRow key={`tyre-${index}`} item={item} isLast={index === tyreItems.length - 1 && serviceItems.length === 0 && calloutItems.length === 0} />
-            ))}
-          </VStack>
-        )}
-
-        {/* Service Items */}
-        {serviceItems.length > 0 && (
-          <VStack gap={0} align="stretch">
-            {serviceItems.map((item, index) => (
-              <LineItemRow key={`service-${index}`} item={item} isLast={index === serviceItems.length - 1 && calloutItems.length === 0} />
-            ))}
-          </VStack>
-        )}
-
-        {/* Callout Fee */}
-        {calloutItems.length > 0 && (
-          <VStack gap={0} align="stretch" bg={c.surface}>
-            {calloutItems.map((item, index) => (
-              <LineItemRow key={`callout-${index}`} item={item} isLast={index === calloutItems.length - 1} />
-            ))}
-          </VStack>
-        )}
-
-        {/* Surcharges */}
-        {surchargeItems.length > 0 && (
-          <>
-            <Separator />
-              <VStack gap={0} align="stretch" bg="rgba(249,115,22,0.08)">
-              {surchargeItems.map((item, index) => (
-                <LineItemRow key={`surcharge-${index}`} item={item} isLast={index === surchargeItems.length - 1} />
-              ))}
-            </VStack>
-          </>
-        )}
-
-        {/* Discounts */}
-        {discountItems.length > 0 && (
-          <>
-            <Separator />
-              <VStack gap={0} align="stretch" bg="rgba(34,197,94,0.08)">
-              {discountItems.map((item, index) => (
-                <HStack
-                  key={`discount-${index}`}
-                  justify="space-between"
-                  p={4}
-                  borderBottomWidth={index < discountItems.length - 1 ? '1px' : '0'}
-                  borderColor={c.border}
-                >
-                  <Text color="green.400">{item.label}</Text>
-                  <Text color="green.400" fontWeight="500">
-                    -{formatPrice(Math.abs(item.amount))}
-                  </Text>
-                </HStack>
-              ))}
-            </VStack>
-          </>
-        )}
-
-        {/* Subtotal + VAT + Total */}
-        <Separator />
-        <VStack gap={0} align="stretch">
-          <HStack justify="space-between" p={4} borderBottomWidth="1px" borderColor={c.border}>
-            <Text color={c.text}>Subtotal</Text>
-            <Text color={c.text}>{formatPrice(breakdown.subtotal)}</Text>
-          </HStack>
-          {breakdown.vatAmount > 0 && (
-            <HStack justify="space-between" p={4} borderBottomWidth="1px" borderColor={c.border}>
-              <Text color={c.text}>VAT (20%)</Text>
-              <Text color={c.text}>{formatPrice(breakdown.vatAmount)}</Text>
-            </HStack>
-          )}
-          <HStack justify="space-between" p={4} bg={c.accent} style={anim.fadeUp('0.5s', '0.4s')}>
-            <Text fontWeight="700" fontSize="lg" color={c.bg}>
-              Total
-            </Text>
-            <Text fontWeight="700" fontSize="xl" color={c.bg}>
-              {formatPrice(breakdown.total)}
-            </Text>
-          </HStack>
-        </VStack>
-      </Box>
-
       {/* Service Summary */}
       <Box p={4} bg={c.surface} borderRadius="md">
         <Text fontWeight="600" mb={2} color={c.text}>
           Service details
         </Text>
         <VStack align="stretch" gap={1} fontSize="sm" color={c.muted}>
-          {state.selectedTyres.map((tyre, i) => (
-            <Text key={i}>
-              {tyre.quantity}x {tyre.brand} {tyre.pattern}
-            </Text>
-          ))}
+          {!isRepairIntent &&
+            state.selectedTyres.map((tyre, i) => (
+              <Text key={i}>
+                {tyre.quantity}x {tyre.brand} {tyre.pattern}
+              </Text>
+            ))}
           {state.conditionAssessment === 'repair' && (
             <Text>Puncture repair service</Text>
           )}
@@ -850,6 +723,15 @@ export function StepPricing({
         </VStack>
       </Box>
 
+      {/* Quote Price */}
+      <Box borderWidth="1px" borderColor={c.border} borderRadius="lg" overflow="hidden" style={anim.fadeUp('0.5s', '0.1s')}>
+        <HStack p={5} bg={c.accent}>
+          <Text fontWeight="700" fontSize="lg" color={c.bg}>
+            {quoteDisplayText}
+          </Text>
+        </HStack>
+      </Box>
+
       {/* Navigation */}
       <HStack gap={4} pt={4}>
         <Button variant="outline" onClick={goToPrev} flex="1">
@@ -865,26 +747,5 @@ export function StepPricing({
         </Button>
       </HStack>
     </VStack>
-  );
-}
-
-function LineItemRow({ item, isLast }: { item: PricingLineItem; isLast: boolean }) {
-  return (
-    <HStack
-      justify="space-between"
-      p={4}
-      borderBottomWidth={isLast ? '0' : '1px'}
-      borderColor={c.border}
-    >
-      <Box>
-        <Text fontWeight="500" color={c.text}>{item.label}</Text>
-        {item.quantity && item.quantity > 1 && item.unitPrice && (
-          <Text fontSize="sm" color={c.muted}>
-            {formatPrice(item.unitPrice)} x {item.quantity}
-          </Text>
-        )}
-      </Box>
-      <Text fontWeight="500" color={c.text}>{formatPrice(item.amount)}</Text>
-    </HStack>
   );
 }

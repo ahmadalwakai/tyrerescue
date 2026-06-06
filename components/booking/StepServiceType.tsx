@@ -48,7 +48,7 @@ const CARDS: {
     label: 'SCHEDULED',
     title: 'Schedule a Fitting',
     description:
-      'Pick a date and time that works for you. We come to your home, workplace, or wherever you need us.',
+      'Pick a date and time, then choose fitting at the shop or at your location.',
   },
 ];
 
@@ -86,7 +86,13 @@ export function StepServiceType({
   const selected = state.bookingType;
 
   const handleSelect = (type: BookingType) => {
-    updateState({ bookingType: type });
+    updateState({
+      bookingType: type,
+      fittingLocation: type === 'emergency' ? null : state.fittingLocation,
+      quoteId: null,
+      breakdown: null,
+      quoteExpiresAt: null,
+    });
   };
 
   return (
@@ -290,7 +296,7 @@ export function StepServiceType({
                         borderRadius="4px"
                         whiteSpace="nowrap"
                       >
-                        Today to 14 days
+                        At shop: no extra fee
                       </Text>
                       <Text
                         fontFamily="var(--font-body), sans-serif"
@@ -298,7 +304,7 @@ export function StepServiceType({
                         color={c.muted}
                         whiteSpace="nowrap"
                       >
-                        No emergency surcharge
+                        At your location: priced in quote
                       </Text>
                     </>
                   )}

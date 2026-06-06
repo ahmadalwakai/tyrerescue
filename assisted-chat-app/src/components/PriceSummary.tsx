@@ -69,27 +69,38 @@ export function PriceSummary({
   manualPriceGbp = null,
 }: Props) {
   const baseTotal = quote?.total ?? 0;
-  const calculatedTotal = baseTotal + lockingNutCharge;
+  const calculatedTotal = baseTotal;
   const hasManualOverride =
     typeof manualPriceGbp === 'number' && Number.isFinite(manualPriceGbp);
   // The customer-payable figure used for deposit/cash/full button labels and
-  // the customer-facing sentence. Manual override wins over the engine total.
+  // the customer-facing sentence. Manual override wins, and is persisted as a
+  // backend admin adjustment before quote save/finalize.
   const effectiveTotal = hasManualOverride ? (manualPriceGbp as number) : calculatedTotal;
   const depositPercent = 0.15;
   const deposit = effectiveTotal * depositPercent;
-  const priceLines = quote?.lineItems.filter((line) => line.type !== 'subtotal' && line.type !== 'total') ?? [];
+  const isFittingAtLocationQuote =
+    typeof quote?.fittingPrice === 'number' && Number.isFinite(quote.fittingPrice);
+  const priceLines = isFittingAtLocationQuote
+    ? []
+    : quote?.lineItems.filter((line) => line.type !== 'subtotal' && line.type !== 'total') ?? [];
   const pricingSource = quote?.serviceOrigin?.source === 'driver' ? 'nearest driver' : quote?.serviceOrigin?.source === 'garage' ? 'garage' : null;
   const hasDistanceCharge = priceLines.some((line) => /callout|rural|distance/i.test(line.label));
   const hasRuralSurcharge = priceLines.some((line) => /rural/i.test(line.label));
   const customerPriceSentence = quote
-    ? `Tell customer: total is ${formatGbp(effectiveTotal)} including tyre, fitting${hasDistanceCharge ? ', callout and distance charges' : ''}.`
+    ? isFittingAtLocationQuote
+      ? `Tell customer: Fitting at your location: ${formatGbp(quote.fittingPrice as number)}.`
+      : `Tell customer: total is ${formatGbp(effectiveTotal)} including tyre, fitting${hasDistanceCharge ? ', callout and distance charges' : ''}.`
     : null;
   const smartWarnings = [
-    quote?.distanceKm != null && quote.distanceKm >= 48
+    !isFittingAtLocationQuote && quote?.distanceKm != null && quote.distanceKm >= 48
       ? 'Long-distance job. The price includes extra travel distance.'
       : null,
-    hasRuralSurcharge ? 'Rural surcharge is included in this quote. Mention this if the customer asks why the total is higher.' : null,
-    lockingNutCharge > 0 ? 'Locking wheel nut removal is added on top of the quoted price.' : null,
+    !isFittingAtLocationQuote && hasRuralSurcharge ? 'Rural surcharge is included in this quote. Mention this if the customer asks why the total is higher.' : null,
+    quote &&
+    lockingNutCharge > 0 &&
+    quote.adminAdjustmentReason !== 'Locking wheel nut removal'
+      ? 'Refresh the price so locking wheel nut removal is included in the backend quote.'
+      : null,
   ].filter(Boolean) as string[];
 
   return (
@@ -125,51 +136,53 @@ export function PriceSummary({
 
       {quote ? (
         <View style={styles.breakdown}>
-          {priceLines.map((line, i) => (
-            <View key={`${line.type}-${i}`} style={styles.row}>
-              <Text style={styles.rowLabel} numberOfLines={2}>
-                {line.label}
-                {line.quantity && line.quantity > 1
-                  ? `  × ${line.quantity}`
-                  : ''}
-              </Text>
-              <Text style={styles.rowValue}>{formatGbp(line.amount)}</Text>
+          {isFittingAtLocationQuote ? (
+            <View style={[styles.row, styles.finalRow]}>
+              <Text style={styles.finalLabel}>Fitting at your location</Text>
+              <Text style={styles.finalValue}>{formatGbp(quote.fittingPrice as number)}</Text>
             </View>
-          ))}
-
-          {lockingNutCharge > 0 ? (
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>Locking wheel nut removal</Text>
-              <Text style={styles.rowValue}>{formatGbp(lockingNutCharge)}</Text>
-            </View>
-          ) : null}
-
-          {/* Show VAT only if engine returned a real positive VAT amount. */}
-          {quote.vatAmount > 0 ? (
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>VAT (incl.)</Text>
-              <Text style={styles.rowValue}>{formatGbp(quote.vatAmount)}</Text>
-            </View>
-          ) : null}
-
-          <View style={styles.divider} />
-          <View style={styles.row}>
-            <Text style={styles.totalLabel}>
-              {hasManualOverride ? 'Calculated total' : 'Total'}
-            </Text>
-            <Text style={styles.totalValue}>{formatGbp(calculatedTotal)}</Text>
-          </View>
-
-          {hasManualOverride ? (
+          ) : (
             <>
+              {priceLines.map((line, i) => (
+                <View key={`${line.type}-${i}`} style={styles.row}>
+                  <Text style={styles.rowLabel} numberOfLines={2}>
+                    {line.label}
+                    {line.quantity && line.quantity > 1
+                      ? `  × ${line.quantity}`
+                      : ''}
+                  </Text>
+                  <Text style={styles.rowValue}>{formatGbp(line.amount)}</Text>
+                </View>
+              ))}
+
+              {/* Show VAT only if engine returned a real positive VAT amount. */}
+              {quote.vatAmount > 0 ? (
+                <View style={styles.row}>
+                  <Text style={styles.rowLabel}>VAT (incl.)</Text>
+                  <Text style={styles.rowValue}>{formatGbp(quote.vatAmount)}</Text>
+                </View>
+              ) : null}
+
               <View style={styles.divider} />
-              <View style={[styles.row, styles.finalRow]}>
-                <Text style={styles.finalLabel}>Final quote price</Text>
-                <Text style={styles.finalValue}>{formatGbp(effectiveTotal)}</Text>
+              <View style={styles.row}>
+                <Text style={styles.totalLabel}>
+                  {hasManualOverride ? 'Calculated total' : 'Total'}
+                </Text>
+                <Text style={styles.totalValue}>{formatGbp(calculatedTotal)}</Text>
               </View>
-              <Text style={styles.manualNoteText}>Manual override applied</Text>
+
+              {hasManualOverride ? (
+                <>
+                  <View style={styles.divider} />
+                  <View style={[styles.row, styles.finalRow]}>
+                    <Text style={styles.finalLabel}>Final quote price</Text>
+                    <Text style={styles.finalValue}>{formatGbp(effectiveTotal)}</Text>
+                  </View>
+                  <Text style={styles.manualNoteText}>Manual override applied</Text>
+                </>
+              ) : null}
             </>
-          ) : null}
+          )}
 
           {customerPriceSentence ? (
             <View style={styles.sayBox}>
@@ -177,12 +190,14 @@ export function PriceSummary({
             </View>
           ) : null}
 
-          {quote.distanceKm != null ? (
-            <Text style={styles.meta}>
-              Distance used for pricing: {quote.distanceKm.toFixed(1)} km{pricingSource ? ` from ${pricingSource}` : ''}
-            </Text>
-          ) : (
-            <Text style={styles.warnMeta}>Pricing distance unavailable. Price used the fallback distance.</Text>
+          {!isFittingAtLocationQuote && (
+            quote.distanceKm != null ? (
+              <Text style={styles.meta}>
+                Distance used for pricing: {quote.distanceKm.toFixed(1)} km{pricingSource ? ` from ${pricingSource}` : ''}
+              </Text>
+            ) : (
+              <Text style={styles.warnMeta}>Pricing distance unavailable. Price used the fallback distance.</Text>
+            )
           )}
 
           {smartWarnings.length > 0 ? (

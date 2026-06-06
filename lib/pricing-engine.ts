@@ -7,11 +7,30 @@
  */
 
 import { Decimal } from 'decimal.js';
+import {
+  calculateFittingAtLocationPrice,
+  FITTING_AT_LOCATION_LABEL,
+  FITTING_LOCATION_INVALID_DISTANCE_ERROR,
+  FITTING_LOCATION_MANUAL_QUOTE_ERROR,
+  type FittingLocationPricingResult,
+} from '@/lib/fitting-location-pricing';
+import type { WeatherSurchargeCode } from '@/lib/pricing/weather-modifier';
+import type { TrafficSurchargeCode } from '@/lib/pricing/traffic-modifier';
 
 // Configure Decimal.js for financial calculations
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
 // Types
+export type PricingContext =
+  | 'scheduled_mobile_fitting'
+  | 'scheduled_garage_fitting'
+  | 'emergency_mobile_fitting'
+  | 'admin_quick_book'
+  | 'assisted_chat'
+  | 'manual_quote';
+
+export const PRICING_ENGINE_VERSION = 'canonical-context-weather-traffic-v1';
+
 export interface TyreSelection {
   tyreId: string;
   quantity: number;
@@ -48,11 +67,20 @@ export interface PricingInput {
   tyreSelections: TyreSelection[];
   distanceMiles: number;
   bookingType: 'emergency' | 'scheduled';
+  pricingContext?: PricingContext;
   bookingDate: Date;
   isBankHoliday: boolean;
   surgeMultiplier?: number;
   serviceType?: 'repair' | 'fit' | 'both' | 'assess';
   tyreQuantity?: number;
+  fittingLocation?: 'shop' | 'mobile';
+  emergencySurchargeRulePresent?: boolean;
+  weatherSurcharge?: number;
+  weatherSurchargeCode?: WeatherSurchargeCode;
+  weatherManualQuoteRequired?: boolean;
+  trafficSurcharge?: number;
+  trafficSurchargeCode?: TrafficSurchargeCode;
+  trafficDelayMinutes?: number;
 }
 
 export interface PricingLineItem {
@@ -65,6 +93,8 @@ export interface PricingLineItem {
 
 export interface PricingBreakdown {
   lineItems: PricingLineItem[];
+  pricingContext?: PricingContext;
+  pricingEngineVersion?: typeof PRICING_ENGINE_VERSION;
   totalTyreCost: number;
   totalServiceFee: number;
   calloutFee: number;
@@ -72,11 +102,30 @@ export interface PricingBreakdown {
   discountAmount: number;
   surgeMultiplier: number;
   subtotal: number;
+  vatRate?: number;
   vatAmount: number;
   total: number;
   quoteExpiresAt: Date;
   isValid: boolean;
   error?: string;
+  distanceMiles?: number;
+  distanceServicePrice?: number;
+  fittingLabourFee?: number;
+  mobileFittingBasePrice?: number;
+  mobileFittingPrice?: number;
+  emergencySurcharge?: number;
+  emergencySurchargeSource?: 'pricing_rule' | 'missing_rule_default_zero' | 'not_applicable';
+  weatherSurcharge?: number;
+  weatherSurchargeCode?: WeatherSurchargeCode;
+  weatherManualQuoteRequired?: boolean;
+  trafficSurcharge?: number;
+  trafficSurchargeCode?: TrafficSurchargeCode;
+  trafficDelayMinutes?: number;
+  adminAdjustmentAmount?: number;
+  adminAdjustmentReason?: string | null;
+  fittingPrice?: number;
+  tyrePrice?: number;
+  totalPrice?: number;
   /** Service origin info for map display (driver or garage location) */
   serviceOrigin?: {
     lat: number;
@@ -119,14 +168,14 @@ export function parsePricingRules(
     max_service_miles: getNum('max_service_miles', 190),
     quote_expiry_minutes: getNum('quote_expiry_minutes', 15),
     surge_pricing_enabled: getBool('surge_pricing_enabled', false),
-    callout_0_5: getNum('callout_0_5', 10.0),
-    callout_5_10: getNum('callout_5_10', 18.0),
-    callout_10_15: getNum('callout_10_15', 28.0),
-    callout_15_20: getNum('callout_15_20', 39.0),
-    callout_20_30: getNum('callout_20_30', 55.0),
-    callout_30_40: getNum('callout_30_40', 75.0),
+    callout_0_5: getNum('callout_0_5', 5.0),
+    callout_5_10: getNum('callout_5_10', 10.0),
+    callout_10_15: getNum('callout_10_15', 20.0),
+    callout_15_20: getNum('callout_15_20', 30.0),
+    callout_20_30: getNum('callout_20_30', 45.0),
+    callout_30_40: getNum('callout_30_40', 60.0),
     callout_40_base: getNum('callout_40_base', 60.0),
-    callout_40_per_mile: getNum('callout_40_per_mile', 1.85),
+    callout_40_per_mile: getNum('callout_40_per_mile', 1.5),
   };
 }
 
@@ -246,28 +295,28 @@ function calculateCalloutFee(
   let label: string;
 
   if (distanceMiles <= 5) {
-    fee = new Decimal(rules.callout_0_5).times(0.67);
+    fee = new Decimal(rules.callout_0_5);
     label = 'Callout (0-5 miles)';
   } else if (distanceMiles <= 10) {
-    fee = new Decimal(rules.callout_5_10).times(0.67);
+    fee = new Decimal(rules.callout_5_10);
     label = 'Callout (5-10 miles)';
   } else if (distanceMiles <= 15) {
-    fee = new Decimal(rules.callout_10_15).times(0.67);
+    fee = new Decimal(rules.callout_10_15);
     label = 'Callout (10-15 miles)';
   } else if (distanceMiles <= 20) {
-    fee = new Decimal(rules.callout_15_20).times(0.67);
+    fee = new Decimal(rules.callout_15_20);
     label = 'Callout (15-20 miles)';
   } else if (distanceMiles <= 30) {
-    fee = new Decimal(rules.callout_20_30).times(0.67);
+    fee = new Decimal(rules.callout_20_30);
     label = 'Callout (20-30 miles)';
   } else if (distanceMiles <= 40) {
-    fee = new Decimal(rules.callout_30_40).times(0.67);
+    fee = new Decimal(rules.callout_30_40);
     label = 'Callout (30-40 miles)';
   } else {
     // Over 40 miles: base + per mile rate
     const extraMiles = distanceMiles - 40;
-    fee = new Decimal(rules.callout_40_base).times(0.67).plus(
-      new Decimal(rules.callout_40_per_mile).times(0.67).times(extraMiles)
+    fee = new Decimal(rules.callout_40_base).plus(
+      new Decimal(rules.callout_40_per_mile).times(extraMiles)
     );
     label = `Callout (${Math.round(distanceMiles)} miles)`;
   }
@@ -297,23 +346,45 @@ function calculateCalloutFee(
  */
 function calculateSurcharges(
   input: PricingInput,
-  rules: PricingRules
+  rules: PricingRules,
+  options?: {
+    includeEmergencySurcharge?: boolean;
+    includeCalendarSurcharges?: boolean;
+  }
 ): {
   total: Decimal;
   lineItems: PricingLineItem[];
+  emergencySurcharge: Decimal;
+  emergencySurchargeSource: PricingBreakdown['emergencySurchargeSource'];
 } {
   const lineItems: PricingLineItem[] = [];
   let total = new Decimal(0);
+  let emergencySurcharge = new Decimal(0);
+  let emergencySurchargeSource: PricingBreakdown['emergencySurchargeSource'] = 'not_applicable';
+  const includeEmergencySurcharge =
+    options?.includeEmergencySurcharge ?? input.bookingType === 'emergency';
+  const includeCalendarSurcharges = options?.includeCalendarSurcharges ?? true;
 
   // Emergency surcharge
-  if (input.bookingType === 'emergency') {
-    const amount = new Decimal(rules.emergency_surcharge);
+  if (includeEmergencySurcharge) {
+    emergencySurchargeSource =
+      input.emergencySurchargeRulePresent === false ? 'missing_rule_default_zero' : 'pricing_rule';
+    const amount = input.emergencySurchargeRulePresent === false
+      ? new Decimal(0)
+      : new Decimal(rules.emergency_surcharge);
+    emergencySurcharge = amount;
     total = total.plus(amount);
-    lineItems.push({
-      label: 'Emergency callout',
-      amount: amount.toNumber(),
-      type: 'surcharge',
-    });
+    if (!amount.isZero()) {
+      lineItems.push({
+        label: 'Emergency callout',
+        amount: amount.toNumber(),
+        type: 'surcharge',
+      });
+    }
+  }
+
+  if (!includeCalendarSurcharges) {
+    return { total, lineItems, emergencySurcharge, emergencySurchargeSource };
   }
 
   // Weekend surcharge
@@ -340,7 +411,7 @@ function calculateSurcharges(
     });
   }
 
-  return { total, lineItems };
+  return { total, lineItems, emergencySurcharge, emergencySurchargeSource };
 }
 
 /**
@@ -428,6 +499,7 @@ function calculateVatAndTotal(
   vatAmount: Decimal;
   total: Decimal;
 } {
+  void _vatRegistered;
   // VAT removed - vatAmount is always 0
   const vatAmount = new Decimal(0);
   let total = subtotal;
@@ -453,6 +525,27 @@ export function calculatePricing(
   vatRegistered: boolean = true
 ): PricingBreakdown {
   const lineItems: PricingLineItem[] = [];
+  const hasExplicitPricingContext = Boolean(input.pricingContext);
+  const pricingContext = input.pricingContext ?? resolvePricingContext(input);
+  const isFittingAtLocation = hasExplicitPricingContext
+    ? isCanonicalMobileContext(pricingContext, input.fittingLocation)
+    : input.fittingLocation === 'mobile';
+  const isShopFitting = hasExplicitPricingContext
+    ? pricingContext === 'scheduled_garage_fitting' || input.fittingLocation === 'shop'
+    : input.bookingType === 'scheduled' && input.fittingLocation === 'shop';
+  const applyMobileModifiers =
+    isFittingAtLocation &&
+    (
+      pricingContext === 'scheduled_mobile_fitting' ||
+      pricingContext === 'emergency_mobile_fitting' ||
+      pricingContext === 'admin_quick_book' ||
+      pricingContext === 'assisted_chat'
+    );
+  const applyEmergencySurcharge = pricingContext === 'emergency_mobile_fitting';
+
+  if (applyMobileModifiers && input.weatherManualQuoteRequired) {
+    return zeroInvalidBreakdown(input, 'WEATHER_MANUAL_QUOTE_REQUIRED');
+  }
 
   // Service-only path: no tyre products selected, just service fee + callout + surcharges.
   // Supports any serviceType (repair, fit, assess, both) — used by quick-book and repair-only bookings.
@@ -460,32 +553,29 @@ export function calculatePricing(
 
   // Validate input — service-only requires an explicit serviceType
   if (isServiceOnly && !input.serviceType) {
-    return {
-      lineItems: [],
-      totalTyreCost: 0,
-      totalServiceFee: 0,
-      calloutFee: 0,
-      totalSurcharges: 0,
-      discountAmount: 0,
-      surgeMultiplier: 1.0,
-      subtotal: 0,
-      vatAmount: 0,
-      total: 0,
-      quoteExpiresAt: new Date(),
-      isValid: false,
-      error: 'No tyres selected',
-    };
+    return zeroInvalidBreakdown(input, 'No tyres selected');
   }
 
   let tyreCostTotal: Decimal;
   let serviceFeeTotal: Decimal;
+  let fittingLocationPriceResult: FittingLocationPricingResult | null = null;
+  let distanceServicePrice: number | undefined;
+  let fittingLabourFee: number | undefined;
+  let mobileFittingBasePrice: number | undefined;
+  let mobileFittingPrice: number | undefined;
+  let emergencySurcharge = new Decimal(0);
+  let emergencySurchargeSource: PricingBreakdown['emergencySurchargeSource'] = 'not_applicable';
+  let weatherSurcharge = new Decimal(0);
+  let trafficSurcharge = new Decimal(0);
 
   if (isServiceOnly) {
     // Service-only: no tyre cost, calculate service fee from quantity and type
     tyreCostTotal = new Decimal(0);
     const quantity = input.tyreQuantity || 1;
 
-    if (input.serviceType === 'repair') {
+    if (isFittingAtLocation) {
+      serviceFeeTotal = new Decimal(0);
+    } else if (input.serviceType === 'repair') {
       const repairAmount = new Decimal(rules.repair_fee_per_tyre).times(quantity);
       serviceFeeTotal = repairAmount;
       lineItems.push({
@@ -518,50 +608,104 @@ export function calculatePricing(
     tyreCostTotal = tyreCostResult.total;
 
     // Component 2: Service fees
-    const serviceFeeResult = calculateServiceFees(input.tyreSelections, rules);
-    lineItems.push(...serviceFeeResult.lineItems);
-    serviceFeeTotal = serviceFeeResult.total;
+    if (isFittingAtLocation) {
+      serviceFeeTotal = new Decimal(0);
+    } else {
+      const serviceFeeResult = calculateServiceFees(input.tyreSelections, rules);
+      lineItems.push(...serviceFeeResult.lineItems);
+      serviceFeeTotal = serviceFeeResult.total;
+    }
   }
 
-  // Component 3: Callout fee
-  const calloutResult = calculateCalloutFee(input.distanceMiles, rules);
+  if (isFittingAtLocation) {
+    fittingLocationPriceResult = calculateFittingAtLocationPrice(input.distanceMiles);
+
+    if (!fittingLocationPriceResult.available) {
+      return zeroInvalidBreakdown(
+        input,
+        fittingLocationPriceResult.reason === 'MANUAL_QUOTE_REQUIRED'
+          ? FITTING_LOCATION_MANUAL_QUOTE_ERROR
+          : FITTING_LOCATION_INVALID_DISTANCE_ERROR,
+      );
+    }
+
+    distanceServicePrice = fittingLocationPriceResult.distanceServicePrice;
+    fittingLabourFee = fittingLocationPriceResult.fittingLabourFee;
+    mobileFittingBasePrice = fittingLocationPriceResult.mobileFittingBasePrice;
+    serviceFeeTotal = new Decimal(mobileFittingBasePrice);
+
+    if (applyEmergencySurcharge) {
+      emergencySurchargeSource =
+        input.emergencySurchargeRulePresent === false ? 'missing_rule_default_zero' : 'pricing_rule';
+      emergencySurcharge = input.emergencySurchargeRulePresent === false
+        ? new Decimal(0)
+        : new Decimal(rules.emergency_surcharge);
+    }
+
+    if (applyMobileModifiers) {
+      weatherSurcharge = new Decimal(input.weatherSurcharge ?? 0);
+      trafficSurcharge = new Decimal(input.trafficSurcharge ?? 0);
+    }
+
+    mobileFittingPrice = roundMoney(
+      serviceFeeTotal
+        .plus(emergencySurcharge)
+        .plus(weatherSurcharge)
+        .plus(trafficSurcharge)
+        .toNumber(),
+    );
+
+    lineItems.push({
+      label: FITTING_AT_LOCATION_LABEL,
+      amount: mobileFittingPrice,
+      type: 'service',
+    });
+  }
+
+  // Component 3: Callout fee.
+  // Shop appointments are fitted at base, so the mobile callout tier is not applied.
+  const calloutResult = isShopFitting || isFittingAtLocation
+    ? {
+        fee: new Decimal(0),
+        lineItem: null,
+        isOutsideArea: false,
+      }
+    : calculateCalloutFee(input.distanceMiles, rules);
   if (calloutResult.isOutsideArea) {
-    return {
-      lineItems: [],
-      totalTyreCost: 0,
-      totalServiceFee: 0,
-      calloutFee: 0,
-      totalSurcharges: 0,
-      discountAmount: 0,
-      surgeMultiplier: 1.0,
-      subtotal: 0,
-      vatAmount: 0,
-      total: 0,
-      quoteExpiresAt: new Date(),
-      isValid: false,
-      error: 'OUTSIDE_SERVICE_AREA',
-    };
+    return zeroInvalidBreakdown(input, 'OUTSIDE_SERVICE_AREA');
   }
   if (calloutResult.lineItem) {
     lineItems.push(calloutResult.lineItem);
   }
 
   // Component 4: Surcharges
-  const surchargeResult = calculateSurcharges(input, rules);
+  const surchargeResult = isFittingAtLocation
+    ? {
+        total: emergencySurcharge.plus(weatherSurcharge).plus(trafficSurcharge),
+        lineItems: [] as PricingLineItem[],
+        emergencySurcharge,
+        emergencySurchargeSource,
+      }
+    : calculateSurcharges(input, rules, {
+        includeEmergencySurcharge: hasExplicitPricingContext
+          ? applyEmergencySurcharge
+          : input.bookingType === 'emergency',
+        includeCalendarSurcharges: true,
+      });
   lineItems.push(...surchargeResult.lineItems);
 
   // Component 4b: Rural area surcharge (30+ miles = 1.5x, 45+ miles = 2x)
   let ruralMultiplier = 1.0;
   let ruralSurchargeLineItem: PricingLineItem | null = null;
   
-  if (input.distanceMiles >= 45) {
+  if (!isShopFitting && !isFittingAtLocation && input.distanceMiles >= 45) {
     ruralMultiplier = 2.0;
     ruralSurchargeLineItem = {
       label: 'Rural area surcharge (100%)',
       amount: 0, // Will be calculated below
       type: 'surcharge',
     };
-  } else if (input.distanceMiles >= 30) {
+  } else if (!isShopFitting && !isFittingAtLocation && input.distanceMiles >= 30) {
     ruralMultiplier = 1.5;
     ruralSurchargeLineItem = {
       label: 'Rural area surcharge (50%)',
@@ -574,11 +718,17 @@ export function calculatePricing(
   const totalTyres = isServiceOnly
     ? (input.tyreQuantity || 1)
     : input.tyreSelections.reduce((sum, s) => sum + s.quantity, 0);
-  const discountResult = calculateMultiTyreDiscount(
-    serviceFeeTotal,
-    totalTyres,
-    rules
-  );
+  const discountResult = isFittingAtLocation
+    ? {
+        discountRate: 0,
+        discountAmount: new Decimal(0),
+        lineItem: null,
+      }
+    : calculateMultiTyreDiscount(
+        serviceFeeTotal,
+        totalTyres,
+        rules
+      );
   if (discountResult.lineItem) {
     lineItems.push(discountResult.lineItem);
   }
@@ -603,11 +753,16 @@ export function calculatePricing(
   const preSurgeSubtotal = baseSubtotal.plus(ruralSurchargeAmount);
 
   // Component 6: Surge multiplier
-  const surgeResult = applySurgeMultiplier(
-    preSurgeSubtotal,
-    input.surgeMultiplier,
-    rules.surge_pricing_enabled
-  );
+  const surgeResult = isFittingAtLocation
+    ? {
+        multiplier: 1.0,
+        adjustedSubtotal: preSurgeSubtotal,
+      }
+    : applySurgeMultiplier(
+        preSurgeSubtotal,
+        input.surgeMultiplier,
+        rules.surge_pricing_enabled
+      );
 
   // Add subtotal line item
   lineItems.push({
@@ -619,7 +774,7 @@ export function calculatePricing(
   // Component 7: Calculate final total (VAT removed)
   const { vatAmount, total } = calculateVatAndTotal(
     surgeResult.adjustedSubtotal,
-    rules.minimum_order_total,
+    isShopFitting || isFittingAtLocation ? 0 : rules.minimum_order_total,
     vatRegistered
   );
 
@@ -638,6 +793,8 @@ export function calculatePricing(
 
   return {
     lineItems,
+    pricingContext,
+    pricingEngineVersion: PRICING_ENGINE_VERSION,
     totalTyreCost: tyreCostTotal.toNumber(),
     totalServiceFee: serviceFeeTotal.toNumber(),
     calloutFee: calloutResult.fee.toNumber(),
@@ -645,10 +802,85 @@ export function calculatePricing(
     discountAmount: discountResult.discountAmount.toNumber(),
     surgeMultiplier: surgeResult.multiplier,
     subtotal: surgeResult.adjustedSubtotal.toNumber(),
+    vatRate: 0,
     vatAmount: vatAmount.toNumber(),
     total: total.toNumber(),
     quoteExpiresAt,
     isValid: true,
+    distanceMiles: input.distanceMiles,
+    distanceServicePrice,
+    fittingLabourFee,
+    mobileFittingBasePrice,
+    mobileFittingPrice,
+    emergencySurcharge: surchargeResult.emergencySurcharge.toNumber(),
+    emergencySurchargeSource: surchargeResult.emergencySurchargeSource,
+    weatherSurcharge: weatherSurcharge.toNumber(),
+    weatherSurchargeCode: input.weatherSurchargeCode,
+    weatherManualQuoteRequired: input.weatherManualQuoteRequired ?? false,
+    trafficSurcharge: trafficSurcharge.toNumber(),
+    trafficSurchargeCode: input.trafficSurchargeCode,
+    trafficDelayMinutes: input.trafficDelayMinutes ?? 0,
+    fittingPrice: mobileFittingPrice ?? fittingLocationPriceResult?.fittingPrice,
+    tyrePrice: tyreCostTotal.toNumber(),
+    totalPrice: total.toNumber(),
+  };
+}
+
+export function resolvePricingContext(input: {
+  bookingType: 'emergency' | 'scheduled';
+  fittingLocation?: 'shop' | 'mobile' | null;
+}): PricingContext {
+  if (input.bookingType === 'emergency') return 'emergency_mobile_fitting';
+  if (input.fittingLocation === 'mobile') return 'scheduled_mobile_fitting';
+  return 'scheduled_garage_fitting';
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function isCanonicalMobileContext(context: PricingContext, fittingLocation?: 'shop' | 'mobile'): boolean {
+  if (fittingLocation === 'shop') return false;
+  return (
+    context === 'scheduled_mobile_fitting' ||
+    context === 'emergency_mobile_fitting' ||
+    context === 'admin_quick_book' ||
+    context === 'assisted_chat' ||
+    context === 'manual_quote'
+  );
+}
+
+function zeroInvalidBreakdown(input: PricingInput, error: string): PricingBreakdown {
+  const pricingContext = input.pricingContext ?? resolvePricingContext(input);
+  return {
+    lineItems: [],
+    pricingContext,
+    pricingEngineVersion: PRICING_ENGINE_VERSION,
+    totalTyreCost: 0,
+    totalServiceFee: 0,
+    calloutFee: 0,
+    totalSurcharges: 0,
+    discountAmount: 0,
+    surgeMultiplier: 1.0,
+    subtotal: 0,
+    vatRate: 0,
+    vatAmount: 0,
+    total: 0,
+    quoteExpiresAt: new Date(),
+    isValid: false,
+    distanceMiles: input.distanceMiles,
+    fittingPrice: undefined,
+    tyrePrice: 0,
+    totalPrice: 0,
+    emergencySurcharge: 0,
+    emergencySurchargeSource: 'not_applicable',
+    weatherSurcharge: 0,
+    weatherSurchargeCode: input.weatherSurchargeCode,
+    weatherManualQuoteRequired: input.weatherManualQuoteRequired ?? false,
+    trafficSurcharge: 0,
+    trafficSurchargeCode: input.trafficSurchargeCode,
+    trafficDelayMinutes: input.trafficDelayMinutes ?? 0,
+    error,
   };
 }
 
@@ -959,7 +1191,7 @@ export const defaultPricingRules: Array<{
   },
   {
     key: 'callout_0_5',
-    value: '0.00',
+    value: '5.00',
     label: 'Callout fee (0-5 miles)',
     type: 'amount',
   },
@@ -1056,8 +1288,6 @@ export interface HybridPricingBreakdown {
 
 /** Max combined multiplier for safety bounds */
 const MAX_COMBINED_MULTIPLIER = 1.50;
-/** Minimum final price floor */
-const MIN_FINAL_PRICE = 0;
 
 /**
  * Calculate pricing with weather and demand awareness.

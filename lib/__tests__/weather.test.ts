@@ -3,6 +3,7 @@ import {
   computeWeatherMultiplier,
   neutralWeatherContext,
   getWeatherPricingContext,
+  getWeatherScheduleSummaries,
   _clearWeatherCache,
 } from '../weather';
 
@@ -354,5 +355,76 @@ describe('getWeatherPricingContext', () => {
     expect(calledUrl).toContain('lat=55.86');
     expect(calledUrl).toContain('lon=-4.25');
     expect(calledUrl).toContain('units=metric');
+  });
+});
+
+// ─── getWeatherScheduleSummaries (forecast summaries for booking UI) ────────
+
+describe('getWeatherScheduleSummaries', () => {
+  beforeEach(() => {
+    _clearWeatherCache();
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it('returns daily fallback rows when the weather API key is missing', async () => {
+    vi.stubEnv('WEATHER_API_KEY', '');
+
+    const result = await getWeatherScheduleSummaries({
+      latitude: 55.86,
+      longitude: -4.25,
+      dates: ['2026-06-07', '2026-06-08'],
+    });
+
+    expect(result.hourly).toEqual([]);
+    expect(result.daily).toHaveLength(2);
+    expect(result.daily[0].source).toBe('fallback');
+    expect(result.daily[0].icon).toBe('unknown');
+    expect(result.daily[0].weatherReason).toContain('not configured');
+  });
+
+  it('returns hourly summaries and picks the worst daily weather for each date', async () => {
+    vi.stubEnv('WEATHER_API_KEY', 'test-key');
+    vi.stubEnv('WEATHER_API_BASE_URL', 'https://mock.weather.test');
+
+    const mockForecast = {
+      list: [
+        {
+          dt: Date.UTC(2026, 5, 7, 9, 0, 0) / 1000,
+          weather: [{ id: 800, main: 'Clear', description: 'clear sky' }],
+          main: { temp: 16 },
+          wind: { speed: 4 },
+          visibility: 10000,
+          pop: 0,
+        },
+        {
+          dt: Date.UTC(2026, 5, 7, 12, 0, 0) / 1000,
+          weather: [{ id: 502, main: 'Rain', description: 'heavy intensity rain' }],
+          main: { temp: 14 },
+          wind: { speed: 6 },
+          visibility: 4000,
+          rain: { '3h': 8 },
+          pop: 0.9,
+        },
+      ],
+    };
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(mockForecast), { status: 200 }),
+    );
+
+    const result = await getWeatherScheduleSummaries({
+      latitude: 55.86,
+      longitude: -4.25,
+      dates: ['2026-06-07'],
+    });
+
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(result.hourly).toHaveLength(2);
+    expect(result.daily).toHaveLength(1);
+    expect(result.daily[0].source).toBe('api');
+    expect(result.daily[0].icon).toBe('rain');
+    expect(result.daily[0].weatherReason).toBe('Heavy rain');
+    expect(result.daily[0].temperature).toBe(14);
   });
 });

@@ -116,7 +116,7 @@ export default async function CustomerBookingDetailPage(
             </HStack>
             {Number(booking.vatAmount) > 0 && (
               <HStack justify="space-between">
-                <Text fontSize="sm" color={c.muted}>VAT (20%)</Text>
+                <Text fontSize="sm" color={c.muted}>VAT</Text>
                 <Text fontSize="sm" color={c.text}>£{Number(booking.vatAmount).toFixed(2)}</Text>
               </HStack>
             )}

@@ -20,6 +20,7 @@ import {
   QuickBookPricingError,
   type QuickBookServiceType,
 } from '@/lib/quick-book-pricing';
+import type { PricingContext } from '@/lib/pricing-engine';
 import { v4 as uuidv4 } from 'uuid';
 import { createAdminNotification } from '@/lib/notifications';
 import { sendUrgentBookingTopicPush } from '@/lib/notifications/urgent-booking-push';
@@ -29,6 +30,7 @@ import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-can
 import { GARAGE_ADDRESS } from '@/lib/garage';
 import { commitReservationsForBooking } from '@/lib/inventory/stock-service';
 import { ensureTrackingSession } from '@/lib/tracking-session';
+import { getWeatherPricingContext, type WeatherPricingContext } from '@/lib/weather';
 
 
 const SERVICE_MAP: Record<string, string> = {
@@ -116,15 +118,39 @@ export async function POST(
     ? fallbackDistanceKm * 0.621371
     : 5;
   let resolvedDistanceSource: 'driver' | 'garage' = 'garage';
+  let resolvedDurationMinutes: number | null = null;
 
   try {
     const driverCandidates = await loadAvailableDriverDistanceCandidates();
     const distanceResult = await resolveDistance({ lat, lng }, driverCandidates);
     resolvedDistanceMiles = distanceResult.distanceMiles;
     resolvedDistanceSource = distanceResult.distanceSource;
+    resolvedDurationMinutes = distanceResult.durationMinutes ?? null;
   } catch (distanceError) {
     console.error('[quick-book:finalize] distance resolution fallback', distanceError);
   }
+
+  const quickBreakdown = qb.priceBreakdown as Record<string, unknown> | null;
+  if (resolvedDurationMinutes == null) {
+    const existingEta = (quickBreakdown?.serviceOrigin as { etaMinutes?: unknown } | undefined)?.etaMinutes;
+    resolvedDurationMinutes = typeof existingEta === 'number' && Number.isFinite(existingEta)
+      ? existingEta
+      : null;
+  }
+
+  let weatherContext: WeatherPricingContext | null = null;
+  try {
+    weatherContext = await getWeatherPricingContext({
+      latitude: lat,
+      longitude: lng,
+    });
+  } catch {
+    weatherContext = null;
+  }
+  const pricingContext: PricingContext =
+    typeof quickBreakdown?.pricingContext === 'string'
+      ? (quickBreakdown.pricingContext as PricingContext)
+      : 'admin_quick_book';
 
   const resolvedDistanceKm = Math.round(resolvedDistanceMiles * 1.60934 * 100) / 100;
 
@@ -165,6 +191,9 @@ export async function POST(
       requireTyreForFit: serviceType === 'fit',
       adminAdjustmentAmount: Number(qb.adminAdjustmentAmount ?? 0),
       adminAdjustmentReason: qb.adminAdjustmentReason,
+      pricingContext,
+      durationMinutes: resolvedDurationMinutes,
+      weatherContext,
     });
   } catch (error) {
     if (error instanceof QuickBookPricingError) {
@@ -290,6 +319,9 @@ export async function POST(
           cancelUrl: `${baseUrl}/admin/bookings/${refNumber}?stripe=cancelled`,
         }
       );
+      if (checkout.amountInPence !== totalInPence) {
+        throw new Error('PAYMENT_AMOUNT_MISMATCH');
+      }
 
       checkoutUrl = checkout.checkoutUrl;
 
@@ -335,7 +367,7 @@ export async function POST(
       issueDate,
       dueDate,
       subtotal: breakdown.subtotal.toFixed(2),
-      vatRate: '20.00',
+      vatRate: '0.00',
       vatAmount: breakdown.vatAmount.toFixed(2),
       totalAmount: breakdown.total.toFixed(2),
       notes: `Quick booking ref ${refNumber}`,
@@ -382,6 +414,16 @@ export async function POST(
       await persistFinalizeWrites(tx);
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'PAYMENT_AMOUNT_MISMATCH') {
+      return NextResponse.json(
+        {
+          error: 'Payment amount mismatch',
+          code: 'PAYMENT_AMOUNT_MISMATCH',
+        },
+        { status: 500 },
+      );
+    }
+
     const isUnsupportedTransaction =
       error instanceof Error && error.message.includes('No transactions support');
 
@@ -468,6 +510,12 @@ export async function POST(
       vatAmount: breakdown.vatAmount,
       total: breakdown.total,
       lineItems: breakdown.lineItems,
+      distanceMiles: breakdown.distanceMiles,
+      fittingPrice: breakdown.fittingPrice,
+      tyrePrice: breakdown.tyrePrice,
+      totalPrice: breakdown.totalPrice,
+      adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
+      adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
     },
   });
 }

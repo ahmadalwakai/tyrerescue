@@ -16,12 +16,13 @@ import {
 } from '@chakra-ui/react';
 import { useSession } from 'next-auth/react';
 import { WizardState, WizardStep } from './types';
-import { CartSummary } from './CartSummary';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { API } from '@/lib/api-endpoints';
 import { EMAIL_REGEX, PHONE_DISPLAY_REGEX } from '@/lib/utils';
 import { getStoredUtm } from '@/lib/hooks/useUtmCapture';
+import { formatPrice } from '@/lib/pricing-engine';
+import { FITTING_AT_LOCATION_LABEL } from '@/lib/fitting-location-pricing';
 
 interface StepCustomerDetailsProps {
   state: WizardState;
@@ -54,14 +55,14 @@ export function StepCustomerDetails({
     'outlook.com', 'icloud.com', 'aol.com', 'live.co.uk',
     'btinternet.com', 'sky.com', 'virginmedia.com',
   ];
+  const sessionName = session?.user?.name;
+  const sessionEmail = session?.user?.email;
 
   // Pre-fill from session if logged in
   useEffect(() => {
-    if (session?.user) {
-      if (!name && session.user.name) setName(session.user.name);
-      if (!email && session.user.email) setEmail(session.user.email);
-    }
-  }, [session]);
+    if (sessionName) setName((current) => current || sessionName);
+    if (sessionEmail) setEmail((current) => current || sessionEmail);
+  }, [sessionEmail, sessionName]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -154,6 +155,7 @@ export function StepCustomerDetails({
   };
 
   const isLoggedIn = !!session?.user;
+  const isFittingAtLocationQuote = typeof state.breakdown?.fittingPrice === 'number';
 
   return (
     <VStack gap={6} align="stretch">
@@ -167,8 +169,15 @@ export function StepCustomerDetails({
       </Box>
 
       {/* Compact order summary */}
-      {state.selectedTyres.length > 0 && (
-        <CartSummary cart={state.selectedTyres} compact />
+      {state.breakdown && (
+        <Box p={4} bg={c.surface} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+          <HStack justify="space-between">
+            <Text fontWeight="600" color={c.text}>
+              {isFittingAtLocationQuote ? FITTING_AT_LOCATION_LABEL : 'Total'}
+            </Text>
+            <Text fontWeight="700" color={c.accent}>{formatPrice(state.breakdown.total)}</Text>
+          </HStack>
+        </Box>
       )}
 
       {isLoggedIn && (

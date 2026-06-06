@@ -17,6 +17,9 @@ export const API = {
   AVAILABILITY_SLOTS: '/api/availability/slots',
   AVAILABILITY_ELIGIBILITY: '/api/availability/eligibility',
 
+  // Weather
+  WEATHER_SCHEDULE: '/api/weather/schedule',
+
   // Driver
   DRIVER_STATUS_AVAILABLE: '/api/driver/status/available',
   DRIVER_LOCATION: '/api/driver/location',

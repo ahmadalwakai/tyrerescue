@@ -9,6 +9,8 @@ import {
   extractQuickBookTyreSnapshot,
   type QuickBookServiceType,
 } from '@/lib/quick-book-pricing';
+import type { PricingContext } from '@/lib/pricing-engine';
+import { getWeatherPricingContext, type WeatherPricingContext } from '@/lib/weather';
 import {
   checkRateLimit,
   getClientIp,
@@ -22,6 +24,44 @@ const submitSchema = z.object({
   lng: z.number().min(-180).max(180),
   address: z.string().max(300).optional(),
 });
+
+const PRICING_CONTEXTS = new Set<PricingContext>([
+  'scheduled_mobile_fitting',
+  'scheduled_garage_fitting',
+  'emergency_mobile_fitting',
+  'admin_quick_book',
+  'assisted_chat',
+  'manual_quote',
+]);
+
+function isPricingContext(value: unknown): value is PricingContext {
+  return typeof value === 'string' && PRICING_CONTEXTS.has(value as PricingContext);
+}
+
+function resolvePricingContext(
+  booking: typeof quickBookings.$inferSelect,
+  breakdown: Record<string, unknown> | null,
+): PricingContext {
+  if (isPricingContext(breakdown?.pricingContext)) {
+    return breakdown.pricingContext;
+  }
+
+  // Legacy quick-book rows predate canonical context storage. They were admin
+  // or assisted phone flows, not public emergency checkout, so keep them out of
+  // the emergency context unless it was explicitly stored above.
+  if (booking.serviceType === 'fit' || booking.serviceType === 'repair' || booking.serviceType === 'assess') {
+    return 'admin_quick_book';
+  }
+
+  return 'admin_quick_book';
+}
+
+function getStoredDurationMinutes(breakdown: Record<string, unknown> | null): number | null {
+  const serviceOrigin = breakdown?.serviceOrigin as { etaMinutes?: unknown } | undefined;
+  return typeof serviceOrigin?.etaMinutes === 'number' && Number.isFinite(serviceOrigin.etaMinutes)
+    ? serviceOrigin.etaMinutes
+    : null;
+}
 
 export async function GET(
   _request: Request,
@@ -139,6 +179,20 @@ export async function POST(
 
   const distanceMiles = distanceKm != null ? distanceKm * 0.621371 : 5;
   const serviceType = (booking.serviceType ?? 'fit') as QuickBookServiceType;
+  const pricingContext = resolvePricingContext(booking, priceBreakdown);
+  if (durationMinutes == null) {
+    durationMinutes = getStoredDurationMinutes(priceBreakdown);
+  }
+
+  let weatherContext: WeatherPricingContext | null = null;
+  try {
+    weatherContext = await getWeatherPricingContext({
+      latitude: parsed.data.lat,
+      longitude: parsed.data.lng,
+    });
+  } catch {
+    weatherContext = null;
+  }
 
   try {
     const tyreSnapshot = extractQuickBookTyreSnapshot({
@@ -159,12 +213,18 @@ export async function POST(
       requireTyreForFit: false, // Don't fail if tyre not found - keep existing pricing
       adminAdjustmentAmount: Number(booking.adminAdjustmentAmount ?? 0),
       adminAdjustmentReason: booking.adminAdjustmentReason,
+      pricingContext,
+      durationMinutes,
+      weatherContext,
     });
 
     basePrice = priced.breakdown.subtotal;
     totalPrice = priced.breakdown.total;
     priceBreakdown = {
       ...priced.breakdown,
+      pricingContext,
+      weatherContext,
+      durationMinutes,
       serviceOrigin: serviceOriginLat && serviceOriginLng ? {
         lat: serviceOriginLat,
         lng: serviceOriginLng,
@@ -179,6 +239,9 @@ export async function POST(
     if (priceBreakdown) {
       priceBreakdown = {
         ...priceBreakdown,
+        pricingContext,
+        weatherContext,
+        durationMinutes,
         serviceOrigin: serviceOriginLat && serviceOriginLng ? {
           lat: serviceOriginLat,
           lng: serviceOriginLng,

@@ -812,7 +812,7 @@ Standard passenger cars are cheapest to fit. SUVs, 4x4s, and vans cost more due 
 | Single tyre (garage) | £65–£90 | £90–£130 | £130–£200 |
 | Single tyre (mobile) | £75–£100 | £100–£140 | £140–£210 |
 
-*All prices include VAT and fitting. Prices are estimates for Central Scotland.*
+*All prices include fitting. VAT is not added separately. Prices are estimates for Central Scotland.*
 
 ## Mobile Tyre Fitting vs Garage: Cost Comparison
 

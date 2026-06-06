@@ -14,8 +14,8 @@ export async function GET() {
   const map = new Map(rules.map((r) => [r.key, r.value]));
 
   return NextResponse.json({
-    vatRegistered: map.get('vat_registered') === 'true',
-    vatNumber: map.get('vat_number') || '',
+    vatRegistered: false,
+    vatNumber: '',
     emergencyAvailable: map.get('emergency_available') !== 'false',
     bannerMessage: map.get('emergency_banner_message') || '',
   });

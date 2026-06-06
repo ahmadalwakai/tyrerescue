@@ -280,8 +280,10 @@ export async function PUT(request: NextRequest, { params }: Props) {
     }
     if (body.vatAmount !== undefined) {
       const vat = parseFloat(body.vatAmount);
-      if (isNaN(vat) || vat < 0) return NextResponse.json({ error: 'Invalid VAT amount' }, { status: 400 });
-      requestedVatAmount = vat;
+      if (isNaN(vat) || vat !== 0) {
+        return NextResponse.json({ error: 'VAT is disabled and must remain 0' }, { status: 400 });
+      }
+      requestedVatAmount = 0;
       pricingEdited = true;
     }
     if (body.totalAmount !== undefined) {
@@ -293,7 +295,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
 
     if (pricingEdited) {
       const currentSubtotal = toFiniteNumber(booking.subtotal, 0);
-      const currentVatAmount = toFiniteNumber(booking.vatAmount, 0);
+      const currentVatAmount = 0;
       const currentTotalAmount = toFiniteNumber(booking.totalAmount, 0);
 
       const existingAdjustment = roundMoney(currentTotalAmount - (currentSubtotal + currentVatAmount));
@@ -308,8 +310,8 @@ export async function PUT(request: NextRequest, { params }: Props) {
       if (nextSubtotal < 0) {
         return NextResponse.json({ error: 'Subtotal must be 0 or greater' }, { status: 400 });
       }
-      if (nextVatAmount < 0) {
-        return NextResponse.json({ error: 'VAT amount must be 0 or greater' }, { status: 400 });
+      if (nextVatAmount !== 0) {
+        return NextResponse.json({ error: 'VAT is disabled and must remain 0' }, { status: 400 });
       }
       if (nextTotalAmount < 0) {
         return NextResponse.json({ error: 'Total amount must be 0 or greater' }, { status: 400 });

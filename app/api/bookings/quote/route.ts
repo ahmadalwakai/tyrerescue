@@ -11,8 +11,10 @@ import { eq, inArray } from 'drizzle-orm';
 import {
   calculatePricing,
   parsePricingRules,
+  resolvePricingContext,
   type TyreSelection,
   type PricingBreakdown,
+  type PricingContext,
 } from '@/lib/pricing-engine';
 import {
   resolveDistance,
@@ -24,6 +26,8 @@ import { Pool } from '@neondatabase/serverless';
 import { getSurgeResult } from '@/lib/surge';
 import { getPricingConfig, isNightWindow } from '@/lib/pricing-config';
 import { getWeatherPricingContext, type WeatherPricingContext } from '@/lib/weather';
+import { calculateWeatherSurcharge } from '@/lib/pricing/weather-modifier';
+import { calculateTrafficSurcharge } from '@/lib/pricing/traffic-modifier';
 import {
   calculateDynamicSurchargeBreakdown,
   applyDynamicSurcharge,
@@ -64,6 +68,7 @@ const quoteRequestSchema = z.object({
   scheduledAt: z.string().datetime().optional(),
   quantity: z.number().int().min(1).max(4).optional().default(1),
   fulfillmentOption: z.enum(['delivery', 'fitting']).optional().nullable(),
+  fittingLocation: z.enum(['shop', 'mobile']).optional().nullable(),
 });
 
 type QuoteRequest = z.infer<typeof quoteRequestSchema>;
@@ -109,6 +114,77 @@ function slotUnavailableResponse() {
     message: SLOT_UNAVAILABLE_MESSAGE,
   };
   return NextResponse.json(body, { status: 409 });
+}
+
+function pricingErrorResponse(breakdown: PricingBreakdown): NextResponse<ErrorResponse> {
+  if (breakdown.error === 'WEATHER_MANUAL_QUOTE_REQUIRED') {
+    const message =
+      'Current weather conditions need a manual quote. Please call 0141 266 0690 for assistance.';
+    return NextResponse.json(
+      {
+        ok: false,
+        error: message,
+        code: 'MANUAL_QUOTE_REQUIRED',
+        message,
+      },
+      { status: 422 },
+    );
+  }
+
+  if (breakdown.error === 'FITTING_LOCATION_MANUAL_QUOTE_REQUIRED') {
+    const message =
+      'This fitting location is over 100 miles away and needs a manual quote. Please call 0141 266 0690 for assistance.';
+    return NextResponse.json(
+      {
+        ok: false,
+        error: message,
+        code: 'MANUAL_QUOTE_REQUIRED',
+        message,
+      },
+      { status: 422 },
+    );
+  }
+
+  if (breakdown.error === 'FITTING_LOCATION_INVALID_DISTANCE') {
+    const message =
+      'Unable to calculate fitting-at-location price because the service distance is invalid.';
+    return NextResponse.json(
+      {
+        ok: false,
+        error: message,
+        code: 'INVALID_DISTANCE',
+        message,
+      },
+      { status: 400 },
+    );
+  }
+
+  return NextResponse.json(
+    {
+      error: breakdown.error || 'Failed to calculate pricing',
+      code: breakdown.error === 'OUTSIDE_SERVICE_AREA'
+        ? 'OUTSIDE_SERVICE_AREA'
+        : 'PRICING_ERROR',
+    },
+    { status: 400 },
+  );
+}
+
+function isMobilePricingContext(context: PricingContext): boolean {
+  return (
+    context === 'scheduled_mobile_fitting' ||
+    context === 'emergency_mobile_fitting'
+  );
+}
+
+function calculateWeatherModifier(weatherContext: WeatherPricingContext) {
+  return calculateWeatherSurcharge({
+    condition: weatherContext.conditionLabel,
+    severity: weatherContext.weatherReason,
+    precipitationMm: weatherContext.precipitationIntensity,
+    windMph: weatherContext.windSpeed * 2.23694,
+    temperatureC: weatherContext.temperature,
+  });
 }
 
 /**
@@ -162,6 +238,7 @@ async function applyDynamicLayer(
       breakdown.subtotal = adjustedSubtotal;
       breakdown.vatAmount = 0;
       breakdown.total = Math.round(newTotal * 100) / 100;
+      breakdown.totalPrice = breakdown.total;
       breakdown.totalSurcharges += surchargeAmount;
 
       // Update total line item
@@ -217,10 +294,33 @@ export async function POST(
     }
 
     const data: QuoteRequest = validation.data;
-    console.log('[QUOTE START]', { bookingType: data.bookingType, serviceType: data.serviceType, tyreCount: data.tyreSelections.length, lat: data.lat, lng: data.lng });
+    const isRepairOnly = data.serviceType === 'repair';
+    const effectiveTyreSelections = isRepairOnly ? [] : data.tyreSelections;
+    const fittingLocation =
+      data.bookingType === 'scheduled' ? data.fittingLocation ?? 'mobile' : 'mobile';
+    const pricingContext = resolvePricingContext({
+      bookingType: data.bookingType,
+      fittingLocation,
+    });
+    const usesFittingAtLocationPricing = isMobilePricingContext(pricingContext);
+
+    if (isRepairOnly && data.tyreSelections.length > 0) {
+      console.warn('[QUOTE] Ignoring tyre selections for repair quote', {
+        requestedTyreCount: data.tyreSelections.length,
+      });
+    }
+
+    console.log('[QUOTE START]', {
+      bookingType: data.bookingType,
+      serviceType: data.serviceType,
+      fittingLocation,
+      pricingContext,
+      tyreCount: effectiveTyreSelections.length,
+      lat: data.lat,
+      lng: data.lng,
+    });
 
     const customerLocation = { lat: data.lat, lng: data.lng };
-    const isRepairOnly = data.serviceType === 'repair' && data.tyreSelections.length === 0;
 
     let normalizedScheduledAt: Date | null = null;
     if (data.scheduledAt) {
@@ -284,7 +384,11 @@ export async function POST(
     const distanceMiles = distanceResult.distanceMiles;
 
     // Check if within service area — single source of truth from DB
-    if (distanceMiles > parsedRules.max_service_miles) {
+    if (
+      fittingLocation !== 'shop' &&
+      !usesFittingAtLocationPricing &&
+      distanceMiles > parsedRules.max_service_miles
+    ) {
       return NextResponse.json(
         {
           error: `Location is outside our service area (${Math.round(distanceMiles)} miles). We cover up to ${parsedRules.max_service_miles} miles. Please call 0141 266 0690 for assistance.`,
@@ -306,7 +410,7 @@ export async function POST(
 
     if (!isRepairOnly) {
       // Get tyre product details (read-only query before transaction)
-      const tyreIds = data.tyreSelections.map((s) => s.tyreId);
+      const tyreIds = effectiveTyreSelections.map((s) => s.tyreId);
       const tyres = await db
         .select()
         .from(tyreProducts)
@@ -316,7 +420,7 @@ export async function POST(
       tyreMap = new Map(tyres.map((t) => [t.id, t]));
 
       // Validate each tyre exists
-      for (const selection of data.tyreSelections) {
+      for (const selection of effectiveTyreSelections) {
         const tyre = tyreMap.get(selection.tyreId);
         if (!tyre) {
           return NextResponse.json(
@@ -357,6 +461,12 @@ export async function POST(
       longitude: data.lng,
       scheduledAt: normalizedScheduledAt ? normalizedScheduledAt.toISOString() : null,
     });
+    const weatherModifier = calculateWeatherModifier(weatherContext);
+    const trafficModifier = calculateTrafficSurcharge({
+      distanceMiles,
+      durationMinutes: distanceResult.durationMinutes,
+    });
+    const emergencySurchargeRulePresent = rulesRows.some((r) => r.key === 'emergency_surcharge');
 
     // Repair-only fast path — no stock to lock, no transaction needed
     if (isRepairOnly) {
@@ -383,30 +493,33 @@ export async function POST(
           tyreSelections: [],
           distanceMiles,
           bookingType: data.bookingType,
+          pricingContext,
           bookingDate,
           isBankHoliday,
           surgeMultiplier,
           serviceType: 'repair',
           tyreQuantity: data.quantity || 1,
+          fittingLocation,
+          emergencySurchargeRulePresent,
+          weatherSurcharge: weatherModifier.surcharge,
+          weatherSurchargeCode: weatherModifier.code,
+          weatherManualQuoteRequired: weatherModifier.manualQuoteRequired,
+          trafficSurcharge: trafficModifier.surcharge,
+          trafficSurchargeCode: trafficModifier.code,
+          trafficDelayMinutes: trafficModifier.delayMinutes,
         },
         parsedRules,
         vatRegistered
       );
 
       if (!breakdown.isValid) {
-        return NextResponse.json(
-          {
-            error: breakdown.error || 'Failed to calculate pricing',
-            code: breakdown.error === 'OUTSIDE_SERVICE_AREA'
-              ? 'OUTSIDE_SERVICE_AREA'
-              : 'PRICING_ERROR',
-          },
-          { status: 400 }
-        );
+        return pricingErrorResponse(breakdown);
       }
 
       // Apply dynamic surcharge layer (night/manual/demand/returning visitor)
-      const { surchargeBreakdown: repairSurcharge } = await applyDynamicLayer(breakdown, isReturningVisitor, data.bookingType);
+      const { surchargeBreakdown: repairSurcharge } = usesFittingAtLocationPricing
+        ? { surchargeBreakdown: null }
+        : await applyDynamicLayer(breakdown, isReturningVisitor, data.bookingType);
 
       const quoteId = uuidv4();
       const expiresAt = new Date(breakdown.quoteExpiresAt);
@@ -422,7 +535,7 @@ export async function POST(
         scheduledAt: normalizedScheduledAt,
         distanceMiles: String(distanceMiles),
         breakdown: breakdown as unknown as Record<string, unknown>,
-        metadata: { ...distanceResult as unknown as Record<string, unknown>, dynamicSurcharge: repairSurcharge, weatherContext: weatherContext as unknown as Record<string, unknown>, demandContext: demandContext as unknown as Record<string, unknown> },
+        metadata: { ...distanceResult as unknown as Record<string, unknown>, fittingLocation, pricingContext, fittingPrice: breakdown.fittingPrice ?? null, tyrePrice: breakdown.tyrePrice ?? breakdown.totalTyreCost, totalPrice: breakdown.totalPrice ?? breakdown.total, dynamicSurcharge: repairSurcharge, weatherContext: weatherContext as unknown as Record<string, unknown>, weatherModifier, trafficModifier, demandContext: demandContext as unknown as Record<string, unknown> },
         expiresAt,
         used: false,
       });
@@ -471,12 +584,12 @@ export async function POST(
 
       // Build backend-enforced preOrder map BEFORE stock loop
       const preOrderMap = new Map<string, boolean>();
-      for (const selection of data.tyreSelections) {
+      for (const selection of effectiveTyreSelections) {
         const tyre = tyreMap.get(selection.tyreId)!;
         preOrderMap.set(selection.tyreId, !tyre.isLocalStock || (selection.isPreOrder ?? false));
       }
 
-      for (const selection of data.tyreSelections) {
+      for (const selection of effectiveTyreSelections) {
         const tyre = tyreMap.get(selection.tyreId)!;
 
         // Backend enforcement: non-budget tyres are ALWAYS pre-order
@@ -613,7 +726,7 @@ export async function POST(
       }
 
       // Run pricing engine
-      console.log('[PRICING CALC] tyre path', { tyreCount: data.tyreSelections.length });
+      console.log('[PRICING CALC] tyre path', { tyreCount: effectiveTyreSelections.length });
       const vatRule = rulesRows.find((r) => r.key === 'vat_registered');
       const vatRegistered = vatRule ? vatRule.value === 'true' : true;
 
@@ -636,9 +749,18 @@ export async function POST(
           tyreSelections: pricingSelections,
           distanceMiles,
           bookingType: data.bookingType,
+          pricingContext,
           bookingDate,
           isBankHoliday,
           surgeMultiplier,
+          fittingLocation,
+          emergencySurchargeRulePresent,
+          weatherSurcharge: weatherModifier.surcharge,
+          weatherSurchargeCode: weatherModifier.code,
+          weatherManualQuoteRequired: weatherModifier.manualQuoteRequired,
+          trafficSurcharge: trafficModifier.surcharge,
+          trafficSurchargeCode: trafficModifier.code,
+          trafficDelayMinutes: trafficModifier.delayMinutes,
         },
         parsedRules,
         vatRegistered
@@ -646,19 +768,13 @@ export async function POST(
 
       if (!breakdown.isValid) {
         await client.query('ROLLBACK');
-        return NextResponse.json(
-          {
-            error: breakdown.error || 'Failed to calculate pricing',
-            code: breakdown.error === 'OUTSIDE_SERVICE_AREA'
-              ? 'OUTSIDE_SERVICE_AREA'
-              : 'PRICING_ERROR',
-          },
-          { status: 400 }
-        );
+        return pricingErrorResponse(breakdown);
       }
 
       // Apply dynamic surcharge layer (night/manual/demand/returning visitor)
-      const { surchargeBreakdown: tyreSurcharge } = await applyDynamicLayer(breakdown, isReturningVisitor, data.bookingType);
+      const { surchargeBreakdown: tyreSurcharge } = usesFittingAtLocationPricing
+        ? { surchargeBreakdown: null }
+        : await applyDynamicLayer(breakdown, isReturningVisitor, data.bookingType);
 
       // Generate quote ID and expiry
       const quoteId = uuidv4();
@@ -669,7 +785,7 @@ export async function POST(
       // stock; physical deduction happens on payment success (see /api/bookings/confirm
       // and /api/stripe/webhook). Reservations expire automatically (see
       // /api/cron/release-reservations) so unpaid quotes do not block stock forever.
-      for (const selection of data.tyreSelections) {
+      for (const selection of effectiveTyreSelections) {
         // Skip reservation for pre-order items (use backend-enforced map)
         if (preOrderMap.get(selection.tyreId)) continue;
 
@@ -710,7 +826,7 @@ export async function POST(
           normalizedScheduledAt,
           distanceMiles,
           JSON.stringify(breakdown),
-          JSON.stringify({ ...distanceResult, fulfillmentOption: data.fulfillmentOption ?? null, dynamicSurcharge: tyreSurcharge, weatherContext, demandContext }),
+          JSON.stringify({ ...distanceResult, fittingLocation, pricingContext, fulfillmentOption: data.fulfillmentOption ?? null, fittingPrice: breakdown.fittingPrice ?? null, tyrePrice: breakdown.tyrePrice ?? breakdown.totalTyreCost, totalPrice: breakdown.totalPrice ?? breakdown.total, dynamicSurcharge: tyreSurcharge, weatherContext, weatherModifier, trafficModifier, demandContext }),
           expiresAt,
         ]
       );

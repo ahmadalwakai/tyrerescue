@@ -141,8 +141,8 @@ function zonedDateTimeToUtcDate(date: string, time: string, timezone: string): D
   return guess;
 }
 
-function workingWindowForDate(_date: string): { start: string; end: string } | null {
-  return { start: '09:00', end: '18:00' };
+function workingWindowForDate(): { start: string; end: string } | null {
+  return { start: '10:00', end: '18:00' };
 }
 
 export function buildAvailabilitySlotCandidates(
@@ -156,7 +156,7 @@ export function buildAvailabilitySlotCandidates(
 
   for (let offset = 0; offset <= options.daysAhead; offset++) {
     const date = addDays(today, offset);
-    const window = workingWindowForDate(date);
+    const window = workingWindowForDate();
     if (!window) continue;
 
     const start = toMinutes(window.start);

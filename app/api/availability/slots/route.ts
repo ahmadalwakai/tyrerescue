@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getSlotsWithOccupancyForDate } from '@/lib/availability';
+import {
+  getSlotsWithOccupancyForDate,
+  isPublicBookingScheduleSlot,
+} from '@/lib/availability';
 import { syncAvailabilitySlots } from '@/lib/availability-sync';
 
 export const dynamic = 'force-dynamic';
@@ -92,7 +95,7 @@ export async function GET(request: NextRequest) {
     }
 
     const slots: TimeSlot[] = slotsForDate
-      .filter((slot) => slot.active && slot.available)
+      .filter((slot) => slot.active && slot.available && isPublicBookingScheduleSlot(slot))
       .map(
       (slot) => ({
         slotId: slot.id,

@@ -428,6 +428,7 @@ async function calculateQuotePrice(input: QuotePricingInput, quickBooking: Quick
       requireTyreForFit: serviceType === 'fit' && Boolean(tyreSize),
       adminAdjustmentAmount: lockingWheelNutChargePence / 100,
       adminAdjustmentReason: lockingWheelNutChargePence > 0 ? 'Locking wheel nut removal' : null,
+      pricingContext: 'manual_quote',
     });
 
     return {

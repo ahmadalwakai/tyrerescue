@@ -1,7 +1,7 @@
 /* ── Zyphon – Invoice Parser (Phase 3) ────────────────── */
 
 import { db } from '@/lib/db';
-import { invoices, invoiceItems, pricingRules } from '@/lib/db/schema';
+import { invoices, invoiceItems } from '@/lib/db/schema';
 import { ilike, count } from 'drizzle-orm';
 import type { InvoicePreviewData } from './types';
 
@@ -27,12 +27,10 @@ export async function generateInvoiceNumber(): Promise<string> {
   return `${prefix}${String(next).padStart(4, '0')}`;
 }
 
-/* ── VAT from pricing rules ──────────────────────────── */
+/* ── VAT disabled for live system ────────────────────── */
 
 export async function getVatRate(): Promise<number> {
-  const rules = await db.select().from(pricingRules);
-  const ruleMap = Object.fromEntries(rules.map((r) => [r.key, r.value]));
-  return parseFloat(ruleMap['vat_rate'] || '20');
+  return 0;
 }
 
 /* ── Parsed invoice input ────────────────────────────── */
@@ -64,8 +62,8 @@ export async function buildInvoicePreview(
   }));
 
   const subtotal = items.reduce((sum, i) => sum + i.totalPrice, 0);
-  const vatAmount = Math.round(subtotal * (vatRate / 100) * 100) / 100;
-  const totalAmount = Math.round((subtotal + vatAmount) * 100) / 100;
+  const vatAmount = 0;
+  const totalAmount = Math.round(subtotal * 100) / 100;
 
   const dueDate = input.dueDate || defaultDueDate();
 

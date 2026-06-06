@@ -3,7 +3,12 @@ import { Linking } from 'react-native';
 import { api, ApiError } from '@/lib/api';
 import { copyToClipboard } from '@/lib/clipboard';
 import { buildWhatsAppUrl } from '@/lib/customer-message';
-import type { AssistedChatDraft, AssistedChatPaymentChoice } from '@/types/assisted-chat';
+import type {
+  AssistedChatDraft,
+  AssistedChatPaymentChoice,
+  AssistedChatQuoteBreakdown,
+  QuickBookPatchResponse,
+} from '@/types/assisted-chat';
 import type {
   AdminQuote,
   AdminQuotePaymentOption,
@@ -19,6 +24,9 @@ interface UseAssistedChatQuoteActionsArgs {
   effectiveTotal: number;
   lockingNutCharge: number;
 }
+
+const LOCKING_NUT_REASON = 'Locking wheel nut removal';
+const MANUAL_PRICE_REASON = 'Manual admin price override';
 
 export interface QuoteActionMessage {
   kind: 'ok' | 'err' | 'info';
@@ -38,7 +46,43 @@ function dispatchChoiceToPaymentOption(choice: AssistedChatPaymentChoice | null)
   return null;
 }
 
-function buildQuoteInput(draft: AssistedChatDraft, effectiveTotal: number, lockingNutCharge: number): CreateAdminQuoteInput {
+function finiteAmount(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function quoteFromQuickBookPatch(
+  breakdown: QuickBookPatchResponse['booking']['priceBreakdown'],
+  distanceKm: string | null,
+): AssistedChatQuoteBreakdown {
+  if (!breakdown) {
+    throw new Error('Pricing engine returned no breakdown.');
+  }
+
+  return {
+    subtotal: breakdown.subtotal,
+    vatAmount: breakdown.vatAmount,
+    total: breakdown.total,
+    lineItems: breakdown.lineItems,
+    distanceKm: distanceKm ? Number(distanceKm) : null,
+    distanceMiles: breakdown.distanceMiles ?? null,
+    fittingPrice: breakdown.fittingPrice ?? null,
+    tyrePrice: breakdown.tyrePrice ?? null,
+    totalPrice: breakdown.totalPrice ?? null,
+    adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
+    adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
+    serviceOrigin: breakdown.serviceOrigin ?? null,
+  };
+}
+
+function getBackendPriceAmountPence(draft: AssistedChatDraft, fallbackTotal: number): number {
+  const total =
+    typeof draft.quote?.total === 'number' && Number.isFinite(draft.quote.total)
+      ? draft.quote.total
+      : fallbackTotal;
+  return Math.round(total * 100);
+}
+
+function buildQuoteInput(draft: AssistedChatDraft, priceAmountPence: number, lockingNutCharge: number): CreateAdminQuoteInput {
   return {
     quickBookingId: draft.quickBookingId,
     customerName: draft.customer.name || null,
@@ -51,7 +95,7 @@ function buildQuoteInput(draft: AssistedChatDraft, effectiveTotal: number, locki
     quantity: draft.tyre.quantity,
     lockingWheelNutStatus: draft.lockingNut.answer,
     lockingWheelNutChargePence: Math.round(lockingNutCharge * 100),
-    priceAmount: Math.round(effectiveTotal * 100),
+    priceAmount: priceAmountPence,
     currency: 'GBP',
     quoteStatus: 'QUOTED',
     internalNotes: draft.note || null,
@@ -105,7 +149,43 @@ export function useAssistedChatQuoteActions({
 
   const saveQuote = useCallback(async (): Promise<AdminQuote> => {
     if (!draft.quote) throw new Error('Get price before saving a quote.');
-    const input = buildQuoteInput(draft, effectiveTotal, lockingNutCharge);
+
+    let canonicalDraft = draft;
+    if (draft.quickBookingId) {
+      const existingAdjustmentAmount = finiteAmount(draft.quote.adminAdjustmentAmount);
+      const backendBaseTotal = Math.round((draft.quote.total - existingAdjustmentAmount) * 100) / 100;
+      let adjustmentAmount = 0;
+      let adjustmentReason: string | null = null;
+
+      if (draft.manualPriceGbp != null && Number.isFinite(draft.manualPriceGbp)) {
+        adjustmentAmount = Math.round((draft.manualPriceGbp - backendBaseTotal) * 100) / 100;
+        adjustmentReason = MANUAL_PRICE_REASON;
+      } else if (lockingNutCharge > 0) {
+        adjustmentAmount = lockingNutCharge;
+        adjustmentReason = LOCKING_NUT_REASON;
+      }
+
+      const needsPatch =
+        Math.round(existingAdjustmentAmount * 100) !== Math.round(adjustmentAmount * 100) ||
+        (draft.quote.adminAdjustmentReason ?? null) !== adjustmentReason;
+
+      if (needsPatch) {
+        const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${draft.quickBookingId}`, {
+          adminAdjustmentAmount: adjustmentAmount,
+          adminAdjustmentReason: adjustmentReason,
+          pricingContext: 'assisted_chat',
+        });
+        const quote = quoteFromQuickBookPatch(patched.booking.priceBreakdown, patched.booking.distanceKm);
+        canonicalDraft = { ...draft, quote, priceNeedsRefresh: false };
+        update({ quote, priceNeedsRefresh: false });
+      }
+    }
+
+    const input = buildQuoteInput(
+      canonicalDraft,
+      getBackendPriceAmountPence(canonicalDraft, effectiveTotal),
+      lockingNutCharge,
+    );
     if (draft.savedQuoteId) {
       const patch: UpdateAdminQuoteInput = { ...input };
       const response = await api.patch<AdminQuoteResponse>(`/api/admin/quotes/${draft.savedQuoteId}`, patch);
@@ -113,7 +193,7 @@ export function useAssistedChatQuoteActions({
     }
     const response = await api.post<AdminQuoteResponse>('/api/admin/quotes', input);
     return response.quote;
-  }, [draft, effectiveTotal, lockingNutCharge]);
+  }, [draft, effectiveTotal, lockingNutCharge, update]);
 
   const handleSave = useCallback(async () => {
     setBusy('save');

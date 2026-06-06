@@ -10,6 +10,7 @@ export type { PricingBreakdown };
 
 export type BookingType = 'emergency' | 'scheduled';
 export type ServiceType = 'repair' | 'fit' | 'both' | 'assess';
+export type FittingLocation = 'shop' | 'mobile';
 
 export interface TyreSize {
   width: string;
@@ -58,6 +59,7 @@ export interface WizardState {
   scheduledDate: string | null;
   scheduledTime: string | null;
   slotId: string | null;
+  fittingLocation: FittingLocation | null;
   
   // Step 6: Pricing
   quoteId: string | null;
@@ -108,6 +110,7 @@ export const initialWizardState: WizardState = {
   scheduledDate: null,
   scheduledTime: null,
   slotId: null,
+  fittingLocation: null,
   quoteId: null,
   breakdown: null,
   quoteExpiresAt: null,

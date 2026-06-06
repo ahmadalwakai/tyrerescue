@@ -4,6 +4,7 @@ import { api, ApiError } from '@/lib/api';
 import { formatGbp } from '@/lib/money';
 import { ActionButton } from '../ui/ActionButton';
 import { colors, fontSize, radius, space } from '../theme';
+import type { AssistedChatQuoteBreakdown, QuickBookPatchResponse } from '@/types/assisted-chat';
 
 const MIN_PRICE_GBP = 0.01;
 const MAX_PRICE_GBP = 5000;
@@ -19,7 +20,29 @@ interface EditQuotePriceModalProps {
   quickBookingId: string | null;
   onClose: () => void;
   /** Called after a successful PATCH with the new manual price in GBP. */
-  onSaved: (newPriceGbp: number) => void;
+  onSaved: (newPriceGbp: number, quote: AssistedChatQuoteBreakdown | null) => void;
+}
+
+function quoteFromQuickBookPatch(
+  breakdown: QuickBookPatchResponse['booking']['priceBreakdown'],
+  distanceKm: string | null,
+): AssistedChatQuoteBreakdown | null {
+  if (!breakdown) return null;
+
+  return {
+    subtotal: breakdown.subtotal,
+    vatAmount: breakdown.vatAmount,
+    total: breakdown.total,
+    lineItems: breakdown.lineItems,
+    distanceKm: distanceKm ? Number(distanceKm) : null,
+    distanceMiles: breakdown.distanceMiles ?? null,
+    fittingPrice: breakdown.fittingPrice ?? null,
+    tyrePrice: breakdown.tyrePrice ?? null,
+    totalPrice: breakdown.totalPrice ?? null,
+    adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
+    adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
+    serviceOrigin: breakdown.serviceOrigin ?? null,
+  };
 }
 
 function parsePrice(input: string): number | null {
@@ -85,11 +108,12 @@ export function EditQuotePriceModal({
     setBusy(true);
     try {
       const delta = Math.round((result.value - engineBaseTotal) * 100) / 100;
-      await api.patch(`/api/admin/quick-book/${quickBookingId}`, {
+      const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${quickBookingId}`, {
         adminAdjustmentAmount: delta,
         adminAdjustmentReason: MANUAL_PRICE_REASON,
+        pricingContext: 'assisted_chat',
       });
-      onSaved(result.value);
+      onSaved(result.value, quoteFromQuickBookPatch(patched.booking.priceBreakdown, patched.booking.distanceKm));
       onClose();
     } catch (err) {
       const message = err instanceof ApiError

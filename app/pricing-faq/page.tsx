@@ -29,7 +29,7 @@ const faqs = [
   {
     question: 'How is the price calculated?',
     answer:
-      'We start with the tyre cost and a £15-per-tyre fitting fee. Then we add distance (free under 10 km, £1 per km after), any time-slot or weather adjustments, and 20% VAT. The quote screen shows every line item before you confirm.',
+      'We start with the tyre cost and a £15-per-tyre fitting fee. Then we add distance (free under 10 km, £1 per km after) and any time-slot or weather adjustments. The quote screen shows every line item before you confirm.',
   },
   {
     question: 'Is there a minimum callout charge?',
@@ -44,7 +44,7 @@ const faqs = [
   {
     question: 'Can I get a quote before booking?',
     answer:
-      'Absolutely. Our online booking wizard gives you a full price breakdown — tyre cost, fitting, distance, surcharges and VAT — before you enter any payment details. The quote is valid for 30 minutes so you can compare with other options.',
+      'Absolutely. Our online booking wizard gives you a full price breakdown — tyre cost, fitting, distance and surcharges — before you enter any payment details. The quote is valid for 30 minutes so you can compare with other options.',
   },
   {
     question: 'Are your prices competitive with garages?',
@@ -54,7 +54,7 @@ const faqs = [
   {
     question: 'Do prices include VAT?',
     answer:
-      'Every price shown in your final quote includes 20% VAT. The breakdown separates the VAT line so you can see the net cost. Business customers can request a VAT invoice after payment.',
+      'Prices are shown in GBP and VAT is not added separately. You can download an invoice after payment.',
   },
   {
     question: 'What if the price changes after I book?',

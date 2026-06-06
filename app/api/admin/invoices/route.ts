@@ -47,16 +47,6 @@ const COMPANY = {
   email: 'support@tyrerescue.uk',
 };
 
-async function getVatInfo() {
-  const { pricingRules } = await import('@/lib/db');
-  const rules = await db.select().from(pricingRules);
-  const ruleMap = Object.fromEntries(rules.map((r) => [r.key, r.value]));
-  return {
-    vatNumber: ruleMap['vat_number'] || null,
-    vatRate: parseFloat(ruleMap['vat_rate'] || '20'),
-  };
-}
-
 export async function GET(request: Request) {
   try {
     const session = await requireAdmin();

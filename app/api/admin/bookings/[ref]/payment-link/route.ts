@@ -31,9 +31,9 @@ const bodySchema = z.object({
 
 const partialPaymentLinkError = {
   ok: false,
-  code: 'PARTIAL_PAYMENT_LINK_NOT_SUPPORTED',
+  code: 'PAYMENT_AMOUNT_MISMATCH',
   message:
-    'Partial payment links are not supported for this booking. Create a full outstanding balance link instead.',
+    'Payment link amount must equal the saved outstanding balance.',
 } as const;
 
 const noOutstandingBalanceError = {
@@ -138,6 +138,15 @@ export async function POST(request: Request, { params }: Props) {
       cancelUrl: `${baseUrl}/admin/bookings/${booking.refNumber}?payment=cancelled`,
     },
   );
+  if (checkout.amountInPence !== amountPence) {
+    return NextResponse.json(
+      {
+        error: 'Payment amount mismatch',
+        code: 'PAYMENT_AMOUNT_MISMATCH',
+      },
+      { status: 500 },
+    );
+  }
 
   // Reference Stripe uses to confirm the payment. PaymentIntent id is the
   // webhook key; fall back to the session id when Stripe has not yet attached

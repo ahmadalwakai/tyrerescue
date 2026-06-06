@@ -43,6 +43,7 @@ interface ScheduledBookingRow {
 }
 
 const LONDON_TIME_ZONE = 'Europe/London';
+export const BOOKING_SCHEDULE_MIN_START = '10:00';
 
 const londonDateFormatter = new Intl.DateTimeFormat('en-CA', {
   timeZone: LONDON_TIME_ZONE,
@@ -88,6 +89,12 @@ function formatTimeLabel(timeValue: string): string {
 
 function buildSlotLabel(timeStart: string, timeEnd: string): string {
   return `${formatTimeLabel(timeStart)} - ${formatTimeLabel(timeEnd)}`;
+}
+
+export function isPublicBookingScheduleSlot(
+  slot: Pick<AvailabilitySlotBase, 'timeStart'>,
+): boolean {
+  return toMinutes(slot.timeStart) >= toMinutes(BOOKING_SCHEDULE_MIN_START);
 }
 
 function getLondonDate(date: Date): string {
@@ -358,7 +365,10 @@ export async function validateScheduledSlotForBooking(
     excludeBookingId: options?.excludeBookingId,
   });
 
-  const matchingSlot = slots.find((slot) => bookingFallsInSlot(time, slot.timeStart, slot.timeEnd));
+  const matchingSlot = slots.find((slot) =>
+    isPublicBookingScheduleSlot(slot) &&
+    bookingFallsInSlot(time, slot.timeStart, slot.timeEnd)
+  );
 
   if (!matchingSlot) {
     return {

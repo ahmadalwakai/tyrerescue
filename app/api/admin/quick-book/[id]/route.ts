@@ -10,6 +10,8 @@ import {
   QuickBookPricingError,
   type QuickBookServiceType,
 } from '@/lib/quick-book-pricing';
+import type { PricingContext } from '@/lib/pricing-engine';
+import { getWeatherPricingContext, type WeatherPricingContext } from '@/lib/weather';
 import { distanceResultToKm, resolveQuickBookDistance } from '@/lib/quick-book-distance';
 import { GARAGE_ADDRESS } from '@/lib/garage';
 
@@ -32,6 +34,14 @@ const updateSchema = z.object({
   bookingId: z.string().uuid().optional(),
   adminAdjustmentAmount: z.number().optional(),
   adminAdjustmentReason: z.string().max(500).nullable().optional(),
+  pricingContext: z.enum([
+    'scheduled_mobile_fitting',
+    'scheduled_garage_fitting',
+    'emergency_mobile_fitting',
+    'admin_quick_book',
+    'assisted_chat',
+    'manual_quote',
+  ]).optional(),
 });
 
 export async function GET(
@@ -78,6 +88,16 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  if (hasField('totalPrice')) {
+    return NextResponse.json(
+      {
+        error:
+          'totalPrice is derived from priceBreakdown.total. Use adminAdjustmentAmount/adminAdjustmentReason for manual price changes.',
+      },
+      { status: 400 },
+    );
+  }
+
   const [existing] = await db
     .select()
     .from(quickBookings)
@@ -90,6 +110,7 @@ export async function PATCH(
 
   const data = parsed.data;
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
+  const existingBreakdown = existing.priceBreakdown as Record<string, unknown> | null;
 
   if (data.customerName !== undefined) updateData.customerName = data.customerName;
   if (data.customerPhone !== undefined) updateData.customerPhone = data.customerPhone;
@@ -103,7 +124,6 @@ export async function PATCH(
   if (data.tyreCount !== undefined) updateData.tyreCount = data.tyreCount;
   if (data.basePrice != null) updateData.basePrice = String(data.basePrice);
   if (data.surchargePercent != null) updateData.surchargePercent = String(data.surchargePercent);
-  if (data.totalPrice != null) updateData.totalPrice = String(data.totalPrice);
   if (data.status) updateData.status = data.status;
   if (data.notes !== undefined) updateData.notes = data.notes;
   if (data.bookingId) updateData.bookingId = data.bookingId;
@@ -161,6 +181,30 @@ export async function PATCH(
     data.adminAdjustmentReason !== undefined
       ? data.adminAdjustmentReason
       : existing.adminAdjustmentReason;
+  const mergedPricingContext =
+    data.pricingContext ??
+    (typeof existingBreakdown?.pricingContext === 'string'
+      ? (existingBreakdown.pricingContext as PricingContext)
+      : 'admin_quick_book');
+
+  if (durationMinutes == null) {
+    const existingEta = (existingBreakdown?.serviceOrigin as { etaMinutes?: unknown } | undefined)?.etaMinutes;
+    durationMinutes = typeof existingEta === 'number' && Number.isFinite(existingEta)
+      ? existingEta
+      : null;
+  }
+
+  let weatherContext: WeatherPricingContext | null = null;
+  if (mergedLat != null && mergedLng != null) {
+    try {
+      weatherContext = await getWeatherPricingContext({
+        latitude: mergedLat,
+        longitude: mergedLng,
+      });
+    } catch {
+      weatherContext = null;
+    }
+  }
 
   const shouldRecalculate = [
     'tyreSize',
@@ -170,6 +214,7 @@ export async function PATCH(
     'locationLng',
     'distanceKm',
     'adminAdjustmentAmount',
+    'pricingContext',
   ].some(hasField);
 
   if (shouldRecalculate) {
@@ -194,6 +239,9 @@ export async function PATCH(
         requireTyreForFit: mergedServiceType === 'fit' && Boolean(mergedTyreSize),
         adminAdjustmentAmount: mergedAdminAdjustmentAmount,
         adminAdjustmentReason: mergedAdminAdjustmentReason,
+        pricingContext: mergedPricingContext,
+        durationMinutes,
+        weatherContext,
       });
 
       updateData.tyreSize = priced.normalizedTyreSize;
@@ -210,7 +258,7 @@ export async function PATCH(
           label: serviceOriginSource === 'garage' ? 'Garage' : 'Service origin',
           address: serviceOriginSource === 'garage' ? GARAGE_ADDRESS : null,
           etaMinutes: durationMinutes,
-        } : (existing.priceBreakdown as Record<string, unknown> | null)?.serviceOrigin ?? null,
+        } : existingBreakdown?.serviceOrigin ?? null,
       };
       updateData.selectedTyreProductId = priced.selectedTyreSnapshot?.productId ?? null;
       updateData.selectedTyreUnitPrice =

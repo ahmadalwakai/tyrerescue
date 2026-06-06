@@ -36,6 +36,45 @@ interface OpenWeatherResponse {
   snow?: { '1h'?: number; '3h'?: number };
 }
 
+interface OpenWeatherForecastResponse {
+  list?: Array<{
+    dt?: number;
+    dt_txt?: string;
+    weather?: Array<{ id: number; main: string; description: string }>;
+    main?: { temp: number };
+    wind?: { speed: number };
+    visibility?: number;
+    pop?: number;
+    rain?: { '3h'?: number };
+    snow?: { '3h'?: number };
+  }>;
+}
+
+export type WeatherIconKey =
+  | 'clear'
+  | 'partly-cloudy'
+  | 'cloudy'
+  | 'rain'
+  | 'snow'
+  | 'storm'
+  | 'fog'
+  | 'wind'
+  | 'unknown';
+
+export interface WeatherScheduleSummary {
+  date: string;
+  time: string | null;
+  icon: WeatherIconKey;
+  conditionCode: number;
+  conditionLabel: string;
+  temperature: number | null;
+  precipitationProbability: number | null;
+  weatherSeverityScore: number;
+  weatherReason: string;
+  source: 'api' | 'cache' | 'fallback';
+  observedAt: string;
+}
+
 // ─── Cache ──────────────────────────────────────────────────────────────────
 
 const CACHE_TTL_MS = 15 * 60_000; // 15 minutes
@@ -47,6 +86,14 @@ interface CacheEntry {
 
 const cache = new Map<string, CacheEntry>();
 
+interface ForecastCacheEntry {
+  data: OpenWeatherForecastResponse;
+  expiresAt: number;
+  observedAt: string;
+}
+
+const forecastCache = new Map<string, ForecastCacheEntry>();
+
 function makeCacheKey(lat: number, lng: number): string {
   // Round to 2 decimal places (~1 km resolution) for cache bucketing
   const rlat = Math.round(lat * 100) / 100;
@@ -57,6 +104,7 @@ function makeCacheKey(lat: number, lng: number): string {
 /** Exported for testing only. */
 export function _clearWeatherCache(): void {
   cache.clear();
+  forecastCache.clear();
 }
 
 // ─── Neutral Fallback ───────────────────────────────────────────────────────
@@ -150,6 +198,248 @@ export function computeWeatherMultiplier(opts: {
 
   // Clear / normal
   return { multiplier: 1.0, severity: 0, reason: 'Clear conditions' };
+}
+
+function weatherIconFromCode(conditionCode: number, windSpeed = 0): WeatherIconKey {
+  if (conditionCode >= 200 && conditionCode < 300) return 'storm';
+  if (conditionCode >= 300 && conditionCode < 600) return windSpeed > 12 ? 'wind' : 'rain';
+  if (conditionCode >= 600 && conditionCode < 700) return 'snow';
+  if (conditionCode >= 700 && conditionCode < 800) return 'fog';
+  if (conditionCode === 800) return windSpeed > 12 ? 'wind' : 'clear';
+  if (conditionCode === 801 || conditionCode === 802) return windSpeed > 12 ? 'wind' : 'partly-cloudy';
+  if (conditionCode > 802 && conditionCode < 900) return windSpeed > 12 ? 'wind' : 'cloudy';
+  return 'unknown';
+}
+
+function londonDateAndTimeFromForecastItem(item: { dt?: number; dt_txt?: string }): {
+  date: string;
+  time: string;
+} | null {
+  const sourceDate = typeof item.dt === 'number'
+    ? new Date(item.dt * 1000)
+    : item.dt_txt
+      ? new Date(`${item.dt_txt.replace(' ', 'T')}Z`)
+      : null;
+
+  if (!sourceDate || Number.isNaN(sourceDate.getTime())) return null;
+
+  const date = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(sourceDate);
+
+  const time = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(sourceDate);
+
+  return { date, time };
+}
+
+function forecastItemToScheduleSummary(
+  item: NonNullable<OpenWeatherForecastResponse['list']>[number],
+  date: string,
+  time: string | null,
+  source: 'api' | 'cache',
+  observedAt: string,
+): WeatherScheduleSummary {
+  const conditionCode = item.weather?.[0]?.id ?? 800;
+  const conditionLabel = item.weather?.[0]?.main ?? 'Clear';
+  const temperature = item.main?.temp ?? null;
+  const windSpeed = item.wind?.speed ?? 0;
+  const visibility = item.visibility ?? 10000;
+  const precipitationIntensity = item.rain?.['3h'] ?? item.snow?.['3h'] ?? 0;
+  const { severity, reason } = computeWeatherMultiplier({
+    conditionCode,
+    precipitationIntensity,
+    windSpeed,
+    visibility,
+    temperature: temperature ?? 15,
+  });
+
+  return {
+    date,
+    time,
+    icon: weatherIconFromCode(conditionCode, windSpeed),
+    conditionCode,
+    conditionLabel,
+    temperature,
+    precipitationProbability: typeof item.pop === 'number' ? item.pop : null,
+    weatherSeverityScore: severity,
+    weatherReason: reason,
+    source,
+    observedAt,
+  };
+}
+
+function neutralScheduleSummary(
+  date: string,
+  reason: string,
+): WeatherScheduleSummary {
+  const fallback = neutralWeatherContext(reason);
+  return {
+    date,
+    time: null,
+    icon: 'unknown',
+    conditionCode: fallback.conditionCode,
+    conditionLabel: fallback.conditionLabel,
+    temperature: null,
+    precipitationProbability: null,
+    weatherSeverityScore: fallback.weatherSeverityScore,
+    weatherReason: fallback.weatherReason,
+    source: fallback.source,
+    observedAt: fallback.observedAt,
+  };
+}
+
+function isIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function minutesFromTime(time: string | null): number {
+  if (!time) return 12 * 60;
+  const [hh, mm] = time.split(':').map(Number);
+  return hh * 60 + mm;
+}
+
+function pickDailyForecast(
+  items: WeatherScheduleSummary[],
+): WeatherScheduleSummary | null {
+  if (items.length === 0) return null;
+
+  return [...items].sort((a, b) => {
+    if (b.weatherSeverityScore !== a.weatherSeverityScore) {
+      return b.weatherSeverityScore - a.weatherSeverityScore;
+    }
+    const aMiddayDistance = Math.abs(minutesFromTime(a.time) - 12 * 60);
+    const bMiddayDistance = Math.abs(minutesFromTime(b.time) - 12 * 60);
+    if (aMiddayDistance !== bMiddayDistance) return aMiddayDistance - bMiddayDistance;
+    return (b.precipitationProbability ?? 0) - (a.precipitationProbability ?? 0);
+  })[0];
+}
+
+async function getForecastData(latitude: number, longitude: number): Promise<{
+  data: OpenWeatherForecastResponse | null;
+  source: 'api' | 'cache' | 'fallback';
+  observedAt: string;
+  reason?: string;
+}> {
+  const key = makeCacheKey(latitude, longitude);
+  const cached = forecastCache.get(key);
+  if (cached && Date.now() < cached.expiresAt) {
+    return { data: cached.data, source: 'cache', observedAt: cached.observedAt };
+  }
+
+  const apiKey = process.env.WEATHER_API_KEY || '';
+  const rawBase = process.env.WEATHER_API_BASE_URL || 'https://api.openweathermap.org';
+  const baseUrl = rawBase.endsWith('/data/2.5') ? rawBase : `${rawBase.replace(/\/+$/, '')}/data/2.5`;
+
+  if (!apiKey) {
+    return {
+      data: null,
+      source: 'fallback',
+      observedAt: new Date().toISOString(),
+      reason: 'Weather API key not configured',
+    };
+  }
+
+  try {
+    const url = `${baseUrl}/forecast?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&units=metric&appid=${encodeURIComponent(apiKey)}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5_000);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return {
+        data: null,
+        source: 'fallback',
+        observedAt: new Date().toISOString(),
+        reason: `Weather forecast API error: ${response.status}`,
+      };
+    }
+
+    const data: OpenWeatherForecastResponse = await response.json();
+    const observedAt = new Date().toISOString();
+    forecastCache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS, observedAt });
+
+    return { data, source: 'api', observedAt };
+  } catch (error) {
+    const reason =
+      error instanceof DOMException && error.name === 'AbortError'
+        ? 'Weather forecast API request timed out'
+        : 'Weather forecast API request failed';
+    return {
+      data: null,
+      source: 'fallback',
+      observedAt: new Date().toISOString(),
+      reason,
+    };
+  }
+}
+
+export async function getWeatherScheduleSummaries(params: {
+  latitude: number;
+  longitude: number;
+  dates: string[];
+}): Promise<{
+  daily: WeatherScheduleSummary[];
+  hourly: WeatherScheduleSummary[];
+}> {
+  const dates = [...new Set(params.dates.filter(isIsoDate))].slice(0, 15);
+
+  if (dates.length === 0) {
+    return { daily: [], hourly: [] };
+  }
+
+  if (
+    !Number.isFinite(params.latitude) ||
+    !Number.isFinite(params.longitude) ||
+    params.latitude === 0 && params.longitude === 0
+  ) {
+    return {
+      daily: dates.map((date) => neutralScheduleSummary(date, 'Missing or invalid coordinates')),
+      hourly: [],
+    };
+  }
+
+  const forecast = await getForecastData(params.latitude, params.longitude);
+  if (!forecast.data?.list?.length || forecast.source === 'fallback') {
+    const reason = forecast.reason ?? 'Weather forecast unavailable';
+    return {
+      daily: dates.map((date) => neutralScheduleSummary(date, reason)),
+      hourly: [],
+    };
+  }
+
+  const wantedDates = new Set(dates);
+  const source = forecast.source === 'cache' ? 'cache' : 'api';
+  const hourly = forecast.data.list
+    .map((item) => {
+      const parts = londonDateAndTimeFromForecastItem(item);
+      if (!parts || !wantedDates.has(parts.date)) return null;
+      return forecastItemToScheduleSummary(
+        item,
+        parts.date,
+        parts.time,
+        source,
+        forecast.observedAt,
+      );
+    })
+    .filter((item): item is WeatherScheduleSummary => Boolean(item));
+
+  const daily = dates.map((date) => {
+    const picked = pickDailyForecast(hourly.filter((item) => item.date === date));
+    return picked
+      ? { ...picked, time: null }
+      : neutralScheduleSummary(date, 'Forecast unavailable for this date');
+  });
+
+  return { daily, hourly };
 }
 
 // ─── Main Entry Point ───────────────────────────────────────────────────────

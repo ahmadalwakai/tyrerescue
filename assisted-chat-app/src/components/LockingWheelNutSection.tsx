@@ -32,15 +32,22 @@ export function LockingWheelNutSection({ draft, update }: Props) {
     );
   }
   const [error, setError] = useState<string | null>(null);
+  const quoteRefreshPatch = draft.quote || draft.priceNeedsRefresh
+    ? {
+        priceNeedsRefresh: true,
+        paymentChoice: null,
+        paymentLink: null,
+        dispatchedRefNumber: null,
+        dispatchedBookingId: null,
+      }
+    : {};
 
   const setAnswer = (answer: LockingNutAnswer) => {
     setError(null);
     if (answer === 'no') {
-      update({ lockingNut: { answer, chargeGbp: draft.lockingNut.chargeGbp } });
+      update({ lockingNut: { answer, chargeGbp: draft.lockingNut.chargeGbp }, ...quoteRefreshPatch });
     } else {
-      // Removes the charge from total + clears the line item from the
-      // breakdown by clearing chargeGbp; the screen recomputes effectiveTotal.
-      update({ lockingNut: { answer, chargeGbp: null } });
+      update({ lockingNut: { answer, chargeGbp: null }, ...quoteRefreshPatch });
       setChargeInput('');
     }
   };
@@ -49,7 +56,7 @@ export function LockingWheelNutSection({ draft, update }: Props) {
     setChargeInput(raw);
     setError(null);
     if (raw.trim() === '') {
-      update({ lockingNut: { ...draft.lockingNut, chargeGbp: null } });
+      update({ lockingNut: { ...draft.lockingNut, chargeGbp: null }, ...quoteRefreshPatch });
       return;
     }
     const parsed = Number.parseFloat(raw);
@@ -62,6 +69,7 @@ export function LockingWheelNutSection({ draft, update }: Props) {
     }
     update({
       lockingNut: { ...draft.lockingNut, chargeGbp: Math.round(parsed * 100) / 100 },
+      ...quoteRefreshPatch,
     });
   };
 

@@ -7,9 +7,8 @@ import {
   payments,
   tyreProducts,
   bookingTyres,
-  pricingRules,
 } from '@/lib/db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { constructWebhookEvent } from '@/lib/stripe';
 import { sendBookingEmailOnce } from '@/lib/email/resend';
 import {
@@ -159,6 +158,17 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     return;
   }
 
+  const expectedAmountPence = Math.round(Number(booking.totalAmount) * 100);
+  if (paymentIntent.amount !== expectedAmountPence) {
+    console.error('[webhook] PAYMENT_AMOUNT_MISMATCH', {
+      refNumber: booking.refNumber,
+      paymentIntentId,
+      expectedAmountPence,
+      actualAmountPence: paymentIntent.amount,
+    });
+    return;
+  }
+
   // Record payment
   if (existingPayment) {
     // Update existing payment record
@@ -291,14 +301,6 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
 
   // Send payment receipt email to customer
   try {
-    const vatRules = await db
-      .select({ key: pricingRules.key, value: pricingRules.value })
-      .from(pricingRules)
-      .where(inArray(pricingRules.key, ['vat_registered', 'vat_number']));
-    const vatMap = new Map(vatRules.map((r) => [r.key, r.value]));
-    const isVatRegistered = vatMap.get('vat_registered') === 'true';
-    const vatNumberVal = vatMap.get('vat_number') || '';
-
     const receiptEmail = paymentReceipt({
       customerName: booking.customerName,
       refNumber: booking.refNumber,
@@ -312,8 +314,8 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       subtotal: priceSnapshot.subtotal,
       vatAmount: priceSnapshot.vatAmount,
       total: priceSnapshot.total,
-      vatRegistered: isVatRegistered,
-      vatNumber: vatNumberVal,
+      vatRegistered: false,
+      vatNumber: '',
     });
 
     await sendBookingEmailOnce({
@@ -456,6 +458,25 @@ async function handleAdminLinkPaymentSucceeded(paymentIntent: Stripe.PaymentInte
     stripePiId: booking.stripePiId,
   }).amountToCollectPence;
 
+  if (paymentIntent.amount !== outstandingBeforePayment) {
+    console.warn('[webhook:admin-link] PAYMENT_AMOUNT_MISMATCH', {
+      refNumber: booking.refNumber,
+      paymentIntentId,
+      expectedAmountPence: outstandingBeforePayment,
+      actualAmountPence: paymentIntent.amount,
+    });
+    await db.insert(bookingStatusHistory).values({
+      id: uuidv4(),
+      bookingId,
+      fromStatus: booking.status,
+      toStatus: booking.status,
+      actorUserId: null,
+      actorRole: 'system',
+      note: `PAYMENT_AMOUNT_MISMATCH: online payment amount did not equal the saved outstanding balance.`,
+    });
+    return;
+  }
+
   // Record / update the payment row to succeeded.
   if (existingPayment) {
     await db
@@ -482,24 +503,6 @@ async function handleAdminLinkPaymentSucceeded(paymentIntent: Stripe.PaymentInte
     console.warn(
       `[webhook:admin-link] payment ${paymentIntentId} received but booking ${booking.refNumber} has no outstanding balance; booking payment state left unchanged`,
     );
-    return;
-  }
-
-  if (paymentIntent.amount < outstandingBeforePayment) {
-    console.warn(
-      `[webhook:admin-link] partial payment not applied booking=${booking.refNumber} paymentIntent=${paymentIntentId} paid=${paymentIntent.amount} outstanding=${outstandingBeforePayment}`,
-    );
-
-    await db.insert(bookingStatusHistory).values({
-      id: uuidv4(),
-      bookingId,
-      fromStatus: booking.status,
-      toStatus: booking.status,
-      actorUserId: null,
-      actorRole: 'system',
-      note: `Partial online payment received via admin link (£${(paymentIntent.amount / 100).toFixed(2)}) but booking was not marked paid because the outstanding balance was £${(outstandingBeforePayment / 100).toFixed(2)}.`,
-    });
-
     return;
   }
 
@@ -602,6 +605,16 @@ async function handleDepositPaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
   // Calculate remaining balance
   const totalInPence = Math.round(Number(booking.totalAmount) * 100);
+  const expectedDepositAmountPence = booking.depositAmountPence ?? Math.round(totalInPence * 0.20);
+  if (paymentIntent.amount !== expectedDepositAmountPence) {
+    console.error('[webhook:deposit] PAYMENT_AMOUNT_MISMATCH', {
+      refNumber: booking.refNumber,
+      paymentIntentId,
+      expectedAmountPence: expectedDepositAmountPence,
+      actualAmountPence: paymentIntent.amount,
+    });
+    return;
+  }
   const depositAmountPence = paymentIntent.amount;
   const remainingBalancePence = totalInPence - depositAmountPence;
 

@@ -19,6 +19,7 @@ import { QuickBookMap } from '@/components/admin/quick-book/QuickBookMap';
 import { AdminQuotePanel } from '@/components/admin/assisted-chat/AdminQuotePanel';
 import { useAssistedChatDraft } from '@/lib/hooks/useAssistedChatDraft';
 import type {
+  AssistedChatDraft,
   AssistedChatPaymentChoice,
   AssistedChatQuoteBreakdown,
   AssistedChatQuoteLine,
@@ -64,6 +65,8 @@ interface QuickBookCreateResponse {
       subtotal: number;
       vatAmount: number;
       total: number;
+      adminAdjustmentAmount?: number | null;
+      adminAdjustmentReason?: string | null;
       serviceOrigin?: AssistedChatServiceOrigin | null;
     } | null;
   };
@@ -80,6 +83,8 @@ interface QuickBookPatchResponse {
       subtotal: number;
       vatAmount: number;
       total: number;
+      adminAdjustmentAmount?: number | null;
+      adminAdjustmentReason?: string | null;
       serviceOrigin?: AssistedChatServiceOrigin | null;
     } | null;
   };
@@ -260,10 +265,17 @@ export function AssistedChatPage() {
     draft.lockingNut.answer === 'no' && draft.lockingNut.chargeGbp != null
       ? draft.lockingNut.chargeGbp
       : 0;
-  const baseQuoteTotal = draft.quote?.total ?? 0;
-  const effectiveTotal = baseQuoteTotal + lockingNutCharge;
+  const effectiveTotal = draft.quote?.total ?? 0;
   const phoneIsValid = isValidUkPhone(phoneInput || draft.customer.phone);
   const hasAddress = draft.location.lat != null && draft.location.lng != null;
+
+  const clearPricedState = {
+    savedQuoteId: null,
+    savedQuoteRef: null,
+    quote: null,
+    paymentChoice: null,
+    dispatchedRefNumber: null,
+  } satisfies Partial<AssistedChatDraft>;
 
   // ── Mapbox address search ──
   const searchAddress = useCallback(async (q: string) => {
@@ -300,7 +312,7 @@ export function AssistedChatPage() {
 
   const handleAddressChange = (value: string) => {
     setAddressInput(value);
-    update({ location: { label: value, lat: null, lng: null, postcode: null } });
+    update({ location: { label: value, lat: null, lng: null, postcode: null }, ...clearPricedState });
     setLocationLink(null);
     setShowAddrSuggestions(true);
     if (addrTimer.current) clearTimeout(addrTimer.current);
@@ -318,6 +330,7 @@ export function AssistedChatPage() {
         lng,
         postcode: postcodeCtx?.text ?? null,
       },
+      ...clearPricedState,
     });
     setLocationLink(null);
     setAddrSuggestions([]);
@@ -342,7 +355,7 @@ export function AssistedChatPage() {
 
   const handleTyreChange = (value: string) => {
     setTyreSizeInput(value);
-    update({ tyre: { ...draft.tyre, size: value } });
+    update({ tyre: { ...draft.tyre, size: value }, ...clearPricedState });
     setShowTyreSuggestions(true);
     if (tyreTimer.current) clearTimeout(tyreTimer.current);
     tyreTimer.current = setTimeout(() => searchTyres(value), 200);
@@ -350,7 +363,7 @@ export function AssistedChatPage() {
 
   const selectTyreSize = (size: string) => {
     setTyreSizeInput(size);
-    update({ tyre: { ...draft.tyre, size } });
+    update({ tyre: { ...draft.tyre, size }, ...clearPricedState });
     setTyreSuggestions([]);
     setShowTyreSuggestions(false);
   };
@@ -366,15 +379,15 @@ export function AssistedChatPage() {
 
   const handleQuantity = (q: number) => {
     const clamped = Math.max(1, Math.min(10, Math.round(q)));
-    update({ tyre: { ...draft.tyre, quantity: clamped } });
+    update({ tyre: { ...draft.tyre, quantity: clamped }, ...clearPricedState });
   };
 
   const handleLockingNutAnswer = (answer: LockingNutAnswer) => {
     setLockingNutInputError(null);
     if (answer === 'no') {
-      update({ lockingNut: { answer, chargeGbp: draft.lockingNut.chargeGbp } });
+      update({ lockingNut: { answer, chargeGbp: draft.lockingNut.chargeGbp }, ...clearPricedState });
     } else {
-      update({ lockingNut: { answer, chargeGbp: null } });
+      update({ lockingNut: { answer, chargeGbp: null }, ...clearPricedState });
       setLockingNutChargeInput('');
     }
   };
@@ -383,7 +396,7 @@ export function AssistedChatPage() {
     setLockingNutChargeInput(raw);
     setLockingNutInputError(null);
     if (raw.trim() === '') {
-      update({ lockingNut: { ...draft.lockingNut, chargeGbp: null } });
+      update({ lockingNut: { ...draft.lockingNut, chargeGbp: null }, ...clearPricedState });
       return;
     }
     const parsed = Number.parseFloat(raw);
@@ -396,6 +409,7 @@ export function AssistedChatPage() {
     }
     update({
       lockingNut: { ...draft.lockingNut, chargeGbp: Math.round(parsed * 100) / 100 },
+      ...clearPricedState,
     });
   };
 
@@ -462,6 +476,8 @@ export function AssistedChatPage() {
         lineItems: breakdown.lineItems,
         serviceOrigin: breakdown.serviceOrigin ?? null,
         distanceKm: distanceKmStr ? Number(distanceKmStr) : null,
+        adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
+        adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
       };
       update({
         quickBookingId: qbId,
@@ -495,10 +511,8 @@ export function AssistedChatPage() {
   }, []);
 
   // ── Get price ──
-  // Engine quote stays clean; the locking-nut charge is layered client-side
-  // and only PATCHed onto the booking (via the existing adminAdjustmentAmount
-  // mechanism) at finalize time, so the persisted total matches what the
-  // admin saw on screen.
+  // The backend quote is the source of truth. Locking-nut charges are sent as
+  // admin adjustments so display, saved quote, payment, and finalize agree.
   const handleGetPrice = useCallback(async () => {
     if (quoteInflightRef.current) return;
 
@@ -532,6 +546,16 @@ export function AssistedChatPage() {
     setQuoteStageIdx(0);
 
     try {
+      const adjustmentPayload =
+        lockingNutCharge > 0
+          ? {
+              adminAdjustmentAmount: lockingNutCharge,
+              adminAdjustmentReason: LOCKING_NUT_REASON,
+            }
+          : {
+              adminAdjustmentAmount: 0,
+              adminAdjustmentReason: null,
+            };
       const apiCall = (async () => {
         const qbId = draft.quickBookingId ?? (await ensureQuickBookingId());
         const res = await fetch(`/api/admin/quick-book/${qbId}`, {
@@ -545,10 +569,8 @@ export function AssistedChatPage() {
             tyreSize: draft.tyre.size,
             tyreCount: draft.tyre.quantity,
             notes: draft.note || null,
-            // Engine breakdown is kept clean — the locking-nut charge is
-            // layered client-side and only PATCHed back on finalize.
-            adminAdjustmentAmount: 0,
-            adminAdjustmentReason: null,
+            pricingContext: 'assisted_chat',
+            ...adjustmentPayload,
           }),
         });
         const data = await res.json();
@@ -572,6 +594,7 @@ export function AssistedChatPage() {
     draft.tyre.quantity,
     draft.lockingNut.answer,
     draft.lockingNut.chargeGbp,
+    lockingNutCharge,
     draft.quickBookingId,
     draft.location.lat,
     draft.location.lng,
@@ -693,9 +716,8 @@ export function AssistedChatPage() {
   }, [ensureQuickBookingId]);
 
   // ──────────────────────────────────────────────────────────
-  // Choose payment — pushes the locking-nut charge onto the booking via
-  // the existing adminAdjustmentAmount mechanism just before finalize so
-  // the persisted total matches the displayed total.
+  // Choose payment — finalize only after the displayed backend quote already
+  // contains any locking-nut adjustment.
   // ──────────────────────────────────────────────────────────
   const handleChoosePayment = useCallback(
     async (choice: AssistedChatPaymentChoice) => {
@@ -706,24 +728,19 @@ export function AssistedChatPage() {
         setPaymentError('Generate a price first.');
         return;
       }
+      if (
+        lockingNutCharge > 0 &&
+        (
+          draft.quote.adminAdjustmentReason !== LOCKING_NUT_REASON ||
+          Math.round((draft.quote.adminAdjustmentAmount ?? 0) * 100) !== Math.round(lockingNutCharge * 100)
+        )
+      ) {
+        setPaymentError('Refresh the price after changing the locking wheel nut charge.');
+        return;
+      }
       update({ paymentChoice: choice });
       setPaymentBusy(true);
       try {
-        if (lockingNutCharge > 0) {
-          const adjRes = await fetch(`/api/admin/quick-book/${draft.quickBookingId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              adminAdjustmentAmount: lockingNutCharge,
-              adminAdjustmentReason: LOCKING_NUT_REASON,
-            }),
-          });
-          if (!adjRes.ok) {
-            const adjData = await adjRes.json().catch(() => ({}));
-            throw new Error(getApiErrorMessage(adjData, 'Failed to apply locking-nut charge'));
-          }
-        }
-
         const paymentMethod = choice === 'cash' ? 'cash' : choice === 'deposit' ? 'deposit' : 'stripe';
         const body: Record<string, unknown> = { paymentMethod };
         if (choice === 'deposit') body.depositPercent = 0.15;
@@ -983,7 +1000,6 @@ export function AssistedChatPage() {
         body: (
           <PriceBreakdownView
             quote={draft.quote}
-            lockingNutCharge={lockingNutCharge}
             effectiveTotal={effectiveTotal}
           />
         ),
@@ -1583,15 +1599,13 @@ function PillButton({
 
 function PriceBreakdownView({
   quote,
-  lockingNutCharge,
   effectiveTotal,
 }: {
   quote: AssistedChatQuoteBreakdown;
-  lockingNutCharge: number;
   effectiveTotal: number;
 }) {
-  // Filter engine meta lines (subtotal/vat/total) — admin sees only real
-  // charge lines plus the synthetic locking-nut row and a single Total.
+  // Filter engine meta lines (subtotal/vat/total) so admin sees only real
+  // charge lines from the backend breakdown and a single Total.
   const display = quote.lineItems.filter(
     (l) => l.type !== 'subtotal' && l.type !== 'vat' && l.type !== 'total',
   );
@@ -1604,12 +1618,6 @@ function PriceBreakdownView({
           <Text color={c.text}>{GBP.format(l.amount)}</Text>
         </Flex>
       ))}
-      {lockingNutCharge > 0 && (
-        <Flex justify="space-between">
-          <Text color={c.text}>Locking wheel nut removal</Text>
-          <Text color={c.text}>{GBP.format(lockingNutCharge)}</Text>
-        </Flex>
-      )}
       <Flex justify="space-between" pt={2} borderTop={`1px solid ${c.border}`} mt={1}>
         <Text fontWeight="700">Total</Text>
         <Text fontWeight="700" color={c.accent}>

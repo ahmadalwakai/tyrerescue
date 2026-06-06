@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { and, desc, eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import {
   db,
   bookings,
@@ -14,6 +14,20 @@ import { executeTransition, getValidNextStates, isValidTransition, type BookingS
 
 interface Props {
   params: Promise<{ ref: string }>;
+}
+
+const DIRECT_AMOUNT_FIELDS = ['subtotal', 'vatAmount', 'totalAmount'] as const;
+const PRICING_INPUT_FIELDS = ['tyreSizeDisplay', 'quantity', 'serviceType', 'bookingType', 'scheduledAt'] as const;
+
+function hasOwn(body: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(body, key);
+}
+
+function numericSnapshotValue(snapshot: unknown, key: 'subtotal' | 'vatAmount' | 'total'): number | null {
+  if (!snapshot || typeof snapshot !== 'object') return null;
+  const value = (snapshot as Record<string, unknown>)[key];
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export async function GET(request: Request, { params }: Props) {
@@ -136,6 +150,33 @@ export async function PUT(request: Request, { params }: Props) {
   }
 
   const body = await request.json();
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  const bodyRecord = body as Record<string, unknown>;
+  const directAmountEdit = DIRECT_AMOUNT_FIELDS.find((field) => hasOwn(bodyRecord, field));
+  if (directAmountEdit) {
+    return NextResponse.json(
+      {
+        error:
+          `${directAmountEdit} is derived from priceSnapshot. Use the canonical pricing/manual-adjustment flow for price changes.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  const pricingInputEdit = PRICING_INPUT_FIELDS.find((field) => hasOwn(bodyRecord, field));
+  if (pricingInputEdit) {
+    return NextResponse.json(
+      {
+        error:
+          `${pricingInputEdit} affects pricing and cannot be edited from mobile admin without backend repricing.`,
+      },
+      { status: 400 },
+    );
+  }
+
   const updates: Record<string, unknown> = {};
 
   if (body.customerName !== undefined) {
@@ -159,44 +200,26 @@ export async function PUT(request: Request, { params }: Props) {
   if (body.vehicleReg !== undefined) updates.vehicleReg = body.vehicleReg ? String(body.vehicleReg).trim().toUpperCase() : null;
   if (body.vehicleMake !== undefined) updates.vehicleMake = body.vehicleMake ? String(body.vehicleMake).trim() : null;
   if (body.vehicleModel !== undefined) updates.vehicleModel = body.vehicleModel ? String(body.vehicleModel).trim() : null;
-  if (body.tyreSizeDisplay !== undefined) updates.tyreSizeDisplay = body.tyreSizeDisplay ? String(body.tyreSizeDisplay).trim() : null;
-  if (body.quantity !== undefined) {
-    const q = parseInt(String(body.quantity), 10);
-    if (q >= 1 && q <= 20) updates.quantity = q;
-  }
   if (body.lockingNutStatus !== undefined) {
     const allowed = ['standard', 'has_key', 'no_key'];
     if (allowed.includes(body.lockingNutStatus)) updates.lockingNutStatus = body.lockingNutStatus;
-  }
-  if (body.serviceType !== undefined) {
-    const allowed = ['tyre_replacement', 'puncture_repair', 'locking_nut_removal'];
-    if (allowed.includes(body.serviceType)) updates.serviceType = body.serviceType;
-  }
-  if (body.bookingType !== undefined) {
-    const allowed = ['emergency', 'scheduled'];
-    if (allowed.includes(body.bookingType)) updates.bookingType = body.bookingType;
-  }
-  if (body.scheduledAt !== undefined) {
-    updates.scheduledAt = body.scheduledAt ? new Date(body.scheduledAt) : null;
-  }
-  if (body.subtotal !== undefined) {
-    const v = parseFloat(String(body.subtotal));
-    if (Number.isFinite(v) && v >= 0) updates.subtotal = v.toFixed(2);
-  }
-  if (body.vatAmount !== undefined) {
-    const v = parseFloat(String(body.vatAmount));
-    if (Number.isFinite(v) && v >= 0) updates.vatAmount = v.toFixed(2);
-  }
-  if (body.totalAmount !== undefined) {
-    const v = parseFloat(String(body.totalAmount));
-    if (Number.isFinite(v) && v >= 0) updates.totalAmount = v.toFixed(2);
   }
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'No updates provided' }, { status: 400 });
   }
 
+  const editedFields = Object.keys(updates);
   updates.updatedAt = new Date();
+  const snapshotTotal = numericSnapshotValue(booking.priceSnapshot, 'total');
+  if (snapshotTotal != null) {
+    const snapshotSubtotal = numericSnapshotValue(booking.priceSnapshot, 'subtotal');
+    const snapshotVatAmount = numericSnapshotValue(booking.priceSnapshot, 'vatAmount') ?? 0;
+    updates.totalAmount = snapshotTotal.toFixed(2);
+    if (snapshotSubtotal != null) updates.subtotal = snapshotSubtotal.toFixed(2);
+    updates.vatAmount = snapshotVatAmount.toFixed(2);
+  }
+
   await db.update(bookings).set(updates).where(eq(bookings.id, booking.id));
 
   await db.insert(bookingStatusHistory).values({
@@ -205,7 +228,7 @@ export async function PUT(request: Request, { params }: Props) {
     toStatus: booking.status,
     actorUserId: user.id,
     actorRole: 'admin',
-    note: `Booking edited via mobile admin app: ${Object.keys(updates).filter((k) => k !== 'updatedAt').join(', ')}`,
+    note: `Booking edited via mobile admin app: ${editedFields.join(', ')}`,
   });
 
   return NextResponse.json({ success: true });

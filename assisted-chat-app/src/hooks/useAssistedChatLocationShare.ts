@@ -43,6 +43,10 @@ function quoteFromBooking(booking: QuickBookCreateResponse['booking']): Assisted
     lineItems: booking.priceBreakdown.lineItems,
     serviceOrigin: booking.priceBreakdown.serviceOrigin ?? null,
     distanceKm: booking.distanceKm ? Number(booking.distanceKm) : null,
+    distanceMiles: booking.priceBreakdown.distanceMiles ?? null,
+    fittingPrice: booking.priceBreakdown.fittingPrice ?? null,
+    tyrePrice: booking.priceBreakdown.tyrePrice ?? null,
+    totalPrice: booking.priceBreakdown.totalPrice ?? null,
   };
 }
 

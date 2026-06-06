@@ -777,7 +777,7 @@ export function BookingDetailClient({
                 </HStack>
                 {Number(booking.vatAmount) > 0 && (
                   <HStack justify="space-between">
-                    <Text color={c.muted}>VAT (20%)</Text>
+                    <Text color={c.muted}>VAT</Text>
                     <Text color={c.text}>{formatCurrency(booking.vatAmount)}</Text>
                   </HStack>
                 )}

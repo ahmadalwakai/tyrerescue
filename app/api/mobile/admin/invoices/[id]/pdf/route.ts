@@ -60,7 +60,7 @@ export async function GET(request: Request, { params }: Props) {
         totalPrice: parseFloat(it.totalPrice?.toString() ?? '0'),
       })),
       subtotal: parseFloat(invoice.subtotal?.toString() ?? '0'),
-      vatRate: parseFloat(invoice.vatRate?.toString() ?? '20'),
+      vatRate: parseFloat(invoice.vatRate?.toString() ?? '0'),
       vatAmount: parseFloat(invoice.vatAmount?.toString() ?? '0'),
       totalAmount: parseFloat(invoice.totalAmount?.toString() ?? '0'),
       notes: invoice.notes,

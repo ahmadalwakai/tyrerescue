@@ -11,6 +11,7 @@ import {
   buildLocationCopyMessage,
   type LocationMessageContext,
 } from '@/lib/quick-book-message-templates';
+import { FITTING_AT_LOCATION_LABEL, formatGbp } from '@/lib/fitting-location-pricing';
 
 // Load Stripe outside of component to avoid recreating on every render
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -78,6 +79,10 @@ interface CreatedBooking {
       subtotal: number;
       vatAmount: number;
       total: number;
+      distanceMiles?: number | null;
+      fittingPrice?: number | null;
+      tyrePrice?: number | null;
+      totalPrice?: number | null;
       serviceOrigin?: {
         lat: number;
         lng: number;
@@ -104,6 +109,10 @@ interface FinalizedResult {
     subtotal: number;
     vatAmount: number;
     total: number;
+    distanceMiles?: number | null;
+    fittingPrice?: number | null;
+    tyrePrice?: number | null;
+    totalPrice?: number | null;
     lineItems: { label: string; amount: number; type: string }[];
   };
 }
@@ -154,16 +163,29 @@ function getApiErrorMessage(payload: unknown, fallback: string): string {
   return fallback;
 }
 
-/**
- * Filter rural area surcharge from line items for display.
- * The surcharge amount is redistributed to other items using the pricing engine's
- * getDisplayBreakdown helper when a full breakdown is available.
- * For partial breakdowns, we simply filter out the rural surcharge.
- */
-function filterRuralSurchargeForDisplay<T extends { label: string; amount: number; type: string }>(
-  lineItems: T[]
-): T[] {
-  return lineItems.filter(item => !item.label.toLowerCase().includes('rural area'));
+function getBackendQuoteTotal(
+  breakdown: { total?: number | null } | null | undefined,
+  syncedTotalPrice?: string | number | null,
+): number {
+  if (typeof breakdown?.total === 'number' && Number.isFinite(breakdown.total)) {
+    return breakdown.total;
+  }
+
+  const parsed = syncedTotalPrice == null ? NaN : Number(syncedTotalPrice);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getSeparateFittingPrice(
+  breakdown: { fittingPrice?: number | null } | null | undefined,
+  total: number,
+): number | null {
+  if (typeof breakdown?.fittingPrice !== 'number' || !Number.isFinite(breakdown.fittingPrice)) {
+    return null;
+  }
+
+  return Math.round(breakdown.fittingPrice * 100) === Math.round(total * 100)
+    ? null
+    : breakdown.fittingPrice;
 }
 
 /**
@@ -429,6 +451,7 @@ export function QuickBookForm() {
           serviceType: form.serviceType,
           tyreSize: form.tyreSize || undefined,
           tyreCount: form.tyreCount,
+          pricingContext: 'admin_quick_book',
           notes: form.notes || undefined,
         }),
       });
@@ -600,6 +623,7 @@ export function QuickBookForm() {
         body: JSON.stringify({
           adminAdjustmentAmount: amt,
           adminAdjustmentReason: adjustmentReason || undefined,
+          pricingContext: 'admin_quick_book',
         }),
       });
       if (res.ok) {
@@ -622,6 +646,7 @@ export function QuickBookForm() {
         body: JSON.stringify({
           adminAdjustmentAmount: 0,
           adminAdjustmentReason: '',
+          pricingContext: 'admin_quick_book',
         }),
       });
       if (res.ok) {
@@ -730,6 +755,8 @@ export function QuickBookForm() {
     const isStripePayment = finalized.paymentMethod === 'stripe';
     const depositAmount = finalized.depositAmountPence ? finalized.depositAmountPence / 100 : 0;
     const remainingBalance = finalized.remainingBalancePence ? finalized.remainingBalancePence / 100 : 0;
+    const payableTotal = getBackendQuoteTotal(finalized.breakdown, null);
+    const fittingPrice = getSeparateFittingPrice(finalized.breakdown, payableTotal);
 
     return (
       <>
@@ -776,25 +803,21 @@ export function QuickBookForm() {
             )}
 
             <Box bg={c.surface} p={4} borderRadius="8px">
-              <Text color={c.muted} fontSize="xs" mb={2}>Pricing Breakdown</Text>
-              {filterRuralSurchargeForDisplay(finalized.breakdown.lineItems)
-                .filter((li) => li.type !== 'subtotal' && li.type !== 'vat' && li.type !== 'total')
-                .map((li, i) => (
-                  <Flex key={i} justify="space-between" mb={1}>
-                    <Text color={li.label.startsWith('Admin adjustment') ? '#F59E0B' : c.text} fontSize="sm">{li.label}</Text>
-                    <Text color={li.amount < 0 ? '#22C55E' : li.label.startsWith('Admin adjustment') ? '#F59E0B' : c.text} fontSize="sm">
-                      {li.amount < 0 ? '-' : ''}£{Math.abs(li.amount).toFixed(2)}
-                    </Text>
-                  </Flex>
-                ))}
-              <Box borderTop={`1px solid ${c.border}`} mt={2} pt={2}>
-                <Flex justify="space-between" mt={1}>
-                  <Text color={c.text} fontSize="md" fontWeight="700">Total</Text>
-                  <Text color={c.accent} fontSize="xl" fontWeight="700">
-                    £{finalized.breakdown.total.toFixed(2)}
+              <Text color={c.muted} fontSize="xs" mb={2}>Payable quote</Text>
+              <Flex justify="space-between" align="center">
+                <Text color={c.text} fontSize="md" fontWeight="700">Total</Text>
+                <Text color={c.accent} fontSize="xl" fontWeight="700">
+                  {formatGbp(payableTotal)}
+                </Text>
+              </Flex>
+              {fittingPrice != null ? (
+                <Flex justify="space-between" align="center" mt={2}>
+                  <Text color={c.muted} fontSize="sm">{FITTING_AT_LOCATION_LABEL}</Text>
+                  <Text color={c.text} fontSize="sm" fontWeight="600">
+                    {formatGbp(fittingPrice)}
                   </Text>
                 </Flex>
-              </Box>
+              ) : null}
             </Box>
 
             <Box bg={c.surface} p={3} borderRadius="8px">
@@ -1259,37 +1282,37 @@ export function QuickBookForm() {
           {/* ═══ PRICING SECTION ═══ */}
           {created.booking.totalPrice && (
             <Box bg={c.surface} p={4} borderRadius="8px" borderLeft={`3px solid #22C55E`}>
-              <Text color={c.text} fontSize="sm" fontWeight="600" mb={3}>💰 Price Breakdown</Text>
+              {(() => {
+                const payableTotal = getBackendQuoteTotal(
+                  created.booking.priceBreakdown,
+                  created.booking.totalPrice,
+                );
+                const fittingPrice = getSeparateFittingPrice(
+                  created.booking.priceBreakdown,
+                  payableTotal,
+                );
 
-              {/* Line items from pricing engine (rural surcharge hidden) */}
-              {created.booking.priceBreakdown?.lineItems
-                ? filterRuralSurchargeForDisplay(created.booking.priceBreakdown.lineItems)
-                    .filter((li) => li.type !== 'subtotal' && li.type !== 'vat' && li.type !== 'total')
-                    .map((li, i) => (
-                      <Flex key={i} justify="space-between" mb={1}>
-                        <Text color={c.text} fontSize="sm">{li.label}</Text>
-                        <Text color={li.amount < 0 ? '#22C55E' : c.text} fontSize="sm">
-                          {li.amount < 0 ? '-' : ''}£{Math.abs(li.amount).toFixed(2)}
+                return (
+                  <>
+                    <Text color={c.text} fontSize="sm" fontWeight="600" mb={3}>Payable quote</Text>
+                    <Flex justify="space-between" align="center">
+                      <Text color={c.text} fontSize="md" fontWeight="700">Total</Text>
+                      <Text color={c.accent} fontSize="xl" fontWeight="700">
+                        {formatGbp(payableTotal)}
+                      </Text>
+                    </Flex>
+                    {fittingPrice != null ? (
+                      <Flex justify="space-between" align="center" mt={2}>
+                        <Text color={c.muted} fontSize="sm">{FITTING_AT_LOCATION_LABEL}</Text>
+                        <Text color={c.text} fontSize="sm" fontWeight="600">
+                          {formatGbp(fittingPrice)}
                         </Text>
                       </Flex>
-                    ))
-                : null}
+                    ) : null}
+                  </>
+                );
+              })()}
 
-              <Box borderTop={`1px solid ${c.border}`} mt={2} pt={2}>
-                <Flex justify="space-between">
-                  <Text color={c.text} fontSize="md" fontWeight="700">Total</Text>
-                  <Text color={c.accent} fontSize="xl" fontWeight="700">
-                    £{Number(created.booking.totalPrice).toFixed(2)}
-                  </Text>
-                </Flex>
-              </Box>
-
-              {/* Fallback if no breakdown stored */}
-              {!created.booking.priceBreakdown && (
-                <Text color={c.muted} fontSize="xs" mt={1}>
-                  Engine total: £{Number(created.booking.totalPrice).toFixed(2)}
-                </Text>
-              )}
             </Box>
           )}
 
@@ -1301,7 +1324,7 @@ export function QuickBookForm() {
                   <>
                     <Flex justify="space-between" align="center">
                       <Text color="#F59E0B" fontSize="sm" fontWeight="600">
-                        ✓ Adjustment Applied (included in Fitting fee)
+                        ✓ Adjustment applied to quote total
                       </Text>
                       <Text color="#F59E0B" fontSize="sm" fontWeight="700">
                         {Number(created.booking.adminAdjustmentAmount) >= 0 ? '+' : ''}£{Number(created.booking.adminAdjustmentAmount).toFixed(2)}

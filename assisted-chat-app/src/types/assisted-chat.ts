@@ -49,6 +49,12 @@ export interface AssistedChatQuoteBreakdown {
   total: number;
   lineItems: AssistedChatQuoteLine[];
   distanceKm: number | null;
+  distanceMiles?: number | null;
+  fittingPrice?: number | null;
+  tyrePrice?: number | null;
+  totalPrice?: number | null;
+  adminAdjustmentAmount?: number | null;
+  adminAdjustmentReason?: string | null;
   serviceOrigin?: {
     lat: number;
     lng: number;
@@ -112,6 +118,12 @@ export interface QuickBookCreateResponse {
       subtotal: number;
       vatAmount: number;
       total: number;
+      distanceMiles?: number | null;
+      fittingPrice?: number | null;
+      tyrePrice?: number | null;
+      totalPrice?: number | null;
+      adminAdjustmentAmount?: number | null;
+      adminAdjustmentReason?: string | null;
       serviceOrigin?: AssistedChatQuoteBreakdown['serviceOrigin'];
     } | null;
   };
@@ -141,6 +153,12 @@ export interface QuickBookPatchResponse {
       subtotal: number;
       vatAmount: number;
       total: number;
+      distanceMiles?: number | null;
+      fittingPrice?: number | null;
+      tyrePrice?: number | null;
+      totalPrice?: number | null;
+      adminAdjustmentAmount?: number | null;
+      adminAdjustmentReason?: string | null;
       serviceOrigin?: AssistedChatQuoteBreakdown['serviceOrigin'];
     } | null;
   };
@@ -170,6 +188,12 @@ export interface QuickBookFinalizeResponse {
     vatAmount: number;
     total: number;
     lineItems: AssistedChatQuoteLine[];
+    distanceMiles?: number | null;
+    fittingPrice?: number | null;
+    tyrePrice?: number | null;
+    totalPrice?: number | null;
+    adminAdjustmentAmount?: number | null;
+    adminAdjustmentReason?: string | null;
   };
 }
 

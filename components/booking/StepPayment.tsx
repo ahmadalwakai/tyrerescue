@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 import {
   Box,
   VStack,
@@ -16,12 +16,12 @@ import {
   useElements,
 } from '@stripe/react-stripe-js';
 import { loadStripe, type StripeElementsOptions } from '@stripe/stripe-js';
-import { formatPrice, PricingBreakdown, getDisplayBreakdown } from '@/lib/pricing-engine';
+import { formatPrice, PricingBreakdown } from '@/lib/pricing-engine';
+import { FITTING_AT_LOCATION_LABEL } from '@/lib/fitting-location-pricing';
 import { trackConversion } from '@/lib/analytics/gtag';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import type { SelectedTyre } from './types';
-import { CartSummary } from './CartSummary';
 
 // Load Stripe outside of component to avoid recreating on every render
 const stripePromise = loadStripe(
@@ -42,17 +42,16 @@ export interface StepPaymentProps {
  * Inner component that has access to Stripe hooks
  */
 function CheckoutForm({
-  bookingId,
   refNumber,
   breakdown,
-  selectedTyres,
   onSuccess,
   onError,
-}: Omit<StepPaymentProps, 'clientSecret'>) {
+}: Omit<StepPaymentProps, 'clientSecret' | 'bookingId' | 'selectedTyres'>) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const isFittingAtLocationQuote = typeof breakdown.fittingPrice === 'number';
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -109,24 +108,9 @@ function CheckoutForm({
     }
   };
 
-  // Get display breakdown with rural surcharge hidden and redistributed
-  const displayBreakdown = useMemo(() => getDisplayBreakdown(breakdown), [breakdown]);
-
-  // Filter items to display
-  const mainItems = useMemo(() => displayBreakdown.lineItems.filter(
-    item => item.type === 'tyre' || item.type === 'service' || item.type === 'callout'
-  ), [displayBreakdown]);
-  const surchargeItems = useMemo(() => displayBreakdown.lineItems.filter(item => item.type === 'surcharge'), [displayBreakdown]);
-  const discountItems = useMemo(() => displayBreakdown.lineItems.filter(item => item.type === 'discount'), [displayBreakdown]);
-
   return (
     <form onSubmit={handleSubmit}>
       <VStack gap={6} align="stretch">
-        {/* Compact cart summary */}
-        {selectedTyres && selectedTyres.length > 0 && (
-          <CartSummary cart={selectedTyres} compact />
-        )}
-
         {/* Order Summary */}
         <Box style={anim.slideInLeft('0.6s', '0.1s')}>
           <Text fontWeight="600" fontSize="lg" mb={4}>
@@ -139,88 +123,14 @@ function CheckoutForm({
             borderWidth="1px"
             borderColor={c.border}
           >
-            <VStack gap={3} align="stretch">
-              {/* Main line items */}
-              {mainItems.map((item, index) => {
-                // Customer-facing labels: keep callout label intact (carries
-                // distance + long-distance fee disclosure when applicable);
-                // normalise tyre/service labels for clarity.
-                let displayLabel = item.label;
-                if (item.type === 'tyre') {
-                  displayLabel = item.quantity && item.quantity > 1 ? 'Tyres' : 'Tyre';
-                } else if (item.type === 'service' && /fitting fee/i.test(item.label)) {
-                  displayLabel = 'Fitting';
-                }
-                return (
-                  <HStack key={index} justify="space-between">
-                    <Box>
-                      <Text color={c.muted}>{displayLabel}</Text>
-                      {item.quantity && item.quantity > 1 && item.unitPrice && (
-                        <Text fontSize="xs" color={c.muted}>
-                          {formatPrice(item.unitPrice)} x {item.quantity}
-                        </Text>
-                      )}
-                    </Box>
-                    <Text color={c.text}>{formatPrice(item.amount)}</Text>
-                  </HStack>
-                );
-              })}
-
-              {/* Surcharges */}
-              {surchargeItems.map((item, index) => (
-                <HStack key={`surcharge-${index}`} justify="space-between">
-                  <Text color={c.muted}>{item.label}</Text>
-                  <Text color={c.text}>{formatPrice(item.amount)}</Text>
-                </HStack>
-              ))}
-
-              {/* Discounts */}
-              {discountItems.map((item, index) => (
-                <HStack key={`discount-${index}`} justify="space-between">
-                  <Text color="green.400">{item.label}</Text>
-                  <Text color="green.400">
-                    -{formatPrice(Math.abs(item.amount))}
-                  </Text>
-                </HStack>
-              ))}
-
-              <Box borderTopWidth="1px" borderColor={c.border} pt={3}>
-                <HStack justify="space-between">
-                  <Text color={c.muted}>Subtotal</Text>
-                  <Text color={c.text}>{formatPrice(breakdown.subtotal)}</Text>
-                </HStack>
-              </Box>
-
-              {breakdown.surgeMultiplier !== 1 && (
-                <HStack justify="space-between">
-                  <Text color={c.muted} fontSize="sm">
-                    Demand adjustment
-                  </Text>
-                  <Text fontSize="sm" color={c.text}>
-                    {breakdown.surgeMultiplier > 1 ? '+' : ''}
-                    {((breakdown.surgeMultiplier - 1) * 100).toFixed(0)}%
-                  </Text>
-                </HStack>
-              )}
-
-              {breakdown.vatAmount > 0 && (
-                <HStack justify="space-between">
-                  <Text color={c.muted}>VAT (20%)</Text>
-                  <Text color={c.text}>{formatPrice(breakdown.vatAmount)}</Text>
-                </HStack>
-              )}
-
-              <Box borderTopWidth="2px" borderColor={c.border} pt={3}>
-                <HStack justify="space-between">
-                  <Text fontWeight="700" fontSize="lg" color={c.text}>
-                    Total
-                  </Text>
-                  <Text fontWeight="700" fontSize="lg" color={c.accent}>
-                    {formatPrice(breakdown.total)}
-                  </Text>
-                </HStack>
-              </Box>
-            </VStack>
+            <HStack justify="space-between">
+              <Text fontWeight="700" fontSize="lg" color={c.text}>
+                {isFittingAtLocationQuote ? FITTING_AT_LOCATION_LABEL : 'Total'}
+              </Text>
+              <Text fontWeight="700" fontSize="xl" color={c.accent}>
+                {formatPrice(breakdown.total)}
+              </Text>
+            </HStack>
           </Box>
         </Box>
 
@@ -303,15 +213,11 @@ function CheckoutForm({
  */
 export function StepPayment({
   clientSecret,
-  bookingId,
   refNumber,
   breakdown,
-  selectedTyres,
   onSuccess,
   onError,
 }: StepPaymentProps) {
-  const [ready, setReady] = useState(false);
-
   const options: StripeElementsOptions = {
     clientSecret,
     appearance: {
@@ -328,13 +234,7 @@ export function StepPayment({
     },
   };
 
-  useEffect(() => {
-    if (clientSecret) {
-      setReady(true);
-    }
-  }, [clientSecret]);
-
-  if (!ready) {
+  if (!clientSecret) {
     return (
       <Box py={12} textAlign="center">
         <Spinner size="lg" />
@@ -348,10 +248,8 @@ export function StepPayment({
   return (
     <Elements stripe={stripePromise} options={options}>
       <CheckoutForm
-        bookingId={bookingId}
         refNumber={refNumber}
         breakdown={breakdown}
-        selectedTyres={selectedTyres}
         onSuccess={onSuccess}
         onError={onError}
       />

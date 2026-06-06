@@ -10,6 +10,7 @@ import type {
 
 const PLACEHOLDER_NAME = 'Walk-in customer';
 const PLACEHOLDER_PHONE = '0000000000';
+const LOCKING_NUT_REASON = 'Locking wheel nut removal';
 const QUOTE_STAGE_LABELS = ['Checking stock', 'Calculating price', 'Saving quote'] as const;
 const QUOTE_STAGE_MS = 450;
 
@@ -59,6 +60,12 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
         lineItems: breakdown.lineItems,
         serviceOrigin: breakdown.serviceOrigin ?? null,
         distanceKm: distanceKm ? Number(distanceKm) : null,
+        distanceMiles: breakdown.distanceMiles ?? null,
+        fittingPrice: breakdown.fittingPrice ?? null,
+        tyrePrice: breakdown.tyrePrice ?? null,
+        totalPrice: breakdown.totalPrice ?? null,
+        adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
+        adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
       };
 
       // Note: `manualPriceGbp` is deliberately preserved across re-pricing.
@@ -108,6 +115,21 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
       return;
     }
 
+    const lockingNutCharge =
+      draft.lockingNut.answer === 'no' && draft.lockingNut.chargeGbp != null
+        ? draft.lockingNut.chargeGbp
+        : 0;
+    const adjustmentPayload =
+      lockingNutCharge > 0
+        ? {
+            adminAdjustmentAmount: lockingNutCharge,
+            adminAdjustmentReason: LOCKING_NUT_REASON,
+          }
+        : {
+            adminAdjustmentAmount: 0,
+            adminAdjustmentReason: null,
+          };
+
     inflight.current = true;
     setLoading(true);
     setStageIdx(0);
@@ -126,6 +148,8 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
             serviceType: 'fit',
             tyreSize: normalizedTyreSize,
             tyreCount: draft.tyre.quantity,
+            ...adjustmentPayload,
+            pricingContext: 'assisted_chat',
             notes: draft.note || undefined,
           });
           return {
@@ -145,8 +169,8 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
           tyreSize: normalizedTyreSize,
           tyreCount: draft.tyre.quantity,
           notes: draft.note || null,
-          adminAdjustmentAmount: 0,
-          adminAdjustmentReason: null,
+          ...adjustmentPayload,
+          pricingContext: 'assisted_chat',
         });
         return {
           quickBookingId: draft.quickBookingId,

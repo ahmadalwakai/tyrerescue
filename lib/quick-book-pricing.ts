@@ -4,11 +4,14 @@ import { bankHolidays, pricingRules, tyreProducts } from '@/lib/db/schema';
 import {
   calculatePricing,
   parsePricingRules,
+  type PricingContext,
   type PricingBreakdown,
-  type PricingLineItem,
   type TyreSelection,
 } from '@/lib/pricing-engine';
 import { normalizeTyreSize } from '@/lib/inventory/tyre-size';
+import type { WeatherPricingContext } from '@/lib/weather';
+import { calculateWeatherSurcharge } from '@/lib/pricing/weather-modifier';
+import { calculateTrafficSurcharge } from '@/lib/pricing/traffic-modifier';
 
 export type QuickBookServiceType = 'fit' | 'repair' | 'assess';
 
@@ -29,6 +32,10 @@ export interface QuickBookPricingInput {
   selectedTyreSnapshot?: QuickBookTyreSnapshot | null;
   resolveTyreFromSize?: boolean;
   requireTyreForFit?: boolean;
+  fittingLocation?: 'shop' | 'mobile';
+  pricingContext?: PricingContext;
+  durationMinutes?: number | null;
+  weatherContext?: WeatherPricingContext | null;
   adminAdjustmentAmount?: number;
   adminAdjustmentReason?: string | null;
 }
@@ -138,35 +145,21 @@ function applyAdminAdjustment(
   });
 
   if (normalizedAdjustment !== 0) {
-    // Find the service fee line item to merge adjustment into (Fitting fee or Repair fee)
-    // This hides the admin adjustment from customers by rolling it into the service fee
-    const serviceFeeIndex = breakdown.lineItems.findIndex(
-      (line) => line.label === 'Fitting fee' || line.label === 'Repair fee'
-    );
+    const adjustmentReason = _adjustmentReason?.trim();
+    const adjustmentLine = {
+      label: adjustmentReason ? `Admin adjustment - ${adjustmentReason}` : 'Admin adjustment',
+      amount: normalizedAdjustment,
+      type: normalizedAdjustment >= 0 ? 'surcharge' as const : 'discount' as const,
+    };
+    const subtotalIndex = breakdown.lineItems.findIndex((line) => line.type === 'subtotal');
+    const insertIndex = subtotalIndex >= 0 ? subtotalIndex : breakdown.lineItems.length;
+    breakdown.lineItems.splice(insertIndex, 0, adjustmentLine);
 
-    if (serviceFeeIndex >= 0) {
-      // Merge admin adjustment into the existing service fee
-      const serviceFee = breakdown.lineItems[serviceFeeIndex];
-      serviceFee.amount = Math.round((serviceFee.amount + normalizedAdjustment) * 100) / 100;
-      
-      // Update unitPrice if it exists (for proper display)
-      if (serviceFee.unitPrice !== undefined && serviceFee.quantity) {
-        serviceFee.unitPrice = Math.round((serviceFee.amount / serviceFee.quantity) * 100) / 100;
-      }
-    } else {
-      // Fallback: if no service fee found, add adjustment to first 'service' type line or as hidden surcharge
-      const serviceIndex = breakdown.lineItems.findIndex((line) => line.type === 'service');
-      if (serviceIndex >= 0) {
-        breakdown.lineItems[serviceIndex].amount = Math.round(
-          (breakdown.lineItems[serviceIndex].amount + normalizedAdjustment) * 100
-        ) / 100;
-      }
-      // If no service line at all, adjustment still affects totals below
-    }
-
-    // Update totals
     breakdown.subtotal = Math.round((breakdown.subtotal + normalizedAdjustment) * 100) / 100;
     breakdown.total = Math.round((breakdown.total + normalizedAdjustment) * 100) / 100;
+    breakdown.totalPrice = breakdown.total;
+    breakdown.adminAdjustmentAmount = normalizedAdjustment;
+    breakdown.adminAdjustmentReason = adjustmentReason || null;
 
     if (normalizedAdjustment >= 0) {
       breakdown.totalSurcharges = Math.round((breakdown.totalSurcharges + normalizedAdjustment) * 100) / 100;
@@ -184,10 +177,26 @@ function applyAdminAdjustment(
   return breakdown;
 }
 
+function calculateQuickBookWeatherModifier(weatherContext: WeatherPricingContext | null | undefined) {
+  if (!weatherContext) {
+    return calculateWeatherSurcharge({});
+  }
+
+  return calculateWeatherSurcharge({
+    condition: weatherContext.conditionLabel,
+    severity: weatherContext.weatherReason,
+    precipitationMm: weatherContext.precipitationIntensity,
+    windMph: weatherContext.windSpeed * 2.23694,
+    temperatureC: weatherContext.temperature,
+  });
+}
+
 export async function calculateQuickBookPricing(
   input: QuickBookPricingInput
 ): Promise<QuickBookPricingResult> {
   const bookingDate = input.bookingDate ?? new Date();
+  const pricingContext = input.pricingContext ?? 'admin_quick_book';
+  const fittingLocation = input.fittingLocation ?? 'mobile';
   const normalizedTyreSize = input.tyreSize?.trim() ? normalizeTyreSize(input.tyreSize) : null;
   const resolveTyreFromSize = input.resolveTyreFromSize !== false;
   const requireTyreForFit = input.requireTyreForFit ?? false;
@@ -232,21 +241,54 @@ export async function calculateQuickBookPricing(
   ]);
 
   const rules = parsePricingRules(rulesRows.map((row) => ({ key: row.key, value: row.value })));
+  const weatherModifier = calculateQuickBookWeatherModifier(input.weatherContext);
+  const trafficModifier = calculateTrafficSurcharge({
+    distanceMiles: input.distanceMiles,
+    durationMinutes: input.durationMinutes ?? null,
+  });
+  const emergencySurchargeRulePresent = rulesRows.some((row) => row.key === 'emergency_surcharge');
   const breakdown = calculatePricing(
     {
       tyreSelections,
       distanceMiles: input.distanceMiles,
-      bookingType: 'emergency',
+      bookingType: pricingContext === 'emergency_mobile_fitting' ? 'emergency' : 'scheduled',
+      pricingContext,
       bookingDate,
       isBankHoliday: holidayRows.length > 0,
       serviceType: input.serviceType,
       tyreQuantity: input.tyreCount,
+      fittingLocation,
+      emergencySurchargeRulePresent,
+      weatherSurcharge: weatherModifier.surcharge,
+      weatherSurchargeCode: weatherModifier.code,
+      weatherManualQuoteRequired: weatherModifier.manualQuoteRequired,
+      trafficSurcharge: trafficModifier.surcharge,
+      trafficSurchargeCode: trafficModifier.code,
+      trafficDelayMinutes: trafficModifier.delayMinutes,
     },
     rules,
     true,
   );
 
   if (!breakdown.isValid) {
+    if (breakdown.error === 'WEATHER_MANUAL_QUOTE_REQUIRED') {
+      throw new QuickBookPricingError(
+        'Current weather conditions need a manual quote.',
+        422,
+      );
+    }
+    if (breakdown.error === 'FITTING_LOCATION_MANUAL_QUOTE_REQUIRED') {
+      throw new QuickBookPricingError(
+        'This fitting location is over 100 miles away and needs a manual quote.',
+        422,
+      );
+    }
+    if (breakdown.error === 'FITTING_LOCATION_INVALID_DISTANCE') {
+      throw new QuickBookPricingError(
+        'Unable to calculate fitting-at-location price because the service distance is invalid.',
+        400,
+      );
+    }
     throw new QuickBookPricingError(`Pricing error: ${breakdown.error ?? 'Invalid pricing result'}`, 400);
   }
 

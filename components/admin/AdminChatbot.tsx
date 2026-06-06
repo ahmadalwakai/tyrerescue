@@ -824,7 +824,9 @@ export function AdminChatbot() {
                               ))}
                               <Box borderTop={`1px solid ${c.border}`} mt={1} pt={1}>
                                 <Flex justify="space-between" fontSize="10px" color={c.muted}><Text>Subtotal</Text><Text>£{inv.subtotal.toFixed(2)}</Text></Flex>
-                                <Flex justify="space-between" fontSize="10px" color={c.muted}><Text>VAT ({inv.vatRate}%)</Text><Text>£{inv.vatAmount.toFixed(2)}</Text></Flex>
+                                {inv.vatAmount > 0 ? (
+                                  <Flex justify="space-between" fontSize="10px" color={c.muted}><Text>VAT ({inv.vatRate}%)</Text><Text>£{inv.vatAmount.toFixed(2)}</Text></Flex>
+                                ) : null}
                                 <Flex justify="space-between" fontSize="11px" fontWeight="700" color={c.text} mt={0.5}><Text>Total</Text><Text>£{inv.totalAmount.toFixed(2)}</Text></Flex>
                               </Box>
                               {inv.dueDate && <Text fontSize="10px" color={c.muted} mt={1}>Due: {inv.dueDate}</Text>}

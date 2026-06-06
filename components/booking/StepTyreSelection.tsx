@@ -15,13 +15,10 @@ import {
   SelectedTyre,
   PricingBreakdown,
   addToCart,
-  removeFromCart,
   updateCartQuantity,
-  cartTotal,
   cartItemCount,
 } from './types';
 import { CartSummary } from './CartSummary';
-import { formatPrice } from '@/lib/pricing-engine';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { trackCallClick } from '@/lib/analytics/gtag';
 import { anim } from '@/lib/animations';
@@ -188,6 +185,7 @@ export function StepTyreSelection({
           addressLine: state.address,
           bookingType: state.bookingType,
           serviceType: state.conditionAssessment === 'repair' ? 'repair' : 'fit',
+          fittingLocation: state.fittingLocation ?? undefined,
           tyreSelections: cart.map((t) => ({
             tyreId: t.tyreId,
             quantity: t.quantity,
@@ -319,14 +317,6 @@ export function StepTyreSelection({
                       </Box>
 
                       <VStack align="end" gap={2} minW="120px">
-                        {tyre.priceNew ? (
-                          <Text fontSize="xl" fontWeight="700" fontFamily="var(--font-body)" color={c.accent}>
-                            {formatPrice(tyre.priceNew)}
-                          </Text>
-                        ) : (
-                          <Text fontSize="sm" color={c.muted}>Price N/A</Text>
-                        )}
-
                         {tyre.isOrderOnly ? (
                           <Badge colorPalette="orange" size="sm">
                             Special order {'\u2013'} 2{'\u2013'}3 working days
@@ -474,9 +464,6 @@ export function StepTyreSelection({
             <Box>
               <Text fontSize="sm" color={c.muted}>
                 {totalItems} tyre{totalItems !== 1 ? 's' : ''}
-              </Text>
-              <Text fontWeight="700" color={c.accent}>
-                {formatPrice(cartTotal(cart))}
               </Text>
             </Box>
             <Button

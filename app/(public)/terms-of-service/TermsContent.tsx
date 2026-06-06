@@ -47,7 +47,7 @@ export function TermsContent() {
               Booking and Payment
             </Heading>
             <Text fontSize="14px" color={colors.textSecondary} lineHeight="1.8" mb={6}>
-              All bookings are confirmed upon successful payment. Prices include VAT unless stated otherwise. Payment is processed securely through Stripe at the time of booking.
+              All bookings are confirmed upon successful payment. Prices are shown in GBP and VAT is not added separately. Payment is processed securely through Stripe at the time of booking.
             </Text>
           </Animated>
           <Animated animation={anim.fadeUp('0.5s')}>

@@ -49,6 +49,7 @@ export async function createPaymentIntent(
   return {
     clientSecret: paymentIntent.client_secret,
     paymentIntentId: paymentIntent.id,
+    amountInPence,
   };
 }
 
@@ -134,6 +135,7 @@ export async function createCheckoutSession(
     sessionId: session.id,
     checkoutUrl: session.url,
     paymentIntentId: (session.payment_intent as string) || null,
+    amountInPence,
   };
 }
 

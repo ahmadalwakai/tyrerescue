@@ -1,14 +1,12 @@
 'use client';
 
-import { Box, VStack, HStack, Text, Button } from '@chakra-ui/react';
+import { Box, VStack, HStack, Text } from '@chakra-ui/react';
 import {
   SelectedTyre,
   removeFromCart,
   updateCartQuantity,
-  cartTotal,
   cartItemCount,
 } from './types';
-import { formatPrice } from '@/lib/pricing-engine';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
@@ -20,7 +18,6 @@ interface CartSummaryProps {
 
 export function CartSummary({ cart, onChange, compact = false }: CartSummaryProps) {
   const editable = !!onChange;
-  const total = cartTotal(cart);
   const count = cartItemCount(cart);
 
   if (cart.length === 0) {
@@ -45,17 +42,13 @@ export function CartSummary({ cart, onChange, compact = false }: CartSummaryProp
           <Text fontSize="sm" color={c.muted}>
             {count} tyre{count !== 1 ? 's' : ''} in cart
           </Text>
-          <Text fontWeight="600" color={c.accent}>
-            {formatPrice(total)}
-          </Text>
         </HStack>
         <VStack align="stretch" gap={1} mt={2}>
           {cart.map((item) => (
-            <HStack key={item.tyreId} justify="space-between" fontSize="xs" color={c.muted}>
+            <HStack key={item.tyreId} fontSize="xs" color={c.muted}>
               <Text truncate maxW="200px">
                 {item.quantity}x {item.brand} {item.pattern}
               </Text>
-              <Text>{formatPrice(item.unitPrice * item.quantity)}</Text>
             </HStack>
           ))}
         </VStack>
@@ -155,9 +148,6 @@ export function CartSummary({ cart, onChange, compact = false }: CartSummaryProp
                     x{item.quantity}
                   </Text>
                 )}
-                <Text fontWeight="600" color={c.accent} minW="70px" textAlign="right">
-                  {formatPrice(item.unitPrice * item.quantity)}
-                </Text>
                 {editable && (
                   <Box
                     as="button"
@@ -174,17 +164,6 @@ export function CartSummary({ cart, onChange, compact = false }: CartSummaryProp
           </Box>
         ))}
       </VStack>
-
-      <Box p={4} bg={c.surface} borderTopWidth="1px" borderColor={c.border}>
-        <HStack justify="space-between">
-          <Text fontWeight="600" color={c.text}>
-            Tyre total
-          </Text>
-          <Text fontWeight="700" fontSize="lg" color={c.accent}>
-            {formatPrice(total)}
-          </Text>
-        </HStack>
-      </Box>
     </Box>
   );
 }

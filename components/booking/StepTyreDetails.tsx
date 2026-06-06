@@ -37,7 +37,7 @@ export function StepTyreDetails({
 }: StepTyreDetailsProps) {
   const [vehicleReg, setVehicleReg] = useState(state.vehicleReg || '');
   const [vehicleMake, setVehicleMake] = useState(state.vehicleMake || '');
-  const [vehicleModel, setVehicleModel] = useState(state.vehicleModel || '');
+  const [vehicleModel] = useState(state.vehicleModel || '');
   const [vehicleColour, setVehicleColour] = useState('');
   const [vehicleYear, setVehicleYear] = useState('');
   const [vehicleFuel, setVehicleFuel] = useState('');
@@ -198,6 +198,13 @@ export function StepTyreDetails({
   const handleContinue = () => {
     if (!canContinue) return;
 
+    const tyreDetailsChanged =
+      state.tyreSize.width !== width ||
+      state.tyreSize.aspect !== aspect ||
+      state.tyreSize.rim !== rim ||
+      state.conditionAssessment !== condition;
+    const shouldClearTyres = condition === 'repair' || tyreDetailsChanged;
+
     updateState({
       vehicleReg,
       vehicleMake,
@@ -208,6 +215,14 @@ export function StepTyreDetails({
       lockingNutStatus: lockingNut,
       serviceType: condition === 'repair' ? 'repair' : condition === 'replacement' ? 'fit' : 'assess',
       quantity: condition === 'repair' ? repairQty : 1,
+      selectedTyres: shouldClearTyres ? [] : state.selectedTyres,
+      fulfillmentOption: shouldClearTyres ? null : state.fulfillmentOption,
+      quoteId: null,
+      breakdown: null,
+      quoteExpiresAt: null,
+      bookingId: null,
+      refNumber: null,
+      stripeClientSecret: null,
     });
     goToNext();
   };

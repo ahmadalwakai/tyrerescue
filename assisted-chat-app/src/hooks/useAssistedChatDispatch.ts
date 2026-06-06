@@ -11,6 +11,10 @@ import type {
 const LOCKING_NUT_REASON = 'Locking wheel nut removal';
 const MANUAL_PRICE_REASON = 'Manual admin price override';
 
+function finiteAmount(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
 export interface UseAssistedChatDispatchArgs {
   draft: AssistedChatDraft;
   update: (patch: Partial<AssistedChatDraft>) => void;
@@ -62,13 +66,20 @@ export function useAssistedChatDispatch({
         // Build the admin adjustment so the backend stores the price the
         // operator actually decided. Manual override wins over locking nut
         // because the operator's typed value is already the final charge.
-        const engineBaseTotal = draft.quote.total;
+        const existingAdjustmentAmount = finiteAmount(draft.quote.adminAdjustmentAmount);
+        const backendBaseTotal = Math.round((draft.quote.total - existingAdjustmentAmount) * 100) / 100;
         let adjustmentAmount = 0;
         let adjustmentReason: string | null = null;
         if (draft.manualPriceGbp != null && Number.isFinite(draft.manualPriceGbp)) {
-          adjustmentAmount = Math.round((draft.manualPriceGbp - engineBaseTotal) * 100) / 100;
+          adjustmentAmount = Math.round((draft.manualPriceGbp - backendBaseTotal) * 100) / 100;
           adjustmentReason = MANUAL_PRICE_REASON;
-        } else if (lockingNutCharge > 0) {
+        } else if (
+          lockingNutCharge > 0 &&
+          (
+            draft.quote.adminAdjustmentReason !== LOCKING_NUT_REASON ||
+            Math.round(existingAdjustmentAmount * 100) !== Math.round(lockingNutCharge * 100)
+          )
+        ) {
           adjustmentAmount = lockingNutCharge;
           adjustmentReason = LOCKING_NUT_REASON;
         }
@@ -76,6 +87,7 @@ export function useAssistedChatDispatch({
           await api.patch(`/api/admin/quick-book/${draft.quickBookingId}`, {
             adminAdjustmentAmount: adjustmentAmount,
             adminAdjustmentReason: adjustmentReason,
+            pricingContext: 'assisted_chat',
           });
         }
 
@@ -128,20 +140,20 @@ export function useAssistedChatDispatch({
                 total: response.breakdown.total,
                 lineItems: response.breakdown.lineItems,
                 distanceKm: draft.quote.distanceKm,
+                distanceMiles: response.breakdown.distanceMiles ?? draft.quote.distanceMiles ?? null,
+                fittingPrice: response.breakdown.fittingPrice ?? draft.quote.fittingPrice ?? null,
+                tyrePrice: response.breakdown.tyrePrice ?? draft.quote.tyrePrice ?? null,
+                totalPrice: response.breakdown.totalPrice ?? draft.quote.totalPrice ?? null,
+                adminAdjustmentAmount: response.breakdown.adminAdjustmentAmount ?? draft.quote.adminAdjustmentAmount ?? null,
+                adminAdjustmentReason: response.breakdown.adminAdjustmentReason ?? draft.quote.adminAdjustmentReason ?? null,
               }
             : draft.quote,
         });
+        const backendTotal = response.breakdown?.total ?? draft.quote.total;
         onBookingCreated?.({
           response,
           paymentChoice: choice,
-          // When a manual price override is in effect, the locking-nut amount
-          // has already been absorbed into `manualPriceGbp`, so the backend
-          // breakdown total IS the final figure. Otherwise add the locking
-          // nut on top of the engine total as before.
-          effectiveTotal:
-            draft.manualPriceGbp != null
-              ? (response.breakdown?.total ?? draft.quote.total)
-              : (response.breakdown?.total ?? draft.quote.total) + lockingNutCharge,
+          effectiveTotal: backendTotal,
           paymentLink,
         });
       } catch (err) {
