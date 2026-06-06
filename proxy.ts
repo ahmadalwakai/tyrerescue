@@ -204,6 +204,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/images/') ||
+    pathname === '/sw.js' ||
     pathname.endsWith('.xml') ||
     pathname.endsWith('.txt') ||
     pathname.endsWith('.ico') ||

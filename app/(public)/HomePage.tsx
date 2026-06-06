@@ -28,6 +28,7 @@ import {
 } from '@/lib/pricing';
 import { homepageFAQItems } from '@/lib/content/faq';
 import { TrustpilotReviewCollector } from '@/components/ui/TrustpilotReviewCollector';
+import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt';
 import { trackCallClick } from '@/lib/analytics/gtag';
 import { AIOptimizedSection } from '@/components/seo/AIOptimizedSection';
 import { HONEYPOT_FIELD } from '@/lib/security/honeypot';
@@ -2262,6 +2263,7 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
       </Box>
 
       <Footer />
+      <PwaInstallPrompt />
     </Box>
   );
 }

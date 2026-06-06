@@ -17,8 +17,8 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "TyreRescue Notification";
   const options = {
     body: payload.body || "",
-    icon: payload.icon || "/icon.png",
-    badge: payload.badge || "/icon.png",
+    icon: payload.icon || "/icon-192x192.png",
+    badge: payload.badge || "/icon-192x192.png",
     tag: payload.tag || "default",
     renotify: true,
     data: {
