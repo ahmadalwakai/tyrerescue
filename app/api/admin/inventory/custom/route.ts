@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { tyreCatalogue, tyreProducts, auditLogs } from '@/lib/db/schema';
 import { z } from 'zod';
+import { fireTyrerepairStockChanged } from '@/lib/integrations/tyrerepair-stock-notify';
 
 const customTyreSchema = z.object({
   brand: z.string().min(1).max(100),
@@ -89,6 +90,8 @@ export async function POST(request: Request) {
     beforeJson: null,
     afterJson: product,
   });
+
+  fireTyrerepairStockChanged([product.id]);
 
   return NextResponse.json({ success: true, product }, { status: 201 });
 }

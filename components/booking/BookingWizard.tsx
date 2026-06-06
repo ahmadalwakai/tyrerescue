@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Box,
   Container,
+  Flex,
   VStack,
   HStack,
   Text,
@@ -40,6 +42,14 @@ const DRAFT_VERSION = 1;
 /** Fields that must NEVER be persisted (secrets, transient IDs) */
 const SENSITIVE_KEYS: (keyof WizardState)[] = [
   'stripeClientSecret',
+];
+
+const bookingNavLinks = [
+  { label: 'Home', href: '/' },
+  { label: 'Emergency', href: '/emergency' },
+  { label: 'Track', href: '/tracking' },
+  { label: 'Tyres', href: '/tyres' },
+  { label: 'Contact', href: '/contact' },
 ];
 
 interface DraftEnvelope {
@@ -192,6 +202,225 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
   );
 }
 
+interface BookingTopBarProps {
+  onBack: () => void;
+}
+
+function HeaderIcon({ name }: { name: 'back' | 'menu' | 'close' | 'phone' }) {
+  const paths = {
+    back: <path d="M15 18L9 12L15 6M10 12H21" />,
+    menu: <path d="M4 7H20M4 12H20M4 17H20" />,
+    close: <path d="M6 6L18 18M18 6L6 18" />,
+    phone: <path d="M8.5 5.5L10.5 9.5L8.6 10.8C9.6 12.9 11.1 14.4 13.2 15.4L14.5 13.5L18.5 15.5V18.5C18.5 19.3 17.8 20 17 20C9.8 20 4 14.2 4 7C4 6.2 4.7 5.5 5.5 5.5H8.5Z" />,
+  };
+
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ width: 18, height: 18, flex: '0 0 auto' }}
+    >
+      {paths[name]}
+    </svg>
+  );
+}
+
+function BookingTopBar({ onBack }: BookingTopBarProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [menuOpen]);
+
+  return (
+    <Box
+      as="header"
+      position="sticky"
+      top={0}
+      zIndex={60}
+      bg="rgba(9,9,11,0.94)"
+      backdropFilter="blur(18px)"
+      borderBottomWidth="1px"
+      borderColor={c.border}
+    >
+      <Container maxW="7xl" px={{ base: 3, sm: 4, md: 6 }}>
+        <Flex h="68px" align="center" justify="space-between" gap={3}>
+          <HStack gap={3} minW={0}>
+            <Box
+              as="button"
+              onClick={onBack}
+              aria-label="Go back"
+              color={c.text}
+              bg={c.surface}
+              border={`1px solid ${c.border}`}
+              borderRadius="6px"
+              h="40px"
+              px={3}
+              fontSize="14px"
+              fontWeight="600"
+              cursor="pointer"
+              display="inline-flex"
+              alignItems="center"
+              justifyContent="center"
+              gap={2}
+              _hover={{ borderColor: c.accent, color: c.accent }}
+            >
+              <HeaderIcon name="back" />
+              <Text as="span">Back</Text>
+            </Box>
+            <Link href="/" aria-label="Tyre Rescue home" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              <img
+                src="/logo.svg"
+                alt="Tyre Rescue"
+                style={{ height: 'clamp(28px, 8vw, 42px)', width: 'auto', objectFit: 'contain' }}
+              />
+            </Link>
+          </HStack>
+
+          <HStack as="nav" aria-label="Booking navigation" gap={6} display={{ base: 'none', md: 'flex' }}>
+            {bookingNavLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                style={{
+                  color: link.href === '/book' ? c.accent : c.muted,
+                  fontSize: 13,
+                  textDecoration: 'none',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </HStack>
+
+          <HStack gap={2}>
+            <Box display={{ base: 'none', lg: 'block' }}>
+              <a
+                href="tel:01412660690"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  minHeight: 40,
+                  padding: '0 14px',
+                  borderRadius: 6,
+                  background: c.accent,
+                  color: c.bg,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                <HeaderIcon name="phone" />
+                0141 266 0690
+              </a>
+            </Box>
+            <Box
+              as="button"
+              display={{ base: 'inline-flex', md: 'none' }}
+              alignItems="center"
+              justifyContent="center"
+              gap={2}
+              h="40px"
+              px={3}
+              color={c.text}
+              bg={c.surface}
+              border={`1px solid ${c.border}`}
+              borderRadius="6px"
+              fontSize="13px"
+              fontWeight="700"
+              letterSpacing="0.04em"
+              cursor="pointer"
+              aria-expanded={menuOpen}
+              aria-controls="booking-mobile-menu"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <HeaderIcon name={menuOpen ? 'close' : 'menu'} />
+              {menuOpen ? 'Close' : 'Menu'}
+            </Box>
+          </HStack>
+        </Flex>
+      </Container>
+
+      {menuOpen && (
+        <Box
+          id="booking-mobile-menu"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Booking menu"
+          display={{ base: 'block', md: 'none' }}
+          position="fixed"
+          top="68px"
+          left={0}
+          right={0}
+          minH="calc(100vh - 68px)"
+          borderTopWidth="1px"
+          borderColor={c.border}
+          bg="rgba(9,9,11,0.98)"
+          backdropFilter="blur(18px)"
+        >
+          <Container maxW="7xl" px={{ base: 4, sm: 6 }} py={6}>
+            <VStack align="stretch" gap={1}>
+              {bookingNavLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    color: c.text,
+                    textDecoration: 'none',
+                    padding: '14px 4px',
+                    fontSize: 28,
+                    fontWeight: 500,
+                    letterSpacing: '0.04em',
+                    fontFamily: 'var(--font-display)',
+                  }}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <a
+                href="tel:01412660690"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  minHeight: 48,
+                  marginTop: 18,
+                  borderRadius: 6,
+                  background: c.accent,
+                  color: c.bg,
+                  fontSize: 16,
+                  fontWeight: 800,
+                  textDecoration: 'none',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                <HeaderIcon name="phone" />
+                0141 266 0690
+              </a>
+            </VStack>
+          </Container>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
 // ── Booking Wizard ───────────────────────────────────────
 
 export interface BookingWizardProps {
@@ -292,6 +521,22 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
       goToStep(steps[currentIndex - 1].key);
     }
   }, [state.bookingType, state.serviceType, currentStep, goToStep]);
+
+  const handleTopBarBack = useCallback(() => {
+    const steps = getStepsForBookingType(state.bookingType, state.serviceType);
+    const currentIndex = steps.findIndex(s => s.key === currentStep);
+    if (currentIndex > 0) {
+      goToPrev();
+      return;
+    }
+
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push('/');
+  }, [currentStep, goToPrev, router, state.bookingType, state.serviceType]);
 
   const resetWizard = useCallback(() => {
     setState(initialWizardState);
@@ -417,6 +662,7 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
             updateState={updateState}
             goToNext={goToNext}
             goToPrev={goToPrev}
+            goToStep={goToStep}
           />
         );
 
@@ -449,11 +695,12 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
 
   return (
     <ErrorBoundary>
-      {/* Service type step renders full-viewport, outside the card wrapper */}
-      {currentStep === 'service-type' && renderStep()}
+      <BookingTopBar onBack={handleTopBarBack} />
 
-      {currentStep !== 'service-type' && (
-        <Container maxW="container.md" py={8}>
+      {currentStep === 'service-type' ? (
+        renderStep()
+      ) : (
+        <Container maxW="container.md" py={{ base: 5, md: 8 }}>
           <VStack gap={6} align="stretch">
             {/* Only show step indicator after service type is selected */}
             {state.bookingType && (

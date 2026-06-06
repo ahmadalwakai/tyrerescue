@@ -16,6 +16,7 @@ export type SlotValidationCode =
   | 'SCHEDULED_TIME_REQUIRED'
   | 'SLOT_NOT_FOUND'
   | 'SLOT_INACTIVE'
+  | 'SLOT_EXPIRED'
   | 'SLOT_FULL';
 
 export interface AvailabilitySlotBase {
@@ -31,6 +32,7 @@ export interface AvailabilitySlotWithOccupancy extends AvailabilitySlotBase {
   bookedCount: number;
   spotsLeft: number;
   available: boolean;
+  expired: boolean;
   time: string;
   label: string;
 }
@@ -147,6 +149,14 @@ function bookingFallsInSlot(bookingTime: string, slotStart: string, slotEnd: str
   return bookingMinutes >= slotStartMinutes && bookingMinutes < slotEndMinutes;
 }
 
+export function isAvailabilitySlotExpired(
+  date: string,
+  timeStart: string,
+  now = new Date(),
+): boolean {
+  return londonDateTimeToUtcDate(date, timeStart).getTime() <= now.getTime();
+}
+
 async function getScheduledBookingsForDate(
   date: string,
   excludeBookingId?: string,
@@ -218,12 +228,14 @@ function withOccupancy(
   return slots.map((slot) => {
     const bookedCount = counts.get(slot.id) ?? 0;
     const spotsLeft = Math.max(slot.maxBookings - bookedCount, 0);
+    const expired = isAvailabilitySlotExpired(slot.date, slot.timeStart);
 
     return {
       ...slot,
       bookedCount,
       spotsLeft,
-      available: slot.active && spotsLeft > 0,
+      available: slot.active && !expired && spotsLeft > 0,
+      expired,
       time: slot.timeStart,
       label: buildSlotLabel(slot.timeStart, slot.timeEnd),
     };
@@ -361,6 +373,14 @@ export async function validateScheduledSlotForBooking(
       ok: false,
       code: 'SLOT_INACTIVE',
       message: 'Selected scheduled time is no longer active.',
+    };
+  }
+
+  if (matchingSlot.expired) {
+    return {
+      ok: false,
+      code: 'SLOT_EXPIRED',
+      message: 'Selected scheduled time has expired.',
     };
   }
 

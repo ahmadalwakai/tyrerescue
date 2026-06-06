@@ -91,9 +91,6 @@ export function useLocationBroadcast(
         if (err instanceof ApiError && err.status === 429) {
           const seconds = err.retryAfterSeconds ?? DEFAULT_BACKOFF_MS / 1000;
           backoffUntilRef.current = Date.now() + seconds * 1000;
-          if (__DEV__) {
-            console.warn(`[useLocation] 429 — backing off for ${seconds}s`);
-          }
           return;
         }
         // Other errors silently ignored — network/permission flakes

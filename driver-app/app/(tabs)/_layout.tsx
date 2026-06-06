@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontSize } from '@/constants/theme';
 import { useI18n } from '@/i18n';
@@ -9,24 +10,26 @@ export default function TabLayout() {
   const bottomPad = Math.max(insets.bottom, 8);
   const { t } = useI18n();
 
+  const tabBarStyle = {
+    backgroundColor: colors.surface,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+    borderTopWidth: 1,
+    paddingBottom: bottomPad,
+    height: 56 + bottomPad,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  } as const;
+
   return (
     <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.text,
         headerTitleStyle: { fontFamily: 'Inter_700Bold', fontSize: fontSize.lg },
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: 'rgba(255,255,255,0.06)',
-          borderTopWidth: 1,
-          paddingBottom: bottomPad,
-          height: 56 + bottomPad,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.3,
-          shadowRadius: 4,
-        },
+        tabBarStyle,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: -2 },
@@ -43,12 +46,20 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="jobs"
-        options={{
-          title: t('tabs.jobs'),
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="briefcase-outline" size={size} color={color} />
-          ),
+        options={({ route }) => {
+          // The full-screen in-app navigation cockpit lives at
+          // jobs/[ref]/route. Hide the bottom tab bar there ONLY, so the map is
+          // truly full-screen; every other jobs sub-screen keeps the tabs.
+          const focused = getFocusedRouteNameFromRoute(route);
+          const onRoute = focused === '[ref]/route';
+          return {
+            title: t('tabs.jobs'),
+            headerShown: false,
+            tabBarStyle: onRoute ? { display: 'none' as const } : tabBarStyle,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="briefcase-outline" size={size} color={color} />
+            ),
+          };
         }}
       />
       <Tabs.Screen

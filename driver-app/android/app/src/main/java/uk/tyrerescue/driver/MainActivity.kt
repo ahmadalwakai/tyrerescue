@@ -23,6 +23,18 @@ class MainActivity : ReactActivity() {
     super.onCreate(null)
   }
 
+  override fun onResume() {
+    super.onResume()
+    // Whenever the app is in the foreground, silence + dismiss any live native
+    // job alert. The alert Activity runs in its own (singleInstance) task and
+    // would otherwise keep its looping sound playing in the background after
+    // the driver opens the app from the notification.
+    try {
+      DriverJobAlertActivity.dismissActiveAlert(this)
+    } catch (_: Exception) {
+    }
+  }
+
   /**
    * Returns the name of the main component registered from JavaScript. This is used to schedule
    * rendering of the component.

@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       if (booking.status === 'awaiting_payment') {
         await db
           .update(bookings)
-          .set({ status: 'paid', updatedAt: new Date() })
+          .set({ status: 'paid', paymentType: 'full', updatedAt: new Date() })
           .where(eq(bookings.id, booking.id));
       }
       return NextResponse.json({ status: 'paid' });
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     // 5. Update booking status
     await db
       .update(bookings)
-      .set({ status: 'paid', updatedAt: new Date() })
+      .set({ status: 'paid', paymentType: 'full', updatedAt: new Date() })
       .where(eq(bookings.id, booking.id));
 
     // 6. Record status history

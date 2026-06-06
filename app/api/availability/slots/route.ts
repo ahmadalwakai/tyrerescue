@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getSlotsWithOccupancyForDate } from '@/lib/availability';
+import { syncAvailabilitySlots } from '@/lib/availability-sync';
+
+export const dynamic = 'force-dynamic';
 
 interface TimeSlot {
   slotId: string;
@@ -8,6 +12,9 @@ interface TimeSlot {
   label: string;
   timeStart: string;
   timeEnd: string;
+  active: boolean;
+  maxBookings: number;
+  bookedCount: number;
   available: boolean;
   spotsLeft: number;
 }
@@ -30,39 +37,63 @@ function addDays(dateStr: string, days: number): string {
   return base.toISOString().slice(0, 10);
 }
 
+function isDefaultBusinessDate(dateStr: string): boolean {
+  return Boolean(dateStr);
+}
+
+const querySchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const date = searchParams.get('date');
+    const rawDate = searchParams.get('date');
 
-    if (!date) {
+    if (!rawDate) {
       return NextResponse.json(
         { error: 'Missing required parameter: date' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Validate date format (YYYY-MM-DD)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const parsed = querySchema.safeParse({ date: rawDate });
+
+    if (!parsed.success) {
       return NextResponse.json(
         { error: 'Invalid date format. Use YYYY-MM-DD' },
         { status: 400 }
       );
     }
 
-    // Validate against London business dates (tomorrow to 14 days).
+    const { date } = parsed.data;
+
+    // Validate against London business dates (today to 14 days).
     const todayLondon = londonDateString();
-    const minDate = addDays(todayLondon, 1);
+    const minDate = todayLondon;
     const maxDate = addDays(todayLondon, 14);
 
     if (date < minDate || date > maxDate) {
       return NextResponse.json(
-        { error: 'Date must be between tomorrow and 14 days from now' },
+        { error: 'Date must be between today and 14 days from now' },
         { status: 400 }
       );
     }
 
-    const slots: TimeSlot[] = (await getSlotsWithOccupancyForDate(date, { activeOnly: true })).map(
+    let slotsForDate = await getSlotsWithOccupancyForDate(date, { activeOnly: false });
+
+    if (slotsForDate.length === 0 && isDefaultBusinessDate(date)) {
+      await syncAvailabilitySlots({
+        daysAhead: 14,
+        slotMinutes: 60,
+        timezone: LONDON_TZ,
+      });
+      slotsForDate = await getSlotsWithOccupancyForDate(date, { activeOnly: false });
+    }
+
+    const slots: TimeSlot[] = slotsForDate
+      .filter((slot) => slot.active && slot.available)
+      .map(
       (slot) => ({
         slotId: slot.id,
         date: slot.date,
@@ -70,6 +101,9 @@ export async function GET(request: NextRequest) {
         label: slot.label,
         timeStart: slot.timeStart,
         timeEnd: slot.timeEnd,
+        active: slot.active,
+        maxBookings: slot.maxBookings,
+        bookedCount: slot.bookedCount,
         available: slot.available,
         spotsLeft: slot.spotsLeft,
       }),

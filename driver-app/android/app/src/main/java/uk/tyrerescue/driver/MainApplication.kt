@@ -1,7 +1,10 @@
 package uk.tyrerescue.driver
 
+import android.app.Activity
 import android.app.Application
 import android.content.res.Configuration
+import android.os.Bundle
+import java.util.concurrent.atomic.AtomicInteger
 
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
@@ -38,6 +41,27 @@ class MainApplication : Application(), ReactApplication {
     loadReactNative(this)
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
 
+    // Track how many activities are currently resumed so native alert code can
+    // tell whether the app is genuinely in the foreground. A direct
+    // startActivity() for the lock-screen alert is blocked by Background
+    // Activity Launch rules when the app is backgrounded, so we only attempt it
+    // while foreground and otherwise rely on the full-screen-intent notification.
+    registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+      override fun onActivityResumed(activity: Activity) {
+        resumedActivities.incrementAndGet()
+      }
+
+      override fun onActivityPaused(activity: Activity) {
+        resumedActivities.updateAndGet { if (it > 0) it - 1 else 0 }
+      }
+
+      override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+      override fun onActivityStarted(activity: Activity) {}
+      override fun onActivityStopped(activity: Activity) {}
+      override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+      override fun onActivityDestroyed(activity: Activity) {}
+    })
+
     // Re-arm the driver alert watcher whenever the process starts and the
     // driver is still logged in. Cheap no-op if unarmed.
     try {
@@ -52,5 +76,12 @@ class MainApplication : Application(), ReactApplication {
   override fun onConfigurationChanged(newConfig: Configuration) {
     super.onConfigurationChanged(newConfig)
     ApplicationLifecycleDispatcher.onConfigurationChanged(this, newConfig)
+  }
+
+  companion object {
+    private val resumedActivities = AtomicInteger(0)
+
+    /** True when at least one activity is resumed (app is in the foreground). */
+    fun isAppForeground(): Boolean = resumedActivities.get() > 0
   }
 }

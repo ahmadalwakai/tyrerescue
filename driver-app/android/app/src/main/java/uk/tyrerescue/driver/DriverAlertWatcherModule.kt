@@ -160,27 +160,6 @@ class DriverAlertWatcherModule(reactContext: ReactApplicationContext) :
     }
   }
 
-  @ReactMethod
-  fun simulateAlert(promise: Promise) {
-    try {
-      val ctx: Context = reactApplicationContext.applicationContext
-      DriverJobAlertNotifier.postAlert(
-        ctx,
-        DriverJobAlertNotifier.JobAlertPayload(
-          ref = "TEST-${System.currentTimeMillis().toString().takeLast(6)}",
-          title = "Test alert",
-          body = "This is a test driver alert",
-          address = "Test address",
-          deepLink = null,
-        ),
-        sourceTag = "manual-test",
-      )
-      promise.resolve(true)
-    } catch (err: Exception) {
-      promise.reject("E_TEST_ALERT", err)
-    }
-  }
-
   companion object {
     const val NAME = "DriverAlertWatcher"
   }

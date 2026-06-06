@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { drivers, users, bookings } from '@/lib/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
-import { shouldDriverAppearOnline, canDriverReceiveNewBooking } from '@/lib/driver-presence';
+import { eq, inArray } from 'drizzle-orm';
+import { canDriverReceiveEmergencyBooking } from '@/lib/driver-presence';
 
 /**
  * GET /api/driver/status/available
@@ -10,11 +10,12 @@ import { shouldDriverAppearOnline, canDriverReceiveNewBooking } from '@/lib/driv
  * Public endpoint to check if any driver is currently available.
  * Used by the booking wizard to show driver availability status.
  *
- * Uses the backend presence evaluator instead of raw isOnline flag.
+ * Uses explicit online/available intent for the public emergency badge.
+ * Stale GPS affects routing/ETA, but should not make the booking page say
+ * "No drivers available" when drivers are online and not already on a job.
  */
 export async function GET() {
   try {
-    // Fetch all drivers that have ever gone online (isOnline=true OR have locationAt)
     const allDrivers = await db
       .select({
         id: drivers.id,
@@ -43,10 +44,10 @@ export async function GET() {
       if (ab.driverId) activeBookingMap.set(ab.driverId, { status: ab.status });
     }
 
-    // Use presence evaluator to determine truly available drivers
+    // Count drivers that are explicitly accepting emergency work.
     const availableDrivers = allDrivers.filter(d => {
       const activeBooking = activeBookingMap.get(d.id) ?? null;
-      return canDriverReceiveNewBooking(
+      return canDriverReceiveEmergencyBooking(
         { isOnline: d.isOnline ?? false, locationAt: d.locationAt, status: d.status },
         activeBooking,
       );

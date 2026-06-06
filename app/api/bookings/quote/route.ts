@@ -91,9 +91,24 @@ interface QuoteResponse {
 }
 
 interface ErrorResponse {
+  ok?: false;
   error: string;
   code: string;
+  message?: string;
   details?: unknown;
+}
+
+const SLOT_UNAVAILABLE_MESSAGE =
+  'This time slot is no longer available. Please choose another time.';
+
+function slotUnavailableResponse() {
+  const body: ErrorResponse = {
+    ok: false,
+    error: SLOT_UNAVAILABLE_MESSAGE,
+    code: 'SLOT_UNAVAILABLE',
+    message: SLOT_UNAVAILABLE_MESSAGE,
+  };
+  return NextResponse.json(body, { status: 409 });
 }
 
 /**
@@ -235,13 +250,7 @@ export async function POST(
 
       const slotValidation = await validateScheduledSlotForBooking(normalizedScheduledAt);
       if (!slotValidation.ok) {
-        return NextResponse.json(
-          {
-            error: slotValidation.message,
-            code: slotValidation.code,
-          },
-          { status: 409 },
-        );
+        return slotUnavailableResponse();
       }
 
       normalizedScheduledAt = londonDateTimeToUtcDate(

@@ -27,6 +27,10 @@
     {
       "path": "/api/cron/upcoming-alerts",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/availability/sync",
+      "schedule": "0 * * * *"
     }
   ]
 }

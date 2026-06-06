@@ -9,8 +9,9 @@ import {
   Alert,
   Linking,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -27,6 +28,7 @@ import { playSound, stopAlertSound } from '@/services/sound';
 import { clearAlertedRef } from '@/services/job-alert';
 import { ACTIVE_BOOKING_REF_KEY } from '@/services/background-location';
 import { useI18n } from '@/i18n';
+import { getDriverPaymentDisplay, paymentToneColors } from '@/lib/payment-status';
 
 const ACTIVE_JOB_STATUSES = new Set([
   'driver_assigned',
@@ -92,6 +94,41 @@ function PaymentCard({
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{t('jobDetail.payment')}</Text>
+      {(() => {
+        const display = getDriverPaymentDisplay(payment);
+        const tone = paymentToneColors(display.tone);
+        return (
+          <View
+            style={[
+              styles.payToneBadge,
+              { backgroundColor: tone.bg, borderColor: tone.border },
+            ]}
+          >
+            <Ionicons
+              name={
+                display.tone === 'paid'
+                  ? 'checkmark-circle'
+                  : display.tone === 'action'
+                    ? 'cash-outline'
+                    : display.tone === 'failed'
+                      ? 'alert-circle'
+                      : 'time-outline'
+              }
+              size={18}
+              color={tone.text}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.payToneLabel, { color: tone.text }]}>
+                {t(display.labelKey)}
+                {display.amountLabel != null ? ` · ${display.amountLabel}` : ''}
+              </Text>
+              <Text style={[styles.payToneDesc, { color: tone.text }]}>
+                {t(display.descriptionKey)}
+              </Text>
+            </View>
+          </View>
+        );
+      })()}
       {payment.totalAmountPence != null && payment.totalAmountPence > 0 && (
         <>
           <Text style={styles.cardMeta}>{t('jobDetail.jobPrice')}</Text>
@@ -207,6 +244,9 @@ export default function JobDetailScreen() {
           setActioning(true);
           try {
             await driverApi.updateJobStatus(ref, nextStatus);
+            if (nextStatus === 'en_route') {
+              await stopAlertSound();
+            }
             if (nextStatus === 'completed') {
               heavyHaptic();
               playSound('job_completed');
@@ -215,7 +255,12 @@ export default function JobDetailScreen() {
             }
             await fetchJob();
           } catch (err) {
-            const msg = err instanceof ApiError ? err.message : t('jobDetail.failedUpdate');
+            const msg =
+              err instanceof ApiError && err.code === 'network'
+                ? t('common.networkError')
+                : err instanceof ApiError
+                  ? err.message
+                  : t('jobDetail.failedUpdate');
             Alert.alert(t('common.error'), msg);
           }
           setActioning(false);
@@ -228,6 +273,8 @@ export default function JobDetailScreen() {
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
   const [sendingQuickMsg, setSendingQuickMsg] = useState<string | null>(null);
   const quickMsgLockRef = useRef(false);
+  // Controls the "confirm tyre size" modal shown before the in-app route opens.
+  const [showTyreConfirm, setShowTyreConfirm] = useState(false);
   // Single-flight guard for opening the in-app route map so a double-tap
   // cannot push the route screen twice onto the navigation stack.
   const navLockRef = useRef(false);
@@ -294,6 +341,32 @@ export default function JobDetailScreen() {
     }, 800);
   };
 
+  // Tyre summary built straight from the real job payload (never fabricated).
+  // Mirrors the "{count} × {size}" format used on the route cockpit.
+  const tyreCount =
+    job?.tyres?.reduce((sum, ty) => sum + (ty.quantity ?? 0), 0) ?? 0;
+  const tyreSizeSummary =
+    job?.tyreSizeDisplay != null && job.tyreSizeDisplay.length > 0
+      ? `${tyreCount > 0 ? tyreCount : 1} × ${job.tyreSizeDisplay}`
+      : null;
+
+  // "Start in-app route" must confirm the correct tyre size first. Viewing job
+  // details is never blocked — only starting the in-app route.
+  const requestStartRoute = () => {
+    if (navLockRef.current) return;
+    if (tyreSizeSummary == null) {
+      errorHaptic();
+      Alert.alert(t('jobDetail.tyreSizeMissingTitle'), t('jobDetail.tyreSizeMissing'));
+      return;
+    }
+    setShowTyreConfirm(true);
+  };
+
+  const confirmStartRoute = () => {
+    setShowTyreConfirm(false);
+    openRoute();
+  };
+
   const openNavigation = () => {
     if (!job?.lat || !job?.lng || extNavLockRef.current) return;
     extNavLockRef.current = true;
@@ -322,7 +395,12 @@ export default function JobDetailScreen() {
             clearAlertedRef(ref);
             router.back();
           } catch (err) {
-            const msg = err instanceof ApiError ? err.message : t('jobDetail.failedReject');
+            const msg =
+              err instanceof ApiError && err.code === 'network'
+                ? t('common.networkError')
+                : err instanceof ApiError
+                  ? err.message
+                  : t('jobDetail.failedReject');
             Alert.alert(t('common.error'), msg);
           }
           setActioning(false);
@@ -332,16 +410,32 @@ export default function JobDetailScreen() {
     ], { onDismiss: () => { actionLockRef.current = false; } });
   };
 
-  if (loading) return <LoadingScreen />;
+  // Header title must always show the real booking ref — never the literal
+  // route-segment name "[ref]". The `ref` param IS the booking ref (URL
+  // segment value), so it is available even before the job payload loads;
+  // once loaded we prefer the canonical `job.refNumber`.
+  const headerTitle = job?.refNumber ?? (typeof ref === 'string' ? ref : '');
+
+  if (loading) {
+    return (
+      <>
+        <Stack.Screen options={{ title: headerTitle }} />
+        <LoadingScreen />
+      </>
+    );
+  }
 
   if (!job) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{t('jobs.jobNotFound')}</Text>
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.linkText}>{t('common.goBack')}</Text>
-        </Pressable>
-      </View>
+      <>
+        <Stack.Screen options={{ title: headerTitle }} />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{t('jobs.jobNotFound')}</Text>
+          <Pressable onPress={() => router.back()}>
+            <Text style={styles.linkText}>{t('common.goBack')}</Text>
+          </Pressable>
+        </View>
+      </>
     );
   }
 
@@ -349,6 +443,8 @@ export default function JobDetailScreen() {
   const action = DRIVER_ACTIONS[job.status];
 
   return (
+    <>
+    <Stack.Screen options={{ title: headerTitle }} />
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -388,10 +484,12 @@ export default function JobDetailScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>{t('jobDetail.customer')}</Text>
         <Text style={styles.cardValue}>{job.customerName}</Text>
-        {job.customerPhone && (
+        {job.customerPhone ? (
           <Pressable onPress={() => Linking.openURL(`tel:${job.customerPhone}`)}>
             <Text style={styles.phoneLink}>{job.customerPhone}</Text>
           </Pressable>
+        ) : (
+          <Text style={styles.phoneEmpty}>No phone number provided</Text>
         )}
       </View>
 
@@ -429,10 +527,10 @@ export default function JobDetailScreen() {
           <View style={styles.locationButtons}>
             <Pressable
               style={styles.navButton}
-              onPress={openRoute}
+              onPress={requestStartRoute}
             >
               <Ionicons name="navigate-outline" size={18} color="#FFFFFF" />
-              <Text style={styles.navButtonText}>Start in-app route</Text>
+              <Text style={styles.navButtonText}>{t('jobDetail.startInAppRoute')}</Text>
             </Pressable>
             <Pressable
               style={[styles.navButton, styles.mapViewButton]}
@@ -604,6 +702,46 @@ export default function JobDetailScreen() {
         </View>
       )}
     </ScrollView>
+
+      {/* Confirm tyre size before starting the in-app route. */}
+      <Modal
+        visible={showTyreConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTyreConfirm(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{t('jobDetail.confirmTyreTitle')}</Text>
+            <Text style={styles.modalMessage}>{t('jobDetail.confirmTyreMessage')}</Text>
+            <View style={styles.modalTyreRow}>
+              <Ionicons name="disc-outline" size={18} color={colors.accent} />
+              <Text style={styles.modalTyreText}>
+                {t('jobDetail.confirmTyreRequired', { summary: tyreSizeSummary ?? '' })}
+              </Text>
+            </View>
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => setShowTyreConfirm(false)}
+              >
+                <Text style={styles.modalButtonSecondaryText}>
+                  {t('jobDetail.confirmTyreGoBack')}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={confirmStartRoute}
+              >
+                <Text style={styles.modalButtonPrimaryText}>
+                  {t('jobDetail.confirmTyreStart')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -615,6 +753,80 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.md,
     paddingBottom: spacing['2xl'],
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  modalTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.lg,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  modalMessage: {
+    fontSize: fontSize.sm,
+    color: colors.muted,
+  },
+  modalTyreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xs,
+  },
+  modalTyreText: {
+    flex: 1,
+    fontSize: fontSize.md,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  modalButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+  },
+  modalButtonSecondary: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalButtonSecondaryText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: fontSize.sm,
+    color: colors.text,
+  },
+  modalButtonPrimary: {
+    backgroundColor: colors.accent,
+  },
+  modalButtonPrimaryText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: fontSize.sm,
+    color: '#0B0F1A',
+    fontWeight: '800',
   },
   headerRow: {
     flexDirection: 'row',
@@ -660,6 +872,32 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.accent,
     marginTop: 4,
+  },
+  phoneEmpty: {
+    fontSize: fontSize.sm,
+    color: colors.muted,
+    marginTop: 4,
+  },
+  payToneBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  payToneLabel: {
+    fontSize: fontSize.base,
+    fontWeight: '800',
+  },
+  payToneDesc: {
+    fontSize: fontSize.xs,
+    fontWeight: '500',
+    opacity: 0.85,
+    marginTop: 1,
   },
   locationButtons: {
     flexDirection: 'row',

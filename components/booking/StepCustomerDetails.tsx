@@ -15,7 +15,7 @@ import {
   Spinner,
 } from '@chakra-ui/react';
 import { useSession } from 'next-auth/react';
-import { WizardState } from './types';
+import { WizardState, WizardStep } from './types';
 import { CartSummary } from './CartSummary';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
@@ -28,6 +28,7 @@ interface StepCustomerDetailsProps {
   updateState: (updates: Partial<WizardState>) => void;
   goToNext: () => void;
   goToPrev: () => void;
+  goToStep?: (step: WizardStep) => void;
 }
 
 export function StepCustomerDetails({
@@ -35,6 +36,7 @@ export function StepCustomerDetails({
   updateState,
   goToNext,
   goToPrev,
+  goToStep,
 }: StepCustomerDetailsProps) {
   const { data: session } = useSession();
   
@@ -121,7 +123,17 @@ export function StepCustomerDetails({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to create booking');
+        if (data?.code === 'SLOT_UNAVAILABLE') {
+          updateState({
+            scheduledDate: null,
+            scheduledTime: null,
+            quoteId: null,
+            breakdown: null,
+            quoteExpiresAt: null,
+          });
+          goToStep?.('schedule');
+        }
+        throw new Error(data.message || data.error || 'Failed to create booking');
       }
 
       // Update state with booking details and Stripe client secret

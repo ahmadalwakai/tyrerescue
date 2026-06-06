@@ -1,0 +1,9 @@
+Vercel CLI 50.17.0
+Retrieving projectÔÇª
+Resolving deployment "tyrerescue-ekpv4q4gh-gorbalstyres-5277s-projects.vercel.app"
+Streaming logs for deployment dpl_FkCVZfHTBFxtdAe6oH9tgU1k6BKt starting from 04:50:34.09
+
+waiting for new logs...
+WARN! Command automatically interrupted after 5 minutes.
+
+Error: An unexpected error occurred in logs: AbortError: The user aborted a request.

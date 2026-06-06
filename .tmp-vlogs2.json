@@ -1,0 +1,4 @@
+Vercel CLI 50.17.0
+Retrieving projectÔÇª
+Fetching logs...
+{"id":"66gnw-1779074744210-17f3206428fa","timestamp":1779074744210,"deploymentId":"dpl_FkCVZfHTBFxtdAe6oH9tgU1k6BKt","projectId":"prj_dEGq9KZNkHKuHHT42atZqeHfiyhI","level":"error","message":"Directions request failed: Unauthorized","source":"serverless","domain":"www.tyrerescue.uk","requestMethod":"POST","requestPath":"/api/admin/quick-book/b2d81dea-c8e6-4f6d-8067-4a9d97cf4dae/finalize","responseStatusCode":200,"environment":"production","branch":"master","cache":"MISS","traceId":""}

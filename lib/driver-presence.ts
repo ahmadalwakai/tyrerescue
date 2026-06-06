@@ -183,6 +183,30 @@ export function canDriverReceiveNewBooking(
 }
 
 /**
+ * Public emergency availability check.
+ *
+ * This answers a different question from precise dispatch routing:
+ * "Are we currently accepting emergency callouts?"
+ *
+ * For that customer-facing badge, explicit driver intent is the source of
+ * truth. Stale/missing GPS should affect ETA/routing confidence, but it
+ * should not make the public booking page claim there are no drivers when
+ * drivers have deliberately marked themselves online and available.
+ */
+export function canDriverReceiveEmergencyBooking(
+  driver: DriverSnapshot,
+  activeBooking: ActiveBookingSnapshot | null = null,
+): boolean {
+  const hasActiveJob =
+    activeBooking !== null &&
+    ACTIVE_BOOKING_STATUSES.includes(activeBooking.status as typeof ACTIVE_BOOKING_STATUSES[number]);
+
+  if (hasActiveJob) return false;
+
+  return driver.isOnline === true && driver.status === 'available';
+}
+
+/**
  * For dispatch/availability queries: should this driver be counted as
  * "available" (i.e. ready for new work)?
  *

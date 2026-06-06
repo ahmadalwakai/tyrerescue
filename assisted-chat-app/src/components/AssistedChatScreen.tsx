@@ -17,6 +17,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAssistedChatDraft } from '@/hooks/useAssistedChatDraft';
 import { useAssistedChatPrice } from '@/hooks/useAssistedChatPrice';
 import { useAssistedChatDispatch } from '@/hooks/useAssistedChatDispatch';
+import { useAdminPaymentLink } from '@/hooks/useAdminPaymentLink';
 import { useAssistedChatLocationShare } from '@/hooks/useAssistedChatLocationShare';
 import { useAssistedChatQuoteActions } from '@/hooks/useAssistedChatQuoteActions';
 import { useTodayBookings, type TodayBookingItem } from '@/hooks/useTodayBookings';
@@ -24,6 +25,7 @@ import { useRecentCustomers } from '@/hooks/useRecentCustomers';
 import { useDuplicateBookingWarning } from '@/hooks/useDuplicateBookingWarning';
 import { useNewCustomerBookingAlert } from '@/hooks/useNewCustomerBookingAlert';
 import { useBookingTracking } from '@/hooks/useBookingTracking';
+import type { ActiveJobItem } from '@/hooks/useActiveJobs';
 import { BookingTrackingCard } from './tracking/BookingTrackingCard';
 import { DriverAssignSection } from './tracking/DriverAssignSection';
 import { AlertActionButton } from './ui/AlertActionButton';
@@ -48,7 +50,7 @@ import { AdminBookingsModal } from './AdminBookingsModal';
 import { AdminVisitorsModal } from './AdminVisitorsModal';
 import { AdminInvoicesModal } from './AdminInvoicesModal';
 import { AdminStockModal } from './AdminStockModal';
-import { ActiveJobsModal } from './ActiveJobsModal';
+import { ActiveJobsModal, ActiveJobMapModal } from './ActiveJobsModal';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 import { api } from '@/lib/api';
@@ -394,6 +396,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const [invoicesOpen, setInvoicesOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
   const [activeJobsOpen, setActiveJobsOpen] = useState(false);
+  const [trackingMapOpen, setTrackingMapOpen] = useState(false);
   const [duplicateAck, setDuplicateAck] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -737,10 +740,90 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     onBookingCreated: handleBookingCreated,
   });
 
+  // Admin-created Stripe payment link for an already-dispatched booking's
+  // outstanding balance. The backend is the source of truth for completion.
+  const paymentLinkActions = useAdminPaymentLink({ draft, update });
+
   // Live tracking session for the dispatched booking. Hook is a no-op when
   // dispatchedBookingId is null; auto-ensures (idempotent) the first time we
   // see a booking id, then polls /tracking every 8s.
   const bookingTracking = useBookingTracking({ bookingId: draft.dispatchedBookingId });
+
+  // Whether the dispatched booking has both customer coordinates and a fresh
+  // driver location fix — the prerequisites for the live tracking map.
+  const trackingDriverLat = bookingTracking.data?.state.driverLat ?? null;
+  const trackingDriverLng = bookingTracking.data?.state.driverLng ?? null;
+  const trackingLastUpdatedAt = bookingTracking.data?.state.lastUpdatedAt ?? null;
+  const trackingHasCustomerCoords =
+    draft.location.lat != null && draft.location.lng != null;
+  const trackingHasDriverLocation =
+    trackingDriverLat != null && trackingDriverLng != null;
+  // The live map can be opened whenever we have the booking ref + customer
+  // location, even before the driver's first fix — the cockpit then shows the
+  // customer marker and a "waiting for driver location" state.
+  const canTrackDriver =
+    trackingHasCustomerCoords &&
+    draft.dispatchedRefNumber != null &&
+    draft.dispatchedBookingId != null;
+  // Driver fix older than 90s (matching the backend stale window) reads stale.
+  const trackingIsStale =
+    trackingHasDriverLocation &&
+    trackingLastUpdatedAt != null &&
+    Date.now() - new Date(trackingLastUpdatedAt).getTime() > 90_000;
+  const trackDriverHint = !trackingHasCustomerCoords
+    ? 'Customer location unavailable'
+    : !trackingHasDriverLocation
+      ? 'Waiting for driver location'
+      : trackingIsStale
+        ? 'Tracking stale'
+        : 'Live tracking available';
+
+  // Stable ActiveJobItem for the dispatched booking so the live map modal can
+  // reuse the existing /api/admin/active-jobs/[ref]/route endpoint. Driver
+  // position is provided live by that endpoint, so it is intentionally kept
+  // out of this memo to avoid resetting the map on every tracking poll.
+  const trackingJob: ActiveJobItem | null = useMemo(() => {
+    const ref = draft.dispatchedRefNumber;
+    const id = draft.dispatchedBookingId;
+    if (!ref || !id) return null;
+    return {
+      bookingRef: ref,
+      bookingId: id,
+      status: 'driver_assigned',
+      scheduledAt: null,
+      assignedAt: null,
+      acceptedAt: null,
+      customer: {
+        name: draft.customer.name.trim() || 'Customer',
+        phone: draft.customer.phone.trim() || null,
+        address: draft.location.address || '',
+        lat: draft.location.lat,
+        lng: draft.location.lng,
+      },
+      driver: {
+        id: '',
+        name: 'Driver',
+        phone: null,
+        lat: null,
+        lng: null,
+        locationAt: null,
+        locationSource: null,
+        isStale: false,
+      },
+      payment: null,
+      distanceMiles: null,
+      etaMinutes: null,
+    };
+  }, [
+    draft.dispatchedRefNumber,
+    draft.dispatchedBookingId,
+    draft.customer.name,
+    draft.customer.phone,
+    draft.location.address,
+    draft.location.lat,
+    draft.location.lng,
+  ]);
+
   // Phone of the driver selected by the operator in DriverAssignSection.
   // Tracked only so the assign section can highlight the current pick.
   const [, setSelectedDriverPhone] = useState<string | null>(null);
@@ -1757,6 +1840,16 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
                 onRefresh={() => { void bookingTracking.refresh(); }}
               />
               <AppButton
+                label="Track driver"
+                variant="primary"
+                onPress={() => setTrackingMapOpen(true)}
+                disabled={!canTrackDriver}
+                fullWidth
+              />
+              {trackDriverHint ? (
+                <Text style={styles.trackDriverHint}>{trackDriverHint}</Text>
+              ) : null}
+              <AppButton
                 label={driverChatBusy ? 'Opening…' : 'Chat with driver'}
                 variant="secondary"
                 onPress={() => { void handleOpenDriverChat(); }}
@@ -1767,6 +1860,46 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
               {driverChatError ? (
                 <Text style={styles.driverChatError}>{driverChatError}</Text>
               ) : null}
+
+              <SectionCard title="Payment">
+                {draft.paymentLink ? (
+                  <>
+                    <Text style={styles.paymentLinkAmount}>
+                      Payment link created · {formatPence(draft.paymentLink.amountPence)}
+                    </Text>
+                    <Text style={styles.paymentLinkStatus}>Awaiting payment</Text>
+                    <AppButton
+                      label="Copy link"
+                      variant="secondary"
+                      onPress={() => { void handleCopyPaymentLink(); }}
+                      fullWidth
+                    />
+                    <AppButton
+                      label="Send payment link"
+                      variant="primary"
+                      onPress={() => { void handleWhatsAppPaymentLink(); }}
+                      fullWidth
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.paymentLinkHint}>
+                      Create a Stripe link for the outstanding balance and send it to the customer.
+                    </Text>
+                    <AppButton
+                      label="Create payment link"
+                      variant="primary"
+                      onPress={() => { void paymentLinkActions.createForDispatchedBooking(); }}
+                      loading={paymentLinkActions.busy}
+                      disabled={paymentLinkActions.busy}
+                      fullWidth
+                    />
+                  </>
+                )}
+                {paymentLinkActions.error ? (
+                  <StatusBanner kind="err" message={paymentLinkActions.error} />
+                ) : null}
+              </SectionCard>
             </>
           ) : null}
         </View>
@@ -1827,6 +1960,11 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
       <AdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
       <ActiveJobsModal visible={activeJobsOpen} onClose={() => setActiveJobsOpen(false)} />
+      <ActiveJobMapModal
+        visible={trackingMapOpen}
+        job={trackingJob}
+        onClose={() => setTrackingMapOpen(false)}
+      />
       <Modal
         visible={notifSetupOpen}
         transparent
@@ -2922,6 +3060,10 @@ const styles = StyleSheet.create({
   primaryButton: { minHeight: 56 },
   primaryReason: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '700', marginTop: 5 },
   driverChatError: { color: colors.danger, fontSize: fontSize.xs, marginTop: 6 },
+  trackDriverHint: { color: colors.muted, fontSize: fontSize.xs, marginTop: 6, textAlign: 'center' },
+  paymentLinkHint: { color: colors.muted, fontSize: fontSize.sm, marginBottom: 8 },
+  paymentLinkAmount: { color: colors.text, fontSize: fontSize.md, fontWeight: '700', marginBottom: 2 },
+  paymentLinkStatus: { color: colors.warning, fontSize: fontSize.sm, fontWeight: '700', marginBottom: 8 },
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.62)', justifyContent: 'flex-end' },
   actionSheet: {
     maxHeight: '86%',

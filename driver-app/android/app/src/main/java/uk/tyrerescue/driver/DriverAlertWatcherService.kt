@@ -246,6 +246,10 @@ class DriverAlertWatcherService : Service() {
     const val PREFS_API_BASE_KEY = "api_base"
     const val PREFS_LAST_ALERTED_REF_KEY = "last_alerted_booking_ref"
 
+    private const val KEY_LAST_ALERTED_REF = "last_alerted_booking_ref"
+    private const val KEY_LAST_ALERTED_AT = "last_alerted_booking_at"
+    private const val DEDUPE_WINDOW_MS = 60_000L // suppress same ref only within 60s
+
     private const val INITIAL_DELAY_MS = 10_000L
     private const val POLL_INTERVAL_MS = 18_000L
 
@@ -272,6 +276,7 @@ class DriverAlertWatcherService : Service() {
             .edit()
             .remove(PREFS_ARMED_SINCE_KEY)
             .remove(PREFS_LAST_ALERTED_REF_KEY)
+            .remove(KEY_LAST_ALERTED_AT)
             .apply()
         } catch (_: Exception) {}
         try {
@@ -316,22 +321,27 @@ class DriverAlertWatcherService : Service() {
     }
 
     /**
-     * Atomically test-and-set the last alerted booking ref.
+     * Time-boxed dedupe: test-and-set the last alerted booking ref + timestamp.
      *
-     * Returns true when this caller "won" — i.e. the ref was different from
-     * the previously stored ref and the new value has been persisted.
-     * Returns false when the ref equals the previously stored ref (duplicate
-     * alert path: FCM and poll both observed the same booking).
+     * Returns false only when the ref equals the previously stored ref AND the
+     * previous alert happened within DEDUPE_WINDOW_MS (suppresses the duplicate
+     * FCM/poll burst). Otherwise records the ref + now and returns true, so a
+     * repeated push for the same booking after the window still alerts.
      */
     fun shouldAlertForRef(context: Context, ref: String): Boolean {
       if (ref.isBlank()) return true
       return try {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val previous = prefs.getString(PREFS_LAST_ALERTED_REF_KEY, null) ?: ""
-        if (previous == ref) {
+        val lastRef = prefs.getString(KEY_LAST_ALERTED_REF, "") ?: ""
+        val lastAt = prefs.getLong(KEY_LAST_ALERTED_AT, 0L)
+        val now = System.currentTimeMillis()
+        if (lastRef == ref && (now - lastAt) < DEDUPE_WINDOW_MS) {
           false
         } else {
-          prefs.edit().putString(PREFS_LAST_ALERTED_REF_KEY, ref).apply()
+          prefs.edit()
+            .putString(KEY_LAST_ALERTED_REF, ref)
+            .putLong(KEY_LAST_ALERTED_AT, now)
+            .apply()
           true
         }
       } catch (_: Exception) {

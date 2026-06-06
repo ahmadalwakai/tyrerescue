@@ -44,29 +44,68 @@ interface FcmSendResult {
   errorCode?: string;
 }
 
-let cachedAuth: InstanceType<typeof google.auth.JWT> | null = null;
+const DEFAULT_DRIVER_JOBS_URGENT_CHANNEL_ID = 'driver_jobs_urgent_v10';
 const DEFAULT_CRITICAL_SOUND = 'unvversfiled_ringtone_021_365652';
 
-function getAuth(): InstanceType<typeof google.auth.JWT> | null {
-  if (cachedAuth) return cachedAuth;
+/**
+ * Explicit Firebase project credentials. Used to target a SPECIFIC Firebase
+ * project that differs from the global FCM_* env vars.
+ *
+ * This is REQUIRED for the driver app: it lives in its own Firebase project
+ * (`tyrerescuedriver`, sender 280577086683), while the global FCM_* creds
+ * belong to the admin/assisted-chat project (`assisted-chat-admin`, sender
+ * 68104760373). A service account authenticates for exactly ONE project, so
+ * sending a driver-token message with the admin creds fails with
+ * SENDER_ID_MISMATCH and never reaches the device when backgrounded.
+ */
+export interface FcmCredentials {
+  /** Raw service account JSON string. */
+  serviceAccountJson?: string;
+  /** Project id override (falls back to the JSON's project_id). */
+  projectId?: string;
+}
 
-  const raw = process.env.FCM_SERVICE_ACCOUNT_JSON;
-  if (!raw) return null;
+// Cache JWT clients per service-account client_email so multiple projects can
+// be served from the same process without re-parsing/re-instantiating.
+const authCache = new Map<string, InstanceType<typeof google.auth.JWT>>();
 
+function buildAuth(serviceAccountJson: string): InstanceType<typeof google.auth.JWT> | null {
   try {
-    const sa = JSON.parse(raw) as { client_email: string; private_key: string };
-    cachedAuth = new google.auth.JWT({
+    const sa = JSON.parse(serviceAccountJson) as { client_email: string; private_key: string };
+    const cacheKey = sa.client_email;
+    const existing = authCache.get(cacheKey);
+    if (existing) return existing;
+    const auth = new google.auth.JWT({
       email: sa.client_email,
       key: sa.private_key,
       scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
     });
-    return cachedAuth;
+    authCache.set(cacheKey, auth);
+    return auth;
   } catch {
     return null;
   }
 }
 
-function getProjectId(): string | null {
+function getAuth(credentials?: FcmCredentials): InstanceType<typeof google.auth.JWT> | null {
+  const raw = credentials?.serviceAccountJson ?? process.env.FCM_SERVICE_ACCOUNT_JSON;
+  if (!raw) return null;
+  return buildAuth(raw);
+}
+
+function getProjectId(credentials?: FcmCredentials): string | null {
+  if (credentials?.projectId) return credentials.projectId.trim();
+  if (credentials?.serviceAccountJson) {
+    try {
+      const sa = JSON.parse(credentials.serviceAccountJson) as { project_id?: string };
+      if (sa.project_id) return sa.project_id;
+    } catch {
+      // Fall through to global env below.
+    }
+  }
+  // Only consult the global env when no explicit credentials were supplied,
+  // so an override never accidentally targets the wrong project.
+  if (credentials?.serviceAccountJson) return null;
   if (process.env.FCM_PROJECT_ID) return process.env.FCM_PROJECT_ID;
   // Try to extract from service account JSON
   const raw = process.env.FCM_SERVICE_ACCOUNT_JSON;
@@ -80,10 +119,30 @@ function getProjectId(): string | null {
 }
 
 /**
- * Check whether FCM direct delivery is configured.
+ * Resolve the driver-app's dedicated Firebase credentials. The driver app is
+ * in a different Firebase project than the admin/assisted-chat apps, so it
+ * needs its own service account. Falls back to the global FCM_* creds when the
+ * driver-specific vars are unset (e.g. after a project consolidation).
  */
-export function isFcmConfigured(): boolean {
-  return !!getAuth() && !!getProjectId();
+export function getDriverFcmCredentials(): FcmCredentials | undefined {
+  // Trim to defend against trailing newlines/whitespace that some env-var
+  // upload paths add (e.g. `... | vercel env add` appends a newline). A stray
+  // newline in the project id would corrupt the FCM request URL.
+  const serviceAccountJson = process.env.DRIVER_FCM_SERVICE_ACCOUNT_JSON?.trim();
+  const projectId = process.env.DRIVER_FCM_PROJECT_ID?.trim();
+  if (!serviceAccountJson && !projectId) return undefined;
+  return {
+    serviceAccountJson: serviceAccountJson || undefined,
+    projectId: projectId || undefined,
+  };
+}
+
+/**
+ * Check whether FCM direct delivery is configured. Pass `credentials` to check
+ * a specific project's config (e.g. the driver app's own Firebase project).
+ */
+export function isFcmConfigured(credentials?: FcmCredentials): boolean {
+  return !!getAuth(credentials) && !!getProjectId(credentials);
 }
 
 /**
@@ -104,15 +163,16 @@ export async function sendFcmNotification(
     vibrateTimings?: string[];
     visibility?: FcmAndroidNotification['visibility'];
   },
+  credentials?: FcmCredentials,
 ): Promise<FcmSendResult> {
-  const auth = getAuth();
-  const projectId = getProjectId();
+  const auth = getAuth(credentials);
+  const projectId = getProjectId(credentials);
 
   if (!auth || !projectId) {
     return { success: false, error: 'FCM not configured: missing service account or project ID' };
   }
 
-  const channel = androidConfig?.channelId ?? 'driver_jobs_urgent_v5';
+  const channel = androidConfig?.channelId ?? DEFAULT_DRIVER_JOBS_URGENT_CHANNEL_ID;
   const soundName = androidConfig?.sound ?? DEFAULT_CRITICAL_SOUND;
   const includeNotification = androidConfig?.includeNotification !== false;
 
@@ -200,9 +260,10 @@ export async function sendFcmDataMessageToToken(
       visibility?: FcmAndroidNotification['visibility'];
     };
   },
+  credentials?: FcmCredentials,
 ): Promise<FcmSendResult> {
-  const auth = getAuth();
-  const projectId = getProjectId();
+  const auth = getAuth(credentials);
+  const projectId = getProjectId(credentials);
 
   if (!auth || !projectId) {
     return { success: false, error: 'FCM not configured: missing service account or project ID' };

@@ -2,20 +2,74 @@ import * as SecureStore from 'expo-secure-store';
 
 const TOKEN_KEY = 'auth_token';
 const API_URL_KEY = 'api_url';
+const PRODUCTION_API_URL = 'https://www.tyrerescue.uk';
 
 let cachedToken: string | null = null;
 let cachedApiUrl: string | null = null;
 
+function isDevelopmentBuild(): boolean {
+  return typeof __DEV__ !== 'undefined' && __DEV__;
+}
+
+function normalizeApiUrl(url: string | null): string {
+  const raw = (url ?? '').trim();
+  if (!raw) return PRODUCTION_API_URL;
+  try {
+    const parsed = new URL(raw);
+    parsed.pathname = parsed.pathname.replace(/\/+$/, '');
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString().replace(/\/+$/, '');
+  } catch {
+    return PRODUCTION_API_URL;
+  }
+}
+
+function isUnsafeProductionApiUrl(url: string): boolean {
+  if (isDevelopmentBuild()) return false;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    const isPrivate172 = /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
+    const isPrivateHost =
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '0.0.0.0' ||
+      host === '::1' ||
+      host === '10.0.2.2' ||
+      host.startsWith('10.') ||
+      host.startsWith('192.168.') ||
+      isPrivate172 ||
+      host.endsWith('.local');
+    return parsed.protocol !== 'https:' || isPrivateHost;
+  } catch {
+    return true;
+  }
+}
+
+async function persistApiUrl(url: string): Promise<void> {
+  try {
+    await SecureStore.setItemAsync(API_URL_KEY, url);
+  } catch {
+    // SecureStore failures should not prevent falling back to production.
+  }
+}
+
 export async function getApiUrl(): Promise<string> {
-  if (cachedApiUrl) return cachedApiUrl;
+  if (cachedApiUrl && !isUnsafeProductionApiUrl(cachedApiUrl)) return cachedApiUrl;
   const stored = await SecureStore.getItemAsync(API_URL_KEY);
-  cachedApiUrl = stored || 'https://www.tyrerescue.uk';
+  const normalized = normalizeApiUrl(stored);
+  cachedApiUrl = isUnsafeProductionApiUrl(normalized) ? PRODUCTION_API_URL : normalized;
+  if (stored !== cachedApiUrl) {
+    void persistApiUrl(cachedApiUrl);
+  }
   return cachedApiUrl;
 }
 
 export async function setApiUrl(url: string) {
-  cachedApiUrl = url;
-  await SecureStore.setItemAsync(API_URL_KEY, url);
+  const normalized = normalizeApiUrl(url);
+  cachedApiUrl = isUnsafeProductionApiUrl(normalized) ? PRODUCTION_API_URL : normalized;
+  await SecureStore.setItemAsync(API_URL_KEY, cachedApiUrl);
 }
 
 export async function getToken(): Promise<string | null> {
@@ -43,10 +97,17 @@ interface ApiOptions {
 export class ApiError extends Error {
   status: number;
   retryAfterSeconds: number | null;
-  constructor(message: string, status: number, retryAfterSeconds: number | null = null) {
+  code: 'network' | 'http' | 'parse';
+  constructor(
+    message: string,
+    status: number,
+    retryAfterSeconds: number | null = null,
+    code: 'network' | 'http' | 'parse' = 'http',
+  ) {
     super(message);
     this.status = status;
     this.retryAfterSeconds = retryAfterSeconds;
+    this.code = code;
     this.name = 'ApiError';
   }
 }
@@ -64,11 +125,16 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${baseUrl}${path}`, {
-    method: options.method || 'GET',
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl}${path}`, {
+      method: options.method || 'GET',
+      headers,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
+  } catch {
+    throw new ApiError('Network error. Check your connection and try again.', 0, null, 'network');
+  }
 
   if (res.status === 401) {
     await clearToken();
@@ -91,6 +157,8 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
     throw new ApiError(
       res.ok ? 'Invalid server response' : `Request failed (${res.status})`,
       res.status,
+      null,
+      'parse',
     );
   }
 
@@ -176,7 +244,6 @@ export interface PaymentSummary {
   depositAmountPence: number | null;
   remainingBalancePence: number | null;
   amountToCollectPence: number;
-  stripePiId: string | null;
   depositPaidAt: string | null;
 }
 
@@ -284,17 +351,6 @@ export const driverApi = {
 
   unregisterPushToken: () =>
     api<{ success: boolean }>('/api/driver/push-token', { method: 'DELETE' }),
-
-  // Version check
-  checkVersion: (version: string, platform: string) =>
-    api<{
-      currentVersion: string;
-      minVersion: string;
-      latestVersion: string;
-      forceUpdate: boolean;
-      downloadUrl: string;
-      releaseNotes?: string;
-    }>(`/api/driver/version-check?version=${encodeURIComponent(version)}&platform=${encodeURIComponent(platform)}`),
 
   // Tracking data (public endpoint — returns real Mapbox ETA)
   getTrackingData: (ref: string) =>

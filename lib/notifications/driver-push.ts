@@ -1,6 +1,7 @@
 import { db, drivers, driverNotifications, driverSoundSettings } from '@/lib/db';
 import { eq } from 'drizzle-orm';
-import { sendFcmNotification, sendFcmDataMessageToToken, isFcmConfigured } from './fcm';
+import { sendFcmNotification, isFcmConfigured, getDriverFcmCredentials } from './fcm';
+import { sendDriverJobAlert } from './push/sendDriverJobAlert';
 import type { PaymentSummary } from '@/lib/payments/driver-payment';
 
 /**
@@ -51,13 +52,16 @@ async function clearStaleDriverToken(
   }
 }
 
+const DRIVER_JOBS_URGENT_CHANNEL_ID = 'driver_jobs_urgent_v10';
+const JOBS_UPCOMING_CHANNEL_ID = 'jobs_upcoming_v4';
+
 /** Map event types to Android notification channel IDs (versioned). */
 const EVENT_CHANNEL_MAP: Record<string, string> = {
-  new_job: 'driver_jobs_urgent_v5',
-  job_assigned: 'driver_jobs_urgent_v5',
-  new_assignment: 'driver_jobs_urgent_v5',
-  reassignment: 'driver_jobs_urgent_v5',
-  upcoming_v2: 'jobs_upcoming_v3',
+  new_job: DRIVER_JOBS_URGENT_CHANNEL_ID,
+  job_assigned: DRIVER_JOBS_URGENT_CHANNEL_ID,
+  new_assignment: DRIVER_JOBS_URGENT_CHANNEL_ID,
+  reassignment: DRIVER_JOBS_URGENT_CHANNEL_ID,
+  upcoming_v2: JOBS_UPCOMING_CHANNEL_ID,
   chat_message: 'messages_v2',
   status_update: 'updates_v2',
 };
@@ -118,7 +122,7 @@ async function sendViaExpoPushFallback(
         body,
         data,
         sound: soundFile ?? CRITICAL_SOUND_FILE,
-        channelId: channelId ?? 'driver_jobs_urgent_v5',
+        channelId: channelId ?? DRIVER_JOBS_URGENT_CHANNEL_ID,
         priority: 'high',
       }),
     });
@@ -194,7 +198,7 @@ export async function sendDriverPushNotification(
   const soundFile = await getSoundForEvent(eventType);
   const effectiveChannel = channelId
     ? EVENT_CHANNEL_MAP[channelId] ?? channelId
-    : EVENT_CHANNEL_MAP[eventType] ?? 'driver_jobs_urgent_v5';
+    : EVENT_CHANNEL_MAP[eventType] ?? DRIVER_JOBS_URGENT_CHANNEL_ID;
   const isCritical = CRITICAL_EVENTS.has(eventType);
 
   // Stringify data values for FCM (requires all string values)
@@ -207,8 +211,14 @@ export async function sendDriverPushNotification(
 
   const usesExpoToken = isExpoToken(driver.pushToken);
 
+  // Driver app lives in its OWN Firebase project (tyrerescuedriver). Use its
+  // dedicated service account so sends are authenticated for the correct
+  // project; otherwise driver tokens fail with SENDER_ID_MISMATCH and never
+  // arrive in the background. Falls back to global FCM_* when unset.
+  const driverFcmCredentials = getDriverFcmCredentials();
+
   // Native tokens require direct FCM; never route them through Expo fallback.
-  if (!usesExpoToken && !isFcmConfigured()) {
+  if (!usesExpoToken && !isFcmConfigured(driverFcmCredentials)) {
     console.error('[push/fcm] FCM is not configured for native push tokens');
     return false;
   }
@@ -220,68 +230,47 @@ export async function sendDriverPushNotification(
     // a full-screen-intent. Top-level `notification` blocks would otherwise
     // bypass that service when the app is backgrounded/killed on Android.
     if (isCritical) {
-      // Build a strict data-only payload. Every value must be a string.
-      const nativeData: Record<string, string> = {
-        ...stringData,
-        type: 'driver_new_job',
-        title,
-        body,
-      };
-      if (typeof data?.ref === 'string') {
-        nativeData.ref = data.ref;
-        nativeData.bookingRef = data.ref;
-      }
-      // Defensive: ensure address is present as a top-level data key when known.
-      if (typeof data?.address === 'string' && data.address.length > 0) {
-        nativeData.address = data.address;
-        // Provide both legacy "location" alias and canonical "address" so
-        // the native handler accepts either.
-        nativeData.location = data.address;
-      }
-      // jobId is the canonical bookings.id (UUID); useful to dedupe + open detail.
-      if (typeof data?.jobId === 'string' && data.jobId.length > 0) {
-        nativeData.jobId = data.jobId;
-      }
-      if (typeof data?.assignmentId === 'string' && data.assignmentId.length > 0) {
-        nativeData.assignmentId = data.assignmentId;
-      }
-      // Currency-collected aliasing for older clients.
-      if (typeof data?.amountToCollectPence === 'string' && data.amountToCollectPence.length > 0) {
-        nativeData.collectAmount = data.amountToCollectPence;
-      }
-      if (typeof data?.jobPricePence === 'string' && data.jobPricePence.length > 0) {
-        nativeData.price = data.jobPricePence;
-      }
-
+      // Delegate to the dedicated DATA-ONLY helper. A `notification` payload
+      // would be swallowed by Android in the background and break the native
+      // full-screen lock-screen alert, so this path never emits one.
       const tokenSuffix = driver.pushToken.slice(-6);
       const bookingRef = (data?.ref as string) ?? 'unknown';
       console.log(
-        `[driver-push] native data-only driver_new_job attempt driverId=${driverId} bookingRef=${bookingRef} type=driver_new_job platform=android:fcm hasToken=true tokenSuffix=${tokenSuffix}`,
+        `[driver-push] native data-only new_job attempt driverId=${driverId} bookingRef=${bookingRef} type=new_job platform=android:fcm hasToken=true tokenSuffix=${tokenSuffix}`,
       );
 
-      const dataResult = await sendFcmDataMessageToToken(
-        driver.pushToken,
-        nativeData,
-        {
-          priority: 'HIGH',
-          ttl: '300s',
-        },
-      );
+      const toPence = (v: unknown): number | undefined => {
+        if (typeof v !== 'string' || v.length === 0) return undefined;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : undefined;
+      };
 
-      if (dataResult.success) {
+      const alertResult = await sendDriverJobAlert({
+        token: driver.pushToken,
+        ref: typeof data?.ref === 'string' ? data.ref : bookingRef,
+        title,
+        body,
+        address: typeof data?.address === 'string' ? data.address : undefined,
+        url: typeof data?.url === 'string' ? data.url : undefined,
+        jobId: typeof data?.jobId === 'string' ? data.jobId : undefined,
+        assignmentId: typeof data?.assignmentId === 'string' ? data.assignmentId : undefined,
+        amountToCollectPence: toPence(data?.amountToCollectPence),
+        jobPricePence: toPence(data?.jobPricePence),
+        paymentStatus: typeof data?.paymentStatus === 'string' ? data.paymentStatus : undefined,
+        paymentType: typeof data?.paymentType === 'string' ? data.paymentType : undefined,
+      });
+
+      if (alertResult.ok) {
         console.log(
-          `[driver-push] pushSendSuccess driverId=${driverId} payloadType=driver_new_job bookingRef=${bookingRef} messageId=${dataResult.messageId} tokenSuffix=${tokenSuffix} transport=fcm-v1-data`,
-        );
-        console.log(
-          `[driver-push] native data-only driver_new_job sent driverId=${driverId} bookingRef=${bookingRef} messageId=${dataResult.messageId} tokenSuffix=${tokenSuffix}`,
+          `[driver-push] pushSendSuccess driverId=${driverId} payloadType=new_job bookingRef=${bookingRef} messageId=${alertResult.messageId} tokenSuffix=${tokenSuffix} transport=fcm-v1-data`,
         );
         return true;
       }
       console.error(
-        `[driver-push] pushSendFailure driverId=${driverId} payloadType=driver_new_job bookingRef=${bookingRef} tokenSuffix=${tokenSuffix} error=${dataResult.error} errorCode=${dataResult.errorCode ?? 'none'}`,
+        `[driver-push] pushSendFailure driverId=${driverId} payloadType=new_job bookingRef=${bookingRef} tokenSuffix=${tokenSuffix} error=${alertResult.error} errorCode=${alertResult.code}`,
       );
-      if (isStaleTokenError(dataResult.errorCode, dataResult.error)) {
-        await clearStaleDriverToken(driverId, tokenSuffix, dataResult.errorCode ?? 'token_invalid');
+      if (isStaleTokenError(alertResult.code, alertResult.error)) {
+        await clearStaleDriverToken(driverId, tokenSuffix, alertResult.code);
       }
       return false;
     }
@@ -301,6 +290,7 @@ export async function sendDriverPushNotification(
           : ['0s', '0.3s', '0.15s', '0.3s'],
         visibility: 'PUBLIC',
       },
+      driverFcmCredentials,
     );
 
     if (result.success) {
@@ -324,6 +314,21 @@ export async function sendDriverPushNotification(
   }
 
   // ── Fallback: Expo Push relay (old app versions) ──
+  // The new-job alert MUST be data-only (handled above for native tokens) so
+  // the native full-screen lock-screen alert can fire. The Expo relay only
+  // delivers notification-style title/body pushes, which Android swallows in
+  // the background — so we never route critical job alerts through it. A
+  // legacy Expo-token client must upgrade to a native FCM token to receive
+  // the urgent alert.
+  if (isCritical) {
+    console.warn(
+      `[driver-push] critical new_job NOT sent via Expo relay (notification-style) driverId=${driverId} bookingRef=${
+        (data?.ref as string) ?? 'unknown'
+      } reason=expo_token_needs_native_upgrade`,
+    );
+    return false;
+  }
+
   const sent = await sendViaExpoPushFallback(
     driver.pushToken,
     title,
@@ -394,6 +399,37 @@ export async function notifyDriverReassignment(
       jobPricePence: String(payment?.totalAmountPence ?? ''),
     },
     'reassignment',
+  );
+}
+
+/**
+ * Notify driver that an online payment was received for one of their jobs.
+ *
+ * This is a NORMAL (non-urgent) notification — it deliberately uses the
+ * `status_update` channel, NOT the critical full-screen job-alert path, so it
+ * never triggers the lock-screen siren reserved for new job assignments.
+ */
+export async function notifyDriverPaymentReceived(
+  driverId: string,
+  refNumber: string,
+  amountPence: number,
+  jobId?: string | null,
+): Promise<boolean> {
+  const amountLabel =
+    Number.isFinite(amountPence) && amountPence > 0
+      ? ` (£${(amountPence / 100).toFixed(2)})`
+      : '';
+  return sendDriverPushNotification(
+    driverId,
+    'Payment received',
+    `Payment received for ${refNumber}${amountLabel}.`,
+    {
+      type: 'payment_received',
+      ref: refNumber,
+      jobId: jobId ?? '',
+      amountPence: String(Number.isFinite(amountPence) ? amountPence : ''),
+    },
+    'status_update',
   );
 }
 

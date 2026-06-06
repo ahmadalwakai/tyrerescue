@@ -1,0 +1,64 @@
+Vercel CLI 50.17.0
+Retrieving projectÔÇª
+Resolving deployment "tyrerescue-ekpv4q4gh-gorbalstyres-5277s-projects.vercel.app"
+Streaming logs for deployment dpl_FkCVZfHTBFxtdAe6oH9tgU1k6BKt starting from 04:45:16.19
+
+waiting for new logs...
+04:49:15.74  ­ƒÜ½  PATCH  ---  www.tyrerescue.uk  ãÆ  /api/admin/bookings/TYR-2026-84471
+-------------------------------------------------------------------------------------
+[Notifications] Web Push error: Error: Vapid public key must be a URL safe Base 64 (without "=")
+    at i (.next/server/chunks/_0bqr1x6._.js:1:10952)
+
+waiting for new logs...
+04:49:16.08  ­ƒÜ½  PATCH  ---  www.tyrerescue.uk  ãÆ  /api/admin/bookings/TYR-2026-84471
+-------------------------------------------------------------------------------------
+[AdminEmailAlert] ZeptoMail error: ZeptoMail error 500 {
+  notificationId: '7d83d2b3-ef81-4223-8219-e92411521781',
+  eventType: 'booking.cancelled'
+}
+
+waiting for new logs...
+04:49:33.08  ­ƒÜ½  PATCH  ---  www.tyrerescue.uk  ãÆ  /api/admin/bookings/TYR-2026-37840
+-------------------------------------------------------------------------------------
+[Notifications] Web Push error: Error: Vapid public key must be a URL safe Base 64 (without "=")
+    at i (.next/server/chunks/_0bqr1x6._.js:1:10952)
+
+waiting for new logs...
+04:49:33.37  ­ƒÜ½  PATCH  ---  www.tyrerescue.uk  ãÆ  /api/admin/bookings/TYR-2026-37840
+-------------------------------------------------------------------------------------
+[AdminEmailAlert] ZeptoMail error: ZeptoMail error 500 {
+  notificationId: '7f5b7a9e-2b23-49e0-b31a-2915b65aa755',
+  eventType: 'booking.cancelled'
+}
+
+waiting for new logs...
+04:49:46.16  ­ƒÜ½  PATCH  ---  www.tyrerescue.uk  ãÆ  /api/admin/bookings/TYR-2026-77007
+-------------------------------------------------------------------------------------
+[Notifications] Web Push error: Error: Vapid public key must be a URL safe Base 64 (without "=")
+    at i (.next/server/chunks/_0bqr1x6._.js:1:10952)
+
+waiting for new logs...
+04:49:46.44  ­ƒÜ½  PATCH  ---  www.tyrerescue.uk  ãÆ  /api/admin/bookings/TYR-2026-77007
+-------------------------------------------------------------------------------------
+[AdminEmailAlert] ZeptoMail error: ZeptoMail error 500 {
+  notificationId: 'dac31a3e-1313-4858-b6fc-a4aaabc6ed69',
+  eventType: 'booking.cancelled'
+}
+
+waiting for new logs...
+04:50:00.71  ­ƒÜ½  PATCH  ---  www.tyrerescue.uk  ãÆ  /api/admin/bookings/TYR-2026-45180
+-------------------------------------------------------------------------------------
+[Notifications] Web Push error: Error: Vapid public key must be a URL safe Base 64 (without "=")
+    at i (.next/server/chunks/_0bqr1x6._.js:1:10952)
+
+waiting for new logs...
+04:50:01.01  ­ƒÜ½  PATCH  ---  www.tyrerescue.uk  ãÆ  /api/admin/bookings/TYR-2026-45180
+-------------------------------------------------------------------------------------
+[AdminEmailAlert] ZeptoMail error: ZeptoMail error 500 {
+  notificationId: '0f4ea914-4a08-41d5-b85f-8e46a0d94815',
+  eventType: 'booking.cancelled'
+}
+
+waiting for new logs...
+WARN! Command automatically interrupted after 5 minutes.
+

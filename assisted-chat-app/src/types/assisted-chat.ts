@@ -192,6 +192,23 @@ export interface PaymentLinkResult {
   paymentLink: StripePaymentLinkState | null;
 }
 
+// Response from POST /api/admin/bookings/[ref]/payment-link — an admin-created
+// Stripe Checkout link for the OUTSTANDING balance of an existing job. Creating
+// the link only means "awaiting payment" — never "paid". The Stripe webhook is
+// the single source of truth for completion.
+export interface AdminPaymentLinkResponse {
+  ok: boolean;
+  refNumber: string;
+  bookingId: string;
+  paymentUrl: string;
+  sessionId: string;
+  amountPence: number;
+  outstandingPence: number;
+  currency: string;
+  status: 'awaiting_payment';
+  createdAtIso: string;
+}
+
 // Operational-only snapshot of a customer the operator has handled. Stored
 // locally in AsyncStorage so the operator can reuse details for repeat
 // customers without re-typing. Never contains payment secrets.

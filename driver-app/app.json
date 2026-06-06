@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tyre Rescue Driver",
     "slug": "tyre-rescue",
-    "version": "1.2.2",
+    "version": "1.2.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -34,7 +34,7 @@
         "backgroundColor": "#09090B"
       },
       "package": "uk.tyrerescue.driver",
-      "versionCode": 5,
+      "versionCode": 6,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
@@ -74,7 +74,8 @@
           "color": "#F97316",
           "sounds": [
             "./assets/sounds/new_job.wav",
-            "./assets/sounds/unvversfiled_ringtone_021_365652.mp3"
+            "./assets/sounds/unvversfiled_ringtone_021_365652.mp3",
+            "./assets/sounds/notification_tone.mp3"
           ]
         }
       ],

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, Heading, Text, VStack, HStack, Button, Input, Table, Badge, Flex } from '@chakra-ui/react';
+import { Box, Heading, Text, VStack, HStack, Button, Input, Table, Badge, Flex, SimpleGrid, Spinner } from '@chakra-ui/react';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { useRouter } from 'next/navigation';
@@ -17,6 +17,15 @@ interface Slot {
   active: boolean;
 }
 
+interface SyncResult {
+  created: number;
+  skippedExisting: number;
+  disabledExpired: number;
+  recalculated: number;
+  daysAhead: number;
+  slotMinutes: number;
+}
+
 export function AvailabilityClient({ slots }: { slots: Slot[] }) {
   const router = useRouter();
   const [newDate, setNewDate] = useState('');
@@ -24,6 +33,8 @@ export function AvailabilityClient({ slots }: { slots: Slot[] }) {
   const [newEnd, setNewEnd] = useState('10:00');
   const [newMax, setNewMax] = useState('2');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function refresh() {
@@ -126,12 +137,84 @@ export function AvailabilityClient({ slots }: { slots: Slot[] }) {
     }
   }
 
+  async function syncSlots() {
+    setError(null);
+    setSyncResult(null);
+    setIsSyncing(true);
+    try {
+      const res = await fetch('/api/admin/availability/sync', {
+        method: 'POST',
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || !payload.ok) {
+        setError(payload.error ?? 'Failed to sync availability.');
+        return;
+      }
+
+      setSyncResult(payload.result as SyncResult);
+      await refresh();
+    } finally {
+      setIsSyncing(false);
+    }
+  }
+
   return (
     <VStack align="stretch" gap={6}>
-      <Box style={anim.fadeUp()}>
-        <Heading size="lg" color={c.text}>Availability</Heading>
-        <Text color={c.muted} mt={1}>Manage real customer booking slots and live occupancy.</Text>
-      </Box>
+      <Flex
+        direction={{ base: 'column', md: 'row' }}
+        gap={3}
+        justify="space-between"
+        align={{ base: 'stretch', md: 'flex-start' }}
+        style={anim.fadeUp()}
+      >
+        <Box>
+          <Heading size="lg" color={c.text}>Availability</Heading>
+          <Text color={c.muted} mt={1}>Manage real customer booking slots and live occupancy.</Text>
+        </Box>
+        <Button
+          bg={c.accent}
+          color="white"
+          _hover={{ bg: c.accentHover }}
+          onClick={syncSlots}
+          disabled={isSyncing || isSubmitting}
+          minH="44px"
+          w={{ base: '100%', md: 'auto' }}
+        >
+          {isSyncing ? (
+            <HStack gap={2}>
+              <Spinner size="sm" />
+              <Text>Syncing...</Text>
+            </HStack>
+          ) : (
+            'Sync next 14 days'
+          )}
+        </Button>
+      </Flex>
+
+      {syncResult && (
+        <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.4s')}>
+          <Text color={c.text} fontWeight="600" mb={3}>Sync result</Text>
+          <SimpleGrid columns={{ base: 2, md: 4 }} gap={3}>
+            <Box>
+              <Text fontSize="xs" color={c.muted}>Created</Text>
+              <Text color={c.text} fontWeight="700">{syncResult.created}</Text>
+            </Box>
+            <Box>
+              <Text fontSize="xs" color={c.muted}>Skipped</Text>
+              <Text color={c.text} fontWeight="700">{syncResult.skippedExisting}</Text>
+            </Box>
+            <Box>
+              <Text fontSize="xs" color={c.muted}>Expired disabled</Text>
+              <Text color={c.text} fontWeight="700">{syncResult.disabledExpired}</Text>
+            </Box>
+            <Box>
+              <Text fontSize="xs" color={c.muted}>Recalculated</Text>
+              <Text color={c.text} fontWeight="700">{syncResult.recalculated}</Text>
+            </Box>
+          </SimpleGrid>
+        </Box>
+      )}
 
       <Box bg={c.card} p={4} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.5s', '0.1s')}>
         <Text color={c.text} fontWeight="600" mb={3}>Add Slot</Text>

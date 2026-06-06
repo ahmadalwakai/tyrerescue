@@ -181,6 +181,7 @@ function serialiseJob(row: RawJobRow, tyres: TyreRef[]): SerialisedJob {
     remainingBalancePence: row.remainingBalancePence,
     depositPaidAt: row.depositPaidAt,
     stripePiId: row.stripePiId,
+    bookingStatus: row.status,
   });
 
   return {

@@ -10,7 +10,6 @@ interface DriverAlertWatcherNative {
   openBatterySettings(): Promise<boolean>;
   areNotificationsEnabled(): Promise<boolean>;
   openAppNotificationSettings(): Promise<boolean>;
-  simulateAlert(): Promise<boolean>;
 }
 
 interface RNNativeModules {
@@ -21,10 +20,7 @@ const native = (NativeModules as RNNativeModules).DriverAlertWatcher;
 
 const isAndroid = Platform.OS === 'android';
 
-function notAvailable<T>(name: string, fallback: T): T {
-  if (__DEV__) {
-    console.warn(`[driver-watcher] native module method '${name}' unavailable`);
-  }
+function notAvailable<T>(_name: string, fallback: T): T {
   return fallback;
 }
 
@@ -33,10 +29,8 @@ export const DriverAlertWatcher = {
     if (!isAndroid || !native) return notAvailable('startWatcher', false);
     try {
       const ok = await native.startWatcher(apiBase, token);
-      console.log('[driver-watcher] armed');
       return ok;
-    } catch (err) {
-      console.warn('[driver-watcher] startWatcher failed', err);
+    } catch {
       return false;
     }
   },
@@ -45,10 +39,8 @@ export const DriverAlertWatcher = {
     if (!isAndroid || !native) return notAvailable('stopWatcher', false);
     try {
       const ok = await native.stopWatcher();
-      console.log('[driver-watcher] disarmed');
       return ok;
-    } catch (err) {
-      console.warn('[driver-watcher] stopWatcher failed', err);
+    } catch {
       return false;
     }
   },
@@ -75,8 +67,7 @@ export const DriverAlertWatcher = {
     if (!isAndroid || !native) return notAvailable('openFullScreenAlertSettings', false);
     try {
       return await native.openFullScreenAlertSettings();
-    } catch (err) {
-      console.warn('[driver-watcher] openFullScreenAlertSettings failed', err);
+    } catch {
       return false;
     }
   },
@@ -94,18 +85,7 @@ export const DriverAlertWatcher = {
     if (!isAndroid || !native) return notAvailable('openBatterySettings', false);
     try {
       return await native.openBatterySettings();
-    } catch (err) {
-      console.warn('[driver-watcher] openBatterySettings failed', err);
-      return false;
-    }
-  },
-
-  async simulateAlert(): Promise<boolean> {
-    if (!isAndroid || !native) return notAvailable('simulateAlert', false);
-    try {
-      return await native.simulateAlert();
-    } catch (err) {
-      console.warn('[driver-watcher] simulateAlert failed', err);
+    } catch {
       return false;
     }
   },
@@ -125,8 +105,7 @@ export const DriverAlertWatcher = {
     if (typeof native.openAppNotificationSettings !== 'function') return false;
     try {
       return await native.openAppNotificationSettings();
-    } catch (err) {
-      console.warn('[driver-watcher] openAppNotificationSettings failed', err);
+    } catch {
       return false;
     }
   },

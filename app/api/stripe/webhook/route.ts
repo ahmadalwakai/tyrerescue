@@ -5,13 +5,12 @@ import {
   bookings,
   bookingStatusHistory,
   payments,
-  inventoryReservations,
   tyreProducts,
   bookingTyres,
   pricingRules,
 } from '@/lib/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
-import { constructWebhookEvent, stripe } from '@/lib/stripe';
+import { eq, inArray } from 'drizzle-orm';
+import { constructWebhookEvent } from '@/lib/stripe';
 import { sendBookingEmailOnce } from '@/lib/email/resend';
 import {
   bookingConfirmed,
@@ -20,10 +19,12 @@ import {
 } from '@/lib/email/templates';
 import { v4 as uuidv4 } from 'uuid';
 import type Stripe from 'stripe';
-import { logInventoryMovement, releaseReservations, commitReservationsForBooking } from '@/lib/inventory/stock-service';
+import { releaseReservations, commitReservationsForBooking } from '@/lib/inventory/stock-service';
 import { createAdminNotification } from '@/lib/notifications';
 import { ensureTrackingSession } from '@/lib/tracking-session';
 import { sendAdminExpoPush } from '@/lib/notifications/expo-admin-push';
+import { notifyDriverPaymentReceived } from '@/lib/notifications/driver-push';
+import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
 
 // Disable body parsing - we need the raw body for signature verification
 export const runtime = 'nodejs';
@@ -117,6 +118,14 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   // Handle deposit payments separately
   if (paymentType === 'deposit') {
     await handleDepositPaymentSucceeded(paymentIntent);
+    return;
+  }
+
+  // Handle admin-created payment links separately. These collect the
+  // outstanding balance of an EXISTING (possibly already-assigned) job, so we
+  // must NOT require `awaiting_payment` nor clobber the job lifecycle status.
+  if (paymentType === 'admin_link') {
+    await handleAdminLinkPaymentSucceeded(paymentIntent);
     return;
   }
 
@@ -381,13 +390,186 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     body: `${booking.customerName ?? 'Customer'} \u2014 \u00a3${(paymentIntent.amount / 100).toFixed(2)} \u00b7 ${refNumber}`,
     data: { refNumber, screen: 'bookings' },
   });
+
+  // Notify the assigned driver (normal, non-urgent push) so their payment
+  // badge context is up to date. The job lifecycle status is unchanged.
+  if (booking.driverId) {
+    void notifyDriverPaymentReceived(
+      booking.driverId,
+      booking.refNumber,
+      paymentIntent.amount,
+      booking.id,
+    ).catch((err) => console.error('[webhook] driver payment push failed:', err));
+  }
 }
 
 /**
- * Handle deposit payment success
- * 
- * This is idempotent - skips if depositPaidAt already set.
+ * Handle an admin-created payment link completing.
+ *
+ * Unlike the new-booking flow, this collects the outstanding balance of an
+ * EXISTING job. It is idempotent (keyed on payments.stripePiId), updates the
+ * payment record + booking payment fields, and notifies admin + driver WITHOUT
+ * altering the job's lifecycle status (en_route/arrived/etc. are preserved).
  */
+async function handleAdminLinkPaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+  const paymentIntentId = paymentIntent.id;
+  const bookingId = paymentIntent.metadata?.bookingId;
+
+  console.log(`Processing admin-link payment success for ${paymentIntentId}, booking ${bookingId}`);
+
+  if (!bookingId) {
+    console.error('Admin-link payment intent missing bookingId metadata:', paymentIntentId);
+    return;
+  }
+
+  // Idempotency: skip if we already recorded this payment as succeeded.
+  const [existingPayment] = await db
+    .select()
+    .from(payments)
+    .where(eq(payments.stripePiId, paymentIntentId))
+    .limit(1);
+
+  if (existingPayment && existingPayment.status === 'succeeded') {
+    console.log(`Admin-link payment ${paymentIntentId} already processed, skipping`);
+    return;
+  }
+
+  const [booking] = await db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .limit(1);
+
+  if (!booking) {
+    console.error('Booking not found for admin-link payment:', bookingId);
+    return;
+  }
+
+  const outstandingBeforePayment = computeDriverPaymentSummary({
+    paymentType: booking.paymentType,
+    totalAmount: booking.totalAmount?.toString() ?? null,
+    subtotal: booking.subtotal?.toString() ?? null,
+    vatAmount: booking.vatAmount?.toString() ?? null,
+    depositAmountPence: booking.depositAmountPence,
+    remainingBalancePence: booking.remainingBalancePence,
+    depositPaidAt: booking.depositPaidAt,
+    stripePiId: booking.stripePiId,
+  }).amountToCollectPence;
+
+  // Record / update the payment row to succeeded.
+  if (existingPayment) {
+    await db
+      .update(payments)
+      .set({
+        status: 'succeeded',
+        stripePayload: paymentIntent as unknown as Record<string, unknown>,
+        updatedAt: new Date(),
+      })
+      .where(eq(payments.id, existingPayment.id));
+  } else {
+    await db.insert(payments).values({
+      id: uuidv4(),
+      bookingId,
+      stripePiId: paymentIntentId,
+      amount: (paymentIntent.amount / 100).toString(),
+      currency: paymentIntent.currency,
+      status: 'succeeded',
+      stripePayload: paymentIntent as unknown as Record<string, unknown>,
+    });
+  }
+
+  if (outstandingBeforePayment <= 0) {
+    console.warn(
+      `[webhook:admin-link] payment ${paymentIntentId} received but booking ${booking.refNumber} has no outstanding balance; booking payment state left unchanged`,
+    );
+    return;
+  }
+
+  if (paymentIntent.amount < outstandingBeforePayment) {
+    console.warn(
+      `[webhook:admin-link] partial payment not applied booking=${booking.refNumber} paymentIntent=${paymentIntentId} paid=${paymentIntent.amount} outstanding=${outstandingBeforePayment}`,
+    );
+
+    await db.insert(bookingStatusHistory).values({
+      id: uuidv4(),
+      bookingId,
+      fromStatus: booking.status,
+      toStatus: booking.status,
+      actorUserId: null,
+      actorRole: 'system',
+      note: `Partial online payment received via admin link (£${(paymentIntent.amount / 100).toFixed(2)}) but booking was not marked paid because the outstanding balance was £${(outstandingBeforePayment / 100).toFixed(2)}.`,
+    });
+
+    return;
+  }
+
+  // Mark the outstanding balance as settled WITHOUT changing the job's
+  // lifecycle status. paymentType 'full' makes the driver payment summary
+  // resolve to paid / nothing-to-collect on the next poll.
+  const alreadyFull = booking.paymentType === 'full';
+  await db
+    .update(bookings)
+    .set({
+      paymentType: 'full',
+      stripePiId: paymentIntentId,
+      updatedAt: new Date(),
+    })
+    .where(eq(bookings.id, bookingId));
+
+  await db.insert(bookingStatusHistory).values({
+    id: uuidv4(),
+    bookingId,
+    fromStatus: booking.status,
+    toStatus: booking.status,
+    actorUserId: null,
+    actorRole: 'system',
+    note: `Online payment received via admin link (${paymentIntentId})`,
+  });
+
+  // Deduct physical stock if not already committed (idempotent marker).
+  const commitResult = await commitReservationsForBooking({
+    bookingId,
+    actor: 'webhook',
+    note: `Stripe admin-link payment: ${paymentIntentId}`,
+  });
+  if (!commitResult.success) {
+    console.error(
+      `[webhook:admin-link] stock commit failed for booking ${bookingId}:`,
+      commitResult.error,
+    );
+  }
+
+  // Admin notification (skip duplicate noise if booking was already 'full').
+  if (!alreadyFull) {
+    await createAdminNotification({
+      type: 'payment.received',
+      title: 'Payment Received',
+      body: `£${(paymentIntent.amount / 100).toFixed(2)} from ${booking.customerEmail} — ${booking.refNumber}`,
+      entityType: 'payment',
+      entityId: paymentIntentId,
+      link: `/admin/bookings/${booking.refNumber}`,
+      severity: 'success',
+      metadata: { stripeId: paymentIntentId, amount: paymentIntent.amount, currency: paymentIntent.currency, source: 'admin_link' },
+    });
+
+    void sendAdminExpoPush({
+      title: 'Payment received',
+      body: `${booking.customerName ?? 'Customer'} \u2014 \u00a3${(paymentIntent.amount / 100).toFixed(2)} \u00b7 ${booking.refNumber}`,
+      data: { refNumber: booking.refNumber, screen: 'bookings' },
+    });
+
+    if (booking.driverId) {
+      void notifyDriverPaymentReceived(
+        booking.driverId,
+        booking.refNumber,
+        paymentIntent.amount,
+        booking.id,
+      ).catch((err) => console.error('[webhook:admin-link] driver payment push failed:', err));
+    }
+  }
+
+  console.log(`Admin-link payment ${paymentIntentId} processed for booking ${booking.refNumber}`);
+}
 async function handleDepositPaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   const paymentIntentId = paymentIntent.id;
   const bookingId = paymentIntent.metadata?.bookingId;

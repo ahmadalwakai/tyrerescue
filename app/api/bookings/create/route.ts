@@ -68,9 +68,24 @@ interface CreateBookingResponse {
 }
 
 interface ErrorResponse {
+  ok?: false;
   error: string;
   code: string;
+  message?: string;
   details?: unknown;
+}
+
+const SLOT_UNAVAILABLE_MESSAGE =
+  'This time slot is no longer available. Please choose another time.';
+
+function slotUnavailableResponse() {
+  const body: ErrorResponse = {
+    ok: false,
+    error: SLOT_UNAVAILABLE_MESSAGE,
+    code: 'SLOT_UNAVAILABLE',
+    message: SLOT_UNAVAILABLE_MESSAGE,
+  };
+  return NextResponse.json(body, { status: 409 });
 }
 
 export async function POST(
@@ -151,16 +166,23 @@ export async function POST(
         }
 
         const scheduledAt = new Date(quote.scheduled_at);
-        const slotValidation = await validateScheduledSlotForBooking(scheduledAt);
+        let slotValidation = await validateScheduledSlotForBooking(scheduledAt);
         if (!slotValidation.ok) {
           await client.query('ROLLBACK');
-          return NextResponse.json(
-            {
-              error: slotValidation.message,
-              code: slotValidation.code,
-            },
-            { status: 409 },
-          );
+          return slotUnavailableResponse();
+        }
+
+        // Serialize booking creation for this slot, then re-check live
+        // occupancy so concurrent checkout attempts cannot oversubscribe it.
+        await client.query(
+          `SELECT id FROM availability_slots WHERE id = $1::uuid FOR UPDATE`,
+          [slotValidation.slot.id],
+        );
+
+        slotValidation = await validateScheduledSlotForBooking(scheduledAt);
+        if (!slotValidation.ok) {
+          await client.query('ROLLBACK');
+          return slotUnavailableResponse();
         }
       }
 

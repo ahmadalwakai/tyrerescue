@@ -8,14 +8,14 @@ import { trackCallClick } from '@/lib/analytics/gtag';
 import { API } from '@/lib/api-endpoints';
 
 const stepStyles = `
-  .service-heading { font-size: 36px; }
-  @media (min-width: 768px) { .service-heading { font-size: 56px; } }
-  .service-card { flex-direction: column; padding: 20px; }
-  @media (min-width: 768px) { .service-card { flex-direction: row; padding: 36px 40px; } }
-  .service-card-title { font-size: 28px; }
-  @media (min-width: 768px) { .service-card-title { font-size: 40px; } }
+  .service-heading { font-size: 34px; }
+  @media (min-width: 768px) { .service-heading { font-size: 48px; } }
+  .service-card { flex-direction: column; padding: 22px; min-height: 210px; }
+  @media (min-width: 768px) { .service-card { padding: 28px; } }
+  .service-card-title { font-size: 30px; }
+  @media (min-width: 768px) { .service-card-title { font-size: 38px; } }
   .service-card-chips { flex-direction: row; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-  @media (min-width: 768px) { .service-card-chips { flex-direction: column; align-items: flex-end; gap: 8px; margin-top: 0; margin-left: 24px; } }
+  @media (min-width: 768px) { .service-card-chips { align-items: flex-start; gap: 8px; margin-top: 22px; } }
 `;
 
 interface DriverAvailability {
@@ -93,45 +93,69 @@ export function StepServiceType({
     <>
     <style>{stepStyles}</style>
     <Box
-      minH="100vh"
+      minH="calc(100vh - 68px)"
       bg={c.bg}
       display="flex"
-      alignItems="center"
+      alignItems="flex-start"
       justifyContent="center"
-      py={12}
-      px={4}
+      py={{ base: 6, md: 10 }}
+      px={{ base: 4, md: 6 }}
     >
-      <Box maxW="760px" w="full">
+      <Box maxW="1040px" w="full">
         {/* Heading */}
-        <Text
-          as="h1"
-          fontFamily="var(--font-display), sans-serif"
-          lineHeight={1}
-          textAlign="center"
-          className="service-heading"
-          style={{
-            animation: 'fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both, headingShimmer 4s ease-in-out infinite',
-            background: 'linear-gradient(270deg, #FFFFFF, #F97316, #FFFFFF, #F97316)',
-            backgroundSize: '300% 100%',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
+        <Flex
+          direction={{ base: 'column', md: 'row' }}
+          justify="space-between"
+          align={{ base: 'flex-start', md: 'flex-end' }}
+          gap={5}
+          style={{ animation: 'fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both' }}
         >
-          WHAT DO YOU NEED?
-        </Text>
-        <Text
-          fontFamily="var(--font-body), sans-serif"
-          fontSize="15px"
-          color={c.muted}
-          textAlign="center"
-          mt={3}
-        >
-          Choose between an immediate emergency callout or a scheduled fitting
-        </Text>
+          <Box maxW="660px">
+            <Text
+              fontFamily="var(--font-body), sans-serif"
+              fontSize="12px"
+              fontWeight="700"
+              letterSpacing="0.16em"
+              color={c.accent}
+              textTransform="uppercase"
+              mb={3}
+            >
+              Start your booking
+            </Text>
+            <Text
+              as="h1"
+              fontFamily="var(--font-display), sans-serif"
+              lineHeight={1}
+              color={c.text}
+              className="service-heading"
+            >
+              Choose how soon you need us
+            </Text>
+            <Text
+              fontFamily="var(--font-body), sans-serif"
+              fontSize={{ base: '15px', md: '17px' }}
+              color={c.muted}
+              mt={3}
+              lineHeight={1.6}
+            >
+              Emergency callout is driver-led. Scheduled fitting lets you pick today or a later appointment.
+            </Text>
+          </Box>
+          <Box
+            bg={c.surface}
+            border={`1px solid ${c.border}`}
+            borderRadius="8px"
+            px={4}
+            py={3}
+            minW={{ base: '100%', md: '220px' }}
+          >
+            <Text fontSize="12px" color={c.muted}>Step 1 of 8</Text>
+            <Text fontSize="15px" fontWeight="700" color={c.text}>Service type</Text>
+          </Box>
+        </Flex>
 
         {/* Cards */}
-        <Flex direction="column" gap={4} mt={12} role="radiogroup" aria-label="Service type">
+        <Flex direction={{ base: 'column', lg: 'row' }} gap={4} mt={{ base: 7, md: 9 }} role="radiogroup" aria-label="Service type">
           {CARDS.map((card, cardIndex) => {
             const isSelected = selected === card.type;
 
@@ -161,6 +185,7 @@ export function StepServiceType({
                 cursor="pointer"
                 transition="all 0.15s ease"
                 display="flex"
+                flex="1"
                 justifyContent="space-between"
                 alignItems="flex-start"
                 boxShadow={isSelected
@@ -170,6 +195,7 @@ export function StepServiceType({
                 overflow="hidden"
                 _hover={!isSelected ? { borderColor: c.accent, bg: '#1C1917' } : {}}
                 w="full"
+                h="full"
                 textAlign="left"
               >
                 {/* Left side */}
@@ -264,7 +290,7 @@ export function StepServiceType({
                         borderRadius="4px"
                         whiteSpace="nowrap"
                       >
-                        Up to 14 days ahead
+                        Today to 14 days
                       </Text>
                       <Text
                         fontFamily="var(--font-body), sans-serif"
@@ -301,7 +327,7 @@ export function StepServiceType({
           fontSize="13px"
           color={c.muted}
           textAlign="center"
-          mt={8}
+          mt={7}
         >
           Not sure? Call us on{' '}
           <a href="tel:01412660690" style={{ color: c.text, fontWeight: 500, textDecoration: 'none' }} onClick={() => trackCallClick('booking_step_service_type')}>
@@ -321,7 +347,7 @@ export function StepServiceType({
             fontSize="22px"
             letterSpacing="0.05em"
             borderRadius="6px"
-            mt={6}
+            mt={5}
             _hover={{ bg: c.accentHover }}
             style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.3s both, btnPulse 2s ease-in-out 0.7s infinite' }}
           >

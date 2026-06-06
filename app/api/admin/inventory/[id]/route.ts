@@ -8,6 +8,10 @@ import { Pool } from '@neondatabase/serverless';
 import { parseTyreSize } from '@/lib/inventory/tyre-size';
 import { adjustStock } from '@/lib/inventory/stock-service';
 import { isValidSeason, normalizeSeason } from '@/lib/inventory/normalize-season';
+import {
+  fireTyrerepairStockChanged,
+  fireTyrerepairStockRemoved,
+} from '@/lib/integrations/tyrerepair-stock-notify';
 
 const updateSchema = z.object({
   priceNew: z.union([z.string(), z.number()]).nullable().optional(),
@@ -92,6 +96,10 @@ export async function PATCH(
 
   await db.update(tyreProducts).set(updates).where(eq(tyreProducts.id, id));
 
+  // Price / availability / season changed without a quantity change — still a
+  // mirrored field, so push it to tyrerepair.
+  fireTyrerepairStockChanged([id]);
+
   return NextResponse.json({ success: true });
 }
 
@@ -153,6 +161,9 @@ export async function DELETE(
     const msg = err instanceof Error ? err.message : 'Unknown DB error';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
+
+  // Removed upstream — tell tyrerepair to mark its mirror unavailable.
+  fireTyrerepairStockRemoved([id]);
 
   return NextResponse.json({ success: true });
 }

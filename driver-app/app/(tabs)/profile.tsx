@@ -23,8 +23,8 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic, mediumHaptic, errorHaptic } from '@/services/haptics';
 import { useI18n, Locale } from '@/i18n';
-import { UrgentAlertSetupCard } from '@/components/UrgentAlertSetupCard';
 import { useSingleFlight } from '@/hooks/useSingleFlight';
+import { BUILD_LABEL } from '@/constants/build-info';
 
 export default function ProfileScreen() {
   const { logout } = useAuth();
@@ -179,13 +179,11 @@ export default function ProfileScreen() {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>{t('profile.appAndDevice')}</Text>
         <InfoRow label={t('profile.appVersion')} value={`${appVersion} (${buildNumber})`} />
+        <InfoRow label="Build" value={BUILD_LABEL} />
         <InfoRow label={t('profile.platform')} value={Platform.OS === 'android' ? 'Android' : 'iOS'} />
         <InfoRow label={t('profile.locationPermission')} value={locationPerm} />
         <InfoRow label={t('profile.notificationPermission')} value={notifPerm} />
       </View>
-
-      {/* Urgent alert setup (Android only) */}
-      <UrgentAlertSetupCard />
 
       {/* Troubleshooting */}
       {(locationPerm === t('profile.denied') || notifPerm === t('profile.denied')) && (

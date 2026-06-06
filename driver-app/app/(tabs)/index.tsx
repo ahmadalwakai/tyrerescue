@@ -7,11 +7,14 @@ import {
   ScrollView,
   RefreshControl,
   Alert,
+  AppState,
+  Platform,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
-import { driverApi, JobSummary } from '@/api/client';
+import { driverApi, JobSummary, ApiError, getApiUrl, getToken } from '@/api/client';
 import { useAuth } from '@/auth/context';
 import { useLocationBroadcast } from '@/hooks/useLocation';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -22,6 +25,7 @@ import { AlertReadinessPill } from '@/components/AlertReadinessPill';
 import { lightHaptic } from '@/services/haptics';
 import { JobCardSkeleton } from '@/components/SkeletonLoader';
 import { useNewJobDetector } from '@/hooks/useNewJobDetector';
+import { DriverAlertWatcher } from '@/services/driver-watcher';
 import { useI18n } from '@/i18n';
 
 function PulsingDot() {
@@ -73,8 +77,18 @@ export default function DashboardScreen() {
   const [lastSync, setLastSync] = useState<number | null>(null);
   const [syncLabel, setSyncLabel] = useState(t('dashboard.syncing'));
   const [fetchError, setFetchError] = useState<string | null>(null);
+  // Alert/readiness gates "go online". On Android these must be true before a
+  // locked-screen job alert and active-job tracking can reliably work.
+  const [, setAlertReady] = useState({
+    notifications: true,
+    watcher: true,
+    fullScreen: true,
+    battery: true,
+    locationForeground: true,
+    locationBackground: true,
+  });
 
-  const { bgRunning } = useLocationBroadcast(
+  const { bgRunning, requestPermission: requestLocationPermission } = useLocationBroadcast(
     isOnline,
     activeJobs.length > 0,
     activeJobs[0]?.refNumber ?? null,
@@ -99,10 +113,15 @@ export default function DashboardScreen() {
       setLastSync(Date.now());
       setFetchError(null);
     } catch (err) {
-      const msg = err instanceof Error && err.message ? err.message : 'Network error';
+      const msg =
+        err instanceof ApiError && err.code === 'network'
+          ? t('common.networkError')
+          : err instanceof Error && err.message
+            ? err.message
+            : t('common.networkError');
       setFetchError(msg);
     }
-  }, []);
+  }, [checkForNewJobs, t]);
 
   useEffect(() => {
     fetchData();
@@ -126,20 +145,166 @@ export default function DashboardScreen() {
     setRefreshing(false);
   }, [fetchData]);
 
+  // Re-check alert readiness. Returns the freshly read flags so callers can
+  // act on them immediately without waiting for a state flush.
+  const refreshAlertReadiness = useCallback(async () => {
+    try {
+      const androidNativeReady = Platform.OS === 'android' && DriverAlertWatcher.isAvailable();
+      const [fgLocation, bgLocation, notifications, watcher, fullScreen, batteryExempt] = await Promise.all([
+        Location.getForegroundPermissionsAsync(),
+        Location.getBackgroundPermissionsAsync(),
+        androidNativeReady ? DriverAlertWatcher.areNotificationsEnabled() : Promise.resolve(true),
+        androidNativeReady ? DriverAlertWatcher.isArmed() : Promise.resolve(true),
+        androidNativeReady ? DriverAlertWatcher.canUseFullScreenIntent() : Promise.resolve(true),
+        androidNativeReady ? DriverAlertWatcher.isIgnoringBatteryOptimizations() : Promise.resolve(true),
+      ]);
+      const next = {
+        notifications,
+        watcher,
+        fullScreen,
+        battery: batteryExempt,
+        locationForeground: fgLocation.status === 'granted',
+        locationBackground: bgLocation.status === 'granted',
+      };
+      setAlertReady(next);
+      return next;
+    } catch {
+      const fallback = {
+        notifications: false,
+        watcher: false,
+        fullScreen: false,
+        battery: false,
+        locationForeground: false,
+        locationBackground: false,
+      };
+      setAlertReady(fallback);
+      return fallback;
+    }
+  }, []);
+
+  const ensureWatcherArmed = useCallback(async () => {
+    if (Platform.OS !== 'android' || !DriverAlertWatcher.isAvailable()) return true;
+    const token = await getToken();
+    if (!token) return false;
+    const apiBase = await getApiUrl();
+    await DriverAlertWatcher.startWatcher(apiBase, token);
+    return DriverAlertWatcher.isArmed();
+  }, []);
+
+  // Check on mount and whenever the app returns to the foreground, so the gate
+  // clears automatically after the driver grants the permission in Settings.
+  useEffect(() => {
+    refreshAlertReadiness();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshAlertReadiness();
+    });
+    return () => sub.remove();
+  }, [refreshAlertReadiness]);
+
   const handleToggleOnline = async (value: boolean) => {
     lightHaptic();
     setToggling(true);
     try {
+      // Going OFF needs no gating. Going ON is hard-gated so the driver can't
+      // go online into a state where lock-screen alerts or tracking silently fail.
+      if (value) {
+        let ready = await refreshAlertReadiness();
+        if (!ready.watcher && await ensureWatcherArmed()) {
+          ready = await refreshAlertReadiness();
+        }
+
+        if (!ready.notifications) {
+          Alert.alert(
+            t('dashboard.alertPermsRequiredTitle'),
+            t('dashboard.notificationsRequired'),
+            [
+              { text: t('dashboard.cancel'), style: 'cancel' },
+              {
+                text: t('dashboard.openSettings'),
+                onPress: () => { void DriverAlertWatcher.openAppNotificationSettings(); },
+              },
+            ],
+          );
+          return;
+        }
+        if (!ready.locationForeground || !ready.locationBackground) {
+          Alert.alert(
+            t('dashboard.alertPermsRequiredTitle'),
+            t('dashboard.locationRequired'),
+            [
+              { text: t('dashboard.cancel'), style: 'cancel' },
+              {
+                text: t('common.grant'),
+                onPress: () => {
+                  void requestLocationPermission().then(() => refreshAlertReadiness());
+                },
+              },
+            ],
+          );
+          return;
+        }
+        if (!ready.watcher) {
+          Alert.alert(
+            t('dashboard.alertPermsRequiredTitle'),
+            t('dashboard.watcherRequired'),
+            [
+              { text: t('dashboard.cancel'), style: 'cancel' },
+              {
+                text: t('common.retry'),
+                onPress: () => {
+                  void ensureWatcherArmed().then(() => refreshAlertReadiness());
+                },
+              },
+            ],
+          );
+          return;
+        }
+        if (!ready.fullScreen) {
+          Alert.alert(
+            t('dashboard.alertPermsRequiredTitle'),
+            t('dashboard.fullScreenAlertRequired'),
+            [
+              { text: t('dashboard.cancel'), style: 'cancel' },
+              {
+                text: t('dashboard.openSettings'),
+                onPress: () => { void DriverAlertWatcher.openFullScreenAlertSettings(); },
+              },
+            ],
+          );
+          return;
+        }
+        if (!ready.battery) {
+          Alert.alert(
+            t('dashboard.alertPermsRequiredTitle'),
+            t('dashboard.batteryOptRequired'),
+            [
+              { text: t('dashboard.cancel'), style: 'cancel' },
+              {
+                text: t('dashboard.openSettings'),
+                onPress: () => { void DriverAlertWatcher.openBatterySettings(); },
+              },
+            ],
+          );
+          return;
+        }
+      }
+
       const res = await driverApi.setOnline(value);
       setIsOnline(res.isOnline);
     } catch (err) {
-      const serverMsg = err instanceof Error && err.message ? err.message : null;
+      const serverMsg =
+        err instanceof ApiError && err.code === 'network'
+          ? t('common.networkError')
+          : err instanceof Error && err.message
+            ? err.message
+            : null;
       Alert.alert(
         t('common.error'),
         serverMsg ?? t('dashboard.failedUpdateStatus'),
       );
+    } finally {
+      setToggling(false);
     }
-    setToggling(false);
   };
 
   return (
@@ -159,9 +324,8 @@ export default function DashboardScreen() {
         {t('dashboard.greeting', { name: user?.name?.split(' ')[0] ?? 'Driver' })}
       </Animated.Text>
 
-      {/* Alert readiness pill — surfaces full-screen permission, watcher
-          state and battery-optimisation status so drivers know if a
-          backgrounded/locked-screen alert will actually appear. */}
+      {/* Alert readiness pill — surfaces notification, watcher, full-screen,
+          battery, and location state before a driver goes online. */}
       <AlertReadinessPill />
 
       {/* Network / auth error banner — surfaces the *real* server message instead of silent failure */}

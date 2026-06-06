@@ -73,14 +73,39 @@ export async function createCheckoutSession(
   options?: {
     successUrl?: string;
     cancelUrl?: string;
+    /**
+     * Payment purpose carried in metadata. The Stripe webhook routes on this
+     * value: 'admin_link' updates an existing job's payment without touching
+     * its lifecycle status; anything else is treated as a full booking payment
+     * (awaiting_payment -> paid). Omit for the default full-booking flow.
+     */
+    purpose?: 'admin_link';
+    /** Extra Stripe metadata for auditing/routing details. */
+    metadata?: Record<string, string>;
+    /** Optional human-readable line description shown on the Stripe page. */
+    description?: string;
   }
 ) {
   const amountInPence = Math.round(amount * 100);
   const baseUrl = getAppOrigin();
 
+  // Metadata is set on BOTH the Checkout Session and the underlying
+  // PaymentIntent. Stripe does NOT copy session metadata onto the PI, so
+  // without `payment_intent_data.metadata` the `payment_intent.succeeded`
+  // webhook would arrive with no bookingId and silently no-op.
+  const sharedMetadata: Record<string, string> = {
+    ...(options?.metadata ?? {}),
+    bookingId: metadata.bookingId,
+    refNumber: metadata.refNumber,
+  };
+  if (options?.purpose) {
+    sharedMetadata.type = options.purpose;
+  }
+
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     payment_method_types: ['card'],
+    client_reference_id: metadata.refNumber,
     customer_email: metadata.customerEmail !== 'phone-booking@tyrerescue.uk'
       ? metadata.customerEmail
       : undefined,
@@ -91,15 +116,15 @@ export async function createCheckoutSession(
           unit_amount: amountInPence,
           product_data: {
             name: `Tyre Rescue — ${metadata.refNumber}`,
-            description: 'Mobile tyre service',
+            description: options?.description ?? 'Mobile tyre service',
           },
         },
         quantity: 1,
       },
     ],
-    metadata: {
-      bookingId: metadata.bookingId,
-      refNumber: metadata.refNumber,
+    metadata: sharedMetadata,
+    payment_intent_data: {
+      metadata: { ...sharedMetadata, customerEmail: metadata.customerEmail },
     },
     success_url: options?.successUrl ?? `${baseUrl}/success/${metadata.refNumber}`,
     cancel_url: options?.cancelUrl ?? `${baseUrl}/book?ref=${metadata.refNumber}`,

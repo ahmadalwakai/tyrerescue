@@ -24,14 +24,25 @@ object DriverJobAlertNotifier {
   private const val TAG = "DriverJobAlertNotifier"
   // Channel id is bumped whenever the alert config changes, because Android
   // caches NotificationChannel importance and sound URI from the first
-  // creation. v5: full-screen-intent gating, dropped background
-  // startActivity path, IMPORTANCE_HIGH-or-MAX with custom sound +
-  // CATEGORY_CALL for new driver jobs.
-  const val CHANNEL_ID = "driver_jobs_urgent_v5"
+  // creation. A device that first created this channel while it was weak/
+  // silent can NEVER be fixed by code alone — only a NEW channel id gets
+  // fresh importance + sound. v6: IMPORTANCE_MAX, custom sound, CATEGORY_CALL,
+  // full-screen intent + direct lock-screen Activity launch, ongoing alert.
+  // v7: replaced alert sound (custom mp3). Channel id MUST change so Android
+  // refreshes the cached channel sound URI.
+  // v8: the notification is now SILENT (no sound, no vibration). The looping
+  // alert sound/vibration is owned solely by DriverJobAlertActivity so there
+  // is exactly ONE controllable, stoppable source. Previously the channel
+  // sound played alongside the Activity's looping MediaPlayer ("two sounds"),
+  // and re-posts re-triggered the channel sound. Channel id MUST change so
+  // Android drops the cached sound/vibration config.
+  // v10: aligned with the JS urgent channel and manifest default channel while
+  // staying silent, so every urgent-job path resolves to the same channel.
+  const val CHANNEL_ID = "driver_jobs_urgent_v10"
   private const val CHANNEL_NAME = "New driver jobs"
   private const val CHANNEL_DESCRIPTION = "High-priority alerts for newly assigned jobs"
   private const val GRANT_NOTIF_ID = 9998
-  private const val SOUND_RES_NAME = "new_job"
+  private const val SOUND_RES_NAME = "unvversfiled_ringtone_021_365652"
 
   private val VIBRATION_PATTERN = longArrayOf(0, 500, 250, 500, 250, 900)
 
@@ -120,8 +131,6 @@ object DriverJobAlertNotifier {
       true
     }
 
-    val soundUri = resolveSoundUri(context)
-
     val builder = NotificationCompat.Builder(context, CHANNEL_ID)
       .setSmallIcon(R.drawable.notification_icon)
       .setContentTitle(payload.title)
@@ -130,21 +139,27 @@ object DriverJobAlertNotifier {
       .setPriority(NotificationCompat.PRIORITY_MAX)
       .setCategory(NotificationCompat.CATEGORY_CALL)
       .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-      .setAutoCancel(true)
+      // Keep the alert sticky until the driver explicitly opens or dismisses
+      // it (the alert Activity cancels it via cancelAlert()). A swipe-away
+      // auto-cancel would let the urgent job silently disappear.
+      .setAutoCancel(false)
+      .setOngoing(true)
       .setContentIntent(contentIntent)
-      .setVibrate(VIBRATION_PATTERN)
-      .setSound(soundUri)
+      .setFullScreenIntent(fullScreenPi, true)
+      // SILENT notification: the looping sound + vibration are owned by
+      // DriverJobAlertActivity (single, stoppable source). onlyAlertOnce also
+      // means re-posts (poll/FCM bursts) never re-trigger any alert effect.
+      .setOnlyAlertOnce(true)
+      .setSilent(true)
       .setDefaults(0)
 
-    // Only attach the full-screen intent when the OS will honour it. When
-    // blocked we fall back to a heads-up notification only — a clear "Tap
-    // to open job" message — and surface the reason to the React UI via
-    // DriverAlertWatcherModule.canUseFullScreenIntent().
-    if (canUseFullScreen) {
-      builder.setFullScreenIntent(fullScreenPi, true)
-    } else {
-      builder.setContentText("Tap to open job")
-    }
+    // Always attach the full-screen intent — exactly like the proven
+    // assisted-chat UrgentAlertNotifier. We do NOT gate this on
+    // canUseFullScreenIntent(): on Android 14+ that permission is denied by
+    // default for a non-call app, and gating here meant the driver app
+    // attached NO full-screen intent when locked, so the alert silently
+    // stayed behind the lock screen ("works unlocked, nothing when locked").
+    // The canUseFullScreen check above only logs + posts the grant prompt.
 
     val notificationId = if (!payload.ref.isNullOrBlank()) {
       payload.ref.hashCode()
@@ -167,40 +182,44 @@ object DriverJobAlertNotifier {
       Log.e(TAG, "[native-alert] notification post failed source=$sourceTag", err)
     }
 
-    // Belt-and-braces: when the device is locked or the screen is off, the
-    // notification-shade full-screen-intent path is unreliable on many OEMs
-    // (Samsung One UI, Xiaomi MIUI, etc.) — it often degrades to a silent
-    // heads-up that only surfaces once the user unlocks, which is exactly the
-    // "works when unlocked, nothing when locked" symptom. A high-priority FCM
-    // data message grants the app a short background-activity-start window, so
-    // we directly launch the alert Activity in that case. The Activity is
-    // launchMode="singleInstance", so this never double-stacks with the
-    // full-screen intent if the OS also honours it.
+    // The full-screen-intent notification posted above is the PRIMARY launch
+    // path for the lock-screen alert Activity. When the OS honours the FSI it
+    // will launch DriverJobAlertActivity itself (over the lock screen).
     //
-    // IMPORTANT: this direct-launch path must run regardless of
-    // canUseFullScreenIntent(). On Android 14+ the full-screen-intent
-    // permission is denied by default for a driver app, so gating this block
-    // on canUseFullScreen meant the lock-screen Activity (which is what plays
-    // the looping sound + vibration) was NEVER launched when locked. The
-    // BAL grant from a high-priority FCM data message still lets us launch
-    // the Activity directly even without the full-screen-intent permission.
+    // A direct startActivity() is only safe while the app is genuinely in the
+    // foreground: from the background it is blocked by Android's Background
+    // Activity Launch (BAL) restrictions and just throws. So we gate the direct
+    // launch strictly on the foreground flag. When backgrounded/locked we skip
+    // it and rely on the full-screen intent; we never attempt a BAL-blocked
+    // launch.
     try {
-      val powerManager = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
-      val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
-      val screenOff = powerManager?.isInteractive == false
-      val locked = keyguardManager?.isKeyguardLocked == true
-      if (screenOff || locked) {
+      if (MainApplication.isAppForeground()) {
         context.startActivity(fullScreenIntent)
-        Log.i(TAG, "[native-alert] direct lock-screen launch refSuffix=$refSuffix screenOff=$screenOff locked=$locked canUseFullScreen=$canUseFullScreen")
-        Log.i(TAG, "DRIVER_ALERT_DIRECT_LAUNCH refSuffix=$refSuffix screenOff=$screenOff locked=$locked canUseFullScreen=$canUseFullScreen")
+        Log.i(TAG, "DRIVER_ALERT_DIRECT_LAUNCH refSuffix=$refSuffix foreground=true canUseFullScreen=$canUseFullScreen")
+        Log.i(TAG, "[native-alert] direct foreground launch refSuffix=$refSuffix")
       } else {
-        Log.i(TAG, "[native-alert] device interactive+unlocked refSuffix=$refSuffix — relying on heads-up + full-screen intent")
+        Log.i(TAG, "DRIVER_ALERT_DIRECT_LAUNCH_SKIPPED_BACKGROUND refSuffix=$refSuffix canUseFullScreen=$canUseFullScreen")
+        Log.i(TAG, "[native-alert] direct launch skipped (background) refSuffix=$refSuffix — relying on full-screen intent")
       }
     } catch (err: Exception) {
       // BAL window may have elapsed or the OEM blocked it — the
-      // setFullScreenIntent above (when permitted) remains the primary path.
+      // setFullScreenIntent above remains the primary path.
       Log.w(TAG, "DRIVER_ALERT_DIRECT_LAUNCH_FAIL refSuffix=$refSuffix: ${err.message}")
-      Log.w(TAG, "[native-alert] direct lock-screen launch blocked refSuffix=$refSuffix: ${err.message}", err)
+      Log.w(TAG, "[native-alert] direct launch blocked refSuffix=$refSuffix: ${err.message}", err)
+    }
+  }
+
+  /**
+   * Cancel the ongoing urgent notification for a given booking ref. Called
+   * from the alert Activity when the driver opens or dismisses the alert so
+   * the sticky (setOngoing) notification does not linger in the tray.
+   */
+  fun cancelAlert(context: Context, ref: String?) {
+    try {
+      val notificationId = if (!ref.isNullOrBlank()) ref.hashCode() else return
+      NotificationManagerCompat.from(context).cancel(notificationId)
+    } catch (err: Exception) {
+      Log.w(TAG, "Failed to cancel alert notification", err)
     }
   }
 
@@ -214,9 +233,11 @@ object DriverJobAlertNotifier {
         NotificationManager.IMPORTANCE_MAX,
       ).apply {
         description = CHANNEL_DESCRIPTION
-        setSound(resolveSoundUri(context), AUDIO_ATTRIBUTES)
-        enableVibration(true)
-        vibrationPattern = VIBRATION_PATTERN
+        // Silent channel — the alert Activity is the single sound/vibration
+        // source. Avoids the channel sound playing on top of the Activity's
+        // looping MediaPlayer and re-sounding on every re-post.
+        setSound(null, null)
+        enableVibration(false)
         lockscreenVisibility = Notification.VISIBILITY_PUBLIC
       }
       manager.createNotificationChannel(channel)

@@ -85,6 +85,7 @@ export async function GET(request: Request) {
       remainingBalancePence: row.remainingBalancePence,
       depositPaidAt: row.depositPaidAt,
       stripePiId: row.stripePiId,
+      bookingStatus: row.status,
     });
 
     const job: PollJob = {

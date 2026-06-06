@@ -9,14 +9,26 @@ const JOB_ALERT_TYPES = new Set([
 ]);
 
 const CRITICAL_SOUND_FILE = 'unvversfiled_ringtone_021_365652.mp3';
+// Soft background heads-up / tray notification sound. The loud
+// `unvversfiled_ringtone_021_365652.mp3` is reserved for the full-screen
+// lock-screen pop-up (played by the native DriverJobAlertActivity); the
+// background channel notification now uses this gentler tone instead.
+const BACKGROUND_SOUND_FILE = 'notification_tone.mp3';
+
+// Active heads-up channel ids. Urgent job alerts share the native full-screen
+// channel and stay silent; the app/native alert activities own the looping
+// sound and vibration so there is one controllable source to stop.
+export const DRIVER_JOBS_URGENT_CHANNEL_ID = 'driver_jobs_urgent_v10';
+export const JOBS_UPCOMING_CHANNEL_ID = 'jobs_upcoming_v4';
 
 // Configure how notifications appear when app is in foreground.
 // For remote job alert pushes: suppress the system presentation because
 // expo-notifications may re-present the notification on a default channel
 // (losing the custom sound). We fire our own local notification on the
 // correct channel instead — see fireLocalCriticalNotification.
-// For local echo notifications (_localEcho flag): allow presentation so the
-// native channel sound + vibration plays.
+// For local echo notifications (_localEcho flag): allow presentation on the
+// selected channel. Urgent new-job echoes are silent; upcoming reminders still
+// use their softer channel sound.
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const data = notification.request.content.data as Record<string, unknown> | undefined;
@@ -54,24 +66,26 @@ let pushRegistrationInFlight: Promise<string | null> | null = null;
 async function createAndroidChannels(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
-  // Critical job channel — MAX importance, custom sound, vibration, bypass DND
-  await Notifications.setNotificationChannelAsync('driver_jobs_urgent_v5', {
+  // Critical job channel — MAX importance, silent, bypass DND. v10 aligns with
+  // the native full-screen notifier and keeps sound/vibration owned by the
+  // alert UI, avoiding duplicate ringing loops.
+  await Notifications.setNotificationChannelAsync(DRIVER_JOBS_URGENT_CHANNEL_ID, {
     name: 'Job Alerts',
     importance: Notifications.AndroidImportance.MAX,
-    vibrationPattern: [0, 500, 200, 500, 200, 500],
     lightColor: '#F97316',
-    sound: CRITICAL_SOUND_FILE,
-    enableVibrate: true,
+    sound: null,
+    enableVibrate: false,
     bypassDnd: true,
   });
 
-  // Upcoming job channel — HIGH importance, sound + vibration
-  await Notifications.setNotificationChannelAsync('jobs_upcoming_v3', {
+  // Upcoming job channel — HIGH importance, background tone + vibration.
+  // v4: bumped from v3 to pick up the softer background tone.
+  await Notifications.setNotificationChannelAsync(JOBS_UPCOMING_CHANNEL_ID, {
     name: 'Upcoming Job Reminders',
     importance: Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 400, 200, 400, 200, 400],
     lightColor: '#F97316',
-    sound: CRITICAL_SOUND_FILE,
+    sound: BACKGROUND_SOUND_FILE,
     enableVibrate: true,
     bypassDnd: true,
   });
@@ -93,6 +107,50 @@ async function createAndroidChannels(): Promise<void> {
   });
 
   // Legacy channels — keep for backward compatibility with in-flight notifications
+  await Notifications.setNotificationChannelAsync('driver_jobs_urgent_v9', {
+    name: 'Job Alerts (Legacy v9)',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 500, 200, 500, 200, 500],
+    lightColor: '#F97316',
+    sound: BACKGROUND_SOUND_FILE,
+    enableVibrate: true,
+    bypassDnd: true,
+  });
+  await Notifications.setNotificationChannelAsync('driver_jobs_urgent_v8', {
+    name: 'Job Alerts (Legacy v8)',
+    importance: Notifications.AndroidImportance.MAX,
+    lightColor: '#F97316',
+    sound: null,
+    enableVibrate: false,
+    bypassDnd: true,
+  });
+  await Notifications.setNotificationChannelAsync('driver_jobs_urgent_v6', {
+    name: 'Job Alerts (Legacy v6)',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 500, 200, 500, 200, 500],
+    lightColor: '#F97316',
+    sound: CRITICAL_SOUND_FILE,
+    enableVibrate: true,
+    bypassDnd: true,
+  });
+  await Notifications.setNotificationChannelAsync('jobs_upcoming_v3', {
+    name: 'Upcoming Job Reminders (Legacy v3)',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 400, 200, 400, 200, 400],
+    lightColor: '#F97316',
+    sound: CRITICAL_SOUND_FILE,
+    enableVibrate: true,
+    bypassDnd: true,
+  });
+  await Notifications.setNotificationChannelAsync('driver_jobs_urgent_v5', {
+    name: 'Job Alerts (Legacy v5)',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 500, 200, 500, 200, 500],
+    lightColor: '#F97316',
+    sound: CRITICAL_SOUND_FILE,
+    enableVibrate: true,
+    bypassDnd: true,
+  });
   await Notifications.setNotificationChannelAsync('jobs', {
     name: 'New Jobs (Legacy)',
     importance: Notifications.AndroidImportance.MAX,
@@ -122,9 +180,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   if (pushRegistrationInFlight) return pushRegistrationInFlight;
 
   pushRegistrationInFlight = (async () => {
-    console.log('[notif] DRIVER_FCM_TOKEN_REGISTER_START platform=' + Platform.OS);
     if (!Device.isDevice) {
-      console.warn('[notif] DRIVER_FCM_TOKEN_REGISTER_FAIL reason=not_a_device');
       return null;
     }
 
@@ -138,7 +194,6 @@ export async function registerForPushNotifications(): Promise<string | null> {
     }
 
     if (finalStatus !== 'granted') {
-      console.warn('[notif] DRIVER_FCM_TOKEN_REGISTER_FAIL reason=permission_denied status=' + finalStatus);
       return null;
     }
 
@@ -153,12 +208,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
       pushToken = typeof tokenData.data === 'string'
         ? tokenData.data
         : JSON.stringify(tokenData.data);
-    } catch (tokenErr) {
-      console.error('[notif] DRIVER_FCM_TOKEN_REGISTER_FAIL reason=device_token_error', tokenErr);
+    } catch {
       return null;
     }
-
-    const tokenSuffix = pushToken.length > 8 ? pushToken.slice(-8) : pushToken;
 
     // Send native token to backend with tokenType = 'fcm'
     try {
@@ -166,9 +218,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
         method: 'POST',
         body: { pushToken, platform: Platform.OS, tokenType: 'fcm' },
       });
-      console.log('[notif] DRIVER_FCM_TOKEN_REGISTER_SUCCESS tokenSuffix=' + tokenSuffix + ' platform=' + Platform.OS);
-    } catch (regErr) {
-      console.error('[notif] DRIVER_FCM_TOKEN_REGISTER_FAIL reason=backend_post_error tokenSuffix=' + tokenSuffix, regErr);
+    } catch {
       return null;
     }
 
@@ -199,22 +249,21 @@ export async function unregisterPushToken(): Promise<void> {
 /**
  * Schedule a local notification on the specified channel (defaults to critical).
  * Uses ChannelAwareTriggerInput to deliver immediately on the correct Android
- * notification channel, guaranteeing native sound + vibration regardless of
- * expo-av state. The _localEcho flag prevents the notification handler from
- * suppressing it and prevents the received-listener from re-processing it.
+ * notification channel. The _localEcho flag prevents the notification handler
+ * from suppressing it and prevents the received-listener from re-processing it.
  */
 export async function fireLocalCriticalNotification(
   title: string,
   body: string,
   data?: Record<string, unknown>,
-  channelId = 'driver_jobs_urgent_v5',
+  channelId = DRIVER_JOBS_URGENT_CHANNEL_ID,
 ): Promise<string> {
   return Notifications.scheduleNotificationAsync({
     content: {
       title,
       body,
       data: { ...data, _localEcho: true },
-      sound: CRITICAL_SOUND_FILE,
+      sound: BACKGROUND_SOUND_FILE,
     },
     trigger: { channelId },
   });

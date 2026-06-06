@@ -33,6 +33,7 @@ class DriverJobAlertActivity : AppCompatActivity() {
   private var mediaPlayer: MediaPlayer? = null
   private var vibrator: Vibrator? = null
   private var wakeLock: PowerManager.WakeLock? = null
+  private var currentRef: String = ""
   private val handler = Handler(Looper.getMainLooper())
   private val stopAlarmRunnable = Runnable {
     stopAlertSignals()
@@ -42,6 +43,8 @@ class DriverJobAlertActivity : AppCompatActivity() {
     super.onCreate(savedInstanceState)
 
     val ref = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_REF).orEmpty()
+    currentRef = ref
+    activeInstance = java.lang.ref.WeakReference(this)
     val refSuffix = ref.takeLast(8).ifBlank { "unknown" }
     val title = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_TITLE) ?: "New job assigned"
     val body = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_BODY) ?: "Tap to view the assigned job."
@@ -66,8 +69,24 @@ class DriverJobAlertActivity : AppCompatActivity() {
     }
   }
 
+  override fun onStop() {
+    // The alert is a one-shot, call-style screen. Once it is no longer the
+    // visible window (e.g. the driver opened the app via the notification tap,
+    // or another screen came to the front) it must STOP ringing immediately
+    // and finish — otherwise its looping MediaPlayer keeps playing in the
+    // background for the full timeout ("sound never stops whatever I do").
+    stopAlertSignals()
+    if (!isFinishing) {
+      finish()
+    }
+    super.onStop()
+  }
+
   override fun onDestroy() {
     stopAlertSignals()
+    if (activeInstance?.get() === this) {
+      activeInstance = null
+    }
     super.onDestroy()
   }
 
@@ -228,6 +247,7 @@ class DriverJobAlertActivity : AppCompatActivity() {
       setOnClickListener {
         Log.i(TAG, "DRIVER_ALERT_ACTION_REJECT refSuffix=${ref.takeLast(8).ifBlank { "unknown" }}")
         Log.i(TAG, "dismiss pressed refSuffix=${ref.takeLast(8).ifBlank { "unknown" }}")
+        DriverJobAlertNotifier.cancelAlert(this@DriverJobAlertActivity, ref)
         stopAlertSignals()
         finish()
       }
@@ -246,7 +266,7 @@ class DriverJobAlertActivity : AppCompatActivity() {
 
   private fun startAlertSignals(refSuffix: String) {
     try {
-      val resId = resources.getIdentifier("new_job", "raw", packageName)
+      val resId = resources.getIdentifier("unvversfiled_ringtone_021_365652", "raw", packageName)
       val player = if (resId != 0) {
         MediaPlayer.create(this, resId)
       } else {
@@ -363,6 +383,7 @@ class DriverJobAlertActivity : AppCompatActivity() {
       }
     }
 
+    DriverJobAlertNotifier.cancelAlert(this, ref)
     stopAlertSignals()
     finish()
   }
@@ -371,5 +392,34 @@ class DriverJobAlertActivity : AppCompatActivity() {
     private const val TAG = "DriverJobAlertActivity"
     private const val ALERT_TIMEOUT_MS = 60_000L
     private const val WAKE_LOCK_TIMEOUT_MS = 60_000L
+
+    private var activeInstance: java.lang.ref.WeakReference<DriverJobAlertActivity>? = null
+
+    /**
+     * Silence + dismiss any live alert Activity. Called when the app comes to
+     * the foreground (MainActivity.onResume) so opening the app from the
+     * notification always stops the looping sound, even though the alert
+     * Activity runs in its own (singleInstance) task and would otherwise keep
+     * ringing in the background.
+     */
+    fun dismissActiveAlert(context: Context) {
+      val activity = activeInstance?.get() ?: return
+      try {
+        activity.runOnUiThread {
+          try {
+            DriverJobAlertNotifier.cancelAlert(context, activity.currentRef)
+            activity.stopAlertSignals()
+            if (!activity.isFinishing) {
+              activity.finish()
+            }
+          } catch (err: Exception) {
+            Log.w(TAG, "dismissActiveAlert inner failed", err)
+          }
+        }
+      } catch (err: Exception) {
+        Log.w(TAG, "dismissActiveAlert failed", err)
+      }
+      activeInstance = null
+    }
   }
 }

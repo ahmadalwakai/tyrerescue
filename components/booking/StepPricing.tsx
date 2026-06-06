@@ -68,6 +68,25 @@ async function findCheapestMatchingTyre(
 
 const RECOVERY_LIMIT = 3;
 const LOADING_TIMEOUT_MS = 20_000;
+const SLOT_UNAVAILABLE_MESSAGE =
+  'This time slot is no longer available. Please choose another time.';
+
+function apiErrorMessage(data: unknown, fallback: string): string {
+  if (data && typeof data === 'object') {
+    const maybe = data as { message?: unknown; error?: unknown };
+    if (typeof maybe.message === 'string') return maybe.message;
+    if (typeof maybe.error === 'string') return maybe.error;
+  }
+  return fallback;
+}
+
+function isSlotUnavailablePayload(data: unknown): boolean {
+  return Boolean(
+    data &&
+      typeof data === 'object' &&
+      (data as { code?: unknown }).code === 'SLOT_UNAVAILABLE',
+  );
+}
 
 export function StepPricing({
   state,
@@ -96,6 +115,17 @@ export function StepPricing({
   const lastFetchKeyRef = useRef('');
   const recoveryCountRef = useRef(0);
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSlotUnavailable = useCallback(() => {
+    updateState({
+      scheduledDate: null,
+      scheduledTime: null,
+      quoteId: null,
+      breakdown: null,
+      quoteExpiresAt: null,
+    });
+    goToStep?.('schedule');
+  }, [goToStep, updateState]);
 
   // Stable fingerprint of selectedTyres for dependency tracking
   const tyreFingerprint = useMemo(
@@ -215,7 +245,11 @@ export function StepPricing({
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data.error || 'Failed to get quote');
+          if (isSlotUnavailablePayload(data)) {
+            handleSlotUnavailable();
+            throw new Error(apiErrorMessage(data, SLOT_UNAVAILABLE_MESSAGE));
+          }
+          throw new Error(apiErrorMessage(data, 'Failed to get quote'));
         }
 
         // Validate response shape before updating state
@@ -282,6 +316,7 @@ export function StepPricing({
     state.scheduledDate,
     state.scheduledTime,
     state.selectedTyres,
+    handleSlotUnavailable,
   ]);
 
   // Hard fail-safe: never allow infinite loading spinner
@@ -383,7 +418,11 @@ export function StepPricing({
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data.error || 'Failed to refresh quote');
+          if (isSlotUnavailablePayload(data)) {
+            handleSlotUnavailable();
+            throw new Error(apiErrorMessage(data, SLOT_UNAVAILABLE_MESSAGE));
+          }
+          throw new Error(apiErrorMessage(data, 'Failed to refresh quote'));
         }
 
         if (!data.quoteId || !data.breakdown) {
@@ -395,13 +434,13 @@ export function StepPricing({
           breakdown: data.breakdown,
           quoteExpiresAt: data.expiresAt,
         });
-      } catch {
-        setRepairQuoteError('Failed to refresh quote. Please try again.');
+      } catch (err) {
+        setRepairQuoteError(err instanceof Error ? err.message : 'Failed to refresh quote. Please try again.');
       } finally {
         setIsRefreshing(false);
       }
     },
-    [state, updateState],
+    [state, updateState, handleSlotUnavailable],
   );
 
   // Refresh quote (without cart changes)
@@ -479,7 +518,11 @@ export function StepPricing({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to refresh quote');
+        if (isSlotUnavailablePayload(data)) {
+          handleSlotUnavailable();
+          throw new Error(apiErrorMessage(data, SLOT_UNAVAILABLE_MESSAGE));
+        }
+        throw new Error(apiErrorMessage(data, 'Failed to refresh quote'));
       }
 
       if (!data.quoteId || !data.breakdown) {
@@ -505,11 +548,11 @@ export function StepPricing({
           : {}),
       });
     } catch (error) {
-      setRepairQuoteError('Failed to refresh quote. Please try again.');
+      setRepairQuoteError(error instanceof Error ? error.message : 'Failed to refresh quote. Please try again.');
     } finally {
       setIsRefreshing(false);
     }
-  }, [state, updateState]);
+  }, [state, updateState, handleSlotUnavailable]);
 
   // Manual retry handler — resets guards so the recovery effect can re-trigger
   const handleManualRetry = useCallback(() => {

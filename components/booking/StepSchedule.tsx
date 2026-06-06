@@ -22,6 +22,9 @@ interface TimeSlot {
   label: string;
   timeStart: string;
   timeEnd: string;
+  active: boolean;
+  maxBookings: number;
+  bookedCount: number;
   available: boolean;
   spotsLeft: number;
 }
@@ -56,12 +59,12 @@ export function StepSchedule({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Generate next 14 days
+  // Generate today plus the next 14 days
   const availableDates = useMemo(() => {
     const dates: { value: string; label: string; dayName: string }[] = [];
     const today = new Date();
 
-    for (let i = 1; i <= 14; i++) {
+    for (let i = 0; i <= 14; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
 
@@ -190,9 +193,9 @@ export function StepSchedule({
 
           {!isLoading && !error && slots.length === 0 && (
             <Box p={6} textAlign="center" bg={c.surface} borderRadius="md">
-              <Text color={c.text}>No available time slots for this date.</Text>
+              <Text color={c.text}>No available slots right now. Please choose emergency booking or try again later.</Text>
               <Text color={c.muted} fontSize="sm" mt={1}>
-                Please select another date.
+                You can also select another date.
               </Text>
             </Box>
           )}

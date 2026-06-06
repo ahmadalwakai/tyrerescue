@@ -1,31 +1,34 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { AppState, View, Text, StyleSheet, Platform } from 'react-native';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic } from '@/services/haptics';
 import { DriverAlertWatcher } from '@/services/driver-watcher';
+import { useI18n } from '@/i18n';
 
 /**
  * Compact dashboard pill summarising whether new-job alerts will reach the
  * driver when the app is backgrounded or the phone is locked. Reads native
- * watcher state, full-screen-intent permission, and battery-optimisation
- * status. Tapping a problematic state navigates to profile where the
- * UrgentAlertSetupCard exposes the per-permission "Open settings" actions.
+ * watcher state, notification permission, full-screen-intent permission,
+ * battery-optimisation status, and location readiness. Tapping a problematic
+ * state navigates to the profile screen.
  */
 type Status =
   | 'ok'
   | 'notifications-denied'
   | 'fullscreen-blocked'
   | 'battery-restricted'
+  | 'location-blocked'
   | 'watcher-inactive'
   | 'unsupported';
 
 interface PillState {
   status: Status;
-  label: string;
-  hint: string;
+  labelKey: string;
+  hintKey: string;
   tone: 'ok' | 'warn' | 'muted';
 }
 
@@ -34,49 +37,59 @@ function classify(
   notif: boolean,
   fsi: boolean,
   batt: boolean,
+  location: boolean,
 ): PillState {
   if (!notif) {
     return {
       status: 'notifications-denied',
-      label: 'Notifications denied',
-      hint: 'Tap to fix',
+      labelKey: 'alertReadiness.notificationsDenied',
+      hintKey: 'alertReadiness.tapToFix',
       tone: 'warn',
     };
   }
   if (!armed) {
     return {
       status: 'watcher-inactive',
-      label: 'Alerts inactive',
-      hint: 'Sign out and back in to re-arm',
+      labelKey: 'alertReadiness.alertsInactive',
+      hintKey: 'alertReadiness.rearmHint',
       tone: 'warn',
     };
   }
   if (!fsi) {
     return {
       status: 'fullscreen-blocked',
-      label: 'Full-screen blocked by Android',
-      hint: 'Tap to fix',
+      labelKey: 'alertReadiness.fullScreenBlocked',
+      hintKey: 'alertReadiness.tapToFix',
       tone: 'warn',
     };
   }
   if (!batt) {
     return {
       status: 'battery-restricted',
-      label: 'Battery restricted',
-      hint: 'Tap to fix',
+      labelKey: 'alertReadiness.batteryRestricted',
+      hintKey: 'alertReadiness.tapToFix',
+      tone: 'warn',
+    };
+  }
+  if (!location) {
+    return {
+      status: 'location-blocked',
+      labelKey: 'alertReadiness.locationBlocked',
+      hintKey: 'alertReadiness.tapToFix',
       tone: 'warn',
     };
   }
   return {
     status: 'ok',
-    label: 'Alerts ready',
-    hint: 'Lock-screen pop-up enabled',
+    labelKey: 'alertReadiness.alertsReady',
+    hintKey: 'alertReadiness.lockScreenEnabled',
     tone: 'ok',
   };
 }
 
 export function AlertReadinessPill() {
   const router = useRouter();
+  const { t } = useI18n();
   const [state, setState] = useState<PillState | null>(null);
 
   const refresh = useCallback(async () => {
@@ -85,13 +98,21 @@ export function AlertReadinessPill() {
       return;
     }
     try {
-      const [armed, notif, fsi, batt] = await Promise.all([
+      const [armed, notif, fsi, batt, fgLocation, bgLocation] = await Promise.all([
         DriverAlertWatcher.isArmed(),
         DriverAlertWatcher.areNotificationsEnabled(),
         DriverAlertWatcher.canUseFullScreenIntent(),
         DriverAlertWatcher.isIgnoringBatteryOptimizations(),
+        Location.getForegroundPermissionsAsync(),
+        Location.getBackgroundPermissionsAsync(),
       ]);
-      setState(classify(armed, notif, fsi, batt));
+      setState(classify(
+        armed,
+        notif,
+        fsi,
+        batt,
+        fgLocation.status === 'granted' && bgLocation.status === 'granted',
+      ));
     } catch {
       // Keep previous state.
     }
@@ -99,10 +120,16 @@ export function AlertReadinessPill() {
 
   useEffect(() => {
     void refresh();
-    const t = setInterval(() => {
+    const timer = setInterval(() => {
       void refresh();
     }, 8000);
-    return () => clearInterval(t);
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') void refresh();
+    });
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
   }, [refresh]);
 
   if (!state) return null;
@@ -143,10 +170,10 @@ export function AlertReadinessPill() {
       <Ionicons name={palette.icon} size={16} color={palette.text} />
       <View style={styles.textCol}>
         <Text style={[styles.label, { color: palette.text }]} numberOfLines={1}>
-          {state.label}
+          {t(state.labelKey)}
         </Text>
         <Text style={styles.hint} numberOfLines={1}>
-          {state.hint}
+          {t(state.hintKey)}
         </Text>
       </View>
       {state.tone !== 'ok' ? (

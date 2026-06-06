@@ -97,6 +97,7 @@ export async function GET(
         remainingBalancePence: booking.remainingBalancePence,
         depositPaidAt: booking.depositPaidAt,
         stripePiId: booking.stripePiId,
+        bookingStatus: booking.status,
       }),
       createdAt: booking.createdAt?.toISOString() ?? null,
       tyres: tyres.map((t) => ({

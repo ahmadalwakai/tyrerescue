@@ -10,6 +10,7 @@
 
 import { Pool } from '@neondatabase/serverless';
 import { sanitizeInt } from './stock-domain';
+import { fireTyrerepairStockChanged } from '@/lib/integrations/tyrerepair-stock-notify';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -189,6 +190,9 @@ export async function adjustStock(params: AdjustStockParams): Promise<StockResul
     );
 
     await client.query('COMMIT');
+
+    // Tyre Rescue is the source of truth — push this change to tyrerepair.uk.
+    fireTyrerepairStockChanged([productId]);
 
     return {
       success: true,
@@ -417,6 +421,11 @@ export async function commitReservationsForBooking(
     );
 
     await client.query('COMMIT');
+
+    if (committed.length > 0) {
+      fireTyrerepairStockChanged(committed.map((c) => c.tyreId));
+    }
+
     return { success: true, alreadyCommitted: false, committedTyres: committed };
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
@@ -633,6 +642,10 @@ export async function restoreBookingStock(params: RestoreBookingStockParams): Pr
     }
 
     await client.query('COMMIT');
+
+    if (restoredProducts.length > 0) {
+      fireTyrerepairStockChanged(restoredProducts.map((p) => p.productId));
+    }
 
     return {
       success: true,

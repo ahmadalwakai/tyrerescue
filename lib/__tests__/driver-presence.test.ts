@@ -3,6 +3,7 @@ import {
   getDriverPresenceState,
   shouldDriverAppearOnline,
   canDriverReceiveNewBooking,
+  canDriverReceiveEmergencyBooking,
   isDriverLocationFresh,
   isLocationTrustworthy,
   STALE_THRESHOLD_MINUTES,
@@ -146,6 +147,48 @@ describe('driver-presence', () => {
     it('false for stale drivers beyond grace window', () => {
       expect(
         canDriverReceiveNewBooking({ isOnline: true, locationAt: minutesAgo(15), status: 'available' }),
+      ).toBe(false);
+    });
+  });
+
+  // ── canDriverReceiveEmergencyBooking ──
+
+  describe('canDriverReceiveEmergencyBooking', () => {
+    it('counts explicit online+available drivers even when GPS is stale', () => {
+      expect(
+        canDriverReceiveEmergencyBooking({
+          isOnline: true,
+          locationAt: minutesAgo(120),
+          status: 'available',
+        }),
+      ).toBe(true);
+    });
+
+    it('counts explicit online+available drivers even before GPS is known', () => {
+      expect(
+        canDriverReceiveEmergencyBooking({
+          isOnline: true,
+          locationAt: null,
+          status: 'available',
+        }),
+      ).toBe(true);
+    });
+
+    it('does not count drivers on active jobs', () => {
+      expect(
+        canDriverReceiveEmergencyBooking(
+          { isOnline: true, locationAt: minutesAgo(1), status: 'available' },
+          { status: 'en_route' },
+        ),
+      ).toBe(false);
+    });
+
+    it('does not count offline or non-available drivers', () => {
+      expect(
+        canDriverReceiveEmergencyBooking({ isOnline: false, locationAt: minutesAgo(1), status: 'available' }),
+      ).toBe(false);
+      expect(
+        canDriverReceiveEmergencyBooking({ isOnline: true, locationAt: minutesAgo(1), status: 'offline' }),
       ).toBe(false);
     });
   });

@@ -6,7 +6,10 @@ import {
   fireJobAlert,
   pruneAlertedRefs,
 } from '@/services/job-alert';
-import { fireLocalCriticalNotification } from '@/services/notifications';
+import {
+  fireLocalCriticalNotification,
+  DRIVER_JOBS_URGENT_CHANNEL_ID,
+} from '@/services/notifications';
 import type { JobSummary } from '@/api/client';
 
 /**
@@ -60,7 +63,7 @@ export function useNewJobDetector() {
             'New Job Assigned',
             firstNew.addressLine ?? '',
             { type: 'new_job', ref: firstNew.refNumber },
-            'driver_jobs_urgent_v5',
+            DRIVER_JOBS_URGENT_CHANNEL_ID,
           );
         }
 

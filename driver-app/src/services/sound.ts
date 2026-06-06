@@ -7,7 +7,15 @@ export type SoundEvent =
   | 'upcoming_v2'
   | 'job_accepted'
   | 'job_completed'
-  | 'new_message';
+  | 'new_message'
+  // ── In-app driver-cockpit cues (Phase 2 intelligence layer) ──
+  // These are intentionally NON-critical: they never loop and never reuse the
+  // urgent full-screen alert channel. They are subtle, in-app only feedback.
+  | 'payment_received'
+  | 'route_rerouting'
+  | 'route_warning'
+  | 'near_customer'
+  | 'arrived_zone';
 
 // ── Vibration patterns (Android: [wait, buzz, wait, buzz, ...] in ms) ──
 const URGENT_VIBRATION_PATTERN = [0, 500, 200, 500, 200, 500];
@@ -37,6 +45,17 @@ const DEFAULT_CONFIG: Record<SoundEvent, SoundEventConfig> = {
   job_accepted: { soundFile: 'new_job.wav', enabled: true, volume: 0.8, vibrationEnabled: false },
   job_completed: { soundFile: 'new_job.wav', enabled: true, volume: 0.8, vibrationEnabled: false },
   new_message: { soundFile: 'new_job.wav', enabled: true, volume: 0.7, vibrationEnabled: true },
+  // In-app cockpit cues. No dedicated assets ship yet, so each gracefully
+  // falls back to the bundled, non-urgent `new_job.wav` (createSound() also
+  // hard-falls-back if a file is ever missing, so these can never crash).
+  // MISSING ASSETS (add to assets/sounds/ + AVAILABLE_SOUNDS to upgrade):
+  //   payment_received.wav, route_rerouting.wav, route_warning.wav,
+  //   near_customer.wav, arrived_zone.wav
+  payment_received: { soundFile: 'new_job.wav', enabled: true, volume: 0.7, vibrationEnabled: true },
+  route_rerouting: { soundFile: 'new_job.wav', enabled: true, volume: 0.4, vibrationEnabled: false },
+  route_warning: { soundFile: 'new_job.wav', enabled: true, volume: 0.6, vibrationEnabled: true },
+  near_customer: { soundFile: 'new_job.wav', enabled: true, volume: 0.7, vibrationEnabled: true },
+  arrived_zone: { soundFile: 'new_job.wav', enabled: true, volume: 0.8, vibrationEnabled: true },
 };
 
 /** Critical events — sound config cannot disable these. */

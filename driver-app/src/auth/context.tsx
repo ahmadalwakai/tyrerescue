@@ -62,8 +62,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const baseUrl = await getApiUrl();
             await DriverAlertWatcher.startWatcher(baseUrl, stored);
-          } catch (err) {
-            console.warn('[driver-watcher] re-arm on restore failed', err);
+          } catch {
+            // Re-arm best-effort; ignore failures.
           }
         }
       } catch {
@@ -85,8 +85,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const baseUrl = await getApiUrl();
       await DriverAlertWatcher.startWatcher(baseUrl, res.token);
-    } catch (err) {
-      console.warn('[driver-watcher] arm on login failed', err);
+    } catch {
+      // Arm best-effort; ignore failures.
     }
   }, []);
 
@@ -94,8 +94,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await stopAlertSound();
     try {
       await DriverAlertWatcher.stopWatcher();
-    } catch (err) {
-      console.warn('[driver-watcher] disarm on logout failed', err);
+    } catch {
+      // Disarm best-effort; ignore failures.
     }
     await unregisterPushToken();
     clearAlertedRefs();

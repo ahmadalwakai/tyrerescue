@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { and, eq, inArray } from 'drizzle-orm';
 import { requireAdminMobile } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { bookings, drivers } from '@/lib/db/schema';
+import { bookings, drivers, users } from '@/lib/db/schema';
 import {
   getDirections,
   haversineDistanceMiles,
@@ -20,11 +20,20 @@ const ACTIVE_STATUSES = [
 interface RouteResponse {
   bookingRef: string;
   status: string;
+  driver: {
+    id: string;
+    name: string | null;
+    phone: string | null;
+  } | null;
   driverLocation: {
     lat: number;
     lng: number;
     locationAt: string | null;
     isStale: boolean;
+  } | null;
+  customer: {
+    name: string | null;
+    phone: string | null;
   } | null;
   customerLocation: {
     lat: number;
@@ -71,14 +80,20 @@ export async function GET(
       bookingRef: bookings.refNumber,
       status: bookings.status,
       addressLine: bookings.addressLine,
+      customerName: bookings.customerName,
+      customerPhone: bookings.customerPhone,
       customerLat: bookings.lat,
       customerLng: bookings.lng,
+      driverId: drivers.id,
+      driverName: users.name,
+      driverPhone: users.phone,
       driverLat: drivers.currentLat,
       driverLng: drivers.currentLng,
       driverLocationAt: drivers.locationAt,
     })
     .from(bookings)
     .innerJoin(drivers, eq(drivers.id, bookings.driverId))
+    .innerJoin(users, eq(users.id, drivers.userId))
     .where(
       and(
         eq(bookings.refNumber, ref),
@@ -107,6 +122,11 @@ export async function GET(
   const response: RouteResponse = {
     bookingRef: row.bookingRef,
     status: row.status,
+    driver: {
+      id: row.driverId,
+      name: row.driverName ?? null,
+      phone: row.driverPhone ?? null,
+    },
     driverLocation:
       driverLat != null && driverLng != null
         ? {
@@ -116,6 +136,10 @@ export async function GET(
             isStale,
           }
         : null,
+    customer: {
+      name: row.customerName ?? null,
+      phone: row.customerPhone ?? null,
+    },
     customerLocation:
       customerLat != null && customerLng != null
         ? {

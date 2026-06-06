@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { tyreCatalogue, tyreProducts, bookingTyres, inventoryReservations } from '@/lib/db/schema';
 import { eq, ilike, or, and, sql, desc, inArray } from 'drizzle-orm';
 import { isValidSeason, normalizeSeason } from '@/lib/inventory/normalize-season';
+import { fireTyrerepairStockChanged } from '@/lib/integrations/tyrerepair-stock-notify';
 
 /**
  * GET /api/admin/inventory
@@ -210,6 +211,9 @@ export async function POST(request: Request) {
     stockOrdered: stockOrdered ?? 0,
     isLocalStock: isLocalStock ?? true,
     availableNew: priceNew != null,
+  }).returning({ id: tyreProducts.id }).then((rows) => {
+    const newId = rows[0]?.id;
+    if (newId) fireTyrerepairStockChanged([newId]);
   });
 
   return NextResponse.json({ success: true }, { status: 201 });

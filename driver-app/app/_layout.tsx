@@ -13,7 +13,6 @@ import {
 import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 import { AuthProvider, useAuth } from '@/auth/context';
 import { I18nProvider } from '@/i18n';
-import { PermissionGate } from '@/components/PermissionGate';
 import { JobAlertProvider, useJobAlert, type JobAlertType } from '@/context/job-alert-context';
 import { JobAlertPopup } from '@/components/JobAlertPopup';
 import {
@@ -21,8 +20,9 @@ import {
   addNotificationResponseListener,
   addNotificationReceivedListener,
   fireLocalCriticalNotification,
+  DRIVER_JOBS_URGENT_CHANNEL_ID,
+  JOBS_UPCOMING_CHANNEL_ID,
 } from '@/services/notifications';
-import { checkForUpdate } from '@/services/version-check';
 import { initOfflineQueue } from '@/services/offline-queue';
 import { preloadSounds, playSound, loadSoundConfig, stopAlertSound } from '@/services/sound';
 import { markAlerted, fireJobAlert, isAlerted } from '@/services/job-alert';
@@ -113,7 +113,6 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     };
 
     registerPush();
-    checkForUpdate();
     initOfflineQueue();
     preloadSounds();
     loadSoundConfig(() => driverApi.getSoundConfig());
@@ -135,7 +134,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
           // Fire local notification on the correct channel for native sound + tray entry.
           // The remote push was suppressed by the handler; this local notification
           // is presented on the correct channel with native sound + vibration.
-          const channelId = eventType === 'upcoming_v2' ? 'jobs_upcoming_v3' : 'driver_jobs_urgent_v5';
+          const channelId = eventType === 'upcoming_v2' ? JOBS_UPCOMING_CHANNEL_ID : DRIVER_JOBS_URGENT_CHANNEL_ID;
           fireLocalCriticalNotification(
             notification.request.content.title ?? 'Job Alert',
             notification.request.content.body ?? '',
@@ -251,13 +250,9 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     };
   }, [user, checkForNewJobs, resetDetector]);
 
-  // Show permission gate when logged in (wraps the tab content)
+  // Render tab content when logged in
   if (user) {
-    return (
-      <PermissionGate>
-        <Slot />
-      </PermissionGate>
-    );
+    return <Slot />;
   }
 
   return <Slot />;
