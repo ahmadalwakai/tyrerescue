@@ -6,6 +6,7 @@ export function CityQuoteWidget({ cityName }: { cityName: string }) {
   return (
     <BookingWizard
       initialState={{ address: cityName }}
+      resumeDraft={false}
     />
   );
 }

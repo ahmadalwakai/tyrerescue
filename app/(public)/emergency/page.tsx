@@ -13,7 +13,11 @@ export const metadata: Metadata = {
 export default function EmergencyPage() {
   return (
     <>
-      <BookingWizard initialState={{ bookingType: 'emergency' }} initialStep="location" />
+      <BookingWizard
+        initialState={{ bookingType: 'emergency' }}
+        initialStep="location"
+        resumeDraft={false}
+      />
       <EmergencyAISection />
       <JsonLd data={getEmergencyServiceSchema()} />
       <JsonLd data={getBreadcrumbSchema([

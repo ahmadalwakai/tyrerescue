@@ -41,9 +41,9 @@ function mapServiceToBooking(
     case 'emergency':
       return { bookingType: 'emergency', serviceType: 'fit' };
     case 'punctureRepair':
-      return { serviceType: 'repair' };
+      return { bookingType: 'scheduled', serviceType: 'repair' };
     case 'fitting':
-      return { serviceType: 'fit' };
+      return { bookingType: 'scheduled', serviceType: 'fit' };
     default:
       return {};
   }
@@ -87,9 +87,14 @@ export default async function BookPage({
   const qty = clampQty(params.qty);
   if (qty != null) initialState.quantity = qty;
 
+  const hasInitialState = Object.keys(initialState).length > 0;
+  const initialStep = bookingType ? ('location' as const) : undefined;
+
   return (
     <BookingWizard
-      initialState={Object.keys(initialState).length > 0 ? initialState : undefined}
+      initialState={hasInitialState ? initialState : undefined}
+      initialStep={initialStep}
+      resumeDraft={!hasInitialState}
     />
   );
 }

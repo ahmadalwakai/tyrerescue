@@ -426,9 +426,10 @@ function BookingTopBar({ onBack }: BookingTopBarProps) {
 export interface BookingWizardProps {
   initialStep?: WizardStep;
   initialState?: Partial<WizardState>;
+  resumeDraft?: boolean;
 }
 
-export function BookingWizard({ initialStep, initialState }: BookingWizardProps) {
+export function BookingWizard({ initialStep, initialState, resumeDraft = true }: BookingWizardProps) {
   const router = useRouter();
   const [state, setState] = useState<WizardState>({ ...initialWizardState, ...initialState });
   const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep || 'service-type');
@@ -439,11 +440,13 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Stable ref so the hydration effect runs only on mount
   const initialStateRef = useRef(initialState);
+  const resumeDraftRef = useRef(resumeDraft);
 
   // Restore state from localStorage on mount (fall back to sessionStorage for migration)
   useEffect(() => {
     const entry = initialStateRef.current;
-    const draft = loadDraft();
+    const shouldResumeDraft = resumeDraftRef.current;
+    const draft = shouldResumeDraft ? loadDraft() : null;
     if (draft) {
       // If the caller passed explicit initialState (e.g. bookingType), those
       // fields take priority over the stale draft so that entry intent is
@@ -465,7 +468,7 @@ export function BookingWizard({ initialStep, initialState }: BookingWizardProps)
       if (!initialStep && draft.currentStep && draftTypeMatchesEntry) {
         setCurrentStep(draft.currentStep);
       }
-    } else {
+    } else if (shouldResumeDraft) {
       // One-time migration: check old sessionStorage key
       try {
         const old = sessionStorage.getItem('tyrerescue_booking_wizard');
