@@ -4,6 +4,7 @@ import { eq, desc } from 'drizzle-orm';
 import { Box, Heading, VStack, Grid, GridItem, Text, Flex } from '@chakra-ui/react';
 import { BookingDetailClient } from './BookingDetailClient';
 import { auth } from '@/lib/auth';
+import { normaliseTyreDetailsFromDb } from '@/lib/bookings/normalise-tyre-details';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -23,7 +24,7 @@ export default async function AdminBookingDetailPage({ params }: Props) {
     notFound();
   }
 
-  // Fetch tyres
+  // Fetch tyres (left join so rows with deleted products still appear)
   const tyres = await db
     .select({
       id: bookingTyres.id,
@@ -32,6 +33,7 @@ export default async function AdminBookingDetailPage({ params }: Props) {
       service: bookingTyres.service,
       brand: tyreProducts.brand,
       pattern: tyreProducts.pattern,
+      sizeDisplay: tyreProducts.sizeDisplay,
       width: tyreProducts.width,
       aspect: tyreProducts.aspect,
       rim: tyreProducts.rim,
@@ -140,17 +142,28 @@ export default async function AdminBookingDetailPage({ params }: Props) {
     completedAt: booking.completedAt?.toISOString() ?? null,
   };
 
-  const tyresData = tyres.map((t) => ({
-    id: t.id,
-    quantity: t.quantity,
-    unitPrice: t.unitPrice.toString(),
-    service: t.service,
+  const tyreRows = tyres.map((t) => ({
     brand: t.brand,
     pattern: t.pattern,
+    sizeDisplay: t.sizeDisplay,
     width: t.width,
     aspect: t.aspect,
     rim: t.rim,
+    quantity: t.quantity,
+    unitPrice: t.unitPrice.toString(),
+    service: t.service,
   }));
+
+  const tyreDetails = normaliseTyreDetailsFromDb(
+    {
+      tyreSizeDisplay: booking.tyreSizeDisplay,
+      quantity: booking.quantity,
+      lockingNutStatus: booking.lockingNutStatus,
+      serviceType: booking.serviceType,
+      notes: booking.notes,
+    },
+    tyreRows,
+  );
 
   const historyData = statusHistory.map((h) => ({
     id: h.id,
@@ -175,7 +188,7 @@ export default async function AdminBookingDetailPage({ params }: Props) {
       </Heading>
       <BookingDetailClient
         booking={bookingData}
-        tyres={tyresData}
+        tyreDetails={tyreDetails}
         statusHistory={historyData}
         assignedDriver={assignedDriver}
         availableDrivers={driversData}

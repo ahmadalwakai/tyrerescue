@@ -3,10 +3,15 @@ import { redirect, notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { bookings, bookingTyres, bookingStatusHistory, tyreProducts } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import { Box, Heading, Text, VStack, HStack, SimpleGrid, Flex } from '@chakra-ui/react';
+import { Box, Heading, Text, VStack, HStack, SimpleGrid, Flex, Badge } from '@chakra-ui/react';
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { CustomerChatSection } from './CustomerChatSection';
+import {
+  normaliseTyreDetailsFromDb,
+  isRepairOrAssessService,
+  formatGBP,
+} from '@/lib/bookings/normalise-tyre-details';
 
 export default async function CustomerBookingDetailPage(
   props: { params: Promise<{ ref: string }> }
@@ -24,11 +29,14 @@ export default async function CustomerBookingDetailPage(
 
   if (!booking) notFound();
 
-  const tyres = await db
+  const tyreRows = await db
     .select({
       brand: tyreProducts.brand,
       pattern: tyreProducts.pattern,
       sizeDisplay: tyreProducts.sizeDisplay,
+      width: tyreProducts.width,
+      aspect: tyreProducts.aspect,
+      rim: tyreProducts.rim,
       quantity: bookingTyres.quantity,
       unitPrice: bookingTyres.unitPrice,
       service: bookingTyres.service,
@@ -36,6 +44,17 @@ export default async function CustomerBookingDetailPage(
     .from(bookingTyres)
     .leftJoin(tyreProducts, eq(bookingTyres.tyreId, tyreProducts.id))
     .where(eq(bookingTyres.bookingId, booking.id));
+
+  const tyreDetails = normaliseTyreDetailsFromDb(
+    {
+      tyreSizeDisplay: booking.tyreSizeDisplay,
+      quantity: booking.quantity,
+      lockingNutStatus: booking.lockingNutStatus,
+      serviceType: booking.serviceType,
+      notes: booking.notes,
+    },
+    tyreRows.map((r) => ({ ...r, unitPrice: r.unitPrice.toString() })),
+  );
 
   const statusHistory = await db
     .select()
@@ -112,18 +131,18 @@ export default async function CustomerBookingDetailPage(
           <VStack align="stretch" gap={3}>
             <HStack justify="space-between">
               <Text fontSize="sm" color={c.muted}>Subtotal</Text>
-              <Text fontSize="sm" color={c.text}>£{Number(booking.subtotal).toFixed(2)}</Text>
+              <Text fontSize="sm" color={c.text}>{formatGBP(booking.subtotal)}</Text>
             </HStack>
             {Number(booking.vatAmount) > 0 && (
               <HStack justify="space-between">
                 <Text fontSize="sm" color={c.muted}>VAT</Text>
-                <Text fontSize="sm" color={c.text}>£{Number(booking.vatAmount).toFixed(2)}</Text>
+                <Text fontSize="sm" color={c.text}>{formatGBP(booking.vatAmount)}</Text>
               </HStack>
             )}
             <Box borderTopWidth="1px" borderColor={c.border} pt={3}>
               <HStack justify="space-between">
                 <Text fontWeight="600" color={c.text}>Total</Text>
-                <Text fontWeight="700" fontSize="lg" color={c.accent}>£{Number(booking.totalAmount).toFixed(2)}</Text>
+                <Text fontWeight="700" fontSize="lg" color={c.accent}>{formatGBP(booking.totalAmount)}</Text>
               </HStack>
             </Box>
 
@@ -133,13 +152,13 @@ export default async function CustomerBookingDetailPage(
                 <HStack justify="space-between" mb={1}>
                   <Text fontSize="sm" color="#22C55E" fontWeight="600">Deposit paid</Text>
                   <Text fontSize="sm" color="#22C55E" fontWeight="700">
-                    £{booking.depositAmountPence ? (booking.depositAmountPence / 100).toFixed(2) : '0.00'}
+                    {formatGBP((booking.depositAmountPence ?? 0) / 100)}
                   </Text>
                 </HStack>
                 <HStack justify="space-between">
                   <Text fontSize="sm" color={c.text}>Balance due on-site</Text>
                   <Text fontSize="sm" color={c.accent} fontWeight="700">
-                    £{booking.remainingBalancePence ? (booking.remainingBalancePence / 100).toFixed(2) : '0.00'}
+                    {formatGBP((booking.remainingBalancePence ?? 0) / 100)}
                   </Text>
                 </HStack>
               </Box>
@@ -149,22 +168,58 @@ export default async function CustomerBookingDetailPage(
       </SimpleGrid>
 
       {/* Tyres */}
-      {tyres.length > 0 && (
-        <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.3s both' }}>
-          <Text fontWeight="600" color={c.text} mb={4}>Tyres</Text>
+      <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.3s both' }}>
+        <Text fontWeight="600" color={c.text} mb={4}>Tyre Details</Text>
+        {tyreDetails.size && (
+          <Text fontSize="sm" color={c.muted} mb={2}>Size: {tyreDetails.size}</Text>
+        )}
+        {tyreDetails.items.length > 0 ? (
           <VStack align="stretch" gap={3}>
-            {tyres.map((t, i) => (
-              <HStack key={i} justify="space-between" py={2} borderBottomWidth={i < tyres.length - 1 ? '1px' : '0'} borderColor={c.border}>
-                <Box>
-                  <Text fontSize="sm" color={c.text}>{t.brand} {t.pattern}</Text>
-                  <Text fontSize="xs" color={c.muted}>{t.sizeDisplay} / {t.service}</Text>
+            {tyreDetails.items.map((item, i) => (
+              <HStack
+                key={i}
+                justify="space-between"
+                py={2}
+                borderBottomWidth={i < tyreDetails.items.length - 1 ? '1px' : '0'}
+                borderColor={c.border}
+                flexWrap="wrap"
+                gap={2}
+              >
+                <Box minW={0} flex={1}>
+                  <Text fontSize="sm" color={c.text}>
+                    {[item.brand, item.model].filter(Boolean).join(' ') || item.service}
+                  </Text>
+                  {(item.size ?? tyreDetails.size) && (
+                    <Text fontSize="xs" color={c.muted}>
+                      {item.size ?? tyreDetails.size}
+                      {item.service ? ` / ${item.service}` : ''}
+                    </Text>
+                  )}
                 </Box>
-                <Text fontSize="sm" color={c.text}>{t.quantity}x £{Number(t.unitPrice).toFixed(2)}</Text>
+                {item.price !== undefined && (
+                  <Text fontSize="sm" color={c.text} flexShrink={0}>
+                    {item.quantity}× {formatGBP(item.price)}
+                  </Text>
+                )}
               </HStack>
             ))}
           </VStack>
-        </Box>
-      )}
+        ) : isRepairOrAssessService(booking.serviceType) ? (
+          <Box p={3} bg="rgba(59,130,246,0.08)" borderRadius="md" borderWidth="1px" borderColor="rgba(59,130,246,0.3)">
+            <Text fontWeight="600" color="blue.400" fontSize="sm">Repair inspection requested</Text>
+            {tyreDetails.size && (
+              <Text fontSize="xs" color={c.muted} mt={1}>Tyre size: {tyreDetails.size}</Text>
+            )}
+          </Box>
+        ) : (
+          <Box p={3} bg="rgba(239,68,68,0.08)" borderRadius="md" borderWidth="1px" borderColor="rgba(239,68,68,0.3)">
+            <Badge colorPalette="red" mb={2}>Tyre details missing</Badge>
+            <Text fontSize="sm" color={c.muted}>
+              Please contact us if you have any questions about your booking.
+            </Text>
+          </Box>
+        )}
+      </Box>
 
       {/* Status History */}
       <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.35s both' }}>

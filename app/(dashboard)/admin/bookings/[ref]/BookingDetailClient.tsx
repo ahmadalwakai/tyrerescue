@@ -24,6 +24,11 @@ import { anim } from '@/lib/animations';
 import { ChatWidget } from '@/components/chat/ChatWidget';
 import { getDriverPresenceState, PRESENCE_LABELS, PRESENCE_COLORS } from '@/lib/driver-presence';
 import { AdminTrackingMap } from '@/components/admin/AdminTrackingMap';
+import {
+  type NormalisedTyreDetails,
+  isRepairOrAssessService,
+  formatGBP,
+} from '@/lib/bookings/normalise-tyre-details';
 
 interface RankedDriver {
   driverId: string;
@@ -81,18 +86,6 @@ interface Booking {
   completedAt: string | null;
 }
 
-interface Tyre {
-  id: string;
-  quantity: number;
-  unitPrice: string;
-  service: string;
-  brand: string | null;
-  pattern: string | null;
-  width: number | null;
-  aspect: number | null;
-  rim: number | null;
-}
-
 interface StatusHistoryItem {
   id: string;
   fromStatus: string | null;
@@ -116,7 +109,7 @@ interface Driver {
 
 interface Props {
   booking: Booking;
-  tyres: Tyre[];
+  tyreDetails: NormalisedTyreDetails;
   statusHistory: StatusHistoryItem[];
   assignedDriver: Driver | null;
   availableDrivers: Driver[];
@@ -184,7 +177,7 @@ const ADMIN_TRANSITIONS: Record<string, string[]> = {
 
 export function BookingDetailClient({
   booking,
-  tyres,
+  tyreDetails,
   statusHistory,
   assignedDriver,
   availableDrivers,
@@ -449,8 +442,8 @@ export function BookingDetailClient({
     });
   }
 
-  function formatCurrency(amount: string): string {
-    return `£${parseFloat(amount).toFixed(2)}`;
+  function formatCurrency(amount: string | number): string {
+    return formatGBP(amount);
   }
 
   function ed(field: keyof typeof editData, value: string) {
@@ -713,37 +706,77 @@ export function BookingDetailClient({
                 </Box>
               </Grid>
             ) : (
-              <>
-                {booking.tyreSizeDisplay && <Text mb={4} color={c.text}>Size: {booking.tyreSizeDisplay}</Text>}
-                <Text mb={2} color={c.text}>Quantity: {booking.quantity}</Text>
-                {booking.lockingNutStatus && booking.lockingNutStatus !== 'standard' && (
-                  <Box mb={4} p={3} bg={booking.lockingNutStatus === 'no_key' ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)'} borderRadius="md">
-                    <Text fontWeight="600" color={booking.lockingNutStatus === 'no_key' ? 'red.400' : 'green.400'}>
-                      {booking.lockingNutStatus === 'no_key' ? '⚠ Customer does NOT have locking nut key' : '✓ Customer has locking nut key'}
+              <VStack align="stretch" gap={3} mb={tyreDetails.items.length > 0 || booking.tyrePhotoUrl ? 4 : 0}>
+                {/* Size line */}
+                {tyreDetails.size && (
+                  <Text color={c.text}>Size: {tyreDetails.size}</Text>
+                )}
+
+                {/* Tyre items */}
+                {tyreDetails.items.length > 0 ? (
+                  <>
+                    <Text color={c.text}>Quantity: {tyreDetails.quantity}</Text>
+                    <VStack align="stretch" gap={3}>
+                      {tyreDetails.items.map((item, idx) => (
+                        <Box key={idx} p={3} bg={c.surface} borderRadius="md">
+                          <HStack justify="space-between" flexWrap="wrap" gap={2}>
+                            <Box minW={0} flex={1}>
+                              <Text fontWeight="medium" color={c.text} lineClamp={2}>
+                                {[item.brand, item.model].filter(Boolean).join(' ') || item.service}
+                              </Text>
+                              {(item.size ?? tyreDetails.size) && (
+                                <Text fontSize="sm" color={c.muted}>
+                                  {item.size ?? tyreDetails.size}
+                                  {item.service ? ` — ${item.service}` : ''}
+                                </Text>
+                              )}
+                            </Box>
+                            {item.price !== undefined && (
+                              <Text fontWeight="medium" color={c.text} flexShrink={0}>
+                                {formatCurrency(item.price)} × {item.quantity}
+                              </Text>
+                            )}
+                          </HStack>
+                        </Box>
+                      ))}
+                    </VStack>
+                  </>
+                ) : isRepairOrAssessService(booking.serviceType) ? (
+                  /* Repair/assess booking — no product sold, this is expected */
+                  <Box p={3} bg="rgba(59,130,246,0.08)" borderRadius="md" borderWidth="1px" borderColor="rgba(59,130,246,0.3)">
+                    <Text fontWeight="600" color="blue.400">Repair inspection requested</Text>
+                    {tyreDetails.size && (
+                      <Text fontSize="sm" color={c.muted} mt={1}>Tyre size: {tyreDetails.size}</Text>
+                    )}
+                  </Box>
+                ) : (
+                  /* Tyre data should exist but doesn't — flag it clearly */
+                  <Box p={3} bg="rgba(239,68,68,0.08)" borderRadius="md" borderWidth="1px" borderColor="rgba(239,68,68,0.3)">
+                    <Badge colorPalette="red" mb={2}>Tyre details missing</Badge>
+                    <Text fontSize="sm" color={c.muted}>
+                      This booking was created without tyre details. Edit booking to add them.
                     </Text>
                   </Box>
                 )}
-              </>
-            )}
-            {tyres.length > 0 ? (
-              <VStack align="stretch" gap={3}>
-                {tyres.map((tyre) => (
-                  <Box key={tyre.id} p={3} bg={c.surface} borderRadius="md">
-                    <HStack justify="space-between">
-                      <Box>
-                        <Text fontWeight="medium" color={c.text}>{tyre.brand} {tyre.pattern}</Text>
-                        <Text fontSize="sm" color={c.muted}>{tyre.width}/{tyre.aspect}R{tyre.rim} - {tyre.service}</Text>
-                      </Box>
-                      <Text fontWeight="medium" color={c.text}>{formatCurrency(tyre.unitPrice)} x {tyre.quantity}</Text>
-                    </HStack>
+
+                {/* Locking nut status */}
+                {tyreDetails.hasLockingNutKey !== null && (
+                  <Box
+                    p={3}
+                    bg={tyreDetails.hasLockingNutKey ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'}
+                    borderRadius="md"
+                  >
+                    <Text fontWeight="600" color={tyreDetails.hasLockingNutKey ? 'green.400' : 'red.400'}>
+                      {tyreDetails.hasLockingNutKey
+                        ? '✓ Customer has locking nut key'
+                        : '⚠ Customer does NOT have locking nut key'}
+                    </Text>
                   </Box>
-                ))}
+                )}
               </VStack>
-            ) : (
-              <Text color={c.muted}>No tyres selected</Text>
             )}
             {booking.tyrePhotoUrl && (
-              <Box mt={4}>
+              <Box mt={editing ? 4 : 0}>
                 <Text fontSize="sm" color={c.muted} mb={2}>Customer Photo</Text>
                 <Image src={booking.tyrePhotoUrl} alt="Tyre photo" borderRadius="md" maxH="200px" />
               </Box>
@@ -787,7 +820,11 @@ export function BookingDetailClient({
                     <Text fontWeight="semibold" fontSize="lg" color={c.text}>{formatCurrency(booking.totalAmount)}</Text>
                   </HStack>
                 </Box>
-                {booking.stripePiId && <Text fontSize="sm" color={c.muted} mt={2}>Stripe PI: {booking.stripePiId}</Text>}
+                {booking.stripePiId && (
+                  <Text fontSize="sm" color={c.muted} mt={2} wordBreak="break-all">
+                    Stripe PI: {booking.stripePiId}
+                  </Text>
+                )}
               </VStack>
             )}
           </Box>
