@@ -88,7 +88,7 @@ export function PriceSummary({
   const hasRuralSurcharge = priceLines.some((line) => /rural/i.test(line.label));
   const customerPriceSentence = quote
     ? isFittingAtLocationQuote
-      ? `Tell customer: Fitting at your location: ${formatGbp(quote.fittingPrice as number)}.`
+      ? `Tell customer: Total is ${formatGbp(effectiveTotal)} for fitting at your location.`
       : `Tell customer: total is ${formatGbp(effectiveTotal)} including tyre, fitting${hasDistanceCharge ? ', callout and distance charges' : ''}.`
     : null;
   const smartWarnings = [
@@ -137,10 +137,25 @@ export function PriceSummary({
       {quote ? (
         <View style={styles.breakdown}>
           {isFittingAtLocationQuote ? (
-            <View style={[styles.row, styles.finalRow]}>
-              <Text style={styles.finalLabel}>Fitting at your location</Text>
-              <Text style={styles.finalValue}>{formatGbp(quote.fittingPrice as number)}</Text>
-            </View>
+            <>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>Fitting at your location</Text>
+                <Text style={styles.rowValue}>{formatGbp(quote.fittingPrice as number)}</Text>
+              </View>
+              {Math.round((quote.fittingPrice as number) * 100) !== Math.round(effectiveTotal * 100) ? (
+                <View style={{ marginTop: 4 }}>
+                  <StatusBanner kind="warn" message={`Pricing mismatch detected. Payment uses ${formatGbp(effectiveTotal)}.`} />
+                </View>
+              ) : null}
+              <View style={styles.divider} />
+              <View style={[styles.row, styles.finalRow]}>
+                <Text style={styles.finalLabel}>{hasManualOverride ? 'Final quote price' : 'Total'}</Text>
+                <Text style={styles.finalValue}>{formatGbp(effectiveTotal)}</Text>
+              </View>
+              {hasManualOverride ? (
+                <Text style={styles.manualNoteText}>Manual override applied</Text>
+              ) : null}
+            </>
           ) : (
             <>
               {priceLines.map((line, i) => (

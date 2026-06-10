@@ -345,7 +345,8 @@ function buildJobDetails(
     draft.quote.fittingPrice > 0
   ) {
     lines.push(`Fitting at your location: ${formatGbp(draft.quote.fittingPrice)}`);
-  } else if (draft.quote) {
+  }
+  if (draft.quote) {
     lines.push(`Total: ${formatGbp(effectiveTotal)}`);
   }
   if (draft.savedQuoteRef) lines.push(`Quote ref: ${draft.savedQuoteRef}`);
@@ -380,9 +381,8 @@ function buildPaymentMessage(paymentLink: StripePaymentLinkState, draft: Assiste
     draft.quote.fittingPrice > 0
   ) {
     lines.push(`Fitting at your location: ${formatGbp(draft.quote.fittingPrice)}`);
-  } else {
-    lines.push(`Total: ${formatGbp(effectiveTotal)}`);
   }
+  lines.push(`Total to pay: ${formatGbp(effectiveTotal)}`);
   if (draft.location.address) lines.push(`Address: ${draft.location.address}`);
   if (draft.tyre.size) lines.push(`Tyres: ${draft.tyre.quantity} x ${draft.tyre.size}`);
   return lines.join('\n');

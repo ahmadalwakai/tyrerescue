@@ -65,8 +65,9 @@ export function buildCustomerMessage(input: CustomerMessageInput): string {
     draft.quote.fittingPrice > 0
   ) {
     detail.push(`Fitting at your location: ${formatGbp(draft.quote.fittingPrice)}`);
-  } else if (draft.quote && Number.isFinite(effectiveTotal) && effectiveTotal > 0) {
-    detail.push(`Total: ${formatGbp(effectiveTotal)}`);
+  }
+  if (draft.quote && Number.isFinite(effectiveTotal) && effectiveTotal > 0) {
+    detail.push(`Total to pay: ${formatGbp(effectiveTotal)}`);
   }
   if (draft.paymentLink) {
     detail.push(
