@@ -5,7 +5,6 @@ import {
   calculatePricing,
   parsePricingRules,
   resolveMode,
-  resolvePricingContext,
   type PricingContext,
   type PricingBreakdown,
   type TyreSelection,
@@ -14,6 +13,10 @@ import { normalizeTyreSize } from '@/lib/inventory/tyre-size';
 import type { WeatherPricingContext } from '@/lib/weather';
 import { calculateWeatherSurcharge } from '@/lib/pricing/weather-modifier';
 import { calculateTrafficSurcharge } from '@/lib/pricing/traffic-modifier';
+import {
+  FITTING_LOCATION_MANUAL_QUOTE_ERROR,
+  MOBILE_AUTO_PRICING_MAX_MILES,
+} from '@/lib/fitting-location-pricing';
 
 export type QuickBookServiceType = 'fit' | 'repair' | 'assess';
 
@@ -57,6 +60,18 @@ export class QuickBookPricingError extends Error {
     this.name = 'QuickBookPricingError';
     this.status = status;
   }
+}
+
+export function resolveQuickBookBookingType(pricingContext: PricingContext): 'emergency' | 'scheduled' {
+  if (
+    pricingContext === 'emergency_mobile_fitting' ||
+    pricingContext === 'admin_quick_book' ||
+    pricingContext === 'assisted_chat'
+  ) {
+    return 'emergency';
+  }
+
+  return 'scheduled';
 }
 
 export function extractQuickBookTyreSnapshot(raw: {
@@ -201,7 +216,7 @@ export async function calculateQuickBookPricing(
   const resolveTyreFromSize = input.resolveTyreFromSize !== false;
   const requireTyreForFit = input.requireTyreForFit ?? false;
 
-  const bookingType = pricingContext === 'emergency_mobile_fitting' ? 'emergency' : 'scheduled';
+  const bookingType = resolveQuickBookBookingType(pricingContext);
   const mode = resolveMode({ pricingContext, fittingLocation, bookingType });
 
   let selectedTyreSnapshot = input.selectedTyreSnapshot ?? null;
@@ -278,9 +293,9 @@ export async function calculateQuickBookPricing(
     if (breakdown.error === 'WEATHER_MANUAL_QUOTE_REQUIRED') {
       throw new QuickBookPricingError('Current weather conditions need a manual quote.', 422);
     }
-    if (breakdown.error === 'FITTING_LOCATION_MANUAL_QUOTE_REQUIRED') {
+    if (breakdown.error === FITTING_LOCATION_MANUAL_QUOTE_ERROR) {
       throw new QuickBookPricingError(
-        'This fitting location is over 60 miles away and needs a manual quote.',
+        `This fitting location is over ${MOBILE_AUTO_PRICING_MAX_MILES} miles away and needs a manual quote.`,
         422,
       );
     }

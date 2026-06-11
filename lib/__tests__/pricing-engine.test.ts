@@ -92,7 +92,7 @@ function emergencyInput(overrides: Partial<PricingInput> = {}): PricingInput {
 
 // ─── calculateTravelFee ───────────────────────────────────────────────────────
 // Tier structure: base £24 (0–3 mi), +£1.70/mi (3–10), +£2.35/mi (10–20),
-//                +£3.00/mi (20–40), +£3.85/mi (40–60)
+//                +£3.00/mi (20–40), +£3.85/mi (40–60), +£4.25/mi (60–100)
 
 describe('calculateTravelFee', () => {
   it('returns null for invalid distance', () => {
@@ -100,9 +100,9 @@ describe('calculateTravelFee', () => {
     expect(calculateTravelFee(NaN)).toBeNull();
   });
 
-  it('returns null for distance > 60 miles', () => {
-    expect(calculateTravelFee(61)).toBeNull();
-    expect(calculateTravelFee(100)).toBeNull();
+  it('returns null for distance > 100 miles', () => {
+    expect(calculateTravelFee(100)).toBe(366.4);
+    expect(calculateTravelFee(100.01)).toBeNull();
   });
 
   it('returns 24 for 0 miles (base covers first 3 miles)', () => {
@@ -138,9 +138,14 @@ describe('calculateTravelFee', () => {
     expect(calculateTravelFee(40)).toBe(119.4);
   });
 
-  it('returns correct fee for 60 miles (max allowed)', () => {
+  it('returns correct fee for 60 miles', () => {
     // 24 + 11.90 + 23.50 + 60.00 + 20*3.85 = 196.40
     expect(calculateTravelFee(60)).toBe(196.4);
+  });
+
+  it('returns correct fee for 100 miles (max allowed)', () => {
+    // 196.40 + 40*4.25 = 366.40
+    expect(calculateTravelFee(100)).toBe(366.4);
   });
 
   it('has no price jumps at tier boundaries (continuous) — spec test 4', () => {
@@ -192,8 +197,8 @@ describe('calculateFittingAtLocationPrice', () => {
     if (!result.available) expect(result.reason).toBe('INVALID_DISTANCE');
   });
 
-  it('returns MANUAL_QUOTE_REQUIRED for > 60 miles', () => {
-    const result = calculateFittingAtLocationPrice(61);
+  it('returns MANUAL_QUOTE_REQUIRED for > 100 miles', () => {
+    const result = calculateFittingAtLocationPrice(100.01);
     expect(result.available).toBe(false);
     if (!result.available) expect(result.reason).toBe('MANUAL_QUOTE_REQUIRED');
   });
@@ -214,6 +219,12 @@ describe('calculateFittingAtLocationPrice', () => {
     expect(result.available).toBe(true);
     // 24 + 11.90 + 23.50 + 60.00 + 77.00 = 196.40
     if (result.available) expect(result.travelFee).toBe(196.4);
+  });
+
+  it('is valid at exactly 100 miles', () => {
+    const result = calculateFittingAtLocationPrice(100);
+    expect(result.available).toBe(true);
+    if (result.available) expect(result.travelFee).toBe(366.4);
   });
 });
 
@@ -284,6 +295,13 @@ describe('calculatePricing — scheduled_shop', () => {
     expect(result.weatherSurcharge).toBe(0);
     expect(result.trafficSurcharge).toBe(0);
     expect(result.calloutFee).toBe(0);
+  });
+
+  it('scheduled_shop with distance > 100 does not return mobile coverage manual quote', () => {
+    const result = calculatePricing(shopInput({ distanceMiles: 120 }), defaultRules());
+    expect(result.isValid).toBe(true);
+    expect(result.error).toBeUndefined();
+    expect(result.mode).toBe('scheduled_shop');
   });
 
   it('does not return invalid even when weatherManualQuoteRequired for shop', () => {
@@ -363,10 +381,17 @@ describe('calculatePricing — scheduled_mobile', () => {
     expect(result.total).toBe(294.4);
   });
 
-  it('61 miles: returns manual quote required — spec test 11', () => {
-    const result = calculatePricing(mobileInput({ distanceMiles: 61 }), defaultRules());
+  it('100 miles (max): valid pricing returned', () => {
+    const result = calculatePricing(mobileInput({ distanceMiles: 100 }), defaultRules());
+    expect(result.isValid).toBe(true);
+    expect(result.calloutFee).toBe(366.4);
+    expect(result.total).toBe(464.4);
+  });
+
+  it('100.01 miles: returns outside auto-pricing area — spec test 11', () => {
+    const result = calculatePricing(mobileInput({ distanceMiles: 100.01 }), defaultRules());
     expect(result.isValid).toBe(false);
-    expect(result.error).toBe('FITTING_LOCATION_MANUAL_QUOTE_REQUIRED');
+    expect(result.error).toBe('OUTSIDE_AUTO_PRICING_AREA');
   });
 
   it('invalid distance: returns invalid distance error', () => {
@@ -624,10 +649,22 @@ describe('calculatePricing — emergency_mobile', () => {
     expect(result.discountAmount).toBeCloseTo(1.98, 2);
   });
 
-  it('emergency: 61 miles returns manual quote required — spec test 11', () => {
-    const result = calculatePricing(emergencyInput({ distanceMiles: 61 }), defaultRules());
+  it('emergency: 60 miles is auto-priced — spec test 11', () => {
+    const result = calculatePricing(emergencyInput({ distanceMiles: 60 }), defaultRules());
+    expect(result.isValid).toBe(true);
+    expect(result.calloutFee).toBeCloseTo(225.86, 2);
+  });
+
+  it('emergency: 100 miles is auto-priced — spec test 11', () => {
+    const result = calculatePricing(emergencyInput({ distanceMiles: 100 }), defaultRules());
+    expect(result.isValid).toBe(true);
+    expect(result.calloutFee).toBeCloseTo(421.36, 2);
+  });
+
+  it('emergency: 100.01 miles returns outside auto-pricing area — spec test 11', () => {
+    const result = calculatePricing(emergencyInput({ distanceMiles: 100.01 }), defaultRules());
     expect(result.isValid).toBe(false);
-    expect(result.error).toBe('FITTING_LOCATION_MANUAL_QUOTE_REQUIRED');
+    expect(result.error).toBe('OUTSIDE_AUTO_PRICING_AREA');
   });
 });
 

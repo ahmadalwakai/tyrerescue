@@ -2799,9 +2799,9 @@ function DispatchReviewSheet({
   onClose: () => void;
   onSend: () => void;
 }) {
-  const distanceMiles = draft.quote?.distanceKm != null ? draft.quote.distanceKm * 0.621371 : null;
-  const isFittingAtLocationQuote =
-    typeof draft.quote?.fittingPrice === 'number' && Number.isFinite(draft.quote.fittingPrice);
+  const distanceMiles =
+    draft.quote?.distanceMiles ??
+    (draft.quote?.distanceKm != null ? draft.quote.distanceKm * 0.621371 : null);
   const driveTime = draft.quote?.serviceOrigin?.etaMinutes ?? null;
   const canSend = Boolean(draft.paymentChoice && draft.quote && draft.quickBookingId && quoteConfirmed && !draft.dispatchedRefNumber);
   const disabledReason = !draft.quote
@@ -2833,9 +2833,7 @@ function DispatchReviewSheet({
             <DetailRow label="Quote ref" value={activeQuote?.quoteRef ?? draft.savedQuoteRef ?? 'Not saved'} />
             <DetailRow label="Selected payment" value={paymentOptionLabel(selectedPaymentOption)} />
             <DetailRow label="Payment status" value={draft.paymentLink ? 'Payment link ready' : draft.paymentChoice ? paymentChoiceLabel(draft.paymentChoice) : 'Not selected'} />
-            {!isFittingAtLocationQuote ? (
-              <DetailRow label="Distance" value={distanceMiles != null ? `${distanceMiles.toFixed(1)} miles` : 'Not available'} />
-            ) : null}
+            <DetailRow label="Distance" value={distanceMiles != null ? `${distanceMiles.toFixed(1)} miles` : 'Not available'} />
             <DetailRow label="Drive time" value={driveTime != null ? `${driveTime} minutes` : 'Not available'} />
             <DetailRow label="Driver/admin note" value={draft.note.trim() || 'None'} />
             {disabledReason ? <StatusBanner kind="warn" message={disabledReason} /> : null}

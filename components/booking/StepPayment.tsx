@@ -17,7 +17,6 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe, type StripeElementsOptions } from '@stripe/stripe-js';
 import { formatPrice, PricingBreakdown } from '@/lib/pricing-engine';
-import { FITTING_AT_LOCATION_LABEL } from '@/lib/fitting-location-pricing';
 import { trackConversion } from '@/lib/analytics/gtag';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
@@ -51,8 +50,6 @@ function CheckoutForm({
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const isFittingAtLocationQuote = typeof breakdown.fittingPrice === 'number';
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -125,7 +122,7 @@ function CheckoutForm({
           >
             <HStack justify="space-between">
               <Text fontWeight="700" fontSize="lg" color={c.text}>
-                {isFittingAtLocationQuote ? FITTING_AT_LOCATION_LABEL : 'Total'}
+                Total
               </Text>
               <Text fontWeight="700" fontSize="xl" color={c.accent}>
                 {formatPrice(breakdown.total)}

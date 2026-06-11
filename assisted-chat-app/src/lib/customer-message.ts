@@ -59,13 +59,6 @@ export function buildCustomerMessage(input: CustomerMessageInput): string {
   if (draft.lockingNut.answer === 'no' && draft.lockingNut.chargeGbp != null) {
     detail.push(`Locking wheel nut removal: ${formatGbp(draft.lockingNut.chargeGbp)}`);
   }
-  if (
-    draft.quote?.fittingPrice != null &&
-    Number.isFinite(draft.quote.fittingPrice) &&
-    draft.quote.fittingPrice > 0
-  ) {
-    detail.push(`Fitting at your location: ${formatGbp(draft.quote.fittingPrice)}`);
-  }
   if (draft.quote && Number.isFinite(effectiveTotal) && effectiveTotal > 0) {
     detail.push(`Total to pay: ${formatGbp(effectiveTotal)}`);
   }

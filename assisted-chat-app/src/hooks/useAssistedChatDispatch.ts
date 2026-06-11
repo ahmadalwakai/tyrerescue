@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
+import { ASSISTED_CHAT_PRICING_CONTEXT } from '@/lib/pricing-context';
 import type {
   AssistedChatDraft,
   AssistedChatPaymentChoice,
@@ -92,7 +93,7 @@ export function useAssistedChatDispatch({
           await api.patch(`/api/admin/quick-book/${draft.quickBookingId}`, {
             adminAdjustmentAmount: adjustmentAmount,
             adminAdjustmentReason: adjustmentReason,
-            pricingContext: 'assisted_chat',
+            pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
           });
         }
 

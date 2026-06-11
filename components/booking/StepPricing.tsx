@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Box, VStack, HStack, Text, Button, Spinner } from '@chakra-ui/react';
 import { WizardState, WizardStep } from './types';
 import { formatPrice, PricingBreakdown } from '@/lib/pricing-engine';
-import { FITTING_AT_LOCATION_LABEL } from '@/lib/fitting-location-pricing';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { trackCallClick } from '@/lib/analytics/gtag';
 import { anim } from '@/lib/animations';
@@ -549,11 +548,7 @@ export function StepPricing({
   }, [isRepairIntent, updateState]);
 
   const breakdown = state.breakdown as PricingBreakdown | null;
-  const isFittingAtLocationQuote =
-    typeof breakdown?.fittingPrice === 'number';
-  const quoteDisplayText = isFittingAtLocationQuote
-    ? `${FITTING_AT_LOCATION_LABEL}: ${formatPrice(breakdown?.total ?? 0)}`
-    : `Total: ${formatPrice(breakdown?.total ?? 0)}`;
+  const quoteDisplayText = `Total: ${formatPrice(breakdown?.total ?? 0)}`;
 
   if (!breakdown) {
     // Error state (API error or response validation failure)

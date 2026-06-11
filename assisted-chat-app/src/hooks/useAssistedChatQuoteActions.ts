@@ -3,6 +3,7 @@ import { Linking } from 'react-native';
 import { api, ApiError } from '@/lib/api';
 import { copyToClipboard } from '@/lib/clipboard';
 import { buildWhatsAppUrl } from '@/lib/customer-message';
+import { ASSISTED_CHAT_PRICING_CONTEXT } from '@/lib/pricing-context';
 import type {
   AssistedChatDraft,
   AssistedChatPaymentChoice,
@@ -173,7 +174,7 @@ export function useAssistedChatQuoteActions({
         const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${draft.quickBookingId}`, {
           adminAdjustmentAmount: adjustmentAmount,
           adminAdjustmentReason: adjustmentReason,
-          pricingContext: 'assisted_chat',
+          pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
         });
         const quote = quoteFromQuickBookPatch(patched.booking.priceBreakdown, patched.booking.distanceKm);
         canonicalDraft = { ...draft, quote, priceNeedsRefresh: false };

@@ -42,15 +42,7 @@ function buildPaymentMessage(
   if (paymentLink.remainingBalancePence != null) {
     lines.push(`Balance due on-site: ${moneyFromPence(paymentLink.remainingBalancePence)}`);
   }
-  if (
-    draft.quote?.fittingPrice != null &&
-    Number.isFinite(draft.quote.fittingPrice) &&
-    draft.quote.fittingPrice > 0
-  ) {
-    lines.push(`Fitting at your location: ${formatGbp(draft.quote.fittingPrice)}`);
-  } else {
-    lines.push(`Total: ${formatGbp(effectiveTotal)}`);
-  }
+  lines.push(`Total: ${formatGbp(effectiveTotal)}`);
   if (draft.location.address) lines.push(`Address: ${draft.location.address}`);
   if (draft.tyre.size) lines.push(`Tyres: ${draft.tyre.quantity} x ${draft.tyre.size}`);
   return lines.join('\n');

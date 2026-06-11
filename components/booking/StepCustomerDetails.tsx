@@ -22,7 +22,6 @@ import { API } from '@/lib/api-endpoints';
 import { EMAIL_REGEX, PHONE_DISPLAY_REGEX } from '@/lib/utils';
 import { getStoredUtm } from '@/lib/hooks/useUtmCapture';
 import { formatPrice } from '@/lib/pricing-engine';
-import { FITTING_AT_LOCATION_LABEL } from '@/lib/fitting-location-pricing';
 
 interface StepCustomerDetailsProps {
   state: WizardState;
@@ -155,8 +154,6 @@ export function StepCustomerDetails({
   };
 
   const isLoggedIn = !!session?.user;
-  const isFittingAtLocationQuote = typeof state.breakdown?.fittingPrice === 'number';
-
   return (
     <VStack gap={6} align="stretch">
       <Box style={anim.fadeUp('0.5s')}>
@@ -173,7 +170,7 @@ export function StepCustomerDetails({
         <Box p={4} bg={c.surface} borderRadius="md" borderWidth="1px" borderColor={c.border}>
           <HStack justify="space-between">
             <Text fontWeight="600" color={c.text}>
-              {isFittingAtLocationQuote ? FITTING_AT_LOCATION_LABEL : 'Total'}
+              Total
             </Text>
             <Text fontWeight="700" color={c.accent}>{formatPrice(state.breakdown.total)}</Text>
           </HStack>

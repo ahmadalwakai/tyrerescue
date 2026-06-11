@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { normalizeAssistedChatTyreSize } from '@/lib/assisted-chat-workflow';
+import { ASSISTED_CHAT_PRICING_CONTEXT } from '@/lib/pricing-context';
 import type {
   AssistedChatDraft,
   AssistedChatQuoteBreakdown,
@@ -150,7 +151,7 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
             tyreSize: normalizedTyreSize,
             tyreCount: draft.tyre.quantity,
             ...adjustmentPayload,
-            pricingContext: 'assisted_chat',
+            pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
             notes: draft.note || undefined,
           });
           return {
@@ -171,7 +172,7 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
           tyreCount: draft.tyre.quantity,
           notes: draft.note || null,
           ...adjustmentPayload,
-          pricingContext: 'assisted_chat',
+          pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
         });
         return {
           quickBookingId: draft.quickBookingId,
@@ -200,6 +201,16 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
           dispatchedBookingId: null,
         });
         setError('This quick booking session expired. Tap Get Price again to start a new one.');
+      } else if (err instanceof ApiError && err.status === 422) {
+        update({
+          quote: null,
+          priceNeedsRefresh: true,
+          paymentChoice: null,
+          paymentLink: null,
+          dispatchedRefNumber: null,
+          dispatchedBookingId: null,
+        });
+        setError(err.message);
       } else {
         setError(err instanceof Error ? err.message : 'Unknown error');
       }

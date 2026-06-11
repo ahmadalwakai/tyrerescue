@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { api, ApiError } from '@/lib/api';
 import { formatGbp } from '@/lib/money';
+import { ASSISTED_CHAT_PRICING_CONTEXT } from '@/lib/pricing-context';
 import { ActionButton } from '../ui/ActionButton';
 import { colors, fontSize, radius, space } from '../theme';
 import type { AssistedChatQuoteBreakdown, QuickBookPatchResponse } from '@/types/assisted-chat';
@@ -111,7 +112,7 @@ export function EditQuotePriceModal({
       const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${quickBookingId}`, {
         adminAdjustmentAmount: delta,
         adminAdjustmentReason: MANUAL_PRICE_REASON,
-        pricingContext: 'assisted_chat',
+        pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
       });
       onSaved(result.value, quoteFromQuickBookPatch(patched.booking.priceBreakdown, patched.booking.distanceKm));
       onClose();

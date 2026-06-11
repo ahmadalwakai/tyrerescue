@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tyre Rescue Assisted Chat",
     "slug": "tyre-rescue-assisted-chat",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "scheme": "tyrerescueassistedchat",
     "userInterfaceStyle": "dark",
@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "uk.tyrerescue.assistedchat",
-      "versionCode": 3,
+      "versionCode": 4,
       "permissions": [
         "INTERNET",
         "POST_NOTIFICATIONS",

@@ -569,7 +569,7 @@ export function AssistedChatPage() {
             tyreSize: draft.tyre.size,
             tyreCount: draft.tyre.quantity,
             notes: draft.note || null,
-            pricingContext: 'assisted_chat',
+            pricingContext: 'emergency_mobile_fitting',
             ...adjustmentPayload,
           }),
         });

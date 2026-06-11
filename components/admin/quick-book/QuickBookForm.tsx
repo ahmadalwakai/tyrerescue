@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text, VStack, HStack, Stack, Input, Button, Flex, Spinner, Textarea } from '@chakra-ui/react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { loadStripe, type StripeElementsOptions } from '@stripe/stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import { QuickBookMap } from './QuickBookMap';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
@@ -11,7 +11,7 @@ import {
   buildLocationCopyMessage,
   type LocationMessageContext,
 } from '@/lib/quick-book-message-templates';
-import { FITTING_AT_LOCATION_LABEL, formatGbp } from '@/lib/fitting-location-pricing';
+import { formatGbp } from '@/lib/fitting-location-pricing';
 import type { CustomerEmailMode } from '@/app/api/admin/quick-book/route';
 
 // Load Stripe outside of component to avoid recreating on every render
@@ -178,19 +178,6 @@ function getBackendQuoteTotal(
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function getSeparateFittingPrice(
-  breakdown: { fittingPrice?: number | null } | null | undefined,
-  total: number,
-): number | null {
-  if (typeof breakdown?.fittingPrice !== 'number' || !Number.isFinite(breakdown.fittingPrice)) {
-    return null;
-  }
-
-  return Math.round(breakdown.fittingPrice * 100) === Math.round(total * 100)
-    ? null
-    : breakdown.fittingPrice;
-}
-
 /**
  * Stripe Elements form for deposit payment
  */
@@ -205,7 +192,6 @@ interface DepositCheckoutFormProps {
 function DepositCheckoutFormInner({
   depositAmount,
   remainingBalance,
-  bookingId,
   onSuccess,
   onCancel,
 }: DepositCheckoutFormProps) {
@@ -479,6 +465,36 @@ export function QuickBookForm() {
     }
   }, [form]);
 
+  // ── Initiate deposit payment (create PaymentIntent) ──
+  const initiateDepositPayment = useCallback(async (bookingId: string) => {
+    setDepositLoading(true);
+    setDepositError(null);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/deposit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(getApiErrorMessage(data, 'Failed to create deposit payment'));
+      }
+
+      const data = await res.json();
+      setDepositClientSecret(data.clientSecret);
+      setDepositInfo({
+        depositAmount: data.depositAmount,
+        remainingBalance: data.remainingBalance,
+        bookingId,
+      });
+      setDepositDialogOpen(true);
+    } catch (err) {
+      setDepositError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setDepositLoading(false);
+    }
+  }, []);
+
   // ── Finalize into real booking ──
   const handleFinalize = useCallback(async (paymentMethod: 'stripe' | 'cash' | 'deposit') => {
     if (!created?.booking.id) return;
@@ -516,37 +532,7 @@ export function QuickBookForm() {
     } finally {
       setIsFinalizing(false);
     }
-  }, [created?.booking.id, form.customerEmailMode]);
-
-  // ── Initiate deposit payment (create PaymentIntent) ──
-  const initiateDepositPayment = useCallback(async (bookingId: string) => {
-    setDepositLoading(true);
-    setDepositError(null);
-    try {
-      const res = await fetch(`/api/bookings/${bookingId}/deposit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(getApiErrorMessage(data, 'Failed to create deposit payment'));
-      }
-
-      const data = await res.json();
-      setDepositClientSecret(data.clientSecret);
-      setDepositInfo({
-        depositAmount: data.depositAmount,
-        remainingBalance: data.remainingBalance,
-        bookingId,
-      });
-      setDepositDialogOpen(true);
-    } catch (err) {
-      setDepositError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setDepositLoading(false);
-    }
-  }, []);
+  }, [created?.booking.id, form.customerEmailMode, initiateDepositPayment]);
 
   // ── Handle deposit payment success ──
   const handleDepositSuccess = useCallback(() => {
@@ -765,7 +751,6 @@ export function QuickBookForm() {
     const depositAmount = finalized.depositAmountPence ? finalized.depositAmountPence / 100 : 0;
     const remainingBalance = finalized.remainingBalancePence ? finalized.remainingBalancePence / 100 : 0;
     const payableTotal = getBackendQuoteTotal(finalized.breakdown, null);
-    const fittingPrice = getSeparateFittingPrice(finalized.breakdown, payableTotal);
 
     return (
       <>
@@ -819,14 +804,6 @@ export function QuickBookForm() {
                   {formatGbp(payableTotal)}
                 </Text>
               </Flex>
-              {fittingPrice != null ? (
-                <Flex justify="space-between" align="center" mt={2}>
-                  <Text color={c.muted} fontSize="sm">{FITTING_AT_LOCATION_LABEL}</Text>
-                  <Text color={c.text} fontSize="sm" fontWeight="600">
-                    {formatGbp(fittingPrice)}
-                  </Text>
-                </Flex>
-              ) : null}
             </Box>
 
             <Box bg={c.surface} p={3} borderRadius="8px">
@@ -1296,10 +1273,6 @@ export function QuickBookForm() {
                   created.booking.priceBreakdown,
                   created.booking.totalPrice,
                 );
-                const fittingPrice = getSeparateFittingPrice(
-                  created.booking.priceBreakdown,
-                  payableTotal,
-                );
 
                 return (
                   <>
@@ -1310,14 +1283,6 @@ export function QuickBookForm() {
                         {formatGbp(payableTotal)}
                       </Text>
                     </Flex>
-                    {fittingPrice != null ? (
-                      <Flex justify="space-between" align="center" mt={2}>
-                        <Text color={c.muted} fontSize="sm">{FITTING_AT_LOCATION_LABEL}</Text>
-                        <Text color={c.text} fontSize="sm" fontWeight="600">
-                          {formatGbp(fittingPrice)}
-                        </Text>
-                      </Flex>
-                    ) : null}
                   </>
                 );
               })()}

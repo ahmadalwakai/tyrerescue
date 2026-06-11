@@ -3,6 +3,7 @@ import { Linking } from 'react-native';
 import { api, ApiError } from '@/lib/api';
 import { copyToClipboard } from '@/lib/clipboard';
 import { normalizeAssistedChatTyreSize } from '@/lib/assisted-chat-workflow';
+import { ASSISTED_CHAT_PRICING_CONTEXT } from '@/lib/pricing-context';
 import type {
   AssistedChatDraft,
   AssistedChatLocationMethod,
@@ -105,6 +106,7 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
         serviceType: 'fit',
         tyreSize: normalizeAssistedChatTyreSize(draft.tyre.size) ?? undefined,
         tyreCount: draft.tyre.quantity,
+        pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
         notes: draft.note || undefined,
       });
       applyBooking(created.booking, {
