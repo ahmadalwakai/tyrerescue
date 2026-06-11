@@ -1,3 +1,4 @@
+// Legacy pricing engine. Do not use for live booking quotes. Live pricing source is lib/pricing-engine.ts.
 import { Decimal } from 'decimal.js';
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -128,4 +129,3 @@ export function calculatePrice(factors: PriceFactors): PriceBreakdown {
     factors: factorsList,
   };
 }
-// Legacy pricing engine. Do not use for live booking quotes. Live pricing source is lib/pricing-engine.ts.

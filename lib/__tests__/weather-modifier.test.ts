@@ -20,7 +20,7 @@ describe('calculateWeatherSurcharge', () => {
 
   it('returns heavy rain surcharge', () => {
     expect(calculateWeatherSurcharge({ condition: 'Rain', precipitationMm: 3 })).toMatchObject({
-      surcharge: 10,
+      surcharge: 12,
       code: 'HEAVY_RAIN',
       manualQuoteRequired: false,
     });

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAppOrigin } from '@/lib/config/site';
+import { getAppOrigin, getOutboundUrl } from '@/lib/config/site';
 import { requireAdminMobile } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
@@ -31,13 +31,20 @@ import { GARAGE_ADDRESS } from '@/lib/garage';
 import { commitReservationsForBooking } from '@/lib/inventory/stock-service';
 import { ensureTrackingSession } from '@/lib/tracking-session';
 import { getWeatherPricingContext, type WeatherPricingContext } from '@/lib/weather';
-
+import { validateRecipientEmail } from '@/lib/email/validate-recipient';
+import { sendBookingEmailOnce } from '@/lib/email/resend';
+import { bookingConfirmed } from '@/lib/email/templates';
+import type { CustomerEmailMode } from '@/app/api/admin/quick-book/route';
 
 const SERVICE_MAP: Record<string, string> = {
   fit: 'tyre_replacement',
   repair: 'puncture_repair',
   assess: 'locking_nut_removal',
 };
+
+// عنوان احتياطي لعملاء walk-in الذين لا يملكون بريدًا إلكترونيًا حقيقيًا
+// يُستخدم فقط لإلزامية حقل customer_email في قاعدة البيانات — لا يُرسَل إليه بريد أبدًا
+const WALK_IN_DB_EMAIL = 'phone-booking@tyrerescue.uk';
 
 const COMPANY = {
   name: 'Tyre Rescue',
@@ -71,7 +78,8 @@ export async function POST(
 
   // Parse body — paymentMethod defaults to 'stripe'
   let paymentMethod: 'stripe' | 'cash' | 'deposit' = 'stripe';
-  let depositPercent = 0.20; // default 20% (existing quick-book behaviour)
+  let depositPercent = 0.20;
+  let customerEmailMode: CustomerEmailMode = 'walk_in_customer';
   try {
     const body = await request.json();
     if (body.paymentMethod === 'cash') paymentMethod = 'cash';
@@ -80,8 +88,11 @@ export async function POST(
       const clamped = Math.min(0.5, Math.max(0.05, body.depositPercent));
       depositPercent = Math.round(clamped * 10000) / 10000;
     }
+    if (body.customerEmailMode === 'send_customer_confirmation') {
+      customerEmailMode = 'send_customer_confirmation';
+    }
   } catch {
-    // empty body → default to stripe
+    // empty body → defaults
   }
 
   // Load the quick booking
@@ -108,6 +119,19 @@ export async function POST(
       { error: 'Location required before finalizing' },
       { status: 400 }
     );
+  }
+
+  // التحقق من البريد الإلكتروني إذا طُلب إرسال تأكيد للعميل
+  let confirmedCustomerEmail: string | null = null;
+  if (customerEmailMode === 'send_customer_confirmation') {
+    const emailCheck = validateRecipientEmail(qb.customerEmail);
+    if (!emailCheck.ok) {
+      return NextResponse.json(
+        { error: `Cannot send confirmation: ${emailCheck.reason}. Update the customer email and try again.` },
+        { status: 400 },
+      );
+    }
+    confirmedCustomerEmail = emailCheck.email;
   }
 
   const lat = Number(qb.locationLat);
@@ -222,15 +246,16 @@ export async function POST(
 
   const refNumber = generateRefNumber();
   const bookingId = uuidv4();
-  const customerEmail = qb.customerEmail || 'phone-booking@tyrerescue.uk';
+
+  // يُستخدم عنوان walk-in فقط لتلبية إلزامية العمود في قاعدة البيانات
+  // لا يُرسَل إليه بريد إلكتروني في أي حال
+  const dbCustomerEmail = qb.customerEmail || WALK_IN_DB_EMAIL;
 
   const addressLine = qb.locationAddress || qb.locationPostcode || `${lat}, ${lng}`;
 
-  // Determine initial status based on payment method
   const initialStatus = paymentMethod === 'cash' ? 'paid' : 'awaiting_payment';
   let checkoutUrl: string | null = null;
 
-  // Calculate deposit amounts for deposit payment
   const totalInPence = Math.round(breakdown.total * 100);
   const depositAmountPence = paymentMethod === 'deposit' ? Math.round(totalInPence * depositPercent) : null;
   const remainingBalancePence = depositAmountPence ? totalInPence - depositAmountPence : null;
@@ -280,7 +305,7 @@ export async function POST(
       vehicleModel: null,
       tyrePhotoUrl: null,
       customerName: qb.customerName,
-      customerEmail,
+      customerEmail: dbCustomerEmail,
       customerPhone: qb.customerPhone,
       scheduledAt: null,
       priceSnapshot: breakdown,
@@ -312,7 +337,7 @@ export async function POST(
         {
           bookingId,
           refNumber,
-          customerEmail,
+          customerEmail: dbCustomerEmail,
         },
         {
           successUrl: `${baseUrl}/admin/bookings/${refNumber}?stripe=success`,
@@ -356,7 +381,7 @@ export async function POST(
       userId: null,
       status: invoiceStatus,
       customerName: qb.customerName,
-      customerEmail: qb.customerEmail || 'phone-booking@tyrerescue.uk',
+      customerEmail: dbCustomerEmail,
       customerPhone: qb.customerPhone,
       customerAddress: addressLine,
       companyName: COMPANY.name,
@@ -435,9 +460,7 @@ export async function POST(
     await persistFinalizeWrites(db);
   }
 
-  // Cash quick bookings are paid + confirmed at finalize time. Webhook
-  // never fires for these, so deduct physical stock here. Idempotent via
-  // commitReservationsForBooking's sale-movement marker.
+  // Cash quick bookings are paid + confirmed at finalize time.
   if (paymentMethod === 'cash') {
     const commitResult = await commitReservationsForBooking({
       bookingId,
@@ -453,8 +476,41 @@ export async function POST(
     }
   }
 
+  // إرسال تأكيد الحجز للعميل إذا طُلب ذلك صراحةً وكان البريد صالحًا
+  // هذا fire-and-forget — لا يُعيق استجابة الـ API في حالة الفشل
+  if (customerEmailMode === 'send_customer_confirmation' && confirmedCustomerEmail) {
+    const siteUrl = getOutboundUrl();
+    const trackingUrl = `${siteUrl}/tracking/${refNumber}`;
+    const tyreSummary = qb.tyreSize
+      ? `${qb.tyreSize} tyre x${quantity}`
+      : `${SERVICE_MAP[serviceType] || 'Tyre service'} x${quantity}`;
+
+    void (async () => {
+      try {
+        const email = bookingConfirmed({
+          customerName: qb.customerName,
+          refNumber,
+          bookingType: 'emergency',
+          serviceType: SERVICE_MAP[serviceType] || 'Tyre service',
+          address: addressLine,
+          tyreSummary,
+          quantity,
+          trackingUrl,
+        });
+        await sendBookingEmailOnce({
+          to: confirmedCustomerEmail!,
+          subject: email.subject,
+          html: email.html,
+          type: 'booking-confirmed',
+          bookingId,
+        });
+      } catch (err) {
+        console.error('[quick-book:finalize] customer confirmation email failed:', err);
+      }
+    })();
+  }
+
   // Send urgent push for finalized admin emergency quick bookings.
-  // Fire-and-forget so finalize is never blocked by notification delivery.
   void sendUrgentBookingTopicPush({
     bookingId,
     customerPhone: qb.customerPhone,
@@ -486,13 +542,10 @@ export async function POST(
     },
   }).catch(console.error);
 
-  // Ensure a tracking session for this booking — fire-and-forget so it
-  // never blocks the finalize response even if the DB call is slow.
   ensureTrackingSession(bookingId).catch((err) =>
     console.error('[finalize] ensureTracking failed:', err),
   );
 
-  // Stripe Checkout URL for payment (only for full stripe payment)
   const paymentUrl = checkoutUrl;
 
   return NextResponse.json({
@@ -502,7 +555,6 @@ export async function POST(
     paymentMethod,
     paymentUrl,
     stripeClientSecret: null,
-    // Deposit info for deposit payment method
     depositAmountPence: paymentMethod === 'deposit' ? depositAmountPence : null,
     remainingBalancePence: paymentMethod === 'deposit' ? remainingBalancePence : null,
     breakdown: {
@@ -524,14 +576,6 @@ export async function POST(
  * DELETE /api/admin/quick-book/[id]/finalize
  *
  * Cancels (rolls back) a finalized quick booking that has not yet been paid.
- * Used when the admin closes the deposit/payment dialog and wants to choose a
- * different payment method. Removes the bookings row and dependent rows so the
- * quick booking can be re-finalized.
- *
- * Refuses if:
- *  - quick booking has no linked bookingId (nothing to undo)
- *  - the booking is already paid / past awaiting_payment
- *  - a deposit has already been paid (depositPaidAt set)
  */
 export async function DELETE(
   request: Request,
@@ -555,7 +599,6 @@ export async function DELETE(
   }
 
   if (!qb.bookingId) {
-    // Nothing to undo — already in pre-finalize state
     return NextResponse.json({ ok: true, alreadyReset: true });
   }
 
@@ -585,14 +628,11 @@ export async function DELETE(
   const performRollback = async (executor: BookingWriteExecutor) => {
     if (!qb.bookingId) return;
 
-    // Delete dependent rows that don't cascade from bookings
     await executor.delete(payments).where(eq(payments.bookingId, qb.bookingId));
     await executor
       .delete(bookingStatusHistory)
       .where(eq(bookingStatusHistory.bookingId, qb.bookingId));
-    // invoiceItems cascade from invoices.id; invoices have no cascade from bookings
     await executor.delete(invoices).where(eq(invoices.bookingId, qb.bookingId));
-    // bookingTyres cascade from bookings.id
     await executor.delete(bookings).where(eq(bookings.id, qb.bookingId));
 
     await executor

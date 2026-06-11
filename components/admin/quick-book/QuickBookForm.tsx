@@ -12,6 +12,7 @@ import {
   type LocationMessageContext,
 } from '@/lib/quick-book-message-templates';
 import { FITTING_AT_LOCATION_LABEL, formatGbp } from '@/lib/fitting-location-pricing';
+import type { CustomerEmailMode } from '@/app/api/admin/quick-book/route';
 
 // Load Stripe outside of component to avoid recreating on every render
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -23,6 +24,7 @@ interface FormState {
   customerName: string;
   customerPhone: string;
   customerEmail: string;
+  customerEmailMode: CustomerEmailMode;
   locationMethod: LocationMethod;
   locationAddress: string;
   locationLat: number | null;
@@ -121,6 +123,7 @@ const initialForm: FormState = {
   customerName: '',
   customerPhone: '',
   customerEmail: '',
+  customerEmailMode: 'walk_in_customer',
   locationMethod: 'address',
   locationAddress: '',
   locationLat: null,
@@ -434,6 +437,11 @@ export function QuickBookForm() {
 
   // ── Submit quick booking ──
   const handleSubmit = useCallback(async () => {
+    // التحقق من البريد الإلكتروني عند الضرورة قبل إرسال الطلب
+    if (form.customerEmailMode === 'send_customer_confirmation' && !form.customerEmail.trim()) {
+      setError('Please enter a customer email address to send a confirmation.');
+      return;
+    }
     setStatus('submitting');
     setError('');
     try {
@@ -444,6 +452,7 @@ export function QuickBookForm() {
           customerName: form.customerName,
           customerPhone: form.customerPhone,
           customerEmail: form.customerEmail || undefined,
+          customerEmailMode: form.customerEmailMode,
           locationMethod: form.locationMethod,
           locationAddress: form.locationMethod === 'address' ? form.locationAddress : undefined,
           locationLat: form.locationLat ?? undefined,
@@ -479,7 +488,7 @@ export function QuickBookForm() {
       const res = await fetch(`/api/admin/quick-book/${created.booking.id}/finalize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentMethod }),
+        body: JSON.stringify({ paymentMethod, customerEmailMode: form.customerEmailMode }),
       });
 
       if (!res.ok) {
@@ -507,7 +516,7 @@ export function QuickBookForm() {
     } finally {
       setIsFinalizing(false);
     }
-  }, [created?.booking.id]);
+  }, [created?.booking.id, form.customerEmailMode]);
 
   // ── Initiate deposit payment (create PaymentIntent) ──
   const initiateDepositPayment = useCallback(async (bookingId: string) => {
@@ -1603,11 +1612,37 @@ export function QuickBookForm() {
           />
         </Flex>
         <Input
-          placeholder="Email (optional)"
+          placeholder={form.customerEmailMode === 'send_customer_confirmation' ? 'Email *' : 'Email (optional)'}
           value={form.customerEmail}
           onChange={(e) => set('customerEmail', e.target.value)}
           {...inputProps}
         />
+
+        {/* Email mode toggle */}
+        <Flex gap={2}>
+          {(['walk_in_customer', 'send_customer_confirmation'] as CustomerEmailMode[]).map((mode) => (
+            <Box
+              key={mode}
+              as="button"
+              flex={1}
+              p={3}
+              borderRadius="8px"
+              borderWidth="2px"
+              borderColor={form.customerEmailMode === mode ? c.accent : c.border}
+              bg={form.customerEmailMode === mode ? 'rgba(249,115,22,0.1)' : c.surface}
+              color={form.customerEmailMode === mode ? c.accent : c.muted}
+              cursor="pointer"
+              transition="all 0.2s"
+              textAlign="center"
+              fontSize="12px"
+              fontWeight="600"
+              onClick={() => set('customerEmailMode', mode)}
+              _hover={{ borderColor: c.accent }}
+            >
+              {mode === 'walk_in_customer' ? 'Walk-in — no email' : 'Send confirmation email'}
+            </Box>
+          ))}
+        </Flex>
 
         {/* Location */}
         <Text color={c.text} fontSize="sm" fontWeight="600" textTransform="uppercase" letterSpacing="0.05em" mt={2}>

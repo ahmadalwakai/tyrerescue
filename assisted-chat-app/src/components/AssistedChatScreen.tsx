@@ -339,13 +339,6 @@ function buildJobDetails(
   );
   if (lockingNutCharge > 0) lines.push(`Locking wheel nut removal: ${formatGbp(lockingNutCharge)}`);
   if (draft.note.trim()) lines.push(`Driver note: ${draft.note.trim()}`);
-  if (
-    draft.quote?.fittingPrice != null &&
-    Number.isFinite(draft.quote.fittingPrice) &&
-    draft.quote.fittingPrice > 0
-  ) {
-    lines.push(`Fitting at your location: ${formatGbp(draft.quote.fittingPrice)}`);
-  }
   if (draft.quote) {
     lines.push(`Total: ${formatGbp(effectiveTotal)}`);
   }
@@ -375,13 +368,6 @@ function buildPaymentMessage(paymentLink: StripePaymentLinkState, draft: Assiste
   lines.push(`Reference: ${paymentLink.refNumber}`);
   lines.push(paymentLink.kind === 'deposit' ? `Deposit due now: ${formatPence(paymentLink.amountPence)}` : `Amount due: ${formatPence(paymentLink.amountPence)}`);
   if (paymentLink.remainingBalancePence != null) lines.push(`Balance due on-site: ${formatPence(paymentLink.remainingBalancePence)}`);
-  if (
-    draft.quote?.fittingPrice != null &&
-    Number.isFinite(draft.quote.fittingPrice) &&
-    draft.quote.fittingPrice > 0
-  ) {
-    lines.push(`Fitting at your location: ${formatGbp(draft.quote.fittingPrice)}`);
-  }
   lines.push(`Total to pay: ${formatGbp(effectiveTotal)}`);
   if (draft.location.address) lines.push(`Address: ${draft.location.address}`);
   if (draft.tyre.size) lines.push(`Tyres: ${draft.tyre.quantity} x ${draft.tyre.size}`);
@@ -2128,7 +2114,11 @@ function renderActiveStage(args: RenderActiveStageArgs) {
               style={styles.input}
             />
             <View style={styles.fieldGap} />
-            <FieldLabel>Customer email</FieldLabel>
+            <FieldLabel>
+              {draft.customerEmailMode === 'send_customer_confirmation'
+                ? 'Customer email *'
+                : 'Customer email (optional)'}
+            </FieldLabel>
             <TextInput
               value={draft.customer.email}
               onChangeText={(email) => update({ customer: { ...draft.customer, email } })}
@@ -2139,6 +2129,27 @@ function renderActiveStage(args: RenderActiveStageArgs) {
               autoCorrect={false}
               style={styles.input}
             />
+            <View style={styles.fieldGap} />
+            {/* زر تبديل وضع البريد الإلكتروني */}
+            <View style={styles.emailModeRow}>
+              {(['walk_in_customer', 'send_customer_confirmation'] as const).map((mode) => (
+                <Pressable
+                  key={mode}
+                  onPress={() => update({ customerEmailMode: mode })}
+                  style={[
+                    styles.emailModeBtn,
+                    draft.customerEmailMode === mode && styles.emailModeBtnActive,
+                  ]}
+                >
+                  <Text style={[
+                    styles.emailModeBtnText,
+                    draft.customerEmailMode === mode && styles.emailModeBtnTextActive,
+                  ]}>
+                    {mode === 'walk_in_customer' ? 'Walk-in — no email' : 'Send confirmation'}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </SectionCard>
         </Pressable>
         <CallNotesCard
@@ -3001,6 +3012,19 @@ const styles = StyleSheet.create({
   stepStack: { gap: 12 },
   input: baseInput,
   fieldGap: { height: 10 },
+  emailModeRow: { flexDirection: 'row', gap: 8 },
+  emailModeBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: 'center' as const,
+  },
+  emailModeBtnActive: { borderColor: colors.accent, backgroundColor: 'rgba(249,115,22,0.08)' },
+  emailModeBtnText: { fontSize: 11, fontWeight: '600' as const, color: colors.subtle, textAlign: 'center' as const },
+  emailModeBtnTextActive: { color: colors.accent },
   note: { ...baseInput, minHeight: 96, textAlignVertical: 'top' },
   callNotesInput: { ...baseInput, minHeight: 92, lineHeight: 20, textAlignVertical: 'top' },
   callNotesActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },

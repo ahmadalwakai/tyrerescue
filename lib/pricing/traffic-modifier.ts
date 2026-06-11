@@ -1,3 +1,5 @@
+import type { PricingMode } from './weather-modifier';
+
 export type TrafficSurchargeCode =
   | 'NONE'
   | 'MODERATE_TRAFFIC'
@@ -8,6 +10,7 @@ export type TrafficSurchargeCode =
 export interface TrafficSurchargeInput {
   distanceMiles: number;
   durationMinutes?: number | null;
+  mode?: PricingMode;
 }
 
 export interface TrafficSurchargeResult {
@@ -17,6 +20,8 @@ export interface TrafficSurchargeResult {
 }
 
 export function calculateTrafficSurcharge(input: TrafficSurchargeInput): TrafficSurchargeResult {
+  const mode = input.mode ?? 'scheduled_mobile';
+
   if (
     !Number.isFinite(input.distanceMiles) ||
     input.distanceMiles < 0 ||
@@ -27,18 +32,34 @@ export function calculateTrafficSurcharge(input: TrafficSurchargeInput): Traffic
     return { surcharge: 0, delayMinutes: 0, code: 'UNKNOWN' };
   }
 
-  const expectedMinutes = (input.distanceMiles / 30) * 60;
+  if (mode === 'scheduled_shop') {
+    return { surcharge: 0, delayMinutes: 0, code: 'NONE' };
+  }
+
+  // Baseline speed: 30 mph → 2 minutes per mile
+  const expectedMinutes = input.distanceMiles * 2;
   const delayMinutes = Math.max(0, input.durationMinutes - expectedMinutes);
 
-  if (delayMinutes <= 10) {
-    return { surcharge: 0, delayMinutes, code: 'NONE' };
-  }
-  if (delayMinutes <= 20) {
-    return { surcharge: 8, delayMinutes, code: 'MODERATE_TRAFFIC' };
-  }
-  if (delayMinutes <= 35) {
-    return { surcharge: 15, delayMinutes, code: 'HEAVY_TRAFFIC' };
+  if (delayMinutes === 0) {
+    return { surcharge: 0, delayMinutes: 0, code: 'NONE' };
   }
 
-  return { surcharge: 25, delayMinutes, code: 'SEVERE_TRAFFIC' };
+  // Code categorisation (labels only — surcharge formula is continuous)
+  let code: TrafficSurchargeCode;
+  if (delayMinutes <= 20) {
+    code = 'MODERATE_TRAFFIC';
+  } else if (delayMinutes <= 35) {
+    code = 'HEAVY_TRAFFIC';
+  } else {
+    code = 'SEVERE_TRAFFIC';
+  }
+
+  // Spec formula: Math.min(delayMinutes * rate, cap)
+  // scheduled_mobile: £0.45/min, capped at £20
+  // emergency_mobile: £0.75/min, capped at £35
+  const surcharge = mode === 'emergency_mobile'
+    ? Math.min(delayMinutes * 0.75, 35)
+    : Math.min(delayMinutes * 0.45, 20);
+
+  return { surcharge: Math.round(surcharge * 100) / 100, delayMinutes, code };
 }

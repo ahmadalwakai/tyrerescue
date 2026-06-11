@@ -20,7 +20,7 @@ import { sendWithFallback } from '../email/sender';
 describe('sendWithFallback — no providers', () => {
   it('returns failure when no email provider is configured', async () => {
     const result = await sendWithFallback({
-      to: 'test@example.com',
+      to: 'test@gmail.com',
       subject: 'Test',
       html: '<p>Hello</p>',
     });

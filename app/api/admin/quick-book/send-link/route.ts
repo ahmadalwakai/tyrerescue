@@ -16,6 +16,7 @@ import {
 } from '@/lib/quick-book-message-templates';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { getOutboundUrl } from '@/lib/config/site';
+import { validateRecipientEmail } from '@/lib/email/validate-recipient';
 
 const schema = z.object({
   quickBookingId: z.string().uuid(),
@@ -135,11 +136,13 @@ export async function POST(request: Request) {
 
   // ─── Email ────────────────────────────────────────────
   if (method === 'email') {
-    if (!email) {
+    // التحقق من صحة البريد الإلكتروني قبل الإرسال — يحجب العناوين الوهمية والمؤقتة
+    const emailCheck = validateRecipientEmail(email);
+    if (!emailCheck.ok) {
       const result: SendLinkResponse = {
         ok: false,
         method: 'email',
-        error: 'No email address on file for this customer',
+        error: email ? `Cannot send email: ${emailCheck.reason}` : 'No email address on file for this customer',
       };
       return NextResponse.json(result, { status: 400 });
     }
@@ -149,7 +152,7 @@ export async function POST(request: Request) {
       .replace(/\n/g, '<br>');
 
     const emailResult = await createNotificationAndSend({
-      to: email,
+      to: emailCheck.email,
       subject,
       html: htmlBody,
       text: buildLocationEmailBody(msgCtx),

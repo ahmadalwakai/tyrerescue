@@ -4,19 +4,22 @@ import {
   formatGbp,
 } from '../fitting-location-pricing';
 
+// v2: fittingPrice is the travel fee only (labour is billed separately by the pricing engine)
+// Tier structure: base £24 (0–3 mi), +£1.70/mi (3–10), +£2.35/mi (10–20), +£3.00/mi (20–40), +£3.85/mi (40–60)
 describe('calculateFittingAtLocationPrice', () => {
   it.each([
-    [0, 121],
-    [5, 122.65],
-    [6, 153],
-    [10, 153],
-    [11, 200.2],
-    [20, 211],
-    [21, 256.43],
-    [40, 283.6],
-    [41, 435.75],
-    [100, 539],
-  ])('returns %s miles as £%s', (distanceMiles, expectedPrice) => {
+    [0,    24],
+    [3,    24],
+    [5,    27.4],
+    [6,    29.1],
+    [10,   35.9],
+    [11,   38.25],
+    [20,   59.4],
+    [21,   62.4],
+    [40,   119.4],
+    [41,   123.25],
+    [60,   196.4],
+  ])('returns %s miles as £%s travel fee', (distanceMiles, expectedPrice) => {
     const result = calculateFittingAtLocationPrice(distanceMiles);
 
     expect(result.available).toBe(true);
@@ -25,8 +28,8 @@ describe('calculateFittingAtLocationPrice', () => {
     }
   });
 
-  it('returns manual quote state over 100 miles', () => {
-    const result = calculateFittingAtLocationPrice(100.1);
+  it('returns manual quote state over 60 miles', () => {
+    const result = calculateFittingAtLocationPrice(60.1);
 
     expect(result.available).toBe(false);
     if (!result.available) {

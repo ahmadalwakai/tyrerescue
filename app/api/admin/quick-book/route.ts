@@ -18,11 +18,15 @@ import {
   buildLocationWhatsAppMessage,
   buildWhatsAppUrl,
 } from '@/lib/quick-book-message-templates';
+import { validateRecipientEmail } from '@/lib/email/validate-recipient';
+
+export type CustomerEmailMode = 'walk_in_customer' | 'send_customer_confirmation';
 
 const createSchema = z.object({
   customerName: z.string().min(1).max(255),
   customerPhone: z.string().min(5).max(20),
   customerEmail: z.string().email().optional().or(z.literal('')),
+  customerEmailMode: z.enum(['walk_in_customer', 'send_customer_confirmation']).optional(),
   locationMethod: z.enum(['link', 'address']),
   locationLat: z.number().optional(),
   locationLng: z.number().optional(),
@@ -82,6 +86,24 @@ export async function POST(request: Request) {
   }
 
   const data = parsed.data;
+
+  // تطبيق سياسة البريد الإلكتروني — الافتراضي walk_in_customer لا يتطلب بريدًا
+  const emailMode: CustomerEmailMode = data.customerEmailMode ?? 'walk_in_customer';
+  if (emailMode === 'send_customer_confirmation') {
+    if (!data.customerEmail) {
+      return NextResponse.json(
+        { error: 'Customer email is required when email mode is send_customer_confirmation' },
+        { status: 400 },
+      );
+    }
+    const emailCheck = validateRecipientEmail(data.customerEmail);
+    if (!emailCheck.ok) {
+      return NextResponse.json(
+        { error: `Invalid customer email: ${emailCheck.reason}` },
+        { status: 400 },
+      );
+    }
+  }
 
   // Generate location link token if method is 'link'
   let linkToken: string | null = null;
@@ -252,7 +274,7 @@ export async function POST(request: Request) {
   // assisted-chat-app can poll, while production keeps emitting SITE_URL.
   const siteUrl = getOutboundUrl();
   const locationLink = linkToken ? `${siteUrl}/locate/${linkToken}` : null;
-  
+
   // Use beautiful message templates for WhatsApp
   const whatsappText = locationLink
     ? buildLocationWhatsAppMessage({

@@ -26,7 +26,7 @@ vi.mock('../email/providers/zeptomail', () => ({
 import { sendWithFallback, _resetProviders } from '../email/sender';
 
 const baseEmail = {
-  to: 'test@example.com',
+  to: 'test@gmail.com',
   subject: 'Test Subject',
   html: '<p>Hello</p>',
 };

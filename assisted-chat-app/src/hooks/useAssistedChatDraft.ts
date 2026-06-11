@@ -34,6 +34,7 @@ export const EMPTY_DRAFT: AssistedChatDraft = {
   paymentLink: null,
   dispatchedRefNumber: null,
   dispatchedBookingId: null,
+  customerEmailMode: 'walk_in_customer',
   updatedAt: 0,
 };
 
@@ -87,6 +88,10 @@ export function useAssistedChatDraft() {
               paymentLink: parsed.paymentLink ?? null,
               dispatchedRefNumber: parsed.dispatchedRefNumber ?? null,
               dispatchedBookingId: typeof parsed.dispatchedBookingId === 'string' ? parsed.dispatchedBookingId : null,
+              customerEmailMode:
+                parsed.customerEmailMode === 'send_customer_confirmation'
+                  ? 'send_customer_confirmation'
+                  : 'walk_in_customer',
               updatedAt: parsed.updatedAt,
             };
             setDraft(merged);

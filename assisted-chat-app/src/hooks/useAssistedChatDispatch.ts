@@ -57,6 +57,11 @@ export function useAssistedChatDispatch({
         setError('Generate a price first.');
         return;
       }
+      // التحقق من البريد الإلكتروني إذا طُلب إرسال تأكيد للعميل
+      if (draft.customerEmailMode === 'send_customer_confirmation' && !draft.customer.email.trim()) {
+        setError('Enter a valid customer email before sending confirmation.');
+        return;
+      }
 
       inflight.current = true;
       setBusy(true);
@@ -94,6 +99,7 @@ export function useAssistedChatDispatch({
         const paymentMethod = choice === 'cash' ? 'cash' : choice === 'deposit' ? 'deposit' : 'stripe';
         const response = await api.post<FinalizeResponse>(`/api/admin/quick-book/${draft.quickBookingId}/finalize`, {
           paymentMethod,
+          customerEmailMode: draft.customerEmailMode,
           ...(choice === 'deposit' ? { depositPercent: 0.15 } : {}),
         });
 

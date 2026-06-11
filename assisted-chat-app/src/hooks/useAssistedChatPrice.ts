@@ -141,6 +141,7 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
             customerName: draft.customer.name.trim() || PLACEHOLDER_NAME,
             customerPhone: draft.customer.phone.trim() || PLACEHOLDER_PHONE,
             customerEmail: draft.customer.email.trim() || undefined,
+            customerEmailMode: draft.customerEmailMode,
             locationMethod: draft.location.method,
             locationAddress: draft.location.address || undefined,
             locationLat: draft.location.lat,

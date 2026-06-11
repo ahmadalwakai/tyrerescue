@@ -1,5 +1,6 @@
 import { hasZeptoMail, getPrimaryProvider } from './config';
 import { ZeptoMailProvider } from './providers/zeptomail';
+import { validateRecipientEmail } from './validate-recipient';
 import type { EmailOptions, EmailProviderResult, EmailProviderName } from './types';
 
 /**
@@ -32,10 +33,29 @@ const RETRY_BACKOFF_MS = [500, 1500] as const;
 
 /**
  * Send email via ZeptoMail with retry on transient failures.
+ *
+ * يتحقق من صحة جميع عناوين المستلمين قبل أي طلب إلى Zepto Mail.
+ * إذا كان أي عنوان غير صالح (فارغ، وهمي، أو غير مُنسَّق)، يُرفض الإرسال فوراً.
  */
 export async function sendWithFallback(
   options: EmailOptions
 ): Promise<FallbackEmailResult> {
+  // التحقق من جميع عناوين المستلمين قبل الاتصال بـ Zepto Mail
+  const recipients = Array.isArray(options.to) ? options.to : [options.to];
+  for (const addr of recipients) {
+    const check = validateRecipientEmail(addr);
+    if (!check.ok) {
+      console.warn(`[email] Blocked send to invalid recipient: ${check.reason}`);
+      return {
+        success: false,
+        provider: 'zeptomail',
+        error: `Recipient email blocked: ${check.reason}`,
+        attemptedProviders: [],
+        fallbackUsed: false,
+      };
+    }
+  }
+
   const primary = getPrimaryProvider();
   const attemptedProviders: EmailProviderName[] = [];
 

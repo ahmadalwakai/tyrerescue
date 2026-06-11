@@ -4,6 +4,7 @@
 
 export type LockingNutAnswer = 'yes' | 'no' | 'unknown';
 export type AssistedChatPaymentChoice = 'cash' | 'deposit' | 'full';
+export type CustomerEmailMode = 'walk_in_customer' | 'send_customer_confirmation';
 export type PaymentChoice = AssistedChatPaymentChoice;
 export type PaymentLinkKind = 'deposit' | 'full';
 export type AssistedChatLocationMethod = 'address' | 'link';
@@ -90,6 +91,7 @@ export interface AssistedChatDraft {
    * keyed by bookingId, not by ref number).
    */
   dispatchedBookingId: string | null;
+  customerEmailMode: CustomerEmailMode;
   updatedAt: number;
 }
 

@@ -4,6 +4,8 @@ import { bankHolidays, pricingRules, tyreProducts } from '@/lib/db/schema';
 import {
   calculatePricing,
   parsePricingRules,
+  resolveMode,
+  resolvePricingContext,
   type PricingContext,
   type PricingBreakdown,
   type TyreSelection,
@@ -111,9 +113,7 @@ async function resolveSellableTyreBySize(tyreSize: string): Promise<QuickBookTyr
   if (!product) return null;
 
   const unitPrice = Number(product.priceNew);
-  if (!Number.isFinite(unitPrice)) {
-    return null;
-  }
+  if (!Number.isFinite(unitPrice)) return null;
 
   return {
     productId: product.id,
@@ -136,12 +136,8 @@ function applyAdminAdjustment(
 
   const normalizedAdjustment = Math.round(adjustmentAmount * 100) / 100;
 
-  // Remove any old Admin adjustment line items (legacy cleanup)
   breakdown.lineItems = breakdown.lineItems.filter((line) => {
-    if (line.label !== 'Admin adjustment' && !line.label.startsWith('Admin adjustment - ')) {
-      return true;
-    }
-    return false;
+    return line.label !== 'Admin adjustment' && !line.label.startsWith('Admin adjustment - ');
   });
 
   if (normalizedAdjustment !== 0) {
@@ -150,6 +146,7 @@ function applyAdminAdjustment(
       label: adjustmentReason ? `Admin adjustment - ${adjustmentReason}` : 'Admin adjustment',
       amount: normalizedAdjustment,
       type: normalizedAdjustment >= 0 ? 'surcharge' as const : 'discount' as const,
+      code: 'ADMIN_ADJUSTMENT' as const,
     };
     const subtotalIndex = breakdown.lineItems.findIndex((line) => line.type === 'subtotal');
     const insertIndex = subtotalIndex >= 0 ? subtotalIndex : breakdown.lineItems.length;
@@ -168,7 +165,6 @@ function applyAdminAdjustment(
     }
   }
 
-  // Update subtotal and total line items
   for (const line of breakdown.lineItems) {
     if (line.type === 'subtotal') line.amount = breakdown.subtotal;
     if (line.type === 'total') line.amount = breakdown.total;
@@ -177,9 +173,12 @@ function applyAdminAdjustment(
   return breakdown;
 }
 
-function calculateQuickBookWeatherModifier(weatherContext: WeatherPricingContext | null | undefined) {
+function calculateQuickBookWeatherModifier(
+  weatherContext: WeatherPricingContext | null | undefined,
+  mode: import('@/lib/pricing/weather-modifier').PricingMode,
+) {
   if (!weatherContext) {
-    return calculateWeatherSurcharge({});
+    return calculateWeatherSurcharge({ mode });
   }
 
   return calculateWeatherSurcharge({
@@ -188,6 +187,7 @@ function calculateQuickBookWeatherModifier(weatherContext: WeatherPricingContext
     precipitationMm: weatherContext.precipitationIntensity,
     windMph: weatherContext.windSpeed * 2.23694,
     temperatureC: weatherContext.temperature,
+    mode,
   });
 }
 
@@ -200,6 +200,9 @@ export async function calculateQuickBookPricing(
   const normalizedTyreSize = input.tyreSize?.trim() ? normalizeTyreSize(input.tyreSize) : null;
   const resolveTyreFromSize = input.resolveTyreFromSize !== false;
   const requireTyreForFit = input.requireTyreForFit ?? false;
+
+  const bookingType = pricingContext === 'emergency_mobile_fitting' ? 'emergency' : 'scheduled';
+  const mode = resolveMode({ pricingContext, fittingLocation, bookingType });
 
   let selectedTyreSnapshot = input.selectedTyreSnapshot ?? null;
 
@@ -241,24 +244,25 @@ export async function calculateQuickBookPricing(
   ]);
 
   const rules = parsePricingRules(rulesRows.map((row) => ({ key: row.key, value: row.value })));
-  const weatherModifier = calculateQuickBookWeatherModifier(input.weatherContext);
+  const weatherModifier = calculateQuickBookWeatherModifier(input.weatherContext, mode);
   const trafficModifier = calculateTrafficSurcharge({
     distanceMiles: input.distanceMiles,
     durationMinutes: input.durationMinutes ?? null,
+    mode,
   });
-  const emergencySurchargeRulePresent = rulesRows.some((row) => row.key === 'emergency_surcharge');
+
   const breakdown = calculatePricing(
     {
       tyreSelections,
       distanceMiles: input.distanceMiles,
-      bookingType: pricingContext === 'emergency_mobile_fitting' ? 'emergency' : 'scheduled',
+      bookingType,
       pricingContext,
+      mode,
       bookingDate,
       isBankHoliday: holidayRows.length > 0,
       serviceType: input.serviceType,
       tyreQuantity: input.tyreCount,
       fittingLocation,
-      emergencySurchargeRulePresent,
       weatherSurcharge: weatherModifier.surcharge,
       weatherSurchargeCode: weatherModifier.code,
       weatherManualQuoteRequired: weatherModifier.manualQuoteRequired,
@@ -272,14 +276,11 @@ export async function calculateQuickBookPricing(
 
   if (!breakdown.isValid) {
     if (breakdown.error === 'WEATHER_MANUAL_QUOTE_REQUIRED') {
-      throw new QuickBookPricingError(
-        'Current weather conditions need a manual quote.',
-        422,
-      );
+      throw new QuickBookPricingError('Current weather conditions need a manual quote.', 422);
     }
     if (breakdown.error === 'FITTING_LOCATION_MANUAL_QUOTE_REQUIRED') {
       throw new QuickBookPricingError(
-        'This fitting location is over 100 miles away and needs a manual quote.',
+        'This fitting location is over 60 miles away and needs a manual quote.',
         422,
       );
     }
