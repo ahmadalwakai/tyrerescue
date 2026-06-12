@@ -1,7 +1,12 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
+  clampTyreQuantity,
   initialWizardState,
   getStepsForBookingType,
+  resolveTyreDetailQuantity,
+  usesTyreDetailQuantity,
   type WizardState,
 } from '../../components/booking/types';
 
@@ -248,6 +253,35 @@ describe('Step numbering', () => {
   });
 });
 
+describe('Tyre detail quantity', () => {
+  it('keeps emergency replacement quantity from the tyre details step', () => {
+    expect(usesTyreDetailQuantity('emergency', 'replacement')).toBe(true);
+    expect(resolveTyreDetailQuantity('emergency', 'replacement', 3)).toBe(3);
+  });
+
+  it('keeps emergency not-sure quantity from the tyre details step', () => {
+    expect(usesTyreDetailQuantity('emergency', 'not_sure')).toBe(true);
+    expect(resolveTyreDetailQuantity('emergency', 'not_sure', 4)).toBe(4);
+  });
+
+  it('keeps repair quantity for scheduled and emergency bookings', () => {
+    expect(resolveTyreDetailQuantity('scheduled', 'repair', 2)).toBe(2);
+    expect(resolveTyreDetailQuantity('emergency', 'repair', 2)).toBe(2);
+  });
+
+  it('leaves scheduled replacement quantity at one because cart selection owns it', () => {
+    expect(usesTyreDetailQuantity('scheduled', 'replacement')).toBe(false);
+    expect(resolveTyreDetailQuantity('scheduled', 'replacement', 3)).toBe(1);
+  });
+
+  it('clamps tyre detail quantity to the supported 1-4 range', () => {
+    expect(clampTyreQuantity(0)).toBe(1);
+    expect(clampTyreQuantity(5)).toBe(4);
+    expect(clampTyreQuantity(2.8)).toBe(2);
+    expect(clampTyreQuantity(Number.NaN)).toBe(1);
+  });
+});
+
 describe('ETA range (emergency availability)', () => {
   // Mirror the updated formatEtaLabel from the eligibility API
   function formatEtaLabel(min: number, max: number): string {
@@ -383,10 +417,8 @@ describe('Map marker pulse animation', () => {
 
   it('mapMarkerPulse keyframe must NOT use transform (only box-shadow)', () => {
     // Read the actual CSS keyframe from globals.css — contract test
-    const fs = require('fs');
-    const path = require('path');
-    const css = fs.readFileSync(
-      path.resolve(__dirname, '../../app/globals.css'),
+    const css = readFileSync(
+      resolve(__dirname, '../../app/globals.css'),
       'utf8',
     );
     const pulseMatch = css.match(
@@ -402,10 +434,8 @@ describe('Map marker pulse animation', () => {
     // Contract: since the root wrapper has no animation and no CSS class that
     // animates transform, Mapbox's inline transform: translate(...) is never
     // overridden. We verify this by checking the CSS file for the class names.
-    const fs = require('fs');
-    const path = require('path');
-    const css = fs.readFileSync(
-      path.resolve(__dirname, '../../app/globals.css'),
+    const css = readFileSync(
+      resolve(__dirname, '../../app/globals.css'),
       'utf8',
     );
 

@@ -20,7 +20,6 @@ const c = colorTokens;
 const SERVICE_TABS: Array<{ key: QuoteServiceKey; label: string; sub: string }> = [
   { key: 'fitting', label: 'Fitting', sub: 'New tyres at your address' },
   { key: 'emergency', label: 'Emergency', sub: 'ASAP callout, 24/7' },
-  { key: 'punctureRepair', label: 'Puncture repair', sub: 'On-site plug & patch' },
 ];
 
 const QUANTITIES = [1, 2, 4] as const;

@@ -181,7 +181,9 @@ export function StepPricing({
       state.lng,
       state.bookingType,
       state.serviceType,
-      isRepair ? `repair:${state.quantity || 1}` : tyreFingerprint,
+      isRepair || isEmergencyNoTyres
+        ? `${state.serviceType ?? 'service'}:${state.quantity || 1}`
+        : tyreFingerprint,
       state.fittingLocation ?? '',
       state.scheduledDate ?? '',
       state.scheduledTime ?? '',

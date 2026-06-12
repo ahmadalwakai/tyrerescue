@@ -11,7 +11,13 @@ import {
   Spinner,
   Image,
 } from '@chakra-ui/react';
-import { WizardState } from './types';
+import {
+  clampTyreQuantity,
+  resolveTyreDetailQuantity,
+  usesTyreDetailQuantity,
+  type ConditionAssessment,
+  type WizardState,
+} from './types';
 import { colorTokens as c, inputProps } from '@/lib/design-tokens';
 import { trackCallClick } from '@/lib/analytics/gtag';
 import { anim } from '@/lib/animations';
@@ -48,7 +54,7 @@ export function StepTyreDetails({
   const [width, setWidth] = useState(state.tyreSize.width || '');
   const [aspect, setAspect] = useState(state.tyreSize.aspect || '');
   const [rim, setRim] = useState(state.tyreSize.rim || '');
-  const [condition, setCondition] = useState<'repair' | 'replacement' | 'not_sure' | null>(
+  const [condition, setCondition] = useState<ConditionAssessment | null>(
     state.conditionAssessment
   );
   const [lockingNut, setLockingNut] = useState<'has_key' | 'no_key' | 'standard'>(
@@ -57,7 +63,9 @@ export function StepTyreDetails({
   const [photoUrl, setPhotoUrl] = useState<string | null>(state.tyrePhotoUrl);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [repairQty, setRepairQty] = useState(state.quantity || 1);
+  const [tyreQuantity, setTyreQuantity] = useState(
+    clampTyreQuantity(state.quantity || 1),
+  );
 
   // Search autocomplete state
   const [searchQuery, setSearchQuery] = useState('');
@@ -198,12 +206,18 @@ export function StepTyreDetails({
   const handleContinue = () => {
     if (!canContinue) return;
 
+    const nextQuantity = resolveTyreDetailQuantity(
+      state.bookingType,
+      condition,
+      tyreQuantity,
+    );
     const tyreDetailsChanged =
       state.tyreSize.width !== width ||
       state.tyreSize.aspect !== aspect ||
       state.tyreSize.rim !== rim ||
       state.conditionAssessment !== condition;
-    const shouldClearTyres = condition === 'repair' || tyreDetailsChanged;
+    const quantityChanged = state.quantity !== nextQuantity;
+    const shouldClearTyres = condition === 'repair' || tyreDetailsChanged || quantityChanged;
 
     updateState({
       vehicleReg,
@@ -214,7 +228,7 @@ export function StepTyreDetails({
       tyrePhotoUrl: photoUrl,
       lockingNutStatus: lockingNut,
       serviceType: condition === 'repair' ? 'repair' : condition === 'replacement' ? 'fit' : 'assess',
-      quantity: condition === 'repair' ? repairQty : 1,
+      quantity: nextQuantity,
       selectedTyres: shouldClearTyres ? [] : state.selectedTyres,
       fulfillmentOption: shouldClearTyres ? null : state.fulfillmentOption,
       quoteId: null,
@@ -226,6 +240,14 @@ export function StepTyreDetails({
     });
     goToNext();
   };
+
+  const showQuantitySelector = usesTyreDetailQuantity(state.bookingType, condition);
+  const quantitySelectorLabel =
+    condition === 'repair'
+      ? 'HOW MANY TYRES NEED REPAIR?'
+      : condition === 'replacement'
+      ? 'HOW MANY TYRES NEED REPLACEMENT?'
+      : 'HOW MANY TYRES ARE AFFECTED?';
 
   return (
     <VStack gap={6} align="stretch">
@@ -550,8 +572,8 @@ export function StepTyreDetails({
         </VStack>
       </Box>
 
-      {/* Repair Quantity Selector */}
-      {condition === 'repair' && (
+      {/* Quantity Selector */}
+      {showQuantitySelector && (
         <Box style={anim.fadeUp('0.5s', '0.42s')}>
           <Text
             fontSize="13px"
@@ -560,7 +582,7 @@ export function StepTyreDetails({
             mb={3}
             fontFamily="Inter, sans-serif"
           >
-            HOW MANY TYRES NEED REPAIR?
+            {quantitySelectorLabel}
           </Text>
           <HStack gap={3}>
             {[1, 2, 3, 4].map((n) => (
@@ -572,19 +594,19 @@ export function StepTyreDetails({
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
-                bg={repairQty === n ? 'rgba(249,115,22,0.08)' : c.card}
-                border={repairQty === n ? '2px solid' : '1px solid'}
-                borderColor={repairQty === n ? c.accent : c.border}
+                bg={tyreQuantity === n ? 'rgba(249,115,22,0.08)' : c.card}
+                border={tyreQuantity === n ? '2px solid' : '1px solid'}
+                borderColor={tyreQuantity === n ? c.accent : c.border}
                 borderRadius="8px"
                 cursor="pointer"
                 transition="all 0.15s"
                 _hover={{ borderColor: c.accent }}
-                onClick={() => setRepairQty(n)}
+                onClick={() => setTyreQuantity(n)}
               >
                 <Text
                   fontFamily="var(--font-display)"
                   fontSize="24px"
-                  color={repairQty === n ? c.accent : c.text}
+                  color={tyreQuantity === n ? c.accent : c.text}
                 >
                   {n}
                 </Text>

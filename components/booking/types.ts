@@ -11,6 +11,7 @@ export type { PricingBreakdown };
 export type BookingType = 'emergency' | 'scheduled';
 export type ServiceType = 'repair' | 'fit' | 'both' | 'assess';
 export type FittingLocation = 'shop' | 'mobile';
+export type ConditionAssessment = 'repair' | 'replacement' | 'not_sure';
 
 export interface TyreSize {
   width: string;
@@ -46,7 +47,7 @@ export interface WizardState {
   vehicleMake: string;
   vehicleModel: string;
   tyreSize: TyreSize;
-  conditionAssessment: 'repair' | 'replacement' | 'not_sure' | null;
+  conditionAssessment: ConditionAssessment | null;
   tyrePhotoUrl: string | null;
   lockingNutStatus: 'has_key' | 'no_key' | 'standard' | null;
   quantity: number;
@@ -176,6 +177,28 @@ export function cartTotal(cart: SelectedTyre[]): number {
 
 export function cartItemCount(cart: SelectedTyre[]): number {
   return cart.reduce((sum, t) => sum + t.quantity, 0);
+}
+
+export function clampTyreQuantity(quantity: number): number {
+  if (!Number.isFinite(quantity)) return 1;
+  return Math.min(4, Math.max(1, Math.trunc(quantity)));
+}
+
+export function usesTyreDetailQuantity(
+  bookingType: BookingType | null,
+  condition: ConditionAssessment | null,
+): boolean {
+  return condition === 'repair' || bookingType === 'emergency';
+}
+
+export function resolveTyreDetailQuantity(
+  bookingType: BookingType | null,
+  condition: ConditionAssessment | null,
+  quantity: number,
+): number {
+  return usesTyreDetailQuantity(bookingType, condition)
+    ? clampTyreQuantity(quantity)
+    : 1;
 }
 
 export type WizardStep = 
