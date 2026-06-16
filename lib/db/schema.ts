@@ -931,6 +931,65 @@ export const trackingSessions = pgTable('tracking_sessions', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
 });
 
+// ──────────────────────────────────────────────
+// B2B API Clients
+// ──────────────────────────────────────────────
+
+export const b2bApiClients = pgTable('b2b_api_clients', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar('name', { length: 255 }).notNull(),
+  companyName: varchar('company_name', { length: 255 }),
+  contactName: varchar('contact_name', { length: 255 }),
+  contactEmail: varchar('contact_email', { length: 255 }),
+  contactPhone: varchar('contact_phone', { length: 30 }),
+  status: text('status').notNull().default('active'), // 'active' | 'suspended' | 'revoked'
+  notes: text('notes'),
+  createdByAdminId: uuid('created_by_admin_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+});
+
+// ──────────────────────────────────────────────
+// B2B API Keys
+// ──────────────────────────────────────────────
+
+export const b2bApiKeys = pgTable('b2b_api_keys', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  clientId: uuid('client_id').notNull().references(() => b2bApiClients.id, { onDelete: 'cascade' }),
+  keyPrefix: varchar('key_prefix', { length: 30 }).notNull(),
+  keyHash: varchar('key_hash', { length: 64 }).notNull().unique(),
+  label: varchar('label', { length: 255 }).notNull(),
+  status: text('status').notNull().default('active'), // 'active' | 'suspended' | 'revoked'
+  allowedScopes: jsonb('allowed_scopes').notNull().default(sql`'[]'::jsonb`),
+  allowedPlatforms: jsonb('allowed_platforms').notNull().default(sql`'[]'::jsonb`),
+  allowedStockFilters: jsonb('allowed_stock_filters'),
+  rateLimitPerMinute: integer('rate_limit_per_minute').notNull().default(60),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+});
+
+// ──────────────────────────────────────────────
+// B2B API Key Audit Logs
+// ──────────────────────────────────────────────
+
+export const b2bApiKeyAuditLogs = pgTable('b2b_api_key_audit_logs', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  apiKeyId: uuid('api_key_id').references(() => b2bApiKeys.id, { onDelete: 'set null' }),
+  clientId: uuid('client_id').references(() => b2bApiClients.id, { onDelete: 'set null' }),
+  action: varchar('action', { length: 100 }).notNull(),
+  route: varchar('route', { length: 500 }),
+  ipAddress: inet('ip_address'),
+  userAgent: text('user_agent'),
+  statusCode: integer('status_code'),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+});
+
 // Type exports for use throughout the application
 export type TrackingSession = typeof trackingSessions.$inferSelect;
 export type NewTrackingSession = typeof trackingSessions.$inferInsert;
@@ -1016,3 +1075,9 @@ export type DriverSoundSetting = typeof driverSoundSettings.$inferSelect;
 export type NewDriverSoundSetting = typeof driverSoundSettings.$inferInsert;
 export type DriverSoundAsset = typeof driverSoundAssets.$inferSelect;
 export type NewDriverSoundAsset = typeof driverSoundAssets.$inferInsert;
+export type B2BApiClient = typeof b2bApiClients.$inferSelect;
+export type NewB2BApiClient = typeof b2bApiClients.$inferInsert;
+export type B2BApiKey = typeof b2bApiKeys.$inferSelect;
+export type NewB2BApiKey = typeof b2bApiKeys.$inferInsert;
+export type B2BApiKeyAuditLog = typeof b2bApiKeyAuditLogs.$inferSelect;
+export type NewB2BApiKeyAuditLog = typeof b2bApiKeyAuditLogs.$inferInsert;

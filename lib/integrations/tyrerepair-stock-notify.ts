@@ -1,11 +1,10 @@
 /**
- * Tyre Rescue → tyrerepair.uk stock push.
+ * Tyre Rescue → tyrerepair.uk + TyreSOS stock push.
  *
  * Tyre Rescue is the single source of truth for stock. Whenever a tyre's
- * quantity / price / availability changes here, we push the change to
- * tyrerepair.uk so its local mirror updates instantly. tyrerepair also pulls a
- * full reconcile on a cron, so this push is best-effort: failures are swallowed
- * and never block the originating admin/booking request.
+ * quantity / price / availability changes here, we push the change to both
+ * tyrerepair.uk and TyreSOS (Perth) so their local mirrors update instantly.
+ * Each receiver also pulls a full reconcile on a cron as a safety net.
  *
  * Server-to-server, authenticated with the shared integration secret.
  */
@@ -16,6 +15,11 @@ const BASE_URL_ENV = 'TYREREPAIR_API_BASE_URL';
 const SECRET_ENV = 'TYRERESCUE_INTEGRATION_SECRET';
 const WEBHOOK_PATH = '/api/integrations/tyrerescue/stock-webhook';
 
+// TyreSOS (Perth) mirror destination
+const TYRESOS_BASE_URL_ENV = 'TYRESOS_API_BASE_URL';
+const TYRESOS_SECRET_ENV = 'TYRESOS_INTEGRATION_SECRET';
+const TYRESOS_WEBHOOK_PATH = '/api/integrations/tyrerepair/stock';
+
 function getConfig(): { url: string; secret: string } | null {
   const baseUrl = (process.env[BASE_URL_ENV] ?? '').trim().replace(/\/$/, '');
   const secret = (process.env[SECRET_ENV] ?? '').trim();
@@ -23,26 +27,44 @@ function getConfig(): { url: string; secret: string } | null {
   return { url: `${baseUrl}${WEBHOOK_PATH}`, secret };
 }
 
+function getTyreSOSConfig(): { url: string; secret: string } | null {
+  const baseUrl = (process.env[TYRESOS_BASE_URL_ENV] ?? '').trim().replace(/\/$/, '');
+  const secret = (process.env[TYRESOS_SECRET_ENV] ?? '').trim();
+  if (!baseUrl || !secret) return null;
+  return { url: `${baseUrl}${TYRESOS_WEBHOOK_PATH}`, secret };
+}
+
 export function isTyrerepairPushConfigured(): boolean {
   return getConfig() !== null;
 }
 
-async function postWebhook(body: unknown): Promise<void> {
-  const config = getConfig();
-  if (!config) return;
+export function isTyreSosPushConfigured(): boolean {
+  return getTyreSOSConfig() !== null;
+}
+
+async function postToUrl(url: string, secret: string, body: unknown): Promise<void> {
   try {
-    await fetch(config.url, {
+    await fetch(url, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-integration-key': config.secret,
+        'x-integration-key': secret,
       },
       body: JSON.stringify(body),
       cache: 'no-store',
     });
   } catch {
-    // Best-effort; tyrerepair's cron reconcile is the safety net.
+    // Best-effort; cron reconcile is the safety net.
   }
+}
+
+async function postWebhook(body: unknown): Promise<void> {
+  const config = getConfig();
+  const tyreSosConfig = getTyreSOSConfig();
+  await Promise.allSettled([
+    config ? postToUrl(config.url, config.secret, body) : Promise.resolve(),
+    tyreSosConfig ? postToUrl(tyreSosConfig.url, tyreSosConfig.secret, body) : Promise.resolve(),
+  ]);
 }
 
 /** Shape tyrerepair's webhook expects (mirrors the inbound stock GET endpoint). */

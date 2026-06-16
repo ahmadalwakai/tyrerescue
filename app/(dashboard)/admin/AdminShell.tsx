@@ -40,6 +40,7 @@ const navItems = [
   { label: 'Analytics', href: '/admin/analytics' },
   { label: 'SEO Analytics', href: '/admin/seo-analytics' },
   { label: 'Visitors', href: '/admin/visitors' },
+  { label: 'B2B API Keys', href: '/admin/b2b-api-keys' },
 ];
 
 export function AdminShell({
