@@ -5,6 +5,8 @@ import { Box, Heading, VStack, Grid, GridItem, Text, Flex } from '@chakra-ui/rea
 import { BookingDetailClient } from './BookingDetailClient';
 import { auth } from '@/lib/auth';
 import { normaliseTyreDetailsFromDb } from '@/lib/bookings/normalise-tyre-details';
+import { computeDriverPaymentSummary, type PaymentSummary } from '@/lib/payments/driver-payment';
+import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -181,6 +183,22 @@ export default async function AdminBookingDetailPage({ params }: Props) {
 
   const session = await auth();
 
+  // Compute evidence-based payment summary so admin sees the same truth as the driver.
+  const paymentEvidence = await getBookingPaymentEvidence(booking.id);
+  const payment: PaymentSummary = computeDriverPaymentSummary({
+    paymentType: booking.paymentType,
+    totalAmount: booking.totalAmount.toString(),
+    subtotal: booking.subtotal.toString(),
+    vatAmount: booking.vatAmount.toString(),
+    depositAmountPence: booking.depositAmountPence,
+    remainingBalancePence: booking.remainingBalancePence,
+    depositPaidAt: booking.depositPaidAt,
+    stripePiId: booking.stripePiId,
+    bookingStatus: booking.status,
+    paymentStatus: paymentEvidence.paymentStatus,
+    totalPaidPence: paymentEvidence.totalPaidPence,
+  });
+
   return (
     <Box>
       <Heading size="lg" mb={6}>
@@ -194,6 +212,7 @@ export default async function AdminBookingDetailPage({ params }: Props) {
         availableDrivers={driversData}
         currentUserId={session?.user?.id ?? ''}
         currentUserRole={(session?.user?.role as 'admin' | 'driver' | 'customer') ?? 'admin'}
+        payment={payment}
       />
     </Box>
   );

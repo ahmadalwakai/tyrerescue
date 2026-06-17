@@ -5,6 +5,7 @@ import { getMobileAdminUser, unauthorizedResponse } from '@/app/api/mobile/admin
 import { executeTransition, type BookingStatus } from '@/lib/state-machine';
 import { notifyDriverNewJob, notifyDriverReassignment } from '@/lib/notifications/driver-push';
 import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
+import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
 import { getOutboundUrl } from '@/lib/config/site';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { driverAssigned, jobAssigned } from '@/lib/email/templates';
@@ -42,6 +43,7 @@ export async function PATCH(request: Request, { params }: Props) {
 
   const currentStatus = booking.status as BookingStatus;
   const now = new Date();
+  const paymentEvidence = await getBookingPaymentEvidence(booking.id);
 
   await db
     .update(bookings)
@@ -65,6 +67,9 @@ export async function PATCH(request: Request, { params }: Props) {
     remainingBalancePence: booking.remainingBalancePence,
     depositPaidAt: booking.depositPaidAt,
     stripePiId: booking.stripePiId,
+    paymentStatus: paymentEvidence.paymentStatus,
+    totalPaidPence: paymentEvidence.totalPaidPence,
+    bookingStatus: currentStatus,
   });
 
   if (currentStatus === 'paid') {

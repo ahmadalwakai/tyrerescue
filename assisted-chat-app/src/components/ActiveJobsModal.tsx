@@ -55,10 +55,34 @@ function paymentLines(item: ActiveJobItem): string[] {
   if (p.totalAmountPence != null && p.totalAmountPence > 0) {
     out.push(`Job price: ${gbpFormatter.format(p.totalAmountPence / 100)}`);
   }
-  if (p.status === 'paid' || p.amountToCollectPence === 0) {
+
+  const due =
+    p.amountToCollectPence > 0
+      ? gbpFormatter.format(p.amountToCollectPence / 100)
+      : null;
+
+  if (
+    p.status === 'paid' &&
+    p.amountToCollectPence === 0 &&
+    (p.remainingBalancePence == null || p.remainingBalancePence <= 0)
+  ) {
     out.push('Paid · nothing to collect');
+  } else if (p.status === 'paid') {
+    out.push(due ? `Payment needs checking · ${due}` : 'Payment needs checking');
+  } else if (p.status === 'needs_checking') {
+    out.push(due ? `Payment needs checking · ${due}` : 'Payment needs checking');
+  } else if (p.status === 'failed') {
+    out.push(due ? `Payment failed · ${due}` : 'Payment failed');
+  } else if (p.type === 'cash') {
+    out.push(due ? `Cash to collect: ${due}` : 'Cash to collect');
+  } else if (p.status === 'deposit_paid') {
+    out.push(due ? `Deposit paid · balance due: ${due}` : 'Deposit paid');
+  } else if (p.status === 'pending') {
+    out.push(due ? `Payment pending · ${due}` : 'Payment pending');
+  } else if (p.status === 'unpaid') {
+    out.push(due ? `Unpaid · ${due}` : 'Unpaid');
   } else if (p.amountToCollectPence > 0) {
-    out.push(`Amount to collect: ${gbpFormatter.format(p.amountToCollectPence / 100)}`);
+    out.push(`Amount due: ${due ?? gbpFormatter.format(p.amountToCollectPence / 100)}`);
   } else {
     out.push('Confirm with driver');
   }

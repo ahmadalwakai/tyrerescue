@@ -7,6 +7,7 @@ import { requireAdminMobile } from '@/lib/auth';
 import { db, bookings, bookingStatusHistory, payments } from '@/lib/db';
 import { createCheckoutSession } from '@/lib/stripe';
 import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
+import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -41,6 +42,55 @@ const noOutstandingBalanceError = {
   code: 'NO_OUTSTANDING_BALANCE',
   message: 'This booking has no outstanding balance to collect.',
 } as const;
+
+/**
+ * GET /api/admin/bookings/[ref]/payment-link
+ *
+ * Returns the current computed payment status for the booking so the admin
+ * chat UI can display live status instead of the hardcoded "Awaiting payment"
+ * text. Lightweight — just reads the DB and runs the shared summary helper.
+ */
+export async function GET(request: Request, { params }: Props) {
+  try {
+    await requireAdminMobile(request);
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { ref } = await params;
+
+  const [booking] = await db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.refNumber, ref))
+    .limit(1);
+
+  if (!booking) {
+    return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+  }
+
+  const paymentEvidence = await getBookingPaymentEvidence(booking.id);
+  const summary = computeDriverPaymentSummary({
+    paymentType: booking.paymentType,
+    totalAmount: booking.totalAmount?.toString() ?? null,
+    subtotal: booking.subtotal?.toString() ?? null,
+    vatAmount: booking.vatAmount?.toString() ?? null,
+    depositAmountPence: booking.depositAmountPence ?? null,
+    remainingBalancePence: booking.remainingBalancePence ?? null,
+    depositPaidAt: booking.depositPaidAt ?? null,
+    stripePiId: booking.stripePiId ?? null,
+    paymentStatus: paymentEvidence.paymentStatus,
+    totalPaidPence: paymentEvidence.totalPaidPence,
+    bookingStatus: booking.status,
+  });
+
+  return NextResponse.json({
+    status: summary.status,
+    amountToCollectPence: summary.amountToCollectPence,
+    totalAmountPence: summary.totalAmountPence,
+    totalPaidPence: summary.totalPaidPence,
+  });
+}
 
 /**
  * POST /api/admin/bookings/[ref]/payment-link
@@ -92,6 +142,7 @@ export async function POST(request: Request, { params }: Props) {
 
   // Derive the outstanding amount the same way the driver app does, so the
   // figures always reconcile across surfaces.
+  const paymentEvidence = await getBookingPaymentEvidence(booking.id);
   const summary = computeDriverPaymentSummary({
     paymentType: booking.paymentType,
     totalAmount: booking.totalAmount,
@@ -101,6 +152,9 @@ export async function POST(request: Request, { params }: Props) {
     remainingBalancePence: booking.remainingBalancePence,
     depositPaidAt: booking.depositPaidAt,
     stripePiId: booking.stripePiId,
+    paymentStatus: paymentEvidence.paymentStatus,
+    totalPaidPence: paymentEvidence.totalPaidPence,
+    bookingStatus: booking.status,
   });
 
   const outstandingPence = summary.amountToCollectPence;

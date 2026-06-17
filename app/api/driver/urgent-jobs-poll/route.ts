@@ -3,6 +3,7 @@ import { eq, and, desc, gt } from 'drizzle-orm';
 import { db, bookings } from '@/lib/db';
 import { requireDriverMobile } from '@/lib/auth';
 import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
+import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
 
 // Native polling fallback for the driver app's foreground watcher service.
 // Returns the newest `driver_assigned` booking for the authenticated driver
@@ -76,6 +77,7 @@ export async function GET(request: Request) {
       });
     }
 
+    const paymentEvidence = await getBookingPaymentEvidence(row.id);
     const payment = computeDriverPaymentSummary({
       paymentType: row.paymentType,
       totalAmount: row.totalAmount?.toString() ?? null,
@@ -85,6 +87,8 @@ export async function GET(request: Request) {
       remainingBalancePence: row.remainingBalancePence,
       depositPaidAt: row.depositPaidAt,
       stripePiId: row.stripePiId,
+      paymentStatus: paymentEvidence.paymentStatus,
+      totalPaidPence: paymentEvidence.totalPaidPence,
       bookingStatus: row.status,
     });
 

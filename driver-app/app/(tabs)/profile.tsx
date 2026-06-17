@@ -16,7 +16,7 @@ import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
-import { driverApi, DriverProfile, ApiError } from '@/api/client';
+import { driverApi, DriverProfile, ApiError, getApiUrl } from '@/api/client';
 import { useAuth } from '@/auth/context';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -41,6 +41,7 @@ export default function ProfileScreen() {
   // Permission / device state
   const [locationPerm, setLocationPerm] = useState<string>(t('profile.checking'));
   const [notifPerm, setNotifPerm] = useState<string>(t('profile.checking'));
+  const [activeApiUrl, setActiveApiUrl] = useState<string>('…');
 
   const appVersion = Application.nativeApplicationVersion ?? '1.0.0';
   const buildNumber = Application.nativeBuildVersion ?? '1';
@@ -70,6 +71,10 @@ export default function ProfileScreen() {
   useEffect(() => {
     checkPermissions();
   }, [checkPermissions]);
+
+  useEffect(() => {
+    getApiUrl().then(setActiveApiUrl).catch(() => setActiveApiUrl('error'));
+  }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -180,6 +185,8 @@ export default function ProfileScreen() {
         <Text style={styles.sectionTitle}>{t('profile.appAndDevice')}</Text>
         <InfoRow label={t('profile.appVersion')} value={`${appVersion} (${buildNumber})`} />
         <InfoRow label="Build" value={BUILD_LABEL} />
+        <InfoRow label="API URL" value={activeApiUrl} />
+        {profile?.driverId ? <InfoRow label="Driver ID" value={profile.driverId} /> : null}
         <InfoRow label={t('profile.platform')} value={Platform.OS === 'android' ? 'Android' : 'iOS'} />
         <InfoRow label={t('profile.locationPermission')} value={locationPerm} />
         <InfoRow label={t('profile.notificationPermission')} value={notifPerm} />

@@ -49,9 +49,11 @@ function formatGbpFromPence(pence: number | null | undefined): string | null {
 
 function PaymentCard({
   payment,
+  refNumber,
   t,
 }: {
   payment: PaymentSummary | null;
+  refNumber: string;
   t: (key: string) => string;
 }) {
   if (!payment) {
@@ -72,30 +74,18 @@ function PaymentCard({
           ? t('jobDetail.paymentMethodDeposit')
           : t('jobDetail.paymentMethodUnknown');
 
-  const statusLabel =
-    payment.status === 'paid'
-      ? t('jobDetail.paymentStatusPaid')
-      : payment.status === 'deposit_paid'
-        ? t('jobDetail.paymentStatusDepositPaid')
-        : payment.status === 'unpaid'
-          ? t('jobDetail.paymentStatusUnpaid')
-          : t('jobDetail.paymentStatusUnknown');
+  const display = getDriverPaymentDisplay(payment, refNumber);
+  const statusLabel = t(display.labelKey);
 
-  let amountLabel: string;
-  if (payment.status === 'paid' || payment.amountToCollectPence === 0) {
-    amountLabel = t('jobDetail.nothingToCollect');
-  } else if (payment.status === 'unknown') {
-    amountLabel = t('jobDetail.confirmWithAdmin');
-  } else {
-    amountLabel =
-      formatGbpFromPence(payment.amountToCollectPence) ?? t('jobDetail.notAvailable');
-  }
+  const amountLabel =
+    display.tone === 'paid'
+      ? t('jobDetail.nothingToCollect')
+      : display.amountLabel ?? t(display.descriptionKey);
 
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{t('jobDetail.payment')}</Text>
       {(() => {
-        const display = getDriverPaymentDisplay(payment);
         const tone = paymentToneColors(display.tone);
         return (
           <View
@@ -110,8 +100,8 @@ function PaymentCard({
                   ? 'checkmark-circle'
                   : display.tone === 'action'
                     ? 'cash-outline'
-                    : display.tone === 'failed'
-                      ? 'alert-circle'
+                    : display.tone === 'warning' || display.tone === 'failed'
+                      ? 'alert-circle-outline'
                       : 'time-outline'
               }
               size={18}
@@ -494,7 +484,7 @@ export default function JobDetailScreen() {
       </View>
 
       {/* Payment */}
-      <PaymentCard payment={job.payment ?? null} t={t} />
+      <PaymentCard payment={job.payment ?? null} refNumber={job.refNumber} t={t} />
 
       {/* Quick Status Messages */}
       {['driver_assigned', 'en_route', 'arrived', 'in_progress'].includes(job.status) && (

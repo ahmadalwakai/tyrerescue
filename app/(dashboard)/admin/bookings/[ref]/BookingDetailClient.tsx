@@ -29,6 +29,7 @@ import {
   isRepairOrAssessService,
   formatGBP,
 } from '@/lib/bookings/normalise-tyre-details';
+import type { PaymentSummary } from '@/lib/payments/driver-payment';
 
 interface RankedDriver {
   driverId: string;
@@ -115,7 +116,28 @@ interface Props {
   availableDrivers: Driver[];
   currentUserId: string;
   currentUserRole: 'admin' | 'driver' | 'customer';
+  payment: PaymentSummary;
 }
+
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  paid: 'Paid',
+  deposit_paid: 'Deposit Paid',
+  pending: 'Payment Pending',
+  unpaid: 'Unpaid',
+  needs_checking: 'Needs Checking',
+  failed: 'Payment Failed',
+  unknown: 'Unknown',
+};
+
+const PAYMENT_STATUS_COLORS: Record<string, string> = {
+  paid: 'green',
+  deposit_paid: '#3B82F6',
+  pending: '#EAB308',
+  unpaid: '#EAB308',
+  needs_checking: '#F97316',
+  failed: 'red',
+  unknown: '#6B7280',
+};
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Draft',
@@ -183,6 +205,7 @@ export function BookingDetailClient({
   availableDrivers,
   currentUserId,
   currentUserRole,
+  payment,
 }: Props) {
   const router = useRouter();
 
@@ -825,6 +848,24 @@ export function BookingDetailClient({
                     Stripe PI: {booking.stripePiId}
                   </Text>
                 )}
+                <Box pt={2} mt={1} borderTop="1px dashed" borderColor={c.border}>
+                  <HStack justify="space-between" align="center">
+                    <Text fontSize="sm" color={c.muted}>Payment state (evidence-based)</Text>
+                    <Badge colorPalette="gray" style={{ backgroundColor: PAYMENT_STATUS_COLORS[payment.status] ?? c.muted, color: '#fff', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px' }}>
+                      {PAYMENT_STATUS_LABELS[payment.status] ?? payment.status}
+                    </Badge>
+                  </HStack>
+                  {payment.amountToCollectPence > 0 && (
+                    <Text fontSize="xs" color={c.muted} mt={1}>
+                      Amount to collect: {formatCurrency(payment.amountToCollectPence / 100)}
+                    </Text>
+                  )}
+                  {payment.totalPaidPence > 0 && (
+                    <Text fontSize="xs" color="green.400" mt={1}>
+                      Confirmed paid: {formatCurrency(payment.totalPaidPence / 100)}
+                    </Text>
+                  )}
+                </Box>
               </VStack>
             )}
           </Box>

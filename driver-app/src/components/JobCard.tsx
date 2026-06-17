@@ -7,21 +7,20 @@ import { lightHaptic } from '@/services/haptics';
 import { format } from 'date-fns';
 import type { JobSummary, PaymentSummary } from '@/api/client';
 import { useI18n } from '@/i18n';
+import { formatGbpFromPence, getDriverPaymentDisplay, paymentToneColors } from '@/lib/payment-status';
 
-const GBP_FORMATTER = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
-
-function paymentLine(payment: PaymentSummary, t: (k: string) => string): string {
+function paymentLine(
+  payment: PaymentSummary,
+  display: ReturnType<typeof getDriverPaymentDisplay>,
+  t: (k: string) => string,
+): string {
   const lines: string[] = [];
   if (payment.totalAmountPence != null && payment.totalAmountPence > 0) {
-    lines.push(`${t('jobs.jobPrice')}: ${GBP_FORMATTER.format(payment.totalAmountPence / 100)}`);
+    lines.push(`${t('jobs.jobPrice')}: ${formatGbpFromPence(payment.totalAmountPence) ?? t('jobs.unknown')}`);
   }
-  if (payment.status === 'paid' || payment.amountToCollectPence === 0) {
-    lines.push(t('jobs.nothingToCollect'));
-  } else if (payment.status === 'unknown') {
-    lines.push(t('jobs.confirmCollection'));
-  } else {
-    lines.push(`${t('jobs.collect')} ${GBP_FORMATTER.format(payment.amountToCollectPence / 100)}`);
-  }
+  lines.push(
+    `${t(display.labelKey)}${display.amountLabel != null ? ` · ${display.amountLabel}` : ''}`,
+  );
   return lines.join('\n');
 }
 
@@ -32,6 +31,10 @@ interface JobCardProps {
 
 export function JobCard({ job, onPress }: JobCardProps) {
   const { t, dateLocale } = useI18n();
+  const paymentDisplay = job.payment
+    ? getDriverPaymentDisplay(job.payment, job.refNumber)
+    : null;
+  const paymentColors = paymentDisplay ? paymentToneColors(paymentDisplay.tone) : null;
   // Guard against a rapid double-tap pushing the detail screen twice.
   const navLockRef = useRef(false);
   return (
@@ -75,17 +78,18 @@ export function JobCard({ job, onPress }: JobCardProps) {
         )}
       </View>
 
-      {job.payment && (
+      {job.payment && paymentDisplay && paymentColors && (
         <Text
           style={[
             styles.collect,
-            job.payment.status === 'paid' || job.payment.amountToCollectPence === 0
+            paymentDisplay.tone === 'paid'
               ? styles.collectMuted
               : styles.collectActive,
+            { color: paymentColors.text },
           ]}
-          numberOfLines={1}
+          numberOfLines={2}
         >
-          {paymentLine(job.payment, t)}
+          {paymentLine(job.payment, paymentDisplay, t)}
         </Text>
       )}
     </AnimatedPressable>

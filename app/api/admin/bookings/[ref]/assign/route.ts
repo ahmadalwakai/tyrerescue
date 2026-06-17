@@ -9,6 +9,7 @@ import { driverAssigned, jobAssigned, jobCancelled } from '@/lib/email/templates
 import { createAdminNotification } from '@/lib/notifications';
 import { notifyDriverNewJob, notifyDriverReassignment } from '@/lib/notifications/driver-push';
 import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
+import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -70,6 +71,7 @@ export async function PATCH(request: Request, { params }: Props) {
     }
 
     const currentStatus = booking.status as BookingStatus;
+    const paymentEvidence = await getBookingPaymentEvidence(booking.id);
 
     // Block assignment for terminal statuses only
     const terminalStatuses = ['completed', 'cancelled', 'refunded', 'refunded_partial', 'cancelled_refund_pending'];
@@ -114,6 +116,9 @@ export async function PATCH(request: Request, { params }: Props) {
         remainingBalancePence: booking.remainingBalancePence,
         depositPaidAt: booking.depositPaidAt,
         stripePiId: booking.stripePiId,
+        paymentStatus: paymentEvidence.paymentStatus,
+        totalPaidPence: paymentEvidence.totalPaidPence,
+        bookingStatus: currentStatus,
       });
       let reassignmentPushSent = await notifyDriverReassignment(driverId, booking.refNumber, booking.addressLine, reassignPayment, booking.id);
       if (!reassignmentPushSent) {
@@ -264,6 +269,9 @@ export async function PATCH(request: Request, { params }: Props) {
         remainingBalancePence: booking.remainingBalancePence,
         depositPaidAt: booking.depositPaidAt,
         stripePiId: booking.stripePiId,
+        paymentStatus: paymentEvidence.paymentStatus,
+        totalPaidPence: paymentEvidence.totalPaidPence,
+        bookingStatus: 'driver_assigned',
       });
       const firstResult = await notifyDriverNewJob(driverId, booking.refNumber, booking.addressLine, newJobPayment, booking.id);
       if (!firstResult) {

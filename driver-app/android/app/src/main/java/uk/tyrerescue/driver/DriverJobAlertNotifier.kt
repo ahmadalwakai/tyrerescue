@@ -310,10 +310,20 @@ object DriverJobAlertNotifier {
       lines.add("Price: \u00A3${String.format("%.2f", price / 100.0)}")
     }
     val collect = payload.amountToCollectPence?.toLongOrNull()
-    if (collect != null && collect > 0) {
-      lines.add("Collect: \u00A3${String.format("%.2f", collect / 100.0)}")
-    } else if (payload.paymentStatus == "paid" || collect == 0L) {
+    if (payload.paymentStatus == "paid" && collect != null && collect <= 0L) {
       lines.add("Nothing to collect")
+    } else if (payload.paymentStatus == "needs_checking") {
+      lines.add(if (collect != null && collect > 0L) "Payment needs checking: \u00A3${String.format("%.2f", collect / 100.0)}" else "Payment needs checking")
+    } else if (payload.paymentStatus == "failed") {
+      lines.add(if (collect != null && collect > 0L) "Payment failed: \u00A3${String.format("%.2f", collect / 100.0)}" else "Payment failed")
+    } else if (payload.paymentStatus == "pending") {
+      lines.add(if (collect != null && collect > 0L) "Payment pending: \u00A3${String.format("%.2f", collect / 100.0)}" else "Payment pending")
+    } else if (payload.paymentType == "cash" && collect != null && collect > 0L) {
+      lines.add("Cash to collect: \u00A3${String.format("%.2f", collect / 100.0)}")
+    } else if (payload.paymentStatus == "deposit_paid" && collect != null && collect > 0L) {
+      lines.add("Balance due: \u00A3${String.format("%.2f", collect / 100.0)}")
+    } else if (collect != null && collect > 0L) {
+      lines.add("Amount due: \u00A3${String.format("%.2f", collect / 100.0)}")
     }
     return lines.joinToString("\n")
   }

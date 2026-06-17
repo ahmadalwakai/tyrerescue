@@ -3,6 +3,7 @@ import { db, bookings, bookingTyres, tyreProducts, bookingStatusHistory } from '
 import { eq, and, desc } from 'drizzle-orm';
 import { requireDriverMobile } from '@/lib/auth';
 import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
+import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
 
 export async function GET(
   request: Request,
@@ -56,6 +57,7 @@ export async function GET(
       .from(bookingStatusHistory)
       .where(eq(bookingStatusHistory.bookingId, booking.id))
       .orderBy(desc(bookingStatusHistory.createdAt));
+    const paymentEvidence = await getBookingPaymentEvidence(booking.id);
 
     return NextResponse.json({
       id: booking.id,
@@ -97,6 +99,8 @@ export async function GET(
         remainingBalancePence: booking.remainingBalancePence,
         depositPaidAt: booking.depositPaidAt,
         stripePiId: booking.stripePiId,
+        paymentStatus: paymentEvidence.paymentStatus,
+        totalPaidPence: paymentEvidence.totalPaidPence,
         bookingStatus: booking.status,
       }),
       createdAt: booking.createdAt?.toISOString() ?? null,

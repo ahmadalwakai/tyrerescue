@@ -9,4 +9,4 @@
  * Bump `BUILD_LABEL` on every release build so support can confirm the phone
  * is not running an older APK.
  */
-export const BUILD_LABEL = '2026-06-06 alert readiness hardening';
+export const BUILD_LABEL = '2026-06-17 mapbox-layer-fix payment-truth-fix tracking-status-fix';

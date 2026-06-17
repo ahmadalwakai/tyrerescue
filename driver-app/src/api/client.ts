@@ -233,18 +233,28 @@ export interface JobSummary {
 }
 
 export type PaymentType = 'cash' | 'full' | 'deposit' | null;
-export type PaymentStatus = 'unpaid' | 'deposit_paid' | 'paid' | 'unknown';
+export type PaymentStatus =
+  | 'unpaid'
+  | 'deposit_paid'
+  | 'paid'
+  | 'pending'
+  | 'needs_checking'
+  | 'failed'
+  | 'unknown';
 
 export interface PaymentSummary {
   type: PaymentType;
   status: PaymentStatus;
+  paymentStatus: string | null;
   subtotalPence: number | null;
   vatAmountPence: number | null;
   totalAmountPence: number | null;
+  totalPaidPence: number;
   depositAmountPence: number | null;
   remainingBalancePence: number | null;
   amountToCollectPence: number;
   depositPaidAt: string | null;
+  bookingStatus: string | null;
 }
 
 export interface JobDetail extends JobSummary {

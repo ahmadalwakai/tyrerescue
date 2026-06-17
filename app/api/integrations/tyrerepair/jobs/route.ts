@@ -206,6 +206,7 @@ export async function POST(request: Request) {
       typeof body.remainingBalancePence === 'number' ? body.remainingBalancePence : null,
     depositPaidAt: null,
     stripePiId: null,
+    bookingStatus: 'driver_assigned',
   });
 
   // Wake the driver app with a full-screen job alert. Retry once on a transient

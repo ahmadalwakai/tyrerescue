@@ -59,15 +59,16 @@ import {
   speak as speakGuidance,
   stopVoice,
 } from '@/services/voice';
-
-/** Plain-English job status shown in the driver state strip (i18n keys). */
-const STATUS_LABELS: Record<string, string> = {
-  driver_assigned: 'route.statusAssigned',
-  en_route: 'route.statusOnTheWay',
-  arrived: 'route.statusArrived',
-  in_progress: 'route.statusWorking',
-  completed: 'route.statusCompleted',
-};
+import {
+  buildWazeNavigationUrl,
+  isValidNavigationCoordinate,
+} from '@/lib/navigation/waze';
+import { buildGoogleMapsSearchUrl } from '@/lib/navigation/google-maps';
+import {
+  getSmartDriverReminder,
+  type SmartDriverReminder,
+  type SmartReminderAction,
+} from '@/lib/driver-smart-reminders';
 
 /** Big, unambiguous label for the primary cockpit action button (i18n keys). */
 const NEXT_ACTION_LABEL: Record<string, string> = {
@@ -99,11 +100,14 @@ const KEEP_AWAKE_TAG = 'driver-route';
 const JOB_POLL_INTERVAL_MS = 15_000;
 // Refresh the road route only when the driver has moved meaningfully AND a
 // minimum interval has elapsed — keeps the Directions API usage low.
-const ROUTE_REFRESH_MIN_MOVE_M = 35;
-const ROUTE_MIN_INTERVAL_MS = 12_000;
+const ROUTE_REFRESH_MIN_MOVE_M = 25;
+const ROUTE_MIN_INTERVAL_MS = 8_000;
 // Off-route / reroute.
-const OFF_ROUTE_METERS = 70;
-const REROUTE_DEBOUNCE_MS = 5_000;
+const OFF_ROUTE_METERS = 45;
+const REROUTE_DEBOUNCE_MS = 3_000;
+// Force a route refresh when the route is stale AND the driver has moved far.
+const ROUTE_STALE_WHILE_MOVING_MS = 45_000;
+const ROUTE_FORCE_REFRESH_MOVE_M = 120;
 // Snap the displayed driver marker onto the route ONLY when the perpendicular
 // drift from the raw GPS fix is within this many metres — i.e. normal GPS
 // jitter while genuinely on the road. Beyond this the driver is treated as
@@ -111,11 +115,10 @@ const REROUTE_DEBOUNCE_MS = 5_000;
 const SNAP_TO_ROUTE_MAX_DRIFT_M = 35;
 // Advance to the next turn instruction when within this distance of it.
 const STEP_ADVANCE_METERS = 30;
-// Fallback driving-speed estimate (~25 mph) when the road route is unavailable.
-const FALLBACK_SPEED_MPS = 11.2;
 // GPS is considered "weak" for the route-health pill after this many seconds
 // without a fresh fix.
 const GPS_WEAK_SECONDS = 12;
+const ROUTE_INSTRUCTION_STALE_SECONDS = 45;
 // How long the transient payment banner stays on screen.
 const PAYMENT_BANNER_MS = 6_000;
 // Cadence the smart route-event engine is evaluated at. Runs on a timer (not
@@ -124,7 +127,7 @@ const ROUTE_EVENT_TICK_MS = 2_000;
 // Bottom map padding (px) reserved for the cockpit sheet when framing the
 // route, so the destination is never hidden behind the panel. The expanded
 // sheet covers much more screen than the collapsed bar.
-const COCKPIT_PAD_COLLAPSED = 170;
+const COCKPIT_PAD_COLLAPSED = 220;
 const COCKPIT_PAD_EXPANDED = 360;
 // ── Offline / weak-network handling ─────────────────────────────────────────
 // While a network failure is latched we suppress reroute/refresh spam, but
@@ -218,9 +221,17 @@ const INITIAL_ROUTE_STATE: RouteState = {
   steps: [],
   congestion: null,
   destinationSnap: null,
+  routeJobRef: null,
+  routeDestinationKey: null,
+  routeCalculatedAt: null,
+  routeOriginFixAt: null,
   error: null,
   loading: false,
 };
+
+function coordKey(coord: Coordinates | null): string | null {
+  return coord ? `${coord.lat.toFixed(6)},${coord.lng.toFixed(6)}` : null;
+}
 
 function getMapboxToken(): string {
   return (process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? '').trim();
@@ -236,6 +247,12 @@ function makeRouteState(
   routes: DirectionsRoute[],
   selectedIndex: number,
   error: RouteError | null,
+  meta: {
+    routeJobRef?: string | null;
+    routeDestinationKey?: string | null;
+    routeCalculatedAt?: number | null;
+    routeOriginFixAt?: number | null;
+  } = {},
 ): RouteState {
   const idx = routes[selectedIndex] ? selectedIndex : 0;
   const sel = routes[idx] ?? null;
@@ -249,6 +266,10 @@ function makeRouteState(
     steps: sel ? sel.steps : [],
     congestion: sel ? sel.congestion : null,
     destinationSnap: sel ? sel.destinationSnap : null,
+    routeJobRef: meta.routeJobRef ?? null,
+    routeDestinationKey: meta.routeDestinationKey ?? null,
+    routeCalculatedAt: meta.routeCalculatedAt ?? null,
+    routeOriginFixAt: meta.routeOriginFixAt ?? null,
     error,
     loading: false,
   };
@@ -351,6 +372,10 @@ var driverAnim = null, driverRaf = 0, driverAnimPos = null, lastRenderedRot = nu
 var nowMs = (window.performance && window.performance.now) ? function(){ return window.performance.now(); } : function(){ return Date.now(); };
 var pendingState = null;
 var cameraEpoch = -1, programmatic = false;
+// Stable zoom for driver follow mode — never changes on GPS update, only on recenter/mode-change.
+var NAVIGATION_ZOOM = 16;
+// DEV-only diagnostics flag (baked in at build time).
+var NAV_DEV = ${__DEV__};
 // Bottom map padding (px) reserved for the cockpit sheet so route framing is
 // never hidden behind it. Updated from each pushed state (collapsed/expanded).
 var bottomPad = 230;
@@ -430,17 +455,22 @@ function circlePolygon(center, meters){
   for(var i=0;i<=32;i++){ var a=2*Math.PI*i/32; pts.push([center[0]+dLng*Math.cos(a), center[1]+dLat*Math.sin(a)]); }
   return {type:'FeatureCollection',features:[{type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[pts]}}]};
 }
-function firstSymbolId(){
-  try { var ls = map.getStyle().layers || []; for(var i=0;i<ls.length;i++){ if(ls[i].type==='symbol') return ls[i].id; } } catch(_){}
+function getRouteBeforeLayerId(){
+  // Find the first LABEL symbol layer (layout has text-field). In navigation
+  // styles, icon-only symbol layers appear BEFORE road line layers, so using
+  // the very first symbol layer places routes beneath roads. Text-label layers
+  // always appear after all road geometry, so inserting before the first one
+  // guarantees the route sits above roads but below street names.
+  try { var ls=(map.getStyle()&&map.getStyle().layers)||[]; for(var i=0;i<ls.length;i++){ var l=ls[i]; if(l.type==='symbol'&&l.layout&&l.layout['text-field']) return l.id; } } catch(_){}
   return undefined;
 }
 function setVis(id,on){ try { if(map.getLayer(id)) map.setLayoutProperty(id,'visibility', on?'visible':'none'); } catch(_){} }
 
-// Insert all route layers BELOW the first symbol (label) layer so road names
-// and side roads stay readable on top of the route.
+// Insert all route layers BELOW the first text-label symbol layer so road
+// names stay readable on top of the route, while the route sits above roads.
 function ensureLayers(){
   if(layersReady || !map || !map.isStyleLoaded()) return;
-  var before = firstSymbolId();
+  var before = getRouteBeforeLayerId();
   map.addSource('acc',{type:'geojson',data:emptyFC()});
   map.addLayer({id:'acc-fill',type:'fill',source:'acc',paint:{'fill-color':'#60A5FA','fill-opacity':0.10}}, before);
   map.addLayer({id:'acc-line',type:'line',source:'acc',paint:{'line-color':'#60A5FA','line-opacity':0.5,'line-width':1}}, before);
@@ -454,8 +484,8 @@ function ensureLayers(){
   // casing is WIDER than the body and separates the route from road geometry so
   // the blue can never blend into a normal road. Widths are zoom-responsive
   // (low/normal/high driving zoom) so the route stays unmistakable at any scale.
-  map.addLayer({id:'r-case',type:'line',source:'rsel',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'rgba(255,255,255,0.95)','line-width':['interpolate',['linear'],['zoom'],10,8,15,11,18,13]}}, before);
-  map.addLayer({id:'r-main',type:'line',source:'rsel',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#0A84FF','line-width':['interpolate',['linear'],['zoom'],10,5,15,7,18,8],'line-opacity':1}}, before);
+  map.addLayer({id:'r-case',type:'line',source:'rsel',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'rgba(255,255,255,0.98)','line-width':['interpolate',['linear'],['zoom'],10,14,15,18,18,22]}}, before);
+  map.addLayer({id:'r-main',type:'line',source:'rsel',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#0A84FF','line-width':['interpolate',['linear'],['zoom'],10,8,15,12,18,16],'line-opacity':1}}, before);
   map.addSource('rcong',{type:'geojson',data:emptyFC()});
   // Congestion overlay sits ON TOP of the blue base as THIN orange/red segments,
   // and only carries the genuinely-congested (moderate+) stretches. It is always
@@ -486,8 +516,13 @@ function setRoutes(routes, selIdx, fallback, customer){
   map.getSource('rsel').setData({type:'FeatureCollection',features:[lineFeature(sel.coords)]});
   // Bright blue base is ALWAYS visible. Dashed + lighter blue only for the
   // approximate straight-line fallback so the driver can tell it apart.
-  map.setPaintProperty('r-main','line-dasharray', fallback?[2,2]:[1,0]);
-  map.setPaintProperty('r-main','line-color', fallback?'#60A5FA':'#0A84FF');
+  if(fallback){
+    map.setPaintProperty('r-main','line-dasharray',[2,2]);
+    map.setPaintProperty('r-main','line-color','#60A5FA');
+  } else {
+    try { map.setPaintProperty('r-main','line-dasharray', null); } catch(_){}
+    map.setPaintProperty('r-main','line-color','#0A84FF');
+  }
   // Congestion overlay: only the genuinely-congested (moderate+) segments are
   // drawn in orange/red ON TOP of the blue base. low/unknown stay blue.
   var cong = sel.congestion;
@@ -519,6 +554,7 @@ function fitToCoords(coords){
   try{
     var b = new mapboxgl.LngLatBounds(coords[0], coords[0]);
     for(var i=1;i<coords.length;i++){ b.extend(coords[i]); }
+    if(NAV_DEV) console.log('[map-zoom-debug]',JSON.stringify({reason:'fitBounds',coordsLen:coords.length,currentZoom:map.getZoom(),bottomPad:bottomPad}));
     programmatic = true;
     map.fitBounds(b,{padding:{top:150,right:55,bottom:Math.max(120, bottomPad),left:55}, maxZoom:16, bearing:0, pitch:0, duration:500});
   }catch(_){}
@@ -539,7 +575,8 @@ function applyCamera(s){
   var opts = { center: s.driver, duration: 350 };
   if(mode==='heading_up'){ opts.bearing = (s.heading==null ? map.getBearing() : s.heading); opts.pitch = 50; }
   else { opts.bearing = 0; opts.pitch = 0; }
-  if(resetZoom){ opts.zoom = (mode==='heading_up' ? 15.5 : 15); }
+  if(resetZoom){ opts.zoom = NAVIGATION_ZOOM; }
+  if(NAV_DEV) console.log('[map-zoom-debug]',JSON.stringify({reason:'easeTo',mode:mode,resetZoom:resetZoom,zoom:resetZoom?NAVIGATION_ZOOM:map.getZoom(),bearing:opts.bearing||0}));
   programmatic = true;
   map.easeTo(opts);
 }
@@ -671,6 +708,7 @@ export default function JobRouteScreen() {
   const { t, locale } = useI18n();
   const insets = useSafeAreaInsets();
   const token = useMemo(() => getMapboxToken(), []);
+  const currentRouteJobRef = typeof ref === 'string' && ref.length > 0 ? ref : null;
 
   const [job, setJob] = useState<JobDetail | null>(null);
   const [driverLoc, setDriverLoc] = useState<Coordinates | null>(null);
@@ -708,6 +746,31 @@ export default function JobRouteScreen() {
   // Spoken voice-guidance mute toggle (persisted). Default ON for safety;
   // the persisted preference (if any) is applied on mount.
   const [voiceEnabled, setVoiceEnabledState] = useState(true);
+  // Inline error for the arrival status update (replaces Alert.alert so the
+  // driver sees it in context rather than a modal that blocks the map).
+  const [arrivalError, setArrivalError] = useState<string | null>(null);
+
+  // ── Pre-job safety checklist (shown before driver_assigned → en_route) ──
+  const [showPreJobChecklist, setShowPreJobChecklist] = useState(false);
+  const [preJobChecks, setPreJobChecks] = useState({
+    tyreSizeChecked: false,
+    addressChecked: false,
+    paymentChecked: false,
+  });
+
+  // ── Completion checklist (shown before in_progress → completed) ──
+  const [showCompletionChecklist, setShowCompletionChecklist] = useState(false);
+  const [completionChecks, setCompletionChecks] = useState({
+    tyreFitted: false,
+    wheelNuts: false,
+    customerInformed: false,
+    paymentChecked: false,
+  });
+  const [completionError, setCompletionError] = useState<string | null>(null);
+  const [completionActioning, setCompletionActioning] = useState(false);
+
+  // ── Smart driver reminder ──
+  const [activeReminder, setActiveReminder] = useState<SmartDriverReminder | null>(null);
 
   // Map lifecycle state, keyed to the current WebView instance so a remount
   // (status change / retry / watchdog) implicitly resets to "loading".
@@ -744,11 +807,15 @@ export default function JobRouteScreen() {
   const lastFixTimeRef = useRef<number>(0);
   const lastProcessedFixTimeRef = useRef<number>(0);
   const fitPendingRef = useRef(false);
+  // Tracks the last routeRev string we actually sent to the WebView so we can
+  // skip re-serialising the full route geometry (~15 KB) on GPS-only updates.
+  const lastInjectedRouteRevRef = useRef<string>('');
   const hasRequestedRef = useRef(false);
   const latestStateRef = useRef<string>('');
   const recoveryAttemptsRef = useRef(0);
   const actionLockRef = useRef(false);
   const extNavLockRef = useRef(false);
+  const wazeNavLockRef = useRef(false);
   const handlersRef = useRef<{ onFix: (c: Coordinates) => void }>({ onFix: () => {} });
   // Phase 2 intelligence layer: smart route-event engine + mirror refs read
   // from the evaluation timer (kept in refs so the timer never re-subscribes).
@@ -772,8 +839,18 @@ export default function JobRouteScreen() {
   const arrivalPromptDismissedRef = useRef(false);
   const showArrivalPromptRef = useRef(false);
 
+  // Mirror job to a ref so the 2-second timer can read it without re-subscribing.
+  const jobRef = useRef<JobDetail | null>(null);
+  // Cooldown tracking: maps reminder id → timestamp when it was dismissed.
+  const reminderDismissedRef = useRef<Record<string, number>>({});
+  // Mirror active reminder id so the timer can compare without state reads.
+  const activeReminderIdRef = useRef<string | null>(null);
+  // Follow mode mirrored to a ref so requestRoute can read it without closure stale issues.
+  const followModeRef = useRef<FollowMode>('heading_up');
+
   // Keep mirror refs in sync (assignment only — no setState in effects).
   useEffect(() => { routeStateRef.current = routeState; }, [routeState]);
+  useEffect(() => { followModeRef.current = followMode; }, [followMode]);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { reroutingRef.current = rerouting; }, [rerouting]);
   useEffect(() => { lastFixAtRef.current = lastFixAt; }, [lastFixAt]);
@@ -781,6 +858,14 @@ export default function JobRouteScreen() {
   useEffect(() => { localeRef.current = locale === 'ar' ? 'ar' : 'en'; }, [locale]);
   useEffect(() => { jobStatusRef.current = job?.status ?? null; }, [job?.status]);
   useEffect(() => { showArrivalPromptRef.current = showArrivalPrompt; }, [showArrivalPrompt]);
+  // When the job status changes, clear cooldowns so next-phase reminders surface
+  // immediately. The 2-second timer will naturally discard any stale reminder on
+  // its next tick — no direct setState needed here.
+  useEffect(() => {
+    reminderDismissedRef.current = {};
+  }, [job?.status]);
+  useEffect(() => { jobRef.current = job; }, [job]);
+  useEffect(() => { activeReminderIdRef.current = activeReminder?.id ?? null; }, [activeReminder]);
 
   // Load the persisted voice-guidance mute preference once on mount and stop
   // any speech when leaving the screen.
@@ -807,17 +892,59 @@ export default function JobRouteScreen() {
     const c = { lat, lng };
     return isValidCoord(c) ? c : null;
   }, [job?.lat, job?.lng]);
+  const currentDestinationKey = useMemo(() => coordKey(customerCoord), [customerCoord]);
 
   useEffect(() => {
     destinationRef.current = customerCoord;
+    routeAbortRef.current?.abort();
+    hasRequestedRef.current = false;
+    lastRouteOriginRef.current = null;
+    lastRouteAtRef.current = 0;
+    offRouteSinceRef.current = null;
+    networkFailRef.current = 0;
+    stepIndexRef.current = 0;
+    spokenStepRef.current = -1;
+    let clearRouteTimer: ReturnType<typeof setTimeout> | null = null;
+    const existing = routeStateRef.current;
+    const hasExistingRoute =
+      existing.loading ||
+      existing.source !== 'none' ||
+      existing.routes.length > 0 ||
+      existing.geometry != null ||
+      existing.error != null;
+    if (hasExistingRoute) {
+      const next: RouteState = {
+        ...INITIAL_ROUTE_STATE,
+        // Do not pre-mark as loading here. `requestRoute` owns the loading
+        // transition; otherwise the first GPS fix can think a request is already
+        // active and never start Mapbox Directions.
+        loading: false,
+      };
+      routeStateRef.current = next;
+      clearRouteTimer = setTimeout(() => setRouteState(next), 0);
+      if (__DEV__) {
+        console.info('[driver-route-clear]', {
+          reason: 'job_or_destination_changed',
+          currentRouteJobRef,
+          currentDestinationKey,
+          previousRouteJobRef: existing.routeJobRef,
+          previousDestinationKey: existing.routeDestinationKey,
+        });
+      }
+    }
     // New destination => fresh route session: clear all event latches so the
     // proximity/lifecycle cues fire correctly for the new journey.
     engineRef.current.reset();
     // Fresh journey also re-arms the auto-arrival suggestion.
     arrivalDwellSinceRef.current = null;
     arrivalPromptDismissedRef.current = false;
-    setShowArrivalPrompt(false);
-  }, [customerCoord]);
+    // Defer to avoid synchronous setState inside an effect body.
+    const id = setTimeout(() => setShowArrivalPrompt(false), 0);
+    return () => {
+      if (clearRouteTimer) clearTimeout(clearRouteTimer);
+      clearTimeout(id);
+    };
+  }, [customerCoord, currentDestinationKey, currentRouteJobRef]);
 
   // Build the HTML once per token so the WebView never reloads while data updates.
   const html = useMemo(() => (token ? buildHtml(token) : ''), [token]);
@@ -831,7 +958,20 @@ export default function JobRouteScreen() {
       routeAbortRef.current?.abort();
       const controller = new AbortController();
       routeAbortRef.current = controller;
+      // Update the ref immediately so evaluateRoute's loading guard works before React re-renders.
+      routeStateRef.current = { ...routeStateRef.current, loading: true };
       setRouteState((prev) => ({ ...prev, loading: true }));
+      const routeJobRef = currentRouteJobRef;
+      const routeDestinationKey = coordKey(destination);
+      const routeOriginFixAt = lastFixAtRef.current ?? Date.now();
+      if (__DEV__) {
+        console.info('[driver-route-request]', {
+          routeJobRef,
+          routeDestinationKey,
+          origin,
+          destination,
+        });
+      }
 
       const result = await fetchDirections(
         origin,
@@ -846,15 +986,24 @@ export default function JobRouteScreen() {
         const primary = routes[0];
         // A successful fetch means we are back online — clear the latch so
         // reroute/refresh is allowed again.
+        // Only fit the whole route on the very first fetch for this session or when in
+        // overview mode. Fitting during active navigation zooms out and disorients the driver.
+        const isFirstNavRoute =
+          lastRouteOriginRef.current === null && routeStateRef.current.source === 'none';
         networkFailRef.current = 0;
         lastRouteOriginRef.current = origin;
         lastRouteAtRef.current = Date.now();
         offRouteSinceRef.current = null;
-        fitPendingRef.current = true;
+        fitPendingRef.current = isFirstNavRoute || followModeRef.current === 'overview';
         stepIndexRef.current = primary.steps.length > 1 ? 1 : 0;
         setCurrentStepIndex(stepIndexRef.current);
         setRerouting(false);
-        const next = makeRouteState('mapbox', routes, 0, null);
+        const next = makeRouteState('mapbox', routes, 0, null, {
+          routeJobRef,
+          routeDestinationKey,
+          routeCalculatedAt: Date.now(),
+          routeOriginFixAt,
+        });
         routeStateRef.current = next;
         setRouteState(next);
         return;
@@ -865,22 +1014,25 @@ export default function JobRouteScreen() {
       setRerouting(false);
 
       if (err.kind === 'invalid-coords') {
-        const next = makeRouteState('none', [], 0, err);
+        const next = makeRouteState('none', [], 0, err, {
+          routeJobRef,
+          routeDestinationKey,
+        });
         routeStateRef.current = next;
         setRouteState(next);
         return;
       }
 
       // Network/offline failure: NEVER clear a route the driver is using. If we
-      // already have a usable road route, keep it on screen and only flag the
-      // connection state (drives the "Offline — last route" health pill and the
-      // engine's connection-lost cue). Latch the failure time so reroute/refresh
-      // is suppressed until the next probe window.
+      // already have a usable Mapbox road route, keep it on screen and only flag
+      // the connection state (drives the "Offline — last route" health pill and
+      // the engine's connection-lost cue). Latch the failure time so
+      // reroute/refresh is suppressed until the next probe window.
       if (err.kind === 'network') {
         networkFailRef.current = Date.now();
         const prev = routeStateRef.current;
         if (
-          (prev.source === 'mapbox' || prev.source === 'fallback') &&
+          prev.source === 'mapbox' &&
           prev.geometry != null &&
           prev.geometry.length >= 2
         ) {
@@ -891,27 +1043,18 @@ export default function JobRouteScreen() {
         }
       }
 
-      // Last-resort fallback: clearly-labelled approximate straight line.
-      const meters = haversineMeters(origin, destination);
-      const synthetic: DirectionsRoute = {
-        geometry: [
-          [origin.lng, origin.lat],
-          [destination.lng, destination.lat],
-        ],
-        distanceMeters: meters,
-        durationSeconds: Math.max(60, meters / FALLBACK_SPEED_MPS),
-        steps: [],
-        congestion: null,
-        destinationSnap: [destination.lng, destination.lat],
-      };
-      lastRouteOriginRef.current = origin;
+      // All attempts failed and no previous valid route to preserve.
+      // A straight-line is NOT drawn — it must never be presented as navigation.
+      // Rate-limit the next retry so we do not spam the Directions API.
       lastRouteAtRef.current = Date.now();
-      fitPendingRef.current = true;
-      const next = makeRouteState('fallback', [synthetic], 0, err);
+      const next = makeRouteState('none', [], 0, err, {
+        routeJobRef,
+        routeDestinationKey,
+      });
       routeStateRef.current = next;
       setRouteState(next);
     },
-    [locale],
+    [currentRouteJobRef, locale],
   );
 
   // ── Per-GPS-fix evaluation: step advance, off-route reroute, refresh ──
@@ -921,9 +1064,34 @@ export default function JobRouteScreen() {
       if (!dest) return;
       const rs = routeStateRef.current;
       const now = Date.now();
+      const destKey = coordKey(dest);
+      const routeBelongsToCurrentJob =
+        rs.source === 'mapbox' &&
+        rs.routeJobRef === currentRouteJobRef &&
+        rs.routeDestinationKey === destKey;
+
+      if (rs.source === 'mapbox' && !routeBelongsToCurrentJob) {
+        const next: RouteState = {
+          ...INITIAL_ROUTE_STATE,
+          loading: true,
+        };
+        routeStateRef.current = next;
+        setRouteState(next);
+        if (__DEV__) {
+          console.info('[driver-route-clear]', {
+            reason: 'stale_route_metadata',
+            currentRouteJobRef,
+            currentDestinationKey: destKey,
+            previousRouteJobRef: rs.routeJobRef,
+            previousDestinationKey: rs.routeDestinationKey,
+          });
+        }
+        requestRoute(driver, dest);
+        return;
+      }
 
       // Advance the active turn instruction as the driver passes maneuvers.
-      if (rs.source === 'mapbox' && rs.steps.length > 1) {
+      if (routeBelongsToCurrentJob && rs.steps.length > 1) {
         let idx = stepIndexRef.current;
         while (idx < rs.steps.length - 1) {
           const s = rs.steps[idx];
@@ -948,7 +1116,7 @@ export default function JobRouteScreen() {
         !offline || now - networkFailRef.current > OFFLINE_RETRY_MS;
 
       // Off-route detection + debounced reroute.
-      if (rs.source === 'mapbox' && rs.geometry) {
+      if (routeBelongsToCurrentJob && rs.geometry) {
         const d = distanceToRouteMeters(driver, rs.geometry);
         if (d > OFF_ROUTE_METERS) {
           if (offRouteSinceRef.current == null) {
@@ -959,6 +1127,17 @@ export default function JobRouteScreen() {
           ) {
             offRouteSinceRef.current = null;
             setRerouting(true);
+            if (__DEV__) {
+              console.log('[route-refresh-debug]', {
+                ref: currentRouteJobRef,
+                reason: 'off-route-reroute',
+                offRouteMeters: Math.round(d),
+                origin: driver,
+                destination: dest,
+                routeAgeMs: rs.routeCalculatedAt != null ? now - rs.routeCalculatedAt : null,
+                inFlight: false,
+              });
+            }
             requestRoute(driver, dest);
             return;
           }
@@ -970,26 +1149,44 @@ export default function JobRouteScreen() {
       // Periodic refresh when the driver has moved meaningfully, or upgrade
       // attempts when we are currently on a fallback / no route. Gated on the
       // network probe window so we never spam Directions while offline.
+      // Also force-refresh when the route is stale and the driver has moved far.
       const lastOrigin = lastRouteOriginRef.current;
       const movedEnough =
         !lastOrigin || haversineMeters(driver, lastOrigin) > ROUTE_REFRESH_MIN_MOVE_M;
       const intervalOk = now - lastRouteAtRef.current > ROUTE_MIN_INTERVAL_MS;
+      const routeAgeMs = rs.routeCalculatedAt != null ? now - rs.routeCalculatedAt : null;
+      const movedFarFromOrigin =
+        lastOrigin != null && haversineMeters(driver, lastOrigin) > ROUTE_FORCE_REFRESH_MOVE_M;
+      const staleWhileMoving =
+        movedFarFromOrigin && routeAgeMs != null && routeAgeMs > ROUTE_STALE_WHILE_MOVING_MS;
       if (
         networkAllowed &&
-        (rs.source === 'none' ||
-          rs.source === 'fallback' ||
-          (movedEnough && intervalOk))
+        (rs.source === 'none' || (movedEnough && intervalOk) || staleWhileMoving)
       ) {
+        if (__DEV__) {
+          console.log('[route-refresh-debug]', {
+            ref: currentRouteJobRef,
+            reason: rs.source === 'none' ? 'no-route' : staleWhileMoving ? 'stale-while-moving' : 'periodic',
+            origin: driver,
+            destination: dest,
+            movedMeters: lastOrigin ? Math.round(haversineMeters(driver, lastOrigin)) : 0,
+            offRouteMeters: null,
+            routeAgeMs,
+            inFlight: false,
+          });
+        }
         requestRoute(driver, dest);
       }
     },
-    [requestRoute],
+    [currentRouteJobRef, requestRoute],
   );
 
   // First fix / subsequent fixes funnel through here.
   const onFix = useCallback(
     (driver: Coordinates) => {
-      setLastFixAt(Date.now());
+      const now = Date.now();
+      lastFixAtRef.current = now;
+      setLastFixAt(now);
       const dest = destinationRef.current;
       if (!dest) return;
       if (phaseRef.current !== 'to_dropoff') {
@@ -1032,6 +1229,23 @@ export default function JobRouteScreen() {
     };
   }, [ref]);
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!ref) return undefined;
+      let cancelled = false;
+      driverApi.getJob(ref)
+        .then((data) => {
+          if (!cancelled) setJob(data);
+        })
+        .catch(() => {
+          // The polling effect and main jobs screen handle fetch failures.
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [ref]),
+  );
+
   // When the destination becomes known after a fix already exists, kick a
   // route. Deferred via microtask so this effect never setStates synchronously.
   useEffect(() => {
@@ -1039,7 +1253,7 @@ export default function JobRouteScreen() {
       const driver = driverLocRef.current;
       Promise.resolve().then(() => handlersRef.current.onFix(driver));
     }
-  }, [customerCoord]);
+  }, [customerCoord, currentDestinationKey, currentRouteJobRef]);
 
   // ── Foreground GPS watcher (single subscription, cleaned up on unmount) ──
   useEffect(() => {
@@ -1172,28 +1386,44 @@ export default function JobRouteScreen() {
     };
   }, [token, permRetry]);
 
-  // Route revision: increments ONLY when the drawn route truly changes
+  // Route signature: changes ONLY when the drawn route truly changes
   // (geometry length / endpoints / selected index / source). The WebView uses
-  // it to skip the expensive route-layer rebuild on every GPS fix.
-  const routeRevRef = useRef(0);
-  const routeSigRef = useRef('');
+  // it as a stable opaque token to skip the expensive route-layer rebuild on
+  // every GPS fix — compared with strict equality, so any change triggers a
+  // single rebuild. Initial WebView value is -1 so the first push always wins.
   const routeRev = useMemo(() => {
     const g = routeState.geometry;
-    const sig = `${routeState.source}|${routeState.selectedIndex}|${g ? g.length : 0}|${
+    return `${routeState.source}|${routeState.routeJobRef ?? ''}|${
+      routeState.routeDestinationKey ?? ''
+    }|${routeState.selectedIndex}|${g ? g.length : 0}|${
       g && g.length
         ? `${g[0][0]},${g[0][1]},${g[g.length - 1][0]},${g[g.length - 1][1]}`
         : ''
     }`;
-    if (sig !== routeSigRef.current) {
-      routeSigRef.current = sig;
-      routeRevRef.current += 1;
-    }
-    return routeRevRef.current;
-  }, [routeState.source, routeState.selectedIndex, routeState.geometry]);
+  }, [
+    routeState.source,
+    routeState.routeJobRef,
+    routeState.routeDestinationKey,
+    routeState.selectedIndex,
+    routeState.geometry,
+  ]);
 
   // ── Push markers / route / camera into the WebView ──
   useEffect(() => {
     if (!token || !mapLoaded) return;
+    const routeCanRender =
+      routeState.source === 'mapbox' &&
+      routeState.routeJobRef === currentRouteJobRef &&
+      routeState.routeDestinationKey === currentDestinationKey;
+    if (__DEV__ && routeState.source === 'mapbox' && !routeCanRender) {
+      console.info('[driver-route-clear]', {
+        reason: 'render_guard_metadata_mismatch',
+        currentRouteJobRef,
+        currentDestinationKey,
+        previousRouteJobRef: routeState.routeJobRef,
+        previousDestinationKey: routeState.routeDestinationKey,
+      });
+    }
     // Snap the displayed marker onto the route when the GPS drift is small
     // (genuine jitter on the road). Beyond SNAP_TO_ROUTE_MAX_DRIFT_M the driver
     // is treated as truly off-route and the raw fix is shown unchanged.
@@ -1201,7 +1431,7 @@ export default function JobRouteScreen() {
       driverLoc && isValidCoord(driverLoc) ? driverLoc : null;
     if (
       driverPoint &&
-      routeState.source === 'mapbox' &&
+      routeCanRender &&
       routeState.geometry &&
       routeState.geometry.length >= 2
     ) {
@@ -1212,26 +1442,42 @@ export default function JobRouteScreen() {
     }
     const driver = driverPoint ? [driverPoint.lng, driverPoint.lat] : null;
     const customer = customerCoord ? [customerCoord.lng, customerCoord.lat] : null;
-    const routesPayload = routeState.routes.map((r) => ({
-      coords: r.geometry,
-      congestion: r.congestion,
-    }));
+    // Only re-serialise route geometry when the route itself changed. GPS-only
+    // updates (every ~2 s) shrink from ~15–40 KB to ~300 bytes on the JS bridge.
+    const routeRevChanged = routeRev !== lastInjectedRouteRevRef.current;
+    if (routeRevChanged) lastInjectedRouteRevRef.current = routeRev;
+    const routesPayload = !routeRevChanged
+      ? undefined // GPS-only update — WebView keeps its current route display
+      : routeCanRender
+        ? routeState.routes.map((r) => ({ coords: r.geometry, congestion: r.congestion }))
+        : [];
     const fit = fitPendingRef.current;
     fitPendingRef.current = false;
+    if (__DEV__ && fit) {
+      console.log('[map-zoom-debug]', {
+        ref: currentRouteJobRef,
+        reason: 'fitBounds-pending',
+        isFollowingDriver,
+        followMode,
+        cameraEpoch,
+      });
+    }
     const json = JSON.stringify({
       driver,
       heading: headingRef.current,
       accuracy: accuracyRef.current,
       customer,
-      routes: routesPayload,
+      routes: routesPayload,       // undefined → omitted by JSON.stringify → WebView "no change"
       selectedIndex: routeState.selectedIndex,
       routeRev,
       // Alternatives are hidden while the cockpit is collapsed so they never
       // compete with the main route; shown only when details are expanded.
       showAlts: !cockpitCollapsed,
-      fallback: routeState.source === 'fallback',
+      fallback: false,
       fit,
-      fitCoords: routeState.geometry,
+      // Only include the full coordinate array when the map must actually call
+      // fitBounds. Sending ~15 KB of geometry on every GPS fix wastes the bridge.
+      fitCoords: fit && routeCanRender ? routeState.geometry : null,
       follow: isFollowingDriver,
       followMode,
       epoch: cameraEpoch,
@@ -1249,10 +1495,14 @@ export default function JobRouteScreen() {
     mapLoaded,
     driverLoc,
     customerCoord,
+    currentDestinationKey,
+    currentRouteJobRef,
     routeState.routes,
     routeState.selectedIndex,
     routeState.source,
     routeState.geometry,
+    routeState.routeJobRef,
+    routeState.routeDestinationKey,
     routeRev,
     isFollowingDriver,
     followMode,
@@ -1273,7 +1523,9 @@ export default function JobRouteScreen() {
     }
     if (followMode === 'overview') {
       fitPendingRef.current = true;
-      setCameraEpoch((e) => e + 1);
+      // Defer to avoid synchronous setState inside an effect body.
+      const id = setTimeout(() => setCameraEpoch((e) => e + 1), 0);
+      return () => clearTimeout(id);
     }
   }, [cockpitCollapsed, followMode]);
 
@@ -1415,10 +1667,16 @@ export default function JobRouteScreen() {
         driver && rs.geometry ? distanceToRouteMeters(driver, rs.geometry) : null;
       const fixAge =
         lastFixAtRef.current == null ? null : now - lastFixAtRef.current;
+      // A reroute has definitively failed when we have no usable geometry,
+      // the error is not a transient network drop (handled separately), not
+      // invalid coords, and we are not currently mid-request.
       const rerouteFailedNow =
-        rs.source === 'fallback' &&
+        !reroutingRef.current &&
+        rs.source === 'none' &&
         rs.error != null &&
-        rs.error.kind !== 'invalid-coords';
+        rs.error.kind !== 'network' &&
+        rs.error.kind !== 'invalid-coords' &&
+        rs.error.kind !== 'aborted';
       // Upcoming maneuver (the active turn step) → pre-turn vibration.
       const idx = stepIndexRef.current;
       const step =
@@ -1471,6 +1729,58 @@ export default function JobRouteScreen() {
           setShowArrivalPrompt(false);
         }
       }
+
+      // ── Smart driver reminder evaluation ──
+      // Never show a reminder while the arrival prompt is visible (they collide).
+      if (!showArrivalPromptRef.current) {
+        const currentJob = jobRef.current;
+        if (currentJob) {
+          const payDisplay = getDriverPaymentDisplay(
+            currentJob.payment ?? null,
+            currentJob.refNumber,
+          );
+          const reminder = getSmartDriverReminder({
+            jobStatus: currentJob.status,
+            acceptedAt: currentJob.acceptedAt ?? currentJob.assignedAt,
+            enRouteAt: currentJob.enRouteAt,
+            arrivedAt: currentJob.arrivedAt,
+            inProgressAt: currentJob.inProgressAt,
+            nowMs: now,
+            remainingDurationSeconds: rs.durationSeconds,
+            metersToCustomer,
+            speedMps: speedRef.current,
+            paymentNeedsAttention:
+              payDisplay.tone === 'pending' ||
+              payDisplay.tone === 'unknown' ||
+              payDisplay.tone === 'action' ||
+              payDisplay.tone === 'warning' ||
+              payDisplay.tone === 'failed',
+            hasTyreSize: !!(currentJob.tyreSizeDisplay?.trim()),
+            hasAddress: !!(currentJob.addressLine?.trim()),
+            gpsStale: fixAge == null || fixAge > 12_000,
+            routeFailed: rs.source === 'none' && rs.error != null,
+          });
+
+          const dismissed = reminderDismissedRef.current;
+          const prevId = activeReminderIdRef.current;
+
+          if (reminder == null) {
+            if (prevId != null) setActiveReminder(null);
+          } else {
+            const dismissedAt = dismissed[reminder.id] ?? 0;
+            const cooldownMs =
+              reminder.severity === 'urgent' ? 5 * 60_000 : 10 * 60_000;
+            const cooldownOver = now - dismissedAt > cooldownMs;
+            if (cooldownOver && prevId !== reminder.id) {
+              setActiveReminder(reminder);
+            } else if (!cooldownOver && prevId === reminder.id) {
+              setActiveReminder(null);
+            }
+          }
+        }
+      } else if (activeReminderIdRef.current != null) {
+        setActiveReminder(null);
+      }
     }, ROUTE_EVENT_TICK_MS);
     return () => clearInterval(id);
   }, [playRouteCue]);
@@ -1499,9 +1809,14 @@ export default function JobRouteScreen() {
       // Genuine unpaid/pending/deposit -> paid transition.
       playSound('payment_received');
       successHaptic();
-      showBanner(t('route.paymentReceived'));
+      const text = t('route.paymentReceived');
+      // Defer banner setState to avoid synchronous setState inside an effect body.
+      const id = setTimeout(() => showBanner(text), 0);
+      return () => clearTimeout(id);
     } else if (status === 'deposit_paid' && prev !== 'deposit_paid' && prev !== 'paid') {
-      showBanner(t('route.depositReceived'));
+      const text = t('route.depositReceived');
+      const id = setTimeout(() => showBanner(text), 0);
+      return () => clearTimeout(id);
     }
   }, [job?.payment?.status, showBanner, t]);
 
@@ -1518,11 +1833,27 @@ export default function JobRouteScreen() {
   const handleStatusAction = useCallback(
     (nextStatus: string) => {
       if (!ref || actionLockRef.current) return;
+
+      // Pre-job safety checklist — shown before starting travel.
+      if (nextStatus === 'en_route') {
+        setPreJobChecks({ tyreSizeChecked: false, addressChecked: false, paymentChecked: false });
+        setShowPreJobChecklist(true);
+        return;
+      }
+
+      // Completion checklist — shown before marking complete.
+      if (nextStatus === 'completed') {
+        setCompletionChecks({ tyreFitted: false, wheelNuts: false, customerInformed: false, paymentChecked: false });
+        setCompletionError(null);
+        setShowCompletionChecklist(true);
+        return;
+      }
+
+      // All other transitions (arrived, in_progress) — keep existing Alert flow.
       actionLockRef.current = true;
-      const confirmMsg =
-        nextStatus === 'completed'
-          ? t('jobDetail.confirmComplete')
-          : t('jobDetail.confirmStatusUpdate', { status: nextStatus.replace(/_/g, ' ') });
+      const confirmMsg = t('jobDetail.confirmStatusUpdate', {
+        status: nextStatus.replace(/_/g, ' '),
+      });
       Alert.alert(
         t('common.confirm'),
         confirmMsg,
@@ -1530,9 +1861,7 @@ export default function JobRouteScreen() {
           {
             text: t('common.cancel'),
             style: 'cancel',
-            onPress: () => {
-              actionLockRef.current = false;
-            },
+            onPress: () => { actionLockRef.current = false; },
           },
           {
             text: t('common.confirm'),
@@ -1540,17 +1869,9 @@ export default function JobRouteScreen() {
               setActioning(true);
               try {
                 await driverApi.updateJobStatus(ref, nextStatus);
-                if (nextStatus === 'completed') {
-                  heavyHaptic();
-                  playSound('job_completed');
-                } else {
-                  mediumHaptic();
-                }
+                mediumHaptic();
                 const updated = await driverApi.getJob(ref).catch(() => null);
                 if (updated) setJob(updated);
-                if (nextStatus === 'completed') {
-                  router.back();
-                }
               } catch (err) {
                 const msg = err instanceof ApiError ? err.message : t('jobDetail.failedUpdate');
                 Alert.alert(t('common.error'), msg);
@@ -1560,15 +1881,50 @@ export default function JobRouteScreen() {
             },
           },
         ],
-        {
-          onDismiss: () => {
-            actionLockRef.current = false;
-          },
-        },
+        { onDismiss: () => { actionLockRef.current = false; } },
       );
     },
-    [ref, router, t],
+    [ref, t],
   );
+
+  // Confirms the pre-job checklist and starts travel (driver_assigned → en_route).
+  const handleConfirmPreJob = useCallback(async () => {
+    if (!ref || actionLockRef.current) return;
+    actionLockRef.current = true;
+    setShowPreJobChecklist(false);
+    setActioning(true);
+    try {
+      await driverApi.updateJobStatus(ref, 'en_route');
+      mediumHaptic();
+      const updated = await driverApi.getJob(ref).catch(() => null);
+      if (updated) setJob(updated);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : t('route.couldNotUpdateStatus');
+      Alert.alert(t('common.error'), msg);
+    }
+    setActioning(false);
+    actionLockRef.current = false;
+  }, [ref, t]);
+
+  // Confirms the completion checklist and marks the job complete (in_progress → completed).
+  const handleConfirmCompletion = useCallback(async () => {
+    if (!ref || actionLockRef.current) return;
+    actionLockRef.current = true;
+    setCompletionError(null);
+    setCompletionActioning(true);
+    try {
+      await driverApi.updateJobStatus(ref, 'completed');
+      heavyHaptic();
+      playSound('job_completed');
+      setShowCompletionChecklist(false);
+      router.back();
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : t('completion.couldNotComplete');
+      setCompletionError(msg);
+      actionLockRef.current = false;
+    }
+    setCompletionActioning(false);
+  }, [ref, router, t]);
 
   // Auto-arrival prompt confirm. The prompt itself IS the confirmation, so this
   // performs the en_route -> arrived transition directly via the SAME
@@ -1579,6 +1935,7 @@ export default function JobRouteScreen() {
     actionLockRef.current = true;
     arrivalPromptDismissedRef.current = true;
     setShowArrivalPrompt(false);
+    setArrivalError(null);
     setActioning(true);
     try {
       await driverApi.updateJobStatus(ref, 'arrived');
@@ -1586,8 +1943,8 @@ export default function JobRouteScreen() {
       const updated = await driverApi.getJob(ref).catch(() => null);
       if (updated) setJob(updated);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : t('jobDetail.failedUpdate');
-      Alert.alert(t('common.error'), msg);
+      const msg = err instanceof ApiError ? err.message : t('route.couldNotUpdateStatus');
+      setArrivalError(msg);
     }
     setActioning(false);
     actionLockRef.current = false;
@@ -1598,6 +1955,7 @@ export default function JobRouteScreen() {
   const handleDismissArrival = useCallback(() => {
     arrivalPromptDismissedRef.current = true;
     setShowArrivalPrompt(false);
+    setArrivalError(null);
   }, []);
 
   // Google Maps fallback — phase-aware destination (single customer dropoff).
@@ -1634,6 +1992,83 @@ export default function JobRouteScreen() {
         }, 800);
       });
   }, [customerCoord, job]);
+
+  // Waze external navigation — opens the official Waze deep link.
+  // No Waze API key. No unofficial endpoint. No police/camera data.
+  const handleOpenWaze = useCallback(() => {
+    if (wazeNavLockRef.current) return;
+    const lat = customerCoord?.lat ?? null;
+    const lng = customerCoord?.lng ?? null;
+    if (lat == null || lng == null) return;
+    const dest = { lat, lng };
+    if (!isValidNavigationCoordinate(dest)) return;
+    wazeNavLockRef.current = true;
+    const url = buildWazeNavigationUrl(dest);
+    Linking.openURL(url)
+      .catch(() => {
+        // If Waze is not installed the system browser will handle the URL.
+      })
+      .finally(() => {
+        setTimeout(() => {
+          wazeNavLockRef.current = false;
+        }, 800);
+      });
+  }, [customerCoord]);
+
+  // Open a Google Maps text search for the customer address when coordinates are
+  // unavailable. Reuses extNavLockRef so double-taps are prevented.
+  const handleOpenAddressSearch = useCallback(() => {
+    if (extNavLockRef.current) return;
+    const addr = job?.addressLine?.trim();
+    if (!addr) return;
+    extNavLockRef.current = true;
+    let url: string;
+    try {
+      url = buildGoogleMapsSearchUrl(addr);
+    } catch {
+      extNavLockRef.current = false;
+      return;
+    }
+    Linking.openURL(url)
+      .catch(() => {})
+      .finally(() => {
+        setTimeout(() => { extNavLockRef.current = false; }, 800);
+      });
+  }, [job?.addressLine]);
+
+  // Manual retry for the road route, gated on the existing minimum interval so
+  // the driver cannot spam the Directions API with repeated taps.
+  const handleRetryRoute = useCallback(() => {
+    const driver = driverLocRef.current;
+    const dest = destinationRef.current;
+    if (!driver || !dest) return;
+    if (Date.now() - lastRouteAtRef.current < ROUTE_MIN_INTERVAL_MS) return;
+    requestRoute(driver, dest);
+  }, [requestRoute]);
+
+  // Single handler for the collapsed cockpit primary button. Uses refs for
+  // real-time values to avoid closure-ordering issues. Priority order:
+  //   1. Within arrival zone + en route → Mark Arrived
+  //   2. Coordinates valid → Open Waze
+  //   3. Address available → Open address in Google Maps
+  const handleCollapsedPrimary = useCallback(() => {
+    const jobStatus = jobStatusRef.current;
+    const driver = driverLocRef.current;
+    const dest = destinationRef.current;
+    const distM = driver && dest ? haversineMeters(driver, dest) : null;
+    const isArrivedZone = jobStatus === 'en_route' && distM != null && distM <= ARRIVAL_HERE_M;
+    if (isArrivedZone) {
+      void handleConfirmArrival();
+      return;
+    }
+    if (dest) {
+      handleOpenWaze();
+      return;
+    }
+    if (job?.addressLine?.trim()) {
+      handleOpenAddressSearch();
+    }
+  }, [handleConfirmArrival, handleOpenWaze, handleOpenAddressSearch, job?.addressLine]);
 
   const handleCallCustomer = useCallback(() => {
     const dialable = cleanPhone(job?.customerPhone);
@@ -1694,8 +2129,13 @@ export default function JobRouteScreen() {
     lightHaptic();
     stepIndexRef.current = rs.routes[index].steps.length > 1 ? 1 : 0;
     setCurrentStepIndex(stepIndexRef.current);
-    fitPendingRef.current = true;
-    const next = makeRouteState('mapbox', rs.routes, index, rs.error);
+    fitPendingRef.current = followModeRef.current === 'overview';
+    const next = makeRouteState('mapbox', rs.routes, index, rs.error, {
+      routeJobRef: rs.routeJobRef,
+      routeDestinationKey: rs.routeDestinationKey,
+      routeCalculatedAt: rs.routeCalculatedAt,
+      routeOriginFixAt: rs.routeOriginFixAt,
+    });
     routeStateRef.current = next;
     setRouteState(next);
   }, []);
@@ -1705,9 +2145,62 @@ export default function JobRouteScreen() {
     setPermRetry((n) => n + 1);
   }, []);
 
+  // Dismiss the current smart reminder and record cooldown.
+  const handleDismissReminder = useCallback(() => {
+    const id = activeReminderIdRef.current;
+    if (id != null) {
+      reminderDismissedRef.current = {
+        ...reminderDismissedRef.current,
+        [id]: Date.now(),
+      };
+    }
+    setActiveReminder(null);
+  }, []);
+
+  // Execute a reminder action (navigation/call — never auto-changes status).
+  const handleReminderAction = useCallback(
+    (action: SmartReminderAction) => {
+      switch (action) {
+        case 'call_customer':
+          handleCallCustomer();
+          break;
+        case 'open_waze':
+          handleOpenWaze();
+          break;
+        case 'open_google_maps':
+          handleOpenExternal();
+          break;
+        case 'mark_arrived':
+          void handleConfirmArrival();
+          break;
+        case 'complete_job':
+          handleStatusAction('completed');
+          break;
+        case 'check_payment':
+          setCockpitCollapsed(false);
+          break;
+        default:
+          break;
+      }
+      handleDismissReminder();
+    },
+    [
+      handleCallCustomer,
+      handleOpenWaze,
+      handleOpenExternal,
+      handleConfirmArrival,
+      handleStatusAction,
+      handleDismissReminder,
+    ],
+  );
+
   // ── Derived UI values ──
   const statusAction = job ? STATUS_ACTIONS[job.status] : null;
-  const steps = routeState.steps;
+  const routeIsCurrent =
+    routeState.source === 'mapbox' &&
+    routeState.routeJobRef === currentRouteJobRef &&
+    routeState.routeDestinationKey === currentDestinationKey;
+  const steps = routeIsCurrent ? routeState.steps : [];
   const upcomingStep =
     steps.length > 1 ? steps[Math.min(currentStepIndex, steps.length - 1)] : null;
   const nextStep =
@@ -1724,6 +2217,20 @@ export default function JobRouteScreen() {
   const metersToCustomer =
     driverLoc && customerCoord ? haversineMeters(driverLoc, customerCoord) : null;
   const arrival = arrivalPhrase(metersToCustomer, t);
+  const fixSeconds =
+    lastFixAt == null ? null : Math.max(0, Math.round((nowTick - lastFixAt) / 1000));
+  const routeUpdatedSeconds =
+    routeIsCurrent && routeState.routeCalculatedAt != null
+      ? Math.max(0, Math.round((nowTick - routeState.routeCalculatedAt) / 1000))
+      : null;
+  const routeOriginFixSeconds =
+    routeIsCurrent && routeState.routeOriginFixAt != null
+      ? Math.max(0, Math.round((nowTick - routeState.routeOriginFixAt) / 1000))
+      : null;
+  const routeInstructionStale =
+    routeOriginFixSeconds != null &&
+    routeOriginFixSeconds > ROUTE_INSTRUCTION_STALE_SECONDS;
+  const routeNeedsRefresh = routeIsCurrent && routeInstructionStale;
 
   // Primary headline: arrival wording wins; then the live Mapbox maneuver;
   // then a human fallback so the panel is never blank.
@@ -1734,9 +2241,11 @@ export default function JobRouteScreen() {
   // (b) a few major engine events in `playRouteCue`. It never reuses the urgent
   // full-screen new-job alert path. Requires a native rebuild to function.
   const hasLiveStep =
-    routeState.source === 'mapbox' && !!upcomingStep && phase === 'to_dropoff';
+    routeIsCurrent && !routeNeedsRefresh && !!upcomingStep && phase === 'to_dropoff';
   const primaryInstruction = arrival
     ? arrival
+    : routeNeedsRefresh
+      ? t('route.refreshRoute')
     : hasLiveStep && upcomingStep
       ? humanizeInstruction(upcomingStep, t)
       : fallbackGuidance(metersToCustomer, t);
@@ -1765,11 +2274,13 @@ export default function JobRouteScreen() {
     speakGuidance(phrase, { locale: localeRef.current, force: true });
   }, [voiceEnabled, hasLiveStep, upcomingStep, currentStepIndex, distanceToManeuver, t]);
 
-  // A reroute that degraded to the straight-line fallback.
+  // A route-fetch attempt has definitively failed (no fallback drawn).
   const rerouteFailed =
-    routeState.source === 'fallback' &&
+    routeState.source === 'none' &&
     routeState.error != null &&
-    routeState.error.kind !== 'invalid-coords';
+    routeState.error.kind !== 'network' &&
+    routeState.error.kind !== 'invalid-coords' &&
+    routeState.error.kind !== 'aborted';
 
   // Live remaining distance/time along the SELECTED route from the driver's
   // current GPS position — computed locally on each fix (no API refetch). Falls
@@ -1777,6 +2288,7 @@ export default function JobRouteScreen() {
   const remainingProgress = useMemo(() => {
     if (
       !driverLoc ||
+      !routeIsCurrent ||
       routeState.geometry == null ||
       routeState.geometry.length < 2 ||
       routeState.distanceMeters == null ||
@@ -1790,27 +2302,25 @@ export default function JobRouteScreen() {
       totalDistanceMeters: routeState.distanceMeters,
       totalDurationSeconds: routeState.durationSeconds,
     });
-  }, [driverLoc, routeState.geometry, routeState.distanceMeters, routeState.durationSeconds]);
+  }, [
+    driverLoc,
+    routeIsCurrent,
+    routeState.geometry,
+    routeState.distanceMeters,
+    routeState.durationSeconds,
+  ]);
 
   const displayDistanceMeters =
-    remainingProgress?.remainingDistanceMeters ?? routeState.distanceMeters;
+    routeIsCurrent ? remainingProgress?.remainingDistanceMeters ?? routeState.distanceMeters : null;
   const displayDurationSeconds =
-    remainingProgress?.remainingDurationSeconds ?? routeState.durationSeconds;
+    routeIsCurrent ? remainingProgress?.remainingDurationSeconds ?? routeState.durationSeconds : null;
 
   const distanceMiles =
     displayDistanceMeters != null ? metersToMiles(displayDistanceMeters) : null;
   const durationMin =
     displayDurationSeconds != null ? secondsToMinutes(displayDurationSeconds) : null;
 
-  const fixSeconds =
-    lastFixAt == null ? null : Math.max(0, Math.round((nowTick - lastFixAt) / 1000));
-
   // Cockpit data (all from the real driver job payload).
-  const statusLabel = job
-    ? STATUS_LABELS[job.status]
-      ? t(STATUS_LABELS[job.status])
-      : job.status.replace(/_/g, ' ')
-    : '';
   const nextActionLabel =
     job && NEXT_ACTION_LABEL[job.status] ? t(NEXT_ACTION_LABEL[job.status]) : null;
   const phone = cleanPhone(job?.customerPhone);
@@ -1830,20 +2340,81 @@ export default function JobRouteScreen() {
           })
         : null;
   const addressLine = job?.addressLine && job.addressLine.length > 0 ? job.addressLine : null;
-  const payDisplay = getDriverPaymentDisplay(job?.payment ?? null);
+  const payDisplay = getDriverPaymentDisplay(job?.payment ?? null, job?.refNumber ?? null);
   const payColors = paymentToneColors(payDisplay.tone);
+
+  // ── Checklist derived warnings ──
+  const checklistTyreMissing = !job?.tyreSizeDisplay?.trim();
+  const checklistAddressMissing = !addressLine;
+  const checklistPaymentWarning =
+    payDisplay.tone === 'pending' ||
+    payDisplay.tone === 'unknown' ||
+    payDisplay.tone === 'action' ||
+    payDisplay.tone === 'warning' ||
+    payDisplay.tone === 'failed';
+
+  // Pre-job checklist: all required boxes must be checked before starting.
+  const preJobAllChecked =
+    preJobChecks.tyreSizeChecked &&
+    preJobChecks.addressChecked &&
+    preJobChecks.paymentChecked;
+
+  // Completion checklist: all boxes must be checked.
+  const completionAllChecked =
+    completionChecks.tyreFitted &&
+    completionChecks.wheelNuts &&
+    completionChecks.customerInformed &&
+    completionChecks.paymentChecked;
+
+  // ── Job timeline ──
+  // Maps backend statuses to ordered driver-facing phases.
+  // "fitting" is a frontend-only phase that maps to in_progress.
+  type TimelinePhase = 'accepted' | 'on_the_way' | 'arrived' | 'fitting' | 'completed';
+  const TIMELINE_PHASES: { id: TimelinePhase; labelKey: string }[] = [
+    { id: 'accepted', labelKey: 'timeline.accepted' },
+    { id: 'on_the_way', labelKey: 'timeline.onTheWay' },
+    { id: 'arrived', labelKey: 'timeline.arrived' },
+    { id: 'fitting', labelKey: 'timeline.fitting' },
+    { id: 'completed', labelKey: 'timeline.completed' },
+  ];
+
+  function jobStatusToTimelineIndex(status: string | undefined): number {
+    switch (status) {
+      case 'driver_assigned': return 0;
+      case 'en_route': return 1;
+      case 'arrived': return 2;
+      case 'in_progress': return 3;
+      case 'completed': return 4;
+      default: return -1;
+    }
+  }
+
+  const timelineIndex = jobStatusToTimelineIndex(job?.status);
+
+  // ── Reminder action labels ──
+  function reminderActionLabel(action: SmartReminderAction): string {
+    switch (action) {
+      case 'call_customer': return t('reminder.actionCallCustomer');
+      case 'open_waze': return t('reminder.actionOpenWaze');
+      case 'open_google_maps': return t('reminder.actionOpenMaps');
+      case 'mark_arrived': return t('reminder.actionMarkArrived');
+      case 'complete_job': return t('reminder.actionCompleteJob');
+      case 'check_payment': return t('reminder.actionCheckPayment');
+      default: return '';
+    }
+  }
 
   let metaText: string;
   if (permissionDenied) {
     metaText = t('route.locationPermissionRequired');
-  } else if (routeState.source === 'mapbox') {
+  } else if (routeIsCurrent) {
     metaText = t('route.liveRoute');
-  } else if (routeState.source === 'fallback') {
-    metaText = t('route.approximateLine');
   } else if (routeState.error?.kind === 'network') {
     metaText = t('route.routeUnavailableConnection');
   } else if (routeState.error?.kind === 'invalid-coords' || !customerCoord) {
-    metaText = t('route.routeUnavailableJob');
+    metaText = t('route.missingCoordsRoute');
+  } else if (rerouteFailed) {
+    metaText = t('route.couldNotLoadRoute');
   } else {
     metaText = t('route.calculatingRoute');
   }
@@ -1855,7 +2426,7 @@ export default function JobRouteScreen() {
   // told clearly they are off the route (matches SNAP_TO_ROUTE_MAX_DRIFT_M).
   const offRouteMeters =
     driverLoc &&
-    routeState.source === 'mapbox' &&
+    routeIsCurrent &&
     routeState.geometry != null &&
     routeState.geometry.length >= 2
       ? distanceToRouteMeters(driverLoc, routeState.geometry)
@@ -1866,39 +2437,42 @@ export default function JobRouteScreen() {
   if (permissionDenied) {
     routeHealth = { label: t('route.gpsOff'), tone: 'bad' };
   } else if (routeState.error?.kind === 'network') {
-    // Offline: if the last good route is still on screen, say so explicitly so
-    // the driver knows it is the last known route, not a live one.
+    // Offline: if the last good Mapbox route is still on screen, say so
+    // explicitly so the driver knows it is the last known route, not a live one.
     const hasUsableRoute =
-      routeState.geometry != null && routeState.geometry.length >= 2;
+      routeIsCurrent && routeState.geometry != null && routeState.geometry.length >= 2;
     routeHealth = {
-      label: hasUsableRoute ? t('route.offlineLastRoute') : t('route.offline'),
+      label: hasUsableRoute
+        ? t('route.offlineLastRoute')
+        : t('route.routeUnavailable'),
       tone: 'bad',
     };
+  } else if (routeState.error?.kind === 'invalid-coords' || !customerCoord) {
+    routeHealth = { label: t('route.routeUnavailable'), tone: 'bad' };
   } else if (rerouting) {
     routeHealth = { label: t('route.rerouting'), tone: 'warn' };
-  } else if (routeState.source === 'fallback') {
-    routeHealth = { label: t('route.approximateRoute'), tone: 'warn' };
+  } else if (rerouteFailed) {
+    routeHealth = { label: t('route.couldNotLoadRoute'), tone: 'bad' };
+  } else if (routeNeedsRefresh) {
+    routeHealth = { label: t('route.refreshRoute'), tone: 'warn' };
   } else if (gpsWeak) {
     routeHealth = { label: t('route.gpsWeak'), tone: 'warn' };
   } else if (isOffRoute) {
     routeHealth = { label: t('route.offRoute'), tone: 'warn' };
-  } else if (routeState.source === 'mapbox') {
+  } else if (routeIsCurrent) {
     routeHealth = { label: t('route.liveRoute'), tone: 'good' };
   } else {
     routeHealth = { label: t('route.findingRoute'), tone: 'warn' };
   }
-  // When Mapbox can't give a real road route, recommend external maps.
-  const recommendExternal = routeState.source === 'fallback' || rerouteFailed;
-
   // ── Traffic (Part 6) — only when Mapbox returns real congestion data. ──
   const trafficAvailable =
-    routeState.source === 'mapbox' &&
+    routeIsCurrent &&
     routeState.congestion != null &&
     routeState.congestion.length > 0;
 
   // ── Alternative routes (Part 7) — chips derived from real Mapbox routes. ──
   const altChips =
-    routeState.source === 'mapbox' && routeState.routes.length > 1
+    routeIsCurrent && routeState.routes.length > 1
       ? routeState.routes.map((r, i) => {
           const fastest = Math.min(
             ...routeState.routes.map((x) => x.durationSeconds),
@@ -1924,7 +2498,7 @@ export default function JobRouteScreen() {
   // snapped the route to. A large gap means the road route stops short of the
   // building — surfaced honestly so the driver checks the final approach.
   const snapGapMeters =
-    routeState.source === 'mapbox' && routeState.destinationSnap && customerCoord
+    routeIsCurrent && routeState.destinationSnap && customerCoord
       ? haversineMeters(customerCoord, {
           lng: routeState.destinationSnap[0],
           lat: routeState.destinationSnap[1],
@@ -1955,6 +2529,73 @@ export default function JobRouteScreen() {
   const emphasiseArrived = isEnRoute && within100m;
   // Doorstep hint at 25 m — a nudge, never an auto-confirm.
   const showAtCustomerHint = isEnRoute && within25m;
+
+  // ── Collapsed cockpit derived values ────────────────────────────────────────
+
+  // Primary headline for the collapsed driving panel. Arrival wording wins over
+  // all other states so the driver is never shown a maneuver when approaching.
+  // Inline (not useMemo) so the React Compiler can manage memoization.
+  const collapsedHeadline: string = (() => {
+    if (arrival) return arrival;
+    if (rerouting) return t('route.findingBetterRoute');
+    if (routeState.error?.kind === 'network') return t('route.offlineUsingLastRoute');
+    if (gpsWeak) return t('route.gpsSignalWeak');
+    if (rerouteFailed) return t('route.couldNotLoadRoute');
+    if (!customerCoord) return t('route.locationMissingTitle');
+    if (hasLiveStep && upcomingStep) return humanizeInstruction(upcomingStep, t);
+    return t('route.findingRoute');
+  })();
+
+  // Icon for the collapsed instruction row.
+  // Inline (not useMemo) so the React Compiler can manage memoization.
+  const collapsedNavIcon: IoniconName = (() => {
+    if (arrival) return metersToCustomer != null && metersToCustomer <= ARRIVAL_HERE_M ? 'flag' : 'warning';
+    if (rerouting) return 'refresh';
+    if (routeState.error?.kind === 'network') return 'cloud-offline-outline';
+    if (gpsWeak) return 'warning-outline';
+    if (rerouteFailed || !customerCoord) return 'alert-circle-outline';
+    if (hasLiveStep && upcomingStep) return maneuverIcon(upcomingStep);
+    return 'navigate';
+  })();
+
+  // Short payment label for the compact collapsed badge.
+  const collapsedPayLabel = useMemo((): string => {
+    switch (payDisplay.labelKey) {
+      case 'payment.paid':
+      case 'payment.paidOnline':
+        return t('route.payBadgePaid');
+      case 'payment.depositPaid':
+        return t('payment.depositPaid');
+      case 'payment.balanceDue':
+      case 'payment.depositBalanceDue':
+        return t('route.payBadgeBalanceDue');
+      case 'payment.payOnArrival':
+        return t('route.payBadgeCash');
+      case 'payment.awaitingPayment':
+      case 'payment.paymentPending':
+        return t('route.payBadgePending');
+      case 'payment.needsChecking':
+      case 'payment.failed':
+        return t(payDisplay.labelKey);
+      default:
+        return t('route.payBadgeUnknown');
+    }
+  }, [payDisplay.labelKey, t]);
+
+  // Label and icon for the collapsed primary action button.
+  const collapsedPrimaryLabel = useMemo((): string => {
+    if (isEnRoute && within25m) return t('route.markArrived');
+    if (!customerCoord && addressLine) return t('route.openGoogleMaps');
+    return t('route.openWazeShort');
+  }, [isEnRoute, within25m, customerCoord, addressLine, t]);
+
+  const collapsedPrimaryIcon: IoniconName = isEnRoute && within25m ? 'flag' : 'navigate';
+
+  const collapsedPrimaryDisabled =
+    actioning ||
+    (!isEnRoute && !within25m && !customerCoord && !addressLine);
+
+  const collapsedPrimaryIsArrival = isEnRoute && within25m;
 
   if (!ref) {
     return <LoadingScreen />;
@@ -2009,6 +2650,9 @@ export default function JobRouteScreen() {
                   };
                   if (msg.type === 'map-loaded') {
                     recoveryAttemptsRef.current = 0;
+                    // Force the next state push to re-send route geometry so the
+                    // rebuilt WebView gets the full route after a crash/reload.
+                    lastInjectedRouteRevRef.current = '';
                     setMapStatus({ key: mapKey, phase: 'loaded' });
                     if (latestStateRef.current) {
                       webRef.current?.injectJavaScript(
@@ -2138,8 +2782,9 @@ export default function JobRouteScreen() {
         </View>
       </View>
 
-      {/* ── Live instruction card ── */}
-      {token && mapLoaded && !mapFatal && !permissionDenied && primaryInstruction.length > 0 && (
+      {/* ── Live instruction card — hidden when route has failed (recovery panel handles it)
+           but kept when arrival wording is active so the driver sees their destination. ── */}
+      {token && mapLoaded && !mapFatal && !permissionDenied && primaryInstruction.length > 0 && (arrival != null || (routeIsCurrent && !rerouteFailed)) && (
         <View
           style={[styles.instructionCard, { top: insets.top + 50 }]}
           pointerEvents="none"
@@ -2200,7 +2845,7 @@ export default function JobRouteScreen() {
             styles.sideControls,
             {
               bottom:
-                (cockpitCollapsed ? 150 : 330) + insets.bottom + spacing.sm,
+                (cockpitCollapsed ? COCKPIT_PAD_COLLAPSED : COCKPIT_PAD_EXPANDED) + insets.bottom + spacing.sm,
             },
           ]}
           pointerEvents="box-none"
@@ -2210,9 +2855,12 @@ export default function JobRouteScreen() {
               accessibilityRole="button"
               accessibilityLabel={t('route.recenter')}
               onPress={handleRecenter}
-              style={[styles.ctrlBtn, styles.ctrlBtnAccent]}
+              style={[styles.ctrlBtn, styles.ctrlBtnAccent, styles.ctrlBtnRecenter]}
             >
               <Ionicons name="locate" size={20} color="#0B0F1A" />
+              <Text style={styles.ctrlBtnLabelDark} numberOfLines={1}>
+                {t('route.recenter').split(' ')[0]}
+              </Text>
             </Pressable>
           )}
           <Pressable
@@ -2248,17 +2896,103 @@ export default function JobRouteScreen() {
         </View>
       )}
 
+      {/* ── Smart driver reminder card ── */}
+      {activeReminder != null && !showArrivalPrompt && (
+        <View
+          style={[
+            styles.reminderCard,
+            activeReminder.severity === 'urgent'
+              ? styles.reminderCardUrgent
+              : activeReminder.severity === 'warning'
+                ? styles.reminderCardWarning
+                : styles.reminderCardInfo,
+            {
+              bottom:
+                (cockpitCollapsed ? COCKPIT_PAD_COLLAPSED : COCKPIT_PAD_EXPANDED) +
+                insets.bottom +
+                spacing.sm,
+            },
+          ]}
+        >
+          <View style={styles.reminderHeader}>
+            <Ionicons
+              name={
+                activeReminder.severity === 'urgent'
+                  ? 'alert-circle'
+                  : activeReminder.severity === 'warning'
+                    ? 'warning'
+                    : 'information-circle'
+              }
+              size={18}
+              color={
+                activeReminder.severity === 'urgent'
+                  ? '#FCA5A5'
+                  : activeReminder.severity === 'warning'
+                    ? '#FDE68A'
+                    : '#93C5FD'
+              }
+            />
+            <Text style={[styles.reminderTitle, activeReminder.severity === 'urgent' ? styles.reminderTitleUrgent : activeReminder.severity === 'warning' ? styles.reminderTitleWarning : styles.reminderTitleInfo]} numberOfLines={1}>
+              {t(activeReminder.titleKey)}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('reminder.dismiss')}
+              onPress={handleDismissReminder}
+              hitSlop={10}
+              style={styles.reminderDismiss}
+            >
+              <Ionicons name="close" size={16} color={colors.muted} />
+            </Pressable>
+          </View>
+          <Text style={styles.reminderBody} numberOfLines={2}>
+            {t(activeReminder.bodyKey)}
+          </Text>
+          <View style={styles.reminderActions}>
+            {activeReminder.primaryAction !== 'none' && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => handleReminderAction(activeReminder.primaryAction)}
+                style={[
+                  styles.reminderPrimaryBtn,
+                  activeReminder.severity === 'urgent'
+                    ? styles.reminderPrimaryBtnUrgent
+                    : activeReminder.severity === 'warning'
+                      ? styles.reminderPrimaryBtnWarning
+                      : styles.reminderPrimaryBtnInfo,
+                ]}
+              >
+                <Text style={styles.reminderPrimaryBtnText}>
+                  {reminderActionLabel(activeReminder.primaryAction)}
+                </Text>
+              </Pressable>
+            )}
+            {activeReminder.secondaryAction !== 'none' && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => handleReminderAction(activeReminder.secondaryAction)}
+                style={styles.reminderSecBtn}
+              >
+                <Text style={styles.reminderSecBtnText}>
+                  {reminderActionLabel(activeReminder.secondaryAction)}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        </View>
+      )}
+
       {/* ── Auto "mark arrived" suggestion (Phase A) — never auto-updates ── */}
       {showArrivalPrompt && (
         <View
           style={[
             styles.arrivalPrompt,
-            { bottom: (cockpitCollapsed ? 150 : 330) + insets.bottom + spacing.lg },
+            { bottom: (cockpitCollapsed ? COCKPIT_PAD_COLLAPSED : 330) + insets.bottom + spacing.lg },
           ]}
         >
           <View style={styles.arrivalPromptHeader}>
             <Ionicons name="flag" size={18} color="#0B0F1A" />
-            <Text style={styles.arrivalPromptText}>{t('route.arrivalPromptTitle')}</Text>
+            <Text style={styles.arrivalPromptText}>{t('route.areYouAtCustomer')}</Text>
           </View>
           <View style={styles.arrivalPromptActions}>
             <Pressable
@@ -2289,6 +3023,8 @@ export default function JobRouteScreen() {
 
       {/* ── Bottom cockpit sheet (collapsible) ── */}
       <View style={[styles.cockpit, { paddingBottom: insets.bottom + spacing.sm }]}>
+
+        {/* Grabber — always visible, full-width tap target to toggle. */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={cockpitCollapsed ? t('route.expandDetails') : t('route.collapseDetails')}
@@ -2309,105 +3045,256 @@ export default function JobRouteScreen() {
           </View>
         </Pressable>
 
-        {/* Driver state strip — plain English, never a debug status code. */}
-        <View style={styles.stateStrip}>
-          <View style={styles.stateDot} />
-          <Text style={styles.stateLabel}>{statusLabel || t('route.job')}</Text>
-          <View style={styles.statePill}>
-            <Ionicons name="speedometer-outline" size={13} color={colors.muted} />
-            <Text style={styles.statePillText}>
-              {distanceMiles != null ? `${distanceMiles.toFixed(1)} mi` : '— mi'}
-            </Text>
-            <Ionicons
-              name="time-outline"
-              size={13}
-              color={colors.muted}
-              style={{ marginLeft: spacing.sm }}
-            />
-            <Text style={styles.statePillText}>
-              {durationMin != null ? `${durationMin} min` : '— min'}
-            </Text>
-          </View>
-        </View>
-
-        {!cockpitCollapsed && (
+        {cockpitCollapsed ? (
+          /* ──────────────────────────────────────────────────────────────────
+             COLLAPSED: primary driving mode — 3 rows, fits 360 px width.
+             Shows instruction/state → ETA+distance+payment → primary action.
+             Special panels replace the 3 rows when route failed / no coords.
+          ────────────────────────────────────────────────────────────────── */
           <>
-            {/* Route alternatives (Part 7) — real Mapbox routes only. */}
-            {altChips.length > 1 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.altChipsRow}
-              >
-                {altChips.map((chip) => {
-                  const active = chip.index === routeState.selectedIndex;
-                  return (
-                    <Pressable
-                      key={chip.index}
-                      accessibilityRole="button"
-                      accessibilityLabel={t('route.altRouteAccessibility', {
-                        label: chip.label,
-                        minutes: chip.durationMin,
-                      })}
-                      onPress={() => handleSelectAlternative(chip.index)}
-                      style={[styles.altChip, active && styles.altChipActive]}
-                    >
-                      <Text style={[styles.altChipLabel, active && styles.altChipLabelActive]}>
-                        {chip.label}
-                      </Text>
-                      <Text style={[styles.altChipMeta, active && styles.altChipMetaActive]}>
-                        {chip.durationMin} min · {chip.distanceMi.toFixed(1)} mi
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            )}
+            {rerouteFailed ? (
+              /* Route failure recovery panel */
+              <View style={styles.recoveryPanel}>
+                <View style={styles.recoveryHeader}>
+                  <Ionicons name="alert-circle-outline" size={22} color="#FDBA74" />
+                  <Text style={styles.recoveryTitle}>{t('route.couldNotLoadRoute')}</Text>
+                </View>
+                <Text style={styles.recoveryBody}>{t('route.noRouteRecoveryBody')}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={!customerCoord}
+                  onPress={handleOpenWaze}
+                  style={[styles.recoveryPrimaryBtn, !customerCoord && styles.btnDisabled]}
+                >
+                  <Ionicons name="navigate" size={18} color="#0B0F1A" />
+                  <Text style={styles.recoveryPrimaryBtnText}>{t('route.openWazeShort')}</Text>
+                </Pressable>
+                <View style={styles.recoverySecRow}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={handleOpenExternal}
+                    style={styles.recoverySecBtn}
+                  >
+                    <Ionicons name="open-outline" size={16} color={colors.text} />
+                    <Text style={styles.recoverySecBtnText}>{t('route.openGoogleMaps')}</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={handleRetryRoute}
+                    style={styles.recoverySecBtn}
+                  >
+                    <Ionicons name="refresh" size={16} color={colors.text} />
+                    <Text style={styles.recoverySecBtnText}>{t('route.tryAgain')}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : !customerCoord && job != null ? (
+              /* Missing coordinates panel */
+              <View style={styles.recoveryPanel}>
+                <View style={styles.recoveryHeader}>
+                  <Ionicons name="location-outline" size={22} color="#FDBA74" />
+                  <Text style={styles.recoveryTitle}>{t('route.locationMissingTitle')}</Text>
+                </View>
+                <Text style={styles.recoveryBody}>{t('route.locationMissingBody')}</Text>
+                {phone != null && (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={handleCallCustomer}
+                    style={styles.recoveryPrimaryBtn}
+                  >
+                    <Ionicons name="call" size={18} color="#0B0F1A" />
+                    <Text style={styles.recoveryPrimaryBtnText}>{t('route.callCustomer')}</Text>
+                  </Pressable>
+                )}
+                {addressLine != null && (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={handleOpenAddressSearch}
+                    style={[styles.recoverySecBtn, styles.recoverySecBtnFull]}
+                  >
+                    <Ionicons name="open-outline" size={16} color={colors.text} />
+                    <Text style={styles.recoverySecBtnText}>{t('route.openAddressInMaps')}</Text>
+                  </Pressable>
+                )}
+              </View>
+            ) : (
+              /* Normal driving mode — instruction + meta + actions */
+              <>
+                {/* Row 1: Big next instruction or route state */}
+                <View style={styles.collapsedInstRow}>
+                  <View style={styles.collapsedInstIcon}>
+                    <Ionicons name={collapsedNavIcon} size={24} color="#0B0F1A" />
+                  </View>
+                  <Text style={styles.collapsedInstText} numberOfLines={2}>
+                    {collapsedHeadline}
+                  </Text>
+                  {primaryDistance != null && routeIsCurrent && (
+                    <Text style={styles.collapsedDistBadge}>{primaryDistance}</Text>
+                  )}
+                </View>
 
-            {/* Customer + job context */}
-            <Text style={styles.customerName} numberOfLines={1}>
-              {job?.customerName ?? t('route.customer')}
-            </Text>
+                {/* Row 2: ETA · distance · payment badge */}
+                <View style={styles.collapsedMetaRow}>
+                  <View style={styles.collapsedEtaBlock}>
+                    <Text style={styles.collapsedEtaNum}>
+                      {durationMin != null ? String(durationMin) : '—'}
+                    </Text>
+                    <Text style={styles.collapsedEtaUnit}>{t('route.etaMin')}</Text>
+                  </View>
+                  <View style={styles.collapsedMetaDivider} />
+                  <Text style={styles.collapsedDistText}>
+                    {distanceMiles != null ? t('route.distanceMi', { value: distanceMiles.toFixed(1) }) : '—'}
+                  </Text>
+                  <View style={[styles.collapsedPayChip, { backgroundColor: payColors.bg, borderColor: payColors.border }]}>
+                    <Ionicons
+                      name={
+                        payDisplay.tone === 'paid'
+                          ? 'checkmark-circle'
+                          : payDisplay.tone === 'action'
+                            ? 'cash-outline'
+                            : payDisplay.tone === 'warning' || payDisplay.tone === 'failed'
+                              ? 'alert-circle-outline'
+                              : 'time-outline'
+                      }
+                      size={11}
+                      color={payColors.text}
+                    />
+                    <Text style={[styles.collapsedPayChipText, { color: payColors.text }]} numberOfLines={1}>
+                      {collapsedPayLabel}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Row 3: Primary action + Call + More */}
+                <View style={styles.collapsedActionRow}>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={collapsedPrimaryDisabled}
+                    onPress={handleCollapsedPrimary}
+                    style={[
+                      styles.collapsedPrimaryBtn,
+                      collapsedPrimaryIsArrival && styles.collapsedPrimaryBtnArrival,
+                      collapsedPrimaryDisabled && styles.btnDisabled,
+                    ]}
+                  >
+                    {actioning ? (
+                      <ActivityIndicator size="small" color="#0B0F1A" />
+                    ) : (
+                      <Ionicons name={collapsedPrimaryIcon} size={18} color="#0B0F1A" />
+                    )}
+                    <Text style={styles.collapsedPrimaryBtnText} numberOfLines={1}>
+                      {collapsedPrimaryLabel}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('route.callCustomer')}
+                    disabled={phone == null}
+                    onPress={handleCallCustomer}
+                    style={[styles.collapsedSecBtn, phone == null && styles.collapsedSecBtnDisabled]}
+                  >
+                    <Ionicons name="call-outline" size={18} color={phone ? colors.text : colors.muted} />
+                    <Text style={[styles.collapsedSecBtnText, phone == null && { color: colors.muted }]}>
+                      {t('route.call')}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('route.expandDetails')}
+                    onPress={() => setCockpitCollapsed(false)}
+                    style={styles.collapsedSecBtn}
+                  >
+                    <Ionicons name="chevron-up" size={18} color={colors.text} />
+                    <Text style={styles.collapsedSecBtnText}>{t('route.more')}</Text>
+                  </Pressable>
+                </View>
+
+                {/* Inline arrival error — shown after a failed Mark Arrived tap */}
+                {arrivalError != null && (
+                  <Text style={styles.arrivalErrorText}>{arrivalError}</Text>
+                )}
+              </>
+            )}
+          </>
+        ) : (
+          /* ──────────────────────────────────────────────────────────────────
+             EXPANDED: job details, navigation, job status actions.
+             Waze and Google Maps are near the top so the driver can reach them
+             without scrolling through the detail rows.
+          ────────────────────────────────────────────────────────────────── */
+          <>
+            {/* Navigation shortcuts — visible immediately on expand */}
+            <View style={styles.secondaryRow}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={customerCoord ? t('route.openWaze') : t('route.wazeUnavailable')}
+                disabled={!customerCoord}
+                onPress={handleOpenWaze}
+                style={[styles.secondaryBtn, !customerCoord && styles.secondaryBtnMuted]}
+              >
+                <Ionicons name="navigate-outline" size={18} color={customerCoord ? colors.text : colors.muted} />
+                <Text style={[styles.secondaryBtnText, !customerCoord && styles.secondaryBtnTextMuted]}>
+                  {customerCoord ? t('route.openWaze') : t('route.wazeUnavailable')}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('route.openGoogleMaps')}
+                onPress={handleOpenExternal}
+                style={styles.secondaryBtn}
+              >
+                <Ionicons name="open-outline" size={18} color={colors.text} />
+                <Text style={styles.secondaryBtnText}>{t('route.openGoogleMaps')}</Text>
+              </Pressable>
+            </View>
+
+            {/* Customer name + call */}
+            <View style={styles.expandedCustomerRow}>
+              <Text style={[styles.customerName, { flex: 1 }]} numberOfLines={1}>
+                {job?.customerName ?? t('route.customer')}
+              </Text>
+              {phone != null && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('route.callCustomer')}
+                  onPress={handleCallCustomer}
+                  style={styles.expandedCallBtn}
+                >
+                  <Ionicons name="call" size={18} color="#0B0F1A" />
+                </Pressable>
+              )}
+            </View>
+
+            {/* Address, vehicle, tyres */}
+            {addressLine != null && (
+              <View style={styles.detailRow}>
+                <Ionicons name="location-outline" size={15} color={colors.muted} />
+                <Text style={styles.detailText} numberOfLines={2}>{addressLine}</Text>
+              </View>
+            )}
             {vehicleLabel != null && (
               <View style={styles.detailRow}>
                 <Ionicons name="car-outline" size={15} color={colors.muted} />
-                <Text style={styles.detailText} numberOfLines={1}>
-                  {vehicleLabel}
-                </Text>
+                <Text style={styles.detailText} numberOfLines={1}>{vehicleLabel}</Text>
               </View>
             )}
             {tyreSummary != null && (
               <View style={styles.detailRow}>
                 <Ionicons name="ellipse-outline" size={15} color={colors.muted} />
-                <Text style={styles.detailText} numberOfLines={1}>
-                  {tyreSummary}
-                </Text>
-              </View>
-            )}
-            {addressLine != null && (
-              <View style={styles.detailRow}>
-                <Ionicons name="location-outline" size={15} color={colors.muted} />
-                <Text style={styles.detailText} numberOfLines={2}>
-                  {addressLine}
-                </Text>
+                <Text style={styles.detailText} numberOfLines={1}>{tyreSummary}</Text>
               </View>
             )}
 
-            {/* Payment status — clear, honest, colour-coded. */}
-            <View
-              style={[
-                styles.payBadge,
-                { backgroundColor: payColors.bg, borderColor: payColors.border },
-              ]}
-            >
+            {/* Payment status */}
+            <View style={[styles.payBadge, { backgroundColor: payColors.bg, borderColor: payColors.border }]}>
               <Ionicons
                 name={
                   payDisplay.tone === 'paid'
                     ? 'checkmark-circle'
                     : payDisplay.tone === 'action'
                       ? 'cash-outline'
-                      : payDisplay.tone === 'failed'
-                        ? 'alert-circle'
+                      : payDisplay.tone === 'warning' || payDisplay.tone === 'failed'
+                        ? 'alert-circle-outline'
                         : 'time-outline'
                 }
                 size={16}
@@ -2424,48 +3311,82 @@ export default function JobRouteScreen() {
               </View>
             </View>
 
-            {/* Traffic honesty line (Part 6). */}
-            {routeState.source === 'mapbox' && (
+            {routeNeedsRefresh && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('route.refreshRoute')}
+                onPress={handleRetryRoute}
+                style={({ pressed }) => [
+                  styles.routeRefreshButton,
+                  pressed && styles.routeRefreshButtonPressed,
+                ]}
+              >
+                <Ionicons name="refresh" size={16} color={colors.text} />
+                <Text style={styles.routeRefreshButtonText}>{t('route.refreshRoute')}</Text>
+              </Pressable>
+            )}
+
+            {/* Route alternatives — expanded only, never in collapsed driving mode */}
+            {altChips.length > 1 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.altChipsRow}
+              >
+                {altChips.map((chip) => {
+                  const active = chip.index === routeState.selectedIndex;
+                  return (
+                    <Pressable
+                      key={chip.index}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('route.altRouteAccessibility', { label: chip.label, minutes: chip.durationMin })}
+                      onPress={() => handleSelectAlternative(chip.index)}
+                      style={[styles.altChip, active && styles.altChipActive]}
+                    >
+                      <Text style={[styles.altChipLabel, active && styles.altChipLabelActive]}>
+                        {chip.label}
+                      </Text>
+                      <Text style={[styles.altChipMeta, active && styles.altChipMetaActive]}>
+                        {chip.durationMin} {t('route.etaMin')} · {t('route.distanceMi', { value: chip.distanceMi.toFixed(1) })}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
+
+            {/* Traffic honesty */}
+            {routeIsCurrent && (
               <Text style={styles.metaLine}>
-                {trafficAvailable
-                  ? t('route.trafficShown')
-                  : t('route.trafficUnavailable')}
+                {trafficAvailable ? t('route.trafficShown') : t('route.trafficUnavailable')}
               </Text>
             )}
 
-            {/* Destination precision warning (Part 10). */}
+            {/* Destination precision warning */}
             {routeEndsShort && (
               <View style={styles.warnRow}>
                 <Ionicons name="flag-outline" size={15} color="#FDBA74" />
-                <Text style={styles.warnText}>
-                  {t('route.routeEndsShort')}
-                </Text>
+                <Text style={styles.warnText}>{t('route.routeEndsShort')}</Text>
               </View>
             )}
 
+            {/* Route failed hint */}
             {rerouteFailed && (
-              <Text style={styles.rerouteFailedText}>
-                {t('route.routeRefreshFailed')}
-              </Text>
-            )}
-            {recommendExternal && !rerouteFailed && (
-              <Text style={styles.rerouteFailedText}>
-                {t('route.externalRecommended')}
-              </Text>
+              <Text style={styles.rerouteFailedText}>{t('route.noRouteOpenWaze')}</Text>
             )}
 
             {/* Doorstep nudge — within 25 m. Never auto-confirms. */}
             {showAtCustomerHint && (
               <View style={styles.arrivalHint}>
                 <Ionicons name="warning" size={16} color="#0B0F1A" />
-                <Text style={styles.arrivalHintText}>
-                  {t('route.atCustomerHint')}
-                </Text>
+                <Text style={styles.arrivalHintText}>{t('route.atCustomerHint')}</Text>
               </View>
             )}
 
-            {/* Map theme (day/night) — kept inside the expanded panel so the
-                default route view stays uncluttered. */}
+            {/* Waze helper text */}
+            <Text style={styles.cockpitMeta}>{t('route.wazeHelperText')}</Text>
+
+            {/* Map theme */}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('route.mapThemeLabel')}
@@ -2473,54 +3394,80 @@ export default function JobRouteScreen() {
               style={styles.themeRow}
             >
               <Ionicons
-                name={
-                  mapThemeMode === 'night'
-                    ? 'moon'
-                    : mapThemeMode === 'day'
-                      ? 'sunny'
-                      : 'contrast'
-                }
+                name={mapThemeMode === 'night' ? 'moon' : mapThemeMode === 'day' ? 'sunny' : 'contrast'}
                 size={16}
                 color={colors.muted}
               />
               <Text style={styles.themeRowText}>{t('route.mapThemeLabel')}</Text>
               <Text style={styles.themeRowValue}>
-                {mapThemeMode === 'day'
-                  ? t('route.dayMode')
-                  : mapThemeMode === 'night'
-                    ? t('route.nightMode')
-                    : t('route.autoMode')}
+                {mapThemeMode === 'day' ? t('route.dayMode') : mapThemeMode === 'night' ? t('route.nightMode') : t('route.autoMode')}
               </Text>
             </Pressable>
 
-            {/* Secondary actions — call + external maps. */}
-            <View style={styles.secondaryRow}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('route.callCustomer')}
-                onPress={handleCallCustomer}
-                style={[styles.secondaryBtn, !phone && styles.secondaryBtnMuted]}
-              >
-                <Ionicons
-                  name="call-outline"
-                  size={18}
-                  color={phone ? colors.text : colors.muted}
-                />
-                <Text style={[styles.secondaryBtnText, !phone && styles.secondaryBtnTextMuted]}>
-                  {phone ? t('route.callCustomer') : t('route.noPhoneNumber')}
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('route.openExternalMaps')}
-                onPress={handleOpenExternal}
-                style={styles.secondaryBtn}
-              >
-                <Ionicons name="open-outline" size={18} color={colors.text} />
-                <Text style={styles.secondaryBtnText}>{t('route.openExternalMaps')}</Text>
-              </Pressable>
-            </View>
+            {/* ── Job timeline ── */}
+            {timelineIndex >= 0 && (
+              <View style={styles.timeline} accessibilityLabel={t('timeline.accepted')}>
+                {TIMELINE_PHASES.map((phase, idx) => {
+                  const done = idx < timelineIndex;
+                  const active = idx === timelineIndex;
+                  const future = idx > timelineIndex;
+                  return (
+                    <View key={phase.id} style={styles.timelineItem}>
+                      <View
+                        style={[
+                          styles.timelineDot,
+                          done && styles.timelineDotDone,
+                          active && styles.timelineDotActive,
+                          future && styles.timelineDotFuture,
+                        ]}
+                      >
+                        {done && <Ionicons name="checkmark" size={10} color="#0B0F1A" />}
+                      </View>
+                      {idx < TIMELINE_PHASES.length - 1 && (
+                        <View style={[styles.timelineLine, done && styles.timelineLineDone]} />
+                      )}
+                      <Text
+                        style={[
+                          styles.timelineLabel,
+                          active && styles.timelineLabelActive,
+                          future && styles.timelineLabelFuture,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {t(phase.labelKey)}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
 
+            {/* Primary job status action — in expanded mode only */}
+            {statusAction && nextActionLabel != null && (
+              <Pressable
+                accessibilityRole="button"
+                disabled={actioning}
+                onPress={() => handleStatusAction(statusAction.next)}
+                style={[
+                  styles.primaryBtn,
+                  emphasiseArrived && styles.primaryBtnEmphasis,
+                  actioning && styles.btnDisabled,
+                ]}
+              >
+                {actioning ? (
+                  <ActivityIndicator size="small" color="#0B0F1A" />
+                ) : (
+                  <Ionicons
+                    name={emphasiseArrived ? 'flag' : 'arrow-forward-circle'}
+                    size={20}
+                    color="#0B0F1A"
+                  />
+                )}
+                <Text style={styles.primaryBtnText}>{nextActionLabel}</Text>
+              </Pressable>
+            )}
+
+            {/* Route/GPS meta line */}
             <Text style={styles.cockpitMeta}>
               {permissionDenied
                 ? t('route.locationDeniedNav')
@@ -2528,36 +3475,268 @@ export default function JobRouteScreen() {
                   ? routeState.loading || phase === 'preview'
                     ? t('route.calculatingRoute')
                     : t('route.waitingFirstFix')
-                  : `${metaText} · ${t('route.updatedAgo', { seconds: fixSeconds })}`}
+                  : routeUpdatedSeconds != null
+                    ? `${metaText} · ${t('route.routeUpdatedAgo', { seconds: routeUpdatedSeconds })}`
+                    : `${metaText} · ${t('route.updatedAgo', { seconds: fixSeconds })}`}
             </Text>
           </>
         )}
-
-        {/* Primary next action — single, obvious, full-width (always visible). */}
-        {statusAction && nextActionLabel != null && (
-          <Pressable
-            accessibilityRole="button"
-            disabled={actioning}
-            onPress={() => handleStatusAction(statusAction.next)}
-            style={[
-              styles.primaryBtn,
-              emphasiseArrived && styles.primaryBtnEmphasis,
-              actioning && styles.btnDisabled,
-            ]}
-          >
-            {actioning ? (
-              <ActivityIndicator size="small" color="#0B0F1A" />
-            ) : (
-              <Ionicons
-                name={emphasiseArrived ? 'flag' : 'arrow-forward-circle'}
-                size={20}
-                color="#0B0F1A"
-              />
-            )}
-            <Text style={styles.primaryBtnText}>{nextActionLabel}</Text>
-          </Pressable>
-        )}
       </View>
+
+      {/* ── Pre-job safety checklist modal ── */}
+      {showPreJobChecklist && (
+        <View style={styles.checklistOverlay}>
+          <View style={[styles.checklistModal, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.md }]}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.checklistScroll}>
+              <Text style={styles.checklistTitle}>{t('checklist.title')}</Text>
+              <Text style={styles.checklistSubtitle}>{t('checklist.subtitle')}</Text>
+
+              {/* Job summary rows */}
+              <View style={styles.checklistSummary}>
+                {job?.refNumber != null && (
+                  <View style={styles.checklistSummaryRow}>
+                    <Text style={styles.checklistSummaryLabel}>{t('checklist.jobRef')}</Text>
+                    <Text style={styles.checklistSummaryValue}>#{job.refNumber}</Text>
+                  </View>
+                )}
+                {job?.customerName != null && (
+                  <View style={styles.checklistSummaryRow}>
+                    <Text style={styles.checklistSummaryLabel}>{t('checklist.customer')}</Text>
+                    <Text style={styles.checklistSummaryValue}>{job.customerName}</Text>
+                  </View>
+                )}
+                {phone != null && (
+                  <View style={styles.checklistSummaryRow}>
+                    <Text style={styles.checklistSummaryLabel}>{t('checklist.phone')}</Text>
+                    <Text style={styles.checklistSummaryValue}>{phone}</Text>
+                  </View>
+                )}
+                {addressLine != null && (
+                  <View style={styles.checklistSummaryRow}>
+                    <Text style={styles.checklistSummaryLabel}>{t('checklist.address')}</Text>
+                    <Text style={[styles.checklistSummaryValue, { flex: 1 }]} numberOfLines={2}>{addressLine}</Text>
+                  </View>
+                )}
+                {tyreSummary != null && (
+                  <View style={styles.checklistSummaryRow}>
+                    <Text style={styles.checklistSummaryLabel}>{t('checklist.tyreSize')}</Text>
+                    <Text style={styles.checklistSummaryValue}>{tyreSummary}</Text>
+                  </View>
+                )}
+                {vehicleLabel != null && (
+                  <View style={styles.checklistSummaryRow}>
+                    <Text style={styles.checklistSummaryLabel}>{t('checklist.vehicle')}</Text>
+                    <Text style={styles.checklistSummaryValue}>{vehicleLabel}</Text>
+                  </View>
+                )}
+                <View style={styles.checklistSummaryRow}>
+                  <Text style={styles.checklistSummaryLabel}>{t('checklist.payment')}</Text>
+                  <Text style={[styles.checklistSummaryValue, { color: payColors.text }]}>
+                    {t(payDisplay.labelKey)}
+                    {payDisplay.amountLabel != null ? ` · ${payDisplay.amountLabel}` : ''}
+                  </Text>
+                </View>
+                {durationMin != null && (
+                  <View style={styles.checklistSummaryRow}>
+                    <Text style={styles.checklistSummaryLabel}>{t('checklist.etaDistance')}</Text>
+                    <Text style={styles.checklistSummaryValue}>
+                      {durationMin} {t('route.etaMin')}
+                      {distanceMiles != null ? ` · ${t('route.distanceMi', { value: distanceMiles.toFixed(1) })}` : ''}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Warnings */}
+              {checklistTyreMissing && (
+                <View style={styles.checklistWarn}>
+                  <Ionicons name="alert-circle" size={16} color="#FDBA74" />
+                  <Text style={styles.checklistWarnText}>{t('checklist.warnTyreMissing')}</Text>
+                </View>
+              )}
+              {checklistAddressMissing && (
+                <View style={styles.checklistWarn}>
+                  <Ionicons name="alert-circle" size={16} color="#FDBA74" />
+                  <Text style={styles.checklistWarnText}>{t('checklist.warnAddressMissing')}</Text>
+                </View>
+              )}
+              {checklistPaymentWarning && (
+                <View style={styles.checklistWarn}>
+                  <Ionicons name="information-circle" size={16} color="#93C5FD" />
+                  <Text style={styles.checklistWarnTextInfo}>{t('checklist.warnPaymentPending')}</Text>
+                </View>
+              )}
+
+              {/* Required confirmations */}
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: preJobChecks.tyreSizeChecked }}
+                onPress={() => setPreJobChecks((c) => ({ ...c, tyreSizeChecked: !c.tyreSizeChecked }))}
+                style={styles.checklistItem}
+              >
+                <View style={[styles.checklistBox, preJobChecks.tyreSizeChecked && styles.checklistBoxChecked]}>
+                  {preJobChecks.tyreSizeChecked && <Ionicons name="checkmark" size={14} color="#0B0F1A" />}
+                </View>
+                <Text style={styles.checklistItemText}>{t('checklist.checkTyreSize')}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: preJobChecks.addressChecked }}
+                onPress={() => setPreJobChecks((c) => ({ ...c, addressChecked: !c.addressChecked }))}
+                style={styles.checklistItem}
+              >
+                <View style={[styles.checklistBox, preJobChecks.addressChecked && styles.checklistBoxChecked]}>
+                  {preJobChecks.addressChecked && <Ionicons name="checkmark" size={14} color="#0B0F1A" />}
+                </View>
+                <Text style={styles.checklistItemText}>{t('checklist.checkAddress')}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: preJobChecks.paymentChecked }}
+                onPress={() => setPreJobChecks((c) => ({ ...c, paymentChecked: !c.paymentChecked }))}
+                style={styles.checklistItem}
+              >
+                <View style={[styles.checklistBox, preJobChecks.paymentChecked && styles.checklistBoxChecked]}>
+                  {preJobChecks.paymentChecked && <Ionicons name="checkmark" size={14} color="#0B0F1A" />}
+                </View>
+                <Text style={styles.checklistItemText}>{t('checklist.checkPayment')}</Text>
+              </Pressable>
+
+              {/* Buttons */}
+              <View style={styles.checklistBtnRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setShowPreJobChecklist(false)}
+                  style={styles.checklistCancelBtn}
+                >
+                  <Text style={styles.checklistCancelBtnText}>{t('checklist.cancel')}</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={!preJobAllChecked || actioning}
+                  onPress={handleConfirmPreJob}
+                  style={[
+                    styles.checklistConfirmBtn,
+                    (!preJobAllChecked || actioning) && styles.btnDisabled,
+                  ]}
+                >
+                  {actioning ? (
+                    <ActivityIndicator size="small" color="#0B0F1A" />
+                  ) : (
+                    <Ionicons name="navigate" size={18} color="#0B0F1A" />
+                  )}
+                  <Text style={styles.checklistConfirmBtnText}>{t('checklist.startDriving')}</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      )}
+
+      {/* ── Completion checklist modal ── */}
+      {showCompletionChecklist && (
+        <View style={styles.checklistOverlay}>
+          <View style={[styles.checklistModal, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.md }]}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.checklistScroll}>
+              <Text style={styles.checklistTitle}>{t('completion.title')}</Text>
+              <Text style={styles.checklistSubtitle}>{t('completion.subtitle')}</Text>
+
+              {/* Payment reminder if needed */}
+              {checklistPaymentWarning && (
+                <View style={styles.checklistWarn}>
+                  <Ionicons name="alert-circle" size={16} color="#FDBA74" />
+                  <Text style={styles.checklistWarnText}>{t('checklist.warnPaymentPending')}</Text>
+                </View>
+              )}
+
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: completionChecks.tyreFitted }}
+                onPress={() => setCompletionChecks((c) => ({ ...c, tyreFitted: !c.tyreFitted }))}
+                style={styles.checklistItem}
+              >
+                <View style={[styles.checklistBox, completionChecks.tyreFitted && styles.checklistBoxChecked]}>
+                  {completionChecks.tyreFitted && <Ionicons name="checkmark" size={14} color="#0B0F1A" />}
+                </View>
+                <Text style={styles.checklistItemText}>{t('completion.tyreFitted')}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: completionChecks.wheelNuts }}
+                onPress={() => setCompletionChecks((c) => ({ ...c, wheelNuts: !c.wheelNuts }))}
+                style={styles.checklistItem}
+              >
+                <View style={[styles.checklistBox, completionChecks.wheelNuts && styles.checklistBoxChecked]}>
+                  {completionChecks.wheelNuts && <Ionicons name="checkmark" size={14} color="#0B0F1A" />}
+                </View>
+                <Text style={styles.checklistItemText}>{t('completion.wheelNuts')}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: completionChecks.customerInformed }}
+                onPress={() => setCompletionChecks((c) => ({ ...c, customerInformed: !c.customerInformed }))}
+                style={styles.checklistItem}
+              >
+                <View style={[styles.checklistBox, completionChecks.customerInformed && styles.checklistBoxChecked]}>
+                  {completionChecks.customerInformed && <Ionicons name="checkmark" size={14} color="#0B0F1A" />}
+                </View>
+                <Text style={styles.checklistItemText}>{t('completion.customerInformed')}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: completionChecks.paymentChecked }}
+                onPress={() => setCompletionChecks((c) => ({ ...c, paymentChecked: !c.paymentChecked }))}
+                style={styles.checklistItem}
+              >
+                <View style={[styles.checklistBox, completionChecks.paymentChecked && styles.checklistBoxChecked]}>
+                  {completionChecks.paymentChecked && <Ionicons name="checkmark" size={14} color="#0B0F1A" />}
+                </View>
+                <Text style={styles.checklistItemText}>{t('completion.paymentChecked')}</Text>
+              </Pressable>
+
+              {completionError != null && (
+                <Text style={styles.completionError}>{completionError}</Text>
+              )}
+
+              <View style={styles.checklistBtnRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={completionActioning}
+                  onPress={() => {
+                    if (!completionActioning) {
+                      setShowCompletionChecklist(false);
+                      setCompletionError(null);
+                      actionLockRef.current = false;
+                    }
+                  }}
+                  style={[styles.checklistCancelBtn, completionActioning && styles.btnDisabled]}
+                >
+                  <Text style={styles.checklistCancelBtnText}>{t('completion.cancel')}</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={!completionAllChecked || completionActioning}
+                  onPress={handleConfirmCompletion}
+                  style={[
+                    styles.checklistConfirmBtn,
+                    styles.checklistConfirmBtnComplete,
+                    (!completionAllChecked || completionActioning) && styles.btnDisabled,
+                  ]}
+                >
+                  {completionActioning ? (
+                    <ActivityIndicator size="small" color="#0B0F1A" />
+                  ) : (
+                    <Ionicons name="checkmark-circle" size={18} color="#0B0F1A" />
+                  )}
+                  <Text style={styles.checklistConfirmBtnText}>
+                    {completionActioning ? t('completion.completing') : t('completion.completeJob')}
+                  </Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -2982,6 +4161,26 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     marginTop: 1,
   },
+  routeRefreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  routeRefreshButtonPressed: {
+    opacity: 0.75,
+  },
+  routeRefreshButtonText: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+  },
   rerouteFailedText: {
     color: '#FDBA74',
     fontSize: fontSize.xs,
@@ -3129,5 +4328,541 @@ const styles = StyleSheet.create({
     color: '#0B0F1A',
     fontSize: fontSize.sm,
     fontWeight: '800',
+  },
+
+  /* ── Recenter button with label ── */
+  ctrlBtnRecenter: {
+    flexDirection: 'column',
+    minWidth: 52,
+    height: 52,
+    gap: 2,
+  },
+  ctrlBtnLabelDark: {
+    color: '#0B0F1A',
+    fontSize: 9,
+    fontWeight: '700',
+    marginTop: 1,
+  },
+
+  /* ── Collapsed cockpit: Row 1 — instruction ── */
+  collapsedInstRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 48,
+  },
+  collapsedInstIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accent,
+    flexShrink: 0,
+  },
+  collapsedInstText: {
+    flex: 1,
+    color: colors.text,
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    lineHeight: 22,
+  },
+  collapsedDistBadge: {
+    color: colors.muted,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    flexShrink: 0,
+  },
+
+  /* ── Collapsed cockpit: Row 2 — ETA / distance / payment ── */
+  collapsedMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  collapsedEtaBlock: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 2,
+  },
+  collapsedEtaNum: {
+    color: colors.text,
+    fontSize: fontSize.xl,
+    fontWeight: '800',
+    lineHeight: 24,
+  },
+  collapsedEtaUnit: {
+    color: colors.muted,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+  },
+  collapsedMetaDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: colors.border,
+  },
+  collapsedDistText: {
+    color: colors.muted,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    flex: 1,
+  },
+  collapsedPayChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    maxWidth: 110,
+  },
+  collapsedPayChipText: {
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+
+  /* ── Collapsed cockpit: Row 3 — action buttons ── */
+  collapsedActionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignItems: 'stretch',
+  },
+  collapsedPrimaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    minHeight: 52,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+  },
+  collapsedPrimaryBtnArrival: {
+    backgroundColor: '#22c55e',
+  },
+  collapsedPrimaryBtnText: {
+    color: '#0B0F1A',
+    fontSize: fontSize.md,
+    fontWeight: '800',
+    flexShrink: 1,
+  },
+  collapsedSecBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    minWidth: 56,
+    minHeight: 52,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  collapsedSecBtnDisabled: {
+    opacity: 0.4,
+  },
+  collapsedSecBtnText: {
+    color: colors.text,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+
+  /* ── Recovery / missing location panels ── */
+  recoveryPanel: {
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  recoveryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  recoveryTitle: {
+    flex: 1,
+    color: colors.text,
+    fontSize: fontSize.md,
+    fontWeight: '800',
+  },
+  recoveryBody: {
+    color: colors.muted,
+    fontSize: fontSize.sm,
+    lineHeight: 20,
+  },
+  recoveryPrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    minHeight: 52,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+  },
+  recoveryPrimaryBtnText: {
+    color: '#0B0F1A',
+    fontSize: fontSize.md,
+    fontWeight: '800',
+  },
+  recoverySecRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  recoverySecBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    minHeight: 44,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  recoverySecBtnFull: {
+    flex: 0,
+    alignSelf: 'stretch',
+  },
+  recoverySecBtnText: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+
+  /* ── Expanded cockpit extras ── */
+  expandedCustomerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  expandedCallBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accent,
+    flexShrink: 0,
+  },
+
+  /* ── Arrival inline error ── */
+  arrivalErrorText: {
+    color: '#F87171',
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingVertical: spacing.xs,
+  },
+
+  /* ── Smart reminder card ── */
+  reminderCard: {
+    position: 'absolute',
+    left: spacing.md,
+    right: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    padding: spacing.sm,
+    gap: spacing.xs,
+  },
+  reminderCardInfo: {
+    backgroundColor: 'rgba(30,58,138,0.92)',
+    borderColor: 'rgba(147,197,253,0.5)',
+  },
+  reminderCardWarning: {
+    backgroundColor: 'rgba(78,46,0,0.95)',
+    borderColor: 'rgba(253,186,116,0.55)',
+  },
+  reminderCardUrgent: {
+    backgroundColor: 'rgba(69,10,10,0.95)',
+    borderColor: 'rgba(252,165,165,0.55)',
+  },
+  reminderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  reminderTitle: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    fontWeight: '800',
+  },
+  reminderTitleInfo: { color: '#93C5FD' },
+  reminderTitleWarning: { color: '#FDE68A' },
+  reminderTitleUrgent: { color: '#FCA5A5' },
+  reminderDismiss: {
+    padding: 4,
+  },
+  reminderBody: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    lineHeight: 16,
+  },
+  reminderActions: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginTop: 2,
+  },
+  reminderPrimaryBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+    minHeight: 36,
+  },
+  reminderPrimaryBtnInfo: { backgroundColor: '#1D4ED8' },
+  reminderPrimaryBtnWarning: { backgroundColor: '#B45309' },
+  reminderPrimaryBtnUrgent: { backgroundColor: '#B91C1C' },
+  reminderPrimaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+  },
+  reminderSecBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+    minHeight: 36,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  reminderSecBtnText: {
+    color: colors.text,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+  },
+
+  /* ── Job timeline ── */
+  timeline: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: spacing.sm,
+    gap: 0,
+  },
+  timelineItem: {
+    flex: 1,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  timelineDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.border,
+    zIndex: 1,
+  },
+  timelineDotDone: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  timelineDotActive: {
+    backgroundColor: '#22c55e',
+    borderColor: '#22c55e',
+  },
+  timelineDotFuture: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    opacity: 0.4,
+  },
+  timelineLine: {
+    position: 'absolute',
+    top: 9,
+    left: '50%',
+    right: '-50%',
+    height: 2,
+    backgroundColor: colors.border,
+    zIndex: 0,
+  },
+  timelineLineDone: {
+    backgroundColor: colors.accent,
+  },
+  timelineLabel: {
+    color: colors.muted,
+    fontSize: 9,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 4,
+    flexShrink: 1,
+  },
+  timelineLabelActive: {
+    color: '#22c55e',
+    fontWeight: '800',
+  },
+  timelineLabelFuture: {
+    opacity: 0.4,
+  },
+
+  /* ── Checklist modals ── */
+  checklistOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    zIndex: 200,
+  },
+  checklistModal: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  checklistScroll: {
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  checklistTitle: {
+    color: colors.text,
+    fontSize: fontSize.xl,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  checklistSubtitle: {
+    color: colors.muted,
+    fontSize: fontSize.sm,
+    marginBottom: spacing.sm,
+  },
+  checklistSummary: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  checklistSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  checklistSummaryLabel: {
+    color: colors.muted,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    width: 72,
+    flexShrink: 0,
+  },
+  checklistSummaryValue: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+    flex: 1,
+  },
+  checklistWarn: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+    backgroundColor: 'rgba(180,83,9,0.12)',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(253,186,116,0.4)',
+    padding: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  checklistWarnText: {
+    color: '#FDBA74',
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    flex: 1,
+    lineHeight: 18,
+  },
+  checklistWarnTextInfo: {
+    color: '#93C5FD',
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    flex: 1,
+    lineHeight: 18,
+  },
+  checklistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    minHeight: 52,
+    marginBottom: spacing.xs,
+  },
+  checklistBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  checklistBoxChecked: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  checklistItemText: {
+    color: colors.text,
+    fontSize: fontSize.md,
+    fontWeight: '700',
+    flex: 1,
+    lineHeight: 20,
+  },
+  checklistBtnRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  checklistCancelBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 52,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  checklistCancelBtnText: {
+    color: colors.text,
+    fontSize: fontSize.md,
+    fontWeight: '700',
+  },
+  checklistConfirmBtn: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    minHeight: 52,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+  },
+  checklistConfirmBtnComplete: {
+    backgroundColor: '#22c55e',
+  },
+  checklistConfirmBtnText: {
+    color: '#0B0F1A',
+    fontSize: fontSize.md,
+    fontWeight: '800',
+  },
+  completionError: {
+    color: '#F87171',
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingVertical: spacing.xs,
   },
 });

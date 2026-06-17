@@ -127,6 +127,14 @@ export interface RouteState {
   steps: RouteStep[];
   congestion: CongestionLevel[] | null;
   destinationSnap: LngLat | null;
+  /** Job ref this route was calculated for. */
+  routeJobRef: string | null;
+  /** Destination coordinate key this route was calculated for. */
+  routeDestinationKey: string | null;
+  /** Date.now() when this route state was calculated. */
+  routeCalculatedAt: number | null;
+  /** Date.now() of the accepted GPS fix used as the route origin. */
+  routeOriginFixAt: number | null;
   error: RouteError | null;
   loading: boolean;
 }

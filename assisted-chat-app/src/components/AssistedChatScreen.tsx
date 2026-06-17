@@ -1877,7 +1877,19 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
                     <Text style={styles.paymentLinkAmount}>
                       Payment link created · {formatPence(draft.paymentLink.amountPence)}
                     </Text>
-                    <Text style={styles.paymentLinkStatus}>Awaiting payment</Text>
+                    <Text style={[
+                      styles.paymentLinkStatus,
+                      paymentLinkActions.liveStatus === 'paid' && { color: colors.success },
+                      paymentLinkActions.liveStatus === 'failed' && { color: colors.danger },
+                    ]}>
+                      {paymentLinkActions.liveStatus === 'paid'
+                        ? 'Payment received ✓'
+                        : paymentLinkActions.liveStatus === 'failed'
+                          ? 'Payment failed'
+                          : paymentLinkActions.liveStatus === 'checking'
+                            ? 'Payment needs checking'
+                            : 'Awaiting payment'}
+                    </Text>
                     <AppButton
                       label="Copy link"
                       variant="secondary"

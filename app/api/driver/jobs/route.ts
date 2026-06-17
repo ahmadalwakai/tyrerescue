@@ -3,6 +3,10 @@ import { db, bookings, bookingTyres, tyreProducts } from '@/lib/db';
 import { eq, and, inArray, desc } from 'drizzle-orm';
 import { requireDriverMobile } from '@/lib/auth';
 import { computeDriverPaymentSummary, type PaymentSummary } from '@/lib/payments/driver-payment';
+import {
+  getBookingPaymentEvidenceMap,
+  type BookingPaymentEvidence,
+} from '@/lib/payments/payment-evidence';
 
 const OPERATIONAL_STATUSES = ['en_route', 'arrived', 'in_progress'] as const;
 const UPCOMING_STATUSES = ['driver_assigned'] as const;
@@ -132,10 +136,21 @@ export async function GET(request: Request) {
 
     const idsNeedingTyres = [...activeRows, ...upcomingRows].map((j) => j.id);
     const tyreMap = await fetchTyreMap(idsNeedingTyres);
+    const paymentEvidenceMap = await getBookingPaymentEvidenceMap([
+      ...activeRows,
+      ...upcomingRows,
+      ...completedRows,
+    ].map((j) => j.id));
 
-    const active = activeRows.map((row) => serialiseJob(row, tyreMap.get(row.id) ?? []));
-    const upcoming = upcomingRows.map((row) => serialiseJob(row, tyreMap.get(row.id) ?? []));
-    const completed = completedRows.map((row) => serialiseJob(row, []));
+    const active = activeRows.map((row) =>
+      serialiseJob(row, tyreMap.get(row.id) ?? [], paymentEvidenceMap.get(row.id)),
+    );
+    const upcoming = upcomingRows.map((row) =>
+      serialiseJob(row, tyreMap.get(row.id) ?? [], paymentEvidenceMap.get(row.id)),
+    );
+    const completed = completedRows.map((row) =>
+      serialiseJob(row, [], paymentEvidenceMap.get(row.id)),
+    );
 
     return NextResponse.json({ active, upcoming, completed });
   } catch (error) {
@@ -171,7 +186,11 @@ async function fetchTyreMap(bookingIds: string[]): Promise<Map<string, TyreRef[]
   return map;
 }
 
-function serialiseJob(row: RawJobRow, tyres: TyreRef[]): SerialisedJob {
+function serialiseJob(
+  row: RawJobRow,
+  tyres: TyreRef[],
+  paymentEvidence?: BookingPaymentEvidence,
+): SerialisedJob {
   const payment = computeDriverPaymentSummary({
     paymentType: row.paymentType,
     totalAmount: row.totalAmount,
@@ -181,6 +200,8 @@ function serialiseJob(row: RawJobRow, tyres: TyreRef[]): SerialisedJob {
     remainingBalancePence: row.remainingBalancePence,
     depositPaidAt: row.depositPaidAt,
     stripePiId: row.stripePiId,
+    paymentStatus: paymentEvidence?.paymentStatus ?? null,
+    totalPaidPence: paymentEvidence?.totalPaidPence ?? 0,
     bookingStatus: row.status,
   });
 

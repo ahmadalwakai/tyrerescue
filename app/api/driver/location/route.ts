@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db, drivers, driverLocationHistory, bookings, trackingSessions } from '@/lib/db';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, sql } from 'drizzle-orm';
 import { requireDriverMobile } from '@/lib/auth';
 import { z } from 'zod';
 
@@ -131,15 +131,26 @@ export async function POST(request: Request) {
 
     // Bridge to trackingSessions so customer/admin tracking surfaces use the
     // driver's native GPS rather than relying on a separate beacon.
+    // Also promotes pending→in_progress so the admin chat shows live status
+    // without requiring the driver to use the separate web tracking page.
     if (shouldUpdatePrimary && targetedBooking) {
+      const bridgeNow = new Date();
       await db
         .update(trackingSessions)
         .set({
+          status: 'in_progress',
+          startedAt: sql`COALESCE(${trackingSessions.startedAt}, ${bridgeNow})`,
           lastLatitude: lat.toString(),
           lastLongitude: lng.toString(),
-          lastUpdatedAt: new Date(),
+          lastUpdatedAt: bridgeNow,
+          updatedAt: bridgeNow,
         })
-        .where(eq(trackingSessions.bookingId, targetedBooking.id));
+        .where(
+          and(
+            eq(trackingSessions.bookingId, targetedBooking.id),
+            inArray(trackingSessions.status, ['pending', 'in_progress', 'paused']),
+          ),
+        );
     }
 
     return NextResponse.json({

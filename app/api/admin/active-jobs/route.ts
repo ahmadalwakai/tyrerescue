@@ -7,6 +7,7 @@ import {
   computeDriverPaymentSummary,
   type PaymentSummary,
 } from '@/lib/payments/driver-payment';
+import { getBookingPaymentEvidenceMap } from '@/lib/payments/payment-evidence';
 import { haversineDistanceMiles } from '@/lib/mapbox';
 
 const ACTIVE_STATUSES = [
@@ -102,6 +103,8 @@ export async function GET(request: NextRequest) {
 
   const now = Date.now();
 
+  const paymentEvidenceMap = await getBookingPaymentEvidenceMap(rows.map((row) => row.bookingId));
+
   const items: ActiveJobItem[] = rows.map((row) => {
     const customerLat = toNumber(row.customerLat);
     const customerLng = toNumber(row.customerLng);
@@ -135,6 +138,7 @@ export async function GET(request: NextRequest) {
     const isStale =
       ageSeconds == null ? true : ageSeconds > STALE_AFTER_SECONDS;
 
+    const paymentEvidence = paymentEvidenceMap.get(row.bookingId);
     const payment = computeDriverPaymentSummary({
       paymentType: row.paymentType,
       totalAmount: row.totalAmount,
@@ -144,6 +148,9 @@ export async function GET(request: NextRequest) {
       remainingBalancePence: row.remainingBalancePence ?? null,
       depositPaidAt: row.depositPaidAt ?? null,
       stripePiId: row.stripePiId ?? null,
+      paymentStatus: paymentEvidence?.paymentStatus ?? null,
+      totalPaidPence: paymentEvidence?.totalPaidPence ?? 0,
+      bookingStatus: row.status,
     });
 
     return {

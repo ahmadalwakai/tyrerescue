@@ -28,8 +28,14 @@ export interface ActiveJobItem {
   payment: {
     type: string | null;
     status: string | null;
+    paymentStatus: string | null;
     amountToCollectPence: number;
     totalAmountPence: number | null;
+    totalPaidPence: number;
+    remainingBalancePence: number | null;
+    depositAmountPence: number | null;
+    depositPaidAt: string | null;
+    bookingStatus: string | null;
   } | null;
   distanceMiles: number | null;
   etaMinutes: number | null;

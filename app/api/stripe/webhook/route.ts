@@ -24,6 +24,7 @@ import { ensureTrackingSession } from '@/lib/tracking-session';
 import { sendAdminExpoPush } from '@/lib/notifications/expo-admin-push';
 import { notifyDriverPaymentReceived } from '@/lib/notifications/driver-push';
 import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
+import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
 
 // Disable body parsing - we need the raw body for signature verification
 export const runtime = 'nodejs';
@@ -447,6 +448,7 @@ async function handleAdminLinkPaymentSucceeded(paymentIntent: Stripe.PaymentInte
     return;
   }
 
+  const paymentEvidence = await getBookingPaymentEvidence(booking.id);
   const outstandingBeforePayment = computeDriverPaymentSummary({
     paymentType: booking.paymentType,
     totalAmount: booking.totalAmount?.toString() ?? null,
@@ -456,6 +458,9 @@ async function handleAdminLinkPaymentSucceeded(paymentIntent: Stripe.PaymentInte
     remainingBalancePence: booking.remainingBalancePence,
     depositPaidAt: booking.depositPaidAt,
     stripePiId: booking.stripePiId,
+    paymentStatus: paymentEvidence.paymentStatus,
+    totalPaidPence: paymentEvidence.totalPaidPence,
+    bookingStatus: booking.status,
   }).amountToCollectPence;
 
   if (paymentIntent.amount !== outstandingBeforePayment) {

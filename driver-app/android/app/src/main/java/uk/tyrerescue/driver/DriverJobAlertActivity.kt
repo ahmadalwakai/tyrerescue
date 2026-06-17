@@ -194,13 +194,18 @@ class DriverJobAlertActivity : AppCompatActivity() {
       } else null
       val methodLine = when (paymentType) {
         "cash" -> "Payment: Cash on completion"
-        "full" -> "Payment: Paid online (full)"
+        "full" -> "Payment: Full online payment"
         "deposit" -> if (paymentStatus == "deposit_paid") "Payment: Deposit paid online" else "Payment: Deposit (unpaid)"
         else -> null
       }
       val collectLine = when {
-        paymentStatus == "paid" || pence == 0L -> "Nothing to collect"
-        pence != null && pence > 0 -> "Collect on arrival: \u00A3${String.format("%.2f", pence / 100.0)}"
+        paymentStatus == "paid" && pence != null && pence <= 0L -> "Nothing to collect"
+        paymentStatus == "needs_checking" -> if (pence != null && pence > 0L) "Payment needs checking: \u00A3${String.format("%.2f", pence / 100.0)}" else "Payment needs checking"
+        paymentStatus == "failed" -> if (pence != null && pence > 0L) "Payment failed: \u00A3${String.format("%.2f", pence / 100.0)}" else "Payment failed"
+        paymentStatus == "pending" -> if (pence != null && pence > 0L) "Payment pending: \u00A3${String.format("%.2f", pence / 100.0)}" else "Payment pending"
+        paymentStatus == "deposit_paid" && pence != null && pence > 0L -> "Balance due: \u00A3${String.format("%.2f", pence / 100.0)}"
+        paymentType == "cash" && pence != null && pence > 0L -> "Cash to collect: \u00A3${String.format("%.2f", pence / 100.0)}"
+        pence != null && pence > 0L -> "Amount due: \u00A3${String.format("%.2f", pence / 100.0)}"
         paymentStatus == "unknown" -> "Confirm payment with admin"
         else -> "Confirm payment with admin"
       }
