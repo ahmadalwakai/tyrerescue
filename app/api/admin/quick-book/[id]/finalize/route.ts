@@ -516,7 +516,7 @@ export async function POST(
     customerPhone: qb.customerPhone,
     createdAt: new Date().toISOString(),
     title: 'Emergency booking received',
-    body: `${qb.customerName} — ${paymentMethod === 'cash' ? 'paid' : 'awaiting payment'}`,
+    body: `${qb.customerName} — ${paymentMethod === 'cash' ? 'cash on site' : 'awaiting payment'}`,
   }).catch((err: unknown) => console.error('[quick-book:finalize] urgent push failed:', err));
 
   // Notify admin
