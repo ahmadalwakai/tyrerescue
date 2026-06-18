@@ -51,6 +51,7 @@ import { AdminVisitorsModal } from './AdminVisitorsModal';
 import { AdminInvoicesModal } from './AdminInvoicesModal';
 import { AdminStockModal } from './AdminStockModal';
 import { ActiveJobsModal, ActiveJobMapModal } from './ActiveJobsModal';
+import { TrackingModal } from './TrackingModal';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 import { api } from '@/lib/api';
@@ -398,6 +399,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const [invoicesOpen, setInvoicesOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
   const [activeJobsOpen, setActiveJobsOpen] = useState(false);
+  const [driverTrackingOpen, setDriverTrackingOpen] = useState(false);
   const [trackingMapOpen, setTrackingMapOpen] = useState(false);
   const [duplicateAck, setDuplicateAck] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -1703,6 +1705,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
           />
           <AppButton label="Recent customers" variant="secondary" onPress={() => setRecentOpen(true)} style={styles.toolButton} />
           <AppButton label="Active jobs" variant="secondary" onPress={() => setActiveJobsOpen(true)} style={styles.toolButton} />
+          <AppButton label="Tracking" variant="secondary" onPress={() => setDriverTrackingOpen(true)} style={styles.toolButton} />
           <AppButton label="Quotes" variant="secondary" onPress={() => setQuotesOpen(true)} style={styles.toolButton} />
         </View>
 
@@ -1982,6 +1985,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
       <AdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
       <ActiveJobsModal visible={activeJobsOpen} onClose={() => setActiveJobsOpen(false)} />
+      <TrackingModal visible={driverTrackingOpen} onClose={() => setDriverTrackingOpen(false)} />
       <ActiveJobMapModal
         visible={trackingMapOpen}
         job={trackingJob}

@@ -64,7 +64,10 @@ describe('computeDriverPaymentSummary', () => {
     });
   });
 
-  it('does not mark assigned full-online bookings paid without payment evidence', () => {
+  it('treats full-online bookings with settled lifecycle (no Stripe evidence) as paid', () => {
+    // Admin manually confirmed payment → sets bookings.status = 'driver_assigned'
+    // without creating a payments row (payments table requires stripePiId NOT NULL).
+    // Settled lifecycle is the canonical payment confirmation for admin flows.
     const payment = computeDriverPaymentSummary({
       ...baseInput,
       paymentType: 'stripe',
@@ -74,13 +77,16 @@ describe('computeDriverPaymentSummary', () => {
 
     expect(payment).toMatchObject({
       type: 'full',
-      status: 'needs_checking',
-      amountToCollectPence: 12000,
+      status: 'paid',
+      amountToCollectPence: 0,
       totalPaidPence: 0,
     });
   });
 
-  it('keeps pending payment rows pending even if the booking lifecycle says paid', () => {
+  it('trusts settled lifecycle over a stale pending payment row for full-online bookings', () => {
+    // Admin explicitly confirmed payment (lifecycle = paid) while a pending
+    // Stripe row still exists. Admin confirmation wins; the pending row will
+    // eventually resolve on its own.
     const payment = computeDriverPaymentSummary({
       ...baseInput,
       paymentType: 'stripe',
@@ -92,10 +98,33 @@ describe('computeDriverPaymentSummary', () => {
 
     expect(payment).toMatchObject({
       type: 'full',
-      status: 'pending',
-      amountToCollectPence: 12000,
+      status: 'paid',
+      amountToCollectPence: 0,
       paymentStatus: 'pending',
       totalPaidPence: 0,
+    });
+  });
+
+  it('treats admin-confirmed full bookings (paid lifecycle, no Stripe evidence) as paid', () => {
+    // Real bug: admin marks TYR-2026-61975 as "paid" from the admin panel.
+    // bookingStatus → 'paid'; payments table has no row (requires stripePiId).
+    // Driver badge/card must show Paid, not "Payment needs checking".
+    const payment = computeDriverPaymentSummary({
+      ...baseInput,
+      totalAmount: '184.18',
+      subtotal: '184.18',
+      vatAmount: '0.00',
+      paymentType: 'full',
+      stripePiId: null,
+      bookingStatus: 'paid',
+      paymentStatus: null,
+      totalPaidPence: 0,
+    });
+
+    expect(payment).toMatchObject({
+      type: 'full',
+      status: 'paid',
+      amountToCollectPence: 0,
     });
   });
 

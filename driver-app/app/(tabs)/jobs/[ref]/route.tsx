@@ -1105,8 +1105,6 @@ export default function JobRouteScreen() {
         }
       }
 
-      if (rs.loading) return;
-
       // While a network failure is latched, suppress reroute/refresh attempts
       // (keeping the last good route on screen) and only allow a single probe
       // every OFFLINE_RETRY_MS so connectivity recovery is still detected
@@ -1115,27 +1113,36 @@ export default function JobRouteScreen() {
       const networkAllowed =
         !offline || now - networkFailRef.current > OFFLINE_RETRY_MS;
 
-      // Off-route detection + debounced reroute.
+      // Off-route detection + debounced reroute. NOT gated on rs.loading so the
+      // off-route timer accumulates while an initial/refresh request is in-flight.
+      // The reroute trigger itself skips firing while loading to avoid stacking
+      // requests; as soon as the in-flight request settles the very next fix that
+      // still finds the driver off-route fires immediately (debounce already elapsed).
       if (routeBelongsToCurrentJob && rs.geometry) {
         const d = distanceToRouteMeters(driver, rs.geometry);
         if (d > OFF_ROUTE_METERS) {
           if (offRouteSinceRef.current == null) {
             offRouteSinceRef.current = now;
           } else if (
+            !rs.loading &&
             networkAllowed &&
             now - offRouteSinceRef.current > REROUTE_DEBOUNCE_MS
           ) {
             offRouteSinceRef.current = null;
             setRerouting(true);
             if (__DEV__) {
-              console.log('[route-refresh-debug]', {
+              console.log('[reroute-debug]', {
                 ref: currentRouteJobRef,
-                reason: 'off-route-reroute',
+                reason: 'off_route',
                 offRouteMeters: Math.round(d),
-                origin: driver,
-                destination: dest,
                 routeAgeMs: rs.routeCalculatedAt != null ? now - rs.routeCalculatedAt : null,
-                inFlight: false,
+                movedFromLastOriginM: lastRouteOriginRef.current
+                  ? Math.round(haversineMeters(driver, lastRouteOriginRef.current))
+                  : 0,
+                loading: rs.loading,
+                inFlight: routeAbortRef.current != null && !routeAbortRef.current.signal.aborted,
+                driverCoord: driver,
+                destinationCoord: dest,
               });
             }
             requestRoute(driver, dest);
@@ -1145,6 +1152,9 @@ export default function JobRouteScreen() {
           offRouteSinceRef.current = null;
         }
       }
+
+      // Periodic refresh blocked while a request is already in-flight.
+      if (rs.loading) return;
 
       // Periodic refresh when the driver has moved meaningfully, or upgrade
       // attempts when we are currently on a fallback / no route. Gated on the
@@ -1159,20 +1169,22 @@ export default function JobRouteScreen() {
         lastOrigin != null && haversineMeters(driver, lastOrigin) > ROUTE_FORCE_REFRESH_MOVE_M;
       const staleWhileMoving =
         movedFarFromOrigin && routeAgeMs != null && routeAgeMs > ROUTE_STALE_WHILE_MOVING_MS;
+      const refreshReason = rs.source === 'none' ? 'initial' : staleWhileMoving ? 'stale_moving' : 'moved_enough';
       if (
         networkAllowed &&
         (rs.source === 'none' || (movedEnough && intervalOk) || staleWhileMoving)
       ) {
         if (__DEV__) {
-          console.log('[route-refresh-debug]', {
+          console.log('[reroute-debug]', {
             ref: currentRouteJobRef,
-            reason: rs.source === 'none' ? 'no-route' : staleWhileMoving ? 'stale-while-moving' : 'periodic',
-            origin: driver,
-            destination: dest,
-            movedMeters: lastOrigin ? Math.round(haversineMeters(driver, lastOrigin)) : 0,
+            reason: refreshReason,
             offRouteMeters: null,
             routeAgeMs,
+            movedFromLastOriginM: lastOrigin ? Math.round(haversineMeters(driver, lastOrigin)) : 0,
+            loading: false,
             inFlight: false,
+            driverCoord: driver,
+            destinationCoord: dest,
           });
         }
         requestRoute(driver, dest);
@@ -1348,17 +1360,22 @@ export default function JobRouteScreen() {
           }
           lastFixTimeRef.current = fixTime;
           lastProcessedFixTimeRef.current = fixTime;
+          // Rule 1: GPS heading only when driver is genuinely moving (speed > 1 m/s).
+          // Rule 2: Bearing from last accepted fix when moved > 5 m (avoids GPS jitter).
+          // Rule 3: Keep last stable heading (headingRef unchanged) — never snap to 0.
           let heading: number | null = null;
           if (
             typeof gpsHeading === 'number' &&
             gpsHeading >= 0 &&
-            (speed == null || speed < 0 || speed > 1)
+            typeof speed === 'number' &&
+            speed > 1
           ) {
             heading = gpsHeading;
-          }
-          const prev = prevLocRef.current;
-          if (heading == null && prev && haversineMeters(prev, c) > 3) {
-            heading = bearingDegrees(prev, c);
+          } else {
+            const prev = prevLocRef.current;
+            if (prev && haversineMeters(prev, c) > 5) {
+              heading = bearingDegrees(prev, c);
+            }
           }
           if (heading != null) headingRef.current = heading;
           speedRef.current =
@@ -2240,10 +2257,14 @@ export default function JobRouteScreen() {
   // turn-by-turn maneuver — voiced once per step by the effect below — and
   // (b) a few major engine events in `playRouteCue`. It never reuses the urgent
   // full-screen new-job alert path. Requires a native rebuild to function.
+  // hasLiveStep is false while rerouting so old turn instructions are never shown
+  // or spoken while a new route is being fetched.
   const hasLiveStep =
-    routeIsCurrent && !routeNeedsRefresh && !!upcomingStep && phase === 'to_dropoff';
+    !rerouting && routeIsCurrent && !routeNeedsRefresh && !!upcomingStep && phase === 'to_dropoff';
   const primaryInstruction = arrival
     ? arrival
+    : rerouting
+      ? t('route.findingBetterRoute')
     : routeNeedsRefresh
       ? t('route.refreshRoute')
     : hasLiveStep && upcomingStep
@@ -2784,7 +2805,7 @@ export default function JobRouteScreen() {
 
       {/* ── Live instruction card — hidden when route has failed (recovery panel handles it)
            but kept when arrival wording is active so the driver sees their destination. ── */}
-      {token && mapLoaded && !mapFatal && !permissionDenied && primaryInstruction.length > 0 && (arrival != null || (routeIsCurrent && !rerouteFailed)) && (
+      {token && mapLoaded && !mapFatal && !permissionDenied && primaryInstruction.length > 0 && (arrival != null || rerouting || (routeIsCurrent && !rerouteFailed)) && (
         <View
           style={[styles.instructionCard, { top: insets.top + 50 }]}
           pointerEvents="none"
@@ -2794,9 +2815,11 @@ export default function JobRouteScreen() {
               name={
                 arrival
                   ? 'flag'
-                  : hasLiveStep && upcomingStep
-                    ? maneuverIcon(upcomingStep)
-                    : 'navigate'
+                  : rerouting
+                    ? 'refresh'
+                    : hasLiveStep && upcomingStep
+                      ? maneuverIcon(upcomingStep)
+                      : 'navigate'
               }
               size={28}
               color="#0B0F1A"

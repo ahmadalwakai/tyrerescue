@@ -203,6 +203,15 @@ export function computeDriverPaymentSummary(input: PaymentSummaryInput): Payment
     } else if (hasFailedLifecycle(bookingStatus) || paymentStatus === 'failed') {
       status = 'failed';
       amountToCollect = totalOutstanding;
+    } else if (hasSettledLifecycle(bookingStatus)) {
+      // The booking has passed the payment gate.  Stripe-initiated payments
+      // also create a payment row so they are caught by hasFullPaidEvidence
+      // above.  Admin manual confirmations update only bookings.status — the
+      // payments table requires a Stripe PI id and cannot be written without
+      // one.  Settled lifecycle is therefore the canonical signal for
+      // admin-confirmed payments and must be trusted here.
+      status = 'paid';
+      amountToCollect = 0;
     } else if (hasPendingLifecycle(bookingStatus) || isPendingPaymentStatus(paymentStatus)) {
       status = 'pending';
       amountToCollect = totalOutstanding;
@@ -269,8 +278,10 @@ export function computeDriverPaymentSummary(input: PaymentSummaryInput): Payment
       status = 'failed';
       amountToCollect = totalOutstanding;
     } else if (hasSettledLifecycle(bookingStatus)) {
-      status = 'needs_checking';
-      amountToCollect = totalOutstanding;
+      // Unknown payment type with settled lifecycle: booking has passed the
+      // payment gate so treat as confirmed paid (same reasoning as type='full').
+      status = 'paid';
+      amountToCollect = 0;
     } else {
       status = 'unknown';
       amountToCollect = totalOutstanding;

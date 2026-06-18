@@ -1,0 +1,255 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm';
+import { requireAdminMobile } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { bookings, drivers, users } from '@/lib/db/schema';
+import {
+  computeDriverPaymentSummary,
+  type PaymentSummary,
+} from '@/lib/payments/driver-payment';
+import { getBookingPaymentEvidenceMap } from '@/lib/payments/payment-evidence';
+
+type LocationFreshness = 'live' | 'stale' | 'offline' | 'unknown';
+type DriverStatus = 'available' | 'busy' | 'offline' | 'unknown';
+
+export interface TrackingDriver {
+  id: string;
+  name: string;
+  phone: string | null;
+  status: DriverStatus;
+  activeJobRef: string | null;
+  lat: number | null;
+  lng: number | null;
+  heading: null;
+  lastSeenAt: string | null;
+  locationFreshness: LocationFreshness;
+}
+
+export interface TrackingJob {
+  id: string;
+  ref: string;
+  status: string;
+  assignmentStatus: 'unassigned' | 'assigned';
+  assignedDriverId: string | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+  tyreSummary: string | null;
+  vehicleSummary: string | null;
+  paymentSummary: PaymentSummary | null;
+  createdAt: string;
+  scheduledFor: string | null;
+}
+
+export interface TrackingResponse {
+  drivers: TrackingDriver[];
+  jobs: TrackingJob[];
+  generatedAt: string;
+}
+
+const ACTIVE_STATUSES = [
+  'driver_assigned',
+  'en_route',
+  'arrived',
+  'in_progress',
+] as const;
+
+// Freshness thresholds as per spec
+const LIVE_THRESHOLD_MS = 60_000;
+const STALE_THRESHOLD_MS = 600_000;
+
+function toNum(v: string | number | null | undefined): number | null {
+  if (v == null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function computeFreshness(locationAt: Date | null | undefined): LocationFreshness {
+  if (locationAt == null) return 'offline';
+  const ageMs = Date.now() - locationAt.getTime();
+  if (ageMs <= LIVE_THRESHOLD_MS) return 'live';
+  if (ageMs <= STALE_THRESHOLD_MS) return 'stale';
+  return 'offline';
+}
+
+function buildTyreSummary(qty: number | null, sizeDisplay: string | null | undefined): string | null {
+  const size = sizeDisplay ?? null;
+  if (!qty && !size) return null;
+  if (!size) return qty != null ? `${qty}x` : null;
+  return qty != null ? `${qty}x ${size}` : size;
+}
+
+function buildVehicleSummary(
+  make: string | null | undefined,
+  model: string | null | undefined,
+  reg: string | null | undefined,
+): string | null {
+  const nameParts = [make, model].filter((p): p is string => Boolean(p));
+  const name = nameParts.join(' ');
+  if (!name && !reg) return null;
+  if (!name) return reg ?? null;
+  return reg ? `${name} (${reg})` : name;
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    await requireAdminMobile(request);
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // All drivers with user info (includes offline drivers for full dispatch picture)
+  const driverRows = await db
+    .select({
+      id: drivers.id,
+      name: users.name,
+      phone: users.phone,
+      isOnline: drivers.isOnline,
+      currentLat: drivers.currentLat,
+      currentLng: drivers.currentLng,
+      locationAt: drivers.locationAt,
+    })
+    .from(drivers)
+    .innerJoin(users, eq(drivers.userId, users.id));
+
+  // Map which drivers have active bookings so we can mark them 'busy'
+  const activeBookingRows = driverRows.length
+    ? await db
+        .select({
+          driverId: bookings.driverId,
+          refNumber: bookings.refNumber,
+        })
+        .from(bookings)
+        .where(inArray(bookings.status, [...ACTIVE_STATUSES]))
+    : [];
+
+  const activeRefByDriver = new Map<string, string>();
+  for (const row of activeBookingRows) {
+    if (row.driverId) activeRefByDriver.set(row.driverId, row.refNumber);
+  }
+
+  // Relevant jobs: unassigned paid + actively running jobs
+  const jobRows = await db
+    .select({
+      id: bookings.id,
+      refNumber: bookings.refNumber,
+      status: bookings.status,
+      driverId: bookings.driverId,
+      customerName: bookings.customerName,
+      customerPhone: bookings.customerPhone,
+      addressLine: bookings.addressLine,
+      lat: bookings.lat,
+      lng: bookings.lng,
+      quantity: bookings.quantity,
+      tyreSizeDisplay: bookings.tyreSizeDisplay,
+      vehicleMake: bookings.vehicleMake,
+      vehicleModel: bookings.vehicleModel,
+      vehicleReg: bookings.vehicleReg,
+      totalAmount: bookings.totalAmount,
+      subtotal: bookings.subtotal,
+      vatAmount: bookings.vatAmount,
+      paymentType: bookings.paymentType,
+      depositAmountPence: bookings.depositAmountPence,
+      remainingBalancePence: bookings.remainingBalancePence,
+      depositPaidAt: bookings.depositPaidAt,
+      stripePiId: bookings.stripePiId,
+      createdAt: bookings.createdAt,
+      scheduledAt: bookings.scheduledAt,
+    })
+    .from(bookings)
+    .where(
+      or(
+        and(eq(bookings.status, 'paid'), isNull(bookings.driverId)),
+        inArray(bookings.status, [...ACTIVE_STATUSES]),
+      ),
+    )
+    .orderBy(desc(bookings.createdAt));
+
+  const bookingIds = jobRows.map((r) => r.id);
+  const paymentEvidenceMap = bookingIds.length
+    ? await getBookingPaymentEvidenceMap(bookingIds)
+    : new Map<string, { paymentStatus: string | null; totalPaidPence: number }>();
+
+  const trackingDrivers: TrackingDriver[] = driverRows.map((d) => {
+    const activeJobRef = activeRefByDriver.get(d.id) ?? null;
+    const lat = toNum(d.currentLat);
+    const lng = toNum(d.currentLng);
+    const freshness = computeFreshness(d.locationAt ?? null);
+
+    let driverStatus: DriverStatus;
+    if (activeJobRef != null) {
+      driverStatus = 'busy';
+    } else if (d.isOnline) {
+      driverStatus = 'available';
+    } else {
+      driverStatus = 'offline';
+    }
+
+    return {
+      id: d.id,
+      name: d.name,
+      phone: d.phone ?? null,
+      status: driverStatus,
+      activeJobRef,
+      lat,
+      lng,
+      heading: null,
+      lastSeenAt: d.locationAt ? d.locationAt.toISOString() : null,
+      locationFreshness: freshness,
+    };
+  });
+
+  const trackingJobs: TrackingJob[] = jobRows.map((row) => {
+    const lat = toNum(row.lat);
+    const lng = toNum(row.lng);
+    const assignmentStatus: 'assigned' | 'unassigned' = row.driverId ? 'assigned' : 'unassigned';
+
+    const paymentEvidence = paymentEvidenceMap.get(row.id);
+    let paymentSummary: PaymentSummary | null = null;
+    try {
+      paymentSummary = computeDriverPaymentSummary({
+        paymentType: row.paymentType,
+        totalAmount: row.totalAmount,
+        subtotal: row.subtotal,
+        vatAmount: row.vatAmount,
+        depositAmountPence: row.depositAmountPence ?? null,
+        remainingBalancePence: row.remainingBalancePence ?? null,
+        depositPaidAt: row.depositPaidAt ?? null,
+        stripePiId: row.stripePiId ?? null,
+        paymentStatus: paymentEvidence?.paymentStatus ?? null,
+        totalPaidPence: paymentEvidence?.totalPaidPence ?? 0,
+        bookingStatus: row.status,
+      });
+    } catch {
+      paymentSummary = null;
+    }
+
+    return {
+      id: row.id,
+      ref: row.refNumber,
+      status: row.status,
+      assignmentStatus,
+      assignedDriverId: row.driverId ?? null,
+      customerName: row.customerName,
+      customerPhone: row.customerPhone,
+      address: row.addressLine,
+      lat,
+      lng,
+      tyreSummary: buildTyreSummary(row.quantity, row.tyreSizeDisplay),
+      vehicleSummary: buildVehicleSummary(row.vehicleMake, row.vehicleModel, row.vehicleReg),
+      paymentSummary,
+      createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
+      scheduledFor: row.scheduledAt ? row.scheduledAt.toISOString() : null,
+    };
+  });
+
+  const response: TrackingResponse = {
+    drivers: trackingDrivers,
+    jobs: trackingJobs,
+    generatedAt: new Date().toISOString(),
+  };
+
+  return NextResponse.json(response);
+}
