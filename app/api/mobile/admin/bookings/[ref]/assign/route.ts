@@ -4,11 +4,15 @@ import { db, bookings, drivers, bookingStatusHistory, tyreProducts, bookingTyres
 import { getMobileAdminUser, unauthorizedResponse } from '@/app/api/mobile/admin/_lib';
 import { executeTransition, type BookingStatus } from '@/lib/state-machine';
 import { notifyDriverNewJob, notifyDriverReassignment } from '@/lib/notifications/driver-push';
-import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
-import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
+import { getBookingPaymentSummary } from '@/lib/payments/payment-summary';
 import { getOutboundUrl } from '@/lib/config/site';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { driverAssigned, jobAssigned } from '@/lib/email/templates';
+import {
+  canAssignDriverFromStatus,
+  getStatusAfterDriverUnassignment,
+  isActiveAssignmentStatus,
+} from '@/lib/bookings/assignment-status';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -42,9 +46,14 @@ export async function PATCH(request: Request, { params }: Props) {
   }
 
   const currentStatus = booking.status as BookingStatus;
-  const now = new Date();
-  const paymentEvidence = await getBookingPaymentEvidence(booking.id);
+  if (!isActiveAssignmentStatus(currentStatus) && !canAssignDriverFromStatus(currentStatus)) {
+    return NextResponse.json(
+      { error: `Cannot assign driver to booking in status: ${currentStatus}` },
+      { status: 400 },
+    );
+  }
 
+  const now = new Date();
   await db
     .update(bookings)
     .set({
@@ -56,23 +65,7 @@ export async function PATCH(request: Request, { params }: Props) {
     })
     .where(eq(bookings.id, booking.id));
 
-  // Build the payment summary so the driver app can render "Collect £X"
-  // inline from the FCM data payload without a follow-up fetch.
-  const driverPayment = computeDriverPaymentSummary({
-    paymentType: booking.paymentType,
-    totalAmount: booking.totalAmount?.toString() ?? null,
-    subtotal: booking.subtotal?.toString() ?? null,
-    vatAmount: booking.vatAmount?.toString() ?? null,
-    depositAmountPence: booking.depositAmountPence,
-    remainingBalancePence: booking.remainingBalancePence,
-    depositPaidAt: booking.depositPaidAt,
-    stripePiId: booking.stripePiId,
-    paymentStatus: paymentEvidence.paymentStatus,
-    totalPaidPence: paymentEvidence.totalPaidPence,
-    bookingStatus: currentStatus,
-  });
-
-  if (currentStatus === 'paid') {
+  if (!isActiveAssignmentStatus(currentStatus)) {
     const result = await executeTransition(
       booking.id,
       'driver_assigned',
@@ -84,6 +77,21 @@ export async function PATCH(request: Request, { params }: Props) {
       return NextResponse.json({ error: result.error || 'Unable to assign driver' }, { status: 400 });
     }
 
+    const newJobPayment = await getBookingPaymentSummary({
+      id: booking.id,
+      refNumber: booking.refNumber,
+      status: 'driver_assigned',
+      paymentType: booking.paymentType,
+      totalAmount: booking.totalAmount?.toString() ?? null,
+      subtotal: booking.subtotal?.toString() ?? null,
+      vatAmount: booking.vatAmount?.toString() ?? null,
+      depositAmountPence: booking.depositAmountPence,
+      remainingBalancePence: booking.remainingBalancePence,
+      depositPaidAt: booking.depositPaidAt,
+      stripePiId: booking.stripePiId,
+      stripeDepositPiId: booking.stripeDepositPiId,
+    });
+
     // Wake the driver app with a full-screen job alert (FCM). Retry once on a
     // transient failure; never re-send on success to avoid duplicate alerts.
     try {
@@ -91,7 +99,7 @@ export async function PATCH(request: Request, { params }: Props) {
         driverId,
         booking.refNumber,
         booking.addressLine,
-        driverPayment,
+        newJobPayment,
         booking.id,
       );
       if (!firstResult) {
@@ -103,7 +111,7 @@ export async function PATCH(request: Request, { params }: Props) {
           driverId,
           booking.refNumber,
           booking.addressLine,
-          driverPayment,
+          newJobPayment,
           booking.id,
         );
         console.warn(
@@ -184,6 +192,23 @@ export async function PATCH(request: Request, { params }: Props) {
       }
     }
   } else {
+    // Build the payment summary so the driver app can render "Collect £X"
+    // inline from the FCM data payload without a follow-up fetch.
+    const driverPayment = await getBookingPaymentSummary({
+      id: booking.id,
+      refNumber: booking.refNumber,
+      status: currentStatus,
+      paymentType: booking.paymentType,
+      totalAmount: booking.totalAmount?.toString() ?? null,
+      subtotal: booking.subtotal?.toString() ?? null,
+      vatAmount: booking.vatAmount?.toString() ?? null,
+      depositAmountPence: booking.depositAmountPence,
+      remainingBalancePence: booking.remainingBalancePence,
+      depositPaidAt: booking.depositPaidAt,
+      stripePiId: booking.stripePiId,
+      stripeDepositPiId: booking.stripeDepositPiId,
+    });
+
     await db.insert(bookingStatusHistory).values({
       bookingId: booking.id,
       fromStatus: booking.status,
@@ -247,6 +272,22 @@ export async function DELETE(request: Request, { params }: Props) {
     );
   }
 
+  const payment = await getBookingPaymentSummary({
+    id: booking.id,
+    refNumber: booking.refNumber,
+    status: booking.status,
+    paymentType: booking.paymentType,
+    totalAmount: booking.totalAmount?.toString() ?? null,
+    subtotal: booking.subtotal?.toString() ?? null,
+    vatAmount: booking.vatAmount?.toString() ?? null,
+    depositAmountPence: booking.depositAmountPence,
+    remainingBalancePence: booking.remainingBalancePence,
+    depositPaidAt: booking.depositPaidAt,
+    stripePiId: booking.stripePiId,
+    stripeDepositPiId: booking.stripeDepositPiId,
+  });
+  const unassignedStatus = getStatusAfterDriverUnassignment(payment);
+
   await db
     .update(bookings)
     .set({
@@ -254,7 +295,7 @@ export async function DELETE(request: Request, { params }: Props) {
       assignedAt: null,
       acceptedAt: null,
       acceptanceDeadline: null,
-      status: 'paid',
+      status: unassignedStatus,
       updatedAt: new Date(),
     })
     .where(eq(bookings.id, booking.id));
@@ -262,7 +303,7 @@ export async function DELETE(request: Request, { params }: Props) {
   await db.insert(bookingStatusHistory).values({
     bookingId: booking.id,
     fromStatus: booking.status,
-    toStatus: 'paid',
+    toStatus: unassignedStatus,
     actorUserId: user.id,
     actorRole: 'admin',
     note: 'Driver removed by mobile admin app',

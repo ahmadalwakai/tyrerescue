@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   AppState,
   Appearance,
+  Easing,
   Linking,
   Platform,
   Pressable,
@@ -19,7 +21,7 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontSize, radius, spacing } from '@/constants/theme';
-import { driverApi, JobDetail, ApiError, PaymentStatus } from '@/api/client';
+import { driverApi, JobDetail, ApiError, PaymentState } from '@/api/client';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { mediumHaptic, heavyHaptic, lightHaptic, successHaptic, maneuverHaptic } from '@/services/haptics';
 import { playSound, type SoundEvent } from '@/services/sound';
@@ -59,6 +61,11 @@ import {
   speak as speakGuidance,
   stopVoice,
 } from '@/services/voice';
+import {
+  ACTIVE_BOOKING_REF_KEY,
+  startBackgroundLocation,
+} from '@/services/background-location';
+import * as secureStorage from '@/services/secure-storage';
 import {
   buildWazeNavigationUrl,
   isValidNavigationCoordinate,
@@ -193,15 +200,13 @@ const ROUTE_EVENT_VOICE: Record<RouteEventType, string | null> = {
   route_restored: null,
 };
 
-// Bright Streets style proves the canvas renders; if it ever fails we fall back
-// once to streets-v11. Route layers are inserted BELOW the style's first symbol
-// (label) layer so road names / side roads stay readable on top of the line.
+// Use road-focused base styles that do not request Mapbox's incidents tileset.
+// The app draws its own selected route and congestion overlays, so this keeps
+// the cockpit console quiet without losing route traffic colouring.
 const PRIMARY_STYLE = 'mapbox://styles/mapbox/streets-v12';
 const FALLBACK_STYLE = 'mapbox://styles/mapbox/streets-v11';
-// Mapbox navigation styles: brighter/road-focused for driving, with a true
-// dark variant for night so labels stay readable and the screen is safer.
-const NAV_DAY_STYLE = 'mapbox://styles/mapbox/navigation-day-v1';
-const NAV_NIGHT_STYLE = 'mapbox://styles/mapbox/navigation-night-v1';
+const NAV_DAY_STYLE = PRIMARY_STYLE;
+const NAV_NIGHT_STYLE = 'mapbox://styles/mapbox/dark-v11';
 
 /**
  * Camera behaviour while navigating.
@@ -325,7 +330,47 @@ function parseLatLng(value: string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-// ── Map WebView HTML (mapbox-gl-js inside react-native-webview) ─────────────
+type RouteMapMessage = {
+  type?: string;
+  reason?: string;
+  message?: string;
+  status?: number;
+  index?: number;
+};
+
+const WEB_MAP_FRAME_STYLE = {
+  position: 'absolute',
+  inset: 0,
+  width: '100%',
+  height: '100%',
+  border: 0,
+  display: 'block',
+  background: '#0F1115',
+} as const;
+
+function parseRouteMapMessageData(
+  data: unknown,
+  allowPlainJson: boolean,
+): RouteMapMessage | null {
+  let raw = data;
+  if (raw && typeof raw === 'object') {
+    const envelope = raw as { __driverRouteMap?: unknown; payload?: unknown };
+    if (envelope.__driverRouteMap === true) raw = envelope.payload;
+    else if (!allowPlainJson) return null;
+  }
+  if (typeof raw === 'string') {
+    if (!allowPlainJson) return null;
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  if (!raw || typeof raw !== 'object') return null;
+  return raw as RouteMapMessage;
+}
+
+// ── Map HTML (mapbox-gl-js inside native WebView or web iframe) ─────────────
 function buildHtml(token: string): string {
   return `<!doctype html><html><head>
 <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
@@ -333,13 +378,50 @@ function buildHtml(token: string): string {
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
 <style>
   html,body,#m{margin:0;padding:0;width:100%;height:100%;background:#0F1115}
-  .dwrap{width:46px;height:46px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6))}
+  .dwrap,.cwrap{position:relative;pointer-events:none}
+  .dwrap{width:64px;height:64px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6))}
+  .cwrap{width:52px;height:52px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.45))}
+  .driver-icon,.cpin{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2}
   .cpin{width:18px;height:18px;border-radius:50%;background:#22c55e;border:3px solid #09090B;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .pulse{position:absolute;left:50%;top:50%;width:34px;height:34px;border-radius:50%;transform:translate(-50%,-50%) scale(.25);opacity:0;animation:radarPulse 2400ms ease-out infinite;z-index:1}
+  .pulse.p2{animation-delay:800ms}
+  .dwrap .pulse{border:2px solid rgba(249,115,22,.85);box-shadow:0 0 14px rgba(249,115,22,.35)}
+  .cwrap .pulse{border:2px solid rgba(34,197,94,.85);box-shadow:0 0 14px rgba(34,197,94,.32)}
+  @keyframes radarPulse{
+    0%{transform:translate(-50%,-50%) scale(.25);opacity:.72}
+    70%{opacity:.16}
+    100%{transform:translate(-50%,-50%) scale(1.9);opacity:0}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .pulse{animation:none;transform:translate(-50%,-50%) scale(1.2);opacity:.18}
+    .pulse.p2{display:none}
+  }
 </style>
 </head><body>
 <div id="m"></div>
 <script>
-function post(payload){ try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(payload)); } catch(_){} }
+function post(payload){
+  try {
+    var msg = JSON.stringify(payload);
+    if(window.ReactNativeWebView && window.ReactNativeWebView.postMessage){
+      window.ReactNativeWebView.postMessage(msg);
+      return;
+    }
+    if(window.parent && window.parent !== window){
+      window.parent.postMessage({__driverRouteMap:true,payload:payload}, '*');
+    }
+  } catch(_){}
+}
+window.addEventListener('message', function(event){
+  try {
+    var data = event && event.data;
+    if(!data || data.__driverRouteMapCommand !== 'eval' || typeof data.script !== 'string') return;
+    if(event && event.source && window.parent && event.source !== window.parent) return;
+    (0, eval)(data.script);
+  } catch(err){
+    post({type:'js-error', message:'command eval: '+String(err && (err.message||err))});
+  }
+});
 // Manual WebGL capability probe — mapbox-gl-js v3 removed mapboxgl.supported(),
 // so we test for a real WebGL2/WebGL/experimental context on a throwaway canvas.
 function hasWebGL(){
@@ -362,7 +444,7 @@ function isFatalErr(msg, status){
 window.addEventListener('error', function(e){ post({type:'js-error', message:String(e && (e.message||e))}); });
 window.addEventListener('unhandledrejection', function(e){ post({type:'js-error', message:'unhandledrejection: '+String(e && e.reason)}); });
 
-var loaded = false, styleFellBack = false, layersReady = false;
+var loaded = false, styleFellBack = false, layersReady = false, altClickBound = false;
 var lastDriver = null, lastCustomer = null, lastHeading = null, lastRoutes = null, lastSelIdx = 0, lastFallback = false;
 var lastRouteRev = -1;
 var driverMarker = null, customerMarker = null;
@@ -387,7 +469,7 @@ else if(!hasWebGL()){
 mapboxgl.accessToken = ${JSON.stringify(token)};
 var map;
 try {
-  map = new mapboxgl.Map({container:'m',style:${JSON.stringify(PRIMARY_STYLE)},center:[-4.2518,55.8642],zoom:11,pitch:0,bearing:0,attributionControl:false,dragRotate:true,pitchWithRotate:true});
+  map = new mapboxgl.Map({container:'m',style:${JSON.stringify(PRIMARY_STYLE)},center:[-4.2518,55.8642],zoom:11,pitch:0,bearing:0,attributionControl:false,dragRotate:true,pitchWithRotate:true,maxPitch:72,antialias:true});
 } catch(err){
   post({type:'map-fatal', reason:'construct-failed', message:String(err && (err.message||err))});
 }
@@ -400,10 +482,10 @@ function driverEl(){
   var w = document.createElement('div'); w.className='dwrap';
   // Big, high-contrast navigation arrow: white halo ring + dark disc + bright
   // orange arrow so the driver's own position is instantly readable on any map.
-  w.innerHTML='<svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="20" fill="#FFFFFF" opacity="0.95"/><circle cx="23" cy="23" r="17" fill="#0B0F1A" stroke="#F97316" stroke-width="3"/><path d="M23 8 L33 35 L23 28 L13 35 Z" fill="#F97316"/></svg>';
+  w.innerHTML='<span class="pulse p1"></span><span class="pulse p2"></span><svg class="driver-icon" width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="20" fill="#FFFFFF" opacity="0.95"/><circle cx="23" cy="23" r="17" fill="#0B0F1A" stroke="#F97316" stroke-width="3"/><path d="M23 8 L33 35 L23 28 L13 35 Z" fill="#F97316"/></svg>';
   return w;
 }
-function customerEl(){ var el=document.createElement('div'); el.className='cpin'; return el; }
+function customerEl(){ var el=document.createElement('div'); el.className='cwrap'; el.innerHTML='<span class="pulse p1"></span><span class="pulse p2"></span><span class="cpin"></span>'; return el; }
 
 function emptyFC(){ return {type:'FeatureCollection',features:[]}; }
 function lineFeature(coords){ return {type:'Feature',properties:{},geometry:{type:'LineString',coordinates:coords}}; }
@@ -465,96 +547,189 @@ function getRouteBeforeLayerId(){
   return undefined;
 }
 function setVis(id,on){ try { if(map.getLayer(id)) map.setLayoutProperty(id,'visibility', on?'visible':'none'); } catch(_){} }
+function addSourceIfMissing(id, source){ if(!map.getSource(id)) map.addSource(id, source); }
+function addLayerIfMissing(layer){ if(!map.getLayer(layer.id)) map.addLayer(layer); }
+function hasRouteLayers(){
+  try { return !!(map && map.getSource('rsel') && map.getLayer('r-case') && map.getLayer('r-main') && map.getLayer('r-arrows')); }
+  catch(_){ return false; }
+}
+function isMapStyleReady(){
+  try {
+    if(!map) return false;
+    if(map.isStyleLoaded && !map.isStyleLoaded()) return false;
+    return !!map.getStyle();
+  } catch(_){
+    return false;
+  }
+}
+function promoteRouteLayers(){
+  var ids = ['acc-fill','acc-line','alt-lines','r-shadow','r-case','r-main','r-traffic-low','r-traffic-slow','r-approach','r-arrows'];
+  for(var i=0;i<ids.length;i++){
+    try { if(map.getLayer(ids[i])) map.moveLayer(ids[i]); } catch(_){}
+  }
+}
+function findBuildingSourceId(){
+  try {
+    var sources = (map.getStyle() && map.getStyle().sources) || {};
+    if(sources.composite) return 'composite';
+    for(var id in sources){
+      var src = sources[id] || {};
+      if(src.type === 'vector' && String(src.url || '').indexOf('mapbox-streets') !== -1) return id;
+    }
+  } catch(_){}
+  return null;
+}
+function ensureDepthLayers(){
+  try {
+    if(!map.getSource('mapbox-dem')){
+      map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512,maxzoom:14});
+    }
+    if(map.setTerrain) map.setTerrain({source:'mapbox-dem',exaggeration:1.12});
+  } catch(e) {
+    if(NAV_DEV) post({type:'map-warn', message:'terrain setup failed: '+String(e && (e.message||e))});
+  }
+  try {
+    if(map.setFog){
+      map.setFog({
+        color:'rgba(255,255,255,0.9)',
+        'high-color':'rgba(191,219,254,0.75)',
+        'horizon-blend':0.18,
+        'space-color':'#0B1020',
+        'star-intensity':0.08
+      });
+    }
+  } catch(_){}
+  try {
+    var buildingSource = findBuildingSourceId();
+    if(!buildingSource || map.getLayer('driver-3d-buildings')) return;
+    map.addLayer({
+      id:'driver-3d-buildings',
+      source:buildingSource,
+      'source-layer':'building',
+      type:'fill-extrusion',
+      minzoom:14.4,
+      filter:['==',['get','extrude'],'true'],
+      paint:{
+        'fill-extrusion-color':'#B8C2D0',
+        'fill-extrusion-opacity':['interpolate',['linear'],['zoom'],14.4,0,15.2,0.28,17,0.46],
+        'fill-extrusion-height':['interpolate',['linear'],['zoom'],14.4,0,15.2,['to-number',['get','height'],12]],
+        'fill-extrusion-base':['to-number',['get','min_height'],0],
+        'fill-extrusion-vertical-gradient':true
+      }
+    });
+  } catch(e) {
+    if(NAV_DEV) post({type:'map-warn', message:'3d buildings setup failed: '+String(e && (e.message||e))});
+  }
+}
 
-// Insert all route layers BELOW the first text-label symbol layer so road
-// names stay readable on top of the route, while the route sits above roads.
+// Route overlays are promoted above the base style so the selected route stays
+// readable. Traffic colouring is limited to the selected route, not every road.
 function ensureLayers(){
-  if(layersReady || !map || !map.isStyleLoaded()) return;
-  var before = getRouteBeforeLayerId();
-  map.addSource('acc',{type:'geojson',data:emptyFC()});
-  map.addLayer({id:'acc-fill',type:'fill',source:'acc',paint:{'fill-color':'#60A5FA','fill-opacity':0.10}}, before);
-  map.addLayer({id:'acc-line',type:'line',source:'acc',paint:{'line-color':'#60A5FA','line-opacity':0.5,'line-width':1}}, before);
-  map.addSource('alts',{type:'geojson',data:emptyFC()});
-  // Alternatives: thin, muted blue-grey so the selected blue route dominates.
-  // Hidden by DEFAULT so they never compete with the main route on a moving
-  // map — only shown when the driver expands the cockpit details.
-  map.addLayer({id:'alt-lines',type:'line',source:'alts',layout:{'line-cap':'round','line-join':'round','visibility':'none'},paint:{'line-color':'#7C8DB0','line-width':3,'line-opacity':0.45}}, before);
-  map.addSource('rsel',{type:'geojson',data:emptyFC()});
-  // WHITE casing (outline only) under a BRIGHT navigation-blue body. The white
-  // casing is WIDER than the body and separates the route from road geometry so
-  // the blue can never blend into a normal road. Widths are zoom-responsive
-  // (low/normal/high driving zoom) so the route stays unmistakable at any scale.
-  map.addLayer({id:'r-case',type:'line',source:'rsel',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'rgba(255,255,255,0.98)','line-width':['interpolate',['linear'],['zoom'],10,14,15,18,18,22]}}, before);
-  map.addLayer({id:'r-main',type:'line',source:'rsel',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#0A84FF','line-width':['interpolate',['linear'],['zoom'],10,8,15,12,18,16],'line-opacity':1}}, before);
-  map.addSource('rcong',{type:'geojson',data:emptyFC()});
-  // Congestion overlay sits ON TOP of the blue base as THIN orange/red segments,
-  // and only carries the genuinely-congested (moderate+) stretches. It is always
-  // narrower than the blue body so the base route remains visible underneath.
-  map.addLayer({id:'r-cong',type:'line',source:'rcong',layout:{'line-cap':'round','line-join':'round'},paint:{'line-width':['interpolate',['linear'],['zoom'],10,3,15,4.5,18,5.5],'line-opacity':0.9,'line-color':['match',['get','level'],'moderate','#F59E0B','heavy','#EF4444','severe','#B91C1C','#EF4444']}}, before);
-  map.addSource('rapproach',{type:'geojson',data:emptyFC()});
-  map.addLayer({id:'r-approach',type:'line',source:'rapproach',layout:{'line-cap':'round'},paint:{'line-color':'#0A84FF','line-width':3,'line-dasharray':[1.5,1.5],'line-opacity':0.85}}, before);
-  map.on('click','alt-lines',function(e){ if(e.features && e.features[0] && e.features[0].properties){ post({type:'select-alt', index:e.features[0].properties.altIndex}); } });
-  layersReady = true;
+  if(layersReady && hasRouteLayers()){ promoteRouteLayers(); return true; }
+  if(!isMapStyleReady()) return false;
+  try {
+    ensureDepthLayers();
+    addSourceIfMissing('acc',{type:'geojson',data:emptyFC()});
+    addLayerIfMissing({id:'acc-fill',type:'fill',source:'acc',paint:{'fill-color':'#60A5FA','fill-opacity':0.10}});
+    addLayerIfMissing({id:'acc-line',type:'line',source:'acc',paint:{'line-color':'#60A5FA','line-opacity':0.5,'line-width':1}});
+    addSourceIfMissing('alts',{type:'geojson',data:emptyFC()});
+    // Alternatives: thin, muted blue-grey so the selected blue route dominates.
+    // Hidden by DEFAULT so they never compete with the main route on a moving
+    // map — only shown when the driver expands the cockpit details.
+    addLayerIfMissing({id:'alt-lines',type:'line',source:'alts',layout:{'line-cap':'round','line-join':'round','visibility':'none'},paint:{'line-color':'#7C8DB0','line-width':3,'line-opacity':0.45}});
+    addSourceIfMissing('rsel',{type:'geojson',data:emptyFC()});
+    // Sat-nav route corridor: soft road shadow, crisp white casing, saturated
+    // blue body, then traffic accents and chevrons above it.
+    addLayerIfMissing({id:'r-shadow',type:'line',source:'rsel',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'rgba(3,7,18,0.55)','line-width':['interpolate',['linear'],['zoom'],10,20,15,29,18,36],'line-blur':1.4,'line-opacity':0.45,'line-translate':[0,2]}});
+    addLayerIfMissing({id:'r-case',type:'line',source:'rsel',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'rgba(255,255,255,0.98)','line-width':['interpolate',['linear'],['zoom'],10,17,15,24,18,31]}});
+    addLayerIfMissing({id:'r-main',type:'line',source:'rsel',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#2F6BFF','line-width':['interpolate',['linear'],['zoom'],10,10,15,16,18,22],'line-opacity':1}});
+    addSourceIfMissing('rcong',{type:'geojson',data:emptyFC()});
+    // Route-only traffic accents. Clear traffic is a slim green center stripe;
+    // moderate/heavy/severe widen and intensify without painting every road.
+    addLayerIfMissing({id:'r-traffic-low',type:'line',source:'rcong',filter:['==',['get','level'],'low'],layout:{'line-cap':'round','line-join':'round'},paint:{'line-width':['interpolate',['linear'],['zoom'],10,2,15,4,18,6],'line-opacity':0.58,'line-color':'#22C55E'}});
+    addLayerIfMissing({id:'r-traffic-slow',type:'line',source:'rcong',filter:['any',['==',['get','level'],'moderate'],['==',['get','level'],'heavy'],['==',['get','level'],'severe']],layout:{'line-cap':'round','line-join':'round'},paint:{'line-width':['interpolate',['linear'],['zoom'],10,5,15,8,18,12],'line-opacity':0.96,'line-color':['match',['get','level'],'moderate','#F59E0B','heavy','#EF4444','severe','#B91C1C','#EF4444']}});
+    addSourceIfMissing('rapproach',{type:'geojson',data:emptyFC()});
+    addLayerIfMissing({id:'r-approach',type:'line',source:'rapproach',layout:{'line-cap':'round'},paint:{'line-color':'#2F6BFF','line-width':3,'line-dasharray':[1.5,1.5],'line-opacity':0.85}});
+    addLayerIfMissing({id:'r-arrows',type:'symbol',source:'rsel',minzoom:13,layout:{'symbol-placement':'line','symbol-spacing':['interpolate',['linear'],['zoom'],13,150,16,110,18,80],'text-field':'>','text-size':['interpolate',['linear'],['zoom'],13,14,16,18,18,22],'text-keep-upright':false,'text-rotation-alignment':'map','text-pitch-alignment':'map','text-ignore-placement':true,'text-allow-overlap':true},paint:{'text-color':'rgba(255,255,255,0.92)','text-halo-color':'rgba(47,107,255,0.9)','text-halo-width':1.4,'text-opacity':['interpolate',['linear'],['zoom'],12.8,0,13.4,0.85]}});
+    if(!altClickBound){
+      map.on('click','alt-lines',function(e){ if(e.features && e.features[0] && e.features[0].properties){ post({type:'select-alt', index:e.features[0].properties.altIndex}); } });
+      altClickBound = true;
+    }
+    layersReady = hasRouteLayers();
+    if(layersReady) promoteRouteLayers();
+    return layersReady;
+  } catch(e) {
+    layersReady = false;
+    if(NAV_DEV) post({type:'map-warn', message:'route layer setup failed: '+String(e && (e.message||e))});
+    return false;
+  }
 }
 
 function setRoutes(routes, selIdx, fallback, customer){
-  ensureLayers();
-  if(!layersReady) return;
+  if(!ensureLayers()) return false;
   var altF=[];
   for(var i=0;i<routes.length;i++){
     if(i===selIdx || !routes[i] || !routes[i].coords) continue;
     altF.push({type:'Feature',properties:{altIndex:i},geometry:{type:'LineString',coordinates:routes[i].coords}});
   }
-  map.getSource('alts').setData({type:'FeatureCollection',features:altF});
   var sel = routes[selIdx] || routes[0];
   if(!sel || !sel.coords || sel.coords.length<2){
     // Defensive: do NOT wipe a previously-drawn route on a transient/empty
     // selection. Keeping the last good blue line means a follow-mode toggle can
     // never blank the route.
-    return;
+    if(NAV_DEV) post({type:'map-warn', message:'route draw skipped: empty selected route'});
+    return false;
   }
-  map.getSource('rsel').setData({type:'FeatureCollection',features:[lineFeature(sel.coords)]});
-  // Bright blue base is ALWAYS visible. Dashed + lighter blue only for the
-  // approximate straight-line fallback so the driver can tell it apart.
-  if(fallback){
-    map.setPaintProperty('r-main','line-dasharray',[2,2]);
-    map.setPaintProperty('r-main','line-color','#60A5FA');
-  } else {
-    try { map.setPaintProperty('r-main','line-dasharray', null); } catch(_){}
-    map.setPaintProperty('r-main','line-color','#0A84FF');
-  }
-  // Congestion overlay: only the genuinely-congested (moderate+) segments are
-  // drawn in orange/red ON TOP of the blue base. low/unknown stay blue.
-  var cong = sel.congestion;
-  var feats=[];
-  if(cong && cong.length>0){
-    var n=Math.min(cong.length, sel.coords.length-1);
-    for(var j=0;j<n;j++){
-      var lvl = cong[j];
-      if(lvl==='moderate'||lvl==='heavy'||lvl==='severe'){
-        feats.push({type:'Feature',properties:{level:lvl},geometry:{type:'LineString',coordinates:[sel.coords[j],sel.coords[j+1]]}});
+  try {
+    map.getSource('alts').setData({type:'FeatureCollection',features:altF});
+    map.getSource('rsel').setData({type:'FeatureCollection',features:[lineFeature(sel.coords)]});
+    // Bright blue base is ALWAYS visible. Dashed + lighter blue only for the
+    // approximate straight-line fallback so the driver can tell it apart.
+    if(fallback){
+      map.setPaintProperty('r-main','line-dasharray',[2,2]);
+      map.setPaintProperty('r-main','line-color','#60A5FA');
+    } else {
+      try { map.setPaintProperty('r-main','line-dasharray', null); } catch(_){}
+      map.setPaintProperty('r-main','line-color','#2F6BFF');
+    }
+    // Traffic overlay: real Mapbox congestion annotations on the selected route.
+    // Unknown stays transparent; low/moderate/heavy/severe become green/amber/red.
+    var cong = sel.congestion;
+    var feats=[];
+    if(cong && cong.length>0){
+      var n=Math.min(cong.length, sel.coords.length-1);
+      for(var j=0;j<n;j++){
+        var lvl = cong[j];
+        if(lvl==='low'||lvl==='moderate'||lvl==='heavy'||lvl==='severe'){
+          feats.push({type:'Feature',properties:{level:lvl},geometry:{type:'LineString',coordinates:[sel.coords[j],sel.coords[j+1]]}});
+        }
       }
     }
+    map.getSource('rcong').setData({type:'FeatureCollection',features:feats});
+    if(customer && sel.coords.length>0){
+      var end = sel.coords[sel.coords.length-1];
+      if(approxMeters(end, customer) > 12){ map.getSource('rapproach').setData({type:'FeatureCollection',features:[lineFeature([end, customer])]}); }
+      else { map.getSource('rapproach').setData(emptyFC()); }
+    } else { map.getSource('rapproach').setData(emptyFC()); }
+    promoteRouteLayers();
+    if(NAV_DEV) post({type:'route-drawn', coords:sel.coords.length, alternatives:routes.length, selectedIndex:selIdx});
+    return true;
+  } catch(e) {
+    layersReady = false;
+    if(NAV_DEV) post({type:'map-warn', message:'route draw failed: '+String(e && (e.message||e))});
+    return false;
   }
-  map.getSource('rcong').setData({type:'FeatureCollection',features:feats});
-  if(customer && sel.coords.length>0){
-    var end = sel.coords[sel.coords.length-1];
-    if(approxMeters(end, customer) > 12){ map.getSource('rapproach').setData({type:'FeatureCollection',features:[lineFeature([end, customer])]}); }
-    else { map.getSource('rapproach').setData(emptyFC()); }
-  } else { map.getSource('rapproach').setData(emptyFC()); }
 }
 function clearRoutes(){
-  if(!layersReady) return;
-  map.getSource('alts').setData(emptyFC());
-  map.getSource('rsel').setData(emptyFC());
-  map.getSource('rcong').setData(emptyFC());
-  map.getSource('rapproach').setData(emptyFC());
+  try { if(map.getSource('alts')) map.getSource('alts').setData(emptyFC()); } catch(_){}
+  try { if(map.getSource('rsel')) map.getSource('rsel').setData(emptyFC()); } catch(_){}
+  try { if(map.getSource('rcong')) map.getSource('rcong').setData(emptyFC()); } catch(_){}
+  try { if(map.getSource('rapproach')) map.getSource('rapproach').setData(emptyFC()); } catch(_){}
 }
 function fitToCoords(coords){
   try{
     var b = new mapboxgl.LngLatBounds(coords[0], coords[0]);
     for(var i=1;i<coords.length;i++){ b.extend(coords[i]); }
-    if(NAV_DEV) console.log('[map-zoom-debug]',JSON.stringify({reason:'fitBounds',coordsLen:coords.length,currentZoom:map.getZoom(),bottomPad:bottomPad}));
     programmatic = true;
     map.fitBounds(b,{padding:{top:150,right:55,bottom:Math.max(120, bottomPad),left:55}, maxZoom:16, bearing:0, pitch:0, duration:500});
   }catch(_){}
@@ -573,10 +748,9 @@ function applyCamera(s){
   var resetZoom = (s.epoch !== cameraEpoch);
   cameraEpoch = s.epoch;
   var opts = { center: s.driver, duration: 350 };
-  if(mode==='heading_up'){ opts.bearing = (s.heading==null ? map.getBearing() : s.heading); opts.pitch = 50; }
-  else { opts.bearing = 0; opts.pitch = 0; }
+  if(mode==='heading_up'){ opts.bearing = (s.heading==null ? map.getBearing() : s.heading); opts.pitch = 62; }
+  else { opts.bearing = 0; opts.pitch = mode==='north_up' ? 34 : 0; }
   if(resetZoom){ opts.zoom = NAVIGATION_ZOOM; }
-  if(NAV_DEV) console.log('[map-zoom-debug]',JSON.stringify({reason:'easeTo',mode:mode,resetZoom:resetZoom,zoom:resetZoom?NAVIGATION_ZOOM:map.getZoom(),bearing:opts.bearing||0}));
   programmatic = true;
   map.easeTo(opts);
 }
@@ -602,15 +776,18 @@ function applyState(s){
     // Only rebuild the (expensive) route/alt/congestion layers when the route
     // ACTUALLY changed — geometry or selected index — never on every GPS fix.
     // The marker + camera below still update on each push so the dot stays live.
-    if(s.routeRev !== lastRouteRev){
-      lastRouteRev = s.routeRev;
-      lastRoutes = s.routes; lastSelIdx = s.selectedIndex||0; lastFallback = !!s.fallback;
-      setRoutes(s.routes, lastSelIdx, lastFallback, s.customer || lastCustomer);
+    lastRoutes = s.routes; lastSelIdx = s.selectedIndex||0; lastFallback = !!s.fallback;
+    if(s.routeRev !== lastRouteRev || !hasRouteLayers()){
+      if(setRoutes(s.routes, lastSelIdx, lastFallback, s.customer || lastCustomer)){
+        lastRouteRev = s.routeRev;
+      }
     }
   } else if(Array.isArray(s.routes) && s.routes.length===0){
     // Explicit "no route" => clear. A missing/undefined routes key is treated
     // as "unchanged" so a partial state push can never remove the active route.
     lastRoutes = null; lastRouteRev = s.routeRev; clearRoutes();
+  } else if(lastRoutes && !hasRouteLayers()){
+    setRoutes(lastRoutes, lastSelIdx, lastFallback, s.customer || lastCustomer);
   }
   // Alternatives visibility is independent of the route rebuild: toggling the
   // cockpit must never redraw the route, only show/hide the muted alt lines.
@@ -638,7 +815,7 @@ window.__setMapTheme = function(theme){
   var url = (theme === 'night') ? ${JSON.stringify(NAV_NIGHT_STYLE)} : ${JSON.stringify(NAV_DAY_STYLE)};
   if(url === currentStyleUrl) return;
   currentStyleUrl = url;
-  try { map.setStyle(url); } catch(_){}
+  try { map.setStyle(url, {diff:false}); } catch(_){}
 };
 
 function scheduleEarlyResize(){
@@ -659,6 +836,17 @@ try {
 } catch(_){}
 
 function onUserInteract(){ post({type:'user-pan'}); }
+function restoreRouteLayers(){
+  if(!ensureLayers()) return false;
+  if(lastRoutes){ return setRoutes(lastRoutes, lastSelIdx, lastFallback, lastCustomer); }
+  return true;
+}
+function scheduleRouteRestore(){
+  restoreRouteLayers();
+  setTimeout(restoreRouteLayers, 100);
+  setTimeout(restoreRouteLayers, 350);
+  setTimeout(restoreRouteLayers, 900);
+}
 
 if(map){
   map.on('error', function(e){
@@ -667,7 +855,7 @@ if(map){
     if(!loaded && !styleFellBack && (String(em).toLowerCase().indexOf('style') !== -1)){
       styleFellBack = true;
       post({type:'map-warn', message:'style load failed, falling back: '+em});
-      try { map.setStyle(${JSON.stringify(FALLBACK_STYLE)}); return; } catch(_){}
+      try { map.setStyle(${JSON.stringify(FALLBACK_STYLE)}, {diff:false}); return; } catch(_){}
     }
     if(!loaded && isFatalErr(em, st)){ post({type:'map-fatal', reason:'load-error', message:em, status:st}); }
     else { post({type:'map-warn', message:em, status:st}); }
@@ -680,8 +868,10 @@ if(map){
   map.on('pitchstart', function(e){ if(e && e.originalEvent) onUserInteract(); });
   map.on('style.load', function(){
     layersReady = false;
-    ensureLayers();
-    if(lastRoutes){ setRoutes(lastRoutes, lastSelIdx, lastFallback, lastCustomer); }
+    scheduleRouteRestore();
+  });
+  map.on('idle', function(){
+    if(lastRoutes && !hasRouteLayers()) scheduleRouteRestore();
   });
   map.on('load', function(){
     loaded = true;
@@ -702,6 +892,36 @@ const STATUS_ACTIONS: Record<string, { next: string; key: string }> = {
   in_progress: { next: 'completed', key: 'completeJob' },
 };
 
+const STATUS_PROGRESS: Record<string, number> = {
+  driver_assigned: 1,
+  en_route: 2,
+  arrived: 3,
+  in_progress: 4,
+  completed: 5,
+};
+
+const STATUS_TIMESTAMP_FIELD: Partial<Record<string, keyof JobDetail>> = {
+  en_route: 'enRouteAt',
+  arrived: 'arrivedAt',
+  in_progress: 'inProgressAt',
+  completed: 'completedAt',
+};
+
+function hasReachedStatus(currentStatus: string | null | undefined, targetStatus: string): boolean {
+  const currentRank = currentStatus ? STATUS_PROGRESS[currentStatus] : undefined;
+  const targetRank = STATUS_PROGRESS[targetStatus];
+  return currentRank != null && targetRank != null && currentRank >= targetRank;
+}
+
+function applyLocalStatus(job: JobDetail, nextStatus: string): JobDetail {
+  const updated: JobDetail = { ...job, status: nextStatus };
+  const timestampField = STATUS_TIMESTAMP_FIELD[nextStatus];
+  if (timestampField && updated[timestampField] == null) {
+    (updated as unknown as Record<string, unknown>)[timestampField] = new Date().toISOString();
+  }
+  return updated;
+}
+
 export default function JobRouteScreen() {
   const { ref } = useLocalSearchParams<{ ref: string }>();
   const router = useRouter();
@@ -709,6 +929,12 @@ export default function JobRouteScreen() {
   const insets = useSafeAreaInsets();
   const token = useMemo(() => getMapboxToken(), []);
   const currentRouteJobRef = typeof ref === 'string' && ref.length > 0 ? ref : null;
+
+  useEffect(() => {
+    if (!currentRouteJobRef) return;
+    secureStorage.setItemAsync(ACTIVE_BOOKING_REF_KEY, currentRouteJobRef).catch(() => {});
+    startBackgroundLocation().catch(() => false);
+  }, [currentRouteJobRef]);
 
   const [job, setJob] = useState<JobDetail | null>(null);
   const [driverLoc, setDriverLoc] = useState<Coordinates | null>(null);
@@ -783,6 +1009,8 @@ export default function JobRouteScreen() {
 
   // ── Refs (stable across renders / used inside async callbacks) ──
   const webRef = useRef<WebView>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const jobNumberShimmer = useRef(new Animated.Value(0)).current;
   const routeAbortRef = useRef<AbortController | null>(null);
   const destinationRef = useRef<Coordinates | null>(null);
   const driverLocRef = useRef<Coordinates | null>(null);
@@ -822,7 +1050,7 @@ export default function JobRouteScreen() {
   const engineRef = useRef(new RouteEventEngine());
   const reroutingRef = useRef(false);
   const lastFixAtRef = useRef<number | null>(null);
-  const prevPayStatusRef = useRef<PaymentStatus | null | undefined>(undefined);
+  const prevPayStatusRef = useRef<PaymentState | null | undefined>(undefined);
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Voice guidance: the step index last spoken aloud, so a maneuver is voiced
   // exactly once as it becomes active (not repeated on every GPS tick).
@@ -847,8 +1075,37 @@ export default function JobRouteScreen() {
   const activeReminderIdRef = useRef<string | null>(null);
   // Follow mode mirrored to a ref so requestRoute can read it without closure stale issues.
   const followModeRef = useRef<FollowMode>('heading_up');
+  const jobNumberShimmerX = jobNumberShimmer.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-72, 220],
+  });
+  const jobNumberShimmerOpacity = jobNumberShimmer.interpolate({
+    inputRange: [0, 0.14, 0.5, 0.86, 1],
+    outputRange: [0, 0.28, 0.62, 0.28, 0],
+  });
 
-  // Keep mirror refs in sync (assignment only — no setState in effects).
+  // Keep the decorative title shimmer native-only; on web it becomes a JS loop
+  // competing with the map.
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      jobNumberShimmer.setValue(0);
+      return undefined;
+    }
+    const animation = Animated.loop(
+      Animated.timing(jobNumberShimmer, {
+        toValue: 1,
+        duration: 3000,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    );
+    animation.start();
+    return () => {
+      animation.stop();
+      jobNumberShimmer.stopAnimation();
+      jobNumberShimmer.setValue(0);
+    };
+  }, [jobNumberShimmer]);
   useEffect(() => { routeStateRef.current = routeState; }, [routeState]);
   useEffect(() => { followModeRef.current = followMode; }, [followMode]);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
@@ -883,6 +1140,17 @@ export default function JobRouteScreen() {
   const logMapDiag = useCallback((reason: string) => {
     setMapDiag(reason);
     if (__DEV__) console.warn('[route-map]', reason);
+  }, []);
+
+  const injectMapJavaScript = useCallback((script: string) => {
+    if (Platform.OS === 'web') {
+      iframeRef.current?.contentWindow?.postMessage(
+        { __driverRouteMapCommand: 'eval', script },
+        '*',
+      );
+      return;
+    }
+    webRef.current?.injectJavaScript(script);
   }, []);
 
   const customerCoord: Coordinates | null = useMemo(() => {
@@ -922,15 +1190,6 @@ export default function JobRouteScreen() {
       };
       routeStateRef.current = next;
       clearRouteTimer = setTimeout(() => setRouteState(next), 0);
-      if (__DEV__) {
-        console.info('[driver-route-clear]', {
-          reason: 'job_or_destination_changed',
-          currentRouteJobRef,
-          currentDestinationKey,
-          previousRouteJobRef: existing.routeJobRef,
-          previousDestinationKey: existing.routeDestinationKey,
-        });
-      }
     }
     // New destination => fresh route session: clear all event latches so the
     // proximity/lifecycle cues fire correctly for the new journey.
@@ -964,14 +1223,6 @@ export default function JobRouteScreen() {
       const routeJobRef = currentRouteJobRef;
       const routeDestinationKey = coordKey(destination);
       const routeOriginFixAt = lastFixAtRef.current ?? Date.now();
-      if (__DEV__) {
-        console.info('[driver-route-request]', {
-          routeJobRef,
-          routeDestinationKey,
-          origin,
-          destination,
-        });
-      }
 
       const result = await fetchDirections(
         origin,
@@ -1077,15 +1328,6 @@ export default function JobRouteScreen() {
         };
         routeStateRef.current = next;
         setRouteState(next);
-        if (__DEV__) {
-          console.info('[driver-route-clear]', {
-            reason: 'stale_route_metadata',
-            currentRouteJobRef,
-            currentDestinationKey: destKey,
-            previousRouteJobRef: rs.routeJobRef,
-            previousDestinationKey: rs.routeDestinationKey,
-          });
-        }
         requestRoute(driver, dest);
         return;
       }
@@ -1130,21 +1372,6 @@ export default function JobRouteScreen() {
           ) {
             offRouteSinceRef.current = null;
             setRerouting(true);
-            if (__DEV__) {
-              console.log('[reroute-debug]', {
-                ref: currentRouteJobRef,
-                reason: 'off_route',
-                offRouteMeters: Math.round(d),
-                routeAgeMs: rs.routeCalculatedAt != null ? now - rs.routeCalculatedAt : null,
-                movedFromLastOriginM: lastRouteOriginRef.current
-                  ? Math.round(haversineMeters(driver, lastRouteOriginRef.current))
-                  : 0,
-                loading: rs.loading,
-                inFlight: routeAbortRef.current != null && !routeAbortRef.current.signal.aborted,
-                driverCoord: driver,
-                destinationCoord: dest,
-              });
-            }
             requestRoute(driver, dest);
             return;
           }
@@ -1169,24 +1396,10 @@ export default function JobRouteScreen() {
         lastOrigin != null && haversineMeters(driver, lastOrigin) > ROUTE_FORCE_REFRESH_MOVE_M;
       const staleWhileMoving =
         movedFarFromOrigin && routeAgeMs != null && routeAgeMs > ROUTE_STALE_WHILE_MOVING_MS;
-      const refreshReason = rs.source === 'none' ? 'initial' : staleWhileMoving ? 'stale_moving' : 'moved_enough';
       if (
         networkAllowed &&
         (rs.source === 'none' || (movedEnough && intervalOk) || staleWhileMoving)
       ) {
-        if (__DEV__) {
-          console.log('[reroute-debug]', {
-            ref: currentRouteJobRef,
-            reason: refreshReason,
-            offRouteMeters: null,
-            routeAgeMs,
-            movedFromLastOriginM: lastOrigin ? Math.round(haversineMeters(driver, lastOrigin)) : 0,
-            loading: false,
-            inFlight: false,
-            driverCoord: driver,
-            destinationCoord: dest,
-          });
-        }
         requestRoute(driver, dest);
       }
     },
@@ -1432,15 +1645,6 @@ export default function JobRouteScreen() {
       routeState.source === 'mapbox' &&
       routeState.routeJobRef === currentRouteJobRef &&
       routeState.routeDestinationKey === currentDestinationKey;
-    if (__DEV__ && routeState.source === 'mapbox' && !routeCanRender) {
-      console.info('[driver-route-clear]', {
-        reason: 'render_guard_metadata_mismatch',
-        currentRouteJobRef,
-        currentDestinationKey,
-        previousRouteJobRef: routeState.routeJobRef,
-        previousDestinationKey: routeState.routeDestinationKey,
-      });
-    }
     // Snap the displayed marker onto the route when the GPS drift is small
     // (genuine jitter on the road). Beyond SNAP_TO_ROUTE_MAX_DRIFT_M the driver
     // is treated as truly off-route and the raw fix is shown unchanged.
@@ -1470,15 +1674,6 @@ export default function JobRouteScreen() {
         : [];
     const fit = fitPendingRef.current;
     fitPendingRef.current = false;
-    if (__DEV__ && fit) {
-      console.log('[map-zoom-debug]', {
-        ref: currentRouteJobRef,
-        reason: 'fitBounds-pending',
-        isFollowingDriver,
-        followMode,
-        cameraEpoch,
-      });
-    }
     const json = JSON.stringify({
       driver,
       heading: headingRef.current,
@@ -1504,7 +1699,7 @@ export default function JobRouteScreen() {
     // embedded in the injected JS string literal; the WebView decodeURIComponents.
     const encoded = encodeURIComponent(json).replace(/'/g, '%27');
     latestStateRef.current = encoded;
-    webRef.current?.injectJavaScript(
+    injectMapJavaScript(
       `window.__applyState && window.__applyState('${encoded}'); true;`,
     );
   }, [
@@ -1526,6 +1721,7 @@ export default function JobRouteScreen() {
     cameraEpoch,
     cockpitCollapsed,
     insets.bottom,
+    injectMapJavaScript,
   ]);
 
   // When collapsing/expanding the cockpit changes the reserved bottom padding,
@@ -1550,12 +1746,12 @@ export default function JobRouteScreen() {
   useFocusEffect(
     useCallback(() => {
       const timer = setTimeout(() => {
-        webRef.current?.injectJavaScript(
+        injectMapJavaScript(
           'window.__resizeMap && window.__resizeMap(); true;',
         );
       }, 300);
       return () => clearTimeout(timer);
-    }, []),
+    }, [injectMapJavaScript]),
   );
 
   // Keep the screen awake WHILE navigating this screen in the foreground. Tied
@@ -1589,13 +1785,13 @@ export default function JobRouteScreen() {
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
       if (next === 'active') {
-        webRef.current?.injectJavaScript(
+        injectMapJavaScript(
           'window.__resizeMap && window.__resizeMap(); true;',
         );
       }
     });
     return () => sub.remove();
-  }, []);
+  }, [injectMapJavaScript]);
 
   // Track the device colour scheme so the 'auto' map theme follows dark mode.
   useEffect(() => {
@@ -1621,12 +1817,12 @@ export default function JobRouteScreen() {
   // in-page 'style.load' hook; DOM markers persist, so the route never drops.
   useEffect(() => {
     if (!token || !mapLoaded) return;
-    webRef.current?.injectJavaScript(
+    injectMapJavaScript(
       `window.__setMapTheme && window.__setMapTheme(${JSON.stringify(
         effectiveTheme,
       )}); true;`,
     );
-  }, [token, mapLoaded, effectiveTheme]);
+  }, [token, mapLoaded, effectiveTheme, injectMapJavaScript]);
 
   // Watchdog: if a freshly-mounted canvas never reports map-loaded, remount it
   // a couple of times, then surface the retry card.
@@ -1753,7 +1949,7 @@ export default function JobRouteScreen() {
         const currentJob = jobRef.current;
         if (currentJob) {
           const payDisplay = getDriverPaymentDisplay(
-            currentJob.payment ?? null,
+            currentJob.paymentSummary ?? currentJob.payment ?? null,
             currentJob.refNumber,
           );
           const reminder = getSmartDriverReminder({
@@ -1816,9 +2012,9 @@ export default function JobRouteScreen() {
   // The existing JOB_POLL_INTERVAL_MS poll already refreshes `job` (and its
   // payment summary) while this screen is open — no realtime channel exists in
   // the driver app, so polling is the safe approach. Here we only react to a
-  // genuine status transition, using the real backend `payment.status` field.
+  // genuine status transition, using the real backend canonical payment state.
   useEffect(() => {
-    const status: PaymentStatus | null = job?.payment?.status ?? null;
+    const status: PaymentState | null = job?.paymentSummary?.state ?? job?.payment?.state ?? null;
     const prev = prevPayStatusRef.current;
     prevPayStatusRef.current = status;
     if (prev === undefined) return; // first observation — nothing to compare yet
@@ -1835,7 +2031,7 @@ export default function JobRouteScreen() {
       const id = setTimeout(() => showBanner(text), 0);
       return () => clearTimeout(id);
     }
-  }, [job?.payment?.status, showBanner, t]);
+  }, [job?.paymentSummary?.state, job?.payment?.state, showBanner, t]);
 
   // Clear the banner timer on unmount.
   useEffect(
@@ -1847,6 +2043,75 @@ export default function JobRouteScreen() {
 
 
   // ── Actions ──
+  const updateRouteStatus = useCallback(
+    async (
+      nextStatus: string,
+      options: {
+        busy?: (busy: boolean) => void;
+        refresh?: boolean;
+        onError?: (message: string) => void;
+        onSuccess?: () => void;
+      } = {},
+    ): Promise<boolean> => {
+      if (!ref || actionLockRef.current) return false;
+
+      actionLockRef.current = true;
+      setArrivalError(null);
+      setActioning(true);
+      options.busy?.(true);
+
+      const finishSuccess = (resolvedStatus: string) => {
+        setJob((prev) => (prev ? applyLocalStatus(prev, resolvedStatus) : prev));
+        if (resolvedStatus === 'completed') {
+          heavyHaptic();
+          playSound('job_completed');
+        } else {
+          mediumHaptic();
+        }
+        options.onSuccess?.();
+        if (options.refresh !== false) {
+          void driverApi.getJob(ref).then(setJob).catch(() => {});
+        }
+      };
+
+      try {
+        const result = await driverApi.updateJobStatus(ref, nextStatus);
+        finishSuccess(result.newStatus || nextStatus);
+        return true;
+      } catch (err) {
+        const isNetworkError = err instanceof ApiError && err.code === 'network';
+        if (!isNetworkError) {
+          const latest = await driverApi.getJob(ref).catch(() => null);
+          if (latest) {
+            setJob(latest);
+            if (hasReachedStatus(latest.status, nextStatus)) {
+              finishSuccess(latest.status);
+              return true;
+            }
+          }
+        }
+
+        const msg =
+          isNetworkError
+            ? t('common.networkError')
+            : err instanceof ApiError
+              ? err.message
+              : t('route.couldNotUpdateStatus');
+        if (options.onError) {
+          options.onError(msg);
+        } else {
+          Alert.alert(t('common.error'), msg);
+        }
+        return false;
+      } finally {
+        options.busy?.(false);
+        setActioning(false);
+        actionLockRef.current = false;
+      }
+    },
+    [ref, t],
+  );
+
   const handleStatusAction = useCallback(
     (nextStatus: string) => {
       if (!ref || actionLockRef.current) return;
@@ -1866,106 +2131,51 @@ export default function JobRouteScreen() {
         return;
       }
 
-      // All other transitions (arrived, in_progress) — keep existing Alert flow.
-      actionLockRef.current = true;
-      const confirmMsg = t('jobDetail.confirmStatusUpdate', {
-        status: nextStatus.replace(/_/g, ' '),
+      void updateRouteStatus(nextStatus, {
+        onError:
+          nextStatus === 'arrived'
+            ? (message) => setArrivalError(message)
+            : undefined,
       });
-      Alert.alert(
-        t('common.confirm'),
-        confirmMsg,
-        [
-          {
-            text: t('common.cancel'),
-            style: 'cancel',
-            onPress: () => { actionLockRef.current = false; },
-          },
-          {
-            text: t('common.confirm'),
-            onPress: async () => {
-              setActioning(true);
-              try {
-                await driverApi.updateJobStatus(ref, nextStatus);
-                mediumHaptic();
-                const updated = await driverApi.getJob(ref).catch(() => null);
-                if (updated) setJob(updated);
-              } catch (err) {
-                const msg = err instanceof ApiError ? err.message : t('jobDetail.failedUpdate');
-                Alert.alert(t('common.error'), msg);
-              }
-              setActioning(false);
-              actionLockRef.current = false;
-            },
-          },
-        ],
-        { onDismiss: () => { actionLockRef.current = false; } },
-      );
     },
-    [ref, t],
+    [ref, updateRouteStatus],
   );
 
   // Confirms the pre-job checklist and starts travel (driver_assigned → en_route).
-  const handleConfirmPreJob = useCallback(async () => {
+  const handleConfirmPreJob = useCallback(() => {
     if (!ref || actionLockRef.current) return;
-    actionLockRef.current = true;
     setShowPreJobChecklist(false);
-    setActioning(true);
-    try {
-      await driverApi.updateJobStatus(ref, 'en_route');
-      mediumHaptic();
-      const updated = await driverApi.getJob(ref).catch(() => null);
-      if (updated) setJob(updated);
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.message : t('route.couldNotUpdateStatus');
-      Alert.alert(t('common.error'), msg);
-    }
-    setActioning(false);
-    actionLockRef.current = false;
-  }, [ref, t]);
+    void updateRouteStatus('en_route');
+  }, [ref, updateRouteStatus]);
 
   // Confirms the completion checklist and marks the job complete (in_progress → completed).
-  const handleConfirmCompletion = useCallback(async () => {
+  const handleConfirmCompletion = useCallback(() => {
     if (!ref || actionLockRef.current) return;
-    actionLockRef.current = true;
     setCompletionError(null);
-    setCompletionActioning(true);
-    try {
-      await driverApi.updateJobStatus(ref, 'completed');
-      heavyHaptic();
-      playSound('job_completed');
-      setShowCompletionChecklist(false);
-      router.back();
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.message : t('completion.couldNotComplete');
-      setCompletionError(msg);
-      actionLockRef.current = false;
-    }
-    setCompletionActioning(false);
-  }, [ref, router, t]);
+    void updateRouteStatus('completed', {
+      busy: setCompletionActioning,
+      refresh: false,
+      onSuccess: () => {
+        setShowCompletionChecklist(false);
+        router.back();
+      },
+      onError: (message) => setCompletionError(message || t('completion.couldNotComplete')),
+    });
+  }, [ref, router, t, updateRouteStatus]);
 
   // Auto-arrival prompt confirm. The prompt itself IS the confirmation, so this
   // performs the en_route -> arrived transition directly via the SAME
   // `driverApi.updateJobStatus` mutation the status button uses (no second
   // dialog). Marks the prompt dismissed so it does not reappear this session.
-  const handleConfirmArrival = useCallback(async () => {
+  const handleConfirmArrival = useCallback(() => {
     if (!ref || actionLockRef.current) return;
-    actionLockRef.current = true;
     arrivalPromptDismissedRef.current = true;
     setShowArrivalPrompt(false);
     setArrivalError(null);
-    setActioning(true);
-    try {
-      await driverApi.updateJobStatus(ref, 'arrived');
-      mediumHaptic();
-      const updated = await driverApi.getJob(ref).catch(() => null);
-      if (updated) setJob(updated);
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.message : t('route.couldNotUpdateStatus');
-      setArrivalError(msg);
-    }
-    setActioning(false);
-    actionLockRef.current = false;
-  }, [ref, t]);
+    void updateRouteStatus('arrived', {
+      onError: (message) => setArrivalError(message),
+    });
+  }, [ref, updateRouteStatus]);
 
   // "Not yet" — driver declines the suggestion; do not show it again this
   // session (it only re-arms when the destination/session changes).
@@ -2156,6 +2366,49 @@ export default function JobRouteScreen() {
     routeStateRef.current = next;
     setRouteState(next);
   }, []);
+
+  const handleMapMessage = useCallback((msg: RouteMapMessage) => {
+    if (msg.type === 'map-loaded') {
+      recoveryAttemptsRef.current = 0;
+      // Force the next state push to re-send route geometry so the rebuilt map
+      // gets the full route after a crash/reload.
+      lastInjectedRouteRevRef.current = '';
+      setMapStatus({ key: mapKey, phase: 'loaded' });
+      if (latestStateRef.current) {
+        injectMapJavaScript(
+          `window.__applyState && window.__applyState('${latestStateRef.current}'); true;`,
+        );
+      }
+      injectMapJavaScript('window.__resizeMap && window.__resizeMap(); true;');
+    } else if (msg.type === 'map-fatal') {
+      logMapDiag(
+        `map-fatal: ${msg.reason ?? 'unknown'}${
+          msg.status ? ` (status ${msg.status})` : ''
+        }`,
+      );
+      setMapStatus({ key: mapKey, phase: 'fatal' });
+    } else if (msg.type === 'user-pan') {
+      setIsFollowingDriver(false);
+    } else if (msg.type === 'select-alt' && typeof msg.index === 'number') {
+      handleSelectAlternative(msg.index);
+    } else if (
+      msg.type === 'map-warn' ||
+      msg.type === 'js-error' ||
+      msg.type === 'map-error'
+    ) {
+      logMapDiag(`${msg.type}: ${msg.message ?? ''}`.slice(0, 200));
+    }
+  }, [handleSelectAlternative, injectMapJavaScript, logMapDiag, mapKey]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return undefined;
+    const listener = (event: MessageEvent) => {
+      const msg = parseRouteMapMessageData(event.data, false);
+      if (msg) handleMapMessage(msg);
+    };
+    window.addEventListener('message', listener);
+    return () => window.removeEventListener('message', listener);
+  }, [handleMapMessage]);
 
   const handleEnableLocation = useCallback(() => {
     setPermissionDenied(false);
@@ -2361,7 +2614,7 @@ export default function JobRouteScreen() {
           })
         : null;
   const addressLine = job?.addressLine && job.addressLine.length > 0 ? job.addressLine : null;
-  const payDisplay = getDriverPaymentDisplay(job?.payment ?? null, job?.refNumber ?? null);
+  const payDisplay = getDriverPaymentDisplay(job?.paymentSummary ?? job?.payment ?? null, job?.refNumber ?? null);
   const payColors = paymentToneColors(payDisplay.tone);
 
   // ── Checklist derived warnings ──
@@ -2594,6 +2847,7 @@ export default function JobRouteScreen() {
         return t('route.payBadgeCash');
       case 'payment.awaitingPayment':
       case 'payment.paymentPending':
+      case 'payment.paymentLinkSent':
         return t('route.payBadgePending');
       case 'payment.needsChecking':
       case 'payment.failed':
@@ -2630,7 +2884,7 @@ export default function JobRouteScreen() {
       <View
         style={StyleSheet.absoluteFillObject}
         onLayout={() => {
-          webRef.current?.injectJavaScript(
+          injectMapJavaScript(
             'window.__resizeMap && window.__resizeMap(); true;',
           );
         }}
@@ -2643,72 +2897,42 @@ export default function JobRouteScreen() {
           </View>
         ) : (
           <>
-            <WebView
-              key={mapKey}
-              ref={webRef}
-              originWhitelist={['*']}
-              source={{ html, baseUrl: 'https://www.tyrerescue.uk/' }}
-              style={StyleSheet.absoluteFillObject}
-              javaScriptEnabled
-              domStorageEnabled
-              scrollEnabled={false}
-              androidLayerType="hardware"
-              mixedContentMode="always"
-              setSupportMultipleWindows={false}
-              onLoadEnd={() => {
-                webRef.current?.injectJavaScript(
-                  'window.__resizeMap && window.__resizeMap(); true;',
-                );
-              }}
-              onMessage={(event) => {
-                try {
-                  const msg = JSON.parse(event.nativeEvent.data) as {
-                    type?: string;
-                    reason?: string;
-                    message?: string;
-                    status?: number;
-                    index?: number;
-                  };
-                  if (msg.type === 'map-loaded') {
-                    recoveryAttemptsRef.current = 0;
-                    // Force the next state push to re-send route geometry so the
-                    // rebuilt WebView gets the full route after a crash/reload.
-                    lastInjectedRouteRevRef.current = '';
-                    setMapStatus({ key: mapKey, phase: 'loaded' });
-                    if (latestStateRef.current) {
-                      webRef.current?.injectJavaScript(
-                        `window.__applyState && window.__applyState('${latestStateRef.current}'); true;`,
-                      );
-                    }
-                    webRef.current?.injectJavaScript(
-                      'window.__resizeMap && window.__resizeMap(); true;',
-                    );
-                  } else if (msg.type === 'map-fatal') {
-                    logMapDiag(
-                      `map-fatal: ${msg.reason ?? 'unknown'}${
-                        msg.status ? ` (status ${msg.status})` : ''
-                      }`,
-                    );
-                    setMapStatus({ key: mapKey, phase: 'fatal' });
-                  } else if (msg.type === 'user-pan') {
-                    setIsFollowingDriver(false);
-                  } else if (msg.type === 'select-alt' && typeof msg.index === 'number') {
-                    handleSelectAlternative(msg.index);
-                  } else if (
-                    msg.type === 'map-warn' ||
-                    msg.type === 'js-error' ||
-                    msg.type === 'map-error'
-                  ) {
-                    logMapDiag(`${msg.type}: ${msg.message ?? ''}`.slice(0, 200));
-                  }
-                } catch {
-                  // ignore non-JSON messages
-                }
-              }}
-            />
+            {Platform.OS === 'web' ? (
+              <iframe
+                key={mapKey}
+                ref={iframeRef}
+                title="Driver route map"
+                srcDoc={html}
+                style={WEB_MAP_FRAME_STYLE}
+                onLoad={() => {
+                  injectMapJavaScript('window.__resizeMap && window.__resizeMap(); true;');
+                }}
+              />
+            ) : (
+              <WebView
+                key={mapKey}
+                ref={webRef}
+                originWhitelist={['*']}
+                source={{ html, baseUrl: 'https://www.tyrerescue.uk/' }}
+                style={StyleSheet.absoluteFillObject}
+                javaScriptEnabled
+                domStorageEnabled
+                scrollEnabled={false}
+                androidLayerType="hardware"
+                mixedContentMode="always"
+                setSupportMultipleWindows={false}
+                onLoadEnd={() => {
+                  injectMapJavaScript('window.__resizeMap && window.__resizeMap(); true;');
+                }}
+                onMessage={(event) => {
+                  const msg = parseRouteMapMessageData(event.nativeEvent.data, true);
+                  if (msg) handleMapMessage(msg);
+                }}
+              />
+            )}
 
             {!mapLoaded && !mapFatal && (
-              <View style={styles.mapOverlay} pointerEvents="none">
+              <View style={[styles.mapOverlay, styles.noPointerEvents]}>
                 <ActivityIndicator color={colors.accent} />
                 <Text style={styles.mapOverlayText}>{t('route.loadingMap')}</Text>
               </View>
@@ -2763,8 +2987,7 @@ export default function JobRouteScreen() {
 
       {/* ── Top overlay: compact header (Part 1) ── */}
       <View
-        style={[styles.topBar, { paddingTop: insets.top + spacing.xs }]}
-        pointerEvents="box-none"
+        style={[styles.topBar, styles.boxNonePointerEvents, { paddingTop: insets.top + spacing.xs }]}
       >
         <Pressable
           accessibilityRole="button"
@@ -2778,6 +3001,19 @@ export default function JobRouteScreen() {
           <Text style={styles.topTitleText} numberOfLines={1}>
             #{ref}
           </Text>
+          <Animated.View
+            style={[
+              styles.topTitleShimmer,
+              styles.noPointerEvents,
+              {
+                opacity: jobNumberShimmerOpacity,
+                transform: [
+                  { translateX: jobNumberShimmerX },
+                  { skewX: '-18deg' },
+                ],
+              },
+            ]}
+          />
         </View>
         <View
           style={[
@@ -2807,8 +3043,7 @@ export default function JobRouteScreen() {
            but kept when arrival wording is active so the driver sees their destination. ── */}
       {token && mapLoaded && !mapFatal && !permissionDenied && primaryInstruction.length > 0 && (arrival != null || rerouting || (routeIsCurrent && !rerouteFailed)) && (
         <View
-          style={[styles.instructionCard, { top: insets.top + 50 }]}
-          pointerEvents="none"
+          style={[styles.instructionCard, styles.noPointerEvents, { top: insets.top + 50 }]}
         >
           <View style={styles.instructionIcon}>
             <Ionicons
@@ -2844,8 +3079,7 @@ export default function JobRouteScreen() {
       {/* Rerouting pill + transient payment banner. */}
       {rerouting && (
         <View
-          style={[styles.reroutePill, { top: insets.top + 124 }]}
-          pointerEvents="none"
+          style={[styles.reroutePill, styles.noPointerEvents, { top: insets.top + 124 }]}
         >
           <ActivityIndicator size="small" color="#0B0F1A" />
           <Text style={styles.reroutePillText}>{t('route.reroutingEllipsis')}</Text>
@@ -2853,8 +3087,7 @@ export default function JobRouteScreen() {
       )}
       {paymentBanner != null && (
         <View
-          style={[styles.banner, { top: insets.top + 124 }]}
-          pointerEvents="none"
+          style={[styles.banner, styles.noPointerEvents, { top: insets.top + 124 }]}
         >
           <Ionicons name="checkmark-circle" size={16} color="#0B0F1A" />
           <Text style={styles.bannerText}>{paymentBanner}</Text>
@@ -2866,12 +3099,12 @@ export default function JobRouteScreen() {
         <View
           style={[
             styles.sideControls,
+            styles.boxNonePointerEvents,
             {
               bottom:
                 (cockpitCollapsed ? COCKPIT_PAD_COLLAPSED : COCKPIT_PAD_EXPANDED) + insets.bottom + spacing.sm,
             },
           ]}
-          pointerEvents="box-none"
         >
           {!isFollowingDriver && (
             <Pressable
@@ -3769,6 +4002,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
+  noPointerEvents: {
+    pointerEvents: 'none',
+  },
+  boxNonePointerEvents: {
+    pointerEvents: 'box-none',
+  },
   mapOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
@@ -3996,11 +4235,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(24,24,27,0.92)',
     borderWidth: 1,
     borderColor: colors.border,
+    overflow: 'hidden',
+    position: 'relative',
   },
   topTitleText: {
     color: colors.text,
     fontSize: fontSize.sm,
     fontWeight: '800',
+  },
+  topTitleShimmer: {
+    position: 'absolute',
+    top: -8,
+    bottom: -8,
+    left: 0,
+    width: 34,
+    backgroundColor: 'rgba(255,255,255,0.55)',
   },
   sideControls: {
     position: 'absolute',

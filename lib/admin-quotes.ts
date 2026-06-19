@@ -27,6 +27,7 @@ import {
 const DEFAULT_QUOTE_VALIDITY_MS = 2 * 60 * 60 * 1000;
 const MAX_PRICE_AMOUNT_PENCE = 1_000_000;
 const MAX_LOCKING_NUT_CHARGE_PENCE = 100_000;
+const ADMIN_QUOTE_DEPOSIT_PERCENT = 20;
 
 const EXPIRABLE_STATUSES: readonly AdminQuoteStatus[] = [
   'DRAFT',
@@ -160,16 +161,20 @@ export function calculateAdminQuoteDeposit(priceAmountPence: number): {
   depositAmountPence: number;
   remainingBalancePence: number;
 } {
-  const depositAmountPence = Math.round((priceAmountPence * 15) / 100);
+  const depositAmountPence = Math.round((priceAmountPence * ADMIN_QUOTE_DEPOSIT_PERCENT) / 100);
   return {
     depositAmountPence,
     remainingBalancePence: priceAmountPence - depositAmountPence,
   };
 }
 
+function isDepositPaymentOption(paymentOption: AdminQuotePaymentOption | null): boolean {
+  return paymentOption === 'DEPOSIT_20' || paymentOption === 'DEPOSIT_15';
+}
+
 export function getAdminQuoteNextAction(paymentOption: AdminQuotePaymentOption): Exclude<AdminQuoteNextAction, 'ALREADY_CONFIRMED' | 'RECALCULATE_REQUIRED'> {
   if (paymentOption === 'FULL_PAYMENT') return 'TAKE_FULL_PAYMENT';
-  if (paymentOption === 'DEPOSIT_15') return 'TAKE_DEPOSIT';
+  if (isDepositPaymentOption(paymentOption)) return 'TAKE_DEPOSIT';
   if (paymentOption === 'CASH_ON_ARRIVAL') return 'MARK_CASH_PENDING';
   return 'SEND_PAYMENT_LINK';
 }
@@ -182,7 +187,7 @@ export function buildAdminQuotePaymentSummary(
   priceAmountPence: number,
   paymentOption: AdminQuotePaymentOption | null,
 ): AdminQuotePaymentSummary {
-  const deposit = paymentOption === 'DEPOSIT_15' ? calculateAdminQuoteDeposit(priceAmountPence) : null;
+  const deposit = isDepositPaymentOption(paymentOption) ? calculateAdminQuoteDeposit(priceAmountPence) : null;
   return {
     totalAmountPence: priceAmountPence,
     formattedTotal: formatAdminQuotePrice(priceAmountPence),
@@ -267,6 +272,7 @@ export function buildAdminQuoteConfirmationWhatsAppMessages(input: {
 
   return {
     FULL_PAYMENT: `Your quote ${input.quoteRef} is confirmed. The total is ${formattedPrice}. Please complete payment to secure the job.`,
+    DEPOSIT_20: `Your quote ${input.quoteRef} is confirmed. Deposit: ${formattedDeposit}. Remaining balance: ${formattedRemaining}. Please complete the deposit to secure the job.`,
     DEPOSIT_15: `Your quote ${input.quoteRef} is confirmed. Deposit: ${formattedDeposit}. Remaining balance: ${formattedRemaining}. Please complete the deposit to secure the job.`,
     CASH_ON_ARRIVAL: `Your quote ${input.quoteRef} is confirmed for ${formattedPrice}. Payment is marked as cash on arrival.`,
     PAYMENT_LINK: `Your quote ${input.quoteRef} is confirmed for ${formattedPrice}. Please use the payment link provided to secure the job.`,

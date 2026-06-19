@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
+  getDirections,
   haversineDistanceMiles,
   metersToMiles,
   secondsToMinutes,
@@ -13,6 +14,9 @@ vi.stubGlobal('fetch', mockFetch);
 
 beforeEach(() => {
   vi.stubEnv('MAPBOX_SECRET_TOKEN', 'sk_test_mocktoken1234567890');
+  vi.stubEnv('NEXT_PUBLIC_MAPBOX_TOKEN', '');
+  vi.stubEnv('EXPO_PUBLIC_MAPBOX_TOKEN', '');
+  vi.stubEnv('MAPBOX_TOKEN', '');
   mockFetch.mockReset();
 });
 
@@ -61,6 +65,32 @@ describe('GARAGE_LOCATION', () => {
   it('has Glasgow coordinates', () => {
     expect(GARAGE_LOCATION.lat).toBeCloseTo(55.85, 1);
     expect(GARAGE_LOCATION.lng).toBeCloseTo(-4.22, 1);
+  });
+});
+
+describe('getDirections', () => {
+  it('falls back to the public token when the secret token is a placeholder', async () => {
+    vi.stubEnv('MAPBOX_SECRET_TOKEN', 'sk_xxx');
+    vi.stubEnv('NEXT_PUBLIC_MAPBOX_TOKEN', 'pk_live_valid_public_token_1234567890');
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        routes: [{
+          distance: 7000,
+          duration: 540,
+          geometry: { coordinates: [[-4.17, 55.82], [-4.21, 55.85]] },
+        }],
+      }),
+    });
+
+    const result = await getDirections(
+      { lat: 55.82, lng: -4.17 },
+      { lat: 55.85, lng: -4.21 },
+    );
+
+    expect(result?.distance).toBe(7000);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(String(mockFetch.mock.calls[0][0])).toContain('pk_live_valid_public_token_1234567890');
   });
 });
 

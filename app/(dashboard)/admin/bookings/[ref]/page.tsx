@@ -5,8 +5,7 @@ import { Box, Heading, VStack, Grid, GridItem, Text, Flex } from '@chakra-ui/rea
 import { BookingDetailClient } from './BookingDetailClient';
 import { auth } from '@/lib/auth';
 import { normaliseTyreDetailsFromDb } from '@/lib/bookings/normalise-tyre-details';
-import { computeDriverPaymentSummary, type PaymentSummary } from '@/lib/payments/driver-payment';
-import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
+import { getBookingPaymentSummary, type PaymentSummary } from '@/lib/payments/payment-summary';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -183,9 +182,11 @@ export default async function AdminBookingDetailPage({ params }: Props) {
 
   const session = await auth();
 
-  // Compute evidence-based payment summary so admin sees the same truth as the driver.
-  const paymentEvidence = await getBookingPaymentEvidence(booking.id);
-  const payment: PaymentSummary = computeDriverPaymentSummary({
+  // Compute ledger-backed payment summary so admin sees the same truth as the driver.
+  const payment: PaymentSummary = await getBookingPaymentSummary({
+    id: booking.id,
+    refNumber: booking.refNumber,
+    status: booking.status,
     paymentType: booking.paymentType,
     totalAmount: booking.totalAmount.toString(),
     subtotal: booking.subtotal.toString(),
@@ -194,9 +195,7 @@ export default async function AdminBookingDetailPage({ params }: Props) {
     remainingBalancePence: booking.remainingBalancePence,
     depositPaidAt: booking.depositPaidAt,
     stripePiId: booking.stripePiId,
-    bookingStatus: booking.status,
-    paymentStatus: paymentEvidence.paymentStatus,
-    totalPaidPence: paymentEvidence.totalPaidPence,
+    stripeDepositPiId: booking.stripeDepositPiId,
   });
 
   return (

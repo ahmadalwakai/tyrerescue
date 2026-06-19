@@ -6,8 +6,7 @@ import { getAppOrigin } from '@/lib/config/site';
 import { requireAdminMobile } from '@/lib/auth';
 import { db, bookings, bookingStatusHistory, payments } from '@/lib/db';
 import { createCheckoutSession } from '@/lib/stripe';
-import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
-import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
+import { getBookingPaymentSummary, recordPaymentEvent } from '@/lib/payments/payment-summary';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -69,8 +68,10 @@ export async function GET(request: Request, { params }: Props) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
-  const paymentEvidence = await getBookingPaymentEvidence(booking.id);
-  const summary = computeDriverPaymentSummary({
+  const summary = await getBookingPaymentSummary({
+    id: booking.id,
+    refNumber: booking.refNumber,
+    status: booking.status,
     paymentType: booking.paymentType,
     totalAmount: booking.totalAmount?.toString() ?? null,
     subtotal: booking.subtotal?.toString() ?? null,
@@ -79,16 +80,17 @@ export async function GET(request: Request, { params }: Props) {
     remainingBalancePence: booking.remainingBalancePence ?? null,
     depositPaidAt: booking.depositPaidAt ?? null,
     stripePiId: booking.stripePiId ?? null,
-    paymentStatus: paymentEvidence.paymentStatus,
-    totalPaidPence: paymentEvidence.totalPaidPence,
-    bookingStatus: booking.status,
+    stripeDepositPiId: booking.stripeDepositPiId ?? null,
   });
 
   return NextResponse.json({
-    status: summary.status,
+    status: summary.state,
+    state: summary.state,
+    linkStatus: summary.linkStatus,
     amountToCollectPence: summary.amountToCollectPence,
-    totalAmountPence: summary.totalAmountPence,
-    totalPaidPence: summary.totalPaidPence,
+    totalAmountPence: summary.totalPence,
+    totalPaidPence: summary.paidPence ?? 0,
+    paymentSummary: summary,
   });
 }
 
@@ -142,8 +144,10 @@ export async function POST(request: Request, { params }: Props) {
 
   // Derive the outstanding amount the same way the driver app does, so the
   // figures always reconcile across surfaces.
-  const paymentEvidence = await getBookingPaymentEvidence(booking.id);
-  const summary = computeDriverPaymentSummary({
+  const summary = await getBookingPaymentSummary({
+    id: booking.id,
+    refNumber: booking.refNumber,
+    status: booking.status,
     paymentType: booking.paymentType,
     totalAmount: booking.totalAmount,
     subtotal: booking.subtotal,
@@ -152,12 +156,10 @@ export async function POST(request: Request, { params }: Props) {
     remainingBalancePence: booking.remainingBalancePence,
     depositPaidAt: booking.depositPaidAt,
     stripePiId: booking.stripePiId,
-    paymentStatus: paymentEvidence.paymentStatus,
-    totalPaidPence: paymentEvidence.totalPaidPence,
-    bookingStatus: booking.status,
+    stripeDepositPiId: booking.stripeDepositPiId,
   });
 
-  const outstandingPence = summary.amountToCollectPence;
+  const outstandingPence = summary.amountToCollectPence ?? 0;
   if (outstandingPence <= 0) {
     return NextResponse.json(noOutstandingBalanceError, { status: 409 });
   }
@@ -238,6 +240,27 @@ export async function POST(request: Request, { params }: Props) {
     .update(bookings)
     .set({ stripePiId: stripeRef, updatedAt: new Date() })
     .where(eq(bookings.id, booking.id));
+
+  await recordPaymentEvent({
+    bookingId: booking.id,
+    bookingRef: booking.refNumber,
+    eventType: 'link_sent',
+    paymentMethod: 'card_link',
+    linkStatus: 'sent',
+    amountPence,
+    currency: 'gbp',
+    stripeSessionId: checkout.sessionId,
+    stripePaymentIntentId: checkout.paymentIntentId,
+    stripeCheckoutUrl: checkout.checkoutUrl,
+    source: 'admin',
+    status: 'pending',
+    expiresAt: checkout.expiresAt,
+    metadata: {
+      kind: 'admin_payment_link',
+      paymentScope: 'full_outstanding_balance',
+      note: parsed.data.note ?? null,
+    },
+  });
 
   await db.insert(bookingStatusHistory).values({
     id: uuidv4(),

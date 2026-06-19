@@ -115,7 +115,7 @@ export function CustomerTrackingClient({ token }: Props) {
     if (!data) return null;
     const raw = data.state.status;
     // If the driver's last GPS ping is older than the staleness threshold
-    // (currently 90s), present the trip as "paused" so the customer gets
+    // (currently 3 minutes), present the trip as "paused" so the customer gets
     // a clear "Tracking paused" hint instead of a frozen pin. The trip
     // itself is still in progress server-side — only the UI label flips.
     if (raw === 'in_progress' && isTrackingStale(data.state.lastUpdatedAt)) {

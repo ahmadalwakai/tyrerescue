@@ -25,7 +25,7 @@ interface Props {
 
 const PAYMENT_OPTIONS: ReadonlyArray<{ value: AdminQuotePaymentOption; label: string }> = [
   { value: 'FULL_PAYMENT', label: 'Full payment' },
-  { value: 'DEPOSIT_15', label: 'Deposit 15%' },
+  { value: 'DEPOSIT_20', label: 'Deposit 20%' },
   { value: 'CASH_ON_ARRIVAL', label: 'Cash on arrival' },
   { value: 'PAYMENT_LINK', label: 'Send payment link' },
 ];
@@ -35,8 +35,16 @@ function formatPence(pence: number): string {
 }
 
 function depositSummary(priceAmount: number): { depositAmountPence: number; remainingBalancePence: number } {
-  const depositAmountPence = Math.round((priceAmount * 15) / 100);
+  const depositAmountPence = Math.round((priceAmount * 20) / 100);
   return { depositAmountPence, remainingBalancePence: priceAmount - depositAmountPence };
+}
+
+function normalizePaymentOption(option: AdminQuotePaymentOption): AdminQuotePaymentOption {
+  return option === 'DEPOSIT_15' ? 'DEPOSIT_20' : option;
+}
+
+function isDepositPaymentOption(option: AdminQuotePaymentOption): boolean {
+  return option === 'DEPOSIT_20' || option === 'DEPOSIT_15';
 }
 
 function buildQuoteInput(draft: AssistedChatDraft, effectiveTotal: number, lockingNutCharge: number): CreateAdminQuoteInput {
@@ -81,7 +89,7 @@ export function QuoteDraftActions({ draft, update, effectiveTotal, lockingNutCha
   const persistQuote = useCallback(
     (quote: AdminQuote) => {
       setCurrentQuote(quote);
-      if (quote.selectedPaymentOption) setPaymentOption(quote.selectedPaymentOption);
+      if (quote.selectedPaymentOption) setPaymentOption(normalizePaymentOption(quote.selectedPaymentOption));
       update({ savedQuoteId: quote.id, savedQuoteRef: quote.quoteRef });
     },
     [update],
@@ -212,10 +220,10 @@ export function QuoteDraftActions({ draft, update, effectiveTotal, lockingNutCha
         <Text style={styles.statusMeta}>Full price: {formatPence(quotePricePence)}</Text>
         <Text style={styles.statusMeta}>Expiry status: {expiryStatus}</Text>
         <Text style={styles.statusMeta}>Current quote status: {quoteStatus}</Text>
-        <Text style={styles.statusMeta}>Selected payment option: {PAYMENT_OPTIONS.find((item) => item.value === paymentOption)?.label ?? paymentOption}</Text>
-        {paymentOption === 'DEPOSIT_15' ? (
+        <Text style={styles.statusMeta}>Selected payment option: {PAYMENT_OPTIONS.find((item) => item.value === normalizePaymentOption(paymentOption))?.label ?? paymentOption}</Text>
+        {isDepositPaymentOption(paymentOption) ? (
           <>
-            <Text style={styles.statusMeta}>Deposit 15%: {formatPence(deposit.depositAmountPence)}</Text>
+            <Text style={styles.statusMeta}>Deposit 20%: {formatPence(deposit.depositAmountPence)}</Text>
             <Text style={styles.statusMeta}>Remaining balance: {formatPence(deposit.remainingBalancePence)}</Text>
           </>
         ) : null}
@@ -224,7 +232,7 @@ export function QuoteDraftActions({ draft, update, effectiveTotal, lockingNutCha
             <AppButton
               key={item.value}
               label={item.label}
-              variant={paymentOption === item.value ? 'primary' : 'secondary'}
+              variant={normalizePaymentOption(paymentOption) === item.value ? 'primary' : 'secondary'}
               onPress={() => setPaymentOption(item.value)}
               disabled={busy !== null}
               fullWidth

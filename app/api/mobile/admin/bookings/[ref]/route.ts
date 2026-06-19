@@ -11,6 +11,7 @@ import {
 } from '@/lib/db';
 import { getMobileAdminUser, unauthorizedResponse } from '@/app/api/mobile/admin/_lib';
 import { executeTransition, getValidNextStates, isValidTransition, type BookingStatus } from '@/lib/state-machine';
+import { getBookingPaymentSummary, recordPaymentEvent } from '@/lib/payments/payment-summary';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -100,6 +101,21 @@ export async function GET(request: Request, { params }: Props) {
     if (driver) assignedDriver = driver;
   }
 
+  const paymentSummary = await getBookingPaymentSummary({
+    id: booking.id,
+    refNumber: booking.refNumber,
+    status: booking.status,
+    paymentType: booking.paymentType,
+    totalAmount: booking.totalAmount.toString(),
+    subtotal: booking.subtotal.toString(),
+    vatAmount: booking.vatAmount.toString(),
+    depositAmountPence: booking.depositAmountPence,
+    remainingBalancePence: booking.remainingBalancePence,
+    depositPaidAt: booking.depositPaidAt,
+    stripePiId: booking.stripePiId,
+    stripeDepositPiId: booking.stripeDepositPiId,
+  });
+
   return NextResponse.json({
     booking: {
       ...booking,
@@ -130,6 +146,7 @@ export async function GET(request: Request, { params }: Props) {
     assignedDriver,
     availableDrivers,
     validNextStatuses: getValidNextStates(booking.status as BookingStatus),
+    paymentSummary,
   });
 }
 
@@ -282,6 +299,28 @@ export async function PATCH(request: Request, { params }: Props) {
       actorUserId: user.id,
       actorRole: 'admin',
       note: note || 'Status changed by mobile admin app',
+    });
+  }
+
+  if (nextStatus === 'paid') {
+    const amountPence = Number.isFinite(Number(booking.totalAmount))
+      ? Math.round(Number(booking.totalAmount) * 100)
+      : null;
+    await recordPaymentEvent({
+      bookingId: booking.id,
+      bookingRef: booking.refNumber,
+      eventType: 'manual_paid',
+      paymentMethod: 'manual',
+      paidVia: 'manual',
+      amountPence,
+      currency: 'gbp',
+      source: 'admin',
+      status: 'succeeded',
+      metadata: {
+        note: note ?? null,
+        previousStatus: currentStatus,
+        via: 'mobile_admin',
+      },
     });
   }
 

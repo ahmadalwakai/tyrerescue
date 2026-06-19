@@ -4,7 +4,6 @@ import { AppButton, StatusBanner } from '@/components/ui';
 import { colors, fontSize, radius, space } from '@/components/theme';
 import { copyToClipboard } from '@/lib/clipboard';
 import { buildWhatsAppUrl } from '@/lib/customer-message';
-import { LiveTrackingMapMobile } from './LiveTrackingMapMobile';
 import type {
   BookingTrackingData,
   TrackingDerivedStatus,
@@ -20,6 +19,10 @@ interface Props {
   onRetryEnsure: () => void;
   /** Called when operator taps "Refresh now" to force a poll. */
   onRefresh?: () => void;
+  /** Opens the full-screen driver tracking map. */
+  onTrackDriver?: () => void;
+  canTrackDriver?: boolean;
+  trackDriverHint?: string | null;
 }
 
 const TONE: Record<TrackingDerivedStatus, 'ok' | 'err' | 'info' | 'warn'> = {
@@ -46,7 +49,7 @@ const SUB: Record<TrackingDerivedStatus, string | null> = {
   expired: 'Generate a new tracking session if needed.',
 };
 
-const STALE_AFTER_MS = 90_000;
+const STALE_AFTER_MS = 180_000;
 
 function isStale(iso: string | null): boolean {
   if (!iso) return false;
@@ -90,10 +93,9 @@ function haversineMiles(
 
 /**
  * Operator-facing live tracking card shown after dispatch. Surfaces the
- * status banner, distance/last-update metrics, an embedded live map
- * (toggleable), and Copy/SMS/WhatsApp share controls for both tracking
- * links. Raw coordinates are tucked behind a "Technical details" toggle
- * so the default view stays clean.
+ * status banner, distance/last-update metrics, the full-screen driver map
+ * action, and Copy/WhatsApp share controls. Raw coordinates are tucked
+ * behind a "Technical details" toggle so the default view stays clean.
  */
 export function BookingTrackingCard({
   data,
@@ -102,8 +104,10 @@ export function BookingTrackingCard({
   customerPhone,
   onRetryEnsure,
   onRefresh,
+  onTrackDriver,
+  canTrackDriver = false,
+  trackDriverHint,
 }: Props) {
-  const [mapVisible, setMapVisible] = useState(true);
   const [techVisible, setTechVisible] = useState(false);
 
   type BtnState = 'idle' | 'loading' | 'success' | 'error';
@@ -130,7 +134,7 @@ export function BookingTrackingCard({
     [customerPhone],
   );
 
-  // If the driver's GPS ping is older than 90s, surface a "Tracking
+  // If the driver's GPS ping is older than 3 minutes, surface a "Tracking
   // paused" status so the operator gets a clear signal that the live
   // location is stale (matches the customer & driver pages).
   const derivedStatus: TrackingDerivedStatus | null = useMemo(() => {
@@ -223,27 +227,29 @@ export function BookingTrackingCard({
         </View>
       ) : null}
 
-      {/* ── Live map ─────────────────────────────────────── */}
-      {derivedStatus !== 'expired' ? (
-        <View style={styles.mapBlock}>
-          <View style={styles.mapHeader}>
-            <Text style={styles.mapLabel}>Live map</Text>
-            <View style={styles.mapHeaderActions}>
-              <AppButton
-                label={mapVisible ? 'Hide map' : 'Show live map'}
-                variant="secondary"
-                onPress={() => setMapVisible((v) => !v)}
-              />
-              {onRefresh ? (
-                <AppButton label="Refresh now" variant="ghost" onPress={onRefresh} />
-              ) : null}
-            </View>
-          </View>
-          {mapVisible ? (
-            <View style={{ marginTop: space.sm }}>
-              <LiveTrackingMapMobile driver={driverPoint} customer={customerPoint} />
-            </View>
+      {/* ── Driver tracking map ─────────────────────────── */}
+      <View style={styles.mapBlock}>
+        <View style={styles.mapHeader}>
+          <Text style={styles.mapLabel}>Driver map</Text>
+          {onRefresh ? (
+            <AppButton label="Refresh now" variant="ghost" onPress={onRefresh} />
           ) : null}
+        </View>
+        <View style={styles.trackDriverActions}>
+          <AppButton
+            label="Track driver"
+            variant="primary"
+            onPress={onTrackDriver}
+            disabled={!canTrackDriver}
+            fullWidth
+          />
+          {trackDriverHint ? <Text style={styles.hint}>{trackDriverHint}</Text> : null}
+        </View>
+      </View>
+
+      {derivedStatus === 'expired' ? (
+        <View style={styles.expiredBlock}>
+          <Text style={styles.hint}>Customer live tracking link expired.</Text>
         </View>
       ) : null}
 
@@ -419,10 +425,14 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: '600',
   },
-  mapHeaderActions: {
-    flexDirection: 'row',
+  trackDriverActions: {
+    marginTop: space.sm,
     gap: space.xs,
-    flexWrap: 'wrap',
+  },
+  expiredBlock: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: space.sm,
   },
   addressBlock: {
     borderTopWidth: 1,

@@ -4,16 +4,44 @@ import { ASSISTED_CHAT_PRICING_CONTEXT } from '@/lib/pricing-context';
 import type {
   AssistedChatDraft,
   AssistedChatPaymentChoice,
+  AssistedChatQuoteBreakdown,
   DepositCheckoutResponse,
   FinalizeResponse,
+  QuickBookPatchResponse,
   StripePaymentLinkState,
 } from '@/types/assisted-chat';
 
 const LOCKING_NUT_REASON = 'Locking wheel nut removal';
 const MANUAL_PRICE_REASON = 'Manual admin price override';
+const MIN_STRIPE_PAYMENT_LINK_GBP = 0.30;
+const DEPOSIT_PERCENT = 0.20;
 
 function finiteAmount(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function quoteFromQuickBookPatch(
+  breakdown: QuickBookPatchResponse['booking']['priceBreakdown'],
+  distanceKm: string | null,
+): AssistedChatQuoteBreakdown {
+  if (!breakdown) {
+    throw new Error('Pricing engine returned no breakdown.');
+  }
+
+  return {
+    subtotal: breakdown.subtotal,
+    vatAmount: breakdown.vatAmount,
+    total: breakdown.total,
+    lineItems: breakdown.lineItems,
+    distanceKm: distanceKm ? Number(distanceKm) : null,
+    distanceMiles: breakdown.distanceMiles ?? null,
+    fittingPrice: breakdown.fittingPrice ?? null,
+    tyrePrice: breakdown.tyrePrice ?? null,
+    totalPrice: breakdown.totalPrice ?? null,
+    adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
+    adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
+    serviceOrigin: breakdown.serviceOrigin ?? null,
+  };
 }
 
 export interface UseAssistedChatDispatchArgs {
@@ -51,17 +79,17 @@ export function useAssistedChatDispatch({
 
   const choosePaymentAndDispatch = useCallback(
     async (choice: AssistedChatPaymentChoice) => {
-      if (inflight.current) return;
+      if (inflight.current) return false;
       setError(null);
       setResult(null);
       if (!draft.quickBookingId || !draft.quote) {
         setError('Generate a price first.');
-        return;
+        return false;
       }
       // التحقق من البريد الإلكتروني إذا طُلب إرسال تأكيد للعميل
       if (draft.customerEmailMode === 'send_customer_confirmation' && !draft.customer.email.trim()) {
         setError('Enter a valid customer email before sending confirmation.');
-        return;
+        return false;
       }
 
       inflight.current = true;
@@ -69,6 +97,8 @@ export function useAssistedChatDispatch({
       update({ paymentChoice: choice });
 
       try {
+        let canonicalQuote = draft.quote;
+
         // Build the admin adjustment so the backend stores the price the
         // operator actually decided. Manual override wins over locking nut
         // because the operator's typed value is already the final charge.
@@ -89,19 +119,36 @@ export function useAssistedChatDispatch({
           adjustmentAmount = lockingNutCharge;
           adjustmentReason = LOCKING_NUT_REASON;
         }
-        if (adjustmentReason !== null) {
-          await api.patch(`/api/admin/quick-book/${draft.quickBookingId}`, {
-            adminAdjustmentAmount: adjustmentAmount,
-            adminAdjustmentReason: adjustmentReason,
-            pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
-          });
+
+        // Always sync the quick-book row before finalize. This clears stale
+        // hidden admin adjustments that can survive a page reload and make
+        // Stripe see a different amount than the operator sees.
+        const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${draft.quickBookingId}`, {
+          adminAdjustmentAmount: adjustmentAmount,
+          adminAdjustmentReason: adjustmentReason,
+          pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+        });
+        canonicalQuote = quoteFromQuickBookPatch(patched.booking.priceBreakdown, patched.booking.distanceKm);
+        update({ quote: canonicalQuote, priceNeedsRefresh: false });
+
+        const payableTotal = canonicalQuote.total;
+        const stripeCharge = choice === 'deposit' ? payableTotal * DEPOSIT_PERCENT : payableTotal;
+        if (
+          (choice === 'full' || choice === 'deposit') &&
+          (!Number.isFinite(stripeCharge) || stripeCharge < MIN_STRIPE_PAYMENT_LINK_GBP)
+        ) {
+          const paymentLabel = choice === 'deposit' ? 'Deposit payment link' : 'Payment link';
+          setError(
+            `${paymentLabel} cannot be sent for £${stripeCharge.toFixed(2)}. Stripe minimum is £${MIN_STRIPE_PAYMENT_LINK_GBP.toFixed(2)}. Edit the quote price or choose cash.`,
+          );
+          return false;
         }
 
         const paymentMethod = choice === 'cash' ? 'cash' : choice === 'deposit' ? 'deposit' : 'stripe';
         const response = await api.post<FinalizeResponse>(`/api/admin/quick-book/${draft.quickBookingId}/finalize`, {
           paymentMethod,
           customerEmailMode: draft.customerEmailMode,
-          ...(choice === 'deposit' ? { depositPercent: 0.15 } : {}),
+          ...(choice === 'deposit' ? { depositPercent: DEPOSIT_PERCENT } : {}),
         });
 
         let paymentLink: StripePaymentLinkState | null = null;
@@ -109,7 +156,7 @@ export function useAssistedChatDispatch({
           paymentLink = {
             kind: 'full',
             paymentUrl: response.paymentUrl,
-            amountPence: Math.round((response.breakdown?.total ?? draft.quote.total) * 100),
+            amountPence: Math.round((response.breakdown?.total ?? canonicalQuote.total) * 100),
             remainingBalancePence: null,
             bookingId: response.bookingId,
             refNumber: response.refNumber,
@@ -146,23 +193,24 @@ export function useAssistedChatDispatch({
                 vatAmount: response.breakdown.vatAmount,
                 total: response.breakdown.total,
                 lineItems: response.breakdown.lineItems,
-                distanceKm: draft.quote.distanceKm,
-                distanceMiles: response.breakdown.distanceMiles ?? draft.quote.distanceMiles ?? null,
-                fittingPrice: response.breakdown.fittingPrice ?? draft.quote.fittingPrice ?? null,
-                tyrePrice: response.breakdown.tyrePrice ?? draft.quote.tyrePrice ?? null,
-                totalPrice: response.breakdown.totalPrice ?? draft.quote.totalPrice ?? null,
-                adminAdjustmentAmount: response.breakdown.adminAdjustmentAmount ?? draft.quote.adminAdjustmentAmount ?? null,
-                adminAdjustmentReason: response.breakdown.adminAdjustmentReason ?? draft.quote.adminAdjustmentReason ?? null,
+                distanceKm: canonicalQuote.distanceKm,
+                distanceMiles: response.breakdown.distanceMiles ?? canonicalQuote.distanceMiles ?? null,
+                fittingPrice: response.breakdown.fittingPrice ?? canonicalQuote.fittingPrice ?? null,
+                tyrePrice: response.breakdown.tyrePrice ?? canonicalQuote.tyrePrice ?? null,
+                totalPrice: response.breakdown.totalPrice ?? canonicalQuote.totalPrice ?? null,
+                adminAdjustmentAmount: response.breakdown.adminAdjustmentAmount ?? canonicalQuote.adminAdjustmentAmount ?? null,
+                adminAdjustmentReason: response.breakdown.adminAdjustmentReason ?? canonicalQuote.adminAdjustmentReason ?? null,
               }
-            : draft.quote,
+            : canonicalQuote,
         });
-        const backendTotal = response.breakdown?.total ?? draft.quote.total;
+        const backendTotal = response.breakdown?.total ?? canonicalQuote.total;
         onBookingCreated?.({
           response,
           paymentChoice: choice,
           effectiveTotal: backendTotal,
           paymentLink,
         });
+        return true;
       } catch (err) {
         // Stale quick_booking — wipe the dead id so the operator can
         // re-price/dispatch from a fresh session. The dispatch step itself
@@ -185,6 +233,7 @@ export function useAssistedChatDispatch({
         } else {
           setError(err instanceof Error ? err.message : 'Unknown error');
         }
+        return false;
       } finally {
         setBusy(false);
         inflight.current = false;

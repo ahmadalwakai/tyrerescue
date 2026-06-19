@@ -46,7 +46,7 @@ const NOINDEX_PREFIXES = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  /* ─── CORS for assisted-chat-app (Expo web on :8081) ─── */
+  /* ─── CORS for Expo web dev apps (:8081/:8082) ─── */
   // Narrowly scoped: only the API surface the app calls, only localhost dev
   // origins. Production origins never appear here, so behaviour is unchanged.
   const ALLOWED_DEV_ORIGINS = new Set([
@@ -56,8 +56,10 @@ export async function proxy(request: NextRequest) {
     'http://127.0.0.1:8082',
   ]);
   const requestOrigin = request.headers.get('origin');
-  const isAssistedChatApi =
+  const isExpoDevCorsApi =
     pathname.startsWith('/api/mobile/') ||
+    pathname.startsWith('/api/driver/') ||
+    pathname.startsWith('/api/chat/') ||
     pathname === '/api/admin/quotes' ||
     pathname.startsWith('/api/admin/quotes/') ||
     pathname === '/api/admin/quick-book' ||
@@ -66,14 +68,16 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/api/admin/bookings/') ||
     pathname === '/api/admin/drivers' ||
     pathname.startsWith('/api/admin/drivers/') ||
+    pathname === '/api/admin/tracking' ||
+    pathname.startsWith('/api/admin/active-jobs/') ||
     (pathname.startsWith('/api/bookings/') && pathname.endsWith('/deposit')) ||
     pathname.startsWith('/api/tyres/');
   const allowOrigin =
-    isAssistedChatApi && requestOrigin && ALLOWED_DEV_ORIGINS.has(requestOrigin)
+    isExpoDevCorsApi && requestOrigin && ALLOWED_DEV_ORIGINS.has(requestOrigin)
       ? requestOrigin
       : null;
 
-  if (request.method === 'OPTIONS' && isAssistedChatApi && allowOrigin) {
+  if (request.method === 'OPTIONS' && isExpoDevCorsApi && allowOrigin) {
     return new NextResponse(null, {
       status: 204,
       headers: {

@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { eq, and, desc, gt } from 'drizzle-orm';
 import { db, bookings } from '@/lib/db';
 import { requireDriverMobile } from '@/lib/auth';
-import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
-import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
+import { getBookingPaymentSummary } from '@/lib/payments/payment-summary';
 
 // Native polling fallback for the driver app's foreground watcher service.
 // Returns the newest `driver_assigned` booking for the authenticated driver
@@ -25,6 +24,7 @@ interface PollJob {
   paymentType: string;
   jobPricePence: string;
   amountToCollectPence: string;
+  depositAmountPence: string;
   confirmWithAdmin: string;
   assignedAt: string | null;
 }
@@ -65,6 +65,7 @@ export async function GET(request: Request) {
         remainingBalancePence: bookings.remainingBalancePence,
         depositPaidAt: bookings.depositPaidAt,
         stripePiId: bookings.stripePiId,
+        stripeDepositPiId: bookings.stripeDepositPiId,
       })
       .from(bookings)
       .where(and(...whereClauses))
@@ -77,8 +78,10 @@ export async function GET(request: Request) {
       });
     }
 
-    const paymentEvidence = await getBookingPaymentEvidence(row.id);
-    const payment = computeDriverPaymentSummary({
+    const payment = await getBookingPaymentSummary({
+      id: row.id,
+      refNumber: row.refNumber,
+      status: row.status,
       paymentType: row.paymentType,
       totalAmount: row.totalAmount?.toString() ?? null,
       subtotal: row.subtotal?.toString() ?? null,
@@ -87,9 +90,7 @@ export async function GET(request: Request) {
       remainingBalancePence: row.remainingBalancePence,
       depositPaidAt: row.depositPaidAt,
       stripePiId: row.stripePiId,
-      paymentStatus: paymentEvidence.paymentStatus,
-      totalPaidPence: paymentEvidence.totalPaidPence,
-      bookingStatus: row.status,
+      stripeDepositPiId: row.stripeDepositPiId,
     });
 
     const job: PollJob = {
@@ -98,11 +99,12 @@ export async function GET(request: Request) {
       address: row.addressLine,
       title: 'New Job Assigned',
       body: `Job ${row.refNumber} at ${row.addressLine}. Tap to accept.`,
-      paymentStatus: String(payment.status ?? 'unknown'),
-      paymentType: String(payment.type ?? 'unknown'),
-      jobPricePence: String(payment.totalAmountPence ?? 0),
+      paymentStatus: String(payment.state ?? 'unknown'),
+      paymentType: String(payment.method ?? 'unknown'),
+      jobPricePence: String(payment.totalPence ?? 0),
       amountToCollectPence: String(payment.amountToCollectPence ?? 0),
-      confirmWithAdmin: payment.status === 'unknown' ? '1' : '0',
+      depositAmountPence: String(payment.depositAmountPence ?? 0),
+      confirmWithAdmin: payment.state === 'unknown' || payment.state === 'needs_checking' ? '1' : '0',
       assignedAt: row.assignedAt ? row.assignedAt.toISOString() : null,
     };
 

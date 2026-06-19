@@ -52,6 +52,7 @@ class DriverJobMessagingService : FirebaseMessagingService() {
       val address = data["address"] ?: data["location"]
       val deepLink = data["url"] ?: data["deepLink"]
       val amountToCollectPence = data["amountToCollectPence"] ?: data["collectAmount"]
+      val depositAmountPence = data["depositAmountPence"]
       val paymentStatus = data["paymentStatus"]
       val paymentType = data["paymentType"]
       val jobPricePence = data["jobPricePence"] ?: data["price"]
@@ -67,6 +68,7 @@ class DriverJobMessagingService : FirebaseMessagingService() {
           address = address,
           deepLink = deepLink,
           amountToCollectPence = amountToCollectPence,
+          depositAmountPence = depositAmountPence,
           paymentStatus = paymentStatus,
           paymentType = paymentType,
           jobPricePence = jobPricePence,

@@ -28,7 +28,7 @@ function buildPaymentMessage(
   lines.push('Hi, this is Tyre Rescue.');
   lines.push(
     paymentLink.kind === 'deposit'
-      ? 'Your booking is ready. Please pay the 15% deposit using this secure payment link:'
+      ? 'Your booking is ready. Please pay the 20% deposit using this secure payment link:'
       : 'Your booking is ready. Please complete the full payment using this secure payment link:',
   );
   lines.push(paymentLink.paymentUrl);

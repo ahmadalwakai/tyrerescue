@@ -180,6 +180,7 @@ class DriverAlertWatcherService : Service() {
           address = job.optString("address", "").takeIf { it.isNotBlank() },
           deepLink = null,
           amountToCollectPence = job.optString("amountToCollectPence", "").takeIf { it.isNotBlank() },
+          depositAmountPence = job.optString("depositAmountPence", "").takeIf { it.isNotBlank() },
           paymentStatus = job.optString("paymentStatus", "").takeIf { it.isNotBlank() },
           paymentType = job.optString("paymentType", "").takeIf { it.isNotBlank() },
           jobPricePence = job.optString("jobPricePence", "").takeIf { it.isNotBlank() },

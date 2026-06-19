@@ -2,7 +2,7 @@ import { db, drivers, driverNotifications, driverSoundSettings } from '@/lib/db'
 import { eq } from 'drizzle-orm';
 import { sendFcmNotification, isFcmConfigured, getDriverFcmCredentials } from './fcm';
 import { sendDriverJobAlert } from './push/sendDriverJobAlert';
-import type { PaymentSummary } from '@/lib/payments/driver-payment';
+import type { PaymentSummary } from '@/lib/payments/payment-summary';
 
 /**
  * FCM HTTP v1 error codes / patterns that mean the device's registration
@@ -255,6 +255,7 @@ export async function sendDriverPushNotification(
         jobId: typeof data?.jobId === 'string' ? data.jobId : undefined,
         assignmentId: typeof data?.assignmentId === 'string' ? data.assignmentId : undefined,
         amountToCollectPence: toPence(data?.amountToCollectPence),
+        depositAmountPence: toPence(data?.depositAmountPence),
         jobPricePence: toPence(data?.jobPricePence),
         paymentStatus: typeof data?.paymentStatus === 'string' ? data.paymentStatus : undefined,
         paymentType: typeof data?.paymentType === 'string' ? data.paymentType : undefined,
@@ -365,10 +366,11 @@ export async function notifyDriverNewJob(
       ref: refNumber,
       address,
       jobId: jobId ?? '',
-      paymentType: String(payment?.type ?? 'unknown'),
-      paymentStatus: String(payment?.status ?? 'unknown'),
+      paymentType: String(payment?.method ?? 'unknown'),
+      paymentStatus: String(payment?.state ?? 'unknown'),
       amountToCollectPence: String(payment?.amountToCollectPence ?? ''),
-      jobPricePence: String(payment?.totalAmountPence ?? ''),
+      depositAmountPence: String(payment?.depositAmountPence ?? ''),
+      jobPricePence: String(payment?.totalPence ?? ''),
     },
     'new_job',
   );
@@ -393,10 +395,11 @@ export async function notifyDriverReassignment(
       ref: refNumber,
       address,
       jobId: jobId ?? '',
-      paymentType: String(payment?.type ?? 'unknown'),
-      paymentStatus: String(payment?.status ?? 'unknown'),
+      paymentType: String(payment?.method ?? 'unknown'),
+      paymentStatus: String(payment?.state ?? 'unknown'),
       amountToCollectPence: String(payment?.amountToCollectPence ?? ''),
-      jobPricePence: String(payment?.totalAmountPence ?? ''),
+      depositAmountPence: String(payment?.depositAmountPence ?? ''),
+      jobPricePence: String(payment?.totalPence ?? ''),
     },
     'reassignment',
   );

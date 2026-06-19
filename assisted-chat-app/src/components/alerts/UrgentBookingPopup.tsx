@@ -410,11 +410,11 @@ export function UrgentBookingPopup({
                 fullWidth
                 accessibilityLabel="Open the bookings list for this emergency booking"
               />
-              {/* White shimmer overlay. pointerEvents=none so the button stays tappable. */}
+              {/* White shimmer overlay stays non-interactive so the button remains tappable. */}
               <Animated.View
-                pointerEvents="none"
                 style={[
                   styles.shimmerBand,
+                  styles.noPointerEvents,
                   {
                     width: shimmerBandWidth,
                     transform: [
@@ -541,6 +541,9 @@ const styles = StyleSheet.create({
     bottom: -10,
     left: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.45)',
+  },
+  noPointerEvents: {
+    pointerEvents: 'none',
   },
   dismissButton: {
     alignSelf: 'stretch',

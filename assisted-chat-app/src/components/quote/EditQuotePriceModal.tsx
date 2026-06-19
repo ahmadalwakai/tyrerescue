@@ -7,7 +7,7 @@ import { ActionButton } from '../ui/ActionButton';
 import { colors, fontSize, radius, space } from '../theme';
 import type { AssistedChatQuoteBreakdown, QuickBookPatchResponse } from '@/types/assisted-chat';
 
-const MIN_PRICE_GBP = 0.01;
+const MIN_PRICE_GBP = 0.30;
 const MAX_PRICE_GBP = 5000;
 const MANUAL_PRICE_REASON = 'Manual admin price override';
 

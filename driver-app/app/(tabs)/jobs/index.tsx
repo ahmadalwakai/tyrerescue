@@ -6,8 +6,11 @@ import {
   FlatList,
   SectionList,
   RefreshControl,
+  TextInput,
+  ViewStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
 import { driverApi, JobSummary } from '@/api/client';
@@ -19,8 +22,10 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic } from '@/services/haptics';
 import { useI18n } from '@/i18n';
+import { getDriverPaymentDisplay } from '@/lib/payment-status';
 
 type Tab = 'active' | 'upcoming' | 'completed';
+type TabIconName = keyof typeof Ionicons.glyphMap;
 
 function getDayLabel(dateStr: string | null, t: (key: string) => string): string {
   if (!dateStr) return t('jobs.unknown');
@@ -44,6 +49,38 @@ function groupByDay(jobs: JobSummary[], t: (key: string) => string): { title: st
   return Array.from(map, ([title, data]) => ({ title, data }));
 }
 
+function jobNeedsAttention(job: JobSummary): boolean {
+  const payment = job.paymentSummary ?? job.payment ?? null;
+  const paymentDisplay = payment ? getDriverPaymentDisplay(payment, job.refNumber) : null;
+  const paymentNeedsAttention =
+    paymentDisplay != null && ['warning', 'failed', 'pending', 'unknown'].includes(paymentDisplay.tone);
+  const missingTyre = !job.tyreSizeDisplay?.trim();
+  const missingLocation = !job.addressLine?.trim() || !job.lat || !job.lng;
+  return paymentNeedsAttention || missingTyre || missingLocation;
+}
+
+function matchesSearch(job: JobSummary, query: string): boolean {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  const haystack = [
+    job.refNumber,
+    job.customerName,
+    job.customerPhone,
+    job.addressLine,
+    job.tyreSizeDisplay,
+    job.status,
+    job.serviceType,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(needle);
+}
+
+function filterJobs(jobs: JobSummary[], query: string, attentionOnly: boolean): JobSummary[] {
+  return jobs.filter((job) => matchesSearch(job, query) && (!attentionOnly || jobNeedsAttention(job)));
+}
+
 export default function JobsListScreen() {
   const router = useRouter();
   const { t } = useI18n();
@@ -53,6 +90,8 @@ export default function JobsListScreen() {
   const [completed, setCompleted] = useState<JobSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [attentionOnly, setAttentionOnly] = useState(false);
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -80,7 +119,29 @@ export default function JobsListScreen() {
     setRefreshing(false);
   }, [fetchJobs]);
 
-  const completedSections = useMemo(() => groupByDay(completed, t), [completed, t]);
+  const filteredActive = useMemo(
+    () => filterJobs(active, searchQuery, attentionOnly),
+    [active, attentionOnly, searchQuery],
+  );
+  const filteredUpcoming = useMemo(
+    () => filterJobs(upcoming, searchQuery, attentionOnly),
+    [upcoming, attentionOnly, searchQuery],
+  );
+  const filteredCompleted = useMemo(
+    () => filterJobs(completed, searchQuery, attentionOnly),
+    [completed, attentionOnly, searchQuery],
+  );
+  const attentionCount = useMemo(
+    () => [...active, ...upcoming].filter(jobNeedsAttention).length,
+    [active, upcoming],
+  );
+  const completedSections = useMemo(() => groupByDay(filteredCompleted, t), [filteredCompleted, t]);
+  const hasFilters = searchQuery.trim().length > 0 || attentionOnly;
+  const tabItems: { key: Tab; label: string; count: number; icon: TabIconName }[] = [
+    { key: 'active', label: t('jobs.active'), count: filteredActive.length, icon: 'flash-outline' },
+    { key: 'upcoming', label: t('jobs.upcoming'), count: filteredUpcoming.length, icon: 'calendar-outline' },
+    { key: 'completed', label: t('jobs.completed'), count: filteredCompleted.length, icon: 'checkmark-done-outline' },
+  ];
 
   if (loading) return <LoadingScreen />;
 
@@ -92,51 +153,124 @@ export default function JobsListScreen() {
     />
   );
 
-  const emptyComponent = (
+  const renderEmptyState = (icon: TabIconName, defaultTitle: string, defaultMessage?: string) => (
     <EmptyState
-      icon={tab === 'active' ? 'briefcase-outline' : 'checkmark-done-outline'}
-      title={tab === 'active' ? t('jobs.noActiveJobs') : t('jobs.noCompletedJobs')}
-      message={tab === 'active' ? t('jobs.newJobsAppear') : undefined}
+      icon={icon}
+      title={hasFilters ? t('jobs.noMatchingJobs') : defaultTitle}
+      message={hasFilters ? t('jobs.adjustFilters') : defaultMessage}
     />
   );
 
+  const clearFilters = () => {
+    lightHaptic();
+    setSearchQuery('');
+    setAttentionOnly(false);
+  };
+
+  const toggleAttentionOnly = () => {
+    lightHaptic();
+    setAttentionOnly((value) => !value);
+  };
+
   return (
     <View style={styles.container}>
+      <View style={styles.queueHeader}>
+        <Text style={styles.queueEyebrow}>{t('jobs.workQueue')}</Text>
+        <Text style={styles.queueTitle}>{t('tabs.jobs')}</Text>
+        <Text style={styles.queueSubtitle}>{t('jobs.queueSubtitle')}</Text>
+      </View>
+
+      <View style={styles.filterPanel}>
+        <View style={styles.searchBox}>
+          <Ionicons name="search-outline" size={18} color={colors.muted} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t('jobs.searchPlaceholder')}
+            placeholderTextColor={colors.muted}
+            style={styles.searchInput}
+            autoCorrect={false}
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <AnimatedPressable
+              onPress={() => setSearchQuery('')}
+              style={styles.clearSearchButton}
+              pressScale={0.9}
+            >
+              <Ionicons name="close-circle" size={18} color={colors.muted} />
+            </AnimatedPressable>
+          )}
+        </View>
+        <View style={styles.filterActions}>
+          <AnimatedPressable
+            style={[
+              styles.filterChip,
+              attentionOnly && styles.filterChipActive,
+            ] as ViewStyle[]}
+            onPress={toggleAttentionOnly}
+            pressScale={0.96}
+          >
+            <Ionicons
+              name="warning-outline"
+              size={16}
+              color={attentionOnly ? '#0B0F1A' : colors.accent}
+            />
+            <Text style={[styles.filterChipText, attentionOnly && styles.filterChipTextActive]} numberOfLines={1}>
+              {t('jobs.needsAttention')}
+            </Text>
+            <View style={[styles.attentionCount, attentionOnly && styles.attentionCountActive]}>
+              <Text style={[styles.attentionCountText, attentionOnly && styles.attentionCountTextActive]}>
+                {attentionCount}
+              </Text>
+            </View>
+          </AnimatedPressable>
+          {hasFilters && (
+            <AnimatedPressable
+              style={styles.clearFiltersChip}
+              onPress={clearFilters}
+              pressScale={0.96}
+            >
+              <Text style={styles.clearFiltersText}>{t('jobs.clearFilters')}</Text>
+            </AnimatedPressable>
+          )}
+        </View>
+      </View>
+
       {/* Tabs */}
       <View style={styles.tabs}>
-        <AnimatedPressable
-          style={[styles.tab, tab === 'active' && styles.tabActive]}
-          onPress={() => { lightHaptic(); setTab('active'); }}
-          pressScale={0.95}
-        >
-          <Text style={[styles.tabText, tab === 'active' && styles.tabTextActive]}>
-            {t('jobs.active')} ({active.length})
-          </Text>
-        </AnimatedPressable>
-        <AnimatedPressable
-          style={[styles.tab, tab === 'upcoming' && styles.tabActive]}
-          onPress={() => { lightHaptic(); setTab('upcoming'); }}
-          pressScale={0.95}
-        >
-          <Text style={[styles.tabText, tab === 'upcoming' && styles.tabTextActive]}>
-            {t('jobs.upcoming')} ({upcoming.length})
-          </Text>
-        </AnimatedPressable>
-        <AnimatedPressable
-          style={[styles.tab, tab === 'completed' && styles.tabActive]}
-          onPress={() => { lightHaptic(); setTab('completed'); }}
-          pressScale={0.95}
-        >
-          <Text style={[styles.tabText, tab === 'completed' && styles.tabTextActive]}>
-            {t('jobs.completed')} ({completed.length})
-          </Text>
-        </AnimatedPressable>
+        {tabItems.map((item) => {
+          const activeTab = tab === item.key;
+          return (
+            <AnimatedPressable
+              key={item.key}
+              style={[styles.tab, activeTab && styles.tabActive]}
+              onPress={() => { lightHaptic(); setTab(item.key); }}
+              pressScale={0.95}
+            >
+              <Ionicons
+                name={item.icon}
+                size={17}
+                color={activeTab ? colors.accent : colors.muted}
+              />
+              <Text style={[styles.tabText, activeTab && styles.tabTextActive]} numberOfLines={1}>
+                {item.label}
+              </Text>
+              <View style={[styles.tabCount, activeTab && styles.tabCountActive]}>
+                <Text style={[styles.tabCountText, activeTab && styles.tabCountTextActive]}>
+                  {item.count}
+                </Text>
+              </View>
+            </AnimatedPressable>
+          );
+        })}
       </View>
 
       {/* Active: flat list */}
       {tab === 'active' && (
         <FlatList
-          data={active}
+          data={filteredActive}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           refreshControl={refreshControl}
@@ -149,11 +283,7 @@ export default function JobsListScreen() {
             </Animated.View>
           )}
           ListEmptyComponent={
-            <EmptyState
-              icon="briefcase-outline"
-              title={t('jobs.noActiveJobs')}
-              message={t('jobs.activeJobsEmpty')}
-            />
+            renderEmptyState('briefcase-outline', t('jobs.noActiveJobs'), t('jobs.activeJobsEmpty'))
           }
         />
       )}
@@ -161,7 +291,7 @@ export default function JobsListScreen() {
       {/* Upcoming: flat list */}
       {tab === 'upcoming' && (
         <FlatList
-          data={upcoming}
+          data={filteredUpcoming}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           refreshControl={refreshControl}
@@ -174,11 +304,7 @@ export default function JobsListScreen() {
             </Animated.View>
           )}
           ListEmptyComponent={
-            <EmptyState
-              icon="time-outline"
-              title={t('jobs.noUpcomingJobs')}
-              message={t('jobs.upcomingJobsEmpty')}
-            />
+            renderEmptyState('time-outline', t('jobs.noUpcomingJobs'), t('jobs.upcomingJobsEmpty'))
           }
         />
       )}
@@ -202,10 +328,7 @@ export default function JobsListScreen() {
             </Animated.View>
           )}
           ListEmptyComponent={
-            <EmptyState
-              icon="checkmark-done-outline"
-              title={t('jobs.noCompletedJobs')}
-            />
+            renderEmptyState('checkmark-done-outline', t('jobs.noCompletedJobs'))
           }
         />
       )}
@@ -218,30 +341,177 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
+  queueHeader: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.bg,
+  },
+  queueEyebrow: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.xs,
+    color: colors.accent,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  queueTitle: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 34,
+    color: colors.text,
+  },
+  queueSubtitle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.sm,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  filterPanel: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+    backgroundColor: colors.bg,
+  },
+  searchBox: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(24,24,27,0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  searchInput: {
+    flex: 1,
+    minHeight: 44,
+    paddingVertical: 0,
+    fontFamily: 'Inter_500Medium',
+    fontSize: fontSize.sm,
+    color: colors.text,
+  },
+  clearSearchButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  filterChip: {
+    minHeight: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,22,0.32)',
+  },
+  filterChipActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  filterChipText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.xs,
+    color: colors.text,
+  },
+  filterChipTextActive: {
+    color: '#0B0F1A',
+  },
+  attentionCount: {
+    minWidth: 22,
+    height: 20,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(249,115,22,0.18)',
+  },
+  attentionCountActive: {
+    backgroundColor: 'rgba(11,15,26,0.18)',
+  },
+  attentionCountText: {
+    fontFamily: 'Inter_800ExtraBold',
+    fontSize: fontSize.xs,
+    color: colors.accent,
+  },
+  attentionCountTextActive: {
+    color: '#0B0F1A',
+  },
+  clearFiltersChip: {
+    minHeight: 38,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  clearFiltersText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.xs,
+    color: colors.muted,
+  },
   tabs: {
     flexDirection: 'row',
-    padding: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
     gap: spacing.xs,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bg,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
   },
   tab: {
     flex: 1,
+    minHeight: 68,
     paddingVertical: spacing.sm,
-    borderRadius: radius.md,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.lg,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(24,24,27,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
   },
   tabActive: {
-    backgroundColor: colors.card,
+    backgroundColor: 'rgba(249,115,22,0.13)',
+    borderColor: 'rgba(249,115,22,0.42)',
   },
   tabText: {
     fontFamily: 'Inter_600SemiBold',
-    fontSize: fontSize.sm,
+    fontSize: fontSize.xs,
     color: colors.muted,
+    textAlign: 'center',
   },
   tabTextActive: {
     color: colors.accent,
+  },
+  tabCount: {
+    minWidth: 22,
+    height: 20,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  tabCountActive: {
+    backgroundColor: colors.accent,
+  },
+  tabCountText: {
+    fontFamily: 'Inter_800ExtraBold',
+    fontSize: fontSize.xs,
+    color: colors.muted,
+  },
+  tabCountTextActive: {
+    color: '#0B0F1A',
   },
   list: {
     padding: spacing.md,

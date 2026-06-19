@@ -5,6 +5,13 @@ import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { stripe } from '@/lib/stripe';
 import { getAppOrigin } from '@/lib/config/site';
+import { recordPaymentEvent } from '@/lib/payments/payment-summary';
+
+const MIN_STRIPE_CHECKOUT_AMOUNT_PENCE = 30;
+
+function formatPence(pence: number): string {
+  return `£${(pence / 100).toFixed(2)}`;
+}
 
 /**
  * POST /api/bookings/[id]/deposit
@@ -74,6 +81,18 @@ export async function POST(
     const depositAmountPence = booking.depositAmountPence ?? Math.round(totalInPence * 0.20);
     const remainingBalancePence = totalInPence - depositAmountPence;
 
+    if (depositAmountPence < MIN_STRIPE_CHECKOUT_AMOUNT_PENCE) {
+      return NextResponse.json(
+        {
+          error: `Deposit payment links need a deposit of at least ${formatPence(MIN_STRIPE_CHECKOUT_AMOUNT_PENCE)}. Current deposit is ${formatPence(depositAmountPence)}.`,
+          code: 'DEPOSIT_AMOUNT_TOO_LOW',
+          amountPence: depositAmountPence,
+          minimumAmountPence: MIN_STRIPE_CHECKOUT_AMOUNT_PENCE,
+        },
+        { status: 400 },
+      );
+    }
+
     if (mode === 'checkout') {
       const baseUrl = getAppOrigin();
       const session = await stripe.checkout.sessions.create({
@@ -125,6 +144,23 @@ export async function POST(
         })
         .where(eq(bookings.id, bookingId));
 
+      await recordPaymentEvent({
+        bookingId,
+        bookingRef: booking.refNumber,
+        eventType: 'link_sent',
+        paymentMethod: 'deposit_link',
+        linkStatus: 'sent',
+        amountPence: depositAmountPence,
+        currency: 'gbp',
+        stripeSessionId: session.id,
+        stripePaymentIntentId: paymentIntentId,
+        stripeCheckoutUrl: session.url,
+        source: 'admin',
+        status: 'pending',
+        expiresAt: session.expires_at ? new Date(session.expires_at * 1000) : null,
+        metadata: { kind: 'deposit_checkout', remainingBalancePence },
+      });
+
       return NextResponse.json({
         checkoutUrl: session.url,
         sessionId: session.id,
@@ -168,6 +204,20 @@ export async function POST(
         updatedAt: new Date(),
       })
       .where(eq(bookings.id, bookingId));
+
+    await recordPaymentEvent({
+      bookingId,
+      bookingRef: booking.refNumber,
+      eventType: 'link_created',
+      paymentMethod: 'deposit_link',
+      linkStatus: 'created',
+      amountPence: depositAmountPence,
+      currency: 'gbp',
+      stripePaymentIntentId: paymentIntent.id,
+      source: 'admin',
+      status: paymentIntent.status,
+      metadata: { kind: 'deposit_payment_intent', mode: 'elements', remainingBalancePence },
+    });
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,

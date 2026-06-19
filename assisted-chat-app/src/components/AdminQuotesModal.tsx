@@ -41,7 +41,7 @@ const MODE_LABELS: Record<QuoteMode, string> = {
 
 const PAYMENT_OPTIONS: ReadonlyArray<{ value: AdminQuotePaymentOption; label: string }> = [
   { value: 'FULL_PAYMENT', label: 'Full payment' },
-  { value: 'DEPOSIT_15', label: 'Deposit 15%' },
+  { value: 'DEPOSIT_20', label: 'Deposit 20%' },
   { value: 'CASH_ON_ARRIVAL', label: 'Cash on arrival' },
   { value: 'PAYMENT_LINK', label: 'Send payment link' },
 ];
@@ -94,8 +94,16 @@ function formatPence(pence: number): string {
 }
 
 function depositSummary(priceAmount: number): { depositAmountPence: number; remainingBalancePence: number } {
-  const depositAmountPence = Math.round((priceAmount * 15) / 100);
+  const depositAmountPence = Math.round((priceAmount * 20) / 100);
   return { depositAmountPence, remainingBalancePence: priceAmount - depositAmountPence };
+}
+
+function normalizePaymentOption(option: AdminQuotePaymentOption): AdminQuotePaymentOption {
+  return option === 'DEPOSIT_15' ? 'DEPOSIT_20' : option;
+}
+
+function isDepositPaymentOption(option: AdminQuotePaymentOption): boolean {
+  return option === 'DEPOSIT_20' || option === 'DEPOSIT_15';
 }
 
 function getErrorMessage(err: unknown, fallback: string): string {
@@ -150,7 +158,7 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
 
   const openQuote = useCallback(async (quote: AdminQuote) => {
     setSelected(quote);
-    setPaymentOption(quote.selectedPaymentOption ?? 'FULL_PAYMENT');
+    setPaymentOption(quote.selectedPaymentOption ? normalizePaymentOption(quote.selectedPaymentOption) : 'FULL_PAYMENT');
     setConfirmationResult(null);
     setNotesDraft(quote.internalNotes ?? '');
     setDetailLoading(true);
@@ -159,7 +167,7 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
     try {
       const response = await api.get<AdminQuoteResponse>(`/api/admin/quotes/${quote.id}`);
       setSelected(response.quote);
-      setPaymentOption(response.quote.selectedPaymentOption ?? 'FULL_PAYMENT');
+      setPaymentOption(response.quote.selectedPaymentOption ? normalizePaymentOption(response.quote.selectedPaymentOption) : 'FULL_PAYMENT');
       setNotesDraft(response.quote.internalNotes ?? '');
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
@@ -174,7 +182,7 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
 
   const updateSelected = useCallback((quote: AdminQuote) => {
     setSelected(quote);
-    if (quote.selectedPaymentOption) setPaymentOption(quote.selectedPaymentOption);
+    if (quote.selectedPaymentOption) setPaymentOption(normalizePaymentOption(quote.selectedPaymentOption));
     setNotesDraft(quote.internalNotes ?? '');
     setQuotes((items) => items.map((item) => (item.id === quote.id ? quote : item)));
   }, []);
@@ -409,10 +417,10 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
                   <Text style={styles.detailLine}>Full price: {formatPence(selected.priceAmount)}</Text>
                   <Text style={styles.detailLine}>Expiry status: {selected.isExpired ? 'Expired' : 'Valid'}</Text>
                   <Text style={styles.detailLine}>Current status: {selected.quoteStatus}</Text>
-                  <Text style={styles.detailLine}>Selected payment option: {PAYMENT_OPTIONS.find((item) => item.value === paymentOption)?.label ?? paymentOption}</Text>
-                  {paymentOption === 'DEPOSIT_15' && selectedDeposit ? (
+                  <Text style={styles.detailLine}>Selected payment option: {PAYMENT_OPTIONS.find((item) => item.value === normalizePaymentOption(paymentOption))?.label ?? paymentOption}</Text>
+                  {isDepositPaymentOption(paymentOption) && selectedDeposit ? (
                     <>
-                      <Text style={styles.detailLine}>Deposit 15%: {formatPence(selectedDeposit.depositAmountPence)}</Text>
+                      <Text style={styles.detailLine}>Deposit 20%: {formatPence(selectedDeposit.depositAmountPence)}</Text>
                       <Text style={styles.detailLine}>Remaining balance: {formatPence(selectedDeposit.remainingBalancePence)}</Text>
                     </>
                   ) : null}
@@ -425,10 +433,10 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
                     <Pressable
                       key={item.value}
                       onPress={() => setPaymentOption(item.value)}
-                      style={[styles.optionButton, paymentOption === item.value && styles.optionButtonActive]}
+                      style={[styles.optionButton, normalizePaymentOption(paymentOption) === item.value && styles.optionButtonActive]}
                       accessibilityRole="button"
                     >
-                      <Text style={[styles.optionText, paymentOption === item.value && styles.optionTextActive]}>{item.label}</Text>
+                      <Text style={[styles.optionText, normalizePaymentOption(paymentOption) === item.value && styles.optionTextActive]}>{item.label}</Text>
                     </Pressable>
                   ))}
                 </View>

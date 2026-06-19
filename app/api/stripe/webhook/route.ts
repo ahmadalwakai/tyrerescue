@@ -23,8 +23,8 @@ import { createAdminNotification } from '@/lib/notifications';
 import { ensureTrackingSession } from '@/lib/tracking-session';
 import { sendAdminExpoPush } from '@/lib/notifications/expo-admin-push';
 import { notifyDriverPaymentReceived } from '@/lib/notifications/driver-push';
-import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
-import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
+import { getBookingPaymentSummary, recordPaymentEvent } from '@/lib/payments/payment-summary';
+import { stripe } from '@/lib/stripe';
 
 // Disable body parsing - we need the raw body for signature verification
 export const runtime = 'nodejs';
@@ -37,6 +37,8 @@ export const dynamic = 'force-dynamic';
  * Handles:
  * - payment_intent.succeeded: Update booking status, record payment, send emails
  * - payment_intent.payment_failed: Update payment status to failed
+ * - checkout.session.completed: Process hosted checkout completion
+ * - checkout.session.expired: Record expired hosted checkout link
  * 
  * All handlers are idempotent - duplicate webhooks won't cause issues.
  */
@@ -76,11 +78,19 @@ export async function POST(request: NextRequest) {
     // Handle the event
     switch (event.type) {
       case 'payment_intent.succeeded':
-        await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);
+        await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent, event.id);
         break;
 
       case 'payment_intent.payment_failed':
-        await handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
+        await handlePaymentFailed(event.data.object as Stripe.PaymentIntent, event.id);
+        break;
+
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session, event.id);
+        break;
+
+      case 'checkout.session.expired':
+        await handleCheckoutSessionExpired(event.data.object as Stripe.Checkout.Session, event.id);
         break;
 
       default:
@@ -102,7 +112,82 @@ export async function POST(request: NextRequest) {
  * 
  * This is idempotent - checking if payment already exists before processing.
  */
-async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+function checkoutSessionPaymentIntentId(session: Stripe.Checkout.Session): string | null {
+  if (typeof session.payment_intent === 'string') return session.payment_intent;
+  return session.payment_intent?.id ?? null;
+}
+
+function checkoutPaymentMethod(session: Stripe.Checkout.Session): 'card_link' | 'deposit_link' {
+  return session.metadata?.type === 'deposit' ? 'deposit_link' : 'card_link';
+}
+
+async function handleCheckoutSessionCompleted(
+  session: Stripe.Checkout.Session,
+  stripeEventId: string,
+) {
+  const paymentIntentId = checkoutSessionPaymentIntentId(session);
+  if (!paymentIntentId) {
+    const bookingId = session.metadata?.bookingId;
+    if (bookingId) {
+      await recordPaymentEvent({
+        bookingId,
+        bookingRef: session.metadata?.refNumber ?? null,
+        eventType: 'payment_needs_checking',
+        paymentMethod: checkoutPaymentMethod(session),
+        amountPence: session.amount_total ?? null,
+        currency: session.currency ?? 'gbp',
+        stripeSessionId: session.id,
+        source: 'stripe_webhook',
+        status: session.payment_status ?? 'complete_without_payment_intent',
+        metadata: {
+          stripeEventId,
+          reason: 'checkout_completed_without_payment_intent',
+        },
+      });
+    }
+    return;
+  }
+
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  await handlePaymentSucceeded(paymentIntent, stripeEventId, session.id);
+}
+
+async function handleCheckoutSessionExpired(
+  session: Stripe.Checkout.Session,
+  stripeEventId: string,
+) {
+  const bookingId = session.metadata?.bookingId;
+  if (!bookingId) {
+    console.error('Checkout session expired without bookingId metadata:', session.id);
+    return;
+  }
+
+  await recordPaymentEvent({
+    bookingId,
+    bookingRef: session.metadata?.refNumber ?? null,
+    eventType: 'link_expired',
+    paymentMethod: checkoutPaymentMethod(session),
+    linkStatus: 'expired',
+    amountPence: session.amount_total ?? null,
+    currency: session.currency ?? 'gbp',
+    stripeSessionId: session.id,
+    stripePaymentIntentId: checkoutSessionPaymentIntentId(session),
+    source: 'stripe_webhook',
+    status: 'expired',
+    expiresAt: session.expires_at ? new Date(session.expires_at * 1000) : null,
+    metadata: {
+      stripeEventId,
+      paymentStatus: session.payment_status,
+      reason: 'checkout_session_expired',
+    },
+  });
+}
+
+async function handlePaymentSucceeded(
+  paymentIntent: Stripe.PaymentIntent,
+  stripeEventId?: string,
+  checkoutSessionId?: string | null,
+) {
   const paymentIntentId = paymentIntent.id;
   const bookingId = paymentIntent.metadata?.bookingId;
   const refNumber = paymentIntent.metadata?.refNumber;
@@ -117,7 +202,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
 
   // Handle deposit payments separately
   if (paymentType === 'deposit') {
-    await handleDepositPaymentSucceeded(paymentIntent);
+    await handleDepositPaymentSucceeded(paymentIntent, stripeEventId, checkoutSessionId);
     return;
   }
 
@@ -125,7 +210,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   // outstanding balance of an EXISTING (possibly already-assigned) job, so we
   // must NOT require `awaiting_payment` nor clobber the job lifecycle status.
   if (paymentType === 'admin_link') {
-    await handleAdminLinkPaymentSucceeded(paymentIntent);
+    await handleAdminLinkPaymentSucceeded(paymentIntent, stripeEventId, checkoutSessionId);
     return;
   }
 
@@ -137,6 +222,24 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     .limit(1);
 
   if (existingPayment && existingPayment.status === 'succeeded') {
+    await recordPaymentEvent({
+      bookingId,
+      bookingRef: refNumber ?? null,
+      eventType: 'payment_succeeded',
+      paymentMethod: 'card_link',
+      paidVia: 'payment_link',
+      linkStatus: 'paid',
+      amountPence: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      stripeSessionId: checkoutSessionId ?? null,
+      stripePaymentIntentId: paymentIntentId,
+      source: 'stripe_webhook',
+      status: 'succeeded',
+      metadata: {
+        stripeEventId: stripeEventId ?? null,
+        reusedLegacyPaymentId: existingPayment.id,
+      },
+    });
     console.log(`Payment ${paymentIntentId} already processed, skipping`);
     return;
   }
@@ -153,12 +256,6 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
     return;
   }
 
-  // Only process if booking is awaiting payment
-  if (booking.status !== 'awaiting_payment') {
-    console.log(`Booking ${bookingId} not awaiting payment (status: ${booking.status}), skipping`);
-    return;
-  }
-
   const expectedAmountPence = Math.round(Number(booking.totalAmount) * 100);
   if (paymentIntent.amount !== expectedAmountPence) {
     console.error('[webhook] PAYMENT_AMOUNT_MISMATCH', {
@@ -167,6 +264,47 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       expectedAmountPence,
       actualAmountPence: paymentIntent.amount,
     });
+    await recordPaymentEvent({
+      bookingId,
+      bookingRef: booking.refNumber,
+      eventType: 'payment_needs_checking',
+      paymentMethod: 'card_link',
+      amountPence: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      stripeSessionId: checkoutSessionId ?? null,
+      stripePaymentIntentId: paymentIntentId,
+      source: 'stripe_webhook',
+      status: 'amount_mismatch',
+      metadata: {
+        stripeEventId: stripeEventId ?? null,
+        reason: 'payment_amount_mismatch',
+        expectedAmountPence,
+        actualAmountPence: paymentIntent.amount,
+      },
+    });
+    return;
+  }
+
+  if (booking.status !== 'awaiting_payment') {
+    await recordPaymentEvent({
+      bookingId,
+      bookingRef: booking.refNumber,
+      eventType: 'payment_succeeded',
+      paymentMethod: 'card_link',
+      paidVia: 'payment_link',
+      linkStatus: 'paid',
+      amountPence: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      stripeSessionId: checkoutSessionId ?? null,
+      stripePaymentIntentId: paymentIntentId,
+      source: 'stripe_webhook',
+      status: 'succeeded',
+      metadata: {
+        stripeEventId: stripeEventId ?? null,
+        bookingStatus: booking.status,
+      },
+    });
+    console.log(`Booking ${bookingId} not awaiting payment (status: ${booking.status}), ledger recorded only`);
     return;
   }
 
@@ -193,6 +331,22 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       stripePayload: paymentIntent as unknown as Record<string, unknown>,
     });
   }
+
+  await recordPaymentEvent({
+    bookingId,
+    bookingRef: booking.refNumber,
+    eventType: 'payment_succeeded',
+    paymentMethod: 'card_link',
+    paidVia: 'payment_link',
+    linkStatus: 'paid',
+    amountPence: paymentIntent.amount,
+    currency: paymentIntent.currency,
+    stripeSessionId: checkoutSessionId ?? null,
+    stripePaymentIntentId: paymentIntentId,
+    source: 'stripe_webhook',
+    status: 'succeeded',
+    metadata: { stripeEventId: stripeEventId ?? null },
+  });
 
   // Update booking status to paid (full payment)
   await db
@@ -414,7 +568,11 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
  * payment record + booking payment fields, and notifies admin + driver WITHOUT
  * altering the job's lifecycle status (en_route/arrived/etc. are preserved).
  */
-async function handleAdminLinkPaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+async function handleAdminLinkPaymentSucceeded(
+  paymentIntent: Stripe.PaymentIntent,
+  stripeEventId?: string,
+  checkoutSessionId?: string | null,
+) {
   const paymentIntentId = paymentIntent.id;
   const bookingId = paymentIntent.metadata?.bookingId;
 
@@ -433,6 +591,25 @@ async function handleAdminLinkPaymentSucceeded(paymentIntent: Stripe.PaymentInte
     .limit(1);
 
   if (existingPayment && existingPayment.status === 'succeeded') {
+    await recordPaymentEvent({
+      bookingId,
+      bookingRef: paymentIntent.metadata?.refNumber ?? null,
+      eventType: 'payment_succeeded',
+      paymentMethod: 'card_link',
+      paidVia: 'payment_link',
+      linkStatus: 'paid',
+      amountPence: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      stripeSessionId: checkoutSessionId ?? null,
+      stripePaymentIntentId: paymentIntentId,
+      source: 'stripe_webhook',
+      status: 'succeeded',
+      metadata: {
+        stripeEventId: stripeEventId ?? null,
+        source: 'admin_link',
+        reusedLegacyPaymentId: existingPayment.id,
+      },
+    });
     console.log(`Admin-link payment ${paymentIntentId} already processed, skipping`);
     return;
   }
@@ -448,8 +625,10 @@ async function handleAdminLinkPaymentSucceeded(paymentIntent: Stripe.PaymentInte
     return;
   }
 
-  const paymentEvidence = await getBookingPaymentEvidence(booking.id);
-  const outstandingBeforePayment = computeDriverPaymentSummary({
+  const outstandingBeforePayment = (await getBookingPaymentSummary({
+    id: booking.id,
+    refNumber: booking.refNumber,
+    status: booking.status,
     paymentType: booking.paymentType,
     totalAmount: booking.totalAmount?.toString() ?? null,
     subtotal: booking.subtotal?.toString() ?? null,
@@ -458,10 +637,8 @@ async function handleAdminLinkPaymentSucceeded(paymentIntent: Stripe.PaymentInte
     remainingBalancePence: booking.remainingBalancePence,
     depositPaidAt: booking.depositPaidAt,
     stripePiId: booking.stripePiId,
-    paymentStatus: paymentEvidence.paymentStatus,
-    totalPaidPence: paymentEvidence.totalPaidPence,
-    bookingStatus: booking.status,
-  }).amountToCollectPence;
+    stripeDepositPiId: booking.stripeDepositPiId,
+  })).amountToCollectPence ?? 0;
 
   if (paymentIntent.amount !== outstandingBeforePayment) {
     console.warn('[webhook:admin-link] PAYMENT_AMOUNT_MISMATCH', {
@@ -478,6 +655,24 @@ async function handleAdminLinkPaymentSucceeded(paymentIntent: Stripe.PaymentInte
       actorUserId: null,
       actorRole: 'system',
       note: `PAYMENT_AMOUNT_MISMATCH: online payment amount did not equal the saved outstanding balance.`,
+    });
+    await recordPaymentEvent({
+      bookingId,
+      bookingRef: booking.refNumber,
+      eventType: 'payment_needs_checking',
+      paymentMethod: 'card_link',
+      amountPence: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      stripeSessionId: checkoutSessionId ?? null,
+      stripePaymentIntentId: paymentIntentId,
+      source: 'stripe_webhook',
+      status: 'amount_mismatch',
+      metadata: {
+        stripeEventId: stripeEventId ?? null,
+        reason: 'admin_link_amount_mismatch',
+        expectedAmountPence: outstandingBeforePayment,
+        actualAmountPence: paymentIntent.amount,
+      },
     });
     return;
   }
@@ -503,6 +698,25 @@ async function handleAdminLinkPaymentSucceeded(paymentIntent: Stripe.PaymentInte
       stripePayload: paymentIntent as unknown as Record<string, unknown>,
     });
   }
+
+  await recordPaymentEvent({
+    bookingId,
+    bookingRef: booking.refNumber,
+    eventType: 'payment_succeeded',
+    paymentMethod: 'card_link',
+    paidVia: 'payment_link',
+    linkStatus: 'paid',
+    amountPence: paymentIntent.amount,
+    currency: paymentIntent.currency,
+    stripeSessionId: checkoutSessionId ?? null,
+    stripePaymentIntentId: paymentIntentId,
+    source: 'stripe_webhook',
+    status: 'succeeded',
+    metadata: {
+      stripeEventId: stripeEventId ?? null,
+      source: 'admin_link',
+    },
+  });
 
   if (outstandingBeforePayment <= 0) {
     console.warn(
@@ -578,7 +792,11 @@ async function handleAdminLinkPaymentSucceeded(paymentIntent: Stripe.PaymentInte
 
   console.log(`Admin-link payment ${paymentIntentId} processed for booking ${booking.refNumber}`);
 }
-async function handleDepositPaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+async function handleDepositPaymentSucceeded(
+  paymentIntent: Stripe.PaymentIntent,
+  stripeEventId?: string,
+  checkoutSessionId?: string | null,
+) {
   const paymentIntentId = paymentIntent.id;
   const bookingId = paymentIntent.metadata?.bookingId;
   const refNumber = paymentIntent.metadata?.refNumber;
@@ -604,6 +822,24 @@ async function handleDepositPaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
   // Idempotency: skip if deposit already marked as paid
   if (booking.depositPaidAt) {
+    await recordPaymentEvent({
+      bookingId,
+      bookingRef: booking.refNumber,
+      eventType: 'deposit_succeeded',
+      paymentMethod: 'deposit_link',
+      paidVia: 'payment_link',
+      linkStatus: 'paid',
+      amountPence: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      stripeSessionId: checkoutSessionId ?? null,
+      stripePaymentIntentId: paymentIntentId,
+      source: 'stripe_webhook',
+      status: 'succeeded',
+      metadata: {
+        stripeEventId: stripeEventId ?? null,
+        reusedDepositPaidAt: booking.depositPaidAt.toISOString(),
+      },
+    });
     console.log(`Deposit for booking ${bookingId} already processed, skipping`);
     return;
   }
@@ -617,6 +853,24 @@ async function handleDepositPaymentSucceeded(paymentIntent: Stripe.PaymentIntent
       paymentIntentId,
       expectedAmountPence: expectedDepositAmountPence,
       actualAmountPence: paymentIntent.amount,
+    });
+    await recordPaymentEvent({
+      bookingId,
+      bookingRef: booking.refNumber,
+      eventType: 'payment_needs_checking',
+      paymentMethod: 'deposit_link',
+      amountPence: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      stripeSessionId: checkoutSessionId ?? null,
+      stripePaymentIntentId: paymentIntentId,
+      source: 'stripe_webhook',
+      status: 'amount_mismatch',
+      metadata: {
+        stripeEventId: stripeEventId ?? null,
+        reason: 'deposit_amount_mismatch',
+        expectedAmountPence: expectedDepositAmountPence,
+        actualAmountPence: paymentIntent.amount,
+      },
     });
     return;
   }
@@ -646,6 +900,25 @@ async function handleDepositPaymentSucceeded(paymentIntent: Stripe.PaymentIntent
     currency: paymentIntent.currency,
     status: 'succeeded',
     stripePayload: paymentIntent as unknown as Record<string, unknown>,
+  });
+
+  await recordPaymentEvent({
+    bookingId,
+    bookingRef: booking.refNumber,
+    eventType: 'deposit_succeeded',
+    paymentMethod: 'deposit_link',
+    paidVia: 'payment_link',
+    linkStatus: 'paid',
+    amountPence: depositAmountPence,
+    currency: paymentIntent.currency,
+    stripeSessionId: checkoutSessionId ?? null,
+    stripePaymentIntentId: paymentIntentId,
+    source: 'stripe_webhook',
+    status: 'succeeded',
+    metadata: {
+      stripeEventId: stripeEventId ?? null,
+      remainingBalancePence,
+    },
   });
 
   // Record status history
@@ -696,7 +969,7 @@ async function handleDepositPaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 /**
  * Handle payment_intent.payment_failed event
  */
-async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
+async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent, stripeEventId?: string) {
   const paymentIntentId = paymentIntent.id;
   const bookingId = paymentIntent.metadata?.bookingId;
 
@@ -782,6 +1055,23 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
       console.error(`Error releasing reservations for ${bookingId}:`, releaseError);
     }
   }
+
+  await recordPaymentEvent({
+    bookingId,
+    bookingRef: booking?.refNumber ?? paymentIntent.metadata?.refNumber ?? null,
+    eventType: 'payment_failed',
+    paymentMethod: paymentIntent.metadata?.type === 'deposit' ? 'deposit_link' : 'card_link',
+    linkStatus: 'failed',
+    amountPence: paymentIntent.amount,
+    currency: paymentIntent.currency,
+    stripePaymentIntentId: paymentIntentId,
+    source: 'stripe_webhook',
+    status: 'failed',
+    metadata: {
+      stripeEventId: stripeEventId ?? null,
+      error: paymentIntent.last_payment_error?.message ?? null,
+    },
+  });
 
   console.log(`Payment failure recorded for ${paymentIntentId}`);
 

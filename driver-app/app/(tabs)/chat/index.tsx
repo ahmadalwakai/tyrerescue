@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
 import { useRouter } from 'expo-router';
 import { format } from 'date-fns';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { colors, spacing, fontSize, radius } from '@/constants/theme';
+import { colors, spacing, fontSize } from '@/constants/theme';
 import { chatApi, ChatConversation } from '@/api/client';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { EmptyState } from '@/components/EmptyState';
@@ -37,6 +37,11 @@ export default function ChatListScreen() {
   }, []);
 
   useRefreshOnFocus(fetchConversations);
+
+  useEffect(() => {
+    const timer = setInterval(fetchConversations, 5_000);
+    return () => clearInterval(timer);
+  }, [fetchConversations]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -154,7 +159,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
   },
   badge: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.danger,
     borderRadius: 10,
     minWidth: 20,
     height: 20,

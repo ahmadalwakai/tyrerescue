@@ -51,6 +51,7 @@ class DriverJobAlertActivity : AppCompatActivity() {
     val address = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_ADDRESS).orEmpty()
     val deepLink = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_URL).orEmpty()
     val amountToCollectPence = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_AMOUNT_TO_COLLECT_PENCE).orEmpty()
+    val depositAmountPence = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_DEPOSIT_AMOUNT_PENCE).orEmpty()
     val paymentStatus = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_PAYMENT_STATUS).orEmpty()
     val paymentType = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_PAYMENT_TYPE).orEmpty()
     val jobPricePence = intent?.getStringExtra(DriverJobAlertNotifier.EXTRA_JOB_PRICE_PENCE).orEmpty()
@@ -61,7 +62,7 @@ class DriverJobAlertActivity : AppCompatActivity() {
     try {
       enableLockScreenDisplay()
       Log.i(TAG, "DRIVER_ALERT_ACTIVITY_LOCKSCREEN_FLAGS_SET refSuffix=$refSuffix")
-      setContentView(buildContentView(ref, title, body, address, deepLink, amountToCollectPence, paymentStatus, paymentType, jobPricePence))
+      setContentView(buildContentView(ref, title, body, address, deepLink, amountToCollectPence, depositAmountPence, paymentStatus, paymentType, jobPricePence))
       startAlertSignals(refSuffix)
     } catch (err: Exception) {
       Log.e(TAG, "Failed to initialize driver job alert UI", err)
@@ -143,6 +144,7 @@ class DriverJobAlertActivity : AppCompatActivity() {
     address: String,
     deepLink: String,
     amountToCollectPence: String,
+    depositAmountPence: String,
     paymentStatus: String,
     paymentType: String,
     jobPricePence: String,
@@ -188,22 +190,25 @@ class DriverJobAlertActivity : AppCompatActivity() {
 
     val paymentView = TextView(this).apply {
       val pence = amountToCollectPence.toLongOrNull()
+      val deposit = depositAmountPence.toLongOrNull()
       val price = jobPricePence.toLongOrNull()
+      val isDeposit = paymentType == "deposit" || paymentType == "deposit_link"
       val priceLine = if (price != null && price > 0) {
         "Job price: \u00A3${String.format("%.2f", price / 100.0)}"
       } else null
       val methodLine = when (paymentType) {
         "cash" -> "Payment: Cash on completion"
-        "full" -> "Payment: Full online payment"
-        "deposit" -> if (paymentStatus == "deposit_paid") "Payment: Deposit paid online" else "Payment: Deposit (unpaid)"
+        "full", "card_link" -> "Payment: Full online payment"
+        "deposit", "deposit_link" -> if (paymentStatus == "deposit_paid" || paymentStatus == "balance_due") "Payment: 20% deposit paid online" else "Payment: 20% deposit link"
         else -> null
       }
       val collectLine = when {
         paymentStatus == "paid" && pence != null && pence <= 0L -> "Nothing to collect"
         paymentStatus == "needs_checking" -> if (pence != null && pence > 0L) "Payment needs checking: \u00A3${String.format("%.2f", pence / 100.0)}" else "Payment needs checking"
         paymentStatus == "failed" -> if (pence != null && pence > 0L) "Payment failed: \u00A3${String.format("%.2f", pence / 100.0)}" else "Payment failed"
+        paymentStatus == "pending" && isDeposit -> if (deposit != null && deposit > 0L) "20% deposit pending: \u00A3${String.format("%.2f", deposit / 100.0)}" else "20% deposit pending"
         paymentStatus == "pending" -> if (pence != null && pence > 0L) "Payment pending: \u00A3${String.format("%.2f", pence / 100.0)}" else "Payment pending"
-        paymentStatus == "deposit_paid" && pence != null && pence > 0L -> "Balance due: \u00A3${String.format("%.2f", pence / 100.0)}"
+        (paymentStatus == "deposit_paid" || paymentStatus == "balance_due") && pence != null && pence > 0L -> "Balance due: \u00A3${String.format("%.2f", pence / 100.0)}"
         paymentType == "cash" && pence != null && pence > 0L -> "Cash to collect: \u00A3${String.format("%.2f", pence / 100.0)}"
         pence != null && pence > 0L -> "Amount due: \u00A3${String.format("%.2f", pence / 100.0)}"
         paymentStatus == "unknown" -> "Confirm payment with admin"

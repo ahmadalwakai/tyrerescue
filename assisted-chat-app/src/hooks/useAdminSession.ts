@@ -109,7 +109,7 @@ export function useAdminSession(): AdminSession {
         const looksLikeLocalhost = /localhost|127\.0\.0\.1/.test(API_BASE_URL);
         throw new Error(
           looksLikeLocalhost
-            ? 'Cannot reach the local API server. Make sure Next.js is running on localhost:3000.'
+            ? 'Cannot reach the local API server. Make sure the web API is running.'
             : 'API base URL is not reachable. Check EXPO_PUBLIC_API_BASE_URL.',
         );
       }

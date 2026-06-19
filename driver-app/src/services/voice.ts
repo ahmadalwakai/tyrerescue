@@ -17,7 +17,7 @@
  * no-ops (wrapped in try/catch) so the route screen can never crash.
  */
 import * as Speech from 'expo-speech';
-import * as SecureStore from 'expo-secure-store';
+import * as secureStorage from '@/services/secure-storage';
 
 const VOICE_ENABLED_KEY = 'route_voice_enabled';
 
@@ -46,7 +46,7 @@ function speechLanguage(locale: 'en' | 'ar'): string {
  */
 export async function loadVoiceEnabled(): Promise<boolean> {
   try {
-    const stored = await SecureStore.getItemAsync(VOICE_ENABLED_KEY);
+    const stored = await secureStorage.getItemAsync(VOICE_ENABLED_KEY);
     // null/undefined => no saved preference => default ON. Only an explicit
     // '0' means the driver chose to mute.
     enabled = stored == null ? true : stored === '1';
@@ -62,7 +62,7 @@ export async function setVoiceEnabled(next: boolean): Promise<void> {
   enabled = next;
   if (!next) stopVoice();
   try {
-    await SecureStore.setItemAsync(VOICE_ENABLED_KEY, next ? '1' : '0');
+    await secureStorage.setItemAsync(VOICE_ENABLED_KEY, next ? '1' : '0');
   } catch {
     // Persistence is best-effort; the in-memory flag still applies this session.
   }

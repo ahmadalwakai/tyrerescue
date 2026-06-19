@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { db, bookings, bookingTyres, tyreProducts, bookingStatusHistory } from '@/lib/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { requireDriverMobile } from '@/lib/auth';
-import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
-import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
+import { getBookingPaymentSummary } from '@/lib/payments/payment-summary';
 
 export async function GET(
   request: Request,
@@ -57,7 +56,20 @@ export async function GET(
       .from(bookingStatusHistory)
       .where(eq(bookingStatusHistory.bookingId, booking.id))
       .orderBy(desc(bookingStatusHistory.createdAt));
-    const paymentEvidence = await getBookingPaymentEvidence(booking.id);
+    const paymentSummary = await getBookingPaymentSummary({
+      id: booking.id,
+      refNumber: booking.refNumber,
+      status: booking.status,
+      paymentType: booking.paymentType,
+      totalAmount: booking.totalAmount?.toString() ?? null,
+      subtotal: booking.subtotal?.toString() ?? null,
+      vatAmount: booking.vatAmount?.toString() ?? null,
+      depositAmountPence: booking.depositAmountPence,
+      remainingBalancePence: booking.remainingBalancePence,
+      depositPaidAt: booking.depositPaidAt,
+      stripePiId: booking.stripePiId,
+      stripeDepositPiId: booking.stripeDepositPiId,
+    });
 
     return NextResponse.json({
       id: booking.id,
@@ -90,19 +102,8 @@ export async function GET(
       subtotal: booking.subtotal?.toString() ?? null,
       vatAmount: booking.vatAmount?.toString() ?? null,
       totalAmount: booking.totalAmount?.toString() ?? null,
-      payment: computeDriverPaymentSummary({
-        paymentType: booking.paymentType,
-        totalAmount: booking.totalAmount?.toString() ?? null,
-        subtotal: booking.subtotal?.toString() ?? null,
-        vatAmount: booking.vatAmount?.toString() ?? null,
-        depositAmountPence: booking.depositAmountPence,
-        remainingBalancePence: booking.remainingBalancePence,
-        depositPaidAt: booking.depositPaidAt,
-        stripePiId: booking.stripePiId,
-        paymentStatus: paymentEvidence.paymentStatus,
-        totalPaidPence: paymentEvidence.totalPaidPence,
-        bookingStatus: booking.status,
-      }),
+      paymentSummary,
+      payment: paymentSummary,
       createdAt: booking.createdAt?.toISOString() ?? null,
       tyres: tyres.map((t) => ({
         id: t.id,

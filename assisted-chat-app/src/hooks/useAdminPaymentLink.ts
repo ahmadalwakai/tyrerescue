@@ -16,6 +16,7 @@ export type PaymentLinkLiveStatus = 'awaiting' | 'paid' | 'failed' | 'checking';
 
 export interface UseAdminPaymentLink {
   busy: boolean;
+  checking: boolean;
   error: string | null;
   /**
    * Live payment status polled from the server every 10 s while a payment link
@@ -29,6 +30,12 @@ export interface UseAdminPaymentLink {
    * rapid double-taps can never create duplicate links.
    */
   createForDispatchedBooking: () => Promise<StripePaymentLinkState | null>;
+  /**
+   * Ask the backend to check Stripe immediately and persist the result. This is
+   * the no-webhook fallback: the apps still trust the backend payment summary,
+   * but the admin can refresh it on demand.
+   */
+  checkNow: () => Promise<PaymentLinkLiveStatus | null>;
 }
 
 const POLL_INTERVAL_MS = 10_000;
@@ -44,6 +51,7 @@ export function useAdminPaymentLink({
   update,
 }: UseAdminPaymentLinkArgs): UseAdminPaymentLink {
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [liveStatus, setLiveStatus] = useState<PaymentLinkLiveStatus | null>(null);
   const inflight = useRef(false);
@@ -59,6 +67,25 @@ export function useAdminPaymentLink({
   const ref = draft.dispatchedRefNumber;
   const hasLink = draft.paymentLink != null;
 
+  const applyStatus = useCallback((res: {
+    status: string;
+    state?: string;
+    linkStatus?: string;
+    amountToCollectPence: number | null;
+  }): PaymentLinkLiveStatus => {
+    const state = res.state ?? res.status;
+    const nextStatus: PaymentLinkLiveStatus =
+      state === 'paid' || res.amountToCollectPence === 0
+        ? 'paid'
+        : state === 'failed' || res.linkStatus === 'failed'
+          ? 'failed'
+          : state === 'needs_checking' || res.linkStatus === 'expired'
+            ? 'checking'
+            : 'awaiting';
+    setLiveStatus(nextStatus);
+    return nextStatus;
+  }, []);
+
   useEffect(() => {
     if (!hasLink || !ref) {
       setLiveStatus(null);
@@ -71,18 +98,12 @@ export function useAdminPaymentLink({
       try {
         const res = await api.get<{
           status: string;
-          amountToCollectPence: number;
+          state?: string;
+          linkStatus?: string;
+          amountToCollectPence: number | null;
         }>(`/api/admin/bookings/${encodeURIComponent(ref)}/payment-link`);
         if (!active || !mountedRef.current) return;
-        if (res.status === 'paid' || res.amountToCollectPence === 0) {
-          setLiveStatus('paid');
-        } else if (res.status === 'failed') {
-          setLiveStatus('failed');
-        } else if (res.status === 'needs_checking') {
-          setLiveStatus('checking');
-        } else {
-          setLiveStatus('awaiting');
-        }
+        applyStatus(res);
       } catch {
         // Silent — keep showing the last known status until next tick.
       }
@@ -94,7 +115,7 @@ export function useAdminPaymentLink({
       active = false;
       clearInterval(timer);
     };
-  }, [hasLink, ref]);
+  }, [applyStatus, hasLink, ref]);
 
   const createForDispatchedBooking = useCallback(async () => {
     if (inflight.current) return null;
@@ -134,5 +155,33 @@ export function useAdminPaymentLink({
     }
   }, [draft.dispatchedRefNumber, update]);
 
-  return { busy, error, liveStatus, createForDispatchedBooking };
+  const checkNow = useCallback(async (): Promise<PaymentLinkLiveStatus | null> => {
+    const ref = draft.dispatchedRefNumber;
+    if (!ref) {
+      setError('Dispatch the booking before checking payment.');
+      return null;
+    }
+    setChecking(true);
+    setError(null);
+    try {
+      const res = await api.patch<{
+        ok: boolean;
+        status: string;
+        state?: string;
+        linkStatus?: string;
+        amountToCollectPence: number | null;
+        message?: string;
+      }>(`/api/admin/bookings/${encodeURIComponent(ref)}/payment-link/check`, {});
+      return applyStatus(res);
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'Failed to check Stripe payment.';
+      setError(message);
+      return null;
+    } finally {
+      setChecking(false);
+    }
+  }, [applyStatus, draft.dispatchedRefNumber]);
+
+  return { busy, checking, error, liveStatus, createForDispatchedBooking, checkNow };
 }

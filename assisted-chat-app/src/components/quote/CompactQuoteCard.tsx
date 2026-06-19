@@ -36,6 +36,8 @@ interface CompactQuoteCardProps {
 
   saveBusy: boolean;
   payBusy: boolean;
+  payLabel?: string;
+  showPayAction?: boolean;
 
   onEditPrice: () => void;
   onSaveQuote: () => void;
@@ -73,6 +75,8 @@ export function CompactQuoteCard({
   missingQuickBooking,
   saveBusy,
   payBusy,
+  payLabel = 'Send payment link',
+  showPayAction = true,
   onEditPrice,
   onSaveQuote,
   onPay,
@@ -165,16 +169,18 @@ export function CompactQuoteCard({
           disabledReason={saveDisabledReason}
           fullWidth
         />
-        <ActionButton
-          label="Pay / Send link"
-          variant="primary"
-          onPress={onPay}
-          loading={payBusy}
-          loadingLabel="Sending..."
-          disabled={payDisabled}
-          disabledReason={payDisabledReason}
-          fullWidth
-        />
+        {showPayAction ? (
+          <ActionButton
+            label={payLabel}
+            variant="primary"
+            onPress={onPay}
+            loading={payBusy}
+            loadingLabel="Opening..."
+            disabled={payDisabled}
+            disabledReason={payDisabledReason}
+            fullWidth
+          />
+        ) : null}
       </View>
 
       {onToggleBreakdown ? (

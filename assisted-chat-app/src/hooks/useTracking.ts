@@ -2,18 +2,26 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 
 export interface TrackingPaymentSummary {
-  type: 'cash' | 'full' | 'deposit' | null;
-  status: string;
-  paymentStatus: string | null;
-  subtotalPence: number | null;
-  vatAmountPence: number | null;
-  totalAmountPence: number | null;
-  totalPaidPence: number;
+  state: string;
+  label: string;
+  instruction: string;
+  tone: 'success' | 'warning' | 'danger' | 'neutral' | string;
+  method: string;
+  methodLabel: string;
+  linkStatus: string;
+  paidVia: string | null;
+  totalPence: number | null;
+  paidPence: number | null;
   depositAmountPence: number | null;
+  depositPaidPence: number | null;
   remainingBalancePence: number | null;
-  amountToCollectPence: number;
+  amountToCollectPence: number | null;
+  paymentUpdatedAt: string | null;
   depositPaidAt: string | null;
-  bookingStatus: string | null;
+  linkSentAt: string | null;
+  linkOpenedAt: string | null;
+  linkExpiresAt: string | null;
+  reason: string;
 }
 
 export interface TrackingDriver {
@@ -53,31 +61,37 @@ export interface TrackingData {
   generatedAt: string;
 }
 
+export type TrackingJobsRange = 'today' | 'yesterday' | 'last_7_days' | 'last_month' | 'last_year';
+
 const POLL_MS = 12_000;
 
-export function useTracking(enabled: boolean) {
+export function useTracking(enabled: boolean, jobsRange: TrackingJobsRange = 'today') {
   const [data, setData] = useState<TrackingData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const aliveRef = useRef(true);
+  const requestSeqRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const requestSeq = ++requestSeqRef.current;
     setLoading(true);
     try {
-      const result = await api.get<TrackingData>('/api/admin/tracking');
-      if (!aliveRef.current) return;
+      const result = await api.get<TrackingData>(
+        `/api/admin/tracking?jobsRange=${encodeURIComponent(jobsRange)}`,
+      );
+      if (!aliveRef.current || requestSeq !== requestSeqRef.current) return;
       setData(result);
       setError(null);
       setLastUpdated(Date.now());
     } catch (err) {
-      if (!aliveRef.current) return;
+      if (!aliveRef.current || requestSeq !== requestSeqRef.current) return;
       setError(err instanceof Error ? err.message : 'Could not load tracking data');
     } finally {
-      if (aliveRef.current) setLoading(false);
+      if (aliveRef.current && requestSeq === requestSeqRef.current) setLoading(false);
     }
-  }, []);
+  }, [jobsRange]);
 
   useEffect(() => {
     aliveRef.current = true;

@@ -35,6 +35,7 @@ import { validateRecipientEmail } from '@/lib/email/validate-recipient';
 import { sendBookingEmailOnce } from '@/lib/email/resend';
 import { bookingConfirmed } from '@/lib/email/templates';
 import type { CustomerEmailMode } from '@/app/api/admin/quick-book/route';
+import { recordPaymentEvent } from '@/lib/payments/payment-summary';
 
 const SERVICE_MAP: Record<string, string> = {
   fit: 'tyre_replacement',
@@ -52,6 +53,16 @@ const COMPANY = {
   phone: '0141 266 0690',
   email: 'support@tyrerescue.uk',
 };
+
+const MIN_STRIPE_CHECKOUT_AMOUNT_PENCE = 30;
+
+function formatPence(amountPence: number): string {
+  return `£${(amountPence / 100).toFixed(2)}`;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown error';
+}
 
 async function generateInvoiceNumber(): Promise<string> {
   const year = new Date().getFullYear();
@@ -253,12 +264,57 @@ export async function POST(
 
   const addressLine = qb.locationAddress || qb.locationPostcode || `${lat}, ${lng}`;
 
-  const initialStatus = paymentMethod === 'cash' ? 'paid' : 'awaiting_payment';
+  const initialStatus = 'awaiting_payment';
   let checkoutUrl: string | null = null;
+  let checkoutSessionId: string | null = null;
+  let checkoutPaymentIntentId: string | null = null;
+  let checkoutExpiresAt: Date | null = null;
 
   const totalInPence = Math.round(breakdown.total * 100);
   const depositAmountPence = paymentMethod === 'deposit' ? Math.round(totalInPence * depositPercent) : null;
   const remainingBalancePence = depositAmountPence ? totalInPence - depositAmountPence : null;
+
+  if (!Number.isFinite(totalInPence) || totalInPence <= 0) {
+    return NextResponse.json(
+      {
+        error: 'Quote total must be greater than zero before finalizing.',
+        code: 'INVALID_PAYMENT_AMOUNT',
+        amountPence: Number.isFinite(totalInPence) ? totalInPence : null,
+      },
+      { status: 400 },
+    );
+  }
+
+  if (
+    (paymentMethod === 'stripe' || paymentMethod === 'deposit') &&
+    totalInPence < MIN_STRIPE_CHECKOUT_AMOUNT_PENCE
+  ) {
+    return NextResponse.json(
+      {
+        error: `Payment links need a quote of at least ${formatPence(MIN_STRIPE_CHECKOUT_AMOUNT_PENCE)}. Current quote is ${formatPence(totalInPence)}.`,
+        code: 'PAYMENT_AMOUNT_TOO_LOW',
+        amountPence: totalInPence,
+        minimumAmountPence: MIN_STRIPE_CHECKOUT_AMOUNT_PENCE,
+      },
+      { status: 400 },
+    );
+  }
+
+  if (
+    paymentMethod === 'deposit' &&
+    depositAmountPence != null &&
+    depositAmountPence < MIN_STRIPE_CHECKOUT_AMOUNT_PENCE
+  ) {
+    return NextResponse.json(
+      {
+        error: `Deposit payment links need a deposit of at least ${formatPence(MIN_STRIPE_CHECKOUT_AMOUNT_PENCE)}. Current deposit is ${formatPence(depositAmountPence)}.`,
+        code: 'DEPOSIT_AMOUNT_TOO_LOW',
+        amountPence: depositAmountPence,
+        minimumAmountPence: MIN_STRIPE_CHECKOUT_AMOUNT_PENCE,
+      },
+      { status: 400 },
+    );
+  }
 
   const invoiceNumber = await generateInvoiceNumber();
   const issueDate = new Date();
@@ -273,12 +329,54 @@ export async function POST(
       totalPrice: line.amount,
     }));
 
-  const invoiceStatus = paymentMethod === 'cash' ? 'paid' : 'issued';
+  const invoiceStatus = 'issued';
   const statusNote = paymentMethod === 'stripe'
     ? 'Quick booking finalized by admin — awaiting Stripe payment'
     : paymentMethod === 'deposit'
     ? 'Quick booking finalized by admin — awaiting deposit payment'
-    : 'Quick booking finalized by admin — cash payment collected';
+    : 'Quick booking finalized by admin — cash to collect on arrival';
+
+  if (paymentMethod === 'stripe') {
+    try {
+      const baseUrl = getAppOrigin();
+      const checkout = await createCheckoutSession(
+        breakdown.total,
+        {
+          bookingId,
+          refNumber,
+          customerEmail: dbCustomerEmail,
+        },
+        {
+          successUrl: `${baseUrl}/admin/bookings/${refNumber}?stripe=success`,
+          cancelUrl: `${baseUrl}/admin/bookings/${refNumber}?stripe=cancelled`,
+        }
+      );
+      if (checkout.amountInPence !== totalInPence) {
+        return NextResponse.json(
+          {
+            error: 'Payment amount mismatch',
+            code: 'PAYMENT_AMOUNT_MISMATCH',
+          },
+          { status: 500 },
+        );
+      }
+
+      checkoutUrl = checkout.checkoutUrl;
+      checkoutSessionId = checkout.sessionId;
+      checkoutPaymentIntentId = checkout.paymentIntentId;
+      checkoutExpiresAt = checkout.expiresAt;
+    } catch (error) {
+      console.error('[quick-book:finalize] Stripe checkout failed', error);
+      return NextResponse.json(
+        {
+          error: 'Stripe could not create the payment link. Check the quote amount and Stripe configuration, then try again.',
+          code: 'STRIPE_CHECKOUT_FAILED',
+          detail: process.env.NODE_ENV === 'production' ? undefined : getErrorMessage(error),
+        },
+        { status: 502 },
+      );
+    }
+  }
 
   type BookingWriteExecutor = Pick<typeof db, 'insert' | 'update'>;
 
@@ -331,37 +429,28 @@ export async function POST(
     }
 
     if (paymentMethod === 'stripe') {
-      const baseUrl = getAppOrigin();
-      const checkout = await createCheckoutSession(
-        breakdown.total,
-        {
-          bookingId,
-          refNumber,
-          customerEmail: dbCustomerEmail,
-        },
-        {
-          successUrl: `${baseUrl}/admin/bookings/${refNumber}?stripe=success`,
-          cancelUrl: `${baseUrl}/admin/bookings/${refNumber}?stripe=cancelled`,
-        }
-      );
-      if (checkout.amountInPence !== totalInPence) {
-        throw new Error('PAYMENT_AMOUNT_MISMATCH');
+      if (!checkoutSessionId || !checkoutUrl) {
+        throw new Error('STRIPE_CHECKOUT_NOT_READY');
       }
-
-      checkoutUrl = checkout.checkoutUrl;
 
       await executor
         .update(bookings)
-        .set({ stripePiId: checkout.paymentIntentId || checkout.sessionId })
+        .set({ stripePiId: checkoutPaymentIntentId || checkoutSessionId })
         .where(eq(bookings.id, bookingId));
 
       await executor.insert(payments).values({
         id: uuidv4(),
         bookingId,
-        stripePiId: checkout.paymentIntentId || checkout.sessionId,
+        stripePiId: checkoutPaymentIntentId || checkoutSessionId,
         amount: breakdown.total.toFixed(2),
         currency: 'gbp',
         status: 'pending',
+        stripePayload: {
+          kind: 'quick_book_checkout',
+          sessionId: checkoutSessionId,
+          checkoutUrl,
+          amountPence: totalInPence,
+        },
       });
     }
 
@@ -453,20 +542,40 @@ export async function POST(
       error instanceof Error && error.message.includes('No transactions support');
 
     if (!isUnsupportedTransaction) {
-      throw error;
+      console.error('[quick-book:finalize] failed', error);
+      return NextResponse.json(
+        {
+          error: 'Failed to finalize quick booking.',
+          code: 'FINALIZE_FAILED',
+          detail: process.env.NODE_ENV === 'production' ? undefined : getErrorMessage(error),
+        },
+        { status: 500 },
+      );
     }
 
     console.warn('[quick-book:finalize] transaction unsupported, falling back to non-transactional writes');
-    await persistFinalizeWrites(db);
+    try {
+      await persistFinalizeWrites(db);
+    } catch (fallbackError) {
+      console.error('[quick-book:finalize] fallback write failed', fallbackError);
+      return NextResponse.json(
+        {
+          error: 'Failed to finalize quick booking.',
+          code: 'FINALIZE_FAILED',
+          detail: process.env.NODE_ENV === 'production' ? undefined : getErrorMessage(fallbackError),
+        },
+        { status: 500 },
+      );
+    }
   }
 
-  // Cash quick bookings are paid + confirmed at finalize time.
+  // Cash quick bookings are confirmed for dispatch, but not paid yet.
   if (paymentMethod === 'cash') {
     const commitResult = await commitReservationsForBooking({
       bookingId,
       actor: 'admin',
       actorUserId: session.user.id,
-      note: `Quick booking ${refNumber}: cash payment`,
+      note: `Quick booking ${refNumber}: cash to collect on arrival`,
     });
     if (!commitResult.success) {
       console.error(
@@ -474,6 +583,23 @@ export async function POST(
         commitResult.error,
       );
     }
+  } else if (paymentMethod === 'stripe') {
+    await recordPaymentEvent({
+      bookingId,
+      bookingRef: refNumber,
+      eventType: 'link_sent',
+      paymentMethod: 'card_link',
+      linkStatus: 'sent',
+      amountPence: totalInPence,
+      currency: 'gbp',
+      stripeSessionId: checkoutSessionId,
+      stripePaymentIntentId: checkoutPaymentIntentId,
+      stripeCheckoutUrl: checkoutUrl,
+      source: 'quick_book',
+      status: 'pending',
+      expiresAt: checkoutExpiresAt,
+      metadata: { kind: 'quick_book_checkout' },
+    });
   }
 
   // إرسال تأكيد الحجز للعميل إذا طُلب ذلك صراحةً وكان البريد صالحًا

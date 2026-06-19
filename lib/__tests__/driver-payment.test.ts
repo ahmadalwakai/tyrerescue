@@ -1,7 +1,21 @@
-import { describe, expect, it } from 'vitest';
-import { computeDriverPaymentSummary } from '../payments/driver-payment';
+import { beforeAll, describe, expect, it } from 'vitest';
+import type { PaymentEvent } from '../db/schema';
+import type { PaymentBookingInput } from '../payments/payment-summary';
 
-const baseInput = {
+type BuildPaymentSummary = typeof import('../payments/payment-summary')['buildPaymentSummary'];
+
+let buildPaymentSummary: BuildPaymentSummary;
+
+beforeAll(async () => {
+  process.env.DATABASE_URL ??= 'postgresql://user:password@localhost:5432/test';
+  ({ buildPaymentSummary } = await import('../payments/payment-summary'));
+});
+
+const baseBooking: PaymentBookingInput = {
+  id: 'booking-1',
+  refNumber: 'TYR-2026-TEST',
+  status: 'awaiting_payment',
+  paymentType: null,
   totalAmount: '120.00',
   subtotal: '100.00',
   vatAmount: '20.00',
@@ -9,308 +23,278 @@ const baseInput = {
   remainingBalancePence: null,
   depositPaidAt: null,
   stripePiId: null,
+  stripeDepositPiId: null,
 };
 
-describe('computeDriverPaymentSummary', () => {
-  it('returns cash bookings as unpaid with the full amount to collect', () => {
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: 'cash',
-    });
+function booking(overrides: Partial<PaymentBookingInput>): PaymentBookingInput {
+  return { ...baseBooking, ...overrides };
+}
+
+function ledgerEvent(overrides: Partial<PaymentEvent>): PaymentEvent {
+  const now = new Date('2026-06-18T10:00:00.000Z');
+  return {
+    id: `event-${overrides.eventType ?? 'test'}`,
+    bookingId: baseBooking.id,
+    bookingRef: baseBooking.refNumber,
+    eventType: 'link_sent',
+    paymentMethod: null,
+    paidVia: null,
+    linkStatus: null,
+    amountPence: null,
+    currency: 'gbp',
+    stripeSessionId: null,
+    stripePaymentIntentId: null,
+    stripeCheckoutUrl: null,
+    source: 'system',
+    status: null,
+    metadata: null,
+    occurredAt: now,
+    expiresAt: null,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
+}
+
+function legacyPayment(overrides: Record<string, unknown>) {
+  const now = new Date('2026-06-18T10:00:00.000Z');
+  return {
+    id: 'legacy-payment',
+    bookingId: baseBooking.id,
+    stripePiId: 'pi_legacy',
+    amount: '120.00',
+    currency: 'gbp',
+    status: 'pending',
+    stripePayload: null,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
+}
+
+describe('buildPaymentSummary', () => {
+  it('shows cash bookings as cash to collect until cash is confirmed', () => {
+    const payment = buildPaymentSummary(booking({ paymentType: 'cash' }), []);
 
     expect(payment).toMatchObject({
-      type: 'cash',
-      status: 'unpaid',
-      totalAmountPence: 12000,
+      state: 'cash_to_collect',
+      method: 'cash',
+      paidVia: null,
+      totalPence: 12000,
+      amountToCollectPence: 12000,
+      reason: 'cash_unpaid',
+    });
+  });
+
+  it('shows sent payment links as pending, not paid', () => {
+    const payment = buildPaymentSummary(
+      booking({ paymentType: 'full', stripePiId: 'cs_test_pending' }),
+      [
+        ledgerEvent({
+          eventType: 'link_sent',
+          paymentMethod: 'card_link',
+          linkStatus: 'sent',
+          amountPence: 12000,
+          stripeSessionId: 'cs_test_pending',
+          stripeCheckoutUrl: 'https://checkout.stripe.test/session',
+          source: 'admin',
+          status: 'pending',
+        }),
+      ],
+    );
+
+    expect(payment).toMatchObject({
+      state: 'pending',
+      linkStatus: 'sent',
+      method: 'card_link',
+      paidVia: null,
+      amountToCollectPence: 12000,
+      reason: 'link_sent_waiting',
+    });
+  });
+
+  it('does not treat a settled booking lifecycle as paid without payment evidence', () => {
+    const payment = buildPaymentSummary(
+      booking({ status: 'driver_assigned', paymentType: 'full' }),
+      [],
+    );
+
+    expect(payment).toMatchObject({
+      state: 'needs_checking',
+      reason: 'booking_paid_without_payment_evidence',
       amountToCollectPence: 12000,
     });
   });
 
-  it('normalises full Stripe bookings as pending until a succeeded payment row proves payment', () => {
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: 'stripe',
-      stripePiId: 'pi_full',
-      bookingStatus: 'awaiting_payment',
-    });
+  it('keeps pending link state visible even after assignment', () => {
+    const payment = buildPaymentSummary(
+      booking({ status: 'driver_assigned', paymentType: 'full', stripePiId: 'cs_live_pending' }),
+      [
+        ledgerEvent({
+          eventType: 'link_sent',
+          paymentMethod: 'card_link',
+          linkStatus: 'sent',
+          amountPence: 12000,
+          stripeSessionId: 'cs_live_pending',
+          source: 'admin',
+          status: 'pending',
+        }),
+      ],
+    );
 
     expect(payment).toMatchObject({
-      type: 'full',
-      status: 'pending',
-      amountToCollectPence: 12000,
-      totalPaidPence: 0,
-    });
-  });
-
-  it('keeps the TYR-2026-16396 payload pending instead of paid', () => {
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      totalAmount: '191.60',
-      subtotal: '191.60',
-      vatAmount: '0.00',
-      paymentType: 'stripe',
-      stripePiId: 'cs_live_pending_checkout_session',
-      bookingStatus: 'awaiting_payment',
-    });
-
-    expect(payment).toMatchObject({
-      type: 'full',
-      status: 'pending',
-      totalAmountPence: 19160,
-      amountToCollectPence: 19160,
-      paymentStatus: null,
-      totalPaidPence: 0,
-      bookingStatus: 'awaiting_payment',
-    });
-  });
-
-  it('treats full-online bookings with settled lifecycle (no Stripe evidence) as paid', () => {
-    // Admin manually confirmed payment → sets bookings.status = 'driver_assigned'
-    // without creating a payments row (payments table requires stripePiId NOT NULL).
-    // Settled lifecycle is the canonical payment confirmation for admin flows.
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: 'stripe',
-      stripePiId: 'pi_full',
-      bookingStatus: 'driver_assigned',
-    });
-
-    expect(payment).toMatchObject({
-      type: 'full',
-      status: 'paid',
-      amountToCollectPence: 0,
-      totalPaidPence: 0,
-    });
-  });
-
-  it('trusts settled lifecycle over a stale pending payment row for full-online bookings', () => {
-    // Admin explicitly confirmed payment (lifecycle = paid) while a pending
-    // Stripe row still exists. Admin confirmation wins; the pending row will
-    // eventually resolve on its own.
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: 'stripe',
-      stripePiId: 'pi_full',
-      bookingStatus: 'paid',
-      paymentStatus: 'pending',
-      totalPaidPence: 0,
-    });
-
-    expect(payment).toMatchObject({
-      type: 'full',
-      status: 'paid',
-      amountToCollectPence: 0,
-      paymentStatus: 'pending',
-      totalPaidPence: 0,
-    });
-  });
-
-  it('treats admin-confirmed full bookings (paid lifecycle, no Stripe evidence) as paid', () => {
-    // Real bug: admin marks TYR-2026-61975 as "paid" from the admin panel.
-    // bookingStatus → 'paid'; payments table has no row (requires stripePiId).
-    // Driver badge/card must show Paid, not "Payment needs checking".
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      totalAmount: '184.18',
-      subtotal: '184.18',
-      vatAmount: '0.00',
-      paymentType: 'full',
-      stripePiId: null,
-      bookingStatus: 'paid',
-      paymentStatus: null,
-      totalPaidPence: 0,
-    });
-
-    expect(payment).toMatchObject({
-      type: 'full',
-      status: 'paid',
-      amountToCollectPence: 0,
-    });
-  });
-
-  it('shows full online bookings as paid only after succeeded payment evidence', () => {
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: 'stripe',
-      stripePiId: 'pi_full',
-      bookingStatus: 'driver_assigned',
-      paymentStatus: 'succeeded',
-      totalPaidPence: 12000,
-    });
-
-    expect(payment).toMatchObject({
-      type: 'full',
-      status: 'paid',
-      amountToCollectPence: 0,
-      totalPaidPence: 12000,
-    });
-  });
-
-  it('shows paid deposits with the remaining balance to collect', () => {
-    const paidAt = new Date('2026-06-06T12:00:00.000Z');
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: 'deposit',
-      depositAmountPence: 1800,
-      remainingBalancePence: 10200,
-      depositPaidAt: paidAt,
-      stripePiId: 'pi_deposit',
-      paymentStatus: 'succeeded',
-      totalPaidPence: 1800,
-    });
-
-    expect(payment).toMatchObject({
-      type: 'deposit',
-      status: 'deposit_paid',
-      depositAmountPence: 1800,
-      remainingBalancePence: 10200,
-      amountToCollectPence: 10200,
-      depositPaidAt: paidAt.toISOString(),
-    });
-  });
-
-  it('shows deposits as fully paid only when the remaining balance is settled', () => {
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: 'deposit',
-      depositAmountPence: 12000,
-      remainingBalancePence: 0,
-      depositPaidAt: new Date('2026-06-06T12:00:00.000Z'),
-      stripePiId: 'pi_deposit',
-      bookingStatus: 'paid',
-      paymentStatus: 'succeeded',
-      totalPaidPence: 12000,
-    });
-
-    expect(payment).toMatchObject({
-      type: 'deposit',
-      status: 'paid',
-      amountToCollectPence: 0,
-    });
-  });
-
-  it('shows selected but unpaid deposits as outstanding', () => {
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: 'deposit',
-      depositAmountPence: 1800,
-      remainingBalancePence: 10200,
-    });
-
-    expect(payment).toMatchObject({
-      type: 'deposit',
-      status: 'unpaid',
+      state: 'pending',
+      linkStatus: 'sent',
       amountToCollectPence: 12000,
     });
   });
 
-  it('marks impossible deposit lifecycle data as needing checking', () => {
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: 'deposit',
-      depositAmountPence: 1800,
-      remainingBalancePence: 10200,
-      bookingStatus: 'driver_assigned',
-    });
+  it('shows full payment success as paid only from ledger evidence', () => {
+    const payment = buildPaymentSummary(
+      booking({ paymentType: 'full', stripePiId: 'pi_paid' }),
+      [
+        ledgerEvent({
+          eventType: 'payment_succeeded',
+          paymentMethod: 'card_link',
+          paidVia: 'payment_link',
+          linkStatus: 'paid',
+          amountPence: 12000,
+          stripePaymentIntentId: 'pi_paid',
+          source: 'stripe_webhook',
+          status: 'succeeded',
+        }),
+      ],
+    );
 
     expect(payment).toMatchObject({
-      type: 'deposit',
-      status: 'needs_checking',
-      amountToCollectPence: 12000,
-    });
-  });
-
-  it('reconciles legacy full-paid rows only when payment evidence proves payment', () => {
-    const withoutStatus = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: null,
-      stripePiId: 'pi_pending_or_legacy',
-    });
-
-    expect(withoutStatus).toMatchObject({
-      type: null,
-      status: 'pending',
-      amountToCollectPence: 12000,
-    });
-
-    const withPaidEvidence = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: null,
-      stripePiId: 'pi_legacy_paid',
-      bookingStatus: 'driver_assigned',
-      paymentStatus: 'succeeded',
-      totalPaidPence: 12000,
-    });
-
-    expect(withPaidEvidence).toMatchObject({
-      type: 'full',
-      status: 'paid',
+      state: 'paid',
+      linkStatus: 'paid',
+      paidVia: 'payment_link',
+      paidPence: 12000,
       amountToCollectPence: 0,
     });
   });
 
-  it('shows stripe-paid bookings as paid even when booking lifecycle is awaiting_payment', () => {
-    // Bug scenario: Stripe webhook recorded payment but booking status not yet updated.
-    // Admin page shows "Awaiting Payment" (lifecycle); driver/evidence should show "Paid".
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: 'stripe',
-      stripePiId: 'pi_live_succeeded',
-      bookingStatus: 'awaiting_payment',
-      paymentStatus: 'succeeded',
-      totalPaidPence: 12000,
-    });
+  it('shows paid deposits as balance due with a paid deposit link', () => {
+    const payment = buildPaymentSummary(
+      booking({
+        paymentType: 'deposit',
+        totalAmount: '120.00',
+        depositAmountPence: 2400,
+        remainingBalancePence: 9600,
+        stripeDepositPiId: 'pi_deposit',
+      }),
+      [
+        ledgerEvent({
+          eventType: 'deposit_succeeded',
+          paymentMethod: 'deposit_link',
+          paidVia: 'payment_link',
+          linkStatus: 'paid',
+          amountPence: 2400,
+          stripePaymentIntentId: 'pi_deposit',
+          source: 'stripe_webhook',
+          status: 'succeeded',
+        }),
+      ],
+    );
 
     expect(payment).toMatchObject({
-      type: 'full',
-      status: 'paid',
-      amountToCollectPence: 0,
-      totalPaidPence: 12000,
+      state: 'balance_due',
+      method: 'deposit_link',
+      linkStatus: 'paid',
+      paidVia: 'payment_link',
+      depositAmountPence: 2400,
+      depositPaidPence: 2400,
+      remainingBalancePence: 9600,
+      amountToCollectPence: 9600,
+      reason: 'deposit_paid_balance_due',
     });
   });
 
-  it('shows deposit-type unpaid bookings as unpaid not pending', () => {
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: 'deposit',
-      depositAmountPence: 1800,
-      remainingBalancePence: 10200,
-      bookingStatus: 'awaiting_payment',
-    });
+  it('shows cash-confirmed jobs as paid by cash', () => {
+    const payment = buildPaymentSummary(
+      booking({ paymentType: 'cash', status: 'completed' }),
+      [
+        ledgerEvent({
+          eventType: 'cash_confirmed',
+          paymentMethod: 'cash',
+          paidVia: 'cash',
+          amountPence: 12000,
+          source: 'driver_confirmation',
+          status: 'succeeded',
+        }),
+      ],
+    );
 
     expect(payment).toMatchObject({
-      type: 'deposit',
-      status: 'unpaid',
+      state: 'paid',
+      method: 'cash',
+      paidVia: 'cash',
+      amountToCollectPence: 0,
+      reason: 'cash_confirmed',
+    });
+  });
+
+  it('shows failed link attempts as failed', () => {
+    const payment = buildPaymentSummary(
+      booking({ paymentType: 'full', stripePiId: 'pi_failed' }),
+      [
+        ledgerEvent({
+          eventType: 'payment_failed',
+          paymentMethod: 'card_link',
+          linkStatus: 'failed',
+          amountPence: 12000,
+          stripePaymentIntentId: 'pi_failed',
+          source: 'stripe_webhook',
+          status: 'failed',
+        }),
+      ],
+    );
+
+    expect(payment).toMatchObject({
+      state: 'failed',
+      linkStatus: 'failed',
       amountToCollectPence: 12000,
+      reason: 'link_failed',
     });
   });
 
-  it('shows cash bookings with succeeded evidence as paid', () => {
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: 'cash',
-      bookingStatus: 'completed',
-      paymentStatus: 'succeeded',
-      totalPaidPence: 12000,
+  it('uses legacy payments only as a fallback when no matching ledger event exists', () => {
+    const pending = buildPaymentSummary(
+      booking({ paymentType: 'full', stripePiId: 'cs_legacy' }),
+      [],
+      [
+        legacyPayment({
+          stripePiId: 'cs_legacy',
+          stripePayload: {
+            sessionId: 'cs_legacy',
+            checkoutUrl: 'https://checkout.stripe.test/legacy',
+          },
+        }),
+      ],
+    );
+
+    expect(pending).toMatchObject({
+      state: 'pending',
+      linkStatus: 'sent',
+      reason: 'link_sent_waiting',
     });
 
-    expect(payment).toMatchObject({
-      type: 'cash',
-      status: 'paid',
+    const paid = buildPaymentSummary(
+      booking({ paymentType: 'full', stripePiId: 'pi_legacy_paid' }),
+      [],
+      [
+        legacyPayment({
+          stripePiId: 'pi_legacy_paid',
+          status: 'succeeded',
+        }),
+      ],
+    );
+
+    expect(paid).toMatchObject({
+      state: 'paid',
+      paidVia: 'payment_link',
       amountToCollectPence: 0,
     });
-  });
-
-  it('does not expose internal Stripe ids in driver-facing output', () => {
-    const payment = computeDriverPaymentSummary({
-      ...baseInput,
-      paymentType: 'full',
-      stripePiId: 'pi_secret',
-      bookingStatus: 'paid',
-      paymentStatus: 'succeeded',
-      totalPaidPence: 12000,
-    });
-
-    expect(payment).not.toHaveProperty('stripePiId');
   });
 });

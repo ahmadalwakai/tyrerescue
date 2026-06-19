@@ -1,6 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 
+export interface ActiveJobPaymentSummary {
+  state: string;
+  label: string;
+  instruction: string;
+  tone: 'success' | 'warning' | 'danger' | 'neutral' | string;
+  method: string;
+  methodLabel: string;
+  linkStatus: string;
+  paidVia: string | null;
+  totalPence: number | null;
+  paidPence: number | null;
+  depositAmountPence: number | null;
+  depositPaidPence: number | null;
+  remainingBalancePence: number | null;
+  amountToCollectPence: number | null;
+  paymentUpdatedAt: string | null;
+  depositPaidAt: string | null;
+  linkSentAt: string | null;
+  linkOpenedAt: string | null;
+  linkExpiresAt: string | null;
+  reason: string;
+}
+
 export interface ActiveJobItem {
   bookingRef: string;
   bookingId: string;
@@ -25,18 +48,8 @@ export interface ActiveJobItem {
     locationSource: string | null;
     isStale: boolean;
   };
-  payment: {
-    type: string | null;
-    status: string | null;
-    paymentStatus: string | null;
-    amountToCollectPence: number;
-    totalAmountPence: number | null;
-    totalPaidPence: number;
-    remainingBalancePence: number | null;
-    depositAmountPence: number | null;
-    depositPaidAt: string | null;
-    bookingStatus: string | null;
-  } | null;
+  paymentSummary: ActiveJobPaymentSummary | null;
+  payment: ActiveJobPaymentSummary | null;
   distanceMiles: number | null;
   etaMinutes: number | null;
 }

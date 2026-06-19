@@ -2,11 +2,7 @@ import { NextResponse } from 'next/server';
 import { db, bookings, bookingTyres, tyreProducts } from '@/lib/db';
 import { eq, and, inArray, desc } from 'drizzle-orm';
 import { requireDriverMobile } from '@/lib/auth';
-import { computeDriverPaymentSummary, type PaymentSummary } from '@/lib/payments/driver-payment';
-import {
-  getBookingPaymentEvidenceMap,
-  type BookingPaymentEvidence,
-} from '@/lib/payments/payment-evidence';
+import { getBookingPaymentSummaryMap, type PaymentSummary } from '@/lib/payments/payment-summary';
 
 const OPERATIONAL_STATUSES = ['en_route', 'arrived', 'in_progress'] as const;
 const UPCOMING_STATUSES = ['driver_assigned'] as const;
@@ -36,6 +32,7 @@ const JOB_LIST_SELECTION = {
   remainingBalancePence: bookings.remainingBalancePence,
   depositPaidAt: bookings.depositPaidAt,
   stripePiId: bookings.stripePiId,
+  stripeDepositPiId: bookings.stripeDepositPiId,
   createdAt: bookings.createdAt,
 } as const;
 
@@ -64,6 +61,7 @@ interface RawJobRow {
   remainingBalancePence: number | null;
   depositPaidAt: Date | null;
   stripePiId: string | null;
+  stripeDepositPiId: string | null;
   createdAt: Date | null;
 }
 
@@ -92,6 +90,7 @@ interface SerialisedJob {
   completedAt: string | null;
   totalAmount: string | null;
   createdAt: string | null;
+  paymentSummary: PaymentSummary;
   payment: PaymentSummary;
   tyres: TyreRef[];
 }
@@ -136,20 +135,20 @@ export async function GET(request: Request) {
 
     const idsNeedingTyres = [...activeRows, ...upcomingRows].map((j) => j.id);
     const tyreMap = await fetchTyreMap(idsNeedingTyres);
-    const paymentEvidenceMap = await getBookingPaymentEvidenceMap([
+    const paymentSummaryMap = await getBookingPaymentSummaryMap([
       ...activeRows,
       ...upcomingRows,
       ...completedRows,
-    ].map((j) => j.id));
+    ].map(rowToPaymentBookingInput));
 
     const active = activeRows.map((row) =>
-      serialiseJob(row, tyreMap.get(row.id) ?? [], paymentEvidenceMap.get(row.id)),
+      serialiseJob(row, tyreMap.get(row.id) ?? [], paymentSummaryMap.get(row.id)),
     );
     const upcoming = upcomingRows.map((row) =>
-      serialiseJob(row, tyreMap.get(row.id) ?? [], paymentEvidenceMap.get(row.id)),
+      serialiseJob(row, tyreMap.get(row.id) ?? [], paymentSummaryMap.get(row.id)),
     );
     const completed = completedRows.map((row) =>
-      serialiseJob(row, [], paymentEvidenceMap.get(row.id)),
+      serialiseJob(row, [], paymentSummaryMap.get(row.id)),
     );
 
     return NextResponse.json({ active, upcoming, completed });
@@ -189,21 +188,9 @@ async function fetchTyreMap(bookingIds: string[]): Promise<Map<string, TyreRef[]
 function serialiseJob(
   row: RawJobRow,
   tyres: TyreRef[],
-  paymentEvidence?: BookingPaymentEvidence,
+  paymentSummary?: PaymentSummary,
 ): SerialisedJob {
-  const payment = computeDriverPaymentSummary({
-    paymentType: row.paymentType,
-    totalAmount: row.totalAmount,
-    subtotal: row.subtotal,
-    vatAmount: row.vatAmount,
-    depositAmountPence: row.depositAmountPence,
-    remainingBalancePence: row.remainingBalancePence,
-    depositPaidAt: row.depositPaidAt,
-    stripePiId: row.stripePiId,
-    paymentStatus: paymentEvidence?.paymentStatus ?? null,
-    totalPaidPence: paymentEvidence?.totalPaidPence ?? 0,
-    bookingStatus: row.status,
-  });
+  const payment = paymentSummary ?? rowToUnknownPaymentSummary(row);
 
   return {
     id: row.id,
@@ -224,7 +211,50 @@ function serialiseJob(
     completedAt: row.completedAt?.toISOString() ?? null,
     totalAmount: row.totalAmount?.toString() ?? null,
     createdAt: row.createdAt?.toISOString() ?? null,
+    paymentSummary: payment,
     payment,
     tyres,
+  };
+}
+
+function rowToPaymentBookingInput(row: RawJobRow) {
+  return {
+    id: row.id,
+    refNumber: row.refNumber,
+    status: row.status,
+    paymentType: row.paymentType,
+    totalAmount: row.totalAmount,
+    subtotal: row.subtotal,
+    vatAmount: row.vatAmount,
+    depositAmountPence: row.depositAmountPence,
+    remainingBalancePence: row.remainingBalancePence,
+    depositPaidAt: row.depositPaidAt,
+    stripePiId: row.stripePiId,
+    stripeDepositPiId: row.stripeDepositPiId,
+  };
+}
+
+function rowToUnknownPaymentSummary(row: RawJobRow): PaymentSummary {
+  return {
+    state: 'unknown',
+    label: 'Payment unknown',
+    instruction: 'Check payment with admin.',
+    tone: 'neutral',
+    method: row.paymentType === 'cash' ? 'cash' : 'unknown',
+    methodLabel: row.paymentType === 'cash' ? 'Cash' : 'Unknown',
+    linkStatus: 'unknown',
+    paidVia: null,
+    totalPence: row.totalAmount == null ? null : Math.round(Number(row.totalAmount) * 100),
+    paidPence: null,
+    depositAmountPence: row.depositAmountPence,
+    depositPaidPence: null,
+    remainingBalancePence: row.remainingBalancePence,
+    amountToCollectPence: row.totalAmount == null ? null : Math.round(Number(row.totalAmount) * 100),
+    paymentUpdatedAt: null,
+    depositPaidAt: row.depositPaidAt?.toISOString() ?? null,
+    linkSentAt: null,
+    linkOpenedAt: null,
+    linkExpiresAt: null,
+    reason: 'unknown',
   };
 }

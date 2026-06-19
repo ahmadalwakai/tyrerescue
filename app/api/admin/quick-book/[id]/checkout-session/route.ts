@@ -6,6 +6,7 @@ import { quickBookings, bookings, payments } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { createCheckoutSession } from '@/lib/stripe';
+import { recordPaymentEvent } from '@/lib/payments/payment-summary';
 
 /**
  * POST /api/admin/quick-book/[id]/checkout-session
@@ -97,6 +98,29 @@ export async function POST(
     amount: Number(booking.totalAmount).toFixed(2),
     currency: 'gbp',
     status: 'pending',
+    stripePayload: {
+      kind: 'quick_book_checkout_retry',
+      sessionId: checkout.sessionId,
+      checkoutUrl: checkout.checkoutUrl,
+      amountPence: checkout.amountInPence,
+    },
+  });
+
+  await recordPaymentEvent({
+    bookingId: booking.id,
+    bookingRef: booking.refNumber,
+    eventType: 'link_sent',
+    paymentMethod: 'card_link',
+    linkStatus: 'sent',
+    amountPence: checkout.amountInPence,
+    currency: 'gbp',
+    stripeSessionId: checkout.sessionId,
+    stripePaymentIntentId: checkout.paymentIntentId,
+    stripeCheckoutUrl: checkout.checkoutUrl,
+    source: 'quick_book',
+    status: 'pending',
+    expiresAt: checkout.expiresAt,
+    metadata: { kind: 'quick_book_checkout_retry' },
   });
 
   return NextResponse.json({

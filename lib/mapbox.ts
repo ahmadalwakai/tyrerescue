@@ -50,9 +50,9 @@ export interface DistanceResult {
 export async function geocodeAddress(
   address: string
 ): Promise<GeocodingResult | null> {
-  const token = process.env.MAPBOX_SECRET_TOKEN;
+  const token = getMapboxAccessToken();
   if (!token) {
-    throw new Error('Missing MAPBOX_SECRET_TOKEN environment variable');
+    throw new Error('Missing Mapbox access token environment variable');
   }
 
   const encodedAddress = encodeURIComponent(address);
@@ -87,9 +87,9 @@ export async function reverseGeocode(
   lng: number,
   lat: number
 ): Promise<GeocodingResult | null> {
-  const token = process.env.MAPBOX_SECRET_TOKEN;
+  const token = getMapboxAccessToken();
   if (!token) {
-    throw new Error('Missing MAPBOX_SECRET_TOKEN environment variable');
+    throw new Error('Missing Mapbox access token environment variable');
   }
 
   const url = `${MAPBOX_BASE_URL}/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&country=GB&limit=1`;
@@ -124,25 +124,44 @@ const MAPBOX_TIMEOUT_MS = 8_000;
 
 /** Warn once if token looks like a placeholder */
 let _tokenWarned = false;
-function warnIfPlaceholderToken(token: string): boolean {
-  const isPlaceholder = token.length < 20 || /^sk\.x+$/i.test(token);
+function isPlaceholderToken(token: string): boolean {
+  return token.length < 20 || /^sk\.x+$/i.test(token) || /your-.*token/i.test(token);
+}
+
+function warnIfPlaceholderToken(name: string, token: string): boolean {
+  const isPlaceholder = isPlaceholderToken(token);
   if (isPlaceholder && !_tokenWarned) {
-    console.warn('[MAPBOX] Secret token appears to be a placeholder — directions will fail, falling back to haversine');
+    console.warn(`[MAPBOX] ${name} appears to be a placeholder — trying the next configured token`);
     _tokenWarned = true;
   }
   return isPlaceholder;
+}
+
+function getMapboxAccessToken(): string | null {
+  const candidates = [
+    ['MAPBOX_SECRET_TOKEN', process.env.MAPBOX_SECRET_TOKEN],
+    ['NEXT_PUBLIC_MAPBOX_TOKEN', process.env.NEXT_PUBLIC_MAPBOX_TOKEN],
+    ['EXPO_PUBLIC_MAPBOX_TOKEN', process.env.EXPO_PUBLIC_MAPBOX_TOKEN],
+    ['MAPBOX_TOKEN', process.env.MAPBOX_TOKEN],
+  ] as const;
+
+  for (const [name, raw] of candidates) {
+    const token = raw?.trim();
+    if (!token) continue;
+    if (warnIfPlaceholderToken(name, token)) continue;
+    return token;
+  }
+
+  return null;
 }
 
 export async function getDirections(
   origin: { lng: number; lat: number },
   destination: { lng: number; lat: number }
 ): Promise<DirectionsResult | null> {
-  const token = process.env.MAPBOX_SECRET_TOKEN;
+  const token = getMapboxAccessToken();
   if (!token) {
-    throw new Error('Missing MAPBOX_SECRET_TOKEN environment variable');
-  }
-  if (warnIfPlaceholderToken(token)) {
-    return null;
+    throw new Error('Missing Mapbox access token environment variable');
   }
 
   const url = `${MAPBOX_BASE_URL}/directions/v5/mapbox/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?access_token=${token}&geometries=geojson&overview=full`;

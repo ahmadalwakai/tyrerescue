@@ -59,6 +59,10 @@ Notifications.setNotificationHandler({
 
 let pushRegistrationInFlight: Promise<string | null> | null = null;
 
+function noopNotificationSubscription(): Notifications.EventSubscription {
+  return { remove: () => {} } as Notifications.EventSubscription;
+}
+
 /**
  * Create all versioned Android notification channels.
  * New channel IDs (v4/v3) ensure fresh settings — old cached channels are abandoned.
@@ -177,6 +181,7 @@ async function createAndroidChannels(): Promise<void> {
  * Idempotent within a single app session.
  */
 export async function registerForPushNotifications(): Promise<string | null> {
+  if (Platform.OS === 'web') return null;
   if (pushRegistrationInFlight) return pushRegistrationInFlight;
 
   pushRegistrationInFlight = (async () => {
@@ -258,6 +263,7 @@ export async function fireLocalCriticalNotification(
   data?: Record<string, unknown>,
   channelId = DRIVER_JOBS_URGENT_CHANNEL_ID,
 ): Promise<string> {
+  if (Platform.OS === 'web') return '';
   return Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -270,11 +276,24 @@ export async function fireLocalCriticalNotification(
 }
 
 /**
+ * Read the notification that opened the app. Expo does not implement this on web.
+ */
+export async function getLastNotificationResponse(): Promise<Notifications.NotificationResponse | null> {
+  if (Platform.OS === 'web') return null;
+  try {
+    return await Notifications.getLastNotificationResponseAsync();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Listen for notification taps and return a cleanup function.
  */
 export function addNotificationResponseListener(
   handler: (response: Notifications.NotificationResponse) => void,
 ): Notifications.EventSubscription {
+  if (Platform.OS === 'web') return noopNotificationSubscription();
   return Notifications.addNotificationResponseReceivedListener(handler);
 }
 
@@ -284,5 +303,6 @@ export function addNotificationResponseListener(
 export function addNotificationReceivedListener(
   handler: (notification: Notifications.Notification) => void,
 ): Notifications.EventSubscription {
+  if (Platform.OS === 'web') return noopNotificationSubscription();
   return Notifications.addNotificationReceivedListener(handler);
 }

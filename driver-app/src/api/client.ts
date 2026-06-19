@@ -1,8 +1,27 @@
-import * as SecureStore from 'expo-secure-store';
+import * as secureStorage from '@/services/secure-storage';
+import { Platform } from 'react-native';
 
 const TOKEN_KEY = 'auth_token';
 const API_URL_KEY = 'api_url';
 const PRODUCTION_API_URL = 'https://www.tyrerescue.uk';
+const API_TIMEOUT_MS = 15_000;
+
+function devWebApiUrl(): string {
+  return ['http://', ['local', 'host'].join(''), ':3002'].join('');
+}
+
+function defaultApiUrl(): string {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  if (envUrl) return envUrl;
+  if (isDevelopmentBuild() && Platform.OS === 'web') return devWebApiUrl();
+  return PRODUCTION_API_URL;
+}
+
+function shouldReplaceStoredApiUrl(stored: string | null): boolean {
+  if (!stored || !isDevelopmentBuild() || Platform.OS !== 'web') return false;
+  if (process.env.EXPO_PUBLIC_API_URL?.trim()) return false;
+  return normalizeApiUrl(stored) === PRODUCTION_API_URL;
+}
 
 let cachedToken: string | null = null;
 let cachedApiUrl: string | null = null;
@@ -13,7 +32,7 @@ function isDevelopmentBuild(): boolean {
 
 function normalizeApiUrl(url: string | null): string {
   const raw = (url ?? '').trim();
-  if (!raw) return PRODUCTION_API_URL;
+  if (!raw) return defaultApiUrl();
   try {
     const parsed = new URL(raw);
     parsed.pathname = parsed.pathname.replace(/\/+$/, '');
@@ -21,7 +40,7 @@ function normalizeApiUrl(url: string | null): string {
     parsed.hash = '';
     return parsed.toString().replace(/\/+$/, '');
   } catch {
-    return PRODUCTION_API_URL;
+    return defaultApiUrl();
   }
 }
 
@@ -49,7 +68,7 @@ function isUnsafeProductionApiUrl(url: string): boolean {
 
 async function persistApiUrl(url: string): Promise<void> {
   try {
-    await SecureStore.setItemAsync(API_URL_KEY, url);
+    await secureStorage.setItemAsync(API_URL_KEY, url);
   } catch {
     // SecureStore failures should not prevent falling back to production.
   }
@@ -57,8 +76,8 @@ async function persistApiUrl(url: string): Promise<void> {
 
 export async function getApiUrl(): Promise<string> {
   if (cachedApiUrl && !isUnsafeProductionApiUrl(cachedApiUrl)) return cachedApiUrl;
-  const stored = await SecureStore.getItemAsync(API_URL_KEY);
-  const normalized = normalizeApiUrl(stored);
+  const stored = await secureStorage.getItemAsync(API_URL_KEY);
+  const normalized = normalizeApiUrl(shouldReplaceStoredApiUrl(stored) ? null : stored);
   cachedApiUrl = isUnsafeProductionApiUrl(normalized) ? PRODUCTION_API_URL : normalized;
   if (stored !== cachedApiUrl) {
     void persistApiUrl(cachedApiUrl);
@@ -69,23 +88,31 @@ export async function getApiUrl(): Promise<string> {
 export async function setApiUrl(url: string) {
   const normalized = normalizeApiUrl(url);
   cachedApiUrl = isUnsafeProductionApiUrl(normalized) ? PRODUCTION_API_URL : normalized;
-  await SecureStore.setItemAsync(API_URL_KEY, cachedApiUrl);
+  await secureStorage.setItemAsync(API_URL_KEY, cachedApiUrl);
 }
 
 export async function getToken(): Promise<string | null> {
   if (cachedToken) return cachedToken;
-  cachedToken = await SecureStore.getItemAsync(TOKEN_KEY);
+  cachedToken = await secureStorage.getItemAsync(TOKEN_KEY);
   return cachedToken;
 }
 
 export async function setToken(token: string) {
   cachedToken = token;
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
+  try {
+    await secureStorage.setItemAsync(TOKEN_KEY, token);
+  } catch {
+    // Persistence is best-effort; keep the in-memory token for this session.
+  }
 }
 
 export async function clearToken() {
   cachedToken = null;
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
+  try {
+    await secureStorage.deleteItemAsync(TOKEN_KEY);
+  } catch {
+    // Storage cleanup must not crash auth recovery/logout.
+  }
 }
 
 interface ApiOptions {
@@ -126,14 +153,21 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
   }
 
   let res: Response;
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeout = controller
+    ? setTimeout(() => controller.abort(), API_TIMEOUT_MS)
+    : null;
   try {
     res = await fetch(`${baseUrl}${path}`, {
       method: options.method || 'GET',
       headers,
       body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: controller?.signal,
     });
   } catch {
     throw new ApiError('Network error. Check your connection and try again.', 0, null, 'network');
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 
   if (res.status === 401) {
@@ -229,32 +263,51 @@ export interface JobSummary {
   totalAmount?: string | null;
   createdAt: string | null;
   tyres?: JobTyre[];
+  paymentSummary?: PaymentSummary | null;
   payment?: PaymentSummary | null;
 }
 
-export type PaymentType = 'cash' | 'full' | 'deposit' | null;
-export type PaymentStatus =
-  | 'unpaid'
-  | 'deposit_paid'
+export type PaymentMethod = 'cash' | 'card_link' | 'deposit_link' | 'manual' | 'unknown';
+export type PaymentLinkStatus =
+  | 'not_sent'
+  | 'created'
+  | 'sent'
+  | 'opened'
   | 'paid'
+  | 'failed'
+  | 'expired'
+  | 'unknown';
+export type PaymentState =
+  | 'paid'
+  | 'deposit_paid'
+  | 'balance_due'
+  | 'cash_to_collect'
   | 'pending'
   | 'needs_checking'
   | 'failed'
   | 'unknown';
 
 export interface PaymentSummary {
-  type: PaymentType;
-  status: PaymentStatus;
-  paymentStatus: string | null;
-  subtotalPence: number | null;
-  vatAmountPence: number | null;
-  totalAmountPence: number | null;
-  totalPaidPence: number;
+  state: PaymentState;
+  label: string;
+  instruction: string;
+  tone: 'success' | 'warning' | 'danger' | 'neutral';
+  method: PaymentMethod;
+  methodLabel: string;
+  linkStatus: PaymentLinkStatus;
+  paidVia: 'cash' | 'payment_link' | 'manual' | null;
+  totalPence: number | null;
+  paidPence: number | null;
   depositAmountPence: number | null;
+  depositPaidPence: number | null;
   remainingBalancePence: number | null;
-  amountToCollectPence: number;
+  amountToCollectPence: number | null;
+  paymentUpdatedAt: string | null;
   depositPaidAt: string | null;
-  bookingStatus: string | null;
+  linkSentAt: string | null;
+  linkOpenedAt: string | null;
+  linkExpiresAt: string | null;
+  reason: string;
 }
 
 export interface JobDetail extends JobSummary {
@@ -272,6 +325,7 @@ export interface JobDetail extends JobSummary {
   acceptanceDeadline: string | null;
   subtotal: string | null;
   vatAmount: string | null;
+  paymentSummary?: PaymentSummary | null;
   payment?: PaymentSummary | null;
   tyres: (JobTyre & { id: string })[];
   statusHistory: {

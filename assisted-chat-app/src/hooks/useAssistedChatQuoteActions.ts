@@ -35,13 +35,13 @@ export interface QuoteActionMessage {
 }
 
 function paymentOptionToDispatchChoice(option: AdminQuotePaymentOption): AssistedChatPaymentChoice {
-  if (option === 'DEPOSIT_15') return 'deposit';
+  if (option === 'DEPOSIT_20' || option === 'DEPOSIT_15') return 'deposit';
   if (option === 'CASH_ON_ARRIVAL') return 'cash';
   return 'full';
 }
 
 function dispatchChoiceToPaymentOption(choice: AssistedChatPaymentChoice | null): AdminQuotePaymentOption | null {
-  if (choice === 'deposit') return 'DEPOSIT_15';
+  if (choice === 'deposit') return 'DEPOSIT_20';
   if (choice === 'cash') return 'CASH_ON_ARRIVAL';
   if (choice === 'full') return 'FULL_PAYMENT';
   return null;

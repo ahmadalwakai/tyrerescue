@@ -12,6 +12,7 @@ export type AdminQuoteStatus = (typeof ADMIN_QUOTE_STATUSES)[number];
 
 export const ADMIN_QUOTE_PAYMENT_OPTIONS = [
   'FULL_PAYMENT',
+  'DEPOSIT_20',
   'DEPOSIT_15',
   'CASH_ON_ARRIVAL',
   'PAYMENT_LINK',

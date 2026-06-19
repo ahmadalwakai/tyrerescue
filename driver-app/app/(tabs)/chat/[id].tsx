@@ -5,26 +5,26 @@ import {
   StyleSheet,
   FlatList,
   TextInput,
-  Pressable,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
-import { chatApi, ChatMessage, ApiError } from '@/api/client';
+import { chatApi, ChatMessage } from '@/api/client';
 import { useAuth } from '@/auth/context';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic } from '@/services/haptics';
-import { MessageSkeleton } from '@/components/SkeletonLoader';
 import { useI18n } from '@/i18n';
 
 export default function ChatConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const { t, dateLocale } = useI18n();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
@@ -37,7 +37,7 @@ export default function ChatConversationScreen() {
     if (!id) return;
     try {
       const res = await chatApi.getMessages(id);
-      setMessages(res.messages.reverse()); // API returns newest first; we want oldest first
+      setMessages(res.messages);
       await chatApi.markRead(id);
     } catch {
       // Ignore
@@ -77,13 +77,15 @@ export default function ChatConversationScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={90}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <FlatList
         ref={flatListRef}
         style={styles.messageList}
         contentContainerStyle={styles.messageListContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         data={messages}
         keyExtractor={(item) => item.id}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
@@ -106,7 +108,7 @@ export default function ChatConversationScreen() {
       />
 
       {/* Input */}
-      <View style={styles.inputBar}>
+      <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
         <TextInput
           style={styles.input}
           value={text}

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -6,7 +6,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  View,
   type ViewStyle,
 } from 'react-native';
 import { colors, fontSize, radius } from '../theme';
@@ -43,10 +42,11 @@ export function AlertActionButton({
   testID,
   style,
 }: AlertActionButtonProps) {
-  const shimmer = useRef(new Animated.Value(0)).current;
-  const pulse = useRef(new Animated.Value(0)).current;
+  const [shimmer] = useState(() => new Animated.Value(0));
+  const [pulse] = useState(() => new Animated.Value(0));
   const shimmerLoop = useRef<Animated.CompositeAnimation | null>(null);
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
+  const [buttonWidth, setButtonWidth] = useState(0);
 
   useEffect(() => {
     if (!active) {
@@ -101,7 +101,7 @@ export function AlertActionButton({
 
   const shimmerTranslate = shimmer.interpolate({
     inputRange: [0, 1],
-    outputRange: [-160, 220],
+    outputRange: [-SHIMMER_WIDTH, Math.max(buttonWidth, 220) + SHIMMER_WIDTH],
   });
   const badgeScale = pulse.interpolate({
     inputRange: [0, 1],
@@ -121,6 +121,7 @@ export function AlertActionButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
+      onLayout={(event) => setButtonWidth(event.nativeEvent.layout.width)}
       style={({ pressed }) => [
         styles.base,
         active ? styles.alertBase : styles.idleBase,
@@ -131,8 +132,11 @@ export function AlertActionButton({
     >
       {active ? (
         <Animated.View
-          pointerEvents="none"
-          style={[styles.shimmer, { transform: [{ translateX: shimmerTranslate }] }]}
+          style={[
+            styles.shimmer,
+            styles.noPointerEvents,
+            { transform: [{ translateX: shimmerTranslate }, { skewX: '-18deg' }] },
+          ]}
         />
       ) : null}
       <Text
@@ -155,6 +159,7 @@ export function AlertActionButton({
 const ALERT_RED = '#B91C1C';
 const ALERT_RED_BORDER = '#7F1D1D';
 const ALERT_RED_PRESSED = '#991B1B';
+const SHIMMER_WIDTH = 88;
 
 const styles = StyleSheet.create({
   base: {
@@ -191,11 +196,14 @@ const styles = StyleSheet.create({
   alertLabel: { color: '#FFFFFF' },
   shimmer: {
     position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 60,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    transform: [{ skewX: '-18deg' }],
+    top: -8,
+    bottom: -8,
+    left: 0,
+    width: SHIMMER_WIDTH,
+    backgroundColor: 'rgba(255,255,255,0.42)',
+  },
+  noPointerEvents: {
+    pointerEvents: 'none',
   },
   badge: {
     position: 'absolute',

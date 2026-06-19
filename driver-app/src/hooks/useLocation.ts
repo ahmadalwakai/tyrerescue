@@ -3,19 +3,23 @@ import * as Location from 'expo-location';
 import { AppState, type AppStateStatus } from 'react-native';
 import { driverApi, ApiError } from '@/api/client';
 import {
+  ACTIVE_BOOKING_REF_KEY,
   startBackgroundLocation,
   stopBackgroundLocation,
   requestLocationPermissions,
 } from '@/services/background-location';
+import { dropQueued, enqueueLatest, flushOfflineQueue } from '@/services/offline-queue';
+import * as secureStorage from '@/services/secure-storage';
 
 // ── Throttling constants ─────────────────────────────────────────────────
 // Server enforces a hard 8s min between writes per driver. Stay above.
-const ACTIVE_INTERVAL = 15_000; // 15s when job active (foreground)
-const IDLE_INTERVAL = 60_000;   // 60s when idle (foreground)
-const MIN_INTERVAL_MS = 10_000; // never POST faster than this
-const MIN_MOVEMENT_METERS = 25;
-const MAX_QUIET_MS = 60_000;    // force a heartbeat at least this often
+const ACTIVE_INTERVAL = 10_000; // foreground heartbeat while a job is active
+const IDLE_INTERVAL = 45_000;   // foreground heartbeat while waiting for jobs
+const MIN_INTERVAL_MS = 9_000;  // server enforces 8s; keep just above it
+const MIN_MOVEMENT_METERS = 10;
+const MAX_QUIET_MS = 30_000;    // force a heartbeat at least this often
 const DEFAULT_BACKOFF_MS = 30_000;
+const LOCATION_PATH = '/api/driver/location';
 
 function distanceMeters(
   a: { lat: number; lng: number },
@@ -30,6 +34,17 @@ function distanceMeters(
   const h =
     Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+function locationBody(lat: number, lng: number, bookingRef: string | null) {
+  return bookingRef ? { lat, lng, bookingRef } : { lat, lng };
+}
+
+function shouldQueueLocation(error: unknown): boolean {
+  if (error instanceof ApiError) {
+    return error.code === 'network' || error.status === 0 || error.status >= 500;
+  }
+  return true;
 }
 
 export function useLocationBroadcast(
@@ -49,7 +64,12 @@ export function useLocationBroadcast(
   // Keep ref in sync without re-creating the polling interval on every change.
   useEffect(() => {
     activeRefRef.current = activeBookingRef ?? null;
-  }, [activeBookingRef]);
+    if (activeBookingRef) {
+      secureStorage.setItemAsync(ACTIVE_BOOKING_REF_KEY, activeBookingRef).catch(() => {});
+    } else if (!hasActiveJob) {
+      secureStorage.deleteItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => {});
+    }
+  }, [activeBookingRef, hasActiveJob]);
 
   const sendForegroundLocation = useCallback(async () => {
     const now = Date.now();
@@ -61,7 +81,7 @@ export function useLocationBroadcast(
       if (status !== 'granted') return;
 
       const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: hasActiveJob ? Location.Accuracy.BestForNavigation : Location.Accuracy.High,
       });
 
       const coords = {
@@ -85,6 +105,8 @@ export function useLocationBroadcast(
       inFlightRef.current = true;
       try {
         await driverApi.updateLocation(coords.lat, coords.lng, activeRefRef.current);
+        dropQueued(LOCATION_PATH, 'POST');
+        void flushOfflineQueue();
         lastSentAtRef.current = Date.now();
         lastSentCoordsRef.current = coords;
       } catch (err) {
@@ -93,14 +115,22 @@ export function useLocationBroadcast(
           backoffUntilRef.current = Date.now() + seconds * 1000;
           return;
         }
-        // Other errors silently ignored — network/permission flakes
+        if (shouldQueueLocation(err)) {
+          enqueueLatest(
+            LOCATION_PATH,
+            'POST',
+            locationBody(coords.lat, coords.lng, activeRefRef.current),
+          );
+          lastSentAtRef.current = Date.now();
+          lastSentCoordsRef.current = coords;
+        }
       } finally {
         inFlightRef.current = false;
       }
     } catch {
       // Silently ignore — permission / GPS errors
     }
-  }, []);
+  }, [hasActiveJob]);
 
   // Start/stop foreground polling
   const startForegroundPolling = useCallback(() => {
@@ -127,14 +157,15 @@ export function useLocationBroadcast(
       appStateRef.current = nextState;
 
       if (wasActive && !isActive) {
-        // App going to background — start background location, stop foreground polling
+        // App going to background — keep the native foreground service alive.
         stopForegroundPolling();
         const started = await startBackgroundLocation();
         setBgRunning(started);
       } else if (!wasActive && isActive) {
-        // App returning to foreground — stop background, start foreground polling
-        await stopBackgroundLocation();
-        setBgRunning(false);
+        // App returning to foreground — keep background tracking armed and add
+        // a foreground heartbeat for web/dev and faster first updates.
+        const started = await startBackgroundLocation();
+        setBgRunning(started);
         startForegroundPolling();
       }
     };
@@ -155,12 +186,12 @@ export function useLocationBroadcast(
       return;
     }
 
-    // If app is in foreground, start foreground polling
+    startBackgroundLocation().then((started) => setBgRunning(started));
+
     if (appStateRef.current === 'active') {
       startForegroundPolling();
     } else {
-      // App is already backgrounded when going online
-      startBackgroundLocation().then((started) => setBgRunning(started));
+      stopForegroundPolling();
     }
 
     return () => {

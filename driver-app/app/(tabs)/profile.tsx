@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import * as Application from 'expo-application';
 import * as Location from 'expo-location';
-import * as Notifications from 'expo-notifications';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
 import { driverApi, DriverProfile, ApiError, getApiUrl } from '@/api/client';
@@ -47,13 +46,25 @@ export default function ProfileScreen() {
   const buildNumber = Application.nativeBuildVersion ?? '1';
 
   const checkPermissions = useCallback(async () => {
+    const notificationPermission =
+      Platform.OS === 'web'
+        ? Promise.resolve(null)
+        : import('expo-notifications').then((Notifications) =>
+            Notifications.getPermissionsAsync(),
+          );
     const [loc, notif] = await Promise.all([
       Location.getForegroundPermissionsAsync(),
-      Notifications.getPermissionsAsync(),
+      notificationPermission,
     ]);
     setLocationPerm(loc.status === 'granted' ? t('profile.granted') : t('profile.denied'));
-    setNotifPerm(notif.status === 'granted' ? t('profile.granted') : t('profile.denied'));
-  }, []);
+    setNotifPerm(
+      notif == null
+        ? t('common.notAvailable')
+        : notif.status === 'granted'
+          ? t('profile.granted')
+          : t('profile.denied'),
+    );
+  }, [t]);
 
   const fetchProfile = useCallback(async () => {
     try {

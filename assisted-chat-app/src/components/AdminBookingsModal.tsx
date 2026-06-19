@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -141,6 +140,7 @@ interface RankedDriver {
 interface Props {
   visible: boolean;
   onClose: () => void;
+  initialRefNumber?: string | null;
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -564,12 +564,6 @@ function BookingDetailView({
     ? !!data.booking.stripePiId && ['paid', 'driver_assigned', 'completed'].includes(data.booking.status)
     : false;
 
-  const handleOpenInBrowser = useCallback(async () => {
-    try {
-      await Linking.openURL(`${api.baseUrl}/admin/bookings/${encodeURIComponent(refNumber)}`);
-    } catch { /* ignore */ }
-  }, [refNumber]);
-
   // ── Action sub-views ──────────────────────────────────────────────────────
 
   function renderStatusAction() {
@@ -833,9 +827,7 @@ function BookingDetailView({
           <Text style={styles.backBtnText}>{action ? '← Back' : '← Back'}</Text>
         </Pressable>
         <Text style={styles.sheetTitle} numberOfLines={1}>{refNumber}</Text>
-        <Pressable onPress={handleOpenInBrowser} style={styles.browserBtn}>
-          <Text style={styles.browserBtnText}>Open ↗</Text>
-        </Pressable>
+        <View style={styles.headerSpacer} />
       </View>
 
       {loading ? (
@@ -1044,7 +1036,7 @@ function StatusPicker({
 
 // ── Main modal ─────────────────────────────────────────────────────────────
 
-export function AdminBookingsModal({ visible, onClose }: Props) {
+export function AdminBookingsModal({ visible, onClose, initialRefNumber = null }: Props) {
   const [items, setItems] = useState<MobileListItem[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -1082,10 +1074,11 @@ export function AdminBookingsModal({ visible, onClose }: Props) {
 
   useEffect(() => {
     if (visible) {
+      setSelectedRef(initialRefNumber);
       void loadItems(1, appliedSearch, appliedStatus, appliedDateFrom, appliedDateTo);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+  }, [visible, initialRefNumber]);
 
   const applyFilters = useCallback(() => {
     setAppliedSearch(search);
@@ -1343,20 +1336,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: '700',
   },
-  browserBtn: {
-    minHeight: 44,
+  headerSpacer: {
     minWidth: 64,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.accent,
-    borderRadius: radius.md,
-    paddingHorizontal: space.md,
-  },
-  browserBtnText: {
-    color: colors.accent,
-    fontSize: fontSize.sm,
-    fontWeight: '700',
   },
   filterBox: {
     padding: space.md,

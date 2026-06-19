@@ -60,7 +60,7 @@ export function ActionButtons({
     if (draft.paymentChoice) {
       const map = {
         cash: `Cash (${formatGbp(effectiveTotal)})`,
-        deposit: `Deposit 15% (${formatGbp(effectiveTotal * 0.15)})`,
+        deposit: `Deposit 20% (${formatGbp(effectiveTotal * 0.20)})`,
         full: `Full payment (${formatGbp(effectiveTotal)})`,
       } as const;
       lines.push(`Payment choice: ${map[draft.paymentChoice]}`);

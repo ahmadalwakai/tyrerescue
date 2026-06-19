@@ -1,14 +1,17 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontSize } from '@/constants/theme';
 import { useI18n } from '@/i18n';
+import { useChatUnreadCount } from '@/hooks/useChatUnreadCount';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, 8);
   const { t } = useI18n();
+  const { unreadCount } = useChatUnreadCount(5_000);
 
   const tabBarStyle = {
     backgroundColor: colors.surface,
@@ -16,11 +19,18 @@ export default function TabLayout() {
     borderTopWidth: 1,
     paddingBottom: bottomPad,
     height: 56 + bottomPad,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 -2px 8px rgba(0,0,0,0.3)',
+      },
+      default: {
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+    }),
   } as const;
 
   return (
@@ -64,12 +74,24 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="chat"
-        options={{
-          title: t('tabs.chat'),
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles-outline" size={size} color={color} />
-          ),
+        options={({ route }) => {
+          const focused = getFocusedRouteNameFromRoute(route);
+          const inConversation = focused === '[id]';
+          return {
+            title: t('tabs.chat'),
+            headerShown: false,
+            tabBarStyle: inConversation ? { display: 'none' as const } : tabBarStyle,
+            tabBarBadge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : undefined,
+            tabBarBadgeStyle: {
+              backgroundColor: colors.danger,
+              color: colors.white,
+              fontFamily: 'Inter_700Bold',
+              fontSize: 10,
+            },
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="chatbubbles-outline" size={size} color={color} />
+            ),
+          };
         }}
       />
       <Tabs.Screen

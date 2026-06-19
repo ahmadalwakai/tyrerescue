@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getOutboundUrl } from '@/lib/config/site';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdminMobile } from '@/lib/auth';
 import { db, bookings, drivers, bookingStatusHistory, tyreProducts, bookingTyres, users } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { executeTransition, BookingStatus } from '@/lib/state-machine';
@@ -8,8 +8,12 @@ import { createNotificationAndSend } from '@/lib/email/resend';
 import { driverAssigned, jobAssigned, jobCancelled } from '@/lib/email/templates';
 import { createAdminNotification } from '@/lib/notifications';
 import { notifyDriverNewJob, notifyDriverReassignment } from '@/lib/notifications/driver-push';
-import { computeDriverPaymentSummary } from '@/lib/payments/driver-payment';
-import { getBookingPaymentEvidence } from '@/lib/payments/payment-evidence';
+import { getBookingPaymentSummary } from '@/lib/payments/payment-summary';
+import {
+  canAssignDriverFromStatus,
+  getStatusAfterDriverUnassignment,
+  isActiveAssignmentStatus,
+} from '@/lib/bookings/assignment-status';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -17,7 +21,7 @@ interface Props {
 
 export async function PATCH(request: Request, { params }: Props) {
   try {
-    const session = await requireAdmin();
+    const session = await requireAdminMobile(request);
     const { ref } = await params;
     const { driverId } = await request.json();
 
@@ -71,7 +75,20 @@ export async function PATCH(request: Request, { params }: Props) {
     }
 
     const currentStatus = booking.status as BookingStatus;
-    const paymentEvidence = await getBookingPaymentEvidence(booking.id);
+    const bookingPaymentInput = {
+      id: booking.id,
+      refNumber: booking.refNumber,
+      status: booking.status,
+      paymentType: booking.paymentType,
+      totalAmount: booking.totalAmount?.toString() ?? null,
+      subtotal: booking.subtotal?.toString() ?? null,
+      vatAmount: booking.vatAmount?.toString() ?? null,
+      depositAmountPence: booking.depositAmountPence,
+      remainingBalancePence: booking.remainingBalancePence,
+      depositPaidAt: booking.depositPaidAt,
+      stripePiId: booking.stripePiId,
+      stripeDepositPiId: booking.stripeDepositPiId,
+    };
 
     // Block assignment for terminal statuses only
     const terminalStatuses = ['completed', 'cancelled', 'refunded', 'refunded_partial', 'cancelled_refund_pending'];
@@ -82,8 +99,8 @@ export async function PATCH(request: Request, { params }: Props) {
       );
     }
 
-    // If already has a driver (reassignment), just update the driver and timestamps
-    if (currentStatus !== 'paid') {
+    // Active jobs keep their lifecycle status; this is a driver reassignment.
+    if (isActiveAssignmentStatus(currentStatus)) {
       const now = new Date();
       await db
         .update(bookings)
@@ -107,18 +124,9 @@ export async function PATCH(request: Request, { params }: Props) {
       });
 
       // Notify the newly assigned driver; retry once on transient send failure.
-      const reassignPayment = computeDriverPaymentSummary({
-        paymentType: booking.paymentType,
-        totalAmount: booking.totalAmount?.toString() ?? null,
-        subtotal: booking.subtotal?.toString() ?? null,
-        vatAmount: booking.vatAmount?.toString() ?? null,
-        depositAmountPence: booking.depositAmountPence,
-        remainingBalancePence: booking.remainingBalancePence,
-        depositPaidAt: booking.depositPaidAt,
-        stripePiId: booking.stripePiId,
-        paymentStatus: paymentEvidence.paymentStatus,
-        totalPaidPence: paymentEvidence.totalPaidPence,
-        bookingStatus: currentStatus,
+      const reassignPayment = await getBookingPaymentSummary({
+        ...bookingPaymentInput,
+        status: currentStatus,
       });
       let reassignmentPushSent = await notifyDriverReassignment(driverId, booking.refNumber, booking.addressLine, reassignPayment, booking.id);
       if (!reassignmentPushSent) {
@@ -128,7 +136,15 @@ export async function PATCH(request: Request, { params }: Props) {
       return NextResponse.json({ success: true, reassigned: true });
     }
 
-    // Transition from paid to driver_assigned
+    if (!canAssignDriverFromStatus(currentStatus)) {
+      return NextResponse.json(
+        { error: `Cannot assign driver to booking in status: ${currentStatus}` },
+        { status: 400 },
+      );
+    }
+
+    // Transition dispatchable bookings to driver_assigned without changing
+    // payment truth. The payment summary tells the driver what to collect.
     const now = new Date();
     await db
       .update(bookings)
@@ -260,18 +276,9 @@ export async function PATCH(request: Request, { params }: Props) {
     // FCM blip or a token that's just been refreshed). Never call again on
     // success — duplicates create overlapping full-screen alerts.
     try {
-      const newJobPayment = computeDriverPaymentSummary({
-        paymentType: booking.paymentType,
-        totalAmount: booking.totalAmount?.toString() ?? null,
-        subtotal: booking.subtotal?.toString() ?? null,
-        vatAmount: booking.vatAmount?.toString() ?? null,
-        depositAmountPence: booking.depositAmountPence,
-        remainingBalancePence: booking.remainingBalancePence,
-        depositPaidAt: booking.depositPaidAt,
-        stripePiId: booking.stripePiId,
-        paymentStatus: paymentEvidence.paymentStatus,
-        totalPaidPence: paymentEvidence.totalPaidPence,
-        bookingStatus: 'driver_assigned',
+      const newJobPayment = await getBookingPaymentSummary({
+        ...bookingPaymentInput,
+        status: 'driver_assigned',
       });
       const firstResult = await notifyDriverNewJob(driverId, booking.refNumber, booking.addressLine, newJobPayment, booking.id);
       if (!firstResult) {
@@ -287,6 +294,12 @@ export async function PATCH(request: Request, { params }: Props) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error assigning driver:', error);
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 },
+      );
+    }
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json(
         { error: 'Admin access required' },
@@ -303,7 +316,7 @@ export async function PATCH(request: Request, { params }: Props) {
 // DELETE /api/admin/bookings/[ref]/assign — remove assigned driver
 export async function DELETE(request: Request, { params }: Props) {
   try {
-    const session = await requireAdmin();
+    const session = await requireAdminMobile(request);
     const { ref } = await params;
 
     const [booking] = await db
@@ -330,7 +343,24 @@ export async function DELETE(request: Request, { params }: Props) {
 
     const previousDriverId = booking.driverId;
 
-    // Revert booking to paid status and clear driver + all lifecycle timestamps
+    const payment = await getBookingPaymentSummary({
+      id: booking.id,
+      refNumber: booking.refNumber,
+      status: booking.status,
+      paymentType: booking.paymentType,
+      totalAmount: booking.totalAmount?.toString() ?? null,
+      subtotal: booking.subtotal?.toString() ?? null,
+      vatAmount: booking.vatAmount?.toString() ?? null,
+      depositAmountPence: booking.depositAmountPence,
+      remainingBalancePence: booking.remainingBalancePence,
+      depositPaidAt: booking.depositPaidAt,
+      stripePiId: booking.stripePiId,
+      stripeDepositPiId: booking.stripeDepositPiId,
+    });
+    const unassignedStatus = getStatusAfterDriverUnassignment(payment);
+
+    // Clear driver + all lifecycle timestamps and return to payment-derived
+    // queue status. Never invent a paid status from unassignment.
     await db
       .update(bookings)
       .set({
@@ -342,7 +372,7 @@ export async function DELETE(request: Request, { params }: Props) {
         arrivedAt: null,
         inProgressAt: null,
         completedAt: null,
-        status: 'paid',
+        status: unassignedStatus,
         updatedAt: new Date(),
       })
       .where(eq(bookings.id, booking.id));
@@ -350,7 +380,7 @@ export async function DELETE(request: Request, { params }: Props) {
     await db.insert(bookingStatusHistory).values({
       bookingId: booking.id,
       fromStatus: booking.status,
-      toStatus: 'paid',
+      toStatus: unassignedStatus,
       actorUserId: session.user.id,
       actorRole: 'admin',
       note: 'Driver removed by admin',
@@ -385,6 +415,12 @@ export async function DELETE(request: Request, { params }: Props) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error removing driver:', error);
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
     return NextResponse.json({ error: 'Failed to remove driver' }, { status: 500 });
   }
 }

@@ -15,7 +15,6 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import * as SecureStore from 'expo-secure-store';
 import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
 import { driverApi, JobDetail, ApiError, chatApi, PaymentSummary } from '@/api/client';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -27,6 +26,7 @@ import { mediumHaptic, heavyHaptic, errorHaptic } from '@/services/haptics';
 import { playSound, stopAlertSound } from '@/services/sound';
 import { clearAlertedRef } from '@/services/job-alert';
 import { ACTIVE_BOOKING_REF_KEY } from '@/services/background-location';
+import * as secureStorage from '@/services/secure-storage';
 import { useI18n } from '@/i18n';
 import { getDriverPaymentDisplay, paymentToneColors } from '@/lib/payment-status';
 
@@ -36,6 +36,23 @@ const ACTIVE_JOB_STATUSES = new Set([
   'arrived',
   'in_progress',
 ]);
+type JobDetailIconName = keyof typeof Ionicons.glyphMap;
+
+interface CustomerQuickMessage {
+  key: string;
+  label: string;
+  body: string;
+  statuses: string[];
+  requiresCollection?: boolean;
+}
+
+interface AdminIssueMessage {
+  key: string;
+  label: string;
+  body: string;
+  icon: JobDetailIconName;
+  urgent?: boolean;
+}
 
 const gbpFormatter = new Intl.NumberFormat('en-GB', {
   style: 'currency',
@@ -65,17 +82,9 @@ function PaymentCard({
     );
   }
 
-  const methodLabel =
-    payment.type === 'cash'
-      ? t('jobDetail.paymentMethodCash')
-      : payment.type === 'full'
-        ? t('jobDetail.paymentMethodFull')
-        : payment.type === 'deposit'
-          ? t('jobDetail.paymentMethodDeposit')
-          : t('jobDetail.paymentMethodUnknown');
-
   const display = getDriverPaymentDisplay(payment, refNumber);
   const statusLabel = t(display.labelKey);
+  const methodLabel = payment.methodLabel || t('jobDetail.paymentMethodUnknown');
 
   const amountLabel =
     display.tone === 'paid'
@@ -119,11 +128,11 @@ function PaymentCard({
           </View>
         );
       })()}
-      {payment.totalAmountPence != null && payment.totalAmountPence > 0 && (
+      {payment.totalPence != null && payment.totalPence > 0 && (
         <>
           <Text style={styles.cardMeta}>{t('jobDetail.jobPrice')}</Text>
           <Text style={[styles.cardValue, { fontSize: fontSize.lg, fontWeight: '700' }]}>
-            {formatGbpFromPence(payment.totalAmountPence)}
+            {formatGbpFromPence(payment.totalPence)}
           </Text>
         </>
       )}
@@ -176,41 +185,28 @@ export default function JobDetailScreen() {
   }, [ref]);
 
   useRefreshOnFocus(fetchJob);
+  const jobStatus = job?.status ?? null;
 
   // Track active booking ref so the location bridge knows which booking's
-  // tracking session to update. Cleared on unmount or when the job leaves the
-  // active set (completed/cancelled).
+  // tracking session to update. Do not clear on unmount: the driver may move
+  // to the route screen or lock the phone while this job is still active.
   useEffect(() => {
     if (!ref) return;
-    if (job && ACTIVE_JOB_STATUSES.has(job.status)) {
-      SecureStore.setItemAsync(ACTIVE_BOOKING_REF_KEY, ref).catch(() => {});
-    } else if (job) {
+    if (!jobStatus) return;
+    if (ACTIVE_JOB_STATUSES.has(jobStatus)) {
+      secureStorage.setItemAsync(ACTIVE_BOOKING_REF_KEY, ref).catch(() => {});
+    } else {
       // Job loaded but no longer active.
-      SecureStore.getItemAsync(ACTIVE_BOOKING_REF_KEY)
+      secureStorage.getItemAsync(ACTIVE_BOOKING_REF_KEY)
         .then((stored) => {
           if (stored === ref) {
-            return SecureStore.deleteItemAsync(ACTIVE_BOOKING_REF_KEY);
+            return secureStorage.deleteItemAsync(ACTIVE_BOOKING_REF_KEY);
           }
           return undefined;
         })
         .catch(() => {});
     }
-  }, [ref, job?.status]);
-
-  useEffect(() => {
-    return () => {
-      // On unmount, clear ONLY if this screen owned the key.
-      if (!ref) return;
-      SecureStore.getItemAsync(ACTIVE_BOOKING_REF_KEY)
-        .then((stored) => {
-          if (stored === ref) {
-            return SecureStore.deleteItemAsync(ACTIVE_BOOKING_REF_KEY);
-          }
-          return undefined;
-        })
-        .catch(() => {});
-    };
-  }, [ref]);
+  }, [ref, jobStatus]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -262,7 +258,9 @@ export default function JobDetailScreen() {
 
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
   const [sendingQuickMsg, setSendingQuickMsg] = useState<string | null>(null);
+  const [sendingAdminIssue, setSendingAdminIssue] = useState<string | null>(null);
   const quickMsgLockRef = useRef(false);
+  const adminIssueLockRef = useRef(false);
   // Controls the "confirm tyre size" modal shown before the in-app route opens.
   const [showTyreConfirm, setShowTyreConfirm] = useState(false);
   // Single-flight guard for opening the in-app route map so a double-tap
@@ -273,29 +271,108 @@ export default function JobDetailScreen() {
 
   const checklistItems = useMemo(() => {
     if (!job) return [];
-    if (job.status === 'en_route') return [
+    if (jobStatus === 'en_route') return [
       { key: 'location', label: t('jobDetail.correctLocation') },
       { key: 'tools', label: t('jobDetail.toolsLoaded') },
     ];
-    if (job.status === 'arrived') return [
+    if (jobStatus === 'arrived') return [
       { key: 'parked', label: t('jobDetail.vehicleParked') },
       { key: 'customer', label: t('jobDetail.customerAware') },
       { key: 'tools', label: t('jobDetail.toolsReady') },
     ];
     return [];
-  }, [job?.status]);
+  }, [job, jobStatus, t]);
 
   const toggleCheck = (key: string) =>
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const QUICK_MESSAGES: { key: string; label: string; body: string; statuses: string[] }[] = [
+  // Tyre summary built straight from the real job payload (never fabricated).
+  // Mirrors the "{count} × {size}" format used on the route cockpit.
+  const tyreCount =
+    job?.tyres?.reduce((sum, ty) => sum + (ty.quantity ?? 0), 0) ?? 0;
+  const tyreSizeSummary =
+    job?.tyreSizeDisplay != null && job.tyreSizeDisplay.length > 0
+      ? `${tyreCount > 0 ? tyreCount : 1} × ${job.tyreSizeDisplay}`
+      : null;
+
+  const paymentForJob = job?.paymentSummary ?? job?.payment ?? null;
+  const amountToCollectPence = paymentForJob?.amountToCollectPence ?? 0;
+  const hasCollection = amountToCollectPence > 0;
+  const amountToCollectLabel = formatGbpFromPence(amountToCollectPence) ?? t('jobDetail.notAvailable');
+  const readableStatus = job?.status?.replace(/_/g, ' ') ?? t('jobs.unknown');
+
+  const QUICK_MESSAGES: CustomerQuickMessage[] = [
     { key: 'omw', label: t('jobDetail.imOnTheWay'), body: t('jobDetail.msgOnTheWay'), statuses: ['driver_assigned', 'en_route'] },
     { key: 'nearby', label: t('jobDetail.imNearby'), body: t('jobDetail.msgNearby'), statuses: ['en_route'] },
     { key: 'arrived', label: t('jobDetail.iveArrived'), body: t('jobDetail.msgArrived'), statuses: ['en_route', 'arrived'] },
     { key: '5min', label: t('jobDetail.fiveMoreMinutes'), body: t('jobDetail.msgFiveMin'), statuses: ['in_progress'] },
+    { key: 'traffic', label: t('jobDetail.trafficDelay'), body: t('jobDetail.msgTrafficDelay'), statuses: ['en_route'] },
+    { key: 'location', label: t('jobDetail.needExactLocation'), body: t('jobDetail.msgNeedExactLocation'), statuses: ['en_route', 'arrived'] },
+    {
+      key: 'payment',
+      label: t('jobDetail.paymentReminder'),
+      body: t('jobDetail.msgPaymentReminder', { amount: amountToCollectLabel }),
+      statuses: ['arrived', 'in_progress'],
+      requiresCollection: true,
+    },
   ];
 
-  const sendQuickMessage = async (msg: typeof QUICK_MESSAGES[0]) => {
+  const ADMIN_ISSUES: AdminIssueMessage[] = [
+    {
+      key: 'late',
+      label: t('jobDetail.runningLate'),
+      icon: 'time-outline',
+      body: t('jobDetail.msgAdminRunningLate', {
+        ref: job?.refNumber ?? '',
+        status: readableStatus,
+        customer: job?.customerName ?? '',
+      }),
+    },
+    {
+      key: 'unreachable',
+      label: t('jobDetail.customerUnreachable'),
+      icon: 'call-outline',
+      body: t('jobDetail.msgAdminCustomerUnreachable', {
+        ref: job?.refNumber ?? '',
+        customer: job?.customerName ?? '',
+        phone: job?.customerPhone ?? t('jobDetail.noPhoneNumber'),
+      }),
+    },
+    {
+      key: 'tyre',
+      label: t('jobDetail.tyreIssue'),
+      icon: 'disc-outline',
+      urgent: true,
+      body: t('jobDetail.msgAdminTyreIssue', {
+        ref: job?.refNumber ?? '',
+        tyre: tyreSizeSummary ?? t('jobDetail.notAvailable'),
+        vehicle: [job?.vehicleReg, job?.vehicleMake, job?.vehicleModel].filter(Boolean).join(' · ') || t('jobs.noVehicle'),
+      }),
+    },
+    {
+      key: 'payment',
+      label: t('jobDetail.paymentIssue'),
+      icon: 'cash-outline',
+      urgent: hasCollection,
+      body: t('jobDetail.msgAdminPaymentIssue', {
+        ref: job?.refNumber ?? '',
+        amount: amountToCollectLabel,
+        status: paymentForJob?.label ?? readableStatus,
+      }),
+    },
+    {
+      key: 'support',
+      label: t('jobDetail.needSupport'),
+      icon: 'help-buoy-outline',
+      body: t('jobDetail.msgAdminNeedSupport', {
+        ref: job?.refNumber ?? '',
+        status: readableStatus,
+        address: job?.addressLine ?? t('jobDetail.notAvailable'),
+      }),
+    },
+  ];
+
+  const sendQuickMessage = async (msg: CustomerQuickMessage) => {
     if (!job || quickMsgLockRef.current) return;
     quickMsgLockRef.current = true;
     setSendingQuickMsg(msg.key);
@@ -308,6 +385,22 @@ export default function JobDetailScreen() {
     }
     setSendingQuickMsg(null);
     quickMsgLockRef.current = false;
+  };
+
+  const sendAdminIssue = async (issue: AdminIssueMessage) => {
+    if (!job || adminIssueLockRef.current) return;
+    adminIssueLockRef.current = true;
+    setSendingAdminIssue(issue.key);
+    try {
+      const res = await chatApi.createConversation(job.id, 'admin_driver');
+      await chatApi.sendMessage(res.conversationId, issue.body);
+      mediumHaptic();
+      Alert.alert(t('common.sent'), t('jobDetail.adminIssueSent'));
+    } catch {
+      Alert.alert(t('common.error'), t('jobDetail.couldNotReport'));
+    }
+    setSendingAdminIssue(null);
+    adminIssueLockRef.current = false;
   };
 
   const { isRunning: openingChat, run: openAdminChat } = useSingleFlight(async () => {
@@ -330,15 +423,6 @@ export default function JobDetailScreen() {
       navLockRef.current = false;
     }, 800);
   };
-
-  // Tyre summary built straight from the real job payload (never fabricated).
-  // Mirrors the "{count} × {size}" format used on the route cockpit.
-  const tyreCount =
-    job?.tyres?.reduce((sum, ty) => sum + (ty.quantity ?? 0), 0) ?? 0;
-  const tyreSizeSummary =
-    job?.tyreSizeDisplay != null && job.tyreSizeDisplay.length > 0
-      ? `${tyreCount > 0 ? tyreCount : 1} × ${job.tyreSizeDisplay}`
-      : null;
 
   // "Start in-app route" must confirm the correct tyre size first. Viewing job
   // details is never blocked — only starting the in-app route.
@@ -479,19 +563,22 @@ export default function JobDetailScreen() {
             <Text style={styles.phoneLink}>{job.customerPhone}</Text>
           </Pressable>
         ) : (
-          <Text style={styles.phoneEmpty}>No phone number provided</Text>
+          <Text style={styles.phoneEmpty}>{t('jobDetail.noPhoneNumber')}</Text>
         )}
       </View>
 
       {/* Payment */}
-      <PaymentCard payment={job.payment ?? null} refNumber={job.refNumber} t={t} />
+      <PaymentCard payment={job.paymentSummary ?? job.payment ?? null} refNumber={job.refNumber} t={t} />
 
       {/* Quick Status Messages */}
       {['driver_assigned', 'en_route', 'arrived', 'in_progress'].includes(job.status) && (
         <View style={styles.quickMsgSection}>
           <Text style={styles.quickMsgTitle}>{t('jobDetail.quickMessage')}</Text>
+          <Text style={styles.quickMsgSubtitle}>{t('jobDetail.quickMessageSubtitle')}</Text>
           <View style={styles.quickMsgRow}>
-            {QUICK_MESSAGES.filter((m) => m.statuses.includes(job.status)).map((m) => (
+            {QUICK_MESSAGES
+              .filter((m) => m.statuses.includes(job.status) && (!m.requiresCollection || hasCollection))
+              .map((m) => (
               <Pressable
                 key={m.key}
                 style={[styles.quickMsgBtn, sendingQuickMsg === m.key && styles.buttonDisabled]}
@@ -505,6 +592,50 @@ export default function JobDetailScreen() {
                 )}
               </Pressable>
             ))}
+          </View>
+        </View>
+      )}
+
+      {['driver_assigned', 'en_route', 'arrived', 'in_progress'].includes(job.status) && (
+        <View style={styles.opsToolsSection}>
+          <View style={styles.opsToolsHeader}>
+            <View style={styles.opsToolsIcon}>
+              <Ionicons name="radio-outline" size={18} color={colors.accent} />
+            </View>
+            <View style={styles.opsToolsCopy}>
+              <Text style={styles.quickMsgTitle}>{t('jobDetail.adminTools')}</Text>
+              <Text style={styles.quickMsgSubtitle}>{t('jobDetail.adminToolsSubtitle')}</Text>
+            </View>
+          </View>
+          <View style={styles.opsToolGrid}>
+            {ADMIN_ISSUES.map((issue) => {
+              const sending = sendingAdminIssue === issue.key;
+              return (
+                <Pressable
+                  key={issue.key}
+                  style={[
+                    styles.opsToolButton,
+                    issue.urgent && styles.opsToolButtonUrgent,
+                    sending && styles.buttonDisabled,
+                  ]}
+                  onPress={() => sendAdminIssue(issue)}
+                  disabled={!!sendingAdminIssue}
+                >
+                  {sending ? (
+                    <ActivityIndicator size="small" color={colors.accent} />
+                  ) : (
+                    <Ionicons
+                      name={issue.icon}
+                      size={18}
+                      color={issue.urgent ? '#FDBA74' : colors.accent}
+                    />
+                  )}
+                  <Text style={styles.opsToolButtonText} numberOfLines={2}>
+                    {issue.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
       )}
@@ -1064,6 +1195,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 6,
   },
+  quickMsgSubtitle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.xs,
+    color: colors.muted,
+    marginBottom: spacing.sm,
+  },
   quickMsgRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1081,6 +1218,62 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     fontSize: fontSize.sm,
     color: colors.text,
+  },
+  opsToolsSection: {
+    marginBottom: spacing.sm,
+    paddingTop: spacing.xs,
+  },
+  opsToolsHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  opsToolsIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(249,115,22,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,22,0.28)',
+  },
+  opsToolsCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  opsToolGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  opsToolButton: {
+    minHeight: 48,
+    minWidth: '31%',
+    flexGrow: 1,
+    flexBasis: '31%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  opsToolButtonUrgent: {
+    backgroundColor: 'rgba(249,115,22,0.12)',
+    borderColor: 'rgba(249,115,22,0.45)',
+  },
+  opsToolButtonText: {
+    flexShrink: 1,
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.xs,
+    color: colors.text,
+    textAlign: 'center',
   },
   checklistCard: {
     backgroundColor: colors.card,

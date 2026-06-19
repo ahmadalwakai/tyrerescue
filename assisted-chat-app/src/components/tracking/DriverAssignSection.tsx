@@ -4,16 +4,18 @@ import { AppButton, SectionCard } from '@/components/ui';
 import { colors, fontSize, radius, space } from '@/components/theme';
 import { useDriverList, type DriverListItem } from '@/hooks/useDriverList';
 import type { BookingTrackingData } from '@/hooks/useBookingTracking';
+import { api } from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Props {
-  bookingId: string;
+  bookingRef: string | null;
   trackingData: BookingTrackingData | null;
   customerLat: number | null;
   customerLng: number | null;
   /** Called when the operator selects or deselects a driver. */
   onSelectDriver?: (phone: string | null) => void;
+  onAssigned?: () => void;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -53,17 +55,21 @@ function formatLastSeen(iso: string | null): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function DriverAssignSection({
-  bookingId: _bookingId,
+  bookingRef,
   trackingData,
   customerLat,
   customerLng,
   onSelectDriver,
+  onAssigned,
 }: Props) {
   const { drivers, loading, error, reload } = useDriverList();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [assigning, setAssigning] = useState(false);
+  const [assignMessage, setAssignMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
   const selectedDriver = drivers.find((d) => d.id === selectedId) ?? null;
   const trackingReady = trackingData?.customerUrl != null;
+  const refNumber = bookingRef ?? trackingData?.refNumber ?? null;
 
   const customerPoint =
     customerLat != null && customerLng != null
@@ -114,10 +120,46 @@ export function DriverAssignSection({
         <Text style={styles.selectedLabel}>Selected driver: {selectedDriver.name}</Text>
       ) : null}
 
+      {assignMessage ? (
+        <Text style={[styles.assignMessage, assignMessage.kind === 'ok' ? styles.assignMessageOk : styles.assignMessageErr]}>
+          {assignMessage.text}
+        </Text>
+      ) : null}
+
+      <AppButton
+        label={assigning ? 'Sending job…' : 'Send job to selected driver'}
+        variant="primary"
+        loading={assigning}
+        disabled={!selectedDriver || !refNumber || assigning}
+        onPress={async () => {
+          if (!selectedDriver || !refNumber) return;
+          setAssigning(true);
+          setAssignMessage(null);
+          try {
+            await api.patch(`/api/admin/bookings/${encodeURIComponent(refNumber)}/assign`, {
+              driverId: selectedDriver.id,
+            });
+            setAssignMessage({ kind: 'ok', text: `Job ${refNumber} sent to ${selectedDriver.name}.` });
+            onAssigned?.();
+            void reload();
+          } catch (err) {
+            setAssignMessage({
+              kind: 'err',
+              text: err instanceof Error ? err.message : 'Could not send job to driver.',
+            });
+          } finally {
+            setAssigning(false);
+          }
+        }}
+        fullWidth
+      />
+
       <Text style={styles.hint}>
-        {trackingReady
-          ? 'Assign the driver in the admin panel — they will receive a push when assigned. The driver app reports tracking automatically.'
-          : 'Tracking will activate once the booking is confirmed.'}
+        {refNumber
+          ? trackingReady
+            ? 'The selected driver receives a push alert. Payment status stays accurate in the driver app.'
+            : 'Tracking will activate once the booking is confirmed; the driver still receives the job.'
+          : 'Create the booking first, then choose a driver.'}
       </Text>
     </SectionCard>
   );
@@ -198,6 +240,17 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: '600',
     marginTop: space.xs,
+  },
+  assignMessage: {
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+    marginTop: space.xs,
+  },
+  assignMessageOk: {
+    color: colors.success,
+  },
+  assignMessageErr: {
+    color: colors.danger,
   },
   hint: {
     color: colors.subtle,

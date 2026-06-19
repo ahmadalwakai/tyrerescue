@@ -5,7 +5,7 @@ import { trackingSessions, type TrackingSession } from '@/lib/db/schema';
 
 // Stale threshold used to flip an in_progress session into "paused" in UI.
 // Kept here so server and client agree on the cut-off without an env var.
-export const TRACKING_STALE_MS = 75_000; // 75s
+export const TRACKING_STALE_MS = 180_000; // 3 minutes
 
 export type TrackingDerivedStatus = 'pending' | 'in_progress' | 'paused' | 'completed' | 'expired';
 

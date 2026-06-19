@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { and, eq, inArray } from 'drizzle-orm';
 import { requireAdminMobile } from '@/lib/auth';
+import { expoDevCorsPreflight, jsonWithExpoDevCors } from '@/lib/api/dev-cors';
 import { db } from '@/lib/db';
 import { bookings, drivers, users } from '@/lib/db/schema';
 import {
@@ -52,7 +53,7 @@ interface RouteResponse {
   lastUpdatedAt: string;
 }
 
-const STALE_AFTER_SECONDS = 90;
+const STALE_AFTER_SECONDS = 180;
 
 function toNumber(value: string | number | null | undefined): number | null {
   if (value == null) return null;
@@ -67,12 +68,12 @@ export async function GET(
   try {
     await requireAdminMobile(request);
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return jsonWithExpoDevCors(request, { error: 'Unauthorized' }, { status: 401 });
   }
 
   const { ref } = await context.params;
   if (!ref) {
-    return NextResponse.json({ error: 'Missing ref' }, { status: 400 });
+    return jsonWithExpoDevCors(request, { error: 'Missing ref' }, { status: 400 });
   }
 
   const [row] = await db
@@ -103,7 +104,7 @@ export async function GET(
     .limit(1);
 
   if (!row) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return jsonWithExpoDevCors(request, { error: 'Not found' }, { status: 404 });
   }
 
   const customerLat = toNumber(row.customerLat);
@@ -198,5 +199,9 @@ export async function GET(
     }
   }
 
-  return NextResponse.json(response);
+  return jsonWithExpoDevCors(request, response);
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return expoDevCorsPreflight(request);
 }

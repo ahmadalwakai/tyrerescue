@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { createElement, useMemo } from 'react';
 import { Platform, StyleSheet, View, Text } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { colors, fontSize, radius } from '@/components/theme';
@@ -28,7 +28,15 @@ function buildHtml(token: string, driver: Point | null, customer: Point | null):
 <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet" />
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
-<style>html,body,#m{margin:0;padding:0;width:100%;height:100%;background:#09090B}</style>
+<style>
+html,body,#m{margin:0;padding:0;width:100%;height:100%;background:#09090B}
+.mk{position:relative;width:18px;height:18px}
+.mk-dot{position:absolute;top:0;left:0;width:18px;height:18px;border-radius:50%;background:var(--c);border:3px solid #09090B;box-shadow:0 2px 8px rgba(0,0,0,0.5);box-sizing:border-box;z-index:2}
+.mk-ring{position:absolute;top:50%;left:50%;width:18px;height:18px;border-radius:50%;border:2px solid var(--c);transform:translate(-50%,-50%);opacity:0;z-index:1;animation:radar 1.8s ease-out infinite}
+.mk-ring.r2{animation-delay:.8s}
+@keyframes radar{0%{transform:translate(-50%,-50%) scale(1);opacity:.7}100%{transform:translate(-50%,-50%) scale(3.6);opacity:0}}
+@media (prefers-reduced-motion: reduce){.mk-ring{animation:none;transform:translate(-50%,-50%) scale(1.8);opacity:.16}.mk-ring.r2{display:none}}
+</style>
 </head><body>
 <div id="m"></div>
 <script>
@@ -36,7 +44,7 @@ mapboxgl.accessToken = ${JSON.stringify(token)};
 var driver = ${driverJson};
 var customer = ${customerJson};
 var map = new mapboxgl.Map({container:'m',style:'mapbox://styles/mapbox/dark-v11',center:[${center.lng},${center.lat}],zoom:12,attributionControl:false});
-function pin(color){var el=document.createElement('div');el.style.cssText='width:18px;height:18px;border-radius:50%;background:'+color+';border:3px solid #09090B;box-shadow:0 2px 8px rgba(0,0,0,0.5)';return el;}
+function pin(color){var el=document.createElement('div');el.className='mk';el.style.setProperty('--c',color);el.innerHTML='<span class="mk-ring"></span><span class="mk-ring r2"></span><span class="mk-dot"></span>';return el;}
 map.on('load', function(){
   if (customer) new mapboxgl.Marker({element:pin('#22c55e')}).setLngLat(customer).addTo(map);
   if (driver) new mapboxgl.Marker({element:pin('#F97316')}).setLngLat(driver).addTo(map);
@@ -91,19 +99,13 @@ export function LiveTrackingMapMobile({ driver, customer, height = 220 }: Props)
         // react-native-webview has no real web implementation (it renders an
         // error message). Use a native iframe with srcDoc so the operator
         // dashboard works in the Expo web build too.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (() => {
-          const Iframe: any = 'iframe';
-          return (
-            <Iframe
-              srcDoc={html}
-              style={{ width: '100%', height: '100%', border: 0, background: colors.bg }}
-              sandbox="allow-scripts"
-              referrerPolicy="no-referrer"
-              title="Live tracking map"
-            />
-          );
-        })()
+        createElement('iframe', {
+          srcDoc: html,
+          style: { width: '100%', height: '100%', border: 0, background: colors.bg },
+          sandbox: 'allow-scripts',
+          referrerPolicy: 'no-referrer',
+          title: 'Live tracking map',
+        })
       ) : (
         <WebView
           originWhitelist={['*']}

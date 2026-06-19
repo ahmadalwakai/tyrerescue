@@ -4,10 +4,7 @@ import { db, bookings, drivers } from '@/lib/db';
 import { generateRefNumber } from '@/lib/utils';
 import { executeTransition } from '@/lib/state-machine';
 import { notifyDriverNewJob } from '@/lib/notifications/driver-push';
-import {
-  computeDriverPaymentSummary,
-  type PaymentType,
-} from '@/lib/payments/driver-payment';
+import { buildPaymentSummary } from '@/lib/payments/payment-summary';
 import {
   isAuthorizedIntegrationRequest,
   integrationUnauthorized,
@@ -111,7 +108,7 @@ export async function POST(request: Request) {
 
   const subtotal = toMoneyString(body.subtotal) ?? totalAmount!;
   const vatAmount = toMoneyString(body.vatAmount) ?? '0.00';
-  const paymentType: PaymentType =
+  const paymentType: 'cash' | 'full' | 'deposit' =
     body.paymentType === 'cash' ||
     body.paymentType === 'full' ||
     body.paymentType === 'deposit'
@@ -195,7 +192,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const driverPayment = computeDriverPaymentSummary({
+  const driverPayment = buildPaymentSummary({
+    id: bookingId,
+    refNumber,
+    status: 'driver_assigned',
     paymentType,
     totalAmount: totalAmount!,
     subtotal,
@@ -206,8 +206,7 @@ export async function POST(request: Request) {
       typeof body.remainingBalancePence === 'number' ? body.remainingBalancePence : null,
     depositPaidAt: null,
     stripePiId: null,
-    bookingStatus: 'driver_assigned',
-  });
+  }, []);
 
   // Wake the driver app with a full-screen job alert. Retry once on a transient
   // failure; never re-send on success to avoid duplicate alerts.

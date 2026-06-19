@@ -1,13 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm';
+import { NextRequest } from 'next/server';
+import { and, desc, eq, gte, inArray, lt, notInArray } from 'drizzle-orm';
 import { requireAdminMobile } from '@/lib/auth';
+import { jsonWithExpoDevCors } from '@/lib/api/dev-cors';
 import { db } from '@/lib/db';
 import { bookings, drivers, users } from '@/lib/db/schema';
-import {
-  computeDriverPaymentSummary,
-  type PaymentSummary,
-} from '@/lib/payments/driver-payment';
-import { getBookingPaymentEvidenceMap } from '@/lib/payments/payment-evidence';
+import { getBookingPaymentSummaryMap, type PaymentSummary } from '@/lib/payments/payment-summary';
 
 type LocationFreshness = 'live' | 'stale' | 'offline' | 'unknown';
 type DriverStatus = 'available' | 'busy' | 'offline' | 'unknown';
@@ -49,12 +46,31 @@ export interface TrackingResponse {
   generatedAt: string;
 }
 
+type JobsRange = 'today' | 'yesterday' | 'last_7_days' | 'last_month' | 'last_year';
+
 const ACTIVE_STATUSES = [
   'driver_assigned',
   'en_route',
   'arrived',
   'in_progress',
 ] as const;
+
+const HIDDEN_JOB_STATUSES = [
+  'draft',
+  'cancelled',
+  'refunded',
+  'refunded_partial',
+] as const;
+
+const JOBS_RANGE_VALUES = new Set<JobsRange>([
+  'today',
+  'yesterday',
+  'last_7_days',
+  'last_month',
+  'last_year',
+]);
+
+const TRACKING_TIME_ZONE = 'Europe/London';
 
 // Freshness thresholds as per spec
 const LIVE_THRESHOLD_MS = 60_000;
@@ -64,6 +80,73 @@ function toNum(v: string | number | null | undefined): number | null {
   if (v == null) return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+function readJobsRange(request: NextRequest): JobsRange {
+  const value = request.nextUrl.searchParams.get('jobsRange');
+  return JOBS_RANGE_VALUES.has(value as JobsRange) ? (value as JobsRange) : 'today';
+}
+
+function getZonedDateParts(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+
+  const get = (type: 'year' | 'month' | 'day') => Number(parts.find((part) => part.type === type)?.value);
+  return { year: get('year'), month: get('month'), day: get('day') };
+}
+
+function getTimeZoneOffsetMs(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(date);
+
+  const get = (type: 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second') =>
+    Number(parts.find((part) => part.type === type)?.value);
+
+  const hour = get('hour');
+  const asUtc = Date.UTC(
+    get('year'),
+    get('month') - 1,
+    get('day'),
+    hour === 24 ? 0 : hour,
+    get('minute'),
+    get('second'),
+  );
+
+  return asUtc - date.getTime();
+}
+
+function zonedStartOfDayUtc(date: Date, offsetDays: number): Date {
+  const parts = getZonedDateParts(date, TRACKING_TIME_ZONE);
+  const utcGuess = Date.UTC(parts.year, parts.month - 1, parts.day + offsetDays, 0, 0, 0, 0);
+  const offset = getTimeZoneOffsetMs(new Date(utcGuess), TRACKING_TIME_ZONE);
+  return new Date(utcGuess - offset);
+}
+
+function jobRangeWindow(range: JobsRange, now = new Date()): { start: Date; end: Date } {
+  const offsets: Record<JobsRange, { start: number; end: number }> = {
+    today: { start: 0, end: 1 },
+    yesterday: { start: -1, end: 0 },
+    last_7_days: { start: -6, end: 1 },
+    last_month: { start: -29, end: 1 },
+    last_year: { start: -364, end: 1 },
+  };
+  const { start, end } = offsets[range];
+  return {
+    start: zonedStartOfDayUtc(now, start),
+    end: zonedStartOfDayUtc(now, end),
+  };
 }
 
 function computeFreshness(locationAt: Date | null | undefined): LocationFreshness {
@@ -97,8 +180,11 @@ export async function GET(request: NextRequest) {
   try {
     await requireAdminMobile(request);
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return jsonWithExpoDevCors(request, { error: 'Unauthorized' }, { status: 401 });
   }
+
+  const jobsRange = readJobsRange(request);
+  const { start, end } = jobRangeWindow(jobsRange);
 
   // All drivers with user info (includes offline drivers for full dispatch picture)
   const driverRows = await db
@@ -130,7 +216,7 @@ export async function GET(request: NextRequest) {
     if (row.driverId) activeRefByDriver.set(row.driverId, row.refNumber);
   }
 
-  // Relevant jobs: unassigned paid + actively running jobs
+  // Jobs in the selected dispatch window. Drivers are always returned in full.
   const jobRows = await db
     .select({
       id: bookings.id,
@@ -155,22 +241,34 @@ export async function GET(request: NextRequest) {
       remainingBalancePence: bookings.remainingBalancePence,
       depositPaidAt: bookings.depositPaidAt,
       stripePiId: bookings.stripePiId,
+      stripeDepositPiId: bookings.stripeDepositPiId,
       createdAt: bookings.createdAt,
       scheduledAt: bookings.scheduledAt,
     })
     .from(bookings)
     .where(
-      or(
-        and(eq(bookings.status, 'paid'), isNull(bookings.driverId)),
-        inArray(bookings.status, [...ACTIVE_STATUSES]),
+      and(
+        notInArray(bookings.status, [...HIDDEN_JOB_STATUSES]),
+        gte(bookings.createdAt, start),
+        lt(bookings.createdAt, end),
       ),
     )
     .orderBy(desc(bookings.createdAt));
 
-  const bookingIds = jobRows.map((r) => r.id);
-  const paymentEvidenceMap = bookingIds.length
-    ? await getBookingPaymentEvidenceMap(bookingIds)
-    : new Map<string, { paymentStatus: string | null; totalPaidPence: number }>();
+  const paymentSummaryMap = await getBookingPaymentSummaryMap(jobRows.map((row) => ({
+    id: row.id,
+    refNumber: row.refNumber,
+    status: row.status,
+    paymentType: row.paymentType,
+    totalAmount: row.totalAmount,
+    subtotal: row.subtotal,
+    vatAmount: row.vatAmount,
+    depositAmountPence: row.depositAmountPence ?? null,
+    remainingBalancePence: row.remainingBalancePence ?? null,
+    depositPaidAt: row.depositPaidAt ?? null,
+    stripePiId: row.stripePiId ?? null,
+    stripeDepositPiId: row.stripeDepositPiId ?? null,
+  })));
 
   const trackingDrivers: TrackingDriver[] = driverRows.map((d) => {
     const activeJobRef = activeRefByDriver.get(d.id) ?? null;
@@ -206,25 +304,7 @@ export async function GET(request: NextRequest) {
     const lng = toNum(row.lng);
     const assignmentStatus: 'assigned' | 'unassigned' = row.driverId ? 'assigned' : 'unassigned';
 
-    const paymentEvidence = paymentEvidenceMap.get(row.id);
-    let paymentSummary: PaymentSummary | null = null;
-    try {
-      paymentSummary = computeDriverPaymentSummary({
-        paymentType: row.paymentType,
-        totalAmount: row.totalAmount,
-        subtotal: row.subtotal,
-        vatAmount: row.vatAmount,
-        depositAmountPence: row.depositAmountPence ?? null,
-        remainingBalancePence: row.remainingBalancePence ?? null,
-        depositPaidAt: row.depositPaidAt ?? null,
-        stripePiId: row.stripePiId ?? null,
-        paymentStatus: paymentEvidence?.paymentStatus ?? null,
-        totalPaidPence: paymentEvidence?.totalPaidPence ?? 0,
-        bookingStatus: row.status,
-      });
-    } catch {
-      paymentSummary = null;
-    }
+    const paymentSummary = paymentSummaryMap.get(row.id) ?? null;
 
     return {
       id: row.id,
@@ -251,5 +331,5 @@ export async function GET(request: NextRequest) {
     generatedAt: new Date().toISOString(),
   };
 
-  return NextResponse.json(response);
+  return jsonWithExpoDevCors(request, response);
 }

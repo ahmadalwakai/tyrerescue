@@ -76,7 +76,7 @@ export function PriceSummary({
   // the customer-facing sentence. Manual override wins, and is persisted as a
   // backend admin adjustment before quote save/finalize.
   const effectiveTotal = hasManualOverride ? (manualPriceGbp as number) : calculatedTotal;
-  const depositPercent = 0.15;
+  const depositPercent = 0.20;
   const deposit = effectiveTotal * depositPercent;
   const priceLines = quote?.lineItems.filter((line) => line.type !== 'subtotal' && line.type !== 'total') ?? [];
   const pricingSource = quote?.serviceOrigin?.source === 'driver' ? 'nearest driver' : quote?.serviceOrigin?.source === 'garage' ? 'garage' : null;
@@ -197,7 +197,7 @@ export function PriceSummary({
           <Text style={styles.payLabel}>Choose payment</Text>
           <View style={{ gap: 8 }}>
             <AppButton
-              label={`Pay deposit 15% (${formatGbp(deposit)})`}
+              label={`Pay deposit 20% (${formatGbp(deposit)})`}
               onPress={() => onChoosePayment('deposit')}
               variant={paymentChoice === 'deposit' ? 'primary' : 'secondary'}
               loading={paymentBusy && paymentChoice === 'deposit'}

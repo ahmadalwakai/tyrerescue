@@ -1,13 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { requireAdminMobile } from '@/lib/auth';
+import { expoDevCorsPreflight, jsonWithExpoDevCors } from '@/lib/api/dev-cors';
 import { db } from '@/lib/db';
 import { bookings, drivers, users } from '@/lib/db/schema';
-import {
-  computeDriverPaymentSummary,
-  type PaymentSummary,
-} from '@/lib/payments/driver-payment';
-import { getBookingPaymentEvidenceMap } from '@/lib/payments/payment-evidence';
+import { getBookingPaymentSummaryMap, type PaymentSummary } from '@/lib/payments/payment-summary';
 import { haversineDistanceMiles } from '@/lib/mapbox';
 
 const ACTIVE_STATUSES = [
@@ -17,7 +14,7 @@ const ACTIVE_STATUSES = [
   'in_progress',
 ] as const;
 
-const STALE_AFTER_SECONDS = 90;
+const STALE_AFTER_SECONDS = 180;
 
 export interface ActiveJobItem {
   bookingRef: string;
@@ -43,6 +40,7 @@ export interface ActiveJobItem {
     locationSource: string | null;
     isStale: boolean;
   };
+  paymentSummary: PaymentSummary;
   payment: PaymentSummary;
   distanceMiles: number | null;
   etaMinutes: number | null;
@@ -59,7 +57,7 @@ export async function GET(request: NextRequest) {
   try {
     await requireAdminMobile(request);
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return jsonWithExpoDevCors(request, { error: 'Unauthorized' }, { status: 401 });
   }
 
   const rows = await db
@@ -83,6 +81,7 @@ export async function GET(request: NextRequest) {
       remainingBalancePence: bookings.remainingBalancePence,
       depositPaidAt: bookings.depositPaidAt,
       stripePiId: bookings.stripePiId,
+      stripeDepositPiId: bookings.stripeDepositPiId,
       driverId: drivers.id,
       driverName: users.name,
       driverPhone: users.phone,
@@ -103,7 +102,20 @@ export async function GET(request: NextRequest) {
 
   const now = Date.now();
 
-  const paymentEvidenceMap = await getBookingPaymentEvidenceMap(rows.map((row) => row.bookingId));
+  const paymentSummaryMap = await getBookingPaymentSummaryMap(rows.map((row) => ({
+    id: row.bookingId,
+    refNumber: row.bookingRef,
+    status: row.status,
+    paymentType: row.paymentType,
+    totalAmount: row.totalAmount,
+    subtotal: row.subtotal,
+    vatAmount: row.vatAmount,
+    depositAmountPence: row.depositAmountPence ?? null,
+    remainingBalancePence: row.remainingBalancePence ?? null,
+    depositPaidAt: row.depositPaidAt ?? null,
+    stripePiId: row.stripePiId ?? null,
+    stripeDepositPiId: row.stripeDepositPiId ?? null,
+  })));
 
   const items: ActiveJobItem[] = rows.map((row) => {
     const customerLat = toNumber(row.customerLat);
@@ -138,20 +150,10 @@ export async function GET(request: NextRequest) {
     const isStale =
       ageSeconds == null ? true : ageSeconds > STALE_AFTER_SECONDS;
 
-    const paymentEvidence = paymentEvidenceMap.get(row.bookingId);
-    const payment = computeDriverPaymentSummary({
-      paymentType: row.paymentType,
-      totalAmount: row.totalAmount,
-      subtotal: row.subtotal,
-      vatAmount: row.vatAmount,
-      depositAmountPence: row.depositAmountPence ?? null,
-      remainingBalancePence: row.remainingBalancePence ?? null,
-      depositPaidAt: row.depositPaidAt ?? null,
-      stripePiId: row.stripePiId ?? null,
-      paymentStatus: paymentEvidence?.paymentStatus ?? null,
-      totalPaidPence: paymentEvidence?.totalPaidPence ?? 0,
-      bookingStatus: row.status,
-    });
+    const payment = paymentSummaryMap.get(row.bookingId);
+    if (!payment) {
+      throw new Error(`Missing payment summary for ${row.bookingRef}`);
+    }
 
     return {
       bookingRef: row.bookingRef,
@@ -177,11 +179,16 @@ export async function GET(request: NextRequest) {
         locationSource: row.driverLocationSource ?? null,
         isStale,
       },
+      paymentSummary: payment,
       payment,
       distanceMiles,
       etaMinutes,
     };
   });
 
-  return NextResponse.json({ activeJobs: items });
+  return jsonWithExpoDevCors(request, { activeJobs: items });
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return expoDevCorsPreflight(request);
 }

@@ -29,7 +29,7 @@ import {
   isRepairOrAssessService,
   formatGBP,
 } from '@/lib/bookings/normalise-tyre-details';
-import type { PaymentSummary } from '@/lib/payments/driver-payment';
+import type { PaymentSummary } from '@/lib/payments/payment-summary';
 
 interface RankedDriver {
   driverId: string;
@@ -122,8 +122,9 @@ interface Props {
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
   paid: 'Paid',
   deposit_paid: 'Deposit Paid',
+  balance_due: 'Balance Due',
+  cash_to_collect: 'Cash to Collect',
   pending: 'Payment Pending',
-  unpaid: 'Unpaid',
   needs_checking: 'Needs Checking',
   failed: 'Payment Failed',
   unknown: 'Unknown',
@@ -132,8 +133,9 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
 const PAYMENT_STATUS_COLORS: Record<string, string> = {
   paid: 'green',
   deposit_paid: '#3B82F6',
+  balance_due: '#F97316',
+  cash_to_collect: '#F97316',
   pending: '#EAB308',
-  unpaid: '#EAB308',
   needs_checking: '#F97316',
   failed: 'red',
   unknown: '#6B7280',
@@ -183,8 +185,9 @@ const SERVICE_LABELS: Record<string, string> = {
 const ADMIN_TRANSITIONS: Record<string, string[]> = {
   draft: ['pricing_ready', 'cancelled'],
   pricing_ready: ['awaiting_payment', 'cancelled'],
-  awaiting_payment: ['paid', 'cancelled'],
+  awaiting_payment: ['paid', 'deposit_paid', 'driver_assigned', 'cancelled'],
   payment_failed: ['awaiting_payment', 'cancelled'],
+  deposit_paid: ['driver_assigned', 'cancelled'],
   paid: ['driver_assigned', 'cancelled'],
   driver_assigned: ['en_route', 'cancelled'],
   en_route: ['arrived', 'cancelled'],
@@ -851,18 +854,26 @@ export function BookingDetailClient({
                 <Box pt={2} mt={1} borderTop="1px dashed" borderColor={c.border}>
                   <HStack justify="space-between" align="center">
                     <Text fontSize="sm" color={c.muted}>Payment state (evidence-based)</Text>
-                    <Badge colorPalette="gray" style={{ backgroundColor: PAYMENT_STATUS_COLORS[payment.status] ?? c.muted, color: '#fff', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px' }}>
-                      {PAYMENT_STATUS_LABELS[payment.status] ?? payment.status}
+                    <Badge colorPalette="gray" style={{ backgroundColor: PAYMENT_STATUS_COLORS[payment.state] ?? c.muted, color: '#fff', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px' }}>
+                      {PAYMENT_STATUS_LABELS[payment.state] ?? payment.label}
                     </Badge>
                   </HStack>
-                  {payment.amountToCollectPence > 0 && (
+                  {payment.amountToCollectPence != null && payment.amountToCollectPence > 0 && (
                     <Text fontSize="xs" color={c.muted} mt={1}>
                       Amount to collect: {formatCurrency(payment.amountToCollectPence / 100)}
                     </Text>
                   )}
-                  {payment.totalPaidPence > 0 && (
+                  {payment.paidPence != null && payment.paidPence > 0 && (
                     <Text fontSize="xs" color="green.400" mt={1}>
-                      Confirmed paid: {formatCurrency(payment.totalPaidPence / 100)}
+                      Confirmed paid: {formatCurrency(payment.paidPence / 100)}
+                    </Text>
+                  )}
+                  <Text fontSize="xs" color={c.muted} mt={1}>
+                    {payment.methodLabel} · {payment.instruction}
+                  </Text>
+                  {payment.linkStatus !== 'not_sent' && (
+                    <Text fontSize="xs" color={c.muted} mt={1}>
+                      Link status: {payment.linkStatus.replace(/_/g, ' ')}
                     </Text>
                   )}
                 </Box>

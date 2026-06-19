@@ -60,6 +60,7 @@ object DriverJobAlertNotifier {
     val address: String?,
     val deepLink: String?,
     val amountToCollectPence: String? = null,
+    val depositAmountPence: String? = null,
     val paymentStatus: String? = null,
     val paymentType: String? = null,
     val jobPricePence: String? = null,
@@ -101,6 +102,7 @@ object DriverJobAlertNotifier {
       payload.address?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_ADDRESS, it) }
       payload.deepLink?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_URL, it) }
       payload.amountToCollectPence?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_AMOUNT_TO_COLLECT_PENCE, it) }
+      payload.depositAmountPence?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_DEPOSIT_AMOUNT_PENCE, it) }
       payload.paymentStatus?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_PAYMENT_STATUS, it) }
       payload.paymentType?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_PAYMENT_TYPE, it) }
       payload.jobPricePence?.takeIf { it.isNotBlank() }?.let { putExtra(EXTRA_JOB_PRICE_PENCE, it) }
@@ -297,6 +299,7 @@ object DriverJobAlertNotifier {
   const val EXTRA_ADDRESS = "address"
   const val EXTRA_URL = "url"
   const val EXTRA_AMOUNT_TO_COLLECT_PENCE = "amountToCollectPence"
+  const val EXTRA_DEPOSIT_AMOUNT_PENCE = "depositAmountPence"
   const val EXTRA_PAYMENT_STATUS = "paymentStatus"
   const val EXTRA_PAYMENT_TYPE = "paymentType"
   const val EXTRA_JOB_PRICE_PENCE = "jobPricePence"
@@ -310,17 +313,21 @@ object DriverJobAlertNotifier {
       lines.add("Price: \u00A3${String.format("%.2f", price / 100.0)}")
     }
     val collect = payload.amountToCollectPence?.toLongOrNull()
+    val deposit = payload.depositAmountPence?.toLongOrNull()
+    val isDeposit = payload.paymentType == "deposit" || payload.paymentType == "deposit_link"
     if (payload.paymentStatus == "paid" && collect != null && collect <= 0L) {
       lines.add("Nothing to collect")
     } else if (payload.paymentStatus == "needs_checking") {
       lines.add(if (collect != null && collect > 0L) "Payment needs checking: \u00A3${String.format("%.2f", collect / 100.0)}" else "Payment needs checking")
     } else if (payload.paymentStatus == "failed") {
       lines.add(if (collect != null && collect > 0L) "Payment failed: \u00A3${String.format("%.2f", collect / 100.0)}" else "Payment failed")
+    } else if (payload.paymentStatus == "pending" && isDeposit) {
+      lines.add(if (deposit != null && deposit > 0L) "20% deposit pending: \u00A3${String.format("%.2f", deposit / 100.0)}" else "20% deposit pending")
     } else if (payload.paymentStatus == "pending") {
       lines.add(if (collect != null && collect > 0L) "Payment pending: \u00A3${String.format("%.2f", collect / 100.0)}" else "Payment pending")
     } else if (payload.paymentType == "cash" && collect != null && collect > 0L) {
       lines.add("Cash to collect: \u00A3${String.format("%.2f", collect / 100.0)}")
-    } else if (payload.paymentStatus == "deposit_paid" && collect != null && collect > 0L) {
+    } else if ((payload.paymentStatus == "deposit_paid" || payload.paymentStatus == "balance_due") && collect != null && collect > 0L) {
       lines.add("Balance due: \u00A3${String.format("%.2f", collect / 100.0)}")
     } else if (collect != null && collect > 0L) {
       lines.add("Amount due: \u00A3${String.format("%.2f", collect / 100.0)}")

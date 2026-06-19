@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { I18nManager, Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
 import { getLocales } from 'expo-localization';
+import * as secureStorage from '@/services/secure-storage';
 import { ar as arDateLocale } from 'date-fns/locale/ar';
 import en from './locales/en.json';
 import ar from './locales/ar.json';
@@ -63,7 +63,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const saved = await SecureStore.getItemAsync(LANGUAGE_KEY);
+        const saved = await secureStorage.getItemAsync(LANGUAGE_KEY);
         if (saved === 'ar' || saved === 'en') {
           setLocaleState(saved);
           applyRTL(saved);
@@ -85,7 +85,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   const setLocale = useCallback(async (newLocale: Locale) => {
     setLocaleState(newLocale);
-    await SecureStore.setItemAsync(LANGUAGE_KEY, newLocale);
+    await secureStorage.setItemAsync(LANGUAGE_KEY, newLocale);
     applyRTL(newLocale);
   }, []);
 

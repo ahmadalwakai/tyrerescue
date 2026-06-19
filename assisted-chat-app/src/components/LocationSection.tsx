@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  PanGestureHandler,
-  PinchGestureHandler,
-  State,
-  type PanGestureHandlerGestureEvent,
-  type PanGestureHandlerStateChangeEvent,
-  type PinchGestureHandlerGestureEvent,
-  type PinchGestureHandlerStateChangeEvent,
-} from 'react-native-gesture-handler';
+  ActivityIndicator,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { WebView } from 'react-native-webview';
 import { copyToClipboard } from '@/lib/clipboard';
 import { extractPostcode, getMapboxToken, searchMapboxAddress, type MapboxFeature } from '@/lib/mapbox';
 import { isValidUkPhone } from '@/lib/money';
@@ -18,9 +20,12 @@ import { AppButton, FieldLabel, SectionCard, StatusBanner } from './ui';
 import { colors, fontSize, radius } from './theme';
 
 const GARAGE_LOCATION = { lat: 55.8547, lng: -4.2206 } as const;
-const GARAGE_LABEL = 'Tyre Rescue Garage';
-const MAP_MIN_ZOOM = 1;
-const MAP_MAX_ZOOM = 4;
+const ROUTE_MAP_MESSAGE_SOURCE = 'tyrerescue-location-route-map';
+
+interface MapPoint {
+  lat: number;
+  lng: number;
+}
 
 interface Props {
   draft: AssistedChatDraft;
@@ -175,45 +180,214 @@ function buildLocationRequestViewState({
   };
 }
 
-function encodeSigned(value: number): string {
-  let coordinate = value < 0 ? ~(value << 1) : value << 1;
-  let output = '';
-  while (coordinate >= 0x20) {
-    output += String.fromCharCode((0x20 | (coordinate & 0x1f)) + 63);
-    coordinate >>= 5;
+interface RouteMapState {
+  garage: [number, number];
+  customer: [number, number];
+  route: [number, number][];
+  routeApproximate: boolean;
+  summaryText: string;
+  distanceText: string | null;
+  etaText: string | null;
+  customerAddress: string | null;
+}
+
+type RouteMapCommand = 'fit' | 'zoomIn' | 'zoomOut';
+
+function decodePolyline(encoded: string): MapPoint[] {
+  const points: MapPoint[] = [];
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+
+  while (index < encoded.length) {
+    let shift = 0;
+    let result = 0;
+    let byte = 0;
+    do {
+      byte = encoded.charCodeAt(index) - 63;
+      index += 1;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20 && index < encoded.length);
+    lat += result & 1 ? ~(result >> 1) : result >> 1;
+
+    shift = 0;
+    result = 0;
+    do {
+      byte = encoded.charCodeAt(index) - 63;
+      index += 1;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20 && index < encoded.length);
+    lng += result & 1 ? ~(result >> 1) : result >> 1;
+
+    points.push({ lat: lat / 100000, lng: lng / 100000 });
   }
-  output += String.fromCharCode(coordinate + 63);
-  return output;
+
+  return points;
 }
 
-function encodePolyline(points: Array<{ lat: number; lng: number }>): string {
-  let previousLat = 0;
-  let previousLng = 0;
-  return points
-    .map((point) => {
-      const lat = Math.round(point.lat * 100000);
-      const lng = Math.round(point.lng * 100000);
-      const encoded = encodeSigned(lat - previousLat) + encodeSigned(lng - previousLng);
-      previousLat = lat;
-      previousLng = lng;
-      return encoded;
-    })
-    .join('');
+function buildRouteMapHtml(token: string, state: RouteMapState): string {
+  const stateJson = JSON.stringify(state).replace(/</g, '\\u003c');
+  return `<!doctype html><html><head>
+<meta charset="utf-8" />
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
+<style>
+html,body,#m{margin:0;padding:0;width:100%;height:100%;background:#09090B;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.mapboxgl-canvas{outline:none}
+.mapboxgl-popup{max-width:270px!important}
+.mapboxgl-popup-tip{display:none}
+.mapboxgl-popup-content{background:transparent;border:0;padding:0;box-shadow:none}
+.mapboxgl-popup-close-button{top:5px;right:7px;color:#FAFAFA;font-size:18px;text-shadow:0 1px 2px rgba(0,0,0,.8);z-index:5}
+.pin{--pin-color:#F97316;display:flex;flex-direction:column;align-items:center;cursor:pointer;user-select:none;-webkit-user-select:none;filter:drop-shadow(0 8px 14px rgba(0,0,0,.42))}
+.pin-core{position:relative;width:34px;height:34px;display:flex;align-items:center;justify-content:center}
+.pin-ring{position:absolute;top:50%;left:50%;width:18px;height:18px;border-radius:50%;border:2px solid var(--pin-color);transform:translate(-50%,-50%);opacity:0;z-index:1;animation:radar 1.8s ease-out infinite;pointer-events:none}
+.pin-ring.r2{animation-delay:.8s}
+.pin-dot{position:relative;z-index:2;width:18px;height:18px;border-radius:50%;background:var(--pin-color);border:3px solid #09090B;box-shadow:0 2px 8px rgba(0,0,0,.55)}
+.pin-label{margin-top:3px;font-size:10px;font-weight:900;color:#FAFAFA;background:rgba(9,9,11,.84);padding:2px 6px;border-radius:6px;line-height:1.25;white-space:nowrap}
+@keyframes radar{0%{transform:translate(-50%,-50%) scale(1);opacity:.74}100%{transform:translate(-50%,-50%) scale(3.7);opacity:0}}
+@media (prefers-reduced-motion:reduce){.pin-ring{animation:none;transform:translate(-50%,-50%) scale(1.9);opacity:.18}.pin-ring.r2{display:none}}
+.route-card{position:relative;min-width:230px;overflow:hidden;isolation:isolate;border-radius:15px;padding:13px 14px;background:linear-gradient(145deg,#2A2A2F 0%,#18181B 48%,#0F0F12 100%);border:1px solid rgba(249,115,22,.52);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -18px 30px rgba(0,0,0,.22),0 14px 28px rgba(0,0,0,.52);transform:perspective(560px) rotateX(4deg);transform-origin:center bottom;color:#FAFAFA}
+.route-card:before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.10),transparent 38%,rgba(249,115,22,.08));pointer-events:none;z-index:1}
+.route-shimmer{position:absolute;z-index:4;top:-38%;bottom:-38%;left:-120px;width:88px;transform:skewX(-18deg);background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.08) 14%,rgba(255,255,255,.55) 50%,rgba(255,255,255,.08) 86%,transparent 100%);filter:blur(.2px);opacity:.82;mix-blend-mode:screen;pointer-events:none;animation:routeShimmer 1.65s cubic-bezier(.4,0,.2,1) infinite}
+.route-top{position:relative;z-index:2;display:flex;align-items:center;gap:10px}
+.route-avatar{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,var(--badge-color),#111827);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 8px 15px rgba(0,0,0,.25);font-weight:900;color:#09090B}
+.route-copy{min-width:0;flex:1}
+.route-kicker{font-size:9px;font-weight:900;text-transform:uppercase;color:#FCD34D}
+.route-title{font-size:16px;font-weight:900;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 1px rgba(0,0,0,.85)}
+.route-meta{position:relative;z-index:2;margin-top:8px;color:#D4D4D8;font-size:12px;line-height:1.4}
+.route-pill{position:relative;z-index:2;display:inline-flex;align-items:center;gap:6px;margin-top:9px;border-radius:999px;background:rgba(34,197,94,.16);color:#BBF7D0;border:1px solid rgba(34,197,94,.38);padding:4px 8px;font-size:10px;font-weight:900;text-transform:uppercase}
+.route-pill:before{content:"";width:7px;height:7px;border-radius:50%;background:#22C55E}
+@keyframes routeShimmer{0%{left:-120px}100%{left:calc(100% + 120px)}}
+@media (prefers-reduced-motion:reduce){.route-shimmer{animation:routeShimmer 2.4s ease-in-out infinite}.route-card{transform:none}}
+</style>
+</head><body>
+<div id="m"></div>
+<script>
+mapboxgl.accessToken=${JSON.stringify(token)};
+var MSG_SOURCE=${JSON.stringify(ROUTE_MAP_MESSAGE_SOURCE)};
+var state=${stateJson};
+var center=state.customer||state.garage||[-4.2518,55.8642];
+var loaded=false;
+var map=new mapboxgl.Map({
+  container:'m',
+  style:'mapbox://styles/mapbox/dark-v11',
+  center:center,
+  zoom:13,
+  minZoom:4,
+  maxZoom:19,
+  attributionControl:false,
+  dragRotate:false,
+  pitchWithRotate:false,
+  scrollZoom:true,
+  boxZoom:true,
+  dragPan:true,
+  keyboard:true,
+  doubleClickZoom:true,
+  touchZoomRotate:true
+});
+function esc(s){return(s==null?'':String(s)).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c;});}
+function pin(color,label){var el=document.createElement('div');el.className='pin';el.style.setProperty('--pin-color',color);el.innerHTML='<div class="pin-core"><span class="pin-ring"></span><span class="pin-ring r2"></span><span class="pin-dot"></span></div><div class="pin-label">'+esc(label)+'</div>';return el;}
+function popup(kind,title,meta,color){return '<div class="route-card" style="--badge-color:'+color+'"><span class="route-shimmer"></span><div class="route-top"><div class="route-avatar">'+esc(kind.charAt(0))+'</div><div class="route-copy"><div class="route-kicker">'+esc(kind)+'</div><div class="route-title">'+esc(title)+'</div></div></div><div class="route-meta">'+esc(meta)+'</div><div class="route-pill">Live point</div></div>';}
+function routeFeature(coords){return{type:'Feature',geometry:{type:'LineString',coordinates:coords},properties:{}};}
+var routeFlowFrame=null;
+function segmentLength(a,b){
+  var lat=(a[1]+b[1])/2*Math.PI/180;
+  var dx=(b[0]-a[0])*Math.cos(lat);
+  var dy=b[1]-a[1];
+  return Math.sqrt(dx*dx+dy*dy);
 }
-
-function clampMapZoom(value: number): number {
-  return Math.min(MAP_MAX_ZOOM, Math.max(MAP_MIN_ZOOM, value));
+function buildMeasures(coords){
+  var measures=[0],total=0;
+  for(var i=1;i<coords.length;i++){total+=segmentLength(coords[i-1],coords[i]);measures.push(total);}
+  return{measures:measures,total:total};
 }
-
-function buildLiveRoutePathOverlays(encodedPolyline: string | null, fallbackPolyline: string | null): string[] {
-  const polyline = encodedPolyline ?? fallbackPolyline;
-  if (!polyline) return [];
-  const encoded = encodeURIComponent(polyline);
-  return [
-    `path-9+111827-0.28(${encoded})`,
-    `path-6+f97316-0.96(${encoded})`,
-    `path-2+fff7ed-0.9(${encoded})`,
-  ];
+function pointAt(coords,measures,distance){
+  if(distance<=0)return coords[0];
+  var last=coords.length-1;
+  if(distance>=measures[last])return coords[last];
+  for(var i=1;i<coords.length;i++){
+    if(distance<=measures[i]){
+      var span=Math.max(measures[i]-measures[i-1],0.0000001);
+      var t=(distance-measures[i-1])/span;
+      return[
+        coords[i-1][0]+(coords[i][0]-coords[i-1][0])*t,
+        coords[i-1][1]+(coords[i][1]-coords[i-1][1])*t
+      ];
+    }
+  }
+  return coords[last];
+}
+function routeSlice(coords,measures,from,to){
+  var out=[pointAt(coords,measures,from)];
+  for(var i=1;i<coords.length-1;i++){
+    if(measures[i]>from&&measures[i]<to)out.push(coords[i]);
+  }
+  out.push(pointAt(coords,measures,to));
+  if(out.length<2)out.push(out[0]);
+  return out;
+}
+function startRouteFlow(coords){
+  if(routeFlowFrame)cancelAnimationFrame(routeFlowFrame);
+  if(!coords||coords.length<2)return;
+  var measured=buildMeasures(coords);
+  if(!measured.total)return;
+  var started=performance.now();
+  var duration=2600;
+  var tail=measured.total*0.18;
+  function tick(now){
+    var source=map.getSource('route-flow');
+    if(source){
+      var phase=((now-started)%duration)/duration;
+      var head=phase*measured.total;
+      var from=Math.max(0,head-tail);
+      source.setData(routeFeature(routeSlice(coords,measured.measures,from,head)));
+    }
+    routeFlowFrame=requestAnimationFrame(tick);
+  }
+  routeFlowFrame=requestAnimationFrame(tick);
+}
+function addRoute(coords,approx){
+  if(!coords||coords.length<2)return;
+  map.addSource('route',{type:'geojson',data:routeFeature(coords)});
+  map.addLayer({id:'route-shadow',type:'line',source:'route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#000000','line-width':13,'line-opacity':.34}});
+  map.addLayer({id:'route-casing',type:'line',source:'route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#FFFFFF','line-width':8,'line-opacity':approx ? .34 : .95}});
+  map.addLayer({id:'route-line',type:'line',source:'route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':approx?'#60A5FA':'#F97316','line-width':4.6,'line-opacity':1,'line-dasharray':approx?[2,1.5]:[1,0]}});
+  map.addSource('route-flow',{type:'geojson',data:routeFeature([coords[0],coords[0]])});
+  map.addLayer({id:'route-flow-glow',type:'line',source:'route-flow',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#FDE68A','line-width':11,'line-opacity':.34,'line-blur':2.2}});
+  map.addLayer({id:'route-flow-line',type:'line',source:'route-flow',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#FFFFFF','line-width':4.8,'line-opacity':.96}});
+  startRouteFlow(coords);
+}
+function fitRoute(duration){
+  var pts=[];
+  if(state.route&&state.route.length){for(var i=0;i<state.route.length;i++)pts.push(state.route[i]);}
+  if(state.garage)pts.push(state.garage);
+  if(state.customer)pts.push(state.customer);
+  if(!pts.length)return;
+  if(pts.length===1){map.easeTo({center:pts[0],zoom:14,duration:duration||0});return;}
+  var b=new mapboxgl.LngLatBounds();
+  for(var j=0;j<pts.length;j++)b.extend(pts[j]);
+  map.fitBounds(b,{padding:{top:82,bottom:88,left:72,right:72},maxZoom:15.5,duration:duration||0});
+}
+window.__cmd=function(name){
+  if(!loaded)return;
+  if(name==='fit')fitRoute(500);
+  else if(name==='zoomIn')map.zoomIn({duration:220});
+  else if(name==='zoomOut')map.zoomOut({duration:220});
+};
+window.addEventListener('message',function(event){
+  try{var msg=event.data||{};if(msg.source!==MSG_SOURCE||msg.type!=='cmd')return;window.__cmd(msg.name);}catch(e){}
+});
+map.on('load',function(){
+  loaded=true;
+  addRoute(state.route,state.routeApproximate);
+  new mapboxgl.Marker({element:pin('#F97316','Garage'),anchor:'center'}).setLngLat(state.garage).setPopup(new mapboxgl.Popup({offset:22,closeButton:true}).setHTML(popup('Garage','Tyre Rescue Garage',state.summaryText,'#F97316'))).addTo(map);
+  new mapboxgl.Marker({element:pin('#22C55E','Customer'),anchor:'center'}).setLngLat(state.customer).setPopup(new mapboxgl.Popup({offset:22,closeButton:true}).setHTML(popup('Customer','Customer location',state.customerAddress||'Confirmed coordinates','#22C55E'))).addTo(map);
+  requestAnimationFrame(function(){map.resize();fitRoute(0);});
+});
+</script></body></html>`;
 }
 
 export function LocationSection({
@@ -240,14 +414,12 @@ export function LocationSection({
     drivingMinutes: null,
   });
   const [routeLoading, setRouteLoading] = useState(false);
-  const [mapImageFailed, setMapImageFailed] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
-  const [mapZoom, setMapZoom] = useState(1);
-  const [mapPan, setMapPan] = useState({ x: 0, y: 0 });
-  const mapPinchStartZoom = useRef(1);
-  const mapPanStart = useRef({ x: 0, y: 0 });
-  const pinchHandlerRef = useRef(null);
-  const panHandlerRef = useRef(null);
+  const routeMapWebRef = useRef<WebView>(null);
+  const routeMapFrameRef = useRef<{
+    contentWindow?: { postMessage: (message: unknown, targetOrigin: string) => void } | null;
+  } | null>(null);
+  const routeFetchInFlightRef = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const search = useCallback(async (query: string) => {
@@ -365,13 +537,16 @@ export function LocationSection({
 
   const hasCoords = draft.location.lat != null && draft.location.lng != null;
   const mapToken = getMapboxToken();
-  const fetchGarageRoute = useCallback(async () => {
+  const fetchGarageRoute = useCallback(async (options: { showLoading?: boolean } = {}) => {
     if (!mapToken || draft.location.lat == null || draft.location.lng == null) {
       setRouteInfo({ encodedPolyline: null, drivingKm: null, drivingMinutes: null });
       return;
     }
+    if (routeFetchInFlightRef.current) return;
 
-    setRouteLoading(true);
+    routeFetchInFlightRef.current = true;
+    const showLoading = options.showLoading !== false;
+    if (showLoading) setRouteLoading(true);
     try {
       const response = await fetch(
         `https://api.mapbox.com/directions/v5/mapbox/driving/` +
@@ -384,51 +559,89 @@ export function LocationSection({
       }
       const data = (await response.json()) as DirectionsResponse;
       const route = data.routes?.[0];
-      setRouteInfo({
+      const nextRouteInfo = {
         encodedPolyline: route?.geometry ?? null,
         drivingKm: typeof route?.distance === 'number' ? route.distance / 1000 : null,
         drivingMinutes: typeof route?.duration === 'number' ? Math.round(route.duration / 60) : null,
+      };
+      setRouteInfo((current) => {
+        if (
+          current.encodedPolyline === nextRouteInfo.encodedPolyline &&
+          current.drivingMinutes === nextRouteInfo.drivingMinutes &&
+          current.drivingKm === nextRouteInfo.drivingKm
+        ) {
+          return current;
+        }
+        return nextRouteInfo;
       });
     } catch {
       setRouteInfo({ encodedPolyline: null, drivingKm: null, drivingMinutes: null });
     } finally {
-      setRouteLoading(false);
+      routeFetchInFlightRef.current = false;
+      if (showLoading) setRouteLoading(false);
     }
   }, [draft.location.lat, draft.location.lng, mapToken]);
 
   useEffect(() => {
     void fetchGarageRoute();
-  }, [fetchGarageRoute]);
+    if (!hasCoords || !mapToken) return;
+
+    const interval = setInterval(() => {
+      void fetchGarageRoute({ showLoading: false });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [fetchGarageRoute, hasCoords, mapToken]);
 
   const distanceKm = routeInfo.drivingKm ?? draft.quote?.distanceKm ?? null;
   const distanceMiles = distanceKm != null ? distanceKm * 0.621371 : null;
   const eta = routeInfo.drivingMinutes ?? draft.quote?.serviceOrigin?.etaMinutes ?? null;
-  const fallbackPolyline = hasCoords
-    ? encodePolyline([
-        GARAGE_LOCATION,
-        { lat: draft.location.lat!, lng: draft.location.lng! },
-      ])
-    : null;
-  const routePathOverlays = buildLiveRoutePathOverlays(routeInfo.encodedPolyline, fallbackPolyline);
-  const overlays = hasCoords
-    ? [
-        `pin-s-g+f97316(${GARAGE_LOCATION.lng},${GARAGE_LOCATION.lat})`,
-        ...routePathOverlays,
-        `pin-s-c+22c55e(${draft.location.lng},${draft.location.lat})`,
-      ].filter(Boolean)
-    : [];
-  const staticMapUrl =
-    hasCoords && mapToken
-      ? `https://api.mapbox.com/styles/v1/mapbox/navigation-day-v1/static/` +
-        `${overlays.join(',')}/auto/960x540@2x` +
-        `?padding=90&logo=false&attribution=false&access_token=${encodeURIComponent(mapToken)}`
-      : null;
-
-  useEffect(() => {
-    setMapImageFailed(false);
-    setMapZoom(1);
-    setMapPan({ x: 0, y: 0 });
-  }, [staticMapUrl]);
+  const routeDistanceText = distanceMiles != null ? `${distanceMiles.toFixed(1)} mi` : null;
+  const routeEtaText = eta != null ? `${eta} min` : null;
+  const routeSummaryText = routeLoading
+    ? 'Updating route...'
+    : [routeEtaText, routeDistanceText].filter(Boolean).join(' / ') || 'Route preview';
+  const routeCoordinates = useMemo<[number, number][]>(() => {
+    if (!hasCoords) return [];
+    const customerPoint = { lat: draft.location.lat!, lng: draft.location.lng! };
+    const decodedRoute = routeInfo.encodedPolyline ? decodePolyline(routeInfo.encodedPolyline) : [];
+    const points = decodedRoute.length >= 2 ? [...decodedRoute] : [GARAGE_LOCATION, customerPoint];
+    if (points.length >= 2) {
+      const first = points[0];
+      const last = points[points.length - 1];
+      const firstToGarage = Math.hypot(first.lat - GARAGE_LOCATION.lat, first.lng - GARAGE_LOCATION.lng);
+      const lastToGarage = Math.hypot(last.lat - GARAGE_LOCATION.lat, last.lng - GARAGE_LOCATION.lng);
+      if (lastToGarage < firstToGarage) points.reverse();
+    }
+    return points.map((point) => [point.lng, point.lat]);
+  }, [draft.location.lat, draft.location.lng, hasCoords, routeInfo.encodedPolyline]);
+  const routeMapState = useMemo<RouteMapState | null>(() => {
+    if (!hasCoords) return null;
+    return {
+      garage: [GARAGE_LOCATION.lng, GARAGE_LOCATION.lat],
+      customer: [draft.location.lng!, draft.location.lat!],
+      route: routeCoordinates,
+      routeApproximate: !routeInfo.encodedPolyline,
+      summaryText: routeSummaryText,
+      distanceText: routeDistanceText,
+      etaText: routeEtaText,
+      customerAddress: draft.location.address.trim() || null,
+    };
+  }, [
+    draft.location.address,
+    draft.location.lat,
+    draft.location.lng,
+    hasCoords,
+    routeCoordinates,
+    routeDistanceText,
+    routeEtaText,
+    routeInfo.encodedPolyline,
+    routeSummaryText,
+  ]);
+  const routeMapHtml = useMemo(
+    () => (mapToken && routeMapState ? buildRouteMapHtml(mapToken, routeMapState) : null),
+    [mapToken, routeMapState],
+  );
 
   const [pollClock, setPollClock] = useState(Date.now());
   useEffect(() => {
@@ -450,45 +663,21 @@ export function LocationSection({
   });
   const lastCheckedSeconds = secondsSince(locationShare.lastPollAt, pollClock);
 
-  const zoomInMap = () => setMapZoom((value) => Math.min(MAP_MAX_ZOOM, Number((value + 0.15).toFixed(2))));
-  const zoomOutMap = () => {
-    setMapZoom((value) => {
-      const next = Math.max(MAP_MIN_ZOOM, Number((value - 0.15).toFixed(2)));
-      if (next <= MAP_MIN_ZOOM) setMapPan({ x: 0, y: 0 });
-      return next;
-    });
-  };
-  const handleMapPinchStateChange = (event: PinchGestureHandlerStateChangeEvent) => {
-    const { state } = event.nativeEvent;
-    if (state === State.BEGAN) {
-      mapPinchStartZoom.current = mapZoom;
+  const sendRouteMapCommand = useCallback((name: RouteMapCommand) => {
+    if (Platform.OS === 'web') {
+      routeMapFrameRef.current?.contentWindow?.postMessage(
+        { source: ROUTE_MAP_MESSAGE_SOURCE, type: 'cmd', name },
+        '*',
+      );
       return;
     }
 
-    if (state === State.END || state === State.CANCELLED || state === State.FAILED) {
-      setMapZoom((value) => {
-        const clamped = Number(clampMapZoom(value).toFixed(2));
-        if (clamped <= MAP_MIN_ZOOM) setMapPan({ x: 0, y: 0 });
-        return clamped;
-      });
-    }
-  };
-  const handleMapPinch = (event: PinchGestureHandlerGestureEvent) => {
-    setMapZoom(Number(clampMapZoom(mapPinchStartZoom.current * event.nativeEvent.scale).toFixed(2)));
-  };
-  const handleMapPanStateChange = (event: PanGestureHandlerStateChangeEvent) => {
-    const { state } = event.nativeEvent;
-    if (state === State.BEGAN) {
-      mapPanStart.current = mapPan;
-    }
-  };
-  const handleMapPan = (event: PanGestureHandlerGestureEvent) => {
-    if (mapZoom <= MAP_MIN_ZOOM) return;
-    setMapPan({
-      x: mapPanStart.current.x + event.nativeEvent.translationX,
-      y: mapPanStart.current.y + event.nativeEvent.translationY,
-    });
-  };
+    routeMapWebRef.current?.injectJavaScript(`window.__cmd && window.__cmd(${JSON.stringify(name)}); true;`);
+  }, []);
+
+  const zoomInMap = () => sendRouteMapCommand('zoomIn');
+  const zoomOutMap = () => sendRouteMapCommand('zoomOut');
+  const resetMapView = () => sendRouteMapCommand('fit');
 
   return (
     <SectionCard title={displayMode === 'mapOnly' ? 'Route map' : 'Location'}>
@@ -506,26 +695,10 @@ export function LocationSection({
             ]}
           >
             <Text style={[styles.modeLabel, draft.location.method === method && styles.modeLabelActive]}>
-              {method === 'address' ? 'Enter Address' : 'Send Link'}
+              {method === 'address' ? 'Type address' : 'Ask customer'}
             </Text>
           </Pressable>
         ))}
-        <Pressable
-          onPress={() => requestLink('copy')}
-          disabled={busy === 'copy'}
-          style={({ pressed }) => [
-            styles.modeButton,
-            styles.copyLinkButton,
-            pressed && styles.modeButtonPressed,
-            busy === 'copy' && styles.copyLinkButtonBusy,
-          ]}
-        >
-          {busy === 'copy' ? (
-            <ActivityIndicator color={colors.accent} />
-          ) : (
-            <Text style={[styles.modeLabel, styles.copyLinkLabel]}>Copy Link</Text>
-          )}
-        </Pressable>
       </View>
 
       {draft.location.method === 'address' ? (
@@ -562,7 +735,7 @@ export function LocationSection({
         </View>
       ) : (
         <View style={styles.linkBox}>
-          <Text style={styles.linkHelp}>A location sharing link will be generated. Send via WhatsApp, SMS, email, or copy it. Expires in 2 hours.</Text>
+          <Text style={styles.linkHelp}>Send a secure link when the customer cannot give an address. The link expires in 2 hours.</Text>
           {draft.location.link ? <Text style={styles.linkText} selectable>{draft.location.link}</Text> : null}
           <LocationRequestStatusCard
             viewState={requestViewState}
@@ -582,114 +755,102 @@ export function LocationSection({
       {hasCoords ? (
         <View style={styles.confirmedBox}>
           <View style={[styles.mapWrap, mapExpanded && styles.mapWrapExpanded]}>
-            <PanGestureHandler
-              ref={panHandlerRef}
-              simultaneousHandlers={pinchHandlerRef}
-              minPointers={1}
-              maxPointers={1}
-              avgTouches
-              enabled={mapZoom > MAP_MIN_ZOOM}
-              onGestureEvent={handleMapPan}
-              onHandlerStateChange={handleMapPanStateChange}
-            >
-              <PinchGestureHandler
-                ref={pinchHandlerRef}
-                simultaneousHandlers={panHandlerRef}
-                onGestureEvent={handleMapPinch}
-                onHandlerStateChange={handleMapPinchStateChange}
-              >
-                <View style={styles.mapGestureLayer}>
-                  {staticMapUrl && !mapImageFailed ? (
-                    <Image
-                      source={{ uri: staticMapUrl }}
-                      style={[
-                        styles.mapPreview,
-                        {
-                          transform: [
-                            { translateX: mapPan.x },
-                            { translateY: mapPan.y },
-                            { scale: mapZoom },
-                          ],
-                        },
+            {routeMapHtml ? (
+              Platform.OS === 'web' ? (
+                createElement('iframe', {
+                  ref: routeMapFrameRef,
+                  srcDoc: routeMapHtml,
+                  style: { width: '100%', height: '100%', border: 0, background: '#09090B' },
+                  sandbox: 'allow-scripts allow-same-origin',
+                  referrerPolicy: 'no-referrer',
+                  title: 'Garage to customer route map',
+                })
+              ) : (
+                <WebView
+                  ref={routeMapWebRef}
+                  originWhitelist={['*']}
+                  source={{ html: routeMapHtml }}
+                  style={styles.mapFrame}
+                  javaScriptEnabled
+                  domStorageEnabled
+                  scrollEnabled={false}
+                  androidLayerType="hardware"
+                />
+              )
+            ) : (
+              <View style={styles.mapFallback}>
+                <Text style={styles.mapFallbackTitle}>Interactive route map unavailable</Text>
+                <Text style={styles.mapFallbackText}>
+                  {mapToken ? 'Waiting for confirmed route details.' : 'Mapbox token is not configured.'}
+                </Text>
+              </View>
+            )}
+            {routeMapHtml ? (
+              <>
+                <View style={styles.mapTopOverlay}>
+                  <View style={styles.legendPill}>
+                    <View style={[styles.legendDot, styles.garageDot]} />
+                    <Text style={styles.legendText}>Garage</Text>
+                  </View>
+                  <View style={styles.legendPill}>
+                    <View style={[styles.legendDot, styles.customerDot]} />
+                    <Text style={styles.legendText}>Customer</Text>
+                  </View>
+                </View>
+                <View style={styles.mapControlPanel}>
+                  <Pressable
+                    onPress={() => setMapExpanded((value) => !value)}
+                    accessibilityLabel={mapExpanded ? 'Collapse route map' : 'Expand route map'}
+                    style={({ pressed }) => [styles.mapControlButton, styles.mapExpandButton, pressed && styles.mapControlButtonPressed]}
+                  >
+                    <Text style={styles.mapControlText}>{mapExpanded ? 'Small map' : 'Large map'}</Text>
+                  </Pressable>
+                  <View style={styles.mapZoomRow}>
+                    <Pressable
+                      onPress={zoomOutMap}
+                      accessibilityLabel="Zoom route map out"
+                      style={({ pressed }) => [
+                        styles.mapControlButton,
+                        styles.mapZoomButton,
+                        pressed && styles.mapControlButtonPressed,
                       ]}
-                      resizeMode="cover"
-                      alt="Garage to customer route map preview"
-                      onError={() => setMapImageFailed(true)}
-                    />
-                  ) : (
-                    <View style={styles.mapFallback}>
-                      <Text style={styles.mapFallbackTitle}>Route map preview unavailable</Text>
-                      <Text style={styles.mapFallbackText}>
-                        Open directions or refresh the route to use live navigation.
-                      </Text>
+                    >
+                      <Text style={styles.mapControlText}>-</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={zoomInMap}
+                      accessibilityLabel="Zoom route map in"
+                      style={({ pressed }) => [
+                        styles.mapControlButton,
+                        styles.mapZoomButton,
+                        pressed && styles.mapControlButtonPressed,
+                      ]}
+                    >
+                      <Text style={styles.mapControlText}>+</Text>
+                    </Pressable>
+                  </View>
+                <Pressable
+                  onPress={resetMapView}
+                  accessibilityLabel="Fit the full route on the map"
+                  style={({ pressed }) => [styles.mapControlButton, styles.mapFitButton, pressed && styles.mapControlButtonPressed]}
+                >
+                  <Text style={styles.mapControlText}>Fit</Text>
+                </Pressable>
+                </View>
+                <View style={styles.mapBottomOverlay}>
+                  <View style={styles.mapRouteHeader}>
+                    <Text style={styles.mapRouteTitle} numberOfLines={1}>Garage to customer</Text>
+                    <View style={styles.routeStatusPill}>
+                      <View style={styles.routeStatusDot} />
+                      <Text style={styles.routeStatusText}>{routeInfo.encodedPolyline ? 'Route' : 'Approx'}</Text>
                     </View>
-                  )}
+                  </View>
+                  <Text style={styles.mapRouteMeta}>
+                    {routeInfo.encodedPolyline || routeLoading ? routeSummaryText : `${routeSummaryText} (approx)`}
+                  </Text>
                 </View>
-              </PinchGestureHandler>
-            </PanGestureHandler>
-            <View style={styles.mapTopOverlay}>
-              <View style={styles.legendPill}>
-                <View style={[styles.legendDot, styles.garageDot]} />
-                <Text style={styles.legendText}>Garage</Text>
-              </View>
-              <View style={styles.legendPill}>
-                <View style={[styles.legendDot, styles.customerDot]} />
-                <Text style={styles.legendText}>Customer</Text>
-              </View>
-            </View>
-            <View style={styles.mapControlPanel}>
-              <Pressable
-                onPress={() => setMapExpanded((value) => !value)}
-                accessibilityLabel={mapExpanded ? 'Collapse route map' : 'Expand route map'}
-                style={({ pressed }) => [styles.mapControlButton, styles.mapExpandButton, pressed && styles.mapControlButtonPressed]}
-              >
-                <Text style={styles.mapControlText}>{mapExpanded ? 'Collapse' : 'Expand'}</Text>
-              </Pressable>
-              <View style={styles.mapZoomRow}>
-                <Pressable
-                  onPress={zoomOutMap}
-                  disabled={mapZoom <= MAP_MIN_ZOOM}
-                  accessibilityLabel="Zoom route map out"
-                  style={({ pressed }) => [
-                    styles.mapControlButton,
-                    styles.mapZoomButton,
-                    mapZoom <= MAP_MIN_ZOOM && styles.mapControlButtonDisabled,
-                    pressed && mapZoom > MAP_MIN_ZOOM && styles.mapControlButtonPressed,
-                  ]}
-                >
-                  <Text style={[styles.mapControlText, mapZoom <= MAP_MIN_ZOOM && styles.mapControlTextDisabled]}>-</Text>
-                </Pressable>
-                <Pressable
-                  onPress={zoomInMap}
-                  disabled={mapZoom >= MAP_MAX_ZOOM}
-                  accessibilityLabel="Zoom route map in"
-                  style={({ pressed }) => [
-                    styles.mapControlButton,
-                    styles.mapZoomButton,
-                    mapZoom >= MAP_MAX_ZOOM && styles.mapControlButtonDisabled,
-                    pressed && mapZoom < MAP_MAX_ZOOM && styles.mapControlButtonPressed,
-                  ]}
-                >
-                  <Text style={[styles.mapControlText, mapZoom >= MAP_MAX_ZOOM && styles.mapControlTextDisabled]}>+</Text>
-                </Pressable>
-              </View>
-            </View>
-            <View style={styles.mapBottomOverlay}>
-              <View style={styles.mapRouteHeader}>
-                <Text style={styles.mapRouteTitle} numberOfLines={1}>{GARAGE_LABEL} route</Text>
-                <View style={styles.routeStatusPill}>
-                  <View style={styles.routeStatusDot} />
-                  <Text style={styles.routeStatusText}>Active</Text>
-                </View>
-              </View>
-              <Text style={styles.mapRouteMeta}>
-                {routeLoading
-                  ? 'Calculating active route...'
-                  : distanceMiles != null && eta != null
-                  ? `Live route · ${distanceMiles.toFixed(1)} mi · ${eta} min`
-                  : 'Live route preview'}
-              </Text>
-            </View>
+              </>
+            ) : null}
           </View>
           <View style={styles.metricRow}>
             <View style={styles.metricCard}>
@@ -957,22 +1118,19 @@ const styles = StyleSheet.create({
   mapWrap: {
     position: 'relative',
     width: '100%',
-    height: 340,
+    height: 430,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: '#DDE7F0',
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: '#09090B',
     overflow: 'hidden',
   },
   mapWrapExpanded: {
-    height: 520,
+    height: 660,
   },
-  mapGestureLayer: {
+  mapFrame: {
     flex: 1,
-  },
-  mapPreview: {
-    width: '100%',
-    height: '100%',
+    backgroundColor: '#09090B',
   },
   mapFallback: {
     flex: 1,
@@ -996,23 +1154,23 @@ const styles = StyleSheet.create({
   },
   mapTopOverlay: {
     position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 132,
+    top: 12,
+    left: 12,
+    right: 142,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   legendPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
-    backgroundColor: 'rgba(9,9,11,0.82)',
+    borderColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'rgba(9,9,11,0.76)',
   },
   legendDot: {
     width: 8,
@@ -1024,58 +1182,56 @@ const styles = StyleSheet.create({
   legendText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '700' },
   mapControlPanel: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: 12,
+    right: 12,
     alignItems: 'flex-end',
-    gap: 8,
+    gap: 6,
   },
   mapZoomRow: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 5,
   },
   mapControlButton: {
-    minHeight: 48,
+    minHeight: 42,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.14)',
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(9,9,11,0.78)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   mapExpandButton: {
-    minWidth: 96,
-    paddingHorizontal: 10,
+    minWidth: 112,
+    paddingHorizontal: 12,
   },
   mapZoomButton: {
-    width: 48,
+    width: 42,
+  },
+  mapFitButton: {
+    minWidth: 74,
+    paddingHorizontal: 10,
   },
   mapControlButtonPressed: {
-    backgroundColor: '#F3F4F6',
-    borderColor: 'rgba(249,115,22,0.55)',
-  },
-  mapControlButtonDisabled: {
-    opacity: 0.55,
+    backgroundColor: 'rgba(39,39,42,0.94)',
+    borderColor: 'rgba(249,115,22,0.72)',
   },
   mapControlText: {
-    color: '#111827',
+    color: '#FAFAFA',
     fontSize: fontSize.sm,
     fontWeight: '900',
   },
-  mapControlTextDisabled: {
-    color: '#6B7280',
-  },
   mapBottomOverlay: {
     position: 'absolute',
-    right: 10,
-    bottom: 10,
-    minWidth: 160,
-    maxWidth: 270,
+    right: 12,
+    bottom: 12,
+    minWidth: 190,
+    maxWidth: 290,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    borderColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'rgba(9,9,11,0.84)',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
   },
   mapRouteHeader: {
     flexDirection: 'row',
@@ -1083,14 +1239,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
-  mapRouteTitle: { color: '#111827', fontSize: fontSize.sm, fontWeight: '800', flexShrink: 1 },
-  mapRouteMeta: { color: '#4B5563', fontSize: fontSize.xs, marginTop: 2 },
+  mapRouteTitle: { color: '#FAFAFA', fontSize: fontSize.sm, fontWeight: '900', flexShrink: 1 },
+  mapRouteMeta: { color: '#D4D4D8', fontSize: fontSize.xs, marginTop: 3, fontWeight: '700' },
   routeStatusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
     borderRadius: 999,
-    backgroundColor: 'rgba(34,197,94,0.14)',
+    backgroundColor: 'rgba(34,197,94,0.18)',
     paddingHorizontal: 7,
     paddingVertical: 3,
   },
@@ -1101,7 +1257,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#16A34A',
   },
   routeStatusText: {
-    color: '#14532D',
+    color: '#BBF7D0',
     fontSize: 10,
     fontWeight: '900',
   },

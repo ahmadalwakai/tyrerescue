@@ -163,7 +163,14 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Error updating driver location:', error);
-    if (error instanceof Error && error.message.includes('Forbidden')) {
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('Unauthorized')) {
+      return NextResponse.json(
+        { error: 'Driver authentication required' },
+        { status: 401 },
+      );
+    }
+    if (message.includes('Forbidden')) {
       return NextResponse.json(
         { error: 'Driver access required' },
         { status: 403 }

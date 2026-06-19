@@ -3,7 +3,6 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Notifications from 'expo-notifications';
 import {
   useFonts,
   Inter_400Regular,
@@ -19,6 +18,7 @@ import {
   registerForPushNotifications,
   addNotificationResponseListener,
   addNotificationReceivedListener,
+  getLastNotificationResponse,
   fireLocalCriticalNotification,
   DRIVER_JOBS_URGENT_CHANNEL_ID,
   JOBS_UPCOMING_CHANNEL_ID,
@@ -27,7 +27,8 @@ import { initOfflineQueue } from '@/services/offline-queue';
 import { preloadSounds, playSound, loadSoundConfig, stopAlertSound } from '@/services/sound';
 import { markAlerted, fireJobAlert, isAlerted } from '@/services/job-alert';
 import { useNewJobDetector } from '@/hooks/useNewJobDetector';
-import { driverApi } from '@/api/client';
+import { driverApi, type JobSummary } from '@/api/client';
+import { useLocationBroadcast } from '@/hooks/useLocation';
 
 // Import background-location to register the task at module level
 import '@/services/background-location';
@@ -36,6 +37,7 @@ SplashScreen.preventAutoHideAsync();
 
 /** Accepted type values for critical job notifications from the backend. */
 const JOB_TYPES = new Set(['new_job', 'job_assigned', 'new_assignment', 'reassignment', 'upcoming_v2']);
+const TRACKED_JOB_STATUSES = new Set(['driver_assigned', 'en_route', 'arrived', 'in_progress']);
 
 /** Map notification types to alert types for the popup. */
 function toAlertType(type: string | null): JobAlertType {
@@ -81,6 +83,16 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
   const splashHidden = useRef(false);
   const handledNotifIds = useRef(new Set<string>());
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [trackingSignal, setTrackingSignal] = useState<{
+    online: boolean;
+    activeRef: string | null;
+  }>({ online: false, activeRef: null });
+
+  useLocationBroadcast(
+    !!user && (trackingSignal.online || trackingSignal.activeRef != null),
+    trackingSignal.activeRef != null,
+    trackingSignal.activeRef,
+  );
 
   // Hide splash once auth state is resolved — this is the only real wait
   useEffect(() => {
@@ -100,7 +112,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     } else if (user && inAuthGroup) {
       router.replace('/(tabs)');
     }
-  }, [user, isLoading, segments]);
+  }, [user, isLoading, segments, router]);
 
   // Register push notifications and version check when user is logged in
   useEffect(() => {
@@ -174,7 +186,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     });
 
     // Handle cold-start: check if app was opened from a notification tap
-    Notifications.getLastNotificationResponseAsync().then((response) => {
+    getLastNotificationResponse().then((response) => {
       if (!response) return;
       const nid = response.notification.request.identifier;
       if (handledNotifIds.current.has(nid)) return;
@@ -211,8 +223,18 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
 
     const poll = async () => {
       try {
-        const res = await driverApi.getJobs();
+        const [res, status] = await Promise.all([
+          driverApi.getJobs(),
+          driverApi.getStatus(),
+        ]);
         const allJobs = [...res.active, ...(res.upcoming ?? [])];
+        const trackedJob = allJobs.find((job: JobSummary) =>
+          TRACKED_JOB_STATUSES.has(job.status),
+        );
+        setTrackingSignal({
+          online: status.isOnline,
+          activeRef: trackedJob?.refNumber ?? null,
+        });
         checkForNewJobs(allJobs);
       } catch {
         // Non-blocking — retry on next interval

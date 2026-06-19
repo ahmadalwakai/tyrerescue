@@ -241,6 +241,30 @@ export const payments = pgTable('payments', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// Canonical payment ledger. This records payment truth and link lifecycle
+// without overloading the legacy Stripe-only payments table.
+export const paymentEvents = pgTable('payment_events', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: uuid('booking_id').references(() => bookings.id, { onDelete: 'cascade' }),
+  bookingRef: varchar('booking_ref', { length: 20 }),
+  eventType: text('event_type').notNull(),
+  paymentMethod: text('payment_method'),
+  paidVia: text('paid_via'),
+  linkStatus: text('link_status'),
+  amountPence: integer('amount_pence'),
+  currency: text('currency').default('gbp'),
+  stripeSessionId: text('stripe_session_id'),
+  stripePaymentIntentId: text('stripe_payment_intent_id'),
+  stripeCheckoutUrl: text('stripe_checkout_url'),
+  source: text('source').notNull(),
+  status: text('status'),
+  metadata: jsonb('metadata'),
+  occurredAt: timestamp('occurred_at', { withTimezone: true }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
 // Refunds
 export const refunds = pgTable('refunds', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
@@ -1016,6 +1040,8 @@ export type BookingStatusHistory = typeof bookingStatusHistory.$inferSelect;
 export type InventoryReservation = typeof inventoryReservations.$inferSelect;
 export type InventoryMovement = typeof inventoryMovements.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+export type PaymentEvent = typeof paymentEvents.$inferSelect;
+export type NewPaymentEvent = typeof paymentEvents.$inferInsert;
 export type Refund = typeof refunds.$inferSelect;
 export type PricingRule = typeof pricingRules.$inferSelect;
 export type Account = typeof accounts.$inferSelect;

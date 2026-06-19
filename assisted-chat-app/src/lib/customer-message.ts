@@ -18,14 +18,31 @@ export interface CustomerMessageInput {
   paymentChoice?: AssistedChatPaymentChoice | null;
 }
 
-const PAYMENT_INTRO: Record<AssistedChatPaymentChoice, string> = {
+const BOOKING_PAYMENT_INTRO: Record<AssistedChatPaymentChoice, string> = {
   deposit:
-    'Your booking is ready. Please pay the 15% deposit to confirm your tyre fitting.',
+    'Your booking is ready. Please pay the 20% deposit to confirm your tyre fitting.',
   cash:
     'Your booking has been created. Payment will be collected in cash.',
   full:
     'Your booking is ready. Please complete the full payment to confirm your tyre fitting.',
 };
+
+const QUOTE_PAYMENT_INTRO: Record<AssistedChatPaymentChoice, string> = {
+  deposit:
+    'Your quote is ready. Please pay the 20% deposit to confirm your tyre fitting.',
+  cash:
+    'Your quote is ready. Payment will be collected in cash if you confirm.',
+  full:
+    'Your quote is ready. Please complete the full payment to confirm your tyre fitting.',
+};
+
+function isBookingDraft(draft: AssistedChatDraft): boolean {
+  return Boolean(draft.dispatchedRefNumber || draft.dispatchedBookingId);
+}
+
+function isQuoteDraft(draft: AssistedChatDraft): boolean {
+  return Boolean(draft.savedQuoteRef || draft.savedQuoteId || draft.quote);
+}
 
 /**
  * Build the customer-facing message body. Falls back to a generic "Hi, this
@@ -34,19 +51,25 @@ const PAYMENT_INTRO: Record<AssistedChatPaymentChoice, string> = {
  */
 export function buildCustomerMessage(input: CustomerMessageInput): string {
   const { draft, effectiveTotal, paymentChoice } = input;
+  const bookingDraft = isBookingDraft(draft);
+  const quoteDraft = !bookingDraft && isQuoteDraft(draft);
   const lines: string[] = [];
   lines.push('Hi, this is Tyre Rescue.');
   if (paymentChoice) {
-    lines.push(PAYMENT_INTRO[paymentChoice]);
-  } else if (draft.dispatchedRefNumber) {
+    lines.push((bookingDraft ? BOOKING_PAYMENT_INTRO : QUOTE_PAYMENT_INTRO)[paymentChoice]);
+  } else if (bookingDraft) {
     lines.push('Your booking has been created.');
+  } else if (quoteDraft) {
+    lines.push('Here are your quote details.');
   } else {
-    lines.push('Here are your booking details so far.');
+    lines.push('Here are your details so far.');
   }
 
   const detail: string[] = [];
   if (draft.dispatchedRefNumber) {
-    detail.push(`Reference: ${draft.dispatchedRefNumber}`);
+    detail.push(`Booking ref: ${draft.dispatchedRefNumber}`);
+  } else if (draft.savedQuoteRef) {
+    detail.push(`Quote ref: ${draft.savedQuoteRef}`);
   }
   if (draft.tyre.size) {
     detail.push(`Tyres: ${draft.tyre.quantity} x ${draft.tyre.size}`);
@@ -60,7 +83,7 @@ export function buildCustomerMessage(input: CustomerMessageInput): string {
     detail.push(`Locking wheel nut removal: ${formatGbp(draft.lockingNut.chargeGbp)}`);
   }
   if (draft.quote && Number.isFinite(effectiveTotal) && effectiveTotal > 0) {
-    detail.push(`Total to pay: ${formatGbp(effectiveTotal)}`);
+    detail.push(`${bookingDraft ? 'Total to pay' : 'Quote total'}: ${formatGbp(effectiveTotal)}`);
   }
   if (draft.paymentLink) {
     detail.push(

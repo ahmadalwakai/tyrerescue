@@ -135,6 +135,7 @@ export async function createCheckoutSession(
     sessionId: session.id,
     checkoutUrl: session.url,
     paymentIntentId: (session.payment_intent as string) || null,
+    expiresAt: session.expires_at ? new Date(session.expires_at * 1000) : null,
     amountInPence,
   };
 }

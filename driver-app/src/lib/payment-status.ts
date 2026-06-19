@@ -2,22 +2,12 @@
  * Driver-facing payment status normalizer.
  *
  * Turns the backend `PaymentSummary` (see `src/api/client.ts`, computed by the
- * shared server helper `lib/payments/driver-payment.ts`) into a single,
+ * shared server helper `lib/payments/payment-summary.ts`) into a single,
  * human-readable display object the cockpit can render in one glance.
  *
  * IMPORTANT: this uses ONLY fields that actually exist on the driver payload.
- * The backend payment model currently exposes:
- *   - type:   'cash' | 'full' | 'deposit' | null
- *   - status: 'unpaid' | 'deposit_paid' | 'paid' | 'pending'
- *             | 'needs_checking' | 'failed' | 'unknown'
- *   - amountToCollectPence, totalAmountPence, remainingBalancePence, depositPaidAt
- *   - bookingStatus
- *
- * There is NO "payment link", "checkout session", or Stripe identifier field
- * on the driver payload, so link-specific labels ("Payment link sent" / "Paid
- * by payment link") are intentionally NOT produced — we never fake a state we
- * cannot prove. If those fields are added to the backend payment summary later,
- * extend this mapping.
+ * The backend payment model exposes canonical state + method + linkStatus from
+ * the payment ledger. This file only maps those facts to driver-facing copy.
  */
 
 import type { PaymentSummary } from '@/api/client';
@@ -36,92 +26,14 @@ export interface DriverPaymentDisplay {
   amountLabel?: string;
 }
 
-const DEBUG_REF = 'TYR-2026-16396';
-
 const gbpFormatter = new Intl.NumberFormat('en-GB', {
   style: 'currency',
   currency: 'GBP',
 });
 
-const SETTLED_BOOKING_STATUSES = new Set([
-  'paid',
-  'driver_assigned',
-  'en_route',
-  'arrived',
-  'in_progress',
-  'completed',
-]);
-
-function withDevPaymentLog(
-  payment: PaymentSummary | null | undefined,
-  display: DriverPaymentDisplay,
-  ref?: string | null,
-  reason?: string,
-): DriverPaymentDisplay {
-  if (__DEV__) {
-    const debugReason = reason ?? getDebugReason(payment, display, ref);
-    if (debugReason != null) {
-      console.log('[driver-payment-debug]', {
-        ref: ref ?? null,
-        paymentStatus: payment?.status ?? null,
-        paymentMethod: payment?.type ?? null,
-        paymentType: payment?.type ?? null,
-        total: payment?.totalAmountPence ?? null,
-        totalPaid: payment?.totalPaidPence ?? null,
-        paidAmount: payment?.totalPaidPence ?? null,
-        remainingBalance: payment?.remainingBalancePence ?? null,
-        amountToCollect: payment?.amountToCollectPence ?? null,
-        displayTone: display.tone,
-        displayLabel: display.labelKey,
-        reason: debugReason,
-      });
-    }
-  }
-  return display;
-}
-
-function getDebugReason(
-  payment: PaymentSummary | null | undefined,
-  display: DriverPaymentDisplay,
-  ref?: string | null,
-): string | null {
-  const reasons: string[] = [];
-
-  if (ref === DEBUG_REF) reasons.push('target_job_probe');
-
-  if (payment == null) {
-    if (display.tone === 'paid') reasons.push('missing_payment_marked_paid');
-    return reasons.length > 0 ? reasons.join(',') : null;
-  }
-
-  if (payment.status !== 'paid' && display.tone === 'paid') {
-    reasons.push('non_paid_status_marked_paid');
-  }
-  if (payment.status === 'paid' && display.tone !== 'paid') {
-    reasons.push('paid_status_rejected');
-  }
-  if (payment.status === 'paid' && payment.amountToCollectPence > 0) {
-    reasons.push('paid_status_with_amount_due');
-  }
-  if (
-    payment.status === 'paid' &&
-    payment.remainingBalancePence != null &&
-    payment.remainingBalancePence > 0
-  ) {
-    reasons.push('paid_status_with_remaining_balance');
-  }
-  if (
-    payment.status === 'paid' &&
-    payment.bookingStatus != null &&
-    !SETTLED_BOOKING_STATUSES.has(payment.bookingStatus)
-  ) {
-    reasons.push('paid_status_unsettled_booking_lifecycle');
-  }
-  return reasons.length > 0 ? reasons.join(',') : null;
-}
-
 function pendingDescriptionKey(payment: PaymentSummary): string {
-  return payment.type === 'full'
+  if (payment.method === 'deposit_link') return 'payment.depositPendingDesc';
+  return payment.method === 'card_link'
     ? 'payment.onlineNotReceived'
     : 'payment.pendingDesc';
 }
@@ -146,12 +58,14 @@ export function getDriverPaymentDisplay(
   payment: PaymentSummary | null | undefined,
   ref?: string | null,
 ): DriverPaymentDisplay {
+  void ref;
+
   if (!payment) {
-    return withDevPaymentLog(payment, {
+    return {
       labelKey: 'payment.unknownLabel',
       tone: 'unknown',
       descriptionKey: 'payment.checkWithAdmin',
-    }, ref);
+    };
   }
 
   const collect = formatGbpFromPence(payment.amountToCollectPence) ?? undefined;
@@ -160,90 +74,79 @@ export function getDriverPaymentDisplay(
     labelKey: 'payment.needsChecking',
     tone: 'warning',
     descriptionKey: 'payment.checkBeforeFitting',
-    amountLabel: payment.amountToCollectPence > 0 ? collect : undefined,
+    amountLabel: (payment.amountToCollectPence ?? 0) > 0 ? collect : undefined,
   });
 
-  if (payment.status === 'needs_checking') {
-    return withDevPaymentLog(payment, needsChecking(), ref, 'backend_needs_checking');
+  if (payment.state === 'needs_checking') {
+    return needsChecking();
   }
 
-  if (payment.status === 'failed') {
-    return withDevPaymentLog(payment, {
+  if (payment.state === 'failed') {
+    return {
       labelKey: 'payment.failed',
       tone: 'failed',
       descriptionKey: 'payment.failedDesc',
-      amountLabel: payment.amountToCollectPence > 0 ? collect : undefined,
-    }, ref);
+      amountLabel: (payment.amountToCollectPence ?? 0) > 0 ? collect : undefined,
+    };
   }
 
-  // Paid only wins when the backend summary and lifecycle agree that the
-  // outstanding balance is settled.
-  if (payment.status === 'paid') {
-    if (
-      payment.amountToCollectPence > 0 ||
-      (payment.remainingBalancePence != null && payment.remainingBalancePence > 0) ||
-      (payment.bookingStatus != null && !SETTLED_BOOKING_STATUSES.has(payment.bookingStatus))
-    ) {
-      return withDevPaymentLog(payment, needsChecking(), ref);
-    }
-    return withDevPaymentLog(payment, {
+  if (payment.state === 'paid') {
+    return {
       labelKey: 'payment.paid',
       tone: 'paid',
       descriptionKey: 'payment.noneToCollect',
-    }, ref);
+    };
   }
 
   // Deposit taken online, remaining balance due on arrival.
-  if (payment.type === 'deposit' && payment.status === 'deposit_paid') {
-    const hasBalance = payment.amountToCollectPence > 0;
-    return withDevPaymentLog(payment, {
+  if (payment.state === 'balance_due' || payment.state === 'deposit_paid') {
+    const hasBalance = (payment.amountToCollectPence ?? 0) > 0;
+    return {
       labelKey: hasBalance ? 'payment.balanceDue' : 'payment.depositPaid',
       tone: hasBalance ? 'action' : 'pending',
       descriptionKey: hasBalance
         ? 'payment.collectBalance'
         : 'payment.confirmIfUnsure',
       amountLabel: hasBalance ? collect : undefined,
-    }, ref);
+    };
   }
 
   // Cash job — full amount collected on arrival.
-  if (payment.type === 'cash') {
-    return withDevPaymentLog(payment, {
+  if (payment.state === 'cash_to_collect' || payment.method === 'cash') {
+    return {
       labelKey: 'payment.payOnArrival',
       tone: 'action',
       descriptionKey: 'payment.collectFromCustomer',
-      amountLabel: payment.amountToCollectPence > 0 ? collect : undefined,
-    }, ref);
+      amountLabel: (payment.amountToCollectPence ?? 0) > 0 ? collect : undefined,
+    };
   }
 
-  if (payment.status === 'pending') {
-    return withDevPaymentLog(payment, {
-      labelKey: 'payment.paymentPending',
+  if (payment.state === 'pending') {
+    if (payment.method === 'deposit_link') {
+      const depositDue = formatGbpFromPence(payment.depositAmountPence ?? payment.amountToCollectPence) ?? undefined;
+      return {
+        labelKey: 'payment.depositPending',
+        tone: 'pending',
+        descriptionKey: pendingDescriptionKey(payment),
+        amountLabel: ((payment.depositAmountPence ?? payment.amountToCollectPence ?? 0) > 0) ? depositDue : undefined,
+      };
+    }
+
+    return {
+      labelKey: payment.linkStatus === 'sent' ? 'payment.paymentLinkSent' : 'payment.paymentPending',
       tone: 'pending',
       descriptionKey: pendingDescriptionKey(payment),
-      amountLabel: payment.amountToCollectPence > 0 ? collect : undefined,
-    }, ref);
-  }
-
-  // Deposit selected but not yet paid, or any other unpaid state.
-  if (payment.status === 'unpaid') {
-    return withDevPaymentLog(payment, {
-      labelKey: 'payment.awaitingPayment',
-      tone: 'pending',
-      descriptionKey: payment.type === 'full'
-        ? 'payment.onlineNotReceived'
-        : 'payment.confirmIfUnsure',
-      amountLabel: payment.amountToCollectPence > 0 ? collect : undefined,
-    }, ref);
+      amountLabel: (payment.amountToCollectPence ?? 0) > 0 ? collect : undefined,
+    };
   }
 
   // Anything we cannot positively classify stays neutral — never green.
-  return withDevPaymentLog(payment, {
+  return {
     labelKey: 'payment.unknownLabel',
     tone: 'unknown',
     descriptionKey: 'payment.checkWithAdmin',
-    amountLabel: payment.amountToCollectPence > 0 ? collect : undefined,
-  }, ref);
+    amountLabel: (payment.amountToCollectPence ?? 0) > 0 ? collect : undefined,
+  };
 }
 
 /** Badge background + text + border colours per tone (matches app theme). */

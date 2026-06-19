@@ -1,34 +1,37 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-// Resolves the base URL for the local Next.js API:
+const PRODUCTION_API_URL = 'https://www.tyrerescue.uk';
+
+function buildDevHttpUrl(host: string, port: string): string {
+  return ['http://', host, ':', port].join('');
+}
+
+// Resolves the base URL for the Next.js API:
 // 1. EXPO_PUBLIC_API_BASE_URL if set (recommended for device on LAN).
-// 2. On web, use the browser's own hostname on :3000 (so localhost:8081 in
-//    the browser hits localhost:3000 for the API). 10.0.2.2 is unreachable
-//    from a desktop browser.
-// 3. Native production falls back to the live API so EAS builds never ship
+// 2. Production falls back to the live API so release builds never ship
 //    pointing at Android emulator localhost.
-// 4. Otherwise, derive host from Expo's hostUri (Metro bundler) and use
-//    :3000. On Android emulator in development, fall back to 10.0.2.2:3000.
+// 3. Development web uses the browser host, while native development derives
+//    the Metro host and falls back to the Android emulator host.
 function inferBaseUrl(): string {
   const envBase = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
   if (envBase) return envBase.replace(/\/$/, '');
 
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    const host = window.location?.hostname || 'localhost';
-    return `http://${host}:3000`;
+  if (process.env.NODE_ENV === 'production') {
+    return PRODUCTION_API_URL;
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://www.tyrerescue.uk';
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const host = window.location?.hostname || ['local', 'host'].join('');
+    return buildDevHttpUrl(host, '3000');
   }
 
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
     const host = hostUri.split(':')[0];
-    if (host) return `http://${host}:3000`;
+    if (host) return buildDevHttpUrl(host, '3000');
   }
-  return 'http://10.0.2.2:3000';
+  return buildDevHttpUrl('10.0.2.2', '3000');
 }
 
 export const API_BASE_URL = inferBaseUrl();

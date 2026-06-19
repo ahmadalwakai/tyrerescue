@@ -32,7 +32,7 @@ const TIME_FMT = new Intl.DateTimeFormat('en-GB', {
 });
 
 const PAYMENT_LABEL: Record<AssistedChatPaymentChoice, string> = {
-  deposit: 'Deposit 15%',
+  deposit: 'Deposit 20%',
   cash: 'Cash',
   full: 'Full payment',
 };

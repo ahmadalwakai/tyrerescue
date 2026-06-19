@@ -1,7 +1,7 @@
 import type { TrackingPoint } from '@/types/tracking';
 
 /** Default staleness threshold for the UI ("Tracking paused" copy). */
-export const TRACKING_STALE_SECONDS = 90;
+export const TRACKING_STALE_SECONDS = 180;
 /** Below this many seconds → "Good signal". */
 export const TRACKING_GOOD_SECONDS = 30;
 

@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 /** Brand colors mirrored from web lib/design-tokens.ts */
 export const colors = {
   bg: '#09090B',
@@ -65,11 +67,16 @@ export const statusColors: Record<string, { bg: string; text: string; label: str
   refunded_partial: { bg: '#3F3F46', text: '#A1A1AA', label: 'Partial Refund' },
 };
 
-/** Reusable card shadow (Android elevation + iOS shadow) */
-export const cardShadow = {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.25,
-  shadowRadius: 4,
-  elevation: 3,
-} as const;
+/** Reusable card shadow (boxShadow on web, native shadow/elevation elsewhere). */
+export const cardShadow = Platform.select({
+  web: {
+    boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+  },
+  default: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+})!;

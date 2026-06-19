@@ -26,6 +26,7 @@ export interface DriverJobAlertPayload {
   jobId?: string;
   assignmentId?: string;
   amountToCollectPence?: number;
+  depositAmountPence?: number;
   jobPricePence?: number;
   paymentStatus?: string;
   paymentType?: string;
@@ -108,6 +109,9 @@ export async function sendDriverJobAlert(
     const v = String(payload.amountToCollectPence);
     data.amountToCollectPence = v;
     data.collectAmount = v;
+  }
+  if (payload.depositAmountPence != null) {
+    data.depositAmountPence = String(payload.depositAmountPence);
   }
   if (payload.jobPricePence != null) {
     const v = String(payload.jobPricePence);

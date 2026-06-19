@@ -98,6 +98,9 @@ export function OperatorStepProgress({
       {steps.map((step, index) => {
         const isActive = step.id === activeStepId;
         const palette = chipPalette(step.status, isActive);
+        const showHint = Boolean(
+          step.hint && (isActive || step.status === 'waiting' || step.status === 'blocked' || step.status === 'error'),
+        );
         return (
           <View key={step.id} style={styles.chipWrap}>
             <Pressable
@@ -119,7 +122,7 @@ export function OperatorStepProgress({
                 <Text style={[styles.label, { color: palette.text }]} numberOfLines={1}>
                   {step.label}
                 </Text>
-                {step.hint ? (
+                {showHint ? (
                   <Text style={[styles.hint, { color: palette.hint }]} numberOfLines={1}>
                     {step.hint}
                   </Text>

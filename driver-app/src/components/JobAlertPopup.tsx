@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Modal,
   Pressable,
+  Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -85,9 +86,12 @@ export function JobAlertPopup() {
     transform: [{ scale: scale.value }],
   }));
 
-  const animatedGlowStyle = useAnimatedStyle(() => ({
-    shadowOpacity: shadowOpacity.value,
-  }));
+  const animatedGlowStyle = useAnimatedStyle(() => {
+    if (Platform.OS === 'web') return {};
+    return {
+      shadowOpacity: shadowOpacity.value,
+    };
+  });
 
   const handleGetStarted = () => {
     if (navigatingRef.current) return;
@@ -191,12 +195,18 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 360,
     alignItems: 'center',
-    // Shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 12,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
+        elevation: 12,
+      },
+    }),
   },
   iconCircle: {
     width: 68,
@@ -233,11 +243,17 @@ const styles = StyleSheet.create({
   buttonOuter: {
     width: '85%',
     borderRadius: radius.lg,
-    // Glow shadow
-    shadowColor: '#F97316',
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 18px rgba(249,115,22,0.35)',
+      },
+      default: {
+        shadowColor: '#F97316',
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 12,
+        elevation: 8,
+      },
+    }),
     marginBottom: spacing.md,
   },
   buttonInner: {

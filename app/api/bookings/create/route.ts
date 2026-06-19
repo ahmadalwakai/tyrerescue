@@ -29,6 +29,7 @@ import {
   RATE_LIMITS,
   rateLimitedResponse,
 } from '@/lib/security';
+import { recordPaymentEvent } from '@/lib/payments/payment-summary';
 
 // Input validation schema
 const createBookingSchema = z.object({
@@ -463,6 +464,20 @@ export async function POST(
       );
 
       await client.query('COMMIT');
+
+      await recordPaymentEvent({
+        bookingId,
+        bookingRef: refNumber,
+        eventType: 'link_created',
+        paymentMethod: 'card_link',
+        linkStatus: 'created',
+        amountPence: amountInPence,
+        currency: 'gbp',
+        stripePaymentIntentId: paymentIntentId,
+        source: 'public_booking',
+        status: 'pending',
+        metadata: { kind: 'public_booking_payment_intent' },
+      });
 
       // Send urgent push for customer emergency bookings immediately on creation.
       // Fires before payment so the admin is alerted as soon as the customer

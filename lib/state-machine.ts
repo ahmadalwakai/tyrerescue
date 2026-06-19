@@ -17,6 +17,7 @@ export type BookingStatus =
   | 'pricing_ready'
   | 'awaiting_payment'
   | 'paid'
+  | 'deposit_paid'
   | 'payment_failed'
   | 'driver_assigned'
   | 'en_route'
@@ -36,8 +37,9 @@ export type BookingStatus =
 const VALID_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   draft: ['pricing_ready'],
   pricing_ready: ['awaiting_payment'],
-  awaiting_payment: ['paid', 'payment_failed', 'cancelled'],
+  awaiting_payment: ['paid', 'deposit_paid', 'payment_failed', 'driver_assigned', 'cancelled'],
   payment_failed: ['awaiting_payment'],
+  deposit_paid: ['driver_assigned', 'cancelled_refund_pending'],
   paid: ['driver_assigned', 'cancelled_refund_pending'],
   driver_assigned: ['en_route'],
   en_route: ['arrived'],
@@ -58,6 +60,7 @@ export const STATUS_LABELS: Record<BookingStatus, string> = {
   pricing_ready: 'Pricing Ready',
   awaiting_payment: 'Awaiting Payment',
   paid: 'Paid',
+  deposit_paid: 'Deposit Paid',
   payment_failed: 'Payment Failed',
   driver_assigned: 'Driver Assigned',
   en_route: 'En Route',
@@ -78,6 +81,7 @@ export const STATUS_DESCRIPTIONS: Record<BookingStatus, string> = {
   pricing_ready: 'Quote has been calculated',
   awaiting_payment: 'Waiting for customer payment',
   paid: 'Payment confirmed, awaiting driver assignment',
+  deposit_paid: 'Deposit confirmed, balance due on-site',
   payment_failed: 'Payment was declined',
   driver_assigned: 'A driver has been assigned to your booking',
   en_route: 'Driver is on the way to your location',
@@ -297,6 +301,7 @@ export function getAllowedTransitionsForRole(
       draft: [],
       pricing_ready: [],
       paid: [],
+      deposit_paid: [],
       payment_failed: [],
       driver_assigned: [],
       en_route: [],
@@ -317,6 +322,7 @@ export function getAllowedTransitionsForRole(
       pricing_ready: [],
       awaiting_payment: [],
       paid: [],
+      deposit_paid: [],
       payment_failed: [],
       completed: [],
       cancelled: [],
@@ -328,7 +334,8 @@ export function getAllowedTransitionsForRole(
       // Admin can perform all valid transitions
       draft: ['pricing_ready'],
       pricing_ready: ['awaiting_payment'],
-      awaiting_payment: ['paid', 'payment_failed', 'cancelled'],
+      awaiting_payment: ['paid', 'deposit_paid', 'payment_failed', 'driver_assigned', 'cancelled'],
+      deposit_paid: ['driver_assigned', 'cancelled_refund_pending'],
       payment_failed: ['awaiting_payment'],
       paid: ['driver_assigned', 'cancelled_refund_pending'],
       driver_assigned: ['en_route'],
@@ -345,7 +352,8 @@ export function getAllowedTransitionsForRole(
       // System can perform automated transitions
       draft: ['pricing_ready'],
       pricing_ready: ['awaiting_payment'],
-      awaiting_payment: ['paid', 'payment_failed'],
+      awaiting_payment: ['paid', 'deposit_paid', 'payment_failed', 'driver_assigned'],
+      deposit_paid: [],
       payment_failed: ['awaiting_payment'],
       paid: [],
       driver_assigned: [],

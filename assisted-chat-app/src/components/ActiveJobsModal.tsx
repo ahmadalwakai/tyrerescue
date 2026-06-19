@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   AppState,
+  Easing,
   FlatList,
   Linking,
   Modal,
@@ -36,6 +38,9 @@ const gbpFormatter = new Intl.NumberFormat('en-GB', {
   currency: 'GBP',
 });
 
+const JOB_REF_SHIMMER_WIDTH = 78;
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+
 function formatRelative(at: string | null): string {
   if (!at) return '—';
   const ms = Date.now() - new Date(at).getTime();
@@ -49,44 +54,89 @@ function formatRelative(at: string | null): string {
 }
 
 function paymentLines(item: ActiveJobItem): string[] {
-  const p = item.payment;
+  const p = item.paymentSummary ?? item.payment;
   if (!p) return ['Payment: unknown'];
   const out: string[] = [];
-  if (p.totalAmountPence != null && p.totalAmountPence > 0) {
-    out.push(`Job price: ${gbpFormatter.format(p.totalAmountPence / 100)}`);
+  if (p.totalPence != null && p.totalPence > 0) {
+    out.push(`Job price: ${gbpFormatter.format(p.totalPence / 100)}`);
   }
 
+  const amountToCollectPence = p.amountToCollectPence ?? 0;
   const due =
-    p.amountToCollectPence > 0
-      ? gbpFormatter.format(p.amountToCollectPence / 100)
+    amountToCollectPence > 0
+      ? gbpFormatter.format(amountToCollectPence / 100)
       : null;
 
-  if (
-    p.status === 'paid' &&
-    p.amountToCollectPence === 0 &&
-    (p.remainingBalancePence == null || p.remainingBalancePence <= 0)
-  ) {
+  if (p.state === 'paid' && amountToCollectPence === 0) {
     out.push('Paid · nothing to collect');
-  } else if (p.status === 'paid') {
+  } else if (p.state === 'paid') {
     out.push(due ? `Payment needs checking · ${due}` : 'Payment needs checking');
-  } else if (p.status === 'needs_checking') {
+  } else if (p.state === 'needs_checking') {
     out.push(due ? `Payment needs checking · ${due}` : 'Payment needs checking');
-  } else if (p.status === 'failed') {
+  } else if (p.state === 'failed') {
     out.push(due ? `Payment failed · ${due}` : 'Payment failed');
-  } else if (p.type === 'cash') {
+  } else if (p.state === 'cash_to_collect' || p.method === 'cash') {
     out.push(due ? `Cash to collect: ${due}` : 'Cash to collect');
-  } else if (p.status === 'deposit_paid') {
+  } else if (p.state === 'balance_due' || p.state === 'deposit_paid') {
     out.push(due ? `Deposit paid · balance due: ${due}` : 'Deposit paid');
-  } else if (p.status === 'pending') {
+  } else if (p.state === 'pending') {
     out.push(due ? `Payment pending · ${due}` : 'Payment pending');
-  } else if (p.status === 'unpaid') {
-    out.push(due ? `Unpaid · ${due}` : 'Unpaid');
-  } else if (p.amountToCollectPence > 0) {
-    out.push(`Amount due: ${due ?? gbpFormatter.format(p.amountToCollectPence / 100)}`);
+  } else if (amountToCollectPence > 0) {
+    out.push(`Amount due: ${due ?? gbpFormatter.format(amountToCollectPence / 100)}`);
   } else {
-    out.push('Confirm with driver');
+    out.push(`${p.label || 'Confirm payment'} · ${p.instruction || 'Confirm with driver'}`);
   }
   return out;
+}
+
+function ShimmeringJobRef({ bookingRef }: { bookingRef: string }) {
+  const [shimmer] = useState(() => new Animated.Value(0));
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    shimmer.setValue(0);
+    const loop = Animated.loop(
+      Animated.timing(shimmer, {
+        toValue: 1,
+        duration: 1650,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [bookingRef, shimmer]);
+
+  const shimmerTranslate = shimmer.interpolate({
+    inputRange: [0, 1],
+    outputRange: [
+      -JOB_REF_SHIMMER_WIDTH,
+      Math.max(width, 220) + JOB_REF_SHIMMER_WIDTH,
+    ],
+  });
+
+  return (
+    <View
+      style={styles.jobRefTitleWrap}
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+    >
+      <Text style={styles.jobRefTitleText} numberOfLines={1}>
+        #{bookingRef}
+      </Text>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.jobRefShimmer,
+          {
+            transform: [
+              { translateX: shimmerTranslate },
+              { skewX: '-18deg' },
+            ],
+          },
+        ]}
+      />
+    </View>
+  );
 }
 
 export function ActiveJobsModal({ visible, onClose }: Props) {
@@ -299,16 +349,42 @@ interface MapModalProps {
   onClose: () => void;
 }
 
-// Base polling cadence while the modal is visible and the app is foregrounded.
+interface ActiveJobMapState {
+  driver: [number, number] | null;
+  customer: [number, number] | null;
+  coords: [number, number][] | null;
+  routeApprox: boolean;
+  driverStale: boolean;
+  trail: [number, number][] | null;
+  follow: boolean;
+  driverInfo: {
+    name: string | null;
+    phone: string | null;
+    updated: string;
+    speed: string | null;
+    status: string;
+    live: boolean;
+  };
+  customerInfo: {
+    name: string | null;
+    phone: string | null;
+    address: string | null;
+  };
+}
+
+type WebFrameRef = {
+  contentWindow?: {
+    postMessage?: (message: unknown, targetOrigin: string) => void;
+  };
+};
+
+// Driver tracking should feel live to the operator. Keep polling at a fixed
+// cadence while the modal is open; stale GPS is shown as stale, not as a reason
+// to stop refreshing the server state.
 const MAP_POLL_MS = 5_000;
-// Backoff cadence when there is no driver location or the signal has been
-// stale for a while — avoids hammering the backend for a position that is
-// not moving.
-const MAP_POLL_BACKOFF_MS = 12_000;
-// Number of consecutive "no fresh fix" polls before backing off.
-const BACKOFF_AFTER = 3;
 // Maximum number of real driver points retained for the in-session trail.
 const TRAIL_MAX_POINTS = 10;
+const ACTIVE_JOB_MAP_MESSAGE_SOURCE = 'tyrerescue-active-job-map';
 
 function getMapboxToken(): string {
   return (process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? '').trim();
@@ -323,19 +399,38 @@ function buildMapHtml(token: string): string {
 html,body,#m{margin:0;padding:0;width:100%;height:100%;background:#09090B}
 .mk{position:relative;width:18px;height:18px}
 .mk-dot{position:absolute;top:0;left:0;width:18px;height:18px;border-radius:50%;background:var(--c);border:3px solid #09090B;box-shadow:0 2px 8px rgba(0,0,0,0.5);box-sizing:border-box;z-index:2}
-/* Driver: live radar pulse. Two staggered expanding rings. */
+/* Driver/customer: live radar pulse. Two staggered expanding rings. */
 .mk-ring{position:absolute;top:50%;left:50%;width:18px;height:18px;border-radius:50%;border:2px solid var(--c);transform:translate(-50%,-50%);opacity:0;z-index:1;animation:radar 1.8s ease-out infinite}
 .mk-ring.r2{animation-delay:.8s}
 /* Driver stale: slower, dimmer pulse to signal weak/old signal. */
 .mk.stale .mk-ring{animation-duration:3.4s;opacity:0}
 @keyframes radar{0%{transform:translate(-50%,-50%) scale(1);opacity:.7}100%{transform:translate(-50%,-50%) scale(3.6);opacity:0}}
-/* Customer: fixed destination. Static, non-animated halo. No pulse. */
-.mk-halo{position:absolute;top:50%;left:50%;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle,var(--c) 0%,rgba(0,0,0,0) 70%);opacity:.28;transform:translate(-50%,-50%);z-index:1}
+@media (prefers-reduced-motion: reduce){.mk-ring{animation:none;transform:translate(-50%,-50%) scale(1.8);opacity:.16}.mk-ring.r2{display:none}}
 /* Marker info cards (popups). */
 .mapboxgl-popup{max-width:240px!important}
 .mapboxgl-popup-content{background:#18181B;color:#FAFAFA;border:1px solid #27272A;border-radius:10px;padding:10px 12px;box-shadow:0 6px 18px rgba(0,0,0,0.55)}
 .mapboxgl-popup-tip{display:none}
 .mapboxgl-popup-close-button{color:#A1A1AA;font-size:16px;padding:0 6px}
+.driver-pop{filter:drop-shadow(0 18px 26px rgba(0,0,0,.55))}
+.driver-pop .mapboxgl-popup-content{background:transparent;border:0;padding:0;box-shadow:none}
+.driver-pop .mapboxgl-popup-close-button{top:4px;right:5px;color:#FAFAFA;text-shadow:0 1px 2px rgba(0,0,0,.7);z-index:5}
+.driver-badge{position:relative;min-width:204px;overflow:hidden;isolation:isolate;border-radius:14px;padding:12px 14px;background:linear-gradient(145deg,#2A2A2F 0%,#18181B 48%,#0F0F12 100%);border:1px solid rgba(249,115,22,.58);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -18px 30px rgba(0,0,0,.22),0 12px 24px rgba(0,0,0,.48);transform:perspective(520px) rotateX(5deg);transform-origin:center bottom}
+.driver-badge:before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.10),transparent 38%,rgba(249,115,22,.08));pointer-events:none;z-index:1}
+.driver-shimmer{position:absolute;z-index:4;top:-38%;bottom:-38%;left:-120px;width:88px;transform:skewX(-18deg);background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.08) 14%,rgba(255,255,255,.58) 50%,rgba(255,255,255,.08) 86%,transparent 100%);filter:blur(.2px);opacity:.84;mix-blend-mode:screen;pointer-events:none;animation:driverShimmer 1.65s cubic-bezier(.4,0,.2,1) infinite}
+.driver-badge:after{content:"";position:absolute;left:13px;right:13px;bottom:0;height:3px;border-radius:999px;background:linear-gradient(90deg,rgba(249,115,22,.1),rgba(249,115,22,.86),rgba(34,197,94,.5));box-shadow:0 -6px 18px rgba(249,115,22,.22)}
+.driver-badge-top{position:relative;z-index:2;display:flex;align-items:center;gap:10px}
+.driver-avatar{width:36px;height:36px;border-radius:12px;background:linear-gradient(145deg,#F97316,#EA580C);box-shadow:inset 0 1px 0 rgba(255,255,255,.38),0 7px 14px rgba(249,115,22,.24);display:flex;align-items:center;justify-content:center;color:#09090B;font-size:15px;font-weight:900}
+.driver-name-wrap{min-width:0;flex:1}
+.driver-kicker{font-size:9px;font-weight:800;color:#FCD34D;text-transform:uppercase;letter-spacing:0}
+.driver-name{font-size:15px;font-weight:900;color:#FAFAFA;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 1px rgba(0,0,0,.8)}
+.driver-meta{position:relative;z-index:2;margin-top:8px;color:#D4D4D8;font-size:11px;line-height:1.35}
+.driver-status{position:relative;z-index:2;display:inline-block;margin-top:8px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0;padding:3px 8px;border-radius:999px}
+.driver-status.on{background:rgba(34,197,94,.18);color:#86EFAC;border:1px solid rgba(34,197,94,.42)}
+.driver-status.off{background:rgba(156,163,175,.16);color:#D4D4D8;border:1px solid rgba(156,163,175,.32)}
+.driver-call{position:relative;z-index:2;width:100%;min-height:34px;margin-top:10px;border:1px solid rgba(249,115,22,.72);border-radius:10px;background:linear-gradient(180deg,#F97316,#EA580C);color:#09090B;font-size:12px;font-weight:900;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 8px 16px rgba(249,115,22,.18)}
+.driver-call:active{transform:translateY(1px)}
+@keyframes driverShimmer{0%{left:-120px}100%{left:calc(100% + 120px)}}
+@media (prefers-reduced-motion: reduce){.driver-shimmer{animation:driverShimmer 2.4s ease-in-out infinite}.driver-badge{transform:none}}
 .pc-t{font-size:13px;font-weight:700;margin-bottom:2px}
 .pc-r{font-size:12px;color:#A1A1AA;line-height:1.4}
 .pc-b{display:inline-block;margin-top:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:6px}
@@ -347,18 +442,85 @@ html,body,#m{margin:0;padding:0;width:100%;height:100%;background:#09090B}
 <script>
 mapboxgl.accessToken = ${JSON.stringify(token)};
 var map = new mapboxgl.Map({container:'m',style:'mapbox://styles/mapbox/dark-v11',center:[-4.2518,55.8642],zoom:11,attributionControl:false});
+var MSG_SOURCE=${JSON.stringify(ACTIVE_JOB_MAP_MESSAGE_SOURCE)};
 var driverMarker = null, customerMarker = null, driverPopup = null, customerPopup = null;
 var pendingState = null, loaded = false, lastState = null;
 var didInitialFit = false, lastRouteKey = '';
-function post(o){ try { if(window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(o)); } catch(e){} }
+var routeFlowFrame = null;
+function post(o){ try { if(window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(o)); else if(window.parent&&window.parent!==window) window.parent.postMessage({source:MSG_SOURCE,payload:o},'*'); } catch(e){} }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>]/g,function(c){return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;';}); }
+function escAttr(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return c==='&'?'&amp;':c==='<'?'&lt;':c==='>'?'&gt;':c==='"'?'&quot;':'&#39;';}); }
 // Driver pin: animated radar pulse (live moving object).
 function driverPin(color){var el=document.createElement('div');el.className='mk';el.style.setProperty('--c',color);el.innerHTML='<span class="mk-ring"></span><span class="mk-ring r2"></span><span class="mk-dot"></span>';return el;}
-// Customer pin: fixed destination — static dot + subtle non-animated halo.
-function customerPin(color){var el=document.createElement('div');el.className='mk';el.style.setProperty('--c',color);el.innerHTML='<span class="mk-halo"></span><span class="mk-dot"></span>';return el;}
-function driverHtml(i){var h='<div class="pc-t">'+esc(i.name||'Driver')+'</div>';if(i.phone)h+='<div class="pc-r">'+esc(i.phone)+'</div>';if(i.updated)h+='<div class="pc-r">'+esc(i.updated)+'</div>';if(i.speed)h+='<div class="pc-r">'+esc(i.speed)+'</div>';if(i.status)h+='<span class="pc-b '+(i.live?'on':'off')+'">'+esc(i.status)+'</span>';return h;}
+// Customer pin: same staggered radar pulse so both route endpoints feel live.
+function customerPin(color){var el=document.createElement('div');el.className='mk';el.style.setProperty('--c',color);el.innerHTML='<span class="mk-ring"></span><span class="mk-ring r2"></span><span class="mk-dot"></span>';return el;}
+function initials(name){var parts=String(name||'D').trim().split(/\s+/).filter(Boolean);var a=(parts[0]||'D').charAt(0);var b=(parts[1]||'').charAt(0);return (a+b).toUpperCase();}
+function driverHtml(i){var name=i.name||'Driver';var h='<div class="driver-badge"><span class="driver-shimmer"></span><div class="driver-badge-top"><div class="driver-avatar">'+esc(initials(name))+'</div><div class="driver-name-wrap"><div class="driver-kicker">Driver</div><div class="driver-name">'+esc(name)+'</div></div></div><div class="driver-meta">';if(i.phone)h+=esc(i.phone)+'<br>';if(i.updated)h+=esc(i.updated)+'<br>';if(i.speed)h+=esc(i.speed);h+='</div>';if(i.status)h+='<span class="driver-status '+(i.live?'on':'off')+'">'+esc(i.status)+'</span>';if(i.phone)h+='<button type="button" class="driver-call" data-phone="'+escAttr(i.phone)+'">Call driver</button>';h+='</div>';return h;}
 function customerHtml(i){var h='<div class="pc-t">'+esc(i.name||'Customer')+'</div>';if(i.phone)h+='<div class="pc-r">'+esc(i.phone)+'</div>';if(i.address)h+='<div class="pc-r">'+esc(i.address)+'</div>';return h;}
 function routeKey(c){ if(!c||c.length<2) return ''; var a=c[0],b=c[c.length-1]; return c.length+':'+a[0]+','+a[1]+':'+b[0]+','+b[1]; }
+function routeFeature(coords){return{type:'Feature',geometry:{type:'LineString',coordinates:coords},properties:{}};}
+function pointDistance(a,b){if(!a||!b)return 0;var lat=(a[1]+b[1])/2*Math.PI/180;var dx=(b[0]-a[0])*Math.cos(lat);var dy=b[1]-a[1];return Math.sqrt(dx*dx+dy*dy);}
+function orientRoute(coords,driver,customer){
+  if(!coords||coords.length<2)return coords;
+  var out=coords.slice();
+  if(!driver||!customer)return out;
+  var first=out[0],last=out[out.length-1];
+  var driverFirst=pointDistance(first,driver)+pointDistance(last,customer);
+  var customerFirst=pointDistance(first,customer)+pointDistance(last,driver);
+  if(customerFirst<driverFirst)out.reverse();
+  return out;
+}
+function segmentLength(a,b){return pointDistance(a,b);}
+function buildMeasures(coords){var measures=[0],total=0;for(var i=1;i<coords.length;i++){total+=segmentLength(coords[i-1],coords[i]);measures.push(total);}return{measures:measures,total:total};}
+function pointAt(coords,measures,distance){
+  if(distance<=0)return coords[0];
+  var last=coords.length-1;
+  if(distance>=measures[last])return coords[last];
+  for(var i=1;i<coords.length;i++){
+    if(distance<=measures[i]){
+      var span=Math.max(measures[i]-measures[i-1],0.0000001);
+      var t=(distance-measures[i-1])/span;
+      return[
+        coords[i-1][0]+(coords[i][0]-coords[i-1][0])*t,
+        coords[i-1][1]+(coords[i][1]-coords[i-1][1])*t
+      ];
+    }
+  }
+  return coords[last];
+}
+function routeSlice(coords,measures,from,to){
+  var out=[pointAt(coords,measures,from)];
+  for(var i=1;i<coords.length-1;i++){
+    if(measures[i]>from&&measures[i]<to)out.push(coords[i]);
+  }
+  out.push(pointAt(coords,measures,to));
+  if(out.length<2)out.push(out[0]);
+  return out;
+}
+function stopRouteFlow(){
+  if(routeFlowFrame)cancelAnimationFrame(routeFlowFrame);
+  routeFlowFrame=null;
+}
+function startRouteFlow(coords){
+  stopRouteFlow();
+  if(!coords||coords.length<2)return;
+  var measured=buildMeasures(coords);
+  if(!measured.total)return;
+  var started=performance.now();
+  var duration=2600;
+  var tail=measured.total*0.18;
+  function tick(now){
+    var source=map.getSource('route-flow');
+    if(source){
+      var phase=((now-started)%duration)/duration;
+      var head=phase*measured.total;
+      var from=Math.max(0,head-tail);
+      source.setData(routeFeature(routeSlice(coords,measured.measures,from,head)));
+    }
+    routeFlowFrame=requestAnimationFrame(tick);
+  }
+  routeFlowFrame=requestAnimationFrame(tick);
+}
 function fitAll(s){
   if(s.driver && s.customer){
     var b=new mapboxgl.LngLatBounds().extend(s.driver).extend(s.customer);
@@ -382,18 +544,27 @@ function setTrail(coords){
     if(map.getSource('t')) map.removeSource('t');
   }
 }
-function setRoute(coords, approx){
+function setRoute(rawCoords, approx, driver, customer){
   var src=map.getSource('r');
+  var coords=orientRoute(rawCoords,driver,customer);
   if(coords && coords.length>=2){
     var key=routeKey(coords);
     if(key!==lastRouteKey){
-      var data={type:'Feature',geometry:{type:'LineString',coordinates:coords}};
+      var data=routeFeature(coords);
       if(src){ src.setData(data); }
       else {
         map.addSource('r',{type:'geojson',data:data});
         map.addLayer({id:'rl-casing',type:'line',source:'r',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#FFFFFF','line-width':8,'line-opacity':0.95}});
         map.addLayer({id:'rl',type:'line',source:'r',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#2563EB','line-width':4,'line-opacity':1}});
       }
+      if(map.getSource('route-flow')){
+        map.getSource('route-flow').setData(routeFeature([coords[0],coords[0]]));
+      }else{
+        map.addSource('route-flow',{type:'geojson',data:routeFeature([coords[0],coords[0]])});
+        map.addLayer({id:'route-flow-glow',type:'line',source:'route-flow',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#FDE68A','line-width':11,'line-opacity':.34,'line-blur':2.2}});
+        map.addLayer({id:'route-flow-line',type:'line',source:'route-flow',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#FFFFFF','line-width':4.8,'line-opacity':.96}});
+      }
+      startRouteFlow(coords);
       lastRouteKey=key;
     }
     // Approximate (haversine) route is drawn as a dashed line with no casing.
@@ -403,6 +574,10 @@ function setRoute(coords, approx){
     if(map.getLayer('rl')) map.removeLayer('rl');
     if(map.getLayer('rl-casing')) map.removeLayer('rl-casing');
     if(map.getSource('r')) map.removeSource('r');
+    if(map.getLayer('route-flow-line')) map.removeLayer('route-flow-line');
+    if(map.getLayer('route-flow-glow')) map.removeLayer('route-flow-glow');
+    if(map.getSource('route-flow')) map.removeSource('route-flow');
+    stopRouteFlow();
     lastRouteKey='';
   }
 }
@@ -418,17 +593,18 @@ function applyState(s){
     if(!driverMarker){ driverMarker = new mapboxgl.Marker({element:driverPin(driverColor)}).setLngLat(s.driver).addTo(map); }
     else { driverMarker.setLngLat(s.driver); driverMarker.getElement().style.setProperty('--c', driverColor); }
     driverMarker.getElement().classList.toggle('stale', !!s.driverStale);
-    if(s.driverInfo){ if(!driverPopup){ driverPopup=new mapboxgl.Popup({offset:16,closeButton:true}); driverMarker.setPopup(driverPopup); } driverPopup.setHTML(driverHtml(s.driverInfo)); }
+    if(s.driverInfo){ if(!driverPopup){ driverPopup=new mapboxgl.Popup({offset:18,closeButton:true,className:'driver-pop'}); driverMarker.setPopup(driverPopup); } driverPopup.setHTML(driverHtml(s.driverInfo)); }
   }
   setTrail(s.trail);
-  setRoute(s.coords, !!s.routeApprox);
+  setRoute(s.coords, !!s.routeApprox, s.driver, s.customer);
   // Camera policy: fit once on first load with both points, otherwise only
   // move when the operator has enabled follow mode. Never auto-jump on poll.
   if(!didInitialFit && s.driver && s.customer){ fitAll(s); didInitialFit=true; }
   else if(s.follow && s.driver){ map.easeTo({center:s.driver,duration:600,zoom:Math.max(map.getZoom(),14)}); }
 }
+function receiveState(s){ if(!s) return; lastState = s; if(loaded) applyState(s); else pendingState = s; }
 window.__applyState = function(json){
-  try { var s = JSON.parse(json); lastState = s; if(loaded) applyState(s); else pendingState = s; } catch(e){}
+  try { receiveState(JSON.parse(json)); } catch(e){}
 };
 window.__cmd = function(name){
   try {
@@ -444,19 +620,38 @@ window.__reset = function(){
     if(driverMarker){ driverMarker.remove(); driverMarker=null; }
     if(customerMarker){ customerMarker.remove(); customerMarker=null; }
     driverPopup=null; customerPopup=null;
+    stopRouteFlow();
     if(map.getLayer('tl')) map.removeLayer('tl');
     if(map.getSource('t')) map.removeSource('t');
+    if(map.getLayer('route-flow-line')) map.removeLayer('route-flow-line');
+    if(map.getLayer('route-flow-glow')) map.removeLayer('route-flow-glow');
+    if(map.getSource('route-flow')) map.removeSource('route-flow');
     if(map.getLayer('rl')) map.removeLayer('rl');
     if(map.getLayer('rl-casing')) map.removeLayer('rl-casing');
     if(map.getSource('r')) map.removeSource('r');
   } catch(e){}
 };
+window.addEventListener('message', function(event){
+  try {
+    var msg = event.data || {};
+    if(msg.source !== MSG_SOURCE) return;
+    if(msg.type === 'state') receiveState(msg.state);
+    else if(msg.type === 'cmd' && msg.name) window.__cmd(msg.name);
+  } catch(e){}
+});
 function onUserPan(e){ if(e && e.originalEvent) post({type:'userPan'}); }
+document.addEventListener('click', function(e){
+  var btn = e.target && e.target.closest ? e.target.closest('.driver-call') : null;
+  if(!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  post({type:'callDriver', phone: btn.getAttribute('data-phone') || ''});
+});
 map.on('dragstart', onUserPan);
 map.on('rotatestart', onUserPan);
 map.on('pitchstart', onUserPan);
 map.on('zoomstart', onUserPan);
-map.on('load', function(){ loaded = true; if(pendingState){ applyState(pendingState); pendingState = null; } });
+map.on('load', function(){ loaded = true; if(pendingState){ applyState(pendingState); pendingState = null; } post({type:'ready'}); });
 </script></body></html>`;
 }
 
@@ -487,47 +682,52 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
   const [follow, setFollow] = useState(false);
   const [trail, setTrail] = useState<[number, number][]>([]);
   const [speedMph, setSpeedMph] = useState<number | null>(null);
+  const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
 
   const aliveRef = useRef(true);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inflightRef = useRef(false);
-  const noFixCountRef = useRef(0);
   const trailPointsRef = useRef<TrailPoint[]>([]);
   const pollNowRef = useRef<() => void>(() => {});
   const token = useMemo(() => getMapboxToken(), []);
   const html = useMemo(() => (token ? buildMapHtml(token) : ''), [token]);
   const webRef = useRef<WebView>(null);
+  const webFrameRef = useRef<WebFrameRef | null>(null);
 
   const bookingRef = job?.bookingRef ?? null;
 
-  const driverPin = route?.driverLocation
-    ? { lat: route.driverLocation.lat, lng: route.driverLocation.lng }
-    : job?.driver.lat != null && job?.driver.lng != null
-      ? { lat: job.driver.lat, lng: job.driver.lng }
-      : null;
-  const customerPin = route?.customerLocation
-    ? { lat: route.customerLocation.lat, lng: route.customerLocation.lng }
-    : job?.customer.lat != null && job?.customer.lng != null
-      ? { lat: job.customer.lat, lng: job.customer.lng }
-      : null;
+  const driverPin = useMemo(() => (
+    route?.driverLocation
+      ? { lat: route.driverLocation.lat, lng: route.driverLocation.lng }
+      : job?.driver.lat != null && job?.driver.lng != null
+        ? { lat: job.driver.lat, lng: job.driver.lng }
+        : null
+  ), [job?.driver.lat, job?.driver.lng, route?.driverLocation]);
+  const customerPin = useMemo(() => (
+    route?.customerLocation
+      ? { lat: route.customerLocation.lat, lng: route.customerLocation.lng }
+      : job?.customer.lat != null && job?.customer.lng != null
+        ? { lat: job.customer.lat, lng: job.customer.lng }
+        : null
+  ), [job?.customer.lat, job?.customer.lng, route?.customerLocation]);
 
-  // Polling lifecycle: 5s base cadence, backing off to 12s when there has
-  // been no fresh fix for a while. Stops on close / unmount / background and
-  // never overlaps requests. The last good route is preserved on failure.
+  // Polling lifecycle: fixed 5s cadence while the modal is visible. It never
+  // overlaps requests and preserves the last good route if a refresh fails.
   useEffect(() => {
     aliveRef.current = true;
     setRoute(null);
     setError(null);
+    setLoading(false);
     setSpeedMph(null);
+    setLastRefreshAt(null);
     setTrail([]);
     trailPointsRef.current = [];
-    noFixCountRef.current = 0;
     // Clear any prior map state when switching between bookings.
     webRef.current?.injectJavaScript('window.__reset && window.__reset(); true;');
 
     if (!visible || !bookingRef) {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
       return () => {
         aliveRef.current = false;
       };
@@ -561,57 +761,53 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
     const fetchOnce = async (): Promise<void> => {
       if (inflightRef.current) return;
       inflightRef.current = true;
+      if (aliveRef.current) setLoading(true);
       try {
         const data = await api.get<RouteResponse>(
           `/api/admin/active-jobs/${encodeURIComponent(ref)}/route`,
         );
         if (!aliveRef.current) return;
         setRoute(data);
+        setLastRefreshAt(data.lastUpdatedAt || new Date().toISOString());
         setError(null);
         ingestTrail(data);
-        const fresh = data.driverLocation != null && !data.driverLocation.isStale;
-        noFixCountRef.current = fresh ? 0 : noFixCountRef.current + 1;
       } catch (err) {
         if (!aliveRef.current) return;
         // Keep the last good route visible; just surface the error.
         setError(err instanceof Error ? err.message : 'Tracking temporarily unavailable');
-        noFixCountRef.current += 1;
+        setLastRefreshAt(new Date().toISOString());
       } finally {
         inflightRef.current = false;
         if (aliveRef.current) setLoading(false);
       }
     };
 
-    const tick = async (): Promise<void> => {
+    const refreshIfActive = async (): Promise<void> => {
       if (!aliveRef.current) return;
-      if (AppState.currentState === 'active') await fetchOnce();
-      if (!aliveRef.current) return;
-      const delay = noFixCountRef.current >= BACKOFF_AFTER ? MAP_POLL_BACKOFF_MS : MAP_POLL_MS;
-      timeoutRef.current = setTimeout(() => {
-        void tick();
-      }, delay);
+      if (Platform.OS === 'web' || AppState.currentState === 'active') await fetchOnce();
     };
 
     pollNowRef.current = () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      void tick();
+      void fetchOnce();
     };
 
-    void tick();
+    void fetchOnce();
+    intervalRef.current = setInterval(() => {
+      void refreshIfActive();
+    }, MAP_POLL_MS);
 
     // Resume immediately when the app returns to the foreground.
     const sub = AppState.addEventListener('change', (next) => {
       if (next === 'active' && aliveRef.current) {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        void tick();
+        void fetchOnce();
       }
     });
 
     return () => {
       aliveRef.current = false;
       sub.remove();
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
     };
   }, [visible, bookingRef]);
 
@@ -637,11 +833,7 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
   const customerPhone = route?.customer?.phone ?? job?.customer.phone ?? null;
   const customerAddress = route?.customerLocation?.address ?? job?.customer.address ?? null;
 
-  // Push the latest tracking state into the WebView. Geometry is only redrawn
-  // when it actually changes (guarded inside the map script); the camera never
-  // auto-jumps on poll — see the camera policy in buildMapHtml.
-  useEffect(() => {
-    if (!token || !visible || !bookingRef) return;
+  const mapState = useMemo<ActiveJobMapState>(() => {
     const healthSub =
       trackingStatus === 'missing'
         ? 'Waiting for driver location'
@@ -652,7 +844,7 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
           : lastFix
             ? `Updated ${formatRelative(lastFix)}`
             : 'Updated just now';
-    const state = {
+    return {
       driver: driverPin ? [driverPin.lng, driverPin.lat] : null,
       customer: customerPin ? [customerPin.lng, customerPin.lat] : null,
       coords: route?.geometry?.coordinates ?? null,
@@ -674,18 +866,9 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
         address: customerAddress,
       },
     };
-    const json = JSON.stringify(state).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    webRef.current?.injectJavaScript(
-      `window.__applyState && window.__applyState('${json}'); true;`,
-    );
   }, [
-    token,
-    visible,
-    bookingRef,
-    driverPin?.lat,
-    driverPin?.lng,
-    customerPin?.lat,
-    customerPin?.lng,
+    driverPin,
+    customerPin,
     route?.geometry,
     source,
     isStale,
@@ -702,18 +885,72 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
     trackingPill,
   ]);
 
+  const postMapStateToWebFrame = useCallback((nextState: ActiveJobMapState = mapState) => {
+    webFrameRef.current?.contentWindow?.postMessage?.(
+      {
+        source: ACTIVE_JOB_MAP_MESSAGE_SOURCE,
+        type: 'state',
+        state: nextState,
+      },
+      '*',
+    );
+  }, [mapState]);
+
+  // Push the latest tracking state into the map. Geometry is only redrawn
+  // when it actually changes (guarded inside the map script); the camera never
+  // auto-jumps on poll — see the camera policy in buildMapHtml.
+  useEffect(() => {
+    if (!token || !visible || !bookingRef) return;
+    if (Platform.OS === 'web') {
+      postMapStateToWebFrame();
+      return;
+    }
+    const json = JSON.stringify(mapState).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    webRef.current?.injectJavaScript(
+      `window.__applyState && window.__applyState('${json}'); true;`,
+    );
+  }, [
+    token,
+    visible,
+    bookingRef,
+    mapState,
+    postMapStateToWebFrame,
+  ]);
+
   // A user-initiated pan/zoom turns off follow mode so the map never fights
   // the operator's manual control.
   const handleWebMessage = useCallback((raw: string) => {
     try {
-      const msg = JSON.parse(raw) as { type?: string };
+      const msg = JSON.parse(raw) as { type?: string; phone?: string };
+      if (msg.type === 'ready') postMapStateToWebFrame();
       if (msg.type === 'userPan') setFollow(false);
+      if (msg.type === 'callDriver' && msg.phone?.trim()) {
+        void Linking.openURL(`tel:${msg.phone.trim()}`).catch(() => undefined);
+      }
     } catch {
       /* ignore malformed messages */
     }
-  }, []);
+  }, [postMapStateToWebFrame]);
+
+  useEffect(() => {
+    if (!visible || Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const handleIframeMessage = (event: MessageEvent) => {
+      const message = event.data as { source?: string; payload?: unknown };
+      if (!message || message.source !== ACTIVE_JOB_MAP_MESSAGE_SOURCE) return;
+      handleWebMessage(JSON.stringify(message.payload ?? {}));
+    };
+    window.addEventListener('message', handleIframeMessage);
+    return () => window.removeEventListener('message', handleIframeMessage);
+  }, [handleWebMessage, visible]);
 
   const sendCmd = useCallback((name: 'fit' | 'showCustomer' | 'follow') => {
+    if (Platform.OS === 'web') {
+      webFrameRef.current?.contentWindow?.postMessage?.(
+        { source: ACTIVE_JOB_MAP_MESSAGE_SOURCE, type: 'cmd', name },
+        '*',
+      );
+      return;
+    }
     webRef.current?.injectJavaScript(`window.__cmd && window.__cmd('${name}'); true;`);
   }, []);
 
@@ -735,6 +972,9 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
       ? `Last signal ${formatRelative(lastFix)}`
       : `Updated ${formatRelative(lastFix)}`
     : 'Waiting for driver location';
+  const autoRefreshText = lastRefreshAt
+    ? `Auto refresh · checked ${formatRelative(lastRefreshAt)}`
+    : 'Auto refresh · starting';
   const routeBadge =
     source === 'haversine'
       ? 'Route unavailable — approximate line'
@@ -754,10 +994,25 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>#{job.bookingRef}</Text>
+            <ShimmeringJobRef bookingRef={job.bookingRef} />
             <Text style={styles.subtitle}>{statusLabel}</Text>
           </View>
           <View style={styles.pillCol}>
+            <Pressable
+              onPress={() => pollNowRef.current()}
+              accessibilityRole="button"
+              accessibilityLabel="Refresh driver tracking now"
+              disabled={loading}
+              style={({ pressed }) => [
+                styles.refreshTrackingBtn,
+                pressed && !loading && styles.btnPressed,
+                loading && styles.btnDisabled,
+              ]}
+            >
+              <Text style={styles.refreshTrackingText}>
+                {loading ? 'Refreshing...' : 'Refresh now'}
+              </Text>
+            </Pressable>
             <View
               style={[
                 styles.trackingPill,
@@ -773,6 +1028,9 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
               numberOfLines={1}
             >
               {lastUpdateText}
+            </Text>
+            <Text style={styles.autoRefreshText} numberOfLines={1}>
+              {autoRefreshText}
             </Text>
           </View>
           <Pressable
@@ -806,9 +1064,14 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
                 sandbox: string;
                 referrerPolicy: string;
                 title: string;
+                ref?: React.Ref<WebFrameRef>;
+                onLoad?: () => void;
               }>;
               return (
                 <Iframe
+                  key={bookingRef ?? 'active-job-map'}
+                  ref={webFrameRef}
+                  onLoad={() => postMapStateToWebFrame()}
                   srcDoc={html}
                   style={{ width: '100%', height: '100%', border: 0, background: colors.bg }}
                   sandbox="allow-scripts"
@@ -835,7 +1098,7 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
 
           {/* Floating map controls (native only). */}
           {token && Platform.OS !== 'web' && (driverPin || customerPin) ? (
-            <View style={styles.mapControls} pointerEvents="box-none">
+            <View style={[styles.mapControls, styles.boxNonePointerEvents]}>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Fit route"
@@ -877,7 +1140,7 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
           ) : null}
 
           {showLoadingOverlay ? (
-            <View style={styles.mapState} pointerEvents="none">
+            <View style={[styles.mapState, styles.noPointerEvents]}>
               <ActivityIndicator color={colors.accent} />
               <Text style={styles.mapStateText}>Loading tracking…</Text>
             </View>
@@ -1002,6 +1265,29 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   title: { color: colors.text, fontSize: fontSize.xl, fontWeight: '700', flex: 1 },
+  jobRefTitleWrap: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    minHeight: 30,
+    borderRadius: radius.sm,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    paddingRight: 6,
+  },
+  jobRefTitleText: {
+    color: colors.text,
+    fontSize: fontSize.xl,
+    fontWeight: '900',
+  },
+  jobRefShimmer: {
+    position: 'absolute',
+    top: -10,
+    bottom: -10,
+    left: 0,
+    width: JOB_REF_SHIMMER_WIDTH,
+    backgroundColor: 'rgba(255,255,255,0.38)',
+    opacity: 0.72,
+  },
   subtitle: { color: colors.muted, fontSize: fontSize.sm, marginTop: 2 },
   trackingPill: {
     paddingHorizontal: space.md,
@@ -1015,14 +1301,29 @@ const styles = StyleSheet.create({
   trackingPillStale: { backgroundColor: 'rgba(245,158,11,0.16)', borderColor: '#f59e0b' },
   trackingPillMissing: { backgroundColor: 'rgba(156,163,175,0.16)', borderColor: '#9CA3AF' },
   trackingPillText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '700' },
-  pillCol: { alignItems: 'flex-end', marginRight: space.sm, maxWidth: 150 },
+  pillCol: { alignItems: 'flex-end', marginRight: space.sm, maxWidth: 190, gap: 3 },
   pillSub: { color: colors.muted, fontSize: 10, marginTop: 3 },
   pillSubStale: { color: colors.warning },
+  autoRefreshText: { color: colors.subtle, fontSize: 10 },
+  refreshTrackingBtn: {
+    minHeight: 32,
+    paddingHorizontal: space.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refreshTrackingText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '700' },
   mapControls: {
     position: 'absolute',
     top: space.sm,
     right: space.sm,
     gap: space.sm,
+  },
+  boxNonePointerEvents: {
+    pointerEvents: 'box-none',
   },
   ctrlBtn: {
     paddingHorizontal: space.md,
@@ -1043,6 +1344,9 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     gap: space.sm,
+  },
+  noPointerEvents: {
+    pointerEvents: 'none',
   },
   mapStateText: {
     color: colors.text,

@@ -52,6 +52,8 @@ import { AdminInvoicesModal } from './AdminInvoicesModal';
 import { AdminStockModal } from './AdminStockModal';
 import { ActiveJobsModal, ActiveJobMapModal } from './ActiveJobsModal';
 import { TrackingModal } from './TrackingModal';
+import { DriverChatModal } from './DriverChatModal';
+import { ChatHubModal } from './ChatHubModal';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 import { api } from '@/lib/api';
@@ -83,8 +85,6 @@ import {
   hasAssistedChatTyre,
   normalizeAssistedChatTyreSize,
   type AssistedChatStage,
-  type AssistedChatTimelineItem,
-  type AssistedChatTimelineStep,
 } from '@/lib/assisted-chat-workflow';
 import {
   deriveOperatorWorkflowSteps,
@@ -127,11 +127,12 @@ interface ActionNotice {
 }
 
 const GBP = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
+const DEPOSIT_PERCENT = 20;
 
 const PAYMENT_OPTIONS: ReadonlyArray<{ value: AdminQuotePaymentOption; label: string; description: string }> = [
-  { value: 'DEPOSIT_15', label: 'Deposit 15%', description: 'Customer pays 15% now and the balance on arrival.' },
-  { value: 'CASH_ON_ARRIVAL', label: 'Cash on arrival', description: 'Driver collects cash when the job is complete.' },
   { value: 'FULL_PAYMENT', label: 'Full payment', description: 'Customer completes the full Stripe payment.' },
+  { value: 'DEPOSIT_20', label: 'Deposit 20%', description: 'Customer pays 20% now and the balance on arrival.' },
+  { value: 'CASH_ON_ARRIVAL', label: 'Cash on arrival', description: 'Driver collects cash when the job is complete.' },
   { value: 'PAYMENT_LINK', label: 'Send payment link', description: 'Send a secure payment link before dispatch.' },
 ];
 
@@ -207,12 +208,8 @@ function formatPence(pence: number): string {
   return GBP.format(pence / 100);
 }
 
-function getQuotePricePence(quote: AdminQuote | null, effectiveTotal: number): number {
-  return quote?.priceAmount ?? Math.round(effectiveTotal * 100);
-}
-
 function getDepositSummary(priceAmountPence: number): { depositAmountPence: number; remainingBalancePence: number } {
-  const depositAmountPence = Math.round((priceAmountPence * 15) / 100);
+  const depositAmountPence = Math.round((priceAmountPence * DEPOSIT_PERCENT) / 100);
   return { depositAmountPence, remainingBalancePence: priceAmountPence - depositAmountPence };
 }
 
@@ -270,11 +267,12 @@ function formatQuoteExpiryStatus(quote: AdminQuote | null, hasSavedQuote: boolea
 
 function paymentOptionLabel(option: AdminQuotePaymentOption | null | undefined): string {
   if (!option) return 'Not selected';
+  if (option === 'DEPOSIT_15') return 'Deposit 20%';
   return PAYMENT_OPTIONS.find((item) => item.value === option)?.label ?? option;
 }
 
 function paymentChoiceLabel(choice: AssistedChatPaymentChoice | null): string {
-  if (choice === 'deposit') return 'Deposit 15%';
+  if (choice === 'deposit') return 'Deposit 20%';
   if (choice === 'cash') return 'Cash on arrival';
   if (choice === 'full') return 'Full payment link';
   return 'Not selected';
@@ -357,19 +355,25 @@ function buildJobDetails(
 }
 
 function buildPaymentMessage(paymentLink: StripePaymentLinkState, draft: AssistedChatDraft, effectiveTotal: number): string {
+  const bookingReady = Boolean(draft.dispatchedRefNumber || draft.dispatchedBookingId);
+  const recordLabel = bookingReady ? 'booking' : 'quote';
+  const referenceLabel = bookingReady ? 'Booking ref' : 'Quote ref';
+  const reference = bookingReady
+    ? draft.dispatchedRefNumber ?? paymentLink.refNumber
+    : draft.savedQuoteRef ?? paymentLink.refNumber;
   const lines: string[] = [];
   lines.push('Hi, this is Tyre Rescue.');
   lines.push(
     paymentLink.kind === 'deposit'
-      ? 'Your booking is ready. Please pay the 15% deposit using this secure payment link:'
-      : 'Your booking is ready. Please complete the full payment using this secure payment link:',
+      ? `Your ${recordLabel} is ready. Please pay the 20% deposit using this secure payment link:`
+      : `Your ${recordLabel} is ready. Please complete the full payment using this secure payment link:`,
   );
   lines.push(paymentLink.paymentUrl);
   lines.push('');
-  lines.push(`Reference: ${paymentLink.refNumber}`);
+  lines.push(`${referenceLabel}: ${reference}`);
   lines.push(paymentLink.kind === 'deposit' ? `Deposit due now: ${formatPence(paymentLink.amountPence)}` : `Amount due: ${formatPence(paymentLink.amountPence)}`);
   if (paymentLink.remainingBalancePence != null) lines.push(`Balance due on-site: ${formatPence(paymentLink.remainingBalancePence)}`);
-  lines.push(`Total to pay: ${formatGbp(effectiveTotal)}`);
+  lines.push(`${bookingReady ? 'Total to pay' : 'Quote total'}: ${formatGbp(effectiveTotal)}`);
   if (draft.location.address) lines.push(`Address: ${draft.location.address}`);
   if (draft.tyre.size) lines.push(`Tyres: ${draft.tyre.quantity} x ${draft.tyre.size}`);
   return lines.join('\n');
@@ -379,11 +383,7 @@ function genericWhatsAppUrl(message: string): string {
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
 }
 
-function openBookingUrl(refNumber: string): Promise<void> {
-  return Linking.openURL(`${api.baseUrl}/admin/bookings/${encodeURIComponent(refNumber)}`);
-}
-
-export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps = {}) {
+export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const { draft, hydrated, update, clear } = useAssistedChatDraft();
   const [noteInput, setNoteInput] = useState('');
   const [noteSynced, setNoteSynced] = useState(false);
@@ -395,11 +395,13 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const [recentOpen, setRecentOpen] = useState(false);
   const [quotesOpen, setQuotesOpen] = useState(false);
   const [bookingsOpen, setBookingsOpen] = useState(false);
+  const [bookingInitialRef, setBookingInitialRef] = useState<string | null>(null);
   const [visitorsOpen, setVisitorsOpen] = useState(false);
   const [invoicesOpen, setInvoicesOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
   const [activeJobsOpen, setActiveJobsOpen] = useState(false);
   const [driverTrackingOpen, setDriverTrackingOpen] = useState(false);
+  const [chatHubOpen, setChatHubOpen] = useState(false);
   const [trackingMapOpen, setTrackingMapOpen] = useState(false);
   const [duplicateAck, setDuplicateAck] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -413,6 +415,14 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   const [alertReadinessState, setAlertReadinessState] = useState<UrgentAlertsReadinessState>('checking');
   const [fullScreenIntentGranted, setFullScreenIntentGranted] = useState<boolean>(true);
   const [armingCycle, setArmingCycle] = useState(0);
+  const openBookingsInApp = useCallback((refNumber: string | null = null) => {
+    setBookingInitialRef(refNumber);
+    setBookingsOpen(true);
+  }, []);
+  const closeBookingsInApp = useCallback(() => {
+    setBookingsOpen(false);
+    setBookingInitialRef(null);
+  }, []);
 
   const insets = useSafeAreaInsets();
   const bottomBarPaddingBottom = Math.max(insets.bottom + 8, 16);
@@ -471,7 +481,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       cancelled = true;
       if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [armingCycle, api.hasAdminToken]);
+  }, [armingCycle]);
 
   const handleRetryUrgentAlertArming = useCallback(() => {
     if (Platform.OS === 'web') return;
@@ -500,13 +510,13 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       if (isUrgentBookingNotificationData(data)) {
         void setPendingOpenBookings();
       }
-      setBookingsOpen(true);
+      openBookingsInApp();
       void clearAdminBadge();
     });
     return () => {
       notifResponseRef.current?.remove();
     };
-  }, []);
+  }, [openBookingsInApp]);
 
   // Cold-start path: if a push notification tap stored the pending flag
   // before this screen mounted, open the bookings modal once.
@@ -515,11 +525,11 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     void (async () => {
       const pending = await consumePendingOpenBookings();
       if (pending) {
-        setBookingsOpen(true);
+        openBookingsInApp();
         void clearAdminBadge();
       }
     })();
-  }, []);
+  }, [openBookingsInApp]);
 
   const {
     hasNewCustomerBooking,
@@ -607,8 +617,8 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       void setDismissedUrgentBookingId(urgentBookingId);
     }
     void markBookingsSeen();
-    setBookingsOpen(true);
-  }, [markBookingsSeen, urgentBookingId]);
+    openBookingsInApp();
+  }, [markBookingsSeen, openBookingsInApp, urgentBookingId]);
 
   const handleUrgentDismiss = useCallback(() => {
     // Close the popup but keep the All-bookings red shimmer active until
@@ -697,7 +707,6 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     : null;
   const savedQuoteRef = activeQuote?.quoteRef ?? draft.savedQuoteRef;
   const quoteConfirmed = isQuoteConfirmed(activeQuote);
-  const quotePricePence = getQuotePricePence(activeQuote, effectiveTotal);
   const selectedPaymentOption = activeQuote?.selectedPaymentOption ?? quoteActions.selectedPaymentOption;
   const quoteExpiryStatus = formatQuoteExpiryStatus(activeQuote, Boolean(savedQuoteRef));
 
@@ -777,11 +786,11 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     trackingHasCustomerCoords &&
     draft.dispatchedRefNumber != null &&
     draft.dispatchedBookingId != null;
-  // Driver fix older than 90s (matching the backend stale window) reads stale.
+  // Driver fix older than 3 minutes (matching the backend stale window) reads stale.
   const trackingIsStale =
     trackingHasDriverLocation &&
     trackingLastUpdatedAt != null &&
-    Date.now() - new Date(trackingLastUpdatedAt).getTime() > 90_000;
+    Date.now() - new Date(trackingLastUpdatedAt).getTime() > 180_000;
   const trackDriverHint = !trackingHasCustomerCoords
     ? 'Customer location unavailable'
     : !trackingHasDriverLocation
@@ -822,6 +831,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
         locationSource: null,
         isStale: false,
       },
+      paymentSummary: null,
       payment: null,
       distanceMiles: null,
       etaMinutes: null,
@@ -840,31 +850,13 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
   // Tracked only so the assign section can highlight the current pick.
   const [, setSelectedDriverPhone] = useState<string | null>(null);
 
-  // Driver chat (admin_driver channel). Creates the conversation on demand
-  // then routes the operator to the admin web booking page where the
-  // ChatWidget is mounted.
-  const [driverChatBusy, setDriverChatBusy] = useState(false);
-  const [driverChatError, setDriverChatError] = useState<string | null>(null);
-  const handleOpenDriverChat = useCallback(async () => {
+  // Driver chat (admin_driver channel) stays inside the assisted-chat app.
+  const [driverChatOpen, setDriverChatOpen] = useState(false);
+  const handleOpenDriverChat = useCallback(() => {
     const bookingId = draft.dispatchedBookingId;
-    const refNumber = draft.dispatchedRefNumber;
-    if (!bookingId || !refNumber) return;
-    setDriverChatBusy(true);
-    setDriverChatError(null);
-    try {
-      await api.post('/api/chat/conversations', { bookingId, channel: 'admin_driver' });
-      await Linking.openURL(`${api.baseUrl}/admin/bookings/${encodeURIComponent(refNumber)}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Could not open driver chat';
-      setDriverChatError(
-        msg.includes('400') || msg.toLowerCase().includes('driver')
-          ? 'Assign a driver first.'
-          : msg,
-      );
-    } finally {
-      setDriverChatBusy(false);
-    }
-  }, [draft.dispatchedBookingId, draft.dispatchedRefNumber]);
+    if (!bookingId) return;
+    setDriverChatOpen(true);
+  }, [draft.dispatchedBookingId]);
 
   const workflow = useMemo(
     () => getAssistedChatWorkflow({
@@ -1212,10 +1204,10 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     setReviewOpen(true);
   }, []);
 
-  const handleSendToDriver = useCallback(() => {
+  const handleSendToDriver = useCallback(async () => {
     if (!draft.paymentChoice) return;
-    setReviewOpen(false);
-    dispatch.choosePaymentAndDispatch(draft.paymentChoice);
+    const sent = await dispatch.choosePaymentAndDispatch(draft.paymentChoice);
+    if (sent) setReviewOpen(false);
   }, [dispatch, draft.paymentChoice]);
 
   const handlePrimaryAction = useCallback(async () => {
@@ -1267,16 +1259,57 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     }
 
     if (workflow.currentStage === 'DISPATCHED' && draft.dispatchedRefNumber) {
-      await openBookingUrl(draft.dispatchedRefNumber).catch(() => {
-        flashNotice({ kind: 'err', text: 'Could not open booking.' });
-      });
+      openBookingsInApp(draft.dispatchedRefNumber);
     }
-  }, [draft, editingStage, flashNotice, handleReviewDispatch, locationShare, price, quoteActions, workflow]);
+  }, [draft, editingStage, handleReviewDispatch, locationShare, openBookingsInApp, price, quoteActions, workflow]);
 
   const sheetActions = useMemo<SheetAction[]>(() => {
     const actions: SheetAction[] = [];
     const locationShareRelevant = !hasLocation || draft.location.status === 'pending' || Boolean(draft.location.link);
     const noToken = api.hasAdminToken ? null : 'Log in again before using admin actions.';
+
+    actions.push(
+      {
+        id: 'today-bookings',
+        label: `Today bookings (${todayBookings.count})`,
+        description: 'Open bookings saved during this shift.',
+        onPress: () => setHistoryOpen(true),
+      },
+      {
+        id: 'recent-customers',
+        label: 'Recent customers',
+        description: 'Use details from a previous customer.',
+        onPress: () => setRecentOpen(true),
+      },
+      {
+        id: 'active-jobs',
+        label: 'Active jobs',
+        description: 'See jobs that are currently in progress.',
+        disabledReason: noToken,
+        onPress: () => setActiveJobsOpen(true),
+      },
+      {
+        id: 'driver-tracking',
+        label: 'Tracking hub',
+        description: 'Live map for all drivers and dispatch jobs.',
+        disabledReason: noToken,
+        onPress: () => setDriverTrackingOpen(true),
+      },
+      {
+        id: 'chat-hub',
+        label: 'Chat hub',
+        description: 'All customer and driver conversations in one place.',
+        disabledReason: noToken,
+        onPress: () => setChatHubOpen(true),
+      },
+      {
+        id: 'saved-quotes',
+        label: 'Quotes',
+        description: 'Find and reuse saved quotes.',
+        disabledReason: noToken,
+        onPress: () => setQuotesOpen(true),
+      },
+    );
 
     if (locationShareRelevant) {
       actions.push(
@@ -1382,12 +1415,12 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       label: 'All bookings',
       description: 'Browse, search, and filter all admin bookings.',
       disabledReason: noToken,
-      onPress: () => setBookingsOpen(true),
+      onPress: () => openBookingsInApp(),
     });
 
     actions.push({
       id: 'admin-visitors',
-      label: '🌐 Visitors',
+      label: 'Visitors',
       description: 'Real-time visitor analytics and live feed.',
       disabledReason: noToken,
       onPress: () => setVisitorsOpen(true),
@@ -1395,7 +1428,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
 
     actions.push({
       id: 'admin-invoices',
-      label: '📄 Invoices',
+      label: 'Invoices',
       description: 'Browse, send, and manage customer invoices.',
       disabledReason: noToken,
       onPress: () => setInvoicesOpen(true),
@@ -1403,7 +1436,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
 
     actions.push({
       id: 'admin-stock',
-      label: '🛞 Stock',
+      label: 'Stock',
       description: 'Manage tyre stock levels, prices and availability.',
       disabledReason: noToken,
       onPress: () => setStockOpen(true),
@@ -1467,38 +1500,31 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
     locationShare,
     handleLogout,
     onLogout,
+    openBookingsInApp,
     quoteActions,
+    todayBookings.count,
     urgentBookingId,
   ]);
 
   const primaryLabel = editingStage ? 'Done Editing' : workflow.primaryActionLabel;
   const primaryDisabled = editingStage ? false : workflow.primaryActionDisabled;
   const primaryDisabledReason = editingStage ? null : workflow.primaryActionDisabledReason;
-  const stageTitle = editingStage ? `Editing ${stageLabel(editingStage)}` : stageLabel(workflow.currentStage);
-
-  const handleSelectTimelineStep = (step: AssistedChatTimelineStep) => {
-    const targetStage = stageForTimelineStep(step, { quoteConfirmed });
-    const blockedReason = blockedReasonForStage(targetStage, {
-      hasCustomerDetails: Boolean(draft.customer.name.trim() || draft.customer.phone.trim() || draft.customer.email.trim()),
-      hasLocation,
-      hasTyre,
-      hasPrice: Boolean(draft.quote && !draft.priceNeedsRefresh),
-      hasSavedQuote: Boolean(savedQuoteRef),
-      quoteConfirmed,
-      hasPaymentChoice: Boolean(draft.paymentChoice),
-    });
-    setEditingStage(targetStage);
-    if (blockedReason) {
-      flashNotice({ kind: 'info', text: blockedReason });
-    } else {
-      setActionNotice(null);
-    }
-  };
+  const hasCustomerSummary = Boolean(
+    draft.customer.name.trim() || draft.customer.phone.trim() || draft.customer.email.trim(),
+  );
+  const showWorkflowSummary = Boolean(
+    hasCustomerSummary ||
+      hasLocation ||
+      draft.location.status === 'pending' ||
+      hasTyre ||
+      (draft.quote && !draft.priceNeedsRefresh) ||
+      savedQuoteRef ||
+      draft.paymentChoice,
+  );
 
   // Operator workflow projection: shared progress/next-action state derived
-  // from the existing draft + workflow + quote/dispatch flags. Keeps the new
-  // OperatorStepProgress + NextBestActionCard in lockstep with the legacy
-  // Timeline/SummaryCard stack without changing any backend behaviour.
+  // from the existing draft + workflow + quote/dispatch flags without
+  // changing any backend behaviour.
   const hasPrice = Boolean(draft.quote && !draft.priceNeedsRefresh);
   const hasSavedQuote = Boolean(savedQuoteRef);
   const operatorDerivationInput = {
@@ -1624,61 +1650,46 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
         <View style={styles.headerTextBlock}>
           <Text style={styles.headerTitle}>Assisted Chat</Text>
           <Text style={styles.headerCustomer} numberOfLines={1}>{customerName}</Text>
-          <Text style={styles.headerPhone} numberOfLines={1}>{customerPhone || (user?.name ? `Signed in as ${user.name}` : 'No phone added')}</Text>
-          <Pressable
-            onPress={canRetryAlertArming ? handleRetryUrgentAlertArming : undefined}
-            accessibilityRole="button"
-            accessibilityLabel="Urgent alert readiness"
-            style={({ pressed }) => [
-              styles.alertReadinessPill,
-              alertReadinessState === 'armed'
-                ? styles.alertReadinessPillArmed
-                : alertReadinessState === 'not_armed'
-                ? styles.alertReadinessPillNotArmed
-                : null,
-              pressed && canRetryAlertArming && styles.alertReadinessPillPressed,
-            ]}
-          >
-            <Text style={styles.alertReadinessText}>{alertReadinessLabel}</Text>
-            {alertReadinessState === 'not_armed' ? (
-              <Text style={styles.alertReadinessRetryText}>
-                {!fullScreenIntentGranted ? 'Tap to grant permission' : 'Tap to retry'}
-              </Text>
-            ) : null}
-          </Pressable>
+          <Text style={styles.headerPhone} numberOfLines={1}>{customerPhone || 'Add customer phone to call or WhatsApp'}</Text>
         </View>
         <View style={styles.headerRight}>
-          <View style={styles.statusChip}>
-            <Text style={styles.statusChipText}>{stageTitle}</Text>
-          </View>
+          <AppButton label="More" variant="secondary" onPress={() => setMoreOpen(true)} style={styles.headerMoreButton} />
           <View style={styles.headerContactRow}>
-            <Pressable
-              onPress={customerDialNumber ? handleCallCustomer : undefined}
-              disabled={!customerDialNumber}
-              accessibilityRole="button"
-              accessibilityLabel="Call customer"
-              style={({ pressed }) => [
-                styles.compactContactButton,
-                styles.callButton,
-                pressed && customerDialNumber && styles.contactButtonPressed,
-                !customerDialNumber && styles.contactButtonDisabled,
-              ]}
-            >
-              <Text style={styles.compactContactLabel}>Call</Text>
-            </Pressable>
+            {customerDialNumber ? (
+              <Pressable
+                onPress={handleCallCustomer}
+                accessibilityRole="button"
+                accessibilityLabel="Call customer"
+                style={({ pressed }) => [
+                  styles.compactContactButton,
+                  styles.callButton,
+                  pressed && styles.contactButtonPressed,
+                ]}
+              >
+                <Text style={styles.compactContactLabel}>Call</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={customerWhatsAppNumber ? handleOpenWhatsApp : undefined}
               disabled={!customerWhatsAppNumber}
               accessibilityRole="button"
-              accessibilityLabel="Open WhatsApp chat with customer"
+              accessibilityLabel="Send via WhatsApp"
+              accessibilityState={{ disabled: !customerWhatsAppNumber }}
               style={({ pressed }) => [
-                styles.compactContactButton,
-                styles.whatsappButton,
+                styles.headerWhatsAppButton,
+                !customerWhatsAppNumber && styles.headerWhatsAppButtonDisabled,
                 pressed && customerWhatsAppNumber && styles.contactButtonPressed,
-                !customerWhatsAppNumber && styles.contactButtonDisabled,
               ]}
             >
-              <Text style={styles.compactContactLabel}>WA</Text>
+              <Text
+                style={[
+                  styles.headerWhatsAppLabel,
+                  !customerWhatsAppNumber && styles.headerWhatsAppLabelDisabled,
+                ]}
+                numberOfLines={1}
+              >
+                Send via WhatsApp
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -1690,37 +1701,44 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
         {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind === 'ok' ? 'ok' : quoteActions.message.kind === 'err' ? 'err' : 'info'} message={quoteActions.message.text} /> : null}
         {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
 
-        <View style={styles.toolRow}>
-          <AppButton label={`Bookings ${todayBookings.count}`} variant="secondary" onPress={() => setHistoryOpen(true)} style={styles.toolButton} />
+        {alertReadinessState !== 'armed' ? (
+          <Pressable
+            onPress={canRetryAlertArming ? handleRetryUrgentAlertArming : undefined}
+            accessibilityRole="button"
+            accessibilityLabel="Urgent alert readiness"
+            style={({ pressed }) => [
+              styles.alertReadinessPill,
+              alertReadinessState === 'not_armed' ? styles.alertReadinessPillNotArmed : null,
+              pressed && canRetryAlertArming && styles.alertReadinessPillPressed,
+            ]}
+          >
+            <Text style={styles.alertReadinessText}>{alertReadinessLabel}</Text>
+            {alertReadinessState === 'not_armed' ? (
+              <Text style={styles.alertReadinessRetryText}>
+                {!fullScreenIntentGranted ? 'Tap to grant permission' : 'Tap to retry'}
+              </Text>
+            ) : null}
+          </Pressable>
+        ) : null}
+
+        {hasNewCustomerBooking ? (
           <AlertActionButton
-            label="All bookings"
+            label="Open new booking"
             active={hasNewCustomerBooking}
             badgeLabel="New"
             onPress={() => {
               markBookingsSeen();
-              setBookingsOpen(true);
+              openBookingsInApp();
             }}
-            style={styles.toolButton}
+            style={styles.priorityBookingButton}
             testID="all-bookings-alert-button"
           />
-          <AppButton label="Recent customers" variant="secondary" onPress={() => setRecentOpen(true)} style={styles.toolButton} />
-          <AppButton label="Active jobs" variant="secondary" onPress={() => setActiveJobsOpen(true)} style={styles.toolButton} />
-          <AppButton label="Tracking" variant="secondary" onPress={() => setDriverTrackingOpen(true)} style={styles.toolButton} />
-          <AppButton label="Quotes" variant="secondary" onPress={() => setQuotesOpen(true)} style={styles.toolButton} />
-        </View>
+        ) : null}
 
         <NextBestActionCard
           title={nextBestAction.title}
           body={nextBestAction.body}
           status={nextBestAction.status}
-          // Suppress the duplicate CTA when the next-best step is already the
-          // active section: the bottom bar (and the section itself) already
-          // expose the same primary action, so the card becomes guidance-only.
-          primaryLabel={nextBestAction.id === activeOperatorStepId ? undefined : nextBestAction.primaryLabel}
-          onPrimaryPress={nextBestAction.id === activeOperatorStepId ? undefined : nextBestAction.onPrimaryPress}
-          loading={nextBestAction.loading}
-          disabled={nextBestAction.disabled}
-          disabledReason={primaryDisabledReason ?? undefined}
         />
 
         <OperatorStepProgress
@@ -1729,16 +1747,19 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
           onStepPress={handleSelectOperatorStep}
         />
 
+        {showWorkflowSummary ? (
         <View style={styles.summaryStack}>
-          <SummaryCard
-            title="Customer"
-            value={customerName}
-            detail={customerPhone || draft.customer.email || 'No contact details yet'}
-            done={Boolean(draft.customer.name.trim() || draft.customer.phone.trim() || draft.customer.email.trim())}
-            active={activeStage === 'CUSTOMER'}
-            onPress={() => setEditingStage('CUSTOMER')}
-            onLongPress={handleCopyCustomerDetails}
-          />
+          {hasCustomerSummary ? (
+            <SummaryCard
+              title="Customer"
+              value={customerName}
+              detail={customerPhone || draft.customer.email || 'No contact details yet'}
+              done
+              active={activeStage === 'CUSTOMER'}
+              onPress={() => setEditingStage('CUSTOMER')}
+              onLongPress={handleCopyCustomerDetails}
+            />
+          ) : null}
           {hasLocation || draft.location.status === 'pending' ? (
             <SummaryCard
               title="Location"
@@ -1797,6 +1818,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
             />
           ) : null}
         </View>
+        ) : null}
 
         <View style={styles.activeStepBlock}>
           {renderActiveStage({
@@ -1826,23 +1848,23 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
             savedQuoteRef,
             quoteConfirmed,
             quoteExpiryStatus,
-            quotePricePence,
-            selectedPaymentOption,
             dispatch,
             handleCopyCustomerDetails,
             engineEffectiveTotal,
             setEditPriceOpen,
             breakdownVisible,
             setBreakdownVisible,
+            openPaymentStage: () => setEditingStage('PAYMENT'),
           })}
           {activeStage === 'DISPATCHED' && draft.dispatchedBookingId ? (
             <>
               <DriverAssignSection
-                bookingId={draft.dispatchedBookingId}
+                bookingRef={draft.dispatchedRefNumber}
                 trackingData={bookingTracking.data}
                 customerLat={draft.location.lat}
                 customerLng={draft.location.lng}
                 onSelectDriver={(phone) => setSelectedDriverPhone(phone)}
+                onAssigned={() => { void bookingTracking.refresh(); }}
               />
               <BookingTrackingCard
                 data={bookingTracking.data}
@@ -1851,28 +1873,17 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
                 customerPhone={draft.customer.phone.trim() || null}
                 onRetryEnsure={() => { void bookingTracking.ensure(); }}
                 onRefresh={() => { void bookingTracking.refresh(); }}
+                onTrackDriver={() => setTrackingMapOpen(true)}
+                canTrackDriver={canTrackDriver}
+                trackDriverHint={trackDriverHint}
               />
               <AppButton
-                label="Track driver"
-                variant="primary"
-                onPress={() => setTrackingMapOpen(true)}
-                disabled={!canTrackDriver}
-                fullWidth
-              />
-              {trackDriverHint ? (
-                <Text style={styles.trackDriverHint}>{trackDriverHint}</Text>
-              ) : null}
-              <AppButton
-                label={driverChatBusy ? 'Opening…' : 'Chat with driver'}
+                label="Chat with driver"
                 variant="secondary"
-                onPress={() => { void handleOpenDriverChat(); }}
-                loading={driverChatBusy}
-                disabled={driverChatBusy}
+                onPress={handleOpenDriverChat}
+                disabled={!draft.dispatchedBookingId}
                 fullWidth
               />
-              {driverChatError ? (
-                <Text style={styles.driverChatError}>{driverChatError}</Text>
-              ) : null}
 
               <SectionCard title="Payment">
                 {draft.paymentLink ? (
@@ -1880,19 +1891,27 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
                     <Text style={styles.paymentLinkAmount}>
                       Payment link created · {formatPence(draft.paymentLink.amountPence)}
                     </Text>
-                    <Text style={[
-                      styles.paymentLinkStatus,
-                      paymentLinkActions.liveStatus === 'paid' && { color: colors.success },
-                      paymentLinkActions.liveStatus === 'failed' && { color: colors.danger },
+                    <View style={[
+                      styles.paymentStatusBadge,
+                      paymentLinkActions.liveStatus === 'paid' && styles.paymentStatusBadgePaid,
+                      paymentLinkActions.liveStatus === 'failed' && styles.paymentStatusBadgeFailed,
+                      paymentLinkActions.liveStatus === 'checking' && styles.paymentStatusBadgeChecking,
                     ]}>
-                      {paymentLinkActions.liveStatus === 'paid'
-                        ? 'Payment received ✓'
-                        : paymentLinkActions.liveStatus === 'failed'
-                          ? 'Payment failed'
-                          : paymentLinkActions.liveStatus === 'checking'
-                            ? 'Payment needs checking'
-                            : 'Awaiting payment'}
-                    </Text>
+                      <Text style={[
+                        styles.paymentLinkStatus,
+                        paymentLinkActions.liveStatus === 'paid' && { color: colors.success },
+                        paymentLinkActions.liveStatus === 'failed' && { color: colors.danger },
+                        paymentLinkActions.liveStatus === 'checking' && { color: colors.warning },
+                      ]}>
+                        {paymentLinkActions.liveStatus === 'paid'
+                          ? 'Payment received'
+                          : paymentLinkActions.liveStatus === 'failed'
+                            ? 'Payment failed'
+                            : paymentLinkActions.liveStatus === 'checking'
+                              ? 'Payment needs checking'
+                              : 'Awaiting payment'}
+                      </Text>
+                    </View>
                     <AppButton
                       label="Copy link"
                       variant="secondary"
@@ -1903,6 +1922,14 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
                       label="Send payment link"
                       variant="primary"
                       onPress={() => { void handleWhatsAppPaymentLink(); }}
+                      fullWidth
+                    />
+                    <AppButton
+                      label={paymentLinkActions.liveStatus === 'paid' ? 'Payment confirmed' : 'Check Stripe payment'}
+                      variant="secondary"
+                      onPress={() => { void paymentLinkActions.checkNow(); }}
+                      loading={paymentLinkActions.checking}
+                      disabled={paymentLinkActions.checking || paymentLinkActions.liveStatus === 'paid'}
                       fullWidth
                     />
                   </>
@@ -1936,7 +1963,6 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
         {editingStage ? (
           <AppButton label="Back" variant="ghost" onPress={() => setEditingStage(null)} style={styles.backButton} />
         ) : null}
-        <AppButton label="More" variant="secondary" onPress={() => setMoreOpen(true)} style={styles.moreButton} />
         <View style={styles.primaryWrap}>
           <AppButton
             label={primaryLabel}
@@ -1962,6 +1988,7 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
         effectiveTotal={effectiveTotal}
         quoteConfirmed={quoteConfirmed}
         dispatchBusy={dispatch.busy}
+        dispatchError={dispatch.error}
         onClose={() => setReviewOpen(false)}
         onSend={handleSendToDriver}
       />
@@ -1974,7 +2001,11 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
         onUseCustomer={handleUseRecent}
       />
       <AdminQuotesModal visible={quotesOpen} onClose={() => setQuotesOpen(false)} onUseQuote={handleUseQuote} />
-      <AdminBookingsModal visible={bookingsOpen} onClose={() => setBookingsOpen(false)} />
+      <AdminBookingsModal
+        visible={bookingsOpen}
+        onClose={closeBookingsInApp}
+        initialRefNumber={bookingInitialRef}
+      />
       <UrgentBookingPopup
         visible={urgentPopupOpen}
         booking={latestNewBooking}
@@ -1986,10 +2017,17 @@ export function AssistedChatScreen({ user, onLogout }: AssistedChatScreenProps =
       <AdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
       <ActiveJobsModal visible={activeJobsOpen} onClose={() => setActiveJobsOpen(false)} />
       <TrackingModal visible={driverTrackingOpen} onClose={() => setDriverTrackingOpen(false)} />
+      <ChatHubModal visible={chatHubOpen} onClose={() => setChatHubOpen(false)} />
       <ActiveJobMapModal
         visible={trackingMapOpen}
         job={trackingJob}
         onClose={() => setTrackingMapOpen(false)}
+      />
+      <DriverChatModal
+        visible={driverChatOpen}
+        bookingId={draft.dispatchedBookingId}
+        bookingRef={draft.dispatchedRefNumber}
+        onClose={() => setDriverChatOpen(false)}
       />
       <Modal
         visible={notifSetupOpen}
@@ -2056,14 +2094,13 @@ interface RenderActiveStageArgs {
   savedQuoteRef: string | null;
   quoteConfirmed: boolean;
   quoteExpiryStatus: string | null;
-  quotePricePence: number;
-  selectedPaymentOption: AdminQuotePaymentOption;
   dispatch: ReturnType<typeof useAssistedChatDispatch>;
   handleCopyCustomerDetails: () => void | Promise<void>;
   engineEffectiveTotal: number;
   setEditPriceOpen: (value: boolean) => void;
   breakdownVisible: boolean;
   setBreakdownVisible: (value: boolean) => void;
+  openPaymentStage: () => void;
 
 }
 
@@ -2095,14 +2132,13 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     savedQuoteRef,
     quoteConfirmed,
     quoteExpiryStatus,
-    quotePricePence,
-    selectedPaymentOption,
     dispatch,
     handleCopyCustomerDetails,
     engineEffectiveTotal,
     setEditPriceOpen,
     breakdownVisible,
     setBreakdownVisible,
+    openPaymentStage,
   } = args;
 
   if (activeStage === 'CUSTOMER') {
@@ -2247,10 +2283,12 @@ function renderActiveStage(args: RenderActiveStageArgs) {
           priceLoading={price.loading}
           missingQuickBooking={!draft.quickBookingId || !draft.quote}
           saveBusy={quoteActions.busy === 'save'}
-          payBusy={dispatch.busy && draft.paymentChoice === 'full'}
+          payBusy={false}
+          payLabel="Choose payment"
+          showPayAction={quoteConfirmed}
           onEditPrice={() => setEditPriceOpen(true)}
           onSaveQuote={() => { void quoteActions.saveQuote(); }}
-          onPay={() => { void dispatch.choosePaymentAndDispatch('full'); }}
+          onPay={openPaymentStage}
           onToggleBreakdown={() => setBreakdownVisible(!breakdownVisible)}
           breakdownVisible={breakdownVisible}
         />
@@ -2302,10 +2340,12 @@ function renderActiveStage(args: RenderActiveStageArgs) {
           priceLoading={price.loading}
           missingQuickBooking={!draft.quickBookingId || !draft.quote}
           saveBusy={quoteActions.busy === 'save'}
-          payBusy={dispatch.busy && draft.paymentChoice === 'full'}
+          payBusy={false}
+          payLabel="Choose payment"
+          showPayAction={quoteConfirmed}
           onEditPrice={() => setEditPriceOpen(true)}
           onSaveQuote={() => { void quoteActions.saveQuote(); }}
-          onPay={() => { void dispatch.choosePaymentAndDispatch('full'); }}
+          onPay={openPaymentStage}
           onToggleBreakdown={() => setBreakdownVisible(!breakdownVisible)}
           breakdownVisible={breakdownVisible}
         />
@@ -2338,7 +2378,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     );
   }
 
-  if (activeStage === 'CONFIRMATION' || activeStage === 'PAYMENT') {
+  if (activeStage === 'CONFIRMATION') {
     const status = computeCompactQuoteStatus({
       activeQuote,
       savedQuoteRef,
@@ -2358,12 +2398,79 @@ function renderActiveStage(args: RenderActiveStageArgs) {
           priceLoading={price.loading}
           missingQuickBooking={!draft.quickBookingId || !draft.quote}
           saveBusy={quoteActions.busy === 'save'}
-          payBusy={dispatch.busy && draft.paymentChoice === 'full'}
+          payBusy={false}
+          payLabel="Choose payment"
+          showPayAction={quoteConfirmed}
           onEditPrice={() => setEditPriceOpen(true)}
           onSaveQuote={() => { void quoteActions.saveQuote(); }}
-          onPay={() => { void dispatch.choosePaymentAndDispatch('full'); }}
+          onPay={openPaymentStage}
           onToggleBreakdown={() => setBreakdownVisible(!breakdownVisible)}
           breakdownVisible={breakdownVisible}
+        />
+        {breakdownVisible && draft.quote ? (
+          <PriceSummary
+            quote={draft.quote}
+            lockingNutCharge={lockingNutCharge}
+            loading={price.loading}
+            stageIdx={price.stageIdx}
+            stageLabels={price.stageLabels}
+            error={price.error}
+            onGetPrice={price.getPrice}
+            onChoosePayment={(choice) => update({ paymentChoice: choice })}
+            paymentChoice={draft.paymentChoice}
+            paymentBusy={dispatch.busy}
+            paymentError={dispatch.error}
+            paymentLink={draft.paymentLink}
+            dispatchedRefNumber={draft.dispatchedRefNumber}
+            pricingBlocked={false}
+            priceNeedsRefresh={draft.priceNeedsRefresh}
+            manualPriceGbp={draft.manualPriceGbp}
+            showGetPriceAction={false}
+            showPaymentOptions={false}
+          />
+        ) : null}
+        {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind} message={quoteActions.message.text} /> : null}
+        {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
+        {draft.paymentLink ? <PaymentLinkInline link={draft.paymentLink} isManualPrice={draft.manualPriceGbp != null} /> : null}
+      </View>
+    );
+  }
+
+  if (activeStage === 'PAYMENT') {
+    const status = computeCompactQuoteStatus({
+      activeQuote,
+      savedQuoteRef,
+      quoteConfirmed,
+      paymentLink: draft.paymentLink,
+    });
+    return (
+      <View style={styles.stepStack}>
+        <CompactQuoteCard
+          displayedPriceGbp={effectiveTotal}
+          isManualPrice={draft.manualPriceGbp != null}
+          originalCalculatedPriceGbp={engineEffectiveTotal}
+          status={status}
+          savedQuoteRef={savedQuoteRef}
+          expiryText={quoteExpiryStatus}
+          priceNeedsRefresh={draft.priceNeedsRefresh}
+          priceLoading={price.loading}
+          missingQuickBooking={!draft.quickBookingId || !draft.quote}
+          saveBusy={quoteActions.busy === 'save'}
+          payBusy={false}
+          showPayAction={false}
+          onEditPrice={() => setEditPriceOpen(true)}
+          onSaveQuote={() => { void quoteActions.saveQuote(); }}
+          onPay={() => {}}
+          onToggleBreakdown={() => setBreakdownVisible(!breakdownVisible)}
+          breakdownVisible={breakdownVisible}
+        />
+        <PaymentDispatchPanel
+          effectiveTotal={effectiveTotal}
+          selectedChoice={draft.paymentChoice}
+          busy={dispatch.busy}
+          paymentLink={draft.paymentLink}
+          dispatchedRefNumber={draft.dispatchedRefNumber}
+          onChoose={(choice) => { void dispatch.choosePaymentAndDispatch(choice); }}
         />
         {breakdownVisible && draft.quote ? (
           <PriceSummary
@@ -2422,71 +2529,6 @@ function renderActiveStage(args: RenderActiveStageArgs) {
       ) : null}
     </SectionCard>
   );
-}
-
-function stageLabel(stage: AssistedChatStage): string {
-  if (stage === 'READY_TO_DISPATCH') return 'Ready to dispatch';
-  return stage.charAt(0) + stage.slice(1).toLowerCase().replace(/_/g, ' ');
-}
-
-function Timeline({
-  items,
-  onSelect,
-}: {
-  items: AssistedChatTimelineItem[];
-  onSelect: (step: AssistedChatTimelineStep) => void;
-}) {
-  return (
-    <View style={styles.timeline}>
-      {items.map((item) => (
-        <Pressable
-          key={item.key}
-          onPress={() => onSelect(item.key)}
-          accessibilityRole="button"
-          accessibilityLabel={`Open ${item.label} section`}
-          style={({ pressed }) => [
-            styles.timelineItem,
-            item.state === 'done' && styles.timelineItemDone,
-            item.state === 'active' && styles.timelineItemActive,
-            pressed && styles.timelineItemPressed,
-          ]}
-        >
-          <Text
-            style={[
-              styles.timelineText,
-              item.state === 'done' && styles.timelineTextDone,
-              item.state === 'active' && styles.timelineTextActive,
-            ]}
-            numberOfLines={1}
-          >
-            {item.label}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
-function stageForTimelineStep(
-  step: AssistedChatTimelineStep,
-  ctx: { quoteConfirmed: boolean },
-): AssistedChatStage {
-  switch (step) {
-    case 'CUSTOMER':
-      return 'CUSTOMER';
-    case 'LOCATION':
-      return 'LOCATION';
-    case 'TYRE':
-      return 'TYRE';
-    case 'PRICE':
-      return 'PRICE';
-    case 'QUOTE':
-      return ctx.quoteConfirmed ? 'PAYMENT' : 'CONFIRMATION';
-    case 'PAYMENT':
-      return 'PAYMENT';
-    case 'DISPATCH':
-      return 'READY_TO_DISPATCH';
-  }
 }
 
 function blockedReasonForStage(
@@ -2645,45 +2687,6 @@ function CallNotesCard({
   );
 }
 
-function QuoteStepCard({
-  activeQuote,
-  savedQuoteRef,
-  quoteConfirmed,
-  quoteExpiryStatus,
-  quotePricePence,
-  selectedPaymentOption,
-  effectiveTotal,
-  onLongPress,
-}: {
-  activeQuote: AdminQuote | null;
-  savedQuoteRef: string | null;
-  quoteConfirmed: boolean;
-  quoteExpiryStatus: string | null;
-  quotePricePence: number;
-  selectedPaymentOption: AdminQuotePaymentOption;
-  effectiveTotal: number;
-  onLongPress: () => void | Promise<void>;
-}) {
-  return (
-    <Pressable onLongPress={onLongPress} delayLongPress={350}>
-      <SectionCard title="Quote">
-        <View style={styles.quoteHeaderBox}>
-          <Text style={styles.quoteTitle}>{savedQuoteRef ? `Quote ${savedQuoteRef}` : 'Quote not saved'}</Text>
-          <Text style={styles.quoteTotal}>{formatGbp(effectiveTotal)}</Text>
-        </View>
-        <View style={styles.detailRows}>
-          <DetailRow label="Saved state" value={savedQuoteRef ? 'Saved' : 'Not saved'} />
-          <DetailRow label="Confirmation" value={quoteConfirmed ? 'Confirmed by phone' : 'Not confirmed'} />
-          {quoteExpiryStatus ? <DetailRow label="Expiry" value={quoteExpiryStatus} /> : null}
-          <DetailRow label="Quote status" value={activeQuote?.quoteStatus ?? (savedQuoteRef ? 'Saved' : 'Draft')} />
-          <DetailRow label="Selected payment" value={paymentOptionLabel(selectedPaymentOption)} />
-          <DetailRow label="Full price" value={formatPence(quotePricePence)} />
-        </View>
-      </SectionCard>
-    </Pressable>
-  );
-}
-
 function PaymentLinkInline({ link, isManualPrice = false }: { link: StripePaymentLinkState; isManualPrice?: boolean }) {
   const kindLabel = link.kind === 'deposit' ? 'Deposit payment link' : 'Full payment link';
   const handleOpen = (): void => {
@@ -2707,32 +2710,54 @@ function PaymentLinkInline({ link, isManualPrice = false }: { link: StripePaymen
   );
 }
 
-function PaymentSelector({
-  selectedPaymentOption,
-  quotePricePence,
-  disabled,
-  onSelect,
+function PaymentDispatchPanel({
+  effectiveTotal,
+  selectedChoice,
+  busy,
+  paymentLink,
+  dispatchedRefNumber,
+  onChoose,
 }: {
-  selectedPaymentOption: AdminQuotePaymentOption;
-  quotePricePence: number;
-  disabled: boolean;
-  onSelect: (option: AdminQuotePaymentOption) => void;
+  effectiveTotal: number;
+  selectedChoice: AssistedChatPaymentChoice | null;
+  busy: boolean;
+  paymentLink: StripePaymentLinkState | null;
+  dispatchedRefNumber: string | null;
+  onChoose: (choice: AssistedChatPaymentChoice) => void;
 }) {
-  const deposit = getDepositSummary(quotePricePence);
+  const totalPence = Math.max(0, Math.round(effectiveTotal * 100));
+  const deposit = getDepositSummary(totalPence);
+  const disabled = busy || Boolean(dispatchedRefNumber);
+  const doneMessage = dispatchedRefNumber
+    ? paymentLink
+      ? `${paymentLink.kind === 'deposit' ? '20% deposit' : 'Full payment'} link ready for ${dispatchedRefNumber}.`
+      : `Booking ${dispatchedRefNumber} created as cash on arrival.`
+    : null;
+  const options: Array<{ choice: AssistedChatPaymentChoice; label: string; detail: string }> = [
+    { choice: 'full', label: 'Full payment link', detail: `Stripe link for ${formatPence(totalPence)}.` },
+    {
+      choice: 'deposit',
+      label: 'Deposit 20%',
+      detail: `${formatPence(deposit.depositAmountPence)} now. ${formatPence(deposit.remainingBalancePence)} balance on arrival.`,
+    },
+    { choice: 'cash', label: 'Cash on arrival', detail: `Driver collects ${formatPence(totalPence)} from the customer.` },
+  ];
+
   return (
     <SectionCard title="Payment">
+      <View style={styles.readySummary}>
+        <DetailRow label="Quote total" value={formatPence(totalPence)} />
+      </View>
       <View style={styles.paymentList}>
-        {PAYMENT_OPTIONS.map((option) => {
-          const selected = selectedPaymentOption === option.value;
-          const detail = option.value === 'DEPOSIT_15'
-            ? `Deposit ${formatPence(deposit.depositAmountPence)}. Remaining ${formatPence(deposit.remainingBalancePence)}.`
-            : option.description;
+        {options.map((option) => {
+          const selected = selectedChoice === option.choice;
           return (
             <Pressable
-              key={option.value}
-              onPress={disabled ? undefined : () => onSelect(option.value)}
-              accessibilityRole="radio"
+              key={option.choice}
+              accessibilityRole="button"
               accessibilityState={{ selected, disabled }}
+              disabled={disabled}
+              onPress={() => onChoose(option.choice)}
               style={({ pressed }) => [
                 styles.paymentOption,
                 selected && styles.paymentOptionSelected,
@@ -2740,15 +2765,22 @@ function PaymentSelector({
                 disabled && styles.paymentOptionDisabled,
               ]}
             >
-              <View style={styles.radioOuter}>{selected ? <View style={styles.radioInner} /> : null}</View>
+              <View style={styles.radioOuter}>
+                {busy && selected ? (
+                  <ActivityIndicator color={colors.accent} size="small" />
+                ) : selected ? (
+                  <View style={styles.radioInner} />
+                ) : null}
+              </View>
               <View style={styles.paymentCopy}>
                 <Text style={[styles.paymentLabel, selected && styles.paymentLabelSelected]}>{option.label}</Text>
-                <Text style={styles.paymentDetail}>{detail}</Text>
+                <Text style={styles.paymentDetail}>{option.detail}</Text>
               </View>
             </Pressable>
           );
         })}
       </View>
+      {doneMessage ? <StatusBanner kind="ok" message={doneMessage} /> : null}
     </SectionCard>
   );
 }
@@ -2802,6 +2834,7 @@ function DispatchReviewSheet({
   effectiveTotal,
   quoteConfirmed,
   dispatchBusy,
+  dispatchError,
   onClose,
   onSend,
 }: {
@@ -2812,6 +2845,7 @@ function DispatchReviewSheet({
   effectiveTotal: number;
   quoteConfirmed: boolean;
   dispatchBusy: boolean;
+  dispatchError: string | null;
   onClose: () => void;
   onSend: () => void;
 }) {
@@ -2819,7 +2853,14 @@ function DispatchReviewSheet({
     draft.quote?.distanceMiles ??
     (draft.quote?.distanceKm != null ? draft.quote.distanceKm * 0.621371 : null);
   const driveTime = draft.quote?.serviceOrigin?.etaMinutes ?? null;
-  const canSend = Boolean(draft.paymentChoice && draft.quote && draft.quickBookingId && quoteConfirmed && !draft.dispatchedRefNumber);
+  const stripeCharge =
+    draft.paymentChoice === 'deposit'
+      ? effectiveTotal * 0.20
+      : draft.paymentChoice === 'full'
+      ? effectiveTotal
+      : null;
+  const stripeAmountTooLow = stripeCharge != null && stripeCharge < 0.30;
+  const canSend = Boolean(draft.paymentChoice && draft.quote && draft.quickBookingId && quoteConfirmed && !draft.dispatchedRefNumber && !stripeAmountTooLow);
   const disabledReason = !draft.quote
     ? 'Get a price before dispatching.'
     : !draft.quickBookingId
@@ -2828,6 +2869,8 @@ function DispatchReviewSheet({
     ? 'Confirm the saved quote before dispatching.'
     : !draft.paymentChoice
     ? 'Choose a payment option before dispatching.'
+    : stripeAmountTooLow && stripeCharge != null
+    ? `Payment link cannot be sent for ${formatGbp(stripeCharge)}. Stripe minimum is £0.30. Edit the quote price or choose cash.`
     : draft.dispatchedRefNumber
     ? `Already dispatched as ${draft.dispatchedRefNumber}.`
     : null;
@@ -2853,6 +2896,7 @@ function DispatchReviewSheet({
             <DetailRow label="Drive time" value={driveTime != null ? `${driveTime} minutes` : 'Not available'} />
             <DetailRow label="Driver/admin note" value={draft.note.trim() || 'None'} />
             {disabledReason ? <StatusBanner kind="warn" message={disabledReason} /> : null}
+            {dispatchError ? <StatusBanner kind="err" message={dispatchError} /> : null}
           </ScrollView>
           <View style={styles.reviewActions}>
             <AppButton
@@ -2898,33 +2942,27 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    paddingHorizontal: 14,
+    paddingTop: 10,
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     backgroundColor: colors.bg,
-    gap: 10,
+    gap: 12,
   },
   headerTextBlock: { flex: 1, minWidth: 0 },
-  headerTitle: { color: colors.text, fontSize: fontSize.xl, fontWeight: '800' },
-  headerCustomer: { color: colors.text, fontSize: fontSize.md, fontWeight: '700', marginTop: 2 },
+  headerTitle: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '800', letterSpacing: 0.8 },
+  headerCustomer: { color: colors.text, fontSize: fontSize.xl, fontWeight: '800', marginTop: 2 },
   headerPhone: { color: colors.muted, fontSize: fontSize.xs, marginTop: 2 },
   alertReadinessPill: {
-    marginTop: 6,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.sm,
     backgroundColor: colors.card,
     paddingHorizontal: 8,
     paddingVertical: 6,
-    alignSelf: 'flex-start',
     minHeight: 34,
     justifyContent: 'center',
-  },
-  alertReadinessPillArmed: {
-    borderColor: colors.successBorder,
-    backgroundColor: colors.successBg,
   },
   alertReadinessPillNotArmed: {
     borderColor: colors.warning,
@@ -2934,20 +2972,10 @@ const styles = StyleSheet.create({
   alertReadinessText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '700' },
   alertReadinessRetryText: { color: colors.warning, fontSize: fontSize.xs, marginTop: 2, fontWeight: '700' },
   headerRight: { alignItems: 'flex-end', gap: 8 },
-  statusChip: {
-    minHeight: 28,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusChipText: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '800' },
+  headerMoreButton: { minHeight: 40, minWidth: 82 },
   headerContactRow: { flexDirection: 'row', gap: 8 },
   compactContactButton: {
-    minHeight: 48,
+    minHeight: 42,
     minWidth: 54,
     borderRadius: radius.md,
     alignItems: 'center',
@@ -2958,39 +2986,32 @@ const styles = StyleSheet.create({
   callButton: { backgroundColor: colors.accent, borderColor: colors.accent },
   whatsappButton: { backgroundColor: '#25D366', borderColor: '#1FB855' },
   compactContactLabel: { color: '#FFFFFF', fontSize: fontSize.sm, fontWeight: '800' },
-  contactButtonPressed: { opacity: 0.82 },
-  contactButtonDisabled: { opacity: 0.38 },
-  scroll: { padding: 12, gap: 12, paddingBottom: 148 },
-  toolRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  toolButton: { flexGrow: 1, flexBasis: 104 },
-  timeline: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
+  headerWhatsAppButton: {
+    minHeight: 42,
+    minWidth: 156,
+    maxWidth: 190,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    padding: 8,
-  },
-  timelineItem: {
-    minHeight: 34,
-    flexGrow: 1,
-    flexBasis: 76,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
-    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: '#1FB855',
+    backgroundColor: '#25D366',
+    paddingHorizontal: 12,
   },
-  timelineItemDone: { borderColor: colors.successBorder, backgroundColor: colors.successBg },
-  timelineItemActive: { borderColor: colors.accent, backgroundColor: 'rgba(249,115,22,0.14)' },
-  timelineItemPressed: { opacity: 0.72 },
-  timelineText: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '800' },
-  timelineTextDone: { color: colors.success },
-  timelineTextActive: { color: colors.accent },
+  headerWhatsAppButtonDisabled: {
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    opacity: 0.72,
+  },
+  headerWhatsAppLabel: {
+    color: '#052E16',
+    fontSize: fontSize.sm,
+    fontWeight: '900',
+  },
+  headerWhatsAppLabelDisabled: { color: colors.muted },
+  contactButtonPressed: { opacity: 0.82 },
+  scroll: { padding: 12, gap: 10, paddingBottom: 148 },
+  priorityBookingButton: { minHeight: 48 },
   summaryStack: { gap: 8 },
   summaryCard: {
     minHeight: 64,
@@ -3109,6 +3130,27 @@ const styles = StyleSheet.create({
   paymentLinkTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
   paymentLinkMeta: { color: colors.muted, fontSize: fontSize.xs, lineHeight: 17 },
   paymentLinkActions: { flexDirection: 'row', gap: 10, marginTop: 6, flexWrap: 'wrap' },
+  paymentStatusBadge: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: colors.warningBorder,
+    borderRadius: radius.sm,
+    backgroundColor: colors.warningBg,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  paymentStatusBadgePaid: {
+    borderColor: colors.successBorder,
+    backgroundColor: colors.successBg,
+  },
+  paymentStatusBadgeFailed: {
+    borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerBg,
+  },
+  paymentStatusBadgeChecking: {
+    borderColor: colors.warningBorder,
+    backgroundColor: colors.warningBg,
+  },
   bottomSpacer: { height: 8 },
   bottomBar: {
     position: 'absolute',
@@ -3126,12 +3168,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   backButton: { minWidth: 76, minHeight: 56 },
-  moreButton: { minWidth: 84, minHeight: 56 },
   primaryWrap: { flex: 1, minWidth: 0 },
   primaryButton: { minHeight: 56 },
   primaryReason: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '700', marginTop: 5 },
-  driverChatError: { color: colors.danger, fontSize: fontSize.xs, marginTop: 6 },
-  trackDriverHint: { color: colors.muted, fontSize: fontSize.xs, marginTop: 6, textAlign: 'center' },
   paymentLinkHint: { color: colors.muted, fontSize: fontSize.sm, marginBottom: 8 },
   paymentLinkAmount: { color: colors.text, fontSize: fontSize.md, fontWeight: '700', marginBottom: 2 },
   paymentLinkStatus: { color: colors.warning, fontSize: fontSize.sm, fontWeight: '700', marginBottom: 8 },

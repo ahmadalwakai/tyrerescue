@@ -113,6 +113,20 @@
       "when": 1778904982593,
       "tag": "0015_tracking_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1780570800000,
+      "tag": "0016_b2b_api_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1781779200000,
+      "tag": "0017_canonical_payment_events",
+      "breakpoints": true
     }
   ]
 }

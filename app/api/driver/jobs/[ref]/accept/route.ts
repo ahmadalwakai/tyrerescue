@@ -4,6 +4,8 @@ import { db, bookings, bookingStatusHistory } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { createAdminNotification } from '@/lib/notifications';
 import { sendDriverPushNotification } from '@/lib/notifications/driver-push';
+import { getStatusAfterDriverUnassignment } from '@/lib/bookings/assignment-status';
+import { getBookingPaymentSummary } from '@/lib/payments/payment-summary';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -96,12 +98,28 @@ export async function PATCH(request: Request, { params }: Props) {
       return NextResponse.json({ success: true, action: 'accepted' });
     }
 
-    // Reject — unassign driver, revert to paid
+    // Reject — unassign driver and return to payment-derived queue status.
+    const payment = await getBookingPaymentSummary({
+      id: booking.id,
+      refNumber: booking.refNumber,
+      status: booking.status,
+      paymentType: booking.paymentType,
+      totalAmount: booking.totalAmount?.toString() ?? null,
+      subtotal: booking.subtotal?.toString() ?? null,
+      vatAmount: booking.vatAmount?.toString() ?? null,
+      depositAmountPence: booking.depositAmountPence,
+      remainingBalancePence: booking.remainingBalancePence,
+      depositPaidAt: booking.depositPaidAt,
+      stripePiId: booking.stripePiId,
+      stripeDepositPiId: booking.stripeDepositPiId,
+    });
+    const unassignedStatus = getStatusAfterDriverUnassignment(payment);
+
     const now = new Date();
     await db
       .update(bookings)
       .set({
-        status: 'paid',
+        status: unassignedStatus,
         driverId: null,
         assignedAt: null,
         acceptedAt: null,
@@ -113,7 +131,7 @@ export async function PATCH(request: Request, { params }: Props) {
     await db.insert(bookingStatusHistory).values({
       bookingId: booking.id,
       fromStatus: 'driver_assigned',
-      toStatus: 'paid',
+      toStatus: unassignedStatus,
       actorUserId: user.id,
       actorRole: 'driver',
       note: 'Driver rejected the job',
@@ -123,7 +141,7 @@ export async function PATCH(request: Request, { params }: Props) {
     createAdminNotification({
       type: 'booking.updated',
       title: 'Driver Rejected Job',
-      body: `Booking ${booking.refNumber} rejected by driver — reverted to paid`,
+      body: `Booking ${booking.refNumber} rejected by driver — reverted to ${unassignedStatus}`,
       entityType: 'booking',
       entityId: booking.id,
       link: `/admin/bookings/${booking.refNumber}`,
@@ -136,7 +154,7 @@ export async function PATCH(request: Request, { params }: Props) {
         customerName: booking.customerName,
         customerPhone: booking.customerPhone,
         statusFrom: 'driver_assigned',
-        statusTo: 'paid',
+        statusTo: unassignedStatus,
         updateType: 'driver_assignment',
         important: true,
         adminPath: `/admin/bookings/${booking.refNumber}`,
