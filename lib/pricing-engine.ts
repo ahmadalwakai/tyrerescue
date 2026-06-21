@@ -17,6 +17,9 @@ Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
 export const PRICING_ENGINE_VERSION = 'v2-three-mode-continuous-travel';
 
+const CUSTOMER_LOCATION_REPAIR_INCLUDED_MILES = 5;
+const CUSTOMER_LOCATION_REPAIR_MIN_PRICE = 115;
+
 export type PricingContext =
   | 'scheduled_mobile_fitting'
   | 'scheduled_garage_fitting'
@@ -224,6 +227,25 @@ function roundMoney(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+function isCustomerLocationRepair(input: PricingInput, mode: PricingMode): boolean {
+  return (
+    mode !== 'scheduled_shop' &&
+    input.serviceType === 'repair' &&
+    (!input.tyreSelections || input.tyreSelections.length === 0)
+  );
+}
+
+function calculateCustomerLocationRepairMinimum(input: PricingInput, mode: PricingMode): number | null {
+  if (!isCustomerLocationRepair(input, mode)) return null;
+
+  const currentTravel = calculateTravelFee(input.distanceMiles);
+  const includedTravel = calculateTravelFee(CUSTOMER_LOCATION_REPAIR_INCLUDED_MILES);
+  if (currentTravel === null || includedTravel === null) return null;
+
+  const extraTravel = Math.max(0, currentTravel - includedTravel);
+  return roundMoney(CUSTOMER_LOCATION_REPAIR_MIN_PRICE + extraTravel);
+}
+
 // ─── Mode resolution ─────────────────────────────────────────────────────────
 
 /**
@@ -293,7 +315,13 @@ function calculateScheduledMobileServiceBase(
   const scheduledTravel = calculateTravelFee(input.distanceMiles);
   if (scheduledTravel === null) return Infinity;
 
-  return labourAfterDiscount.plus(scheduledTravel).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
+  const scheduledBase = labourAfterDiscount
+    .plus(scheduledTravel)
+    .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+    .toNumber();
+  const repairMinimum = calculateCustomerLocationRepairMinimum(input, 'scheduled_mobile');
+
+  return repairMinimum === null ? scheduledBase : Math.max(scheduledBase, repairMinimum);
 }
 
 // ─── Invalid breakdown factory ────────────────────────────────────────────────
@@ -581,12 +609,17 @@ export function calculatePricing(
   let serviceSubtotal = rawService;
 
   if (mode === 'scheduled_mobile') {
-    const minService = new Decimal(rules.mobile_min_service_subtotal);
+    const repairMinimum = calculateCustomerLocationRepairMinimum(input, mode);
+    const minService = new Decimal(
+      repairMinimum === null
+        ? rules.mobile_min_service_subtotal
+        : Math.max(rules.mobile_min_service_subtotal, repairMinimum),
+    );
     if (rawService.lessThan(minService)) {
       const adj = minService.minus(rawService).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
       serviceSubtotal = minService;
       lineItems.push({
-        label: 'Minimum service charge',
+        label: repairMinimum === null ? 'Minimum service charge' : 'Customer-location repair minimum',
         amount: adj.toNumber(),
         type: 'surcharge',
         code: 'MINIMUM_SERVICE_ADJUSTMENT',

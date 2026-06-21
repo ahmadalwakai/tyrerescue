@@ -46,7 +46,7 @@ const NOINDEX_PREFIXES = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  /* ─── CORS for Expo web dev apps (:8081/:8082) ─── */
+  /* ─── CORS for Expo web dev apps (:8081/:8082/:8083/:8084) ─── */
   // Narrowly scoped: only the API surface the app calls, only localhost dev
   // origins. Production origins never appear here, so behaviour is unchanged.
   const ALLOWED_DEV_ORIGINS = new Set([
@@ -54,6 +54,12 @@ export async function proxy(request: NextRequest) {
     'http://127.0.0.1:8081',
     'http://localhost:8082',
     'http://127.0.0.1:8082',
+    'http://localhost:8083',
+    'http://127.0.0.1:8083',
+    'http://localhost:8084',
+    'http://127.0.0.1:8084',
+    'http://localhost:19006',
+    'http://127.0.0.1:19006',
   ]);
   const requestOrigin = request.headers.get('origin');
   const isExpoDevCorsApi =
@@ -70,8 +76,18 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/api/admin/drivers/') ||
     pathname === '/api/admin/tracking' ||
     pathname.startsWith('/api/admin/active-jobs/') ||
+    pathname === '/api/driver/status/available' ||
+    pathname === '/api/bookings/validate-location' ||
+    pathname === '/api/bookings/quote' ||
+    pathname === '/api/bookings/create' ||
+    pathname === '/api/bookings/confirm' ||
+    pathname === '/api/availability/eligibility' ||
+    pathname === '/api/availability/slots' ||
+    pathname === '/api/vehicle-lookup' ||
+    pathname === '/api/upload/tyre-photo' ||
+    pathname.startsWith('/api/tracking/') ||
     (pathname.startsWith('/api/bookings/') && pathname.endsWith('/deposit')) ||
-    pathname.startsWith('/api/tyres/');
+    pathname.startsWith('/api/tyres');
   const allowOrigin =
     isExpoDevCorsApi && requestOrigin && ALLOWED_DEV_ORIGINS.has(requestOrigin)
       ? requestOrigin

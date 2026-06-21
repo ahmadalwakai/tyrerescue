@@ -2,32 +2,54 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { colors, typography } from '@/src/theme';
+import { Feather } from '@expo/vector-icons';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          minHeight: 64,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontFamily: typography.bodyMedium,
+          fontSize: 11,
+        },
         headerShown: false,
         tabBarButton: HapticTab,
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Book',
+          tabBarIcon: ({ color }) => <Feather size={22} name="tool" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="track"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Track',
+          tabBarIcon: ({ color }) => <Feather size={22} name="map-pin" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="account"
+        options={{
+          title: 'Account',
+          tabBarIcon: ({ color }) => <Feather size={22} name="user" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="support"
+        options={{
+          title: 'Help',
+          tabBarIcon: ({ color }) => <Feather size={22} name="phone" color={color} />,
         }}
       />
     </Tabs>

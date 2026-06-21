@@ -11,6 +11,7 @@ import { restoreBookingStock } from '@/lib/inventory/stock-service';
 import { createAdminNotification } from '@/lib/notifications';
 import { validateScheduledSlotForBooking } from '@/lib/availability';
 import { getBookingPaymentSummary, recordPaymentEvent } from '@/lib/payments/payment-summary';
+import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -812,6 +813,11 @@ export async function PATCH(request: NextRequest, { params }: Props) {
         }
       }
     }
+
+    await notifyCustomerBookingStatus({
+      bookingId: booking.id,
+      status: newStatus,
+    });
 
     return NextResponse.json({ success: true, previousStatus: currentStatus, newStatus });
   } catch (error) {

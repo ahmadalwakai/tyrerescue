@@ -12,6 +12,7 @@ import {
 import { getMobileAdminUser, unauthorizedResponse } from '@/app/api/mobile/admin/_lib';
 import { executeTransition, getValidNextStates, isValidTransition, type BookingStatus } from '@/lib/state-machine';
 import { getBookingPaymentSummary, recordPaymentEvent } from '@/lib/payments/payment-summary';
+import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -323,6 +324,11 @@ export async function PATCH(request: Request, { params }: Props) {
       },
     });
   }
+
+  await notifyCustomerBookingStatus({
+    bookingId: booking.id,
+    status: nextStatus,
+  });
 
   return NextResponse.json({ success: true, previousStatus: currentStatus, status: nextStatus });
 }

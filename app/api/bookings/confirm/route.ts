@@ -25,6 +25,8 @@ import { sendVoodooSms } from '@/lib/voodoo-sms';
 import { buildBookingConfirmationSmsMessage } from '@/lib/quick-book-message-templates';
 import { commitReservationsForBooking } from '@/lib/inventory/stock-service';
 import { ensureTrackingSession } from '@/lib/tracking-session';
+import { signCustomerInvoiceToken } from '@/app/api/mobile/customer/_lib';
+import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -70,7 +72,14 @@ export async function POST(request: NextRequest) {
 
     // Idempotency: if already paid (or further), return current status
     if (booking.status !== 'awaiting_payment') {
-      return NextResponse.json({ status: booking.status });
+      return NextResponse.json({
+        status: booking.status,
+        invoiceDownloadToken: await signCustomerInvoiceToken({
+          bookingId: booking.id,
+          refNumber: booking.refNumber,
+          email: booking.customerEmail,
+        }),
+      });
     }
 
     // 2. Verify payment with Stripe
@@ -120,7 +129,14 @@ export async function POST(request: NextRequest) {
           .set({ status: 'paid', paymentType: 'full', updatedAt: new Date() })
           .where(eq(bookings.id, booking.id));
       }
-      return NextResponse.json({ status: 'paid' });
+      return NextResponse.json({
+        status: 'paid',
+        invoiceDownloadToken: await signCustomerInvoiceToken({
+          bookingId: booking.id,
+          refNumber: booking.refNumber,
+          email: booking.customerEmail,
+        }),
+      });
     }
 
     // 4. Record payment
@@ -194,6 +210,13 @@ export async function POST(request: NextRequest) {
       `[booking-confirm] ref=${booking.refNumber} customerEmailPresent=${Boolean(booking.customerEmail)} customerPhonePresent=${Boolean(booking.customerPhone)} emailProviderConfigured=${hasZeptoMail}`,
     );
 
+    after(() =>
+      notifyCustomerBookingStatus({
+        bookingId: booking.id,
+        status: 'paid',
+      }),
+    );
+
     // 9. Send emails after the response is returned. We use `after()` from
     // next/server (rather than fire-and-forget `.catch()`) because on Vercel
     // serverless the function instance can be frozen the moment the response
@@ -256,7 +279,14 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ status: 'paid' });
+    return NextResponse.json({
+      status: 'paid',
+      invoiceDownloadToken: await signCustomerInvoiceToken({
+        bookingId: booking.id,
+        refNumber: booking.refNumber,
+        email: booking.customerEmail,
+      }),
+    });
   } catch (error) {
     console.error('Confirm route error:', error);
     return NextResponse.json(

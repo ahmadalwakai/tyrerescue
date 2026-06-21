@@ -909,6 +909,22 @@ export const adminPushTokens = pgTable('admin_push_tokens', {
 });
 
 // ──────────────────────────────────────────────
+// Customer Expo Push Tokens
+// ──────────────────────────────────────────────
+
+export const customerPushTokens = pgTable('customer_push_tokens', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  bookingId: uuid('booking_id').references(() => bookings.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  platform: text('platform').notNull().default('ios'),
+  lastRefNumber: varchar('last_ref_number', { length: 20 }),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ──────────────────────────────────────────────
 // Driver Sound Assets (uploaded sound files)
 // ──────────────────────────────────────────────
 
@@ -1087,6 +1103,8 @@ export type AdminNotification = typeof adminNotifications.$inferSelect;
 export type NewAdminNotification = typeof adminNotifications.$inferInsert;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type NewPushSubscription = typeof pushSubscriptions.$inferInsert;
+export type CustomerPushToken = typeof customerPushTokens.$inferSelect;
+export type NewCustomerPushToken = typeof customerPushTokens.$inferInsert;
 export type PricingConfig = typeof pricingConfig.$inferSelect;
 export type NewPricingConfig = typeof pricingConfig.$inferInsert;
 export type QuickBooking = typeof quickBookings.$inferSelect;

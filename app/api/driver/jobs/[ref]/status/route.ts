@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { getOutboundUrl } from '@/lib/config/site';
 import { requireDriverMobile } from '@/lib/auth';
 import { db, drivers, bookings, bookingStatusHistory } from '@/lib/db';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { BookingStatus } from '@/lib/state-machine';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { jobComplete } from '@/lib/email/templates';
 import { createAdminNotification } from '@/lib/notifications';
 import { sendDriverPushNotification } from '@/lib/notifications/driver-push';
+import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -141,6 +142,11 @@ export async function PATCH(request: Request, { params }: Props) {
       { type: 'status_update', ref: booking.refNumber },
       'jobs',
     ).catch(console.error);
+
+    await notifyCustomerBookingStatus({
+      bookingId: booking.id,
+      status: newStatus,
+    });
 
     // If marking complete, update driver status to available
     if (newStatus === 'completed') {

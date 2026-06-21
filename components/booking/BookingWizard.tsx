@@ -31,7 +31,7 @@ import { StepCustomerDetails } from './StepCustomerDetails';
 import { StepPayment } from './StepPayment';
 import { QuoteLoadingScreen } from './QuoteLoadingScreen';
 import { colorTokens as c } from '@/lib/design-tokens';
-import { trackBookingStart } from '@/lib/analytics/gtag';
+import { trackBookingStart, trackCallClick } from '@/lib/analytics/gtag';
 
 // ── Draft persistence ────────────────────────────────────
 // localStorage key for durable cross-session persistence.
@@ -308,6 +308,7 @@ function BookingTopBar({ onBack }: BookingTopBarProps) {
             <Box display={{ base: 'none', lg: 'block' }}>
               <a
                 href="tel:01412660690"
+                onClick={() => trackCallClick('booking_topbar_desktop')}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -394,6 +395,7 @@ function BookingTopBar({ onBack }: BookingTopBarProps) {
               ))}
               <a
                 href="tel:01412660690"
+                onClick={() => trackCallClick('booking_topbar_mobile')}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',

@@ -4,6 +4,7 @@ import { db, bookings, drivers, bookingStatusHistory, tyreProducts, bookingTyres
 import { getMobileAdminUser, unauthorizedResponse } from '@/app/api/mobile/admin/_lib';
 import { executeTransition, type BookingStatus } from '@/lib/state-machine';
 import { notifyDriverNewJob, notifyDriverReassignment } from '@/lib/notifications/driver-push';
+import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
 import { getBookingPaymentSummary } from '@/lib/payments/payment-summary';
 import { getOutboundUrl } from '@/lib/config/site';
 import { createNotificationAndSend } from '@/lib/email/resend';
@@ -164,6 +165,11 @@ export async function PATCH(request: Request, { params }: Props) {
       console.error('[mobile-assign] Failed to send driver assigned email to customer:', emailError);
     }
 
+    await notifyCustomerBookingStatus({
+      bookingId: booking.id,
+      status: 'driver_assigned',
+    });
+
     // Driver email — "job assigned".
     if (driverUser?.email) {
       try {
@@ -246,6 +252,13 @@ export async function PATCH(request: Request, { params }: Props) {
     } catch (pushError) {
       console.error('[mobile-assign] Failed to send reassignment push to driver:', pushError);
     }
+
+    await notifyCustomerBookingStatus({
+      bookingId: booking.id,
+      status: currentStatus,
+      title: 'Driver updated',
+      body: `Your assigned driver has been updated for booking ${booking.refNumber}.`,
+    });
   }
 
   return NextResponse.json({ success: true });

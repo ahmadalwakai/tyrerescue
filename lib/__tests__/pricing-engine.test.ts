@@ -476,10 +476,31 @@ describe('calculatePricing — scheduled_mobile', () => {
       serviceType: 'repair',
       tyreQuantity: 1,
     }), defaultRules());
-    // repair labour: 25, travel: 27.40, raw: 52.40 > 47, service=52.40, tyre=0, total=52.40
+    // Customer-location puncture repair has a 0-5 mile floor above £110.
     expect(result.isValid).toBe(true);
     expect(result.totalTyreCost).toBe(0);
-    expect(result.total).toBe(52.4);
+    expect(result.serviceSubtotal).toBe(115);
+    expect(result.total).toBe(115);
+    expect(result.total).toBeGreaterThan(110);
+  });
+
+  it('service-only repair increases after 5 miles by the extra travel distance', () => {
+    const fiveMiles = calculatePricing(mobileInput({
+      tyreSelections: [],
+      serviceType: 'repair',
+      tyreQuantity: 1,
+      distanceMiles: 5,
+    }), defaultRules());
+    const tenMiles = calculatePricing(mobileInput({
+      tyreSelections: [],
+      serviceType: 'repair',
+      tyreQuantity: 1,
+      distanceMiles: 10,
+    }), defaultRules());
+
+    expect(fiveMiles.total).toBe(115);
+    expect(tenMiles.total).toBe(123.5);
+    expect(tenMiles.total).toBeGreaterThan(fiveMiles.total);
   });
 
   it('surge disabled ignores multiplier', () => {
@@ -602,15 +623,15 @@ describe('calculatePricing — emergency_mobile', () => {
 
   it('guardrail: emergency >= scheduledMobile + £34 — spec test 3', () => {
     // Service-only repair at 5 miles:
-    // scheduledMobileBase=25+27.40=52.40, scheduledMobileService=max(52.40,47)=52.40
-    // guardrailMin = max(52.40+34=86.40, 52.40*1.25=65.50, 90) = 90
+    // scheduledMobileService=max(25+27.40, repair floor 115, min 47)=115
+    // guardrailMin = max(115+34=149, 115*1.25=143.75, 90) = 149
     const result = calculatePricing(emergencyInput({
       tyreSelections: [],
       serviceType: 'repair',
       tyreQuantity: 1,
     }), defaultRules({ emergency_priority_fee: 1 }));
-    // emergency raw: 30 + 31.51 + 1 = 62.51 < 90 → guardrail applies
-    expect(result.serviceSubtotal).toBeCloseTo(90, 2);
+    // emergency raw: 30 + 31.51 + 1 = 62.51 < 149 → guardrail applies
+    expect(result.serviceSubtotal).toBeCloseTo(149, 2);
   });
 
   it('demand clamp for emergency: min 1.00, max 1.25', () => {

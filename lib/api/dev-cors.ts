@@ -5,6 +5,12 @@ const ALLOWED_DEV_ORIGINS = new Set([
   'http://127.0.0.1:8081',
   'http://localhost:8082',
   'http://127.0.0.1:8082',
+  'http://localhost:8083',
+  'http://127.0.0.1:8083',
+  'http://localhost:8084',
+  'http://127.0.0.1:8084',
+  'http://localhost:19006',
+  'http://127.0.0.1:19006',
 ]);
 
 function devOrigin(request: Request): string | null {
@@ -17,7 +23,7 @@ export function withExpoDevCors<R extends NextResponse>(request: Request, respon
   if (origin) {
     response.headers.set('Access-Control-Allow-Origin', origin);
     response.headers.set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept');
+    response.headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, x-visit-count');
     response.headers.set('Access-Control-Max-Age', '86400');
     response.headers.append('Vary', 'Origin');
   }

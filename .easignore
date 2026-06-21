@@ -1,0 +1,28 @@
+# EAS archives from the repository root in this workspace.
+# Keep the customer Expo app files only; EAS installs dependencies in the build.
+*
+
+!tyre-rescue/
+!tyre-rescue/app/
+!tyre-rescue/app/**
+!tyre-rescue/assets/
+!tyre-rescue/assets/**
+!tyre-rescue/components/
+!tyre-rescue/components/**
+!tyre-rescue/constants/
+!tyre-rescue/constants/**
+!tyre-rescue/hooks/
+!tyre-rescue/hooks/**
+!tyre-rescue/scripts/
+!tyre-rescue/scripts/**
+!tyre-rescue/src/
+!tyre-rescue/src/**
+
+!tyre-rescue/app.json
+!tyre-rescue/eas.json
+!tyre-rescue/eslint.config.js
+!tyre-rescue/expo-env.d.ts
+!tyre-rescue/package-lock.json
+!tyre-rescue/package.json
+!tyre-rescue/README.md
+!tyre-rescue/tsconfig.json
