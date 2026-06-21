@@ -10,10 +10,11 @@ import {
 } from '@/src/customer-account';
 import { colors, spacing, typography } from '@/src/theme';
 import { formatPrice } from '@/src/types';
-import { Card, InlineNotice, LoadingState, Logo, PrimaryButton, Row, ScreenHeader, TextField } from '@/src/ui';
+import { Card, InlineNotice, LoadingState, Logo, PrimaryButton, Row, ScreenHeader, TextField, useScreenContentInsets } from '@/src/ui';
 
 export default function AccountScreen() {
   const account = useCustomerAccount();
+  const safeContentInsets = useScreenContentInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -61,7 +62,7 @@ export default function AccountScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={[styles.content, safeContentInsets]} keyboardShouldPersistTaps="handled">
       <Logo />
       <ScreenHeader eyebrow="Account" title={account.profile ? 'Your account' : 'Sign in'} />
 

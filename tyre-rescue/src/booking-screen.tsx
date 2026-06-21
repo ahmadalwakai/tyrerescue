@@ -46,6 +46,7 @@ import {
   ScreenHeader,
   Section,
   TextField,
+  useScreenContentInsets,
 } from './ui';
 import {
   clampQuantity,
@@ -142,6 +143,7 @@ function StepProgress({ state, step }: { state: BookingState; step: WizardStep }
 export function BookingScreen() {
   const [state, setState] = useState<BookingState>(initialBookingState);
   const [step, setStep] = useState<WizardStep>('service');
+  const safeContentInsets = useScreenContentInsets();
 
   const updateState = useCallback((updates: Partial<BookingState>) => {
     setState((current) => ({ ...current, ...updates }));
@@ -173,7 +175,7 @@ export function BookingScreen() {
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={screenStyles.content}
+        contentContainerStyle={[screenStyles.content, safeContentInsets]}
       >
         <View style={screenStyles.topBar}>
           <Logo />
@@ -208,7 +210,7 @@ export function BookingScreen() {
           <QuoteStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
         ) : null}
         {step === 'customer' ? (
-          <CustomerStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
+          <CustomerStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} reset={reset} />
         ) : null}
         {step === 'payment' ? (
           <PaymentStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
@@ -246,6 +248,18 @@ function getAdjacentStep(steps: WizardStep[], step: WizardStep, direction: 1 | -
       : WIZARD_ORDER.slice(0, orderIndex).reverse();
 
   return candidates.find((candidate) => steps.includes(candidate)) ?? null;
+}
+
+function requiresNewQuote(message: string) {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('quote') &&
+    (lower.includes('already been used') ||
+      lower.includes('expired') ||
+      lower.includes('create a new quote') ||
+      lower.includes('request a new quote') ||
+      lower.includes('not found'))
+  );
 }
 
 function ServiceStep({ state, updateState, goNext }: StepProps) {
@@ -1216,13 +1230,20 @@ function QuoteStep({ state, updateState, goNext, goTo }: StepProps) {
   );
 }
 
-function CustomerStep({ state, updateState, goNext, goTo }: StepProps) {
+function CustomerStep({
+  state,
+  updateState,
+  goNext,
+  goTo,
+  reset,
+}: StepProps & { reset: () => void }) {
   const { profile } = useCustomerAccount();
   const [name, setName] = useState(state.customerName || profile?.name || '');
   const [email, setEmail] = useState(state.customerEmail || profile?.email || '');
   const [phone, setPhone] = useState(state.customerPhone || profile?.phone || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const quoteNeedsRestart = error ? requiresNewQuote(error) : false;
 
   useEffect(() => {
     if (!profile) return;
@@ -1294,9 +1315,15 @@ function CustomerStep({ state, updateState, goNext, goTo }: StepProps) {
       <TextField label="Email" value={email} onChangeText={setEmail} placeholder="john@example.com" keyboardType="email-address" autoComplete="email" />
       <TextField label="Phone" value={phone} onChangeText={setPhone} placeholder="07123 456789" keyboardType="phone-pad" autoComplete="tel" />
       {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
-      <PrimaryButton icon="credit-card" loading={loading} onPress={submit}>
-        Continue to payment
-      </PrimaryButton>
+      {quoteNeedsRestart ? (
+        <PrimaryButton icon="refresh-cw" onPress={reset}>
+          Start new quote
+        </PrimaryButton>
+      ) : (
+        <PrimaryButton icon="credit-card" loading={loading} onPress={submit}>
+          Continue to payment
+        </PrimaryButton>
+      )}
     </View>
   );
 }

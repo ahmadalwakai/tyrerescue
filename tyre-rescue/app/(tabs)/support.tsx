@@ -3,11 +3,13 @@ import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PHONE_DISPLAY, PHONE_TEL, SUPPORT_EMAIL, whatsappUrl } from '@/src/config';
 import { colors, spacing, typography } from '@/src/theme';
-import { Card, Logo, PrimaryButton, Row, ScreenHeader } from '@/src/ui';
+import { Card, Logo, PrimaryButton, Row, ScreenHeader, useScreenContentInsets } from '@/src/ui';
 
 export default function SupportScreen() {
+  const safeContentInsets = useScreenContentInsets();
+
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={[styles.content, safeContentInsets]}>
       <Logo />
       <ScreenHeader eyebrow="Help" title="Contact Tyre Rescue" detail="For urgent changes, call the team directly." />
       <Card>

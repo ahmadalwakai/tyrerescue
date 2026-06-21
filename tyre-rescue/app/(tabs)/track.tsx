@@ -13,7 +13,7 @@ import {
 } from '@/src/mapbox';
 import { PulsingMap } from '@/src/pulsing-map';
 import { colors, spacing, typography } from '@/src/theme';
-import { Card, InlineNotice, Logo, PrimaryButton, Row, ScreenHeader, TextField } from '@/src/ui';
+import { Card, InlineNotice, Logo, PrimaryButton, Row, ScreenHeader, TextField, useScreenContentInsets } from '@/src/ui';
 
 interface TrackingResponse {
   status: string;
@@ -39,6 +39,7 @@ function isLiveTrackingStatus(status: string) {
 
 export default function TrackScreen() {
   const params = useLocalSearchParams<{ ref?: string }>();
+  const safeContentInsets = useScreenContentInsets();
   const [reference, setReference] = useState('');
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<MapCoordinate[] | null>(null);
@@ -124,7 +125,7 @@ export default function TrackScreen() {
   }, [loadTrackingRef, reference, tracking]);
 
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={[styles.content, safeContentInsets]} keyboardShouldPersistTaps="handled">
       <Logo />
       <ScreenHeader eyebrow="Tracking" title="Track booking" detail="Enter your booking reference from the confirmation message." />
       <TextField label="Booking reference" value={reference} onChangeText={(value) => setReference(value.toUpperCase())} placeholder="TR-123456" autoCapitalize="characters" />

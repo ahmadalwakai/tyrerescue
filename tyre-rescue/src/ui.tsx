@@ -1,5 +1,5 @@
 import { Feather } from '@expo/vector-icons';
-import { type ComponentProps, type PropsWithChildren, type ReactNode } from 'react';
+import { type ComponentProps, type PropsWithChildren, type ReactNode, useMemo } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -14,10 +14,23 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, radii, typography } from './theme';
+import { colors, radii, spacing, typography } from './theme';
 
 type FeatherName = ComponentProps<typeof Feather>['name'];
+
+export function useScreenContentInsets() {
+  const insets = useSafeAreaInsets();
+
+  return useMemo<ViewStyle>(
+    () => ({
+      paddingTop: Math.max(spacing.page, insets.top + 14),
+      paddingBottom: Math.max(42, insets.bottom + 24),
+    }),
+    [insets.bottom, insets.top],
+  );
+}
 
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
