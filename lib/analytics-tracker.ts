@@ -87,7 +87,8 @@ export async function trackEvent(
     | 'booking_start'
     | 'booking_complete'
     | 'booking_paid'
-    | 'quote_started',
+    | 'quote_started'
+    | 'callback_submit',
   metadata?: Record<string, string>
 ): Promise<void> {
   // Always fire — server decides what to store based on consent
