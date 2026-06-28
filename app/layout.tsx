@@ -137,7 +137,6 @@ export default function RootLayout({
         <JsonLd data={getOrganizationSchema()} />
         {/* Consent default must be set before gtag.js loads. Inline & minimal. */}
         <script
-          // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{
             __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}window.gtag=gtag;gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',functionality_storage:'denied',personalization_storage:'denied',security_storage:'granted'});gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{send_page_view:false});${ADS_CONVERSION_IDS.map((id) => `gtag('config','${id}');`).join('')}`,
           }}

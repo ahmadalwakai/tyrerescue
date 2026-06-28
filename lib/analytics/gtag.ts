@@ -1,32 +1,39 @@
 import { trackEvent } from '@/lib/analytics-tracker';
 
 /** GA4 measurement ID used by the global gtag.js install in app/layout.tsx. */
-export const GA_MEASUREMENT_ID = 'G-MLH80KPV1T';
+const ENV_GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
+export const GA_MEASUREMENT_ID =
+  ENV_GA_MEASUREMENT_ID &&
+  /^G-[A-Z0-9]+$/.test(ENV_GA_MEASUREMENT_ID) &&
+  ENV_GA_MEASUREMENT_ID !== 'G-XXXXXXXXXX'
+    ? ENV_GA_MEASUREMENT_ID
+    : 'G-MLH80KPV1T';
 
 /**
  * Google Ads conversion (AW-) IDs to register via gtag('config', ...).
  * Multiple IDs may be supplied via NEXT_PUBLIC_GOOGLE_ADS_IDS as a comma-separated list.
  *
- * Default = both active Google Ads accounts: AW-11162561655 and AW-18149847027.
+ * No default: IDs must be verified inside the active Tyre Rescue Google Ads
+ * account before being exposed to the browser at build/deploy time.
  */
 export const ADS_CONVERSION_IDS: string[] = (
   process.env.NEXT_PUBLIC_GOOGLE_ADS_IDS
     ? process.env.NEXT_PUBLIC_GOOGLE_ADS_IDS.split(',')
-    : ['AW-11162561655', 'AW-18149847027']
+    : []
 )
   .map((id) => id.trim())
   .filter((id) => /^AW-\d+$/.test(id));
 
-/** Primary Ads ID (first configured) — used for generic 'conversion' events without a label. */
-export const ADS_CONVERSION_ID: string = ADS_CONVERSION_IDS[0] ?? 'AW-11162561655';
+/** Primary Ads ID (first configured) — null until verified env is supplied. */
+export const ADS_CONVERSION_ID: string | null = ADS_CONVERSION_IDS[0] ?? null;
 
 /**
  * Phone-call ads conversion send_to value (format: AW-XXXX/LABEL).
  * Configure via NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION.
  *
- * No default — the conversion label for AW-11162561655 has not been issued yet,
- * and we must NOT invent one. If unset, the call-conversion event is skipped
- * (GA4 click_call / call_now_click events still fire).
+ * No default: the AW ID and conversion label must be copied from Google Ads.
+ * If unset, the call-conversion event is skipped (GA4
+ * click_call / call_now_click events still fire).
  */
 export const ADS_PHONE_CONVERSION: string | null =
   process.env.NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION &&
@@ -165,4 +172,5 @@ export function trackCallbackSubmit() {
   window.gtag?.('event', 'callback_submit', {
     event_category: 'conversion',
   });
+  trackEvent('callback_submit');
 }
