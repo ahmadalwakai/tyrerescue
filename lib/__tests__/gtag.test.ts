@@ -10,6 +10,7 @@ const ADS_ENV_KEYS = [
   'NEXT_PUBLIC_GOOGLE_ADS_IDS',
   'NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION',
   'NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION',
+  'NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION',
   'NEXT_PUBLIC_GA_MEASUREMENT_ID',
 ] as const;
 
@@ -42,6 +43,7 @@ describe('gtag analytics helpers', () => {
     expect(mod.ADS_CONVERSION_ID).toBeNull();
     expect(mod.ADS_PHONE_CONVERSION).toBeNull();
     expect(mod.ADS_BOOKING_CONVERSION).toBeNull();
+    expect(mod.ADS_CONTACT_CONVERSION).toBeNull();
   });
 
   it('does not use the GA placeholder from env examples', async () => {
@@ -57,12 +59,14 @@ describe('gtag analytics helpers', () => {
       NEXT_PUBLIC_GOOGLE_ADS_IDS: 'AW-123456789, invalid, AW-987654321/label, AW-111222333',
       NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION: 'AW-123456789/phoneLabel',
       NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION: 'not-a-send-to',
+      NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION: 'AW-123456789/contactLabel',
     });
 
     expect(mod.ADS_CONVERSION_IDS).toEqual(['AW-123456789', 'AW-111222333']);
     expect(mod.ADS_CONVERSION_ID).toBe('AW-123456789');
     expect(mod.ADS_PHONE_CONVERSION).toBe('AW-123456789/phoneLabel');
     expect(mod.ADS_BOOKING_CONVERSION).toBeNull();
+    expect(mod.ADS_CONTACT_CONVERSION).toBe('AW-123456789/contactLabel');
   });
 
   it('tracks call clicks without Ads conversion when no verified phone label is configured', async () => {
@@ -109,5 +113,25 @@ describe('gtag analytics helpers', () => {
       event_category: 'conversion',
     });
     expect(trackEvent).toHaveBeenCalledWith('callback_submit');
+  });
+
+  it('fires the Ads contact conversion from verified env send_to config', async () => {
+    const { mod, trackEvent } = await loadGtag({
+      NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION: 'AW-18255235286/o1PQCKOk-MYcENaR44BE',
+    });
+    const gtag = vi.fn();
+    vi.stubGlobal('window', { gtag });
+
+    mod.trackContactSubmit();
+
+    expect(gtag).toHaveBeenCalledWith('event', 'contact_submit', {
+      event_category: 'conversion',
+    });
+    expect(gtag).toHaveBeenCalledWith('event', 'conversion', {
+      send_to: 'AW-18255235286/o1PQCKOk-MYcENaR44BE',
+      value: 1.0,
+      currency: 'GBP',
+    });
+    expect(trackEvent).toHaveBeenCalledWith('callback_submit', { label: 'contact_form' });
   });
 });

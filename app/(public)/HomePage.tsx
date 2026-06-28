@@ -29,7 +29,7 @@ import {
 import { homepageFAQItems } from '@/lib/content/faq';
 import { TrustpilotReviewCollector } from '@/components/ui/TrustpilotReviewCollector';
 import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt';
-import { trackCallClick } from '@/lib/analytics/gtag';
+import { trackCallClick, trackContactSubmit } from '@/lib/analytics/gtag';
 import { AIOptimizedSection } from '@/components/seo/AIOptimizedSection';
 import { HONEYPOT_FIELD } from '@/lib/security/honeypot';
 
@@ -478,6 +478,7 @@ function ContactSection() {
         }),
       });
       if (res.ok) {
+        trackContactSubmit();
         setStatus('success');
         setName(''); setEmail(''); setPhone(''); setMessage('');
       } else {

@@ -52,6 +52,16 @@ export const ADS_BOOKING_CONVERSION: string | null =
     ? process.env.NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION
     : null;
 
+/**
+ * Contact-lead ads conversion send_to value (format: AW-XXXX/LABEL).
+ * Used after real contact/callback form submissions succeed.
+ */
+export const ADS_CONTACT_CONVERSION: string | null =
+  process.env.NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION &&
+  /^AW-\d+\/.+/.test(process.env.NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION)
+    ? process.env.NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION
+    : null;
+
 declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
@@ -172,5 +182,25 @@ export function trackCallbackSubmit() {
   window.gtag?.('event', 'callback_submit', {
     event_category: 'conversion',
   });
+  trackContactConversion();
   trackEvent('callback_submit');
+}
+
+/** Track successful contact lead submission. */
+export function trackContactSubmit() {
+  window.gtag?.('event', 'contact_submit', {
+    event_category: 'conversion',
+  });
+  trackContactConversion();
+  trackEvent('callback_submit', { label: 'contact_form' });
+}
+
+function trackContactConversion() {
+  if (!ADS_CONTACT_CONVERSION) return;
+
+  window.gtag?.('event', 'conversion', {
+    send_to: ADS_CONTACT_CONVERSION,
+    value: 1.0,
+    currency: 'GBP',
+  });
 }
