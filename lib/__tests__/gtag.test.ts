@@ -69,6 +69,16 @@ describe('gtag analytics helpers', () => {
     expect(mod.ADS_CONTACT_CONVERSION).toBe('AW-123456789/contactLabel');
   });
 
+  it('trims Google Ads conversion send_to values from env', async () => {
+    const { mod } = await loadGtag({
+      NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION: '  AW-123456789/phoneLabel\n',
+      NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION: '\nAW-123456789/contactLabel  ',
+    });
+
+    expect(mod.ADS_PHONE_CONVERSION).toBe('AW-123456789/phoneLabel');
+    expect(mod.ADS_CONTACT_CONVERSION).toBe('AW-123456789/contactLabel');
+  });
+
   it('tracks call clicks without Ads conversion when no verified phone label is configured', async () => {
     const { mod, trackEvent } = await loadGtag();
     const gtag = vi.fn();

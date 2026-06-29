@@ -27,6 +27,11 @@ export const ADS_CONVERSION_IDS: string[] = (
 /** Primary Ads ID (first configured) — null until verified env is supplied. */
 export const ADS_CONVERSION_ID: string | null = ADS_CONVERSION_IDS[0] ?? null;
 
+function normalizeAdsSendTo(value: string | undefined): string | null {
+  const sendTo = value?.trim();
+  return sendTo && /^AW-\d+\/.+/.test(sendTo) ? sendTo : null;
+}
+
 /**
  * Phone-call ads conversion send_to value (format: AW-XXXX/LABEL).
  * Configure via NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION.
@@ -36,10 +41,7 @@ export const ADS_CONVERSION_ID: string | null = ADS_CONVERSION_IDS[0] ?? null;
  * click_call / call_now_click events still fire).
  */
 export const ADS_PHONE_CONVERSION: string | null =
-  process.env.NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION &&
-  /^AW-\d+\/.+/.test(process.env.NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION)
-    ? process.env.NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION
-    : null;
+  normalizeAdsSendTo(process.env.NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION);
 
 /**
  * Booking-purchase ads conversion send_to value (format: AW-XXXX/LABEL).
@@ -47,20 +49,14 @@ export const ADS_PHONE_CONVERSION: string | null =
  * the Google Ads conversion ping. No default — must come from env.
  */
 export const ADS_BOOKING_CONVERSION: string | null =
-  process.env.NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION &&
-  /^AW-\d+\/.+/.test(process.env.NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION)
-    ? process.env.NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION
-    : null;
+  normalizeAdsSendTo(process.env.NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION);
 
 /**
  * Contact-lead ads conversion send_to value (format: AW-XXXX/LABEL).
  * Used after real contact/callback form submissions succeed.
  */
 export const ADS_CONTACT_CONVERSION: string | null =
-  process.env.NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION &&
-  /^AW-\d+\/.+/.test(process.env.NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION)
-    ? process.env.NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION
-    : null;
+  normalizeAdsSendTo(process.env.NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION);
 
 declare global {
   interface Window {
