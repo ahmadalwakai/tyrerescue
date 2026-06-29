@@ -8,7 +8,6 @@ const customerId = '242-715-2166';
 const campaign = 'TR Search Emergency Scotland Mainland';
 const campaignId = '23976658719';
 const baseUrl = 'https://www.tyrerescue.uk';
-const phone = '0141 266 0690';
 const negativeListName = 'TR Emergency Waste Blockers';
 
 const citySlugs = [
@@ -319,7 +318,7 @@ function buildHeadlines(group: RescueGroup): Record<string, string> {
 
   const values = [
     h('Emergency Tyre Fitting'),
-    h(`Call ${phone}`),
+    h('Call Tyre Rescue 24/7'),
     h('24/7 Mobile Tyre Help'),
     h('24 Hour Tyre Fitter'),
     h('Mobile Tyre Fitter'),
