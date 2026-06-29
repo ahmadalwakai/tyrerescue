@@ -6,6 +6,7 @@ import { getCityBySlug } from '../lib/cities';
 const outputDir = path.join(process.cwd(), 'artifacts', 'google-ads', 'live-rescue-2026-06-29');
 const customerId = '242-715-2166';
 const campaign = 'TR Search Emergency Scotland Mainland';
+const campaignId = '23976658719';
 const baseUrl = 'https://www.tyrerescue.uk';
 const phone = '0141 266 0690';
 const negativeListName = 'TR Emergency Waste Blockers';
@@ -361,7 +362,7 @@ async function main() {
   const adGroupRows = groups.map((group) => ({
     Action: 'Add',
     'Customer ID': customerId,
-    Campaign: campaign,
+    'Campaign ID': campaignId,
     'Ad group': group.adGroup,
     Status: 'Enabled',
     'Ad group type': '',
@@ -373,7 +374,7 @@ async function main() {
         Action: 'Add',
         'Keyword status': 'Enabled',
         'Customer ID': customerId,
-        Campaign: campaign,
+        'Campaign ID': campaignId,
         'Ad group': group.adGroup,
         Keyword: keyword,
         'Match Type': 'Exact Match',
@@ -383,7 +384,7 @@ async function main() {
         Action: 'Add',
         'Keyword status': 'Enabled',
         'Customer ID': customerId,
-        Campaign: campaign,
+        'Campaign ID': campaignId,
         'Ad group': group.adGroup,
         Keyword: keyword,
         'Match Type': 'Phrase Match',
@@ -396,7 +397,7 @@ async function main() {
     Action: 'Add',
     'Ad status': 'Enabled',
     'Customer ID': customerId,
-    Campaign: campaign,
+    'Campaign ID': campaignId,
     'Ad group': group.adGroup,
     'Ad type': 'Responsive search ad',
     ...buildHeadlines(group),
@@ -423,7 +424,7 @@ async function main() {
       'Customer ID': customerId,
       'Negative keyword': negativeListName,
       'Keyword or list': 'List',
-      Campaign: campaign,
+      'Campaign ID': campaignId,
     },
   ];
 
@@ -431,13 +432,13 @@ async function main() {
 
   await writeFile(
     path.join(outputDir, '01_create_ad_groups.csv'),
-    toCsv(['Action', 'Customer ID', 'Campaign', 'Ad group', 'Status', 'Ad group type'], adGroupRows),
+    toCsv(['Action', 'Customer ID', 'Campaign ID', 'Ad group', 'Status', 'Ad group type'], adGroupRows),
   );
 
   await writeFile(
     path.join(outputDir, '02_add_keywords.csv'),
     toCsv(
-      ['Action', 'Keyword status', 'Customer ID', 'Campaign', 'Ad group', 'Keyword', 'Match Type', 'Final URL'],
+      ['Action', 'Keyword status', 'Customer ID', 'Campaign ID', 'Ad group', 'Keyword', 'Match Type', 'Final URL'],
       keywordRows,
     ),
   );
@@ -449,7 +450,7 @@ async function main() {
         'Action',
         'Ad status',
         'Customer ID',
-        'Campaign',
+        'Campaign ID',
         'Ad group',
         'Ad type',
         'Headline 1',
@@ -498,7 +499,7 @@ async function main() {
 
   await writeFile(
     path.join(outputDir, '05_apply_negative_list_to_campaign.csv'),
-    toCsv(['Action', 'Customer ID', 'Negative keyword', 'Keyword or list', 'Campaign'], associateListRows),
+    toCsv(['Action', 'Customer ID', 'Negative keyword', 'Keyword or list', 'Campaign ID'], associateListRows),
   );
 
   await writeFile(path.join(outputDir, 'negative-keywords-manual-paste.txt'), manualNegativePaste);
@@ -510,6 +511,7 @@ async function main() {
         generatedAt: new Date().toISOString(),
         customerId,
         campaign,
+        campaignId,
         adGroups: adGroupRows.length,
         keywords: keywordRows.length,
         responsiveSearchAds: rsaRows.length,
