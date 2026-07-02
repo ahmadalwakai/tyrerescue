@@ -1,4 +1,6 @@
 import { Feather } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -15,6 +17,21 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeInDown,
+  FadeInLeft,
+  FadeInRight,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+  ZoomIn,
+} from 'react-native-reanimated';
 
 import { API, customerInvoiceUrl, endpoint, requestJson } from './api';
 import { addToCart, cartItemCount, updateCartQuantity } from './booking-helpers';
@@ -90,6 +107,88 @@ interface StepProps {
   goTo: (step: WizardStep) => void;
 }
 
+function AmbientBookingBackground() {
+  const drift = useSharedValue(0);
+
+  useEffect(() => {
+    drift.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 26000, easing: Easing.inOut(Easing.quad) }),
+        withTiming(0, { duration: 26000, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+      false,
+    );
+  }, [drift]);
+
+  const ambientStyle = useAnimatedStyle(() => ({
+    opacity: 0.38 + drift.value * 0.18,
+    transform: [{ translateY: -14 + drift.value * 24 }],
+  }));
+
+  return <Animated.View pointerEvents="none" style={[screenStyles.ambientBackground, ambientStyle]} />;
+}
+
+function FallingLetter({ char, delay }: { char: string; delay: number }) {
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withDelay(
+      delay,
+      withSequence(
+        withTiming(1.08, { duration: 450, easing: Easing.out(Easing.cubic) }),
+        withSpring(1, { damping: 14, stiffness: 180, mass: 0.7 }),
+      ),
+    );
+  }, [delay, progress]);
+
+  const letterStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, progress.value),
+    transform: [
+      { translateY: -32 + progress.value * 32 },
+      { scaleY: 0.96 + progress.value * 0.04 },
+    ],
+  }));
+
+  return <Animated.Text style={[screenStyles.heroTitleLetter, letterStyle]}>{char}</Animated.Text>;
+}
+
+function FallingTitle({ title }: { title: string }) {
+  let letterIndex = 0;
+  const words = title.toUpperCase().split(' ');
+
+  return (
+    <View style={screenStyles.heroTitle}>
+      {words.map((word, wordIndex) => (
+        <View key={`${word}-${wordIndex}`} style={screenStyles.heroTitleWord}>
+          {word.split('').map((char, charIndex) => {
+            const delay = 140 + letterIndex * 30;
+            letterIndex += 1;
+            return <FallingLetter key={`${word}-${char}-${charIndex}`} char={char} delay={delay} />;
+          })}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function ServiceHeroHeader() {
+  const title = 'Choose how soon you need us';
+  const detailDelay = title.replace(/\s/g, '').length * 30 + 620;
+
+  return (
+    <View style={screenStyles.heroHeader}>
+      <Animated.Text entering={FadeIn.duration(260).delay(70)} style={screenStyles.heroEyebrow}>
+        Start your booking
+      </Animated.Text>
+      <FallingTitle title={title} />
+      <Animated.Text entering={FadeIn.duration(360).delay(detailDelay)} style={screenStyles.heroDetail}>
+        Emergency dispatch and scheduled fitting use the same live pricing, stock, and availability rules as the website.
+      </Animated.Text>
+    </View>
+  );
+}
+
 function toLocalIsoDate(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -126,17 +225,22 @@ function StepProgress({ state, step }: { state: BookingState; step: WizardStep }
   const progress = steps.length <= 1 ? 0 : (index / (steps.length - 1)) * 100;
 
   return (
-    <Card style={screenStyles.progressCard}>
+    <Animated.View entering={FadeInDown.duration(260)} style={screenStyles.progressMotion}>
+      <Card style={screenStyles.progressCard}>
+        <View style={screenStyles.progressBadgeRow}>
+          <View style={screenStyles.progressBadge}>
+            <View style={screenStyles.progressBadgeDot} />
+            <Text style={screenStyles.progressBadgeText}>
+              Step {index + 1} of {steps.length}
+            </Text>
+          </View>
+          <Text style={screenStyles.progressTitle}>{currentStepLabel(step)}</Text>
+        </View>
       <View style={screenStyles.progressTrack}>
-        <View style={[screenStyles.progressFill, { width: `${progress}%` }]} />
+          <Animated.View key={`${step}-${Math.round(progress)}`} entering={FadeIn.duration(260)} style={[screenStyles.progressFill, { width: `${progress}%` }]} />
       </View>
-      <View style={screenStyles.progressRow}>
-        <Text style={screenStyles.progressText}>
-          {index + 1} / {steps.length}
-        </Text>
-        <Text style={screenStyles.progressText}>{currentStepLabel(step)}</Text>
-      </View>
-    </Card>
+      </Card>
+    </Animated.View>
   );
 }
 
@@ -149,18 +253,29 @@ export function BookingScreen() {
     setState((current) => ({ ...current, ...updates }));
   }, []);
 
-  const goTo = useCallback((nextStep: WizardStep) => setStep(nextStep), []);
+  const goTo = useCallback((nextStep: WizardStep) => {
+    setStep((current) => {
+      if (current !== nextStep) void Haptics.selectionAsync().catch(() => {});
+      return nextStep;
+    });
+  }, []);
 
   const goNext = useCallback(() => {
     const steps = getSteps(state.bookingType, state.serviceType);
     const nextStep = getAdjacentStep(steps, step, 1);
-    if (nextStep) setStep(nextStep);
+    if (nextStep) {
+      void Haptics.selectionAsync().catch(() => {});
+      setStep(nextStep);
+    }
   }, [state.bookingType, state.serviceType, step]);
 
   const goPrev = useCallback(() => {
     const steps = getSteps(state.bookingType, state.serviceType);
     const previousStep = getAdjacentStep(steps, step, -1);
-    if (previousStep) setStep(previousStep);
+    if (previousStep) {
+      void Haptics.selectionAsync().catch(() => {});
+      setStep(previousStep);
+    }
   }, [state.bookingType, state.serviceType, step]);
 
   const reset = useCallback(() => {
@@ -173,49 +288,52 @@ export function BookingScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={screenStyles.root}
     >
+      <AmbientBookingBackground />
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[screenStyles.content, safeContentInsets]}
       >
-        <View style={screenStyles.topBar}>
+        <Animated.View entering={FadeInDown.duration(260)} style={screenStyles.topBar}>
           <Logo />
           {step !== 'service' && step !== 'done' ? (
             <Pressable accessibilityRole="button" onPress={goPrev} style={screenStyles.backButton}>
               <Feather name="chevron-left" size={18} color={colors.text} />
             </Pressable>
           ) : null}
-        </View>
+        </Animated.View>
 
         <StepProgress state={state} step={step} />
 
-        {step === 'service' ? (
-          <ServiceStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
-        ) : null}
-        {step === 'location' ? (
-          <LocationStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
-        ) : null}
-        {step === 'eligibility' ? (
-          <EligibilityStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
-        ) : null}
-        {step === 'details' ? (
-          <DetailsStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
-        ) : null}
-        {step === 'tyres' ? (
-          <TyresStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
-        ) : null}
-        {step === 'schedule' ? (
-          <ScheduleStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
-        ) : null}
-        {step === 'quote' ? (
-          <QuoteStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
-        ) : null}
-        {step === 'customer' ? (
-          <CustomerStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} reset={reset} />
-        ) : null}
-        {step === 'payment' ? (
-          <PaymentStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
-        ) : null}
-        {step === 'done' ? <DoneStep state={state} reset={reset} /> : null}
+        <Animated.View key={step} entering={FadeInDown.duration(320)} style={screenStyles.stepMotion}>
+          {step === 'service' ? (
+            <ServiceStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
+          ) : null}
+          {step === 'location' ? (
+            <LocationStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
+          ) : null}
+          {step === 'eligibility' ? (
+            <EligibilityStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
+          ) : null}
+          {step === 'details' ? (
+            <DetailsStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
+          ) : null}
+          {step === 'tyres' ? (
+            <TyresStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
+          ) : null}
+          {step === 'schedule' ? (
+            <ScheduleStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
+          ) : null}
+          {step === 'quote' ? (
+            <QuoteStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
+          ) : null}
+          {step === 'customer' ? (
+            <CustomerStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} reset={reset} />
+          ) : null}
+          {step === 'payment' ? (
+            <PaymentStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
+          ) : null}
+          {step === 'done' ? <DoneStep state={state} reset={reset} /> : null}
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -273,53 +391,63 @@ function ServiceStep({ state, updateState, goNext }: StepProps) {
 
   return (
     <View style={screenStyles.stepGap}>
-      <ScreenHeader
-        eyebrow="Start your booking"
-        title="Choose how soon you need us"
-        detail="Emergency dispatch and scheduled fitting use the same live pricing, stock, and availability rules as the website."
-      />
+      <ServiceHeroHeader />
 
-      <OptionCard
-        icon="zap"
-        meta={availability?.available ? 'Available now' : availability ? 'Call to check' : 'Checking'}
-        selected={state.bookingType === 'emergency'}
-        title="Emergency Callout"
-        detail="Driver-led callout to your confirmed location."
-        onPress={() =>
-          updateState({
-            ...quoteReset,
-            bookingType: 'emergency',
-            fittingLocation: null,
-            scheduledDate: null,
-            scheduledTime: null,
-          })
-        }
-      />
-      <OptionCard
-        icon="calendar"
-        meta="Book a slot"
-        selected={state.bookingType === 'scheduled'}
-        title="Schedule a Fitting"
-        detail="Choose the shop or mobile fitting, then pick a date and time."
-        onPress={() =>
-          updateState({
-            ...quoteReset,
-            bookingType: 'scheduled',
-            fittingLocation: state.fittingLocation ?? null,
-          })
-        }
-      />
+      <Animated.View entering={FadeInLeft.duration(360).delay(1360).springify().damping(17)}>
+        <OptionCard
+          icon="zap"
+          iconShimmer
+          meta={availability?.available ? 'Available now' : availability ? 'Call to check' : 'Checking'}
+          metaTone={availability?.available ? 'success' : availability ? 'accent' : 'neutral'}
+          selected={state.bookingType === 'emergency'}
+          title="Emergency Callout"
+          detail="Driver-led callout to your confirmed location."
+          onPress={() => {
+            void Haptics.selectionAsync().catch(() => {});
+            updateState({
+              ...quoteReset,
+              bookingType: 'emergency',
+              fittingLocation: null,
+              scheduledDate: null,
+              scheduledTime: null,
+            });
+          }}
+        />
+      </Animated.View>
+      <Animated.View entering={FadeInRight.duration(360).delay(1440).springify().damping(17)}>
+        <OptionCard
+          icon="calendar"
+          iconShimmer
+          meta="Book a slot"
+          metaTone="accent"
+          selected={state.bookingType === 'scheduled'}
+          title="Schedule a Fitting"
+          detail="Choose the shop or mobile fitting, then pick a date and time."
+          onPress={() => {
+            void Haptics.selectionAsync().catch(() => {});
+            updateState({
+              ...quoteReset,
+              bookingType: 'scheduled',
+              fittingLocation: state.fittingLocation ?? null,
+            });
+          }}
+        />
+      </Animated.View>
 
-      <PrimaryButton icon="arrow-right" disabled={!state.bookingType} onPress={goNext}>
-        Continue
-      </PrimaryButton>
-      <PrimaryButton
-        icon="phone"
-        variant="secondary"
-        onPress={() => Linking.openURL(`tel:${PHONE_TEL}`)}
-      >
-        {PHONE_DISPLAY}
-      </PrimaryButton>
+      <Animated.View entering={FadeInDown.duration(320).delay(1520)}>
+        <PrimaryButton icon="arrow-right" disabled={!state.bookingType} shine={Boolean(state.bookingType)} onPress={goNext}>
+          Continue
+        </PrimaryButton>
+      </Animated.View>
+      <Animated.View entering={FadeInDown.duration(320).delay(1600)}>
+        <PrimaryButton
+          icon="phone"
+          variant="secondary"
+          onPress={() => Linking.openURL(`tel:${PHONE_TEL}`)}
+        >
+          {PHONE_DISPLAY}
+        </PrimaryButton>
+      </Animated.View>
     </View>
   );
 }
@@ -929,7 +1057,6 @@ function TyresStep({ state, updateState, goNext }: StepProps) {
                 <Text style={screenStyles.tyreSize}>{tyre.sizeDisplay}</Text>
               </View>
               <View style={screenStyles.priceStack}>
-                <Text style={screenStyles.tyrePrice}>{formatPrice(tyre.priceNew)}</Text>
                 <Pill tone={tyre.isOrderOnly ? 'accent' : inStock ? 'success' : 'neutral'}>
                   {tyre.isOrderOnly ? 'Special order' : inStock ? 'In stock' : 'Pre-order'}
                 </Pill>
@@ -967,7 +1094,6 @@ function TyresStep({ state, updateState, goNext }: StepProps) {
       {state.selectedTyres.length > 0 ? (
         <Card>
           <Row label="Selected" value={`${totalItems} tyre${totalItems === 1 ? '' : 's'}`} />
-          <Row label="Tyres subtotal" value={formatPrice(state.selectedTyres.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0))} valueStyle={{ color: colors.accent }} />
         </Card>
       ) : null}
 
@@ -1037,8 +1163,8 @@ function ScheduleStep({ state, updateState, goNext }: StepProps) {
 
       <Section title="Fitting location">
         <View style={screenStyles.twoGrid}>
-          <OptionCard title="At the shop" detail="No extra fee." meta="Shop" icon="home" selected={fittingLocation === 'shop'} onPress={() => setFittingLocation('shop')} />
-          <OptionCard title="At your location" detail="Priced in quote." meta="Mobile" icon="map-pin" selected={fittingLocation === 'mobile'} onPress={() => setFittingLocation('mobile')} />
+          <OptionCard title="At the shop" detail="No extra fee." meta="Shop" metaTone="success" icon="home" selected={fittingLocation === 'shop'} onPress={() => setFittingLocation('shop')} />
+          <OptionCard title="At your location" detail="Priced in quote." meta="Mobile" metaTone="accent" icon="map-pin" selected={fittingLocation === 'mobile'} onPress={() => setFittingLocation('mobile')} />
         </View>
       </Section>
 
@@ -1372,6 +1498,10 @@ function PaymentStep({ state, updateState, goTo }: StepProps) {
 }
 
 function DoneStep({ state, reset }: { state: BookingState; reset: () => void }) {
+  const [referenceCopied, setReferenceCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refNumber = state.refNumber ?? '';
+
   useEffect(() => {
     if (!state.refNumber || !state.customerEmail) return;
     void registerForCustomerPushNotificationsAsync({
@@ -1380,14 +1510,45 @@ function DoneStep({ state, reset }: { state: BookingState; reset: () => void }) 
     });
   }, [state.customerEmail, state.refNumber]);
 
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
+  async function copyReference() {
+    if (!refNumber) return;
+    await Clipboard.setStringAsync(refNumber);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    setReferenceCopied(true);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setReferenceCopied(false), 2200);
+  }
+
   return (
     <View style={screenStyles.stepGap}>
       <ScreenHeader eyebrow="Confirmed" title="Booking received" detail={`${BUSINESS_NAME} has your booking reference.`} />
-      <Card style={screenStyles.doneCard}>
-        <Feather name="check-circle" size={44} color={colors.success} />
-        <Text style={screenStyles.doneRef}>{state.refNumber}</Text>
-        <Text style={screenStyles.mutedCentered}>Confirmation email and SMS will be sent after payment confirmation.</Text>
-      </Card>
+      <Animated.View entering={FadeInDown.duration(320)} style={screenStyles.doneCardMotion}>
+        <Card style={screenStyles.doneCard}>
+          <Animated.View entering={ZoomIn.duration(420).delay(120)} style={screenStyles.doneCheckBadge}>
+            <Feather name="check-circle" size={38} color={colors.success} />
+          </Animated.View>
+          <Animated.View entering={FadeInDown.duration(360).delay(190)} style={screenStyles.doneRefRow}>
+            <Text style={screenStyles.doneRef}>{refNumber || '-'}</Text>
+            {refNumber ? (
+              <Animated.View entering={FadeInDown.duration(320).delay(270)}>
+                <Pressable accessibilityLabel="Copy booking reference" accessibilityRole="button" onPress={copyReference} style={screenStyles.doneCopyButton}>
+                  <Feather name={referenceCopied ? 'check' : 'copy'} size={16} color={referenceCopied ? colors.success : colors.text} />
+                  <Text style={screenStyles.doneCopyText}>{referenceCopied ? 'Copied' : 'Copy'}</Text>
+                </Pressable>
+              </Animated.View>
+            ) : null}
+          </Animated.View>
+          <Animated.Text entering={FadeIn.duration(360).delay(340)} style={screenStyles.mutedCentered}>
+            Confirmation email and SMS will be sent after payment confirmation.
+          </Animated.Text>
+        </Card>
+      </Animated.View>
       {state.refNumber && state.invoiceDownloadToken ? (
         <PrimaryButton
           icon="download"
@@ -1496,6 +1657,17 @@ const screenStyles = StyleSheet.create({
   root: {
     backgroundColor: colors.bg,
     flex: 1,
+    overflow: 'hidden',
+  },
+  ambientBackground: {
+    backgroundColor: 'rgba(249,115,22,0.045)',
+    borderBottomColor: 'rgba(249,115,22,0.08)',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    height: 270,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: -58,
   },
   content: {
     gap: 18,
@@ -1521,19 +1693,98 @@ const screenStyles = StyleSheet.create({
   stepGap: {
     gap: 14,
   },
+  heroHeader: {
+    alignSelf: 'stretch',
+    gap: 7,
+    marginBottom: 18,
+  },
+  heroEyebrow: {
+    color: colors.accent,
+    fontFamily: typography.bodyBold,
+    fontSize: 12,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    maxWidth: '100%',
+  },
+  heroTitleWord: {
+    flexDirection: 'row',
+    marginRight: 9,
+  },
+  heroTitleLetter: {
+    color: colors.text,
+    fontFamily: typography.display,
+    fontSize: 44,
+    lineHeight: 44,
+  },
+  heroDetail: {
+    color: colors.muted,
+    flexShrink: 1,
+    fontFamily: typography.body,
+    fontSize: 15,
+    lineHeight: 22,
+    maxWidth: '100%',
+  },
+  stepMotion: {
+    alignSelf: 'stretch',
+  },
+  progressMotion: {
+    alignSelf: 'stretch',
+  },
   progressCard: {
-    gap: 10,
+    backgroundColor: '#1F1F23',
+    gap: 12,
     padding: 12,
   },
+  progressBadgeRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  progressBadge: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(249,115,22,0.12)',
+    borderColor: 'rgba(249,115,22,0.34)',
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    minHeight: 30,
+    paddingHorizontal: 10,
+  },
+  progressBadgeDot: {
+    backgroundColor: colors.accent,
+    borderRadius: 4,
+    height: 8,
+    width: 8,
+  },
+  progressBadgeText: {
+    color: colors.text,
+    fontFamily: typography.bodyBold,
+    fontSize: 12,
+  },
+  progressTitle: {
+    color: colors.accent,
+    flexShrink: 1,
+    fontFamily: typography.bodyBold,
+    fontSize: 12,
+    textAlign: 'right',
+    textTransform: 'uppercase',
+  },
   progressTrack: {
-    backgroundColor: colors.border,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 999,
-    height: 3,
+    height: 5,
     overflow: 'hidden',
   },
   progressFill: {
     backgroundColor: colors.accent,
-    height: 3,
+    borderRadius: 999,
+    height: 5,
   },
   progressRow: {
     flexDirection: 'row',
@@ -1866,11 +2117,48 @@ const screenStyles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  doneCardMotion: {
+    alignSelf: 'stretch',
+  },
+  doneCheckBadge: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(34,197,94,0.12)',
+    borderColor: 'rgba(34,197,94,0.35)',
+    borderRadius: 29,
+    borderWidth: 1,
+    height: 58,
+    justifyContent: 'center',
+    width: 58,
+  },
+  doneRefRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'center',
+  },
   doneRef: {
     color: colors.accent,
+    flexShrink: 1,
     fontFamily: typography.display,
     fontSize: 46,
     lineHeight: 48,
+  },
+  doneCopyButton: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    minHeight: 40,
+    paddingHorizontal: 12,
+  },
+  doneCopyText: {
+    color: colors.text,
+    fontFamily: typography.bodyBold,
+    fontSize: 13,
   },
   accountCard: {
     gap: 12,

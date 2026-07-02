@@ -2,6 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { API, requestJson } from '@/src/api';
 import { PHONE_DISPLAY, PHONE_TEL } from '@/src/config';
@@ -46,6 +47,7 @@ export default function TrackScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const loadedParamRef = useRef<string | null>(null);
+  const normalizedReference = reference.trim().toUpperCase();
 
   const mapMarkers = tracking
     ? routeLiveMapMarkers({
@@ -87,7 +89,12 @@ export default function TrackScreen() {
         .catch(() => setRouteCoordinates(null));
     } catch (err) {
       if (!options?.silent) {
-        setError(err instanceof Error ? err.message : 'Booking not found.');
+        const message = err instanceof Error ? err.message : null;
+        setError(
+          message && !/^(Request failed|Failed to fetch)/.test(message)
+            ? message
+            : `We could not find booking ${ref}. Check the reference and try again.`,
+        );
       }
     } finally {
       if (!options?.silent) setLoading(false);
@@ -126,29 +133,42 @@ export default function TrackScreen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.content, safeContentInsets]} keyboardShouldPersistTaps="handled">
-      <Logo />
-      <ScreenHeader eyebrow="Tracking" title="Track booking" detail="Enter your booking reference from the confirmation message." />
-      <TextField label="Booking reference" value={reference} onChangeText={(value) => setReference(value.toUpperCase())} placeholder="TR-123456" autoCapitalize="characters" />
-      <PrimaryButton icon="search" loading={loading} onPress={loadTracking}>Track</PrimaryButton>
-      {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
+      <Animated.View entering={FadeInDown.duration(260)}>
+        <Logo />
+      </Animated.View>
+      <Animated.View entering={FadeInDown.duration(300).delay(70)}>
+        <ScreenHeader eyebrow="Tracking" title="Track booking" detail="Enter your booking reference from the confirmation message." />
+      </Animated.View>
+      <Animated.View entering={FadeInDown.duration(300).delay(130)} style={styles.searchMotion}>
+        <TextField label="Booking reference" value={reference} onChangeText={(value) => setReference(value.toUpperCase())} placeholder="TR-123456" autoCapitalize="characters" />
+        <PrimaryButton icon="search" loading={loading} onPress={loadTracking}>Track</PrimaryButton>
+      </Animated.View>
+      {error ? (
+        <Animated.View entering={FadeIn.duration(220)}>
+          <InlineNotice tone="danger">{error}</InlineNotice>
+        </Animated.View>
+      ) : null}
 
       {tracking ? (
-        <View style={styles.gap}>
+        <Animated.View entering={FadeInDown.duration(340)} style={styles.gap}>
           <PulsingMap
             markers={mapMarkers}
             routeCoordinates={routeLineCoordinates}
             style={styles.map}
           />
-          <Card>
-            <Row label="Status" value={humanStatus(tracking.status)} valueStyle={{ color: colors.accent }} />
-            <Row label="Type" value={humanStatus(tracking.bookingType)} />
-            <Row label="Address" value={tracking.addressLine} />
-            {tracking.scheduledAt ? <Row label="Scheduled" value={new Date(tracking.scheduledAt).toLocaleString('en-GB')} /> : null}
-            {tracking.driverName ? <Row label="Driver" value={tracking.driverName} /> : null}
-            {tracking.etaMinutes ? <Row label="ETA" value={`${tracking.etaMinutes} min`} /> : null}
-            {tracking.distanceMiles ? <Row label="Distance" value={`${tracking.distanceMiles} mi`} /> : null}
-          </Card>
-        </View>
+          <Animated.View entering={FadeInDown.duration(300).delay(90)}>
+            <Card>
+              <Row label="Reference" value={normalizedReference || '-'} />
+              <Row label="Status" value={humanStatus(tracking.status)} valueStyle={{ color: colors.accent }} />
+              <Row label="Type" value={humanStatus(tracking.bookingType)} />
+              <Row label="Address" value={tracking.addressLine} />
+              {tracking.scheduledAt ? <Row label="Scheduled" value={new Date(tracking.scheduledAt).toLocaleString('en-GB')} /> : null}
+              {tracking.driverName ? <Row label="Driver" value={tracking.driverName} /> : null}
+              {tracking.etaMinutes ? <Row label="ETA" value={`${tracking.etaMinutes} min`} /> : null}
+              {tracking.distanceMiles ? <Row label="Distance" value={`${tracking.distanceMiles} mi`} /> : null}
+            </Card>
+          </Animated.View>
+        </Animated.View>
       ) : null}
 
       <PrimaryButton icon="phone" variant="secondary" onPress={() => Linking.openURL(`tel:${PHONE_TEL}`)}>
@@ -172,6 +192,9 @@ const styles = StyleSheet.create({
   },
   gap: {
     gap: 12,
+  },
+  searchMotion: {
+    gap: 16,
   },
   map: {
     backgroundColor: colors.surface,
