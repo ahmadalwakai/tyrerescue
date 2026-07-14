@@ -30,5 +30,13 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "driver-app", "admin-app", "assisted-chat-app", "tyre-rescue"]
+  "exclude": [
+    "node_modules",
+    "driver-app",
+    "admin-app",
+    "assisted-chat-app",
+    "tyre-rescue",
+    "artifacts",
+    "builds"
+  ]
 }

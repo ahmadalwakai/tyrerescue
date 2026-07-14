@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, HStack, Spinner, Text, VStack } from '@chakra-ui/react';
 import mapboxgl from 'mapbox-gl';
+import type { ExpressionSpecification } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { colorTokens as c } from '@/lib/design-tokens';
 
@@ -156,7 +157,7 @@ function routeFeature(coords: [number, number][]): GeoJSON.Feature<GeoJSON.LineS
   };
 }
 
-function shimmerGradient(progress: number): unknown[] {
+function shimmerGradient(progress: number): ExpressionSpecification {
   const transparent = 'rgba(255,255,255,0)';
   const warmGlow = 'rgba(255,255,255,0.95)';
   const amberGlow = 'rgba(255,209,148,0.9)';
@@ -188,7 +189,7 @@ function shimmerGradient(progress: number): unknown[] {
     ['linear'],
     ['line-progress'],
     ...deduped.flat(),
-  ];
+  ] as ExpressionSpecification;
 }
 
 export function TrackingMap({
