@@ -63,6 +63,11 @@ function getStoredDurationMinutes(breakdown: Record<string, unknown> | null): nu
     : null;
 }
 
+function getStoredAdminDistanceLimitMiles(breakdown: Record<string, unknown> | null): number | undefined {
+  const value = breakdown?.adminDistanceLimitMiles;
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ token: string }> }
@@ -180,6 +185,7 @@ export async function POST(
   const distanceMiles = distanceKm != null ? distanceKm * 0.621371 : 5;
   const serviceType = (booking.serviceType ?? 'fit') as QuickBookServiceType;
   const pricingContext = resolvePricingContext(booking, priceBreakdown);
+  const adminDistanceLimitMiles = getStoredAdminDistanceLimitMiles(priceBreakdown);
   if (durationMinutes == null) {
     durationMinutes = getStoredDurationMinutes(priceBreakdown);
   }
@@ -213,6 +219,7 @@ export async function POST(
       requireTyreForFit: false, // Don't fail if tyre not found - keep existing pricing
       adminAdjustmentAmount: Number(booking.adminAdjustmentAmount ?? 0),
       adminAdjustmentReason: booking.adminAdjustmentReason,
+      adminDistanceLimitMiles,
       pricingContext,
       durationMinutes,
       weatherContext,
@@ -223,6 +230,7 @@ export async function POST(
     priceBreakdown = {
       ...priced.breakdown,
       pricingContext,
+      ...(adminDistanceLimitMiles != null ? { adminDistanceLimitMiles } : {}),
       weatherContext,
       durationMinutes,
       serviceOrigin: serviceOriginLat && serviceOriginLng ? {
@@ -240,6 +248,7 @@ export async function POST(
       priceBreakdown = {
         ...priceBreakdown,
         pricingContext,
+        ...(adminDistanceLimitMiles != null ? { adminDistanceLimitMiles } : {}),
         weatherContext,
         durationMinutes,
         serviceOrigin: serviceOriginLat && serviceOriginLng ? {

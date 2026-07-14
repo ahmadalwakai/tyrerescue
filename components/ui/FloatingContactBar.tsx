@@ -18,7 +18,8 @@ const WHATSAPP_PHONE = DEFAULT_WHATSAPP_PHONE;
 // with a safe default message, matching prior behaviour.
 const WHATSAPP_URL = buildWhatsAppHref(FALLBACK_WHATSAPP_MESSAGE, WHATSAPP_PHONE);
 
-const HIDDEN_PREFIXES = ['/admin', '/dashboard', '/driver'];
+const HIDDEN_ROUTES = ['/emergency'];
+const HIDDEN_PREFIXES = ['/admin', '/dashboard', '/driver', '/emergency-tyre-fitting', '/puncture-repair'];
 
 /* ─── Inline SVG Icons ──────────────────────────────────── */
 
@@ -51,7 +52,7 @@ function ChevronUpIcon() {
 export function FloatingContactBar() {
   const pathname = usePathname();
   const [showTop, setShowTop] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetOpenPath, setSheetOpenPath] = useState<string | null>(null);
 
   useEffect(() => {
     const onScroll = () => setShowTop(window.scrollY > 400);
@@ -59,12 +60,9 @@ export function FloatingContactBar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Close the sheet on route change so it never lingers across pages.
-  useEffect(() => {
-    setSheetOpen(false);
-  }, [pathname]);
-
-  if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
+  if (HIDDEN_ROUTES.includes(pathname) || HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return null;
+  }
 
   const openSheet = (label: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
     // Preserve href fallback for no-JS / blocked popups: only intercept when
@@ -73,7 +71,7 @@ export function FloatingContactBar() {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button === 1) return;
     e.preventDefault();
     trackWhatsAppClick(label);
-    setSheetOpen(true);
+    setSheetOpenPath(pathname);
   };
 
   return (
@@ -301,8 +299,8 @@ export function FloatingContactBar() {
       {/* WhatsApp Quick Help Sheet — replaces the immediate WhatsApp open
           on click. The plain links above remain as a no-JS fallback. */}
       <WhatsAppQuickHelpSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
+        open={sheetOpenPath === pathname}
+        onClose={() => setSheetOpenPath(null)}
         phoneNumber={PHONE_NUMBER}
         whatsappPhone={WHATSAPP_PHONE}
       />

@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppButton, InlineNotice, StatusBanner } from './ui';
 import { colors, fontSize, radius } from './theme';
+import { AdminChromeBackdrop } from './layout/AdminModalShell';
 
 interface Props {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -109,13 +110,16 @@ export function LoginScreen({
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
+      <AdminChromeBackdrop />
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.content}
+        behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
       >
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         >
           <Animated.View
             style={[
@@ -207,27 +211,35 @@ export function LoginScreen({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  safe: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' },
+  content: { flex: 1, zIndex: 1 },
   scroll: {
     flexGrow: 1,
     padding: 16,
     justifyContent: 'center',
+    alignItems: 'center',
     gap: 16,
   },
   brandWrap: {
+    width: '100%',
+    maxWidth: 340,
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: 28,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: radius.lg,
+    backgroundColor: colors.accentMuted,
   },
   brandTop: {
     color: colors.accent,
-    fontSize: 36,
-    fontWeight: '800',
+    fontSize: 38,
+    fontWeight: '900',
     letterSpacing: 6,
   },
   brandBottom: {
     color: colors.text,
-    fontSize: 36,
-    fontWeight: '800',
+    fontSize: 38,
+    fontWeight: '900',
     letterSpacing: 6,
     marginTop: -4,
   },
@@ -235,30 +247,38 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: colors.muted,
     fontSize: fontSize.xs,
-    letterSpacing: 1.5,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.borderStrong,
     borderWidth: 1,
     borderRadius: radius.lg,
-    padding: 16,
+    padding: 18,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.28,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 6,
   },
   cardTitle: {
     color: colors.text,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontWeight: '900',
     marginBottom: 12,
   },
   label: {
     color: colors.muted,
     fontSize: fontSize.xs,
-    fontWeight: '500',
+    fontWeight: '700',
     marginBottom: 6,
   },
   input: {
     minHeight: 44,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderWidth: 1,
     borderRadius: radius.md,
     paddingHorizontal: 12,
@@ -266,11 +286,18 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.text,
     backgroundColor: colors.inputBg,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
   },
   footer: {
     color: colors.subtle,
     fontSize: fontSize.xs,
     textAlign: 'center',
     marginTop: 8,
+    width: '100%',
+    maxWidth: 340,
   },
 });

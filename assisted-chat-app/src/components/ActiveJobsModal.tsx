@@ -15,11 +15,11 @@ import {
   View,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { colors, fontSize, radius, space } from './theme';
 import { api } from '@/lib/api';
 import { useActiveJobs, type ActiveJobItem } from '@/hooks/useActiveJobs';
+import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 
 interface Props {
   visible: boolean;
@@ -87,6 +87,19 @@ function paymentLines(item: ActiveJobItem): string[] {
     out.push(`${p.label || 'Confirm payment'} · ${p.instruction || 'Confirm with driver'}`);
   }
   return out;
+}
+
+function situationTone(status: string): 'ok' | 'warn' | 'bad' | 'muted' {
+  if (status === 'on_time') return 'ok';
+  if (status === 'at_risk') return 'warn';
+  if (status === 'late' || status === 'offline') return 'bad';
+  return 'muted';
+}
+
+function situationText(item: ActiveJobItem): string {
+  const situation = item.driverSituation;
+  const reason = Array.isArray(situation.reasonLabels) ? situation.reasonLabels[0] : null;
+  return reason ? `${situation.label} · ${reason}` : situation.label;
 }
 
 function ShimmeringJobRef({ bookingRef }: { bookingRef: string }) {
@@ -184,18 +197,8 @@ export function ActiveJobsModal({ visible, onClose }: Props) {
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">Active jobs</Text>
-          <Pressable
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            style={({ pressed }) => [styles.closeBtn, pressed && styles.btnPressed]}
-          >
-            <Text style={styles.closeBtnText}>Close</Text>
-          </Pressable>
-        </View>
+      <AdminModalShell>
+        <AdminModalHeader title="Active jobs" onClose={onClose} />
 
         <View style={styles.metaRow}>
           <Text style={styles.metaText}>
@@ -214,6 +217,14 @@ export function ActiveJobsModal({ visible, onClose }: Props) {
         {error ? (
           <View style={styles.errorBanner}>
             <Text style={styles.errorBannerText}>{error}</Text>
+            <Pressable
+              onPress={refresh}
+              accessibilityRole="button"
+              accessibilityLabel="Retry active jobs"
+              style={({ pressed }) => [styles.errorRetryBtn, pressed && styles.btnPressed]}
+            >
+              <Text style={styles.errorRetryText}>Retry</Text>
+            </Pressable>
           </View>
         ) : null}
 
@@ -263,6 +274,16 @@ export function ActiveJobsModal({ visible, onClose }: Props) {
                     GPS {item.driver.locationAt ? formatRelative(item.driver.locationAt) : 'unknown'}
                   </Text>
                 </View>
+                <Text
+                  style={[
+                    styles.rowSituation,
+                    situationTone(item.driverSituation.status) === 'ok' && styles.rowSituationOk,
+                    situationTone(item.driverSituation.status) === 'warn' && styles.rowSituationWarn,
+                    situationTone(item.driverSituation.status) === 'bad' && styles.rowSituationBad,
+                  ]}
+                >
+                  {situationText(item)}
+                </Text>
                 <Text style={styles.rowDriver}>
                   Driver: {item.driver.name}
                   {item.driver.phone ? ` · ${item.driver.phone}` : ''}
@@ -309,7 +330,7 @@ export function ActiveJobsModal({ visible, onClose }: Props) {
             <ActivityIndicator color={colors.accent} />
           </View>
         ) : null}
-      </SafeAreaView>
+      </AdminModalShell>
 
       <ActiveJobMapModal
         visible={selectedItem != null}
@@ -555,7 +576,7 @@ function setRoute(rawCoords, approx, driver, customer){
       else {
         map.addSource('r',{type:'geojson',data:data});
         map.addLayer({id:'rl-casing',type:'line',source:'r',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#FFFFFF','line-width':8,'line-opacity':0.95}});
-        map.addLayer({id:'rl',type:'line',source:'r',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#2563EB','line-width':4,'line-opacity':1}});
+        map.addLayer({id:'rl',type:'line',source:'r',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#F97316','line-width':4,'line-opacity':1}});
       }
       if(map.getSource('route-flow')){
         map.getSource('route-flow').setData(routeFeature([coords[0],coords[0]]));
@@ -661,6 +682,116 @@ interface TrailPoint {
   at: number;
 }
 
+type UnknownRecord = Record<string, unknown>;
+
+function recordOrNull(value: unknown): UnknownRecord | null {
+  return value && typeof value === 'object' ? value as UnknownRecord : null;
+}
+
+function textOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function finiteNumber(value: unknown): number | null {
+  if (value == null) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function validLat(value: unknown): number | null {
+  const parsed = finiteNumber(value);
+  return parsed != null && parsed >= -90 && parsed <= 90 ? parsed : null;
+}
+
+function validLng(value: unknown): number | null {
+  const parsed = finiteNumber(value);
+  return parsed != null && parsed >= -180 && parsed <= 180 ? parsed : null;
+}
+
+function validDateOrNull(value: unknown): string | null {
+  const text = textOrNull(value);
+  if (!text) return null;
+  return Number.isFinite(Date.parse(text)) ? text : null;
+}
+
+function validBoolean(value: unknown): boolean {
+  return value === true;
+}
+
+function validMapCoordinate(value: unknown): [number, number] | null {
+  if (!Array.isArray(value) || value.length < 2) return null;
+  const lng = validLng(value[0]);
+  const lat = validLat(value[1]);
+  return lng != null && lat != null ? [lng, lat] : null;
+}
+
+function validGeometry(value: unknown): RouteResponse['geometry'] {
+  const raw = recordOrNull(value);
+  if (!raw || raw.type !== 'LineString' || !Array.isArray(raw.coordinates)) return null;
+  const coordinates = raw.coordinates.flatMap((coord) => {
+    const valid = validMapCoordinate(coord);
+    return valid ? [valid] : [];
+  });
+  return coordinates.length >= 2 ? { type: 'LineString', coordinates } : null;
+}
+
+function normalizeRouteResponse(value: unknown): RouteResponse | null {
+  const raw = recordOrNull(value);
+  if (!raw) return null;
+
+  const driverLocationRaw = recordOrNull(raw.driverLocation);
+  const driverLat = validLat(driverLocationRaw?.lat);
+  const driverLng = validLng(driverLocationRaw?.lng);
+  const driverLocation = driverLat != null && driverLng != null
+    ? {
+        lat: driverLat,
+        lng: driverLng,
+        locationAt: validDateOrNull(driverLocationRaw?.locationAt),
+        isStale: validBoolean(driverLocationRaw?.isStale),
+      }
+    : null;
+
+  const customerLocationRaw = recordOrNull(raw.customerLocation);
+  const customerLat = validLat(customerLocationRaw?.lat);
+  const customerLng = validLng(customerLocationRaw?.lng);
+  const customerLocation = customerLat != null && customerLng != null
+    ? {
+        lat: customerLat,
+        lng: customerLng,
+        address: textOrNull(customerLocationRaw?.address),
+      }
+    : null;
+
+  const driverRaw = recordOrNull(raw.driver);
+  const customerRaw = recordOrNull(raw.customer);
+  const source = raw.source === 'mapbox' || raw.source === 'haversine' ? raw.source : 'none';
+
+  return {
+    bookingRef: textOrNull(raw.bookingRef) ?? '',
+    status: textOrNull(raw.status) ?? 'driver_assigned',
+    driver: driverRaw
+      ? {
+          id: textOrNull(driverRaw.id) ?? '',
+          name: textOrNull(driverRaw.name),
+          phone: textOrNull(driverRaw.phone),
+        }
+      : null,
+    driverLocation,
+    customer: customerRaw
+      ? {
+          name: textOrNull(customerRaw.name),
+          phone: textOrNull(customerRaw.phone),
+        }
+      : null,
+    customerLocation,
+    distanceMiles: finiteNumber(raw.distanceMiles),
+    durationMinutes: finiteNumber(raw.durationMinutes),
+    geometry: validGeometry(raw.geometry),
+    source,
+    lastUpdatedAt: validDateOrNull(raw.lastUpdatedAt) ?? new Date().toISOString(),
+  };
+}
+
 // Great-circle distance in metres between two coordinates (for deriving
 // driver speed from two real GPS fixes — never from a single location).
 function metresBetween(a: TrailPoint, b: TrailPoint): number {
@@ -739,7 +870,8 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
     const ingestTrail = (data: RouteResponse): void => {
       const loc = data.driverLocation;
       if (!loc) return;
-      const at = loc.locationAt ? Date.parse(loc.locationAt) : Date.now();
+      const parsedAt = loc.locationAt ? Date.parse(loc.locationAt) : Date.now();
+      const at = Number.isFinite(parsedAt) ? parsedAt : Date.now();
       const points = trailPointsRef.current;
       const last = points[points.length - 1];
       // Only record a point when the driver has genuinely moved — never grow
@@ -763,9 +895,11 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
       inflightRef.current = true;
       if (aliveRef.current) setLoading(true);
       try {
-        const data = await api.get<RouteResponse>(
+        const rawData = await api.get<unknown>(
           `/api/admin/active-jobs/${encodeURIComponent(ref)}/route`,
         );
+        const data = normalizeRouteResponse(rawData);
+        if (!data) throw new Error('Tracking data unavailable');
         if (!aliveRef.current) return;
         setRoute(data);
         setLastRefreshAt(data.lastUpdatedAt || new Date().toISOString());
@@ -773,6 +907,7 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
         ingestTrail(data);
       } catch (err) {
         if (!aliveRef.current) return;
+        console.error('[active-jobs:route] load failed', err);
         // Keep the last good route visible; just surface the error.
         setError(err instanceof Error ? err.message : 'Tracking temporarily unavailable');
         setLastRefreshAt(new Date().toISOString());
@@ -792,6 +927,7 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
     };
 
     void fetchOnce();
+    if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
       void refreshIfActive();
     }, MAP_POLL_MS);
@@ -991,12 +1127,13 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <ShimmeringJobRef bookingRef={job.bookingRef} />
-            <Text style={styles.subtitle}>{statusLabel}</Text>
-          </View>
+      <AdminModalShell>
+        <AdminModalHeader
+          title={`#${job.bookingRef}`}
+          titleNode={<ShimmeringJobRef bookingRef={job.bookingRef} />}
+          subtitle={statusLabel}
+          onClose={onClose}
+          actions={
           <View style={styles.pillCol}>
             <Pressable
               onPress={() => pollNowRef.current()}
@@ -1033,15 +1170,8 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
               {autoRefreshText}
             </Text>
           </View>
-          <Pressable
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel="Close map"
-            style={({ pressed }) => [styles.closeBtn, pressed && styles.btnPressed]}
-          >
-            <Text style={styles.closeBtnText}>Close</Text>
-          </Pressable>
-        </View>
+          }
+        />
 
         <View style={styles.mapWrap}>
           {!token ? (
@@ -1197,7 +1327,7 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
                 </View>
               </View>
               <Text style={styles.panelLine} numberOfLines={1}>
-                #{job.bookingRef} · {statusLabel} · {driverName}
+                #{job.bookingRef} · {statusLabel} · {job.driverSituation?.label ?? 'Situation unavailable'} · {driverName}
               </Text>
               <View style={styles.actionRow}>
                 {driverPhone ? (
@@ -1224,7 +1354,7 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
             <View style={styles.panelEmpty}>
               <Text style={styles.panelEmptyTitle}>Waiting for driver location</Text>
               <Text style={styles.panelEmptyMeta}>
-                #{job.bookingRef} · {statusLabel} · {driverName}
+                #{job.bookingRef} · {statusLabel} · {job.driverSituation?.label ?? 'Situation unavailable'} · {driverName}
               </Text>
               <View style={styles.actionRow}>
                 <Pressable
@@ -1248,7 +1378,7 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
             </View>
           )}
         </View>
-      </SafeAreaView>
+      </AdminModalShell>
     </Modal>
   );
 }
@@ -1378,9 +1508,14 @@ const styles = StyleSheet.create({
     paddingTop: space.md,
     paddingBottom: space.lg,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.glowBorder,
     backgroundColor: colors.surface,
     gap: space.sm,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: -6 },
+    elevation: 5,
   },
   panelTop: {
     flexDirection: 'row',
@@ -1421,10 +1556,15 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.panelSoft,
   },
   refreshBtnText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '600' },
   errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.sm,
     marginHorizontal: space.lg,
     marginBottom: space.sm,
     paddingHorizontal: space.md,
@@ -1434,7 +1574,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.dangerBorder,
   },
-  errorBannerText: { color: colors.danger, fontSize: fontSize.sm },
+  errorBannerText: { color: colors.danger, fontSize: fontSize.sm, flex: 1 },
+  errorRetryBtn: {
+    minHeight: 32,
+    paddingHorizontal: space.md,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.danger,
+  },
+  errorRetryText: { color: '#fff', fontSize: fontSize.xs, fontWeight: '700' },
   list: {
     paddingHorizontal: space.lg,
     paddingBottom: space.xxl,
@@ -1446,12 +1595,17 @@ const styles = StyleSheet.create({
   },
   emptyText: { color: colors.muted, fontSize: fontSize.sm },
   row: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     padding: space.md,
     gap: 4,
+    shadowColor: colors.blue,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   rowPressed: { opacity: 0.7 },
   rowMain: { gap: 4 },
@@ -1468,9 +1622,9 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     alignItems: 'center',
-    backgroundColor: colors.bg,
+    backgroundColor: colors.panelSoft,
   },
   rowActionText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '600' },
   btnDisabled: { opacity: 0.5 },
@@ -1504,6 +1658,10 @@ const styles = StyleSheet.create({
   rowFact: { color: colors.text, fontSize: fontSize.xs, fontWeight: '600' },
   rowFactSep: { color: colors.subtle, fontSize: fontSize.xs },
   rowFactStale: { color: colors.warning },
+  rowSituation: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '700', marginTop: 4 },
+  rowSituationOk: { color: colors.success },
+  rowSituationWarn: { color: colors.warning },
+  rowSituationBad: { color: colors.danger },
   rowDriver: { color: colors.muted, fontSize: fontSize.xs, marginTop: 2 },
   rowPayment: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '600' },
   loadingOverlay: {
@@ -1516,6 +1674,8 @@ const styles = StyleSheet.create({
   mapWrap: {
     flex: 1,
     backgroundColor: colors.bg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   web: { flex: 1, backgroundColor: colors.bg },
   fallback: {
@@ -1529,7 +1689,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: space.md,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.glowBorder,
     backgroundColor: colors.surface,
     gap: 4,
   },
@@ -1547,7 +1707,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingTop: space.sm,
     paddingBottom: space.lg,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     gap: 4,
   },
   driverLine: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
@@ -1569,6 +1729,8 @@ const styles = StyleSheet.create({
   },
   pickerSheet: {
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.glowBorder,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     maxHeight: '80%',
@@ -1601,9 +1763,11 @@ interface DriverListItem {
   phone: string | null;
   isOnline: boolean;
   status: string;
-  currentLat: number | null;
-  currentLng: number | null;
+  currentLat: number | string | null;
+  currentLng: number | string | null;
   locationAt: string | null;
+  activeJobRef?: string | null;
+  driverSituation?: ActiveJobItem['driverSituation'] | null;
 }
 
 interface ReassignProps {
@@ -1627,7 +1791,13 @@ function ReassignDriverModal({ visible, target, onClose, onSuccess }: ReassignPr
     api
       .get<DriverListItem[]>('/api/admin/drivers')
       .then((data) => {
-        if (alive) setDrivers(Array.isArray(data) ? data : []);
+        if (alive) {
+          setDrivers(
+            Array.isArray(data)
+              ? data.filter((driver) => typeof driver?.id === 'string' && driver.id.trim().length > 0)
+              : [],
+          );
+        }
       })
       .catch((e) => {
         if (alive) setErr(e instanceof Error ? e.message : 'Failed to load drivers');
@@ -1718,6 +1888,7 @@ function ReassignDriverModal({ visible, target, onClose, onSuccess }: ReassignPr
                     </Text>
                     <Text style={styles.pickerMeta}>
                       {item.isOnline ? 'Online' : 'Offline'} · {item.status}
+                      {item.driverSituation ? ` · ${item.driverSituation.label}` : ''}
                       {item.phone ? ` · ${item.phone}` : ''}
                       {isBusy ? ' · assigning…' : ''}
                     </Text>

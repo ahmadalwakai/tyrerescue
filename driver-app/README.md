@@ -109,7 +109,12 @@ eas submit --platform android
 
 ### Apple App Review Notes
 
-- **Location**: Foreground only (no background tracking). Used to share driver position with dispatch.
+- **Location**: Used for route guidance and dispatch tracking while a driver is working on an active job.
+- **Background location**: Enabled for active-job tracking only. Tracking stops when the job is completed or cancelled.
+- **Notifications**: Used for new driver job alerts and urgent job updates. iOS uses standard Apple notifications with sound and Time Sensitive interruption where permitted by iOS/user settings.
+- **Foreground job alert**: The full-screen alert is an in-app alert shown only when the app is open.
+- **PushKit/CallKit**: Not used for normal job alerts.
+- **Critical Alerts**: Not used unless Apple entitlement approval is granted and explicitly enabled in a future build.
 - **No camera/photos**: No permissions requested.
 - **Encryption**: `usesNonExemptEncryption: false` (HTTPS only, no custom crypto).
 - **Login credential for review**: Provide a test driver account.

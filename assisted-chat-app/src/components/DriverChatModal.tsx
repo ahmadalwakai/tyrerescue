@@ -4,17 +4,16 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
+import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 
 type ChatRole = 'customer' | 'admin' | 'driver';
 type MessageType = 'text' | 'image' | 'admin_note';
@@ -157,27 +156,17 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.safe}>
+      <AdminModalShell keyboardAvoidingEnabled={false}>
         <KeyboardAvoidingView
           style={styles.keyboard}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
         >
-          <View style={styles.header}>
-            <View style={styles.headerCopy}>
-              <Text style={styles.title}>Driver chat</Text>
-              <Text style={styles.subtitle} numberOfLines={1}>
-                {bookingRef ? `#${bookingRef}` : 'Current booking'}
-              </Text>
-            </View>
-            <Pressable
-              onPress={onClose}
-              accessibilityRole="button"
-              accessibilityLabel="Close driver chat"
-              style={({ pressed }) => [styles.closeBtn, pressed && styles.btnPressed]}
-            >
-              <Text style={styles.closeBtnText}>Close</Text>
-            </Pressable>
-          </View>
+          <AdminModalHeader
+            title="Driver chat"
+            subtitle={bookingRef ? `#${bookingRef}` : 'Current booking'}
+            onClose={onClose}
+          />
 
           {error ? (
             <View style={styles.noticeWrap}>
@@ -190,6 +179,7 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
             style={styles.messages}
             contentContainerStyle={styles.messagesContent}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
           >
             {loading && messages.length === 0 ? (
@@ -254,7 +244,7 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
             </View>
           </View>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </AdminModalShell>
     </Modal>
   );
 }

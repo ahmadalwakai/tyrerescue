@@ -9,6 +9,10 @@ const ALLOWED_DEV_ORIGINS = new Set([
   'http://127.0.0.1:8083',
   'http://localhost:8084',
   'http://127.0.0.1:8084',
+  'http://localhost:8095',
+  'http://127.0.0.1:8095',
+  'http://localhost:8096',
+  'http://127.0.0.1:8096',
   'http://localhost:19006',
   'http://127.0.0.1:19006',
 ]);

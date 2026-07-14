@@ -8,6 +8,7 @@ import { articles } from '@/lib/blog/articles';
 import { competitors } from '@/lib/data/competitors';
 import { getSiteUrl } from '@/lib/config/site';
 import { priceCitySlugs } from '@/lib/seo/cities';
+import { EMERGENCY_LANDING_PAGES } from '@/lib/ads/emergencyCampaign';
 
 /**
  * Sitemap is split via `generateSitemaps()` so no single file exceeds
@@ -102,18 +103,38 @@ export default async function sitemap({
 
   if (sectionId === 'areas') {
     const out: MetadataRoute.Sitemap = [];
+    const emittedUrls = new Set<string>();
+
     for (const service of services) {
       for (const citySlug of serviceCities) {
         for (const area of getAreasForCity(citySlug)) {
+          const url = `${baseUrl}/${service.slug}/${citySlug}/${area.slug}`;
           out.push({
-            url: `${baseUrl}/${service.slug}/${citySlug}/${area.slug}`,
+            url,
             lastModified: now,
             changeFrequency: 'monthly',
             priority: 0.5,
           });
+          emittedUrls.add(url);
         }
       }
     }
+
+    for (const page of EMERGENCY_LANDING_PAGES) {
+      if (!('citySlug' in page) || !('areaSlug' in page)) continue;
+
+      const url = `${baseUrl}${page.path}`;
+      if (emittedUrls.has(url)) continue;
+
+      out.push({
+        url,
+        lastModified: now,
+        changeFrequency: 'weekly',
+        priority: 0.8,
+      });
+      emittedUrls.add(url);
+    }
+
     return out;
   }
 

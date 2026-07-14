@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { services, serviceCities, getAreasForCity } from '@/lib/areas';
+import { EMERGENCY_LANDING_PAGES } from '@/lib/ads/emergencyCampaign';
 
 // Provide a dummy DATABASE_URL so importing the sitemap module (which pulls in
 // lib/db) doesn't fail at neon() init. The 'tyres' branch is wrapped in
@@ -47,13 +48,27 @@ describe('sitemap split via generateSitemaps()', () => {
 
   it('areas section preserves every service × city × area URL', async () => {
     const entries = await loadSection('areas');
-    let expected = 0;
-    for (const _service of services) {
+    const expectedUrls = new Set<string>();
+
+    for (const service of services) {
       for (const city of serviceCities) {
-        expected += getAreasForCity(city).length;
+        for (const area of getAreasForCity(city)) {
+          expectedUrls.add(`https://www.tyrerescue.uk/${service.slug}/${city}/${area.slug}`);
+        }
       }
     }
-    expect(entries.length).toBe(expected);
+
+    for (const page of EMERGENCY_LANDING_PAGES) {
+      if (!('citySlug' in page) || !('areaSlug' in page)) continue;
+      expectedUrls.add(`https://www.tyrerescue.uk${page.path}`);
+    }
+
+    expect(entries.length).toBe(expectedUrls.size);
+    const urls = new Set(entries.map((e) => e.url));
+    for (const url of expectedUrls) {
+      expect(urls.has(url)).toBe(true);
+    }
+
     for (const e of entries) {
       expect(e.url.startsWith('https://www.tyrerescue.uk/')).toBe(true);
     }

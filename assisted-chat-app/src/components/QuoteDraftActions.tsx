@@ -4,6 +4,11 @@ import { api, ApiError } from '@/lib/api';
 import { copyToClipboard } from '@/lib/clipboard';
 import { buildWhatsAppUrl } from '@/lib/customer-message';
 import { formatGbp } from '@/lib/money';
+import {
+  buildBookingTyreLinePayload,
+  primaryBookingTyreLine,
+  totalBookingTyreQuantity,
+} from '@/lib/assisted-chat-workflow';
 import type { AssistedChatDraft } from '@/types/assisted-chat';
 import type {
   AdminQuote,
@@ -48,6 +53,8 @@ function isDepositPaymentOption(option: AdminQuotePaymentOption): boolean {
 }
 
 function buildQuoteInput(draft: AssistedChatDraft, effectiveTotal: number, lockingNutCharge: number): CreateAdminQuoteInput {
+  const primaryTyre = primaryBookingTyreLine(draft);
+  const tyreLines = buildBookingTyreLinePayload(draft.tyreLines);
   return {
     quickBookingId: draft.quickBookingId,
     customerName: draft.customer.name || null,
@@ -56,8 +63,10 @@ function buildQuoteInput(draft: AssistedChatDraft, effectiveTotal: number, locki
     postcode: draft.location.postcode,
     latitude: draft.location.lat,
     longitude: draft.location.lng,
-    tyreSize: draft.tyre.size || null,
-    quantity: draft.tyre.quantity,
+    tyreSize: primaryTyre.size || null,
+    quantity: totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
+    tyreLines,
+    items: tyreLines,
     lockingWheelNutStatus: draft.lockingNut.answer,
     lockingWheelNutChargePence: Math.round(lockingNutCharge * 100),
     priceAmount: Math.round(effectiveTotal * 100),

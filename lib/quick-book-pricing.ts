@@ -15,7 +15,7 @@ import { calculateWeatherSurcharge } from '@/lib/pricing/weather-modifier';
 import { calculateTrafficSurcharge } from '@/lib/pricing/traffic-modifier';
 import {
   FITTING_LOCATION_MANUAL_QUOTE_ERROR,
-  MOBILE_AUTO_PRICING_MAX_MILES,
+  normalizeMobileAutoPricingMaxMiles,
 } from '@/lib/fitting-location-pricing';
 
 export type QuickBookServiceType = 'fit' | 'repair' | 'assess';
@@ -28,19 +28,41 @@ export interface QuickBookTyreSnapshot {
   sizeDisplay: string | null;
 }
 
+export interface QuickBookTyreLineInput {
+  id?: string | null;
+  size: string | null;
+  quantity: number;
+  brand?: string | null;
+  pattern?: string | null;
+  season?: string | null;
+  source?: string | null;
+  price?: number | null;
+}
+
+export interface QuickBookTyreLineSelection extends QuickBookTyreSnapshot {
+  id: string;
+  requestedSize: string | null;
+  normalizedSize: string | null;
+  quantity: number;
+  service: QuickBookServiceType;
+}
+
 export interface QuickBookPricingInput {
   serviceType: QuickBookServiceType;
   tyreSize: string | null;
   tyreCount: number;
+  tyreLines?: QuickBookTyreLineInput[] | null;
   distanceMiles: number;
   bookingDate?: Date;
   selectedTyreSnapshot?: QuickBookTyreSnapshot | null;
+  selectedTyreSnapshots?: QuickBookTyreLineSelection[] | null;
   resolveTyreFromSize?: boolean;
   requireTyreForFit?: boolean;
   fittingLocation?: 'shop' | 'mobile';
   pricingContext?: PricingContext;
   durationMinutes?: number | null;
   weatherContext?: WeatherPricingContext | null;
+  adminDistanceLimitMiles?: number;
   adminAdjustmentAmount?: number;
   adminAdjustmentReason?: string | null;
 }
@@ -50,6 +72,7 @@ export interface QuickBookPricingResult {
   tyreSelections: TyreSelection[];
   normalizedTyreSize: string | null;
   selectedTyreSnapshot: QuickBookTyreSnapshot | null;
+  tyreLineSelections: QuickBookTyreLineSelection[];
 }
 
 export class QuickBookPricingError extends Error {
@@ -139,6 +162,68 @@ async function resolveSellableTyreBySize(tyreSize: string): Promise<QuickBookTyr
   };
 }
 
+function normalizeLineQuantity(quantity: unknown): number {
+  return Math.max(1, Math.min(10, Math.round(Number(quantity) || 1)));
+}
+
+function inputTyreLines(input: QuickBookPricingInput): QuickBookTyreLineInput[] {
+  const explicit = Array.isArray(input.tyreLines)
+    ? input.tyreLines.filter((line) => line?.size?.trim())
+    : [];
+
+  if (explicit.length > 0) {
+    return explicit.map((line, index) => ({
+      id: line.id || `tyre-${index + 1}`,
+      size: line.size?.trim() || null,
+      quantity: normalizeLineQuantity(line.quantity),
+      brand: line.brand ?? null,
+      pattern: line.pattern ?? null,
+      season: line.season ?? null,
+      source: line.source ?? null,
+      price: typeof line.price === 'number' && Number.isFinite(line.price) ? line.price : null,
+    }));
+  }
+
+  if (input.tyreSize?.trim()) {
+    return [
+      {
+        id: 'tyre-1',
+        size: input.tyreSize.trim(),
+        quantity: normalizeLineQuantity(input.tyreCount),
+      },
+    ];
+  }
+
+  return [];
+}
+
+export function extractQuickBookTyreLineSelections(raw: {
+  priceBreakdown?: unknown;
+}): QuickBookTyreLineSelection[] {
+  const breakdown = raw.priceBreakdown && typeof raw.priceBreakdown === 'object'
+    ? raw.priceBreakdown as { tyreLines?: unknown }
+    : null;
+  const lines = Array.isArray(breakdown?.tyreLines) ? breakdown.tyreLines : [];
+  return lines.flatMap((line, index) => {
+    if (!line || typeof line !== 'object') return [];
+    const value = line as Partial<QuickBookTyreLineSelection>;
+    if (!value.productId) return [];
+    const unitPrice = Number(value.unitPrice);
+    return [{
+      id: typeof value.id === 'string' && value.id.trim() ? value.id : `tyre-${index + 1}`,
+      productId: value.productId,
+      unitPrice: Number.isFinite(unitPrice) ? unitPrice : null,
+      brand: value.brand ?? null,
+      pattern: value.pattern ?? null,
+      sizeDisplay: value.sizeDisplay ?? value.normalizedSize ?? value.requestedSize ?? null,
+      requestedSize: value.requestedSize ?? value.sizeDisplay ?? null,
+      normalizedSize: value.normalizedSize ?? value.sizeDisplay ?? null,
+      quantity: normalizeLineQuantity(value.quantity),
+      service: (value.service === 'repair' || value.service === 'assess') ? value.service : 'fit',
+    }];
+  });
+}
+
 function applyAdminAdjustment(
   baseBreakdown: PricingBreakdown,
   adjustmentAmount: number,
@@ -212,42 +297,76 @@ export async function calculateQuickBookPricing(
   const bookingDate = input.bookingDate ?? new Date();
   const pricingContext = input.pricingContext ?? 'admin_quick_book';
   const fittingLocation = input.fittingLocation ?? 'mobile';
-  const normalizedTyreSize = input.tyreSize?.trim() ? normalizeTyreSize(input.tyreSize) : null;
+  const tyreLineInputs = inputTyreLines(input);
+  const normalizedTyreSize = tyreLineInputs[0]?.size?.trim() ? normalizeTyreSize(tyreLineInputs[0].size) : null;
   const resolveTyreFromSize = input.resolveTyreFromSize !== false;
   const requireTyreForFit = input.requireTyreForFit ?? false;
 
   const bookingType = resolveQuickBookBookingType(pricingContext);
   const mode = resolveMode({ pricingContext, fittingLocation, bookingType });
 
-  let selectedTyreSnapshot = input.selectedTyreSnapshot ?? null;
+  const seededSelections = input.selectedTyreSnapshots?.length
+    ? input.selectedTyreSnapshots
+    : input.selectedTyreSnapshot
+    ? [{
+        id: 'tyre-1',
+        ...input.selectedTyreSnapshot,
+        requestedSize: input.tyreSize,
+        normalizedSize: normalizedTyreSize,
+        quantity: normalizeLineQuantity(input.tyreCount),
+        service: input.serviceType,
+      }]
+    : [];
 
-  if (resolveTyreFromSize && normalizedTyreSize) {
-    const resolved = await resolveSellableTyreBySize(normalizedTyreSize);
-    if (resolved) {
-      selectedTyreSnapshot = resolved;
-    } else if (input.serviceType === 'fit' && requireTyreForFit) {
-      throw new QuickBookPricingError('No active tyre product found for this size', 400);
+  const tyreLineSelections: QuickBookTyreLineSelection[] = [];
+  for (let index = 0; index < tyreLineInputs.length; index += 1) {
+    const line = tyreLineInputs[index];
+    const normalizedSize = line.size?.trim() ? normalizeTyreSize(line.size) : null;
+    let selectedTyreSnapshot: QuickBookTyreSnapshot | null = seededSelections[index] ?? null;
+
+    if (resolveTyreFromSize && normalizedSize) {
+      const resolved = await resolveSellableTyreBySize(normalizedSize);
+      if (resolved) {
+        selectedTyreSnapshot = resolved;
+      } else if (input.serviceType === 'fit' && requireTyreForFit) {
+        throw new QuickBookPricingError(`No active tyre product found for ${normalizedSize}`, 400);
+      }
+    }
+
+    if (input.serviceType === 'fit' && requireTyreForFit && !selectedTyreSnapshot) {
+      throw new QuickBookPricingError(`No active tyre product found for ${normalizedSize ?? 'this size'}`, 400);
+    }
+
+    if (selectedTyreSnapshot && selectedTyreSnapshot.unitPrice == null) {
+      throw new QuickBookPricingError('Selected tyre product is missing a price snapshot', 400);
+    }
+
+    if (selectedTyreSnapshot) {
+      tyreLineSelections.push({
+        id: line.id || `tyre-${index + 1}`,
+        productId: selectedTyreSnapshot.productId,
+        unitPrice: selectedTyreSnapshot.unitPrice,
+        brand: selectedTyreSnapshot.brand ?? line.brand ?? null,
+        pattern: selectedTyreSnapshot.pattern ?? line.pattern ?? null,
+        sizeDisplay: selectedTyreSnapshot.sizeDisplay ?? normalizedSize,
+        requestedSize: line.size ?? null,
+        normalizedSize,
+        quantity: line.quantity,
+        service: input.serviceType,
+      });
     }
   }
 
-  if (input.serviceType === 'fit' && requireTyreForFit && !selectedTyreSnapshot) {
-    throw new QuickBookPricingError('No active tyre product found for this size', 400);
-  }
+  const selectedTyreSnapshot = tyreLineSelections[0] ?? null;
 
-  if (selectedTyreSnapshot?.unitPrice == null) {
-    throw new QuickBookPricingError('Selected tyre product is missing a price snapshot', 400);
-  }
-
-  const tyreSelections: TyreSelection[] = selectedTyreSnapshot
-    ? [
-        {
-          tyreId: selectedTyreSnapshot.productId,
-          quantity: input.tyreCount,
-          unitPrice: selectedTyreSnapshot.unitPrice,
-          service: input.serviceType,
-        },
-      ]
-    : [];
+  const tyreSelections: TyreSelection[] = tyreLineSelections.map((line) => ({
+    tyreId: line.productId,
+    quantity: line.quantity,
+    unitPrice: line.unitPrice ?? 0,
+    service: line.service,
+  }));
+  const totalTyreQuantity =
+    tyreLineInputs.reduce((sum, line) => sum + line.quantity, 0) || normalizeLineQuantity(input.tyreCount);
 
   const [rulesRows, holidayRows] = await Promise.all([
     db.select().from(pricingRules),
@@ -276,7 +395,7 @@ export async function calculateQuickBookPricing(
       bookingDate,
       isBankHoliday: holidayRows.length > 0,
       serviceType: input.serviceType,
-      tyreQuantity: input.tyreCount,
+      tyreQuantity: totalTyreQuantity,
       fittingLocation,
       weatherSurcharge: weatherModifier.surcharge,
       weatherSurchargeCode: weatherModifier.code,
@@ -284,6 +403,7 @@ export async function calculateQuickBookPricing(
       trafficSurcharge: trafficModifier.surcharge,
       trafficSurchargeCode: trafficModifier.code,
       trafficDelayMinutes: trafficModifier.delayMinutes,
+      maxAutoPricingMiles: input.adminDistanceLimitMiles,
     },
     rules,
     true,
@@ -294,8 +414,9 @@ export async function calculateQuickBookPricing(
       throw new QuickBookPricingError('Current weather conditions need a manual quote.', 422);
     }
     if (breakdown.error === FITTING_LOCATION_MANUAL_QUOTE_ERROR) {
+      const maxMiles = normalizeMobileAutoPricingMaxMiles(input.adminDistanceLimitMiles);
       throw new QuickBookPricingError(
-        `This fitting location is over ${MOBILE_AUTO_PRICING_MAX_MILES} miles away and needs a manual quote.`,
+        `This fitting location is over ${maxMiles} miles away and needs a manual quote.`,
         422,
       );
     }
@@ -319,5 +440,6 @@ export async function calculateQuickBookPricing(
     tyreSelections,
     normalizedTyreSize,
     selectedTyreSnapshot,
+    tyreLineSelections,
   };
 }

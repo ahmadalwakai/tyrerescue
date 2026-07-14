@@ -26,6 +26,8 @@ import {
   PRESENCE_COLORS,
   type DriverPresenceState,
 } from '@/lib/driver-presence';
+import { DriverSituationBadge } from '@/components/admin/DriverSituationBadge';
+import type { DriverSituation } from '@/lib/admin/driverSituation';
 
 interface Driver {
   id: string;
@@ -39,6 +41,8 @@ interface Driver {
   currentLng: string | null;
   locationAt: string | null;
   createdAt: string | null;
+  activeJobRef: string | null;
+  driverSituation: DriverSituation | null;
 }
 
 interface Props {
@@ -395,22 +399,27 @@ export function DriversClient({ drivers: initialDrivers }: Props) {
                       ) : (
                         <HStack gap={2}>
                           <Box w="8px" h="8px" borderRadius="full" bg={statusColor(driver.status)} />
-                          <NativeSelect.Root size="sm" maxW="130px">
-                            <NativeSelect.Field
-                              bg="transparent"
-                              color={c.text}
-                              border="none"
-                              p={0}
-                              fontSize="sm"
-                              cursor="pointer"
-                              value={driver.status || 'offline'}
-                              onChange={(e) => handleStatusChange(driver.id, e.target.value)}
-                            >
-                              {STATUS_OPTIONS.map((s) => (
-                                <option key={s.value} value={s.value}>{s.label}</option>
-                              ))}
-                            </NativeSelect.Field>
-                          </NativeSelect.Root>
+                          <VStack align="start" gap={1}>
+                            <NativeSelect.Root size="sm" maxW="130px">
+                              <NativeSelect.Field
+                                bg="transparent"
+                                color={c.text}
+                                border="none"
+                                p={0}
+                                fontSize="sm"
+                                cursor="pointer"
+                                value={driver.status || 'offline'}
+                                onChange={(e) => handleStatusChange(driver.id, e.target.value)}
+                              >
+                                {STATUS_OPTIONS.map((s) => (
+                                  <option key={s.value} value={s.value}>{s.label}</option>
+                                ))}
+                              </NativeSelect.Field>
+                            </NativeSelect.Root>
+                            {driver.driverSituation && (
+                              <DriverSituationBadge situation={driver.driverSituation} size="xs" />
+                            )}
+                          </VStack>
                         </HStack>
                       )}
                     </Table.Cell>
@@ -505,14 +514,20 @@ export function DriversClient({ drivers: initialDrivers }: Props) {
                           return (
                             <>
                               <Box w="8px" h="8px" borderRadius="full" bg={`${pColor}.400`} />
-                              <Text fontSize="xs" fontWeight="medium" color={`${pColor}.400`}>
-                                {PRESENCE_LABELS[p]}
-                              </Text>
-                            </>
-                          );
-                        })()}
-                      </HStack>
-                    </Flex>
+                      <Text fontSize="xs" fontWeight="medium" color={`${pColor}.400`}>
+                        {PRESENCE_LABELS[p]}
+                      </Text>
+                      {driver.driverSituation && (
+                        <DriverSituationBadge situation={driver.driverSituation} size="xs" />
+                      )}
+                    </>
+                  );
+                })()}
+              </HStack>
+            </Flex>
+                    {driver.activeJobRef && (
+                      <Text fontSize="xs" color={c.accent} mb={1}>Active job #{driver.activeJobRef}</Text>
+                    )}
                     <Text fontSize="sm" color={c.muted} mb={1}>{driver.email}</Text>
                     <Text fontSize="sm" color={c.muted} mb={2}>{driver.phone || 'No phone'}</Text>
 

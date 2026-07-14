@@ -1,4 +1,4 @@
-import type { AssistedChatDraft } from '@/types/assisted-chat';
+import type { AssistedChatDraft, BookingTyreLine } from '@/types/assisted-chat';
 import type { AdminQuotePaymentOption, AdminQuoteStatus } from '@/types/admin-quotes';
 
 export const ASSISTED_CHAT_STAGE_ORDER = [
@@ -120,8 +120,119 @@ function isValidTyreRange(width: number, aspect: number, rim: number): boolean {
   return width >= 100 && width <= 400 && aspect >= 0 && aspect <= 100 && rim >= 10 && rim <= 26;
 }
 
+export function createBookingTyreLine(partial: Partial<BookingTyreLine> = {}): BookingTyreLine {
+  return {
+    id: partial.id ?? `tyre-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    size: partial.size ?? '',
+    quantity: Math.max(1, Math.round(partial.quantity ?? 1)),
+    brand: partial.brand ?? null,
+    pattern: partial.pattern ?? null,
+    season: partial.season ?? null,
+    source: partial.source ?? null,
+    price: typeof partial.price === 'number' && Number.isFinite(partial.price) ? partial.price : null,
+  };
+}
+
+export function ensureBookingTyreLines(lines: unknown): BookingTyreLine[] {
+  const source = Array.isArray(lines) ? lines : [];
+  const next = source.map((line, index) => {
+    const raw = line && typeof line === 'object' ? (line as Partial<BookingTyreLine>) : {};
+    return createBookingTyreLine({
+      id: typeof raw.id === 'string' && raw.id.trim() ? raw.id : `tyre-${index + 1}`,
+      size: typeof raw.size === 'string' ? raw.size : '',
+      quantity: typeof raw.quantity === 'number' && Number.isFinite(raw.quantity) ? raw.quantity : 1,
+      brand: typeof raw.brand === 'string' ? raw.brand : null,
+      pattern: typeof raw.pattern === 'string' ? raw.pattern : null,
+      season: typeof raw.season === 'string' ? raw.season : null,
+      source: typeof raw.source === 'string' ? raw.source : null,
+      price: typeof raw.price === 'number' && Number.isFinite(raw.price) ? raw.price : null,
+    });
+  });
+  return next.length > 0 ? next : [createBookingTyreLine({ id: 'tyre-1' })];
+}
+
+export function isEmptyOptionalTyreLine(line: BookingTyreLine, index: number): boolean {
+  return (
+    index > 0 &&
+    !line.size.trim() &&
+    !line.brand?.trim() &&
+    !line.pattern?.trim() &&
+    !line.season?.trim() &&
+    !line.source?.trim() &&
+    (line.price == null || line.price === 0) &&
+    Math.max(1, Math.round(line.quantity || 1)) === 1
+  );
+}
+
+export function getFilledBookingTyreLines(lines: BookingTyreLine[]): BookingTyreLine[] {
+  return ensureBookingTyreLines(lines)
+    .map((line) => ({
+      ...line,
+      quantity: Math.max(1, Math.round(line.quantity || 1)),
+    }))
+    .filter((line, index) => !isEmptyOptionalTyreLine(line, index));
+}
+
+export function getNormalizedBookingTyreLines(lines: BookingTyreLine[]): BookingTyreLine[] {
+  return getFilledBookingTyreLines(lines).map((line) => ({
+    ...line,
+    size: normalizeAssistedChatTyreSize(line.size) ?? line.size.trim(),
+    quantity: Math.max(1, Math.round(line.quantity || 1)),
+  }));
+}
+
+export function validateBookingTyreLines(lines: BookingTyreLine[]): string | null {
+  const ensured = ensureBookingTyreLines(lines);
+  const filled = getFilledBookingTyreLines(ensured);
+
+  if (filled.length === 0 || isEmptyOptionalTyreLine(ensured[0], 0)) {
+    return 'Enter a valid tyre size for Tyre 1.';
+  }
+
+  for (let i = 0; i < ensured.length; i += 1) {
+    const line = ensured[i];
+    if (isEmptyOptionalTyreLine(line, i)) continue;
+    const label = `Tyre ${i + 1}`;
+    if (!normalizeAssistedChatTyreSize(line.size)) {
+      return i === 0
+        ? `Enter a valid tyre size for ${label}.`
+        : `Enter a valid tyre size for ${label} or remove it.`;
+    }
+    if (!Number.isFinite(line.quantity) || line.quantity < 1) {
+      return `${label} quantity must be at least 1.`;
+    }
+  }
+
+  return null;
+}
+
+export function buildBookingTyreLinePayload(lines: BookingTyreLine[]): BookingTyreLine[] {
+  return getNormalizedBookingTyreLines(lines).map((line) => ({
+    id: line.id,
+    size: line.size,
+    quantity: Math.max(1, Math.round(line.quantity || 1)),
+    brand: line.brand ?? null,
+    pattern: line.pattern ?? null,
+    season: line.season ?? null,
+    source: line.source ?? null,
+    price: typeof line.price === 'number' && Number.isFinite(line.price) ? line.price : null,
+  }));
+}
+
+export function primaryBookingTyreLine(draft: AssistedChatDraft): BookingTyreLine {
+  return buildBookingTyreLinePayload(draft.tyreLines)[0] ?? createBookingTyreLine({ id: 'tyre-1' });
+}
+
+export function summarizeBookingTyreLines(lines: BookingTyreLine[]): string[] {
+  return buildBookingTyreLinePayload(lines).map((line) => `${line.quantity} × ${line.size}`);
+}
+
+export function totalBookingTyreQuantity(lines: BookingTyreLine[]): number {
+  return buildBookingTyreLinePayload(lines).reduce((sum, line) => sum + line.quantity, 0);
+}
+
 export function hasAssistedChatTyre(draft: AssistedChatDraft): boolean {
-  return Boolean(normalizeAssistedChatTyreSize(draft.tyre.size) && draft.tyre.quantity >= 1);
+  return validateBookingTyreLines(draft.tyreLines) === null;
 }
 
 function hasSavedQuote(draft: AssistedChatDraft): boolean {

@@ -5,8 +5,10 @@ import { db } from '@/lib/db';
 import { quickBookings, type AdminQuoteDraft, type NewAdminQuoteDraft, type QuickBooking } from '@/lib/db/schema';
 import {
   calculateQuickBookPricing,
+  extractQuickBookTyreLineSelections,
   extractQuickBookTyreSnapshot,
   QuickBookPricingError,
+  type QuickBookTyreLineInput,
   type QuickBookServiceType,
 } from '@/lib/quick-book-pricing';
 import { distanceResultToKm, resolveQuickBookDistance } from '@/lib/quick-book-distance';
@@ -45,6 +47,16 @@ const phoneSchema = z
   .optional();
 
 const nullableText = (max: number) => z.string().trim().max(max).nullable().optional();
+const adminQuoteTyreLineSchema = z.object({
+  id: nullableText(50),
+  size: z.string().trim().min(1).max(30),
+  quantity: z.number().int().min(1).max(10),
+  brand: nullableText(80),
+  pattern: nullableText(80),
+  season: nullableText(40),
+  source: nullableText(40),
+  price: z.number().min(0).max(MAX_PRICE_AMOUNT_PENCE / 100).nullable().optional(),
+});
 
 export const adminQuoteStatusSchema = z.enum(ADMIN_QUOTE_STATUSES);
 export const adminQuotePaymentOptionSchema = z.enum(ADMIN_QUOTE_PAYMENT_OPTIONS);
@@ -59,6 +71,8 @@ export const createAdminQuoteSchema = z.object({
   longitude: z.number().min(-180).max(180).nullable().optional(),
   tyreSize: nullableText(20),
   quantity: z.number().int().min(1).max(10).optional(),
+  tyreLines: z.array(adminQuoteTyreLineSchema).max(6).optional(),
+  items: z.array(adminQuoteTyreLineSchema).max(6).optional(),
   lockingWheelNutStatus: nullableText(50),
   lockingWheelNutChargePence: z.number().int().min(0).max(MAX_LOCKING_NUT_CHARGE_PENCE).nullable().optional(),
   priceAmount: z.number().int().min(0).max(MAX_PRICE_AMOUNT_PENCE).optional(),
@@ -78,6 +92,8 @@ export const updateAdminQuoteSchema = z.object({
   longitude: z.number().min(-180).max(180).nullable().optional(),
   tyreSize: nullableText(20),
   quantity: z.number().int().min(1).max(10).optional(),
+  tyreLines: z.array(adminQuoteTyreLineSchema).max(6).optional(),
+  items: z.array(adminQuoteTyreLineSchema).max(6).optional(),
   lockingWheelNutStatus: nullableText(50),
   lockingWheelNutChargePence: z.number().int().min(0).max(MAX_LOCKING_NUT_CHARGE_PENCE).nullable().optional(),
   priceAmount: z.number().int().min(0).max(MAX_PRICE_AMOUNT_PENCE).optional(),
@@ -357,6 +373,58 @@ function optionalNumber(value: string | number | null | undefined): number | nul
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizeQuoteTyreLines(input: {
+  tyreLines?: QuickBookTyreLineInput[] | null;
+  items?: QuickBookTyreLineInput[] | null;
+}): QuickBookTyreLineInput[] {
+  const rawLines = Array.isArray(input.tyreLines) && input.tyreLines.length > 0
+    ? input.tyreLines
+    : Array.isArray(input.items)
+    ? input.items
+    : [];
+
+  return rawLines.flatMap((line, index) => {
+    const size = optionalString(line.size);
+    if (!size) return [];
+    return [{
+      id: optionalString(line.id) ?? `tyre-${index + 1}`,
+      size,
+      quantity: Math.max(1, Math.min(10, Math.round(Number(line.quantity) || 1))),
+      brand: optionalString(line.brand),
+      pattern: optionalString(line.pattern),
+      season: optionalString(line.season),
+      source: optionalString(line.source),
+      price: typeof line.price === 'number' && Number.isFinite(line.price) ? line.price : null,
+    }];
+  });
+}
+
+function quickBookingTyreLines(quickBooking: QuickBooking | null): QuickBookTyreLineInput[] {
+  if (!quickBooking) return [];
+  const stored = extractQuickBookTyreLineSelections({ priceBreakdown: quickBooking.priceBreakdown });
+  if (stored.length > 0) {
+    return stored.map((line, index) => ({
+      id: line.id || `tyre-${index + 1}`,
+      size: line.normalizedSize ?? line.sizeDisplay ?? line.requestedSize,
+      quantity: line.quantity,
+      brand: line.brand,
+      pattern: line.pattern,
+      price: line.unitPrice,
+    }));
+  }
+
+  if (!quickBooking.tyreSize) return [];
+  return [{
+    id: 'tyre-1',
+    size: quickBooking.tyreSize,
+    quantity: quickBooking.tyreCount ?? 1,
+  }];
+}
+
+function totalTyreLineQuantity(lines: QuickBookTyreLineInput[]): number {
+  return lines.reduce((sum, line) => sum + Math.max(1, Math.min(10, Math.round(Number(line.quantity) || 1))), 0);
+}
+
 async function findQuickBooking(quickBookingId: string | null | undefined): Promise<QuickBooking | null> {
   if (!quickBookingId) return null;
   const [row] = await db
@@ -381,15 +449,19 @@ async function calculateQuotePrice(input: QuotePricingInput, quickBooking: Quick
   address: string | null;
   postcode: string | null;
 }> {
-  const quantity = input.quantity ?? quickBooking?.tyreCount ?? 1;
-  const tyreSize = optionalString(input.tyreSize) ?? quickBooking?.tyreSize ?? null;
+  const explicitTyreLines = normalizeQuoteTyreLines(input);
+  const storedTyreLines = quickBookingTyreLines(quickBooking);
+  const tyreLines = explicitTyreLines.length > 0 ? explicitTyreLines : storedTyreLines;
+  const lineQuantity = totalTyreLineQuantity(tyreLines);
+  const quantity = lineQuantity || (input.quantity ?? quickBooking?.tyreCount ?? 1);
+  const tyreSize = optionalString(input.tyreSize) ?? optionalString(tyreLines[0]?.size) ?? quickBooking?.tyreSize ?? null;
   const latitude = input.latitude ?? optionalNumber(quickBooking?.locationLat);
   const longitude = input.longitude ?? optionalNumber(quickBooking?.locationLng);
   const address = optionalString(input.address) ?? quickBooking?.locationAddress ?? null;
   const postcode = optionalString(input.postcode) ?? quickBooking?.locationPostcode ?? null;
   const lockingWheelNutChargePence = input.lockingWheelNutChargePence ?? 0;
 
-  const canCalculate = Boolean(tyreSize && (quickBooking || (latitude != null && longitude != null)));
+  const canCalculate = Boolean((tyreLines.length > 0 || tyreSize) && (quickBooking || (latitude != null && longitude != null)));
 
   if (!canCalculate) {
     if (input.priceAmount === undefined) {
@@ -413,7 +485,10 @@ async function calculateQuotePrice(input: QuotePricingInput, quickBooking: Quick
     distanceKm = distanceResultToKm(distanceResult);
   }
 
-  const selectedTyreSnapshot = quickBooking
+  const selectedTyreLineSnapshots = quickBooking && explicitTyreLines.length === 0
+    ? extractQuickBookTyreLineSelections({ priceBreakdown: quickBooking.priceBreakdown })
+    : [];
+  const selectedTyreSnapshot = quickBooking && selectedTyreLineSnapshots.length === 0
     ? extractQuickBookTyreSnapshot({
         selectedTyreProductId: quickBooking.selectedTyreProductId,
         selectedTyreUnitPrice: quickBooking.selectedTyreUnitPrice,
@@ -422,18 +497,26 @@ async function calculateQuotePrice(input: QuotePricingInput, quickBooking: Quick
         selectedTyreSizeDisplay: quickBooking.tyreSize,
       })
     : null;
+  const quickBreakdown = quickBooking?.priceBreakdown as Record<string, unknown> | null | undefined;
+  const adminDistanceLimitMiles =
+    typeof quickBreakdown?.adminDistanceLimitMiles === 'number' && Number.isFinite(quickBreakdown.adminDistanceLimitMiles)
+      ? quickBreakdown.adminDistanceLimitMiles
+      : undefined;
 
   try {
     const priced = await calculateQuickBookPricing({
       serviceType,
       tyreSize,
       tyreCount: quantity,
+      tyreLines,
       distanceMiles: (distanceKm ?? 5) * 0.621371,
       selectedTyreSnapshot,
-      resolveTyreFromSize: !selectedTyreSnapshot,
+      selectedTyreSnapshots: selectedTyreLineSnapshots,
+      resolveTyreFromSize: selectedTyreLineSnapshots.length === 0 && !selectedTyreSnapshot,
       requireTyreForFit: serviceType === 'fit' && Boolean(tyreSize),
       adminAdjustmentAmount: lockingWheelNutChargePence / 100,
       adminAdjustmentReason: lockingWheelNutChargePence > 0 ? 'Locking wheel nut removal' : null,
+      adminDistanceLimitMiles,
       pricingContext: 'manual_quote',
     });
 

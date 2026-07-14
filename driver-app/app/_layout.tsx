@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
+import { AppState, Linking, type AppStateStatus } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -22,6 +22,7 @@ import {
   fireLocalCriticalNotification,
   DRIVER_JOBS_URGENT_CHANNEL_ID,
   JOBS_UPCOMING_CHANNEL_ID,
+  NOTIFICATION_ACTION_CALL_CUSTOMER,
 } from '@/services/notifications';
 import { initOfflineQueue } from '@/services/offline-queue';
 import { preloadSounds, playSound, loadSoundConfig, stopAlertSound } from '@/services/sound';
@@ -59,8 +60,21 @@ function normalizeNotificationPayload(data: Record<string, unknown> | undefined)
   ref: string | null;
   conversationId: string | null;
   isJobAlert: boolean;
+  customerPhone: string | null;
+  paymentStatus: string | null;
+  address: string | null;
 } {
-  if (!data) return { type: null, ref: null, conversationId: null, isJobAlert: false };
+  if (!data) {
+    return {
+      type: null,
+      ref: null,
+      conversationId: null,
+      isJobAlert: false,
+      customerPhone: null,
+      paymentStatus: null,
+      address: null,
+    };
+  }
   const type = (typeof data.type === 'string' ? data.type : null);
   const ref =
     (typeof data.ref === 'string' && data.ref) ||
@@ -69,7 +83,55 @@ function normalizeNotificationPayload(data: Record<string, unknown> | undefined)
     null;
   const conversationId =
     (typeof data.conversationId === 'string' && data.conversationId) || null;
-  return { type, ref, conversationId, isJobAlert: !!type && JOB_TYPES.has(type) };
+  const customerPhone =
+    (typeof data.customerPhone === 'string' && data.customerPhone) || null;
+  const paymentStatus =
+    (typeof data.paymentStatus === 'string' && data.paymentStatus) || null;
+  const address =
+    (typeof data.address === 'string' && data.address) ||
+    (typeof data.location === 'string' && data.location) ||
+    null;
+  return {
+    type,
+    ref,
+    conversationId,
+    isJobAlert: !!type && JOB_TYPES.has(type),
+    customerPhone,
+    paymentStatus,
+    address,
+  };
+}
+
+function jobPathForNotificationAction(ref: string): `/(tabs)/jobs/${string}/route` {
+  return `/(tabs)/jobs/${ref}/route`;
+}
+
+function cleanPhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const hasPlus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/[^\d]/g, '');
+  if (digits.length < 5) return null;
+  return `${hasPlus ? '+' : ''}${digits}`;
+}
+
+function handleJobNotificationAction(
+  ref: string,
+  actionIdentifier: string,
+  customerPhone: string | null,
+  router: ReturnType<typeof useRouter>,
+): void {
+  if (actionIdentifier === NOTIFICATION_ACTION_CALL_CUSTOMER) {
+    const phone = cleanPhone(customerPhone);
+    if (phone) {
+      void Linking.openURL(`tel:${phone}`).catch(() => {
+        router.push(`/(tabs)/jobs/${ref}`);
+      });
+      return;
+    }
+  }
+  router.push(jobPathForNotificationAction(ref));
 }
 
 function RootNavigator({ onReady }: { onReady: () => void }) {
@@ -134,7 +196,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     // The native notification (with channel sound) is also shown by the system —
     // we play in-app sound as a supplement but the channel sound is the primary mechanism.
     notifReceivedRef.current = addNotificationReceivedListener((notification) => {
-      const { type, ref, isJobAlert } = normalizeNotificationPayload(
+      const { type, ref, isJobAlert, customerPhone, paymentStatus, address } = normalizeNotificationPayload(
         notification.request.content.data as Record<string, unknown>,
       );
 
@@ -159,8 +221,10 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
           showJobAlert({
             ref,
             title: notification.request.content.title ?? '',
-            body: notification.request.content.body ?? '',
+            body: address ?? notification.request.content.body ?? '',
             alertType: toAlertType(type),
+            customerPhone,
+            paymentLabel: paymentStatus ? `Payment: ${paymentStatus.replace(/_/g, ' ')}` : null,
           });
         }
       } else if (type === 'chat_message') {
@@ -173,13 +237,13 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
       const nid = response.notification.request.identifier;
       if (handledNotifIds.current.has(nid)) return;
       handledNotifIds.current.add(nid);
-      const { ref, isJobAlert, type, conversationId } = normalizeNotificationPayload(
+      const { ref, isJobAlert, type, conversationId, customerPhone } = normalizeNotificationPayload(
         response.notification.request.content.data as Record<string, unknown>,
       );
       if (isJobAlert && ref) {
         stopAlertSound();
         markAlerted(ref, toSoundEvent(type));
-        router.push(`/(tabs)/jobs/${ref}`);
+        handleJobNotificationAction(ref, response.actionIdentifier, customerPhone, router);
       } else if (type === 'chat_message' && conversationId) {
         router.push(`/(tabs)/chat/${conversationId}`);
       }
@@ -191,13 +255,13 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
       const nid = response.notification.request.identifier;
       if (handledNotifIds.current.has(nid)) return;
       handledNotifIds.current.add(nid);
-      const { ref, isJobAlert, type, conversationId } = normalizeNotificationPayload(
+      const { ref, isJobAlert, type, conversationId, customerPhone } = normalizeNotificationPayload(
         response.notification.request.content.data as Record<string, unknown>,
       );
       if (isJobAlert && ref) {
         stopAlertSound();
         markAlerted(ref, toSoundEvent(type));
-        router.push(`/(tabs)/jobs/${ref}`);
+        handleJobNotificationAction(ref, response.actionIdentifier, customerPhone, router);
       } else if (type === 'chat_message' && conversationId) {
         router.push(`/(tabs)/chat/${conversationId}`);
       }

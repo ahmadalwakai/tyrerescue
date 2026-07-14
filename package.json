@@ -20,6 +20,7 @@
     "seed:cookies": "dotenv -e .env.local -- tsx scripts/seed-cookie-settings.ts",
     "seed:stock": "dotenv -e .env.local -- tsx scripts/seed-from-excel.ts",
     "seed:hero": "dotenv -e .env.local -- tsx scripts/seed-hero-media.ts",
+    "appstore:screenshots": "tsx scripts/app-store-screenshots/generate.ts",
     "analytics:backfill-keywords": "dotenv -e .env.local -- tsx scripts/backfill-search-keywords.ts",
     "admin:list": "dotenv -e .env.local -- tsx scripts/admin-user.ts --list",
     "admin:create": "dotenv -e .env.local -- tsx scripts/admin-user.ts"

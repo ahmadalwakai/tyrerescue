@@ -1,8 +1,21 @@
 import { NextResponse } from 'next/server';
-import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
-import { db, users, drivers } from '@/lib/db';
+import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { db, users, drivers, bookings } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
 import { getMobileAdminUser, parsePageParams, unauthorizedResponse } from '@/app/api/mobile/admin/_lib';
+import { haversineDistanceMiles } from '@/lib/mapbox';
+import { GARAGE_LOCATION } from '@/lib/garage';
+import {
+  ACTIVE_DRIVER_SITUATION_STATUSES,
+  calculateDriverSituation,
+  estimateUrbanDriveMinutesFromMiles,
+} from '@/lib/admin/driverSituation';
+
+function toNumber(value: string | number | null | undefined): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 
 export async function GET(request: Request) {
   const admin = await getMobileAdminUser(request);
@@ -53,15 +66,78 @@ export async function GET(request: Request) {
   ]);
 
   const totalCount = Number(countRows[0]?.count || 0);
+  const activeBookings = await db
+    .select({
+      driverId: bookings.driverId,
+      refNumber: bookings.refNumber,
+      status: bookings.status,
+      serviceType: bookings.serviceType,
+      quantity: bookings.quantity,
+      paymentType: bookings.paymentType,
+      customerLat: bookings.lat,
+      customerLng: bookings.lng,
+    })
+    .from(bookings)
+    .where(inArray(bookings.status, [...ACTIVE_DRIVER_SITUATION_STATUSES]));
+  const activeBookingByDriver = new Map(
+    activeBookings
+      .filter((booking) => booking.driverId)
+      .map((booking) => [booking.driverId!, booking]),
+  );
 
   return NextResponse.json({
-    items: rows.map((driver) => ({
-      ...driver,
-      currentLat: driver.currentLat?.toString() ?? null,
-      currentLng: driver.currentLng?.toString() ?? null,
-      locationAt: driver.locationAt?.toISOString() ?? null,
-      createdAt: driver.createdAt?.toISOString() ?? null,
-    })),
+    items: rows.map((driver) => {
+      const activeBooking = activeBookingByDriver.get(driver.id) ?? null;
+      const customerLat = toNumber(activeBooking?.customerLat);
+      const customerLng = toNumber(activeBooking?.customerLng);
+      const driverLat = toNumber(driver.currentLat);
+      const driverLng = toNumber(driver.currentLng);
+      const outboundMinutes =
+        activeBooking && customerLat != null && customerLng != null && driverLat != null && driverLng != null
+          ? estimateUrbanDriveMinutesFromMiles(
+              haversineDistanceMiles(
+                { lat: driverLat, lng: driverLng },
+                { lat: customerLat, lng: customerLng },
+              ),
+            )
+          : null;
+      const returnMinutes =
+        activeBooking && customerLat != null && customerLng != null
+          ? estimateUrbanDriveMinutesFromMiles(
+              haversineDistanceMiles(
+                { lat: customerLat, lng: customerLng },
+                { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+              ),
+            )
+          : null;
+
+      return {
+        ...driver,
+        currentLat: driver.currentLat?.toString() ?? null,
+        currentLng: driver.currentLng?.toString() ?? null,
+        locationAt: driver.locationAt?.toISOString() ?? null,
+        createdAt: driver.createdAt?.toISOString() ?? null,
+        activeJobRef: activeBooking?.refNumber ?? null,
+        driverSituation: activeBooking
+          ? calculateDriverSituation({
+              jobRef: activeBooking.refNumber,
+              driverId: driver.id,
+              bookingStatus: activeBooking.status,
+              driverIsOnline: driver.isOnline ?? false,
+              driverStatus: driver.status ?? null,
+              lastLocationAt: driver.locationAt ?? null,
+              outboundMinutes,
+              returnMinutes,
+              serviceType: activeBooking.serviceType,
+              tyreCount: activeBooking.quantity,
+              paymentStatus: activeBooking.paymentType,
+              returnEstimateAvailable: returnMinutes != null,
+              routeAvailable: outboundMinutes != null,
+              garageConfigured: true,
+            })
+          : null,
+      };
+    }),
     page,
     perPage,
     totalCount,

@@ -12,6 +12,12 @@ import { createAdminNotification } from '@/lib/notifications';
 import { validateScheduledSlotForBooking } from '@/lib/availability';
 import { getBookingPaymentSummary, recordPaymentEvent } from '@/lib/payments/payment-summary';
 import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
+import { haversineDistanceMiles } from '@/lib/mapbox';
+import { GARAGE_LOCATION } from '@/lib/garage';
+import {
+  calculateDriverSituation,
+  estimateUrbanDriveMinutesFromMiles,
+} from '@/lib/admin/driverSituation';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -28,6 +34,12 @@ const RESTRICTED_AFTER_ACCEPT = new Set([
 const TERMINAL_STATUSES = new Set([
   'completed', 'cancelled', 'refunded', 'refunded_partial', 'cancelled_refund_pending',
 ]);
+
+function toNumber(value: string | number | null | undefined): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 
 type EditableSnapshotLineItem = {
   label: string;
@@ -533,12 +545,22 @@ export async function GET(request: NextRequest, { params }: Props) {
         phone: users.phone,
         isOnline: drivers.isOnline,
         status: drivers.status,
+        currentLat: drivers.currentLat,
+        currentLng: drivers.currentLng,
+        locationAt: drivers.locationAt,
       })
       .from(drivers)
       .innerJoin(users, eq(drivers.userId, users.id))
       .where(eq(drivers.id, booking.driverId))
       .limit(1);
-    assignedDriver = driver ?? null;
+    assignedDriver = driver
+      ? {
+          ...driver,
+          currentLat: driver.currentLat?.toString() ?? null,
+          currentLng: driver.currentLng?.toString() ?? null,
+          locationAt: driver.locationAt?.toISOString() ?? null,
+        }
+      : null;
   }
 
   const paymentSummary = await getBookingPaymentSummary({
@@ -554,6 +576,45 @@ export async function GET(request: NextRequest, { params }: Props) {
     depositPaidAt: booking.depositPaidAt,
     stripePiId: booking.stripePiId,
     stripeDepositPiId: booking.stripeDepositPiId,
+  });
+
+  const customerLat = toNumber(booking.lat);
+  const customerLng = toNumber(booking.lng);
+  const driverLat = toNumber(assignedDriver?.currentLat);
+  const driverLng = toNumber(assignedDriver?.currentLng);
+  const outboundMinutes =
+    customerLat != null && customerLng != null && driverLat != null && driverLng != null
+      ? estimateUrbanDriveMinutesFromMiles(
+          haversineDistanceMiles(
+            { lat: driverLat, lng: driverLng },
+            { lat: customerLat, lng: customerLng },
+          ),
+        )
+      : null;
+  const returnMinutes =
+    customerLat != null && customerLng != null
+      ? estimateUrbanDriveMinutesFromMiles(
+          haversineDistanceMiles(
+            { lat: customerLat, lng: customerLng },
+            { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+          ),
+        )
+      : null;
+  const driverSituation = calculateDriverSituation({
+    jobRef: booking.refNumber,
+    driverId: booking.driverId ?? null,
+    bookingStatus: booking.status,
+    driverIsOnline: assignedDriver?.isOnline ?? false,
+    driverStatus: assignedDriver?.status ?? null,
+    lastLocationAt: assignedDriver?.locationAt ?? null,
+    outboundMinutes,
+    returnMinutes,
+    serviceType: booking.serviceType,
+    tyreCount: booking.quantity,
+    paymentStatus: booking.paymentType,
+    returnEstimateAvailable: returnMinutes != null,
+    routeAvailable: outboundMinutes != null,
+    garageConfigured: true,
   });
 
   return NextResponse.json({
@@ -624,6 +685,7 @@ export async function GET(request: NextRequest, { params }: Props) {
     })),
     assignedDriver,
     paymentSummary,
+    driverSituation,
   });
 }
 

@@ -9,12 +9,10 @@ import {
   Alert,
   Linking,
   ActivityIndicator,
-  Modal,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
 import { driverApi, JobDetail, ApiError, chatApi, PaymentSummary } from '@/api/client';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -25,7 +23,10 @@ import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { mediumHaptic, heavyHaptic, errorHaptic } from '@/services/haptics';
 import { playSound, stopAlertSound } from '@/services/sound';
 import { clearAlertedRef } from '@/services/job-alert';
-import { ACTIVE_BOOKING_REF_KEY } from '@/services/background-location';
+import {
+  ACTIVE_BOOKING_REF_KEY,
+  armBackgroundLocationForJob,
+} from '@/services/background-location';
 import * as secureStorage from '@/services/secure-storage';
 import { useI18n } from '@/i18n';
 import { getDriverPaymentDisplay, paymentToneColors } from '@/lib/payment-status';
@@ -261,8 +262,6 @@ export default function JobDetailScreen() {
   const [sendingAdminIssue, setSendingAdminIssue] = useState<string | null>(null);
   const quickMsgLockRef = useRef(false);
   const adminIssueLockRef = useRef(false);
-  // Controls the "confirm tyre size" modal shown before the in-app route opens.
-  const [showTyreConfirm, setShowTyreConfirm] = useState(false);
   // Single-flight guard for opening the in-app route map so a double-tap
   // cannot push the route screen twice onto the navigation stack.
   const navLockRef = useRef(false);
@@ -424,32 +423,45 @@ export default function JobDetailScreen() {
     }, 800);
   };
 
-  // "Start in-app route" must confirm the correct tyre size first. Viewing job
-  // details is never blocked — only starting the in-app route.
+  // Opening the in-app route is intentionally one tap. The route screen shows
+  // tyre/payment/address context without blocking the driver behind another
+  // modal before they can see where to go.
   const requestStartRoute = () => {
-    if (navLockRef.current) return;
-    if (tyreSizeSummary == null) {
-      errorHaptic();
-      Alert.alert(t('jobDetail.tyreSizeMissingTitle'), t('jobDetail.tyreSizeMissing'));
-      return;
-    }
-    setShowTyreConfirm(true);
-  };
-
-  const confirmStartRoute = () => {
-    setShowTyreConfirm(false);
     openRoute();
   };
 
-  const openNavigation = () => {
+  const prepareExternalNavigationTracking = useCallback(async () => {
+    if (!ref) return false;
+    const ready = await armBackgroundLocationForJob(ref);
+    if (!ready) {
+      Alert.alert(
+        t('route.externalTrackingRequiredTitle'),
+        t('route.externalTrackingRequiredBody'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('common.openSettings'),
+            onPress: () => { void Linking.openSettings(); },
+          },
+        ],
+      );
+    }
+    return ready;
+  }, [ref, t]);
+
+  const openNavigation = async () => {
     if (!job?.lat || !job?.lng || extNavLockRef.current) return;
     extNavLockRef.current = true;
     const url = `https://www.google.com/maps/dir/?api=1&destination=${job.lat},${job.lng}`;
-    Linking.openURL(url).finally(() => {
+    try {
+      const trackingReady = await prepareExternalNavigationTracking();
+      if (!trackingReady) return;
+      await Linking.openURL(url).catch(() => {});
+    } finally {
       setTimeout(() => {
         extNavLockRef.current = false;
       }, 800);
-    });
+    }
   };
 
   const handleReject = async () => {
@@ -765,27 +777,15 @@ export default function JobDetailScreen() {
 
       {/* Actions */}
       {job.status === 'driver_assigned' && (
-        <Animated.View entering={FadeInDown.duration(300)} style={styles.actionRow}>
-          <AnimatedPressable
-            style={[styles.actionButton, styles.acceptButton, actioning && styles.buttonDisabled]}
-            onPress={() => handleStatusAction(DRIVER_ACTIONS.driver_assigned.next)}
-            disabled={actioning}
-            pressScale={0.95}
-          >
-            <Text style={styles.actionButtonText}>
-              {actioning ? t('common.updating') : DRIVER_ACTIONS.driver_assigned.label}
-            </Text>
-          </AnimatedPressable>
-          <AnimatedPressable
-            style={[styles.actionButton, styles.rejectButton, actioning && styles.buttonDisabled]}
-            onPress={handleReject}
-            disabled={actioning}
-            pressScale={0.95}
-          >
-            <Ionicons name="close-circle-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.actionButtonText}>{t('jobDetail.reject')}</Text>
-          </AnimatedPressable>
-        </Animated.View>
+        <AnimatedPressable
+          style={[styles.actionButton, styles.rejectButton, styles.rejectOnlyButton, actioning && styles.buttonDisabled]}
+          onPress={handleReject}
+          disabled={actioning}
+          pressScale={0.95}
+        >
+          <Ionicons name="close-circle-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.actionButtonText}>{t('jobDetail.reject')}</Text>
+        </AnimatedPressable>
       )}
 
       {action && job.status !== 'driver_assigned' && (
@@ -824,44 +824,6 @@ export default function JobDetailScreen() {
       )}
     </ScrollView>
 
-      {/* Confirm tyre size before starting the in-app route. */}
-      <Modal
-        visible={showTyreConfirm}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowTyreConfirm(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('jobDetail.confirmTyreTitle')}</Text>
-            <Text style={styles.modalMessage}>{t('jobDetail.confirmTyreMessage')}</Text>
-            <View style={styles.modalTyreRow}>
-              <Ionicons name="disc-outline" size={18} color={colors.accent} />
-              <Text style={styles.modalTyreText}>
-                {t('jobDetail.confirmTyreRequired', { summary: tyreSizeSummary ?? '' })}
-              </Text>
-            </View>
-            <View style={styles.modalActions}>
-              <Pressable
-                style={[styles.modalButton, styles.modalButtonSecondary]}
-                onPress={() => setShowTyreConfirm(false)}
-              >
-                <Text style={styles.modalButtonSecondaryText}>
-                  {t('jobDetail.confirmTyreGoBack')}
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.modalButton, styles.modalButtonPrimary]}
-                onPress={confirmStartRoute}
-              >
-                <Text style={styles.modalButtonPrimaryText}>
-                  {t('jobDetail.confirmTyreStart')}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </>
   );
 }
@@ -1109,6 +1071,9 @@ const styles = StyleSheet.create({
   rejectButton: {
     flex: 1,
     backgroundColor: '#7f1d1d',
+  },
+  rejectOnlyButton: {
+    marginBottom: spacing.sm,
   },
   buttonDisabled: {
     opacity: 0.6,

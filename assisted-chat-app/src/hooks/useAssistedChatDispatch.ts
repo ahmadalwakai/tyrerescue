@@ -1,6 +1,14 @@
 import { useCallback, useRef, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
-import { ASSISTED_CHAT_PRICING_CONTEXT } from '@/lib/pricing-context';
+import {
+  ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
+  ASSISTED_CHAT_PRICING_CONTEXT,
+} from '@/lib/pricing-context';
+import {
+  buildBookingTyreLinePayload,
+  primaryBookingTyreLine,
+  totalBookingTyreQuantity,
+} from '@/lib/assisted-chat-workflow';
 import type {
   AssistedChatDraft,
   AssistedChatPaymentChoice,
@@ -38,6 +46,7 @@ function quoteFromQuickBookPatch(
     fittingPrice: breakdown.fittingPrice ?? null,
     tyrePrice: breakdown.tyrePrice ?? null,
     totalPrice: breakdown.totalPrice ?? null,
+    tyreLines: breakdown.tyreLines ?? undefined,
     adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
     adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
     serviceOrigin: breakdown.serviceOrigin ?? null,
@@ -119,14 +128,27 @@ export function useAssistedChatDispatch({
           adjustmentAmount = lockingNutCharge;
           adjustmentReason = LOCKING_NUT_REASON;
         }
+        const primaryTyre = primaryBookingTyreLine(draft);
+        const tyreLines = buildBookingTyreLinePayload(draft.tyreLines);
+        const customerName = draft.customer.name.trim();
+        const customerPhone = draft.customer.phone.trim();
 
         // Always sync the quick-book row before finalize. This clears stale
         // hidden admin adjustments that can survive a page reload and make
         // Stripe see a different amount than the operator sees.
         const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${draft.quickBookingId}`, {
+          ...(customerName ? { customerName } : {}),
+          ...(customerPhone ? { customerPhone } : {}),
+          locationAddress: draft.location.address || null,
+          locationPostcode: draft.location.postcode || null,
+          tyreSize: primaryTyre.size,
+          tyreCount: totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
+          tyreLines,
+          items: tyreLines,
           adminAdjustmentAmount: adjustmentAmount,
           adminAdjustmentReason: adjustmentReason,
           pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+          adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
         });
         canonicalQuote = quoteFromQuickBookPatch(patched.booking.priceBreakdown, patched.booking.distanceKm);
         update({ quote: canonicalQuote, priceNeedsRefresh: false });
@@ -148,6 +170,8 @@ export function useAssistedChatDispatch({
         const response = await api.post<FinalizeResponse>(`/api/admin/quick-book/${draft.quickBookingId}/finalize`, {
           paymentMethod,
           customerEmailMode: draft.customerEmailMode,
+          tyreLines,
+          items: tyreLines,
           ...(choice === 'deposit' ? { depositPercent: DEPOSIT_PERCENT } : {}),
         });
 
@@ -198,6 +222,7 @@ export function useAssistedChatDispatch({
                 fittingPrice: response.breakdown.fittingPrice ?? canonicalQuote.fittingPrice ?? null,
                 tyrePrice: response.breakdown.tyrePrice ?? canonicalQuote.tyrePrice ?? null,
                 totalPrice: response.breakdown.totalPrice ?? canonicalQuote.totalPrice ?? null,
+                tyreLines: response.breakdown.tyreLines ?? canonicalQuote.tyreLines ?? undefined,
                 adminAdjustmentAmount: response.breakdown.adminAdjustmentAmount ?? canonicalQuote.adminAdjustmentAmount ?? null,
                 adminAdjustmentReason: response.breakdown.adminAdjustmentReason ?? canonicalQuote.adminAdjustmentReason ?? null,
               }

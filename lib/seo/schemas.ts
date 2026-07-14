@@ -6,7 +6,6 @@
 import { SERVICE_PRICING, PRICE_RANGE_DISPLAY } from '@/lib/pricing';
 
 const DEFAULT_BASE_URL = 'https://www.tyrerescue.uk';
-const SITE_URL = DEFAULT_BASE_URL;
 const PHONE = '+441412660690';
 const EMAIL = 'support@tyrerescue.uk';
 
@@ -290,9 +289,11 @@ export function getEmergencyServiceSchema(baseUrl: string = DEFAULT_BASE_URL) {
 /*  FAQPage — reusable for any page with FAQ content                  */
 /* ------------------------------------------------------------------ */
 export function getFAQSchema(
-  faqs: { question: string; answer: string }[],
+  faqs: readonly { question: string; answer: string }[],
   _baseUrl?: string,
 ) {
+  void _baseUrl;
+
   return {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',

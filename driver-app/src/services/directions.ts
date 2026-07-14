@@ -17,6 +17,12 @@ const MAPBOX_DIRECTIONS_URL =
 const REQUEST_TIMEOUT_MS = 10_000;
 /** Maximum number of routes (primary + alternatives) surfaced to the driver. */
 const MAX_ROUTES = 3;
+// Mirrors the canonical root `lib/garage.ts` GARAGE_LOCATION
+// (3, 10 Gateside St, Glasgow G31 1PD). Keep in sync if that source changes.
+export const GARAGE_LOCATION: Coordinates = {
+  lat: 55.8547,
+  lng: -4.2206,
+};
 
 function getToken(): string {
   return (process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? '').trim();
@@ -68,12 +74,27 @@ export interface DirectionsRoute {
   geometry: LngLat[];
   distanceMeters: number;
   durationSeconds: number;
+  /**
+   * Mapbox `duration` from the driving-traffic profile, when traffic-aware
+   * comparison is possible. Kept nullable so callers never fake traffic.
+   */
+  trafficDurationSeconds: number | null;
+  /**
+   * Mapbox `duration_typical`, when returned. Used only to calculate traffic
+   * delay; absent data is surfaced as unavailable, not guessed.
+   */
+  typicalDurationSeconds: number | null;
   steps: RouteStep[];
   /**
    * Per-segment congestion (length = geometry.length - 1) when Mapbox returns
    * real annotation data, otherwise null. Never synthesised.
    */
   congestion: CongestionLevel[] | null;
+  roadClasses: {
+    motorways: boolean;
+    tolls: boolean;
+    ferries: boolean;
+  };
   /**
    * The coordinate Mapbox snapped the destination waypoint to (the true route
    * endpoint). May differ from the customer pin by a few metres when the
@@ -159,6 +180,7 @@ interface MapboxStep {
   name?: string;
   driving_side?: string;
   maneuver: MapboxManeuver;
+  intersections?: { classes?: string[] }[];
 }
 
 interface MapboxAnnotation {
@@ -174,6 +196,7 @@ interface MapboxLeg {
 interface MapboxRoute {
   distance: number;
   duration: number;
+  duration_typical?: number;
   geometry: { coordinates: [number, number][] };
   legs?: MapboxLeg[];
 }
@@ -188,6 +211,17 @@ interface MapboxDirectionsResponse {
   routes?: MapboxRoute[];
   waypoints?: MapboxWaypoint[];
 }
+
+export type RouteAvoidOptions = {
+  motorways?: boolean;
+  tolls?: boolean;
+  ferries?: boolean;
+};
+
+export type FetchDirectionsOptions = {
+  language?: 'en' | 'ar';
+  avoid?: RouteAvoidOptions;
+};
 
 // ── Validation ─────────────────────────────────────────────────────────────
 
@@ -484,6 +518,41 @@ function parseCongestion(leg: MapboxLeg | undefined): CongestionLevel[] | null {
   return null;
 }
 
+function stepClassSet(step: MapboxStep): Set<string> {
+  const classes = new Set<string>();
+  for (const intersection of step.intersections ?? []) {
+    for (const cls of intersection.classes ?? []) {
+      if (typeof cls === 'string' && cls.trim()) {
+        classes.add(cls.trim().toLowerCase());
+      }
+    }
+  }
+  const name = `${step.name ?? ''} ${step.maneuver?.instruction ?? ''}`;
+  if (/\bM\d+\b/i.test(name) || /\b[A-Z]?\d+\(M\)\b/i.test(name)) {
+    classes.add('motorway');
+  }
+  if (/\btoll\b/i.test(name)) classes.add('toll');
+  if (/\bferry\b/i.test(name)) classes.add('ferry');
+  return classes;
+}
+
+function parseRoadClasses(legs: MapboxLeg[] | undefined): DirectionsRoute['roadClasses'] {
+  const roadClasses = {
+    motorways: false,
+    tolls: false,
+    ferries: false,
+  };
+  for (const leg of legs ?? []) {
+    for (const step of leg.steps ?? []) {
+      const classes = stepClassSet(step);
+      if (classes.has('motorway')) roadClasses.motorways = true;
+      if (classes.has('toll')) roadClasses.tolls = true;
+      if (classes.has('ferry')) roadClasses.ferries = true;
+    }
+  }
+  return roadClasses;
+}
+
 function parseRoute(raw: MapboxRoute, destinationSnap: LngLat | null): DirectionsRoute {
   const coords = Array.isArray(raw.geometry?.coordinates)
     ? raw.geometry.coordinates.filter(
@@ -526,8 +595,16 @@ function parseRoute(raw: MapboxRoute, destinationSnap: LngLat | null): Direction
     geometry: coords,
     distanceMeters: Number.isFinite(raw.distance) ? raw.distance : 0,
     durationSeconds: Number.isFinite(raw.duration) ? raw.duration : 0,
+    trafficDurationSeconds:
+      Number.isFinite(raw.duration) && Number.isFinite(raw.duration_typical)
+        ? raw.duration
+        : null,
+    typicalDurationSeconds: Number.isFinite(raw.duration_typical)
+      ? raw.duration_typical ?? null
+      : null,
     steps,
     congestion: parseCongestion(raw.legs?.[0]),
+    roadClasses: parseRoadClasses(raw.legs),
     destinationSnap,
   };
 }
@@ -544,6 +621,7 @@ export async function fetchDirections(
   destination: Coordinates,
   externalSignal?: AbortSignal,
   language: 'en' | 'ar' = 'en',
+  options: FetchDirectionsOptions = {},
 ): Promise<FetchDirectionsResult> {
   const token = getToken();
   if (!token) {
@@ -562,6 +640,13 @@ export async function fetchDirections(
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   const coords = `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
+  const avoid = options.avoid ?? {};
+  const excludes = [
+    avoid.motorways ? 'motorway' : null,
+    avoid.tolls ? 'toll' : null,
+    avoid.ferries ? 'ferry' : null,
+  ].filter((value): value is string => value != null);
+
   const params = new URLSearchParams({
     geometries: 'geojson',
     steps: 'true',
@@ -570,9 +655,10 @@ export async function fetchDirections(
     // `congestion` (and the finer `congestion_numeric`) require the
     // driving-traffic profile and overview=full to align with the geometry.
     annotations: 'congestion,congestion_numeric,distance,duration,speed',
-    language,
+    language: options.language ?? language,
     access_token: token,
   });
+  if (excludes.length > 0) params.set('exclude', excludes.join(','));
   const url = `${MAPBOX_DIRECTIONS_URL}/${coords}?${params.toString()}`;
 
   try {
@@ -626,6 +712,29 @@ export async function fetchDirections(
     clearTimeout(timeoutId);
     if (externalSignal) externalSignal.removeEventListener('abort', onExternalAbort);
   }
+}
+
+export async function fetchReturnToGarageDirections(
+  customerDestination: Coordinates,
+  externalSignal?: AbortSignal,
+  language: 'en' | 'ar' = 'en',
+  options: FetchDirectionsOptions = {},
+): Promise<FetchDirectionsResult> {
+  if (!isValidCoord(GARAGE_LOCATION)) {
+    return {
+      error: {
+        kind: 'invalid-coords',
+        message: 'Garage location not configured',
+      },
+    };
+  }
+  return fetchDirections(
+    customerDestination,
+    GARAGE_LOCATION,
+    externalSignal,
+    language,
+    options,
+  );
 }
 
 // ── Human-readable guidance ─────────────────────────────────────────────────

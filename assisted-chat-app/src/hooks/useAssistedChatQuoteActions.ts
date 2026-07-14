@@ -3,7 +3,15 @@ import { Linking } from 'react-native';
 import { api, ApiError } from '@/lib/api';
 import { copyToClipboard } from '@/lib/clipboard';
 import { buildWhatsAppUrl } from '@/lib/customer-message';
-import { ASSISTED_CHAT_PRICING_CONTEXT } from '@/lib/pricing-context';
+import {
+  ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
+  ASSISTED_CHAT_PRICING_CONTEXT,
+} from '@/lib/pricing-context';
+import {
+  buildBookingTyreLinePayload,
+  primaryBookingTyreLine,
+  totalBookingTyreQuantity,
+} from '@/lib/assisted-chat-workflow';
 import type {
   AssistedChatDraft,
   AssistedChatPaymentChoice,
@@ -69,6 +77,7 @@ function quoteFromQuickBookPatch(
     fittingPrice: breakdown.fittingPrice ?? null,
     tyrePrice: breakdown.tyrePrice ?? null,
     totalPrice: breakdown.totalPrice ?? null,
+    tyreLines: breakdown.tyreLines ?? undefined,
     adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
     adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
     serviceOrigin: breakdown.serviceOrigin ?? null,
@@ -84,6 +93,8 @@ function getBackendPriceAmountPence(draft: AssistedChatDraft, fallbackTotal: num
 }
 
 function buildQuoteInput(draft: AssistedChatDraft, priceAmountPence: number, lockingNutCharge: number): CreateAdminQuoteInput {
+  const primaryTyre = primaryBookingTyreLine(draft);
+  const tyreLines = buildBookingTyreLinePayload(draft.tyreLines);
   return {
     quickBookingId: draft.quickBookingId,
     customerName: draft.customer.name || null,
@@ -92,8 +103,10 @@ function buildQuoteInput(draft: AssistedChatDraft, priceAmountPence: number, loc
     postcode: draft.location.postcode,
     latitude: draft.location.lat,
     longitude: draft.location.lng,
-    tyreSize: draft.tyre.size || null,
-    quantity: draft.tyre.quantity,
+    tyreSize: primaryTyre.size || null,
+    quantity: totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
+    tyreLines,
+    items: tyreLines,
     lockingWheelNutStatus: draft.lockingNut.answer,
     lockingWheelNutChargePence: Math.round(lockingNutCharge * 100),
     priceAmount: priceAmountPence,
@@ -166,20 +179,21 @@ export function useAssistedChatQuoteActions({
         adjustmentReason = LOCKING_NUT_REASON;
       }
 
-      const needsPatch =
-        Math.round(existingAdjustmentAmount * 100) !== Math.round(adjustmentAmount * 100) ||
-        (draft.quote.adminAdjustmentReason ?? null) !== adjustmentReason;
-
-      if (needsPatch) {
-        const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${draft.quickBookingId}`, {
-          adminAdjustmentAmount: adjustmentAmount,
-          adminAdjustmentReason: adjustmentReason,
-          pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
-        });
-        const quote = quoteFromQuickBookPatch(patched.booking.priceBreakdown, patched.booking.distanceKm);
-        canonicalDraft = { ...draft, quote, priceNeedsRefresh: false };
-        update({ quote, priceNeedsRefresh: false });
-      }
+      const customerName = draft.customer.name.trim();
+      const customerPhone = draft.customer.phone.trim();
+      const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${draft.quickBookingId}`, {
+        ...(customerName ? { customerName } : {}),
+        ...(customerPhone ? { customerPhone } : {}),
+        locationAddress: draft.location.address || null,
+        locationPostcode: draft.location.postcode || null,
+        adminAdjustmentAmount: adjustmentAmount,
+        adminAdjustmentReason: adjustmentReason,
+        pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+        adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
+      });
+      const quote = quoteFromQuickBookPatch(patched.booking.priceBreakdown, patched.booking.distanceKm);
+      canonicalDraft = { ...draft, quote, priceNeedsRefresh: false };
+      update({ quote, priceNeedsRefresh: false });
     }
 
     const input = buildQuoteInput(

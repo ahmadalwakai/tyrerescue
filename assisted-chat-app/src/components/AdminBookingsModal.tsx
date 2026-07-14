@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -149,6 +151,15 @@ const TERMINAL_STATUSES = new Set([
   'completed', 'cancelled', 'refunded', 'refunded_partial', 'cancelled_refund_pending',
 ]);
 
+const ONE_STEP_COMPLETE_STATUSES = new Set([
+  'paid',
+  'deposit_paid',
+  'driver_assigned',
+  'en_route',
+  'arrived',
+  'in_progress',
+]);
+
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All statuses' },
   { value: 'draft', label: 'Draft' },
@@ -191,9 +202,9 @@ const STATUS_COLORS: Record<string, string> = {
   pricing_ready: colors.muted,
   paid: colors.success,
   payment_failed: colors.danger,
-  confirmed: '#93C5FD',
+  confirmed: '#FDBA74',
   assigned: '#C4B5FD',
-  driver_assigned: '#93C5FD',
+  driver_assigned: '#FDBA74',
   en_route: '#FDBA74',
   arrived: '#FDBA74',
   in_progress: colors.accent,
@@ -450,22 +461,44 @@ function BookingDetailView({
     }
   }
 
-  async function handleStatusChange(newStatus: string) {
+  async function handleStatusChange(newStatus: string, noteOverride?: string): Promise<boolean> {
     setActionLoading(true);
     setActionError(null);
     try {
       await api.patch(`/api/mobile/admin/bookings/${encodeURIComponent(refNumber)}`, {
         status: newStatus,
-        note: statusNote.trim() || undefined,
+        note: noteOverride ?? (statusNote.trim() || undefined),
       });
       setStatusNote('');
       setActionSuccess(`Status changed to "${STATUS_LABELS[newStatus] ?? newStatus}"`);
       void load();
+      return true;
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Failed to change status.');
+      return false;
     } finally {
       setActionLoading(false);
     }
+  }
+
+  function handleCompleteOneStep() {
+    if (!data || actionLoading) return;
+    Alert.alert(
+      'Complete Job',
+      `Mark ${data.booking.refNumber} as completed now?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Complete',
+          onPress: () => {
+            void (async () => {
+              const ok = await handleStatusChange('completed', 'Marked completed in one step by mobile admin app');
+              if (ok) Alert.alert('Job Completed', `${data.booking.refNumber} is now completed.`);
+            })();
+          },
+        },
+      ],
+    );
   }
 
   async function handleEdit() {
@@ -560,6 +593,7 @@ function BookingDetailView({
   }
 
   const isTerminal = data ? TERMINAL_STATUSES.has(data.booking.status) : false;
+  const canCompleteOneStep = data ? ONE_STEP_COMPLETE_STATUSES.has(data.booking.status) : false;
   const canRefund = data
     ? !!data.booking.stripePiId && ['paid', 'driver_assigned', 'completed'].includes(data.booking.status)
     : false;
@@ -786,6 +820,22 @@ function BookingDetailView({
     if (isTerminal || !data) return null;
     return (
       <View style={styles.actionBar}>
+        {canCompleteOneStep ? (
+          <Pressable
+            onPress={handleCompleteOneStep}
+            disabled={actionLoading}
+            style={({ pressed }) => [
+              styles.actionChip,
+              styles.actionChipComplete,
+              pressed && styles.actionChipCompletePressed,
+              actionLoading && styles.actionChipDisabled,
+            ]}
+          >
+            <Text style={[styles.actionChipText, styles.actionChipCompleteText]}>
+              {actionLoading ? 'Completing...' : 'Complete Job'}
+            </Text>
+          </Pressable>
+        ) : null}
         <Pressable
           onPress={() => { setStatusNote(''); setActionError(null); setActionSuccess(null); setAction('status'); }}
           style={({ pressed }) => [styles.actionChip, pressed && styles.actionChipPressed]}
@@ -817,18 +867,23 @@ function BookingDetailView({
   }
 
   return (
-    <View style={styles.fullScreen}>
-      {/* Header */}
-      <View style={styles.sheetHeader}>
-        <Pressable
-          onPress={() => { if (action) { setAction(null); } else { onBack(); } }}
-          style={styles.backBtn}
-        >
-          <Text style={styles.backBtnText}>{action ? '← Back' : '← Back'}</Text>
-        </Pressable>
-        <Text style={styles.sheetTitle} numberOfLines={1}>{refNumber}</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+    <KeyboardAvoidingView
+      style={styles.keyboardAvoider}
+      behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
+      <View style={styles.fullScreen}>
+        {/* Header */}
+        <View style={styles.sheetHeader}>
+          <Pressable
+            onPress={() => { if (action) { setAction(null); } else { onBack(); } }}
+            style={styles.backBtn}
+          >
+            <Text style={styles.backBtnText}>{action ? '← Back' : '← Back'}</Text>
+          </Pressable>
+          <Text style={styles.sheetTitle} numberOfLines={1}>{refNumber}</Text>
+          <View style={styles.headerSpacer} />
+        </View>
 
       {loading ? (
         <View style={styles.centeredMessage}>
@@ -1018,7 +1073,8 @@ function BookingDetailView({
           )}
         </>
       ) : null}
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1126,14 +1182,19 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null }
 
   return (
     <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={handleClose}>
-      <View style={styles.fullScreen}>
-        {/* Header */}
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>Bookings</Text>
-          <Pressable onPress={handleClose} style={styles.closeBtn}>
-            <Text style={styles.closeBtnText}>Close</Text>
-          </Pressable>
-        </View>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoider}
+        behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <View style={styles.fullScreen}>
+          {/* Header */}
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>Bookings</Text>
+            <Pressable onPress={handleClose} style={styles.closeBtn}>
+              <Text style={styles.closeBtnText}>Close</Text>
+            </Pressable>
+          </View>
 
         {/* Filters */}
         <View style={styles.filterBox}>
@@ -1277,7 +1338,8 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null }
             <View style={styles.listBottom} />
           </ScrollView>
         )}
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -1285,6 +1347,9 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null }
 // ── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  keyboardAvoider: {
+    flex: 1,
+  },
   fullScreen: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -1741,10 +1806,23 @@ const styles = StyleSheet.create({
   actionChipPressed: {
     backgroundColor: 'rgba(249,115,22,0.12)',
   },
+  actionChipComplete: {
+    backgroundColor: colors.successBg,
+    borderColor: colors.successBorder,
+  },
+  actionChipCompletePressed: {
+    backgroundColor: 'rgba(52,199,89,0.22)',
+  },
+  actionChipDisabled: {
+    opacity: 0.58,
+  },
   actionChipText: {
     color: colors.accent,
     fontSize: fontSize.sm,
     fontWeight: '700',
+  },
+  actionChipCompleteText: {
+    color: colors.success,
   },
   // ── Action sub-view scaffold ──────────────────────────────────────────────
   actionScroll: {

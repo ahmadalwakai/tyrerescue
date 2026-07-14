@@ -11,6 +11,7 @@ import type { RecentCustomer } from '@/types/assisted-chat';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius } from './theme';
 import { copyToClipboard } from '@/lib/clipboard';
+import { summarizeBookingTyreLines } from '@/lib/assisted-chat-workflow';
 
 interface Props {
   visible: boolean;
@@ -39,8 +40,14 @@ function buildDetailLines(item: RecentCustomer): string[] {
   const lines: string[] = [];
   if (item.customerPhone) lines.push(`Phone: ${item.customerPhone}`);
   if (item.customerAddress) lines.push(`Address: ${item.customerAddress}`);
-  if (item.tyreSize) lines.push(`Tyre size: ${item.tyreSize}`);
-  if (typeof item.quantity === 'number') lines.push(`Quantity: ${item.quantity}`);
+  const tyreSummary = item.tyreLines?.length ? summarizeBookingTyreLines(item.tyreLines) : [];
+  if (tyreSummary.length > 0) {
+    lines.push('Tyres:');
+    tyreSummary.forEach((line) => lines.push(`- ${line}`));
+  } else {
+    if (item.tyreSize) lines.push(`Tyre size: ${item.tyreSize}`);
+    if (typeof item.quantity === 'number') lines.push(`Quantity: ${item.quantity}`);
+  }
   if (item.note) lines.push(`Note: ${item.note}`);
   if (item.lastBookingReference) lines.push(`Last booking: ${item.lastBookingReference}`);
   lines.push(`Last used: ${formatWhen(item.lastUsedAtIso)}`);
@@ -155,8 +162,12 @@ export function RecentCustomersModal({
                     </Text>
                   ) : null}
                   <Text style={styles.itemSub}>
-                    {item.tyreSize ? `${item.tyreSize}` : 'No tyre size'}
-                    {typeof item.quantity === 'number' ? ` · qty ${item.quantity}` : ''}
+                    {item.tyreLines?.length
+                      ? summarizeBookingTyreLines(item.tyreLines).join(' · ')
+                      : item.tyreSize
+                      ? `${item.tyreSize}`
+                      : 'No tyre size'}
+                    {!item.tyreLines?.length && typeof item.quantity === 'number' ? ` · qty ${item.quantity}` : ''}
                     {' · '}
                     {formatWhen(item.lastUsedAtIso)}
                   </Text>

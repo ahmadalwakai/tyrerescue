@@ -13,11 +13,12 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { colors, fontSize, radius, space } from './theme';
 import { api } from '@/lib/api';
 import { isValidCoordinate, haversineMiles, formatDistanceMiles } from '@/lib/geo';
+import { AdminHeaderButton, AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 import {
   useTracking,
   type TrackingDriver,
@@ -94,6 +95,12 @@ function freshnessLabel(freshness: TrackingDriver['locationFreshness']): string 
   return 'Unknown';
 }
 
+function situationLine(situation: TrackingDriver['driverSituation'] | TrackingJob['driverSituation']): string | null {
+  if (!situation) return null;
+  const reason = situation.reasonLabels[0];
+  return reason ? `${situation.label} · ${reason}` : situation.label;
+}
+
 function paymentLine(payment: TrackingPaymentSummary | null): string {
   if (!payment) return 'Payment needs checking';
   const amountToCollectPence = payment.amountToCollectPence ?? 0;
@@ -163,19 +170,19 @@ html,body,#m{margin:0;padding:0;width:100%;height:100%;background:#09090B}
 .pring.r2{animation-delay:.8s}
 .pdot{position:relative;z-index:2;width:16px;height:16px;border-radius:50%;background:var(--pin-color);border:2px solid #09090B;transition:background 0.1s;box-shadow:0 2px 6px rgba(0,0,0,.55)}
 .pin.sel .pdot{box-shadow:0 2px 6px rgba(0,0,0,.55),0 0 0 3px #FAFAFA}
-.plbl{margin-top:3px;font-size:9px;font-weight:700;color:#FAFAFA;background:rgba(9,9,11,0.82);padding:1px 5px;border-radius:3px;white-space:nowrap;max-width:84px;overflow:hidden;text-overflow:ellipsis;font-family:system-ui,sans-serif;line-height:1.4}
+.plbl{margin-top:3px;font-size:9px;font-weight:700;color:#F8FAFC;background:rgba(9,9,11,0.86);padding:1px 5px;border-radius:3px;white-space:nowrap;max-width:84px;overflow:hidden;text-overflow:ellipsis;font-family:system-ui,sans-serif;line-height:1.4;border:1px solid rgba(249,115,22,.18)}
 @keyframes radar{0%{transform:translate(-50%,-50%) scale(1);opacity:.7}100%{transform:translate(-50%,-50%) scale(3.8);opacity:0}}
 @media (prefers-reduced-motion: reduce){.pring{animation:none;transform:translate(-50%,-50%) scale(1.9);opacity:.16}.pring.r2{display:none}}
 .mapboxgl-popup{max-width:270px!important}
 .mapboxgl-popup-tip{display:none}
 .mapboxgl-popup-content{background:transparent;border:0;padding:0;box-shadow:none}
 .mapboxgl-popup-close-button{top:4px;right:6px;color:#FAFAFA;font-size:16px;text-shadow:0 1px 2px rgba(0,0,0,.72);z-index:5}
-.hub-card{position:relative;min-width:230px;overflow:hidden;isolation:isolate;border-radius:14px;padding:12px 13px;background:linear-gradient(145deg,#2A2A2F 0%,#18181B 48%,#0F0F12 100%);border:1px solid rgba(249,115,22,.48);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -18px 30px rgba(0,0,0,.22),0 14px 28px rgba(0,0,0,.52);transform:perspective(560px) rotateX(4deg);transform-origin:center bottom;font-family:system-ui,sans-serif}
-.hub-card:before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.10),transparent 38%,rgba(249,115,22,.08));pointer-events:none;z-index:1}
+.hub-card{position:relative;min-width:230px;overflow:hidden;isolation:isolate;border-radius:14px;padding:12px 13px;background:linear-gradient(145deg,#2A2A2F 0%,#18181B 50%,#0F0F12 100%);border:1px solid rgba(255,121,0,.42);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -18px 30px rgba(0,0,0,.22),0 14px 28px rgba(0,0,0,.52),0 0 24px rgba(255,121,0,.12);transform:perspective(560px) rotateX(4deg);transform-origin:center bottom;font-family:system-ui,sans-serif}
+.hub-card:before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(249,115,22,.12),transparent 38%,rgba(255,121,0,.1));pointer-events:none;z-index:1}
 .hub-shimmer{position:absolute;z-index:4;top:-38%;bottom:-38%;left:-120px;width:88px;transform:skewX(-18deg);background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.08) 14%,rgba(255,255,255,.55) 50%,rgba(255,255,255,.08) 86%,transparent 100%);filter:blur(.2px);opacity:.82;mix-blend-mode:screen;pointer-events:none;animation:hubShimmer 1.65s cubic-bezier(.4,0,.2,1) infinite}
 .hub-top{position:relative;z-index:2;display:flex;align-items:center;gap:10px;min-width:0}
-.hub-avatar{width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#F97316,#EA580C);display:flex;align-items:center;justify-content:center;color:#09090B;font-size:14px;font-weight:900;box-shadow:inset 0 1px 0 rgba(255,255,255,.38),0 8px 15px rgba(249,115,22,.22)}
-.hub-card.job .hub-avatar{background:linear-gradient(145deg,#60A5FA,#2563EB);box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 8px 15px rgba(37,99,235,.24)}
+.hub-avatar{width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#FF9A2E,#FF7900);display:flex;align-items:center;justify-content:center;color:#09090B;font-size:14px;font-weight:900;box-shadow:inset 0 1px 0 rgba(255,255,255,.38),0 8px 15px rgba(255,121,0,.24)}
+.hub-card.job .hub-avatar{background:linear-gradient(145deg,#FDBA74,#F97316);box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 8px 15px rgba(249,115,22,.24)}
 .hub-copy{min-width:0;flex:1}
 .hub-kicker{font-size:9px;font-weight:900;color:#FCD34D;text-transform:uppercase;letter-spacing:0}
 .hub-title{font-size:15px;font-weight:900;color:#FAFAFA;line-height:1.16;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 1px rgba(0,0,0,.85)}
@@ -187,8 +194,8 @@ html,body,#m{margin:0;padding:0;width:100%;height:100%;background:#09090B}
 .hub-pill.warn{background:rgba(245,158,11,.16);color:#FCD34D;border-color:rgba(245,158,11,.38)}
 .hub-pill.danger{background:rgba(239,68,68,.16);color:#FCA5A5;border-color:rgba(239,68,68,.38)}
 .hub-tools{position:relative;z-index:2;display:flex;gap:7px;margin-top:10px}
-.hub-tool{flex:1;min-height:32px;border:1px solid rgba(249,115,22,.58);border-radius:10px;background:rgba(249,115,22,.14);color:#FAFAFA;font-size:11px;font-weight:900;cursor:pointer}
-.hub-tool.primary{background:linear-gradient(180deg,#F97316,#EA580C);color:#09090B;border-color:rgba(249,115,22,.78)}
+.hub-tool{flex:1;min-height:32px;border:1px solid rgba(255,121,0,.5);border-radius:10px;background:rgba(255,121,0,.14);color:#F8FAFC;font-size:11px;font-weight:900;cursor:pointer}
+.hub-tool.primary{background:linear-gradient(180deg,#FF9A2E,#FF7900);color:#09090B;border-color:rgba(255,121,0,.78)}
 .hub-tool:disabled{opacity:.42;cursor:not-allowed}
 @keyframes hubShimmer{0%{left:-120px}100%{left:calc(100% + 120px)}}
 @media (prefers-reduced-motion: reduce){.hub-shimmer{animation:hubShimmer 2.4s ease-in-out infinite}.hub-card{transform:none}}
@@ -243,11 +250,11 @@ function jobHtml(j){
 function driverColor(status,fresh){
   if(fresh==='offline')return'#6B7280';
   if(fresh==='stale')return'#D97706';
-  if(status==='busy')return'#F97316';
+  if(status==='busy')return'#FF7900';
   if(status==='available')return'#22c55e';
   return'#9CA3AF';
 }
-function jobColor(aStatus){return aStatus==='unassigned'?'#EF4444':'#3B82F6';}
+function jobColor(aStatus){return aStatus==='unassigned'?'#EF4444':'#F97316';}
 function makeEl(color,label,sel){
   var el=document.createElement('div');
   el.className='pin'+(sel?' sel':'');
@@ -432,6 +439,9 @@ function DriverDetail({ driver, distanceToJob }: DriverDetailProps) {
       {driver.activeJobRef ? (
         <Text style={styles.detailMeta}>Active job: #{driver.activeJobRef}</Text>
       ) : null}
+      {situationLine(driver.driverSituation) ? (
+        <Text style={styles.detailMeta}>Situation: {situationLine(driver.driverSituation)}</Text>
+      ) : null}
       {distanceToJob ? (
         <Text style={styles.detailMeta}>Approx. distance to job: {distanceToJob}</Text>
       ) : null}
@@ -485,6 +495,9 @@ function JobDetail({ job, distanceFromDriver }: JobDetailProps) {
       ]}>
         {paymentLine(job.paymentSummary)}
       </Text>
+      {situationLine(job.driverSituation) ? (
+        <Text style={styles.detailMeta}>Driver situation: {situationLine(job.driverSituation)}</Text>
+      ) : null}
       {distanceFromDriver ? (
         <Text style={styles.detailMeta}>Approx. distance from driver: {distanceFromDriver}</Text>
       ) : null}
@@ -576,6 +589,9 @@ function DriverListSheet({ visible, drivers, selectedId, onSelect, onClose }: Dr
                     {item.activeJobRef ? `Active job: #${item.activeJobRef}` : 'No active job'}
                     {item.lastSeenAt ? ` · ${formatRelative(item.lastSeenAt)}` : ' · no GPS'}
                   </Text>
+                  {situationLine(item.driverSituation) ? (
+                    <Text style={styles.listItemMeta}>Situation: {situationLine(item.driverSituation)}</Text>
+                  ) : null}
                   {item.lat == null ? (
                     <Text style={styles.listItemMeta}>Location unavailable</Text>
                   ) : null}
@@ -707,6 +723,11 @@ function DriverRoster({ drivers, selectedId, onSelect, onOpenAll }: DriverRoster
                   {driver.activeJobRef ? `#${driver.activeJobRef}` : 'No job'}
                 </Text>
               </View>
+              {situationLine(driver.driverSituation) ? (
+                <Text style={styles.driverRosterMeta} numberOfLines={1}>
+                  {situationLine(driver.driverSituation)}
+                </Text>
+              ) : null}
             </Pressable>
           );
         })}
@@ -1155,40 +1176,18 @@ export function TrackingModal({ visible, onClose }: Props) {
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.safe}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerTitleBlock}>
-            <Text style={styles.title} numberOfLines={1}>Tracking hub</Text>
-            <Text style={styles.subtitle} numberOfLines={1}>All drivers and dispatch jobs</Text>
-          </View>
-          <View style={styles.headerActions}>
-            <Pressable
-              onPress={handleFitAll}
-              accessibilityRole="button"
-              accessibilityLabel="Fit all markers"
-              style={({ pressed }) => [styles.headerBtn, pressed && styles.btnPressed]}
-            >
-              <Text style={styles.headerBtnText}>Fit all</Text>
-            </Pressable>
-            <Pressable
-              onPress={refresh}
-              accessibilityRole="button"
-              accessibilityLabel="Refresh tracking data"
-              style={({ pressed }) => [styles.headerBtn, pressed && styles.btnPressed]}
-            >
-              <Text style={styles.headerBtnText}>{loading ? 'Updating…' : 'Refresh'}</Text>
-            </Pressable>
-            <Pressable
-              onPress={onClose}
-              accessibilityRole="button"
-              accessibilityLabel="Close tracking"
-              style={({ pressed }) => [styles.closeBtn, pressed && styles.btnPressed]}
-            >
-              <Text style={styles.closeBtnText}>Close</Text>
-            </Pressable>
-          </View>
-        </View>
+      <AdminModalShell>
+        <AdminModalHeader
+          title="Tracking hub"
+          subtitle="All drivers and dispatch jobs"
+          onClose={onClose}
+          actions={
+            <>
+              <AdminHeaderButton label="Fit all" onPress={handleFitAll} />
+              <AdminHeaderButton label={loading ? 'Updating...' : 'Refresh'} onPress={refresh} />
+            </>
+          }
+        />
 
         {error && data == null ? (
           <View style={styles.errorBanner}>
@@ -1327,7 +1326,7 @@ export function TrackingModal({ visible, onClose }: Props) {
             <Text style={styles.legendLabel}>Available</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#F97316' }]} />
+            <View style={[styles.legendDot, { backgroundColor: '#FF7900' }]} />
             <Text style={styles.legendLabel}>Busy</Text>
           </View>
           <View style={styles.legendItem}>
@@ -1339,7 +1338,7 @@ export function TrackingModal({ visible, onClose }: Props) {
             <Text style={styles.legendLabel}>Unassigned job</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#3B82F6' }]} />
+            <View style={[styles.legendDot, { backgroundColor: '#F97316' }]} />
             <Text style={styles.legendLabel}>Assigned job</Text>
           </View>
         </View>
@@ -1402,7 +1401,7 @@ export function TrackingModal({ visible, onClose }: Props) {
             </View>
           </View>
         ) : null}
-      </SafeAreaView>
+      </AdminModalShell>
 
       <DriverListSheet
         visible={driversOpen}
@@ -1490,7 +1489,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dangerBorder,
   },
   retryBtnText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '700' },
-  mapWrap: { flex: 1, backgroundColor: colors.bg },
+  mapWrap: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    borderTopWidth: 1,
+    borderTopColor: colors.glowBorder,
+  },
   web: { flex: 1, backgroundColor: colors.bg },
   fallback: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
   fallbackText: { color: colors.muted, fontSize: fontSize.sm, textAlign: 'center' },
@@ -1509,7 +1513,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.sm,
     fontWeight: '600',
-    backgroundColor: 'rgba(24,24,27,0.88)',
+    backgroundColor: 'rgba(9,9,11,0.9)',
     paddingHorizontal: space.md,
     paddingVertical: 6,
     borderRadius: radius.md,
@@ -1521,12 +1525,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.glowBorder,
     gap: space.sm,
   },
   jobRangeRow: {
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.glowBorder,
     paddingTop: space.sm,
   },
   jobRangeContent: {
@@ -1540,12 +1544,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.panelSoft,
   },
   rangeChipActive: {
     borderColor: colors.accent,
-    backgroundColor: 'rgba(249,115,22,0.14)',
+    backgroundColor: 'rgba(255,121,0,0.16)',
   },
   rangeChipText: {
     color: colors.muted,
@@ -1560,8 +1564,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.panelSoft,
   },
   filterBtnText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '700' },
   updatedText: { flex: 1, color: colors.subtle, fontSize: fontSize.xs, textAlign: 'right' },
@@ -1577,8 +1581,8 @@ const styles = StyleSheet.create({
   legendLabel: { color: colors.muted, fontSize: 10 },
   driverRoster: {
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.bg,
+    borderTopColor: colors.glowBorder,
+    backgroundColor: colors.surface,
     paddingTop: space.sm,
     paddingBottom: space.sm,
   },
@@ -1606,8 +1610,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.panelSoft,
   },
   driverRosterAllText: {
     color: colors.text,
@@ -1621,16 +1625,21 @@ const styles = StyleSheet.create({
   driverRosterCard: {
     width: 214,
     minHeight: 92,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.card,
     padding: space.sm,
     gap: space.sm,
+    shadowColor: colors.blue,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
   driverRosterCardSelected: {
     borderColor: colors.accent,
-    backgroundColor: 'rgba(249,115,22,0.12)',
+    backgroundColor: 'rgba(255,121,0,0.14)',
   },
   driverRosterCardTop: {
     flexDirection: 'row',
@@ -1643,9 +1652,9 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.card,
+    backgroundColor: colors.panel,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
   },
   driverRosterAvatarLive: {
     backgroundColor: '#16A34A',
@@ -1682,9 +1691,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: radius.sm,
-    backgroundColor: colors.card,
+    backgroundColor: colors.panelSoft,
     paddingHorizontal: 6,
     paddingVertical: 2,
     overflow: 'hidden',
@@ -1696,11 +1705,11 @@ const styles = StyleSheet.create({
   },
   driverRosterPillBusy: {
     borderColor: colors.accent,
-    backgroundColor: 'rgba(249,115,22,0.14)',
+    backgroundColor: 'rgba(255,121,0,0.14)',
   },
   driverRosterEmpty: {
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.glowBorder,
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
   },
@@ -1711,12 +1720,17 @@ const styles = StyleSheet.create({
   },
   panel: {
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.glowBorder,
     backgroundColor: colors.surface,
     paddingHorizontal: space.lg,
     paddingTop: space.md,
     gap: space.sm,
     maxHeight: '48%',
+    shadowColor: colors.accent,
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: -6 },
+    elevation: 4,
   },
   panelScroll: {
     flexShrink: 1,
@@ -1732,7 +1746,7 @@ const styles = StyleSheet.create({
     marginTop: space.sm,
     paddingTop: space.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.glowBorder,
     flexShrink: 0,
   },
   panelBtn: {
@@ -1740,7 +1754,8 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.panelSoft,
     alignItems: 'center',
   },
   panelBtnText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '600' },
@@ -1757,8 +1772,8 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.bg,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.card,
     padding: space.md,
     ...Platform.select({
       web: { boxShadow: '0 8px 14px rgba(0,0,0,0.24)' },
@@ -1786,39 +1801,39 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.panelSoft,
   },
   freshPillLive: { borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.12)' },
   freshPillStale: { borderColor: colors.warning, backgroundColor: colors.warningBg },
-  freshPillOffline: { borderColor: colors.subtle, backgroundColor: colors.surface },
+  freshPillOffline: { borderColor: colors.borderStrong, backgroundColor: colors.panelSoft },
   freshPillText: { color: colors.text, fontSize: 10, fontWeight: '700' },
   statusPill: {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.panelSoft,
   },
   statusPillAvailable: { borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.12)' },
-  statusPillBusy: { borderColor: colors.accent, backgroundColor: 'rgba(249,115,22,0.12)' },
+  statusPillBusy: { borderColor: colors.accent, backgroundColor: 'rgba(255,121,0,0.14)' },
   statusPillText: { color: colors.text, fontSize: 10, fontWeight: '700', textTransform: 'capitalize' },
   assignPill: {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: '#3B82F6',
-    backgroundColor: 'rgba(59,130,246,0.12)',
+    borderColor: '#F97316',
+    backgroundColor: 'rgba(249,115,22,0.12)',
   },
   assignPillUnassigned: { borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.12)' },
   assignPillText: { color: colors.text, fontSize: 10, fontWeight: '700' },
   cardBadge3d: {
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: 'rgba(249,115,22,0.38)',
-    backgroundColor: '#202024',
+    borderColor: colors.glowBorder,
+    backgroundColor: colors.card,
     padding: space.sm,
     gap: space.xs,
     ...Platform.select({
@@ -1858,12 +1873,12 @@ const styles = StyleSheet.create({
     }),
   },
   driverAvatar3d: {
-    backgroundColor: '#F97316',
+    backgroundColor: colors.accent,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
   },
   jobAvatar3d: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#F97316',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
   },
@@ -1894,8 +1909,8 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: 'rgba(24,24,27,0.72)',
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.panelSoft,
     paddingHorizontal: 7,
     paddingVertical: 3,
     overflow: 'hidden',
@@ -1925,19 +1940,19 @@ const styles = StyleSheet.create({
     minHeight: 36,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.panelSoft,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: space.sm,
   },
   cardToolBtnCall: {
-    borderColor: 'rgba(249,115,22,0.42)',
-    backgroundColor: 'rgba(249,115,22,0.12)',
+    borderColor: colors.glowBorder,
+    backgroundColor: 'rgba(255,121,0,0.12)',
   },
   cardToolBtnSelected: {
     borderColor: colors.accent,
-    backgroundColor: 'rgba(249,115,22,0.2)',
+    backgroundColor: 'rgba(255,121,0,0.2)',
   },
   cardToolText: {
     color: colors.text,
@@ -1950,6 +1965,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.glowBorder,
     maxHeight: '75%',
     paddingBottom: space.lg,
   },
@@ -1957,6 +1974,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.glowBorder,
     padding: space.lg,
     gap: space.md,
   },
@@ -1967,15 +1986,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: space.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.glowBorder,
   },
   sheetTitle: { color: colors.text, fontSize: fontSize.lg, fontWeight: '700' },
   sheetList: { paddingHorizontal: space.lg, paddingTop: space.sm, gap: space.sm },
   listItem: {
-    backgroundColor: '#121216',
-    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     padding: space.md,
     gap: space.sm,
     ...Platform.select({
@@ -1989,19 +2008,19 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  listItemSelected: { borderColor: colors.accent, backgroundColor: 'rgba(249,115,22,0.08)' },
+  listItemSelected: { borderColor: colors.accent, backgroundColor: 'rgba(255,121,0,0.12)' },
   listItemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   listItemName: { color: colors.text, fontSize: fontSize.md, fontWeight: '700', flex: 1 },
   listItemBadge: {
     fontSize: fontSize.xs,
     fontWeight: '700',
-    color: '#3B82F6',
+    color: '#F97316',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: '#3B82F6',
-    backgroundColor: 'rgba(59,130,246,0.1)',
+    borderColor: '#F97316',
+    backgroundColor: 'rgba(249,115,22,0.1)',
   },
   listItemBadgeUnassigned: {
     color: '#EF4444',
@@ -2043,7 +2062,8 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.panelSoft,
     alignItems: 'center',
   },
   cancelBtnText: { color: colors.text, fontSize: fontSize.md, fontWeight: '600' },

@@ -1,151 +1,277 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, Vibration, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Screen, colors, radius, spacing, typography } from '@/ui';
+import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/auth/context';
+import {
+  AdminShell,
+  GlassCard,
+  PressScale,
+  ToolCard,
+  colors,
+  spacing,
+  typography,
+} from '@/ui';
 
-type MoreSection = {
+type ToolItem = {
+  id: string;
   title: string;
-  items: Array<{
-    id: string;
-    label: string;
-    description: string;
-    route: '/(tabs)/ops' | '/(tabs)/finance' | '/(tabs)/cms' | '/(tabs)/insights';
-  }>;
+  subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  accent: 'orange' | 'blue' | 'green' | 'purple' | 'red' | 'muted';
+  action: () => void;
 };
 
-const MORE_SECTIONS: MoreSection[] = [
-  {
-    title: 'Operations & Dispatch',
-    items: [
-      {
-        id: 'ops',
-        label: 'Operations',
-        description: 'Manage live jobs, dispatch, and driver activity',
-        route: '/(tabs)/ops',
-      },
-    ],
-  },
-  {
-    title: 'Finance & Billing',
-    items: [
-      {
-        id: 'finance',
-        label: 'Finance',
-        description: 'Revenue reports, invoices, and refund history',
-        route: '/(tabs)/finance',
-      },
-    ],
-  },
-  {
-    title: 'Content & CMS',
-    items: [
-      {
-        id: 'cms',
-        label: 'Content',
-        description: 'Manage tyre listings, pricing, and service areas',
-        route: '/(tabs)/cms',
-      },
-    ],
-  },
-  {
-    title: 'Analytics',
-    items: [
-      {
-        id: 'insights',
-        label: 'Analytics',
-        description: 'Traffic, conversion, and booking performance insights',
-        route: '/(tabs)/insights',
-      },
-    ],
-  },
-];
-
-/**
- * More screen — secondary navigation for overflow modules.
- * All items here are navigable but hidden from the primary tab bar.
- */
 export default function MoreScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { logout } = useAuth();
+
+  const unavailable = (title: string) => {
+    Alert.alert(title, 'No connected mobile admin endpoint is available for this tool in the current build.');
+  };
+
+  const clearCache = () => {
+    Alert.alert('Clear Local Cache', 'This clears cached admin data on this device. You will stay signed in.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear cache',
+        style: 'destructive',
+        onPress: () => {
+          queryClient.clear();
+          Alert.alert('Cache cleared', 'Local query cache has been cleared.');
+        },
+      },
+    ]);
+  };
+
+  const operationTools: ToolItem[] = [
+    {
+      id: 'ai',
+      title: 'AI Assistant',
+      subtitle: 'Smart recommendations',
+      icon: 'sparkles',
+      accent: 'purple',
+      action: () => router.push('/(tabs)/ops/chat'),
+    },
+    {
+      id: 'reports',
+      title: 'Reports',
+      subtitle: 'Detailed analytics',
+      icon: 'document-text',
+      accent: 'blue',
+      action: () => router.push('/(tabs)/insights/analytics'),
+    },
+    {
+      id: 'revenue',
+      title: 'Revenue',
+      subtitle: 'Financial overview',
+      icon: 'bar-chart',
+      accent: 'green',
+      action: () => router.push('/(tabs)/finance'),
+    },
+    {
+      id: 'messages',
+      title: 'Messages',
+      subtitle: 'Team communication',
+      icon: 'chatbubbles',
+      accent: 'orange',
+      action: () => router.push('/(tabs)/ops/messages'),
+    },
+    {
+      id: 'settings',
+      title: 'Settings',
+      subtitle: 'App preferences',
+      icon: 'settings',
+      accent: 'muted',
+      action: () => unavailable('Settings'),
+    },
+    {
+      id: 'support',
+      title: 'Support',
+      subtitle: 'Help & support',
+      icon: 'help-circle',
+      accent: 'blue',
+      action: () => unavailable('Support'),
+    },
+  ];
+
+  const systemTools: ToolItem[] = [
+    {
+      id: 'sync',
+      title: 'Sync Data',
+      subtitle: 'Refresh all cached admin data',
+      icon: 'sync',
+      accent: 'blue',
+      action: () => {
+        queryClient.invalidateQueries();
+        Alert.alert('Sync started', 'Admin data is refreshing.');
+      },
+    },
+    {
+      id: 'backup',
+      title: 'Backup',
+      subtitle: 'No backup endpoint connected',
+      icon: 'cloud-upload',
+      accent: 'muted',
+      action: () => unavailable('Backup'),
+    },
+    {
+      id: 'status',
+      title: 'System Status',
+      subtitle: 'Check current service availability',
+      icon: 'shield-checkmark',
+      accent: 'green',
+      action: () => Alert.alert('System Status', 'The mobile API is reachable when dashboard data loads successfully.'),
+    },
+    {
+      id: 'sound',
+      title: 'Test Sound',
+      subtitle: 'No sound module connected',
+      icon: 'volume-high',
+      accent: 'orange',
+      action: () => unavailable('Test Sound'),
+    },
+    {
+      id: 'vibration',
+      title: 'Test Vibration',
+      subtitle: 'Trigger device vibration',
+      icon: 'phone-portrait',
+      accent: 'purple',
+      action: () => Vibration.vibrate([0, 180, 80, 180]),
+    },
+    {
+      id: 'lock',
+      title: 'Test Lock Screen Alert',
+      subtitle: 'No lock screen module connected',
+      icon: 'lock-closed',
+      accent: 'red',
+      action: () => unavailable('Test Lock Screen Alert'),
+    },
+    {
+      id: 'permission',
+      title: 'Notification Permission Check',
+      subtitle: 'No permission module connected',
+      icon: 'notifications',
+      accent: 'blue',
+      action: () => unavailable('Notification Permission Check'),
+    },
+    {
+      id: 'cache',
+      title: 'Clear Local Cache',
+      subtitle: 'Requires confirmation',
+      icon: 'trash',
+      accent: 'red',
+      action: clearCache,
+    },
+  ];
 
   return (
-    <Screen>
-      {MORE_SECTIONS.map((section) => (
-        <View key={section.title} style={styles.section}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-          <View style={styles.menuGroup}>
-            {section.items.map((item, index) => (
-              <Pressable
-                key={item.id}
-                style={({ pressed }) => [
-                  styles.menuItem,
-                  index < section.items.length - 1 && styles.menuItemDivider,
-                  pressed && styles.menuItemPressed,
-                ]}
-                onPress={() => router.push(item.route)}
-              >
-                <View style={styles.menuItemContent}>
-                  <Text style={styles.menuItemLabel}>{item.label}</Text>
-                  <Text style={styles.menuItemDescription}>{item.description}</Text>
-                </View>
-                <Text style={styles.chevron}>›</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      ))}
-    </Screen>
+    <AdminShell title="More" subtitle="Tools & settings">
+      <Text style={styles.sectionTitle}>Operations Tools</Text>
+      <View style={styles.toolsGrid}>
+        {operationTools.map((tool, index) => (
+          <ToolCard
+            key={tool.id}
+            title={tool.title}
+            subtitle={tool.subtitle}
+            icon={tool.icon}
+            accent={tool.accent}
+            onPress={tool.action}
+            animatedIndex={index}
+          />
+        ))}
+      </View>
+
+      <Text style={styles.sectionTitle}>System</Text>
+      <GlassCard accent="blue" animatedIndex={operationTools.length}>
+        {systemTools.map((tool, index) => (
+          <PressScale key={tool.id} style={[styles.systemRow, index > 0 && styles.systemRowBorder]} onPress={tool.action}>
+            <View style={styles.systemIcon}>
+              <Ionicons name={tool.icon} size={17} color={colors.textSecondary} />
+            </View>
+            <View style={styles.systemText}>
+              <Text style={styles.systemTitle}>{tool.title}</Text>
+              <Text style={styles.systemSubtitle}>{tool.subtitle}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={17} color={colors.textMuted} />
+          </PressScale>
+        ))}
+      </GlassCard>
+
+      <GlassCard accent="red" animatedIndex={operationTools.length + 1}>
+        <PressScale
+          style={styles.signOutButton}
+          onPress={async () => {
+            await logout();
+            router.replace('/(auth)/login');
+          }}
+        >
+          <Ionicons name="log-out" size={18} color={colors.text} />
+          <Text style={styles.signOutText}>Sign out</Text>
+        </PressScale>
+      </GlassCard>
+    </AdminShell>
   );
 }
 
 const styles = StyleSheet.create({
-  section: {
-    marginBottom: spacing.xl,
-  },
   sectionTitle: {
-    fontSize: typography.size.xs,
-    fontWeight: typography.weight.semibold,
-    color: colors.textMuted,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: typography.weight.bold,
     marginBottom: spacing.sm,
-    paddingHorizontal: spacing.xs,
   },
-  menuGroup: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
   },
-  menuItem: {
+  systemRow: {
+    minHeight: 58,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
     gap: spacing.md,
   },
-  menuItemDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+  systemRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
   },
-  menuItemPressed: {
-    backgroundColor: colors.surfaceLight,
+  systemIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  menuItemContent: {
+  systemText: {
     flex: 1,
+    minWidth: 0,
   },
-  menuItemLabel: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.semibold,
+  systemTitle: {
     color: colors.text,
+    fontSize: 13,
+    fontWeight: typography.weight.bold,
   },
-  menuItemDescription: {
-    fontSize: typography.size.sm,
+  systemSubtitle: {
     color: colors.textMuted,
-    marginTop: spacing.xs,
+    fontSize: 10,
+    marginTop: 2,
   },
-  chevron: {
-    fontSize: 20,
-    color: colors.textMuted,
-    lineHeight: 22,
+  signOutButton: {
+    minHeight: 50,
+    borderRadius: 17,
+    backgroundColor: colors.error,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  signOutText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: typography.weight.bold,
   },
 });

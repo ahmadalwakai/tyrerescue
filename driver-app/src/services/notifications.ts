@@ -1,6 +1,7 @@
 import { AppState, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { api } from '@/api/client';
 
 /** Notification types that represent critical job alerts. */
@@ -20,6 +21,11 @@ const BACKGROUND_SOUND_FILE = 'notification_tone.mp3';
 // sound and vibration so there is one controllable source to stop.
 export const DRIVER_JOBS_URGENT_CHANNEL_ID = 'driver_jobs_urgent_v10';
 export const JOBS_UPCOMING_CHANNEL_ID = 'jobs_upcoming_v4';
+export const DRIVER_JOB_NOTIFICATION_CATEGORY_ID = 'driverjobalert';
+export const DRIVER_JOB_WITH_CALL_NOTIFICATION_CATEGORY_ID = 'driverjobalertcall';
+export const NOTIFICATION_ACTION_OPEN_JOB = 'OPEN_JOB';
+export const NOTIFICATION_ACTION_NAVIGATE = 'NAVIGATE';
+export const NOTIFICATION_ACTION_CALL_CUSTOMER = 'CALL_CUSTOMER';
 
 // Configure how notifications appear when app is in foreground.
 // For remote job alert pushes: suppress the system presentation because
@@ -175,8 +181,54 @@ async function createAndroidChannels(): Promise<void> {
   });
 }
 
+async function registerNotificationCategories(): Promise<void> {
+  if (Platform.OS === 'web') return;
+
+  const openJobAction = {
+    identifier: NOTIFICATION_ACTION_OPEN_JOB,
+    buttonTitle: 'Open route',
+    options: { opensAppToForeground: true },
+  };
+
+  await Notifications.setNotificationCategoryAsync(
+    DRIVER_JOB_NOTIFICATION_CATEGORY_ID,
+    [openJobAction],
+    {
+      previewPlaceholder: 'New driver job',
+      categorySummaryFormat: '%u driver job alerts',
+    },
+  );
+
+  await Notifications.setNotificationCategoryAsync(
+    DRIVER_JOB_WITH_CALL_NOTIFICATION_CATEGORY_ID,
+    [openJobAction],
+    {
+      previewPlaceholder: 'New driver job',
+      categorySummaryFormat: '%u driver job alerts',
+    },
+  );
+}
+
+function getExpoProjectId(): string | undefined {
+  const extra = Constants.expoConfig?.extra as
+    | { eas?: { projectId?: string } }
+    | undefined;
+  return extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+}
+
+function getJobNotificationCategory(data?: Record<string, unknown>): string {
+  void data;
+  return DRIVER_JOB_NOTIFICATION_CATEGORY_ID;
+}
+
 /**
- * Register for push notifications and send the native FCM device token to backend.
+ * Register for push notifications and send the device token to backend.
+ * Android keeps the native FCM token so the existing full-screen-intent
+ * watcher can receive data-only job alerts. iOS uses an Expo Push token,
+ * which the backend relays to APNs with Apple-compliant Time Sensitive
+ * notification metadata. We deliberately do not request Critical Alerts here:
+ * Critical Alerts require Apple entitlement approval and must stay disabled
+ * until approved.
  * Returns the device push token string, or null if registration fails.
  * Idempotent within a single app session.
  */
@@ -189,12 +241,25 @@ export async function registerForPushNotifications(): Promise<string | null> {
       return null;
     }
 
+    await registerNotificationCategories();
+
     // Check / request permission
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
     if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
+      const { status } = await Notifications.requestPermissionsAsync(
+        Platform.OS === 'ios'
+          ? {
+              ios: {
+                allowAlert: true,
+                allowBadge: true,
+                allowSound: true,
+                allowCriticalAlerts: false,
+              },
+            }
+          : undefined,
+      );
       finalStatus = status;
     }
 
@@ -205,23 +270,31 @@ export async function registerForPushNotifications(): Promise<string | null> {
     // Create Android notification channels (must be done before any notification arrives)
     await createAndroidChannels();
 
-    // Get native device push token (FCM token on Android, APNs token on iOS).
-    // This bypasses the Expo Push relay entirely.
     let pushToken: string;
+    let tokenType: 'fcm' | 'expo';
     try {
-      const tokenData = await Notifications.getDevicePushTokenAsync();
-      pushToken = typeof tokenData.data === 'string'
-        ? tokenData.data
-        : JSON.stringify(tokenData.data);
+      if (Platform.OS === 'ios') {
+        const projectId = getExpoProjectId();
+        const tokenData = await Notifications.getExpoPushTokenAsync(
+          projectId ? { projectId } : undefined,
+        );
+        pushToken = tokenData.data;
+        tokenType = 'expo';
+      } else {
+        const tokenData = await Notifications.getDevicePushTokenAsync();
+        pushToken = typeof tokenData.data === 'string'
+          ? tokenData.data
+          : JSON.stringify(tokenData.data);
+        tokenType = 'fcm';
+      }
     } catch {
       return null;
     }
 
-    // Send native token to backend with tokenType = 'fcm'
     try {
       await api('/api/driver/push-token', {
         method: 'POST',
-        body: { pushToken, platform: Platform.OS, tokenType: 'fcm' },
+        body: { pushToken, platform: Platform.OS, tokenType },
       });
     } catch {
       return null;
@@ -264,14 +337,18 @@ export async function fireLocalCriticalNotification(
   channelId = DRIVER_JOBS_URGENT_CHANNEL_ID,
 ): Promise<string> {
   if (Platform.OS === 'web') return '';
+  const content: Notifications.NotificationContentInput = {
+    title,
+    body,
+    data: { ...data, _localEcho: true },
+    sound: BACKGROUND_SOUND_FILE,
+    categoryIdentifier: getJobNotificationCategory(data),
+    interruptionLevel: Platform.OS === 'ios' ? 'timeSensitive' : undefined,
+  };
+
   return Notifications.scheduleNotificationAsync({
-    content: {
-      title,
-      body,
-      data: { ...data, _localEcho: true },
-      sound: BACKGROUND_SOUND_FILE,
-    },
-    trigger: { channelId },
+    content,
+    trigger: Platform.OS === 'android' ? { channelId } : null,
   });
 }
 

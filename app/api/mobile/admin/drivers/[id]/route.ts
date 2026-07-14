@@ -1,10 +1,23 @@
 import { NextResponse } from 'next/server';
-import { and, eq, notInArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
 import { db, users, drivers, bookings, notifications, bookingMessages, driverNotifications, chatSessions } from '@/lib/db';
 import { getMobileAdminUser, unauthorizedResponse } from '@/app/api/mobile/admin/_lib';
+import { haversineDistanceMiles } from '@/lib/mapbox';
+import { GARAGE_LOCATION } from '@/lib/garage';
+import {
+  ACTIVE_DRIVER_SITUATION_STATUSES,
+  calculateDriverSituation,
+  estimateUrbanDriveMinutesFromMiles,
+} from '@/lib/admin/driverSituation';
 
 interface Props {
   params: Promise<{ id: string }>;
+}
+
+function toNumber(value: string | number | null | undefined): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 export async function GET(request: Request, { params }: Props) {
@@ -45,6 +58,43 @@ export async function GET(request: Request, { params }: Props) {
     .from(bookings)
     .where(eq(bookings.driverId, id));
 
+  const [activeBooking] = await db
+    .select({
+      refNumber: bookings.refNumber,
+      status: bookings.status,
+      serviceType: bookings.serviceType,
+      quantity: bookings.quantity,
+      paymentType: bookings.paymentType,
+      customerLat: bookings.lat,
+      customerLng: bookings.lng,
+    })
+    .from(bookings)
+    .where(and(eq(bookings.driverId, id), inArray(bookings.status, [...ACTIVE_DRIVER_SITUATION_STATUSES])))
+    .limit(1);
+
+  const customerLat = toNumber(activeBooking?.customerLat);
+  const customerLng = toNumber(activeBooking?.customerLng);
+  const driverLat = toNumber(driver.currentLat);
+  const driverLng = toNumber(driver.currentLng);
+  const outboundMinutes =
+    activeBooking && customerLat != null && customerLng != null && driverLat != null && driverLng != null
+      ? estimateUrbanDriveMinutesFromMiles(
+          haversineDistanceMiles(
+            { lat: driverLat, lng: driverLng },
+            { lat: customerLat, lng: customerLng },
+          ),
+        )
+      : null;
+  const returnMinutes =
+    activeBooking && customerLat != null && customerLng != null
+      ? estimateUrbanDriveMinutesFromMiles(
+          haversineDistanceMiles(
+            { lat: customerLat, lng: customerLng },
+            { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+          ),
+        )
+      : null;
+
   return NextResponse.json({
     ...driver,
     currentLat: driver.currentLat?.toString() ?? null,
@@ -54,6 +104,25 @@ export async function GET(request: Request, { params }: Props) {
     totalJobs: Number(stats?.totalJobs || 0),
     completedJobs: Number(stats?.completedJobs || 0),
     activeJobs: Number(stats?.activeJobs || 0),
+    activeJobRef: activeBooking?.refNumber ?? null,
+    driverSituation: activeBooking
+      ? calculateDriverSituation({
+          jobRef: activeBooking.refNumber,
+          driverId: driver.id,
+          bookingStatus: activeBooking.status,
+          driverIsOnline: driver.isOnline ?? false,
+          driverStatus: driver.status ?? null,
+          lastLocationAt: driver.locationAt ?? null,
+          outboundMinutes,
+          returnMinutes,
+          serviceType: activeBooking.serviceType,
+          tyreCount: activeBooking.quantity,
+          paymentStatus: activeBooking.paymentType,
+          returnEstimateAvailable: returnMinutes != null,
+          routeAvailable: outboundMinutes != null,
+          garageConfigured: true,
+        })
+      : null,
   });
 }
 

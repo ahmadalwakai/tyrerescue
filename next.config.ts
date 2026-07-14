@@ -9,10 +9,14 @@ const nextConfig: NextConfig = {
     'http://localhost:8082',
     'http://localhost:8083',
     'http://localhost:8084',
+    'http://localhost:8095',
+    'http://localhost:8096',
     'http://127.0.0.1:8081',
     'http://127.0.0.1:8082',
     'http://127.0.0.1:8083',
     'http://127.0.0.1:8084',
+    'http://127.0.0.1:8095',
+    'http://127.0.0.1:8096',
   ],
   images: {
     // Prefer AVIF then WebP — both ~30-50% smaller than the JPEG/PNG fallback.

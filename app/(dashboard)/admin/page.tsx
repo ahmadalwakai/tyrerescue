@@ -1,5 +1,5 @@
 import { db, bookings, payments, callMeBack, tyreProducts, drivers, users } from '@/lib/db';
-import { sql, eq, gte, and, desc, isNotNull, lte, inArray } from 'drizzle-orm';
+import { sql, eq, gte, and, desc, lte, inArray } from 'drizzle-orm';
 import {
   Box,
   Heading,
@@ -15,6 +15,14 @@ import {
 } from '@chakra-ui/react';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { getDriverPresenceState, PRESENCE_LABELS, PRESENCE_COLORS } from '@/lib/driver-presence';
+import { haversineDistanceMiles } from '@/lib/mapbox';
+import { GARAGE_LOCATION } from '@/lib/garage';
+import {
+  ACTIVE_DRIVER_SITUATION_STATUSES,
+  calculateDriverSituation,
+  estimateUrbanDriveMinutesFromMiles,
+} from '@/lib/admin/driverSituation';
+import { DriverSituationBadge } from '@/components/admin/DriverSituationBadge';
 import Link from 'next/link';
 
 function formatCurrency(val: string | number) {
@@ -36,6 +44,12 @@ function statusColor(s: string) {
     refunded_partial: 'gray',
   };
   return map[s] || 'gray';
+}
+
+function toNumber(value: string | number | null | undefined): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 export default async function AdminDashboardPage() {
@@ -60,6 +74,7 @@ export default async function AdminDashboardPage() {
     lowStockItems,
     unassignedBookings,
     driverStatuses,
+    activeDriverBookings,
   ] = await Promise.all([
     // Today's bookings count
     db
@@ -96,6 +111,17 @@ export default async function AdminDashboardPage() {
         scheduledAt: bookings.scheduledAt,
         createdAt: bookings.createdAt,
         driverName: users.name,
+        driverId: bookings.driverId,
+        serviceType: bookings.serviceType,
+        quantity: bookings.quantity,
+        paymentType: bookings.paymentType,
+        customerLat: bookings.lat,
+        customerLng: bookings.lng,
+        driverLat: drivers.currentLat,
+        driverLng: drivers.currentLng,
+        driverIsOnline: drivers.isOnline,
+        driverStatus: drivers.status,
+        driverLocationAt: drivers.locationAt,
       })
       .from(bookings)
       .leftJoin(drivers, eq(bookings.driverId, drivers.id))
@@ -132,10 +158,25 @@ export default async function AdminDashboardPage() {
         name: users.name,
         isOnline: drivers.isOnline,
         status: drivers.status,
+        currentLat: drivers.currentLat,
+        currentLng: drivers.currentLng,
         locationAt: drivers.locationAt,
       })
       .from(drivers)
       .innerJoin(users, eq(drivers.userId, users.id)),
+    db
+      .select({
+        driverId: bookings.driverId,
+        refNumber: bookings.refNumber,
+        status: bookings.status,
+        serviceType: bookings.serviceType,
+        quantity: bookings.quantity,
+        paymentType: bookings.paymentType,
+        customerLat: bookings.lat,
+        customerLng: bookings.lng,
+      })
+      .from(bookings)
+      .where(inArray(bookings.status, [...ACTIVE_DRIVER_SITUATION_STATUSES])),
   ]);
 
   const kpiCards = [
@@ -162,6 +203,11 @@ export default async function AdminDashboardPage() {
   ];
 
   const unassignedCount = unassignedBookings[0]?.count || 0;
+  const activeBookingByDriver = new Map(
+    activeDriverBookings
+      .filter((booking) => booking.driverId)
+      .map((booking) => [booking.driverId!, booking]),
+  );
 
   return (
     <VStack align="stretch" gap={6}>
@@ -269,6 +315,7 @@ export default async function AdminDashboardPage() {
                     <Table.ColumnHeader color={c.muted} px={4} py={3}>Customer</Table.ColumnHeader>
                     <Table.ColumnHeader color={c.muted} px={4} py={3}>Status</Table.ColumnHeader>
                     <Table.ColumnHeader color={c.muted} px={4} py={3}>Driver</Table.ColumnHeader>
+                    <Table.ColumnHeader color={c.muted} px={4} py={3}>Situation</Table.ColumnHeader>
                     <Table.ColumnHeader color={c.muted} px={4} py={3} textAlign="right">Amount</Table.ColumnHeader>
                   </Table.Row>
                 </Table.Header>
@@ -293,6 +340,51 @@ export default async function AdminDashboardPage() {
                           {b.driverName || 'Unassigned'}
                         </Text>
                       </Table.Cell>
+                      <Table.Cell px={4} py={3}>
+                        <DriverSituationBadge
+                          situation={(() => {
+                            const customerLat = toNumber(b.customerLat);
+                            const customerLng = toNumber(b.customerLng);
+                            const driverLat = toNumber(b.driverLat);
+                            const driverLng = toNumber(b.driverLng);
+                            const outboundMinutes =
+                              customerLat != null && customerLng != null && driverLat != null && driverLng != null
+                                ? estimateUrbanDriveMinutesFromMiles(
+                                    haversineDistanceMiles(
+                                      { lat: driverLat, lng: driverLng },
+                                      { lat: customerLat, lng: customerLng },
+                                    ),
+                                  )
+                                : null;
+                            const returnMinutes =
+                              customerLat != null && customerLng != null
+                                ? estimateUrbanDriveMinutesFromMiles(
+                                    haversineDistanceMiles(
+                                      { lat: customerLat, lng: customerLng },
+                                      { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+                                    ),
+                                  )
+                                : null;
+
+                            return calculateDriverSituation({
+                              jobRef: b.refNumber,
+                              driverId: b.driverId ?? null,
+                              bookingStatus: b.status,
+                              driverIsOnline: b.driverIsOnline ?? false,
+                              driverStatus: b.driverStatus ?? null,
+                              lastLocationAt: b.driverLocationAt ?? null,
+                              outboundMinutes,
+                              returnMinutes,
+                              serviceType: b.serviceType,
+                              tyreCount: b.quantity,
+                              paymentStatus: b.paymentType,
+                              returnEstimateAvailable: returnMinutes != null,
+                              routeAvailable: outboundMinutes != null,
+                              garageConfigured: true,
+                            });
+                          })()}
+                        />
+                      </Table.Cell>
                       <Table.Cell px={4} py={3} textAlign="right">
                         <Text color={c.text} fontWeight="500" fontSize="sm">
                           {formatCurrency(b.totalAmount)}
@@ -316,17 +408,66 @@ export default async function AdminDashboardPage() {
               </Box>
               <VStack align="stretch" gap={0}>
                 {driverStatuses.map((d) => {
+                  const activeBooking = activeBookingByDriver.get(d.id) ?? null;
+                  const customerLat = toNumber(activeBooking?.customerLat);
+                  const customerLng = toNumber(activeBooking?.customerLng);
+                  const driverLat = toNumber(d.currentLat);
+                  const driverLng = toNumber(d.currentLng);
+                  const outboundMinutes =
+                    activeBooking && customerLat != null && customerLng != null && driverLat != null && driverLng != null
+                      ? estimateUrbanDriveMinutesFromMiles(
+                          haversineDistanceMiles(
+                            { lat: driverLat, lng: driverLng },
+                            { lat: customerLat, lng: customerLng },
+                          ),
+                        )
+                      : null;
+                  const returnMinutes =
+                    activeBooking && customerLat != null && customerLng != null
+                      ? estimateUrbanDriveMinutesFromMiles(
+                          haversineDistanceMiles(
+                            { lat: customerLat, lng: customerLng },
+                            { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+                          ),
+                        )
+                      : null;
+                  const situation = activeBooking
+                    ? calculateDriverSituation({
+                        jobRef: activeBooking.refNumber,
+                        driverId: d.id,
+                        bookingStatus: activeBooking.status,
+                        driverIsOnline: d.isOnline ?? false,
+                        driverStatus: d.status,
+                        lastLocationAt: d.locationAt,
+                        outboundMinutes,
+                        returnMinutes,
+                        serviceType: activeBooking.serviceType,
+                        tyreCount: activeBooking.quantity,
+                        paymentStatus: activeBooking.paymentType,
+                        returnEstimateAvailable: returnMinutes != null,
+                        routeAvailable: outboundMinutes != null,
+                        garageConfigured: true,
+                      })
+                    : null;
                   const presence = getDriverPresenceState(
                     { isOnline: d.isOnline ?? false, locationAt: d.locationAt, status: d.status },
-                    null, // admin sidebar doesn't load active bookings for perf — simplified view
+                    activeBooking ? { status: activeBooking.status } : null,
                   );
                   return (
-                    <HStack key={d.name} px={4} py={3} borderBottomWidth="1px" borderColor={c.border} justifyContent="space-between">
-                      <Text color={c.text} fontSize="sm">{d.name}</Text>
-                      <Badge colorPalette={PRESENCE_COLORS[presence]} size="sm">
-                        {PRESENCE_LABELS[presence]}
-                      </Badge>
-                    </HStack>
+                    <Flex key={d.name} px={4} py={3} borderBottomWidth="1px" borderColor={c.border} justifyContent="space-between" gap={3} align="center">
+                      <Box>
+                        <Text color={c.text} fontSize="sm">{d.name}</Text>
+                        {activeBooking && (
+                          <Text color={c.muted} fontSize="xs">#{activeBooking.refNumber}</Text>
+                        )}
+                      </Box>
+                      <VStack align="end" gap={1}>
+                        <Badge colorPalette={PRESENCE_COLORS[presence]} size="sm">
+                          {PRESENCE_LABELS[presence]}
+                        </Badge>
+                        {situation && <DriverSituationBadge situation={situation} size="xs" />}
+                      </VStack>
+                    </Flex>
                   );
                 })}
                 {driverStatuses.length === 0 && (

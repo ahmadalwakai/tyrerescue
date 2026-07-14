@@ -23,6 +23,7 @@ describe('assisted chat emergency pricing context', () => {
     ]) {
       const source = readSource(file);
       expect(source).toContain('ASSISTED_CHAT_PRICING_CONTEXT');
+      expect(source).toContain('ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES');
       expect(source).not.toContain("pricingContext: 'assisted_chat'");
       expect(source).not.toContain('pricingContext: "assisted_chat"');
     }
@@ -67,6 +68,38 @@ describe('assisted chat emergency pricing context', () => {
     expect(assisted.lineItems.map((item) => [item.code, item.amount])).toEqual(
       backendEmergency.lineItems.map((item) => [item.code, item.amount]),
     );
+  });
+
+  it('allows the assisted app explicit admin distance override up to 250 miles only when supplied', async () => {
+    const {
+      ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
+      ASSISTED_CHAT_PRICING_CONTEXT,
+    } = await import('../../assisted-chat-app/src/lib/pricing-context');
+    const rules = parsePricingRules([]);
+    const base: PricingInput = {
+      tyreSelections: [{ tyreId: 'tyre-1', quantity: 1, unitPrice: 80, service: 'fit' }],
+      distanceMiles: 100.01,
+      bookingType: 'emergency',
+      bookingDate: new Date('2025-01-06T10:00:00Z'),
+      isBankHoliday: false,
+      pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+    };
+
+    const defaultLimit = calculatePricing(base, rules);
+    const assistedLimit = calculatePricing(
+      {
+        ...base,
+        distanceMiles: 250,
+        maxAutoPricingMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
+      },
+      rules,
+    );
+
+    expect(defaultLimit.isValid).toBe(false);
+    expect(defaultLimit.error).toBe('OUTSIDE_AUTO_PRICING_AREA');
+    expect(ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES).toBe(250);
+    expect(assistedLimit.isValid).toBe(true);
+    expect(assistedLimit.maxAutoPricingMiles).toBe(250);
   });
 });
 

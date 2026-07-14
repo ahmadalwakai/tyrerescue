@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { I18nManager, Platform } from 'react-native';
+import { I18nManager } from 'react-native';
 import { getLocales } from 'expo-localization';
 import * as secureStorage from '@/services/secure-storage';
 import { ar as arDateLocale } from 'date-fns/locale/ar';

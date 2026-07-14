@@ -19,10 +19,24 @@
       }
     },
     "production": {
+      "autoIncrement": true,
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "credentialsSource": "local"
       }
     }
   },
-  "submit": {}
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6786232318",
+        "appleTeamId": "BXK52CMHR2",
+        "ascApiKeyPath": "../artifacts/app-store/assisted-chat-ios/credentials/AuthKey_WSC2LN4TV8.p8",
+        "ascApiKeyIssuerId": "3f9f9519-33b7-485b-922d-740d54e474bc",
+        "ascApiKeyId": "WSC2LN4TV8"
+      }
+    }
+  }
 }

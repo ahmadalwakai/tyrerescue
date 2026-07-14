@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fontSize, radius, space } from '../theme';
+import { useFadeSlideIn } from '../motion';
 import type { OperatorWorkflowStepStatus } from '@/types/operator-workflow';
 
 export interface StepCardProps {
@@ -30,7 +31,7 @@ function pillForStatus(status: OperatorWorkflowStepStatus): PillPalette {
   switch (status) {
     case 'active':
       return {
-        bg: 'rgba(249,115,22,0.14)',
+        bg: colors.ripple,
         border: colors.accent,
         text: colors.accent,
         label: 'Active',
@@ -87,6 +88,7 @@ export function StepCard({
   const initialExpanded = defaultExpanded ?? status !== 'complete';
   const [expanded, setExpanded] = useState(initialExpanded);
   const pill = pillForStatus(status);
+  const entranceStyle = useFadeSlideIn({ distance: 8, duration: 240 });
 
   const handlePress = () => {
     if (onHeaderPress) {
@@ -121,7 +123,24 @@ export function StepCard({
   );
 
   return (
-    <View style={styles.card}>
+    <Animated.View
+      style={[
+        styles.card,
+        status === 'active' && styles.cardActive,
+        status === 'complete' && styles.cardComplete,
+        entranceStyle,
+      ]}
+    >
+      <View
+        pointerEvents="none"
+        style={[
+          styles.statusRail,
+          status === 'active' && styles.statusRailActive,
+          status === 'complete' && styles.statusRailComplete,
+          status === 'blocked' && styles.statusRailBlocked,
+          status === 'error' && styles.statusRailError,
+        ]}
+      />
       {headerInteractive ? (
         <Pressable
           onPress={handlePress}
@@ -142,7 +161,7 @@ export function StepCard({
       ) : summary ? (
         <View style={styles.summary}>{summary}</View>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -151,8 +170,42 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceElevated,
     overflow: 'hidden',
+    position: 'relative',
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
+  cardActive: {
+    borderColor: colors.glowBorder,
+    backgroundColor: colors.accentMuted,
+  },
+  cardComplete: {
+    borderColor: colors.successBorder,
+  },
+  statusRail: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: colors.borderStrong,
+    opacity: 0.9,
+  },
+  statusRailActive: {
+    backgroundColor: colors.accent,
+  },
+  statusRailComplete: {
+    backgroundColor: colors.success,
+  },
+  statusRailBlocked: {
+    backgroundColor: colors.warning,
+  },
+  statusRailError: {
+    backgroundColor: colors.danger,
   },
   header: {
     paddingHorizontal: space.md,
@@ -160,7 +213,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   headerPressed: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.panel,
   },
   headerInner: {
     flexDirection: 'row',
@@ -193,7 +246,7 @@ const styles = StyleSheet.create({
   pillText: {
     fontSize: 11,
     fontWeight: '900',
-    letterSpacing: 0.6,
+    letterSpacing: 0,
   },
   body: {
     paddingHorizontal: space.md,

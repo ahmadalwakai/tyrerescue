@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 15.0.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "preview": {
@@ -19,8 +19,21 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "credentialsSource": "local"
       }
     }
   },
-  "submit": {}
+  "submit": {
+    "production": {
+      "ios": {
+        "appleTeamId": "BXK52CMHR2",
+        "ascAppId": "6786223270",
+        "ascApiKeyPath": "../artifacts/app-store/assisted-chat-ios/credentials/AuthKey_WSC2LN4TV8.p8",
+        "ascApiKeyIssuerId": "3f9f9519-33b7-485b-922d-740d54e474bc",
+        "ascApiKeyId": "WSC2LN4TV8"
+      }
+    }
+  }
 }

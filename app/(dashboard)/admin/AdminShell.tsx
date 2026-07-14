@@ -41,6 +41,7 @@ const navItems = [
   { label: 'SEO Analytics', href: '/admin/seo-analytics' },
   { label: 'Visitors', href: '/admin/visitors' },
   { label: 'B2B API Keys', href: '/admin/b2b-api-keys' },
+  { label: 'Google Ads Safety', href: '/admin/google-ads' },
 ];
 
 export function AdminShell({
@@ -76,9 +77,16 @@ export function AdminShell({
   }, []);
 
   useEffect(() => {
-    fetchCounts();
-    const interval = setInterval(fetchCounts, 60000);
-    return () => clearInterval(interval);
+    const initialTimer = window.setTimeout(() => {
+      void fetchCounts();
+    }, 0);
+    const interval = window.setInterval(() => {
+      void fetchCounts();
+    }, 60000);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(interval);
+    };
   }, [fetchCounts]);
 
   return (

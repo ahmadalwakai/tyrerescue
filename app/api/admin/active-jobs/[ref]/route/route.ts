@@ -10,6 +10,12 @@ import {
   metersToMiles,
   secondsToMinutes,
 } from '@/lib/mapbox';
+import { GARAGE_LOCATION } from '@/lib/garage';
+import {
+  calculateDriverSituation,
+  estimateUrbanDriveMinutesFromMiles,
+  type DriverSituation,
+} from '@/lib/admin/driverSituation';
 
 const ACTIVE_STATUSES = [
   'driver_assigned',
@@ -51,6 +57,7 @@ interface RouteResponse {
     | null;
   source: 'mapbox' | 'haversine' | 'none';
   lastUpdatedAt: string;
+  driverSituation: DriverSituation;
 }
 
 const STALE_AFTER_SECONDS = 180;
@@ -85,12 +92,17 @@ export async function GET(
       customerPhone: bookings.customerPhone,
       customerLat: bookings.lat,
       customerLng: bookings.lng,
+      serviceType: bookings.serviceType,
+      tyreCount: bookings.quantity,
+      paymentType: bookings.paymentType,
       driverId: drivers.id,
       driverName: users.name,
       driverPhone: users.phone,
       driverLat: drivers.currentLat,
       driverLng: drivers.currentLng,
       driverLocationAt: drivers.locationAt,
+      driverIsOnline: drivers.isOnline,
+      driverStatus: drivers.status,
     })
     .from(bookings)
     .innerJoin(drivers, eq(drivers.id, bookings.driverId))
@@ -154,6 +166,32 @@ export async function GET(
     geometry: null,
     source: 'none',
     lastUpdatedAt: new Date(now).toISOString(),
+    driverSituation: calculateDriverSituation({
+      jobRef: row.bookingRef,
+      driverId: row.driverId,
+      bookingStatus: row.status,
+      driverIsOnline: row.driverIsOnline ?? false,
+      driverStatus: row.driverStatus ?? null,
+      lastLocationAt: row.driverLocationAt ?? null,
+      outboundMinutes: null,
+      returnMinutes:
+        customerLat != null && customerLng != null
+          ? estimateUrbanDriveMinutesFromMiles(
+              haversineDistanceMiles(
+                { lat: customerLat, lng: customerLng },
+                { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+              ),
+            )
+          : null,
+      trafficDelayMinutes: null,
+      serviceType: row.serviceType ?? null,
+      tyreCount: row.tyreCount ?? null,
+      paymentStatus: row.paymentType ?? null,
+      gpsState: isStale ? 'weak' : 'normal',
+      returnEstimateAvailable: customerLat != null && customerLng != null,
+      routeAvailable: false,
+      garageConfigured: true,
+    }),
   };
 
   if (
@@ -188,15 +226,36 @@ export async function GET(
       );
       response.distanceMiles = Math.round(miles * 10) / 10;
       response.durationMinutes = Math.max(1, Math.round((miles / 25) * 60));
-      response.geometry = {
-        type: 'LineString',
-        coordinates: [
-          [driverLng, driverLat],
-          [customerLng, customerLat],
-        ],
-      };
+      // Do not draw a fake straight route when Mapbox Directions is unavailable.
+      // Keep the fallback estimate, but leave geometry empty so clients can show
+      // pins/status without implying this is the road path.
+      response.geometry = null;
       response.source = 'haversine';
     }
+
+    response.driverSituation = calculateDriverSituation({
+      jobRef: row.bookingRef,
+      driverId: row.driverId,
+      bookingStatus: row.status,
+      driverIsOnline: row.driverIsOnline ?? false,
+      driverStatus: row.driverStatus ?? null,
+      lastLocationAt: row.driverLocationAt ?? null,
+      outboundMinutes: response.durationMinutes,
+      returnMinutes: estimateUrbanDriveMinutesFromMiles(
+        haversineDistanceMiles(
+          { lat: customerLat, lng: customerLng },
+          { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+        ),
+      ),
+      trafficDelayMinutes: null,
+      serviceType: row.serviceType ?? null,
+      tyreCount: row.tyreCount ?? null,
+      paymentStatus: row.paymentType ?? null,
+      gpsState: isStale ? 'weak' : 'normal',
+      returnEstimateAvailable: true,
+      routeAvailable: response.durationMinutes != null,
+      garageConfigured: true,
+    });
   }
 
   return jsonWithExpoDevCors(request, response);

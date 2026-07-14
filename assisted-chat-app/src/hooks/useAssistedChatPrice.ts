@@ -1,7 +1,15 @@
 import { useCallback, useRef, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
-import { normalizeAssistedChatTyreSize } from '@/lib/assisted-chat-workflow';
-import { ASSISTED_CHAT_PRICING_CONTEXT } from '@/lib/pricing-context';
+import {
+  buildBookingTyreLinePayload,
+  primaryBookingTyreLine,
+  totalBookingTyreQuantity,
+  validateBookingTyreLines,
+} from '@/lib/assisted-chat-workflow';
+import {
+  ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
+  ASSISTED_CHAT_PRICING_CONTEXT,
+} from '@/lib/pricing-context';
 import type {
   AssistedChatDraft,
   AssistedChatQuoteBreakdown,
@@ -65,6 +73,7 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
         fittingPrice: breakdown.fittingPrice ?? null,
         tyrePrice: breakdown.tyrePrice ?? null,
         totalPrice: breakdown.totalPrice ?? null,
+        tyreLines: breakdown.tyreLines ?? buildBookingTyreLinePayload(draft.tyreLines),
         adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
         adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
       };
@@ -84,22 +93,21 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
         dispatchedBookingId: null,
       });
     },
-    [update],
+    [draft.tyreLines, update],
   );
 
   const getPrice = useCallback(async () => {
     if (inflight.current) return;
     setError(null);
 
-    const normalizedTyreSize = normalizeAssistedChatTyreSize(draft.tyre.size);
-    if (!normalizedTyreSize) {
-      setError('Enter a valid tyre size before pricing.');
+    const tyreError = validateBookingTyreLines(draft.tyreLines);
+    if (tyreError) {
+      setError(tyreError);
       return;
     }
-    if (draft.tyre.quantity < 1) {
-      setError('Quantity must be at least 1.');
-      return;
-    }
+    const primaryTyre = primaryBookingTyreLine(draft);
+    const tyreLines = buildBookingTyreLinePayload(draft.tyreLines);
+    const totalTyreCount = totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity;
     if (draft.lockingNut.answer === 'no') {
       const charge = draft.lockingNut.chargeGbp;
       if (charge == null || !Number.isFinite(charge) || charge < 0) {
@@ -148,10 +156,13 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
             locationLat: draft.location.lat,
             locationLng: draft.location.lng,
             serviceType: 'fit',
-            tyreSize: normalizedTyreSize,
-            tyreCount: draft.tyre.quantity,
+            tyreSize: primaryTyre.size,
+            tyreCount: totalTyreCount,
+            tyreLines,
+            items: tyreLines,
             ...adjustmentPayload,
             pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+            adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
             notes: draft.note || undefined,
           });
           return {
@@ -168,11 +179,14 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
           locationLng: draft.location.lng,
           locationAddress: draft.location.address || null,
           locationPostcode: draft.location.postcode || null,
-          tyreSize: normalizedTyreSize,
-          tyreCount: draft.tyre.quantity,
+          tyreSize: primaryTyre.size,
+          tyreCount: totalTyreCount,
+          tyreLines,
+          items: tyreLines,
           notes: draft.note || null,
           ...adjustmentPayload,
           pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+          adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
         });
         return {
           quickBookingId: draft.quickBookingId,

@@ -8,6 +8,7 @@
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
     "platforms": [
+      "ios",
       "android",
       "web"
     ],
@@ -29,6 +30,17 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1E40AF"
+      },
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "ios": {
+      "bundleIdentifier": "uk.tyrerescue.assistedchat",
+      "buildNumber": "7",
+      "supportsTablet": true,
+      "icon": "./assets/icon.png",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Tyre Rescue Assisted Chat lets operators view customer and driver locations for active rescue bookings."
       }
     },
     "web": {
@@ -50,7 +62,15 @@
           ]
         }
       ],
-      "expo-audio"
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false,
+          "recordAudioAndroid": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "extra": {
       "router": {

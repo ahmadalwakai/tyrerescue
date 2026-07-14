@@ -15,6 +15,8 @@ import {
 } from '@chakra-ui/react';
 import { colorTokens as c, inputProps, selectProps } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { DriverSituationBadge } from '@/components/admin/DriverSituationBadge';
+import type { DriverSituation } from '@/lib/admin/driverSituation';
 
 interface Booking {
   id: string;
@@ -27,6 +29,7 @@ interface Booking {
   scheduledAt: string | null;
   createdAt: string | null;
   paymentType: string | null;
+  driverSituation: DriverSituation;
 }
 
 interface Props {
@@ -366,6 +369,7 @@ export function BookingsTable({
               <Box as="th" style={{ ...thStyle, textAlign: 'left' }}>Type</Box>
               <Box as="th" style={{ ...thStyle, textAlign: 'left' }}>Scheduled Service Time</Box>
               <Box as="th" style={{ ...thStyle, textAlign: 'left' }}>Status</Box>
+              <Box as="th" style={{ ...thStyle, textAlign: 'left' }}>Driver Situation</Box>
               <Box as="th" style={{ ...thStyle, textAlign: 'right' }}>Total</Box>
               <Box as="th" style={{ ...thStyle, textAlign: 'left' }}>Created</Box>
             </Box>
@@ -373,7 +377,7 @@ export function BookingsTable({
           <Box as="tbody">
             {bookings.length === 0 ? (
               <Box as="tr">
-                <td colSpan={8} style={{ ...tdStyle, textAlign: 'center', padding: '48px 16px', color: c.muted, borderBottom: 'none' }}>
+                <td colSpan={9} style={{ ...tdStyle, textAlign: 'center', padding: '48px 16px', color: c.muted, borderBottom: 'none' }}>
                   No bookings found
                 </td>
               </Box>
@@ -409,6 +413,9 @@ export function BookingsTable({
                   </Box>
                   <Box as="td" style={tdStyle}>
                     <StatusBadge status={booking.status} />
+                  </Box>
+                  <Box as="td" style={tdStyle}>
+                    <DriverSituationBadge situation={booking.driverSituation} showReason />
                   </Box>
                   <Box as="td" style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, fontFamily: 'var(--font-body)', letterSpacing: '-0.01em' }}>
                     <HStack justify="flex-end" gap={2}>
@@ -464,7 +471,10 @@ export function BookingsTable({
                   <Text fontWeight="700" color={c.accent} fontSize="sm">
                     {booking.refNumber}
                   </Text>
-                  <StatusBadge status={booking.status} />
+                  <VStack gap={1} align="end">
+                    <StatusBadge status={booking.status} />
+                    <DriverSituationBadge situation={booking.driverSituation} size="xs" />
+                  </VStack>
                 </Flex>
                 <Flex justify="space-between" mb={1}>
                   <Text fontSize="sm" color={c.text} fontWeight="500">{booking.customerName}</Text>

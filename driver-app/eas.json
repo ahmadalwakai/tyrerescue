@@ -19,6 +19,9 @@
       }
     },
     "production": {
+      "ios": {
+        "autoIncrement": true
+      },
       "android": {
         "buildType": "apk",
         "credentialsSource": "local"
@@ -28,5 +31,12 @@
       }
     }
   },
-  "submit": {}
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6784984848",
+        "appleTeamId": "BXK52CMHR2"
+      }
+    }
+  }
 }

@@ -24,12 +24,14 @@ import { anim } from '@/lib/animations';
 import { ChatWidget } from '@/components/chat/ChatWidget';
 import { getDriverPresenceState, PRESENCE_LABELS, PRESENCE_COLORS } from '@/lib/driver-presence';
 import { AdminTrackingMap } from '@/components/admin/AdminTrackingMap';
+import { DriverSituationBadge, DriverSituationSummary } from '@/components/admin/DriverSituationBadge';
 import {
   type NormalisedTyreDetails,
   isRepairOrAssessService,
   formatGBP,
 } from '@/lib/bookings/normalise-tyre-details';
 import type { PaymentSummary } from '@/lib/payments/payment-summary';
+import type { DriverSituation } from '@/lib/admin/driverSituation';
 
 interface RankedDriver {
   driverId: string;
@@ -117,6 +119,7 @@ interface Props {
   currentUserId: string;
   currentUserRole: 'admin' | 'driver' | 'customer';
   payment: PaymentSummary;
+  driverSituation: DriverSituation;
 }
 
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
@@ -209,6 +212,7 @@ export function BookingDetailClient({
   currentUserId,
   currentUserRole,
   payment,
+  driverSituation,
 }: Props) {
   const router = useRouter();
 
@@ -1062,6 +1066,9 @@ export function BookingDetailClient({
                 </HStack>
                 {driverAccepted && <Badge colorPalette="green" size="sm" mt={2}>Accepted</Badge>}
                 {!driverAccepted && booking.status === 'driver_assigned' && <Badge colorPalette="yellow" size="sm" mt={2}>Awaiting Acceptance</Badge>}
+                <Box mt={2}>
+                  <DriverSituationBadge situation={driverSituation} showReason />
+                </Box>
               </Box>
             ) : (
               <Text color={c.muted} mb={4}>No driver assigned</Text>
@@ -1237,6 +1244,7 @@ export function BookingDetailClient({
                       {assignedDriver.locationAt && ` (${formatRelative(assignedDriver.locationAt)})`}
                     </Text>
                   )}
+                  <DriverSituationSummary situation={driverSituation} />
                 </Box>
               )}
 

@@ -59,7 +59,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <AuthProvider>
           <AppQueryProvider>
-            <StatusBar style="dark" />
+            <StatusBar style="light" />
             <RootNavigator />
           </AppQueryProvider>
         </AuthProvider>

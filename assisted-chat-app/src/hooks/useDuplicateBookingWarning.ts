@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { AssistedChatDraft } from '@/types/assisted-chat';
 import type { TodayBookingItem } from './useTodayBookings';
 import type { RecentCustomer } from '@/types/assisted-chat';
+import { buildBookingTyreLinePayload } from '@/lib/assisted-chat-workflow';
 
 /**
  * Detect possible duplicate bookings purely from local history (today's
@@ -28,6 +29,10 @@ function withinWindow(iso: string, now: number): boolean {
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return false;
   return now - t <= WINDOW_MS;
+}
+
+function lowerSizes(lines: ReturnType<typeof buildBookingTyreLinePayload>): Set<string> {
+  return new Set(lines.map((line) => line.size.trim().toLowerCase()).filter(Boolean));
 }
 
 export interface DuplicateBookingMatch {
@@ -57,7 +62,7 @@ export function useDuplicateBookingWarning({
 
     const phone = digits(draft.customer.phone);
     const addr = draft.location.address.trim().toLowerCase();
-    const size = draft.tyre.size.trim().toLowerCase();
+    const sizes = lowerSizes(buildBookingTyreLinePayload(draft.tyreLines));
     const lat = draft.location.lat;
     const lng = draft.location.lng;
     // Intentional: the duplicate window is wall-clock relative. Re-running
@@ -82,7 +87,7 @@ export function useDuplicateBookingWarning({
       }
       const bAddr = (b.customerAddress ?? '').trim().toLowerCase();
       const bSize = (b.tyreSize ?? '').trim().toLowerCase();
-      if (addr && size && bAddr && bSize && addr === bAddr && size === bSize) {
+      if (addr && sizes.size > 0 && bAddr && bSize && addr === bAddr && sizes.has(bSize)) {
         return {
           source: 'today',
           reason: 'address+size',
@@ -109,8 +114,11 @@ export function useDuplicateBookingWarning({
         };
       }
       const rAddr = (r.customerAddress ?? '').trim().toLowerCase();
+      const rSizes = lowerSizes(r.tyreLines?.length ? buildBookingTyreLinePayload(r.tyreLines) : []);
       const rSize = (r.tyreSize ?? '').trim().toLowerCase();
-      if (addr && size && rAddr && rSize && addr === rAddr && size === rSize) {
+      if (rSize) rSizes.add(rSize);
+      const hasSizeOverlap = [...sizes].some((size) => rSizes.has(size));
+      if (addr && sizes.size > 0 && rAddr && rSizes.size > 0 && addr === rAddr && hasSizeOverlap) {
         return {
           source: 'recent',
           reason: 'address+size',
@@ -120,7 +128,7 @@ export function useDuplicateBookingWarning({
           customerAddress: r.customerAddress,
         };
       }
-      if (lat != null && lng != null && r.lat != null && r.lng != null && size && rSize && size === rSize) {
+      if (lat != null && lng != null && r.lat != null && r.lng != null && hasSizeOverlap) {
         const meters = Math.hypot((lat - r.lat) * 111_000, (lng - r.lng) * 63_000);
         if (meters <= 50) {
           return {

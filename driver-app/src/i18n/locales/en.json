@@ -107,7 +107,10 @@
     "alertsReady": "Alerts ready",
     "lockScreenEnabled": "Lock-screen pop-up enabled",
     "tapToFix": "Tap to fix",
-    "rearmHint": "Sign out and back in to re-arm"
+    "rearmHint": "Sign out and back in to re-arm",
+    "iosNotificationHint": "Enable Time Sensitive job alerts in iOS Settings",
+    "iosLocationHint": "Enable location permissions for active-job tracking",
+    "iosTimeSensitiveEnabled": "iOS Time Sensitive alerts enabled"
   },
   "jobs": {
     "workQueue": "Work queue",
@@ -168,7 +171,7 @@
     "lockingNut": "Locking nut: {{status}}",
     "openInMaps": "Open in Maps",
     "liveMap": "Live Map",
-    "startInAppRoute": "Start in-app route",
+    "startInAppRoute": "Open route",
     "confirmTyreTitle": "Confirm tyre size",
     "confirmTyreMessage": "Are you sure you carried the correct tyre size?",
     "confirmTyreRequired": "Required: {{summary}}",
@@ -342,8 +345,11 @@
     "titleReassignment": "Job Reassigned to You",
     "titleUpcoming": "Upcoming Job Reminder",
     "getStarted": "Get Started",
+    "openRoute": "Open route",
     "viewJob": "View Job",
-    "dismiss": "Dismiss"
+    "navigate": "Navigate",
+    "callCustomer": "Call customer",
+    "dismiss": "Not now"
   },
   "route": {
     "liveRoute": "Live route",
@@ -420,6 +426,8 @@
     "routeUpdatedAgo": "Route updated {{seconds}}s ago",
     "routeRefreshFailed": "Route refresh failed. Continue safely or open external maps.",
     "externalRecommended": "Live road route unavailable — external maps recommended.",
+    "externalTrackingRequiredTitle": "Live tracking required",
+    "externalTrackingRequiredBody": "Allow Always location before opening external maps. This keeps the customer and dispatch tracking live while you drive.",
     "atCustomerHint": "You appear to be at the customer. Park safely before marking arrived.",
     "thenInstruction": "Then {{instruction}}",
     "statusAssigned": "Assigned",

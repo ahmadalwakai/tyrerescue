@@ -7,9 +7,31 @@ import * as secureStorage from '@/services/secure-storage';
 const BACKGROUND_LOCATION_TASK = 'background-location-task';
 export const ACTIVE_BOOKING_REF_KEY = 'active_booking_ref';
 const LOCATION_PATH = '/api/driver/location';
+const LAST_KNOWN_MAX_AGE_MS = 60_000;
+const LAST_KNOWN_REQUIRED_ACCURACY_M = 100;
+
+type NavigationLocationPoint = {
+  lat: number;
+  lng: number;
+};
 
 function locationBody(lat: number, lng: number, bookingRef: string | null) {
   return bookingRef ? { lat, lng, bookingRef } : { lat, lng };
+}
+
+function isValidLocationPoint(
+  point: NavigationLocationPoint | null | undefined,
+): point is NavigationLocationPoint {
+  return (
+    point != null &&
+    Number.isFinite(point.lat) &&
+    Number.isFinite(point.lng) &&
+    point.lat >= -90 &&
+    point.lat <= 90 &&
+    point.lng >= -180 &&
+    point.lng <= 180 &&
+    !(point.lat === 0 && point.lng === 0)
+  );
 }
 
 function shouldQueueLocation(error: unknown): boolean {
@@ -23,7 +45,18 @@ async function postDriverLocation(
   location: Location.LocationObject,
   bookingRef: string | null,
 ): Promise<void> {
-  const body = locationBody(location.coords.latitude, location.coords.longitude, bookingRef);
+  await postDriverCoordinates(
+    { lat: location.coords.latitude, lng: location.coords.longitude },
+    bookingRef,
+  );
+}
+
+async function postDriverCoordinates(
+  point: NavigationLocationPoint,
+  bookingRef: string | null,
+): Promise<void> {
+  if (!isValidLocationPoint(point)) return;
+  const body = locationBody(point.lat, point.lng, bookingRef);
 
   try {
     await api(LOCATION_PATH, { method: 'POST', body });
@@ -98,6 +131,46 @@ export async function startBackgroundLocation(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export async function armBackgroundLocationForJob(
+  bookingRef?: string | null,
+  knownLocation?: NavigationLocationPoint | null,
+): Promise<boolean> {
+  const activeRef = bookingRef?.trim() || null;
+  if (activeRef) {
+    await secureStorage.setItemAsync(ACTIVE_BOOKING_REF_KEY, activeRef).catch(() => {});
+  }
+
+  const started = await startBackgroundLocation();
+  const storedRef =
+    activeRef ?? (await secureStorage.getItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => null));
+
+  let immediatePoint = isValidLocationPoint(knownLocation) ? knownLocation : null;
+  if (!immediatePoint) {
+    const lastKnown = await Location.getLastKnownPositionAsync({
+      maxAge: LAST_KNOWN_MAX_AGE_MS,
+      requiredAccuracy: LAST_KNOWN_REQUIRED_ACCURACY_M,
+    }).catch(() => null);
+    if (lastKnown) {
+      immediatePoint = {
+        lat: lastKnown.coords.latitude,
+        lng: lastKnown.coords.longitude,
+      };
+    }
+  }
+
+  if (immediatePoint) {
+    void postDriverCoordinates(immediatePoint, storedRef);
+  } else {
+    void Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.BestForNavigation,
+    })
+      .then((location) => postDriverLocation(location, storedRef))
+      .catch(() => {});
+  }
+
+  return started;
 }
 
 export async function stopBackgroundLocation(): Promise<void> {

@@ -6,6 +6,12 @@ import { db } from '@/lib/db';
 import { bookings, drivers, users } from '@/lib/db/schema';
 import { getBookingPaymentSummaryMap, type PaymentSummary } from '@/lib/payments/payment-summary';
 import { haversineDistanceMiles } from '@/lib/mapbox';
+import { GARAGE_LOCATION } from '@/lib/garage';
+import {
+  calculateDriverSituation,
+  estimateUrbanDriveMinutesFromMiles,
+  type DriverSituation,
+} from '@/lib/admin/driverSituation';
 
 const ACTIVE_STATUSES = [
   'driver_assigned',
@@ -44,6 +50,7 @@ export interface ActiveJobItem {
   payment: PaymentSummary;
   distanceMiles: number | null;
   etaMinutes: number | null;
+  driverSituation: DriverSituation;
 }
 
 function toNumber(value: string | number | null | undefined): number | null {
@@ -73,6 +80,8 @@ export async function GET(request: NextRequest) {
       addressLine: bookings.addressLine,
       customerLat: bookings.lat,
       customerLng: bookings.lng,
+      serviceType: bookings.serviceType,
+      tyreCount: bookings.quantity,
       totalAmount: bookings.totalAmount,
       subtotal: bookings.subtotal,
       vatAmount: bookings.vatAmount,
@@ -89,6 +98,8 @@ export async function GET(request: NextRequest) {
       driverLng: drivers.currentLng,
       driverLocationAt: drivers.locationAt,
       driverLocationSource: drivers.locationSource,
+      driverIsOnline: drivers.isOnline,
+      driverStatus: drivers.status,
     })
     .from(bookings)
     .innerJoin(drivers, eq(drivers.id, bookings.driverId))
@@ -125,6 +136,7 @@ export async function GET(request: NextRequest) {
 
     let distanceMiles: number | null = null;
     let etaMinutes: number | null = null;
+    let returnEtaMinutes: number | null = null;
     if (
       customerLat != null &&
       customerLng != null &&
@@ -138,7 +150,16 @@ export async function GET(request: NextRequest) {
       distanceMiles = Math.round(miles * 10) / 10;
       // Rough ETA at 25mph average urban speed; precise value comes from
       // /api/admin/active-jobs/[ref]/route which calls Mapbox Directions.
-      etaMinutes = Math.max(1, Math.round((miles / 25) * 60));
+      etaMinutes = estimateUrbanDriveMinutesFromMiles(miles);
+    }
+
+    if (customerLat != null && customerLng != null) {
+      returnEtaMinutes = estimateUrbanDriveMinutesFromMiles(
+        haversineDistanceMiles(
+          { lat: customerLat, lng: customerLng },
+          { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+        ),
+      );
     }
 
     const locationAtIso = row.driverLocationAt
@@ -183,6 +204,24 @@ export async function GET(request: NextRequest) {
       payment,
       distanceMiles,
       etaMinutes,
+      driverSituation: calculateDriverSituation({
+        jobRef: row.bookingRef,
+        driverId: row.driverId,
+        bookingStatus: row.status,
+        driverIsOnline: row.driverIsOnline ?? false,
+        driverStatus: row.driverStatus ?? null,
+        lastLocationAt: row.driverLocationAt ?? null,
+        outboundMinutes: etaMinutes,
+        returnMinutes: returnEtaMinutes,
+        trafficDelayMinutes: null,
+        serviceType: row.serviceType ?? null,
+        tyreCount: row.tyreCount ?? null,
+        paymentStatus: row.paymentType ?? null,
+        gpsState: isStale ? 'weak' : 'normal',
+        returnEstimateAvailable: returnEtaMinutes != null,
+        routeAvailable: etaMinutes != null,
+        garageConfigured: true,
+      }),
     };
   });
 

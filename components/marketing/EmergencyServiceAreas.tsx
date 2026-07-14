@@ -9,7 +9,7 @@ export type ServiceArea = {
   href?: string;
 };
 
-export function EmergencyServiceAreas({ areas }: { areas: ServiceArea[] }) {
+export function EmergencyServiceAreas({ areas }: { areas: readonly ServiceArea[] }) {
   return (
     <SimpleGrid columns={{ base: 2, sm: 3, md: 5 }} gap="10px">
       {areas.map((area, i) => {

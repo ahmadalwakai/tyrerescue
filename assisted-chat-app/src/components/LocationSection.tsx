@@ -1,7 +1,9 @@
 import { createElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -354,7 +356,7 @@ function addRoute(coords,approx){
   map.addSource('route',{type:'geojson',data:routeFeature(coords)});
   map.addLayer({id:'route-shadow',type:'line',source:'route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#000000','line-width':13,'line-opacity':.34}});
   map.addLayer({id:'route-casing',type:'line',source:'route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#FFFFFF','line-width':8,'line-opacity':approx ? .34 : .95}});
-  map.addLayer({id:'route-line',type:'line',source:'route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':approx?'#60A5FA':'#F97316','line-width':4.6,'line-opacity':1,'line-dasharray':approx?[2,1.5]:[1,0]}});
+  map.addLayer({id:'route-line',type:'line',source:'route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':approx?'#FDBA74':'#F97316','line-width':4.6,'line-opacity':1,'line-dasharray':approx?[2,1.5]:[1,0]}});
   map.addSource('route-flow',{type:'geojson',data:routeFeature([coords[0],coords[0]])});
   map.addLayer({id:'route-flow-glow',type:'line',source:'route-flow',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#FDE68A','line-width':11,'line-opacity':.34,'line-blur':2.2}});
   map.addLayer({id:'route-flow-line',type:'line',source:'route-flow',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#FFFFFF','line-width':4.8,'line-opacity':.96}});
@@ -415,6 +417,7 @@ export function LocationSection({
   });
   const [routeLoading, setRouteLoading] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
+  const [sendOptionsOpen, setSendOptionsOpen] = useState(false);
   const routeMapWebRef = useRef<WebView>(null);
   const routeMapFrameRef = useRef<{
     contentWindow?: { postMessage: (message: unknown, targetOrigin: string) => void } | null;
@@ -448,6 +451,19 @@ export function LocationSection({
     });
     setMessage(null);
   };
+
+  const handleAskCustomerPress = () => {
+    setMethod('link');
+    setSendOptionsOpen(true);
+  };
+
+  const handleSendLocationRequest = useCallback(
+    async (method: LocationShareMethod) => {
+      await requestLink(method);
+      setSendOptionsOpen(false);
+    },
+    [requestLink],
+  );
 
   const handleAddressChange = (value: string) => {
     setAddressInput(value);
@@ -687,7 +703,13 @@ export function LocationSection({
         {(['address', 'link'] as const).map((method) => (
           <Pressable
             key={method}
-            onPress={() => setMethod(method)}
+            onPress={() => {
+              if (method === 'link') {
+                handleAskCustomerPress();
+                return;
+              }
+              setMethod(method);
+            }}
             style={({ pressed }) => [
               styles.modeButton,
               draft.location.method === method && styles.modeButtonActive,
@@ -882,6 +904,16 @@ export function LocationSection({
       ) : null}
 
       {message ? <View style={{ marginTop: 10 }}><StatusBanner kind={message.kind} message={message.text} /></View> : null}
+      <LocationSendOptionsSheet
+        visible={sendOptionsOpen}
+        busy={busy}
+        hasExistingLink={Boolean(draft.location.link)}
+        canSendWhatsApp={Boolean(draft.customer.phone.trim())}
+        canSendSms={isValidUkPhone(draft.customer.phone)}
+        canSendEmail={Boolean(draft.customer.email.trim())}
+        onClose={() => setSendOptionsOpen(false)}
+        onSend={(method) => { void handleSendLocationRequest(method); }}
+      />
     </SectionCard>
   );
 }
@@ -953,6 +985,120 @@ function LocationRequestStatusCard({
   );
 }
 
+function LocationSendOptionsSheet({
+  visible,
+  busy,
+  hasExistingLink,
+  canSendWhatsApp,
+  canSendSms,
+  canSendEmail,
+  onClose,
+  onSend,
+}: {
+  visible: boolean;
+  busy: LocationShareMethod | null;
+  hasExistingLink: boolean;
+  canSendWhatsApp: boolean;
+  canSendSms: boolean;
+  canSendEmail: boolean;
+  onClose: () => void;
+  onSend: (method: LocationShareMethod) => void;
+}) {
+  const anyBusy = busy !== null;
+  const options: Array<{
+    method: LocationShareMethod;
+    label: string;
+    detail: string;
+    disabled: boolean;
+    disabledReason: string | null;
+  }> = [
+    {
+      method: 'whatsapp',
+      label: 'WhatsApp',
+      detail: 'Open WhatsApp with the secure location request.',
+      disabled: !canSendWhatsApp,
+      disabledReason: 'Add customer phone first.',
+    },
+    {
+      method: 'sms',
+      label: 'SMS',
+      detail: 'Send the request by text message.',
+      disabled: !canSendSms,
+      disabledReason: 'Enter a valid UK mobile number first.',
+    },
+    {
+      method: 'email',
+      label: 'Email',
+      detail: 'Send the request to the customer email.',
+      disabled: !canSendEmail,
+      disabledReason: 'Add customer email first.',
+    },
+    {
+      method: 'copy',
+      label: hasExistingLink ? 'Copy again' : 'Copy message',
+      detail: 'Copy the request message so the admin can paste it anywhere.',
+      disabled: false,
+      disabledReason: null,
+    },
+  ];
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={styles.sendSheetKeyboard}
+        behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <Pressable style={styles.sendSheetBackdrop} onPress={anyBusy ? undefined : onClose}>
+          <Pressable style={styles.sendSheet} onPress={() => {}}>
+            <View style={styles.sendSheetHandle} />
+            <View style={styles.sendSheetHeader}>
+              <View style={styles.sendSheetTitleBlock}>
+                <Text style={styles.sendSheetKicker}>Ask customer</Text>
+                <Text style={styles.sendSheetTitle}>Send location request</Text>
+                <Text style={styles.sendSheetSubtitle}>
+                  Choose how to send the secure link. The app creates the link first if needed.
+                </Text>
+              </View>
+              <AppButton label="Close" variant="ghost" onPress={onClose} disabled={anyBusy} style={styles.sendSheetCloseButton} />
+            </View>
+            <View style={styles.sendOptionList}>
+              {options.map((option) => {
+                const loading = busy === option.method;
+                const disabled = option.disabled || (anyBusy && !loading);
+                return (
+                  <Pressable
+                    key={option.method}
+                    onPress={disabled ? undefined : () => onSend(option.method)}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled, busy: loading }}
+                    style={({ pressed }) => [
+                      styles.sendOption,
+                      option.method === 'whatsapp' && styles.sendOptionPrimary,
+                      disabled && styles.sendOptionDisabled,
+                      pressed && !disabled && styles.sendOptionPressed,
+                    ]}
+                  >
+                    <View style={styles.sendOptionCopy}>
+                      <Text style={styles.sendOptionLabel}>{option.label}</Text>
+                      <Text style={styles.sendOptionDetail}>{option.disabledReason ?? option.detail}</Text>
+                    </View>
+                    {loading ? (
+                      <ActivityIndicator color={colors.accent} />
+                    ) : (
+                      <Text style={styles.sendOptionArrow}>{option.method === 'copy' ? 'Copy' : 'Send'}</Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Pressable>
+        </Pressable>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 function LocationRequestStep({ label, done, active }: { label: string; done: boolean; active: boolean }) {
   return (
     <View style={styles.requestStep}>
@@ -1016,7 +1162,7 @@ const styles = StyleSheet.create({
   },
   modeButtonActive: {
     borderColor: colors.accent,
-    backgroundColor: 'rgba(249,115,22,0.10)',
+    backgroundColor: colors.ripple,
   },
   modeButtonPressed: { borderColor: colors.borderStrong },
   modeLabel: { color: colors.text, fontSize: fontSize.sm, fontWeight: '700' },
@@ -1026,7 +1172,7 @@ const styles = StyleSheet.create({
     minWidth: 110,
     paddingHorizontal: 14,
     borderColor: colors.accent,
-    backgroundColor: 'rgba(249,115,22,0.08)',
+    backgroundColor: colors.ripple,
   },
   copyLinkButtonBusy: { opacity: 0.7 },
   copyLinkLabel: { color: colors.accent },
@@ -1113,6 +1259,75 @@ const styles = StyleSheet.create({
   requestActionButton: { flexGrow: 1, flexBasis: 128, minHeight: 48 },
   requestHints: { marginTop: 6, gap: 2 },
   requestHint: { color: colors.subtle, fontSize: fontSize.xs, lineHeight: 16 },
+  sendSheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.62)',
+    justifyContent: 'flex-end',
+  },
+  sendSheetKeyboard: {
+    flex: 1,
+  },
+  sendSheet: {
+    maxHeight: '88%',
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.26,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: -8 },
+    elevation: 6,
+  },
+  sendSheetHandle: {
+    alignSelf: 'center',
+    width: 38,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.borderStrong,
+    marginBottom: 12,
+  },
+  sendSheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 12,
+  },
+  sendSheetTitleBlock: { flex: 1, minWidth: 0 },
+  sendSheetKicker: { color: colors.subtle, fontSize: fontSize.xs, fontWeight: '700' },
+  sendSheetTitle: { color: colors.text, fontSize: fontSize.lg, fontWeight: '900', marginTop: 2 },
+  sendSheetSubtitle: { color: colors.muted, fontSize: fontSize.xs, lineHeight: 16, marginTop: 4 },
+  sendSheetCloseButton: { minWidth: 78 },
+  sendOptionList: { gap: 8 },
+  sendOption: {
+    minHeight: 66,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  sendOptionPrimary: {
+    borderColor: colors.infoBorder,
+    backgroundColor: colors.infoBg,
+  },
+  sendOptionPressed: {
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.panel,
+  },
+  sendOptionDisabled: {
+    opacity: 0.58,
+  },
+  sendOptionCopy: { flex: 1, minWidth: 0 },
+  sendOptionLabel: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
+  sendOptionDetail: { color: colors.muted, fontSize: fontSize.xs, lineHeight: 16, marginTop: 3 },
+  sendOptionArrow: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '900' },
   actionGrid: { marginTop: 10, gap: 8 },
   confirmedBox: { marginTop: 12, gap: 10 },
   mapWrap: {
@@ -1137,16 +1352,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    backgroundColor: '#DDE7F0',
+    backgroundColor: colors.panel,
   },
   mapFallbackTitle: {
-    color: '#111827',
+    color: colors.text,
     fontSize: fontSize.md,
     fontWeight: '800',
     textAlign: 'center',
   },
   mapFallbackText: {
-    color: '#374151',
+    color: colors.muted,
     fontSize: fontSize.sm,
     textAlign: 'center',
     marginTop: 6,
@@ -1213,7 +1428,7 @@ const styles = StyleSheet.create({
   },
   mapControlButtonPressed: {
     backgroundColor: 'rgba(39,39,42,0.94)',
-    borderColor: 'rgba(249,115,22,0.72)',
+    borderColor: colors.accent,
   },
   mapControlText: {
     color: '#FAFAFA',

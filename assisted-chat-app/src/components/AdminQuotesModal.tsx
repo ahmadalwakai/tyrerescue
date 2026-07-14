@@ -23,6 +23,7 @@ import type {
 } from '@/types/admin-quotes';
 import { AppButton, FieldLabel, StatusBanner } from './ui';
 import { colors, fontSize, radius } from './theme';
+import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 
 type QuoteMode = 'recent' | 'today' | 'pending' | 'expired';
 
@@ -323,15 +324,13 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={styles.screen}>
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Quotes</Text>
-            <Text style={styles.subtitle}>Search saved operator quotes</Text>
-          </View>
-          <AppButton label="Close" variant="ghost" onPress={onClose} style={styles.closeBtn} />
-        </View>
-
+      <AdminModalShell>
+        <AdminModalHeader
+          title="Quotes"
+          subtitle="Search saved operator quotes"
+          onClose={onClose}
+        />
+        <View style={styles.screen}>
         <View style={styles.searchCard}>
           <View style={styles.modeRow}>
             {(Object.keys(MODE_LABELS) as QuoteMode[]).map((item) => (
@@ -476,7 +475,8 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
             </View>
           ) : null}
         </ScrollView>
-      </View>
+        </View>
+      </AdminModalShell>
     </Modal>
   );
 }

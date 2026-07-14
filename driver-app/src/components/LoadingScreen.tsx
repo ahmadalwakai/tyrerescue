@@ -1,4 +1,4 @@
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { colors, spacing } from '@/constants/theme';
 import { JobCardSkeleton } from './SkeletonLoader';
 

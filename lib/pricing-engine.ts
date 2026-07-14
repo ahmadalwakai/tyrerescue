@@ -122,6 +122,8 @@ export interface PricingInput {
   trafficSurcharge?: number;
   trafficSurchargeCode?: TrafficSurchargeCode;
   trafficDelayMinutes?: number;
+  /** Optional backend-controlled override for admin-assisted mobile bookings. */
+  maxAutoPricingMiles?: number;
   /** Flat fee for evening out-of-hours (18:00–22:00) on emergency mobile */
   outOfHoursFee?: number;
   /** Flat fee for deep night (22:00–06:00) on emergency mobile */
@@ -172,11 +174,27 @@ export interface PricingBreakdown {
   trafficSurcharge?: number;
   trafficSurchargeCode?: TrafficSurchargeCode;
   trafficDelayMinutes?: number;
+  maxAutoPricingMiles?: number;
+  adminDistanceLimitMiles?: number;
   adminAdjustmentAmount?: number;
   adminAdjustmentReason?: string | null;
   fittingPrice?: number;
   tyrePrice?: number;
   totalPrice?: number;
+  tyreLines?: Array<{
+    id?: string | null;
+    requestedSize?: string | null;
+    normalizedSize?: string | null;
+    sizeDisplay?: string | null;
+    quantity: number;
+    productId?: string | null;
+    unitPrice?: number | null;
+    brand?: string | null;
+    pattern?: string | null;
+    season?: string | null;
+    source?: string | null;
+    service?: 'fit' | 'repair' | 'assess';
+  }>;
   serviceOrigin?: {
     lat: number;
     lng: number;
@@ -238,8 +256,8 @@ function isCustomerLocationRepair(input: PricingInput, mode: PricingMode): boole
 function calculateCustomerLocationRepairMinimum(input: PricingInput, mode: PricingMode): number | null {
   if (!isCustomerLocationRepair(input, mode)) return null;
 
-  const currentTravel = calculateTravelFee(input.distanceMiles);
-  const includedTravel = calculateTravelFee(CUSTOMER_LOCATION_REPAIR_INCLUDED_MILES);
+  const currentTravel = calculateTravelFee(input.distanceMiles, input.maxAutoPricingMiles);
+  const includedTravel = calculateTravelFee(CUSTOMER_LOCATION_REPAIR_INCLUDED_MILES, input.maxAutoPricingMiles);
   if (currentTravel === null || includedTravel === null) return null;
 
   const extraTravel = Math.max(0, currentTravel - includedTravel);
@@ -312,7 +330,7 @@ function calculateScheduledMobileServiceBase(
     totalQty === 2 ? rules.multi_tyre_discount_2 : 0;
   const labourAfterDiscount = labour.minus(labour.times(discountRate).dividedBy(100));
 
-  const scheduledTravel = calculateTravelFee(input.distanceMiles);
+  const scheduledTravel = calculateTravelFee(input.distanceMiles, input.maxAutoPricingMiles);
   if (scheduledTravel === null) return Infinity;
 
   const scheduledBase = labourAfterDiscount
@@ -363,6 +381,7 @@ function zeroInvalidBreakdown(
     trafficSurcharge: 0,
     trafficSurchargeCode: input.trafficSurchargeCode,
     trafficDelayMinutes: input.trafficDelayMinutes ?? 0,
+    maxAutoPricingMiles: input.maxAutoPricingMiles,
     error,
   };
 }
@@ -502,7 +521,7 @@ export function calculatePricing(
     if (!Number.isFinite(input.distanceMiles) || input.distanceMiles < 0) {
       return zeroInvalidBreakdown(input, mode, pricingContext, FITTING_LOCATION_INVALID_DISTANCE_ERROR);
     }
-    const scheduledTravel = calculateTravelFee(input.distanceMiles);
+    const scheduledTravel = calculateTravelFee(input.distanceMiles, input.maxAutoPricingMiles);
     if (scheduledTravel === null) {
       return zeroInvalidBreakdown(input, mode, pricingContext, FITTING_LOCATION_MANUAL_QUOTE_ERROR);
     }
@@ -734,6 +753,7 @@ export function calculatePricing(
     trafficSurcharge: trafficFee.toNumber(),
     trafficSurchargeCode: input.trafficSurchargeCode,
     trafficDelayMinutes: input.trafficDelayMinutes ?? 0,
+    maxAutoPricingMiles: input.maxAutoPricingMiles,
     fittingPrice: isMobile ? serviceSubtotalNum : undefined,
     tyrePrice: tyreCostNum,
     totalPrice: total,

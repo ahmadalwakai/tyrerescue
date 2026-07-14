@@ -15,6 +15,8 @@ export async function openFullScreenIntentSettings(): Promise<boolean> {
 }
 
 export async function setUrgentWatcherAuth(_token: string, _apiBase: string): Promise<boolean> {
+  void _token;
+  void _apiBase;
   return false;
 }
 

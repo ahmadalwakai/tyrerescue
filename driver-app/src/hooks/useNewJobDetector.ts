@@ -60,9 +60,15 @@ export function useNewJobDetector() {
         // Fire local notification on critical channel for native sound + tray entry
         if (firstNew) {
           fireLocalCriticalNotification(
-            'New Job Assigned',
-            firstNew.addressLine ?? '',
-            { type: 'new_job', ref: firstNew.refNumber },
+            'New driver job',
+            `Job ${firstNew.refNumber}${firstNew.addressLine ? ` · ${firstNew.addressLine}` : ''}`,
+            {
+              type: 'new_job',
+              ref: firstNew.refNumber,
+              address: firstNew.addressLine ?? '',
+              customerPhone: firstNew.customerPhone ?? '',
+              paymentStatus: firstNew.paymentSummary?.state ?? firstNew.payment?.state ?? '',
+            },
             DRIVER_JOBS_URGENT_CHANNEL_ID,
           );
         }
@@ -76,6 +82,12 @@ export function useNewJobDetector() {
             title: '',
             body: firstNew.addressLine ?? '',
             alertType: 'new_job',
+            customerPhone: firstNew.customerPhone ?? null,
+            paymentLabel:
+              firstNew.paymentSummary?.label ??
+              firstNew.payment?.label ??
+              null,
+            urgencyLabel: firstNew.bookingType === 'emergency' ? 'Emergency' : null,
           });
         }
       }

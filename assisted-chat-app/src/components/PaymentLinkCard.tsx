@@ -4,6 +4,7 @@ import type { AssistedChatDraft, StripePaymentLinkState } from '@/types/assisted
 import { copyToClipboard } from '@/lib/clipboard';
 import { buildWhatsAppUrl } from '@/lib/customer-message';
 import { formatGbp } from '@/lib/money';
+import { summarizeBookingTyreLines } from '@/lib/assisted-chat-workflow';
 import { AppButton, SectionCard, StatusBanner } from './ui';
 import { colors, fontSize, radius } from './theme';
 
@@ -44,7 +45,11 @@ function buildPaymentMessage(
   }
   lines.push(`Total: ${formatGbp(effectiveTotal)}`);
   if (draft.location.address) lines.push(`Address: ${draft.location.address}`);
-  if (draft.tyre.size) lines.push(`Tyres: ${draft.tyre.quantity} x ${draft.tyre.size}`);
+  const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
+  if (tyreSummary.length > 0) {
+    lines.push('Tyres:');
+    tyreSummary.forEach((line) => lines.push(`- ${line}`));
+  }
   return lines.join('\n');
 }
 

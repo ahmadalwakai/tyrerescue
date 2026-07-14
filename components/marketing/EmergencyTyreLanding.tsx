@@ -9,10 +9,10 @@ import { EmergencyFaq } from './EmergencyFaq';
 import type { FaqItem } from './emergency-faq-data';
 
 export type EmergencyTyreLandingProps = {
-  serviceAreas: ServiceArea[];
+  serviceAreas: readonly ServiceArea[];
   phoneDisplay: string;
   phoneHref: string;
-  faqs: FaqItem[];
+  faqs: readonly FaqItem[];
 };
 
 function CheckIcon() {

@@ -24,6 +24,21 @@ export interface TrackingPaymentSummary {
   reason: string;
 }
 
+export interface DriverSituation {
+  jobRef: string;
+  driverId: string | null;
+  status: 'on_time' | 'at_risk' | 'late' | 'offline' | 'job_closed' | 'unavailable' | string;
+  label: string;
+  dueBackAt: string | null;
+  availableAfter: string | null;
+  totalMinutes: number | null;
+  delayMinutes: number;
+  reasons: string[];
+  reasonLabels: string[];
+  lastLocationAt: string | null;
+  gpsState: 'normal' | 'weak' | 'drift' | 'off_route' | 'offline' | null | string;
+}
+
 export interface TrackingDriver {
   id: string;
   name: string;
@@ -35,6 +50,7 @@ export interface TrackingDriver {
   heading: number | null;
   lastSeenAt: string | null;
   locationFreshness: 'live' | 'stale' | 'offline' | 'unknown';
+  driverSituation: DriverSituation | null;
 }
 
 export interface TrackingJob {
@@ -51,6 +67,7 @@ export interface TrackingJob {
   tyreSummary: string | null;
   vehicleSummary: string | null;
   paymentSummary: TrackingPaymentSummary | null;
+  driverSituation: DriverSituation | null;
   createdAt: string;
   scheduledFor: string | null;
 }

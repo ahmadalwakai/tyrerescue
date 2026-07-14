@@ -1,11 +1,24 @@
 import { NextResponse } from 'next/server';
 import { getOutboundUrl } from '@/lib/config/site';
 import { requireAdmin, requireAdminMobile, hashPassword } from '@/lib/auth';
-import { db, users, drivers } from '@/lib/db';
-import { eq } from 'drizzle-orm';
+import { db, users, drivers, bookings } from '@/lib/db';
+import { eq, inArray } from 'drizzle-orm';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { driverWelcome } from '@/lib/email/templates';
 import { createAdminNotification } from '@/lib/notifications';
+import { haversineDistanceMiles } from '@/lib/mapbox';
+import { GARAGE_LOCATION } from '@/lib/garage';
+import {
+  ACTIVE_DRIVER_SITUATION_STATUSES,
+  calculateDriverSituation,
+  estimateUrbanDriveMinutesFromMiles,
+} from '@/lib/admin/driverSituation';
+
+function toNumber(value: string | number | null | undefined): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 
 /** GET /api/admin/drivers — list all drivers (Bearer or session auth) */
 export async function GET(request: Request) {
@@ -24,7 +37,74 @@ export async function GET(request: Request) {
       })
       .from(drivers)
       .innerJoin(users, eq(drivers.userId, users.id));
-    return NextResponse.json(rows);
+
+    const activeBookings = await db
+      .select({
+        driverId: bookings.driverId,
+        refNumber: bookings.refNumber,
+        status: bookings.status,
+        serviceType: bookings.serviceType,
+        quantity: bookings.quantity,
+        paymentType: bookings.paymentType,
+        customerLat: bookings.lat,
+        customerLng: bookings.lng,
+      })
+      .from(bookings)
+      .where(inArray(bookings.status, [...ACTIVE_DRIVER_SITUATION_STATUSES]));
+    const activeBookingByDriver = new Map(
+      activeBookings
+        .filter((booking) => booking.driverId)
+        .map((booking) => [booking.driverId!, booking]),
+    );
+
+    return NextResponse.json(rows.map((driver) => {
+      const activeBooking = activeBookingByDriver.get(driver.id) ?? null;
+      const customerLat = toNumber(activeBooking?.customerLat);
+      const customerLng = toNumber(activeBooking?.customerLng);
+      const driverLat = toNumber(driver.currentLat);
+      const driverLng = toNumber(driver.currentLng);
+      const outboundMinutes =
+        activeBooking && customerLat != null && customerLng != null && driverLat != null && driverLng != null
+          ? estimateUrbanDriveMinutesFromMiles(
+              haversineDistanceMiles(
+                { lat: driverLat, lng: driverLng },
+                { lat: customerLat, lng: customerLng },
+              ),
+            )
+          : null;
+      const returnMinutes =
+        activeBooking && customerLat != null && customerLng != null
+          ? estimateUrbanDriveMinutesFromMiles(
+              haversineDistanceMiles(
+                { lat: customerLat, lng: customerLng },
+                { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+              ),
+            )
+          : null;
+
+      return {
+        ...driver,
+        activeJobRef: activeBooking?.refNumber ?? null,
+        driverSituation: activeBooking
+          ? calculateDriverSituation({
+              jobRef: activeBooking.refNumber,
+              driverId: driver.id,
+              bookingStatus: activeBooking.status,
+              driverIsOnline: driver.isOnline ?? false,
+              driverStatus: driver.status ?? null,
+              lastLocationAt: driver.locationAt ?? null,
+              outboundMinutes,
+              returnMinutes,
+              serviceType: activeBooking.serviceType,
+              tyreCount: activeBooking.quantity,
+              paymentStatus: activeBooking.paymentType,
+              returnEstimateAvailable: returnMinutes != null,
+              routeAvailable: outboundMinutes != null,
+              garageConfigured: true,
+            })
+          : null,
+      };
+    }));
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

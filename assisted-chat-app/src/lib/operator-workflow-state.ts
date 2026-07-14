@@ -3,6 +3,7 @@ import type {
   AssistedChatPaymentChoice,
 } from '@/types/assisted-chat';
 import type { AssistedChatStage } from '@/lib/assisted-chat-workflow';
+import { summarizeBookingTyreLines } from '@/lib/assisted-chat-workflow';
 import type {
   NextBestAction,
   OperatorWorkflowStep,
@@ -146,7 +147,7 @@ export function deriveOperatorWorkflowSteps(
         : activeStepId === 'tyre'
         ? 'active'
         : 'not_started',
-      hint: hasTyre ? `${draft.tyre.size} × ${draft.tyre.quantity}` : undefined,
+      hint: hasTyre ? summarizeBookingTyreLines(draft.tyreLines).join(', ') : undefined,
     },
     {
       id: 'lockingNut',
@@ -249,7 +250,6 @@ export function deriveNextBestAction(input: NextBestActionInput): NextBestAction
     locationPolling,
     primaryActionLabel,
     primaryActionDisabled,
-    primaryActionDisabledReason,
     onPrimaryPress,
     primaryLoading,
   } = input;

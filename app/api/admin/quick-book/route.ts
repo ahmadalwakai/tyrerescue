@@ -10,6 +10,7 @@ import { getOutboundUrl } from '@/lib/config/site';
 import {
   calculateQuickBookPricing,
   QuickBookPricingError,
+  type QuickBookTyreLineInput,
 } from '@/lib/quick-book-pricing';
 import type { PricingContext } from '@/lib/pricing-engine';
 import { getWeatherPricingContext, type WeatherPricingContext } from '@/lib/weather';
@@ -21,6 +22,17 @@ import {
 import { validateRecipientEmail } from '@/lib/email/validate-recipient';
 
 export type CustomerEmailMode = 'walk_in_customer' | 'send_customer_confirmation';
+
+const tyreLineSchema = z.object({
+  id: z.string().optional(),
+  size: z.string().max(30),
+  quantity: z.number().int().min(1).max(10),
+  brand: z.string().nullable().optional(),
+  pattern: z.string().nullable().optional(),
+  season: z.string().nullable().optional(),
+  source: z.string().nullable().optional(),
+  price: z.number().nullable().optional(),
+});
 
 const createSchema = z.object({
   customerName: z.string().min(1).max(255),
@@ -34,8 +46,11 @@ const createSchema = z.object({
   serviceType: z.enum(['fit', 'repair', 'assess']),
   tyreSize: z.string().optional(),
   tyreCount: z.number().int().min(1).max(10).default(1),
+  tyreLines: z.array(tyreLineSchema).optional(),
+  items: z.array(tyreLineSchema).optional(),
   adminAdjustmentAmount: z.number().optional(),
   adminAdjustmentReason: z.string().max(500).nullable().optional(),
+  adminDistanceLimitMiles: z.number().int().min(1).max(250).optional(),
   pricingContext: z.enum([
     'scheduled_mobile_fitting',
     'scheduled_garage_fitting',
@@ -86,6 +101,27 @@ export async function POST(request: Request) {
   }
 
   const data = parsed.data;
+  const tyreLines: QuickBookTyreLineInput[] = (
+    data.tyreLines?.length
+      ? data.tyreLines
+      : data.items?.length
+      ? data.items
+      : data.tyreSize?.trim()
+      ? [{ id: 'tyre-1', size: data.tyreSize.trim(), quantity: data.tyreCount }]
+      : []
+  ).map((line, index) => ({
+    id: line.id || `tyre-${index + 1}`,
+    size: line.size.trim(),
+    quantity: line.quantity,
+    brand: line.brand ?? null,
+    pattern: line.pattern ?? null,
+    season: line.season ?? null,
+    source: line.source ?? null,
+    price: line.price ?? null,
+  }));
+  const primaryTyreLine = tyreLines[0] ?? null;
+  const primaryTyreSize = primaryTyreLine?.size ?? data.tyreSize?.trim() ?? null;
+  const primaryTyreCount = primaryTyreLine?.quantity ?? data.tyreCount;
 
   // تطبيق سياسة البريد الإلكتروني — الافتراضي walk_in_customer لا يتطلب بريدًا
   const emailMode: CustomerEmailMode = data.customerEmailMode ?? 'walk_in_customer';
@@ -116,7 +152,7 @@ export async function POST(request: Request) {
   let totalPrice: number | null = null;
   let priceBreakdown: Awaited<ReturnType<typeof calculateQuickBookPricing>>['breakdown'] | null = null;
   let selectedTyreSnapshot: Awaited<ReturnType<typeof calculateQuickBookPricing>>['selectedTyreSnapshot'] = null;
-  let normalizedTyreSize: string | null = data.tyreSize?.trim() || null;
+  let normalizedTyreSize: string | null = primaryTyreSize;
   let weatherContext: WeatherPricingContext | null = null;
   const pricingContext: PricingContext = data.pricingContext ?? 'admin_quick_book';
 
@@ -163,18 +199,20 @@ export async function POST(request: Request) {
     }
   }
 
-  const shouldPrice = Boolean(lat && lng) || Boolean(data.tyreSize?.trim()) || data.serviceType !== 'fit';
+  const shouldPrice = Boolean(lat && lng) || Boolean(primaryTyreSize) || data.serviceType !== 'fit';
   if (shouldPrice) {
     try {
       const pricing = await calculateQuickBookPricing({
         serviceType: data.serviceType,
-        tyreSize: data.tyreSize?.trim() || null,
-        tyreCount: data.tyreCount,
+        tyreSize: primaryTyreSize,
+        tyreCount: primaryTyreCount,
+        tyreLines,
         distanceMiles: (distanceKm ?? 5) * 0.621371,
-        resolveTyreFromSize: Boolean(data.tyreSize?.trim()),
-        requireTyreForFit: data.serviceType === 'fit' && Boolean(data.tyreSize?.trim()),
+        resolveTyreFromSize: Boolean(primaryTyreSize),
+        requireTyreForFit: data.serviceType === 'fit' && Boolean(primaryTyreSize),
         adminAdjustmentAmount: data.adminAdjustmentAmount ?? 0,
         adminAdjustmentReason: data.adminAdjustmentReason,
+        adminDistanceLimitMiles: data.adminDistanceLimitMiles,
         pricingContext,
         durationMinutes,
         weatherContext,
@@ -185,7 +223,11 @@ export async function POST(request: Request) {
       // Extend priceBreakdown with service origin info for map display
       priceBreakdown = {
         ...pricing.breakdown,
+        tyreLines: pricing.tyreLineSelections,
         pricingContext,
+        ...(data.adminDistanceLimitMiles != null
+          ? { adminDistanceLimitMiles: data.adminDistanceLimitMiles }
+          : {}),
         serviceOrigin: serviceOriginLat && serviceOriginLng ? {
           lat: serviceOriginLat,
           lng: serviceOriginLng,
@@ -210,7 +252,11 @@ export async function POST(request: Request) {
     priceBreakdown = {
       lineItems: [],
       pricingContext,
+      tyreLines,
       pricingEngineVersion: 'canonical-context-weather-traffic-v1',
+      ...(data.adminDistanceLimitMiles != null
+        ? { adminDistanceLimitMiles: data.adminDistanceLimitMiles }
+        : {}),
       totalTyreCost: 0,
       totalServiceFee: 0,
       calloutFee: 0,
@@ -229,6 +275,28 @@ export async function POST(request: Request) {
         driverId: serviceOriginDriverId,
         etaMinutes: durationMinutes,
       },
+    };
+  }
+
+  if (!priceBreakdown && data.adminDistanceLimitMiles != null) {
+    priceBreakdown = {
+      lineItems: [],
+      pricingContext,
+      tyreLines,
+      pricingEngineVersion: 'canonical-context-weather-traffic-v1',
+      adminDistanceLimitMiles: data.adminDistanceLimitMiles,
+      totalTyreCost: 0,
+      totalServiceFee: 0,
+      calloutFee: 0,
+      totalSurcharges: 0,
+      discountAmount: 0,
+      surgeMultiplier: 1,
+      subtotal: 0,
+      vatAmount: 0,
+      total: 0,
+      quoteExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      isValid: true,
+      serviceOrigin: null,
     };
   }
 
@@ -252,7 +320,7 @@ export async function POST(request: Request) {
       locationLinkExpiry: linkExpiry,
       serviceType: data.serviceType,
       tyreSize: normalizedTyreSize,
-      tyreCount: data.tyreCount,
+      tyreCount: primaryTyreCount,
       selectedTyreProductId: selectedTyreSnapshot?.productId ?? null,
       selectedTyreUnitPrice:
         selectedTyreSnapshot?.unitPrice != null ? selectedTyreSnapshot.unitPrice.toFixed(2) : null,

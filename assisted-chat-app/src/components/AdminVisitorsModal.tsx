@@ -8,8 +8,8 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fontSize, radius, space } from './theme';
+import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 import {
   useAdminVisitors,
   type VisitorItem,
@@ -20,10 +20,10 @@ import {
 
 // ── Accent palette matching the web app ──────────────────────────────────
 const A = {
-  indigo: '#818cf8',
+  indigo: '#fb923c',
   emerald: '#10b981',
   orange: '#f97316',
-  cyan: '#06b6d4',
+  cyan: '#fdba74',
   pink: '#ec4899',
   red: '#ef4444',
   yellow: '#eab308',
@@ -474,26 +474,18 @@ export function AdminVisitorsModal({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
-      <SafeAreaView style={s.root}>
-
-        {/* Header */}
-        <View style={s.header}>
-          <View>
-            <Text style={s.title}>Visitors</Text>
-            <Text style={s.subtitle}>Real-time analytics · UK GDPR Compliant</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-            {stats && (
-              <View style={s.livePill}>
-                <View style={s.liveDot} />
-                <Text style={s.liveText}>{stats.liveCount} LIVE</Text>
-              </View>
-            )}
-            <Pressable onPress={onClose} style={s.closeBtn}>
-              <Text style={s.closeBtnText}>✕</Text>
-            </Pressable>
-          </View>
-        </View>
+      <AdminModalShell>
+        <AdminModalHeader
+          title="Visitors"
+          subtitle="Real-time analytics · UK GDPR Compliant"
+          onClose={onClose}
+          actions={stats ? (
+            <View style={s.livePill}>
+              <View style={s.liveDot} />
+              <Text style={s.liveText}>{stats.liveCount} LIVE</Text>
+            </View>
+          ) : null}
+        />
 
         {/* Period selector */}
         <View style={s.periodRow}>
@@ -562,7 +554,7 @@ export function AdminVisitorsModal({ visible, onClose }: Props) {
             </>
           ) : null}
         </ScrollView>
-      </SafeAreaView>
+      </AdminModalShell>
     </Modal>
   );
 }
@@ -582,7 +574,7 @@ const s = StyleSheet.create({
   subtitle: { fontSize: fontSize.xs, color: colors.subtle, fontFamily: 'monospace', marginTop: 2 },
   livePill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: colors.surface, borderRadius: radius.sm,
+    backgroundColor: colors.successBg, borderRadius: radius.sm,
     paddingHorizontal: space.sm, paddingVertical: 4,
     borderWidth: 1, borderColor: A.emerald,
   },
@@ -594,18 +586,21 @@ const s = StyleSheet.create({
   // Period
   periodRow: {
     flexDirection: 'row', alignItems: 'center',
+    flexWrap: 'wrap',
     paddingHorizontal: space.lg, paddingVertical: space.sm, gap: space.sm,
   },
   periodBtn: {
     paddingHorizontal: space.md, paddingVertical: space.xs,
-    borderRadius: radius.sm, borderWidth: 1, borderColor: colors.border,
+    borderRadius: radius.sm, borderWidth: 1, borderColor: colors.borderStrong,
+    backgroundColor: colors.panelSoft,
   },
-  periodBtnActive: { borderColor: A.indigo, backgroundColor: `${A.indigo}22` },
+  periodBtnActive: { borderColor: colors.accent, backgroundColor: 'rgba(255,121,0,0.16)' },
   periodBtnText: { fontSize: fontSize.sm, color: colors.muted },
   periodBtnTextActive: { color: A.indigo, fontWeight: '600' },
   refreshBtn: {
-    marginLeft: 'auto' as never, paddingHorizontal: space.md, paddingVertical: space.xs,
-    borderRadius: radius.sm, borderWidth: 1, borderColor: colors.border,
+    paddingHorizontal: space.md, paddingVertical: space.xs,
+    borderRadius: radius.sm, borderWidth: 1, borderColor: colors.borderStrong,
+    backgroundColor: colors.panelSoft,
   },
   refreshBtnText: { fontSize: fontSize.lg, color: colors.muted },
 
@@ -613,9 +608,14 @@ const s = StyleSheet.create({
   statsScroll: { flexGrow: 0 },
   statsRow: { flexDirection: 'row', paddingHorizontal: space.lg, paddingBottom: space.sm, gap: space.sm },
   statCard: {
-    width: 96, backgroundColor: colors.surface,
+    width: 96, backgroundColor: colors.card,
     borderRadius: radius.md, padding: space.sm,
-    borderTopWidth: 2, borderWidth: 1, borderColor: colors.border,
+    borderTopWidth: 2, borderWidth: 1, borderColor: colors.borderStrong,
+    shadowColor: colors.blue,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
   },
   statValue: { fontSize: fontSize.lg, fontWeight: '800', fontFamily: 'monospace' },
   statLabel: { fontSize: fontSize.xs, color: colors.subtle, marginTop: 2 },
@@ -624,8 +624,8 @@ const s = StyleSheet.create({
   // Tab bar
   tabScroll: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: colors.border },
   tabBar: { flexDirection: 'row', paddingHorizontal: space.md, paddingBottom: 0, gap: 2 },
-  tabBtn: { paddingHorizontal: space.md, paddingVertical: space.sm },
-  tabBtnActive: { borderBottomWidth: 2, borderBottomColor: A.indigo },
+  tabBtn: { paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.sm },
+  tabBtnActive: { borderBottomWidth: 2, borderBottomColor: colors.accent, backgroundColor: colors.panelSoft },
   tabBtnText: { fontSize: fontSize.sm, color: colors.muted },
   tabBtnTextActive: { color: A.indigo, fontWeight: '600' },
 
@@ -651,9 +651,14 @@ const s = StyleSheet.create({
 
   // Section cards
   sectionCard: {
-    backgroundColor: colors.surface, borderRadius: radius.lg,
+    backgroundColor: colors.card, borderRadius: radius.lg,
     padding: space.md, marginBottom: space.md,
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: 1, borderColor: colors.borderStrong,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space.sm },
   cardTitle: { fontSize: fontSize.md, fontWeight: '700', color: colors.text },

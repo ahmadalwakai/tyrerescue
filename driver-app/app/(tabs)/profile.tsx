@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-  Pressable,
   Alert,
   Linking,
   Platform,
@@ -21,7 +20,7 @@ import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic, mediumHaptic, errorHaptic } from '@/services/haptics';
-import { useI18n, Locale } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { BUILD_LABEL } from '@/constants/build-info';
 

@@ -1,5 +1,6 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, fontSize, radius, space } from '../theme';
+import { useFadeSlideIn } from '../motion';
 import type {
   OperatorWorkflowStep,
   OperatorWorkflowStepId,
@@ -23,7 +24,7 @@ function chipPalette(status: OperatorWorkflowStepStatus, isActive: boolean): Chi
   if (isActive) {
     return {
       border: colors.accent,
-      background: 'rgba(249,115,22,0.14)',
+      background: colors.ripple,
       text: colors.accent,
       hint: colors.text,
     };
@@ -60,7 +61,7 @@ function chipPalette(status: OperatorWorkflowStepStatus, isActive: boolean): Chi
     case 'active':
       return {
         border: colors.accent,
-        background: 'rgba(249,115,22,0.14)',
+        background: colors.ripple,
         text: colors.accent,
         hint: colors.text,
       };
@@ -88,58 +89,73 @@ export function OperatorStepProgress({
   activeStepId,
   onStepPress,
 }: OperatorStepProgressProps) {
+  const entranceStyle = useFadeSlideIn({ distance: 6, duration: 220 });
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.row}
-      keyboardShouldPersistTaps="handled"
-    >
-      {steps.map((step, index) => {
-        const isActive = step.id === activeStepId;
-        const palette = chipPalette(step.status, isActive);
-        const showHint = Boolean(
-          step.hint && (isActive || step.status === 'waiting' || step.status === 'blocked' || step.status === 'error'),
-        );
-        return (
-          <View key={step.id} style={styles.chipWrap}>
-            <Pressable
-              onPress={() => onStepPress(step.id)}
-              android_ripple={{ color: colors.ripple }}
-              accessibilityRole="button"
-              accessibilityLabel={`Step ${index + 1}. ${step.label}. Status: ${step.status.replace('_', ' ')}.`}
-              style={({ pressed }) => [
-                styles.chip,
-                {
-                  borderColor: palette.border,
-                  backgroundColor: palette.background,
-                },
-                pressed && styles.chipPressed,
-              ]}
-            >
-              <Text style={styles.index}>{index + 1}</Text>
-              <View style={styles.chipText}>
-                <Text style={[styles.label, { color: palette.text }]} numberOfLines={1}>
-                  {step.label}
-                </Text>
-                {showHint ? (
-                  <Text style={[styles.hint, { color: palette.hint }]} numberOfLines={1}>
-                    {step.hint}
+    <Animated.View style={[styles.shell, entranceStyle]}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.row}
+        keyboardShouldPersistTaps="handled"
+      >
+        {steps.map((step, index) => {
+          const isActive = step.id === activeStepId;
+          const palette = chipPalette(step.status, isActive);
+          const showHint = Boolean(
+            step.hint && (isActive || step.status === 'waiting' || step.status === 'blocked' || step.status === 'error'),
+          );
+          return (
+            <View key={step.id} style={styles.chipWrap}>
+              <Pressable
+                onPress={() => onStepPress(step.id)}
+                android_ripple={{ color: colors.ripple }}
+                accessibilityRole="button"
+                accessibilityLabel={`Step ${index + 1}. ${step.label}. Status: ${step.status.replace('_', ' ')}.`}
+                style={({ pressed }) => [
+                  styles.chip,
+                  {
+                    borderColor: palette.border,
+                    backgroundColor: palette.background,
+                  },
+                  pressed && styles.chipPressed,
+                ]}
+              >
+                <Text style={styles.index}>{index + 1}</Text>
+                <View style={styles.chipText}>
+                  <Text style={[styles.label, { color: palette.text }]} numberOfLines={1}>
+                    {step.label}
                   </Text>
-                ) : null}
-              </View>
-            </Pressable>
-          </View>
-        );
-      })}
-    </ScrollView>
+                  {showHint ? (
+                    <Text style={[styles.hint, { color: palette.hint }]} numberOfLines={1}>
+                      {step.hint}
+                    </Text>
+                  ) : null}
+                </View>
+              </Pressable>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  shell: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.cardMuted,
+    paddingVertical: 4,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
   row: {
     paddingVertical: space.xs,
-    paddingHorizontal: 2,
+    paddingHorizontal: 8,
     gap: space.sm,
     alignItems: 'stretch',
   },
@@ -151,11 +167,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    minHeight: 36,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    minHeight: 42,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderWidth: 1,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
   },
   chipPressed: {
     opacity: 0.75,
@@ -164,7 +185,11 @@ const styles = StyleSheet.create({
     color: colors.subtle,
     fontSize: 10,
     fontWeight: '900',
-    minWidth: 10,
+    minWidth: 18,
+    minHeight: 18,
+    borderRadius: 9,
+    backgroundColor: colors.surfaceElevated,
+    lineHeight: 18,
     textAlign: 'center',
   },
   chipText: {

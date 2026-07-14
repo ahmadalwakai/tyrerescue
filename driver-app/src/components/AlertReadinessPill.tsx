@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, View, Text, StyleSheet, Platform } from 'react-native';
 import * as Location from 'expo-location';
+import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, radius } from '@/constants/theme';
@@ -11,10 +12,10 @@ import { useI18n } from '@/i18n';
 
 /**
  * Compact dashboard pill summarising whether new-job alerts will reach the
- * driver when the app is backgrounded or the phone is locked. Reads native
- * watcher state, notification permission, full-screen-intent permission,
- * battery-optimisation status, and location readiness. Tapping a problematic
- * state navigates to the profile screen.
+ * driver when the app is backgrounded or the phone is locked. Android reads
+ * native watcher/full-screen/battery state. iOS reads Apple-compliant
+ * notification + active-job location readiness; it never promises an
+ * Android-style lock-screen overlay.
  */
 type Status =
   | 'ok'
@@ -87,17 +88,60 @@ function classify(
   };
 }
 
+function classifyIos(notif: boolean, location: boolean): PillState {
+  if (!notif) {
+    return {
+      status: 'notifications-denied',
+      labelKey: 'alertReadiness.notificationsDenied',
+      hintKey: 'alertReadiness.iosNotificationHint',
+      tone: 'warn',
+    };
+  }
+  if (!location) {
+    return {
+      status: 'location-blocked',
+      labelKey: 'alertReadiness.locationBlocked',
+      hintKey: 'alertReadiness.iosLocationHint',
+      tone: 'warn',
+    };
+  }
+  return {
+    status: 'ok',
+    labelKey: 'alertReadiness.alertsReady',
+    hintKey: 'alertReadiness.iosTimeSensitiveEnabled',
+    tone: 'ok',
+  };
+}
+
 export function AlertReadinessPill() {
   const router = useRouter();
   const { t } = useI18n();
   const [state, setState] = useState<PillState | null>(null);
 
   const refresh = useCallback(async () => {
-    if (Platform.OS !== 'android' || !DriverAlertWatcher.isAvailable()) {
+    if (Platform.OS === 'web') {
       setState(null);
       return;
     }
     try {
+      if (Platform.OS === 'ios') {
+        const [notifications, fgLocation, bgLocation] = await Promise.all([
+          Notifications.getPermissionsAsync(),
+          Location.getForegroundPermissionsAsync(),
+          Location.getBackgroundPermissionsAsync(),
+        ]);
+        setState(classifyIos(
+          notifications.status === 'granted',
+          fgLocation.status === 'granted' && bgLocation.status === 'granted',
+        ));
+        return;
+      }
+
+      if (!DriverAlertWatcher.isAvailable()) {
+        setState(null);
+        return;
+      }
+
       const [armed, notif, fsi, batt, fgLocation, bgLocation] = await Promise.all([
         DriverAlertWatcher.isArmed(),
         DriverAlertWatcher.areNotificationsEnabled(),
@@ -119,7 +163,9 @@ export function AlertReadinessPill() {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    const firstRefresh = setTimeout(() => {
+      void refresh();
+    }, 0);
     const timer = setInterval(() => {
       void refresh();
     }, 8000);
@@ -127,6 +173,7 @@ export function AlertReadinessPill() {
       if (nextState === 'active') void refresh();
     });
     return () => {
+      clearTimeout(firstRefresh);
       clearInterval(timer);
       sub.remove();
     };

@@ -54,6 +54,8 @@ async function clearStaleDriverToken(
 
 const DRIVER_JOBS_URGENT_CHANNEL_ID = 'driver_jobs_urgent_v10';
 const JOBS_UPCOMING_CHANNEL_ID = 'jobs_upcoming_v4';
+const DRIVER_JOB_NOTIFICATION_CATEGORY_ID = 'driverjobalert';
+const DRIVER_JOB_WITH_CALL_NOTIFICATION_CATEGORY_ID = 'driverjobalertcall';
 
 /** Map event types to Android notification channel IDs (versioned). */
 const EVENT_CHANNEL_MAP: Record<string, string> = {
@@ -100,9 +102,43 @@ function isExpoToken(token: string): boolean {
   return token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken[');
 }
 
+function parsePushTokenPlatform(
+  value: string | null | undefined,
+  token: string,
+): { platform: 'android' | 'ios' | 'unknown'; tokenType: 'fcm' | 'expo' } {
+  const fallbackTokenType = isExpoToken(token) ? 'expo' : 'fcm';
+  if (!value) {
+    return { platform: 'unknown', tokenType: fallbackTokenType };
+  }
+
+  const [platformPart, tokenTypePart] = value.split(':');
+  const platform =
+    platformPart === 'android' || platformPart === 'ios'
+      ? platformPart
+      : 'unknown';
+  const tokenType =
+    tokenTypePart === 'fcm' || tokenTypePart === 'expo'
+      ? tokenTypePart
+      : fallbackTokenType;
+
+  return { platform, tokenType };
+}
+
+function hasUsablePhone(raw: unknown): boolean {
+  if (typeof raw !== 'string') return false;
+  return raw.replace(/[^\d]/g, '').length >= 5;
+}
+
+function getJobNotificationCategory(data?: Record<string, unknown>): string {
+  return hasUsablePhone(data?.customerPhone)
+    ? DRIVER_JOB_WITH_CALL_NOTIFICATION_CATEGORY_ID
+    : DRIVER_JOB_NOTIFICATION_CATEGORY_ID;
+}
+
 /**
- * Legacy Expo Push API fallback for devices still running old app versions
- * with ExpoPushTokens. Used ONLY during migration — to be removed.
+ * Expo Push relay for Expo tokens. Android critical job alerts still require
+ * native FCM data-only delivery; iOS uses this APNs relay for Apple-compliant
+ * Time Sensitive job notifications.
  */
 async function sendViaExpoPushFallback(
   token: string,
@@ -111,8 +147,11 @@ async function sendViaExpoPushFallback(
   data?: Record<string, unknown>,
   channelId?: string,
   soundFile?: string,
+  options?: { platform?: 'android' | 'ios' | 'unknown'; isCritical?: boolean },
 ): Promise<boolean> {
   try {
+    const isIos = options?.platform === 'ios';
+    const categoryId = getJobNotificationCategory(data);
     const res = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -122,8 +161,15 @@ async function sendViaExpoPushFallback(
         body,
         data,
         sound: soundFile ?? CRITICAL_SOUND_FILE,
-        channelId: channelId ?? DRIVER_JOBS_URGENT_CHANNEL_ID,
         priority: 'high',
+        ...(isIos
+          ? {
+              interruptionLevel: options?.isCritical ? 'time-sensitive' : 'active',
+              categoryId,
+            }
+          : {
+              channelId: channelId ?? DRIVER_JOBS_URGENT_CHANNEL_ID,
+            }),
       }),
     });
     return res.ok;
@@ -170,7 +216,7 @@ export async function sendDriverPushNotification(
 
   // Look up the driver's push token
   const [driver] = await db
-    .select({ pushToken: drivers.pushToken })
+    .select({ pushToken: drivers.pushToken, pushTokenPlatform: drivers.pushTokenPlatform })
     .from(drivers)
     .where(eq(drivers.id, driverId))
     .limit(1);
@@ -210,12 +256,20 @@ export async function sendDriverPushNotification(
   }
 
   const usesExpoToken = isExpoToken(driver.pushToken);
+  const storedToken = parsePushTokenPlatform(driver.pushTokenPlatform, driver.pushToken);
 
   // Driver app lives in its OWN Firebase project (tyrerescuedriver). Use its
   // dedicated service account so sends are authenticated for the correct
   // project; otherwise driver tokens fail with SENDER_ID_MISMATCH and never
   // arrive in the background. Falls back to global FCM_* when unset.
   const driverFcmCredentials = getDriverFcmCredentials();
+
+  if (!usesExpoToken && storedToken.platform === 'ios') {
+    console.warn(
+      `[driver-push] iOS native token cannot be sent through Android FCM path driverId=${driverId} payloadType=${payloadType} reason=apns_direct_not_configured`,
+    );
+    return false;
+  }
 
   // Native tokens require direct FCM; never route them through Expo fallback.
   if (!usesExpoToken && !isFcmConfigured(driverFcmCredentials)) {
@@ -236,7 +290,7 @@ export async function sendDriverPushNotification(
       const tokenSuffix = driver.pushToken.slice(-6);
       const bookingRef = (data?.ref as string) ?? 'unknown';
       console.log(
-        `[driver-push] native data-only new_job attempt driverId=${driverId} bookingRef=${bookingRef} type=new_job platform=android:fcm hasToken=true tokenSuffix=${tokenSuffix}`,
+        `[driver-push] native data-only new_job attempt driverId=${driverId} bookingRef=${bookingRef} type=new_job platform=${storedToken.platform}:${storedToken.tokenType} hasToken=true tokenSuffix=${tokenSuffix}`,
       );
 
       const toPence = (v: unknown): number | undefined => {
@@ -314,14 +368,30 @@ export async function sendDriverPushNotification(
     return false;
   }
 
-  // ── Fallback: Expo Push relay (old app versions) ──
+  // ── Fallback: Expo Push relay ──
   // The new-job alert MUST be data-only (handled above for native tokens) so
-  // the native full-screen lock-screen alert can fire. The Expo relay only
-  // delivers notification-style title/body pushes, which Android swallows in
-  // the background — so we never route critical job alerts through it. A
-  // legacy Expo-token client must upgrade to a native FCM token to receive
-  // the urgent alert.
+  // the native full-screen lock-screen alert can fire on Android. iOS cannot
+  // use that Android-only path, so iOS Expo tokens receive Apple-compliant
+  // Time Sensitive notification-style pushes through Expo/APNs.
   if (isCritical) {
+    if (storedToken.platform === 'ios') {
+      const sent = await sendViaExpoPushFallback(
+        driver.pushToken,
+        title,
+        body,
+        data,
+        effectiveChannel,
+        soundFile,
+        { platform: storedToken.platform, isCritical: true },
+      );
+      if (sent) {
+        console.log(`[push/expo-fallback] Sent iOS Time Sensitive job alert to driver ${driverId}`);
+      } else {
+        console.warn(`[push/expo-fallback] Failed iOS Time Sensitive job alert for driver ${driverId}`);
+      }
+      return sent;
+    }
+
     console.warn(
       `[driver-push] critical new_job NOT sent via Expo relay (notification-style) driverId=${driverId} bookingRef=${
         (data?.ref as string) ?? 'unknown'
@@ -337,6 +407,7 @@ export async function sendDriverPushNotification(
     data,
     effectiveChannel,
     soundFile,
+    { platform: storedToken.platform, isCritical },
   );
   if (sent) {
     console.log(`[push/expo-fallback] Sent to driver ${driverId}: channel=${effectiveChannel}`);
@@ -359,8 +430,8 @@ export async function notifyDriverNewJob(
 ): Promise<boolean> {
   return sendDriverPushNotification(
     driverId,
-    'New Job Assigned',
-    `Job ${refNumber} at ${address}. Tap to accept.`,
+    'New driver job',
+    `Job ${refNumber} at ${address}. Tap to open.`,
     {
       type: 'new_job',
       ref: refNumber,
@@ -388,7 +459,7 @@ export async function notifyDriverReassignment(
 ): Promise<boolean> {
   return sendDriverPushNotification(
     driverId,
-    'Job Reassigned to You',
+    'Driver job reassigned',
     `Job ${refNumber} at ${address}. Tap to review.`,
     {
       type: 'reassignment',

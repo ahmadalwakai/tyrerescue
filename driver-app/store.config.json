@@ -1,0 +1,72 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "version": "1.2.3",
+    "copyright": "© 2026 Tyre Rescue",
+    "release": {
+      "automaticRelease": true
+    },
+    "info": {
+      "en-GB": {
+        "description": "Driver operations app for assigned drivers to receive jobs, view job details, navigate to customers, call customers, update dispatch with live location during active jobs, view job/payment status, and complete jobs.",
+        "keywords": [
+          "driver",
+          "jobs",
+          "dispatch",
+          "routes",
+          "tracking",
+          "tyres",
+          "roadside"
+        ],
+        "marketingUrl": "https://www.tyrerescue.uk/driver-app",
+        "promoText": "Receive assigned jobs, view route details, and update dispatch during active jobs.",
+        "supportUrl": "https://www.tyrerescue.uk/contact",
+        "title": "Tyre Rescue Driver",
+        "subtitle": "Driver job route operations",
+        "privacyPolicyUrl": "https://www.tyrerescue.uk/privacy-policy"
+      }
+    },
+    "categories": [
+      "BUSINESS"
+    ],
+    "advisory": {
+      "ageRatingOverride": "NONE",
+      "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+      "contests": "NONE",
+      "gambling": false,
+      "gamblingSimulated": "NONE",
+      "horrorOrFearThemes": "NONE",
+      "kidsAgeBand": null,
+      "koreaAgeRatingOverride": "NONE",
+      "lootBox": false,
+      "matureOrSuggestiveThemes": "NONE",
+      "medicalOrTreatmentInformation": "NONE",
+      "profanityOrCrudeHumor": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "sexualContentOrNudity": "NONE",
+      "unrestrictedWebAccess": false,
+      "violenceCartoonOrFantasy": "NONE",
+      "violenceRealistic": "NONE",
+      "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+      "advertising": false,
+      "ageAssurance": false,
+      "ageRatingOverrideV2": "NONE",
+      "developerAgeRatingInfoUrl": null,
+      "gunsOrOtherWeapons": "NONE",
+      "healthOrWellnessTopics": false,
+      "messagingAndChat": true,
+      "parentalControls": false,
+      "userGeneratedContent": false
+    },
+    "review": {
+      "firstName": "Ahmad",
+      "lastName": "Alwakai",
+      "email": "ahmadalwakai76@gmail.com",
+      "phone": "+447901846297",
+      "demoUsername": "appstore-review-driver@tyrerescue.uk",
+      "demoPassword": "TR-AppleReview-hjS6Scpu-A!26",
+      "demoRequired": true,
+      "notes": "The Driver app is used by assigned Tyre Rescue drivers to receive assigned jobs, navigate to customers, call customers, update job status, update dispatch with live location during active jobs, view payment/job status, and close jobs.\n\nDemo driver account:\nEmail: appstore-review-driver@tyrerescue.uk\nPassword: TR-AppleReview-hjS6Scpu-A!26\nNo OTP or two-factor authentication is required.\n\nDemo steps:\n1. Open the app and log in with the demo driver account.\n2. Allow notifications if prompted.\n3. Allow location while using the app if prompted, and allow background location if prompted during an active job.\n4. Open active assigned job TYR-2026-90001.\n5. Review the customer details, route/map, payment/job status, call button, and status actions.\n6. Open completed/history jobs and review TYR-2026-90002.\n\nNotifications and sound:\niOS job alerts use standard Apple/APNs notifications through the Expo push relay. In the foreground, the app suppresses duplicate system presentation and shows an in-app full-screen job alert with sound so the driver can open the job, navigate, or call the customer. In the background or locked state, iOS shows a standard Apple notification with app notification sound where permitted by iOS/user settings. This is not an Android-style lock-screen popup.\n\nLocation:\nLocation is used to show the driver's route to the customer and update dispatch while the driver is working on an active job. Background location is enabled only for active jobs so dispatch can see progress and support customers; tracking stops when the job is closed or the driver logs out.\n\nThe app does not use PushKit, CallKit, VoIP calling, or Critical Alerts for job alerts."
+    }
+  }
+}

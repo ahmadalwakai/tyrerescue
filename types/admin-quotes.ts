@@ -33,6 +33,17 @@ export type AdminQuoteNextAction = (typeof ADMIN_QUOTE_NEXT_ACTIONS)[number];
 
 export type AdminQuoteConfirmationMethod = 'PHONE';
 
+export interface AdminQuoteTyreLineInput {
+  id?: string | null;
+  size: string;
+  quantity: number;
+  brand?: string | null;
+  pattern?: string | null;
+  season?: string | null;
+  source?: string | null;
+  price?: number | null;
+}
+
 export interface AdminQuoteListItem {
   id: string;
   quoteRef: string;
@@ -77,6 +88,8 @@ export interface CreateAdminQuoteInput {
   longitude?: number | null;
   tyreSize?: string | null;
   quantity?: number;
+  tyreLines?: AdminQuoteTyreLineInput[];
+  items?: AdminQuoteTyreLineInput[];
   lockingWheelNutStatus?: string | null;
   lockingWheelNutChargePence?: number | null;
   priceAmount?: number;
@@ -96,6 +109,8 @@ export interface UpdateAdminQuoteInput {
   longitude?: number | null;
   tyreSize?: string | null;
   quantity?: number;
+  tyreLines?: AdminQuoteTyreLineInput[];
+  items?: AdminQuoteTyreLineInput[];
   lockingWheelNutStatus?: string | null;
   lockingWheelNutChargePence?: number | null;
   priceAmount?: number;

@@ -1,0 +1,62 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "version": "1.0.2",
+    "copyright": "(c) 2026 Tyre Rescue",
+    "release": {
+      "automaticRelease": false
+    },
+    "info": {
+      "en-GB": {
+        "description": "Tyre Rescue Assisted Chat is an operator console for authorised Tyre Rescue administrators. Operators can handle emergency tyre rescue calls, create assisted bookings, send customer location-share links, view customer and driver locations for active jobs, monitor tracking status, review invoices and payment status, and receive urgent booking notifications with an app sound where allowed by iOS notification settings.",
+        "keywords": [
+          "tyres",
+          "dispatch",
+          "bookings",
+          "operators",
+          "tracking",
+          "invoices",
+          "roadside"
+        ],
+        "marketingUrl": "https://www.tyrerescue.uk",
+        "promoText": "Operator console for assisted tyre rescue bookings and active job tracking.",
+        "supportUrl": "https://www.tyrerescue.uk/contact",
+        "title": "Tyre Rescue Assisted Chat",
+        "subtitle": "Operator booking console",
+        "privacyPolicyUrl": "https://www.tyrerescue.uk/privacy-policy"
+      }
+    },
+    "categories": [
+      "BUSINESS"
+    ],
+    "advisory": {
+      "ageRatingOverride": "NONE",
+      "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+      "contests": "NONE",
+      "gambling": false,
+      "gamblingSimulated": "NONE",
+      "horrorOrFearThemes": "NONE",
+      "kidsAgeBand": null,
+      "koreaAgeRatingOverride": "NONE",
+      "lootBox": false,
+      "matureOrSuggestiveThemes": "NONE",
+      "medicalOrTreatmentInformation": "NONE",
+      "profanityOrCrudeHumor": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "sexualContentOrNudity": "NONE",
+      "unrestrictedWebAccess": false,
+      "violenceCartoonOrFantasy": "NONE",
+      "violenceRealistic": "NONE",
+      "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+      "advertising": false,
+      "ageAssurance": false,
+      "ageRatingOverrideV2": "NONE",
+      "developerAgeRatingInfoUrl": null,
+      "gunsOrOtherWeapons": "NONE",
+      "healthOrWellnessTopics": false,
+      "messagingAndChat": true,
+      "parentalControls": false,
+      "userGeneratedContent": false
+    }
+  }
+}

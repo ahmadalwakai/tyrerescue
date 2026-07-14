@@ -1,14 +1,26 @@
 import { notFound } from 'next/navigation';
 import { db, bookings, bookingTyres, bookingStatusHistory, drivers, users, tyreProducts } from '@/lib/db';
 import { eq, desc } from 'drizzle-orm';
-import { Box, Heading, VStack, Grid, GridItem, Text, Flex } from '@chakra-ui/react';
+import { Box, Heading } from '@chakra-ui/react';
 import { BookingDetailClient } from './BookingDetailClient';
 import { auth } from '@/lib/auth';
 import { normaliseTyreDetailsFromDb } from '@/lib/bookings/normalise-tyre-details';
 import { getBookingPaymentSummary, type PaymentSummary } from '@/lib/payments/payment-summary';
+import { haversineDistanceMiles } from '@/lib/mapbox';
+import { GARAGE_LOCATION } from '@/lib/garage';
+import {
+  calculateDriverSituation,
+  estimateUrbanDriveMinutesFromMiles,
+} from '@/lib/admin/driverSituation';
 
 interface Props {
   params: Promise<{ ref: string }>;
+}
+
+function toNumber(value: string | number | null | undefined): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 export default async function AdminBookingDetailPage({ params }: Props) {
@@ -198,6 +210,45 @@ export default async function AdminBookingDetailPage({ params }: Props) {
     stripeDepositPiId: booking.stripeDepositPiId,
   });
 
+  const customerLat = toNumber(booking.lat);
+  const customerLng = toNumber(booking.lng);
+  const driverLat = toNumber(assignedDriver?.currentLat);
+  const driverLng = toNumber(assignedDriver?.currentLng);
+  const outboundMinutes =
+    customerLat != null && customerLng != null && driverLat != null && driverLng != null
+      ? estimateUrbanDriveMinutesFromMiles(
+          haversineDistanceMiles(
+            { lat: driverLat, lng: driverLng },
+            { lat: customerLat, lng: customerLng },
+          ),
+        )
+      : null;
+  const returnMinutes =
+    customerLat != null && customerLng != null
+      ? estimateUrbanDriveMinutesFromMiles(
+          haversineDistanceMiles(
+            { lat: customerLat, lng: customerLng },
+            { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+          ),
+        )
+      : null;
+  const driverSituation = calculateDriverSituation({
+    jobRef: booking.refNumber,
+    driverId: booking.driverId ?? null,
+    bookingStatus: booking.status,
+    driverIsOnline: assignedDriver?.isOnline ?? false,
+    driverStatus: assignedDriver?.status ?? null,
+    lastLocationAt: assignedDriver?.locationAt ?? null,
+    outboundMinutes,
+    returnMinutes,
+    serviceType: booking.serviceType,
+    tyreCount: booking.quantity,
+    paymentStatus: booking.paymentType,
+    returnEstimateAvailable: returnMinutes != null,
+    routeAvailable: outboundMinutes != null,
+    garageConfigured: true,
+  });
+
   return (
     <Box>
       <Heading size="lg" mb={6}>
@@ -212,6 +263,7 @@ export default async function AdminBookingDetailPage({ params }: Props) {
         currentUserId={session?.user?.id ?? ''}
         currentUserRole={(session?.user?.role as 'admin' | 'driver' | 'customer') ?? 'admin'}
         payment={payment}
+        driverSituation={driverSituation}
       />
     </Box>
   );

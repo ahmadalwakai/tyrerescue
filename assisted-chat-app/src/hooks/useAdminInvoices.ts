@@ -151,15 +151,33 @@ export function useInvoiceDetail(id: string | null, enabled: boolean) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!id || !enabled) { setDetail(null); return; }
-    setLoading(true);
-    api.get<{ invoice: Omit<InvoiceDetail, 'items'>; items: InvoiceItem[] }>(
-      `/api/mobile/admin/invoices/${id}`
-    ).then(({ invoice, items }) => {
-      setDetail({ ...invoice, items });
-    }).catch(() => {
-      setDetail(null);
-    }).finally(() => setLoading(false));
+    let cancelled = false;
+
+    void (async () => {
+      if (!id || !enabled) {
+        if (!cancelled) {
+          setDetail(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const { invoice, items } = await api.get<{ invoice: Omit<InvoiceDetail, 'items'>; items: InvoiceItem[] }>(
+          `/api/mobile/admin/invoices/${id}`,
+        );
+        if (!cancelled) setDetail({ ...invoice, items });
+      } catch {
+        if (!cancelled) setDetail(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id, enabled]);
 
   return { detail, loading };

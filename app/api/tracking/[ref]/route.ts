@@ -21,6 +21,7 @@ interface TrackingResponse {
   driverName: string | null;
   driverPhone: string | null;
   etaMinutes: number | null;
+  estimatedArrivalAt: string | null;
   distanceMiles: number | null;
   routeCoordinates: [number, number][] | null;
   statusHistory: StatusHistoryItem[];
@@ -75,8 +76,11 @@ export async function GET(
     let driverName: string | null = null;
     let driverPhone: string | null = null;
     let etaMinutes: number | null = null;
+    let estimatedArrivalAt: string | null = null;
     let distanceMiles: number | null = null;
     let routeCoordinates: [number, number][] | null = null;
+    const customerLat = parseFloat(booking.lat);
+    const customerLng = parseFloat(booking.lng);
 
     if (booking.driverId) {
       const [driverInfo] = await db
@@ -115,9 +119,6 @@ export async function GET(
 
         // Calculate ETA + route if driver has location
         if (driverLat && driverLng) {
-          const customerLat = parseFloat(booking.lat);
-          const customerLng = parseFloat(booking.lng);
-
           const directions = await getDirections(
             { lat: driverLat, lng: driverLng },
             { lat: customerLat, lng: customerLng }
@@ -125,6 +126,9 @@ export async function GET(
 
           if (directions) {
             etaMinutes = secondsToMinutes(directions.duration);
+            estimatedArrivalAt = new Date(
+              Date.now() + Math.max(0, etaMinutes) * 60_000,
+            ).toISOString();
             distanceMiles = Math.round(metersToMiles(directions.distance) * 10) / 10;
             routeCoordinates = directions.geometry.coordinates;
           }
@@ -148,6 +152,7 @@ export async function GET(
       driverName,
       driverPhone,
       etaMinutes,
+      estimatedArrivalAt,
       distanceMiles,
       routeCoordinates,
       statusHistory,

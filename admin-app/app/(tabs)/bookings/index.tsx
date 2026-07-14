@@ -1,19 +1,19 @@
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
+import { normalizeDriverSituation } from '@/lib/driverSituation';
+import type { DriverSituation } from '@/types/driverSituation';
 import {
-  Screen,
-  SectionHeader,
-  InputField,
-  StateView,
-  StatusChip,
-  PrimaryButton,
-  ListRow,
+  AdminShell,
+  BookingCard,
+  FilterChip,
+  SearchBar,
+  StatePanel,
   colors,
-  radius,
   spacing,
+  typography,
 } from '@/ui';
 
 type BookingItem = {
@@ -27,6 +27,7 @@ type BookingItem = {
   scheduledAt: string | null;
   createdAt: string | null;
   driverName: string | null;
+  driverSituation?: DriverSituation | null;
 };
 
 type BookingsResponse = {
@@ -34,104 +35,150 @@ type BookingsResponse = {
   totalCount: number;
 };
 
+const statusOptions = [
+  { label: 'All', value: 'all' },
+  { label: 'Pending', value: 'pending' },
+  { label: 'Confirmed', value: 'confirmed' },
+  { label: 'In Progress', value: 'in_progress' },
+  { label: 'Completed', value: 'completed' },
+];
+
+const sortOptions = [
+  { label: 'Soonest first', value: 'soonest' },
+  { label: 'Newest', value: 'newest' },
+  { label: 'Highest value', value: 'value' },
+];
+
 export default function BookingsListScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
-  const [appliedSearch, setAppliedSearch] = useState('');
-  const [appliedStatus, setAppliedStatus] = useState('all');
+  const [sort, setSort] = useState('soonest');
 
   const { data, isLoading, error, refetch, isFetching } = useQuery<BookingsResponse>({
-    queryKey: ['bookings', appliedSearch, appliedStatus],
+    queryKey: ['bookings', search, status],
     queryFn: () =>
       apiClient.get(
-        `/api/mobile/admin/bookings?search=${encodeURIComponent(appliedSearch)}&status=${encodeURIComponent(
-          appliedStatus,
-        )}`,
+        `/api/mobile/admin/bookings?search=${encodeURIComponent(search.trim())}&status=${encodeURIComponent(status)}`,
       ),
   });
 
+  const sortedItems = useMemo(() => {
+    const items = [...(data?.items ?? [])];
+    if (sort === 'newest') {
+      return items.sort((a, b) => Date.parse(b.createdAt ?? '') - Date.parse(a.createdAt ?? ''));
+    }
+    if (sort === 'value') {
+      return items.sort((a, b) => (Number(b.totalAmount) || 0) - (Number(a.totalAmount) || 0));
+    }
+    return items.sort((a, b) => {
+      const aDate = Date.parse(a.scheduledAt ?? a.createdAt ?? '');
+      const bDate = Date.parse(b.scheduledAt ?? b.createdAt ?? '');
+      return (Number.isFinite(aDate) ? aDate : Number.MAX_SAFE_INTEGER) - (Number.isFinite(bDate) ? bDate : Number.MAX_SAFE_INTEGER);
+    });
+  }, [data?.items, sort]);
+
   const errorMessage = error instanceof Error ? error.message : null;
 
-  const handleApplyFilters = () => {
-    setAppliedSearch(search);
-    setAppliedStatus(status || 'all');
-  };
-
   return (
-    <Screen>
-      {/* Filter Section */}
-      <View style={styles.filterPanel}>
-        <InputField
-          label="Search"
-          value={search}
-          onChangeText={setSearch}
-          placeholder="ref, customer, email, tyre"
-          keyboardType="default"
-        />
-        <InputField
-          label="Status"
-          value={status}
-          onChangeText={setStatus}
-          placeholder="all, pending, confirmed, completed"
-          keyboardType="default"
-        />
-        <PrimaryButton
-          title={isFetching ? 'Searching...' : 'Apply Filters'}
-          onPress={handleApplyFilters}
-          disabled={isFetching}
-          size="md"
-        />
+    <AdminShell
+      title="Bookings"
+      subtitle={data?.totalCount ? `${data.totalCount} total bookings` : 'Manage all bookings'}
+    >
+      <SearchBar
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Search by ref, customer, postcode..."
+        onFilterPress={() => refetch()}
+      />
+
+      <View style={styles.chipWrap}>
+        {statusOptions.map((option) => (
+          <FilterChip
+            key={option.value}
+            label={option.label}
+            active={status === option.value}
+            onPress={() => setStatus(option.value)}
+            accent={option.value === 'all' ? 'orange' : 'blue'}
+          />
+        ))}
       </View>
 
-      {/* Results Section */}
-      <SectionHeader
-        title="Bookings"
-        subtitle={data?.totalCount ? `${data.totalCount} total` : undefined}
-        action="Refresh"
-        onActionPress={() => refetch()}
-      />
+      <View style={styles.chipWrap}>
+        {sortOptions.map((option) => (
+          <FilterChip
+            key={option.value}
+            label={option.label}
+            active={sort === option.value}
+            onPress={() => setSort(option.value)}
+            accent="orange"
+          />
+        ))}
+      </View>
 
-      <StateView
-        loading={isLoading}
+      <StatePanel
+        loading={isLoading || isFetching}
         error={errorMessage}
-        empty={!data?.items?.length}
-        emptyLabel="No bookings found. Try adjusting your filters."
+        empty={!isLoading && !errorMessage && sortedItems.length === 0}
+        emptyLabel="No bookings found. Try adjusting the filters."
+        onRetry={() => refetch()}
       />
 
-      {data?.items && data.items.length > 0 && (
-        <View style={styles.bookingsList}>
-          {data.items.map((booking, index) => (
-            <ListRow
-              key={booking.refNumber}
-              title={booking.refNumber}
-              subtitle={`${booking.customerName} • ${booking.serviceType}`}
-              rightContent={<StatusChip status={booking.status} />}
-              onPress={() => router.push(`/(tabs)/bookings/${booking.refNumber}`)}
-              divider={index < data.items.length - 1}
-            />
-          ))}
+      {sortedItems.length > 0 ? (
+        <View style={styles.listHeader}>
+          <Text style={styles.sectionTitle}>Booking Queue</Text>
+          <Text style={styles.countText}>{sortedItems.length} shown</Text>
         </View>
-      )}
-    </Screen>
+      ) : null}
+
+      {sortedItems.map((booking, index) => {
+        const driverSituation = normalizeDriverSituation(booking.driverSituation);
+        return (
+          <BookingCard
+            key={booking.refNumber}
+            refNumber={booking.refNumber}
+            customerName={booking.customerName}
+            serviceType={booking.serviceType || booking.bookingType}
+            status={booking.status}
+            scheduledAt={booking.scheduledAt || booking.createdAt}
+            totalAmount={booking.totalAmount}
+            driverLabel={
+              booking.driverName
+                ? `${booking.driverName} · ${driverSituation.label}`
+                : driverSituation.status !== 'unavailable'
+                  ? driverSituation.label
+                  : null
+            }
+            onPress={() => router.push(`/(tabs)/bookings/${booking.refNumber}`)}
+            animatedIndex={index}
+          />
+        );
+      })}
+    </AdminShell>
   );
 }
 
 const styles = StyleSheet.create({
-  filterPanel: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.xl,
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
-  bookingsList: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    marginBottom: spacing.lg,
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  sectionTitle: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: typography.weight.bold,
+  },
+  countText: {
+    color: colors.textMuted,
+    fontSize: 11,
   },
 });

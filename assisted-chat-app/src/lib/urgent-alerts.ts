@@ -11,7 +11,6 @@ import {
   startUrgentWatcher,
   stopUrgentWatcher,
   canUseFullScreenIntent,
-  openFullScreenIntentSettings,
   setUrgentWatcherAuth,
   clearUrgentWatcherAuth,
 } from './urgent-watcher';

@@ -9,6 +9,7 @@ export const GARAGE_ORIGIN_ADDRESS = '3, 10 Gateside St, Glasgow G31 1PD';
 
 /** Maximum distance for automatic mobile pricing. Beyond this, a manual quote is required. */
 export const MOBILE_AUTO_PRICING_MAX_MILES = 100;
+export const ASSISTED_CHAT_AUTO_PRICING_MAX_MILES = 250;
 export const MOBILE_MAX_DISTANCE_MILES = MOBILE_AUTO_PRICING_MAX_MILES;
 
 export type FittingLocationPricingUnavailableReason =
@@ -54,7 +55,7 @@ export function milesBetween(distance: number, from: number, to: number): number
 
 /**
  * Continuous travel fee with no step-jumps at tier boundaries.
- * Returns null when distance exceeds MOBILE_AUTO_PRICING_MAX_MILES.
+ * Returns null when distance exceeds the supplied automatic-pricing limit.
  *
  * Tier structure:
  *   0–3 mi:  base £24 (flat)
@@ -62,11 +63,23 @@ export function milesBetween(distance: number, from: number, to: number): number
  *   10–20 mi: £2.35/mile
  *   20–40 mi: £3.00/mile
  *   40–60 mi: £3.85/mile
- *   60–100 mi: £4.25/mile
+ *   60+ mi: £4.25/mile, capped by the active automatic-pricing limit
  */
-export function calculateTravelFee(distanceMiles: number): number | null {
+export function normalizeMobileAutoPricingMaxMiles(value?: number | null): number {
+  if (value == null || !Number.isFinite(value)) return MOBILE_AUTO_PRICING_MAX_MILES;
+  return Math.min(
+    ASSISTED_CHAT_AUTO_PRICING_MAX_MILES,
+    Math.max(0, Math.round(value * 100) / 100),
+  );
+}
+
+export function calculateTravelFee(
+  distanceMiles: number,
+  maxAutoPricingMiles: number = MOBILE_AUTO_PRICING_MAX_MILES,
+): number | null {
   if (!Number.isFinite(distanceMiles) || distanceMiles < 0) return null;
-  if (distanceMiles > MOBILE_AUTO_PRICING_MAX_MILES) return null;
+  const maxMiles = normalizeMobileAutoPricingMaxMiles(maxAutoPricingMiles);
+  if (distanceMiles > maxMiles) return null;
 
   const d = distanceMiles;
   const fee = new Decimal(24)
@@ -74,7 +87,7 @@ export function calculateTravelFee(distanceMiles: number): number | null {
     .plus(new Decimal(milesBetween(d, 10, 20)).times(2.35))
     .plus(new Decimal(milesBetween(d, 20, 40)).times(3.0))
     .plus(new Decimal(milesBetween(d, 40, 60)).times(3.85))
-    .plus(new Decimal(milesBetween(d, 60, 100)).times(4.25));
+    .plus(new Decimal(milesBetween(d, 60, maxMiles)).times(4.25));
 
   return fee.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
 }
@@ -88,6 +101,7 @@ export function calculateTravelFee(distanceMiles: number): number | null {
  */
 export function calculateFittingAtLocationPrice(
   distanceMiles: number | null | undefined,
+  maxAutoPricingMiles: number = MOBILE_AUTO_PRICING_MAX_MILES,
 ): FittingLocationPricingResult {
   if (
     distanceMiles === null ||
@@ -105,18 +119,19 @@ export function calculateFittingAtLocationPrice(
     };
   }
 
-  if (distanceMiles > MOBILE_AUTO_PRICING_MAX_MILES) {
+  const maxMiles = normalizeMobileAutoPricingMaxMiles(maxAutoPricingMiles);
+  if (distanceMiles > maxMiles) {
     return {
       available: false,
       distanceMiles,
       fittingPrice: null,
       displayPrice: null,
       reason: 'MANUAL_QUOTE_REQUIRED',
-      message: `This fitting location is over ${MOBILE_AUTO_PRICING_MAX_MILES} miles away and needs a manual quote.`,
+      message: `This fitting location is over ${maxMiles} miles away and needs a manual quote.`,
     };
   }
 
-  const travelFee = calculateTravelFee(distanceMiles)!;
+  const travelFee = calculateTravelFee(distanceMiles, maxMiles)!;
 
   return {
     available: true,

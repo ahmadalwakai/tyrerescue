@@ -1,43 +1,40 @@
-// ============================================
-// TYRE RESCUE DARK THEME - ADMIN APP
-// Design System for Mobile Admin Interface
-// ============================================
-
-// ============ CORE COLORS ============
 export const colors = {
-  // Primary backgrounds
-  bg: '#09090B',              // Main background
-  surface: '#18181B',         // Card/container surface
-  surfaceLight: '#27272A',    // Hover/elevated surface
-  overlay: '#000000cc',       // Semi-transparent overlay (80% opacity)
+  bg: '#020712',
+  bgNavy: '#061526',
+  bgPanel: '#071A2C',
+  surface: 'rgba(13, 31, 48, 0.82)',
+  surfaceLight: 'rgba(23, 47, 70, 0.9)',
+  surfaceSoft: 'rgba(255, 255, 255, 0.055)',
+  glass: 'rgba(13, 31, 48, 0.72)',
+  glassStrong: 'rgba(20, 43, 65, 0.88)',
+  overlay: 'rgba(0, 0, 0, 0.72)',
 
-  // Text
-  text: '#FAFAFA',            // Primary text
-  textSecondary: '#D4D4D8',   // Secondary text
-  textMuted: '#A1A1AA',       // Muted/tertiary text
-  textSubtle: '#71717A',      // Subtle text for hints
+  text: '#F7FBFF',
+  textSecondary: '#D8E5F0',
+  textMuted: '#93A8B8',
+  textSubtle: '#688093',
 
-  // Semantic
-  primary: '#F97316',         // Brand orange - actions, highlights
-  accent: '#FB923C',          // Lighter orange for hover
-  accentAlt: '#EA580C',       // Darker orange for active
+  primary: '#FF7A18',
+  accent: '#FF9B31',
+  accentAlt: '#E95E0A',
+  active: '#1F8BFF',
+  activeSoft: 'rgba(31, 139, 255, 0.18)',
+  tools: '#A855F7',
+  toolsSoft: 'rgba(168, 85, 247, 0.16)',
 
-  // Interactive states
-  error: '#EF4444',           // Red for errors
-  success: '#22C55E',         // Green for success
-  warning: '#EAB308',         // Yellow for warnings
-  info: '#3B82F6',            // Blue for info
+  error: '#FF4D4F',
+  success: '#2DDB75',
+  warning: '#F5B83D',
+  info: '#3B82F6',
 
-  // Borders & dividers
-  border: '#3F3F46',          // Standard border
-  borderLight: '#2D2D30',     // Light/subtle border
-  borderStrong: '#52525B',    // Strong/emphasis border
+  border: 'rgba(116, 148, 170, 0.2)',
+  borderLight: 'rgba(116, 148, 170, 0.12)',
+  borderStrong: 'rgba(149, 182, 205, 0.35)',
 
-  // Semantic backgrounds
-  successBg: '#166534',       // Success background tint
-  errorBg: '#7F1D1D',         // Error background tint
-  warningBg: '#78350F',       // Warning background tint
-  infoBg: '#1E40AF',          // Info background tint
+  successBg: 'rgba(45, 219, 117, 0.16)',
+  errorBg: 'rgba(255, 77, 79, 0.16)',
+  warningBg: 'rgba(245, 184, 61, 0.16)',
+  infoBg: 'rgba(31, 139, 255, 0.16)',
 };
 
 // ============ STATUS COLOR MAP ============
@@ -107,6 +104,36 @@ export const statusColors: Record<string, { bg: string; text: string; label: str
     bg: '#78350F',
     text: '#FDE68A',
     label: 'Out of Stock',
+  },
+  on_time: {
+    bg: '#065F46',
+    text: '#86EFAC',
+    label: 'On Time',
+  },
+  at_risk: {
+    bg: '#78350F',
+    text: '#FDE68A',
+    label: 'At Risk',
+  },
+  late: {
+    bg: '#7F1D1D',
+    text: '#FCA5A5',
+    label: 'Late',
+  },
+  offline: {
+    bg: '#3F3F46',
+    text: '#D4D4D8',
+    label: 'Offline',
+  },
+  job_closed: {
+    bg: '#3F3F46',
+    text: '#D4D4D8',
+    label: 'Job Closed',
+  },
+  unavailable: {
+    bg: '#5F2E2E',
+    text: '#FCCACA',
+    label: 'Unavailable',
   },
 };
 

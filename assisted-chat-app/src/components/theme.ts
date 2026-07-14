@@ -1,43 +1,54 @@
-// Dark admin operator palette mirroring `lib/design-tokens.ts` (Tyre Rescue
-// admin web). No emojis, no icons — visual hierarchy via type, spacing, and
-// borders only. Pressed/disabled/loading states keep readable colours; nothing
-// flashes white on press.
+// Dark operator palette with Tyre Rescue orange as the single action colour.
+// It keeps the app dense and practical while avoiding blue action states.
 export const colors = {
-  // Page bg + inner SectionCard bg — near-black. Sub-cards sit "below" the
-  // outer surface card visually (matches the web SectionCard which uses c.bg).
-  bg: '#09090B',
-  // Outer wrap card / suggestion lists.
-  surface: '#18181B',
-  // Inputs, inactive pill bg, quantity box.
-  card: '#27272A',
-  inputBg: '#27272A',
-  inputDisabledBg: '#1F1F23',
-  border: '#3F3F46',
-  borderStrong: '#52525B',
-  text: '#FAFAFA',
-  muted: '#A1A1AA',
-  subtle: '#71717A',
-  // Brand accent (orange) — matches admin web `c.accent`.
+  bg: '#07080C',
+  surface: '#101117',
+  surfaceElevated: '#171922',
+  surfaceOverlay: 'rgba(18,20,28,0.96)',
+  card: '#181B23',
+  cardMuted: '#12141B',
+  inputBg: '#0D0F15',
+  inputDisabledBg: '#111318',
+  panel: '#20242E',
+  panelSoft: '#151822',
+  border: '#2B303B',
+  borderSoft: 'rgba(255,255,255,0.06)',
+  borderStrong: '#424A58',
+  glowBorder: 'rgba(249,115,22,0.32)',
+  text: '#F5F5F7',
+  muted: '#C7C7CC',
+  subtle: '#8E8E93',
   accent: '#F97316',
   accentHover: '#EA580C',
-  accentText: '#09090B', // dark text on orange — readable while pressed.
-  // Dark-ground status tints — never browser-yellow / browser-red.
-  danger: '#FCA5A5',
-  dangerBg: '#3B0F12',
-  dangerBorder: '#7F1D1D',
-  success: '#86EFAC',
-  successBg: '#0E2A18',
-  successBorder: '#166534',
-  warning: '#FCD34D',
-  warningBg: '#2A1E07',
-  warningBorder: '#92400E',
-  info: '#93C5FD',
-  infoBg: '#0F1B2E',
-  infoBorder: '#1E40AF',
-  ripple: '#3F3F46',
+  accentPressed: '#C2410C',
+  accentSoft: 'rgba(249,115,22,0.16)',
+  accentMuted: 'rgba(249,115,22,0.10)',
+  accentText: '#09090B',
+  purple: '#A855F7',
+  purpleBg: 'rgba(168,85,247,0.16)',
+  blue: '#FDBA74',
+  blueBg: 'rgba(249,115,22,0.14)',
+  cyan: '#FB923C',
+  green: '#34C759',
+  danger: '#FF453A',
+  dangerBg: 'rgba(255,69,58,0.14)',
+  dangerBorder: 'rgba(255,69,58,0.38)',
+  success: '#30D158',
+  successBg: 'rgba(48,209,88,0.14)',
+  successBorder: 'rgba(48,209,88,0.36)',
+  warning: '#FFD60A',
+  warningBg: 'rgba(255,214,10,0.14)',
+  warningBorder: 'rgba(255,214,10,0.34)',
+  info: '#FDBA74',
+  infoBg: 'rgba(249,115,22,0.14)',
+  infoBorder: 'rgba(249,115,22,0.38)',
+  ripple: 'rgba(249,115,22,0.18)',
+  overlay: 'rgba(0,0,0,0.66)',
+  shadow: '#000000',
+  shadowWarm: '#F97316',
 };
 
-export const radius = { sm: 6, md: 8, lg: 10 };
+export const radius = { sm: 6, md: 8, lg: 8 };
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24 };
 export const fontSize = {
   xs: 12,

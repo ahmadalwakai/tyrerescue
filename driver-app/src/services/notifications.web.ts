@@ -2,6 +2,11 @@ type Subscription = { remove: () => void };
 
 export const DRIVER_JOBS_URGENT_CHANNEL_ID = 'driver_jobs_urgent_v10';
 export const JOBS_UPCOMING_CHANNEL_ID = 'jobs_upcoming_v4';
+export const DRIVER_JOB_NOTIFICATION_CATEGORY_ID = 'driverjobalert';
+export const DRIVER_JOB_WITH_CALL_NOTIFICATION_CATEGORY_ID = 'driverjobalertcall';
+export const NOTIFICATION_ACTION_OPEN_JOB = 'OPEN_JOB';
+export const NOTIFICATION_ACTION_NAVIGATE = 'NAVIGATE';
+export const NOTIFICATION_ACTION_CALL_CUSTOMER = 'CALL_CUSTOMER';
 
 function noopSubscription(): Subscription {
   return { remove: () => {} };

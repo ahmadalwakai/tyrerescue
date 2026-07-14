@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tyre Rescue Driver",
     "slug": "tyre-rescue",
-    "version": "1.2.3",
+    "version": "1.2.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -14,11 +14,12 @@
     },
     "ios": {
       "supportsTablet": false,
+      "icon": "./assets/icon.png",
       "bundleIdentifier": "uk.tyrerescue.driver",
-      "buildNumber": "1",
+      "buildNumber": "5",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Tyre Rescue uses your location to share your position with customers while you are on an active job, so they can track your arrival.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Tyre Rescue needs background location access so customers can track your arrival even when the app is in the background.",
+        "NSLocationWhenInUseUsageDescription": "We use your location to show your route to the customer and update dispatch while you are working on a job.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "We use background location during active jobs so dispatch can see progress and support customers. Tracking stops when the job is closed.",
         "UIBackgroundModes": [
           "location",
           "remote-notification"
@@ -61,8 +62,8 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Tyre Rescue needs background location access so customers can track your arrival even when the app is in the background.",
-          "locationWhenInUsePermission": "Tyre Rescue uses your location to share your position with customers while you are on an active job, so they can track your arrival.",
+          "locationAlwaysAndWhenInUsePermission": "We use background location during active jobs so dispatch can see progress and support customers. Tracking stops when the job is closed.",
+          "locationWhenInUsePermission": "We use your location to show your route to the customer and update dispatch while you are working on a job.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
@@ -91,7 +92,16 @@
           "backgroundColor": "#09090B"
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false,
+          "recordAudioAndroid": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "extra": {
       "router": {

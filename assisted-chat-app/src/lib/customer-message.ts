@@ -3,6 +3,7 @@ import type {
   AssistedChatPaymentChoice,
 } from '@/types/assisted-chat';
 import { formatGbp } from './money';
+import { summarizeBookingTyreLines, totalBookingTyreQuantity } from './assisted-chat-workflow';
 
 /**
  * Templates the operator-side customer messages. Pure, deterministic, and
@@ -71,10 +72,13 @@ export function buildCustomerMessage(input: CustomerMessageInput): string {
   } else if (draft.savedQuoteRef) {
     detail.push(`Quote ref: ${draft.savedQuoteRef}`);
   }
-  if (draft.tyre.size) {
-    detail.push(`Tyres: ${draft.tyre.quantity} x ${draft.tyre.size}`);
-  } else if (draft.tyre.quantity) {
-    detail.push(`Quantity: ${draft.tyre.quantity}`);
+  const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
+  if (tyreSummary.length > 0) {
+    detail.push('Tyres:');
+    tyreSummary.forEach((line) => detail.push(`- ${line}`));
+  } else {
+    const totalQuantity = totalBookingTyreQuantity(draft.tyreLines);
+    if (totalQuantity) detail.push(`Quantity: ${totalQuantity}`);
   }
   if (draft.location.address) {
     detail.push(`Address: ${draft.location.address}`);

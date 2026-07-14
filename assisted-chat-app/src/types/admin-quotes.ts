@@ -1,6 +1,7 @@
 // Local mirror of `<repo-root>/types/admin-quotes.ts`. The Expo app is kept
 // outside the Next.js tsconfig include path, so these operational API shapes
 // are mirrored here and should remain field-for-field compatible.
+import type { BookingTyreLine } from './assisted-chat';
 
 export const ADMIN_QUOTE_STATUSES = [
   'DRAFT',
@@ -81,6 +82,8 @@ export interface CreateAdminQuoteInput {
   longitude?: number | null;
   tyreSize?: string | null;
   quantity?: number;
+  tyreLines?: BookingTyreLine[];
+  items?: BookingTyreLine[];
   lockingWheelNutStatus?: string | null;
   lockingWheelNutChargePence?: number | null;
   priceAmount?: number;
@@ -100,6 +103,8 @@ export interface UpdateAdminQuoteInput {
   longitude?: number | null;
   tyreSize?: string | null;
   quantity?: number;
+  tyreLines?: BookingTyreLine[];
+  items?: BookingTyreLine[];
   lockingWheelNutStatus?: string | null;
   lockingWheelNutChargePence?: number | null;
   priceAmount?: number;

@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 import { ActionButton } from '../ui/ActionButton';
 import { colors, fontSize, radius, space } from '../theme';
+import { useFadeSlideIn } from '../motion';
 import type { NextBestActionStatus } from '@/types/operator-workflow';
 
 export interface NextBestActionCardProps {
@@ -103,15 +104,19 @@ export function NextBestActionCard({
 }: NextBestActionCardProps) {
   const palette = paletteForStatus(status);
   const showButton = Boolean(primaryLabel && onPrimaryPress);
+  const entranceStyle = useFadeSlideIn({ distance: 8, duration: 240 });
 
   return (
-    <View
+    <Animated.View
       style={[
         styles.card,
         { backgroundColor: palette.background, borderColor: palette.border },
+        entranceStyle,
       ]}
     >
+      <View pointerEvents="none" style={[styles.accentLine, { backgroundColor: palette.title }]} />
       <View style={styles.header}>
+        <View style={[styles.statusDot, { backgroundColor: palette.title }]} />
         <Text style={[styles.title, { color: palette.title }]} numberOfLines={2}>
           {title}
         </Text>
@@ -141,7 +146,7 @@ export function NextBestActionCard({
           />
         </View>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -151,11 +156,35 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: space.md,
     gap: space.sm,
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.24,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+  accentLine: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    opacity: 0.95,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
+  },
+  statusDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    shadowColor: colors.shadowWarm,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
   },
   title: {
     flex: 1,
@@ -175,7 +204,7 @@ const styles = StyleSheet.create({
   pillText: {
     fontSize: 11,
     fontWeight: '900',
-    letterSpacing: 0.6,
+    letterSpacing: 0,
   },
   body: {
     fontSize: fontSize.sm,

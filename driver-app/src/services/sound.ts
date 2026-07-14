@@ -1,4 +1,4 @@
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { Vibration } from 'react-native';
 
 export type SoundEvent =
@@ -63,7 +63,7 @@ const CRITICAL_EVENTS: Set<SoundEvent> = new Set(['new_job', 'reassignment', 'up
 
 // ── Runtime state ──
 let remoteConfig: Record<string, SoundEventConfig> | null = null;
-const cache: Partial<Record<string, Audio.Sound>> = {};
+const cache: Partial<Record<string, AudioPlayer>> = {};
 let lastPlayed = 0;
 let audioModeSet = false;
 const DEBOUNCE_MS = 600;
@@ -72,10 +72,10 @@ let activeCriticalLoopFile: string | null = null;
 /** Configure audio mode once — call early at app start. */
 async function ensureAudioMode(): Promise<void> {
   if (audioModeSet) return;
-  await Audio.setAudioModeAsync({
-    playsInSilentModeIOS: true,
-    staysActiveInBackground: true,
-    shouldDuckAndroid: false,
+  await setAudioModeAsync({
+    playsInSilentMode: true,
+    shouldPlayInBackground: true,
+    interruptionMode: 'doNotMix',
   });
   audioModeSet = true;
 }
@@ -122,15 +122,32 @@ function getConfig(event: SoundEvent): SoundEventConfig {
   return remote;
 }
 
-async function createSound(soundFile: string): Promise<Audio.Sound | null> {
-  const source = AVAILABLE_SOUNDS[soundFile] ?? AVAILABLE_SOUNDS[CRITICAL_SOUND_FILE];
-  if (!source) return null;
-  const { sound } = await Audio.Sound.createAsync(source);
-  cache[soundFile] = sound;
-  return sound;
+function disposeCachedSound(soundFile: string): void {
+  const player = cache[soundFile];
+  if (!player) return;
+
+  try {
+    player.pause();
+    player.remove();
+  } catch {
+    // Non-critical
+  }
+
+  delete cache[soundFile];
 }
 
-async function ensureLoaded(soundFile: string): Promise<Audio.Sound | null> {
+function createSound(soundFile: string): AudioPlayer | null {
+  const source = AVAILABLE_SOUNDS[soundFile] ?? AVAILABLE_SOUNDS[CRITICAL_SOUND_FILE];
+  if (!source) return null;
+  const player = createAudioPlayer(source, {
+    downloadFirst: true,
+    keepAudioSessionActive: true,
+  });
+  cache[soundFile] = player;
+  return player;
+}
+
+function ensureLoaded(soundFile: string): AudioPlayer | null {
   if (cache[soundFile]) return cache[soundFile]!;
   return createSound(soundFile);
 }
@@ -142,69 +159,52 @@ async function ensureLoaded(soundFile: string): Promise<Audio.Sound | null> {
  * If the cached instance is stale or unloaded, recreates and retries once.
  */
 async function playCachedSound(soundFile: string, volume: number): Promise<void> {
-  let sound = await ensureLoaded(soundFile);
-  if (!sound) return;
+  let player = ensureLoaded(soundFile);
+  if (!player) return;
 
   try {
-    const status = await sound.getStatusAsync();
-    if (!status.isLoaded) {
-      // Sound was unloaded externally — recreate
-      delete cache[soundFile];
-      sound = await createSound(soundFile);
-      if (!sound) return;
-    } else if (status.isPlaying) {
-      await sound.stopAsync();
+    if (player.playing) {
+      player.pause();
     }
-    await sound.setVolumeAsync(volume);
-    await sound.setPositionAsync(0);
-    await sound.playAsync();
+    player.loop = false;
+    player.volume = volume;
+    await player.seekTo(0);
+    player.play();
   } catch {
     // Cached instance is stale — recreate and retry once
-    delete cache[soundFile];
-    const fresh = await createSound(soundFile);
+    disposeCachedSound(soundFile);
+    const fresh = createSound(soundFile);
     if (!fresh) return;
-    await fresh.setVolumeAsync(volume);
-    await fresh.playAsync();
+    fresh.loop = false;
+    fresh.volume = volume;
+    fresh.play();
   }
 }
 
 async function startCriticalLoop(soundFile: string, volume: number): Promise<void> {
-  const sound = await ensureLoaded(soundFile);
-  if (!sound) return;
+  const player = ensureLoaded(soundFile);
+  if (!player) return;
 
   try {
-    const status = await sound.getStatusAsync();
-    if (!status.isLoaded) {
-      delete cache[soundFile];
-      const fresh = await createSound(soundFile);
-      if (!fresh) return;
-      await fresh.setVolumeAsync(volume);
-      await fresh.setIsLoopingAsync(true);
-      await fresh.setPositionAsync(0);
-      await fresh.playAsync();
-      activeCriticalLoopFile = soundFile;
-      return;
-    }
-
-    if (status.isPlaying && activeCriticalLoopFile === soundFile) {
+    if (player.playing && activeCriticalLoopFile === soundFile) {
       // Already looping this alert sound.
       return;
     }
 
     await stopAlertSound();
-    await sound.setVolumeAsync(volume);
-    await sound.setIsLoopingAsync(true);
-    await sound.setPositionAsync(0);
-    await sound.playAsync();
+    player.volume = volume;
+    player.loop = true;
+    await player.seekTo(0);
+    player.play();
     activeCriticalLoopFile = soundFile;
   } catch {
-    delete cache[soundFile];
-    const fresh = await createSound(soundFile);
+    disposeCachedSound(soundFile);
+    const fresh = createSound(soundFile);
     if (!fresh) return;
     await stopAlertSound();
-    await fresh.setVolumeAsync(volume);
-    await fresh.setIsLoopingAsync(true);
-    await fresh.playAsync();
+    fresh.volume = volume;
+    fresh.loop = true;
+    fresh.play();
     activeCriticalLoopFile = soundFile;
   }
 }
@@ -215,17 +215,15 @@ export async function stopAlertSound(): Promise<void> {
   activeCriticalLoopFile = null;
   if (!loopFile) return;
 
-  const sound = cache[loopFile];
-  if (!sound) return;
+  const player = cache[loopFile];
+  if (!player) return;
 
   try {
-    const status = await sound.getStatusAsync();
-    if (!status.isLoaded) return;
-    await sound.setIsLoopingAsync(false);
-    if (status.isPlaying) {
-      await sound.stopAsync();
+    player.loop = false;
+    if (player.playing) {
+      player.pause();
     }
-    await sound.setPositionAsync(0);
+    await player.seekTo(0);
   } catch {
     // Non-critical
   }

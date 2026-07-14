@@ -1,10 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Linking,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,14 +11,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fontSize, radius, space } from './theme';
 import { api, API_BASE_URL, getAdminToken } from '@/lib/api';
+import { AdminHeaderButton, AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 import {
   useAdminInvoices,
   useInvoiceDetail,
   type InvoiceRow,
-  type InvoiceStatus,
 } from '@/hooks/useAdminInvoices';
 
 // ── Status config ─────────────────────────────────────────────────────────
@@ -37,7 +35,7 @@ const STATUS_OPTIONS = [
 
 const STATUS_COLOR: Record<string, string> = {
   draft: '#A1A1AA',
-  issued: '#3B82F6',
+  issued: '#F97316',
   sent: '#8B5CF6',
   paid: '#22C55E',
   overdue: '#EF4444',
@@ -46,7 +44,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 const STATUS_BG: Record<string, string> = {
   draft: 'rgba(161,161,170,0.15)',
-  issued: 'rgba(59,130,246,0.15)',
+  issued: 'rgba(249,115,22,0.15)',
   sent: 'rgba(139,92,246,0.15)',
   paid: 'rgba(34,197,94,0.15)',
   overdue: 'rgba(239,68,68,0.15)',
@@ -190,10 +188,7 @@ function InvoiceFormView({ invoiceId, initialData, onSuccess, onCancel }: Create
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={s.formHeader}>
-        <Text style={s.formTitle}>{isEdit ? 'Edit Invoice' : 'New Invoice'}</Text>
-        <Pressable onPress={onCancel} style={s.closeBtn}><Text style={s.closeBtnText}>✕</Text></Pressable>
-      </View>
+      <AdminModalHeader title={isEdit ? 'Edit Invoice' : 'New Invoice'} onClose={onCancel} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.formBody} keyboardShouldPersistTaps="handled">
 
         {/* Customer */}
@@ -318,17 +313,13 @@ function InvoiceDetailView({ invoiceId, onClose, onEdit, onAction, actionLoading
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={s.formHeader}>
-        <Text style={[s.formTitle, { color: colors.accent }]}>{detail?.invoiceNumber ?? '…'}</Text>
-        <View style={{ flexDirection: 'row', gap: space.sm }}>
-          {detail && !detail.deletedAt && (
-            <Pressable onPress={onEdit} style={[s.closeBtn, { borderColor: colors.border }]}>
-              <Text style={{ fontSize: fontSize.xs, color: colors.muted }}>Edit</Text>
-            </Pressable>
-          )}
-          <Pressable onPress={onClose} style={s.closeBtn}><Text style={s.closeBtnText}>✕</Text></Pressable>
-        </View>
-      </View>
+      <AdminModalHeader
+        title={detail?.invoiceNumber ?? '...'}
+        onClose={onClose}
+        actions={detail && !detail.deletedAt ? (
+          <AdminHeaderButton label="Edit" onPress={onEdit} />
+        ) : null}
+      />
 
       {loading || !detail ? (
         <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
@@ -540,28 +531,22 @@ export function AdminInvoicesModal({ visible, onClose }: Props) {
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => {
       if (screen !== 'list') { setScreen(showEdit ? 'detail' : 'list'); } else { onClose(); }
     }}>
-      <SafeAreaView style={s.root}>
+      <AdminModalShell>
 
         {/* ── List ── */}
         {showList && (
           <>
-            <View style={s.header}>
-              <View>
-                <Text style={s.title}>Invoices</Text>
-                <Text style={s.subtitle}>{total} total</Text>
-              </View>
-              <View style={{ flexDirection: 'row', gap: space.sm, alignItems: 'center' }}>
-                <Pressable onPress={() => setScreen('create')} style={s.newBtn}>
-                  <Text style={s.newBtnText}>+ New</Text>
-                </Pressable>
-                <Pressable onPress={refresh} disabled={loading} style={s.iconBtn}>
-                  <Text style={s.iconBtnText}>{loading ? '…' : '↺'}</Text>
-                </Pressable>
-                <Pressable onPress={onClose} style={s.iconBtn}>
-                  <Text style={s.iconBtnText}>✕</Text>
-                </Pressable>
-              </View>
-            </View>
+            <AdminModalHeader
+              title="Invoices"
+              subtitle={`${total} total`}
+              onClose={onClose}
+              actions={
+                <>
+                  <AdminHeaderButton label="+ New" onPress={() => setScreen('create')} primary />
+                  <AdminHeaderButton label={loading ? '...' : 'Refresh'} onPress={refresh} disabled={loading} />
+                </>
+              }
+            />
 
             {toast && (
               <View style={[s.toast, { backgroundColor: toast.ok ? colors.successBg : colors.dangerBg, borderColor: toast.ok ? colors.successBorder : colors.dangerBorder }]}>
@@ -670,7 +655,7 @@ export function AdminInvoicesModal({ visible, onClose }: Props) {
             actionLoading={actionLoading}
           />
         )}
-      </SafeAreaView>
+      </AdminModalShell>
     </Modal>
   );
 }
@@ -701,8 +686,8 @@ const s = StyleSheet.create({
 
   searchRow: { flexDirection: 'row', gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.sm },
   searchInput: {
-    flex: 1, height: 36, backgroundColor: colors.card,
-    borderRadius: radius.md, borderWidth: 1, borderColor: colors.border,
+    flex: 1, height: 40, backgroundColor: colors.inputBg,
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderStrong,
     paddingHorizontal: space.md, color: colors.text, fontSize: fontSize.sm,
   },
   searchBtn: {
@@ -713,8 +698,8 @@ const s = StyleSheet.create({
 
   filterScroll: { flexGrow: 0 },
   filterBar: { flexDirection: 'row', paddingHorizontal: space.md, paddingBottom: space.sm, gap: space.xs },
-  filterBtn: { paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.border },
-  filterBtnActive: { borderColor: colors.accent, backgroundColor: `${colors.accent}22` },
+  filterBtn: { paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.panelSoft },
+  filterBtnActive: { borderColor: colors.accent, backgroundColor: 'rgba(255,121,0,0.16)' },
   filterBtnText: { fontSize: fontSize.xs, color: colors.muted },
 
   listContent: { padding: space.md, paddingBottom: 40 },
@@ -723,8 +708,13 @@ const s = StyleSheet.create({
 
   // Invoice list card
   invoiceCard: {
-    backgroundColor: colors.surface, borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.border, marginBottom: space.sm, overflow: 'hidden',
+    backgroundColor: colors.card, borderRadius: radius.lg,
+    borderWidth: 1, borderColor: colors.borderStrong, marginBottom: space.sm, overflow: 'hidden',
+    shadowColor: colors.blue,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   invoiceCardTop: { padding: space.md, flexDirection: 'row', gap: space.sm },
   invoiceCardExpanded: { borderTopWidth: 1, borderTopColor: colors.border, padding: space.md },
@@ -732,7 +722,7 @@ const s = StyleSheet.create({
   customerName: { fontSize: fontSize.sm, color: colors.text, marginTop: 2 },
   amount: { fontSize: fontSize.lg, fontWeight: '800', fontFamily: 'monospace' },
   expandArrow: { fontSize: fontSize.sm, marginTop: 4 },
-  viewBtn: { paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.accent },
+  viewBtn: { paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.accent, backgroundColor: 'rgba(255,121,0,0.12)' },
   viewBtnText: { fontSize: fontSize.xs, color: colors.accent, fontWeight: '600' },
 
   // Pills
@@ -769,9 +759,14 @@ const s = StyleSheet.create({
   closeBtnText: { fontSize: fontSize.md, color: colors.muted },
   formBody: { padding: space.md, paddingBottom: 80 },
   section: {
-    backgroundColor: colors.surface, borderRadius: radius.lg,
+    backgroundColor: colors.card, borderRadius: radius.lg,
     padding: space.md, marginBottom: space.md,
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: 1, borderColor: colors.borderStrong,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   sectionTitle: { fontSize: fontSize.xs, fontWeight: '700', color: colors.subtle, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: space.md },
   grid2: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
@@ -804,8 +799,13 @@ const s = StyleSheet.create({
 
   // Detail
   card: {
-    backgroundColor: colors.surface, borderRadius: radius.lg,
-    padding: space.md, marginBottom: space.md, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.card, borderRadius: radius.lg,
+    padding: space.md, marginBottom: space.md, borderWidth: 1, borderColor: colors.borderStrong,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   amountLarge: { fontSize: 28, fontWeight: '800', fontFamily: 'monospace' },
   lineItemRow: { marginBottom: space.sm },

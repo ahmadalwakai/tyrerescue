@@ -31,6 +31,17 @@ export interface AssistedChatTyreSelection {
   quantity: number;
 }
 
+export type BookingTyreLine = {
+  id: string;
+  size: string;
+  quantity: number;
+  brand?: string | null;
+  pattern?: string | null;
+  season?: string | null;
+  source?: string | null;
+  price?: number | null;
+};
+
 export interface AssistedChatLockingWheelNut {
   answer: LockingNutAnswer;
   chargeGbp: number | null;
@@ -54,6 +65,7 @@ export interface AssistedChatQuoteBreakdown {
   fittingPrice?: number | null;
   tyrePrice?: number | null;
   totalPrice?: number | null;
+  tyreLines?: BookingTyreLine[];
   adminAdjustmentAmount?: number | null;
   adminAdjustmentReason?: string | null;
   serviceOrigin?: {
@@ -68,7 +80,7 @@ export interface AssistedChatQuoteBreakdown {
 export interface AssistedChatDraft {
   customer: AssistedChatCustomer;
   location: AssistedChatLocation;
-  tyre: AssistedChatTyreSelection;
+  tyreLines: BookingTyreLine[];
   lockingNut: AssistedChatLockingWheelNut;
   quickBookingId: string | null;
   savedQuoteId: string | null;
@@ -124,6 +136,7 @@ export interface QuickBookCreateResponse {
       fittingPrice?: number | null;
       tyrePrice?: number | null;
       totalPrice?: number | null;
+      tyreLines?: BookingTyreLine[];
       adminAdjustmentAmount?: number | null;
       adminAdjustmentReason?: string | null;
       serviceOrigin?: AssistedChatQuoteBreakdown['serviceOrigin'];
@@ -159,6 +172,7 @@ export interface QuickBookPatchResponse {
       fittingPrice?: number | null;
       tyrePrice?: number | null;
       totalPrice?: number | null;
+      tyreLines?: BookingTyreLine[];
       adminAdjustmentAmount?: number | null;
       adminAdjustmentReason?: string | null;
       serviceOrigin?: AssistedChatQuoteBreakdown['serviceOrigin'];
@@ -194,6 +208,7 @@ export interface QuickBookFinalizeResponse {
     fittingPrice?: number | null;
     tyrePrice?: number | null;
     totalPrice?: number | null;
+    tyreLines?: BookingTyreLine[];
     adminAdjustmentAmount?: number | null;
     adminAdjustmentReason?: string | null;
   };
@@ -248,6 +263,7 @@ export interface RecentCustomer {
   postcode?: string | null;
   tyreSize?: string;
   quantity?: number;
+  tyreLines?: BookingTyreLine[];
   note?: string;
   lastUsedAtIso: string;
   lastBookingReference?: string;

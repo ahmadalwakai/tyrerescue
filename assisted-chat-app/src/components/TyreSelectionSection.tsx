@@ -1,38 +1,52 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { api } from '@/lib/api';
-import { compactAssistedChatTyreSize, normalizeAssistedChatTyreSize } from '@/lib/assisted-chat-workflow';
-import type { AssistedChatDraft, TyreSizeSuggestion } from '@/types/assisted-chat';
+import {
+  compactAssistedChatTyreSize,
+  createBookingTyreLine,
+  ensureBookingTyreLines,
+  normalizeAssistedChatTyreSize,
+  summarizeBookingTyreLines,
+} from '@/lib/assisted-chat-workflow';
+import type { AssistedChatDraft, BookingTyreLine, TyreSizeSuggestion } from '@/types/assisted-chat';
 import { AppButton, FieldLabel, SectionCard } from './ui';
-import { colors, fontSize, radius } from './theme';
+import { colors, fontSize, radius, space } from './theme';
 
 interface Props {
   draft: AssistedChatDraft;
   update: (patch: Partial<AssistedChatDraft>) => void;
 }
 
-export function TyreSelectionSection({ draft, update }: Props) {
-  const [sizeInput, setSizeInput] = useState(draft.tyre.size);
-  // Re-sync local input when the parent draft.tyre.size changes (e.g.
-  // hydration, clear). Uses the React docs "adjust state on prop change"
-  // pattern instead of a setState-in-effect (which the
-  // `react-hooks/set-state-in-effect` lint rule disallows).
-  const [lastSize, setLastSize] = useState(draft.tyre.size);
-  if (lastSize !== draft.tyre.size) {
-    setLastSize(draft.tyre.size);
-    setSizeInput(draft.tyre.size);
+interface TyreLineCardProps {
+  line: BookingTyreLine;
+  index: number;
+  required: boolean;
+  onChange: (patch: Partial<BookingTyreLine>) => void;
+  onRemove?: () => void;
+}
+
+function clampQuantity(value: number): number {
+  return Math.max(1, Math.min(10, Math.round(value)));
+}
+
+function TyreLineCard({ line, index, required, onChange, onRemove }: TyreLineCardProps) {
+  const [sizeInput, setSizeInput] = useState(line.size);
+  const [lastSize, setLastSize] = useState(line.size);
+  if (lastSize !== line.size) {
+    setLastSize(line.size);
+    setSizeInput(line.size);
   }
+
   const [suggestions, setSuggestions] = useState<TyreSizeSuggestion[]>([]);
   const [showSugs, setShowSugs] = useState(false);
   const [searched, setSearched] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const updateConfirmedSize = (size: string) => {
-    update({
-      tyre: { ...draft.tyre, size },
-      ...(draft.quote ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null, dispatchedBookingId: null } : {}),
-    });
-  };
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, []);
 
   const search = useCallback(async (q: string) => {
     if (!q || q.length < 2) {
@@ -54,12 +68,7 @@ export function TyreSelectionSection({ draft, update }: Props) {
 
   const handleChange = (value: string) => {
     setSizeInput(value);
-    const normalizedSize = normalizeAssistedChatTyreSize(value);
-    if (normalizedSize && draft.tyre.size !== normalizedSize) {
-      updateConfirmedSize(normalizedSize);
-    } else if (!normalizedSize && draft.tyre.size) {
-      updateConfirmedSize('');
-    }
+    onChange({ size: value });
     setShowSugs(true);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => search(value), 200);
@@ -67,17 +76,13 @@ export function TyreSelectionSection({ draft, update }: Props) {
 
   const select = (size: string) => {
     setSizeInput(size);
-    updateConfirmedSize(size);
+    onChange({ size });
     setSuggestions([]);
     setShowSugs(false);
   };
 
   const setQty = (q: number) => {
-    const clamped = Math.max(1, Math.min(10, Math.round(q)));
-    update({
-      tyre: { ...draft.tyre, quantity: clamped },
-      ...(draft.quote ? { quote: null, priceNeedsRefresh: true, paymentChoice: null, paymentLink: null, dispatchedRefNumber: null, dispatchedBookingId: null } : {}),
-    });
+    onChange({ quantity: clampQuantity(q) });
   };
 
   const normalizedInputSize = normalizeAssistedChatTyreSize(sizeInput);
@@ -85,10 +90,7 @@ export function TyreSelectionSection({ draft, update }: Props) {
   const matchedSuggestion = suggestions.find(
     (s) => compactAssistedChatTyreSize(s.size) === compactInputSize,
   );
-  // Stock confidence is derived from the existing `/api/tyres/sizes` API
-  // which already returns `count` per size. We never invent quantities; if
-  // the API stops returning `count` (level === 'unknown'), we still allow
-  // pricing but tell the operator the system will confirm exact quantity.
+
   let stockLabel: string | null = null;
   let stockTone: 'ok' | 'warn' | 'err' | 'muted' = 'muted';
   let insufficientStock = false;
@@ -100,7 +102,7 @@ export function TyreSelectionSection({ draft, update }: Props) {
     } else if (count <= 0) {
       stockLabel = 'Not available';
       stockTone = 'err';
-    } else if (count < draft.tyre.quantity) {
+    } else if (count < line.quantity) {
       stockLabel = `Only ${count} available`;
       stockTone = 'err';
       insufficientStock = true;
@@ -117,11 +119,25 @@ export function TyreSelectionSection({ draft, update }: Props) {
   }
 
   return (
-    <SectionCard title="Tyre size and quantity">
-      {!sizeInput.trim() && !draft.tyre.size ? (
-        <Text style={styles.empty}>Enter the tyre size to continue. Suggestions appear as you type.</Text>
-      ) : null}
-      <FieldLabel>Tyre size (in-stock only)</FieldLabel>
+    <View style={styles.tyreCard}>
+      <View style={styles.tyreHeader}>
+        <View style={styles.tyreHeaderCopy}>
+          <Text style={styles.tyreTitle}>Tyre {index + 1}</Text>
+          <Text style={styles.tyreSubtitle}>{required ? 'Required' : 'Optional'}</Text>
+        </View>
+        {!required && onRemove ? (
+          <Pressable
+            onPress={onRemove}
+            accessibilityRole="button"
+            accessibilityLabel={`Remove tyre ${index + 1}`}
+            style={({ pressed }) => [styles.removeBtn, pressed && styles.pressed]}
+          >
+            <Text style={styles.removeBtnText}>Remove</Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      <FieldLabel>Size</FieldLabel>
       <View>
         <TextInput
           value={sizeInput}
@@ -138,7 +154,7 @@ export function TyreSelectionSection({ draft, update }: Props) {
             <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 220 }}>
               {suggestions.map((s) => (
                 <Pressable
-                  key={s.size}
+                  key={`${line.id}-${s.size}`}
                   onPress={() => select(s.size)}
                   android_ripple={{ color: colors.ripple }}
                   style={styles.suggestionItem}
@@ -178,33 +194,159 @@ export function TyreSelectionSection({ draft, update }: Props) {
         ) : null}
       </View>
 
-      <View style={{ marginTop: 14 }}>
+      <View style={styles.quantityBlock}>
         <FieldLabel>Quantity</FieldLabel>
         <View style={styles.qtyRow}>
           <AppButton
-            label="−"
+            label="-"
             variant="secondary"
-            onPress={() => setQty(draft.tyre.quantity - 1)}
-            disabled={draft.tyre.quantity <= 1}
+            onPress={() => setQty(line.quantity - 1)}
+            disabled={line.quantity <= 1}
             style={styles.qtyBtn}
           />
-          <View style={styles.qtyDisplay}>
-            <Text style={styles.qtyText}>{draft.tyre.quantity}</Text>
-          </View>
+          <TextInput
+            value={String(line.quantity)}
+            onChangeText={(value) => {
+              const parsed = Number.parseInt(value, 10);
+              setQty(Number.isFinite(parsed) ? parsed : 1);
+            }}
+            keyboardType="numeric"
+            selectTextOnFocus
+            style={styles.qtyInput}
+            accessibilityLabel={`Tyre ${index + 1} quantity`}
+          />
           <AppButton
             label="+"
             variant="secondary"
-            onPress={() => setQty(draft.tyre.quantity + 1)}
-            disabled={draft.tyre.quantity >= 10}
+            onPress={() => setQty(line.quantity + 1)}
+            disabled={line.quantity >= 10}
             style={styles.qtyBtn}
           />
         </View>
       </View>
+    </View>
+  );
+}
+
+export function TyreSelectionSection({ draft, update }: Props) {
+  const tyreLines = ensureBookingTyreLines(draft.tyreLines);
+  const summary = summarizeBookingTyreLines(tyreLines);
+
+  const quoteResetPatch = {
+    quote: null,
+    priceNeedsRefresh: Boolean(draft.quote || draft.priceNeedsRefresh),
+    paymentChoice: null,
+    paymentLink: null,
+    dispatchedRefNumber: null,
+    dispatchedBookingId: null,
+    savedQuoteId: null,
+    savedQuoteRef: null,
+  };
+
+  const updateLines = (nextLines: BookingTyreLine[]) => {
+    update({
+      tyreLines: ensureBookingTyreLines(nextLines),
+      ...quoteResetPatch,
+    });
+  };
+
+  const updateLine = (index: number, patch: Partial<BookingTyreLine>) => {
+    updateLines(
+      tyreLines.map((line, i) => (
+        i === index
+          ? {
+              ...line,
+              ...patch,
+              quantity:
+                patch.quantity != null
+                  ? clampQuantity(patch.quantity)
+                  : clampQuantity(line.quantity),
+            }
+          : line
+      )),
+    );
+  };
+
+  const addLine = () => {
+    updateLines([...tyreLines, createBookingTyreLine()]);
+  };
+
+  const removeLine = (index: number) => {
+    if (index === 0) return;
+    updateLines(tyreLines.filter((_, i) => i !== index));
+  };
+
+  return (
+    <SectionCard title="Tyre sizes and quantity">
+      {!tyreLines[0]?.size.trim() ? (
+        <Text style={styles.empty}>Enter the first tyre size to continue. Suggestions appear as you type.</Text>
+      ) : null}
+
+      <View style={styles.cardStack}>
+        {tyreLines.map((line, index) => (
+          <TyreLineCard
+            key={line.id}
+            line={line}
+            index={index}
+            required={index === 0}
+            onChange={(patch) => updateLine(index, patch)}
+            onRemove={index === 0 ? undefined : () => removeLine(index)}
+          />
+        ))}
+      </View>
+
+      <View style={styles.addButtonWrap}>
+        <AppButton
+          label="+ Add another tyre"
+          variant="secondary"
+          onPress={addLine}
+          fullWidth
+        />
+      </View>
+
+      {summary.length > 0 ? (
+        <View style={styles.summaryBox}>
+          <Text style={styles.summaryTitle}>Booking summary</Text>
+          {summary.map((line, index) => (
+            <Text key={`${line}-${index}`} style={styles.summaryLine}>{line}</Text>
+          ))}
+        </View>
+      ) : null}
     </SectionCard>
   );
 }
 
 const styles = StyleSheet.create({
+  cardStack: { gap: space.md },
+  tyreCard: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    padding: space.md,
+    gap: space.sm,
+  },
+  tyreHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: space.sm,
+  },
+  tyreHeaderCopy: { flex: 1, minWidth: 0 },
+  tyreTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
+  tyreSubtitle: { color: colors.muted, fontSize: fontSize.xs, marginTop: 2 },
+  removeBtn: {
+    minHeight: 44,
+    paddingHorizontal: space.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeBtnText: { color: colors.danger, fontSize: fontSize.xs, fontWeight: '700' },
+  pressed: { opacity: 0.7 },
   input: {
     minHeight: 48,
     borderColor: colors.border,
@@ -239,18 +381,38 @@ const styles = StyleSheet.create({
   stockErr: { color: colors.danger },
   stockMuted: { color: colors.muted },
   unavailable: { marginTop: 6, color: colors.danger, fontSize: fontSize.xs, fontWeight: '600' },
+  quantityBlock: { marginTop: 4 },
   qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   qtyBtn: { width: 56 },
-  qtyDisplay: {
-    minWidth: 56,
+  qtyInput: {
+    minWidth: 64,
+    flex: 1,
     minHeight: 48,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.md,
     backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
+    color: colors.text,
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    textAlign: 'center',
     paddingHorizontal: 12,
   },
-  qtyText: { fontSize: fontSize.lg, fontWeight: '700', color: colors.text },
+  addButtonWrap: { marginTop: space.md },
+  summaryBox: {
+    marginTop: space.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    padding: space.md,
+    gap: 4,
+  },
+  summaryTitle: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  summaryLine: { color: colors.text, fontSize: fontSize.sm, fontWeight: '700' },
 });

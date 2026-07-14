@@ -11,11 +11,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Clipboard from 'expo-clipboard';
 import { colors, fontSize, radius, space } from './theme';
 import { api } from '@/lib/api';
+import { AdminHeaderButton, AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 import {
   useAdminStock,
   type StockItem,
@@ -45,14 +45,14 @@ const WIDTH_OPTS = ['', '155', '165', '175', '185', '195', '205', '215', '225', 
 const RIM_OPTS = ['', '13', '14', '15', '16', '17', '18', '19', '20', '21'];
 
 const SEASON_COLOR: Record<StockSeason, string> = {
-  allseason: '#3B82F6',
+  allseason: '#F97316',
   summer: '#F97316',
-  winter: '#93C5FD',
+  winter: '#FDBA74',
 };
 const SEASON_BG: Record<StockSeason, string> = {
-  allseason: 'rgba(59,130,246,0.15)',
+  allseason: 'rgba(249,115,22,0.15)',
   summer: 'rgba(249,115,22,0.15)',
-  winter: 'rgba(147,197,253,0.1)',
+  winter: 'rgba(249,115,22,0.1)',
 };
 
 // ── CSV template & parser ────────────────────────────────────────────────
@@ -191,10 +191,7 @@ function AddSizeForm({ onSuccess, onCancel, doAdd, loading }: AddFormProps) {
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={s.formHeader}>
-        <Text style={s.formTitle}>Add Size</Text>
-        <Pressable onPress={onCancel} style={s.closeBtn}><Text style={s.closeBtnText}>✕</Text></Pressable>
-      </View>
+      <AdminModalHeader title="Add Size" onClose={onCancel} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.formBody} keyboardShouldPersistTaps="handled">
         <View style={s.card}>
           <FieldRow label="Size *">
@@ -296,10 +293,7 @@ function EditForm({ item, onSave, onCancel, loading }: EditFormProps) {
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={s.formHeader}>
-        <Text style={s.formTitle}>{item.sizeDisplay}</Text>
-        <Pressable onPress={onCancel} style={s.closeBtn}><Text style={s.closeBtnText}>✕</Text></Pressable>
-      </View>
+      <AdminModalHeader title={item.sizeDisplay} onClose={onCancel} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.formBody} keyboardShouldPersistTaps="handled">
         <View style={s.card}>
           <FieldRow label="Brand">
@@ -421,7 +415,7 @@ function StockCard({ item, onEdit, onToggle, onDelete, actionLoading }: StockCar
           </View>
         )}
         {item.isLocalStock && (
-          <View style={[s.badge, { backgroundColor: 'rgba(147,197,253,0.1)' }]}>
+          <View style={[s.badge, { backgroundColor: 'rgba(249,115,22,0.1)' }]}>
             <Text style={[s.badgeText, { color: colors.info }]}>Local</Text>
           </View>
         )}
@@ -673,13 +667,7 @@ function BulkImportScreen({ onBack, onRefresh }: { onBack: () => void; onRefresh
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={s.formHeader}>
-        <Pressable onPress={onBack} style={s.closeBtn}>
-          <Text style={s.closeBtnText}>←</Text>
-        </Pressable>
-        <Text style={s.formTitle}>Bulk Import</Text>
-        <View style={{ width: 34 }} />
-      </View>
+      <AdminModalHeader title="Bulk Import" onClose={onBack} closeLabel="Back" />
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.formBody} keyboardShouldPersistTaps="handled">
 
@@ -862,32 +850,23 @@ export function AdminStockModal({ visible, onClose }: Props) {
         else onClose();
       }}
     >
-      <SafeAreaView style={s.root}>
+      <AdminModalShell>
 
         {/* ── List ── */}
         {screen === 'list' && (
           <>
-            {/* Header */}
-            <View style={s.header}>
-              <View>
-                <Text style={s.title}>Stock</Text>
-                <Text style={s.subtitle}>{totalCount} products</Text>
-              </View>
-              <View style={{ flexDirection: 'row', gap: space.sm, alignItems: 'center' }}>
-                <Pressable onPress={() => setScreen('add')} style={s.newBtn}>
-                  <Text style={s.newBtnText}>+ Add</Text>
-                </Pressable>
-                <Pressable onPress={() => setScreen('bulk')} style={[s.newBtn, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
-                  <Text style={[s.newBtnText, { color: colors.muted }]}>↑ CSV</Text>
-                </Pressable>
-                <Pressable onPress={refresh} disabled={loading} style={s.iconBtn}>
-                  <Text style={s.iconBtnText}>{loading ? '…' : '↺'}</Text>
-                </Pressable>
-                <Pressable onPress={onClose} style={s.iconBtn}>
-                  <Text style={s.iconBtnText}>✕</Text>
-                </Pressable>
-              </View>
-            </View>
+            <AdminModalHeader
+              title="Stock"
+              subtitle={`${totalCount} products`}
+              onClose={onClose}
+              actions={
+                <>
+                  <AdminHeaderButton label="+ Add" onPress={() => setScreen('add')} primary />
+                  <AdminHeaderButton label="CSV" onPress={() => setScreen('bulk')} />
+                  <AdminHeaderButton label={loading ? '...' : 'Refresh'} onPress={refresh} disabled={loading} />
+                </>
+              }
+            />
 
             {/* Toast */}
             {toast && (
@@ -993,7 +972,7 @@ export function AdminStockModal({ visible, onClose }: Props) {
             onRefresh={refresh}
           />
         )}
-      </SafeAreaView>
+      </AdminModalShell>
     </Modal>
   );
 }
@@ -1025,14 +1004,22 @@ const s = StyleSheet.create({
     flexDirection: 'row', paddingHorizontal: space.lg, paddingVertical: space.sm,
     borderBottomWidth: 1, borderBottomColor: colors.border, gap: space.xs,
   },
-  statBox: { flex: 1, alignItems: 'center', paddingVertical: space.xs, backgroundColor: colors.surface, borderRadius: radius.sm },
+  statBox: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: space.xs,
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+  },
   statVal: { fontSize: fontSize.lg, fontWeight: '800', color: colors.text, fontFamily: 'monospace' },
   statKey: { fontSize: 10, color: colors.subtle, marginTop: 1 },
 
   searchRow: { flexDirection: 'row', gap: space.xs, paddingHorizontal: space.lg, paddingVertical: space.sm },
   searchInput: {
-    flex: 1, height: 36, backgroundColor: colors.card,
-    borderRadius: radius.md, borderWidth: 1, borderColor: colors.border,
+    flex: 1, height: 40, backgroundColor: colors.inputBg,
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderStrong,
     paddingHorizontal: space.md, color: colors.text, fontSize: fontSize.sm,
   },
   searchBtn: {
@@ -1044,19 +1031,19 @@ const s = StyleSheet.create({
   clearSearchBtnText: { color: colors.muted, fontSize: fontSize.md },
 
   sortBar: { flexDirection: 'row', paddingHorizontal: space.md, paddingVertical: space.xs, gap: space.xs },
-  filterToggleBtn: { paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.border },
+  filterToggleBtn: { paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.panelSoft },
   filterToggleBtnText: { fontSize: fontSize.xs, color: colors.muted, fontWeight: '600' },
-  sortBtn: { paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.border },
-  sortBtnActive: { borderColor: colors.accent, backgroundColor: `${colors.accent}22` },
+  sortBtn: { paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.panelSoft },
+  sortBtnActive: { borderColor: colors.accent, backgroundColor: 'rgba(255,121,0,0.16)' },
   sortBtnText: { fontSize: fontSize.xs, color: colors.muted },
 
   filterPanel: {
-    marginHorizontal: space.md, padding: space.md, backgroundColor: colors.surface,
-    borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, marginBottom: space.sm,
+    marginHorizontal: space.md, padding: space.md, backgroundColor: colors.card,
+    borderRadius: radius.lg, borderWidth: 1, borderColor: colors.borderStrong, marginBottom: space.sm,
   },
   filterPanelTitle: { fontSize: fontSize.xs, fontWeight: '700', color: colors.subtle, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: space.sm },
-  dimBtn: { paddingHorizontal: space.sm, paddingVertical: 4, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.border },
-  dimBtnActive: { borderColor: colors.accent, backgroundColor: `${colors.accent}22` },
+  dimBtn: { paddingHorizontal: space.sm, paddingVertical: 4, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.panelSoft },
+  dimBtnActive: { borderColor: colors.accent, backgroundColor: 'rgba(255,121,0,0.16)' },
   dimBtnText: { fontSize: fontSize.xs, color: colors.muted },
 
   listContent: { padding: space.md, paddingBottom: 40 },
@@ -1064,8 +1051,13 @@ const s = StyleSheet.create({
   errorText: { color: colors.danger, fontSize: fontSize.sm, textAlign: 'center', marginTop: space.lg },
 
   stockCard: {
-    backgroundColor: colors.surface, borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.border, marginBottom: space.sm, overflow: 'hidden',
+    backgroundColor: colors.card, borderRadius: radius.lg,
+    borderWidth: 1, borderColor: colors.borderStrong, marginBottom: space.sm, overflow: 'hidden',
+    shadowColor: colors.blue,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   stockCardInactive: { opacity: 0.7 },
   stockCardTop: { padding: space.md, flexDirection: 'row', gap: space.sm },
@@ -1112,8 +1104,13 @@ const s = StyleSheet.create({
   closeBtnText: { fontSize: fontSize.md, color: colors.muted },
   formBody: { padding: space.md, paddingBottom: 80 },
   card: {
-    backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md,
-    marginBottom: space.md, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.card, borderRadius: radius.lg, padding: space.md,
+    marginBottom: space.md, borderWidth: 1, borderColor: colors.borderStrong,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   fieldRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -1122,8 +1119,8 @@ const s = StyleSheet.create({
   },
   fieldLabel: { fontSize: fontSize.sm, color: colors.muted, flex: 1 },
   input: {
-    flex: 1, height: 34, backgroundColor: colors.card,
-    borderRadius: radius.md, borderWidth: 1, borderColor: colors.border,
+    flex: 1, height: 38, backgroundColor: colors.inputBg,
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderStrong,
     paddingHorizontal: space.sm, color: colors.text, fontSize: fontSize.sm,
     textAlign: 'right',
   },

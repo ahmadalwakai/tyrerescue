@@ -6,6 +6,7 @@ import { apiClient } from '@/api/client';
 import { StateView } from '@/ui/StateView';
 import { DriverPulseMarker } from '@/ui/DriverPulseMarker';
 import { colors, radius, spacing, typography } from '@/ui/theme';
+import type { DriverSituation } from '@/types/driverSituation';
 
 type DriverRow = {
   id: string;
@@ -15,6 +16,8 @@ type DriverRow = {
   currentLat: string | null;
   currentLng: string | null;
   locationAt: string | null;
+  activeJobRef: string | null;
+  driverSituation: DriverSituation | null;
 };
 
 type DriversResponse = {
@@ -28,6 +31,14 @@ type LocatedDriver = DriverRow & { lat: number; lng: number };
 // Mapbox uses [longitude, latitude] coordinate order.
 const FALLBACK_CENTER: [number, number] = [-4.2518, 55.8642];
 const FALLBACK_ZOOM = 10;
+
+function markerColor(driver: DriverRow): string {
+  const status = driver.driverSituation?.status;
+  if (status === 'late' || status === 'offline') return colors.error;
+  if (status === 'at_risk') return colors.warning;
+  if (status === 'on_time') return colors.success;
+  return driver.isOnline ? colors.success : colors.textMuted;
+}
 
 export default function DriverTrackingScreen() {
   const cameraRef = useRef<Camera | null>(null);
@@ -77,6 +88,17 @@ export default function DriverTrackingScreen() {
   }, [locatedDrivers.length]);
 
   const errorMessage = error instanceof Error ? error.message : null;
+  const situationCounts = useMemo(() => {
+    let atRisk = 0;
+    let late = 0;
+    let onTime = 0;
+    for (const driver of locatedDrivers) {
+      if (driver.driverSituation?.status === 'at_risk') atRisk += 1;
+      if (driver.driverSituation?.status === 'late' || driver.driverSituation?.status === 'offline') late += 1;
+      if (driver.driverSituation?.status === 'on_time') onTime += 1;
+    }
+    return { onTime, atRisk, late };
+  }, [locatedDrivers]);
 
   return (
     <View style={styles.container}>
@@ -104,7 +126,7 @@ export default function DriverTrackingScreen() {
             allowOverlap
           >
             <DriverPulseMarker
-              color={driver.isOnline ? colors.success : colors.textMuted}
+              color={markerColor(driver)}
               pulsing={Boolean(driver.isOnline)}
             />
           </MarkerView>
@@ -118,6 +140,11 @@ export default function DriverTrackingScreen() {
           <Text style={styles.badgeText}>
             {locatedDrivers.length} driver{locatedDrivers.length === 1 ? '' : 's'} on map
           </Text>
+        </View>
+        <View style={styles.situationBadge}>
+          <Text style={styles.situationText}>On time {situationCounts.onTime}</Text>
+          <Text style={styles.situationText}>At risk {situationCounts.atRisk}</Text>
+          <Text style={styles.situationText}>Late/offline {situationCounts.late}</Text>
         </View>
       </View>
 
@@ -162,6 +189,23 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
     gap: spacing.xs,
+  },
+  situationBadge: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  situationText: {
+    color: colors.textMuted,
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
   },
   dot: {
     width: 8,

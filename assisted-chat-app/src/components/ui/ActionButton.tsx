@@ -1,15 +1,18 @@
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Pressable,
   StyleSheet,
   Text,
   View,
+  type GestureResponderEvent,
   type PressableProps,
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
 import { colors, fontSize, radius } from '../theme';
+import { usePressScale } from '../motion';
 
 export type ActionButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
 export type ActionButtonSize = 'sm' | 'md' | 'lg';
@@ -39,18 +42,23 @@ interface VariantPalette {
 
 const VARIANTS: Record<ActionButtonVariant, VariantPalette> = {
   primary: {
-    base: { backgroundColor: colors.accent, borderColor: colors.accent },
-    pressed: { backgroundColor: colors.accentHover, borderColor: colors.accentHover },
+    base: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+      shadowColor: colors.shadowWarm,
+      shadowOpacity: 0.22,
+    },
+    pressed: { backgroundColor: colors.accentPressed, borderColor: colors.accentPressed },
     textColor: colors.accentText,
   },
   secondary: {
-    base: { backgroundColor: colors.card, borderColor: colors.border },
-    pressed: { backgroundColor: colors.surface, borderColor: colors.borderStrong },
+    base: { backgroundColor: colors.surfaceElevated, borderColor: colors.borderStrong },
+    pressed: { backgroundColor: colors.panel, borderColor: colors.glowBorder },
     textColor: colors.text,
   },
   ghost: {
-    base: { backgroundColor: 'transparent', borderColor: colors.border },
-    pressed: { backgroundColor: colors.card, borderColor: colors.borderStrong },
+    base: { backgroundColor: colors.cardMuted, borderColor: colors.border },
+    pressed: { backgroundColor: colors.surfaceElevated, borderColor: colors.borderStrong },
     textColor: colors.muted,
   },
   danger: {
@@ -103,6 +111,8 @@ export function ActionButton({
   size = 'md',
   fullWidth = false,
   testID,
+  onPressIn,
+  onPressOut,
   ...rest
 }: ActionButtonProps) {
   const palette = VARIANTS[variant];
@@ -110,6 +120,15 @@ export function ActionButton({
   const isDisabled = disabled || loading;
   const showReason = isDisabled && Boolean(disabledReason);
   const displayLabel = loading && loadingLabel ? loadingLabel : label;
+  const { pressScaleStyle, pressIn, pressOut } = usePressScale(isDisabled);
+  const handlePressIn = (event: GestureResponderEvent) => {
+    pressIn();
+    onPressIn?.(event);
+  };
+  const handlePressOut = (event: GestureResponderEvent) => {
+    pressOut();
+    onPressOut?.(event);
+  };
 
   return (
     <View style={fullWidth ? styles.fullWidthWrap : undefined}>
@@ -117,6 +136,8 @@ export function ActionButton({
         {...rest}
         testID={testID}
         onPress={isDisabled ? undefined : onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
         android_ripple={isDisabled ? undefined : { color: colors.ripple, borderless: false }}
         accessibilityRole="button"
         accessibilityState={{ disabled: isDisabled, busy: loading }}
@@ -132,8 +153,9 @@ export function ActionButton({
           fullWidth && styles.fullWidth,
         ]}
       >
+        {variant === 'primary' ? <View pointerEvents="none" style={styles.highlight} /> : null}
         {loading ? (
-          <View style={styles.row}>
+          <Animated.View style={[styles.row, pressScaleStyle]}>
             <ActivityIndicator color={palette.textColor} />
             {displayLabel ? (
               <Text
@@ -143,9 +165,9 @@ export function ActionButton({
                 {displayLabel}
               </Text>
             ) : null}
-          </View>
+          </Animated.View>
         ) : (
-          <View style={styles.row}>
+          <Animated.View style={[styles.row, pressScaleStyle]}>
             {icon ? <View style={styles.icon}>{icon}</View> : null}
             <Text
               style={[styles.label, sizeStyle.label, { color: palette.textColor }]}
@@ -153,7 +175,7 @@ export function ActionButton({
             >
               {displayLabel}
             </Text>
-          </View>
+          </Animated.View>
         )}
       </Pressable>
       {showReason ? <Text style={styles.reason}>{disabledReason}</Text> : null}
@@ -167,6 +189,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 4,
   },
   fullWidthWrap: {
     alignSelf: 'stretch',
@@ -184,7 +213,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0,
   },
   disabled: {
     opacity: 0.55,
@@ -194,5 +224,15 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.subtle,
     fontWeight: '500',
+  },
+  highlight: {
+    position: 'absolute',
+    left: 1,
+    right: 1,
+    top: 1,
+    height: 16,
+    borderTopLeftRadius: radius.md,
+    borderTopRightRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
 });

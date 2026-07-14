@@ -1,14 +1,17 @@
 import { ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Pressable,
   StyleSheet,
   Text,
   View,
+  type GestureResponderEvent,
   type PressableProps,
   type ViewStyle,
 } from 'react-native';
 import { colors, radius, fontSize } from './theme';
+import { useFadeSlideIn, usePressScale } from './motion';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -33,14 +36,27 @@ export function AppButton({
   disabled,
   style,
   fullWidth,
+  onPressIn,
+  onPressOut,
   ...rest
 }: AppButtonProps) {
   const isDisabled = disabled || loading;
+  const { pressScaleStyle, pressIn, pressOut } = usePressScale(Boolean(isDisabled));
+  const handlePressIn = (event: GestureResponderEvent) => {
+    pressIn();
+    onPressIn?.(event);
+  };
+  const handlePressOut = (event: GestureResponderEvent) => {
+    pressOut();
+    onPressOut?.(event);
+  };
 
   return (
     <Pressable
       {...rest}
       onPress={isDisabled ? undefined : onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       android_ripple={{ color: colors.ripple, borderless: false }}
       style={({ pressed }) => [
         styles.base,
@@ -53,20 +69,23 @@ export function AppButton({
       accessibilityRole="button"
       accessibilityState={{ disabled: !!isDisabled, busy: !!loading }}
     >
-      {loading ? (
-        <ActivityIndicator color={variantStyles[variant].textColor} />
-      ) : (
-        <Text
-          style={[
-            styles.label,
-            { color: variantStyles[variant].textColor },
-            isDisabled && styles.disabledLabel,
-          ]}
-          numberOfLines={1}
-        >
-          {label}
-        </Text>
-      )}
+      {variant === 'primary' ? <View pointerEvents="none" style={styles.buttonHighlight} /> : null}
+      <Animated.View style={[styles.buttonContent, pressScaleStyle]}>
+        {loading ? (
+          <ActivityIndicator color={variantStyles[variant].textColor} />
+        ) : (
+          <Text
+            style={[
+              styles.label,
+              { color: variantStyles[variant].textColor },
+              isDisabled && styles.disabledLabel,
+            ]}
+            numberOfLines={1}
+          >
+            {label}
+          </Text>
+        )}
+      </Animated.View>
     </Pressable>
   );
 }
@@ -78,12 +97,19 @@ interface SectionCardProps {
 }
 
 export function SectionCard({ title, children, helperText }: SectionCardProps) {
+  const entranceStyle = useFadeSlideIn({ distance: 8, duration: 240 });
   return (
-    <View style={cardStyles.card}>
-      <Text style={cardStyles.title}>{title.toUpperCase()}</Text>
-      {helperText ? <Text style={cardStyles.helper}>{helperText}</Text> : null}
-      <View style={{ marginTop: 10 }}>{children}</View>
-    </View>
+    <Animated.View style={[cardStyles.card, entranceStyle]}>
+      <View pointerEvents="none" style={cardStyles.accentLine} />
+      <View style={cardStyles.header}>
+        <View style={cardStyles.titleRail} />
+        <View style={cardStyles.titleBlock}>
+          <Text style={cardStyles.title}>{title}</Text>
+          {helperText ? <Text style={cardStyles.helper}>{helperText}</Text> : null}
+        </View>
+      </View>
+      <View style={cardStyles.content}>{children}</View>
+    </Animated.View>
   );
 }
 
@@ -95,6 +121,7 @@ interface InlineNoticeProps {
 }
 
 export function InlineNotice({ kind = 'warn', children }: InlineNoticeProps) {
+  const entranceStyle = useFadeSlideIn({ distance: 6, duration: 220 });
   const palette =
     kind === 'err'
       ? { bg: colors.dangerBg, fg: colors.danger, border: colors.dangerBorder }
@@ -102,20 +129,18 @@ export function InlineNotice({ kind = 'warn', children }: InlineNoticeProps) {
       ? { bg: colors.infoBg, fg: colors.info, border: colors.infoBorder }
       : { bg: colors.warningBg, fg: colors.warning, border: colors.warningBorder };
   return (
-    <View
-      style={{
-        borderWidth: 1,
-        borderRadius: radius.sm,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        backgroundColor: palette.bg,
-        borderColor: palette.border,
-      }}
+    <Animated.View
+      style={[
+        noticeStyles.notice,
+        { backgroundColor: palette.bg, borderColor: palette.border },
+        entranceStyle,
+      ]}
     >
+      <View style={[noticeStyles.noticeRail, { backgroundColor: palette.fg }]} />
       <Text style={{ color: palette.fg, fontSize: fontSize.xs, fontWeight: '500' }}>
         {children}
       </Text>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -133,6 +158,7 @@ interface StatusBannerProps {
 }
 
 export function StatusBanner({ kind, message }: StatusBannerProps) {
+  const entranceStyle = useFadeSlideIn({ distance: 6, duration: 220 });
   const palette =
     kind === 'ok'
       ? { bg: colors.successBg, fg: colors.success, border: colors.successBorder }
@@ -142,25 +168,34 @@ export function StatusBanner({ kind, message }: StatusBannerProps) {
       ? { bg: colors.warningBg, fg: colors.warning, border: colors.warningBorder }
       : { bg: colors.infoBg, fg: colors.info, border: colors.infoBorder };
   return (
-    <View
+    <Animated.View
       style={[
         bannerStyles.banner,
         { backgroundColor: palette.bg, borderColor: palette.border },
+        entranceStyle,
       ]}
     >
+      <View style={[bannerStyles.rail, { backgroundColor: palette.fg }]} />
       <Text style={[bannerStyles.text, { color: palette.fg }]}>{message}</Text>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 48,
-    paddingHorizontal: 14,
+    minHeight: 46,
+    paddingHorizontal: 16,
     borderRadius: radius.md,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.24,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 4,
   },
   label: {
     fontSize: fontSize.md,
@@ -172,25 +207,45 @@ const styles = StyleSheet.create({
   disabledLabel: {
     // keep colour from variant; only opacity dims
   },
+  buttonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 20,
+  },
+  buttonHighlight: {
+    position: 'absolute',
+    left: 1,
+    right: 1,
+    top: 1,
+    height: 16,
+    borderTopLeftRadius: radius.md,
+    borderTopRightRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
 });
 
 const variantStyles = {
-  // Orange primary — black-ish text stays readable when pressed.
+  // Orange primary with stable readable text across press states.
   primary: {
-    base: { backgroundColor: colors.accent, borderColor: colors.accent } as ViewStyle,
-    pressed: { backgroundColor: colors.accentHover, borderColor: colors.accentHover } as ViewStyle,
+    base: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+      shadowColor: colors.shadowWarm,
+      shadowOpacity: 0.22,
+    } as ViewStyle,
+    pressed: { backgroundColor: colors.accentPressed, borderColor: colors.accentPressed } as ViewStyle,
     textColor: colors.accentText,
   },
   // Dark outlined — never goes white on press.
   secondary: {
-    base: { backgroundColor: colors.card, borderColor: colors.border } as ViewStyle,
-    pressed: { backgroundColor: colors.surface, borderColor: colors.borderStrong } as ViewStyle,
+    base: { backgroundColor: colors.surfaceElevated, borderColor: colors.borderStrong } as ViewStyle,
+    pressed: { backgroundColor: colors.panel, borderColor: colors.glowBorder } as ViewStyle,
     textColor: colors.text,
   },
   // Quiet outlined for muted actions (e.g. Clear draft).
   ghost: {
-    base: { backgroundColor: 'transparent', borderColor: colors.border } as ViewStyle,
-    pressed: { backgroundColor: colors.card, borderColor: colors.borderStrong } as ViewStyle,
+    base: { backgroundColor: colors.cardMuted, borderColor: colors.border } as ViewStyle,
+    pressed: { backgroundColor: colors.surfaceElevated, borderColor: colors.borderStrong } as ViewStyle,
     textColor: colors.muted,
   },
   danger: {
@@ -202,22 +257,58 @@ const variantStyles = {
 
 const cardStyles = StyleSheet.create({
   card: {
-    backgroundColor: colors.bg,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.borderStrong,
     borderWidth: 1,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: 14,
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 5,
+  },
+  accentLine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: colors.accent,
+    opacity: 0.9,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  titleRail: {
+    width: 4,
+    minHeight: 32,
+    borderRadius: 3,
+    backgroundColor: colors.accent,
+    opacity: 0.95,
+  },
+  titleBlock: {
+    flex: 1,
+    minWidth: 0,
   },
   title: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 1.2,
-    color: colors.muted,
+    fontSize: fontSize.lg,
+    fontWeight: '900',
+    letterSpacing: 0,
+    color: colors.text,
   },
   helper: {
     marginTop: 4,
     fontSize: fontSize.xs,
     color: colors.subtle,
+    lineHeight: 16,
+  },
+  content: {
+    marginTop: 12,
   },
   label: {
     fontSize: fontSize.xs,
@@ -227,12 +318,46 @@ const cardStyles = StyleSheet.create({
   },
 });
 
+const noticeStyles = StyleSheet.create({
+  notice: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  noticeRail: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    opacity: 0.9,
+  },
+});
+
 const bannerStyles = StyleSheet.create({
   banner: {
     borderWidth: 1,
     borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
+  },
+  rail: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    opacity: 0.95,
   },
   text: {
     fontSize: fontSize.sm,

@@ -1,16 +1,26 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { Alert, Linking, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
-import { Screen } from '@/ui/Screen';
-import { Card } from '@/ui/Card';
-import { InputField } from '@/ui/InputField';
-import { PrimaryButton } from '@/ui/PrimaryButton';
-import { StateView } from '@/ui/StateView';
-import { StatusChip } from '@/ui/StatusPill';
-import { colors, radius, spacing, typography } from '@/ui/theme';
+import { normalizeDriverSituation } from '@/lib/driverSituation';
 import { formatNextStatuses } from '@/ui/labels';
+import type { DriverSituation } from '@/types/driverSituation';
+import {
+  AdminShell,
+  FilterChip,
+  GlassCard,
+  PressScale,
+  StatePanel,
+  StatusBadge,
+  colors,
+  formatMoney,
+  formatShortDate,
+  humanLabel,
+  spacing,
+  typography,
+} from '@/ui';
 
 type BookingDetailResponse = {
   booking: {
@@ -25,14 +35,46 @@ type BookingDetailResponse = {
     totalAmount: string;
     notes: string | null;
     scheduledAt: string | null;
+    createdAt?: string | null;
+    lat?: string | null;
+    lng?: string | null;
+    paymentType?: string | null;
   };
+  assignedDriver?: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    status: string | null;
+    isOnline: boolean | null;
+  } | null;
   availableDrivers: Array<{ id: string; name: string; status: string | null; isOnline: boolean | null }>;
   validNextStatuses: string[];
   statusHistory: Array<{ id: string; toStatus: string; note: string | null; createdAt: string | null }>;
+  driverSituation?: DriverSituation | null;
 };
+
+function openPhone(phone?: string | null) {
+  if (!phone) return;
+  Linking.openURL(`tel:${phone}`).catch(() => undefined);
+}
+
+function openMessage(phone?: string | null) {
+  if (!phone) return;
+  Linking.openURL(`sms:${phone}`).catch(() => undefined);
+}
+
+function openNavigation(booking: BookingDetailResponse['booking']) {
+  const lat = Number(booking.lat);
+  const lng = Number(booking.lng);
+  const query = Number.isFinite(lat) && Number.isFinite(lng) ? `${lat},${lng}` : booking.addressLine;
+  if (!query) return;
+  Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`).catch(() => undefined);
+}
 
 export default function BookingDetailScreen() {
   const { ref } = useLocalSearchParams<{ ref: string }>();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [nextStatus, setNextStatus] = useState('');
   const [statusNote, setStatusNote] = useState('');
@@ -40,8 +82,7 @@ export default function BookingDetailScreen() {
   const [refundReason, setRefundReason] = useState('');
 
   const queryKey = ['booking-detail', ref];
-
-  const { data, isLoading, error } = useQuery<BookingDetailResponse>({
+  const { data, isLoading, error, refetch } = useQuery<BookingDetailResponse>({
     queryKey,
     queryFn: () => apiClient.get(`/api/mobile/admin/bookings/${ref}`),
     enabled: Boolean(ref),
@@ -59,291 +100,468 @@ export default function BookingDetailScreen() {
         status: nextStatus,
         note: statusNote,
       }),
-    onSuccess: refresh,
+    onSuccess: () => {
+      setNextStatus('');
+      setStatusNote('');
+      refresh();
+    },
   });
 
   const assignMutation = useMutation({
     mutationFn: () => apiClient.patch(`/api/mobile/admin/bookings/${ref}/assign`, { driverId }),
-    onSuccess: refresh,
+    onSuccess: () => {
+      setDriverId('');
+      refresh();
+    },
   });
 
   const refundMutation = useMutation({
     mutationFn: () => apiClient.post(`/api/mobile/admin/bookings/${ref}/refund`, { reason: refundReason }),
-    onSuccess: refresh,
+    onSuccess: () => {
+      setRefundReason('');
+      refresh();
+    },
   });
 
-  const suggestedDriver = useQuery<{ rankedDrivers: Array<{ driverId: string; name: string; reason: string }> }>({
-    queryKey: ['booking-suggest-driver', ref],
-    queryFn: () => apiClient.get(`/api/mobile/admin/bookings/${ref}/suggest-driver`),
-    enabled: Boolean(ref),
-  });
-
+  const driverSituation = normalizeDriverSituation(data?.driverSituation);
+  const nextStatusOptions = useMemo(() => formatNextStatuses(data?.validNextStatuses ?? []), [data?.validNextStatuses]);
   const errorMessage = error instanceof Error ? error.message : null;
 
-  const nextStatusOptions = useMemo(
-    () => formatNextStatuses(data?.validNextStatuses ?? []),
-    [data],
-  );
+  const confirmRefund = () => {
+    Alert.alert('Issue refund', 'This action sends a refund request for this booking.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Confirm refund', style: 'destructive', onPress: () => refundMutation.mutate() },
+    ]);
+  };
 
   return (
-    <Screen>
-      <StateView loading={isLoading} error={errorMessage} />
+    <AdminShell title="Job Details" subtitle={ref ? `Ref ${ref}` : 'Full overview and actions'}>
+      <StatePanel
+        loading={isLoading}
+        error={errorMessage}
+        empty={!isLoading && !errorMessage && !data}
+        emptyLabel="Job details are not available."
+        onRetry={() => refetch()}
+      />
 
       {data ? (
         <>
-          <Card>
-            <View style={styles.summaryHeader}>
-              <Text style={styles.ref}>{data.booking.refNumber}</Text>
-              <StatusChip status={data.booking.status} />
+          <GlassCard accent="blue" animatedIndex={0}>
+            <View style={styles.summaryTop}>
+              <View style={styles.jobIcon}>
+                <Ionicons name="briefcase" size={22} color={colors.text} />
+              </View>
+              <View style={styles.flex}>
+                <Text style={styles.refText} numberOfLines={1}>
+                  {data.booking.refNumber}
+                </Text>
+                <Text style={styles.mutedText} numberOfLines={1}>
+                  {data.booking.serviceType || data.booking.bookingType || 'Service not set'}
+                </Text>
+              </View>
+              <StatusBadge status={data.booking.status} />
             </View>
-            <View style={styles.metaTable}>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Customer</Text>
-                <Text style={styles.metaValue}>{data.booking.customerName}</Text>
-              </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Phone</Text>
-                <Text style={styles.metaValue}>{data.booking.customerPhone}</Text>
-              </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Email</Text>
-                <Text style={styles.metaValue}>{data.booking.customerEmail}</Text>
-              </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Address</Text>
-                <Text style={styles.metaValue}>{data.booking.addressLine}</Text>
-              </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Service</Text>
-                <Text style={styles.metaValue}>{data.booking.serviceType} · {data.booking.bookingType}</Text>
-              </View>
-              <View style={[styles.metaRow, styles.metaRowLast]}>
-                <Text style={styles.metaLabel}>Amount</Text>
-                <Text style={[styles.metaValue, styles.metaValueStrong]}>£{data.booking.totalAmount}</Text>
-              </View>
-            </View>
-          </Card>
 
-          <Card>
-            <Text style={styles.sectionTitle}>Update status</Text>
-            <Text style={styles.hint}>Available: {nextStatusOptions}</Text>
-            <InputField label="Next status" value={nextStatus} onChangeText={setNextStatus} placeholder="e.g. confirmed" />
-            <InputField label="Note" value={statusNote} onChangeText={setStatusNote} placeholder="Optional note" />
-            <PrimaryButton
-              title={statusMutation.isPending ? 'Updating...' : 'Update status'}
-              onPress={() => statusMutation.mutate()}
-              disabled={!nextStatus || statusMutation.isPending}
+            <View style={styles.routeLine}>
+              <Text style={styles.addressText} numberOfLines={2}>
+                {data.booking.addressLine || 'Address not set'}
+              </Text>
+              <Text style={styles.moneyText}>{formatMoney(data.booking.totalAmount)}</Text>
+            </View>
+
+            <View style={styles.actionRow}>
+              <ActionButton icon="call" label="Call" accent="green" onPress={() => openPhone(data.booking.customerPhone)} />
+              <ActionButton icon="chatbubble" label="Message" accent="blue" onPress={() => openMessage(data.booking.customerPhone)} />
+              <ActionButton icon="navigate" label="Navigate" accent="orange" onPress={() => openNavigation(data.booking)} />
+              <ActionButton icon="ellipsis-horizontal" label="More" accent="purple" onPress={() => router.push('/(tabs)/more')} />
+            </View>
+          </GlassCard>
+
+          <GlassCard accent="orange" animatedIndex={1}>
+            <Text style={styles.sectionTitle}>Job Information</Text>
+            <InfoRow icon="time-outline" label="Date & time" value={formatShortDate(data.booking.scheduledAt) || 'Not scheduled'} />
+            <InfoRow icon="card-outline" label="Payment" value={data.booking.paymentType ? humanLabel(data.booking.paymentType) : 'Not set'} />
+            <InfoRow icon="construct-outline" label="Job type" value={data.booking.bookingType || 'Not set'} />
+            <InfoRow
+              icon="car-outline"
+              label="Driver state"
+              value={driverSituation.status !== 'unavailable' ? driverSituation.label : 'No driver data'}
             />
-          </Card>
+            <InfoRow icon="document-text-outline" label="Special notes" value={data.booking.notes || 'No notes'} last />
+          </GlassCard>
 
-          <Card>
-            <Text style={styles.sectionTitle}>Assign driver</Text>
-            {suggestedDriver.data?.rankedDrivers?.[0] && (
-              <Pressable
-                style={styles.suggestionBox}
-                onPress={() => setDriverId(suggestedDriver.data!.rankedDrivers[0].driverId)}
-              >
-                <Text style={styles.suggestionLabel}>Top suggestion · tap to select</Text>
-                <Text style={styles.suggestionName}>{suggestedDriver.data.rankedDrivers[0].name}</Text>
-                <Text style={styles.hint}>{suggestedDriver.data.rankedDrivers[0].reason}</Text>
-              </Pressable>
-            )}
-
-            {data.availableDrivers.length > 0 ? (
-              <View style={styles.driverList}>
-                <Text style={styles.hint}>Available drivers</Text>
-                {data.availableDrivers.map((d) => {
-                  const selected = d.id === driverId;
-                  return (
-                    <Pressable
-                      key={d.id}
-                      style={[styles.driverRow, selected && styles.driverRowSelected]}
-                      onPress={() => setDriverId(d.id)}
-                    >
-                      <View style={styles.driverRowText}>
-                        <Text style={[styles.driverName, selected && styles.driverNameSelected]}>{d.name}</Text>
-                        <Text style={styles.tiny}>
-                          {d.isOnline ? 'Online' : 'Offline'}
-                          {d.status ? ` · ${d.status}` : ''}
-                        </Text>
-                      </View>
-                      {selected ? <Text style={styles.driverCheck}>✓</Text> : null}
-                    </Pressable>
-                  );
-                })}
+          <GlassCard accent="green" animatedIndex={2}>
+            <Text style={styles.sectionTitle}>Customer</Text>
+            <View style={styles.customerRow}>
+              <View style={styles.customerIcon}>
+                <Ionicons name="person" size={20} color={colors.text} />
               </View>
+              <View style={styles.flex}>
+                <Text style={styles.cardTitle}>{data.booking.customerName || 'Customer not set'}</Text>
+                <Text style={styles.mutedText}>{data.booking.customerPhone || 'No phone'}</Text>
+                <Text style={styles.mutedText}>{data.booking.customerEmail || 'No email'}</Text>
+              </View>
+              <PressScale style={styles.callButton} onPress={() => openPhone(data.booking.customerPhone)}>
+                <Ionicons name="call" size={18} color={colors.text} />
+              </PressScale>
+            </View>
+          </GlassCard>
+
+          <GlassCard accent="blue" animatedIndex={3}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Progress Timeline</Text>
+              <StatusBadge status={driverSituation.status} label={driverSituation.label} />
+            </View>
+            {data.statusHistory.length === 0 ? (
+              <Text style={styles.mutedText}>No timeline events yet.</Text>
             ) : (
-              <Text style={styles.hint}>No available drivers right now.</Text>
+              data.statusHistory.slice(0, 8).map((entry, index) => (
+                <View key={entry.id} style={styles.timelineRow}>
+                  <View style={styles.timelineRail}>
+                    <View style={[styles.timelineDot, index === 0 && styles.timelineDotActive]} />
+                    {index < data.statusHistory.length - 1 ? <View style={styles.timelineLine} /> : null}
+                  </View>
+                  <View style={styles.flex}>
+                    <View style={styles.timelineTop}>
+                      <Text style={styles.cardTitle}>{humanLabel(entry.toStatus)}</Text>
+                      <Text style={styles.tinyText}>{formatShortDate(entry.createdAt)}</Text>
+                    </View>
+                    <Text style={styles.mutedText}>{entry.note || 'No note'}</Text>
+                  </View>
+                </View>
+              ))
             )}
+          </GlassCard>
 
-            {/* Manual fallback — paste a driver id directly if needed. */}
-            <InputField label="Driver ID" value={driverId} onChangeText={setDriverId} placeholder="Or paste driver id" />
-            <PrimaryButton
-              title={assignMutation.isPending ? 'Assigning...' : 'Assign driver'}
-              onPress={() => assignMutation.mutate()}
-              disabled={!driverId || assignMutation.isPending}
+          <GlassCard accent="purple" animatedIndex={4}>
+            <Text style={styles.sectionTitle}>Update Status</Text>
+            <Text style={styles.mutedText}>Available: {nextStatusOptions || 'No transitions available'}</Text>
+            <View style={styles.chipWrap}>
+              {(data.validNextStatuses ?? []).map((status) => (
+                <FilterChip
+                  key={status}
+                  label={humanLabel(status)}
+                  active={nextStatus === status}
+                  onPress={() => setNextStatus(status)}
+                  accent="blue"
+                />
+              ))}
+            </View>
+            <TextInput
+              value={statusNote}
+              onChangeText={setStatusNote}
+              placeholder="Optional note"
+              placeholderTextColor={colors.textSubtle}
+              style={styles.input}
             />
-          </Card>
+            <ActionButton
+              icon="checkmark-circle"
+              label={statusMutation.isPending ? 'Updating...' : 'Update status'}
+              accent="blue"
+              disabled={!nextStatus || statusMutation.isPending}
+              onPress={() => statusMutation.mutate()}
+              wide
+            />
+          </GlassCard>
 
-          <Card>
-            <Text style={styles.sectionTitle}>Issue refund</Text>
-            <InputField
-              label="Reason"
+          <GlassCard accent="green" animatedIndex={5}>
+            <Text style={styles.sectionTitle}>Assign Driver</Text>
+            {data.assignedDriver ? (
+              <Text style={styles.mutedText}>
+                Assigned: {data.assignedDriver.name} · {data.assignedDriver.isOnline ? 'Online' : 'Offline'}
+              </Text>
+            ) : null}
+            <View style={styles.chipWrap}>
+              {data.availableDrivers.map((driver) => (
+                <FilterChip
+                  key={driver.id}
+                  label={driver.name}
+                  active={driverId === driver.id}
+                  onPress={() => setDriverId(driver.id)}
+                  accent={driver.isOnline ? 'green' : 'muted'}
+                />
+              ))}
+            </View>
+            <ActionButton
+              icon="person-add"
+              label={assignMutation.isPending ? 'Assigning...' : 'Assign selected driver'}
+              accent="green"
+              disabled={!driverId || assignMutation.isPending}
+              onPress={() => assignMutation.mutate()}
+              wide
+            />
+          </GlassCard>
+
+          <GlassCard accent="red" animatedIndex={6} urgent>
+            <Text style={styles.sectionTitle}>Refund Control</Text>
+            <TextInput
               value={refundReason}
               onChangeText={setRefundReason}
-              placeholder="Customer cancellation or service issue"
+              placeholder="Refund reason"
+              placeholderTextColor={colors.textSubtle}
+              style={styles.input}
             />
-            <PrimaryButton
-              title={refundMutation.isPending ? 'Refunding...' : 'Issue refund'}
-              onPress={() => refundMutation.mutate()}
+            <ActionButton
+              icon="return-down-back"
+              label={refundMutation.isPending ? 'Refunding...' : 'Issue refund'}
+              accent="red"
               disabled={!refundReason || refundMutation.isPending}
-              variant="danger"
+              onPress={confirmRefund}
+              wide
             />
-          </Card>
-
-          <Card>
-            <Text style={styles.sectionTitle}>Recent timeline</Text>
-            {data.statusHistory.slice(0, 8).map((entry) => (
-              <View key={entry.id} style={styles.timelineRow}>
-                <StatusChip status={entry.toStatus} />
-                <View style={styles.timelineText}>
-                  <Text style={styles.timelineNote}>{entry.note ?? 'No note'}</Text>
-                  <Text style={styles.tiny}>{entry.createdAt ?? ''}</Text>
-                </View>
-              </View>
-            ))}
-          </Card>
+          </GlassCard>
         </>
       ) : null}
-    </Screen>
+    </AdminShell>
+  );
+}
+
+function ActionButton({
+  icon,
+  label,
+  accent,
+  onPress,
+  disabled,
+  wide,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  accent: 'orange' | 'blue' | 'green' | 'purple' | 'red';
+  onPress: () => void;
+  disabled?: boolean;
+  wide?: boolean;
+}) {
+  const accentColor =
+    accent === 'green'
+      ? colors.success
+      : accent === 'blue'
+        ? colors.active
+        : accent === 'purple'
+          ? colors.tools
+          : accent === 'red'
+            ? colors.error
+            : colors.primary;
+
+  return (
+    <PressScale
+      onPress={onPress}
+      disabled={disabled}
+      style={[styles.actionButton, wide && styles.actionButtonWide, { borderColor: `${accentColor}66` }]}
+    >
+      <Ionicons name={icon} size={18} color={accentColor} />
+      <Text style={[styles.actionLabel, { color: accentColor }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </PressScale>
+  );
+}
+
+function InfoRow({
+  icon,
+  label,
+  value,
+  last,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  last?: boolean;
+}) {
+  return (
+    <View style={[styles.infoRow, last && styles.infoRowLast]}>
+      <Ionicons name={icon} size={15} color={colors.textMuted} />
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue} numberOfLines={2}>
+        {value}
+      </Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  summaryHeader: {
+  flex: {
+    flex: 1,
+    minWidth: 0,
+  },
+  summaryTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  jobIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.activeSoft,
+  },
+  refText: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: typography.weight.bold,
+  },
+  mutedText: {
+    color: colors.textMuted,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  routeLine: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  addressText: {
+    flex: 1,
+    color: colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  moneyText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: typography.weight.bold,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  actionButton: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceSoft,
+    gap: 3,
+  },
+  actionButtonWide: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  actionLabel: {
+    fontSize: 10,
+    fontWeight: typography.weight.bold,
+  },
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  ref: {
-    fontSize: typography.size.xxl,
-    fontWeight: typography.weight.bold,
+  sectionTitle: {
     color: colors.text,
+    fontSize: 15,
+    fontWeight: typography.weight.bold,
+    marginBottom: spacing.sm,
   },
-  metaTable: {
-    gap: spacing.xs,
-  },
-  metaRow: {
+  infoRow: {
+    minHeight: 38,
     flexDirection: 'row',
-    paddingVertical: spacing.xs,
+    alignItems: 'center',
+    gap: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
-  metaRowLast: {
+  infoRowLast: {
     borderBottomWidth: 0,
   },
-  metaLabel: {
-    width: 72,
+  infoLabel: {
+    width: 86,
     color: colors.textMuted,
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
+    fontSize: 11,
   },
-  metaValue: {
+  infoValue: {
     flex: 1,
-    color: colors.text,
-    fontSize: typography.size.sm,
+    color: colors.textSecondary,
+    fontSize: 11,
+    textAlign: 'right',
   },
-  metaValueStrong: {
-    fontWeight: typography.weight.semibold,
-    color: colors.text,
-  },
-  sectionTitle: {
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.semibold,
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  hint: {
-    color: colors.textMuted,
-    fontSize: typography.size.sm,
-    marginBottom: spacing.sm,
-  },
-  suggestionBox: {
-    backgroundColor: colors.surfaceLight,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  suggestionLabel: {
-    fontSize: typography.size.xs,
-    fontWeight: typography.weight.semibold,
-    color: colors.primary,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    marginBottom: spacing.xs,
-  },
-  suggestionName: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.semibold,
-    color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  driverList: {
-    marginBottom: spacing.md,
-  },
-  driverRow: {
+  customerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    gap: spacing.md,
+  },
+  customerIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.successBg,
+  },
+  cardTitle: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: typography.weight.bold,
+  },
+  callButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: spacing.sm,
-  },
-  driverRowSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.surfaceLight,
-  },
-  driverRowText: {
-    flex: 1,
-  },
-  driverName: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
-    color: colors.text,
-  },
-  driverNameSelected: {
-    color: colors.primary,
-    fontWeight: typography.weight.semibold,
-  },
-  driverCheck: {
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.bold,
-    color: colors.primary,
-    marginLeft: spacing.sm,
   },
   timelineRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     gap: spacing.md,
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    minHeight: 54,
   },
-  timelineText: {
+  timelineRail: {
+    width: 18,
+    alignItems: 'center',
+  },
+  timelineDot: {
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: colors.textSubtle,
+    marginTop: 3,
+  },
+  timelineDotActive: {
+    backgroundColor: colors.primary,
+  },
+  timelineLine: {
     flex: 1,
+    width: 1,
+    backgroundColor: colors.border,
+    marginTop: 4,
   },
-  timelineNote: {
-    color: colors.textSecondary,
-    fontSize: typography.size.sm,
+  timelineTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
   },
-  tiny: {
-    fontSize: typography.size.xs,
-    color: colors.textMuted,
-    marginTop: spacing.xs,
+  tinyText: {
+    color: colors.textSubtle,
+    fontSize: 10,
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  input: {
+    minHeight: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceSoft,
+    color: colors.text,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.md,
+    fontSize: 12,
   },
 });

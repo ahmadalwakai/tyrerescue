@@ -31,7 +31,12 @@
 android-keys/
 *.keystore
 *.jks
+*.p8
 *.p12
+*.password.txt
+*.mobileprovision
+credentials.json
+artifacts/app-store/**/*.log
 
 # Firebase config files — contain project secrets
 # Existing committed copies are unaffected; new files must stay local

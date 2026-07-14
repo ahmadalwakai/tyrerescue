@@ -107,7 +107,10 @@
     "alertsReady": "التنبيهات جاهزة",
     "lockScreenEnabled": "نافذة شاشة القفل مفعّلة",
     "tapToFix": "اضغط للإصلاح",
-    "rearmHint": "سجّل الخروج ثم الدخول لإعادة التفعيل"
+    "rearmHint": "سجّل الخروج ثم الدخول لإعادة التفعيل",
+    "iosNotificationHint": "فعّل تنبيهات الطلبات الحساسة للوقت في إعدادات iOS",
+    "iosLocationHint": "فعّل أذونات الموقع لتتبع الطلب النشط",
+    "iosTimeSensitiveEnabled": "تنبيهات iOS الحساسة للوقت مفعّلة"
   },
   "jobs": {
     "workQueue": "قائمة العمل",
@@ -168,7 +171,7 @@
     "lockingNut": "صامولة القفل: {{status}}",
     "openInMaps": "فتح في الخرائط",
     "liveMap": "الخريطة المباشرة",
-    "startInAppRoute": "ابدأ المسار داخل التطبيق",
+    "startInAppRoute": "فتح المسار",
     "confirmTyreTitle": "تأكيد مقاس الإطار",
     "confirmTyreMessage": "هل تأكدت أنك حملت مقاس الإطار الصحيح؟",
     "confirmTyreRequired": "المطلوب: {{summary}}",
@@ -342,8 +345,11 @@
     "titleReassignment": "تم إعادة تعيين طلب لك",
     "titleUpcoming": "تذكير بطلب قادم",
     "getStarted": "ابدأ الآن",
+    "openRoute": "فتح المسار",
     "viewJob": "عرض الطلب",
-    "dismiss": "تجاهل"
+    "navigate": "ملاحة",
+    "callCustomer": "اتصل بالعميل",
+    "dismiss": "لاحقاً"
   },
   "route": {
     "liveRoute": "المسار مباشر",
@@ -420,6 +426,8 @@
     "routeUpdatedAgo": "تم تحديث المسار منذ {{seconds}}ث",
     "routeRefreshFailed": "فشل تحديث المسار. تابع بأمان أو افتح خرائط خارجية.",
     "externalRecommended": "المسار المباشر غير متوفر — يُنصح بخرائط خارجية.",
+    "externalTrackingRequiredTitle": "التتبع المباشر مطلوب",
+    "externalTrackingRequiredBody": "فعّل إذن الموقع دائماً قبل فتح الخرائط الخارجية. هذا يحافظ على تتبع العميل والإدارة أثناء القيادة.",
     "atCustomerHint": "يبدو أنك عند العميل. اركن بأمان قبل تأكيد الوصول.",
     "thenInstruction": "ثم {{instruction}}",
     "statusAssigned": "تم التعيين",

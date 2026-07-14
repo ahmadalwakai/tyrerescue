@@ -16,8 +16,10 @@ import { eq, count, ilike } from 'drizzle-orm';
 import { generateRefNumber } from '@/lib/utils';
 import {
   calculateQuickBookPricing,
+  extractQuickBookTyreLineSelections,
   extractQuickBookTyreSnapshot,
   QuickBookPricingError,
+  type QuickBookTyreLineInput,
   type QuickBookServiceType,
 } from '@/lib/quick-book-pricing';
 import type { PricingContext } from '@/lib/pricing-engine';
@@ -91,6 +93,7 @@ export async function POST(
   let paymentMethod: 'stripe' | 'cash' | 'deposit' = 'stripe';
   let depositPercent = 0.20;
   let customerEmailMode: CustomerEmailMode = 'walk_in_customer';
+  let bodyTyreLines: QuickBookTyreLineInput[] | null = null;
   try {
     const body = await request.json();
     if (body.paymentMethod === 'cash') paymentMethod = 'cash';
@@ -102,6 +105,28 @@ export async function POST(
     if (body.customerEmailMode === 'send_customer_confirmation') {
       customerEmailMode = 'send_customer_confirmation';
     }
+    const rawLines = Array.isArray(body.tyreLines)
+      ? body.tyreLines
+      : Array.isArray(body.items)
+      ? body.items
+      : [];
+    bodyTyreLines = rawLines.flatMap((line: unknown, index: number) => {
+      if (!line || typeof line !== 'object') return [];
+      const value = line as Record<string, unknown>;
+      const size = typeof value.size === 'string' ? value.size.trim() : '';
+      const quantity = Number(value.quantity);
+      if (!size || !Number.isFinite(quantity) || quantity < 1) return [];
+      return [{
+        id: typeof value.id === 'string' ? value.id : `tyre-${index + 1}`,
+        size,
+        quantity: Math.max(1, Math.min(10, Math.round(quantity))),
+        brand: typeof value.brand === 'string' ? value.brand : null,
+        pattern: typeof value.pattern === 'string' ? value.pattern : null,
+        season: typeof value.season === 'string' ? value.season : null,
+        source: typeof value.source === 'string' ? value.source : null,
+        price: typeof value.price === 'number' && Number.isFinite(value.price) ? value.price : null,
+      }];
+    });
   } catch {
     // empty body → defaults
   }
@@ -186,11 +211,32 @@ export async function POST(
     typeof quickBreakdown?.pricingContext === 'string'
       ? (quickBreakdown.pricingContext as PricingContext)
       : 'admin_quick_book';
+  const adminDistanceLimitMiles =
+    typeof quickBreakdown?.adminDistanceLimitMiles === 'number' && Number.isFinite(quickBreakdown.adminDistanceLimitMiles)
+      ? quickBreakdown.adminDistanceLimitMiles
+      : undefined;
 
   const resolvedDistanceKm = Math.round(resolvedDistanceMiles * 1.60934 * 100) / 100;
 
   const serviceType = qb.serviceType as QuickBookServiceType;
   const quantity = qb.tyreCount ?? 1;
+  const storedTyreLineSelections = extractQuickBookTyreLineSelections({ priceBreakdown: qb.priceBreakdown });
+  const fallbackTyreLines: QuickBookTyreLineInput[] = bodyTyreLines?.length
+    ? bodyTyreLines
+    : storedTyreLineSelections.length > 0
+    ? storedTyreLineSelections.map((line, index) => ({
+        id: line.id || `tyre-${index + 1}`,
+        size: line.normalizedSize ?? line.sizeDisplay ?? line.requestedSize,
+        quantity: line.quantity,
+        brand: line.brand,
+        pattern: line.pattern,
+        price: line.unitPrice,
+      }))
+    : qb.tyreSize
+    ? [{ id: 'tyre-1', size: qb.tyreSize, quantity }]
+    : [];
+  const totalQuantity = fallbackTyreLines.reduce((sum, line) => sum + line.quantity, 0) || quantity;
+  const primaryTyreSizeDisplay = fallbackTyreLines[0]?.size ?? qb.tyreSize ?? null;
 
   const selectedTyreSnapshot = extractQuickBookTyreSnapshot({
     selectedTyreProductId: qb.selectedTyreProductId,
@@ -207,7 +253,7 @@ export async function POST(
     );
   }
 
-  if (serviceType === 'fit' && !selectedTyreSnapshot) {
+  if (serviceType === 'fit' && !selectedTyreSnapshot && storedTyreLineSelections.length === 0) {
     return NextResponse.json(
       { error: 'Cannot finalize fit booking without a selected tyre product' },
       { status: 400 }
@@ -219,13 +265,16 @@ export async function POST(
     priced = await calculateQuickBookPricing({
       serviceType,
       tyreSize: qb.tyreSize ?? null,
-      tyreCount: quantity,
+      tyreCount: totalQuantity,
+      tyreLines: fallbackTyreLines,
       distanceMiles: resolvedDistanceMiles,
-      selectedTyreSnapshot,
+      selectedTyreSnapshot: storedTyreLineSelections.length > 0 ? null : selectedTyreSnapshot,
+      selectedTyreSnapshots: storedTyreLineSelections,
       resolveTyreFromSize: false,
       requireTyreForFit: serviceType === 'fit',
       adminAdjustmentAmount: Number(qb.adminAdjustmentAmount ?? 0),
       adminAdjustmentReason: qb.adminAdjustmentReason,
+      adminDistanceLimitMiles,
       pricingContext,
       durationMinutes: resolvedDurationMinutes,
       weatherContext,
@@ -238,11 +287,11 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to calculate pricing' }, { status: 500 });
   }
 
-  if (priced.selectedTyreSnapshot) {
+  for (const selection of priced.tyreLineSelections) {
     const [existingTyre] = await db
       .select({ id: tyreProducts.id })
       .from(tyreProducts)
-      .where(eq(tyreProducts.id, priced.selectedTyreSnapshot.productId))
+      .where(eq(tyreProducts.id, selection.productId))
       .limit(1);
 
     if (!existingTyre) {
@@ -253,7 +302,20 @@ export async function POST(
     }
   }
 
-  const breakdown = priced.breakdown;
+  const breakdown = {
+    ...priced.breakdown,
+    tyreLines: priced.tyreLineSelections,
+    ...(adminDistanceLimitMiles != null ? { adminDistanceLimitMiles } : {}),
+  };
+  const tyreSummaryLines = priced.tyreLineSelections.length > 0
+    ? priced.tyreLineSelections.map((line) => {
+        const size = line.sizeDisplay ?? line.normalizedSize ?? line.requestedSize ?? 'Tyre';
+        return `${size} tyre x${line.quantity}`;
+      })
+    : fallbackTyreLines.map((line) => `${line.size ?? 'Tyre'} tyre x${line.quantity}`);
+  const tyreSummary = tyreSummaryLines.length > 0
+    ? tyreSummaryLines.join(', ')
+    : `${SERVICE_MAP[serviceType] || 'Tyre service'} x${totalQuantity}`;
 
   const refNumber = generateRefNumber();
   const bookingId = uuidv4();
@@ -396,8 +458,8 @@ export async function POST(
       lng: String(lng),
       distanceMiles: resolvedDistanceMiles.toFixed(2),
       distanceSource: resolvedDistanceSource,
-      quantity,
-      tyreSizeDisplay: qb.tyreSize || null,
+      quantity: totalQuantity,
+      tyreSizeDisplay: primaryTyreSizeDisplay,
       vehicleReg: null,
       vehicleMake: null,
       vehicleModel: null,
@@ -607,10 +669,6 @@ export async function POST(
   if (customerEmailMode === 'send_customer_confirmation' && confirmedCustomerEmail) {
     const siteUrl = getOutboundUrl();
     const trackingUrl = `${siteUrl}/tracking/${refNumber}`;
-    const tyreSummary = qb.tyreSize
-      ? `${qb.tyreSize} tyre x${quantity}`
-      : `${SERVICE_MAP[serviceType] || 'Tyre service'} x${quantity}`;
-
     void (async () => {
       try {
         const email = bookingConfirmed({
@@ -620,7 +678,7 @@ export async function POST(
           serviceType: SERVICE_MAP[serviceType] || 'Tyre service',
           address: addressLine,
           tyreSummary,
-          quantity,
+          quantity: totalQuantity,
           trackingUrl,
         });
         await sendBookingEmailOnce({
@@ -692,6 +750,7 @@ export async function POST(
       fittingPrice: breakdown.fittingPrice,
       tyrePrice: breakdown.tyrePrice,
       totalPrice: breakdown.totalPrice,
+      tyreLines: breakdown.tyreLines,
       adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
       adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
     },

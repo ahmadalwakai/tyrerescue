@@ -20,6 +20,12 @@ import {
   minutesSinceLastLocation,
   type DriverPresenceState,
 } from '@/lib/driver-presence';
+import {
+  formatDueBackTime,
+  formatMinutesCompact,
+} from '@/driver-app/src/lib/navigation/jobTimeEstimate';
+import { DriverSituationBadge } from '@/components/admin/DriverSituationBadge';
+import { DRIVER_SITUATION_CHAKRA_COLORS, type DriverSituation } from '@/lib/admin/driverSituation';
 
 /* ─── Types ─────────────────────────────────────────────── */
 
@@ -41,6 +47,13 @@ interface TrackingData {
   etaMinutes: number | null;
   distanceMiles: number | null;
   routeCoordinates: [number, number][] | null;
+  returnEtaMinutes: number | null;
+  returnEstimateAvailable: boolean;
+  returnEstimateError: string | null;
+  serviceType: string | null;
+  tyreCount: number | null;
+  paymentStatus: string | null;
+  driverSituation: DriverSituation | null;
 }
 
 interface Props {
@@ -98,6 +111,13 @@ export function AdminTrackingMap({
     etaMinutes: null,
     distanceMiles: null,
     routeCoordinates: null,
+    returnEtaMinutes: null,
+    returnEstimateAvailable: false,
+    returnEstimateError: null,
+    serviceType: null,
+    tyreCount: null,
+    paymentStatus: null,
+    driverSituation: null,
   });
   const [expanded, setExpanded] = useState(false);
   const [freshLabel, setFreshLabel] = useState(freshnessLabel(assignedDriver?.locationAt ?? null));
@@ -106,12 +126,48 @@ export function AdminTrackingMap({
 
   const isActiveJob = ['driver_assigned', 'en_route', 'arrived', 'in_progress'].includes(bookingStatus);
 
-  // ── Polling: use existing /api/tracking/:ref which returns ETA + driver location ──
+  // ── Polling: prefer admin-only route data so internal situation details
+  // never need to be added to the public customer tracking endpoint.
   const fetchTracking = useCallback(async () => {
     try {
-      const res = await fetch(`/api/tracking/${encodeURIComponent(bookingRef)}`);
-      if (!res.ok) return;
-      const data = await res.json();
+      const adminRes = await fetch(`/api/admin/active-jobs/${encodeURIComponent(bookingRef)}/route`);
+      if (adminRes.ok) {
+        const data = await adminRes.json();
+        const driverLocation = data.driverLocation ?? null;
+        setTracking({
+          driverLat: driverLocation?.lat ?? null,
+          driverLng: driverLocation?.lng ?? null,
+          driverLocationAt: driverLocation?.locationAt ?? null,
+          etaMinutes: data.durationMinutes ?? null,
+          distanceMiles: data.distanceMiles ?? null,
+          routeCoordinates: data.geometry?.coordinates ?? null,
+          returnEtaMinutes: null,
+          returnEstimateAvailable: data.driverSituation?.availableAfter != null,
+          returnEstimateError: data.driverSituation?.reasonLabels?.[0] ?? null,
+          serviceType: null,
+          tyreCount: null,
+          paymentStatus: null,
+          driverSituation: data.driverSituation ?? null,
+        });
+        if (liveDriver && driverLocation?.lat != null && driverLocation?.lng != null) {
+          setLiveDriver((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  currentLat: String(driverLocation.lat),
+                  currentLng: String(driverLocation.lng),
+                  locationAt: driverLocation.locationAt,
+                }
+              : prev,
+          );
+        }
+        setFreshLabel(freshnessLabel(driverLocation?.locationAt ?? null));
+        return;
+      }
+
+      const publicRes = await fetch(`/api/tracking/${encodeURIComponent(bookingRef)}`);
+      if (!publicRes.ok) return;
+      const data = await publicRes.json();
       setTracking({
         driverLat: data.driverLat,
         driverLng: data.driverLng,
@@ -119,6 +175,13 @@ export function AdminTrackingMap({
         etaMinutes: data.etaMinutes,
         distanceMiles: data.distanceMiles ?? null,
         routeCoordinates: data.routeCoordinates ?? null,
+        returnEtaMinutes: null,
+        returnEstimateAvailable: false,
+        returnEstimateError: null,
+        serviceType: null,
+        tyreCount: null,
+        paymentStatus: null,
+        driverSituation: null,
       });
       // Also update the driver's live position
       if (liveDriver && data.driverLat != null) {
@@ -358,6 +421,42 @@ export function AdminTrackingMap({
     );
   }
 
+  function AdminJobTimeSummary() {
+    const situation = tracking.driverSituation;
+    const dueBack = situation?.dueBackAt ? formatDueBackTime(new Date(situation.dueBackAt)) : '--:--';
+    const color = situation ? DRIVER_SITUATION_CHAKRA_COLORS[situation.status] : 'gray';
+
+    return (
+      <Box
+        mt={3}
+        px={3}
+        py={2}
+        borderRadius="md"
+        borderWidth="1px"
+        borderColor={color === 'gray' ? c.border : `${color}.500`}
+        bg="rgba(255,255,255,0.04)"
+      >
+        <Flex gap={3} align="center" justify="space-between" flexWrap="wrap">
+          <Text fontSize="xs" fontWeight="700" color={c.text}>
+            Driver booked until {dueBack}
+          </Text>
+          <DriverSituationBadge situation={situation} />
+        </Flex>
+        {situation ? (
+          <Text mt={1} fontSize="xs" color={c.muted}>
+            Total job time: {situation.totalMinutes != null ? formatMinutesCompact(situation.totalMinutes) : '--'} · Available after {dueBack}
+            {situation.reasonLabels.length > 0 ? ` · ${situation.reasonLabels.slice(0, 2).join(' · ')}` : ''}
+            {situation.delayMinutes > 0 ? ` · At risk +${formatMinutesCompact(situation.delayMinutes)}` : ''}
+          </Text>
+        ) : (
+          <Text mt={1} fontSize="xs" color={c.muted}>
+            Driver situation unavailable on the basic tracking feed
+          </Text>
+        )}
+      </Box>
+    );
+  }
+
   /* ─── Expanded Modal ──────────────────────────────────── */
   function ExpandedOverlay() {
     if (!expanded) return null;
@@ -503,6 +602,7 @@ export function AdminTrackingMap({
             </HStack>
           </Flex>
           <StatusStrip />
+          <AdminJobTimeSummary />
         </Box>
 
         {/* Embedded map — 1.7x taller than before */}
@@ -582,7 +682,7 @@ export function AdminTrackingMap({
               )}
               {!driverHasLocation && (
                 <Text fontSize="xs" color="orange.400">
-                  Waiting for GPS update from driver's app…
+                  Waiting for GPS update from driver&apos;s app…
                 </Text>
               )}
             </VStack>

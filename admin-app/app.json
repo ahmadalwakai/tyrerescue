@@ -12,6 +12,18 @@
       "resizeMode": "contain",
       "backgroundColor": "#09090B"
     },
+    "ios": {
+      "supportsTablet": false,
+      "icon": "./assets/icon.png",
+      "bundleIdentifier": "uk.tyrerescue.admin",
+      "buildNumber": "3",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Tyre Rescue Admin uses map location access only when needed to support live driver-tracking views."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
     "android": {
       "package": "uk.tyrerescue.admin",
       "versionCode": 1,

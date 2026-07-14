@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   AppState,
+  KeyboardAvoidingView,
   Linking,
   Modal,
   Platform,
@@ -13,7 +14,9 @@ import {
   View,
   type TextStyle,
 } from 'react-native';
+import { useAudioPlayer } from 'expo-audio';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import driverNearbySoundSource from '../../assets/sounds/urgent_booking.mp3';
 import { useAssistedChatDraft } from '@/hooks/useAssistedChatDraft';
 import { useAssistedChatPrice } from '@/hooks/useAssistedChatPrice';
 import { useAssistedChatDispatch } from '@/hooks/useAssistedChatDispatch';
@@ -25,7 +28,7 @@ import { useRecentCustomers } from '@/hooks/useRecentCustomers';
 import { useDuplicateBookingWarning } from '@/hooks/useDuplicateBookingWarning';
 import { useNewCustomerBookingAlert } from '@/hooks/useNewCustomerBookingAlert';
 import { useBookingTracking } from '@/hooks/useBookingTracking';
-import type { ActiveJobItem } from '@/hooks/useActiveJobs';
+import { useActiveJobs, type ActiveJobItem } from '@/hooks/useActiveJobs';
 import { BookingTrackingCard } from './tracking/BookingTrackingCard';
 import { DriverAssignSection } from './tracking/DriverAssignSection';
 import { AlertActionButton } from './ui/AlertActionButton';
@@ -54,10 +57,16 @@ import { ActiveJobsModal, ActiveJobMapModal } from './ActiveJobsModal';
 import { TrackingModal } from './TrackingModal';
 import { DriverChatModal } from './DriverChatModal';
 import { ChatHubModal } from './ChatHubModal';
+import { MessageSenderModal } from './MessageSenderModal';
+import { AdminChromeBackdrop } from './layout/AdminModalShell';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 import { api } from '@/lib/api';
 import { buildCustomerMessage, buildWhatsAppUrl } from '@/lib/customer-message';
+import {
+  buildWhatsAppTemplateMessage,
+  type WhatsAppTemplateId,
+} from '@/lib/whatsapp-templates';
 import { copyToClipboard } from '@/lib/clipboard';
 import { formatGbp, isValidUkPhone } from '@/lib/money';
 import {
@@ -81,9 +90,14 @@ import {
 import { UrgentBookingPopup } from './alerts/UrgentBookingPopup';
 import { NotificationReliabilityCard } from './alerts/NotificationReliabilityCard';
 import {
+  buildBookingTyreLinePayload,
+  createBookingTyreLine,
   getAssistedChatWorkflow,
   hasAssistedChatTyre,
   normalizeAssistedChatTyreSize,
+  primaryBookingTyreLine,
+  summarizeBookingTyreLines,
+  totalBookingTyreQuantity,
   type AssistedChatStage,
 } from '@/lib/assisted-chat-workflow';
 import {
@@ -126,8 +140,17 @@ interface ActionNotice {
   text: string;
 }
 
+type WhatsAppTemplateBusyId = WhatsAppTemplateId | 'request_location' | null;
+
+interface WhatsAppTemplatePreviewState {
+  id: WhatsAppTemplateId;
+  message: string;
+}
+
 const GBP = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
 const DEPOSIT_PERCENT = 20;
+const DRIVER_NEARBY_ALERT_MINUTES = 5;
+const DRIVER_NEARBY_SOUND_SOURCE = driverNearbySoundSource;
 
 const PAYMENT_OPTIONS: ReadonlyArray<{ value: AdminQuotePaymentOption; label: string; description: string }> = [
   { value: 'FULL_PAYMENT', label: 'Full payment', description: 'Customer completes the full Stripe payment.' },
@@ -285,7 +308,7 @@ function hasDraftContent(draft: AssistedChatDraft): boolean {
       draft.customer.email ||
       draft.location.address ||
       draft.location.lat != null ||
-      draft.tyre.size ||
+      buildBookingTyreLinePayload(draft.tyreLines).length > 0 ||
       draft.note ||
       draft.quote ||
       draft.dispatchedRefNumber,
@@ -325,8 +348,11 @@ function buildJobDetails(
   if (draft.location.lat != null && draft.location.lng != null) {
     lines.push(`Coordinates: ${draft.location.lat.toFixed(6)}, ${draft.location.lng.toFixed(6)}`);
   }
-  if (draft.tyre.size.trim()) lines.push(`Tyre size: ${draft.tyre.size.trim()}`);
-  lines.push(`Quantity: ${draft.tyre.quantity}`);
+  const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
+  if (tyreSummary.length > 0) {
+    lines.push('Tyres:');
+    tyreSummary.forEach((line) => lines.push(`- ${line}`));
+  }
   lines.push(
     `Locking wheel nut: ${
       draft.lockingNut.answer === 'yes'
@@ -375,7 +401,11 @@ function buildPaymentMessage(paymentLink: StripePaymentLinkState, draft: Assiste
   if (paymentLink.remainingBalancePence != null) lines.push(`Balance due on-site: ${formatPence(paymentLink.remainingBalancePence)}`);
   lines.push(`${bookingReady ? 'Total to pay' : 'Quote total'}: ${formatGbp(effectiveTotal)}`);
   if (draft.location.address) lines.push(`Address: ${draft.location.address}`);
-  if (draft.tyre.size) lines.push(`Tyres: ${draft.tyre.quantity} x ${draft.tyre.size}`);
+  const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
+  if (tyreSummary.length > 0) {
+    lines.push('Tyres:');
+    tyreSummary.forEach((line) => lines.push(`- ${line}`));
+  }
   return lines.join('\n');
 }
 
@@ -402,6 +432,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const [activeJobsOpen, setActiveJobsOpen] = useState(false);
   const [driverTrackingOpen, setDriverTrackingOpen] = useState(false);
   const [chatHubOpen, setChatHubOpen] = useState(false);
+  const [messageSenderOpen, setMessageSenderOpen] = useState(false);
   const [trackingMapOpen, setTrackingMapOpen] = useState(false);
   const [duplicateAck, setDuplicateAck] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -409,6 +440,8 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const [editingStage, setEditingStage] = useState<AssistedChatStage | null>(null);
   const [mapSummaryOpen, setMapSummaryOpen] = useState(false);
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
+  const [whatsAppTemplateBusyId, setWhatsAppTemplateBusyId] = useState<WhatsAppTemplateBusyId>(null);
+  const [whatsAppTemplatePreview, setWhatsAppTemplatePreview] = useState<WhatsAppTemplatePreviewState | null>(null);
   const [editPriceOpen, setEditPriceOpen] = useState(false);
   const [breakdownVisible, setBreakdownVisible] = useState(false);
   const [notifSetupOpen, setNotifSetupOpen] = useState(false);
@@ -696,6 +729,11 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const quoteActions = useAssistedChatQuoteActions({ draft, update, effectiveTotal, lockingNutCharge });
   const todayBookings = useTodayBookings();
   const recentCustomers = useRecentCustomers();
+  const activeJobsForNearbyAlert = useActiveJobs(api.hasAdminToken);
+  const nearbyAlertPlayer = useAudioPlayer(
+    Platform.OS === 'web' ? null : DRIVER_NEARBY_SOUND_SOURCE,
+  );
+  const nearbyAlertedBookingRefs = useRef<Set<string>>(new Set());
   const duplicateMatch = useDuplicateBookingWarning({
     draft,
     todayBookings: todayBookings.items,
@@ -723,6 +761,8 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       paymentLink: StripePaymentLinkState | null;
     }) => {
       if (!response.refNumber) return;
+      const primaryTyre = primaryBookingTyreLine(draft);
+      const tyreLines = buildBookingTyreLinePayload(draft.tyreLines);
       const item: TodayBookingItem = {
         bookingReference: response.refNumber,
         bookingId: response.bookingId,
@@ -732,8 +772,8 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         paymentLink: paymentLink?.paymentUrl,
         customerPhone: draft.customer.phone || undefined,
         customerAddress: draft.location.address || undefined,
-        tyreSize: draft.tyre.size || undefined,
-        quantity: draft.tyre.quantity,
+        tyreSize: primaryTyre.size || undefined,
+        quantity: totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
       };
       todayBookings.addBooking(item);
       recentCustomers.saveCustomer({
@@ -744,8 +784,9 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         lat: draft.location.lat,
         lng: draft.location.lng,
         postcode: draft.location.postcode,
-        tyreSize: draft.tyre.size || undefined,
-        quantity: draft.tyre.quantity,
+        tyreSize: primaryTyre.size || undefined,
+        quantity: totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
+        tyreLines,
         note: draft.note || undefined,
         lastUsedAtIso: new Date().toISOString(),
         lastBookingReference: response.refNumber,
@@ -835,6 +876,20 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       payment: null,
       distanceMiles: null,
       etaMinutes: null,
+      driverSituation: {
+        jobRef: ref,
+        driverId: null,
+        status: 'unavailable',
+        label: 'Unavailable',
+        dueBackAt: null,
+        availableAfter: null,
+        totalMinutes: null,
+        delayMinutes: 0,
+        reasons: ['route_unavailable'],
+        reasonLabels: ['Route unavailable'],
+        lastLocationAt: null,
+        gpsState: null,
+      },
     };
   }, [
     draft.dispatchedRefNumber,
@@ -845,6 +900,14 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     draft.location.lat,
     draft.location.lng,
   ]);
+
+  const currentActiveJob = useMemo(() => {
+    return activeJobsForNearbyAlert.items.find((job) => {
+      if (draft.dispatchedBookingId && job.bookingId === draft.dispatchedBookingId) return true;
+      if (draft.dispatchedRefNumber && job.bookingRef === draft.dispatchedRefNumber) return true;
+      return false;
+    }) ?? null;
+  }, [activeJobsForNearbyAlert.items, draft.dispatchedBookingId, draft.dispatchedRefNumber]);
 
   // Phone of the driver selected by the operator in DriverAssignSection.
   // Tracked only so the assign section can highlight the current pick.
@@ -885,6 +948,49 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     setActionNotice(notice);
     setTimeout(() => setActionNotice(null), 2200);
   }, []);
+
+  const playDriverNearbyAlertSound = useCallback(() => {
+    if (Platform.OS === 'web') return;
+    try {
+      nearbyAlertPlayer.seekTo(0);
+      nearbyAlertPlayer.play();
+    } catch (err) {
+      if (__DEV__) console.warn('[driver-nearby-alert] sound failed:', err);
+    }
+  }, [nearbyAlertPlayer]);
+
+  useEffect(() => {
+    if (!api.hasAdminToken) {
+      nearbyAlertedBookingRefs.current.clear();
+      return;
+    }
+
+    const jobs = activeJobsForNearbyAlert.items;
+    const liveKeys = new Set(jobs.map((job) => job.bookingId || job.bookingRef));
+    for (const key of Array.from(nearbyAlertedBookingRefs.current)) {
+      if (!liveKeys.has(key)) nearbyAlertedBookingRefs.current.delete(key);
+    }
+
+    const nearbyJob = jobs.find((job) => {
+      const eta = job.etaMinutes;
+      if (eta == null || eta < 0 || eta > DRIVER_NEARBY_ALERT_MINUTES) return false;
+      if (!job.driver.id || job.driver.isStale) return false;
+      if (!['driver_assigned', 'en_route', 'arrived'].includes(job.status)) return false;
+      const key = job.bookingId || job.bookingRef;
+      return !nearbyAlertedBookingRefs.current.has(key);
+    });
+
+    if (!nearbyJob) return;
+
+    const key = nearbyJob.bookingId || nearbyJob.bookingRef;
+    nearbyAlertedBookingRefs.current.add(key);
+    playDriverNearbyAlertSound();
+    const eta = Math.max(0, Math.round(nearbyJob.etaMinutes ?? DRIVER_NEARBY_ALERT_MINUTES));
+    flashNotice({
+      kind: 'warn',
+      text: `Driver is about ${eta} min away for ${nearbyJob.bookingRef}.`,
+    });
+  }, [activeJobsForNearbyAlert.items, flashNotice, playDriverNearbyAlertSound]);
 
   const handleClear = useCallback(() => {
     clear();
@@ -932,6 +1038,71 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     }
   }, [customerMessage, customerWhatsAppNumber, draft.customer.phone, flashNotice]);
 
+  const buildWhatsAppTemplatePreview = useCallback(
+    (templateId: WhatsAppTemplateId) => {
+      return buildWhatsAppTemplateMessage(templateId, {
+        draft,
+        effectiveTotal,
+        trackingUrl: bookingTracking.data?.customerUrl ?? null,
+        driverName: currentActiveJob?.driver.name ?? null,
+        etaMinutes: currentActiveJob?.etaMinutes ?? draft.quote?.serviceOrigin?.etaMinutes ?? null,
+        delayMinutes: currentActiveJob?.driverSituation.delayMinutes ?? null,
+      });
+    },
+    [bookingTracking.data?.customerUrl, currentActiveJob, draft, effectiveTotal],
+  );
+
+  const handlePreviewWhatsAppTemplate = useCallback(
+    (templateId: WhatsAppTemplateId) => {
+      setWhatsAppTemplatePreview({
+        id: templateId,
+        message: buildWhatsAppTemplatePreview(templateId),
+      });
+    },
+    [buildWhatsAppTemplatePreview],
+  );
+
+  const handleSendWhatsAppTemplate = useCallback(
+    async (templateId: WhatsAppTemplateId, messageOverride?: string) => {
+      const message = messageOverride ?? buildWhatsAppTemplatePreview(templateId);
+      setWhatsAppTemplateBusyId(templateId);
+      try {
+        const url = buildWhatsAppUrl(draft.customer.phone, message) ?? genericWhatsAppUrl(message);
+        await Linking.openURL(url);
+        flashNotice({ kind: 'ok', text: 'WhatsApp template opened.' });
+        setWhatsAppTemplatePreview(null);
+      } catch {
+        const ok = await copyToClipboard(message);
+        flashNotice({
+          kind: ok ? 'ok' : 'err',
+          text: ok ? 'Template copied. Paste it into WhatsApp.' : 'Could not open WhatsApp or copy template.',
+        });
+        if (ok) setWhatsAppTemplatePreview(null);
+      } finally {
+        setWhatsAppTemplateBusyId(null);
+      }
+    },
+    [buildWhatsAppTemplatePreview, draft.customer.phone, flashNotice],
+  );
+
+  const handleCopyWhatsAppTemplatePreview = useCallback(async () => {
+    if (!whatsAppTemplatePreview) return;
+    const ok = await copyToClipboard(whatsAppTemplatePreview.message);
+    flashNotice({
+      kind: ok ? 'ok' : 'err',
+      text: ok ? 'Template copied.' : 'Could not copy template.',
+    });
+  }, [flashNotice, whatsAppTemplatePreview]);
+
+  const handleRequestLocationWhatsAppTemplate = useCallback(async () => {
+    setWhatsAppTemplateBusyId('request_location');
+    try {
+      await locationShare.requestLink('whatsapp');
+    } finally {
+      setWhatsAppTemplateBusyId(null);
+    }
+  }, [locationShare]);
+
   const handleCallCustomer = useCallback(async () => {
     if (!customerDialNumber) return;
     try {
@@ -959,10 +1130,9 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
           whatsappLink: null,
           status: item.lat != null && item.lng != null ? 'received' : 'idle',
         },
-        tyre: {
-          size: item.tyreSize ?? '',
-          quantity: item.quantity ?? 1,
-        },
+        tyreLines: item.tyreLines?.length
+          ? item.tyreLines
+          : [createBookingTyreLine({ id: 'tyre-1', size: item.tyreSize ?? '', quantity: item.quantity ?? 1 })],
         note: item.note ?? '',
         quickBookingId: null,
         quote: null,
@@ -1002,10 +1172,13 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
           whatsappLink: null,
           status: quote.latitude != null && quote.longitude != null ? 'received' : 'idle',
         },
-        tyre: {
-          size: quote.tyreSize ?? '',
-          quantity: quote.quantity,
-        },
+        tyreLines: [
+          createBookingTyreLine({
+            id: 'tyre-1',
+            size: quote.tyreSize ?? '',
+            quantity: quote.quantity,
+          }),
+        ],
         lockingNut: {
           answer:
             quote.lockingWheelNutStatus === 'yes' || quote.lockingWheelNutStatus === 'no'
@@ -1079,11 +1252,16 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     }
 
     if (parsed.tyreSize || parsed.quantity) {
-      patch.tyre = {
-        ...draft.tyre,
-        ...(parsed.tyreSize ? { size: parsed.tyreSize } : {}),
-        ...(parsed.quantity ? { quantity: parsed.quantity } : {}),
-      };
+      const nextLines = buildBookingTyreLinePayload(draft.tyreLines);
+      const firstLine = nextLines[0] ?? primaryBookingTyreLine(draft);
+      patch.tyreLines = [
+        {
+          ...firstLine,
+          ...(parsed.tyreSize ? { size: parsed.tyreSize } : {}),
+          ...(parsed.quantity ? { quantity: parsed.quantity } : {}),
+        },
+        ...nextLines.slice(1),
+      ];
       if (parsed.tyreSize) applied.push('tyre size');
       if (parsed.quantity) applied.push('quantity');
       patch.quote = null;
@@ -1301,6 +1479,12 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         description: 'All customer and driver conversations in one place.',
         disabledReason: noToken,
         onPress: () => setChatHubOpen(true),
+      },
+      {
+        id: 'message-sender',
+        label: 'Message sender',
+        description: 'Send customer links and strong update templates.',
+        onPress: () => setMessageSenderOpen(true),
       },
       {
         id: 'saved-quotes',
@@ -1635,6 +1819,18 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     },
     [draft, flashNotice, hasLocation, hasPrice, hasSavedQuote, hasTyre, quoteConfirmed],
   );
+  const headerStageLabel = operatorSteps.find((step) => step.id === activeOperatorStepId)?.label ?? 'Customer';
+  const headerRecordLabel = draft.dispatchedRefNumber
+    ? `Booking ${draft.dispatchedRefNumber}`
+    : savedQuoteRef
+    ? `Quote ${savedQuoteRef}`
+    : 'Draft';
+  const headerMoneyLabel = hasPrice ? formatGbp(effectiveTotal) : 'No price';
+  const headerLocationLabel = hasLocation
+    ? 'Location ready'
+    : draft.location.status === 'pending'
+    ? 'Waiting location'
+    : 'No location';
 
   if (!hydrated) {
     return (
@@ -1646,56 +1842,76 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <View style={styles.header}>
-        <View style={styles.headerTextBlock}>
-          <Text style={styles.headerTitle}>Assisted Chat</Text>
-          <Text style={styles.headerCustomer} numberOfLines={1}>{customerName}</Text>
-          <Text style={styles.headerPhone} numberOfLines={1}>{customerPhone || 'Add customer phone to call or WhatsApp'}</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <AppButton label="More" variant="secondary" onPress={() => setMoreOpen(true)} style={styles.headerMoreButton} />
-          <View style={styles.headerContactRow}>
-            {customerDialNumber ? (
-              <Pressable
-                onPress={handleCallCustomer}
-                accessibilityRole="button"
-                accessibilityLabel="Call customer"
-                style={({ pressed }) => [
-                  styles.compactContactButton,
-                  styles.callButton,
-                  pressed && styles.contactButtonPressed,
-                ]}
-              >
-                <Text style={styles.compactContactLabel}>Call</Text>
-              </Pressable>
-            ) : null}
-            <Pressable
-              onPress={customerWhatsAppNumber ? handleOpenWhatsApp : undefined}
-              disabled={!customerWhatsAppNumber}
-              accessibilityRole="button"
-              accessibilityLabel="Send via WhatsApp"
-              accessibilityState={{ disabled: !customerWhatsAppNumber }}
-              style={({ pressed }) => [
-                styles.headerWhatsAppButton,
-                !customerWhatsAppNumber && styles.headerWhatsAppButtonDisabled,
-                pressed && customerWhatsAppNumber && styles.contactButtonPressed,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.headerWhatsAppLabel,
-                  !customerWhatsAppNumber && styles.headerWhatsAppLabelDisabled,
-                ]}
-                numberOfLines={1}
-              >
-                Send via WhatsApp
-              </Text>
-            </Pressable>
+      <AdminChromeBackdrop />
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoider}
+        behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <View style={styles.header}>
+          <View pointerEvents="none" style={styles.headerAccent} />
+          <View pointerEvents="none" style={styles.headerPanel} />
+          <View style={styles.headerTopRow}>
+            <View style={styles.headerTextBlock}>
+              <Text style={styles.headerTitle}>Assisted Chat</Text>
+              <Text style={styles.headerCustomer} numberOfLines={1}>{customerName}</Text>
+              <Text style={styles.headerPhone} numberOfLines={1}>{customerPhone || 'Add customer phone to call or WhatsApp'}</Text>
+            </View>
+            <View style={styles.headerRight}>
+              <AppButton label="More" variant="secondary" onPress={() => setMoreOpen(true)} style={styles.headerMoreButton} />
+              <View style={styles.headerContactRow}>
+                {customerDialNumber ? (
+                  <Pressable
+                    onPress={handleCallCustomer}
+                    accessibilityRole="button"
+                    accessibilityLabel="Call customer"
+                    style={({ pressed }) => [
+                      styles.compactContactButton,
+                      styles.callButton,
+                      pressed && styles.contactButtonPressed,
+                    ]}
+                  >
+                    <Text style={styles.compactContactLabel}>Call</Text>
+                  </Pressable>
+                ) : null}
+                <Pressable
+                  onPress={customerWhatsAppNumber ? handleOpenWhatsApp : undefined}
+                  disabled={!customerWhatsAppNumber}
+                  accessibilityRole="button"
+                  accessibilityLabel="Send via WhatsApp"
+                  accessibilityState={{ disabled: !customerWhatsAppNumber }}
+                  style={({ pressed }) => [
+                    styles.headerWhatsAppButton,
+                    !customerWhatsAppNumber && styles.headerWhatsAppButtonDisabled,
+                    pressed && customerWhatsAppNumber && styles.contactButtonPressed,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.headerWhatsAppLabel,
+                      !customerWhatsAppNumber && styles.headerWhatsAppLabelDisabled,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    Send via WhatsApp
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+          <View style={styles.headerStatsRow}>
+            <HeaderStat label="Stage" value={headerStageLabel} tone="accent" />
+            <HeaderStat label="Value" value={headerMoneyLabel} tone={hasPrice ? 'success' : 'default'} />
+            <HeaderStat label="Record" value={headerRecordLabel} tone={draft.dispatchedRefNumber ? 'success' : savedQuoteRef ? 'accent' : 'default'} />
+            <HeaderStat label="Location" value={headerLocationLabel} tone={hasLocation ? 'success' : draft.location.status === 'pending' ? 'warn' : 'default'} />
           </View>
         </View>
-      </View>
 
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollPaddingBottom }]} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={[styles.scroll, { paddingBottom: scrollPaddingBottom }]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        >
         {!api.hasAdminToken ? <InlineNotice kind="warn">No admin token. Log in to enable API calls.</InlineNotice> : null}
         {actionNotice ? <StatusBanner kind={actionNotice.kind} message={actionNotice.text} /> : null}
         {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind === 'ok' ? 'ok' : quoteActions.message.kind === 'err' ? 'err' : 'info'} message={quoteActions.message.text} /> : null}
@@ -1741,6 +1957,18 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
           status={nextBestAction.status}
         />
 
+        <WhatsAppTemplatesCard
+          hasCustomerPhone={Boolean(customerWhatsAppNumber)}
+          hasQuote={Boolean(draft.quote && !draft.priceNeedsRefresh)}
+          hasReference={Boolean(draft.dispatchedRefNumber || draft.savedQuoteRef)}
+          hasDispatchedBooking={Boolean(draft.dispatchedRefNumber || draft.dispatchedBookingId)}
+          canRequestLocation={api.hasAdminToken && Boolean(draft.customer.phone.trim())}
+          requestLocationBusy={locationShare.busy === 'whatsapp' || whatsAppTemplateBusyId === 'request_location'}
+          busyTemplateId={whatsAppTemplateBusyId}
+          onRequestLocation={() => { void handleRequestLocationWhatsAppTemplate(); }}
+          onPreviewTemplate={handlePreviewWhatsAppTemplate}
+        />
+
         <OperatorStepProgress
           steps={operatorSteps}
           activeStepId={activeOperatorStepId}
@@ -1779,7 +2007,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
           {hasTyre ? (
             <SummaryCard
               title="Tyre"
-              value={`${draft.tyre.size} x ${draft.tyre.quantity}`}
+              value={summarizeBookingTyreLines(draft.tyreLines).join('\n')}
               detail={draft.lockingNut.answer === 'no' ? 'Locking wheel nut removal may apply' : 'Tyre details ready'}
               done
               active={activeStage === 'TYRE'}
@@ -1957,28 +2185,41 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         </View>
 
         <View style={styles.bottomSpacer} />
-      </ScrollView>
+        </ScrollView>
 
-      <View style={[styles.bottomBar, { paddingBottom: bottomBarPaddingBottom }]}>
-        {editingStage ? (
-          <AppButton label="Back" variant="ghost" onPress={() => setEditingStage(null)} style={styles.backButton} />
-        ) : null}
-        <View style={styles.primaryWrap}>
-          <AppButton
-            label={primaryLabel}
-            variant={primaryDisabled ? 'secondary' : 'primary'}
-            onPress={() => {
-              void handlePrimaryAction();
-            }}
-            loading={!editingStage && (price.loading || quoteActions.busy === 'save' || quoteActions.busy === 'confirm' || dispatch.busy)}
-            disabled={primaryDisabled}
-            style={styles.primaryButton}
-            fullWidth
-          />
-          {primaryDisabledReason ? <Text style={styles.primaryReason}>{primaryDisabledReason}</Text> : null}
+        <View style={[styles.bottomBar, { paddingBottom: bottomBarPaddingBottom }]}>
+          {editingStage ? (
+            <AppButton label="Back" variant="ghost" onPress={() => setEditingStage(null)} style={styles.backButton} />
+          ) : null}
+          <View style={styles.primaryWrap}>
+            <AppButton
+              label={primaryLabel}
+              variant={primaryDisabled ? 'secondary' : 'primary'}
+              onPress={() => {
+                void handlePrimaryAction();
+              }}
+              loading={!editingStage && (price.loading || quoteActions.busy === 'save' || quoteActions.busy === 'confirm' || dispatch.busy)}
+              disabled={primaryDisabled}
+              style={styles.primaryButton}
+              fullWidth
+            />
+            {primaryDisabledReason ? <Text style={styles.primaryReason}>{primaryDisabledReason}</Text> : null}
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
 
+      <WhatsAppTemplatePreviewSheet
+        visible={whatsAppTemplatePreview !== null}
+        title={whatsAppTemplatePreview ? WHATSAPP_TEMPLATE_LABELS[whatsAppTemplatePreview.id] : 'WhatsApp template'}
+        message={whatsAppTemplatePreview?.message ?? ''}
+        busy={whatsAppTemplatePreview ? whatsAppTemplateBusyId === whatsAppTemplatePreview.id : false}
+        onClose={() => setWhatsAppTemplatePreview(null)}
+        onCopy={() => { void handleCopyWhatsAppTemplatePreview(); }}
+        onSend={() => {
+          if (!whatsAppTemplatePreview) return;
+          void handleSendWhatsAppTemplate(whatsAppTemplatePreview.id, whatsAppTemplatePreview.message);
+        }}
+      />
       <GuidedActionSheet visible={moreOpen} title="More" actions={sheetActions} onClose={() => setMoreOpen(false)} />
       <DispatchReviewSheet
         visible={reviewOpen}
@@ -2018,6 +2259,30 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       <ActiveJobsModal visible={activeJobsOpen} onClose={() => setActiveJobsOpen(false)} />
       <TrackingModal visible={driverTrackingOpen} onClose={() => setDriverTrackingOpen(false)} />
       <ChatHubModal visible={chatHubOpen} onClose={() => setChatHubOpen(false)} />
+      <MessageSenderModal
+        visible={messageSenderOpen}
+        draft={draft}
+        effectiveTotal={effectiveTotal}
+        trackingUrl={bookingTracking.data?.customerUrl ?? null}
+        driverName={currentActiveJob?.driver.name ?? null}
+        etaMinutes={currentActiveJob?.etaMinutes ?? draft.quote?.serviceOrigin?.etaMinutes ?? null}
+        delayMinutes={currentActiveJob?.driverSituation.delayMinutes ?? null}
+        locationBusy={locationShare.busy}
+        canCreateLocationLink={api.hasAdminToken}
+        onClose={() => setMessageSenderOpen(false)}
+        onRequestLocation={locationShare.requestLink}
+        onSaveCustomerContact={({ phone, email }) => {
+          update({
+            customer: {
+              ...draft.customer,
+              phone,
+              email,
+            },
+          });
+          setPhoneInput(phone);
+        }}
+        onNotice={flashNotice}
+      />
       <ActiveJobMapModal
         visible={trackingMapOpen}
         job={trackingJob}
@@ -2595,10 +2860,15 @@ function SummaryCard({
     done && styles.summaryCardDone,
     active && styles.summaryCardActive,
   ];
+  const markerStyle = [
+    styles.summaryMarker,
+    done && styles.summaryMarkerDone,
+    active && styles.summaryMarkerActive,
+  ];
   const content = (
     <View style={styles.summaryMain}>
       <Text style={styles.summaryTitle}>{title}</Text>
-      <Text style={styles.summaryValue} numberOfLines={1}>{value}</Text>
+      <Text style={styles.summaryValue} numberOfLines={title === 'Tyre' ? 3 : 1}>{value}</Text>
       <Text style={styles.summaryDetail} numberOfLines={2}>{detail}</Text>
     </View>
   );
@@ -2606,6 +2876,9 @@ function SummaryCard({
   if (rightLabel && onRightPress) {
     return (
       <View style={cardStyle}>
+        <View style={markerStyle}>
+          <View style={styles.summaryMarkerDot} />
+        </View>
         <Pressable
           onPress={onPress}
           onLongPress={onLongPress}
@@ -2633,8 +2906,212 @@ function SummaryCard({
         pressed && styles.summaryCardPressed,
       ]}
     >
+      <View style={markerStyle}>
+        <View style={styles.summaryMarkerDot} />
+      </View>
       {content}
     </Pressable>
+  );
+}
+
+function HeaderStat({
+  label,
+  value,
+  tone = 'default',
+}: {
+  label: string;
+  value: string;
+  tone?: 'default' | 'accent' | 'success' | 'warn';
+}) {
+  return (
+    <View
+      style={[
+        styles.headerStat,
+        tone === 'accent' && styles.headerStatAccent,
+        tone === 'success' && styles.headerStatSuccess,
+        tone === 'warn' && styles.headerStatWarn,
+      ]}
+    >
+      <Text style={styles.headerStatLabel} numberOfLines={1}>{label}</Text>
+      <Text
+        style={[
+          styles.headerStatValue,
+          tone === 'accent' && styles.headerStatValueAccent,
+          tone === 'success' && styles.headerStatValueSuccess,
+          tone === 'warn' && styles.headerStatValueWarn,
+        ]}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+const WHATSAPP_TEMPLATE_LABELS: Record<WhatsAppTemplateId, string> = {
+  price: 'Send price',
+  booking_confirmation: 'Confirm booking',
+  driver_en_route: 'Driver en route',
+  driver_nearby: 'Driver nearby',
+  delay: 'Delay update',
+  job_completed: 'Job complete',
+};
+
+function WhatsAppTemplatesCard({
+  hasCustomerPhone,
+  hasQuote,
+  hasReference,
+  hasDispatchedBooking,
+  canRequestLocation,
+  requestLocationBusy,
+  busyTemplateId,
+  onRequestLocation,
+  onPreviewTemplate,
+}: {
+  hasCustomerPhone: boolean;
+  hasQuote: boolean;
+  hasReference: boolean;
+  hasDispatchedBooking: boolean;
+  canRequestLocation: boolean;
+  requestLocationBusy: boolean;
+  busyTemplateId: WhatsAppTemplateBusyId;
+  onRequestLocation: () => void;
+  onPreviewTemplate: (templateId: WhatsAppTemplateId) => void;
+}) {
+  const anyBusy = busyTemplateId !== null || requestLocationBusy;
+  const templates: Array<{
+    id: WhatsAppTemplateId | 'request_location';
+    label: string;
+    disabled: boolean;
+    reason: string | null;
+  }> = [
+    {
+      id: 'price',
+      label: 'Send price',
+      disabled: !hasCustomerPhone || !hasQuote,
+      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : !hasQuote ? 'Get a price first.' : null,
+    },
+    {
+      id: 'request_location',
+      label: 'Request location',
+      disabled: !canRequestLocation,
+      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : 'Log in before sending location links.',
+    },
+    {
+      id: 'booking_confirmation',
+      label: 'Confirm booking',
+      disabled: !hasCustomerPhone || !hasReference,
+      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : 'Save a quote or dispatch first.',
+    },
+    {
+      id: 'driver_en_route',
+      label: 'Driver en route',
+      disabled: !hasCustomerPhone || !hasDispatchedBooking,
+      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : 'Dispatch the booking first.',
+    },
+    {
+      id: 'driver_nearby',
+      label: 'Driver nearby',
+      disabled: !hasCustomerPhone || !hasDispatchedBooking,
+      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : 'Dispatch the booking first.',
+    },
+    {
+      id: 'delay',
+      label: 'Delay update',
+      disabled: !hasCustomerPhone || !hasDispatchedBooking,
+      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : 'Dispatch the booking first.',
+    },
+    {
+      id: 'job_completed',
+      label: 'Job complete',
+      disabled: !hasCustomerPhone || !hasDispatchedBooking,
+      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : 'Dispatch the booking first.',
+    },
+  ];
+
+  const firstReason = templates.find((template) => template.disabled)?.reason ?? null;
+
+  return (
+    <SectionCard title="WhatsApp templates" helperText="Quick customer messages for the common assisted-call moments.">
+      <View style={styles.templateGrid}>
+        {templates.map((template) => {
+          const isRequestLocation = template.id === 'request_location';
+          const loading = isRequestLocation
+            ? requestLocationBusy
+            : busyTemplateId === template.id;
+          return (
+            <AppButton
+              key={template.id}
+              label={template.label}
+              variant={template.id === 'price' || template.id === 'booking_confirmation' ? 'primary' : 'secondary'}
+              onPress={() => {
+                if (isRequestLocation) onRequestLocation();
+                else onPreviewTemplate(template.id as WhatsAppTemplateId);
+              }}
+              loading={loading}
+              disabled={template.disabled || (anyBusy && !loading)}
+              style={styles.templateButton}
+            />
+          );
+        })}
+      </View>
+      {firstReason ? <Text style={styles.templateHint}>{firstReason}</Text> : null}
+    </SectionCard>
+  );
+}
+
+function WhatsAppTemplatePreviewSheet({
+  visible,
+  title,
+  message,
+  busy,
+  onClose,
+  onCopy,
+  onSend,
+}: {
+  visible: boolean;
+  title: string;
+  message: string;
+  busy: boolean;
+  onClose: () => void;
+  onCopy: () => void;
+  onSend: () => void;
+}) {
+  return (
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
+      <Pressable style={styles.sheetBackdrop} onPress={onClose}>
+        <Pressable style={styles.templatePreviewSheet} onPress={() => {}}>
+          <View style={styles.sheetGrabber} />
+          <View style={styles.templatePreviewHeader}>
+            <View style={styles.templatePreviewTitleBlock}>
+              <Text style={styles.templatePreviewKicker}>WhatsApp preview</Text>
+              <Text style={styles.templatePreviewTitle} numberOfLines={1}>{title}</Text>
+            </View>
+            <AppButton label="Close" variant="ghost" onPress={onClose} style={styles.templatePreviewCloseButton} />
+          </View>
+          <ScrollView style={styles.templatePreviewScroll} contentContainerStyle={styles.templatePreviewContent}>
+            <Text style={styles.templatePreviewText}>{message}</Text>
+          </ScrollView>
+          <View style={styles.templatePreviewActions}>
+            <AppButton
+              label="Copy"
+              variant="secondary"
+              onPress={onCopy}
+              disabled={!message || busy}
+              style={styles.templatePreviewActionButton}
+            />
+            <AppButton
+              label="Send WhatsApp"
+              variant="primary"
+              onPress={onSend}
+              loading={busy}
+              disabled={!message}
+              style={styles.templatePreviewActionButton}
+            />
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -2886,7 +3363,7 @@ function DispatchReviewSheet({
           <ScrollView contentContainerStyle={styles.reviewContent}>
             <DetailRow label="Customer" value={draft.customer.name.trim() || 'New customer'} />
             <DetailRow label="Phone" value={draft.customer.phone.trim() || 'Not set'} />
-            <DetailRow label="Tyres" value={draft.tyre.size.trim() ? `${draft.tyre.quantity} x ${draft.tyre.size.trim()}` : `Quantity ${draft.tyre.quantity}`} />
+            <DetailRow label="Tyres" value={summarizeBookingTyreLines(draft.tyreLines).join('\n') || 'Not set'} />
             <DetailRow label="Address/location" value={draft.location.address.trim() || draft.location.status} />
             <DetailRow label="Price" value={formatGbp(effectiveTotal)} />
             <DetailRow label="Quote ref" value={activeQuote?.quoteRef ?? draft.savedQuoteRef ?? 'Not saved'} />
@@ -2926,7 +3403,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 const baseInput: TextStyle = {
   minHeight: 48,
-  borderColor: colors.border,
+  borderColor: colors.borderStrong,
   borderWidth: 1,
   borderRadius: radius.md,
   paddingHorizontal: 12,
@@ -2937,28 +3414,105 @@ const baseInput: TextStyle = {
 };
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  safe: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' },
+  keyboardAvoider: { flex: 1, zIndex: 1 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   header: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.glowBorder,
+    backgroundColor: colors.surfaceOverlay,
+    gap: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.32,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
+  },
+  headerAccent: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: 2,
+    backgroundColor: colors.accent,
+  },
+  headerPanel: {
+    position: 'absolute',
+    left: 14,
+    right: 14,
+    top: 8,
+    bottom: 8,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    backgroundColor: colors.accentMuted,
+    opacity: 0.72,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.bg,
+    flexWrap: 'wrap',
     gap: 12,
+    zIndex: 1,
   },
   headerTextBlock: { flex: 1, minWidth: 0 },
-  headerTitle: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '800', letterSpacing: 0.8 },
-  headerCustomer: { color: colors.text, fontSize: fontSize.xl, fontWeight: '800', marginTop: 2 },
-  headerPhone: { color: colors.muted, fontSize: fontSize.xs, marginTop: 2 },
-  alertReadinessPill: {
+  headerTitle: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '900', letterSpacing: 0 },
+  headerCustomer: { color: colors.text, fontSize: fontSize.xxl, fontWeight: '900', marginTop: 2 },
+  headerPhone: { color: colors.muted, fontSize: fontSize.xs, marginTop: 2, fontWeight: '700' },
+  headerStatsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    zIndex: 1,
+  },
+  headerStat: {
+    flexGrow: 1,
+    flexBasis: 134,
+    minHeight: 52,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.cardMuted,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    justifyContent: 'center',
+  },
+  headerStatAccent: {
+    borderColor: colors.glowBorder,
+    backgroundColor: colors.accentMuted,
+  },
+  headerStatSuccess: {
+    borderColor: colors.successBorder,
+    backgroundColor: colors.successBg,
+  },
+  headerStatWarn: {
+    borderColor: colors.warningBorder,
+    backgroundColor: colors.warningBg,
+  },
+  headerStatLabel: {
+    color: colors.subtle,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  headerStatValue: {
+    color: colors.text,
+    fontSize: fontSize.xs,
+    fontWeight: '900',
+    marginTop: 3,
+  },
+  headerStatValueAccent: { color: colors.accent },
+  headerStatValueSuccess: { color: colors.success },
+  headerStatValueWarn: { color: colors.warning },
+  alertReadinessPill: {
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
     borderRadius: radius.sm,
-    backgroundColor: colors.card,
+    backgroundColor: colors.panelSoft,
     paddingHorizontal: 8,
     paddingVertical: 6,
     minHeight: 34,
@@ -2966,14 +3520,14 @@ const styles = StyleSheet.create({
   },
   alertReadinessPillNotArmed: {
     borderColor: colors.warning,
-    backgroundColor: 'rgba(245,158,11,0.14)',
+    backgroundColor: colors.warningBg,
   },
   alertReadinessPillPressed: { opacity: 0.78 },
   alertReadinessText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '700' },
   alertReadinessRetryText: { color: colors.warning, fontSize: fontSize.xs, marginTop: 2, fontWeight: '700' },
-  headerRight: { alignItems: 'flex-end', gap: 8 },
-  headerMoreButton: { minHeight: 40, minWidth: 82 },
-  headerContactRow: { flexDirection: 'row', gap: 8 },
+  headerRight: { alignItems: 'flex-end', gap: 8, flexShrink: 1, maxWidth: '100%' },
+  headerMoreButton: { minHeight: 42, minWidth: 88 },
+  headerContactRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 },
   compactContactButton: {
     minHeight: 42,
     minWidth: 54,
@@ -3010,40 +3564,76 @@ const styles = StyleSheet.create({
   },
   headerWhatsAppLabelDisabled: { color: colors.muted },
   contactButtonPressed: { opacity: 0.82 },
-  scroll: { padding: 12, gap: 10, paddingBottom: 148 },
+  scroll: { paddingHorizontal: 16, paddingTop: 14, gap: 14, paddingBottom: 148 },
   priorityBookingButton: { minHeight: 48 },
-  summaryStack: { gap: 8 },
+  summaryStack: { gap: 10 },
   summaryCard: {
-    minHeight: 64,
+    minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    padding: 10,
+    backgroundColor: colors.surfaceElevated,
+    padding: 12,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.24,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
   },
-  summaryCardDone: { borderColor: colors.successBorder },
-  summaryCardActive: { borderColor: colors.accent },
-  summaryCardPressed: { backgroundColor: colors.card },
+  summaryCardDone: { borderColor: colors.successBorder, backgroundColor: colors.card },
+  summaryCardActive: { borderColor: colors.accent, backgroundColor: colors.accentMuted },
+  summaryCardPressed: { backgroundColor: colors.panel },
+  summaryMarker: {
+    width: 10,
+    alignSelf: 'stretch',
+    borderRadius: radius.sm,
+    backgroundColor: colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  summaryMarkerDone: { backgroundColor: colors.success },
+  summaryMarkerActive: { backgroundColor: colors.accent },
+  summaryMarkerDot: {
+    width: 4,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+  },
   summaryMain: { flex: 1, minWidth: 0 },
   summaryMainButton: { flex: 1, minWidth: 0, minHeight: 48, justifyContent: 'center', borderRadius: radius.sm },
-  summaryTitle: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '800', letterSpacing: 0.4 },
+  summaryTitle: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '800', letterSpacing: 0 },
   summaryValue: { color: colors.text, fontSize: fontSize.md, fontWeight: '800', marginTop: 2 },
   summaryDetail: { color: colors.subtle, fontSize: fontSize.xs, marginTop: 2, lineHeight: 16 },
   summaryRightButton: {
     minHeight: 48,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: radius.sm,
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.card,
+    backgroundColor: colors.cardMuted,
   },
   summaryRightText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '800' },
   activeStepBlock: { gap: 12 },
+  templateGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  templateButton: {
+    flexGrow: 1,
+    flexBasis: 136,
+  },
+  templateHint: {
+    marginTop: 8,
+    color: colors.subtle,
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+  },
   stepStack: { gap: 12 },
   input: baseInput,
   fieldGap: { height: 10 },
@@ -3057,7 +3647,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center' as const,
   },
-  emailModeBtnActive: { borderColor: colors.accent, backgroundColor: 'rgba(249,115,22,0.08)' },
+  emailModeBtnActive: { borderColor: colors.accent, backgroundColor: colors.ripple },
   emailModeBtnText: { fontSize: 11, fontWeight: '600' as const, color: colors.subtle, textAlign: 'center' as const },
   emailModeBtnTextActive: { color: colors.accent },
   note: { ...baseInput, minHeight: 96, textAlignVertical: 'top' },
@@ -3068,11 +3658,16 @@ const styles = StyleSheet.create({
   inlineNoticeWrap: { marginBottom: 10 },
   quoteHeaderBox: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: radius.md,
-    backgroundColor: colors.card,
+    backgroundColor: colors.surfaceElevated,
     padding: 12,
     gap: 4,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   quoteTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
   quoteTotal: { color: colors.accent, fontSize: fontSize.xl, fontWeight: '900' },
@@ -3094,14 +3689,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: radius.md,
-    backgroundColor: colors.card,
+    backgroundColor: colors.surfaceElevated,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  paymentOptionSelected: { borderColor: colors.accent, backgroundColor: 'rgba(249,115,22,0.12)' },
-  paymentOptionPressed: { borderColor: colors.borderStrong, backgroundColor: colors.surface },
+  paymentOptionSelected: { borderColor: colors.accent, backgroundColor: colors.accentMuted },
+  paymentOptionPressed: { borderColor: colors.glowBorder, backgroundColor: colors.panel },
   paymentOptionDisabled: { opacity: 0.62 },
   radioOuter: {
     width: 22,
@@ -3121,9 +3716,9 @@ const styles = StyleSheet.create({
   readySummary: { gap: 8, marginBottom: 12 },
   paymentLinkSummary: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: radius.md,
-    backgroundColor: colors.card,
+    backgroundColor: colors.surfaceElevated,
     padding: 12,
     gap: 5,
   },
@@ -3160,12 +3755,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    paddingHorizontal: 12,
-    paddingTop: 10,
+    paddingHorizontal: 14,
+    paddingTop: 12,
     paddingBottom: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.bg,
+    borderTopColor: colors.glowBorder,
+    backgroundColor: colors.surfaceOverlay,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.34,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: -10 },
+    elevation: 8,
   },
   backButton: { minWidth: 76, minHeight: 56 },
   primaryWrap: { flex: 1, minWidth: 0 },
@@ -3174,46 +3774,127 @@ const styles = StyleSheet.create({
   paymentLinkHint: { color: colors.muted, fontSize: fontSize.sm, marginBottom: 8 },
   paymentLinkAmount: { color: colors.text, fontSize: fontSize.md, fontWeight: '700', marginBottom: 2 },
   paymentLinkStatus: { color: colors.warning, fontSize: fontSize.sm, fontWeight: '700', marginBottom: 8 },
-  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.62)', justifyContent: 'flex-end' },
+  sheetBackdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   actionSheet: {
     maxHeight: '86%',
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    padding: 14,
+    borderColor: colors.glowBorder,
+    backgroundColor: colors.surfaceOverlay,
+    padding: 16,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.38,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: -12 },
+    elevation: 8,
   },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  sheetGrabber: {
+    alignSelf: 'center',
+    width: 38,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.accent,
+    marginBottom: 12,
+  },
+  templatePreviewSheet: {
+    maxHeight: '88%',
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.glowBorder,
+    backgroundColor: colors.surfaceOverlay,
+    padding: 16,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.38,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: -12 },
+    elevation: 8,
+  },
+  templatePreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  templatePreviewTitleBlock: { flex: 1, minWidth: 0 },
+  templatePreviewKicker: { color: colors.subtle, fontSize: fontSize.xs, fontWeight: '700', letterSpacing: 0 },
+  templatePreviewTitle: { color: colors.text, fontSize: fontSize.lg, fontWeight: '900', marginTop: 2 },
+  templatePreviewCloseButton: { minWidth: 78 },
+  templatePreviewScroll: {
+    maxHeight: 320,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radius.md,
+    backgroundColor: colors.inputBg,
+  },
+  templatePreviewContent: {
+    padding: 12,
+  },
+  templatePreviewText: {
+    color: colors.text,
+    fontSize: fontSize.md,
+    lineHeight: 21,
+  },
+  templatePreviewActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 12,
+  },
+  templatePreviewActionButton: {
+    flexGrow: 1,
+    flexBasis: 140,
+    minHeight: 50,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingBottom: 10,
+  },
   sheetTitle: { flex: 1, color: colors.text, fontSize: fontSize.lg, fontWeight: '900' },
   sheetCloseButton: { minWidth: 86 },
   sheetList: { gap: 8, paddingBottom: space.md },
   sheetAction: {
-    minHeight: 56,
+    minHeight: 60,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: radius.md,
-    backgroundColor: colors.bg,
+    backgroundColor: colors.surfaceElevated,
     paddingHorizontal: 12,
     paddingVertical: 10,
     justifyContent: 'center',
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
-  sheetActionPressed: { backgroundColor: colors.card, borderColor: colors.borderStrong },
+  sheetActionPressed: { backgroundColor: colors.panel, borderColor: colors.glowBorder },
   sheetActionDisabled: { opacity: 0.58 },
   sheetActionDanger: { borderColor: colors.dangerBorder, backgroundColor: colors.dangerBg },
   sheetActionLabel: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
   sheetActionDangerLabel: { color: colors.danger },
   sheetActionDescription: { color: colors.muted, fontSize: fontSize.xs, lineHeight: 16, marginTop: 3 },
   sheetActionReason: { color: colors.warning, fontSize: fontSize.xs, lineHeight: 16, marginTop: 4, fontWeight: '700' },
-  reviewBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.62)', justifyContent: 'flex-end' },
+  reviewBackdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   reviewSheet: {
     maxHeight: '88%',
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    padding: 14,
+    borderColor: colors.glowBorder,
+    backgroundColor: colors.surfaceOverlay,
+    padding: 16,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.38,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: -12 },
+    elevation: 8,
   },
   reviewContent: { gap: 8, paddingBottom: 12 },
   reviewActions: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10 },

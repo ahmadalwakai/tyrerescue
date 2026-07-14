@@ -1,22 +1,23 @@
-import { NextResponse } from 'next/server';
-import { desc, eq } from 'drizzle-orm';
-import { db, drivers, users } from '@/lib/db';
+import { NextResponse } from "next/server";
+import { desc, eq } from "drizzle-orm";
+import { db, drivers, users } from "@/lib/db";
 import {
   isAuthorizedIntegrationRequest,
   integrationUnauthorized,
-} from '../_lib';
+} from "../_lib";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /**
  * Inbound endpoint: tyrerepair.uk fetches the tyrerescue driver roster so an
  * admin can pick which driver a field job should go to. Read-only; additive.
  */
 export async function GET(request: Request) {
-  if (!isAuthorizedIntegrationRequest(request)) return integrationUnauthorized();
+  if (!isAuthorizedIntegrationRequest(request))
+    return integrationUnauthorized();
 
   const url = new URL(request.url);
-  const onlyAvailable = url.searchParams.get('available') === '1';
+  const onlyAvailable = url.searchParams.get("available") === "1";
 
   const rows = await db
     .select({
@@ -28,13 +29,24 @@ export async function GET(request: Request) {
       currentLat: drivers.currentLat,
       currentLng: drivers.currentLng,
       locationAt: drivers.locationAt,
+      pushToken: drivers.pushToken,
+      pushTokenPlatform: drivers.pushTokenPlatform,
+      appVersion: drivers.appVersion,
     })
     .from(drivers)
     .innerJoin(users, eq(drivers.userId, users.id))
     .orderBy(desc(drivers.isOnline), desc(drivers.createdAt));
 
   const items = rows
-    .filter((d) => (onlyAvailable ? d.isOnline && d.status !== 'offline' : true))
+    .filter((d) =>
+      onlyAvailable
+        ? d.isOnline &&
+          d.status !== "offline" &&
+          Boolean(d.pushToken) &&
+          d.currentLat != null &&
+          d.currentLng != null
+        : true,
+    )
     .map((d) => ({
       id: d.id,
       name: d.name,
@@ -44,6 +56,11 @@ export async function GET(request: Request) {
       currentLat: d.currentLat?.toString() ?? null,
       currentLng: d.currentLng?.toString() ?? null,
       locationAt: d.locationAt?.toISOString() ?? null,
+      hasPushToken: Boolean(d.pushToken),
+      pushTokenPlatform: d.pushTokenPlatform,
+      appVersion: d.appVersion,
+      canReceiveJobs: Boolean(d.pushToken),
+      hasLiveGps: d.currentLat != null && d.currentLng != null,
     }));
 
   return NextResponse.json({ items });

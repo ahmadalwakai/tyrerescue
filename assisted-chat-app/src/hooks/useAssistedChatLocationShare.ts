@@ -2,8 +2,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { Linking } from 'react-native';
 import { api, ApiError } from '@/lib/api';
 import { copyToClipboard } from '@/lib/clipboard';
-import { normalizeAssistedChatTyreSize } from '@/lib/assisted-chat-workflow';
-import { ASSISTED_CHAT_PRICING_CONTEXT } from '@/lib/pricing-context';
+import {
+  buildBookingTyreLinePayload,
+  normalizeAssistedChatTyreSize,
+  primaryBookingTyreLine,
+  totalBookingTyreQuantity,
+} from '@/lib/assisted-chat-workflow';
+import {
+  ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
+  ASSISTED_CHAT_PRICING_CONTEXT,
+} from '@/lib/pricing-context';
 import type {
   AssistedChatDraft,
   AssistedChatLocationMethod,
@@ -28,6 +36,12 @@ export interface LocationShareProgress {
   lastPollAt: number | null;
   lastPollingError: string | null;
   staleReason: string | null;
+}
+
+export interface LocationShareContactOverride {
+  phone?: string;
+  email?: string;
+  name?: string;
 }
 
 interface UseAssistedChatLocationShareArgs {
@@ -87,7 +101,10 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
   );
 
   const ensureQuickBooking = useCallback(
-    async (method: AssistedChatLocationMethod): Promise<{ id: string; locationLink: string | null; whatsappLink: string | null }> => {
+    async (
+      method: AssistedChatLocationMethod,
+      contact?: LocationShareContactOverride,
+    ): Promise<{ id: string; locationLink: string | null; whatsappLink: string | null }> => {
       if (draft.quickBookingId) {
         return {
           id: draft.quickBookingId,
@@ -95,18 +112,26 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
           whatsappLink: draft.location.whatsappLink,
         };
       }
+      const primaryTyre = primaryBookingTyreLine(draft);
+      const tyreLines = buildBookingTyreLinePayload(draft.tyreLines);
+      const customerPhone = contact?.phone?.trim() || draft.customer.phone.trim() || PLACEHOLDER_PHONE;
+      const customerEmail = contact?.email?.trim() || draft.customer.email.trim() || undefined;
+      const customerName = contact?.name?.trim() || draft.customer.name.trim() || PLACEHOLDER_NAME;
       const created = await api.post<QuickBookCreateResponse>('/api/admin/quick-book', {
-        customerName: draft.customer.name.trim() || PLACEHOLDER_NAME,
-        customerPhone: draft.customer.phone.trim() || PLACEHOLDER_PHONE,
-        customerEmail: draft.customer.email.trim() || undefined,
+        customerName,
+        customerPhone,
+        customerEmail,
         locationMethod: method,
         locationAddress: method === 'address' ? draft.location.address : undefined,
         locationLat: method === 'address' && draft.location.lat != null ? draft.location.lat : undefined,
         locationLng: method === 'address' && draft.location.lng != null ? draft.location.lng : undefined,
         serviceType: 'fit',
-        tyreSize: normalizeAssistedChatTyreSize(draft.tyre.size) ?? undefined,
-        tyreCount: draft.tyre.quantity,
+        tyreSize: normalizeAssistedChatTyreSize(primaryTyre.size) ?? undefined,
+        tyreCount: totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
+        tyreLines,
+        items: tyreLines,
         pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+        adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
         notes: draft.note || undefined,
       });
       applyBooking(created.booking, {
@@ -125,13 +150,13 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
   );
 
   const requestLink = useCallback(
-    async (method: LocationShareMethod) => {
+    async (method: LocationShareMethod, contact?: LocationShareContactOverride) => {
       setMessage(null);
       setLastPollingError(null);
       setStaleReason(null);
       setBusy(method);
       try {
-        const ensured = await ensureQuickBooking('link');
+        const ensured = await ensureQuickBooking('link', contact);
         const result = await api.post<SendLinkResponse>('/api/admin/quick-book/send-link', {
           quickBookingId: ensured.id,
           method,
@@ -144,6 +169,16 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
         const rawLocationLink = method === 'copy' ? result.link ?? ensured.locationLink : ensured.locationLink;
         const whatsappLink = method === 'whatsapp' ? result.link ?? ensured.whatsappLink : ensured.whatsappLink;
         update({
+          ...(contact?.phone || contact?.email || contact?.name
+            ? {
+                customer: {
+                  ...draft.customer,
+                  ...(contact.name ? { name: contact.name.trim() } : {}),
+                  ...(contact.phone ? { phone: contact.phone.trim() } : {}),
+                  ...(contact.email ? { email: contact.email.trim() } : {}),
+                },
+              }
+            : {}),
           location: {
             ...draft.location,
             method: 'link',
@@ -203,7 +238,7 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
         setBusy(null);
       }
     },
-    [draft.location, draft.priceNeedsRefresh, draft.quote, ensureQuickBooking, update],
+    [draft.customer, draft.location, draft.priceNeedsRefresh, draft.quote, ensureQuickBooking, update],
   );
 
   useEffect(() => {

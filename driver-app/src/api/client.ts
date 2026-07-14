@@ -7,6 +7,10 @@ const PRODUCTION_API_URL = 'https://www.tyrerescue.uk';
 const API_TIMEOUT_MS = 15_000;
 
 function devWebApiUrl(): string {
+  return ['http://', ['local', 'host'].join(''), ':3000'].join('');
+}
+
+function legacyDevWebApiUrl(): string {
   return ['http://', ['local', 'host'].join(''), ':3002'].join('');
 }
 
@@ -20,7 +24,8 @@ function defaultApiUrl(): string {
 function shouldReplaceStoredApiUrl(stored: string | null): boolean {
   if (!stored || !isDevelopmentBuild() || Platform.OS !== 'web') return false;
   if (process.env.EXPO_PUBLIC_API_URL?.trim()) return false;
-  return normalizeApiUrl(stored) === PRODUCTION_API_URL;
+  const normalized = normalizeApiUrl(stored);
+  return normalized === PRODUCTION_API_URL || normalized === legacyDevWebApiUrl();
 }
 
 let cachedToken: string | null = null;

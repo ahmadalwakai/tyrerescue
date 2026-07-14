@@ -4,7 +4,7 @@
  */
 
 const CONSENT_KEY = 'tyrerescue_consent_v2';
-const SESSION_KEY = 'tr_session_id';
+const SESSION_KEY = 'tr_visitor_sid';
 const VISIT_KEY = 'tr_visit_count';
 
 interface ConsentState {

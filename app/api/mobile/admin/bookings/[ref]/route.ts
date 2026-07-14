@@ -13,6 +13,12 @@ import { getMobileAdminUser, unauthorizedResponse } from '@/app/api/mobile/admin
 import { executeTransition, getValidNextStates, isValidTransition, type BookingStatus } from '@/lib/state-machine';
 import { getBookingPaymentSummary, recordPaymentEvent } from '@/lib/payments/payment-summary';
 import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
+import { haversineDistanceMiles } from '@/lib/mapbox';
+import { GARAGE_LOCATION } from '@/lib/garage';
+import {
+  calculateDriverSituation,
+  estimateUrbanDriveMinutesFromMiles,
+} from '@/lib/admin/driverSituation';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -20,6 +26,12 @@ interface Props {
 
 const DIRECT_AMOUNT_FIELDS = ['subtotal', 'vatAmount', 'totalAmount'] as const;
 const PRICING_INPUT_FIELDS = ['tyreSizeDisplay', 'quantity', 'serviceType', 'bookingType', 'scheduledAt'] as const;
+
+function toNumber(value: string | number | null | undefined): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 
 function hasOwn(body: Record<string, unknown>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(body, key);
@@ -82,6 +94,9 @@ export async function GET(request: Request, { params }: Props) {
     phone: string | null;
     status: string | null;
     isOnline: boolean | null;
+    currentLat: string | null;
+    currentLng: string | null;
+    locationAt: string | null;
   } | null = null;
 
   if (booking.driverId) {
@@ -93,13 +108,23 @@ export async function GET(request: Request, { params }: Props) {
         phone: users.phone,
         status: drivers.status,
         isOnline: drivers.isOnline,
+        currentLat: drivers.currentLat,
+        currentLng: drivers.currentLng,
+        locationAt: drivers.locationAt,
       })
       .from(drivers)
       .innerJoin(users, eq(drivers.userId, users.id))
       .where(eq(drivers.id, booking.driverId))
       .limit(1);
 
-    if (driver) assignedDriver = driver;
+    if (driver) {
+      assignedDriver = {
+        ...driver,
+        currentLat: driver.currentLat?.toString() ?? null,
+        currentLng: driver.currentLng?.toString() ?? null,
+        locationAt: driver.locationAt?.toISOString() ?? null,
+      };
+    }
   }
 
   const paymentSummary = await getBookingPaymentSummary({
@@ -115,6 +140,45 @@ export async function GET(request: Request, { params }: Props) {
     depositPaidAt: booking.depositPaidAt,
     stripePiId: booking.stripePiId,
     stripeDepositPiId: booking.stripeDepositPiId,
+  });
+
+  const customerLat = toNumber(booking.lat);
+  const customerLng = toNumber(booking.lng);
+  const driverLat = toNumber(assignedDriver?.currentLat);
+  const driverLng = toNumber(assignedDriver?.currentLng);
+  const outboundMinutes =
+    customerLat != null && customerLng != null && driverLat != null && driverLng != null
+      ? estimateUrbanDriveMinutesFromMiles(
+          haversineDistanceMiles(
+            { lat: driverLat, lng: driverLng },
+            { lat: customerLat, lng: customerLng },
+          ),
+        )
+      : null;
+  const returnMinutes =
+    customerLat != null && customerLng != null
+      ? estimateUrbanDriveMinutesFromMiles(
+          haversineDistanceMiles(
+            { lat: customerLat, lng: customerLng },
+            { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+          ),
+        )
+      : null;
+  const driverSituation = calculateDriverSituation({
+    jobRef: booking.refNumber,
+    driverId: booking.driverId ?? null,
+    bookingStatus: booking.status,
+    driverIsOnline: assignedDriver?.isOnline ?? false,
+    driverStatus: assignedDriver?.status ?? null,
+    lastLocationAt: assignedDriver?.locationAt ?? null,
+    outboundMinutes,
+    returnMinutes,
+    serviceType: booking.serviceType,
+    tyreCount: booking.quantity,
+    paymentStatus: booking.paymentType,
+    returnEstimateAvailable: returnMinutes != null,
+    routeAvailable: outboundMinutes != null,
+    garageConfigured: true,
   });
 
   return NextResponse.json({
@@ -148,6 +212,7 @@ export async function GET(request: Request, { params }: Props) {
     availableDrivers,
     validNextStatuses: getValidNextStates(booking.status as BookingStatus),
     paymentSummary,
+    driverSituation,
   });
 }
 
@@ -272,8 +337,18 @@ export async function PATCH(request: Request, { params }: Props) {
 
   const currentStatus = booking.status as BookingStatus;
   const allowed = getValidNextStates(currentStatus);
+  const adminOneStepCompleteFrom = new Set<BookingStatus>([
+    'paid',
+    'deposit_paid',
+    'driver_assigned',
+    'en_route',
+    'arrived',
+    'in_progress',
+  ]);
+  const isAdminOneStepComplete =
+    nextStatus === 'completed' && adminOneStepCompleteFrom.has(currentStatus);
 
-  if (!allowed.includes(nextStatus) && nextStatus !== 'cancelled') {
+  if (!allowed.includes(nextStatus) && nextStatus !== 'cancelled' && !isAdminOneStepComplete) {
     return NextResponse.json(
       { error: `Cannot transition from ${currentStatus} to ${nextStatus}`, validTransitions: allowed },
       { status: 400 },
@@ -291,8 +366,18 @@ export async function PATCH(request: Request, { params }: Props) {
     if (!result.success) {
       return NextResponse.json({ error: result.error || 'Transition failed' }, { status: 400 });
     }
+    if (nextStatus === 'completed') {
+      await db.update(bookings).set({ completedAt: new Date(), updatedAt: new Date() }).where(eq(bookings.id, booking.id));
+    }
   } else {
-    await db.update(bookings).set({ status: nextStatus, updatedAt: new Date() }).where(eq(bookings.id, booking.id));
+    await db
+      .update(bookings)
+      .set({
+        status: nextStatus,
+        updatedAt: new Date(),
+        ...(nextStatus === 'completed' ? { completedAt: new Date() } : {}),
+      })
+      .where(eq(bookings.id, booking.id));
     await db.insert(bookingStatusHistory).values({
       bookingId: booking.id,
       fromStatus: currentStatus,

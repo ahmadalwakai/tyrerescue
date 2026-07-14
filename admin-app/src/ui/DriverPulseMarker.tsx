@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 
 /**
@@ -24,7 +24,7 @@ const DURATION = 2000;
 const STAGGER = 800;
 
 function useRingAnimation(delay: number, enabled: boolean) {
-  const progress = useRef(new Animated.Value(0)).current;
+  const [progress] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (!enabled) return;

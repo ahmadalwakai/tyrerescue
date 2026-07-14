@@ -1,9 +1,15 @@
 import { Suspense } from 'react';
-import { db, bookings } from '@/lib/db';
+import { db, bookings, drivers } from '@/lib/db';
 import { bookingTyres, tyreProducts } from '@/lib/db/schema';
 import { desc, sql, ilike, eq, and, gte, lte, or, exists } from 'drizzle-orm';
 import { Heading, Box } from '@chakra-ui/react';
 import { BookingsTable } from './BookingsTable';
+import { haversineDistanceMiles } from '@/lib/mapbox';
+import { GARAGE_LOCATION } from '@/lib/garage';
+import {
+  calculateDriverSituation,
+  estimateUrbanDriveMinutesFromMiles,
+} from '@/lib/admin/driverSituation';
 
 interface Props {
   searchParams: Promise<{
@@ -13,6 +19,12 @@ interface Props {
     dateFrom?: string;
     dateTo?: string;
   }>;
+}
+
+function toNumber(value: string | number | null | undefined): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 export default async function AdminBookingsPage({ searchParams }: Props) {
@@ -77,8 +89,18 @@ export default async function AdminBookingsPage({ searchParams }: Props) {
         scheduledAt: bookings.scheduledAt,
         createdAt: bookings.createdAt,
         paymentType: bookings.paymentType,
+        quantity: bookings.quantity,
+        customerLat: bookings.lat,
+        customerLng: bookings.lng,
+        driverId: bookings.driverId,
+        driverLat: drivers.currentLat,
+        driverLng: drivers.currentLng,
+        driverIsOnline: drivers.isOnline,
+        driverStatus: drivers.status,
+        driverLocationAt: drivers.locationAt,
       })
       .from(bookings)
+      .leftJoin(drivers, eq(bookings.driverId, drivers.id))
       .where(whereClause)
       .orderBy(desc(bookings.createdAt))
       .limit(perPage)
@@ -93,12 +115,63 @@ export default async function AdminBookingsPage({ searchParams }: Props) {
   const totalPages = Math.ceil(totalCount / perPage);
 
   // Transform for client
-  const bookingsData = bookingsList.map((b) => ({
-    ...b,
-    totalAmount: b.totalAmount.toString(),
-    scheduledAt: b.scheduledAt?.toISOString() ?? null,
-    createdAt: b.createdAt?.toISOString() ?? null,
-  }));
+  const bookingsData = bookingsList.map((b) => {
+    const driverSituation = (() => {
+      const customerLat = toNumber(b.customerLat);
+      const customerLng = toNumber(b.customerLng);
+      const driverLat = toNumber(b.driverLat);
+      const driverLng = toNumber(b.driverLng);
+      const outboundMinutes =
+        customerLat != null && customerLng != null && driverLat != null && driverLng != null
+          ? estimateUrbanDriveMinutesFromMiles(
+              haversineDistanceMiles(
+                { lat: driverLat, lng: driverLng },
+                { lat: customerLat, lng: customerLng },
+              ),
+            )
+          : null;
+      const returnMinutes =
+        customerLat != null && customerLng != null
+          ? estimateUrbanDriveMinutesFromMiles(
+              haversineDistanceMiles(
+                { lat: customerLat, lng: customerLng },
+                { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+              ),
+            )
+          : null;
+
+      return calculateDriverSituation({
+        jobRef: b.refNumber,
+        driverId: b.driverId ?? null,
+        bookingStatus: b.status,
+        driverIsOnline: b.driverIsOnline ?? false,
+        driverStatus: b.driverStatus ?? null,
+        lastLocationAt: b.driverLocationAt ?? null,
+        outboundMinutes,
+        returnMinutes,
+        serviceType: b.serviceType,
+        tyreCount: b.quantity,
+        paymentStatus: b.paymentType,
+        returnEstimateAvailable: returnMinutes != null,
+        routeAvailable: outboundMinutes != null,
+        garageConfigured: true,
+      });
+    })();
+
+    return {
+      id: b.id,
+      refNumber: b.refNumber,
+      customerName: b.customerName,
+      serviceType: b.serviceType,
+      bookingType: b.bookingType,
+      status: b.status,
+      totalAmount: b.totalAmount.toString(),
+      scheduledAt: b.scheduledAt?.toISOString() ?? null,
+      createdAt: b.createdAt?.toISOString() ?? null,
+      paymentType: b.paymentType,
+      driverSituation,
+    };
+  });
 
   return (
     <Box>

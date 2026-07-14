@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { api, ApiError } from '@/lib/api';
 import { formatGbp } from '@/lib/money';
-import { ASSISTED_CHAT_PRICING_CONTEXT } from '@/lib/pricing-context';
+import {
+  ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
+  ASSISTED_CHAT_PRICING_CONTEXT,
+} from '@/lib/pricing-context';
 import { ActionButton } from '../ui/ActionButton';
 import { colors, fontSize, radius, space } from '../theme';
 import type { AssistedChatQuoteBreakdown, QuickBookPatchResponse } from '@/types/assisted-chat';
@@ -40,6 +43,7 @@ function quoteFromQuickBookPatch(
     fittingPrice: breakdown.fittingPrice ?? null,
     tyrePrice: breakdown.tyrePrice ?? null,
     totalPrice: breakdown.totalPrice ?? null,
+    tyreLines: breakdown.tyreLines ?? undefined,
     adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
     adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
     serviceOrigin: breakdown.serviceOrigin ?? null,
@@ -113,6 +117,7 @@ export function EditQuotePriceModal({
         adminAdjustmentAmount: delta,
         adminAdjustmentReason: MANUAL_PRICE_REASON,
         pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+        adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
       });
       onSaved(result.value, quoteFromQuickBookPatch(patched.booking.priceBreakdown, patched.booking.distanceKm));
       onClose();
@@ -142,7 +147,8 @@ export function EditQuotePriceModal({
     <Modal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={busy ? undefined : onClose}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
           style={styles.center}
         >
           <Pressable style={styles.sheet} onPress={() => {}}>

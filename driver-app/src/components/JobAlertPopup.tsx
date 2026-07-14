@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/immutability */
 import { useEffect, useRef } from 'react';
 import {
   View,
@@ -31,11 +30,11 @@ import { stopAlertSound } from '@/services/sound';
 function getAlertMeta(alertType: JobAlertType, t: (k: string) => string) {
   switch (alertType) {
     case 'reassignment':
-      return { title: t('jobAlert.titleReassignment'), icon: 'swap-horizontal' as const, buttonLabel: t('jobAlert.viewJob') };
+      return { title: t('jobAlert.titleReassignment'), icon: 'navigate' as const, buttonLabel: t('jobAlert.openRoute') };
     case 'upcoming_v2':
       return { title: t('jobAlert.titleUpcoming'), icon: 'time' as const, buttonLabel: t('jobAlert.viewJob') };
     default:
-      return { title: t('jobAlert.title'), icon: 'car-sport' as const, buttonLabel: t('jobAlert.getStarted') };
+      return { title: t('jobAlert.title'), icon: 'navigate' as const, buttonLabel: t('jobAlert.openRoute') };
   }
 }
 
@@ -80,7 +79,7 @@ export function JobAlertPopup() {
       shadowOpacity.value = 0.3;
       animRunning.current = false;
     }
-  }, [visible]);
+  }, [scale, shadowOpacity, visible]);
 
   const animatedButtonStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -93,7 +92,13 @@ export function JobAlertPopup() {
     };
   });
 
-  const handleGetStarted = () => {
+  const closeAlert = () => {
+    stopAlertSound();
+    dismiss();
+    lightHaptic();
+  };
+
+  const handleOpenJob = () => {
     if (navigatingRef.current) return;
     navigatingRef.current = true;
 
@@ -105,12 +110,14 @@ export function JobAlertPopup() {
     animRunning.current = false;
 
     const ref = alertData?.ref;
-    stopAlertSound();
-    dismiss();
-    lightHaptic();
+    closeAlert();
 
     if (ref) {
-      router.push(`/(tabs)/jobs/${ref}`);
+      router.push(
+        alertData?.alertType === 'upcoming_v2'
+          ? `/(tabs)/jobs/${ref}`
+          : `/(tabs)/jobs/${ref}/route`,
+      );
     } else {
       router.push('/(tabs)/jobs');
     }
@@ -159,13 +166,28 @@ export function JobAlertPopup() {
             </Text>
           ) : null}
 
-          {/* GET STARTED button with pulse animation */}
+          {alertData.paymentLabel || alertData.urgencyLabel ? (
+            <View style={styles.metaRow}>
+              {alertData.paymentLabel ? (
+                <Text style={styles.metaChip} numberOfLines={1}>
+                  {alertData.paymentLabel}
+                </Text>
+              ) : null}
+              {alertData.urgencyLabel ? (
+                <Text style={styles.metaChip} numberOfLines={1}>
+                  {alertData.urgencyLabel}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+
+          {/* One clear action: open the job route. */}
           <AnimatedPressable
-            onPress={handleGetStarted}
+            onPress={handleOpenJob}
             style={[styles.buttonOuter, animatedGlowStyle]}
           >
             <Animated.View style={[styles.buttonInner, animatedButtonStyle]}>
-              <Ionicons name="rocket" size={20} color="#fff" style={{ marginRight: 8 }} />
+              <Ionicons name="navigate" size={22} color="#fff" style={{ marginRight: 8 }} />
               <Text style={styles.buttonText}>{meta.buttonLabel}</Text>
             </Animated.View>
           </AnimatedPressable>
@@ -236,12 +258,31 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.muted,
     textAlign: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     lineHeight: 22,
     paddingHorizontal: spacing.sm,
   },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.lg,
+  },
+  metaChip: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.xs,
+    color: colors.accent,
+    backgroundColor: 'rgba(249,115,22,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,22,0.28)',
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+    overflow: 'hidden',
+  },
   buttonOuter: {
-    width: '85%',
+    width: '100%',
     borderRadius: radius.lg,
     ...Platform.select({
       web: {
@@ -254,7 +295,7 @@ const styles = StyleSheet.create({
         elevation: 8,
       },
     }),
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   buttonInner: {
     flexDirection: 'row',

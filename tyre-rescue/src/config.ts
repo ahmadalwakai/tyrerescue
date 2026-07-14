@@ -35,7 +35,7 @@ export const PHONE_DISPLAY =
 export const PHONE_TEL = PHONE_DISPLAY.replace(/[^\d+]/g, '');
 
 export const WHATSAPP_PHONE =
-  process.env.EXPO_PUBLIC_WHATSAPP_PHONE || '447423262955';
+  process.env.EXPO_PUBLIC_WHATSAPP_PHONE || '+44 7423 262955';
 
 export const SUPPORT_EMAIL =
   process.env.EXPO_PUBLIC_SUPPORT_EMAIL || 'support@tyrerescue.uk';

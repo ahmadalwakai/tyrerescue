@@ -5,6 +5,13 @@ import { jsonWithExpoDevCors } from '@/lib/api/dev-cors';
 import { db } from '@/lib/db';
 import { bookings, drivers, users } from '@/lib/db/schema';
 import { getBookingPaymentSummaryMap, type PaymentSummary } from '@/lib/payments/payment-summary';
+import { haversineDistanceMiles } from '@/lib/mapbox';
+import { GARAGE_LOCATION } from '@/lib/garage';
+import {
+  calculateDriverSituation,
+  estimateUrbanDriveMinutesFromMiles,
+  type DriverSituation,
+} from '@/lib/admin/driverSituation';
 
 type LocationFreshness = 'live' | 'stale' | 'offline' | 'unknown';
 type DriverStatus = 'available' | 'busy' | 'offline' | 'unknown';
@@ -20,6 +27,7 @@ export interface TrackingDriver {
   heading: null;
   lastSeenAt: string | null;
   locationFreshness: LocationFreshness;
+  driverSituation: DriverSituation | null;
 }
 
 export interface TrackingJob {
@@ -36,6 +44,7 @@ export interface TrackingJob {
   tyreSummary: string | null;
   vehicleSummary: string | null;
   paymentSummary: PaymentSummary | null;
+  driverSituation: DriverSituation | null;
   createdAt: string;
   scheduledFor: string | null;
 }
@@ -193,6 +202,7 @@ export async function GET(request: NextRequest) {
       name: users.name,
       phone: users.phone,
       isOnline: drivers.isOnline,
+      driverRowStatus: drivers.status,
       currentLat: drivers.currentLat,
       currentLng: drivers.currentLng,
       locationAt: drivers.locationAt,
@@ -206,15 +216,26 @@ export async function GET(request: NextRequest) {
         .select({
           driverId: bookings.driverId,
           refNumber: bookings.refNumber,
+          status: bookings.status,
+          serviceType: bookings.serviceType,
+          quantity: bookings.quantity,
+          paymentType: bookings.paymentType,
+          customerLat: bookings.lat,
+          customerLng: bookings.lng,
         })
         .from(bookings)
         .where(inArray(bookings.status, [...ACTIVE_STATUSES]))
     : [];
 
   const activeRefByDriver = new Map<string, string>();
+  const activeBookingByDriver = new Map<string, (typeof activeBookingRows)[number]>();
   for (const row of activeBookingRows) {
-    if (row.driverId) activeRefByDriver.set(row.driverId, row.refNumber);
+    if (row.driverId) {
+      activeRefByDriver.set(row.driverId, row.refNumber);
+      activeBookingByDriver.set(row.driverId, row);
+    }
   }
+  const driverById = new Map(driverRows.map((driver) => [driver.id, driver]));
 
   // Jobs in the selected dispatch window. Drivers are always returned in full.
   const jobRows = await db
@@ -272,9 +293,30 @@ export async function GET(request: NextRequest) {
 
   const trackingDrivers: TrackingDriver[] = driverRows.map((d) => {
     const activeJobRef = activeRefByDriver.get(d.id) ?? null;
+    const activeBooking = activeBookingByDriver.get(d.id) ?? null;
     const lat = toNum(d.currentLat);
     const lng = toNum(d.currentLng);
     const freshness = computeFreshness(d.locationAt ?? null);
+    const customerLat = toNum(activeBooking?.customerLat);
+    const customerLng = toNum(activeBooking?.customerLng);
+    const outboundMinutes =
+      activeBooking && lat != null && lng != null && customerLat != null && customerLng != null
+        ? estimateUrbanDriveMinutesFromMiles(
+            haversineDistanceMiles(
+              { lat, lng },
+              { lat: customerLat, lng: customerLng },
+            ),
+          )
+        : null;
+    const returnMinutes =
+      activeBooking && customerLat != null && customerLng != null
+        ? estimateUrbanDriveMinutesFromMiles(
+            haversineDistanceMiles(
+              { lat: customerLat, lng: customerLng },
+              { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+            ),
+          )
+        : null;
 
     let driverStatus: DriverStatus;
     if (activeJobRef != null) {
@@ -296,6 +338,24 @@ export async function GET(request: NextRequest) {
       heading: null,
       lastSeenAt: d.locationAt ? d.locationAt.toISOString() : null,
       locationFreshness: freshness,
+      driverSituation: activeBooking
+        ? calculateDriverSituation({
+            jobRef: activeBooking.refNumber,
+            driverId: d.id,
+            bookingStatus: activeBooking.status,
+            driverIsOnline: d.isOnline ?? false,
+            driverStatus: d.driverRowStatus ?? null,
+            lastLocationAt: d.locationAt ?? null,
+            outboundMinutes,
+            returnMinutes,
+            serviceType: activeBooking.serviceType,
+            tyreCount: activeBooking.quantity,
+            paymentStatus: activeBooking.paymentType,
+            returnEstimateAvailable: returnMinutes != null,
+            routeAvailable: outboundMinutes != null,
+            garageConfigured: true,
+          })
+        : null,
     };
   });
 
@@ -303,6 +363,27 @@ export async function GET(request: NextRequest) {
     const lat = toNum(row.lat);
     const lng = toNum(row.lng);
     const assignmentStatus: 'assigned' | 'unassigned' = row.driverId ? 'assigned' : 'unassigned';
+    const driver = row.driverId ? driverById.get(row.driverId) ?? null : null;
+    const driverLat = toNum(driver?.currentLat);
+    const driverLng = toNum(driver?.currentLng);
+    const outboundMinutes =
+      driver && lat != null && lng != null && driverLat != null && driverLng != null
+        ? estimateUrbanDriveMinutesFromMiles(
+            haversineDistanceMiles(
+              { lat: driverLat, lng: driverLng },
+              { lat, lng },
+            ),
+          )
+        : null;
+    const returnMinutes =
+      lat != null && lng != null
+        ? estimateUrbanDriveMinutesFromMiles(
+            haversineDistanceMiles(
+              { lat, lng },
+              { lat: GARAGE_LOCATION.lat, lng: GARAGE_LOCATION.lng },
+            ),
+          )
+        : null;
 
     const paymentSummary = paymentSummaryMap.get(row.id) ?? null;
 
@@ -320,6 +401,22 @@ export async function GET(request: NextRequest) {
       tyreSummary: buildTyreSummary(row.quantity, row.tyreSizeDisplay),
       vehicleSummary: buildVehicleSummary(row.vehicleMake, row.vehicleModel, row.vehicleReg),
       paymentSummary,
+      driverSituation: calculateDriverSituation({
+        jobRef: row.refNumber,
+        driverId: row.driverId ?? null,
+        bookingStatus: row.status,
+        driverIsOnline: driver?.isOnline ?? false,
+        driverStatus: driver?.driverRowStatus ?? null,
+        lastLocationAt: driver?.locationAt ?? null,
+        outboundMinutes,
+        returnMinutes,
+        serviceType: null,
+        tyreCount: row.quantity,
+        paymentStatus: row.paymentType,
+        returnEstimateAvailable: returnMinutes != null,
+        routeAvailable: outboundMinutes != null,
+        garageConfigured: true,
+      }),
       createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
       scheduledFor: row.scheduledAt ? row.scheduledAt.toISOString() : null,
     };

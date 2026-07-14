@@ -11,10 +11,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/api';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
+import { AdminHeaderButton, AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 
 type ChatChannel = 'customer_admin' | 'customer_driver' | 'admin_driver';
 type ChatRole = 'customer' | 'admin' | 'driver';
@@ -227,21 +227,20 @@ export function ChatHubModal({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.safe}>
+      <AdminModalShell keyboardAvoidingEnabled={false}>
         <KeyboardAvoidingView
           style={styles.keyboard}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
         >
-          <View style={styles.header}>
-            <View style={styles.headerCopy}>
-              <Text style={styles.title} numberOfLines={1}>{headerTitle}</Text>
-              <Text style={styles.subtitle} numberOfLines={1}>{headerSubtitle}</Text>
-            </View>
-            {selected ? (
-              <AppButton label="Back" variant="secondary" onPress={() => setSelected(null)} style={styles.headerButton} />
+          <AdminModalHeader
+            title={headerTitle}
+            subtitle={headerSubtitle}
+            onClose={onClose}
+            actions={selected ? (
+              <AdminHeaderButton label="Back" onPress={() => setSelected(null)} />
             ) : null}
-            <AppButton label="Close" variant="ghost" onPress={onClose} style={styles.headerButton} />
-          </View>
+          />
 
           {error ? (
             <View style={styles.noticeWrap}>
@@ -256,6 +255,7 @@ export function ChatHubModal({ visible, onClose }: Props) {
                 style={styles.messages}
                 contentContainerStyle={styles.messagesContent}
                 keyboardShouldPersistTaps="handled"
+                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
                 onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
               >
                 {loadingChat && messages.length === 0 ? (
@@ -405,7 +405,7 @@ export function ChatHubModal({ visible, onClose }: Props) {
             </>
           )}
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </AdminModalShell>
     </Modal>
   );
 }

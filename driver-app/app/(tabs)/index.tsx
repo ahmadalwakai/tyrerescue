@@ -9,10 +9,12 @@ import {
   Alert,
   AppState,
   ImageBackground,
+  Linking,
   Platform,
   Pressable,
 } from 'react-native';
 import * as Location from 'expo-location';
+import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -55,7 +57,7 @@ function PulsingDot() {
   useEffect(() => {
     scale.value = withRepeat(withTiming(1.8, { duration: 1400, easing: Easing.out(Easing.ease) }), -1, true);
     opacity.value = withRepeat(withTiming(0.2, { duration: 1400, easing: Easing.out(Easing.ease) }), -1, true);
-  }, []);
+  }, [opacity, scale]);
 
   const ringStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -162,8 +164,9 @@ export default function DashboardScreen() {
   const [lastSync, setLastSync] = useState<number | null>(null);
   const [syncLabel, setSyncLabel] = useState(t('dashboard.syncing'));
   const [fetchError, setFetchError] = useState<string | null>(null);
-  // Alert/readiness gates "go online". On Android these must be true before a
-  // locked-screen job alert and active-job tracking can reliably work.
+  // Alert/readiness gates "go online". Android checks native full-screen
+  // alert readiness; iOS checks Apple-compliant notification and background
+  // location readiness without promising Android-style lock-screen overlays.
   const [, setAlertReady] = useState({
     notifications: true,
     watcher: true,
@@ -317,10 +320,16 @@ export default function DashboardScreen() {
   const refreshAlertReadiness = useCallback(async () => {
     try {
       const androidNativeReady = Platform.OS === 'android' && DriverAlertWatcher.isAvailable();
+      const notificationPermission =
+        Platform.OS === 'web'
+          ? Promise.resolve({ status: 'granted' as const })
+          : Notifications.getPermissionsAsync();
       const [fgLocation, bgLocation, notifications, watcher, fullScreen, batteryExempt] = await Promise.all([
         Location.getForegroundPermissionsAsync(),
         Location.getBackgroundPermissionsAsync(),
-        androidNativeReady ? DriverAlertWatcher.areNotificationsEnabled() : Promise.resolve(true),
+        androidNativeReady
+          ? DriverAlertWatcher.areNotificationsEnabled()
+          : notificationPermission.then((result) => result.status === 'granted'),
         androidNativeReady ? DriverAlertWatcher.isArmed() : Promise.resolve(true),
         androidNativeReady ? DriverAlertWatcher.canUseFullScreenIntent() : Promise.resolve(true),
         androidNativeReady ? DriverAlertWatcher.isIgnoringBatteryOptimizations() : Promise.resolve(true),
@@ -388,7 +397,13 @@ export default function DashboardScreen() {
               { text: t('dashboard.cancel'), style: 'cancel' },
               {
                 text: t('dashboard.openSettings'),
-                onPress: () => { void DriverAlertWatcher.openAppNotificationSettings(); },
+                onPress: () => {
+                  if (Platform.OS === 'android') {
+                    void DriverAlertWatcher.openAppNotificationSettings();
+                  } else {
+                    void Linking.openSettings();
+                  }
+                },
               },
             ],
           );

@@ -1,7 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
 
 const DEFAULT_INTERVAL = 12_000; // 12 seconds
 

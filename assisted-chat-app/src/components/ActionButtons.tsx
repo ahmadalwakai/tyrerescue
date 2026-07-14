@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { AssistedChatDraft } from '@/types/assisted-chat';
 import { AppButton, StatusBanner } from './ui';
 import { copyToClipboard } from '@/lib/clipboard';
-import { hasAssistedChatTyre } from '@/lib/assisted-chat-workflow';
+import { hasAssistedChatTyre, summarizeBookingTyreLines } from '@/lib/assisted-chat-workflow';
 import { formatGbp } from '@/lib/money';
 import { colors, fontSize } from './theme';
 import { useState } from 'react';
@@ -39,8 +39,11 @@ export function ActionButtons({
       lines.push(`Coordinates: ${draft.location.lat.toFixed(6)}, ${draft.location.lng.toFixed(6)}`);
     }
 
-    if (draft.tyre.size) lines.push(`Tyre size: ${draft.tyre.size}`);
-    lines.push(`Quantity: ${draft.tyre.quantity}`);
+    const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
+    if (tyreSummary.length > 0) {
+      lines.push('Tyres:');
+      tyreSummary.forEach((line) => lines.push(`- ${line}`));
+    }
     lines.push(
       `Locking wheel nut: ${
         draft.lockingNut.answer === 'yes'
