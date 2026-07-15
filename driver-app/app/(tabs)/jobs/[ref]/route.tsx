@@ -46,7 +46,6 @@ import {
   fetchReturnToGarageDirections,
   formatGuidanceDistance,
   GARAGE_LOCATION,
-  getRemainingRouteProgress,
   haversineMeters,
   humanizeInstruction,
   isValidCoord,
@@ -68,6 +67,12 @@ import {
   isValidNavigationCoordinate,
 } from '@/lib/navigation/waze';
 import { buildGoogleMapsSearchUrl } from '@/lib/navigation/google-maps';
+import {
+  buildNavigationProgress,
+  splitInstructionRoadName,
+  validateRouteGeometry,
+  type NavigationProgress,
+} from '@/lib/navigation/navigationProgress';
 import {
   bearingDegrees,
   distanceToRouteMeters,
@@ -135,9 +140,6 @@ const ROUTE_FORCE_REFRESH_MOVE_M = 120;
 // jitter while genuinely on the road. Beyond this the driver is treated as
 // truly off-route and the raw fix is shown (so "Off route" reads honestly).
 const SNAP_TO_ROUTE_MAX_DRIFT_M = OFF_ROUTE_METERS;
-// Advance to the next turn instruction when within this distance of it.
-const STEP_ADVANCE_METERS = 12;
-const STEP_PASSED_ADVANCE_METERS = 6;
 const STEP_MAX_PROGRESS_DRIFT_METERS = OFF_ROUTE_METERS;
 // GPS is considered "weak" for the route-health pill after this many seconds
 // without a fresh fix.
@@ -151,8 +153,9 @@ const ROUTE_EVENT_TICK_MS = 2_000;
 // Bottom map padding (px) reserved for the cockpit sheet when framing the
 // route, so the destination is never hidden behind the panel. The expanded
 // sheet covers much more screen than the collapsed bar.
-const COCKPIT_PAD_COLLAPSED = 300;
+const COCKPIT_PAD_COLLAPSED = 210;
 const COCKPIT_PAD_EXPANDED = 460;
+const NAVIGATION_PROGRESS_STALE_MS = GPS_WEAK_SECONDS * 1000;
 const DEV_GPS_PANEL_STACK_HEIGHT = 188;
 // ── Offline / weak-network handling ─────────────────────────────────────────
 // While a network failure is latched we suppress reroute/refresh spam, but
@@ -325,6 +328,17 @@ function formatCoordForDebug(coord: Coordinates | null): string {
   return coord ? `${coord.lat.toFixed(6)},${coord.lng.toFixed(6)}` : 'n/a';
 }
 
+function logRouteDiagnostic(event: string, details: Record<string, unknown> = {}): void {
+  if (!__DEV__) return;
+  const redacted = Object.fromEntries(
+    Object.entries(details).map(([key, value]) => {
+      if (key.toLowerCase().includes('coord')) return [key, '[coord]'];
+      return [key, value];
+    }),
+  );
+  console.info('[route-nav]', event, redacted);
+}
+
 function routePreferencesKey(preferences: RoutePreferences): string {
   return [
     preferences.motorways ? 'no-motorways' : 'motorways',
@@ -433,15 +447,6 @@ function buildRouteOption(
   };
 }
 
-type DriverDisplayPosition = {
-  rawDriverPosition: Coordinates | null;
-  snappedDriverPosition: Coordinates | null;
-  distanceFromRouteMeters: number | null;
-  displayDriverPosition: Coordinates | null;
-  displayMode: 'snapped' | 'raw';
-  routeHeading: number | null;
-};
-
 type RouteMeasure = {
   alongMeters: number;
   distanceMeters: number;
@@ -476,21 +481,6 @@ function measurePointAlongRoute(
   };
 }
 
-function routeBearingAtSegment(
-  routeCoordinates: [number, number][] | null,
-  segmentIndex: number,
-): number | null {
-  if (!routeCoordinates || routeCoordinates.length < 2 || segmentIndex < 0) {
-    return null;
-  }
-  const start = lngLatToCoordinates(routeCoordinates[segmentIndex]);
-  const end =
-    lngLatToCoordinates(routeCoordinates[segmentIndex + 1]) ??
-    lngLatToCoordinates(routeCoordinates[segmentIndex]);
-  if (!start || !end || haversineMeters(start, end) < 1) return null;
-  return bearingDegrees(start, end);
-}
-
 function routeDistanceToStep(
   driver: Coordinates | null,
   step: RouteStep | null,
@@ -511,99 +501,6 @@ function routeDistanceToStep(
     return null;
   }
   return Math.max(0, stepMeasure.alongMeters - driverMeasure.alongMeters);
-}
-
-function nextStepIndexForDriver(
-  currentIndex: number,
-  steps: RouteStep[],
-  routeCoordinates: [number, number][] | null,
-  driver: Coordinates,
-  speedMps: number | null,
-): number {
-  if (!routeCoordinates || routeCoordinates.length < 2 || steps.length <= 1) {
-    return currentIndex;
-  }
-  const driverMeasure = measurePointAlongRoute(driver, routeCoordinates);
-  const canUseRouteProgress =
-    driverMeasure != null && driverMeasure.distanceMeters <= STEP_MAX_PROGRESS_DRIFT_METERS;
-  let idx = currentIndex;
-
-  while (idx < steps.length - 1) {
-    const step = steps[idx];
-    const stepPoint = { lng: step.location[0], lat: step.location[1] };
-    if (!isValidCoord(stepPoint)) break;
-
-    const straightMeters = haversineMeters(driver, stepPoint);
-    let shouldAdvance = straightMeters <= STEP_ADVANCE_METERS;
-
-    if (canUseRouteProgress && driverMeasure) {
-      const stepMeasure = measurePointAlongRoute(stepPoint, routeCoordinates);
-      if (stepMeasure) {
-        const alongToStep = stepMeasure.alongMeters - driverMeasure.alongMeters;
-        const speedBuffer = Math.max(
-          STEP_PASSED_ADVANCE_METERS,
-          Math.min(32, (speedMps ?? 0) * 0.8),
-        );
-        shouldAdvance =
-          shouldAdvance ||
-          alongToStep <= -speedBuffer ||
-          (Math.abs(alongToStep) <= STEP_ADVANCE_METERS &&
-            straightMeters <= STEP_ADVANCE_METERS * 1.5);
-      }
-    }
-
-    if (!shouldAdvance) break;
-    idx += 1;
-  }
-
-  return idx;
-}
-
-function deriveDriverDisplayPosition(
-  rawDriverPosition: Coordinates | null,
-  routeCoordinates: [number, number][] | null,
-  canSnap: boolean,
-): DriverDisplayPosition {
-  if (!rawDriverPosition || !isValidCoord(rawDriverPosition)) {
-    return {
-      rawDriverPosition: null,
-      snappedDriverPosition: null,
-      distanceFromRouteMeters: null,
-      displayDriverPosition: null,
-      displayMode: 'raw',
-      routeHeading: null,
-    };
-  }
-
-  if (!canSnap || !routeCoordinates || routeCoordinates.length < 2) {
-    return {
-      rawDriverPosition,
-      snappedDriverPosition: null,
-      distanceFromRouteMeters: null,
-      displayDriverPosition: rawDriverPosition,
-      displayMode: 'raw',
-      routeHeading: null,
-    };
-  }
-
-  const snap = snapPointToRoute(rawDriverPosition, routeCoordinates);
-  const snappedDriverPosition = snap?.point ?? null;
-  const distanceFromRouteMeters = snap?.distanceMeters ?? null;
-  const snappedHeading =
-    snap != null ? routeBearingAtSegment(routeCoordinates, snap.segmentIndex) : null;
-  const shouldSnap =
-    snappedDriverPosition != null &&
-    distanceFromRouteMeters != null &&
-    distanceFromRouteMeters <= SNAP_TO_ROUTE_MAX_DRIFT_M;
-
-  return {
-    rawDriverPosition,
-    snappedDriverPosition,
-    distanceFromRouteMeters,
-    displayDriverPosition: shouldSnap ? snappedDriverPosition : rawDriverPosition,
-    displayMode: shouldSnap ? 'snapped' : 'raw',
-    routeHeading: shouldSnap ? snappedHeading : null,
-  };
 }
 
 /**
@@ -817,10 +714,12 @@ window.addEventListener('unhandledrejection', function(e){
 var loaded = false, styleFellBack = false, layersReady = false, altClickBound = false;
 var lastDriver = null, lastCustomer = null, lastHeading = null, lastRoutes = null, lastSelIdx = 0, lastFallback = false;
 var lastRouteRev = -1;
+var lastRouteSeq = -1;
+var lastLocationTimestamp = 0;
 var driverMarker = null, customerMarker = null;
 // Driver-marker interpolation state: the dot is eased between ~1s GPS fixes
 // (instead of snapping) so movement reads smooth like a real nav app.
-var driverAnim = null, driverRaf = 0, driverAnimPos = null, lastRenderedRot = null;
+var driverAnim = null, driverRaf = 0, driverAnimPos = null, lastRenderedRot = null, driverAnimSerial = 0;
 var nowMs = (window.performance && window.performance.now) ? function(){ return window.performance.now(); } : function(){ return Date.now(); };
 var pendingState = null;
 var cameraEpoch = -1, programmatic = false;
@@ -844,7 +743,7 @@ else if(!hasWebGL()){
 var map;
 if(canStartMap){
   try {
-    map = new mapboxgl.Map({container:'m',style:${JSON.stringify(PRIMARY_STYLE)},center:[-4.2518,55.8642],zoom:11,pitch:0,bearing:0,attributionControl:false,dragRotate:false,pitchWithRotate:false,maxPitch:0,antialias:true});
+    map = new mapboxgl.Map({container:'m',style:${JSON.stringify(PRIMARY_STYLE)},center:[-4.2518,55.8642],zoom:11,pitch:0,bearing:0,attributionControl:false,dragRotate:false,pitchWithRotate:false,maxPitch:50,antialias:true});
   } catch(err){
     postFatal('construct-failed', String(err && (err.message||err)));
   }
@@ -915,11 +814,11 @@ function passedRouteCoords(coords, driver){
 function visualRouteCoords(coords, driver, customer){
   return coords || [];
 }
-function syncDynamicRouteOverlays(route, driver, customer){
+function syncDynamicRouteOverlays(route, driver, customer, travelled){
   if(!map || !layersReady || !route || !route.coords || route.coords.length<2) return;
   try {
     if(map.getSource('rsel')) map.getSource('rsel').setData(featureCollection([lineFeature(visualRouteCoords(route.coords, driver, customer))]));
-    var passed = driver ? passedRouteCoords(route.coords, driver) : null;
+    var passed = (travelled && travelled.length >= 2) ? travelled : (driver ? passedRouteCoords(route.coords, driver) : null);
     if(map.getSource('rpassed')) map.getSource('rpassed').setData(passed ? featureCollection([lineFeature(passed)]) : emptyFC());
   } catch(e) {
     if(NAV_DEV) postWarn('route progress draw failed: '+String(e && (e.message||e)));
@@ -927,9 +826,10 @@ function syncDynamicRouteOverlays(route, driver, customer){
 }
 // Shortest signed angular path from->to so the arrow never spins the long way.
 function shortestRot(from, to){ var d = ((to - from + 540) % 360) - 180; return from + d; }
-function stepDriver(){
+function stepDriver(animId){
   driverRaf = 0;
   if(!driverAnim || !driverMarker) return;
+  if(driverAnim.id !== animId) return;
   var t = (nowMs() - driverAnim.start) / driverAnim.dur;
   if(t > 1) t = 1;
   var lng = driverAnim.fLng + (driverAnim.tLng - driverAnim.fLng) * t;
@@ -941,16 +841,26 @@ function stepDriver(){
     driverMarker.setRotation(r);
     lastRenderedRot = ((r % 360) + 360) % 360;
   }
-  if(t < 1) driverRaf = requestAnimationFrame(stepDriver);
+  if(t < 1) driverRaf = requestAnimationFrame(function(){ stepDriver(animId); });
 }
-// Move the driver dot to the target [lng,lat]; ease over ~1s, but snap instantly
-// on a GPS teleport (big jump) so the dot never glides across the whole map.
-function animateDriver(to, rot, forceSnap){
+// Move the driver dot to the target [lng,lat]. Each accepted GPS fix cancels
+// and retargets the previous animation from the currently-rendered marker
+// position; stale timestamps are ignored so buffered iOS fixes cannot drag the
+// dot backwards.
+function animateDriver(to, rot, opts){
+  opts = opts || {};
+  var animId = ++driverAnimSerial;
+  var ts = (typeof opts.timestamp === 'number' && isFinite(opts.timestamp)) ? opts.timestamp : 0;
+  if(ts && ts < lastLocationTimestamp) return false;
+  var forceSnap = !!opts.forceSnap;
+  var duration = (typeof opts.duration === 'number' && isFinite(opts.duration)) ? opts.duration : 900;
+  duration = Math.max(220, Math.min(1400, duration));
   if(!driverMarker){
     driverMarker = new mapboxgl.Marker({element:driverEl(), anchor:'center', rotationAlignment:'map', pitchAlignment:'map'}).setLngLat(to).addTo(map);
     driverAnimPos = { lng: to[0], lat: to[1] };
     if(rot != null){ driverMarker.setRotation(rot); lastRenderedRot = ((rot % 360) + 360) % 360; }
-    return;
+    if(ts) lastLocationTimestamp = ts;
+    return true;
   }
   if(forceSnap){
     if(driverRaf) cancelAnimationFrame(driverRaf);
@@ -959,9 +869,12 @@ function animateDriver(to, rot, forceSnap){
     driverAnimPos = { lng: to[0], lat: to[1] };
     driverMarker.setLngLat(to);
     if(rot != null){ driverMarker.setRotation(rot); lastRenderedRot = ((rot % 360) + 360) % 360; }
-    return;
+    if(ts) lastLocationTimestamp = ts;
+    return true;
   }
-  var from = driverAnimPos || driverMarker.getLngLat();
+  if(driverRaf) cancelAnimationFrame(driverRaf);
+  driverRaf = 0;
+  var from = driverMarker.getLngLat ? driverMarker.getLngLat() : (driverAnimPos || to);
   var fLng = (from.lng != null) ? from.lng : from[0];
   var fLat = (from.lat != null) ? from.lat : from[1];
   var fromRot = (lastRenderedRot == null) ? (rot == null ? 0 : rot) : lastRenderedRot;
@@ -971,10 +884,13 @@ function animateDriver(to, rot, forceSnap){
     driverAnimPos = { lng: to[0], lat: to[1] };
     driverMarker.setLngLat(to);
     if(rot != null){ driverMarker.setRotation(rot); lastRenderedRot = ((rot % 360) + 360) % 360; }
-    return;
+    if(ts) lastLocationTimestamp = ts;
+    return true;
   }
-  driverAnim = { fLng:fLng, fLat:fLat, tLng:to[0], tLat:to[1], fRot:fromRot, tRot:toRot, hasRot:(rot != null), start:nowMs(), dur:1000 };
-  if(!driverRaf) driverRaf = requestAnimationFrame(stepDriver);
+  driverAnim = { id:animId, fLng:fLng, fLat:fLat, tLng:to[0], tLat:to[1], fRot:fromRot, tRot:toRot, hasRot:(rot != null), start:nowMs(), dur:duration };
+  if(ts) lastLocationTimestamp = ts;
+  driverRaf = requestAnimationFrame(function(){ stepDriver(animId); });
+  return true;
 }
 function circlePolygon(center, meters){
   var pts=[]; var lat=center[1]*Math.PI/180; var dLat=meters/111320; var dLng=meters/(111320*Math.cos(lat));
@@ -1162,34 +1078,52 @@ function fitToCoords(coords){
 function applyCamera(s){
   if(!s) return;
   var mode = s.followMode || 'heading_up';
-  if(mode==='overview'){
+  var cameraMode = s.cameraMode || (mode==='overview' ? 'overview' : (s.follow ? 'following' : 'free-pan'));
+  if(cameraMode==='overview' || mode==='overview'){
     if(s.epoch!==cameraEpoch && s.fitCoords && s.fitCoords.length>=2){ fitToCoords(s.fitCoords); }
     cameraEpoch = s.epoch; return;
   }
-  if(!s.follow || !s.driver){ cameraEpoch = s.epoch; return; }
+  if(cameraMode==='free-pan' || !s.follow || !s.driver){ cameraEpoch = s.epoch; return; }
   var resetZoom = (s.epoch !== cameraEpoch);
   cameraEpoch = s.epoch;
-  var opts = { center: s.driver, duration: 350 };
-  if(mode==='heading_up'){ opts.bearing = (s.heading==null ? map.getBearing() : s.heading); opts.pitch = 0; }
+  var opts = { center: s.driver, duration: 360, offset:[0, Math.min(130, Math.max(72, bottomPad * 0.28))] };
+  if(mode==='heading_up'){ opts.bearing = (s.heading==null ? map.getBearing() : s.heading); opts.pitch = 38; }
   else { opts.bearing = 0; opts.pitch = 0; }
   var currentZoom = (map && map.getZoom) ? map.getZoom() : NAVIGATION_ZOOM;
   if(resetZoom || currentZoom < NAVIGATION_ZOOM - 0.5){ opts.zoom = NAVIGATION_ZOOM; }
   programmatic = true;
+  try { if(map && map.stop) map.stop(); } catch(_){}
   map.easeTo(opts);
 }
 
 function applyState(s){
   if(!s || !map) return;
+  var incomingRouteSeq = (typeof s.routeSeq === 'number' && isFinite(s.routeSeq)) ? s.routeSeq : lastRouteSeq;
+  if(incomingRouteSeq < lastRouteSeq){
+    if(NAV_DEV) postWarn('stale route revision ignored');
+    return;
+  }
+  if(incomingRouteSeq > lastRouteSeq){
+    lastRouteSeq = incomingRouteSeq;
+    lastLocationTimestamp = 0;
+    if(driverRaf) cancelAnimationFrame(driverRaf);
+    driverRaf = 0;
+    driverAnim = null;
+    driverAnimSerial++;
+  }
   if(typeof s.bottomPad === 'number' && s.bottomPad >= 0) bottomPad = s.bottomPad;
   if(s.customer){
     lastCustomer = s.customer;
     if(!customerMarker) customerMarker = new mapboxgl.Marker({element:customerEl(), anchor:'bottom'}).setLngLat(s.customer).addTo(map);
     else customerMarker.setLngLat(s.customer);
   }
+  var driverAccepted = true;
   if(s.driver){
-    lastDriver = s.driver;
-    if(s.heading!=null) lastHeading = s.heading;
-    animateDriver(s.driver, s.heading, s.driverDisplayMode === 'snapped');
+    driverAccepted = animateDriver(s.driver, s.heading, {forceSnap: !!s.forceSnap, timestamp: s.locationTimestamp, duration: s.animationDurationMs});
+    if(driverAccepted){
+      lastDriver = s.driver;
+      if(s.heading!=null) lastHeading = s.heading;
+    }
   }
   if(layersReady && map.getSource('acc')){
     var accCenter = s.rawDriver || s.driver;
@@ -1215,13 +1149,13 @@ function applyState(s){
   }
   if(lastRoutes && layersReady){
     var activeRoute = lastRoutes[lastSelIdx] || lastRoutes[0];
-    syncDynamicRouteOverlays(activeRoute, lastDriver, lastCustomer);
+    syncDynamicRouteOverlays(activeRoute, lastDriver, lastCustomer, s.travelledGeometry);
   }
   // Alternatives visibility is independent of the route rebuild: toggling the
   // cockpit must never redraw the route, only show/hide the muted alt lines.
   if(typeof s.showAlts === 'boolean') setVis('alt-lines', s.showAlts);
   if(s.fit && s.followMode==='overview' && s.fitCoords && s.fitCoords.length>=2){ fitToCoords(s.fitCoords); cameraEpoch = s.epoch; return; }
-  applyCamera(s);
+  if(driverAccepted) applyCamera(s);
 }
 window.__applyState = function(encoded){
   try {
@@ -1364,12 +1298,13 @@ export default function JobRouteScreen() {
   // Bumped on recenter / follow-mode change to authorise a one-off camera zoom
   // reset in the WebView. Plain GPS fixes keep the same epoch (no auto-zoom).
   const [cameraEpoch, setCameraEpoch] = useState(0);
+  const [routeSequence, setRouteSequence] = useState(0);
   // Collapsible bottom cockpit so the map can occupy the full screen.
   // Default to COLLAPSED so the map is the dominant full-screen visual and the
   // bottom panel is only a small floating bar (status + ETA + action).
   const [cockpitCollapsed, setCockpitCollapsed] = useState(true);
   const [rerouting, setRerouting] = useState(false);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [, setCurrentStepIndex] = useState(0);
   const [lastFixAt, setLastFixAt] = useState<number | null>(null);
   const [nowTick, setNowTick] = useState<number>(() => Date.now());
   // Auto "mark arrived" suggestion (Phase A). A non-blocking prompt shown when
@@ -1439,6 +1374,7 @@ export default function JobRouteScreen() {
   const mapDiagRef = useRef('');
   const jobNumberShimmer = useRef(new Animated.Value(0)).current;
   const routeAbortRef = useRef<AbortController | null>(null);
+  const routeRequestSeqRef = useRef(0);
   const returnRouteAbortRef = useRef<AbortController | null>(null);
   const destinationRef = useRef<Coordinates | null>(null);
   const driverLocRef = useRef<Coordinates | null>(null);
@@ -1449,6 +1385,8 @@ export default function JobRouteScreen() {
   const accuracyRef = useRef<number | null>(null);
   const prevLocRef = useRef<Coordinates | null>(null);
   const routeStateRef = useRef<RouteState>(INITIAL_ROUTE_STATE);
+  const routeSequenceRef = useRef(0);
+  const navigationProgressRef = useRef<NavigationProgress | null>(null);
   const phaseRef = useRef<NavigationPhase>('preview');
   const stepIndexRef = useRef(0);
   const lastRouteOriginRef = useRef<Coordinates | null>(null);
@@ -1636,15 +1574,25 @@ export default function JobRouteScreen() {
   }, [job?.lat, job?.lng]);
   const currentDestinationKey = useMemo(() => coordKey(customerCoord), [customerCoord]);
 
+  const bumpRouteSequence = useCallback(() => {
+    const next = routeSequenceRef.current + 1;
+    routeSequenceRef.current = next;
+    setRouteSequence(next);
+    return next;
+  }, []);
+
   useEffect(() => {
     destinationRef.current = customerCoord;
     routeAbortRef.current?.abort();
+    routeRequestSeqRef.current += 1;
+    bumpRouteSequence();
     hasRequestedRef.current = false;
     lastRouteOriginRef.current = null;
     lastRouteAtRef.current = 0;
     offRouteSinceRef.current = null;
     lastOffRouteRerouteAtRef.current = 0;
     networkFailRef.current = 0;
+    navigationProgressRef.current = null;
     stepIndexRef.current = 0;
     spokenStepRef.current = -1;
     let clearRouteTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1680,7 +1628,7 @@ export default function JobRouteScreen() {
       clearTimeout(id);
       clearTimeout(deviationId);
     };
-  }, [customerCoord, currentDestinationKey, currentRouteJobRef]);
+  }, [bumpRouteSequence, customerCoord, currentDestinationKey, currentRouteJobRef]);
 
   // Build the HTML once per token so the WebView never reloads while data updates.
   const html = useMemo(() => (token ? buildHtml(token) : ''), [token]);
@@ -1706,6 +1654,8 @@ export default function JobRouteScreen() {
   const requestRoute = useCallback(
     async (origin: Coordinates, destination: Coordinates) => {
       routeAbortRef.current?.abort();
+      const requestId = routeRequestSeqRef.current + 1;
+      routeRequestSeqRef.current = requestId;
       const controller = new AbortController();
       routeAbortRef.current = controller;
       // Update the ref immediately so evaluateRoute's loading guard works before React re-renders.
@@ -1723,9 +1673,54 @@ export default function JobRouteScreen() {
         { avoid: routePreferencesRef.current },
       );
       if (controller.signal.aborted) return;
+      if (requestId !== routeRequestSeqRef.current) {
+        logRouteDiagnostic('stale-route-response-discarded', { requestId });
+        return;
+      }
 
       if ('routes' in result) {
-        const routes = result.routes;
+        const validations = result.routes.map((route) =>
+          validateRouteGeometry({ route, origin, destination }),
+        );
+        const routes = result.routes.filter((_, index) => validations[index]?.ok);
+        const rejected = validations.filter((validation) => !validation.ok);
+        if (rejected.length > 0) {
+          logRouteDiagnostic('route-geometry-rejected', {
+            requestId,
+            rejected: rejected.map((validation) => validation.reason).join(','),
+            accepted: routes.length,
+          });
+        }
+        if (routes.length === 0) {
+          const err: RouteError = {
+            kind: 'no-route',
+            message: 'Directions returned invalid route geometry.',
+          };
+          setRerouting(false);
+          devGpsPauseOnRouteChangeRef.current = false;
+          const prev = routeStateRef.current;
+          const canKeepPreviousRoute =
+            prev.source === 'mapbox' &&
+            prev.geometry != null &&
+            prev.geometry.length >= 2 &&
+            prev.routeJobRef === routeJobRef &&
+            prev.routeDestinationKey === routeDestinationKey;
+          if (canKeepPreviousRoute) {
+            const next: RouteState = { ...prev, error: err, loading: false };
+            routeStateRef.current = next;
+            setRouteState(next);
+            return;
+          }
+          lastRouteAtRef.current = Date.now();
+          bumpRouteSequence();
+          const next = makeRouteState('none', [], 0, err, {
+            routeJobRef,
+            routeDestinationKey,
+          });
+          routeStateRef.current = next;
+          setRouteState(next);
+          return;
+        }
         const primary = routes[0];
         // A successful fetch means we are back online — clear the latch so
         // reroute/refresh is allowed again.
@@ -1737,8 +1732,10 @@ export default function JobRouteScreen() {
         offRouteSinceRef.current = null;
         fitPendingRef.current = followModeRef.current === 'overview';
         stepIndexRef.current = primary.steps.length > 1 ? 1 : 0;
+        navigationProgressRef.current = null;
         setCurrentStepIndex(stepIndexRef.current);
         setRerouting(false);
+        bumpRouteSequence();
         const next = makeRouteState('mapbox', routes, 0, null, {
           routeJobRef,
           routeDestinationKey,
@@ -1773,6 +1770,7 @@ export default function JobRouteScreen() {
       }
 
       if (err.kind === 'invalid-coords') {
+        bumpRouteSequence();
         const next = makeRouteState('none', [], 0, err, {
           routeJobRef,
           routeDestinationKey,
@@ -1786,6 +1784,7 @@ export default function JobRouteScreen() {
       // A straight-line is NOT drawn — it must never be presented as navigation.
       // Rate-limit the next retry so we do not spam the Directions API.
       lastRouteAtRef.current = Date.now();
+      bumpRouteSequence();
       const next = makeRouteState('none', [], 0, err, {
         routeJobRef,
         routeDestinationKey,
@@ -1793,7 +1792,7 @@ export default function JobRouteScreen() {
       routeStateRef.current = next;
       setRouteState(next);
     },
-    [currentRouteJobRef, locale],
+    [bumpRouteSequence, currentRouteJobRef, locale],
   );
 
   useEffect(() => {
@@ -1899,6 +1898,7 @@ export default function JobRouteScreen() {
         rs.routeDestinationKey === destKey;
 
       if (rs.source === 'mapbox' && !routeBelongsToCurrentJob) {
+        bumpRouteSequence();
         const next: RouteState = {
           ...INITIAL_ROUTE_STATE,
           loading: true,
@@ -1907,21 +1907,6 @@ export default function JobRouteScreen() {
         setRouteState(next);
         requestRoute(driver, dest);
         return;
-      }
-
-      // Advance the active turn instruction as the driver passes maneuvers.
-      if (routeBelongsToCurrentJob && rs.steps.length > 1) {
-        const idx = nextStepIndexForDriver(
-          stepIndexRef.current,
-          rs.steps,
-          rs.geometry,
-          driver,
-          speedRef.current,
-        );
-        if (idx !== stepIndexRef.current) {
-          stepIndexRef.current = idx;
-          setCurrentStepIndex(idx);
-        }
       }
 
       // While a network failure is latched, suppress reroute/refresh attempts
@@ -2012,7 +1997,7 @@ export default function JobRouteScreen() {
         requestRoute(driver, dest);
       }
     },
-    [currentRouteJobRef, requestRoute],
+    [bumpRouteSequence, currentRouteJobRef, requestRoute],
   );
 
   // First fix / subsequent fixes funnel through here.
@@ -2252,22 +2237,43 @@ export default function JobRouteScreen() {
     routeState.distanceMeters,
   ]);
 
-  const {
-    rawDriverPosition,
-    snappedDriverPosition,
-    distanceFromRouteMeters,
-    displayDriverPosition,
-    displayMode,
-    routeHeading,
-  } = useMemo(
+  const selectedRoute = routeIsCurrent
+    ? routeState.routes[routeState.selectedIndex] ?? null
+    : null;
+  const navigationProgress = useMemo(
     () =>
-      deriveDriverDisplayPosition(
-        driverLoc && isValidCoord(driverLoc) ? driverLoc : null,
-        selectedRouteCoordinates,
+      buildNavigationProgress({
+        rawLocation: driverLoc && isValidCoord(driverLoc) ? driverLoc : null,
+        route: selectedRoute,
+        routeRevision: routeRev,
         routeIsCurrent,
-      ),
-    [driverLoc, routeIsCurrent, selectedRouteCoordinates],
+        previous: navigationProgressRef.current,
+        gpsHeading: headingRef.current,
+        speedMps: speedRef.current,
+        accuracyMeters: accuracyRef.current,
+        fixTimestampMs: lastFixAt,
+        nowMs: lastFixAt ?? 0,
+        maxSnapDistanceMeters: SNAP_TO_ROUTE_MAX_DRIFT_M,
+        staleAfterMs: NAVIGATION_PROGRESS_STALE_MS,
+        fallbackStepIndex: stepIndexRef.current,
+      }),
+    [driverLoc, lastFixAt, routeIsCurrent, routeRev, selectedRoute],
   );
+
+  useEffect(() => {
+    navigationProgressRef.current = navigationProgress;
+    if (navigationProgress.currentStepIndex !== stepIndexRef.current) {
+      stepIndexRef.current = navigationProgress.currentStepIndex;
+      setCurrentStepIndex(navigationProgress.currentStepIndex);
+    }
+  }, [navigationProgress]);
+
+  const rawDriverPosition = navigationProgress.rawLocation;
+  const snappedDriverPosition = navigationProgress.snappedLocation;
+  const distanceFromRouteMeters = navigationProgress.distanceFromRouteMeters;
+  const displayDriverPosition = navigationProgress.displayLocation;
+  const displayMode = navigationProgress.displayMode;
+  const routeHeading = navigationProgress.routeHeading;
 
   // ── Push markers / route / camera into the WebView ──
   useEffect(() => {
@@ -2285,14 +2291,15 @@ export default function JobRouteScreen() {
     const customer = customerMarkerPosition
       ? [customerMarkerPosition.lng, customerMarkerPosition.lat]
       : null;
-    // Reliability beats bridge micro-optimisation here: route geometry is sent
-    // whenever a valid route exists so a WebView/layer reload can never leave
-    // the map showing two pins without the road line between them.
     const routeRevChanged = routeRev !== lastInjectedRouteRevRef.current;
-    if (routeRevChanged) lastInjectedRouteRevRef.current = routeRev;
     const routesPayload = routeCanRender
-      ? routeState.routes.map((r) => ({ coords: r.geometry, congestion: r.congestion }))
-      : [];
+      ? routeRevChanged
+        ? routeState.routes.map((r) => ({ coords: r.geometry, congestion: r.congestion }))
+        : undefined
+      : routeRevChanged
+        ? []
+        : undefined;
+    if (routeRevChanged) lastInjectedRouteRevRef.current = routeRev;
     const fit = fitPendingRef.current;
     fitPendingRef.current = false;
     const fitCoords =
@@ -2303,19 +2310,32 @@ export default function JobRouteScreen() {
             ...(customer ? [customer] : []),
           ]
         : null;
-    const mapHeading = displayMode === 'snapped' && routeHeading != null
-      ? routeHeading
-      : headingRef.current;
+    const mapHeading =
+      navigationProgress.displayHeading ??
+      (displayMode === 'snapped' && routeHeading != null
+        ? routeHeading
+        : headingRef.current);
+    const cameraMode =
+      followMode === 'overview'
+        ? 'overview'
+        : isFollowingDriver
+          ? 'following'
+          : 'free-pan';
     const json = JSON.stringify({
       driver,
       rawDriver,
       driverDisplayMode: displayMode,
       heading: mapHeading,
       accuracy: accuracyRef.current,
+      locationTimestamp: navigationProgress.fixTimestampMs,
+      animationDurationMs: navigationProgress.animationDurationMs,
+      forceSnap: navigationProgress.forceSnap,
       customer,
       routes: routesPayload,
       selectedIndex: routeState.selectedIndex,
       routeRev,
+      routeSeq: routeSequence,
+      travelledGeometry: navigationProgress.travelledGeometry,
       // Alternatives are hidden while the cockpit is collapsed so they never
       // compete with the main route; shown only when details are expanded.
       showAlts: !cockpitCollapsed,
@@ -2326,6 +2346,7 @@ export default function JobRouteScreen() {
       fitCoords,
       follow: isFollowingDriver,
       followMode,
+      cameraMode,
       epoch: cameraEpoch,
       bottomPad: cockpitCollapsed ? COCKPIT_PAD_COLLAPSED + insets.bottom : COCKPIT_PAD_EXPANDED + insets.bottom,
     });
@@ -2351,8 +2372,10 @@ export default function JobRouteScreen() {
     routeState.routeJobRef,
     routeState.routeDestinationKey,
     routeRev,
+    routeSequence,
     selectedRouteCoordinates,
     routeHeading,
+    navigationProgress,
     isFollowingDriver,
     followMode,
     cameraEpoch,
@@ -2483,8 +2506,10 @@ export default function JobRouteScreen() {
       const now = Date.now();
       const metersToCustomer =
         driver && dest ? haversineMeters(driver, dest) : null;
+      const progress = navigationProgressRef.current;
       const metersToRoute =
-        driver && rs.geometry ? distanceToRouteMeters(driver, rs.geometry) : null;
+        progress?.distanceFromRouteMeters ??
+        (driver && rs.geometry ? distanceToRouteMeters(driver, rs.geometry) : null);
       const fixAge =
         lastFixAtRef.current == null ? null : now - lastFixAtRef.current;
       // A reroute has definitively failed when we have no usable geometry,
@@ -2504,10 +2529,11 @@ export default function JobRouteScreen() {
           ? rs.steps[Math.min(idx, rs.steps.length - 1)]
           : null;
       const metersToManeuver =
-        step && driver
-          ? routeDistanceToStep(driver, step, rs.geometry) ??
+        progress?.distanceToManeuverMeters ??
+        (step && driver
+          ? routeDistanceToStep(progress?.displayLocation ?? driver, step, rs.geometry) ??
             haversineMeters(driver, { lng: step.location[0], lat: step.location[1] })
-          : null;
+          : null);
       const events = engineRef.current.update({
         source: rs.source,
         rerouting: reroutingRef.current,
@@ -2933,8 +2959,7 @@ export default function JobRouteScreen() {
   // real-time values to avoid closure-ordering issues. Priority order:
   //   1. Assigned job -> Start driving
   //   2. Within arrival zone + en route -> Mark Arrived
-  //   3. Coordinates valid -> Open Waze
-  //   4. Address available -> Open address in Google Maps
+  //   3. Otherwise expand details (Waze/Google Maps live there)
   const handleCollapsedPrimary = useCallback(() => {
     const jobStatus = jobStatusRef.current;
     if (jobStatus === 'driver_assigned') {
@@ -2949,14 +2974,8 @@ export default function JobRouteScreen() {
       void handleConfirmArrival();
       return;
     }
-    if (dest) {
-      handleOpenWaze();
-      return;
-    }
-    if (job?.addressLine?.trim()) {
-      handleOpenAddressSearch();
-    }
-  }, [handleStatusAction, handleConfirmArrival, handleOpenWaze, handleOpenAddressSearch, job?.addressLine]);
+    setCockpitCollapsed(false);
+  }, [handleStatusAction, handleConfirmArrival]);
 
   const handleCallCustomer = useCallback(() => {
     const dialable = cleanPhone(job?.customerPhone);
@@ -3014,6 +3033,8 @@ export default function JobRouteScreen() {
     stepIndexRef.current = rs.routes[index].steps.length > 1 ? 1 : 0;
     setCurrentStepIndex(stepIndexRef.current);
     fitPendingRef.current = followModeRef.current === 'overview';
+    navigationProgressRef.current = null;
+    bumpRouteSequence();
     const next = makeRouteState('mapbox', rs.routes, index, rs.error, {
       routeJobRef: rs.routeJobRef,
       routeDestinationKey: rs.routeDestinationKey,
@@ -3022,7 +3043,7 @@ export default function JobRouteScreen() {
     });
     routeStateRef.current = next;
     setRouteState(next);
-  }, []);
+  }, [bumpRouteSequence]);
 
   const handleMapMessage = useCallback((msg: RouteMapMessage) => {
     if (msg.type === 'map-loaded') {
@@ -3379,18 +3400,20 @@ export default function JobRouteScreen() {
   }, []);
 
   const steps = routeIsCurrent ? routeState.steps : [];
+  const activeStepIndex = navigationProgress.currentStepIndex;
   const upcomingStep =
-    steps.length > 1 ? steps[Math.min(currentStepIndex, steps.length - 1)] : null;
+    steps.length > 1 ? steps[Math.min(activeStepIndex, steps.length - 1)] : null;
   const nextStep =
-    steps.length > currentStepIndex + 1 ? steps[currentStepIndex + 1] : null;
+    steps.length > activeStepIndex + 1 ? steps[activeStepIndex + 1] : null;
   const distanceToManeuver =
-    upcomingStep && driverLoc
-      ? routeDistanceToStep(driverLoc, upcomingStep, selectedRouteCoordinates) ??
+    navigationProgress.distanceToManeuverMeters ??
+    (upcomingStep && driverLoc
+      ? routeDistanceToStep(displayDriverPosition ?? driverLoc, upcomingStep, selectedRouteCoordinates) ??
         haversineMeters(driverLoc, {
           lng: upcomingStep.location[0],
           lat: upcomingStep.location[1],
         })
-      : null;
+      : null);
 
   // Straight-line distance to the customer — drives arrival wording.
   const metersToCustomer =
@@ -3453,15 +3476,15 @@ export default function JobRouteScreen() {
       if (!hasLiveStep) spokenStepRef.current = -1;
       return;
     }
-    if (currentStepIndex === spokenStepRef.current) return;
-    spokenStepRef.current = currentStepIndex;
+    if (activeStepIndex === spokenStepRef.current) return;
+    spokenStepRef.current = activeStepIndex;
     const instruction = humanizeInstruction(upcomingStep, t);
     const phrase =
       distanceToManeuver != null
         ? `${formatGuidanceDistance(distanceToManeuver, t)}, ${instruction}`
         : instruction;
     speakGuidance(phrase, { locale: localeRef.current, force: true });
-  }, [voiceEnabled, hasLiveStep, upcomingStep, currentStepIndex, distanceToManeuver, t]);
+  }, [voiceEnabled, hasLiveStep, upcomingStep, activeStepIndex, distanceToManeuver, t]);
 
   // A route-fetch attempt has definitively failed (no fallback drawn).
   const rerouteFailed =
@@ -3471,43 +3494,45 @@ export default function JobRouteScreen() {
     routeState.error.kind !== 'invalid-coords' &&
     routeState.error.kind !== 'aborted';
 
-  // Live remaining distance/time along the SELECTED route from the driver's
-  // current GPS position — computed locally on each fix (no API refetch). Falls
-  // back to the full route totals when there is no fix / geometry is too short.
-  const remainingProgress = useMemo(() => {
-    if (
-      !driverLoc ||
-      !routeIsCurrent ||
-      routeState.geometry == null ||
-      routeState.geometry.length < 2 ||
-      routeState.distanceMeters == null ||
-      routeState.durationSeconds == null
-    ) {
-      return null;
-    }
-    return getRemainingRouteProgress({
-      driver: driverLoc,
-      geometry: routeState.geometry,
-      totalDistanceMeters: routeState.distanceMeters,
-      totalDurationSeconds: routeState.durationSeconds,
-    });
-  }, [
-    driverLoc,
-    routeIsCurrent,
-    routeState.geometry,
-    routeState.distanceMeters,
-    routeState.durationSeconds,
-  ]);
-
   const displayDistanceMeters =
-    routeIsCurrent ? remainingProgress?.remainingDistanceMeters ?? routeState.distanceMeters : null;
+    routeIsCurrent ? navigationProgress.remainingDistanceMeters ?? routeState.distanceMeters : null;
   const displayDurationSeconds =
-    routeIsCurrent ? remainingProgress?.remainingDurationSeconds ?? routeState.durationSeconds : null;
+    routeIsCurrent ? navigationProgress.remainingDurationSeconds ?? routeState.durationSeconds : null;
 
   const distanceMiles =
     displayDistanceMeters != null ? metersToMiles(displayDistanceMeters) : null;
   const durationMin =
     displayDurationSeconds != null ? secondsToMinutes(displayDurationSeconds) : null;
+  const navigationFixStale =
+    lastFixAt == null || nowTick - lastFixAt > NAVIGATION_PROGRESS_STALE_MS;
+  const speedMph =
+    !navigationFixStale && navigationProgress.speedMph != null
+      ? Math.max(0, Math.round(navigationProgress.speedMph))
+      : null;
+  const speedValueText = speedMph != null ? String(speedMph) : '—';
+  const speedUnitText = 'mph';
+
+  const renderGuidanceText = (
+    text: string,
+    step: RouteStep | null,
+    style: React.ComponentProps<typeof Text>['style'],
+    numberOfLines: number,
+  ) => {
+    const parts = splitInstructionRoadName(text, step?.name);
+    return (
+      <Text style={style} numberOfLines={numberOfLines}>
+        {parts ? (
+          <>
+            {parts.before}
+            <Text style={styles.ltrText}>{parts.road}</Text>
+            {parts.after}
+          </>
+        ) : (
+          text
+        )}
+      </Text>
+    );
+  };
 
   // Cockpit data (all from the real driver job payload).
   const nextActionLabel =
@@ -3878,15 +3903,16 @@ export default function JobRouteScreen() {
   const collapsedPrimaryLabel = useMemo((): string => {
     if (isAssigned) return t('route.startDriving');
     if (isEnRoute && within25m) return t('route.markArrived');
-    if (!customerCoord && addressLine) return t('route.openGoogleMaps');
-    return t('route.openWazeShort');
-  }, [isAssigned, isEnRoute, within25m, customerCoord, addressLine, t]);
+    return t('route.more');
+  }, [isAssigned, isEnRoute, within25m, t]);
 
-  const collapsedPrimaryIcon: IoniconName = isEnRoute && within25m ? 'flag' : 'navigate';
+  const collapsedPrimaryIcon: IoniconName = isEnRoute && within25m
+    ? 'flag'
+    : isAssigned
+      ? 'navigate'
+      : 'ellipsis-horizontal';
 
-  const collapsedPrimaryDisabled =
-    actioning ||
-    (!isAssigned && !isEnRoute && !within25m && !customerCoord && !addressLine);
+  const collapsedPrimaryDisabled = actioning;
 
   const collapsedPrimaryIsArrival = isEnRoute && within25m;
 
@@ -4123,9 +4149,7 @@ export default function JobRouteScreen() {
             {primaryDistance != null && (
               <Text style={styles.instructionDistance}>{primaryDistance}</Text>
             )}
-            <Text style={styles.instructionText} numberOfLines={2}>
-              {primaryInstruction}
-            </Text>
+            {renderGuidanceText(primaryInstruction, hasLiveStep ? upcomingStep : null, styles.instructionText, 2)}
             {nextInstruction != null && (
               <Text style={styles.instructionNext} numberOfLines={1}>
                 {t('route.thenInstruction', { instruction: nextInstruction })}
@@ -4150,6 +4174,24 @@ export default function JobRouteScreen() {
         >
           <Ionicons name="checkmark-circle" size={16} color="#137333" />
           <Text style={styles.bannerText}>{paymentBanner}</Text>
+        </View>
+      )}
+
+      {token && mapLoaded && !mapFatal && !permissionDenied && (
+        <View
+          style={[
+            styles.speedPill,
+            styles.noPointerEvents,
+            {
+              bottom:
+                (cockpitCollapsed ? COCKPIT_PAD_COLLAPSED : COCKPIT_PAD_EXPANDED) +
+                insets.bottom +
+                spacing.sm,
+            },
+          ]}
+        >
+          <Text style={styles.speedPillValue}>{speedValueText}</Text>
+          <Text style={styles.speedPillUnit}>{speedUnitText}</Text>
         </View>
       )}
 
@@ -4517,7 +4559,7 @@ export default function JobRouteScreen() {
           </View>
         </Pressable>
 
-        {renderJobClock(cockpitCollapsed)}
+        {!cockpitCollapsed && renderJobClock(false)}
 
         {cockpitCollapsed ? (
           /* ──────────────────────────────────────────────────────────────────
@@ -4599,9 +4641,7 @@ export default function JobRouteScreen() {
                   <View style={styles.collapsedInstIcon}>
                     <Ionicons name={collapsedNavIcon} size={24} color="#FFFFFF" />
                   </View>
-                  <Text style={styles.collapsedInstText} numberOfLines={2}>
-                    {collapsedHeadline}
-                  </Text>
+                  {renderGuidanceText(collapsedHeadline, hasLiveStep ? upcomingStep : null, styles.collapsedInstText, 2)}
                   {primaryDistance != null && routeIsCurrent && (
                     <Text style={styles.collapsedDistBadge}>{primaryDistance}</Text>
                   )}
@@ -4619,6 +4659,12 @@ export default function JobRouteScreen() {
                   <Text style={styles.collapsedDistText}>
                     {distanceMiles != null ? t('route.distanceMi', { value: distanceMiles.toFixed(1) }) : '—'}
                   </Text>
+                  <View style={styles.collapsedSpeedChip}>
+                    <Ionicons name="speedometer-outline" size={12} color="#3C4043" />
+                    <Text style={styles.collapsedSpeedText}>
+                      <Text style={styles.ltrText}>{speedValueText}</Text> {speedUnitText}
+                    </Text>
+                  </View>
                   <View style={[styles.collapsedPayChip, { backgroundColor: payColors.bg, borderColor: payColors.border }]}>
                     <Ionicons
                       name={
@@ -4641,25 +4687,27 @@ export default function JobRouteScreen() {
 
                 {/* Row 3: Primary action + Call + More */}
                 <View style={styles.collapsedActionRow}>
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={collapsedPrimaryDisabled}
-                    onPress={handleCollapsedPrimary}
-                    style={[
-                      styles.collapsedPrimaryBtn,
-                      collapsedPrimaryIsArrival && styles.collapsedPrimaryBtnArrival,
-                      collapsedPrimaryDisabled && styles.btnDisabled,
-                    ]}
-                  >
-                    {actioning ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Ionicons name={collapsedPrimaryIcon} size={18} color="#FFFFFF" />
-                    )}
-                    <Text style={styles.collapsedPrimaryBtnText} numberOfLines={1}>
-                      {collapsedPrimaryLabel}
-                    </Text>
-                  </Pressable>
+                  {(isAssigned || collapsedPrimaryIsArrival) && (
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={collapsedPrimaryDisabled}
+                      onPress={handleCollapsedPrimary}
+                      style={[
+                        styles.collapsedPrimaryBtn,
+                        collapsedPrimaryIsArrival && styles.collapsedPrimaryBtnArrival,
+                        collapsedPrimaryDisabled && styles.btnDisabled,
+                      ]}
+                    >
+                      {actioning ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Ionicons name={collapsedPrimaryIcon} size={18} color="#FFFFFF" />
+                      )}
+                      <Text style={styles.collapsedPrimaryBtnText} numberOfLines={1}>
+                        {collapsedPrimaryLabel}
+                      </Text>
+                    </Pressable>
+                  )}
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={t('route.callCustomer')}
@@ -5371,6 +5419,9 @@ const styles = StyleSheet.create({
   boxNonePointerEvents: {
     pointerEvents: 'box-none',
   },
+  ltrText: {
+    writingDirection: 'ltr',
+  },
   mapOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
@@ -5506,6 +5557,38 @@ const styles = StyleSheet.create({
     color: '#137333',
     fontSize: fontSize.sm,
     fontWeight: '800',
+  },
+  speedPill: {
+    position: 'absolute',
+    left: spacing.md,
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderWidth: 2,
+    borderColor: '#3C4043',
+    shadowColor: '#3C4043',
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
+  },
+  speedPillValue: {
+    color: '#202124',
+    fontSize: 24,
+    fontWeight: '900',
+    lineHeight: 28,
+    writingDirection: 'ltr',
+  },
+  speedPillUnit: {
+    color: '#5F6368',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0,
+    textTransform: 'uppercase',
+    writingDirection: 'ltr',
   },
   approxBadge: {
     position: 'absolute',
@@ -6419,6 +6502,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
+  collapsedSpeedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    backgroundColor: '#F1F3F4',
+    flexShrink: 0,
+  },
+  collapsedSpeedText: {
+    color: '#3C4043',
+    fontSize: 10,
+    fontWeight: '800',
+    writingDirection: 'ltr',
+  },
   collapsedPayChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -6427,7 +6526,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: radius.full,
     borderWidth: 1,
-    maxWidth: 110,
+    maxWidth: 96,
   },
   collapsedPayChipText: {
     fontSize: fontSize.xs,
