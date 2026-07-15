@@ -42,6 +42,14 @@ body {
 
 .sticky-cta-bar { /* hook for future tweaks; layout in component */ }
 
+body[data-customer-install-prompt-open="true"] .sticky-cta-bar,
+body[data-customer-install-prompt-open="true"] .sticky-cta-top,
+body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(120%) !important;
+}
+
 /* ─── Hero 3-step flow — sequential highlight loop ────── */
 /*
   Cycle: 4.8s. Each step holds at rest (0.7 opacity, scale 1),

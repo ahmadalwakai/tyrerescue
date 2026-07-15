@@ -4,7 +4,7 @@ import { eq, and, inArray, sql } from 'drizzle-orm';
 import { requireDriverMobile } from '@/lib/auth';
 import { z } from 'zod';
 import { isOlderLocationSample, parseLocationSampleTimestamp } from '@/lib/tracking/tracking-format';
-import { logTrackingDiagnostic, roundedCoordinate } from '@/lib/tracking/diagnostic-log';
+import { logTrackingDiagnostic } from '@/lib/tracking/diagnostic-log';
 
 const ACTIVE_STATUSES = ['driver_assigned', 'en_route', 'arrived', 'in_progress'] as const;
 const MAX_ACCEPTED_ACCURACY_METERS = 100;
@@ -129,8 +129,6 @@ export async function POST(request: Request) {
     const logBase = {
       endpointHostname,
       jobId: bookingRef ?? null,
-      lat: roundedCoordinate(lat),
-      lng: roundedCoordinate(lng),
       accuracy: accuracy ?? null,
       source: parsed.data.source ?? null,
     };

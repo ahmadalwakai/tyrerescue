@@ -3,11 +3,7 @@ import * as TaskManager from 'expo-task-manager';
 import { ApiError, api, getApiUrl, getToken } from '@/api/client';
 import { enqueue, flushOfflineQueue, getQueueLength } from '@/services/offline-queue';
 import * as secureStorage from '@/services/secure-storage';
-import {
-  endpointHostname,
-  logDriverTrackingDiagnostic,
-  roundedCoordinate,
-} from '@/services/tracking-diagnostics';
+import { endpointHostname, logDriverTrackingDiagnostic } from '@/services/tracking-diagnostics';
 
 const BACKGROUND_LOCATION_TASK = 'background-location-task';
 export const ACTIVE_BOOKING_REF_KEY = 'active_booking_ref';
@@ -128,28 +124,25 @@ async function postDriverLocation(
   bookingRef: string | null,
 ): Promise<void> {
   const timestamp = timestampIsoFromLocation(location);
-  logDriverTrackingDiagnostic('native_location_received', {
+  logDriverTrackingDiagnostic('location_sample_received', {
     jobId: bookingRef,
-    lat: roundedCoordinate(location.coords.latitude),
-    lng: roundedCoordinate(location.coords.longitude),
     accuracy: normaliseOptionalNumber(location.coords.accuracy),
-    sampleTimestamp: timestamp,
-    source: 'background',
+    locationTimestamp: timestamp,
   });
   if (!timestamp || !hasUsableAccuracy(location)) {
-    logDriverTrackingDiagnostic('location_upload_failed', {
+    logDriverTrackingDiagnostic('location_sample_rejected', {
       jobId: bookingRef,
-      result: !timestamp ? 'invalid_timestamp' : 'accuracy_too_low',
+      reason: !timestamp ? 'invalid_timestamp' : 'accuracy_too_low',
       accuracy: normaliseOptionalNumber(location.coords.accuracy),
-      sampleTimestamp: timestamp,
+      locationTimestamp: timestamp,
     });
     return;
   }
   if (!(await isNewerThanLastAck(bookingRef, timestamp))) {
-    logDriverTrackingDiagnostic('location_upload_failed', {
+    logDriverTrackingDiagnostic('location_sample_rejected', {
       jobId: bookingRef,
-      result: 'older_than_last_ack',
-      sampleTimestamp: timestamp,
+      reason: 'older_than_last_ack',
+      locationTimestamp: timestamp,
     });
     return;
   }
@@ -173,7 +166,15 @@ async function queueBackgroundLocation(
   reason: string,
 ): Promise<void> {
   const timestamp = timestampIsoFromLocation(location);
-  if (!timestamp || !hasUsableAccuracy(location)) return;
+  if (!timestamp || !hasUsableAccuracy(location)) {
+    logDriverTrackingDiagnostic('location_sample_rejected', {
+      jobId: bookingRef,
+      reason: !timestamp ? 'invalid_timestamp' : 'accuracy_too_low',
+      accuracy: normaliseOptionalNumber(location.coords.accuracy),
+      locationTimestamp: timestamp,
+    });
+    return;
+  }
   const body = locationBody(
     { lat: location.coords.latitude, lng: location.coords.longitude },
     bookingRef,
@@ -186,11 +187,11 @@ async function queueBackgroundLocation(
     },
   );
   enqueue(LOCATION_PATH, 'POST', body);
-  logDriverTrackingDiagnostic('queued_location_count', {
+  logDriverTrackingDiagnostic('offline_queue_enqueued', {
     jobId: bookingRef,
-    result: reason,
+    reason,
     queueCount: getQueueLength(),
-    sampleTimestamp: timestamp,
+    locationTimestamp: timestamp,
   });
 }
 
@@ -205,44 +206,57 @@ async function postDriverCoordinates(
     source: 'background' | 'foreground';
   },
 ): Promise<void> {
-  if (!isValidLocationPoint(point)) return;
-  if (!(await isNewerThanLastAck(bookingRef, sample.timestamp))) return;
+  if (!isValidLocationPoint(point)) {
+    logDriverTrackingDiagnostic('location_sample_rejected', {
+      jobId: bookingRef,
+      reason: 'invalid_location',
+      locationTimestamp: sample.timestamp,
+    });
+    return;
+  }
+  if (!(await isNewerThanLastAck(bookingRef, sample.timestamp))) {
+    logDriverTrackingDiagnostic('location_sample_rejected', {
+      jobId: bookingRef,
+      reason: 'older_than_last_ack',
+      locationTimestamp: sample.timestamp,
+    });
+    return;
+  }
   const body = locationBody(point, bookingRef, sample.timestamp, sample);
   const baseUrl = await getApiUrl().catch(() => null);
   const host = endpointHostname(baseUrl);
 
   try {
-    logDriverTrackingDiagnostic('location_upload_started', {
+    logDriverTrackingDiagnostic('upload_request_started', {
       jobId: bookingRef,
-      endpointHostname: host,
-      lat: roundedCoordinate(point.lat),
-      lng: roundedCoordinate(point.lng),
+      requestHostname: host,
       accuracy: normaliseOptionalNumber(sample.accuracy),
-      sampleTimestamp: sample.timestamp,
-      source: sample.source,
+      locationTimestamp: sample.timestamp,
       queueCount: getQueueLength(),
     });
     const response = await api<DriverLocationResponse>(LOCATION_PATH, { method: 'POST', body });
-    logDriverTrackingDiagnostic('location_upload_succeeded', {
-      jobId: bookingRef,
-      endpointHostname: host,
-      result: response.accepted === false ? 'rejected' : 'accepted',
-      reason: response.reason ?? null,
-      httpStatus: 200,
-      acceptedLocationTimestamp: response.acceptedLocationTimestamp ?? sample.timestamp,
-      queueCount: getQueueLength(),
-    });
+    logDriverTrackingDiagnostic(
+      response.accepted === false ? 'upload_response_rejected' : 'upload_request_succeeded',
+      {
+        jobId: bookingRef,
+        requestHostname: host,
+        reason: response.reason ?? null,
+        httpStatus: 200,
+        acceptedLocationTimestamp: response.acceptedLocationTimestamp ?? sample.timestamp,
+        queueCount: getQueueLength(),
+      },
+    );
     if (response.accepted !== false) {
       await rememberAck(bookingRef, response.acceptedLocationTimestamp ?? sample.timestamp);
     }
     void flushOfflineQueue();
   } catch (error) {
-    logDriverTrackingDiagnostic('location_upload_failed', {
+    logDriverTrackingDiagnostic('upload_request_failed', {
       jobId: bookingRef,
-      endpointHostname: host,
-      result: error instanceof ApiError ? error.code : 'unknown',
+      requestHostname: host,
+      reason: error instanceof ApiError ? error.code : 'unknown',
       httpStatus: error instanceof ApiError ? error.status : null,
-      sampleTimestamp: sample.timestamp,
+      locationTimestamp: sample.timestamp,
     });
     if (error instanceof ApiError && error.status === 403) {
       await stopBackgroundLocation();
@@ -250,11 +264,11 @@ async function postDriverCoordinates(
     }
     if (shouldQueueLocation(error)) {
       enqueue(LOCATION_PATH, 'POST', body);
-      logDriverTrackingDiagnostic('queued_location_count', {
+      logDriverTrackingDiagnostic('offline_queue_enqueued', {
         jobId: bookingRef,
-        endpointHostname: host,
+        requestHostname: host,
         queueCount: getQueueLength(),
-        sampleTimestamp: sample.timestamp,
+        locationTimestamp: sample.timestamp,
       });
     }
   }
@@ -263,39 +277,39 @@ async function postDriverCoordinates(
 // Define the background task BEFORE anything else
 TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
   if (error) {
-    logDriverTrackingDiagnostic('background_state', {
-      result: 'task_error',
-      reason: error.message,
+    logDriverTrackingDiagnostic('background_task_invoked', {
+      reason: error.message || 'task_error',
     });
     return;
   }
 
   const { locations } = data as { locations: Location.LocationObject[] };
-  if (!locations || locations.length === 0) return;
-  logDriverTrackingDiagnostic('background_state', {
-    result: 'task_invoked',
-    locationCount: locations.length,
+  const locationCount = Array.isArray(locations) ? locations.length : 0;
+  logDriverTrackingDiagnostic('background_task_invoked', {
+    locationCount,
   });
+  if (locationCount === 0) return;
 
   const activeRef = await secureStorage.getItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => null);
+  logDriverTrackingDiagnostic('active_job_loaded', {
+    jobId: activeRef,
+    result: activeRef ? 'found' : 'missing',
+    locationCount,
+  });
 
   if (!activeRef) {
-    logDriverTrackingDiagnostic('background_state', {
-      result: 'missing_active_job',
-      locationCount: locations.length,
-    });
     return;
   }
 
   const ordered = [...locations].sort((a, b) => a.timestamp - b.timestamp);
 
   const token = await getToken();
+  logDriverTrackingDiagnostic('auth_token_loaded', {
+    jobId: activeRef,
+    result: token ? 'present' : 'missing',
+    locationCount,
+  });
   if (!token) {
-    logDriverTrackingDiagnostic('background_state', {
-      jobId: activeRef,
-      result: 'missing_token_queued',
-      locationCount: locations.length,
-    });
     for (const location of ordered) {
       await queueBackgroundLocation(location, activeRef, 'missing_token');
     }
@@ -305,6 +319,10 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
   for (const location of ordered) {
     await postDriverLocation(location, activeRef);
   }
+});
+
+logDriverTrackingDiagnostic('background_task_registered', {
+  result: TaskManager.isTaskDefined(BACKGROUND_LOCATION_TASK) ? 'defined' : 'missing',
 });
 
 export async function requestLocationPermissions(): Promise<{
@@ -323,8 +341,15 @@ export async function requestLocationPermissions(): Promise<{
 export async function startBackgroundLocation(): Promise<boolean> {
   try {
     const activeRef = await secureStorage.getItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => null);
+    logDriverTrackingDiagnostic('tracking_start_requested', {
+      jobId: activeRef,
+      queueCount: getQueueLength(),
+    });
     if (!activeRef) {
-      logDriverTrackingDiagnostic('background_state', { result: 'not_started_no_active_job' });
+      logDriverTrackingDiagnostic('tracking_start_failed', {
+        reason: 'missing_active_job',
+        queueCount: getQueueLength(),
+      });
       return false;
     }
 
@@ -332,18 +357,19 @@ export async function startBackgroundLocation(): Promise<boolean> {
       () => false,
     );
     if (isTracking) {
-      logDriverTrackingDiagnostic('background_state', {
+      logDriverTrackingDiagnostic('tracking_start_succeeded', {
         jobId: activeRef,
         result: 'already_running',
+        queueCount: getQueueLength(),
       });
       return true;
     }
 
     const { foreground, background } = await requestLocationPermissions();
     if (!foreground || !background) {
-      logDriverTrackingDiagnostic('background_state', {
+      logDriverTrackingDiagnostic('tracking_start_failed', {
         jobId: activeRef,
-        result: 'permission_denied',
+        reason: 'permission_denied',
         foregroundPermission: foreground,
         backgroundPermission: background,
       });
@@ -367,18 +393,19 @@ export async function startBackgroundLocation(): Promise<boolean> {
       },
     });
 
-    logDriverTrackingDiagnostic('background_state', {
+    logDriverTrackingDiagnostic('tracking_start_succeeded', {
       jobId: activeRef,
       result: 'started',
       pausesUpdatesAutomatically: false,
       intervalMs: 10_000,
       distanceMeters: 10,
+      queueCount: getQueueLength(),
     });
     return true;
   } catch (error) {
-    logDriverTrackingDiagnostic('background_state', {
-      result: 'start_failed',
+    logDriverTrackingDiagnostic('tracking_start_failed', {
       reason: error instanceof Error ? error.message : 'unknown',
+      queueCount: getQueueLength(),
     });
     return false;
   }
@@ -396,9 +423,10 @@ export async function armBackgroundLocationForJob(
   const started = await startBackgroundLocation();
   const storedRef =
     activeRef ?? (await secureStorage.getItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => null));
-  logDriverTrackingDiagnostic('tracking_session_started', {
+  logDriverTrackingDiagnostic(started ? 'tracking_start_succeeded' : 'tracking_start_failed', {
     jobId: storedRef,
-    result: started ? 'background_running' : 'background_not_running',
+    result: started ? 'background_running' : undefined,
+    reason: started ? undefined : 'background_not_running',
     queueCount: getQueueLength(),
   });
 
@@ -449,10 +477,10 @@ export async function stopBackgroundLocation(clearActiveRef = true): Promise<voi
   if (clearActiveRef) {
     await secureStorage.deleteItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => {});
   }
-  logDriverTrackingDiagnostic('background_state', {
-    result: 'stopped',
+  logDriverTrackingDiagnostic('tracking_stopped', {
     wasRunning: isTracking,
     clearActiveRef,
+    queueCount: getQueueLength(),
   });
 }
 

@@ -64,6 +64,7 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 export function CookieBanner() {
   const [show, setShow] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [customerPromptOpen, setCustomerPromptOpen] = useState(false);
   const [preferences, setPreferences] = useState({ analytics: false, marketing: false });
   const [bannerTitle, setBannerTitle] = useState('We use cookies');
   const [bannerMessage, setBannerMessage] = useState(
@@ -86,6 +87,20 @@ export function CookieBanner() {
     };
     window.addEventListener('cookie-consent-reset', handleReset);
     return () => window.removeEventListener('cookie-consent-reset', handleReset);
+  }, []);
+
+  useEffect(() => {
+    const syncCustomerPromptState = () => {
+      setCustomerPromptOpen(document.body.dataset.customerInstallPromptOpen === 'true');
+    };
+
+    syncCustomerPromptState();
+    const observer = new MutationObserver(syncCustomerPromptState);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['data-customer-install-prompt-open'],
+    });
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -112,7 +127,7 @@ export function CookieBanner() {
     setExpanded(false);
   }, []);
 
-  if (!show) return null;
+  if (!show || customerPromptOpen) return null;
 
   const btnBase: React.CSSProperties = {
     fontFamily: 'var(--font-body)',
@@ -130,6 +145,7 @@ export function CookieBanner() {
 
   return (
     <Box
+      className="cookie-consent-banner"
       position="fixed"
       bottom={0}
       left={0}

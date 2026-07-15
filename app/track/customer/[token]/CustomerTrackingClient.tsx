@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import Link from 'next/link';
 import { LiveTrackingMap } from '@/components/tracking/LiveTrackingMap';
@@ -135,6 +136,7 @@ export function CustomerTrackingClient({ token }: Props) {
   const [isOffline, setIsOffline] = useState(false);
   const [lastFetchFailed, setLastFetchFailed] = useState(false);
   const [showAppPrompt, setShowAppPrompt] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
   const mountedRef = useRef(true);
   const appFallbackTimerRef = useRef<number | null>(null);
   const initialFetchLoggedRef = useRef(false);
@@ -278,6 +280,18 @@ export function CustomerTrackingClient({ token }: Props) {
 
     return () => window.clearTimeout(timer);
   }, [data, showAppPrompt]);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!showAppPrompt) return;
+    document.body.dataset.customerInstallPromptOpen = 'true';
+    return () => {
+      delete document.body.dataset.customerInstallPromptOpen;
+    };
+  }, [showAppPrompt]);
 
   useEffect(
     () => () => {
@@ -495,15 +509,92 @@ export function CustomerTrackingClient({ token }: Props) {
     window.location.href = CUSTOMER_APP_STORE_URL;
   };
 
+  const appPromptPortal =
+    showAppPrompt && portalReady
+      ? createPortal(
+          <div
+            className="fixed inset-0 overflow-y-auto bg-black/60 px-3 py-4 backdrop-blur-sm sm:px-4"
+            style={{
+              zIndex: 60,
+              paddingTop: 'max(env(safe-area-inset-top), 1rem)',
+              paddingBottom: 'max(env(safe-area-inset-bottom), 0.75rem)',
+            }}
+            role="presentation"
+            onClick={closeAppPrompt}
+          >
+            <div className="flex min-h-full items-end justify-center sm:items-center">
+              <div
+                className="w-full max-w-md rounded-2xl border border-orange-400/30 bg-zinc-950 p-4 shadow-2xl shadow-black/60"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Track your driver in the app"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-start gap-3">
+                  <Image
+                    src="/apple-icon.png"
+                    alt=""
+                    width={48}
+                    height={48}
+                    className="h-12 w-12 rounded-xl bg-white object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <h2 className="pr-8 text-base font-semibold text-white">
+                      Track your driver in the app
+                    </h2>
+                    <p className="mt-1 text-sm leading-relaxed text-zinc-300">
+                      Get faster live updates and booking notifications.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeAppPrompt}
+                    className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-zinc-800 text-lg leading-none text-zinc-300"
+                    aria-label="Close app prompt"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={openCustomerApp}
+                    className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-orange-950/30"
+                  >
+                    Open App
+                  </button>
+                  <button
+                    type="button"
+                    onClick={downloadCustomerApp}
+                    className="rounded-xl border border-zinc-700 px-4 py-3 text-sm font-bold text-zinc-100"
+                  >
+                    Download App
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeAppPrompt}
+                  className="mt-2 w-full rounded-xl px-4 py-2 text-xs font-semibold text-zinc-400"
+                >
+                  Continue in browser
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div
-        className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pb-10 pt-6 sm:gap-5 sm:px-6"
-        style={{
-          paddingTop: 'max(env(safe-area-inset-top), 1.5rem)',
-          paddingBottom: 'max(env(safe-area-inset-bottom), 2.5rem)',
-        }}
-      >
+    <>
+      <div className="min-h-screen bg-zinc-950 text-zinc-100">
+        <div
+          className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pb-10 pt-6 sm:gap-5 sm:px-6"
+          style={{
+            paddingTop: 'max(env(safe-area-inset-top), 1.5rem)',
+            paddingBottom: 'max(env(safe-area-inset-bottom), 2.5rem)',
+          }}
+        >
         <header className="space-y-1">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
             Tyre Rescue live tracking
@@ -575,58 +666,9 @@ export function CustomerTrackingClient({ token }: Props) {
         <p className="pt-2 text-center text-[11px] leading-relaxed text-zinc-500">
           This page refreshes automatically. Keep it open to follow the driver in real time.
         </p>
-      </div>
-
-      {showAppPrompt && (
-        <div
-          className="fixed inset-x-0 bottom-0 z-50 px-3 pb-3 sm:px-4"
-          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0.75rem)' }}
-          role="dialog"
-          aria-modal="false"
-          aria-label="Track your driver in the app"
-        >
-          <div className="mx-auto max-w-md rounded-2xl border border-orange-400/30 bg-zinc-950/95 p-4 shadow-2xl shadow-black/50 backdrop-blur">
-            <div className="flex items-start gap-3">
-              <Image
-                src="/apple-icon.png"
-                alt=""
-                width={48}
-                height={48}
-                className="h-12 w-12 rounded-xl bg-white object-cover"
-              />
-              <div className="min-w-0 flex-1">
-                <h2 className="text-base font-semibold text-white">Track your driver in the app</h2>
-                <p className="mt-1 text-sm leading-relaxed text-zinc-300">
-                  Get faster live updates and booking notifications.
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
-              <button
-                type="button"
-                onClick={openCustomerApp}
-                className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-orange-950/30"
-              >
-                Open App
-              </button>
-              <button
-                type="button"
-                onClick={downloadCustomerApp}
-                className="rounded-xl border border-zinc-700 px-4 py-3 text-sm font-bold text-zinc-100"
-              >
-                Download App
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={closeAppPrompt}
-              className="mt-2 w-full rounded-xl px-4 py-2 text-xs font-semibold text-zinc-400"
-            >
-              Continue in browser
-            </button>
-          </div>
         </div>
-      )}
-    </div>
+      </div>
+      {appPromptPortal}
+    </>
   );
 }

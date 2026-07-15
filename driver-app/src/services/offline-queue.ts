@@ -131,9 +131,9 @@ export function enqueue(path: string, method: string, body: unknown): void {
 
   queue = trimQueue([...queue, entry]);
   persistQueue();
-  logDriverTrackingDiagnostic('queued_location_count', {
+  logDriverTrackingDiagnostic('offline_queue_enqueued', {
     jobId: queuedJobId(body),
-    sampleTimestamp: queuedSampleTimestamp(body),
+    locationTimestamp: queuedSampleTimestamp(body),
     queueCount: queue.length,
   });
 }
@@ -169,7 +169,7 @@ export async function flushOfflineQueue(): Promise<void> {
   if (flushing || queue.length === 0) return;
   flushing = true;
   const startingCount = queue.length;
-  logDriverTrackingDiagnostic('queue_flush_started', {
+  logDriverTrackingDiagnostic('offline_queue_flush_started', {
     queueCount: startingCount,
   });
 
@@ -209,11 +209,19 @@ export async function flushOfflineQueue(): Promise<void> {
 
     queue = trimQueue(failed);
     await persistQueue();
-    logDriverTrackingDiagnostic('queue_flush_completed', {
-      result: queue.length === 0 ? 'empty' : 'remaining',
+    logDriverTrackingDiagnostic(
+      queue.length === 0 ? 'offline_queue_flush_succeeded' : 'offline_queue_flush_failed',
+      {
+        reason: queue.length === 0 ? null : 'remaining_retryable_items',
+        queueCount: queue.length,
+        attemptedCount,
+        droppedCount,
+      },
+    );
+  } catch (error) {
+    logDriverTrackingDiagnostic('offline_queue_flush_failed', {
+      reason: error instanceof Error ? error.message : 'unknown',
       queueCount: queue.length,
-      attemptedCount,
-      droppedCount,
     });
   } finally {
     flushing = false;
