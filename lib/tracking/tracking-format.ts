@@ -55,6 +55,16 @@ export function isTrackingStale(
   return ms > thresholdSeconds * 1_000;
 }
 
+export function parseLocationSampleTimestamp(value: string): Date | null {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
+
+export function isOlderLocationSample(candidate: Date, latest: Date | null | undefined): boolean {
+  return !!latest && candidate.getTime() < latest.getTime();
+}
+
 /**
  * Great-circle distance (haversine) in miles. Returns `null` if either
  * point is missing or non-finite — callers must handle the fallback.

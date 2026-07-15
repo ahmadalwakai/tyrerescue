@@ -64,6 +64,7 @@
         {
           "locationAlwaysAndWhenInUsePermission": "We use background location during active jobs so dispatch can see progress and support customers. Tracking stops when the job is closed.",
           "locationWhenInUsePermission": "We use your location to show your route to the customer and update dispatch while you are working on a job.",
+          "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }

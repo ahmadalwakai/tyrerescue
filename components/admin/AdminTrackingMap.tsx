@@ -79,6 +79,12 @@ function freshnessLabel(locationAt: string | null): { text: string; color: strin
   return { text: `Updated ${Math.round(mins)}m ago`, color: 'red' };
 }
 
+function timestampMs(value: string | null | undefined): number {
+  if (!value) return 0;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
 function haversineDistanceMiles(
   lat1: number, lng1: number,
   lat2: number, lng2: number,
@@ -123,6 +129,8 @@ export function AdminTrackingMap({
   const [freshLabel, setFreshLabel] = useState(freshnessLabel(assignedDriver?.locationAt ?? null));
   const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'done'>('idle');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const latestLocationMsRef = useRef(timestampMs(assignedDriver?.locationAt ?? null));
+  const latestLocationAtRef = useRef<string | null>(assignedDriver?.locationAt ?? null);
 
   const isActiveJob = ['driver_assigned', 'en_route', 'arrived', 'in_progress'].includes(bookingStatus);
 
@@ -134,10 +142,17 @@ export function AdminTrackingMap({
       if (adminRes.ok) {
         const data = await adminRes.json();
         const driverLocation = data.driverLocation ?? null;
-        setTracking({
-          driverLat: driverLocation?.lat ?? null,
-          driverLng: driverLocation?.lng ?? null,
-          driverLocationAt: driverLocation?.locationAt ?? null,
+        const incomingMs = timestampMs(driverLocation?.locationAt ?? null);
+        if (incomingMs > 0 && incomingMs < latestLocationMsRef.current) return;
+        if (incomingMs > latestLocationMsRef.current) {
+          latestLocationMsRef.current = incomingMs;
+          latestLocationAtRef.current = driverLocation.locationAt;
+        }
+
+        setTracking((prev) => ({
+          driverLat: driverLocation?.lat ?? prev.driverLat,
+          driverLng: driverLocation?.lng ?? prev.driverLng,
+          driverLocationAt: driverLocation?.locationAt ?? prev.driverLocationAt,
           etaMinutes: data.durationMinutes ?? null,
           distanceMiles: data.distanceMiles ?? null,
           routeCoordinates: data.geometry?.coordinates ?? null,
@@ -148,8 +163,8 @@ export function AdminTrackingMap({
           tyreCount: null,
           paymentStatus: null,
           driverSituation: data.driverSituation ?? null,
-        });
-        if (liveDriver && driverLocation?.lat != null && driverLocation?.lng != null) {
+        }));
+        if (driverLocation?.lat != null && driverLocation?.lng != null) {
           setLiveDriver((prev) =>
             prev
               ? {
@@ -161,17 +176,24 @@ export function AdminTrackingMap({
               : prev,
           );
         }
-        setFreshLabel(freshnessLabel(driverLocation?.locationAt ?? null));
+        setFreshLabel(freshnessLabel(driverLocation?.locationAt ?? latestLocationAtRef.current));
         return;
       }
 
       const publicRes = await fetch(`/api/tracking/${encodeURIComponent(bookingRef)}`);
       if (!publicRes.ok) return;
       const data = await publicRes.json();
-      setTracking({
-        driverLat: data.driverLat,
-        driverLng: data.driverLng,
-        driverLocationAt: data.driverLocationAt,
+      const incomingMs = timestampMs(data.driverLocationAt);
+      if (incomingMs > 0 && incomingMs < latestLocationMsRef.current) return;
+      if (incomingMs > latestLocationMsRef.current) {
+        latestLocationMsRef.current = incomingMs;
+        latestLocationAtRef.current = data.driverLocationAt;
+      }
+
+      setTracking((prev) => ({
+        driverLat: data.driverLat ?? prev.driverLat,
+        driverLng: data.driverLng ?? prev.driverLng,
+        driverLocationAt: data.driverLocationAt ?? prev.driverLocationAt,
         etaMinutes: data.etaMinutes,
         distanceMiles: data.distanceMiles ?? null,
         routeCoordinates: data.routeCoordinates ?? null,
@@ -182,9 +204,9 @@ export function AdminTrackingMap({
         tyreCount: null,
         paymentStatus: null,
         driverSituation: null,
-      });
+      }));
       // Also update the driver's live position
-      if (liveDriver && data.driverLat != null) {
+      if (data.driverLat != null) {
         setLiveDriver((prev) =>
           prev
             ? {
@@ -196,11 +218,11 @@ export function AdminTrackingMap({
             : prev,
         );
       }
-      setFreshLabel(freshnessLabel(data.driverLocationAt));
+      setFreshLabel(freshnessLabel(data.driverLocationAt ?? latestLocationAtRef.current));
     } catch {
       /* ignore */
     }
-  }, [bookingRef, liveDriver]);
+  }, [bookingRef]);
 
   /** Manual refresh handler with "Checking... → Updated ✓" feedback. */
   const handleManualRefresh = useCallback(async () => {
@@ -219,29 +241,46 @@ export function AdminTrackingMap({
     // Initial state
     setLiveDriver(assignedDriver);
     setFreshLabel(freshnessLabel(assignedDriver.locationAt ?? null));
+    latestLocationMsRef.current = timestampMs(assignedDriver.locationAt ?? null);
+    latestLocationAtRef.current = assignedDriver.locationAt ?? null;
 
     // Immediate first fetch
     fetchTracking();
 
-    const interval = setInterval(fetchTracking, 10_000);
-    pollRef.current = interval;
+    const stopPolling = () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+
+    const startPolling = () => {
+      if (pollRef.current) return;
+      pollRef.current = setInterval(fetchTracking, 10_000);
+    };
+
+    startPolling();
 
     // Pause when tab hidden
     const handleVisibility = () => {
       if (document.hidden) {
-        if (pollRef.current) clearInterval(pollRef.current);
-        pollRef.current = null;
+        stopPolling();
       } else {
         fetchTracking();
-        pollRef.current = setInterval(fetchTracking, 10_000);
+        startPolling();
       }
     };
+    const handleOnline = () => {
+      fetchTracking();
+      if (!document.hidden) startPolling();
+    };
     document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('online', handleOnline);
 
     return () => {
-      clearInterval(interval);
-      if (pollRef.current) clearInterval(pollRef.current);
+      stopPolling();
       document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('online', handleOnline);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assignedDriver?.id]);

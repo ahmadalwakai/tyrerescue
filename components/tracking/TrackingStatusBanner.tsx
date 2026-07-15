@@ -27,6 +27,8 @@ interface Props {
   isLive?: boolean;
   /** Optional ETA in minutes, shown next to distance when available. */
   etaMinutes?: number | null;
+  /** Explicit connection/status copy from the consumer, e.g. Live or Temporarily offline. */
+  connectionLabel?: string | null;
   /** Translatable copy for the chrome (live label, signal health, etc.). */
   labels?: Partial<BannerLabels>;
 }
@@ -116,6 +118,7 @@ export function TrackingStatusBanner({
   lastUpdatedAt,
   isLive,
   etaMinutes,
+  connectionLabel,
   labels,
 }: Props) {
   const tone = TONE[status];
@@ -180,7 +183,7 @@ export function TrackingStatusBanner({
             className={`ml-auto text-[11px] font-medium ${HEALTH_TONE[health]}`}
             aria-live="polite"
           >
-            {healthLabel(health, l)}
+            {connectionLabel ?? healthLabel(health, l)}
           </span>
         )}
       </div>

@@ -61,6 +61,7 @@ import {
 } from '@/services/voice';
 import {
   armBackgroundLocationForJob,
+  stopBackgroundLocation,
 } from '@/services/background-location';
 import {
   buildWazeNavigationUrl,
@@ -2675,6 +2676,7 @@ export default function JobRouteScreen() {
       const finishSuccess = (resolvedStatus: string) => {
         setJob((prev) => (prev ? applyLocalStatus(prev, resolvedStatus) : prev));
         if (resolvedStatus === 'completed') {
+          void stopBackgroundLocation();
           heavyHaptic();
           playSound('job_completed');
         } else if (resolvedStatus === 'en_route') {
@@ -3191,7 +3193,13 @@ export default function JobRouteScreen() {
 
       devGpsInFlightRef.current = true;
       try {
-        await driverApi.updateLocation(c.lat, c.lng, currentRouteJobRef);
+        await driverApi.updateLocation(c.lat, c.lng, currentRouteJobRef, {
+          timestamp: new Date(acceptedFixTime).toISOString(),
+          accuracy: update.accuracyMeters,
+          heading: update.heading,
+          speed: update.speedMph * 0.44704,
+          source: 'foreground',
+        });
         const sentAt = Date.now();
         devGpsNextSendAtRef.current = sentAt + DEV_GPS_BACKEND_MIN_INTERVAL_MS;
         setDevGpsError(null);

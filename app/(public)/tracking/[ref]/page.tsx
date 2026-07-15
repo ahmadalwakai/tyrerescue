@@ -1,3 +1,5 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -5,6 +7,19 @@ import { TrackingContent } from './TrackingContent';
 
 interface PageProps {
   params: Promise<{ ref: string }>;
+}
+
+const CUSTOMER_APP_SCHEME = 'tyrerescue';
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { ref } = await params;
+  return {
+    title: `Tracking ${ref} | Tyre Rescue`,
+    robots: { index: false, follow: false },
+    other: {
+      'apple-itunes-app': `app-id=6782555222, app-argument=${CUSTOMER_APP_SCHEME}://track?ref=${encodeURIComponent(ref)}`,
+    },
+  };
 }
 
 export default async function TrackingPage({ params }: PageProps) {
@@ -31,12 +46,12 @@ export default async function TrackingPage({ params }: PageProps) {
             We couldn&apos;t find a booking with reference {ref}. Please check the
             reference number and try again.
           </p>
-          <a
+          <Link
             href="/"
             className="inline-block px-6 py-3 bg-[#F97316] text-white font-medium rounded-lg hover:bg-[#EA580C] transition-colors"
           >
             Return to Homepage
-          </a>
+          </Link>
         </div>
       </div>
     );

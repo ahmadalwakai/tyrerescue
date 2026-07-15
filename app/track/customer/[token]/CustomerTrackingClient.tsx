@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { LiveTrackingMap } from '@/components/tracking/LiveTrackingMap';
 import { TrackingStatusBanner } from '@/components/tracking/TrackingStatusBanner';
 import {
@@ -9,7 +11,9 @@ import {
   getTrackingHealth,
   isTrackingStale,
   NEARBY_MILES,
+  type TrackingHealth,
 } from '@/lib/tracking/tracking-format';
+import { logTrackingDiagnostic } from '@/lib/tracking/diagnostic-log';
 import type { TrackingPoint, TrackingRouteMode, TrackingStatus } from '@/types/tracking';
 
 interface CustomerTrackingState {
@@ -37,17 +41,111 @@ interface Props {
   token: string;
 }
 
+type FetchReason = 'initial' | 'polling' | 'visibility' | 'network_recovery';
+type TrackingConnectionState =
+  | 'live'
+  | 'polling'
+  | 'delayed'
+  | 'offline'
+  | 'completed'
+  | 'unavailable';
+
 /** Live polling cadence. Page Visibility API pauses it when tab is hidden. */
 const POLL_MS = 5_000;
+const APP_PROMPT_DELAY_MS = 1_700;
+const APP_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1_000;
+const APP_PROMPT_DISMISSED_KEY = 'tyre-rescue-customer-track-app-prompt-dismissed-at';
+const CUSTOMER_APP_STORE_URL = 'https://apps.apple.com/gb/app/tyre-rescue/id6782555222';
+const CUSTOMER_APP_SCHEME = 'tyrerescue';
+
+function logCustomerTracking(
+  event: string,
+  details: Record<string, string | number | boolean | null | undefined> = {},
+): void {
+  logTrackingDiagnostic(event, {
+    surface: 'customer_tracking',
+    ...details,
+  });
+}
+
+function timestampMs(value: string | null | undefined): number {
+  if (!value) return 0;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function isIosMobileBrowser(): boolean {
+  if (typeof window === 'undefined') return false;
+  const nav = window.navigator;
+  const ua = nav.userAgent || '';
+  const isiOS = /iPhone|iPad|iPod/i.test(ua) || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1);
+  const standalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    Boolean((nav as Navigator & { standalone?: boolean }).standalone);
+  return isiOS && !standalone;
+}
+
+function promptDismissedRecently(): boolean {
+  try {
+    const raw = window.localStorage.getItem(APP_PROMPT_DISMISSED_KEY);
+    const dismissedAt = raw ? Number(raw) : 0;
+    return Number.isFinite(dismissedAt) && dismissedAt > 0 && Date.now() - dismissedAt < APP_PROMPT_COOLDOWN_MS;
+  } catch {
+    return false;
+  }
+}
+
+function rememberPromptDismissed(): void {
+  try {
+    window.localStorage.setItem(APP_PROMPT_DISMISSED_KEY, String(Date.now()));
+  } catch {
+    // Browser tracking must keep working even when storage is blocked.
+  }
+}
+
+function shouldForceAppPromptForLocalTesting(): boolean {
+  if (process.env.NODE_ENV === 'production') return false;
+  try {
+    const url = new URL(window.location.href);
+    const forced = url.searchParams.get('debugAppPrompt') === '1';
+    if (forced) window.localStorage.removeItem(APP_PROMPT_DISMISSED_KEY);
+    return forced;
+  } catch {
+    return false;
+  }
+}
+
+function formatExactLastUpdate(value: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleString('en-GB', {
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
 
 export function CustomerTrackingClient({ token }: Props) {
   const [data, setData] = useState<CustomerTrackingResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [routeMode, setRouteMode] = useState<TrackingRouteMode>('none');
+  const [isOffline, setIsOffline] = useState(false);
+  const [lastFetchFailed, setLastFetchFailed] = useState(false);
+  const [showAppPrompt, setShowAppPrompt] = useState(false);
   const mountedRef = useRef(true);
+  const appFallbackTimerRef = useRef<number | null>(null);
+  const initialFetchLoggedRef = useRef(false);
+  const staleStateRef = useRef<TrackingConnectionState | null>(null);
 
-  const fetchData = useCallback(async (): Promise<boolean> => {
+  const fetchData = useCallback(async (reason: FetchReason = 'polling'): Promise<boolean> => {
+    const resultEvent = reason === 'initial' ? 'initial_fetch_result' : 'polling_result';
+    if (reason === 'initial') {
+      logCustomerTracking('initial_fetch_started');
+    }
+
     try {
       const res = await fetch(`/api/tracking/customer/${token}`, { cache: 'no-store' });
       if (!res.ok) {
@@ -56,12 +154,44 @@ export function CustomerTrackingClient({ token }: Props) {
       }
       const json: CustomerTrackingResponse = await res.json();
       if (!mountedRef.current) return false;
-      setData(json);
+      logCustomerTracking(resultEvent, {
+        trigger: reason,
+        result: 'success',
+        httpStatus: res.status,
+        jobId: json.refNumber,
+        serverTimestamp: json.state.lastUpdatedAt,
+      });
+      setData((prev) => {
+        if (!prev) return json;
+        const prevMs = timestampMs(prev.state.lastUpdatedAt);
+        const nextMs = timestampMs(json.state.lastUpdatedAt);
+        if (prevMs > 0 && nextMs > 0 && nextMs < prevMs) {
+          return {
+            ...json,
+            state: {
+              ...json.state,
+              driverLat: prev.state.driverLat,
+              driverLng: prev.state.driverLng,
+              accuracyMeters: prev.state.accuracyMeters,
+              headingDegrees: prev.state.headingDegrees,
+              speedMetersPerSecond: prev.state.speedMetersPerSecond,
+              lastUpdatedAt: prev.state.lastUpdatedAt,
+            },
+          };
+        }
+        return json;
+      });
       setError(null);
+      setLastFetchFailed(false);
       return json.state.status !== 'completed' && json.state.status !== 'expired';
     } catch (err) {
       if (!mountedRef.current) return false;
+      logCustomerTracking(resultEvent, {
+        trigger: reason,
+        result: 'failed',
+      });
       setError(err instanceof Error ? err.message : 'Failed to load tracking');
+      setLastFetchFailed(true);
       return true;
     } finally {
       if (mountedRef.current) setIsLoading(false);
@@ -80,8 +210,9 @@ export function CustomerTrackingClient({ token }: Props) {
     };
     const start = () => {
       if (timer || stopped) return;
+      logCustomerTracking('polling_started', { intervalMs: POLL_MS });
       timer = setInterval(async () => {
-        const keep = await fetchData();
+        const keep = await fetchData('polling');
         if (!keep) {
           stopped = true;
           stop();
@@ -92,14 +223,21 @@ export function CustomerTrackingClient({ token }: Props) {
       if (document.hidden) {
         stop();
       } else if (!stopped) {
-        void fetchData().then((keep) => {
+        logCustomerTracking('visibility_refetch', { hidden: false });
+        void fetchData('visibility').then((keep) => {
           if (keep) start();
           else stopped = true;
         });
       }
     };
 
-    void fetchData().then((keep) => {
+    if (!initialFetchLoggedRef.current) {
+      logCustomerTracking('realtime_connected', { result: 'not_configured' });
+      logCustomerTracking('realtime_disconnected', { reason: 'not_configured' });
+      initialFetchLoggedRef.current = true;
+    }
+
+    void fetchData('initial').then((keep) => {
       if (keep) start();
       else stopped = true;
     });
@@ -110,6 +248,43 @@ export function CustomerTrackingClient({ token }: Props) {
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [fetchData]);
+
+  useEffect(() => {
+    const syncOnlineState = () => setIsOffline(!window.navigator.onLine);
+    const handleOnline = () => {
+      setIsOffline(false);
+      logCustomerTracking('network_recovery_refetch');
+      void fetchData('network_recovery');
+    };
+    const handleOffline = () => setIsOffline(true);
+
+    syncOnlineState();
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (!data || showAppPrompt) return;
+    const forced = shouldForceAppPromptForLocalTesting();
+    if (!forced && (!isIosMobileBrowser() || promptDismissedRecently())) return;
+
+    const timer = window.setTimeout(() => {
+      if (!document.hidden) setShowAppPrompt(true);
+    }, APP_PROMPT_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [data, showAppPrompt]);
+
+  useEffect(
+    () => () => {
+      if (appFallbackTimerRef.current) clearTimeout(appFallbackTimerRef.current);
+    },
+    [],
+  );
 
   const derivedStatus: TrackingStatus | null = useMemo(() => {
     if (!data) return null;
@@ -199,6 +374,36 @@ export function CustomerTrackingClient({ token }: Props) {
     };
   }, [derivedStatus, distanceMiles]);
 
+  const health: TrackingHealth = useMemo(() => {
+    if (!data || !derivedStatus) return 'idle';
+    return getTrackingHealth(data.state.lastUpdatedAt, {
+      isCompleted: derivedStatus === 'completed',
+      isActive: derivedStatus === 'in_progress' || derivedStatus === 'paused',
+    });
+  }, [data, derivedStatus]);
+
+  const connectionState = useMemo<TrackingConnectionState>(() => {
+    const realtimeConnected: boolean = false;
+    if (!data || !derivedStatus) return 'unavailable';
+    if (derivedStatus === 'completed' || derivedStatus === 'expired') return 'completed';
+    if (isOffline || lastFetchFailed) return 'offline';
+    if (!driverPoint || !data.state.lastUpdatedAt) return 'unavailable';
+    if (derivedStatus === 'paused' || health === 'weak' || health === 'lost') return 'delayed';
+    if (realtimeConnected && health === 'good') return 'live';
+    return 'polling';
+  }, [data, derivedStatus, driverPoint, health, isOffline, lastFetchFailed]);
+
+  useEffect(() => {
+    if (!data) return;
+    if (staleStateRef.current === connectionState) return;
+    staleStateRef.current = connectionState;
+    logCustomerTracking('stale_state_changed', {
+      jobId: data.refNumber,
+      state: connectionState,
+      serverTimestamp: data.state.lastUpdatedAt,
+    });
+  }, [connectionState, data]);
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950">
@@ -216,12 +421,12 @@ export function CustomerTrackingClient({ token }: Props) {
         <div className="max-w-md">
           <h1 className="mb-3 text-2xl font-bold text-white">Tracking link not available</h1>
           <p className="mb-6 text-zinc-400">{error}</p>
-          <a
+          <Link
             href="/"
             className="inline-block rounded-lg bg-orange-500 px-6 py-3 font-medium text-white"
           >
             Return to homepage
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -234,13 +439,61 @@ export function CustomerTrackingClient({ token }: Props) {
       ? formatDistanceMiles(distanceMiles)
       : null;
 
-  // Health is reported by the banner itself, but we use it here to gate
-  // the "Driver is getting closer" hint — a stale signal shouldn't claim
-  // the driver is closing the gap.
-  const health = getTrackingHealth(data.state.lastUpdatedAt, {
-    isCompleted: derivedStatus === 'completed',
-    isActive: derivedStatus === 'in_progress' || derivedStatus === 'paused',
-  });
+  const locationDelayed = connectionState === 'delayed';
+  const connectionLabel =
+    connectionState === 'offline'
+      ? 'Temporarily offline'
+      : connectionState === 'delayed'
+        ? 'Location delayed'
+        : connectionState === 'polling'
+          ? 'Polling'
+          : connectionState === 'unavailable'
+            ? 'Location unavailable'
+            : connectionState === 'completed'
+              ? 'Completed'
+              : 'Live';
+  const lastExactUpdate = formatExactLastUpdate(data.state.lastUpdatedAt);
+  const liveBanner = connectionState === 'live';
+
+  const webTrackingLink = `/track/customer/${encodeURIComponent(token)}`;
+  const appDeepLink = data.refNumber
+    ? `${CUSTOMER_APP_SCHEME}://track?ref=${encodeURIComponent(data.refNumber)}`
+    : webTrackingLink;
+
+  const closeAppPrompt = () => {
+    setShowAppPrompt(false);
+    rememberPromptDismissed();
+  };
+
+  const openCustomerApp = () => {
+    closeAppPrompt();
+    let opened = false;
+    const cancelFallback = () => {
+      opened = true;
+      if (appFallbackTimerRef.current) {
+        clearTimeout(appFallbackTimerRef.current);
+        appFallbackTimerRef.current = null;
+      }
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+    const handleVisibility = () => {
+      if (document.hidden) cancelFallback();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.location.href = appDeepLink;
+    appFallbackTimerRef.current = window.setTimeout(() => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (!opened && !document.hidden) {
+        window.location.href = CUSTOMER_APP_STORE_URL;
+      }
+    }, 1_250);
+  };
+
+  const downloadCustomerApp = () => {
+    closeAppPrompt();
+    window.location.href = CUSTOMER_APP_STORE_URL;
+  };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -267,12 +520,23 @@ export function CustomerTrackingClient({ token }: Props) {
 
         <TrackingStatusBanner
           status={derivedStatus}
-          title={humanCopy.title}
-          body={humanCopy.body}
+          title={locationDelayed && derivedStatus === 'in_progress' ? 'Location delayed' : humanCopy.title}
+          body={
+            locationDelayed && derivedStatus === 'in_progress'
+              ? 'We are still showing the last confirmed driver position and will update it as soon as a fresh signal arrives.'
+              : humanCopy.body
+          }
           distanceLabel={distanceLabel}
           lastUpdatedAt={derivedStatus !== 'pending' ? data.state.lastUpdatedAt : null}
-          isLive={derivedStatus === 'in_progress'}
+          isLive={liveBanner}
+          connectionLabel={connectionLabel}
         />
+
+        {lastExactUpdate && derivedStatus !== 'pending' && (
+          <p className="-mt-2 px-1 text-xs text-zinc-500">
+            Last successful server update: {lastExactUpdate}
+          </p>
+        )}
 
         {showGettingCloser && health === 'good' && (
           <p className="-mt-2 px-1 text-center text-xs font-medium text-emerald-300">
@@ -312,6 +576,57 @@ export function CustomerTrackingClient({ token }: Props) {
           This page refreshes automatically. Keep it open to follow the driver in real time.
         </p>
       </div>
+
+      {showAppPrompt && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-50 px-3 pb-3 sm:px-4"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0.75rem)' }}
+          role="dialog"
+          aria-modal="false"
+          aria-label="Track your driver in the app"
+        >
+          <div className="mx-auto max-w-md rounded-2xl border border-orange-400/30 bg-zinc-950/95 p-4 shadow-2xl shadow-black/50 backdrop-blur">
+            <div className="flex items-start gap-3">
+              <Image
+                src="/apple-icon.png"
+                alt=""
+                width={48}
+                height={48}
+                className="h-12 w-12 rounded-xl bg-white object-cover"
+              />
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base font-semibold text-white">Track your driver in the app</h2>
+                <p className="mt-1 text-sm leading-relaxed text-zinc-300">
+                  Get faster live updates and booking notifications.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
+              <button
+                type="button"
+                onClick={openCustomerApp}
+                className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-orange-950/30"
+              >
+                Open App
+              </button>
+              <button
+                type="button"
+                onClick={downloadCustomerApp}
+                className="rounded-xl border border-zinc-700 px-4 py-3 text-sm font-bold text-zinc-100"
+              >
+                Download App
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={closeAppPrompt}
+              className="mt-2 w-full rounded-xl px-4 py-2 text-xs font-semibold text-zinc-400"
+            >
+              Continue in browser
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

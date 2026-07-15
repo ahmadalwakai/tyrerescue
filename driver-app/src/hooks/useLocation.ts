@@ -8,7 +8,7 @@ import {
   stopBackgroundLocation,
   requestLocationPermissions,
 } from '@/services/background-location';
-import { dropQueued, enqueueLatest, flushOfflineQueue } from '@/services/offline-queue';
+import { enqueue, flushOfflineQueue } from '@/services/offline-queue';
 import * as secureStorage from '@/services/secure-storage';
 
 // ── Throttling constants ─────────────────────────────────────────────────
@@ -36,8 +36,27 @@ function distanceMeters(
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-function locationBody(lat: number, lng: number, bookingRef: string | null) {
-  return bookingRef ? { lat, lng, bookingRef } : { lat, lng };
+function locationBody(
+  lat: number,
+  lng: number,
+  bookingRef: string | null,
+  sample: {
+    timestamp: string;
+    accuracy?: number | null;
+    heading?: number | null;
+    speed?: number | null;
+  },
+) {
+  return {
+    lat,
+    lng,
+    ...(bookingRef ? { bookingRef } : {}),
+    timestamp: sample.timestamp,
+    accuracy: sample.accuracy ?? null,
+    heading: sample.heading ?? null,
+    speed: sample.speed ?? null,
+    source: 'foreground',
+  };
 }
 
 function shouldQueueLocation(error: unknown): boolean {
@@ -88,6 +107,12 @@ export function useLocationBroadcast(
         lat: loc.coords.latitude,
         lng: loc.coords.longitude,
       };
+      const sample = {
+        timestamp: new Date(loc.timestamp).toISOString(),
+        accuracy: loc.coords.accuracy,
+        heading: loc.coords.heading,
+        speed: loc.coords.speed,
+      };
 
       const last = lastSentCoordsRef.current;
       const sinceLast = Date.now() - lastSentAtRef.current;
@@ -104,8 +129,10 @@ export function useLocationBroadcast(
 
       inFlightRef.current = true;
       try {
-        await driverApi.updateLocation(coords.lat, coords.lng, activeRefRef.current);
-        dropQueued(LOCATION_PATH, 'POST');
+        await driverApi.updateLocation(coords.lat, coords.lng, activeRefRef.current, {
+          ...sample,
+          source: 'foreground',
+        });
         void flushOfflineQueue();
         lastSentAtRef.current = Date.now();
         lastSentCoordsRef.current = coords;
@@ -116,10 +143,10 @@ export function useLocationBroadcast(
           return;
         }
         if (shouldQueueLocation(err)) {
-          enqueueLatest(
+          enqueue(
             LOCATION_PATH,
             'POST',
-            locationBody(coords.lat, coords.lng, activeRefRef.current),
+            locationBody(coords.lat, coords.lng, activeRefRef.current, sample),
           );
           lastSentAtRef.current = Date.now();
           lastSentCoordsRef.current = coords;
@@ -159,12 +186,12 @@ export function useLocationBroadcast(
       if (wasActive && !isActive) {
         // App going to background — keep the native foreground service alive.
         stopForegroundPolling();
-        const started = await startBackgroundLocation();
+        const started = hasActiveJob ? await startBackgroundLocation() : false;
         setBgRunning(started);
       } else if (!wasActive && isActive) {
         // App returning to foreground — keep background tracking armed and add
         // a foreground heartbeat for web/dev and faster first updates.
-        const started = await startBackgroundLocation();
+        const started = hasActiveJob ? await startBackgroundLocation() : false;
         setBgRunning(started);
         startForegroundPolling();
       }
@@ -172,7 +199,7 @@ export function useLocationBroadcast(
 
     const sub = AppState.addEventListener('change', handleAppState);
     return () => sub.remove();
-  }, [isOnline, startForegroundPolling, stopForegroundPolling]);
+  }, [hasActiveJob, isOnline, startForegroundPolling, stopForegroundPolling]);
 
   // Main online/offline effect
   useEffect(() => {
@@ -186,7 +213,11 @@ export function useLocationBroadcast(
       return;
     }
 
-    startBackgroundLocation().then((started) => setBgRunning(started));
+    if (hasActiveJob) {
+      startBackgroundLocation().then((started) => setBgRunning(started));
+    } else {
+      stopBackgroundLocation().then(() => setBgRunning(false));
+    }
 
     if (appStateRef.current === 'active') {
       startForegroundPolling();
@@ -197,7 +228,7 @@ export function useLocationBroadcast(
     return () => {
       stopForegroundPolling();
     };
-  }, [isOnline, startForegroundPolling, stopForegroundPolling]);
+  }, [hasActiveJob, isOnline, startForegroundPolling, stopForegroundPolling]);
 
   return { requestPermission: requestLocationPermissions, bgRunning };
 }

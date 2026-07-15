@@ -26,6 +26,7 @@ import { clearAlertedRef } from '@/services/job-alert';
 import {
   ACTIVE_BOOKING_REF_KEY,
   armBackgroundLocationForJob,
+  stopBackgroundLocation,
 } from '@/services/background-location';
 import * as secureStorage from '@/services/secure-storage';
 import { useI18n } from '@/i18n';
@@ -235,6 +236,7 @@ export default function JobDetailScreen() {
               await stopAlertSound();
             }
             if (nextStatus === 'completed') {
+              await stopBackgroundLocation();
               heavyHaptic();
               playSound('job_completed');
             } else {
@@ -477,6 +479,7 @@ export default function JobDetailScreen() {
           try {
             errorHaptic();
             await driverApi.rejectJob(ref);
+            await stopBackgroundLocation();
             await stopAlertSound();
             clearAlertedRef(ref);
             router.back();

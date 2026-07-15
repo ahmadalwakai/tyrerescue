@@ -227,6 +227,14 @@ export interface DriverStatus {
   status: string;
 }
 
+export interface DriverLocationSample {
+  timestamp?: string;
+  accuracy?: number | null;
+  heading?: number | null;
+  speed?: number | null;
+  source?: 'foreground' | 'background';
+}
+
 export interface DriverProfile {
   id: string;
   driverId: string;
@@ -375,10 +383,31 @@ export const driverApi = {
       body: { is_online: isOnline },
     }),
 
-  updateLocation: (lat: number, lng: number, bookingRef?: string | null) =>
-    api<{ success: boolean; bridgedBookingRef: string | null }>('/api/driver/location', {
+  updateLocation: (
+    lat: number,
+    lng: number,
+    bookingRef?: string | null,
+    sample?: DriverLocationSample,
+  ) =>
+    api<{
+      accepted: boolean;
+      success: boolean;
+      bridgedBookingRef: string | null;
+      serverTimestamp: string;
+      acceptedLocationTimestamp: string | null;
+      reason?: string;
+    }>('/api/driver/location', {
       method: 'POST',
-      body: bookingRef ? { lat, lng, bookingRef } : { lat, lng },
+      body: {
+        lat,
+        lng,
+        ...(bookingRef ? { bookingRef } : {}),
+        timestamp: sample?.timestamp ?? new Date().toISOString(),
+        accuracy: sample?.accuracy ?? null,
+        heading: sample?.heading ?? null,
+        speed: sample?.speed ?? null,
+        source: sample?.source ?? 'foreground',
+      },
     }),
 
   getProfile: () => api<DriverProfile>('/api/driver/profile'),

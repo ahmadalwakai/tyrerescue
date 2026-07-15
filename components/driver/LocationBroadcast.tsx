@@ -95,6 +95,14 @@ export function LocationBroadcast({ isOnline, hasActiveJob }: Props) {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
       };
+      const body = {
+        ...coords,
+        timestamp: new Date(position.timestamp).toISOString(),
+        accuracy: Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null,
+        heading: Number.isFinite(position.coords.heading ?? NaN) ? position.coords.heading : null,
+        speed: Number.isFinite(position.coords.speed ?? NaN) ? position.coords.speed : null,
+        source: 'foreground',
+      };
       const last = lastSentCoordsRef.current;
       const sinceLast = now - lastSentAtRef.current;
 
@@ -114,7 +122,7 @@ export function LocationBroadcast({ isOnline, hasActiveJob }: Props) {
         const res = await fetch('/api/driver/location', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(coords),
+          body: JSON.stringify(body),
           signal: controller.signal,
         });
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Box,
   Button,
@@ -18,6 +18,7 @@ import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { buildWhatsAppHref } from '@/lib/contact/whatsapp-options';
 import { trackCallClick, trackWhatsAppClick } from '@/lib/analytics/gtag';
+import { logTrackingDiagnostic } from '@/lib/tracking/diagnostic-log';
 
 interface StatusHistoryItem {
   status: string;
@@ -54,8 +55,46 @@ const SUPPORT_PHONE_DISPLAY = '0141 266 0690';
 const SUPPORT_PHONE_TEL = '01412660690';
 const IOS_APP_URL = 'https://apps.apple.com/gb/app/tyre-rescue/id6782555222';
 const IOS_APP_NAME = 'Tyre Rescue';
+const IOS_APP_SCHEME = 'tyrerescue';
 const IOS_APP_PROMPT_DISMISSED_KEY = 'tyre-rescue-ios-app-prompt-dismissed-at';
 const IOS_APP_PROMPT_HIDE_MS = 7 * 24 * 60 * 60 * 1000;
+const IOS_APP_PROMPT_DELAY_MS = 1400;
+const POLL_MS = 30_000;
+
+type FetchReason = 'initial' | 'polling' | 'visibility' | 'network_recovery';
+
+function logLegacyTracking(
+  event: string,
+  details: Record<string, string | number | boolean | null | undefined> = {},
+) {
+  logTrackingDiagnostic(event, {
+    surface: 'legacy_tracking',
+    ...details,
+  });
+}
+
+function isIosMobileBrowser(): boolean {
+  if (typeof window === 'undefined') return false;
+  const nav = window.navigator;
+  const ua = nav.userAgent || '';
+  const isiOS = /iPhone|iPad|iPod/i.test(ua) || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1);
+  const standalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    Boolean((nav as Navigator & { standalone?: boolean }).standalone);
+  return isiOS && !standalone;
+}
+
+function shouldForceAppPromptForLocalTesting(): boolean {
+  if (process.env.NODE_ENV === 'production') return false;
+  try {
+    const url = new URL(window.location.href);
+    const forced = url.searchParams.get('debugAppPrompt') === '1';
+    if (forced) window.localStorage.removeItem(IOS_APP_PROMPT_DISMISSED_KEY);
+    return forced;
+  } catch {
+    return false;
+  }
+}
 
 function toolButtonStyles(accent = false) {
   return {
@@ -195,10 +234,17 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [showIosAppPrompt, setShowIosAppPrompt] = useState(false);
+  const appFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastStaleRef = useRef<boolean | null>(null);
 
-  const fetchTrackingData = useCallback(async () => {
+  const fetchTrackingData = useCallback(async (reason: FetchReason = 'polling') => {
+    const resultEvent = reason === 'initial' ? 'initial_fetch_result' : 'polling_result';
+    if (reason === 'initial') {
+      logLegacyTracking('initial_fetch_started', { jobId: refNumber });
+    }
+
     try {
-      const res = await fetch(`/api/tracking/${refNumber}`);
+      const res = await fetch(`/api/tracking/${refNumber}`, { cache: 'no-store' });
       
       if (!res.ok) {
         const errorData = await res.json();
@@ -206,6 +252,13 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
       }
 
       const trackingData: TrackingData = await res.json();
+      logLegacyTracking(resultEvent, {
+        trigger: reason,
+        result: 'success',
+        httpStatus: res.status,
+        jobId: refNumber,
+        serverTimestamp: trackingData.driverLocationAt,
+      });
       setData(trackingData);
       setError(null);
 
@@ -213,6 +266,11 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
       return trackingData.status !== 'completed' && trackingData.status !== 'cancelled';
     } catch (err) {
       console.error('Error fetching tracking data:', err);
+      logLegacyTracking(resultEvent, {
+        trigger: reason,
+        result: 'failed',
+        jobId: refNumber,
+      });
       setError(err instanceof Error ? err.message : 'Failed to load tracking data');
       return true; // Continue polling on error
     } finally {
@@ -225,16 +283,18 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
     let intervalId: ReturnType<typeof setInterval> | null = null;
 
     const startPolling = async () => {
-      const shouldContinue = await fetchTrackingData();
+      logLegacyTracking('realtime_connected', { jobId: refNumber, result: 'not_configured' });
+      logLegacyTracking('realtime_disconnected', { jobId: refNumber, reason: 'not_configured' });
+      const shouldContinue = await fetchTrackingData('initial');
 
       if (shouldContinue) {
-        // Poll every 30 seconds
+        logLegacyTracking('polling_started', { jobId: refNumber, intervalMs: POLL_MS });
         intervalId = setInterval(async () => {
-          const continuePolling = await fetchTrackingData();
+          const continuePolling = await fetchTrackingData('polling');
           if (!continuePolling && intervalId) {
             clearInterval(intervalId);
           }
-        }, 30000);
+        }, POLL_MS);
       }
     };
 
@@ -245,7 +305,26 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
         clearInterval(intervalId);
       }
     };
-  }, [fetchTrackingData]);
+  }, [fetchTrackingData, refNumber]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) return;
+      logLegacyTracking('visibility_refetch', { jobId: refNumber });
+      void fetchTrackingData('visibility');
+    };
+    const handleOnline = () => {
+      logLegacyTracking('network_recovery_refetch', { jobId: refNumber });
+      void fetchTrackingData('network_recovery');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('online', handleOnline);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [fetchTrackingData, refNumber]);
 
   useEffect(() => {
     if (isLoading || !data) return;
@@ -257,11 +336,13 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
       dismissedAt = 0;
     }
 
-    if (dismissedAt && Date.now() - dismissedAt < IOS_APP_PROMPT_HIDE_MS) return;
+    const forced = shouldForceAppPromptForLocalTesting();
+    if (!forced && !isIosMobileBrowser()) return;
+    if (!forced && dismissedAt && Date.now() - dismissedAt < IOS_APP_PROMPT_HIDE_MS) return;
 
     const timer = window.setTimeout(() => {
       setShowIosAppPrompt(true);
-    }, 1400);
+    }, IOS_APP_PROMPT_DELAY_MS);
 
     return () => window.clearTimeout(timer);
   }, [data, isLoading]);
@@ -270,6 +351,17 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
   const isLocationStale = data?.driverLocationAt
     ? Date.now() - new Date(data.driverLocationAt).getTime() > 5 * 60 * 1000
     : false;
+
+  useEffect(() => {
+    if (!data) return;
+    if (lastStaleRef.current === isLocationStale) return;
+    lastStaleRef.current = isLocationStale;
+    logLegacyTracking('stale_state_changed', {
+      jobId: refNumber,
+      state: isLocationStale ? 'delayed' : data.driverLocationAt ? 'polling' : 'unavailable',
+      serverTimestamp: data.driverLocationAt,
+    });
+  }, [data, isLocationStale, refNumber]);
 
   // Check if tracking is active
   const currentStatus = data?.status ?? initialStatus;
@@ -355,6 +447,10 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
 
   const handleDismissIosAppPrompt = useCallback(() => {
     setShowIosAppPrompt(false);
+    if (appFallbackTimerRef.current) {
+      clearTimeout(appFallbackTimerRef.current);
+      appFallbackTimerRef.current = null;
+    }
     try {
       window.localStorage.setItem(IOS_APP_PROMPT_DISMISSED_KEY, String(Date.now()));
     } catch {
@@ -363,10 +459,34 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
   }, []);
 
   const handleOpenIosApp = useCallback(() => {
-    window.open(IOS_APP_URL, '_blank', 'noopener,noreferrer');
     handleDismissIosAppPrompt();
-    setTemporaryMessage('Opening the iOS app page.');
-  }, [handleDismissIosAppPrompt, setTemporaryMessage]);
+    let opened = false;
+    const cancelFallback = () => {
+      opened = true;
+      if (appFallbackTimerRef.current) {
+        clearTimeout(appFallbackTimerRef.current);
+        appFallbackTimerRef.current = null;
+      }
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+    const handleVisibility = () => {
+      if (document.hidden) cancelFallback();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.location.href = `${IOS_APP_SCHEME}://track?ref=${encodeURIComponent(refNumber)}`;
+    appFallbackTimerRef.current = setTimeout(() => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (!opened && !document.hidden) {
+        window.location.href = IOS_APP_URL;
+      }
+    }, 1_250);
+  }, [handleDismissIosAppPrompt, refNumber]);
+
+  const handleDownloadIosApp = useCallback(() => {
+    handleDismissIosAppPrompt();
+    window.location.href = IOS_APP_URL;
+  }, [handleDismissIosAppPrompt]);
 
   if (isLoading) {
     return (
@@ -440,7 +560,7 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
                 </Box>
                 <Box>
                   <Text fontSize="lg" fontWeight="900" color={c.text}>
-                    Better tracking in the app
+                    Track your driver in the app
                   </Text>
                   <Text fontSize="sm" color={c.muted} fontWeight="700">
                     {IOS_APP_NAME}
@@ -452,50 +572,15 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
                 variant="ghost"
                 color={c.muted}
                 onClick={handleDismissIosAppPrompt}
-                aria-label="Close app download prompt"
+                aria-label="Continue in browser"
               >
-                Close
+                Continue in browser
               </Button>
             </HStack>
 
             <Text mt={5} color={c.muted} lineHeight="1.7">
-              For smoother live tracking, download our iOS app. You can follow the driver, check
-              your booking status, and keep the reference ready without searching through messages.
+              Get faster live updates and booking notifications.
             </Text>
-
-            <Box
-              mt={5}
-              p={4}
-              borderRadius="8px"
-              borderWidth="1px"
-              borderColor={c.border}
-              bg="rgba(255,255,255,0.035)"
-            >
-              <Text fontWeight="900" color={c.text} mb={2}>
-                How to track your driver
-              </Text>
-              <VStack align="stretch" gap={2} color={c.muted} fontSize="sm">
-                <Text>1. Open the {IOS_APP_NAME} app.</Text>
-                <Text>2. Tap tracking or bookings.</Text>
-                <Text>3. Enter your booking reference: {refNumber}</Text>
-              </VStack>
-            </Box>
-
-            <Box
-              mt={4}
-              p={4}
-              borderRadius="8px"
-              bg="rgba(249,115,22,0.1)"
-              borderWidth="1px"
-              borderColor="rgba(249,115,22,0.28)"
-            >
-              <Text color={c.text} fontWeight="800">
-                Next time, book online in the app.
-              </Text>
-              <Text mt={1} color={c.muted} fontSize="sm">
-                Save time on future tyre jobs by booking online instead of waiting on the phone.
-              </Text>
-            </Box>
 
             <HStack mt={5} gap={3} flexWrap="wrap">
               <Button
@@ -508,20 +593,29 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
               >
                 <HStack gap={2}>
                   <AppleIcon size={20} />
-                  <Text>Open {IOS_APP_NAME}</Text>
+                  <Text>Open App</Text>
                 </HStack>
               </Button>
               <Button
                 variant="outline"
                 borderColor={c.border}
                 color={c.text}
-                onClick={handleDismissIosAppPrompt}
-                flex={{ base: '1 1 100%', sm: '0 0 auto' }}
+                onClick={handleDownloadIosApp}
+                flex={{ base: '1 1 100%', sm: '1' }}
                 minH="48px"
               >
-                Not now
+                Download App
               </Button>
             </HStack>
+            <Button
+              mt={3}
+              variant="ghost"
+              color={c.muted}
+              onClick={handleDismissIosAppPrompt}
+              w="full"
+            >
+              Continue in browser
+            </Button>
           </Box>
         </Box>
       )}

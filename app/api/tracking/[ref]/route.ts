@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, bookingStatusHistory, drivers, users } from '@/lib/db/schema';
+import { bookings, bookingStatusHistory, drivers, trackingSessions, users } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { getDirections, metersToMiles, secondsToMinutes } from '@/lib/mapbox';
 
@@ -82,6 +82,16 @@ export async function GET(
     const customerLat = parseFloat(booking.lat);
     const customerLng = parseFloat(booking.lng);
 
+    const [trackingLocation] = await db
+      .select({
+        lastLatitude: trackingSessions.lastLatitude,
+        lastLongitude: trackingSessions.lastLongitude,
+        lastUpdatedAt: trackingSessions.lastUpdatedAt,
+      })
+      .from(trackingSessions)
+      .where(eq(trackingSessions.bookingId, booking.id))
+      .limit(1);
+
     if (booking.driverId) {
       const [driverInfo] = await db
         .select({
@@ -95,9 +105,20 @@ export async function GET(
         .limit(1);
 
       if (driverInfo) {
-        driverLat = driverInfo.currentLat ? parseFloat(driverInfo.currentLat) : null;
-        driverLng = driverInfo.currentLng ? parseFloat(driverInfo.currentLng) : null;
-        driverLocationAt = driverInfo.locationAt?.toISOString() || null;
+        driverLat = trackingLocation?.lastLatitude
+          ? parseFloat(trackingLocation.lastLatitude)
+          : driverInfo.currentLat
+            ? parseFloat(driverInfo.currentLat)
+            : null;
+        driverLng = trackingLocation?.lastLongitude
+          ? parseFloat(trackingLocation.lastLongitude)
+          : driverInfo.currentLng
+            ? parseFloat(driverInfo.currentLng)
+            : null;
+        driverLocationAt =
+          trackingLocation?.lastUpdatedAt?.toISOString() ||
+          driverInfo.locationAt?.toISOString() ||
+          null;
 
         // Fetch driver user info for name and phone
         if (driverInfo.userId) {
