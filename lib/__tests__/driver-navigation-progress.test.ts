@@ -128,6 +128,82 @@ describe('driver navigation progress', () => {
     expect(far.distanceFromRouteMeters).toBeGreaterThan(75);
   });
 
+  it('holds the previous route-centred display during moderate GPS drift', () => {
+    const previous = buildNavigationProgress({
+      rawLocation: { lat: 55.00004, lng: -3.9995 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 8,
+      accuracyMeters: 8,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+      maxSnapDistanceMeters: 75,
+      maxDisplaySnapDistanceMeters: 35,
+    });
+
+    const drift = buildNavigationProgress({
+      rawLocation: { lat: 55.0005, lng: -3.999 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous,
+      gpsHeading: 90,
+      speedMps: 8,
+      accuracyMeters: 35,
+      fixTimestampMs: 2_000,
+      nowMs: 2_100,
+      maxSnapDistanceMeters: 75,
+      maxDisplaySnapDistanceMeters: 35,
+    });
+
+    expect(previous.displayMode).toBe('snapped');
+    expect(drift.distanceFromRouteMeters).toBeGreaterThan(35);
+    expect(drift.distanceFromRouteMeters).toBeLessThan(75);
+    expect(drift.isOffRoute).toBe(false);
+    expect(drift.displayMode).toBe('snapped');
+    expect(drift.displayLocation).toEqual(previous.snappedLocation);
+    expect(drift.distanceAlongMeters).toBe(previous.distanceAlongMeters);
+    expect(drift.travelledGeometry).toEqual(previous.travelledGeometry);
+  });
+
+  it('uses GPS heading while moving but preserves display heading when parked', () => {
+    const moving = buildNavigationProgress({
+      rawLocation: { lat: 55.00005, lng: -3.9995 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 84,
+      speedMps: 8,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+      maxSnapDistanceMeters: 75,
+      maxDisplaySnapDistanceMeters: 35,
+    });
+    expect(moving.displayHeading).toBeCloseTo(84, 0);
+
+    const parked = buildNavigationProgress({
+      rawLocation: { lat: 55.00004, lng: -3.99948 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: moving,
+      gpsHeading: 270,
+      speedMps: 0.2,
+      accuracyMeters: 5,
+      fixTimestampMs: 2_000,
+      nowMs: 2_100,
+      maxSnapDistanceMeters: 75,
+      maxDisplaySnapDistanceMeters: 35,
+    });
+    expect(parked.displayHeading).toBeGreaterThan(84);
+    expect(parked.displayHeading).toBeLessThan(90);
+  });
+
   it('uses route progress for current maneuver and remaining ETA', () => {
     const beforeTurn = buildNavigationProgress({
       rawLocation: { lat: 55, lng: -3.9992 },

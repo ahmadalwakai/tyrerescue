@@ -12,6 +12,7 @@ import {
 
 const METERS_PER_SECOND_TO_MPH = 2.2369362921;
 const DEFAULT_MAX_SNAP_METERS = 75;
+const DEFAULT_MAX_DISPLAY_SNAP_METERS = 35;
 const DEFAULT_STALE_MS = 12_000;
 const MAX_BACKTRACK_METERS = 35;
 const MAX_PLAUSIBLE_SPEED_MPS = 75;
@@ -140,6 +141,7 @@ export interface NavigationProgressInput {
   isRecalculating?: boolean;
   cameraMode?: 'following' | 'free-pan' | 'overview';
   maxSnapDistanceMeters?: number;
+  maxDisplaySnapDistanceMeters?: number;
   staleAfterMs?: number;
   fallbackStepIndex?: number;
 }
@@ -933,6 +935,13 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
     nowMs,
   } = input;
   const maxSnapDistanceMeters = input.maxSnapDistanceMeters ?? DEFAULT_MAX_SNAP_METERS;
+  const maxDisplaySnapDistanceMeters = Math.max(
+    0,
+    Math.min(
+      maxSnapDistanceMeters,
+      input.maxDisplaySnapDistanceMeters ?? DEFAULT_MAX_DISPLAY_SNAP_METERS,
+    ),
+  );
   const staleAfterMs = input.staleAfterMs ?? DEFAULT_STALE_MS;
   const previousForRoute = previous?.routeRevision === routeRevision ? previous : null;
   const speedMps = smoothSpeedMps(previousForRoute?.speedMps, input.speedMps);
@@ -1075,16 +1084,46 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
   });
   if (!match) return empty;
 
-  const trusted = match.distanceMeters <= maxSnapDistanceMeters;
+  const trustedRouteCorridor = match.distanceMeters <= maxSnapDistanceMeters;
+  const trustedDisplaySnap = match.distanceMeters <= maxDisplaySnapDistanceMeters;
+  const retainedSnappedLocation =
+    !trustedDisplaySnap &&
+    trustedRouteCorridor &&
+    previousForRoute?.displayMode === 'snapped' &&
+    previousForRoute.displayLocation != null &&
+    previousForRoute.distanceAlongMeters != null
+      ? previousForRoute.snappedLocation ?? previousForRoute.matchedLocation ?? previousForRoute.displayLocation
+      : null;
+  const progressTrusted = trustedDisplaySnap || retainedSnappedLocation != null;
   const authoritativeDistanceAlongMeters =
-    trusted
+    trustedDisplaySnap
       ? match.distanceAlongMeters
-      : previousForRoute?.distanceAlongMeters ?? match.distanceAlongMeters;
-  const snappedLocation = trusted ? match.point : null;
-  const displayLocation = trusted ? match.point : rawLocation;
-  const displayMode: DriverDisplayMode = trusted ? 'snapped' : 'raw';
-  const targetHeading = trusted && match.routeHeading != null ? match.routeHeading : gpsHeading;
-  const headingAlpha = speedMps != null && speedMps > 8 ? 0.45 : 0.28;
+      : retainedSnappedLocation != null && previousForRoute?.distanceAlongMeters != null
+        ? previousForRoute.distanceAlongMeters
+        : trustedRouteCorridor
+          ? previousForRoute?.distanceAlongMeters ?? match.distanceAlongMeters
+          : previousForRoute?.distanceAlongMeters ?? match.distanceAlongMeters;
+  const snappedLocation = trustedDisplaySnap ? match.point : retainedSnappedLocation;
+  const displayLocation = snappedLocation ?? rawLocation;
+  const displayMode: DriverDisplayMode = snappedLocation ? 'snapped' : 'raw';
+  const movingForHeading =
+    typeof input.speedMps === 'number' && Number.isFinite(input.speedMps)
+      ? input.speedMps > 1
+      : speedMps != null && speedMps > 1;
+  const rawHeadingReliable =
+    movingForHeading && typeof gpsHeading === 'number' && Number.isFinite(gpsHeading);
+  const matchedHeadingReliable =
+    trustedDisplaySnap &&
+    match.routeHeading != null &&
+    match.distanceMeters <= Math.min(20, maxDisplaySnapDistanceMeters * 0.6);
+  const targetHeading = rawHeadingReliable
+    ? gpsHeading
+    : matchedHeadingReliable
+      ? match.routeHeading
+      : progressTrusted
+        ? previousForRoute?.displayHeading ?? match.routeHeading ?? gpsHeading
+        : gpsHeading;
+  const headingAlpha = movingForHeading ? 0.42 : 0.18;
   const displayHeading = smoothCircularHeading(
     previousForRoute?.displayHeading,
     targetHeading,
@@ -1109,8 +1148,14 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
   });
   const currentStep = route.steps[stepProgress.index] ?? null;
   const nextStep = route.steps[stepProgress.index + 1] ?? null;
-  const speedLimit = trusted
-    ? speedLimitForSegment(route, match.segmentIndex)
+  const trustedSegmentIndex =
+    trustedDisplaySnap
+      ? match.segmentIndex
+      : retainedSnappedLocation != null
+        ? previousForRoute?.segmentIndex ?? previousForRoute?.matchedSegmentIndex ?? match.segmentIndex
+        : match.segmentIndex;
+  const speedLimit = progressTrusted
+    ? speedLimitForSegment(route, trustedSegmentIndex)
     : { mph: null, source: 'unavailable' as const };
   const maneuverWarningPhase = getManeuverWarningPhase({
     distanceToManeuverMetres: stepProgress.distanceToManeuverMeters,
@@ -1121,10 +1166,10 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
     isExit: isExitLikeManeuver(currentStep?.maneuverType),
     accuracy: accuracyMeters,
     isStale: stale,
-    isOffRoute: !trusted,
+    isOffRoute: !trustedRouteCorridor,
   });
   const laneGuidance =
-    trusted && !stale && !isRecalculating
+    progressTrusted && !stale && !isRecalculating
       ? laneGuidanceForStep({
           step: currentStep,
           stepIndex: stepProgress.index,
@@ -1151,16 +1196,20 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
     rawLocation,
     acceptedLocation: rawLocation,
     snappedLocation,
-    matchedLocation: match.point,
+    matchedLocation: progressTrusted ? snappedLocation : null,
     displayLocation,
     displayMode,
     locationTimestamp: fixTimestampMs,
     distanceFromRouteMeters: match.distanceMeters,
-    segmentIndex: match.segmentIndex,
-    matchedSegmentIndex: match.segmentIndex,
-    distanceAlongMeters: match.distanceAlongMeters,
-    distanceAlongRouteMetres: match.distanceAlongMeters,
-    routeHeading: trusted ? match.routeHeading : null,
+    segmentIndex: trustedSegmentIndex,
+    matchedSegmentIndex: trustedSegmentIndex,
+    distanceAlongMeters: authoritativeDistanceAlongMeters,
+    distanceAlongRouteMetres: authoritativeDistanceAlongMeters,
+    routeHeading: trustedDisplaySnap
+      ? match.routeHeading
+      : retainedSnappedLocation != null
+        ? previousForRoute?.routeHeading ?? null
+        : null,
     rawHeading: gpsHeading,
     displayHeading,
     speedMps,
@@ -1184,11 +1233,15 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
     maneuverWarningPhase,
     laneGuidance,
     roundaboutExitNumber: currentStep?.exit ?? null,
-    isOffRoute: !trusted,
+    isOffRoute: !trustedRouteCorridor,
     isRecalculating,
     cameraMode,
     isLocationStale: stale,
-    travelledGeometry: trusted ? buildTravelledGeometry(geometry, match) : null,
+    travelledGeometry: trustedDisplaySnap
+      ? buildTravelledGeometry(geometry, match)
+      : retainedSnappedLocation != null
+        ? previousForRoute?.travelledGeometry ?? null
+        : null,
     fixTimestampMs,
     animationDurationMs: Math.max(250, Math.min(1_400, elapsedMs * 0.85)),
     forceSnap,

@@ -32,14 +32,82 @@ describe('driver route screen static contract', () => {
 
   it('keeps route health secondary inside the maneuver card rather than a top strip', () => {
     const source = routeScreenSource();
-    const topOverlay = source.slice(
-      source.indexOf('{/* ── Top overlay: compact header'),
-      source.indexOf('{/* ── Live instruction card'),
-    );
 
-    expect(topOverlay).not.toContain('healthPill');
+    expect(source).not.toContain('styles.topBar');
+    expect(source).not.toContain('topTitlePill');
+    expect(source).not.toContain('topTitleShimmer');
+    expect(source).not.toContain('jobNumberShimmer');
+    expect(source).toContain('{ top: Math.max(insets.top + spacing.xs, spacing.md) }');
     expect(source).toContain('styles.instructionStatusPill');
     expect(source).toContain('{routeHealth.label}');
+  });
+
+  it('drives marker and camera from one display navigation state', () => {
+    const source = routeScreenSource();
+
+    expect(source).toContain('const displayNavigationState = useMemo');
+    expect(source).toContain('displayLocation: displayNavigationState.displayLocation');
+    expect(source).toContain('displayHeading: displayNavigationState.displayHeading');
+    expect(source).toContain('locationTimestamp: displayNavigationState.locationTimestamp');
+    expect(source).toContain('followZoom: displayNavigationState.followZoom');
+    expect(source).toContain('var displayLocation = s.displayLocation || s.driver');
+    expect(source).toContain('var displayHeading = (s.displayHeading == null ? s.heading : s.displayHeading)');
+    expect(source).toContain('center: displayLocation');
+    expect(source).toContain('animateDriver(displayLocation, displayHeading');
+    expect(source).toContain('maxDisplaySnapDistanceMeters: GPS_DRIFT_METERS');
+  });
+
+  it('keeps the driver marker visually centered on its Mapbox anchor', () => {
+    const source = routeScreenSource();
+
+    expect(source).toContain('const DRIVER_MARKER_HEADING_OFFSET_DEG = 0');
+    expect(source).toContain('var displayRot = rot == null ? null : rot + DRIVER_MARKER_HEADING_OFFSET_DEG');
+    expect(source).toContain(".dwrap{width:56px;height:56px;");
+    expect(source).toContain(
+      ".driver-icon{position:absolute;left:0;top:0;width:56px;height:56px;transform:none",
+    );
+    expect(source).toContain("anchor:'center'");
+    expect(source).not.toContain('transform="rotate(45 28 28)"');
+  });
+
+  it('separates follow zoom from route overview framing', () => {
+    const source = routeScreenSource();
+
+    expect(source).toContain('const FOLLOW_ZOOM_URBAN_MIN = 17.05');
+    expect(source).toContain('const FOLLOW_ZOOM_NEAR_MANEUVER = 18.05');
+    expect(source).toContain('const OVERVIEW_MAX_ZOOM = 15.6');
+    expect(source).toContain('function navigationFollowZoom');
+    expect(source).toContain('maxZoom:OVERVIEW_MAX_ZOOM');
+    expect(source).toContain("cameraMode==='overview' || mode==='overview'");
+    expect(source).toContain('var targetZoom = clampFollowZoom(s.followZoom, depthMode)');
+    expect(source).toContain('currentZoom < minSafeZoom');
+    expect(source).toContain('nearManeuverZoom && targetZoom > currentZoom + 0.05');
+    expect(source).toContain('shortestRot(map.getBearing(), targetBearing)');
+  });
+
+  it('limits maneuver shimmer to clipped signal segments inside the turn icon', () => {
+    const source = routeScreenSource();
+
+    expect(source).not.toContain('instructionIconShimmer');
+    expect(source).toContain('styles.maneuverSignSignalClip');
+    expect(source).toContain('styles.maneuverSignSignalSegment');
+    expect(source).toContain('styles.maneuverSignArrivalPulse');
+    expect(source).toContain("Platform.OS !== 'web' && !maneuverShimmerSpec.paused");
+    expect(source).toContain('overflow: \'hidden\'');
+  });
+
+  it('restyles existing Mapbox road layers for satellite navigation legibility', () => {
+    const source = routeScreenSource();
+
+    expect(source).toContain('function isRoadGeometryLayer');
+    expect(source).toContain('function isMinorRoadLayer');
+    expect(source).toContain('function isServiceRoadLayer');
+    expect(source).toContain('function isSlipRoadLayer');
+    expect(source).toContain('function isRoadLabelLayer');
+    expect(source).toContain('function isPoiLayer');
+    expect(source).toContain("text-opacity', 0.98");
+    expect(source).toContain("icon-opacity', 0.18");
+    expect(source).toContain('promoteRouteLayers()');
   });
 
   it('renders a structured roundabout diagram instead of accepting a generic icon only', () => {

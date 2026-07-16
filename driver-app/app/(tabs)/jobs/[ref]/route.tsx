@@ -245,6 +245,15 @@ const ROUTE_EVENT_VOICE: Record<RouteEventType, string | null> = {
 // driver keeps the map in 3D mode.
 const PRIMARY_STYLE = 'mapbox://styles/mapbox/satellite-streets-v12';
 const FALLBACK_STYLE = 'mapbox://styles/mapbox/streets-v12';
+const FOLLOW_ZOOM_URBAN_MIN = 17.05;
+const FOLLOW_ZOOM_URBAN_MAX = 17.85;
+const FOLLOW_ZOOM_MOTORWAY_MIN = 16.25;
+const FOLLOW_ZOOM_MOTORWAY_MAX = 16.85;
+const FOLLOW_ZOOM_NEAR_MANEUVER = 18.05;
+const FOLLOW_ZOOM_2D = 17.25;
+const FOLLOW_ZOOM_3D = 17.45;
+const OVERVIEW_MAX_ZOOM = 15.6;
+const DRIVER_MARKER_HEADING_OFFSET_DEG = 0;
 
 /**
  * Camera behaviour while navigating.
@@ -577,6 +586,55 @@ function roadClassLabel(roadClass: string | null | undefined): string | null {
   return roadClass.replace(/_/g, ' ');
 }
 
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function isMotorwayLikeRoadClass(roadClass: string | null | undefined): boolean {
+  if (!roadClass) return false;
+  return /motorway|trunk/.test(roadClass);
+}
+
+function navigationFollowZoom(params: {
+  mapDepthMode: MapDepthMode;
+  roadClass: string | null;
+  speedMps: number | null;
+  distanceToManeuverMeters: number | null;
+}): number {
+  const depthFloor = params.mapDepthMode === '3d' ? FOLLOW_ZOOM_3D : FOLLOW_ZOOM_2D;
+  if (
+    typeof params.distanceToManeuverMeters === 'number' &&
+    Number.isFinite(params.distanceToManeuverMeters) &&
+    params.distanceToManeuverMeters >= 0 &&
+    params.distanceToManeuverMeters <= 90
+  ) {
+    return FOLLOW_ZOOM_NEAR_MANEUVER;
+  }
+
+  const speed = clampNumber(
+    typeof params.speedMps === 'number' && Number.isFinite(params.speedMps)
+      ? params.speedMps
+      : 0,
+    0,
+    34,
+  );
+  if (isMotorwayLikeRoadClass(params.roadClass)) {
+    const ratio = speed / 34;
+    return clampNumber(
+      FOLLOW_ZOOM_MOTORWAY_MAX - (FOLLOW_ZOOM_MOTORWAY_MAX - FOLLOW_ZOOM_MOTORWAY_MIN) * ratio,
+      FOLLOW_ZOOM_MOTORWAY_MIN,
+      Math.max(FOLLOW_ZOOM_MOTORWAY_MAX, depthFloor),
+    );
+  }
+
+  const urbanTarget = FOLLOW_ZOOM_URBAN_MAX - Math.min(0.5, speed * 0.024);
+  return clampNumber(
+    Math.max(depthFloor, urbanTarget),
+    FOLLOW_ZOOM_URBAN_MIN,
+    FOLLOW_ZOOM_URBAN_MAX,
+  );
+}
+
 type RoundaboutDiagramBranch = {
   key: string;
   bearing: number;
@@ -689,10 +747,10 @@ function buildHtml(token: string): string {
   html,body,#m{margin:0;padding:0;width:100%;height:100%;background:#F8FAFE}
   .mapboxgl-canvas{outline:none}
   .dwrap,.cwrap{position:relative;pointer-events:none}
-  .dwrap{width:64px;height:64px;filter:drop-shadow(0 2px 7px rgba(60,64,67,.28))}
+  .dwrap{width:56px;height:56px;filter:drop-shadow(0 2px 7px rgba(60,64,67,.28));z-index:4}
   .cwrap{width:44px;height:54px;filter:drop-shadow(0 3px 7px rgba(60,64,67,.32))}
-  .driver-icon,.pin-icon{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2}
-  .driver-icon{transform:translate(-50%,-50%)}
+  .driver-icon{position:absolute;left:0;top:0;width:56px;height:56px;transform:none;z-index:2}
+  .pin-icon{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2}
   .pin-icon{top:auto;bottom:0;transform:translateX(-50%)}
   .customer-pulse{position:absolute;left:50%;top:39%;width:28px;height:28px;border-radius:50%;border:2px solid rgba(234,67,53,.62);background:rgba(234,67,53,.10);box-shadow:0 0 18px rgba(234,67,53,.22);transform:translate(-50%,-50%) scale(.35);opacity:0;animation:customerRadarPulse 2400ms ease-out infinite;z-index:1}
   .customer-pulse.p2{animation-delay:800ms}
@@ -810,8 +868,17 @@ var driverAnim = null, driverRaf = 0, driverAnimPos = null, lastRenderedRot = nu
 var nowMs = (window.performance && window.performance.now) ? function(){ return window.performance.now(); } : function(){ return Date.now(); };
 var pendingState = null;
 var cameraEpoch = -1, programmatic = false;
-// Stable zoom for driver follow mode — never changes on GPS update, only on recenter/mode-change.
-var NAVIGATION_ZOOM = 16.6;
+// Follow and overview zoom are intentionally separate: following keeps the
+// active road close, overview is the only mode allowed to frame the whole route.
+var FOLLOW_ZOOM_URBAN_MIN = ${FOLLOW_ZOOM_URBAN_MIN};
+var FOLLOW_ZOOM_URBAN_MAX = ${FOLLOW_ZOOM_URBAN_MAX};
+var FOLLOW_ZOOM_MOTORWAY_MIN = ${FOLLOW_ZOOM_MOTORWAY_MIN};
+var FOLLOW_ZOOM_MOTORWAY_MAX = ${FOLLOW_ZOOM_MOTORWAY_MAX};
+var FOLLOW_ZOOM_NEAR_MANEUVER = ${FOLLOW_ZOOM_NEAR_MANEUVER};
+var FOLLOW_ZOOM_2D = ${FOLLOW_ZOOM_2D};
+var FOLLOW_ZOOM_3D = ${FOLLOW_ZOOM_3D};
+var OVERVIEW_MAX_ZOOM = ${OVERVIEW_MAX_ZOOM};
+var DRIVER_MARKER_HEADING_OFFSET_DEG = ${DRIVER_MARKER_HEADING_OFFSET_DEG};
 // DEV-only diagnostics flag (baked in at build time).
 var NAV_DEV = ${__DEV__};
 // Bottom map padding (px) reserved for the cockpit sheet so route framing is
@@ -841,7 +908,7 @@ if(canStartMap){
 // points along the real travel direction.
 function driverEl(){
   var w = document.createElement('div'); w.className='dwrap';
-  w.innerHTML='<svg class="driver-icon" width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="22" fill="rgba(249,115,22,.18)"/><circle cx="28" cy="28" r="16" fill="#F97316"/><path d="M28 10L39 38L29 33L21 43L22 30L12 25Z" fill="#FFFFFF" transform="rotate(45 28 28)"/></svg>';
+  w.innerHTML='<svg class="driver-icon" width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="22" fill="rgba(249,115,22,.18)"/><circle cx="28" cy="28" r="16" fill="#F97316"/><path d="M28 8L42 42L28 35L14 42Z" fill="#FFFFFF"/></svg>';
   return w;
 }
 function customerEl(){
@@ -898,10 +965,11 @@ function animateDriver(to, rot, opts){
   var forceSnap = !!opts.forceSnap;
   var duration = (typeof opts.duration === 'number' && isFinite(opts.duration)) ? opts.duration : 900;
   duration = Math.max(220, Math.min(1400, duration));
+  var displayRot = rot == null ? null : rot + DRIVER_MARKER_HEADING_OFFSET_DEG;
   if(!driverMarker){
     driverMarker = new mapboxgl.Marker({element:driverEl(), anchor:'center', rotationAlignment:'map', pitchAlignment:'map'}).setLngLat(to).addTo(map);
     driverAnimPos = { lng: to[0], lat: to[1] };
-    if(rot != null){ driverMarker.setRotation(rot); lastRenderedRot = ((rot % 360) + 360) % 360; }
+    if(displayRot != null){ driverMarker.setRotation(displayRot); lastRenderedRot = ((displayRot % 360) + 360) % 360; }
     if(ts) lastLocationTimestamp = ts;
     return true;
   }
@@ -911,7 +979,7 @@ function animateDriver(to, rot, opts){
     driverAnim = null;
     driverAnimPos = { lng: to[0], lat: to[1] };
     driverMarker.setLngLat(to);
-    if(rot != null){ driverMarker.setRotation(rot); lastRenderedRot = ((rot % 360) + 360) % 360; }
+    if(displayRot != null){ driverMarker.setRotation(displayRot); lastRenderedRot = ((displayRot % 360) + 360) % 360; }
     if(ts) lastLocationTimestamp = ts;
     return true;
   }
@@ -920,17 +988,17 @@ function animateDriver(to, rot, opts){
   var from = driverMarker.getLngLat ? driverMarker.getLngLat() : (driverAnimPos || to);
   var fLng = (from.lng != null) ? from.lng : from[0];
   var fLat = (from.lat != null) ? from.lat : from[1];
-  var fromRot = (lastRenderedRot == null) ? (rot == null ? 0 : rot) : lastRenderedRot;
-  var toRot = (rot == null) ? fromRot : shortestRot(fromRot, rot);
+  var fromRot = (lastRenderedRot == null) ? (displayRot == null ? 0 : displayRot) : lastRenderedRot;
+  var toRot = (displayRot == null) ? fromRot : shortestRot(fromRot, displayRot);
   if(approxMeters([fLng, fLat], to) > 150){
     driverAnim = null;
     driverAnimPos = { lng: to[0], lat: to[1] };
     driverMarker.setLngLat(to);
-    if(rot != null){ driverMarker.setRotation(rot); lastRenderedRot = ((rot % 360) + 360) % 360; }
+    if(displayRot != null){ driverMarker.setRotation(displayRot); lastRenderedRot = ((displayRot % 360) + 360) % 360; }
     if(ts) lastLocationTimestamp = ts;
     return true;
   }
-  driverAnim = { id:animId, fLng:fLng, fLat:fLat, tLng:to[0], tLat:to[1], fRot:fromRot, tRot:toRot, hasRot:(rot != null), start:nowMs(), dur:duration };
+  driverAnim = { id:animId, fLng:fLng, fLat:fLat, tLng:to[0], tLat:to[1], fRot:fromRot, tRot:toRot, hasRot:(displayRot != null), start:nowMs(), dur:duration };
   if(ts) lastLocationTimestamp = ts;
   driverRaf = requestAnimationFrame(function(){ stepDriver(animId); });
   return true;
@@ -952,6 +1020,37 @@ function getRouteBeforeLayerId(){
 function setVis(id,on){ try { if(map.getLayer(id)) map.setLayoutProperty(id,'visibility', on?'visible':'none'); } catch(_){} }
 function addSourceIfMissing(id, source){ if(!map.getSource(id)) map.addSource(id, source); }
 function addLayerIfMissing(layer){ if(!map.getLayer(layer.id)) map.addLayer(layer); }
+function layerText(l){
+  return (String(l.id || '') + ' ' + String(l['source-layer'] || '')).toLowerCase();
+}
+function isRoadGeometryLayer(l){
+  if(!l || l.type !== 'line') return false;
+  var text = layerText(l);
+  return /road|street|motorway|trunk|primary|secondary|tertiary|residential|service|link|ramp|bridge|tunnel/.test(text);
+}
+function isMinorRoadLayer(l){
+  var text = layerText(l);
+  return /street|residential|minor|tertiary|unclassified|living-street|track/.test(text);
+}
+function isServiceRoadLayer(l){
+  var text = layerText(l);
+  return /service|driveway|parking-aisle|path/.test(text);
+}
+function isSlipRoadLayer(l){
+  var text = layerText(l);
+  return /slip|link|ramp/.test(text);
+}
+function isRoadCasingLayer(l){
+  return /case|casing|outline/.test(layerText(l));
+}
+function isRoadLabelLayer(l){
+  if(!l || l.type !== 'symbol') return false;
+  return /road|street|motorway|trunk|primary|secondary|tertiary/.test(layerText(l));
+}
+function isPoiLayer(l){
+  if(!l || l.type !== 'symbol') return false;
+  return /poi|transit|station|airport|place-label|settlement|landmark/.test(layerText(l));
+}
 function applyGooglePalette(){
   try {
     var layers = (map.getStyle() && map.getStyle().layers) || [];
@@ -965,25 +1064,43 @@ function applyGooglePalette(){
         else if(id.indexOf('park') !== -1 || id.indexOf('landuse') !== -1 || id.indexOf('national-park') !== -1) map.setPaintProperty(l.id, 'fill-color', '#DFF2D8');
         else if(id.indexOf('land') !== -1 || id.indexOf('built') !== -1) map.setPaintProperty(l.id, 'fill-color', '#F8FAFE');
       }
-      if(l.type === 'line'){
-        if(id.indexOf('motorway') !== -1 || id.indexOf('trunk') !== -1){
+      if(isRoadGeometryLayer(l)){
+        var roadText = layerText(l);
+        if(isRoadCasingLayer(l)){
+          map.setPaintProperty(l.id, 'line-color', 'rgba(32,33,36,0.82)');
+          map.setPaintProperty(l.id, 'line-opacity', 0.68);
+          map.setPaintProperty(l.id, 'line-width', ['interpolate',['linear'],['zoom'],12,2.4,15,4.3,18,7.8]);
+        } else if(roadText.indexOf('motorway') !== -1 || roadText.indexOf('trunk') !== -1){
           map.setPaintProperty(l.id, 'line-color', '#F6C453');
-          map.setPaintProperty(l.id, 'line-opacity', 0.95);
-        } else if(id.indexOf('primary') !== -1 || id.indexOf('secondary') !== -1){
+          map.setPaintProperty(l.id, 'line-opacity', 0.98);
+          map.setPaintProperty(l.id, 'line-width', ['interpolate',['linear'],['zoom'],10,2.4,15,5.4,18,9.4]);
+        } else if(roadText.indexOf('primary') !== -1 || roadText.indexOf('secondary') !== -1){
           map.setPaintProperty(l.id, 'line-color', '#FFFFFF');
           map.setPaintProperty(l.id, 'line-opacity', 1);
-        } else if(id.indexOf('street') !== -1 || id.indexOf('road') !== -1){
+          map.setPaintProperty(l.id, 'line-width', ['interpolate',['linear'],['zoom'],11,2.0,15,4.4,18,7.8]);
+        } else if(isSlipRoadLayer(l) || isServiceRoadLayer(l)){
           map.setPaintProperty(l.id, 'line-color', '#FFFFFF');
-          map.setPaintProperty(l.id, 'line-opacity', 0.95);
+          map.setPaintProperty(l.id, 'line-opacity', 1);
+          map.setPaintProperty(l.id, 'line-width', ['interpolate',['linear'],['zoom'],12,1.3,15,2.6,18,4.8]);
+        } else if(isMinorRoadLayer(l)){
+          map.setPaintProperty(l.id, 'line-color', '#FFFFFF');
+          map.setPaintProperty(l.id, 'line-opacity', 0.98);
+          map.setPaintProperty(l.id, 'line-width', ['interpolate',['linear'],['zoom'],12,1.4,15,2.3,18,4.4]);
+        } else {
+          map.setPaintProperty(l.id, 'line-color', '#FFFFFF');
+          map.setPaintProperty(l.id, 'line-opacity', 0.94);
         }
       }
       if(l.type === 'symbol'){
-        if(id.indexOf('road') !== -1 || id.indexOf('label') !== -1){
+        if(isRoadLabelLayer(l)){
           try { map.setPaintProperty(l.id, 'text-color', '#5F6368'); } catch(_){}
           try { map.setPaintProperty(l.id, 'text-halo-color', '#FFFFFF'); } catch(_){}
-          try { map.setPaintProperty(l.id, 'text-halo-width', 1); } catch(_){}
+          try { map.setPaintProperty(l.id, 'text-halo-width', 1.15); } catch(_){}
           try { map.setPaintProperty(l.id, 'text-opacity', 0.98); } catch(_){}
           try { map.setLayoutProperty(l.id, 'text-size', ['interpolate',['linear'],['zoom'],10,11,14,13,17,16]); } catch(_){}
+        } else if(isPoiLayer(l)){
+          try { map.setPaintProperty(l.id, 'text-opacity', 0.28); } catch(_){}
+          try { map.setPaintProperty(l.id, 'icon-opacity', 0.18); } catch(_){}
         }
       }
     }
@@ -1163,8 +1280,13 @@ function fitToCoords(coords){
     var b = new mapboxgl.LngLatBounds(coords[0], coords[0]);
     for(var i=1;i<coords.length;i++){ b.extend(coords[i]); }
     programmatic = true;
-    map.fitBounds(b,{padding:{top:150,right:55,bottom:Math.max(120, bottomPad),left:55}, maxZoom:16, bearing:0, pitch:lastMapDepthMode === '3d' ? 45 : 0, duration:500});
+    map.fitBounds(b,{padding:{top:150,right:55,bottom:Math.max(120, bottomPad),left:55}, maxZoom:OVERVIEW_MAX_ZOOM, bearing:0, pitch:lastMapDepthMode === '3d' ? 45 : 0, duration:500});
   }catch(_){}
+}
+function clampFollowZoom(requested, depthMode){
+  var fallback = depthMode === '3d' ? FOLLOW_ZOOM_3D : FOLLOW_ZOOM_2D;
+  var z = (typeof requested === 'number' && isFinite(requested)) ? requested : fallback;
+  return Math.max(FOLLOW_ZOOM_MOTORWAY_MIN, Math.min(FOLLOW_ZOOM_NEAR_MANEUVER, z));
 }
 // Camera is epoch-driven: zoom only changes when the epoch advances (recenter
 // tap / follow-mode change / initial fit). Normal GPS fixes update center and
@@ -1179,20 +1301,28 @@ function applyCamera(s){
     if(s.epoch!==cameraEpoch && s.fitCoords && s.fitCoords.length>=2){ fitToCoords(s.fitCoords); }
     cameraEpoch = s.epoch; return;
   }
-  if(cameraMode==='free-pan' || !s.follow || !s.driver){ cameraEpoch = s.epoch; return; }
+  var displayLocation = s.displayLocation || s.driver;
+  var displayHeading = (s.displayHeading == null ? s.heading : s.displayHeading);
+  if(cameraMode==='free-pan' || !s.follow || !displayLocation){ cameraEpoch = s.epoch; return; }
   var resetZoom = (s.epoch !== cameraEpoch);
   cameraEpoch = s.epoch;
-  var opts = { center: s.driver, duration: 420, offset:[0, Math.min(145, Math.max(84, bottomPad * 0.30))] };
+  var opts = { center: displayLocation, duration: 380, offset:[0, Math.min(170, Math.max(105, bottomPad * 0.34))] };
   if(mode==='heading_up'){
-    opts.bearing = (s.heading==null ? map.getBearing() : s.heading);
+    var targetBearing = (displayHeading==null ? map.getBearing() : displayHeading);
+    opts.bearing = shortestRot(map.getBearing(), targetBearing);
     opts.pitch = depthMode === '3d' ? 58 : 0;
   }
   else {
-    opts.bearing = 0;
+    opts.bearing = shortestRot(map.getBearing(), 0);
     opts.pitch = depthMode === '3d' ? 45 : 0;
   }
-  var currentZoom = (map && map.getZoom) ? map.getZoom() : NAVIGATION_ZOOM;
-  if(resetZoom || currentZoom < NAVIGATION_ZOOM - 0.5){ opts.zoom = NAVIGATION_ZOOM; }
+  var targetZoom = clampFollowZoom(s.followZoom, depthMode);
+  var currentZoom = (map && map.getZoom) ? map.getZoom() : targetZoom;
+  var minSafeZoom = Math.max(FOLLOW_ZOOM_MOTORWAY_MIN, targetZoom - 0.45);
+  var nearManeuverZoom = targetZoom >= FOLLOW_ZOOM_NEAR_MANEUVER - 0.05;
+  if(resetZoom || currentZoom < minSafeZoom || (nearManeuverZoom && targetZoom > currentZoom + 0.05)){
+    opts.zoom = targetZoom;
+  }
   programmatic = true;
   try { if(map && map.stop) map.stop(); } catch(_){}
   map.easeTo(opts);
@@ -1221,15 +1351,17 @@ function applyState(s){
     else customerMarker.setLngLat(s.customer);
   }
   var driverAccepted = true;
-  if(s.driver){
-    driverAccepted = animateDriver(s.driver, s.heading, {forceSnap: !!s.forceSnap, timestamp: s.locationTimestamp, duration: s.animationDurationMs});
+  var displayLocation = s.displayLocation || s.driver;
+  var displayHeading = (s.displayHeading == null ? s.heading : s.displayHeading);
+  if(displayLocation){
+    driverAccepted = animateDriver(displayLocation, displayHeading, {forceSnap: !!s.forceSnap, timestamp: s.locationTimestamp, duration: s.animationDurationMs});
     if(driverAccepted){
-      lastDriver = s.driver;
-      if(s.heading!=null) lastHeading = s.heading;
+      lastDriver = displayLocation;
+      if(displayHeading!=null) lastHeading = displayHeading;
     }
   }
   if(layersReady && map.getSource('acc')){
-    var accCenter = s.rawDriver || s.driver;
+    var accCenter = s.rawDriver || displayLocation;
     if(accCenter && s.accuracy!=null && s.accuracy>0 && s.accuracy<=120) map.getSource('acc').setData(circlePolygon(accCenter, s.accuracy));
     else map.getSource('acc').setData(emptyFC());
   }
@@ -1486,7 +1618,6 @@ export default function JobRouteScreen() {
   const webRef = useRef<WebView>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const mapDiagRef = useRef('');
-  const jobNumberShimmer = useRef(new Animated.Value(0)).current;
   const maneuverShimmer = useRef(new Animated.Value(0)).current;
   const routeAbortRef = useRef<AbortController | null>(null);
   const routeRequestSeqRef = useRef(0);
@@ -1566,41 +1697,7 @@ export default function JobRouteScreen() {
   const activeReminderIdRef = useRef<string | null>(null);
   // Follow mode mirrored to a ref so requestRoute can read it without closure stale issues.
   const followModeRef = useRef<FollowMode>('heading_up');
-  const jobNumberShimmerX = jobNumberShimmer.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-72, 220],
-  });
-  const jobNumberShimmerOpacity = jobNumberShimmer.interpolate({
-    inputRange: [0, 0.14, 0.5, 0.86, 1],
-    outputRange: [0, 0.28, 0.62, 0.28, 0],
-  });
-  const maneuverShimmerOpacity = maneuverShimmer.interpolate({
-    inputRange: [0, 0.22, 0.5, 0.78, 1],
-    outputRange: [0, 0.2, 0.46, 0.2, 0],
-  });
 
-  // Keep the decorative title shimmer native-only; on web it becomes a JS loop
-  // competing with the map.
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      jobNumberShimmer.setValue(0);
-      return undefined;
-    }
-    const animation = Animated.loop(
-      Animated.timing(jobNumberShimmer, {
-        toValue: 1,
-        duration: 3000,
-        easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    );
-    animation.start();
-    return () => {
-      animation.stop();
-      jobNumberShimmer.stopAnimation();
-      jobNumberShimmer.setValue(0);
-    };
-  }, [jobNumberShimmer]);
   useEffect(() => {
     let mounted = true;
     AccessibilityInfo.isReduceMotionEnabled()
@@ -2429,6 +2526,7 @@ export default function JobRouteScreen() {
         fixTimestampMs: lastFixAt,
         nowMs: lastFixAt ?? 0,
         maxSnapDistanceMeters: SNAP_TO_ROUTE_MAX_DRIFT_M,
+        maxDisplaySnapDistanceMeters: GPS_DRIFT_METERS,
         staleAfterMs: NAVIGATION_PROGRESS_STALE_MS,
         fallbackStepIndex: stepIndexRef.current,
         isRecalculating: rerouting,
@@ -2456,6 +2554,42 @@ export default function JobRouteScreen() {
   const displayDriverPosition = navigationProgress.displayLocation;
   const displayMode = navigationProgress.displayMode;
   const routeHeading = navigationProgress.routeHeading;
+  const displayNavigationState = useMemo(() => {
+    const displayLocation = displayDriverPosition
+      ? ([displayDriverPosition.lng, displayDriverPosition.lat] as [number, number])
+      : null;
+    const rawLocation = rawDriverPosition
+      ? ([rawDriverPosition.lng, rawDriverPosition.lat] as [number, number])
+      : null;
+    const displayHeading =
+      navigationProgress.displayHeading ??
+      (displayMode === 'snapped' && routeHeading != null
+        ? routeHeading
+        : headingRef.current);
+    return {
+      displayLocation,
+      rawLocation,
+      displayHeading,
+      locationTimestamp: navigationProgress.fixTimestampMs,
+      followZoom: navigationFollowZoom({
+        mapDepthMode,
+        roadClass: navigationProgress.currentRoadClass,
+        speedMps: navigationProgress.speedMps,
+        distanceToManeuverMeters: navigationProgress.distanceToManeuverMeters,
+      }),
+    };
+  }, [
+    displayDriverPosition,
+    displayMode,
+    mapDepthMode,
+    navigationProgress.currentRoadClass,
+    navigationProgress.displayHeading,
+    navigationProgress.distanceToManeuverMeters,
+    navigationProgress.fixTimestampMs,
+    navigationProgress.speedMps,
+    rawDriverPosition,
+    routeHeading,
+  ]);
 
   // ── Push markers / route / camera into the WebView ──
   useEffect(() => {
@@ -2464,12 +2598,6 @@ export default function JobRouteScreen() {
       routeState.source === 'mapbox' &&
       routeState.routeJobRef === currentRouteJobRef &&
       routeState.routeDestinationKey === currentDestinationKey;
-    const driver = displayDriverPosition
-      ? [displayDriverPosition.lng, displayDriverPosition.lat]
-      : null;
-    const rawDriver = rawDriverPosition
-      ? [rawDriverPosition.lng, rawDriverPosition.lat]
-      : null;
     const customer = customerMarkerPosition
       ? [customerMarkerPosition.lng, customerMarkerPosition.lat]
       : null;
@@ -2487,16 +2615,11 @@ export default function JobRouteScreen() {
     const fitCoords =
       fit && routeCanRender && selectedRouteCoordinates
         ? [
-            ...(rawDriver ? [rawDriver] : driver ? [driver] : []),
+            ...(displayNavigationState.displayLocation ? [displayNavigationState.displayLocation] : []),
             ...selectedRouteCoordinates,
             ...(customer ? [customer] : []),
           ]
         : null;
-    const mapHeading =
-      navigationProgress.displayHeading ??
-      (displayMode === 'snapped' && routeHeading != null
-        ? routeHeading
-        : headingRef.current);
     const cameraMode =
       followMode === 'overview'
         ? 'overview'
@@ -2504,12 +2627,12 @@ export default function JobRouteScreen() {
           ? 'following'
           : 'free-pan';
     const json = JSON.stringify({
-      driver,
-      rawDriver,
+      displayLocation: displayNavigationState.displayLocation,
+      rawDriver: displayNavigationState.rawLocation,
       driverDisplayMode: displayMode,
-      heading: mapHeading,
+      displayHeading: displayNavigationState.displayHeading,
       accuracy: accuracyRef.current,
-      locationTimestamp: navigationProgress.fixTimestampMs,
+      locationTimestamp: displayNavigationState.locationTimestamp,
       animationDurationMs: navigationProgress.animationDurationMs,
       forceSnap: navigationProgress.forceSnap,
       customer,
@@ -2529,6 +2652,7 @@ export default function JobRouteScreen() {
       follow: isFollowingDriver,
       followMode,
       mapDepthMode,
+      followZoom: displayNavigationState.followZoom,
       cameraMode,
       epoch: cameraEpoch,
       bottomPad: cockpitCollapsed ? COCKPIT_PAD_COLLAPSED + insets.bottom : COCKPIT_PAD_EXPANDED + insets.bottom,
@@ -2546,8 +2670,8 @@ export default function JobRouteScreen() {
     customerMarkerPosition,
     currentDestinationKey,
     currentRouteJobRef,
-    displayDriverPosition,
     displayMode,
+    displayNavigationState,
     routeState.routes,
     routeState.selectedIndex,
     routeState.source,
@@ -2557,7 +2681,6 @@ export default function JobRouteScreen() {
     routeRev,
     routeSequence,
     selectedRouteCoordinates,
-    routeHeading,
     navigationProgress,
     isFollowingDriver,
     followMode,
@@ -2566,7 +2689,6 @@ export default function JobRouteScreen() {
     cockpitCollapsed,
     insets.bottom,
     injectMapJavaScript,
-    rawDriverPosition,
   ]);
 
   // When collapsing/expanding the cockpit changes the reserved bottom padding,
@@ -3683,6 +3805,18 @@ export default function JobRouteScreen() {
     inputRange: [0, 1],
     outputRange: maneuverShimmerSpec.scale,
   });
+  const maneuverSignalTailOpacity = maneuverShimmer.interpolate({
+    inputRange: [0, 0.28, 0.56, 1],
+    outputRange: [0.08, 0.5, 0.18, 0.08],
+  });
+  const maneuverSignalMidOpacity = maneuverShimmer.interpolate({
+    inputRange: [0, 0.28, 0.56, 1],
+    outputRange: [0.14, 0.22, 0.62, 0.14],
+  });
+  const maneuverSignalLeadOpacity = maneuverShimmer.interpolate({
+    inputRange: [0, 0.28, 0.56, 1],
+    outputRange: [0.24, 0.14, 0.28, 0.74],
+  });
 
   useEffect(() => {
     const shouldAnimate =
@@ -4333,38 +4467,6 @@ export default function JobRouteScreen() {
         )}
       </View>
 
-      {/* ── Top overlay: compact header (Part 1) ── */}
-      <View
-        style={[styles.topBar, styles.boxNonePointerEvents, { paddingTop: insets.top + spacing.xs }]}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('common.goBack')}
-          onPress={() => router.back()}
-          style={styles.iconBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color="#3C4043" />
-        </Pressable>
-        <View style={styles.topTitlePill}>
-          <Text style={styles.topTitleText} numberOfLines={1}>
-            #{ref}
-          </Text>
-          <Animated.View
-            style={[
-              styles.topTitleShimmer,
-              styles.noPointerEvents,
-              {
-                opacity: jobNumberShimmerOpacity,
-                transform: [
-                  { translateX: jobNumberShimmerX },
-                  { skewX: '-18deg' },
-                ],
-              },
-            ]}
-          />
-        </View>
-      </View>
-
       {/* ── Live instruction card — hidden when route has failed (recovery panel handles it)
            but kept when arrival wording is active so the driver sees their destination. ── */}
       {token && mapLoaded && !mapFatal && !permissionDenied && primaryInstruction.length > 0 && (arrival != null || rerouting || (routeIsCurrent && !rerouteFailed)) && (
@@ -4373,10 +4475,49 @@ export default function JobRouteScreen() {
             styles.instructionCard,
             instructionCardPhaseStyle,
             styles.noPointerEvents,
-            { top: insets.top + 50 },
+            { top: Math.max(insets.top + spacing.xs, spacing.md) },
           ]}
         >
           <View style={[styles.instructionIcon, instructionIconPhaseStyle]}>
+            {Platform.OS !== 'web' && !maneuverShimmerSpec.paused && (
+              maneuverShimmerSpec.mode === 'pulse' ? (
+                <Animated.View
+                  style={[
+                    styles.maneuverSignArrivalPulse,
+                    styles.noPointerEvents,
+                    {
+                      opacity: maneuverSignalLeadOpacity,
+                      transform: [{ scale: maneuverShimmerScale }],
+                    },
+                  ]}
+                />
+              ) : (
+                <Animated.View
+                  style={[
+                    styles.maneuverSignSignalClip,
+                    styles.noPointerEvents,
+                    {
+                      transform: [
+                        { translateX: maneuverShimmerTranslateX },
+                        { translateY: maneuverShimmerTranslateY },
+                        { rotate: maneuverShimmerRotate },
+                        { scale: maneuverShimmerScale },
+                      ],
+                    },
+                  ]}
+                >
+                  <Animated.View
+                    style={[styles.maneuverSignSignalSegment, { opacity: maneuverSignalTailOpacity }]}
+                  />
+                  <Animated.View
+                    style={[styles.maneuverSignSignalSegment, { opacity: maneuverSignalMidOpacity }]}
+                  />
+                  <Animated.View
+                    style={[styles.maneuverSignSignalSegment, { opacity: maneuverSignalLeadOpacity }]}
+                  />
+                </Animated.View>
+              )
+            )}
             <Ionicons
               name={
                 arrival
@@ -4389,21 +4530,6 @@ export default function JobRouteScreen() {
               }
               size={34}
               color="#FFFFFF"
-            />
-            <Animated.View
-              style={[
-                styles.instructionIconShimmer,
-                styles.noPointerEvents,
-                {
-                  opacity: maneuverShimmerOpacity,
-                  transform: [
-                    { translateX: maneuverShimmerTranslateX },
-                    { translateY: maneuverShimmerTranslateY },
-                    { rotate: maneuverShimmerRotate },
-                    { scale: maneuverShimmerScale },
-                  ],
-                },
-              ]}
             />
           </View>
           <View style={styles.instructionTextWrap}>
@@ -5657,12 +5783,28 @@ const styles = StyleSheet.create({
   instructionIconExecuting: {
     backgroundColor: '#EA4335',
   },
-  instructionIconShimmer: {
+  maneuverSignSignalClip: {
     position: 'absolute',
-    top: -8,
-    bottom: -8,
-    width: 18,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  maneuverSignSignalSegment: {
+    width: 9,
+    height: 13,
+    borderRadius: 5,
+    marginVertical: -1,
+    backgroundColor: 'rgba(255,255,255,0.58)',
+  },
+  maneuverSignArrivalPulse: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.24)',
   },
   instructionTextWrap: {
     flex: 1,
@@ -6048,57 +6190,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: fontSize.sm,
     fontWeight: '700',
-  },
-  topBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xs,
-  },
-  iconBtn: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: spacing.sm,
-    borderWidth: 1,
-    borderColor: '#DADCE0',
-    shadowColor: '#3C4043',
-    shadowOpacity: 0.16,
-    shadowRadius: 9,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
-  },
-  topTitlePill: {
-    paddingVertical: 4,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.full,
-    backgroundColor: 'rgba(255,255,255,0.97)',
-    borderWidth: 1,
-    borderColor: '#DADCE0',
-    overflow: 'hidden',
-    position: 'relative',
-    shadowColor: '#3C4043',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
-  },
-  topTitleText: {
-    color: '#202124',
-    fontSize: fontSize.sm,
-    fontWeight: '800',
-  },
-  topTitleShimmer: {
-    position: 'absolute',
-    top: -8,
-    bottom: -8,
-    left: 0,
-    width: 34,
-    backgroundColor: 'rgba(249,115,22,0.16)',
   },
   sideControls: {
     position: 'absolute',
