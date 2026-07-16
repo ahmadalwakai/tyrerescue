@@ -5,7 +5,9 @@ import {
   type Coordinates,
   type DirectionsRoute,
   type LngLat,
+  type RouteLane,
   type RouteStep,
+  type SpeedLimitAnnotation,
 } from '../../services/directions';
 
 const METERS_PER_SECOND_TO_MPH = 2.2369362921;
@@ -14,10 +16,37 @@ const DEFAULT_STALE_MS = 12_000;
 const MAX_BACKTRACK_METERS = 35;
 const MAX_PLAUSIBLE_SPEED_MPS = 75;
 const CONFIRMED_REVERSE_MAX_BACKTRACK_METERS = 500;
+const MPH_PER_KMH = 0.621371;
+const MOTORWAY_LANE_GUIDANCE_M = 950;
+const FAST_ROAD_LANE_GUIDANCE_M = 650;
+const LOCAL_LANE_GUIDANCE_M = 260;
+const MAX_TRAVELLED_GEOMETRY_POINTS = 5_000;
+const MAX_TRAVELLED_SEGMENT_METERS = 20_000;
 
 const routeMetricsCache = new WeakMap<LngLat[], RouteMetrics>();
 
 export type DriverDisplayMode = 'snapped' | 'raw';
+export type ManeuverWarningPhase = 'early' | 'prepare' | 'imminent' | 'executing' | 'passed';
+export type ManeuverShimmerCategory =
+  | 'slight-left'
+  | 'left'
+  | 'sharp-left'
+  | 'slight-right'
+  | 'right'
+  | 'sharp-right'
+  | 'straight'
+  | 'u-turn-left'
+  | 'u-turn-right'
+  | 'roundabout-left'
+  | 'roundabout-right'
+  | 'exit-left'
+  | 'exit-right'
+  | 'fork-left'
+  | 'fork-right'
+  | 'merge-left'
+  | 'merge-right'
+  | 'arrive';
+export type ManeuverShimmerMode = 'none' | 'linear' | 'diagonal' | 'circular' | 'pulse';
 
 export interface RouteGeometryValidation {
   ok: boolean;
@@ -44,28 +73,57 @@ export interface NavigationRouteMatch {
 export interface NavigationProgress {
   routeRevision: string;
   rawLocation: Coordinates | null;
+  acceptedLocation: Coordinates | null;
   snappedLocation: Coordinates | null;
+  matchedLocation: Coordinates | null;
   displayLocation: Coordinates | null;
   displayMode: DriverDisplayMode;
+  locationTimestamp: number | null;
   distanceFromRouteMeters: number | null;
   segmentIndex: number | null;
+  matchedSegmentIndex: number | null;
   distanceAlongMeters: number | null;
+  distanceAlongRouteMetres: number | null;
   routeHeading: number | null;
+  rawHeading: number | null;
   displayHeading: number | null;
   speedMps: number | null;
   speedMph: number | null;
   speedDisplayReliable: boolean;
+  accuracy: number | null;
+  currentRoadName: string | null;
+  currentRoadClass: string | null;
+  currentSpeedLimitMph: number | null;
+  speedLimitSource: 'mapbox-maxspeed' | 'unavailable';
   remainingDistanceMeters: number | null;
+  distanceRemainingMetres: number | null;
   remainingDurationSeconds: number | null;
+  durationRemainingSeconds: number | null;
   currentStepIndex: number;
   currentStep: RouteStep | null;
+  currentManeuver: RouteStep | null;
   nextStep: RouteStep | null;
+  nextManeuver: RouteStep | null;
   distanceToManeuverMeters: number | null;
+  maneuverWarningPhase: ManeuverWarningPhase;
+  laneGuidance: NavigationLaneGuidance | null;
+  roundaboutExitNumber: number | null;
+  isOffRoute: boolean;
+  isRecalculating: boolean;
+  cameraMode: 'following' | 'free-pan' | 'overview';
+  isLocationStale: boolean;
   travelledGeometry: LngLat[] | null;
   fixTimestampMs: number | null;
   animationDurationMs: number;
   forceSnap: boolean;
   stale: boolean;
+}
+
+export interface NavigationLaneGuidance {
+  stepIndex: number;
+  lanes: RouteLane[];
+  distanceToManeuverMeters: number | null;
+  roadName: string | null;
 }
 
 export interface NavigationProgressInput {
@@ -79,9 +137,28 @@ export interface NavigationProgressInput {
   accuracyMeters: number | null;
   fixTimestampMs: number | null;
   nowMs: number;
+  isRecalculating?: boolean;
+  cameraMode?: 'following' | 'free-pan' | 'overview';
   maxSnapDistanceMeters?: number;
   staleAfterMs?: number;
   fallbackStepIndex?: number;
+}
+
+export interface RerouteOrigin {
+  coordinate: Coordinates;
+  source: 'matched' | 'display' | 'raw';
+  routeRevision: string;
+  locationTimestamp: number;
+  segmentIndex: number | null;
+  confidence: number | null;
+}
+
+export interface RerouteOriginInput {
+  progress: NavigationProgress | null;
+  rawLocation: Coordinates | null;
+  rawLocationTimestamp: number | null;
+  routeRevision: string;
+  maxSnapDistanceMeters?: number;
 }
 
 type SegmentProjection = {
@@ -100,6 +177,36 @@ type RouteMetrics = {
   totalMeters: number;
   maxSegmentMeters: number;
 };
+
+export interface ManeuverWarningPhaseInput {
+  distanceToManeuverMetres: number | null;
+  speedMps: number | null;
+  roadClass: string | null;
+  maneuverType: string | null;
+  isRoundabout?: boolean;
+  isExit?: boolean;
+  accuracy: number | null;
+  isStale: boolean;
+  isOffRoute?: boolean;
+}
+
+export interface ManeuverShimmerInput {
+  maneuverType: string | null;
+  maneuverModifier: string | null;
+  drivingSide?: 'left' | 'right' | null;
+  reducedMotion: boolean;
+  appState: 'active' | 'background' | 'inactive';
+}
+
+export interface ManeuverShimmerSpec {
+  category: ManeuverShimmerCategory;
+  mode: ManeuverShimmerMode;
+  paused: boolean;
+  translateX: [number, number];
+  translateY: [number, number];
+  rotate: [string, string];
+  scale: [number, number];
+}
 
 export function metersPerSecondToMph(speedMps: number | null | undefined): number | null {
   if (typeof speedMps !== 'number' || !Number.isFinite(speedMps) || speedMps < 0) {
@@ -148,6 +255,344 @@ export function smoothSpeedMps(
   }
   const clampedAlpha = Math.max(0, Math.min(1, alpha));
   return previous + (current - previous) * clampedAlpha;
+}
+
+function speedLimitMphFromAnnotation(
+  annotation: SpeedLimitAnnotation | null | undefined,
+): number | null {
+  if (
+    !annotation ||
+    annotation.unknown ||
+    annotation.none ||
+    typeof annotation.speed !== 'number' ||
+    !Number.isFinite(annotation.speed) ||
+    annotation.speed <= 0 ||
+    annotation.unit == null
+  ) {
+    return null;
+  }
+  const mph =
+    annotation.unit === 'mph'
+      ? annotation.speed
+      : annotation.speed * MPH_PER_KMH;
+  return Math.max(1, Math.round(mph));
+}
+
+function speedLimitForSegment(
+  route: DirectionsRoute,
+  segmentIndex: number | null,
+): { mph: number | null; source: NavigationProgress['speedLimitSource'] } {
+  if (
+    segmentIndex == null ||
+    segmentIndex < 0 ||
+    !Array.isArray(route.maxspeeds) ||
+    route.maxspeeds.length === 0
+  ) {
+    return { mph: null, source: 'unavailable' };
+  }
+  const mph = speedLimitMphFromAnnotation(route.maxspeeds[segmentIndex]);
+  return mph == null
+    ? { mph: null, source: 'unavailable' }
+    : { mph, source: 'mapbox-maxspeed' };
+}
+
+function isFastRoadClass(roadClass: string | null | undefined): boolean {
+  if (!roadClass) return false;
+  return /motorway|trunk|primary/.test(roadClass);
+}
+
+function isMotorwayRoadClass(roadClass: string | null | undefined): boolean {
+  if (!roadClass) return false;
+  return /motorway|trunk/.test(roadClass);
+}
+
+function isExitLikeManeuver(maneuverType: string | null | undefined): boolean {
+  if (!maneuverType) return false;
+  return /exit|ramp|fork|merge/.test(maneuverType);
+}
+
+function isRoundaboutManeuver(maneuverType: string | null | undefined): boolean {
+  if (!maneuverType) return false;
+  return /roundabout|rotary/.test(maneuverType);
+}
+
+function maneuverSpeedScale(speedMps: number | null): number {
+  if (speedMps == null || !Number.isFinite(speedMps) || speedMps < 0) return 1;
+  if (speedMps <= 5) return 0.72;
+  if (speedMps <= 10) return 0.86;
+  if (speedMps <= 18) return 1;
+  return Math.min(1.75, 1 + (speedMps - 18) * 0.035);
+}
+
+function maneuverThresholds(params: ManeuverWarningPhaseInput): {
+  prepare: number;
+  imminent: number;
+  executing: number;
+  passedMargin: number;
+} {
+  const roadClass = params.roadClass;
+  const motorway = isMotorwayRoadClass(roadClass);
+  const fastRoad = motorway || isFastRoadClass(roadClass);
+  const roundabout = params.isRoundabout === true || isRoundaboutManeuver(params.maneuverType);
+  const exitLike = params.isExit === true || isExitLikeManeuver(params.maneuverType);
+  const scale = maneuverSpeedScale(params.speedMps);
+
+  let prepare = 220;
+  let imminent = 55;
+  let executing = 16;
+  let passedMargin = 18;
+
+  if (roundabout) {
+    prepare = 420;
+    imminent = 95;
+    executing = 24;
+    passedMargin = 24;
+  } else if (motorway && exitLike) {
+    prepare = 1_250;
+    imminent = 260;
+    executing = 80;
+    passedMargin = 35;
+  } else if (fastRoad && exitLike) {
+    prepare = 800;
+    imminent = 180;
+    executing = 55;
+    passedMargin = 30;
+  } else if (exitLike) {
+    prepare = 420;
+    imminent = 95;
+    executing = 28;
+    passedMargin = 24;
+  } else if (fastRoad) {
+    prepare = 520;
+    imminent = 130;
+    executing = 35;
+    passedMargin = 25;
+  }
+
+  return {
+    prepare: Math.round(Math.max(120, Math.min(1_600, prepare * scale))),
+    imminent: Math.round(Math.max(35, Math.min(360, imminent * scale))),
+    executing: Math.round(Math.max(10, Math.min(95, executing * Math.min(scale, 1.25)))),
+    passedMargin,
+  };
+}
+
+export function getManeuverWarningPhase(
+  params: ManeuverWarningPhaseInput,
+): ManeuverWarningPhase {
+  const distance = params.distanceToManeuverMetres;
+  if (typeof distance !== 'number' || !Number.isFinite(distance)) return 'early';
+  const locationUntrusted =
+    params.isStale ||
+    params.isOffRoute === true ||
+    (typeof params.accuracy === 'number' &&
+      Number.isFinite(params.accuracy) &&
+      params.accuracy > DEFAULT_MAX_SNAP_METERS);
+  if (locationUntrusted && distance >= 0) return 'early';
+
+  const thresholds = maneuverThresholds(params);
+  if (distance < -thresholds.passedMargin) return 'passed';
+  if (distance <= thresholds.executing) return 'executing';
+  if (distance <= thresholds.imminent) return 'imminent';
+  if (distance <= thresholds.prepare) return 'prepare';
+  return 'early';
+}
+
+function sideFromModifier(modifier: string | null | undefined): 'left' | 'right' | null {
+  const mod = modifier ?? '';
+  if (mod.includes('left')) return 'left';
+  if (mod.includes('right')) return 'right';
+  return null;
+}
+
+function categoryForManeuver(params: ManeuverShimmerInput): ManeuverShimmerCategory {
+  const type = params.maneuverType ?? '';
+  const mod = params.maneuverModifier ?? '';
+  const side = sideFromModifier(mod);
+  if (type === 'arrive') return 'arrive';
+  if (mod.includes('uturn') || mod.includes('u-turn')) {
+    return side === 'right' ? 'u-turn-right' : 'u-turn-left';
+  }
+  if (isRoundaboutManeuver(type)) {
+    const circulationSide = side ?? (params.drivingSide === 'left' ? 'right' : 'left');
+    return circulationSide === 'left' ? 'roundabout-left' : 'roundabout-right';
+  }
+  if (type.includes('exit') || type.includes('ramp')) {
+    return side === 'left' ? 'exit-left' : 'exit-right';
+  }
+  if (type === 'fork') {
+    return side === 'left' ? 'fork-left' : 'fork-right';
+  }
+  if (type === 'merge') {
+    return side === 'left' ? 'merge-left' : 'merge-right';
+  }
+  if (mod.includes('slight left')) return 'slight-left';
+  if (mod.includes('sharp left')) return 'sharp-left';
+  if (mod.includes('left')) return 'left';
+  if (mod.includes('slight right')) return 'slight-right';
+  if (mod.includes('sharp right')) return 'sharp-right';
+  if (mod.includes('right')) return 'right';
+  return 'straight';
+}
+
+export function getManeuverShimmerSpec(params: ManeuverShimmerInput): ManeuverShimmerSpec {
+  const category = categoryForManeuver(params);
+  const paused = params.reducedMotion || params.appState !== 'active';
+  if (paused) {
+    return {
+      category,
+      mode: 'none',
+      paused: true,
+      translateX: [0, 0],
+      translateY: [0, 0],
+      rotate: ['0deg', '0deg'],
+      scale: [1, 1],
+    };
+  }
+
+  switch (category) {
+    case 'arrive':
+      return { category, mode: 'pulse', paused: false, translateX: [0, 0], translateY: [0, 0], rotate: ['0deg', '0deg'], scale: [0.9, 1.12] };
+    case 'straight':
+      return { category, mode: 'linear', paused: false, translateX: [0, 0], translateY: [24, -28], rotate: ['0deg', '0deg'], scale: [1, 1] };
+    case 'left':
+    case 'slight-left':
+    case 'sharp-left':
+    case 'u-turn-left':
+      return { category, mode: category.startsWith('u-turn') ? 'circular' : 'diagonal', paused: false, translateX: [18, -30], translateY: [14, -10], rotate: ['0deg', '-180deg'], scale: [1, 1] };
+    case 'right':
+    case 'slight-right':
+    case 'sharp-right':
+    case 'u-turn-right':
+      return { category, mode: category.startsWith('u-turn') ? 'circular' : 'diagonal', paused: false, translateX: [-18, 30], translateY: [14, -10], rotate: ['0deg', '180deg'], scale: [1, 1] };
+    case 'roundabout-left':
+      return { category, mode: 'circular', paused: false, translateX: [12, -12], translateY: [14, -14], rotate: ['90deg', '-270deg'], scale: [1, 1] };
+    case 'roundabout-right':
+      return { category, mode: 'circular', paused: false, translateX: [-12, 12], translateY: [14, -14], rotate: ['-90deg', '270deg'], scale: [1, 1] };
+    case 'exit-left':
+    case 'fork-left':
+    case 'merge-left':
+      return { category, mode: 'diagonal', paused: false, translateX: [16, -32], translateY: [20, -16], rotate: ['0deg', '0deg'], scale: [1, 1] };
+    case 'exit-right':
+    case 'fork-right':
+    case 'merge-right':
+      return { category, mode: 'diagonal', paused: false, translateX: [-16, 32], translateY: [20, -16], rotate: ['0deg', '0deg'], scale: [1, 1] };
+    default:
+      return { category, mode: 'linear', paused: false, translateX: [0, 0], translateY: [24, -28], rotate: ['0deg', '0deg'], scale: [1, 1] };
+  }
+}
+
+function matchConfidence(distanceFromRouteMeters: number | null, maxSnapDistanceMeters: number): number | null {
+  if (
+    typeof distanceFromRouteMeters !== 'number' ||
+    !Number.isFinite(distanceFromRouteMeters) ||
+    distanceFromRouteMeters < 0
+  ) {
+    return null;
+  }
+  return Math.max(0, Math.min(1, 1 - distanceFromRouteMeters / maxSnapDistanceMeters));
+}
+
+export function selectRerouteOrigin(input: RerouteOriginInput): RerouteOrigin | null {
+  const maxSnapDistanceMeters = input.maxSnapDistanceMeters ?? DEFAULT_MAX_SNAP_METERS;
+  const progress = input.progress;
+  const progressFresh =
+    progress != null &&
+    progress.routeRevision === input.routeRevision &&
+    progress.fixTimestampMs != null &&
+    progress.stale !== true &&
+    progress.isLocationStale !== true;
+  const confidence = progressFresh
+    ? matchConfidence(progress.distanceFromRouteMeters, maxSnapDistanceMeters)
+    : null;
+  const trustedProgress =
+    progressFresh &&
+    progress.displayMode === 'snapped' &&
+    confidence != null &&
+    confidence >= 0.4;
+
+  if (
+    trustedProgress &&
+    progress?.matchedLocation &&
+    isValidCoord(progress.matchedLocation) &&
+    progress.fixTimestampMs != null
+  ) {
+    return {
+      coordinate: progress.matchedLocation,
+      source: 'matched',
+      routeRevision: input.routeRevision,
+      locationTimestamp: progress.fixTimestampMs,
+      segmentIndex: progress.matchedSegmentIndex,
+      confidence,
+    };
+  }
+
+  if (
+    trustedProgress &&
+    progress?.displayLocation &&
+    isValidCoord(progress.displayLocation) &&
+    progress.fixTimestampMs != null
+  ) {
+    return {
+      coordinate: progress.displayLocation,
+      source: 'display',
+      routeRevision: input.routeRevision,
+      locationTimestamp: progress.fixTimestampMs,
+      segmentIndex: progress.segmentIndex,
+      confidence,
+    };
+  }
+
+  if (
+    input.rawLocation &&
+    isValidCoord(input.rawLocation) &&
+    typeof input.rawLocationTimestamp === 'number' &&
+    Number.isFinite(input.rawLocationTimestamp)
+  ) {
+    return {
+      coordinate: input.rawLocation,
+      source: 'raw',
+      routeRevision: input.routeRevision,
+      locationTimestamp: input.rawLocationTimestamp,
+      segmentIndex: null,
+      confidence: null,
+    };
+  }
+
+  return null;
+}
+
+function laneGuidanceThresholdMeters(
+  step: RouteStep | null,
+  speedMps: number | null,
+  route: DirectionsRoute,
+): number {
+  if (isMotorwayRoadClass(step?.roadClass) || route.roadClasses.motorways) {
+    return MOTORWAY_LANE_GUIDANCE_M;
+  }
+  if (isFastRoadClass(step?.roadClass) || (speedMps != null && speedMps >= 18)) {
+    return FAST_ROAD_LANE_GUIDANCE_M;
+  }
+  return LOCAL_LANE_GUIDANCE_M;
+}
+
+function laneGuidanceForStep(params: {
+  step: RouteStep | null;
+  stepIndex: number;
+  distanceToManeuverMeters: number | null;
+  speedMps: number | null;
+  route: DirectionsRoute;
+}): NavigationLaneGuidance | null {
+  const { step, distanceToManeuverMeters, speedMps, route, stepIndex } = params;
+  if (!step || step.lanes.length === 0 || distanceToManeuverMeters == null) return null;
+  const threshold = laneGuidanceThresholdMeters(step, speedMps, route);
+  if (distanceToManeuverMeters > threshold) return null;
+  return {
+    stepIndex,
+    lanes: step.lanes,
+    distanceToManeuverMeters,
+    roadName: step.name,
+  };
 }
 
 export function splitInstructionRoadName(
@@ -417,8 +862,18 @@ function buildTravelledGeometry(
   match: SegmentProjection | null,
 ): LngLat[] | null {
   if (!match || match.segmentIndex == null || match.segmentIndex < 0) return null;
+  if (match.segmentIndex >= geometry.length - 1) return null;
   if (match.segmentIndex === 0 && match.segmentFraction <= 0.01) return null;
   const travelled = geometry.slice(0, match.segmentIndex + 1);
+  if (travelled.length > MAX_TRAVELLED_GEOMETRY_POINTS) return null;
+  if (!travelled.every(isFiniteLngLat)) return null;
+  for (let i = 0; i < travelled.length - 1; i += 1) {
+    const start = lngLatToCoordinates(travelled[i]);
+    const end = lngLatToCoordinates(travelled[i + 1]);
+    if (!start || !end || haversineMeters(start, end) > MAX_TRAVELLED_SEGMENT_METERS) {
+      return null;
+    }
+  }
   const snapped: LngLat = [match.point.lng, match.point.lat];
   const last = travelled[travelled.length - 1];
   if (!last || haversineMeters({ lng: last[0], lat: last[1] }, match.point) > 1) {
@@ -482,6 +937,8 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
   const previousForRoute = previous?.routeRevision === routeRevision ? previous : null;
   const speedMps = smoothSpeedMps(previousForRoute?.speedMps, input.speedMps);
   const speedMph = metersPerSecondToMph(speedMps);
+  const cameraMode = input.cameraMode ?? 'following';
+  const isRecalculating = input.isRecalculating === true;
   const stale =
     fixTimestampMs == null || !Number.isFinite(fixTimestampMs)
       ? true
@@ -490,23 +947,45 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
   const empty: NavigationProgress = {
     routeRevision,
     rawLocation: rawLocation && isValidCoord(rawLocation) ? rawLocation : null,
+    acceptedLocation: rawLocation && isValidCoord(rawLocation) ? rawLocation : null,
     snappedLocation: null,
+    matchedLocation: null,
     displayLocation: rawLocation && isValidCoord(rawLocation) ? rawLocation : null,
     displayMode: 'raw',
+    locationTimestamp: fixTimestampMs,
     distanceFromRouteMeters: null,
     segmentIndex: null,
+    matchedSegmentIndex: null,
     distanceAlongMeters: null,
+    distanceAlongRouteMetres: null,
     routeHeading: null,
+    rawHeading: gpsHeading,
     displayHeading: smoothCircularHeading(previousForRoute?.displayHeading, gpsHeading),
     speedMps,
     speedMph,
     speedDisplayReliable: !stale && speedMph != null,
+    accuracy: accuracyMeters,
+    currentRoadName: null,
+    currentRoadClass: null,
+    currentSpeedLimitMph: null,
+    speedLimitSource: 'unavailable',
     remainingDistanceMeters: routeIsCurrent ? route?.distanceMeters ?? null : null,
+    distanceRemainingMetres: routeIsCurrent ? route?.distanceMeters ?? null : null,
     remainingDurationSeconds: routeIsCurrent ? route?.durationSeconds ?? null : null,
+    durationRemainingSeconds: routeIsCurrent ? route?.durationSeconds ?? null : null,
     currentStepIndex: input.fallbackStepIndex ?? 0,
     currentStep: null,
+    currentManeuver: null,
     nextStep: null,
+    nextManeuver: null,
     distanceToManeuverMeters: null,
+    maneuverWarningPhase: 'early',
+    laneGuidance: null,
+    roundaboutExitNumber: null,
+    isOffRoute: false,
+    isRecalculating,
+    cameraMode,
+    isLocationStale: stale,
     travelledGeometry: null,
     fixTimestampMs,
     animationDurationMs: 700,
@@ -531,6 +1010,11 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
       speedMps,
       speedMph,
       speedDisplayReliable: !stale && speedMph != null,
+      rawHeading: gpsHeading,
+      accuracy: accuracyMeters,
+      isRecalculating,
+      cameraMode,
+      isLocationStale: stale,
       fixTimestampMs: previousForRoute.fixTimestampMs,
       animationDurationMs: 0,
       forceSnap: false,
@@ -560,6 +1044,11 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
           speedMps,
           speedMph,
           speedDisplayReliable: !stale && speedMph != null,
+          rawHeading: gpsHeading,
+          accuracy: accuracyMeters,
+          isRecalculating,
+          cameraMode,
+          isLocationStale: stale,
           fixTimestampMs: previousForRoute.fixTimestampMs,
           animationDurationMs: 0,
           forceSnap: false,
@@ -587,6 +1076,10 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
   if (!match) return empty;
 
   const trusted = match.distanceMeters <= maxSnapDistanceMeters;
+  const authoritativeDistanceAlongMeters =
+    trusted
+      ? match.distanceAlongMeters
+      : previousForRoute?.distanceAlongMeters ?? match.distanceAlongMeters;
   const snappedLocation = trusted ? match.point : null;
   const displayLocation = trusted ? match.point : rawLocation;
   const displayMode: DriverDisplayMode = trusted ? 'snapped' : 'raw';
@@ -602,7 +1095,7 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
   const routeDuration = route.durationSeconds > 0 ? route.durationSeconds : 0;
   const travelledRatio =
     metrics.totalMeters > 0
-      ? Math.max(0, Math.min(1, match.distanceAlongMeters / metrics.totalMeters))
+      ? Math.max(0, Math.min(1, authoritativeDistanceAlongMeters / metrics.totalMeters))
       : 0;
   const remainingDistanceMeters = Math.max(0, routeDistance * (1 - travelledRatio));
   const remainingDurationSeconds = Math.max(0, routeDuration * (1 - travelledRatio));
@@ -610,12 +1103,36 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
     steps: route.steps,
     geometry,
     metrics,
-    distanceAlongMeters: match.distanceAlongMeters,
+    distanceAlongMeters: authoritativeDistanceAlongMeters,
     fallbackStepIndex: input.fallbackStepIndex ?? previousForRoute?.currentStepIndex ?? 0,
     speedMps,
   });
   const currentStep = route.steps[stepProgress.index] ?? null;
   const nextStep = route.steps[stepProgress.index + 1] ?? null;
+  const speedLimit = trusted
+    ? speedLimitForSegment(route, match.segmentIndex)
+    : { mph: null, source: 'unavailable' as const };
+  const maneuverWarningPhase = getManeuverWarningPhase({
+    distanceToManeuverMetres: stepProgress.distanceToManeuverMeters,
+    speedMps,
+    roadClass: currentStep?.roadClass ?? null,
+    maneuverType: currentStep?.maneuverType ?? null,
+    isRoundabout: isRoundaboutManeuver(currentStep?.maneuverType),
+    isExit: isExitLikeManeuver(currentStep?.maneuverType),
+    accuracy: accuracyMeters,
+    isStale: stale,
+    isOffRoute: !trusted,
+  });
+  const laneGuidance =
+    trusted && !stale && !isRecalculating
+      ? laneGuidanceForStep({
+          step: currentStep,
+          stepIndex: stepProgress.index,
+          distanceToManeuverMeters: stepProgress.distanceToManeuverMeters,
+          speedMps,
+          route,
+        })
+      : null;
 
   const previousTimestamp = previousForRoute?.fixTimestampMs;
   const elapsedMs =
@@ -632,24 +1149,46 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
   return {
     routeRevision,
     rawLocation,
+    acceptedLocation: rawLocation,
     snappedLocation,
+    matchedLocation: match.point,
     displayLocation,
     displayMode,
+    locationTimestamp: fixTimestampMs,
     distanceFromRouteMeters: match.distanceMeters,
     segmentIndex: match.segmentIndex,
+    matchedSegmentIndex: match.segmentIndex,
     distanceAlongMeters: match.distanceAlongMeters,
+    distanceAlongRouteMetres: match.distanceAlongMeters,
     routeHeading: trusted ? match.routeHeading : null,
+    rawHeading: gpsHeading,
     displayHeading,
     speedMps,
     speedMph,
     speedDisplayReliable: !stale && speedMph != null,
+    accuracy: accuracyMeters,
+    currentRoadName: currentStep?.name ?? null,
+    currentRoadClass: currentStep?.roadClass ?? null,
+    currentSpeedLimitMph: speedLimit.mph,
+    speedLimitSource: speedLimit.source,
     remainingDistanceMeters,
+    distanceRemainingMetres: remainingDistanceMeters,
     remainingDurationSeconds,
+    durationRemainingSeconds: remainingDurationSeconds,
     currentStepIndex: stepProgress.index,
     currentStep,
+    currentManeuver: currentStep,
     nextStep,
+    nextManeuver: nextStep,
     distanceToManeuverMeters: stepProgress.distanceToManeuverMeters,
-    travelledGeometry: buildTravelledGeometry(geometry, match),
+    maneuverWarningPhase,
+    laneGuidance,
+    roundaboutExitNumber: currentStep?.exit ?? null,
+    isOffRoute: !trusted,
+    isRecalculating,
+    cameraMode,
+    isLocationStale: stale,
+    travelledGeometry: trusted ? buildTravelledGeometry(geometry, match) : null,
     fixTimestampMs,
     animationDurationMs: Math.max(250, Math.min(1_400, elapsedMs * 0.85)),
     forceSnap,

@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { DirectionsRoute, RouteStep } from '../../driver-app/src/services/directions';
 import {
   buildNavigationProgress,
+  getManeuverShimmerSpec,
+  getManeuverWarningPhase,
   isNewerNavigationPayload,
   metersPerSecondToMph,
+  selectRerouteOrigin,
   smoothCircularHeading,
   smoothSpeedMps,
   splitInstructionRoadName,
@@ -32,6 +35,11 @@ function step(index: number, overrides: Partial<RouteStep> = {}): RouteStep {
     drivingSide: 'left',
     exit: null,
     location: coord,
+    lanes: [],
+    intersections: [],
+    roadClass: null,
+    speedLimitSign: null,
+    speedLimitUnit: null,
     ...overrides,
   };
 }
@@ -45,6 +53,7 @@ function route(overrides: Partial<DirectionsRoute> = {}): DirectionsRoute {
     typicalDurationSeconds: 110,
     steps: [step(0), step(2), step(4)],
     congestion: null,
+    maxspeeds: null,
     roadClasses: { motorways: false, tolls: false, ferries: false },
     destinationSnap: null,
     ...overrides,
@@ -149,6 +158,552 @@ describe('driver navigation progress', () => {
     });
     expect(afterTurn.currentStepIndex).toBe(2);
     expect(afterTurn.remainingDurationSeconds).toBeLessThan(beforeTurn.remainingDurationSeconds ?? 0);
+  });
+
+  it('surfaces only real Mapbox maxspeed data for the current segment', () => {
+    const withLimits = route({
+      maxspeeds: [
+        { speed: 30, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+        { speed: 64, unit: 'km/h', unknown: false, none: false, source: 'mapbox-maxspeed' },
+        { speed: null, unit: null, unknown: true, none: false, source: 'mapbox-maxspeed' },
+        { speed: 70, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+      ],
+    });
+
+    const firstSegment = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9996 },
+      route: withLimits,
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 9,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+    expect(firstSegment.currentSpeedLimitMph).toBe(30);
+    expect(firstSegment.speedLimitSource).toBe('mapbox-maxspeed');
+
+    const converted = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9985 },
+      route: withLimits,
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: firstSegment,
+      gpsHeading: 90,
+      speedMps: 9,
+      accuracyMeters: 5,
+      fixTimestampMs: 2_000,
+      nowMs: 2_100,
+    });
+    expect(converted.currentSpeedLimitMph).toBe(40);
+    expect(converted.speedLimitSource).toBe('mapbox-maxspeed');
+
+    const unknown = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9975 },
+      route: withLimits,
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: converted,
+      gpsHeading: 90,
+      speedMps: 9,
+      accuracyMeters: 5,
+      fixTimestampMs: 3_000,
+      nowMs: 3_100,
+    });
+    expect(unknown.currentSpeedLimitMph).toBeNull();
+    expect(unknown.speedLimitSource).toBe('unavailable');
+  });
+
+  it('does not invent speed limits when Mapbox omits maxspeed data', () => {
+    const progress = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9995 },
+      route: route({ maxspeeds: null }),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 8,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+
+    expect(progress.currentSpeedLimitMph).toBeNull();
+    expect(progress.speedLimitSource).toBe('unavailable');
+  });
+
+  it('uses geometry segment indexes for speed limits, not step indexes', () => {
+    const sparseStepRoute = route({
+      steps: [step(0), step(4)],
+      maxspeeds: [
+        { speed: 20, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+        { speed: 30, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+        { speed: 40, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+        { speed: 50, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+      ],
+    });
+
+    const progress = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9975 },
+      route: sparseStepRoute,
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 9,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+
+    expect(progress.currentStepIndex).toBe(1);
+    expect(progress.segmentIndex).toBe(2);
+    expect(progress.currentSpeedLimitMph).toBe(40);
+  });
+
+  it('clears stale speed limits when the route revision has no maxspeed data', () => {
+    const previous = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9995 },
+      route: route({
+        maxspeeds: [
+          { speed: 30, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+          { speed: 30, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+          { speed: 30, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+          { speed: 30, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+        ],
+      }),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 8,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+
+    const reset = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9995 },
+      route: route({ maxspeeds: null }),
+      routeRevision: 'r2',
+      routeIsCurrent: true,
+      previous,
+      gpsHeading: 90,
+      speedMps: 8,
+      accuracyMeters: 5,
+      fixTimestampMs: 2_000,
+      nowMs: 2_100,
+    });
+
+    expect(previous.currentSpeedLimitMph).toBe(30);
+    expect(reset.currentSpeedLimitMph).toBeNull();
+    expect(reset.speedLimitSource).toBe('unavailable');
+  });
+
+  it('does not show a speed limit when the driver is outside the trusted route corridor', () => {
+    const progress = buildNavigationProgress({
+      rawLocation: { lat: 55.01, lng: -3.9995 },
+      route: route({
+        maxspeeds: [
+          { speed: 30, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+          { speed: 40, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+          { speed: 50, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+          { speed: 60, unit: 'mph', unknown: false, none: false, source: 'mapbox-maxspeed' },
+        ],
+      }),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 8,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+
+    expect(progress.displayMode).toBe('raw');
+    expect(progress.currentSpeedLimitMph).toBeNull();
+    expect(progress.speedLimitSource).toBe('unavailable');
+  });
+
+  it('shows lane guidance only from Mapbox lane metadata near the maneuver', () => {
+    const routeWithLanes = route({
+      steps: [
+        step(0),
+        step(2, {
+          lanes: [
+            { valid: false, active: false, validIndication: null, indications: ['left'] },
+            { valid: true, active: true, validIndication: 'right', indications: ['straight', 'right'] },
+            { valid: true, active: false, validIndication: 'right', indications: ['right'] },
+          ],
+          roadClass: 'primary',
+        }),
+        step(4),
+      ],
+    });
+
+    const approaching = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9992 },
+      route: routeWithLanes,
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 12,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+    expect(approaching.laneGuidance?.lanes).toHaveLength(3);
+    expect(approaching.laneGuidance?.lanes[1].active).toBe(true);
+
+    const afterManeuver = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9974 },
+      route: routeWithLanes,
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: approaching,
+      gpsHeading: 90,
+      speedMps: 12,
+      accuracyMeters: 5,
+      fixTimestampMs: 2_000,
+      nowMs: 2_100,
+    });
+    expect(afterManeuver.laneGuidance).toBeNull();
+  });
+
+  it('preserves Mapbox lane order and clears lanes on route revision change', () => {
+    const routeWithLanes = route({
+      steps: [
+        step(0),
+        step(2, {
+          lanes: [
+            { valid: true, active: true, validIndication: 'left', indications: ['left'] },
+            { valid: true, active: false, validIndication: 'straight', indications: ['straight'] },
+            { valid: false, active: false, validIndication: null, indications: ['right'] },
+          ],
+        }),
+        step(4),
+      ],
+    });
+    const previous = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9992 },
+      route: routeWithLanes,
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 10,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+    expect(previous.laneGuidance?.lanes.map((lane) => lane.indications[0])).toEqual([
+      'left',
+      'straight',
+      'right',
+    ]);
+
+    const reset = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9992 },
+      route: route(),
+      routeRevision: 'r2',
+      routeIsCurrent: true,
+      previous,
+      gpsHeading: 90,
+      speedMps: 10,
+      accuracyMeters: 5,
+      fixTimestampMs: 2_000,
+      nowMs: 2_100,
+    });
+    expect(reset.laneGuidance).toBeNull();
+  });
+
+  it('carries roundabout exit numbers from the active maneuver', () => {
+    const roundaboutRoute = route({
+      steps: [
+        step(0),
+        step(2, { maneuverType: 'roundabout', exit: 3 }),
+        step(4),
+      ],
+    });
+
+    const progress = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9992 },
+      route: roundaboutRoute,
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 10,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+
+    expect(progress.roundaboutExitNumber).toBe(3);
+  });
+
+  it('does not invent missing roundabout exit numbers', () => {
+    const progress = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9992 },
+      route: route({
+        steps: [step(0), step(2, { maneuverType: 'roundabout', exit: null }), step(4)],
+      }),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 10,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+
+    expect(progress.roundaboutExitNumber).toBeNull();
+  });
+
+  it('maps maneuver warning phases by road class, speed, and GPS trust', () => {
+    const base = {
+      speedMps: null,
+      roadClass: 'street',
+      maneuverType: 'turn',
+      accuracy: 5,
+      isStale: false,
+      isOffRoute: false,
+    };
+
+    expect(getManeuverWarningPhase({ ...base, distanceToManeuverMetres: 180 })).toBe('prepare');
+    expect(getManeuverWarningPhase({ ...base, distanceToManeuverMetres: 45 })).toBe('imminent');
+    expect(getManeuverWarningPhase({ ...base, distanceToManeuverMetres: 12 })).toBe('executing');
+    expect(getManeuverWarningPhase({ ...base, distanceToManeuverMetres: -25 })).toBe('passed');
+    expect(
+      getManeuverWarningPhase({
+        ...base,
+        distanceToManeuverMetres: 1_000,
+        roadClass: 'motorway',
+        maneuverType: 'off ramp',
+      }),
+    ).toBe('prepare');
+    expect(
+      getManeuverWarningPhase({
+        ...base,
+        distanceToManeuverMetres: 12,
+        isStale: true,
+      }),
+    ).toBe('early');
+  });
+
+  it('maps maneuver shimmer categories and pauses for reduced motion or background state', () => {
+    const right = getManeuverShimmerSpec({
+      maneuverType: 'turn',
+      maneuverModifier: 'right',
+      drivingSide: 'left',
+      reducedMotion: false,
+      appState: 'active',
+    });
+    expect(right.category).toBe('right');
+    expect(right.mode).toBe('diagonal');
+    expect(right.translateX).toEqual([-18, 30]);
+
+    const roundabout = getManeuverShimmerSpec({
+      maneuverType: 'roundabout',
+      maneuverModifier: null,
+      drivingSide: 'left',
+      reducedMotion: false,
+      appState: 'active',
+    });
+    expect(roundabout.category).toBe('roundabout-right');
+    expect(roundabout.mode).toBe('circular');
+
+    const paused = getManeuverShimmerSpec({
+      maneuverType: 'arrive',
+      maneuverModifier: null,
+      drivingSide: 'left',
+      reducedMotion: true,
+      appState: 'background',
+    });
+    expect(paused.paused).toBe(true);
+    expect(paused.mode).toBe('none');
+    expect(paused.scale).toEqual([1, 1]);
+  });
+
+  it('selects reroute origins from trusted matched progress before raw GPS', () => {
+    const progress = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9995 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 8,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+
+    const matched = selectRerouteOrigin({
+      progress,
+      rawLocation: { lat: 55.0001, lng: -3.9995 },
+      rawLocationTimestamp: 1_050,
+      routeRevision: 'r1',
+      maxSnapDistanceMeters: 75,
+    });
+    expect(matched?.source).toBe('matched');
+    expect(matched?.coordinate).toEqual(progress.matchedLocation);
+    expect(matched?.segmentIndex).toBe(progress.matchedSegmentIndex);
+    expect(matched?.confidence).toBeGreaterThan(0.95);
+
+    const rawFallback = selectRerouteOrigin({
+      progress,
+      rawLocation: { lat: 55.0001, lng: -3.9995 },
+      rawLocationTimestamp: 2_000,
+      routeRevision: 'r2',
+      maxSnapDistanceMeters: 75,
+    });
+    expect(rawFallback).toEqual({
+      coordinate: { lat: 55.0001, lng: -3.9995 },
+      source: 'raw',
+      routeRevision: 'r2',
+      locationTimestamp: 2_000,
+      segmentIndex: null,
+      confidence: null,
+    });
+
+    expect(
+      selectRerouteOrigin({
+        progress: null,
+        rawLocation: null,
+        rawLocationTimestamp: null,
+        routeRevision: 'r1',
+      }),
+    ).toBeNull();
+  });
+
+  it('does not render lane guidance or warning escalation from stale route progress', () => {
+    const routeWithLanes = route({
+      steps: [
+        step(0),
+        step(2, {
+          lanes: [
+            { valid: true, active: true, validIndication: 'right', indications: ['right'] },
+          ],
+          roadClass: 'primary',
+        }),
+        step(4),
+      ],
+    });
+
+    const stale = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9992 },
+      route: routeWithLanes,
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 12,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 30_000,
+    });
+
+    expect(stale.isLocationStale).toBe(true);
+    expect(stale.laneGuidance).toBeNull();
+    expect(stale.maneuverWarningPhase).toBe('early');
+  });
+
+  it('keeps travelled geometry monotonic and bounded to the matched position', () => {
+    const progress = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9974 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 10,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+
+    expect(progress.travelledGeometry).not.toBeNull();
+    expect(progress.travelledGeometry?.length).toBeLessThanOrEqual((progress.segmentIndex ?? 0) + 2);
+    const last = progress.travelledGeometry?.[progress.travelledGeometry.length - 1];
+    expect(last).toEqual([progress.matchedLocation?.lng, progress.matchedLocation?.lat]);
+  });
+
+  it('does not extend the passed-route overlay from an untrusted off-route fix', () => {
+    const previous = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9974 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 10,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+
+    const offRoute = buildNavigationProgress({
+      rawLocation: { lat: 55.01, lng: -3.9965 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous,
+      gpsHeading: 90,
+      speedMps: 10,
+      accuracyMeters: 5,
+      fixTimestampMs: 2_000,
+      nowMs: 2_100,
+    });
+
+    expect(offRoute.displayMode).toBe('raw');
+    expect(offRoute.travelledGeometry).toBeNull();
+    expect(offRoute.remainingDistanceMeters).toBeCloseTo(previous.remainingDistanceMeters ?? 0);
+  });
+
+  it('resets travelled geometry instead of carrying an old route shape across revisions', () => {
+    const previous = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9974 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 10,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+
+    const reset = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9998 },
+      route: route({
+        geometry: [
+          [-4, 55],
+          [-3.9995, 55],
+          [-3.999, 55],
+        ],
+        distanceMeters: 80,
+        durationSeconds: 30,
+        steps: [step(0), step(1, { location: [-3.9995, 55] }), step(2, { location: [-3.999, 55] })],
+      }),
+      routeRevision: 'r2',
+      routeIsCurrent: true,
+      previous,
+      gpsHeading: 90,
+      speedMps: 6,
+      accuracyMeters: 5,
+      fixTimestampMs: 2_000,
+      nowMs: 2_100,
+    });
+
+    expect(previous.travelledGeometry?.some((coord) => coord[0] > -3.998)).toBe(true);
+    expect(reset.travelledGeometry?.some((coord) => coord[0] > -3.998)).not.toBe(true);
   });
 
   it('does not jump progress backwards to an older segment', () => {

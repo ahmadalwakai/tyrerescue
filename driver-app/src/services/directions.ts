@@ -45,6 +45,36 @@ export type LngLat = [number, number];
  * returned no usable congestion data for that segment — it is NEVER faked.
  */
 export type CongestionLevel = 'unknown' | 'low' | 'moderate' | 'heavy' | 'severe';
+export type SpeedLimitUnit = 'mph' | 'km/h';
+export type SpeedLimitSource = 'mapbox-maxspeed';
+
+export interface SpeedLimitAnnotation {
+  speed: number | null;
+  unit: SpeedLimitUnit | null;
+  unknown: boolean;
+  none: boolean;
+  source: SpeedLimitSource;
+}
+
+export interface RouteLane {
+  valid: boolean;
+  active: boolean;
+  validIndication: string | null;
+  indications: string[];
+}
+
+export interface RouteStepIntersection {
+  location: LngLat | null;
+  geometryIndex: number | null;
+  inIndex: number | null;
+  outIndex: number | null;
+  bearings: number[];
+  entry: boolean[];
+  classes: string[];
+  roadClass: string | null;
+  isUrban: boolean | null;
+  lanes: RouteLane[];
+}
 
 /**
  * Which destination the driver is currently routing to. This tyre-rescue
@@ -67,6 +97,13 @@ export interface RouteStep {
   /** Roundabout/rotary exit number, when present. */
   exit: number | null;
   location: LngLat;
+  /** Lane guidance returned by Mapbox for the maneuver intersection. */
+  lanes: RouteLane[];
+  intersections: RouteStepIntersection[];
+  /** Current road class from Mapbox Streets metadata/classes, when provided. */
+  roadClass: string | null;
+  speedLimitSign: string | null;
+  speedLimitUnit: SpeedLimitUnit | null;
 }
 
 /** A successfully parsed road route. */
@@ -90,6 +127,12 @@ export interface DirectionsRoute {
    * real annotation data, otherwise null. Never synthesised.
    */
   congestion: CongestionLevel[] | null;
+  /**
+   * Per-segment posted/advisory speed limit metadata from Mapbox's `maxspeed`
+   * annotation. null means it was not returned or no trustworthy entries were
+   * available; callers must show an unavailable state instead of guessing.
+   */
+  maxspeeds: SpeedLimitAnnotation[] | null;
   roadClasses: {
     motorways: boolean;
     tolls: boolean;
@@ -179,13 +222,45 @@ interface MapboxStep {
   duration: number;
   name?: string;
   driving_side?: string;
+  speedLimitSign?: string;
+  speedLimitUnit?: string;
   maneuver: MapboxManeuver;
-  intersections?: { classes?: string[] }[];
+  intersections?: MapboxIntersection[];
+}
+
+interface MapboxLane {
+  valid?: boolean;
+  active?: boolean;
+  valid_indication?: string;
+  indications?: string[];
+}
+
+interface MapboxIntersection {
+  location?: [number, number];
+  geometry_index?: number;
+  in?: number;
+  out?: number;
+  bearings?: number[];
+  entry?: boolean[];
+  classes?: string[];
+  lanes?: MapboxLane[];
+  is_urban?: boolean;
+  mapbox_streets_v8?: {
+    class?: string;
+  };
+}
+
+interface MapboxMaxspeed {
+  speed?: number;
+  unit?: string;
+  unknown?: boolean;
+  none?: boolean;
 }
 
 interface MapboxAnnotation {
   congestion?: (string | null)[];
   congestion_numeric?: (number | null)[];
+  maxspeed?: MapboxMaxspeed[];
 }
 
 interface MapboxLeg {
@@ -518,6 +593,172 @@ function parseCongestion(leg: MapboxLeg | undefined): CongestionLevel[] | null {
   return null;
 }
 
+function normalizeSpeedLimitUnit(raw: string | undefined): SpeedLimitUnit | null {
+  if (raw === 'mph' || raw === 'km/h') return raw;
+  return null;
+}
+
+function parseMaxspeeds(leg: MapboxLeg | undefined): SpeedLimitAnnotation[] | null {
+  const raw = leg?.annotation?.maxspeed;
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const parsed = raw.map((entry) => {
+    const unit = normalizeSpeedLimitUnit(entry?.unit);
+    const speed =
+      typeof entry?.speed === 'number' && Number.isFinite(entry.speed) && unit != null
+        ? entry.speed
+        : null;
+    return {
+      speed,
+      unit,
+      unknown: entry?.unknown === true || (speed == null && entry?.none !== true),
+      none: entry?.none === true,
+      source: 'mapbox-maxspeed' as const,
+    };
+  });
+  return parsed.some((entry) => entry.speed != null || entry.unknown || entry.none)
+    ? parsed
+    : null;
+}
+
+function combineLegAnnotations<T>(
+  legs: MapboxLeg[] | undefined,
+  parseLeg: (leg: MapboxLeg | undefined) => T[] | null,
+): T[] | null {
+  const combined: T[] = [];
+  for (const leg of legs ?? []) {
+    const parsed = parseLeg(leg);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      combined.push(...parsed);
+    }
+  }
+  return combined.length > 0 ? combined : null;
+}
+
+function parseLane(raw: MapboxLane): RouteLane | null {
+  if (!raw || !Array.isArray(raw.indications) || raw.indications.length === 0) {
+    return null;
+  }
+  const indications = raw.indications
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map((value) => value.trim().toLowerCase());
+  if (indications.length === 0) return null;
+  return {
+    valid: raw.valid === true,
+    active: raw.active === true,
+    validIndication:
+      typeof raw.valid_indication === 'string' && raw.valid_indication.trim()
+        ? raw.valid_indication.trim().toLowerCase()
+        : null,
+    indications,
+  };
+}
+
+function parseIntersection(raw: MapboxIntersection): RouteStepIntersection | null {
+  if (!raw) return null;
+  const location =
+    Array.isArray(raw.location) &&
+    raw.location.length >= 2 &&
+    Number.isFinite(raw.location[0]) &&
+    Number.isFinite(raw.location[1])
+      ? ([raw.location[0], raw.location[1]] as LngLat)
+      : null;
+  const classes = (raw.classes ?? [])
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map((value) => value.trim().toLowerCase());
+  const roadClass =
+    typeof raw.mapbox_streets_v8?.class === 'string' &&
+    raw.mapbox_streets_v8.class.trim().length > 0
+      ? raw.mapbox_streets_v8.class.trim().toLowerCase()
+      : classes[0] ?? null;
+  const lanes = (raw.lanes ?? [])
+    .map(parseLane)
+    .filter((lane): lane is RouteLane => lane != null);
+  const bearings = (raw.bearings ?? [])
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+    .map((value) => ((value % 360) + 360) % 360);
+  const entry = (raw.entry ?? []).filter((value): value is boolean => typeof value === 'boolean');
+  return {
+    location,
+    geometryIndex:
+      typeof raw.geometry_index === 'number' && Number.isFinite(raw.geometry_index)
+        ? raw.geometry_index
+        : null,
+    inIndex:
+      typeof raw.in === 'number' && Number.isFinite(raw.in)
+        ? raw.in
+        : null,
+    outIndex:
+      typeof raw.out === 'number' && Number.isFinite(raw.out)
+        ? raw.out
+        : null,
+    bearings,
+    entry,
+    classes,
+    roadClass,
+    isUrban: typeof raw.is_urban === 'boolean' ? raw.is_urban : null,
+    lanes,
+  };
+}
+
+function parseStepIntersections(step: MapboxStep): RouteStepIntersection[] {
+  return (step.intersections ?? [])
+    .map(parseIntersection)
+    .filter((intersection): intersection is RouteStepIntersection => intersection != null);
+}
+
+function firstStepRoadClass(intersections: RouteStepIntersection[]): string | null {
+  for (const intersection of intersections) {
+    if (intersection.roadClass) return intersection.roadClass;
+    if (intersection.classes.length > 0) return intersection.classes[0];
+  }
+  return null;
+}
+
+export function preservePhysicalLaneOrder(lanes: RouteLane[]): RouteLane[] {
+  return lanes.slice();
+}
+
+export function selectManeuverIntersection(params: {
+  intersections: RouteStepIntersection[];
+  maneuverLocation: LngLat | null;
+}): RouteStepIntersection | null {
+  const { intersections, maneuverLocation } = params;
+  if (intersections.length === 0) return null;
+
+  const maneuverCoord =
+    maneuverLocation && Array.isArray(maneuverLocation) && maneuverLocation.length >= 2
+      ? { lng: maneuverLocation[0], lat: maneuverLocation[1] }
+      : null;
+
+  let best: { intersection: RouteStepIntersection; score: number; order: number } | null = null;
+  for (const intersection of intersections) {
+    const coord = intersection.location
+      ? { lng: intersection.location[0], lat: intersection.location[1] }
+      : null;
+    const distanceScore =
+      maneuverCoord && coord && isValidCoord(coord)
+        ? haversineMeters(maneuverCoord, coord)
+        : Number.POSITIVE_INFINITY;
+    const hasTurnIndexes = intersection.inIndex != null && intersection.outIndex != null;
+    const hasOutIndex = intersection.outIndex != null;
+    const indexScore = hasTurnIndexes ? 0 : hasOutIndex ? 20 : 60;
+    const order = intersections.indexOf(intersection);
+    const score = distanceScore + indexScore + order * 0.001;
+    if (!best || score < best.score) {
+      best = { intersection, score, order };
+    }
+  }
+  return best?.intersection ?? null;
+}
+
+export function extractLaneGuidance(params: {
+  intersections: RouteStepIntersection[];
+  maneuverLocation: LngLat | null;
+}): RouteLane[] {
+  const intersection = selectManeuverIntersection(params);
+  return intersection ? preservePhysicalLaneOrder(intersection.lanes) : [];
+}
+
 function stepClassSet(step: MapboxStep): Set<string> {
   const classes = new Set<string>();
   for (const intersection of step.intersections ?? []) {
@@ -525,6 +766,10 @@ function stepClassSet(step: MapboxStep): Set<string> {
       if (typeof cls === 'string' && cls.trim()) {
         classes.add(cls.trim().toLowerCase());
       }
+    }
+    const roadClass = intersection.mapbox_streets_v8?.class;
+    if (typeof roadClass === 'string' && roadClass.trim()) {
+      classes.add(roadClass.trim().toLowerCase());
     }
   }
   const name = `${step.name ?? ''} ${step.maneuver?.instruction ?? ''}`;
@@ -564,7 +809,7 @@ function parseRoute(raw: MapboxRoute, destinationSnap: LngLat | null): Direction
       )
     : [];
 
-  const rawSteps = raw.legs?.[0]?.steps ?? [];
+  const rawSteps = (raw.legs ?? []).flatMap((leg) => leg.steps ?? []);
   const steps: RouteStep[] = rawSteps
     .filter(
       (s) =>
@@ -574,22 +819,36 @@ function parseRoute(raw: MapboxRoute, destinationSnap: LngLat | null): Direction
         Number.isFinite(s.maneuver.location[0]) &&
         Number.isFinite(s.maneuver.location[1]),
     )
-    .map((s) => ({
-      instruction:
-        (s.maneuver.instruction && s.maneuver.instruction.trim()) ||
-        (s.name ? `Continue on ${s.name}` : 'Continue'),
-      distanceMeters: Number.isFinite(s.distance) ? s.distance : 0,
-      durationSeconds: Number.isFinite(s.duration) ? s.duration : 0,
-      name: s.name && s.name.trim() ? s.name.trim() : null,
-      maneuverType: s.maneuver.type ?? 'continue',
-      maneuverModifier: s.maneuver.modifier ?? null,
-      drivingSide:
-        s.driving_side === 'left' || s.driving_side === 'right'
-          ? s.driving_side
-          : null,
-      exit: typeof s.maneuver.exit === 'number' ? s.maneuver.exit : null,
-      location: [s.maneuver.location[0], s.maneuver.location[1]],
-    }));
+    .map((s) => {
+      const intersections = parseStepIntersections(s);
+      return {
+        instruction:
+          (s.maneuver.instruction && s.maneuver.instruction.trim()) ||
+          (s.name ? `Continue on ${s.name}` : 'Continue'),
+        distanceMeters: Number.isFinite(s.distance) ? s.distance : 0,
+        durationSeconds: Number.isFinite(s.duration) ? s.duration : 0,
+        name: s.name && s.name.trim() ? s.name.trim() : null,
+        maneuverType: s.maneuver.type ?? 'continue',
+        maneuverModifier: s.maneuver.modifier ?? null,
+        drivingSide:
+          s.driving_side === 'left' || s.driving_side === 'right'
+            ? s.driving_side
+            : null,
+        exit: typeof s.maneuver.exit === 'number' ? s.maneuver.exit : null,
+        location: [s.maneuver.location[0], s.maneuver.location[1]],
+        lanes: extractLaneGuidance({
+          intersections,
+          maneuverLocation: [s.maneuver.location[0], s.maneuver.location[1]],
+        }),
+        intersections,
+        roadClass: firstStepRoadClass(intersections),
+        speedLimitSign:
+          typeof s.speedLimitSign === 'string' && s.speedLimitSign.trim()
+            ? s.speedLimitSign.trim()
+            : null,
+        speedLimitUnit: normalizeSpeedLimitUnit(s.speedLimitUnit),
+      };
+    });
 
   return {
     geometry: coords,
@@ -603,7 +862,8 @@ function parseRoute(raw: MapboxRoute, destinationSnap: LngLat | null): Direction
       ? raw.duration_typical ?? null
       : null,
     steps,
-    congestion: parseCongestion(raw.legs?.[0]),
+    congestion: combineLegAnnotations(raw.legs, parseCongestion),
+    maxspeeds: combineLegAnnotations(raw.legs, parseMaxspeeds),
     roadClasses: parseRoadClasses(raw.legs),
     destinationSnap,
   };
@@ -651,10 +911,15 @@ export async function fetchDirections(
     geometries: 'geojson',
     steps: 'true',
     overview: 'full',
+    roundabout_exits: 'true',
+    voice_instructions: 'true',
+    banner_instructions: 'true',
     alternatives: 'true',
     // `congestion` (and the finer `congestion_numeric`) require the
     // driving-traffic profile and overview=full to align with the geometry.
-    annotations: 'congestion,congestion_numeric,distance,duration,speed',
+    // `maxspeed` is the only legal/advisory speed-limit source used by the app;
+    // if Mapbox omits it, the UI must display an unavailable state.
+    annotations: 'congestion,congestion_numeric,distance,duration,speed,maxspeed',
     language: options.language ?? language,
     access_token: token,
   });

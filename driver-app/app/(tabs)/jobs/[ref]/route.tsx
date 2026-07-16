@@ -4,6 +4,7 @@ import {
   Alert,
   Animated,
   AppState,
+  AccessibilityInfo,
   Easing,
   Linking,
   Platform,
@@ -35,6 +36,7 @@ import {
   DirectionsRoute,
   NavigationPhase,
   RouteError,
+  RouteLane,
   RouteSource,
   RouteState,
   RouteStep,
@@ -69,9 +71,12 @@ import {
 import { buildGoogleMapsSearchUrl } from '@/lib/navigation/google-maps';
 import {
   buildNavigationProgress,
+  getManeuverShimmerSpec,
+  selectRerouteOrigin,
   splitInstructionRoadName,
   validateRouteGeometry,
   type NavigationProgress,
+  type RerouteOrigin,
 } from '@/lib/navigation/navigationProgress';
 import {
   bearingDegrees,
@@ -130,8 +135,10 @@ const ROUTE_MIN_INTERVAL_MS = 8_000;
 // Off-route / reroute.
 const GPS_DRIFT_METERS = 35;
 const OFF_ROUTE_METERS = 75;
-const REROUTE_DEBOUNCE_MS = 5_000;
-const REROUTE_MIN_INTERVAL_MS = 30_000;
+const REROUTE_DEBOUNCE_FAST_MS = 1_800;
+const REROUTE_DEBOUNCE_SLOW_MS = 4_500;
+const REROUTE_MIN_INTERVAL_MS = 15_000;
+const POOR_ACCURACY_METERS = 50;
 // Force a route refresh when the route is stale AND the driver has moved far.
 const ROUTE_STALE_WHILE_MOVING_MS = 45_000;
 const ROUTE_FORCE_REFRESH_MOVE_M = 120;
@@ -233,9 +240,10 @@ const ROUTE_EVENT_VOICE: Record<RouteEventType, string | null> = {
   route_restored: null,
 };
 
-// Google-style road map built from Mapbox tiles. This intentionally avoids
-// Google branding/tiles while using a light, familiar road-first palette.
-const PRIMARY_STYLE = 'mapbox://styles/mapbox/light-v11';
+// Reference-style navigation map: satellite imagery plus Mapbox road labels.
+// The WebView adds DEM terrain + building extrusions after style load when the
+// driver keeps the map in 3D mode.
+const PRIMARY_STYLE = 'mapbox://styles/mapbox/satellite-streets-v12';
 const FALLBACK_STYLE = 'mapbox://styles/mapbox/streets-v12';
 
 /**
@@ -245,6 +253,7 @@ const FALLBACK_STYLE = 'mapbox://styles/mapbox/streets-v12';
  * - `overview`   — whole route framed, camera does not chase the driver.
  */
 export type FollowMode = 'north_up' | 'heading_up' | 'overview';
+type MapDepthMode = '2d' | '3d';
 
 type RoutePreferences = {
   motorways: boolean;
@@ -537,14 +546,91 @@ function maneuverIcon(step: RouteStep): IoniconName {
   const mod = step.maneuverModifier ?? '';
   if (type === 'arrive') return 'flag';
   if (type === 'depart') return 'navigate';
+  if (type === 'fork') return mod.includes('left') ? 'git-branch-outline' : 'git-branch';
+  if (type === 'on ramp' || type === 'off ramp') return 'trail-sign-outline';
   if (type === 'roundabout' || type === 'rotary' || type === 'roundabout turn') {
     return 'sync';
   }
+  if (type === 'exit roundabout' || type === 'exit rotary') return 'exit-outline';
   if (type === 'merge') return 'git-merge';
   if (mod.includes('uturn')) return 'arrow-undo';
   if (mod.includes('left')) return 'arrow-back';
   if (mod.includes('right')) return 'arrow-forward';
   return 'arrow-up';
+}
+
+function laneIndicationIcon(lane: RouteLane): IoniconName {
+  const indication = lane.validIndication ?? lane.indications[0] ?? 'straight';
+  if (indication.includes('uturn')) return 'arrow-undo';
+  if (indication.includes('left')) return 'arrow-back';
+  if (indication.includes('right')) return 'arrow-forward';
+  return 'arrow-up';
+}
+
+function roadClassLabel(roadClass: string | null | undefined): string | null {
+  if (!roadClass) return null;
+  if (roadClass.includes('motorway')) return 'Motorway';
+  if (roadClass.includes('trunk')) return 'Trunk road';
+  if (roadClass.includes('primary')) return 'Primary road';
+  if (roadClass.includes('secondary')) return 'Secondary road';
+  if (roadClass.includes('tertiary')) return 'Local road';
+  return roadClass.replace(/_/g, ' ');
+}
+
+type RoundaboutDiagramBranch = {
+  key: string;
+  bearing: number;
+  selected: boolean;
+  incoming: boolean;
+  allowed: boolean;
+};
+
+function isRoundaboutStep(step: RouteStep | null | undefined): boolean {
+  const type = step?.maneuverType ?? '';
+  return (
+    type === 'roundabout' ||
+    type === 'rotary' ||
+    type === 'roundabout turn' ||
+    type === 'exit roundabout' ||
+    type === 'exit rotary'
+  );
+}
+
+function roundaboutDiagramBranches(step: RouteStep | null): RoundaboutDiagramBranch[] {
+  if (!step || !isRoundaboutStep(step)) return [];
+  const intersection =
+    step.intersections.find((candidate) => candidate.bearings.length > 0 && candidate.outIndex != null) ??
+    step.intersections.find((candidate) => candidate.bearings.length > 0);
+  if (intersection && intersection.bearings.length > 0) {
+    return intersection.bearings.map((bearing, index) => ({
+      key: `bearing-${index}-${bearing}`,
+      bearing,
+      selected: intersection.outIndex === index,
+      incoming: intersection.inIndex === index,
+      allowed: intersection.entry[index] !== false,
+    }));
+  }
+
+  const exitCount = Math.max(3, Math.min(6, step.exit ?? 3));
+  const selectedIndex = Math.max(0, Math.min(exitCount - 1, (step.exit ?? 1) - 1));
+  return Array.from({ length: exitCount }, (_, index) => ({
+    key: `exit-${index + 1}`,
+    bearing: (360 / exitCount) * index,
+    selected: index === selectedIndex,
+    incoming: index === 0,
+    allowed: true,
+  }));
+}
+
+function rerouteDebounceMs(speedMps: number | null, accuracyMeters: number | null): number {
+  const poorAccuracy =
+    typeof accuracyMeters === 'number' &&
+    Number.isFinite(accuracyMeters) &&
+    accuracyMeters > POOR_ACCURACY_METERS;
+  if (poorAccuracy) return REROUTE_DEBOUNCE_SLOW_MS + 2_000;
+  return speedMps != null && speedMps >= 13
+    ? REROUTE_DEBOUNCE_FAST_MS
+    : REROUTE_DEBOUNCE_SLOW_MS;
 }
 
 function parseLatLng(value: string | null | undefined): number | null {
@@ -716,6 +802,7 @@ var lastDriver = null, lastCustomer = null, lastHeading = null, lastRoutes = nul
 var lastRouteRev = -1;
 var lastRouteSeq = -1;
 var lastLocationTimestamp = 0;
+var lastMapDepthMode = '3d';
 var driverMarker = null, customerMarker = null;
 // Driver-marker interpolation state: the dot is eased between ~1s GPS fixes
 // (instead of snapping) so movement reads smooth like a real nav app.
@@ -724,8 +811,7 @@ var nowMs = (window.performance && window.performance.now) ? function(){ return 
 var pendingState = null;
 var cameraEpoch = -1, programmatic = false;
 // Stable zoom for driver follow mode — never changes on GPS update, only on recenter/mode-change.
-var NAVIGATION_ZOOM = 16;
-var ROUTE_PROJECTION_MAX_M = 80;
+var NAVIGATION_ZOOM = 16.6;
 // DEV-only diagnostics flag (baked in at build time).
 var NAV_DEV = ${__DEV__};
 // Bottom map padding (px) reserved for the cockpit sheet so route framing is
@@ -743,7 +829,7 @@ else if(!hasWebGL()){
 var map;
 if(canStartMap){
   try {
-    map = new mapboxgl.Map({container:'m',style:${JSON.stringify(PRIMARY_STYLE)},center:[-4.2518,55.8642],zoom:11,pitch:0,bearing:0,attributionControl:false,dragRotate:false,pitchWithRotate:false,maxPitch:50,antialias:true});
+    map = new mapboxgl.Map({container:'m',style:${JSON.stringify(PRIMARY_STYLE)},center:[-4.2518,55.8642],zoom:11,pitch:45,bearing:0,attributionControl:false,dragRotate:false,pitchWithRotate:false,maxPitch:65,antialias:true});
   } catch(err){
     postFatal('construct-failed', String(err && (err.message||err)));
   }
@@ -768,49 +854,6 @@ function emptyFC(){ return {type:'FeatureCollection',features:[]}; }
 function featureCollection(features){ return {type:'FeatureCollection',features:features || []}; }
 function lineFeature(coords){ return {type:'Feature',properties:{},geometry:{type:'LineString',coordinates:coords}}; }
 function approxMeters(a,b){ var k=111320; var dx=(a[0]-b[0])*k*Math.cos(b[1]*Math.PI/180); var dy=(a[1]-b[1])*k; return Math.hypot(dx,dy); }
-function projectPointOnRoute(point, coords){
-  if(!point || !coords || coords.length<2) return null;
-  var mLat = 111320;
-  var mLng = 111320 * Math.cos(point[1] * Math.PI / 180);
-  var px = point[0] * mLng;
-  var py = point[1] * mLat;
-  var bestIdx = 0, bestT = 0, bestDist = Infinity, bestPoint = null;
-  for(var i=0;i<coords.length-1;i++){
-    var ax = coords[i][0] * mLng;
-    var ay = coords[i][1] * mLat;
-    var bx = coords[i+1][0] * mLng;
-    var by = coords[i+1][1] * mLat;
-    var dx = bx - ax;
-    var dy = by - ay;
-    var lenSq = dx*dx + dy*dy;
-    var t = lenSq === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / lenSq;
-    if(t < 0) t = 0;
-    if(t > 1) t = 1;
-    var cx = ax + dx * t;
-    var cy = ay + dy * t;
-    var d = Math.hypot(px - cx, py - cy);
-    if(d < bestDist){
-      bestDist = d;
-      bestIdx = i;
-      bestT = t;
-      bestPoint = [
-        coords[i][0] + (coords[i+1][0] - coords[i][0]) * t,
-        coords[i][1] + (coords[i+1][1] - coords[i][1]) * t
-      ];
-    }
-  }
-  return bestPoint ? {index:bestIdx, t:bestT, point:bestPoint, distanceMeters:bestDist} : null;
-}
-function passedRouteCoords(coords, driver){
-  var p = projectPointOnRoute(driver, coords);
-  if(!p || !p.point) return null;
-  if(p.distanceMeters > ROUTE_PROJECTION_MAX_M) return null;
-  if(p.index === 0 && p.t <= 0.01) return null;
-  var passed = coords.slice(0, p.index + 1);
-  var last = passed[passed.length - 1];
-  if(!last || approxMeters(last, p.point) > 1) passed.push(p.point);
-  return passed.length >= 2 ? passed : null;
-}
 function visualRouteCoords(coords, driver, customer){
   return coords || [];
 }
@@ -818,7 +861,7 @@ function syncDynamicRouteOverlays(route, driver, customer, travelled){
   if(!map || !layersReady || !route || !route.coords || route.coords.length<2) return;
   try {
     if(map.getSource('rsel')) map.getSource('rsel').setData(featureCollection([lineFeature(visualRouteCoords(route.coords, driver, customer))]));
-    var passed = (travelled && travelled.length >= 2) ? travelled : (driver ? passedRouteCoords(route.coords, driver) : null);
+    var passed = (travelled && travelled.length >= 2) ? travelled : null;
     if(map.getSource('rpassed')) map.getSource('rpassed').setData(passed ? featureCollection([lineFeature(passed)]) : emptyFC());
   } catch(e) {
     if(NAV_DEV) postWarn('route progress draw failed: '+String(e && (e.message||e)));
@@ -939,12 +982,62 @@ function applyGooglePalette(){
           try { map.setPaintProperty(l.id, 'text-color', '#5F6368'); } catch(_){}
           try { map.setPaintProperty(l.id, 'text-halo-color', '#FFFFFF'); } catch(_){}
           try { map.setPaintProperty(l.id, 'text-halo-width', 1); } catch(_){}
+          try { map.setPaintProperty(l.id, 'text-opacity', 0.98); } catch(_){}
+          try { map.setLayoutProperty(l.id, 'text-size', ['interpolate',['linear'],['zoom'],10,11,14,13,17,16]); } catch(_){}
         }
       }
     }
   } catch(e) {
     if(NAV_DEV) postWarn('palette setup failed: '+String(e && (e.message||e)));
   }
+}
+function ensureDepthLayers(){
+  try {
+    if(!map.getSource('mapbox-dem')){
+      map.addSource('mapbox-dem', {type:'raster-dem', url:'mapbox://mapbox.mapbox-terrain-dem-v1', tileSize:512, maxzoom:14});
+    }
+  } catch(e) {
+    if(NAV_DEV) postWarn('terrain source setup failed: '+String(e && (e.message||e)));
+  }
+  try {
+    if(map.getSource('composite') && !map.getLayer('driver-3d-buildings')){
+      var labelLayer = firstSymbolLayer();
+      map.addLayer({
+        id:'driver-3d-buildings',
+        type:'fill-extrusion',
+        source:'composite',
+        'source-layer':'building',
+        minzoom:14,
+        filter:['all', ['!=', ['get','underground'], 'true']],
+        paint:{
+          'fill-extrusion-color':'#D7DEE8',
+          'fill-extrusion-height':['interpolate',['linear'],['zoom'],14,0,15,['coalesce',['get','height'],18]],
+          'fill-extrusion-base':['coalesce',['get','min_height'],0],
+          'fill-extrusion-opacity':0.58
+        }
+      }, labelLayer);
+    }
+  } catch(e) {
+    if(NAV_DEV) postWarn('building extrusion setup failed: '+String(e && (e.message||e)));
+  }
+}
+function applyMapDepth(mode){
+  lastMapDepthMode = mode === '2d' ? '2d' : '3d';
+  ensureDepthLayers();
+  try {
+    if(lastMapDepthMode === '3d' && map.getSource('mapbox-dem')){
+      map.setTerrain({source:'mapbox-dem', exaggeration:1.15});
+    } else if(map.setTerrain) {
+      map.setTerrain(null);
+    }
+  } catch(e) {
+    if(NAV_DEV) postWarn('terrain apply failed: '+String(e && (e.message||e)));
+  }
+  try {
+    if(map.getLayer('driver-3d-buildings')){
+      map.setLayoutProperty('driver-3d-buildings','visibility', lastMapDepthMode === '3d' ? 'visible' : 'none');
+    }
+  } catch(_){}
 }
 function hasRouteLayers(){
   try { return !!(map && map.getSource('rsel') && map.getSource('rpassed') && map.getLayer('r-case') && map.getLayer('r-main') && map.getLayer('r-passed') && map.getLayer('r-arrows')); }
@@ -972,6 +1065,7 @@ function ensureLayers(){
   if(!isMapStyleReady()) return false;
   try {
     applyGooglePalette();
+    applyMapDepth(lastMapDepthMode);
     addSourceIfMissing('acc',{type:'geojson',data:emptyFC()});
     addLayerIfMissing({id:'acc-fill',type:'fill',source:'acc',paint:{'fill-color':'#F97316','fill-opacity':0.14}});
     addLayerIfMissing({id:'acc-line',type:'line',source:'acc',paint:{'line-color':'#F97316','line-opacity':0.28,'line-width':1}});
@@ -1069,7 +1163,7 @@ function fitToCoords(coords){
     var b = new mapboxgl.LngLatBounds(coords[0], coords[0]);
     for(var i=1;i<coords.length;i++){ b.extend(coords[i]); }
     programmatic = true;
-    map.fitBounds(b,{padding:{top:150,right:55,bottom:Math.max(120, bottomPad),left:55}, maxZoom:16, bearing:0, pitch:0, duration:500});
+    map.fitBounds(b,{padding:{top:150,right:55,bottom:Math.max(120, bottomPad),left:55}, maxZoom:16, bearing:0, pitch:lastMapDepthMode === '3d' ? 45 : 0, duration:500});
   }catch(_){}
 }
 // Camera is epoch-driven: zoom only changes when the epoch advances (recenter
@@ -1078,6 +1172,8 @@ function fitToCoords(coords){
 function applyCamera(s){
   if(!s) return;
   var mode = s.followMode || 'heading_up';
+  var depthMode = s.mapDepthMode === '2d' ? '2d' : '3d';
+  applyMapDepth(depthMode);
   var cameraMode = s.cameraMode || (mode==='overview' ? 'overview' : (s.follow ? 'following' : 'free-pan'));
   if(cameraMode==='overview' || mode==='overview'){
     if(s.epoch!==cameraEpoch && s.fitCoords && s.fitCoords.length>=2){ fitToCoords(s.fitCoords); }
@@ -1086,9 +1182,15 @@ function applyCamera(s){
   if(cameraMode==='free-pan' || !s.follow || !s.driver){ cameraEpoch = s.epoch; return; }
   var resetZoom = (s.epoch !== cameraEpoch);
   cameraEpoch = s.epoch;
-  var opts = { center: s.driver, duration: 360, offset:[0, Math.min(130, Math.max(72, bottomPad * 0.28))] };
-  if(mode==='heading_up'){ opts.bearing = (s.heading==null ? map.getBearing() : s.heading); opts.pitch = 38; }
-  else { opts.bearing = 0; opts.pitch = 0; }
+  var opts = { center: s.driver, duration: 420, offset:[0, Math.min(145, Math.max(84, bottomPad * 0.30))] };
+  if(mode==='heading_up'){
+    opts.bearing = (s.heading==null ? map.getBearing() : s.heading);
+    opts.pitch = depthMode === '3d' ? 58 : 0;
+  }
+  else {
+    opts.bearing = 0;
+    opts.pitch = depthMode === '3d' ? 45 : 0;
+  }
   var currentZoom = (map && map.getZoom) ? map.getZoom() : NAVIGATION_ZOOM;
   if(resetZoom || currentZoom < NAVIGATION_ZOOM - 0.5){ opts.zoom = NAVIGATION_ZOOM; }
   programmatic = true;
@@ -1112,6 +1214,7 @@ function applyState(s){
     driverAnimSerial++;
   }
   if(typeof s.bottomPad === 'number' && s.bottomPad >= 0) bottomPad = s.bottomPad;
+  if(s.mapDepthMode === '2d' || s.mapDepthMode === '3d') applyMapDepth(s.mapDepthMode);
   if(s.customer){
     lastCustomer = s.customer;
     if(!customerMarker) customerMarker = new mapboxgl.Marker({element:customerEl(), anchor:'bottom'}).setLngLat(s.customer).addTo(map);
@@ -1216,6 +1319,7 @@ if(map){
   map.on('pitchstart', function(e){ if(e && e.originalEvent) onUserInteract(); });
   map.on('style.load', function(){
     layersReady = false;
+    applyMapDepth(lastMapDepthMode);
     scheduleRouteRestore();
   });
   map.on('idle', function(){
@@ -1295,10 +1399,20 @@ export default function JobRouteScreen() {
   const [phase, setPhase] = useState<NavigationPhase>('preview');
   const [isFollowingDriver, setIsFollowingDriver] = useState(true);
   const [followMode, setFollowMode] = useState<FollowMode>('heading_up');
+  const [mapDepthMode, setMapDepthMode] = useState<MapDepthMode>('3d');
   // Bumped on recenter / follow-mode change to authorise a one-off camera zoom
   // reset in the WebView. Plain GPS fixes keep the same epoch (no auto-zoom).
   const [cameraEpoch, setCameraEpoch] = useState(0);
   const [routeSequence, setRouteSequence] = useState(0);
+  const [reduceMotionEnabled, setReduceMotionEnabled] = useState(false);
+  const [routeScreenAppState, setRouteScreenAppState] =
+    useState<'active' | 'background' | 'inactive'>(
+      AppState.currentState === 'active'
+        ? 'active'
+        : AppState.currentState === 'background'
+          ? 'background'
+          : 'inactive',
+    );
   // Collapsible bottom cockpit so the map can occupy the full screen.
   // Default to COLLAPSED so the map is the dominant full-screen visual and the
   // bottom panel is only a small floating bar (status + ETA + action).
@@ -1373,6 +1487,7 @@ export default function JobRouteScreen() {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const mapDiagRef = useRef('');
   const jobNumberShimmer = useRef(new Animated.Value(0)).current;
+  const maneuverShimmer = useRef(new Animated.Value(0)).current;
   const routeAbortRef = useRef<AbortController | null>(null);
   const routeRequestSeqRef = useRef(0);
   const returnRouteAbortRef = useRef<AbortController | null>(null);
@@ -1386,6 +1501,7 @@ export default function JobRouteScreen() {
   const prevLocRef = useRef<Coordinates | null>(null);
   const routeStateRef = useRef<RouteState>(INITIAL_ROUTE_STATE);
   const routeSequenceRef = useRef(0);
+  const currentRouteRevisionRef = useRef('');
   const navigationProgressRef = useRef<NavigationProgress | null>(null);
   const phaseRef = useRef<NavigationPhase>('preview');
   const stepIndexRef = useRef(0);
@@ -1458,6 +1574,10 @@ export default function JobRouteScreen() {
     inputRange: [0, 0.14, 0.5, 0.86, 1],
     outputRange: [0, 0.28, 0.62, 0.28, 0],
   });
+  const maneuverShimmerOpacity = maneuverShimmer.interpolate({
+    inputRange: [0, 0.22, 0.5, 0.78, 1],
+    outputRange: [0, 0.2, 0.46, 0.2, 0],
+  });
 
   // Keep the decorative title shimmer native-only; on web it becomes a JS loop
   // competing with the map.
@@ -1481,6 +1601,28 @@ export default function JobRouteScreen() {
       jobNumberShimmer.setValue(0);
     };
   }, [jobNumberShimmer]);
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        if (mounted) setReduceMotionEnabled(enabled);
+      })
+      .catch(() => {});
+    const motionSub = AccessibilityInfo.addEventListener(
+      'reduceMotionChanged',
+      setReduceMotionEnabled,
+    );
+    const appSub = AppState.addEventListener('change', (next) => {
+      setRouteScreenAppState(
+        next === 'active' ? 'active' : next === 'background' ? 'background' : 'inactive',
+      );
+    });
+    return () => {
+      mounted = false;
+      motionSub.remove();
+      appSub.remove();
+    };
+  }, []);
   useEffect(() => { routeStateRef.current = routeState; }, [routeState]);
   useEffect(() => { followModeRef.current = followMode; }, [followMode]);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
@@ -1650,9 +1792,19 @@ export default function JobRouteScreen() {
   // display snapping and from Mapbox's destination snap point.
   const customerMarkerPosition = customerCoord;
 
+  const makeRerouteOrigin = useCallback((driver: Coordinates | null): RerouteOrigin | null => {
+    return selectRerouteOrigin({
+      progress: navigationProgressRef.current,
+      rawLocation: driver,
+      rawLocationTimestamp: lastFixAtRef.current ?? Date.now(),
+      routeRevision: currentRouteRevisionRef.current,
+      maxSnapDistanceMeters: SNAP_TO_ROUTE_MAX_DRIFT_M,
+    });
+  }, []);
+
   // ── Route request (client-side Mapbox Directions, road-following) ──
   const requestRoute = useCallback(
-    async (origin: Coordinates, destination: Coordinates) => {
+    async (origin: RerouteOrigin, destination: Coordinates) => {
       routeAbortRef.current?.abort();
       const requestId = routeRequestSeqRef.current + 1;
       routeRequestSeqRef.current = requestId;
@@ -1663,10 +1815,16 @@ export default function JobRouteScreen() {
       setRouteState((prev) => ({ ...prev, loading: true }));
       const routeJobRef = currentRouteJobRef;
       const routeDestinationKey = coordKey(destination);
-      const routeOriginFixAt = lastFixAtRef.current ?? Date.now();
+      const routeOriginFixAt = origin.locationTimestamp;
+      logRouteDiagnostic('route-request-origin', {
+        requestId,
+        source: origin.source,
+        segmentIndex: origin.segmentIndex,
+        confidence: origin.confidence,
+      });
 
       const result = await fetchDirections(
-        origin,
+        origin.coordinate,
         destination,
         controller.signal,
         locale === 'ar' ? 'ar' : 'en',
@@ -1680,7 +1838,7 @@ export default function JobRouteScreen() {
 
       if ('routes' in result) {
         const validations = result.routes.map((route) =>
-          validateRouteGeometry({ route, origin, destination }),
+          validateRouteGeometry({ route, origin: origin.coordinate, destination }),
         );
         const routes = result.routes.filter((_, index) => validations[index]?.ok);
         const rejected = validations.filter((validation) => !validation.ok);
@@ -1727,7 +1885,7 @@ export default function JobRouteScreen() {
         // Only fit the whole route on the very first fetch for this session or when in
         // overview mode. Fitting during active navigation zooms out and disorients the driver.
         networkFailRef.current = 0;
-        lastRouteOriginRef.current = origin;
+        lastRouteOriginRef.current = origin.coordinate;
         lastRouteAtRef.current = Date.now();
         offRouteSinceRef.current = null;
         fitPendingRef.current = followModeRef.current === 'overview';
@@ -1792,7 +1950,7 @@ export default function JobRouteScreen() {
       routeStateRef.current = next;
       setRouteState(next);
     },
-    [bumpRouteSequence, currentRouteJobRef, locale],
+    [bumpRouteSequence, currentRouteJobRef, locale, logRouteDiagnostic],
   );
 
   useEffect(() => {
@@ -1905,7 +2063,8 @@ export default function JobRouteScreen() {
         };
         routeStateRef.current = next;
         setRouteState(next);
-        requestRoute(driver, dest);
+        const origin = makeRerouteOrigin(driver);
+        if (origin) requestRoute(origin, dest);
         return;
       }
 
@@ -1924,10 +2083,16 @@ export default function JobRouteScreen() {
       // still finds the driver off-route fires immediately (debounce already elapsed).
       if (routeBelongsToCurrentJob && rs.geometry) {
         const d = distanceToRouteMeters(driver, rs.geometry);
+        const currentAccuracy = accuracyRef.current;
+        const likelyPoorAccuracyDrift =
+          typeof currentAccuracy === 'number' &&
+          Number.isFinite(currentAccuracy) &&
+          currentAccuracy > POOR_ACCURACY_METERS &&
+          d <= Math.max(OFF_ROUTE_METERS, currentAccuracy + GPS_DRIFT_METERS);
         if (d <= GPS_DRIFT_METERS) {
           offRouteSinceRef.current = null;
           setRouteDeviation(null);
-        } else if (d <= OFF_ROUTE_METERS) {
+        } else if (d <= OFF_ROUTE_METERS || likelyPoorAccuracyDrift) {
           offRouteSinceRef.current = null;
           setRouteDeviation({
             kind: 'gps-drift',
@@ -1944,7 +2109,10 @@ export default function JobRouteScreen() {
               recalculating: false,
             });
             return;
-          } else if (now - offRouteSinceRef.current > REROUTE_DEBOUNCE_MS) {
+          } else if (
+            now - offRouteSinceRef.current >
+            rerouteDebounceMs(speedRef.current, currentAccuracy)
+          ) {
             const rerouteAllowed =
               now - lastOffRouteRerouteAtRef.current > REROUTE_MIN_INTERVAL_MS;
             setRouteDeviation({
@@ -1956,7 +2124,8 @@ export default function JobRouteScreen() {
               offRouteSinceRef.current = null;
               lastOffRouteRerouteAtRef.current = now;
               setRerouting(true);
-              requestRoute(driver, dest);
+              const origin = makeRerouteOrigin(driver);
+              if (origin) requestRoute(origin, dest);
               return;
             }
             return;
@@ -1994,10 +2163,11 @@ export default function JobRouteScreen() {
         !offRouteRerouteCooldown &&
         (rs.source === 'none' || (movedEnough && intervalOk) || staleWhileMoving)
       ) {
-        requestRoute(driver, dest);
+        const origin = makeRerouteOrigin(driver);
+        if (origin) requestRoute(origin, dest);
       }
     },
-    [bumpRouteSequence, currentRouteJobRef, requestRoute],
+    [bumpRouteSequence, currentRouteJobRef, makeRerouteOrigin, requestRoute],
   );
 
   // First fix / subsequent fixes funnel through here.
@@ -2018,12 +2188,13 @@ export default function JobRouteScreen() {
         !hasRequestedRef.current
       ) {
         hasRequestedRef.current = true;
-        requestRoute(driver, dest);
+        const origin = makeRerouteOrigin(driver);
+        if (origin) requestRoute(origin, dest);
         return;
       }
       evaluateRoute(driver);
     },
-    [evaluateRoute, requestRoute],
+    [evaluateRoute, makeRerouteOrigin, requestRoute],
   );
 
   useEffect(() => { handlersRef.current.onFix = onFix; }, [onFix]);
@@ -2240,6 +2411,10 @@ export default function JobRouteScreen() {
   const selectedRoute = routeIsCurrent
     ? routeState.routes[routeState.selectedIndex] ?? null
     : null;
+  useEffect(() => {
+    currentRouteRevisionRef.current = routeRev;
+  }, [routeRev]);
+
   const navigationProgress = useMemo(
     () =>
       buildNavigationProgress({
@@ -2256,8 +2431,15 @@ export default function JobRouteScreen() {
         maxSnapDistanceMeters: SNAP_TO_ROUTE_MAX_DRIFT_M,
         staleAfterMs: NAVIGATION_PROGRESS_STALE_MS,
         fallbackStepIndex: stepIndexRef.current,
+        isRecalculating: rerouting,
+        cameraMode:
+          followMode === 'overview'
+            ? 'overview'
+            : isFollowingDriver
+              ? 'following'
+              : 'free-pan',
       }),
-    [driverLoc, lastFixAt, routeIsCurrent, routeRev, selectedRoute],
+    [driverLoc, followMode, isFollowingDriver, lastFixAt, rerouting, routeIsCurrent, routeRev, selectedRoute],
   );
 
   useEffect(() => {
@@ -2346,6 +2528,7 @@ export default function JobRouteScreen() {
       fitCoords,
       follow: isFollowingDriver,
       followMode,
+      mapDepthMode,
       cameraMode,
       epoch: cameraEpoch,
       bottomPad: cockpitCollapsed ? COCKPIT_PAD_COLLAPSED + insets.bottom : COCKPIT_PAD_EXPANDED + insets.bottom,
@@ -2378,6 +2561,7 @@ export default function JobRouteScreen() {
     navigationProgress,
     isFollowingDriver,
     followMode,
+    mapDepthMode,
     cameraEpoch,
     cockpitCollapsed,
     insets.bottom,
@@ -2932,8 +3116,9 @@ export default function JobRouteScreen() {
     const dest = destinationRef.current;
     if (!driver || !dest) return;
     if (Date.now() - lastRouteAtRef.current < ROUTE_MIN_INTERVAL_MS) return;
-    requestRoute(driver, dest);
-  }, [requestRoute]);
+    const origin = makeRerouteOrigin(driver);
+    if (origin) requestRoute(origin, dest);
+  }, [makeRerouteOrigin, requestRoute]);
 
   const handleToggleRoutePreference = useCallback(
     (key: keyof RoutePreferences) => {
@@ -2949,33 +3134,12 @@ export default function JobRouteScreen() {
         if (devGpsSimulatorRef.current?.isRunning()) {
           devGpsPauseOnRouteChangeRef.current = true;
         }
-        requestRoute(driver, dest);
+        const origin = makeRerouteOrigin(driver);
+        if (origin) requestRoute(origin, dest);
       }
     },
-    [requestRoute],
+    [makeRerouteOrigin, requestRoute],
   );
-
-  // Single handler for the collapsed cockpit primary button. Uses refs for
-  // real-time values to avoid closure-ordering issues. Priority order:
-  //   1. Assigned job -> Start driving
-  //   2. Within arrival zone + en route -> Mark Arrived
-  //   3. Otherwise expand details (Waze/Google Maps live there)
-  const handleCollapsedPrimary = useCallback(() => {
-    const jobStatus = jobStatusRef.current;
-    if (jobStatus === 'driver_assigned') {
-      handleStatusAction('en_route');
-      return;
-    }
-    const driver = driverLocRef.current;
-    const dest = destinationRef.current;
-    const distM = driver && dest ? haversineMeters(driver, dest) : null;
-    const isArrivedZone = jobStatus === 'en_route' && distM != null && distM <= ARRIVAL_HERE_M;
-    if (isArrivedZone) {
-      void handleConfirmArrival();
-      return;
-    }
-    setCockpitCollapsed(false);
-  }, [handleStatusAction, handleConfirmArrival]);
 
   const handleCallCustomer = useCallback(() => {
     const dialable = cleanPhone(job?.customerPhone);
@@ -2996,13 +3160,25 @@ export default function JobRouteScreen() {
     setCameraEpoch((e) => e + 1);
   }, []);
 
-  // Cycle north-up → heading-up → overview and re-engage follow.
+  // Cycle north-up ↔ heading-up and re-engage follow. Route overview is a
+  // separate control so the driver has a real 2D/3D toggle and overview button.
   const handleCycleFollowMode = useCallback(() => {
     lightHaptic();
-    setFollowMode((m) =>
-      m === 'heading_up' ? 'overview' : m === 'overview' ? 'north_up' : 'heading_up',
-    );
+    setFollowMode((m) => (m === 'heading_up' ? 'north_up' : 'heading_up'));
     setIsFollowingDriver(true);
+    setCameraEpoch((e) => e + 1);
+  }, []);
+
+  const handleToggleRouteOverview = useCallback(() => {
+    lightHaptic();
+    setFollowMode((m) => (m === 'overview' ? 'heading_up' : 'overview'));
+    setIsFollowingDriver(true);
+    setCameraEpoch((e) => e + 1);
+  }, []);
+
+  const handleToggleMapDepth = useCallback(() => {
+    lightHaptic();
+    setMapDepthMode((m) => (m === '3d' ? '2d' : '3d'));
     setCameraEpoch((e) => e + 1);
   }, []);
 
@@ -3467,6 +3643,80 @@ export default function JobRouteScreen() {
       : null;
   const nextInstruction =
     !arrival && hasLiveStep && nextStep ? humanizeInstruction(nextStep, t) : null;
+  const maneuverShimmerSpec = getManeuverShimmerSpec({
+    maneuverType: arrival ? 'arrive' : rerouting ? 'continue' : upcomingStep?.maneuverType ?? null,
+    maneuverModifier: upcomingStep?.maneuverModifier ?? null,
+    drivingSide: upcomingStep?.drivingSide ?? null,
+    reducedMotion: reduceMotionEnabled,
+    appState: routeScreenAppState,
+  });
+  const maneuverWarningPhase = navigationProgress.maneuverWarningPhase;
+  const instructionCardPhaseStyle =
+    maneuverWarningPhase === 'executing'
+      ? styles.instructionCardExecuting
+      : maneuverWarningPhase === 'imminent'
+        ? styles.instructionCardImminent
+        : maneuverWarningPhase === 'prepare'
+          ? styles.instructionCardPrepare
+          : null;
+  const instructionIconPhaseStyle =
+    maneuverWarningPhase === 'executing'
+      ? styles.instructionIconExecuting
+      : maneuverWarningPhase === 'imminent'
+        ? styles.instructionIconImminent
+        : maneuverWarningPhase === 'prepare'
+          ? styles.instructionIconPrepare
+          : null;
+  const maneuverShimmerTranslateX = maneuverShimmer.interpolate({
+    inputRange: [0, 1],
+    outputRange: maneuverShimmerSpec.translateX,
+  });
+  const maneuverShimmerTranslateY = maneuverShimmer.interpolate({
+    inputRange: [0, 1],
+    outputRange: maneuverShimmerSpec.translateY,
+  });
+  const maneuverShimmerRotate = maneuverShimmer.interpolate({
+    inputRange: [0, 1],
+    outputRange: maneuverShimmerSpec.rotate,
+  });
+  const maneuverShimmerScale = maneuverShimmer.interpolate({
+    inputRange: [0, 1],
+    outputRange: maneuverShimmerSpec.scale,
+  });
+
+  useEffect(() => {
+    const shouldAnimate =
+      Platform.OS !== 'web' &&
+      !maneuverShimmerSpec.paused &&
+      (arrival != null || hasLiveStep || rerouting);
+    if (!shouldAnimate) {
+      maneuverShimmer.stopAnimation();
+      maneuverShimmer.setValue(0);
+      return undefined;
+    }
+    const animation = Animated.loop(
+      Animated.timing(maneuverShimmer, {
+        toValue: 1,
+        duration: 1400,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    );
+    animation.start();
+    return () => {
+      animation.stop();
+      maneuverShimmer.stopAnimation();
+      maneuverShimmer.setValue(0);
+    };
+  }, [
+    arrival,
+    hasLiveStep,
+    maneuverShimmer,
+    maneuverShimmerSpec.category,
+    maneuverShimmerSpec.mode,
+    maneuverShimmerSpec.paused,
+    rerouting,
+  ]);
 
   // Speak the active maneuver aloud exactly once, as the step becomes current.
   // The step-index guard prevents re-speaking on every GPS tick; the voice
@@ -3503,6 +3753,10 @@ export default function JobRouteScreen() {
     displayDistanceMeters != null ? metersToMiles(displayDistanceMeters) : null;
   const durationMin =
     displayDurationSeconds != null ? secondsToMinutes(displayDurationSeconds) : null;
+  const arrivalEtaLabel =
+    displayDurationSeconds != null
+      ? formatDueBackTime(new Date(nowTick + Math.max(0, displayDurationSeconds) * 1_000))
+      : '--:--';
   const navigationFixStale =
     lastFixAt == null || nowTick - lastFixAt > NAVIGATION_PROGRESS_STALE_MS;
   const speedMph =
@@ -3511,6 +3765,20 @@ export default function JobRouteScreen() {
       : null;
   const speedValueText = speedMph != null ? String(speedMph) : '—';
   const speedUnitText = 'mph';
+  const speedLimitMph =
+    !navigationFixStale && navigationProgress.speedLimitSource === 'mapbox-maxspeed'
+      ? navigationProgress.currentSpeedLimitMph
+      : null;
+  const speedLimitValueText = speedLimitMph != null ? String(speedLimitMph) : '--';
+  const speedLimitReliable = speedLimitMph != null;
+  const speedOverLimit =
+    speedMph != null && speedLimitMph != null && speedMph > speedLimitMph + 2;
+  const roadMetaText =
+    navigationProgress.currentRoadName ??
+    roadClassLabel(navigationProgress.currentRoadClass) ??
+    '--';
+  const laneGuidance = hasLiveStep ? navigationProgress.laneGuidance : null;
+  const roundaboutBranches = hasLiveStep ? roundaboutDiagramBranches(upcomingStep ?? null) : [];
 
   const renderGuidanceText = (
     text: string,
@@ -3531,6 +3799,78 @@ export default function JobRouteScreen() {
           text
         )}
       </Text>
+    );
+  };
+
+  const renderLaneGuidance = () => {
+    if (!laneGuidance) return null;
+    return (
+      <View style={styles.laneGuidanceRow}>
+        {laneGuidance.lanes.map((lane, index) => {
+          const isActive = lane.active || lane.valid;
+          return (
+            <View
+              key={`${index}-${lane.indications.join('-')}`}
+              style={[
+                styles.laneCell,
+                isActive && styles.laneCellValid,
+                lane.active && styles.laneCellActive,
+              ]}
+            >
+              <Ionicons
+                name={laneIndicationIcon(lane)}
+                size={17}
+                color={isActive ? '#FFFFFF' : '#5F6368'}
+              />
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
+  const renderRoundaboutDiagram = () => {
+    if (!hasLiveStep || !upcomingStep || roundaboutBranches.length === 0) return null;
+    const circulation = upcomingStep.drivingSide === 'left' ? 'clockwise' : 'anticlockwise';
+    const exitLabel = upcomingStep.exit != null ? String(upcomingStep.exit) : '–';
+    return (
+      <View
+        style={styles.roundaboutDiagram}
+        accessibilityLabel={`Roundabout ${circulation}, exit ${exitLabel}`}
+      >
+        <View style={styles.roundaboutStage}>
+          <View style={styles.roundaboutCircle}>
+            <Ionicons
+              name={circulation === 'clockwise' ? 'arrow-redo' : 'arrow-undo'}
+              size={20}
+              color="#F97316"
+            />
+          </View>
+          {roundaboutBranches.map((branch) => (
+            <View
+              key={branch.key}
+              style={[
+                styles.roundaboutBranch,
+                branch.allowed && styles.roundaboutBranchAllowed,
+                branch.incoming && styles.roundaboutApproachBranch,
+                branch.selected && styles.roundaboutExitBranch,
+                { transform: [{ rotate: `${branch.bearing}deg` }] },
+              ]}
+            />
+          ))}
+          <View style={styles.roundaboutExitBadge}>
+            <Text style={styles.roundaboutExitBadgeText}>{exitLabel}</Text>
+          </View>
+        </View>
+        <View style={styles.roundaboutTextWrap}>
+          <Text style={styles.roundaboutLabel} numberOfLines={1}>
+            {circulation === 'clockwise' ? 'UK clockwise roundabout' : 'Roundabout'}
+          </Text>
+          <Text style={styles.roundaboutSubLabel} numberOfLines={1}>
+            {upcomingStep.exit != null ? `Take exit ${upcomingStep.exit}` : 'Follow highlighted exit'}
+          </Text>
+        </View>
+      </View>
     );
   };
 
@@ -3826,9 +4166,10 @@ export default function JobRouteScreen() {
       : followMode === 'overview'
         ? t('route.overview')
         : t('route.northUp');
+  const mapDepthLabel = mapDepthMode === '3d' ? '3D' : '2D';
+  const routeOverviewActive = followMode === 'overview';
 
   // ── Safer arrival workflow (Part 6) ──
-  const isAssigned = job?.status === 'driver_assigned';
   const isEnRoute = job?.status === 'en_route';
   const within100m =
     metersToCustomer != null && metersToCustomer <= ARRIVAL_VERY_CLOSE_M;
@@ -3837,84 +4178,6 @@ export default function JobRouteScreen() {
   const emphasiseArrived = isEnRoute && within100m;
   // Doorstep hint at 25 m — a nudge, never an auto-confirm.
   const showAtCustomerHint = isEnRoute && within25m;
-
-  // ── Collapsed cockpit derived values ────────────────────────────────────────
-
-  // Primary headline for the collapsed driving panel. Arrival wording wins over
-  // all other states so the driver is never shown a maneuver when approaching.
-  // Inline (not useMemo) so the React Compiler can manage memoization.
-  const collapsedHeadline: string = (() => {
-    if (arrival) return arrival;
-    if (rerouting) return t('route.findingBetterRoute');
-    if (routeState.error?.kind === 'network') return t('route.offlineUsingLastRoute');
-    if (isOffRoute) {
-      return routeDeviation?.recalculating
-        ? 'Off route. Recalculating route...'
-        : 'Off route';
-    }
-    if (isGpsDrift) return 'GPS drift detected';
-    if (gpsWeak) return t('route.gpsSignalWeak');
-    if (rerouteFailed) return t('route.couldNotLoadRoute');
-    if (!customerCoord) return t('route.locationMissingTitle');
-    if (hasLiveStep && upcomingStep) return humanizeInstruction(upcomingStep, t);
-    return t('route.findingRoute');
-  })();
-
-  // Icon for the collapsed instruction row.
-  // Inline (not useMemo) so the React Compiler can manage memoization.
-  const collapsedNavIcon: IoniconName = (() => {
-    if (arrival) return metersToCustomer != null && metersToCustomer <= ARRIVAL_HERE_M ? 'flag' : 'warning';
-    if (rerouting) return 'refresh';
-    if (routeState.error?.kind === 'network') return 'cloud-offline-outline';
-    if (isOffRoute) return 'git-branch-outline';
-    if (isGpsDrift) return 'locate-outline';
-    if (gpsWeak) return 'warning-outline';
-    if (rerouteFailed || !customerCoord) return 'alert-circle-outline';
-    if (hasLiveStep && upcomingStep) return maneuverIcon(upcomingStep);
-    return 'navigate';
-  })();
-
-  // Short payment label for the compact collapsed badge.
-  const collapsedPayLabel = useMemo((): string => {
-    switch (payDisplay.labelKey) {
-      case 'payment.paid':
-      case 'payment.paidOnline':
-        return t('route.payBadgePaid');
-      case 'payment.depositPaid':
-        return t('payment.depositPaid');
-      case 'payment.balanceDue':
-      case 'payment.depositBalanceDue':
-        return t('route.payBadgeBalanceDue');
-      case 'payment.payOnArrival':
-        return t('route.payBadgeCash');
-      case 'payment.awaitingPayment':
-      case 'payment.paymentPending':
-      case 'payment.paymentLinkSent':
-        return t('route.payBadgePending');
-      case 'payment.needsChecking':
-      case 'payment.failed':
-        return t(payDisplay.labelKey);
-      default:
-        return t('route.payBadgeUnknown');
-    }
-  }, [payDisplay.labelKey, t]);
-
-  // Label and icon for the collapsed primary action button.
-  const collapsedPrimaryLabel = useMemo((): string => {
-    if (isAssigned) return t('route.startDriving');
-    if (isEnRoute && within25m) return t('route.markArrived');
-    return t('route.more');
-  }, [isAssigned, isEnRoute, within25m, t]);
-
-  const collapsedPrimaryIcon: IoniconName = isEnRoute && within25m
-    ? 'flag'
-    : isAssigned
-      ? 'navigate'
-      : 'ellipsis-horizontal';
-
-  const collapsedPrimaryDisabled = actioning;
-
-  const collapsedPrimaryIsArrival = isEnRoute && within25m;
 
   const renderJobClock = (compact: boolean) => (
     <View style={[styles.jobClockCard, compact && styles.jobClockCardCompact]}>
@@ -4100,37 +4363,20 @@ export default function JobRouteScreen() {
             ]}
           />
         </View>
-        <View
-          style={[
-            styles.healthPill,
-            routeHealth.tone === 'good'
-              ? styles.healthGood
-              : routeHealth.tone === 'warn'
-                ? styles.healthWarn
-                : styles.healthBad,
-          ]}
-        >
-          <View
-            style={[
-              styles.healthDot,
-              routeHealth.tone === 'good'
-                ? styles.healthDotGood
-                : routeHealth.tone === 'warn'
-                  ? styles.healthDotWarn
-                  : styles.healthDotBad,
-            ]}
-          />
-          <Text style={styles.healthPillText}>{routeHealth.label}</Text>
-        </View>
       </View>
 
       {/* ── Live instruction card — hidden when route has failed (recovery panel handles it)
            but kept when arrival wording is active so the driver sees their destination. ── */}
       {token && mapLoaded && !mapFatal && !permissionDenied && primaryInstruction.length > 0 && (arrival != null || rerouting || (routeIsCurrent && !rerouteFailed)) && (
         <View
-          style={[styles.instructionCard, styles.noPointerEvents, { top: insets.top + 50 }]}
+          style={[
+            styles.instructionCard,
+            instructionCardPhaseStyle,
+            styles.noPointerEvents,
+            { top: insets.top + 50 },
+          ]}
         >
-          <View style={styles.instructionIcon}>
+          <View style={[styles.instructionIcon, instructionIconPhaseStyle]}>
             <Ionicons
               name={
                 arrival
@@ -4141,8 +4387,23 @@ export default function JobRouteScreen() {
                       ? maneuverIcon(upcomingStep)
                       : 'navigate'
               }
-              size={28}
+              size={34}
               color="#FFFFFF"
+            />
+            <Animated.View
+              style={[
+                styles.instructionIconShimmer,
+                styles.noPointerEvents,
+                {
+                  opacity: maneuverShimmerOpacity,
+                  transform: [
+                    { translateX: maneuverShimmerTranslateX },
+                    { translateY: maneuverShimmerTranslateY },
+                    { rotate: maneuverShimmerRotate },
+                    { scale: maneuverShimmerScale },
+                  ],
+                },
+              ]}
             />
           </View>
           <View style={styles.instructionTextWrap}>
@@ -4150,11 +4411,28 @@ export default function JobRouteScreen() {
               <Text style={styles.instructionDistance}>{primaryDistance}</Text>
             )}
             {renderGuidanceText(primaryInstruction, hasLiveStep ? upcomingStep : null, styles.instructionText, 2)}
+            <View style={styles.instructionStatusPill}>
+              <View
+                style={[
+                  styles.healthDot,
+                  routeHealth.tone === 'good'
+                    ? styles.healthDotGood
+                    : routeHealth.tone === 'warn'
+                      ? styles.healthDotWarn
+                      : styles.healthDotBad,
+                ]}
+              />
+              <Text style={styles.instructionStatusText} numberOfLines={1}>
+                {routeHealth.label}
+              </Text>
+            </View>
             {nextInstruction != null && (
               <Text style={styles.instructionNext} numberOfLines={1}>
                 {t('route.thenInstruction', { instruction: nextInstruction })}
               </Text>
             )}
+            {renderRoundaboutDiagram()}
+            {renderLaneGuidance()}
           </View>
         </View>
       )}
@@ -4180,7 +4458,7 @@ export default function JobRouteScreen() {
       {token && mapLoaded && !mapFatal && !permissionDenied && (
         <View
           style={[
-            styles.speedPill,
+            styles.speedPanel,
             styles.noPointerEvents,
             {
               bottom:
@@ -4190,8 +4468,32 @@ export default function JobRouteScreen() {
             },
           ]}
         >
-          <Text style={styles.speedPillValue}>{speedValueText}</Text>
-          <Text style={styles.speedPillUnit}>{speedUnitText}</Text>
+          <View style={styles.speedPanelTopRow}>
+            <View style={styles.currentSpeedBlock}>
+              <Text style={styles.currentSpeedValue}>{speedValueText}</Text>
+              <Text style={styles.currentSpeedUnit}>{speedUnitText}</Text>
+            </View>
+            <View
+              style={[
+                styles.speedLimitSign,
+                !speedLimitReliable && styles.speedLimitSignUnavailable,
+                speedOverLimit && styles.speedLimitSignWarning,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.speedLimitValue,
+                  !speedLimitReliable && styles.speedLimitValueUnavailable,
+                  speedOverLimit && styles.speedLimitValueWarning,
+                ]}
+              >
+                {speedLimitValueText}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.speedRoadText} numberOfLines={1}>
+            {roadMetaText}
+          </Text>
         </View>
       )}
 
@@ -4224,6 +4526,31 @@ export default function JobRouteScreen() {
             style={styles.ctrlBtn}
           >
             <Ionicons name={followModeIcon} size={22} color="#3C4043" />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: routeOverviewActive }}
+            accessibilityLabel={routeOverviewActive ? 'Exit route overview' : 'Show route overview'}
+            onPress={handleToggleRouteOverview}
+            style={[styles.ctrlBtn, routeOverviewActive && styles.ctrlBtnAccent]}
+          >
+            <Ionicons name="scan-outline" size={22} color={routeOverviewActive ? '#F97316' : '#3C4043'} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: mapDepthMode === '3d' }}
+            accessibilityLabel={`Switch map to ${mapDepthMode === '3d' ? '2D' : '3D'}`}
+            onPress={handleToggleMapDepth}
+            style={[styles.ctrlBtn, mapDepthMode === '3d' && styles.ctrlBtnAccent]}
+          >
+            <Ionicons
+              name={mapDepthMode === '3d' ? 'cube-outline' : 'map-outline'}
+              size={20}
+              color={mapDepthMode === '3d' ? '#F97316' : '#3C4043'}
+            />
+            <Text style={[styles.ctrlBtnText, mapDepthMode === '3d' && styles.ctrlBtnTextAccent]}>
+              {mapDepthLabel}
+            </Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -4562,182 +4889,28 @@ export default function JobRouteScreen() {
         {!cockpitCollapsed && renderJobClock(false)}
 
         {cockpitCollapsed ? (
-          /* ──────────────────────────────────────────────────────────────────
-             COLLAPSED: primary driving mode — 3 rows, fits 360 px width.
-             Shows instruction/state → ETA+distance+payment → primary action.
-             Special panels replace the 3 rows when route failed / no coords.
-          ────────────────────────────────────────────────────────────────── */
-          <>
-            {rerouteFailed ? (
-              /* Route failure recovery panel */
-              <View style={styles.recoveryPanel}>
-                <View style={styles.recoveryHeader}>
-                  <Ionicons name="alert-circle-outline" size={22} color="#B3261E" />
-                  <Text style={styles.recoveryTitle}>{t('route.couldNotLoadRoute')}</Text>
-                </View>
-                <Text style={styles.recoveryBody}>{t('route.noRouteRecoveryBody')}</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={!customerCoord}
-                  onPress={handleOpenWaze}
-                  style={[styles.recoveryPrimaryBtn, !customerCoord && styles.btnDisabled]}
-                >
-                  <Ionicons name="navigate" size={18} color="#FFFFFF" />
-                  <Text style={styles.recoveryPrimaryBtnText}>{t('route.openWazeShort')}</Text>
-                </Pressable>
-                <View style={styles.recoverySecRow}>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={handleOpenExternal}
-                    style={styles.recoverySecBtn}
-                  >
-                    <Ionicons name="open-outline" size={16} color="#3C4043" />
-                    <Text style={styles.recoverySecBtnText}>{t('route.openGoogleMaps')}</Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={handleRetryRoute}
-                    style={styles.recoverySecBtn}
-                  >
-                    <Ionicons name="refresh" size={16} color="#3C4043" />
-                    <Text style={styles.recoverySecBtnText}>{t('route.tryAgain')}</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ) : !customerCoord && job != null ? (
-              /* Missing coordinates panel */
-              <View style={styles.recoveryPanel}>
-                <View style={styles.recoveryHeader}>
-                  <Ionicons name="location-outline" size={22} color="#F97316" />
-                  <Text style={styles.recoveryTitle}>{t('route.locationMissingTitle')}</Text>
-                </View>
-                <Text style={styles.recoveryBody}>{t('route.locationMissingBody')}</Text>
-                {phone != null && (
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={handleCallCustomer}
-                    style={styles.recoveryPrimaryBtn}
-                  >
-                    <Ionicons name="call" size={18} color="#FFFFFF" />
-                    <Text style={styles.recoveryPrimaryBtnText}>{t('route.callCustomer')}</Text>
-                  </Pressable>
-                )}
-                {addressLine != null && (
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={handleOpenAddressSearch}
-                    style={[styles.recoverySecBtn, styles.recoverySecBtnFull]}
-                  >
-                    <Ionicons name="open-outline" size={16} color="#3C4043" />
-                    <Text style={styles.recoverySecBtnText}>{t('route.openAddressInMaps')}</Text>
-                  </Pressable>
-                )}
-              </View>
-            ) : (
-              /* Normal driving mode — instruction + meta + actions */
-              <>
-                {/* Row 1: Big next instruction or route state */}
-                <View style={styles.collapsedInstRow}>
-                  <View style={styles.collapsedInstIcon}>
-                    <Ionicons name={collapsedNavIcon} size={24} color="#FFFFFF" />
-                  </View>
-                  {renderGuidanceText(collapsedHeadline, hasLiveStep ? upcomingStep : null, styles.collapsedInstText, 2)}
-                  {primaryDistance != null && routeIsCurrent && (
-                    <Text style={styles.collapsedDistBadge}>{primaryDistance}</Text>
-                  )}
-                </View>
-
-                {/* Row 2: ETA · distance · payment badge */}
-                <View style={styles.collapsedMetaRow}>
-                  <View style={styles.collapsedEtaBlock}>
-                    <Text style={styles.collapsedEtaNum}>
-                      {durationMin != null ? String(durationMin) : '—'}
-                    </Text>
-                    <Text style={styles.collapsedEtaUnit}>{t('route.etaMin')}</Text>
-                  </View>
-                  <View style={styles.collapsedMetaDivider} />
-                  <Text style={styles.collapsedDistText}>
-                    {distanceMiles != null ? t('route.distanceMi', { value: distanceMiles.toFixed(1) }) : '—'}
-                  </Text>
-                  <View style={styles.collapsedSpeedChip}>
-                    <Ionicons name="speedometer-outline" size={12} color="#3C4043" />
-                    <Text style={styles.collapsedSpeedText}>
-                      <Text style={styles.ltrText}>{speedValueText}</Text> {speedUnitText}
-                    </Text>
-                  </View>
-                  <View style={[styles.collapsedPayChip, { backgroundColor: payColors.bg, borderColor: payColors.border }]}>
-                    <Ionicons
-                      name={
-                        payDisplay.tone === 'paid'
-                          ? 'checkmark-circle'
-                          : payDisplay.tone === 'action'
-                            ? 'cash-outline'
-                            : payDisplay.tone === 'warning' || payDisplay.tone === 'failed'
-                              ? 'alert-circle-outline'
-                              : 'time-outline'
-                      }
-                      size={11}
-                      color={payColors.text}
-                    />
-                    <Text style={[styles.collapsedPayChipText, { color: payColors.text }]} numberOfLines={1}>
-                      {collapsedPayLabel}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Row 3: Primary action + Call + More */}
-                <View style={styles.collapsedActionRow}>
-                  {(isAssigned || collapsedPrimaryIsArrival) && (
-                    <Pressable
-                      accessibilityRole="button"
-                      disabled={collapsedPrimaryDisabled}
-                      onPress={handleCollapsedPrimary}
-                      style={[
-                        styles.collapsedPrimaryBtn,
-                        collapsedPrimaryIsArrival && styles.collapsedPrimaryBtnArrival,
-                        collapsedPrimaryDisabled && styles.btnDisabled,
-                      ]}
-                    >
-                      {actioning ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <Ionicons name={collapsedPrimaryIcon} size={18} color="#FFFFFF" />
-                      )}
-                      <Text style={styles.collapsedPrimaryBtnText} numberOfLines={1}>
-                        {collapsedPrimaryLabel}
-                      </Text>
-                    </Pressable>
-                  )}
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t('route.callCustomer')}
-                    disabled={phone == null}
-                    onPress={handleCallCustomer}
-                    style={[styles.collapsedSecBtn, phone == null && styles.collapsedSecBtnDisabled]}
-                  >
-                    <Ionicons name="call-outline" size={18} color={phone ? '#3C4043' : '#9AA0A6'} />
-                    <Text style={[styles.collapsedSecBtnText, phone == null && { color: '#9AA0A6' }]}>
-                      {t('route.call')}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t('route.expandDetails')}
-                    onPress={() => setCockpitCollapsed(false)}
-                    style={styles.collapsedSecBtn}
-                  >
-                    <Ionicons name="chevron-up" size={18} color="#3C4043" />
-                    <Text style={styles.collapsedSecBtnText}>{t('route.more')}</Text>
-                  </Pressable>
-                </View>
-
-                {/* Inline arrival error — shown after a failed Mark Arrived tap */}
-                {arrivalError != null && (
-                  <Text style={styles.arrivalErrorText}>{arrivalError}</Text>
-                )}
-              </>
-            )}
-          </>
+          <View style={styles.collapsedMetaRow}>
+            <View style={styles.collapsedEtaBlock}>
+              <Text style={styles.collapsedEtaNum}>
+                {durationMin != null ? String(durationMin) : '--'}
+              </Text>
+              <Text style={styles.collapsedEtaUnit}>{t('route.etaMin')}</Text>
+            </View>
+            <View style={styles.collapsedMetaDivider} />
+            <View style={styles.collapsedMetricBlock}>
+              <Text style={styles.collapsedMetricValue}>
+                {distanceMiles != null ? distanceMiles.toFixed(1) : '--'}
+              </Text>
+              <Text style={styles.collapsedMetricLabel}>mi</Text>
+            </View>
+            <View style={styles.collapsedMetaDivider} />
+            <View style={styles.collapsedMetricBlock}>
+              <Text style={styles.collapsedMetricValue}>
+                {arrivalEtaLabel}
+              </Text>
+              <Text style={styles.collapsedMetricLabel}>ETA</Text>
+            </View>
+          </View>
         ) : (
           /* ──────────────────────────────────────────────────────────────────
              EXPANDED: job details, navigation, job status actions.
@@ -5454,13 +5627,42 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 7,
   },
+  instructionCardPrepare: {
+    borderColor: 'rgba(245,158,11,0.95)',
+    shadowOpacity: 0.22,
+  },
+  instructionCardImminent: {
+    borderColor: 'rgba(249,115,22,0.98)',
+    shadowOpacity: 0.26,
+  },
+  instructionCardExecuting: {
+    borderColor: 'rgba(234,67,53,0.98)',
+    shadowOpacity: 0.3,
+  },
   instructionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F97316',
+    overflow: 'hidden',
+  },
+  instructionIconPrepare: {
+    backgroundColor: '#F59E0B',
+  },
+  instructionIconImminent: {
+    backgroundColor: '#F97316',
+  },
+  instructionIconExecuting: {
+    backgroundColor: '#EA4335',
+  },
+  instructionIconShimmer: {
+    position: 'absolute',
+    top: -8,
+    bottom: -8,
+    width: 18,
+    backgroundColor: 'rgba(255,255,255,0.55)',
   },
   instructionTextWrap: {
     flex: 1,
@@ -5480,6 +5682,131 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     fontWeight: '600',
     marginTop: 1,
+  },
+  instructionStatusPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+  },
+  instructionStatusText: {
+    color: '#3C4043',
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+  },
+  laneGuidanceRow: {
+    flexDirection: 'row',
+    direction: 'ltr',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 6,
+  },
+  laneCell: {
+    width: 27,
+    height: 28,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F1F3F4',
+    borderWidth: 1,
+    borderColor: '#DADCE0',
+  },
+  laneCellValid: {
+    backgroundColor: '#3C4043',
+    borderColor: '#3C4043',
+  },
+  laneCellActive: {
+    backgroundColor: '#F97316',
+    borderColor: '#F97316',
+  },
+  roundaboutDiagram: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: 7,
+    direction: 'ltr',
+  },
+  roundaboutStage: {
+    width: 76,
+    height: 76,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roundaboutCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 4,
+    borderColor: '#3C4043',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  roundaboutBranch: {
+    position: 'absolute',
+    top: 4,
+    left: 36,
+    width: 4,
+    height: 34,
+    borderRadius: 3,
+    backgroundColor: '#BDC1C6',
+    opacity: 0.7,
+  },
+  roundaboutBranchAllowed: {
+    backgroundColor: '#5F6368',
+    opacity: 0.86,
+  },
+  roundaboutApproachBranch: {
+    backgroundColor: '#3C4043',
+    opacity: 1,
+  },
+  roundaboutExitBranch: {
+    width: 7,
+    left: 34.5,
+    backgroundColor: '#F97316',
+    opacity: 1,
+    zIndex: 3,
+  },
+  roundaboutExitBadge: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F97316',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    zIndex: 4,
+  },
+  roundaboutExitBadgeText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.xs,
+    fontWeight: '900',
+  },
+  roundaboutTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  roundaboutLabel: {
+    color: '#202124',
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+  },
+  roundaboutSubLabel: {
+    color: '#5F6368',
+    fontSize: fontSize.xs,
+    fontWeight: '600',
   },
   reroutePill: {
     position: 'absolute',
@@ -5558,37 +5885,89 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: '800',
   },
-  speedPill: {
+  speedPanel: {
     position: 'absolute',
     left: spacing.md,
-    width: 64,
-    height: 64,
-    borderRadius: 12,
+    width: 132,
+    minHeight: 76,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.98)',
-    borderWidth: 2,
-    borderColor: '#3C4043',
+    borderWidth: 1,
+    borderColor: '#DADCE0',
     shadowColor: '#3C4043',
     shadowOpacity: 0.18,
-    shadowRadius: 8,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
     elevation: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 8,
   },
-  speedPillValue: {
+  speedPanelTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 8,
+  },
+  currentSpeedBlock: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  currentSpeedValue: {
     color: '#202124',
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
-    lineHeight: 28,
+    lineHeight: 29,
     writingDirection: 'ltr',
   },
-  speedPillUnit: {
+  currentSpeedUnit: {
     color: '#5F6368',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0,
     textTransform: 'uppercase',
     writingDirection: 'ltr',
+  },
+  speedLimitSign: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 5,
+    borderColor: '#EA4335',
+  },
+  speedLimitSignUnavailable: {
+    borderColor: '#BDC1C6',
+  },
+  speedLimitSignWarning: {
+    backgroundColor: '#FCE8E6',
+  },
+  speedLimitValue: {
+    color: '#202124',
+    fontSize: 17,
+    fontWeight: '900',
+    lineHeight: 20,
+    writingDirection: 'ltr',
+  },
+  speedLimitValueUnavailable: {
+    color: '#5F6368',
+  },
+  speedLimitValueWarning: {
+    color: '#B3261E',
+  },
+  speedRoadText: {
+    width: '100%',
+    marginTop: 4,
+    color: '#5F6368',
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 13,
   },
   approxBadge: {
     position: 'absolute',
@@ -5745,6 +6124,16 @@ const styles = StyleSheet.create({
   ctrlBtnAccent: {
     backgroundColor: '#FFFFFF',
     borderColor: '#F97316',
+  },
+  ctrlBtnText: {
+    marginTop: -2,
+    color: '#3C4043',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0,
+  },
+  ctrlBtnTextAccent: {
+    color: '#F97316',
   },
   devGpsPanel: {
     position: 'absolute',
@@ -6438,37 +6827,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
   },
-  /* ── Collapsed cockpit: Row 1 — instruction ── */
-  collapsedInstRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minHeight: 48,
-  },
-  collapsedInstIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F97316',
-    flexShrink: 0,
-  },
-  collapsedInstText: {
-    flex: 1,
-    color: '#202124',
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    lineHeight: 22,
-  },
-  collapsedDistBadge: {
-    color: '#5F6368',
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-    flexShrink: 0,
-  },
-
-  /* ── Collapsed cockpit: Row 2 — ETA / distance / payment ── */
+  /* ── Collapsed cockpit: duration / distance / ETA ── */
   collapsedMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -6491,95 +6850,27 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: '600',
   },
+  collapsedMetricBlock: {
+    minWidth: 54,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  collapsedMetricValue: {
+    color: '#202124',
+    fontSize: fontSize.md,
+    fontWeight: '800',
+    lineHeight: 20,
+  },
+  collapsedMetricLabel: {
+    color: '#5F6368',
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
   collapsedMetaDivider: {
     width: 1,
     height: 14,
     backgroundColor: '#DADCE0',
-  },
-  collapsedDistText: {
-    color: '#5F6368',
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-    flex: 1,
-  },
-  collapsedSpeedChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 4,
-    borderRadius: radius.full,
-    backgroundColor: '#F1F3F4',
-    flexShrink: 0,
-  },
-  collapsedSpeedText: {
-    color: '#3C4043',
-    fontSize: 10,
-    fontWeight: '800',
-    writingDirection: 'ltr',
-  },
-  collapsedPayChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    maxWidth: 96,
-  },
-  collapsedPayChipText: {
-    fontSize: fontSize.xs,
-    fontWeight: '700',
-    flexShrink: 1,
-  },
-
-  /* ── Collapsed cockpit: Row 3 — action buttons ── */
-  collapsedActionRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    alignItems: 'stretch',
-  },
-  collapsedPrimaryBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    minHeight: 52,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: '#F97316',
-  },
-  collapsedPrimaryBtnArrival: {
-    backgroundColor: '#34A853',
-  },
-  collapsedPrimaryBtnText: {
-    color: '#FFFFFF',
-    fontSize: fontSize.md,
-    fontWeight: '800',
-    flexShrink: 1,
-  },
-  collapsedSecBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-    minWidth: 56,
-    minHeight: 52,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: '#DADCE0',
-    backgroundColor: '#FFFFFF',
-  },
-  collapsedSecBtnDisabled: {
-    opacity: 0.4,
-  },
-  collapsedSecBtnText: {
-    color: '#3C4043',
-    fontSize: 10,
-    fontWeight: '700',
   },
 
   /* ── Recovery / missing location panels ── */
