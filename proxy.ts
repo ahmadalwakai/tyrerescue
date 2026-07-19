@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth';
+import { isAllowedExpoDevOrigin, isLocalNetworkHost } from '@/lib/api/dev-cors';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -46,25 +47,9 @@ const NOINDEX_PREFIXES = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  /* ─── CORS for Expo web dev apps (:8081/:8082/:8083/:8084) ─── */
-  // Narrowly scoped: only the API surface the app calls, only localhost dev
-  // origins. Production origins never appear here, so behaviour is unchanged.
-  const ALLOWED_DEV_ORIGINS = new Set([
-    'http://localhost:8081',
-    'http://127.0.0.1:8081',
-    'http://localhost:8082',
-    'http://127.0.0.1:8082',
-    'http://localhost:8083',
-    'http://127.0.0.1:8083',
-    'http://localhost:8084',
-    'http://127.0.0.1:8084',
-    'http://localhost:8095',
-    'http://127.0.0.1:8095',
-    'http://localhost:8096',
-    'http://127.0.0.1:8096',
-    'http://localhost:19006',
-    'http://127.0.0.1:19006',
-  ]);
+  /* ─── CORS for Expo web dev apps ─── */
+  // Narrowly scoped: only the API surface the app calls, only local/LAN Expo
+  // dev origins. Production origins never appear here, so behaviour is unchanged.
   const requestOrigin = request.headers.get('origin');
   const isExpoDevCorsApi =
     pathname.startsWith('/api/mobile/') ||
@@ -93,7 +78,7 @@ export async function proxy(request: NextRequest) {
     (pathname.startsWith('/api/bookings/') && pathname.endsWith('/deposit')) ||
     pathname.startsWith('/api/tyres');
   const allowOrigin =
-    isExpoDevCorsApi && requestOrigin && ALLOWED_DEV_ORIGINS.has(requestOrigin)
+    isExpoDevCorsApi && isAllowedExpoDevOrigin(requestOrigin)
       ? requestOrigin
       : null;
 
@@ -125,8 +110,7 @@ export async function proxy(request: NextRequest) {
   const forwardedProto = request.headers.get('x-forwarded-proto');
   const protocol = (forwardedProto ?? request.nextUrl.protocol.replace(':', '')).toLowerCase();
 
-  const isLocal =
-    host.includes('localhost') || host.includes('127.0.0.1');
+  const isLocal = isLocalNetworkHost(host);
   const isPreview = host.includes('.vercel.app');
 
   const needsCanonicalRedirect =

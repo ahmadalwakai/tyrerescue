@@ -11,7 +11,10 @@ import type { RecentCustomer } from '@/types/assisted-chat';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius } from './theme';
 import { copyToClipboard } from '@/lib/clipboard';
-import { summarizeBookingTyreLines } from '@/lib/assisted-chat-workflow';
+import {
+  formatAssistedChatServiceType,
+  summarizeBookingTyreLines,
+} from '@/lib/assisted-chat-workflow';
 
 interface Props {
   visible: boolean;
@@ -38,6 +41,7 @@ function formatWhen(iso: string): string {
 
 function buildDetailLines(item: RecentCustomer): string[] {
   const lines: string[] = [];
+  if (item.serviceType) lines.push(`Service: ${formatAssistedChatServiceType(item.serviceType)}`);
   if (item.customerPhone) lines.push(`Phone: ${item.customerPhone}`);
   if (item.customerAddress) lines.push(`Address: ${item.customerAddress}`);
   const tyreSummary = item.tyreLines?.length ? summarizeBookingTyreLines(item.tyreLines) : [];
@@ -162,6 +166,8 @@ export function RecentCustomersModal({
                     </Text>
                   ) : null}
                   <Text style={styles.itemSub}>
+                    {formatAssistedChatServiceType(item.serviceType)}
+                    {' · '}
                     {item.tyreLines?.length
                       ? summarizeBookingTyreLines(item.tyreLines).join(' · ')
                       : item.tyreSize

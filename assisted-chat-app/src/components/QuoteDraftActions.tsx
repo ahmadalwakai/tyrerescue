@@ -67,7 +67,7 @@ function buildQuoteInput(draft: AssistedChatDraft, effectiveTotal: number, locki
     quantity: totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
     tyreLines,
     items: tyreLines,
-    lockingWheelNutStatus: draft.lockingNut.answer,
+    lockingWheelNutStatus: draft.lockingNut.answer === 'unknown' ? null : draft.lockingNut.answer,
     lockingWheelNutChargePence: Math.round(lockingNutCharge * 100),
     priceAmount: Math.round(effectiveTotal * 100),
     currency: 'GBP',

@@ -20,8 +20,15 @@ import {
   buildWhatsAppUrl,
 } from '@/lib/quick-book-message-templates';
 import { validateRecipientEmail } from '@/lib/email/validate-recipient';
+import { ASSISTED_CHAT_AUTO_PRICING_MAX_MILES } from '@/lib/fitting-location-pricing';
+import { normalizeCustomerPhoneInput, normalizeRecipientEmailInput } from '@/lib/contact-normalization';
 
 export type CustomerEmailMode = 'walk_in_customer' | 'send_customer_confirmation';
+
+function normalizeOptionalEmailInput(input: unknown): string | undefined {
+  if (input === undefined) return undefined;
+  return normalizeRecipientEmailInput(input);
+}
 
 const tyreLineSchema = z.object({
   id: z.string().optional(),
@@ -36,8 +43,11 @@ const tyreLineSchema = z.object({
 
 const createSchema = z.object({
   customerName: z.string().min(1).max(255),
-  customerPhone: z.string().min(5).max(20),
-  customerEmail: z.string().email().optional().or(z.literal('')),
+  customerPhone: z.preprocess(normalizeCustomerPhoneInput, z.string().min(5).max(20)),
+  customerEmail: z.preprocess(
+    normalizeOptionalEmailInput,
+    z.string().email().optional().or(z.literal('')),
+  ),
   customerEmailMode: z.enum(['walk_in_customer', 'send_customer_confirmation']).optional(),
   locationMethod: z.enum(['link', 'address']),
   locationLat: z.number().optional(),
@@ -50,7 +60,7 @@ const createSchema = z.object({
   items: z.array(tyreLineSchema).optional(),
   adminAdjustmentAmount: z.number().optional(),
   adminAdjustmentReason: z.string().max(500).nullable().optional(),
-  adminDistanceLimitMiles: z.number().int().min(1).max(250).optional(),
+  adminDistanceLimitMiles: z.number().int().min(1).max(ASSISTED_CHAT_AUTO_PRICING_MAX_MILES).optional(),
   pricingContext: z.enum([
     'scheduled_mobile_fitting',
     'scheduled_garage_fitting',
@@ -177,11 +187,25 @@ export async function POST(request: Request) {
   let serviceOriginSource: 'driver' | 'garage' | null = null;
   let serviceOriginDriverId: string | null = null;
   let durationMinutes: number | null = null;
+  let serviceDistanceMiles: number | null = null;
+  let pricingDistanceMiles: number | null = null;
+  let pricingDurationMinutes: number | null = null;
+  let garageDistanceMiles: number | null = null;
+  let pricingDistanceSource: 'driver' | 'garage' | 'garage_floor' | null = null;
+  let distanceFloorApplied: boolean | null = null;
 
   if (lat && lng) {
     try {
       const distResult = await resolveQuickBookDistance({ lat, lng });
       distanceKm = distanceResultToKm(distResult);
+      serviceDistanceMiles = distResult.distanceMiles;
+      pricingDistanceMiles = distResult.pricingDistanceMiles;
+      pricingDurationMinutes = distResult.distanceFloorApplied
+        ? distResult.garageDurationMinutes ?? distResult.durationMinutes ?? null
+        : distResult.durationMinutes ?? null;
+      garageDistanceMiles = distResult.garageDistanceMiles;
+      pricingDistanceSource = distResult.pricingDistanceSource;
+      distanceFloorApplied = distResult.distanceFloorApplied;
       serviceOriginLat = distResult.originLat;
       serviceOriginLng = distResult.originLng;
       serviceOriginSource = distResult.distanceSource as 'driver' | 'garage';
@@ -207,14 +231,14 @@ export async function POST(request: Request) {
         tyreSize: primaryTyreSize,
         tyreCount: primaryTyreCount,
         tyreLines,
-        distanceMiles: (distanceKm ?? 5) * 0.621371,
+        distanceMiles: pricingDistanceMiles ?? (distanceKm ?? 5) * 0.621371,
         resolveTyreFromSize: Boolean(primaryTyreSize),
         requireTyreForFit: data.serviceType === 'fit' && Boolean(primaryTyreSize),
         adminAdjustmentAmount: data.adminAdjustmentAmount ?? 0,
         adminAdjustmentReason: data.adminAdjustmentReason,
         adminDistanceLimitMiles: data.adminDistanceLimitMiles,
         pricingContext,
-        durationMinutes,
+        durationMinutes: pricingDurationMinutes,
         weatherContext,
       });
 
@@ -228,6 +252,12 @@ export async function POST(request: Request) {
         ...(data.adminDistanceLimitMiles != null
           ? { adminDistanceLimitMiles: data.adminDistanceLimitMiles }
           : {}),
+        serviceDistanceMiles,
+        pricingDistanceMiles: pricing.breakdown.distanceMiles,
+        pricingDurationMinutes,
+        garageDistanceMiles,
+        pricingDistanceSource,
+        distanceFloorApplied,
         serviceOrigin: serviceOriginLat && serviceOriginLng ? {
           lat: serviceOriginLat,
           lng: serviceOriginLng,
@@ -268,6 +298,12 @@ export async function POST(request: Request) {
       total: 0,
       quoteExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
       isValid: true,
+      serviceDistanceMiles,
+      pricingDistanceMiles,
+      pricingDurationMinutes,
+      garageDistanceMiles,
+      pricingDistanceSource,
+      distanceFloorApplied,
       serviceOrigin: {
         lat: serviceOriginLat,
         lng: serviceOriginLng,

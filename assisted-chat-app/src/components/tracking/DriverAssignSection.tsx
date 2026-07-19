@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppButton, SectionCard } from '@/components/ui';
 import { colors, fontSize, radius, space } from '@/components/theme';
 import { useDriverList, type DriverListItem } from '@/hooks/useDriverList';
@@ -64,10 +64,10 @@ export function DriverAssignSection({
 }: Props) {
   const { drivers, loading, error, reload } = useDriverList();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [assignMessage, setAssignMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
-  const selectedDriver = drivers.find((d) => d.id === selectedId) ?? null;
   const trackingReady = trackingData?.customerUrl != null;
   const refNumber = bookingRef ?? trackingData?.refNumber ?? null;
 
@@ -75,6 +75,33 @@ export function DriverAssignSection({
     customerLat != null && customerLng != null
       ? { lat: customerLat, lng: customerLng }
       : null;
+
+  const driverOptions = useMemo(
+    () =>
+      drivers
+        .map((driver) => ({
+          driver,
+          distKm: getDriverDistanceKm(driver, customerPoint),
+        }))
+        .sort((a, b) => {
+          const aBusy = a.driver.activeJobRef ? 1 : 0;
+          const bBusy = b.driver.activeJobRef ? 1 : 0;
+          if (aBusy !== bBusy) return aBusy - bBusy;
+          if (a.driver.isOnline !== b.driver.isOnline) return a.driver.isOnline ? -1 : 1;
+          if (a.distKm != null && b.distKm != null) return a.distKm - b.distKm;
+          if (a.distKm != null) return -1;
+          if (b.distKm != null) return 1;
+          return a.driver.name.localeCompare(b.driver.name);
+        }),
+    [customerPoint, drivers],
+  );
+  const selectedDriver = driverOptions.find((option) => option.driver.id === selectedId) ?? null;
+
+  const selectDriver = (driver: DriverListItem | null) => {
+    setSelectedId(driver?.id ?? null);
+    setAssignMessage(null);
+    onSelectDriver?.(driver?.phone ?? null);
+  };
 
   return (
     <SectionCard title="Assign driver">
@@ -90,35 +117,28 @@ export function DriverAssignSection({
       ) : drivers.length === 0 ? (
         <Text style={styles.muted}>No drivers found.</Text>
       ) : (
-        <View style={styles.list}>
-          {drivers.map((driver) => {
-            const driverPoint =
-              driver.currentLat != null && driver.currentLng != null
-                ? { lat: parseFloat(driver.currentLat), lng: parseFloat(driver.currentLng) }
-                : null;
-            const distKm = haversineKm(driverPoint, customerPoint);
-            const isSelected = driver.id === selectedId;
+        <View style={styles.menuStack}>
+          <Pressable
+            onPress={() => setMenuOpen(true)}
+            android_ripple={{ color: colors.ripple, borderless: false }}
+            accessibilityRole="button"
+            accessibilityLabel="Open driver selection menu"
+            style={({ pressed }) => [styles.selectButton, pressed && styles.selectButtonPressed]}
+          >
+            <View style={styles.selectCopy}>
+              <Text style={styles.selectLabel}>Driver</Text>
+              <Text style={styles.selectValue} numberOfLines={1}>
+                {selectedDriver ? selectedDriver.driver.name : 'Select driver'}
+              </Text>
+            </View>
+            <Text style={styles.selectAction}>{selectedDriver ? 'Change' : 'Choose'}</Text>
+          </Pressable>
 
-            return (
-              <DriverCard
-                key={driver.id}
-                driver={driver}
-                distKm={distKm}
-                selected={isSelected}
-                onSelect={() => {
-                  const next = isSelected ? null : driver.id;
-                  setSelectedId(next);
-                  onSelectDriver?.(next ? driver.phone : null);
-                }}
-              />
-            );
-          })}
+          {selectedDriver ? (
+            <SelectedDriverSummary driver={selectedDriver.driver} distKm={selectedDriver.distKm} />
+          ) : null}
         </View>
       )}
-
-      {selectedDriver ? (
-        <Text style={styles.selectedLabel}>Selected driver: {selectedDriver.name}</Text>
-      ) : null}
 
       {assignMessage ? (
         <Text style={[styles.assignMessage, assignMessage.kind === 'ok' ? styles.assignMessageOk : styles.assignMessageErr]}>
@@ -137,9 +157,9 @@ export function DriverAssignSection({
           setAssignMessage(null);
           try {
             await api.patch(`/api/admin/bookings/${encodeURIComponent(refNumber)}/assign`, {
-              driverId: selectedDriver.id,
+              driverId: selectedDriver.driver.id,
             });
-            setAssignMessage({ kind: 'ok', text: `Job ${refNumber} sent to ${selectedDriver.name}.` });
+            setAssignMessage({ kind: 'ok', text: `Job ${refNumber} sent to ${selectedDriver.driver.name}.` });
             onAssigned?.();
             void reload();
           } catch (err) {
@@ -161,13 +181,138 @@ export function DriverAssignSection({
             : 'Tracking will activate once the booking is confirmed; the driver still receives the job.'
           : 'Create the booking first, then choose a driver.'}
       </Text>
+
+      <DriverSelectionMenu
+        visible={menuOpen}
+        options={driverOptions}
+        selectedId={selectedId}
+        onSelect={(driver) => {
+          selectDriver(driver);
+          setMenuOpen(false);
+        }}
+        onClear={() => selectDriver(null)}
+        onClose={() => setMenuOpen(false)}
+      />
     </SectionCard>
   );
 }
 
-// ── DriverCard ────────────────────────────────────────────────────────────────
+// ── Driver selection menu ─────────────────────────────────────────────────────
 
-function DriverCard({
+function getDriverDistanceKm(
+  driver: DriverListItem,
+  customerPoint: { lat: number; lng: number } | null,
+): number | null {
+  const driverPoint =
+    driver.currentLat != null && driver.currentLng != null
+      ? { lat: parseFloat(driver.currentLat), lng: parseFloat(driver.currentLng) }
+      : null;
+  return haversineKm(driverPoint, customerPoint);
+}
+
+function DriverSelectionMenu({
+  visible,
+  options,
+  selectedId,
+  onSelect,
+  onClear,
+  onClose,
+}: {
+  visible: boolean;
+  options: Array<{ driver: DriverListItem; distKm: number | null }>;
+  selectedId: string | null;
+  onSelect: (driver: DriverListItem) => void;
+  onClear: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      statusBarTranslucent
+      onRequestClose={onClose}
+      accessibilityViewIsModal
+    >
+      <Pressable style={styles.sheetBackdrop} onPress={onClose}>
+        <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
+          <View style={styles.sheetGrabber} />
+          <View style={styles.sheetHeader}>
+            <View style={styles.sheetTitleBlock}>
+              <Text style={styles.sheetTitle}>Assign driver</Text>
+              <Text style={styles.sheetSubtitle}>{options.length} driver{options.length === 1 ? '' : 's'} available</Text>
+            </View>
+            <Pressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close driver selection menu"
+              style={({ pressed }) => [styles.sheetClose, pressed && styles.sheetClosePressed]}
+            >
+              <Text style={styles.sheetCloseText}>Close</Text>
+            </Pressable>
+          </View>
+
+          {selectedId ? (
+            <Pressable
+              onPress={onClear}
+              accessibilityRole="button"
+              accessibilityLabel="Clear selected driver"
+              style={({ pressed }) => [styles.clearSelection, pressed && styles.clearSelectionPressed]}
+            >
+              <Text style={styles.clearSelectionText}>Clear selection</Text>
+            </Pressable>
+          ) : null}
+
+          <ScrollView contentContainerStyle={styles.sheetList} keyboardShouldPersistTaps="handled">
+            {options.map(({ driver, distKm }) => (
+              <DriverOption
+                key={driver.id}
+                driver={driver}
+                distKm={distKm}
+                selected={driver.id === selectedId}
+                onSelect={() => onSelect(driver)}
+              />
+            ))}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function SelectedDriverSummary({
+  driver,
+  distKm,
+}: {
+  driver: DriverListItem;
+  distKm: number | null;
+}) {
+  const distLabel = formatKm(distKm);
+  const lastSeen = formatLastSeen(driver.locationAt);
+
+  return (
+    <View style={styles.selectedSummary}>
+      <View style={styles.driverCardRow}>
+        <Text style={styles.driverName} numberOfLines={1}>{driver.name}</Text>
+        <DriverStatusBadge driver={driver} />
+      </View>
+      <View style={styles.driverMeta}>
+        {distLabel ? <Text style={styles.metaText}>{distLabel}</Text> : null}
+        <Text style={styles.metaText}>{lastSeen}</Text>
+        {driver.activeJobRef ? (
+          <Text style={[styles.metaText, styles.busyText]}>Active job #{driver.activeJobRef}</Text>
+        ) : null}
+        {driver.phone ? (
+          <Text style={styles.metaText}>WhatsApp ready</Text>
+        ) : (
+          <Text style={[styles.metaText, { color: colors.danger }]}>No phone</Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function DriverOption({
   driver,
   distKm,
   selected,
@@ -186,24 +331,24 @@ function DriverCard({
       onPress={onSelect}
       android_ripple={{ color: colors.ripple, borderless: false }}
       style={({ pressed }) => [
-        styles.driverCard,
-        selected && styles.driverCardSelected,
+        styles.driverOption,
+        selected && styles.driverOptionSelected,
         pressed && { opacity: 0.8 },
       ]}
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      accessibilityLabel={`Select driver ${driver.name}`}
     >
       <View style={styles.driverCardRow}>
-        <Text style={styles.driverName}>{driver.name}</Text>
-        <View style={[styles.badge, driver.isOnline ? styles.badgeOnline : styles.badgeOffline]}>
-          <Text style={[styles.badgeText, driver.isOnline ? styles.badgeTextOnline : styles.badgeTextOffline]}>
-            {driver.isOnline ? 'Online' : 'Offline'}
-          </Text>
-        </View>
+        <Text style={styles.driverName} numberOfLines={1}>{driver.name}</Text>
+        <DriverStatusBadge driver={driver} />
       </View>
       <View style={styles.driverMeta}>
         {distLabel ? <Text style={styles.metaText}>{distLabel}</Text> : null}
         <Text style={styles.metaText}>{lastSeen}</Text>
+        {driver.activeJobRef ? (
+          <Text style={[styles.metaText, styles.busyText]}>Active job #{driver.activeJobRef}</Text>
+        ) : null}
         {driver.phone ? (
           <Text style={styles.metaText}>WhatsApp ready</Text>
         ) : (
@@ -214,12 +359,20 @@ function DriverCard({
   );
 }
 
+function DriverStatusBadge({ driver }: { driver: DriverListItem }) {
+  return (
+    <View style={[styles.badge, driver.isOnline ? styles.badgeOnline : styles.badgeOffline]}>
+      <Text style={[styles.badgeText, driver.isOnline ? styles.badgeTextOnline : styles.badgeTextOffline]}>
+        {driver.isOnline ? 'Online' : 'Offline'}
+      </Text>
+    </View>
+  );
+}
+
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  list: {
-    gap: space.xs,
-  },
+  menuStack: { gap: space.xs },
   errorRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -234,12 +387,6 @@ const styles = StyleSheet.create({
   muted: {
     color: colors.muted,
     fontSize: fontSize.sm,
-  },
-  selectedLabel: {
-    color: colors.text,
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-    marginTop: space.xs,
   },
   assignMessage: {
     fontSize: fontSize.sm,
@@ -257,16 +404,149 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     marginTop: space.xs,
   },
-  driverCard: {
+  selectButton: {
+    minHeight: 58,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.inputBg,
+    borderRadius: radius.md,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+  },
+  selectButtonPressed: {
+    borderColor: colors.accent,
+    backgroundColor: colors.panel,
+  },
+  selectCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  selectLabel: {
+    color: colors.subtle,
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  selectValue: {
+    color: colors.text,
+    fontSize: fontSize.md,
+    fontWeight: '800',
+  },
+  selectAction: {
+    color: colors.accent,
+    fontSize: fontSize.sm,
+    fontWeight: '900',
+  },
+  selectedSummary: {
+    borderWidth: 1,
+    borderColor: colors.successBorder,
+    backgroundColor: colors.successBg,
+    borderRadius: radius.md,
+    padding: space.sm,
+    gap: space.xs / 2,
+  },
+  sheetBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: colors.overlay,
+  },
+  sheet: {
+    maxHeight: '84%',
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.glowBorder,
+    backgroundColor: colors.surfaceOverlay,
+    paddingHorizontal: space.lg,
+    paddingTop: space.sm,
+    paddingBottom: space.lg,
+  },
+  sheetGrabber: {
+    alignSelf: 'center',
+    width: 38,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.accent,
+    marginBottom: space.md,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    paddingBottom: space.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  sheetTitleBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  sheetTitle: {
+    color: colors.text,
+    fontSize: fontSize.xl,
+    fontWeight: '900',
+  },
+  sheetSubtitle: {
+    color: colors.subtle,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  sheetClose: {
+    minHeight: 38,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radius.sm,
+    paddingHorizontal: space.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+  },
+  sheetClosePressed: {
+    borderColor: colors.accent,
+    backgroundColor: colors.panel,
+  },
+  sheetCloseText: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: '800',
+  },
+  clearSelection: {
+    minHeight: 42,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radius.sm,
+    backgroundColor: colors.cardMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: space.md,
+  },
+  clearSelectionPressed: {
+    borderColor: colors.accent,
+    backgroundColor: colors.panel,
+  },
+  clearSelectionText: {
+    color: colors.muted,
+    fontSize: fontSize.sm,
+    fontWeight: '800',
+  },
+  sheetList: {
+    gap: space.xs,
+    paddingTop: space.md,
+    paddingBottom: space.md,
+  },
+  driverOption: {
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     borderRadius: radius.md,
     padding: space.sm,
     gap: space.xs / 2,
-    marginBottom: space.xs,
   },
-  driverCardSelected: {
+  driverOptionSelected: {
     borderColor: colors.accent,
     backgroundColor: colors.surface,
   },
@@ -315,5 +595,9 @@ const styles = StyleSheet.create({
   metaText: {
     color: colors.subtle,
     fontSize: fontSize.xs,
+  },
+  busyText: {
+    color: colors.warning,
+    fontWeight: '700',
   },
 });

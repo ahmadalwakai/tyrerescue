@@ -16,10 +16,21 @@ import type { PricingContext } from '@/lib/pricing-engine';
 import { getWeatherPricingContext, type WeatherPricingContext } from '@/lib/weather';
 import { distanceResultToKm, resolveQuickBookDistance } from '@/lib/quick-book-distance';
 import { GARAGE_ADDRESS } from '@/lib/garage';
+import { ASSISTED_CHAT_AUTO_PRICING_MAX_MILES } from '@/lib/fitting-location-pricing';
+import { normalizeCustomerPhoneInput, normalizeRecipientEmailInput } from '@/lib/contact-normalization';
+
+function normalizeOptionalEmailInput(input: unknown): string | undefined {
+  if (input === undefined) return undefined;
+  return normalizeRecipientEmailInput(input);
+}
 
 const updateSchema = z.object({
   customerName: z.string().min(1).max(255).optional(),
-  customerPhone: z.string().min(5).max(20).optional(),
+  customerPhone: z.preprocess(normalizeCustomerPhoneInput, z.string().min(5).max(20)).optional(),
+  customerEmail: z.preprocess(
+    normalizeOptionalEmailInput,
+    z.string().email().optional().or(z.literal('')),
+  ),
   locationLat: z.number().nullable().optional(),
   locationLng: z.number().nullable().optional(),
   locationAddress: z.string().nullable().optional(),
@@ -56,7 +67,7 @@ const updateSchema = z.object({
   bookingId: z.string().uuid().optional(),
   adminAdjustmentAmount: z.number().optional(),
   adminAdjustmentReason: z.string().max(500).nullable().optional(),
-  adminDistanceLimitMiles: z.number().int().min(1).max(250).optional(),
+  adminDistanceLimitMiles: z.number().int().min(1).max(ASSISTED_CHAT_AUTO_PRICING_MAX_MILES).optional(),
   pricingContext: z.enum([
     'scheduled_mobile_fitting',
     'scheduled_garage_fitting',
@@ -135,14 +146,15 @@ export async function PATCH(
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   const existingBreakdown = existing.priceBreakdown as Record<string, unknown> | null;
   const hasTyreLinesField = hasField('tyreLines') || hasField('items');
-  const incomingTyreLines = data.tyreLines?.length
-    ? data.tyreLines
-    : data.items?.length
-    ? data.items
+  const incomingTyreLines = hasField('tyreLines')
+    ? data.tyreLines ?? []
+    : hasField('items')
+    ? data.items ?? []
     : null;
 
   if (data.customerName !== undefined) updateData.customerName = data.customerName;
   if (data.customerPhone !== undefined) updateData.customerPhone = data.customerPhone;
+  if (data.customerEmail !== undefined) updateData.customerEmail = data.customerEmail || null;
   if (data.locationLat !== undefined) updateData.locationLat = data.locationLat != null ? String(data.locationLat) : null;
   if (data.locationLng !== undefined) updateData.locationLng = data.locationLng != null ? String(data.locationLng) : null;
   if (data.locationAddress !== undefined) updateData.locationAddress = data.locationAddress;
@@ -166,7 +178,7 @@ export async function PATCH(
     data.tyreSize !== undefined
       ? (data.tyreSize?.trim() || null)
       : (existing.tyreSize ?? null);
-  const mergedTyreLines: QuickBookTyreLineInput[] = incomingTyreLines
+  const mergedTyreLines: QuickBookTyreLineInput[] = incomingTyreLines !== null
     ? incomingTyreLines.map((line, index) => ({
         id: line.id || `tyre-${index + 1}`,
         size: line.size.trim(),
@@ -218,12 +230,50 @@ export async function PATCH(
   let serviceOriginSource: 'driver' | 'garage' | null = null;
   let serviceOriginDriverId: string | null = null;
   let durationMinutes: number | null = null;
+  let serviceDistanceMiles: number | null =
+    typeof existingBreakdown?.serviceDistanceMiles === 'number' && Number.isFinite(existingBreakdown.serviceDistanceMiles)
+      ? existingBreakdown.serviceDistanceMiles
+      : null;
+  let pricingDistanceMiles: number | null =
+    data.distanceKm !== undefined
+      ? (data.distanceKm != null ? data.distanceKm * 0.621371 : null)
+      : typeof existingBreakdown?.pricingDistanceMiles === 'number' && Number.isFinite(existingBreakdown.pricingDistanceMiles)
+      ? existingBreakdown.pricingDistanceMiles
+      : mergedDistanceKm != null
+      ? mergedDistanceKm * 0.621371
+      : null;
+  let pricingDurationMinutes: number | null =
+    typeof existingBreakdown?.pricingDurationMinutes === 'number' && Number.isFinite(existingBreakdown.pricingDurationMinutes)
+      ? existingBreakdown.pricingDurationMinutes
+      : null;
+  let garageDistanceMiles: number | null =
+    typeof existingBreakdown?.garageDistanceMiles === 'number' && Number.isFinite(existingBreakdown.garageDistanceMiles)
+      ? existingBreakdown.garageDistanceMiles
+      : null;
+  let pricingDistanceSource: 'driver' | 'garage' | 'garage_floor' | null =
+    existingBreakdown?.pricingDistanceSource === 'driver' ||
+    existingBreakdown?.pricingDistanceSource === 'garage' ||
+    existingBreakdown?.pricingDistanceSource === 'garage_floor'
+      ? (existingBreakdown.pricingDistanceSource as 'driver' | 'garage' | 'garage_floor')
+      : null;
+  let distanceFloorApplied: boolean | null =
+    typeof existingBreakdown?.distanceFloorApplied === 'boolean'
+      ? existingBreakdown.distanceFloorApplied
+      : null;
 
-  if ((hasField('locationLat') || hasField('locationLng')) && mergedLat != null && mergedLng != null && data.distanceKm === undefined) {
+  if (mergedLat != null && mergedLng != null && data.distanceKm === undefined) {
     try {
       const distResult = await resolveQuickBookDistance({ lat: mergedLat, lng: mergedLng });
       mergedDistanceKm = distanceResultToKm(distResult);
       updateData.distanceKm = mergedDistanceKm != null ? String(mergedDistanceKm) : null;
+      serviceDistanceMiles = distResult.distanceMiles;
+      pricingDistanceMiles = distResult.pricingDistanceMiles;
+      pricingDurationMinutes = distResult.distanceFloorApplied
+        ? distResult.garageDurationMinutes ?? distResult.durationMinutes ?? null
+        : distResult.durationMinutes ?? null;
+      garageDistanceMiles = distResult.garageDistanceMiles;
+      pricingDistanceSource = distResult.pricingDistanceSource;
+      distanceFloorApplied = distResult.distanceFloorApplied;
       serviceOriginLat = distResult.originLat;
       serviceOriginLng = distResult.originLng;
       serviceOriginSource = distResult.distanceSource as 'driver' | 'garage';
@@ -258,6 +308,9 @@ export async function PATCH(
     durationMinutes = typeof existingEta === 'number' && Number.isFinite(existingEta)
       ? existingEta
       : null;
+  }
+  if (pricingDurationMinutes == null) {
+    pricingDurationMinutes = durationMinutes;
   }
 
   let weatherContext: WeatherPricingContext | null = null;
@@ -303,7 +356,7 @@ export async function PATCH(
         tyreSize: primaryTyreSize,
         tyreCount: primaryTyreCount,
         tyreLines: mergedTyreLines,
-        distanceMiles: (mergedDistanceKm ?? 5) * 0.621371,
+        distanceMiles: pricingDistanceMiles ?? (mergedDistanceKm ?? 5) * 0.621371,
         selectedTyreSnapshot: baseSnapshot,
         selectedTyreSnapshots: hasTyreLinesField ? null : existingTyreLineSelections,
         resolveTyreFromSize: hasTyreLinesField || existingTyreLineSelections.length === 0,
@@ -312,7 +365,7 @@ export async function PATCH(
         adminAdjustmentReason: mergedAdminAdjustmentReason,
         adminDistanceLimitMiles: mergedAdminDistanceLimitMiles,
         pricingContext: mergedPricingContext,
-        durationMinutes,
+        durationMinutes: pricingDurationMinutes,
         weatherContext,
       });
 
@@ -327,6 +380,12 @@ export async function PATCH(
         ...(mergedAdminDistanceLimitMiles != null
           ? { adminDistanceLimitMiles: mergedAdminDistanceLimitMiles }
           : {}),
+        serviceDistanceMiles,
+        pricingDistanceMiles: priced.breakdown.distanceMiles,
+        pricingDurationMinutes,
+        garageDistanceMiles,
+        pricingDistanceSource,
+        distanceFloorApplied,
         serviceOrigin: serviceOriginLat && serviceOriginLng ? {
           lat: serviceOriginLat,
           lng: serviceOriginLng,

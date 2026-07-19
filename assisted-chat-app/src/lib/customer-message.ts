@@ -2,8 +2,12 @@ import type {
   AssistedChatDraft,
   AssistedChatPaymentChoice,
 } from '@/types/assisted-chat';
-import { formatGbp } from './money';
-import { summarizeBookingTyreLines, totalBookingTyreQuantity } from './assisted-chat-workflow';
+import { formatGbp, normalizePhoneForWhatsApp } from './money';
+import {
+  formatAssistedChatServiceType,
+  summarizeBookingTyreLines,
+  totalBookingTyreQuantity,
+} from './assisted-chat-workflow';
 
 /**
  * Templates the operator-side customer messages. Pure, deterministic, and
@@ -19,23 +23,27 @@ export interface CustomerMessageInput {
   paymentChoice?: AssistedChatPaymentChoice | null;
 }
 
-const BOOKING_PAYMENT_INTRO: Record<AssistedChatPaymentChoice, string> = {
-  deposit:
-    'Your booking is ready. Please pay the 20% deposit to confirm your tyre fitting.',
-  cash:
-    'Your booking has been created. Payment will be collected in cash.',
-  full:
-    'Your booking is ready. Please complete the full payment to confirm your tyre fitting.',
-};
+function serviceNoun(draft: AssistedChatDraft): string {
+  if (draft.serviceType === 'repair') return 'tyre repair';
+  if (draft.serviceType === 'assess') return 'inspection';
+  return 'replacement tyre';
+}
 
-const QUOTE_PAYMENT_INTRO: Record<AssistedChatPaymentChoice, string> = {
-  deposit:
-    'Your quote is ready. Please pay the 20% deposit to confirm your tyre fitting.',
-  cash:
-    'Your quote is ready. Payment will be collected in cash if you confirm.',
-  full:
-    'Your quote is ready. Please complete the full payment to confirm your tyre fitting.',
-};
+function bookingPaymentIntro(choice: AssistedChatPaymentChoice, draft: AssistedChatDraft): string {
+  if (choice === 'deposit') {
+    return `Your booking is ready. Please pay the 20% deposit to confirm your ${serviceNoun(draft)}.`;
+  }
+  if (choice === 'cash') return 'Your booking has been created. Payment will be collected in cash.';
+  return `Your booking is ready. Please complete the full payment to confirm your ${serviceNoun(draft)}.`;
+}
+
+function quotePaymentIntro(choice: AssistedChatPaymentChoice, draft: AssistedChatDraft): string {
+  if (choice === 'deposit') {
+    return `Your quote is ready. Please pay the 20% deposit to confirm your ${serviceNoun(draft)}.`;
+  }
+  if (choice === 'cash') return 'Your quote is ready. Payment will be collected in cash if you confirm.';
+  return `Your quote is ready. Please complete the full payment to confirm your ${serviceNoun(draft)}.`;
+}
 
 function isBookingDraft(draft: AssistedChatDraft): boolean {
   return Boolean(draft.dispatchedRefNumber || draft.dispatchedBookingId);
@@ -57,7 +65,11 @@ export function buildCustomerMessage(input: CustomerMessageInput): string {
   const lines: string[] = [];
   lines.push('Hi, this is Tyre Rescue.');
   if (paymentChoice) {
-    lines.push((bookingDraft ? BOOKING_PAYMENT_INTRO : QUOTE_PAYMENT_INTRO)[paymentChoice]);
+    lines.push(
+      bookingDraft
+        ? bookingPaymentIntro(paymentChoice, draft)
+        : quotePaymentIntro(paymentChoice, draft),
+    );
   } else if (bookingDraft) {
     lines.push('Your booking has been created.');
   } else if (quoteDraft) {
@@ -67,13 +79,16 @@ export function buildCustomerMessage(input: CustomerMessageInput): string {
   }
 
   const detail: string[] = [];
+  detail.push(`Service: ${formatAssistedChatServiceType(draft.serviceType)}`);
   if (draft.dispatchedRefNumber) {
     detail.push(`Booking ref: ${draft.dispatchedRefNumber}`);
   } else if (draft.savedQuoteRef) {
     detail.push(`Quote ref: ${draft.savedQuoteRef}`);
   }
   const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
-  if (tyreSummary.length > 0) {
+  if (draft.serviceType === 'assess') {
+    detail.push('Final tyre cost will be confirmed after inspection.');
+  } else if (tyreSummary.length > 0) {
     detail.push('Tyres:');
     tyreSummary.forEach((line) => detail.push(`- ${line}`));
   } else {
@@ -110,13 +125,7 @@ export function buildCustomerMessage(input: CustomerMessageInput): string {
  * are present so callers can disable the button.
  */
 export function buildWhatsAppUrl(phone: string, message: string): string | null {
-  const raw = phone ?? '';
-  const digits = raw.replace(/\D+/g, '');
-  if (!digits) return null;
-  let normalized: string;
-  if (raw.trim().startsWith('+')) normalized = digits;
-  else if (digits.startsWith('44')) normalized = digits;
-  else if (digits.startsWith('0')) normalized = `44${digits.slice(1)}`;
-  else normalized = digits;
+  const normalized = normalizePhoneForWhatsApp(phone);
+  if (!normalized) return null;
   return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
 }

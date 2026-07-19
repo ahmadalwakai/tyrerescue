@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -40,13 +41,31 @@ interface VariantPalette {
   textColor: string;
 }
 
+const buttonShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 7px 12px rgba(0,0,0,0.22)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 4,
+  },
+});
+
+const primaryButtonShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 7px 12px rgba(249,115,22,0.22)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadowWarm,
+    shadowOpacity: 0.22,
+  },
+});
+
 const VARIANTS: Record<ActionButtonVariant, VariantPalette> = {
   primary: {
     base: {
       backgroundColor: colors.accent,
       borderColor: colors.accent,
-      shadowColor: colors.shadowWarm,
-      shadowOpacity: 0.22,
+      ...(primaryButtonShadow ?? {}),
     },
     pressed: { backgroundColor: colors.accentPressed, borderColor: colors.accentPressed },
     textColor: colors.accentText,
@@ -153,7 +172,7 @@ export function ActionButton({
           fullWidth && styles.fullWidth,
         ]}
       >
-        {variant === 'primary' ? <View pointerEvents="none" style={styles.highlight} /> : null}
+        {variant === 'primary' ? <View style={[styles.highlight, { pointerEvents: 'none' }]} /> : null}
         {loading ? (
           <Animated.View style={[styles.row, pressScaleStyle]}>
             <ActivityIndicator color={palette.textColor} />
@@ -191,11 +210,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 4,
+    ...(buttonShadow ?? {}),
   },
   fullWidthWrap: {
     alignSelf: 'stretch',

@@ -1,6 +1,13 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from 'pdf-lib';
+import {
+  createBookingCustomerInvoice,
+  type BookingCustomerInvoice,
+  type StandaloneAdminInvoice,
+} from '@/lib/invoices/invoice-domain';
 
-export interface InvoicePdfData {
+export type InvoicePdfData = StandaloneAdminInvoice;
+
+interface InvoiceRenderData {
   invoiceNumber: string;
   issueDate: string;
   dueDate: string;
@@ -9,17 +16,17 @@ export interface InvoicePdfData {
   companyAddress: string;
   companyPhone: string;
   companyEmail: string;
-  companyVatNumber?: string | null; // Optional - VAT removed from system
   customerName: string;
   customerEmail: string;
   customerPhone: string | null;
   customerAddress: string | null;
-  items: { description: string; quantity: number; unitPrice: number; totalPrice: number }[];
-  subtotal: number;
-  vatRate?: number; // Deprecated - VAT removed
-  vatAmount?: number; // Deprecated - VAT removed
   totalAmount: number;
-  notes: string | null;
+  bookingReference?: string | null;
+  vehicleRegistration?: string | null;
+  vehicleMake?: string | null;
+  vehicleModel?: string | null;
+  paymentStatus?: string | null;
+  paymentMethod?: string | null;
 }
 
 const ORANGE = rgb(249 / 255, 115 / 255, 22 / 255);
@@ -42,7 +49,182 @@ function fmtDate(d: string): string {
   return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+function drawTyreRescueLogo(
+  page: PDFPage,
+  options: {
+    x: number;
+    y: number;
+    fontBold: PDFFont;
+    lightText?: boolean;
+  },
+): void {
+  const { x, y, fontBold, lightText = true } = options;
+  const iconX = x + 15;
+  const iconY = y + 15;
+  const textX = x + 42;
+
+  page.drawCircle({
+    x: iconX,
+    y: iconY,
+    size: 26,
+    borderWidth: 4,
+    borderColor: ORANGE,
+  });
+  page.drawCircle({
+    x: iconX,
+    y: iconY,
+    size: 14,
+    borderWidth: 1.6,
+    borderColor: ORANGE,
+  });
+  page.drawCircle({
+    x: iconX,
+    y: iconY,
+    size: 4,
+    color: ORANGE,
+  });
+
+  const spokes = [
+    { x: 0, y: 14 },
+    { x: 13, y: 8 },
+    { x: 13, y: -8 },
+    { x: -13, y: -8 },
+    { x: -13, y: 8 },
+  ];
+  for (const spoke of spokes) {
+    page.drawLine({
+      start: { x: iconX, y: iconY },
+      end: { x: iconX + spoke.x, y: iconY + spoke.y },
+      thickness: 1.5,
+      color: ORANGE,
+    });
+  }
+
+  page.drawText('TYRE', {
+    x: textX,
+    y: y + 18,
+    size: 15,
+    font: fontBold,
+    color: lightText ? WHITE : DARK,
+  });
+  page.drawText('RESCUE', {
+    x: textX,
+    y: y + 2,
+    size: 15,
+    font: fontBold,
+    color: ORANGE,
+  });
+}
+
+function bookingCustomerInvoiceToRenderData(invoice: BookingCustomerInvoice): InvoiceRenderData {
+  const safe = createBookingCustomerInvoice(invoice, 'booking-customer-pdf');
+  return {
+    invoiceNumber: safe.invoiceNumber,
+    issueDate: safe.invoiceDate,
+    dueDate: safe.invoiceDate,
+    status: safe.payment.status,
+    companyName: safe.company.name,
+    companyAddress: safe.company.address,
+    companyPhone: safe.company.phone,
+    companyEmail: safe.company.email,
+    customerName: safe.customer.name,
+    customerEmail: safe.customer.email,
+    customerPhone: safe.customer.phone,
+    customerAddress: safe.customer.address,
+    totalAmount: safe.finalTotal,
+    bookingReference: safe.bookingReference,
+    vehicleRegistration: safe.vehicle.registration,
+    vehicleMake: safe.vehicle.make,
+    vehicleModel: safe.vehicle.model,
+    paymentStatus: safe.payment.status,
+    paymentMethod: safe.payment.method,
+  };
+}
+
+function standaloneAdminInvoiceToRenderData(invoice: StandaloneAdminInvoice): InvoiceRenderData {
+  return {
+    invoiceNumber: invoice.invoiceNumber,
+    issueDate: invoice.issueDate,
+    dueDate: invoice.dueDate,
+    status: invoice.status,
+    companyName: invoice.companyName,
+    companyAddress: invoice.companyAddress,
+    companyPhone: invoice.companyPhone,
+    companyEmail: invoice.companyEmail,
+    customerName: invoice.customerName,
+    customerEmail: invoice.customerEmail,
+    customerPhone: invoice.customerPhone,
+    customerAddress: invoice.customerAddress,
+    totalAmount: invoice.totalAmount,
+    bookingReference: invoice.bookingReference,
+    vehicleRegistration: invoice.vehicleRegistration,
+    vehicleMake: invoice.vehicleMake,
+    vehicleModel: invoice.vehicleModel,
+    paymentStatus: invoice.paymentStatus,
+    paymentMethod: invoice.paymentMethod,
+  };
+}
+
+export function buildBookingCustomerInvoicePdfText(data: BookingCustomerInvoice): string[] {
+  const renderData = bookingCustomerInvoiceToRenderData(data);
+  return collectInvoicePdfText(renderData);
+}
+
+export function buildStandaloneAdminInvoicePdfText(data: StandaloneAdminInvoice): string[] {
+  const renderData = standaloneAdminInvoiceToRenderData(data);
+  return collectInvoicePdfText(renderData);
+}
+
+export async function generateBookingCustomerInvoicePdf(data: BookingCustomerInvoice): Promise<Uint8Array> {
+  return renderInvoicePdf(bookingCustomerInvoiceToRenderData(data));
+}
+
+export async function generateStandaloneAdminInvoicePdf(data: StandaloneAdminInvoice): Promise<Uint8Array> {
+  return renderInvoicePdf(standaloneAdminInvoiceToRenderData(data));
+}
+
+/** @deprecated Use generateStandaloneAdminInvoicePdf or generateBookingCustomerInvoicePdf explicitly. */
 export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Array> {
+  return generateStandaloneAdminInvoicePdf(data);
+}
+
+function collectInvoicePdfText(data: InvoiceRenderData): string[] {
+  const paymentStatus = data.paymentStatus ?? data.status;
+  const rows = [
+    data.companyName.toUpperCase(),
+    'INVOICE',
+    data.companyAddress,
+    data.companyPhone,
+    data.companyEmail,
+    'Invoice No:',
+    data.invoiceNumber,
+    'Invoice Date:',
+    fmtDate(data.issueDate),
+    'Payment Status:',
+    paymentStatus.toUpperCase(),
+    ...(data.paymentMethod ? ['Payment Method:', data.paymentMethod] : []),
+    'BILL TO',
+    data.customerName,
+    data.customerAddress ?? '',
+    data.customerEmail,
+    data.customerPhone ?? '',
+    'BOOKING DETAILS',
+    'Booking Reference',
+    data.bookingReference ?? 'Not available',
+    'Payment Status',
+    paymentStatus,
+    ...(data.paymentMethod ? ['Payment Method', data.paymentMethod] : []),
+    ...(data.vehicleRegistration || data.vehicleMake || data.vehicleModel
+      ? ['Vehicle', [data.vehicleRegistration, data.vehicleMake, data.vehicleModel].filter(Boolean).join(' ')]
+      : []),
+    'TOTAL',
+    fmtPrice(data.totalAmount),
+    `${data.companyName} - ${data.companyPhone} - ${data.companyEmail}`,
+  ];
+  return rows.filter(Boolean);
+}
+
+async function renderInvoicePdf(data: InvoiceRenderData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const page = doc.addPage([595.28, 841.89]); // A4
   const { width, height } = page.getSize();
@@ -58,9 +240,7 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
   page.drawRectangle({ x: 0, y: y - 10, width, height: 60, color: DARK });
   page.drawRectangle({ x: 0, y: y - 12, width, height: 2, color: ORANGE });
 
-  page.drawText(sanitize(data.companyName.toUpperCase()), {
-    x: marginLeft, y: y + 18, size: 22, font: fontBold, color: WHITE,
-  });
+  drawTyreRescueLogo(page, { x: marginLeft, y: y + 3, fontBold, lightText: true });
   page.drawText('INVOICE', {
     x: marginRight - fontBold.widthOfTextAtSize('INVOICE', 22),
     y: y + 18, size: 22, font: fontBold, color: ORANGE,
@@ -82,18 +262,23 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
     cy -= 14;
   }
 
-  const metaLabels = ['Invoice No:', 'Issue Date:', 'Due Date:', 'Status:'];
-  const metaValues = [data.invoiceNumber, fmtDate(data.issueDate), fmtDate(data.dueDate), data.status.toUpperCase()];
+  const paymentStatus = data.paymentStatus ?? data.status;
+  const metaRows = [
+    ['Invoice No:', data.invoiceNumber],
+    ['Invoice Date:', fmtDate(data.issueDate)],
+    ['Payment Status:', paymentStatus.toUpperCase()],
+    ...(data.paymentMethod ? [['Payment Method:', data.paymentMethod]] : []),
+  ];
   let my = y;
-  for (let i = 0; i < metaLabels.length; i++) {
-    const labelW = fontNormal.widthOfTextAtSize(metaLabels[i], 9);
-    page.drawText(metaLabels[i], {
+  for (const [label, value] of metaRows) {
+    const labelW = fontNormal.widthOfTextAtSize(label, 9);
+    page.drawText(label, {
       x: marginRight - 160, y: my, size: 9, font: fontNormal, color: GREY,
     });
-    page.drawText(sanitize(metaValues[i]), {
+    page.drawText(sanitize(value), {
       x: marginRight - 160 + labelW + 8, y: my, size: 9,
-      font: i === 3 ? fontBold : fontNormal,
-      color: i === 3 ? ORANGE : DARK,
+      font: label === 'Payment Status:' ? fontBold : fontNormal,
+      color: label === 'Payment Status:' ? ORANGE : DARK,
     });
     my -= 14;
   }
@@ -122,88 +307,34 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
 
   y -= 20;
 
-  // ── Line items table ──
-  const colX = [marginLeft, marginLeft + 250, marginLeft + 320, marginLeft + 400];
-  const colHeaders = ['Description', 'Qty', 'Unit Price', 'Total'];
-  const colAligns = ['left', 'center', 'right', 'right'] as const;
-
-  // Header row
-  page.drawRectangle({ x: marginLeft - 5, y: y - 5, width: marginRight - marginLeft + 10, height: 22, color: DARK });
-  for (let i = 0; i < colHeaders.length; i++) {
-    const tw = fontBold.widthOfTextAtSize(colHeaders[i], 8);
-    let tx = colX[i];
-    if (colAligns[i] === 'right') tx = colX[i] + (i === colHeaders.length - 1 ? 90 : 60) - tw;
-    else if (colAligns[i] === 'center') tx = colX[i] + 30 - tw / 2;
-    page.drawText(colHeaders[i], { x: tx, y: y + 3, size: 8, font: fontBold, color: WHITE });
-  }
-  y -= 28;
-
-  // Data rows
-  for (let r = 0; r < data.items.length; r++) {
-    const item = data.items[r];
-    if (r % 2 === 0) {
-      page.drawRectangle({ x: marginLeft - 5, y: y - 5, width: marginRight - marginLeft + 10, height: 20, color: LIGHT_GREY });
-    }
-    // Truncate description if too long
-    let desc = sanitize(item.description);
-    const maxDescW = 240;
-    while (fontNormal.widthOfTextAtSize(desc, 9) > maxDescW && desc.length > 3) {
-      desc = desc.slice(0, -4) + '...';
-    }
-
-    page.drawText(sanitize(desc), { x: colX[0], y: y + 2, size: 9, font: fontNormal, color: DARK });
-
-    const qtyStr = String(item.quantity);
-    const qtyW = fontNormal.widthOfTextAtSize(qtyStr, 9);
-    page.drawText(qtyStr, { x: colX[1] + 30 - qtyW / 2, y: y + 2, size: 9, font: fontNormal, color: DARK });
-
-    const upStr = fmtPrice(item.unitPrice);
-    const upW = fontNormal.widthOfTextAtSize(upStr, 9);
-    page.drawText(upStr, { x: colX[2] + 60 - upW, y: y + 2, size: 9, font: fontNormal, color: DARK });
-
-    const totStr = fmtPrice(item.totalPrice);
-    const totW = fontNormal.widthOfTextAtSize(totStr, 9);
-    page.drawText(totStr, { x: colX[3] + 90 - totW, y: y + 2, size: 9, font: fontNormal, color: DARK });
-
-    y -= 22;
+  // ── Booking and vehicle details ──
+  const detailRows = [
+    ['Booking Reference', data.bookingReference ?? 'Not available'],
+    ['Payment Status', paymentStatus],
+    ...(data.paymentMethod ? [['Payment Method', data.paymentMethod]] : []),
+  ];
+  if (data.vehicleRegistration || data.vehicleMake || data.vehicleModel) {
+    detailRows.push(['Vehicle', [data.vehicleRegistration, data.vehicleMake, data.vehicleModel].filter(Boolean).join(' ')]);
   }
 
-  // ── Divider ──
-  y -= 5;
-  page.drawLine({ start: { x: marginLeft, y }, end: { x: marginRight, y }, thickness: 1, color: GREY });
-  y -= 20;
-
-  // ── Totals (right-aligned block) ──
-  const totalsX = marginRight - 180;
-  const valX = marginRight;
-
-  function drawTotalRow(label: string, value: string, bold = false) {
-    const f = bold ? fontBold : fontNormal;
-    const sz = bold ? 12 : 10;
-    const col = bold ? DARK : GREY;
-    page.drawText(label, { x: totalsX, y, size: sz, font: f, color: col });
-    const vw = f.widthOfTextAtSize(value, sz);
-    page.drawText(value, { x: valX - vw, y, size: sz, font: bold ? fontBold : fontNormal, color: DARK });
-    y -= bold ? 22 : 17;
+  page.drawText('BOOKING DETAILS', { x: marginLeft, y, size: 10, font: fontBold, color: ORANGE });
+  y -= 18;
+  for (const [label, value] of detailRows) {
+    page.drawText(sanitize(label), { x: marginLeft, y, size: 9, font: fontNormal, color: GREY });
+    page.drawText(sanitize(value), { x: marginLeft + 130, y, size: 9, font: fontBold, color: DARK });
+    y -= 15;
   }
 
-  drawTotalRow('Subtotal', fmtPrice(data.subtotal));
-  page.drawLine({ start: { x: totalsX, y: y + 8 }, end: { x: valX, y: y + 8 }, thickness: 2, color: ORANGE });
-  y -= 4;
-  drawTotalRow('Total Due', fmtPrice(data.totalAmount), true);
+  y -= 30;
 
-  // ── Notes ──
-  if (data.notes) {
-    y -= 10;
-    page.drawText('Notes', { x: marginLeft, y, size: 10, font: fontBold, color: ORANGE });
-    y -= 14;
-    const noteLines = data.notes.split('\n');
-    for (const line of noteLines) {
-      if (y < 60) break;
-      page.drawText(sanitize(line), { x: marginLeft, y, size: 9, font: fontNormal, color: GREY });
-      y -= 13;
-    }
-  }
+  // ── Final agreed customer total only ──
+  const totalBoxHeight = 110;
+  page.drawRectangle({ x: marginLeft, y: y - totalBoxHeight, width: marginRight - marginLeft, height: totalBoxHeight, color: LIGHT_GREY });
+  page.drawRectangle({ x: marginLeft, y: y - totalBoxHeight, width: 5, height: totalBoxHeight, color: ORANGE });
+  page.drawText('TOTAL', { x: marginLeft + 28, y: y - 42, size: 18, font: fontBold, color: DARK });
+  const amount = fmtPrice(data.totalAmount);
+  const amountWidth = fontBold.widthOfTextAtSize(amount, 34);
+  page.drawText(amount, { x: marginRight - amountWidth - 28, y: y - 54, size: 34, font: fontBold, color: DARK });
 
   // ── Footer ──
   page.drawRectangle({ x: 0, y: 0, width, height: 35, color: DARK });

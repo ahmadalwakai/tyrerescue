@@ -1,4 +1,8 @@
-import type { AssistedChatDraft, BookingTyreLine } from '@/types/assisted-chat';
+import type {
+  AssistedChatDraft,
+  AssistedChatServiceType,
+  BookingTyreLine,
+} from '@/types/assisted-chat';
 import type { AdminQuotePaymentOption, AdminQuoteStatus } from '@/types/admin-quotes';
 
 export const ASSISTED_CHAT_STAGE_ORDER = [
@@ -25,6 +29,20 @@ export type AssistedChatTimelineStep =
   | 'DISPATCH';
 
 export type AssistedChatStepState = 'done' | 'active' | 'todo';
+
+export const ASSISTED_CHAT_SERVICE_LABELS: Record<AssistedChatServiceType, string> = {
+  fit: 'Replacement tyre',
+  repair: 'Tyre repair',
+  assess: 'Unknown / inspection required',
+};
+
+export function formatAssistedChatServiceType(
+  serviceType: AssistedChatServiceType | null | undefined,
+): string {
+  const normalized: AssistedChatServiceType =
+    serviceType === 'repair' || serviceType === 'assess' ? serviceType : 'fit';
+  return ASSISTED_CHAT_SERVICE_LABELS[normalized];
+}
 
 export type AssistedChatSecondaryAction =
   | 'COPY_LOCATION_LINK'
@@ -232,6 +250,7 @@ export function totalBookingTyreQuantity(lines: BookingTyreLine[]): number {
 }
 
 export function hasAssistedChatTyre(draft: AssistedChatDraft): boolean {
+  if (draft.serviceType === 'assess') return true;
   return validateBookingTyreLines(draft.tyreLines) === null;
 }
 
@@ -272,7 +291,7 @@ export function getAssistedChatBlockedReason(input: AssistedChatWorkflowInput): 
 
   if (stage === 'PRICE') {
     if (!hasLocation(draft)) return 'Confirm the customer location before pricing.';
-    if (!hasAssistedChatTyre(draft)) return 'Enter a valid tyre size and quantity before pricing.';
+    if (!hasAssistedChatTyre(draft)) return 'Enter a valid tyre size and quantity before pricing, or choose Unknown / inspection required.';
     if (input.priceLoading) return 'Price is already being calculated.';
     return null;
   }

@@ -12,7 +12,7 @@ interface Props {
 const OPTIONS: { value: LockingNutAnswer; label: string }[] = [
   { value: 'yes', label: 'Yes, customer has the key' },
   { value: 'no', label: 'No, key is missing' },
-  { value: 'unknown', label: 'Not asked yet' },
+  { value: 'unknown', label: 'Skip / not asked yet' },
 ];
 
 export function LockingWheelNutSection({ draft, update }: Props) {
@@ -74,8 +74,8 @@ export function LockingWheelNutSection({ draft, update }: Props) {
   };
 
   return (
-    <SectionCard title="Locking wheel nut">
-      <Text style={styles.question}>Does the customer have the locking wheel nut key?</Text>
+    <SectionCard title="Locking wheel nut" helperText="Optional. Leave skipped if it was not asked.">
+      <Text style={styles.question}>Does the customer have the locking wheel nut key? Optional.</Text>
       <View style={{ gap: 8 }}>
         {OPTIONS.map((opt) => {
           const selected = draft.lockingNut.answer === opt.value;

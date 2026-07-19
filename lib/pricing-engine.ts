@@ -15,10 +15,7 @@ export { FITTING_AT_LOCATION_LABEL };
 
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
-export const PRICING_ENGINE_VERSION = 'v2-three-mode-continuous-travel';
-
-const CUSTOMER_LOCATION_REPAIR_INCLUDED_MILES = 5;
-const CUSTOMER_LOCATION_REPAIR_MIN_PRICE = 115;
+export const PRICING_ENGINE_VERSION = 'v2-three-mode-shared-travel-natural-hierarchy';
 
 export type PricingContext =
   | 'scheduled_mobile_fitting'
@@ -44,7 +41,7 @@ export type LineItemCode =
   | 'BUNDLE_DISCOUNT'
   | 'DYNAMIC_DEMAND'
   | 'MINIMUM_SERVICE_ADJUSTMENT'
-  | 'EMERGENCY_GUARDRAIL_ADJUSTMENT'
+  | 'EMERGENCY_MINIMUM_SERVICE_ADJUSTMENT'
   | 'MANUAL_QUOTE_REQUIRED'
   | 'OUT_OF_HOURS_FEE'
   | 'NIGHT_FEE'
@@ -176,6 +173,12 @@ export interface PricingBreakdown {
   trafficDelayMinutes?: number;
   maxAutoPricingMiles?: number;
   adminDistanceLimitMiles?: number;
+  serviceDistanceMiles?: number | null;
+  pricingDistanceMiles?: number | null;
+  pricingDurationMinutes?: number | null;
+  garageDistanceMiles?: number | null;
+  pricingDistanceSource?: 'driver' | 'garage' | 'garage_floor' | null;
+  distanceFloorApplied?: boolean | null;
   adminAdjustmentAmount?: number;
   adminAdjustmentReason?: string | null;
   fittingPrice?: number;
@@ -218,6 +221,10 @@ function getRepairRate(mode: PricingMode, rules: PricingRules): number {
   return rules.shop_repair_labour_per_tyre;
 }
 
+function getAssessmentRate(mode: PricingMode, rules: PricingRules): number {
+  return roundMoney(Math.max(10, getFitRate(mode, rules) * 0.5));
+}
+
 function getBundleDiscountRate(mode: PricingMode, qty: number, rules: PricingRules): number {
   if (qty < 2) return 0;
   if (mode === 'emergency_mobile') {
@@ -243,25 +250,6 @@ function resolveDemandMultiplier(
 
 function roundMoney(value: number): number {
   return Math.round(value * 100) / 100;
-}
-
-function isCustomerLocationRepair(input: PricingInput, mode: PricingMode): boolean {
-  return (
-    mode !== 'scheduled_shop' &&
-    input.serviceType === 'repair' &&
-    (!input.tyreSelections || input.tyreSelections.length === 0)
-  );
-}
-
-function calculateCustomerLocationRepairMinimum(input: PricingInput, mode: PricingMode): number | null {
-  if (!isCustomerLocationRepair(input, mode)) return null;
-
-  const currentTravel = calculateTravelFee(input.distanceMiles, input.maxAutoPricingMiles);
-  const includedTravel = calculateTravelFee(CUSTOMER_LOCATION_REPAIR_INCLUDED_MILES, input.maxAutoPricingMiles);
-  if (currentTravel === null || includedTravel === null) return null;
-
-  const extraTravel = Math.max(0, currentTravel - includedTravel);
-  return roundMoney(CUSTOMER_LOCATION_REPAIR_MIN_PRICE + extraTravel);
 }
 
 // ─── Mode resolution ─────────────────────────────────────────────────────────
@@ -298,48 +286,6 @@ export function resolvePricingContext(input: {
   if (input.bookingType === 'emergency') return 'emergency_mobile_fitting';
   if (input.fittingLocation === 'mobile') return 'scheduled_mobile_fitting';
   return 'scheduled_garage_fitting';
-}
-
-// ─── Emergency guardrail helper ───────────────────────────────────────────────
-
-function calculateScheduledMobileServiceBase(
-  isServiceOnly: boolean,
-  input: PricingInput,
-  rules: PricingRules,
-): number {
-  const fitRate = rules.mobile_fit_labour_per_tyre;
-  const repairRate = rules.mobile_repair_labour_per_tyre;
-  let labour = new Decimal(0);
-  let totalQty = 0;
-
-  if (isServiceOnly) {
-    totalQty = input.tyreQuantity || 1;
-    const rate = input.serviceType === 'repair' ? repairRate : fitRate;
-    labour = new Decimal(rate).times(totalQty);
-  } else {
-    for (const sel of input.tyreSelections) {
-      totalQty += sel.quantity;
-      const rate = sel.service === 'repair' ? repairRate : fitRate;
-      labour = labour.plus(new Decimal(rate).times(sel.quantity));
-    }
-  }
-
-  const discountRate =
-    totalQty >= 4 ? rules.multi_tyre_discount_4 :
-    totalQty === 3 ? rules.multi_tyre_discount_3 :
-    totalQty === 2 ? rules.multi_tyre_discount_2 : 0;
-  const labourAfterDiscount = labour.minus(labour.times(discountRate).dividedBy(100));
-
-  const scheduledTravel = calculateTravelFee(input.distanceMiles, input.maxAutoPricingMiles);
-  if (scheduledTravel === null) return Infinity;
-
-  const scheduledBase = labourAfterDiscount
-    .plus(scheduledTravel)
-    .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
-    .toNumber();
-  const repairMinimum = calculateCustomerLocationRepairMinimum(input, 'scheduled_mobile');
-
-  return repairMinimum === null ? scheduledBase : Math.max(scheduledBase, repairMinimum);
 }
 
 // ─── Invalid breakdown factory ────────────────────────────────────────────────
@@ -428,7 +374,10 @@ export function calculatePricing(
         code: 'LABOUR_REPAIR',
       });
     } else {
-      const rate = getFitRate(mode, rules);
+      const rate =
+        input.serviceType === 'assess'
+          ? getAssessmentRate(mode, rules)
+          : getFitRate(mode, rules);
       const amount = new Decimal(rate).times(totalQty);
       labourTotal = amount;
       const label =
@@ -471,7 +420,10 @@ export function calculatePricing(
           code: 'LABOUR_REPAIR',
         });
       } else {
-        const rate = getFitRate(mode, rules);
+        const rate =
+          sel.service === 'assess'
+            ? getAssessmentRate(mode, rules)
+            : getFitRate(mode, rules);
         const amount = new Decimal(rate).times(sel.quantity);
         labourTotal = labourTotal.plus(amount);
         const label =
@@ -628,40 +580,27 @@ export function calculatePricing(
   let serviceSubtotal = rawService;
 
   if (mode === 'scheduled_mobile') {
-    const repairMinimum = calculateCustomerLocationRepairMinimum(input, mode);
-    const minService = new Decimal(
-      repairMinimum === null
-        ? rules.mobile_min_service_subtotal
-        : Math.max(rules.mobile_min_service_subtotal, repairMinimum),
-    );
+    const minService = new Decimal(rules.mobile_min_service_subtotal);
     if (rawService.lessThan(minService)) {
       const adj = minService.minus(rawService).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
       serviceSubtotal = minService;
       lineItems.push({
-        label: repairMinimum === null ? 'Minimum service charge' : 'Customer-location repair minimum',
+        label: 'Minimum service charge',
         amount: adj.toNumber(),
         type: 'surcharge',
         code: 'MINIMUM_SERVICE_ADJUSTMENT',
       });
     }
   } else if (mode === 'emergency_mobile') {
-    const scheduledMobileBase = calculateScheduledMobileServiceBase(isServiceOnly, input, rules);
-    const scheduledMobileService = new Decimal(
-      Math.max(scheduledMobileBase, rules.mobile_min_service_subtotal),
-    );
-    const guardrailMin = Decimal.max(
-      scheduledMobileService.plus(34),
-      scheduledMobileService.times(1.25),
-      new Decimal(rules.emergency_min_service_subtotal),
-    );
-    if (rawService.lessThan(guardrailMin)) {
-      const adj = guardrailMin.minus(rawService).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-      serviceSubtotal = rawService.plus(adj);
+    const minService = new Decimal(rules.emergency_min_service_subtotal);
+    if (rawService.lessThan(minService)) {
+      const adj = minService.minus(rawService).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+      serviceSubtotal = minService;
       lineItems.push({
         label: 'Emergency minimum service',
         amount: adj.toNumber(),
         type: 'surcharge',
-        code: 'EMERGENCY_GUARDRAIL_ADJUSTMENT',
+        code: 'EMERGENCY_MINIMUM_SERVICE_ADJUSTMENT',
       });
     }
   }

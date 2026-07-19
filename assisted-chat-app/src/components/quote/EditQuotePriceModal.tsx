@@ -33,13 +33,26 @@ function quoteFromQuickBookPatch(
 ): AssistedChatQuoteBreakdown | null {
   if (!breakdown) return null;
 
+  const pricingDistanceMiles = breakdown.distanceMiles ?? breakdown.pricingDistanceMiles ?? null;
+  const pricingDistanceKm =
+    pricingDistanceMiles != null
+      ? pricingDistanceMiles * 1.60934
+      : distanceKm
+      ? Number(distanceKm)
+      : null;
   return {
     subtotal: breakdown.subtotal,
     vatAmount: breakdown.vatAmount,
     total: breakdown.total,
     lineItems: breakdown.lineItems,
-    distanceKm: distanceKm ? Number(distanceKm) : null,
-    distanceMiles: breakdown.distanceMiles ?? null,
+    distanceKm: pricingDistanceKm,
+    distanceMiles: pricingDistanceMiles,
+    serviceDistanceMiles: breakdown.serviceDistanceMiles ?? null,
+    pricingDistanceMiles,
+    pricingDurationMinutes: breakdown.pricingDurationMinutes ?? null,
+    garageDistanceMiles: breakdown.garageDistanceMiles ?? null,
+    pricingDistanceSource: breakdown.pricingDistanceSource ?? null,
+    distanceFloorApplied: breakdown.distanceFloorApplied ?? null,
     fittingPrice: breakdown.fittingPrice ?? null,
     tyrePrice: breakdown.tyrePrice ?? null,
     totalPrice: breakdown.totalPrice ?? null,

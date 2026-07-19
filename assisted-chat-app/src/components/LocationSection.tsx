@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   View,
+  type ViewStyle,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { copyToClipboard } from '@/lib/clipboard';
@@ -82,6 +83,19 @@ interface LocationRequestViewState {
 function secondsSince(timestamp: number | null, now: number): number | null {
   if (!timestamp) return null;
   return Math.max(0, Math.floor((now - timestamp) / 1000));
+}
+
+function formatRouteDuration(minutes: number | null | undefined): string | null {
+  if (minutes == null || !Number.isFinite(minutes)) return null;
+
+  const totalMinutes = Math.max(0, Math.round(minutes));
+  if (totalMinutes < 60) return `${totalMinutes} min`;
+
+  const hours = Math.floor(totalMinutes / 60);
+  const remainingMinutes = totalMinutes % 60;
+  const hourText = hours === 1 ? '1 hour' : `${hours} hours`;
+
+  return remainingMinutes > 0 ? `${hourText} ${remainingMinutes} min` : hourText;
 }
 
 function buildLocationRequestViewState({
@@ -289,6 +303,12 @@ var map=new mapboxgl.Map({
   keyboard:true,
   doubleClickZoom:true,
   touchZoomRotate:true
+});
+map.on('error',function(event){
+  var err=event&&event.error;
+  var msg=err&&err.message?String(err.message):String(err||'');
+  if(/Failed to fetch|vector\\.pbf|api\\.mapbox\\.com/i.test(msg))return;
+  try{console.warn('[route-map]',msg);}catch(e){}
 });
 function esc(s){return(s==null?'':String(s)).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c;});}
 function pin(color,label){var el=document.createElement('div');el.className='pin';el.style.setProperty('--pin-color',color);el.innerHTML='<div class="pin-core"><span class="pin-ring"></span><span class="pin-ring r2"></span><span class="pin-dot"></span></div><div class="pin-label">'+esc(label)+'</div>';return el;}
@@ -613,7 +633,7 @@ export function LocationSection({
   const distanceMiles = distanceKm != null ? distanceKm * 0.621371 : null;
   const eta = routeInfo.drivingMinutes ?? draft.quote?.serviceOrigin?.etaMinutes ?? null;
   const routeDistanceText = distanceMiles != null ? `${distanceMiles.toFixed(1)} mi` : null;
-  const routeEtaText = eta != null ? `${eta} min` : null;
+  const routeEtaText = formatRouteDuration(eta);
   const routeSummaryText = routeLoading
     ? 'Updating route...'
     : [routeEtaText, routeDistanceText].filter(Boolean).join(' / ') || 'Route preview';
@@ -783,8 +803,8 @@ export function LocationSection({
                   ref: routeMapFrameRef,
                   srcDoc: routeMapHtml,
                   style: { width: '100%', height: '100%', border: 0, background: '#09090B' },
-                  sandbox: 'allow-scripts allow-same-origin',
-                  referrerPolicy: 'no-referrer',
+                  sandbox: 'allow-scripts',
+                  referrerPolicy: 'strict-origin-when-cross-origin',
                   title: 'Garage to customer route map',
                 })
               ) : (
@@ -882,7 +902,7 @@ export function LocationSection({
             </View>
             <View style={styles.metricCard}>
               <Text style={styles.metricLabel}>Drive Time</Text>
-              <Text style={styles.metricValue}>{routeLoading ? '...' : eta != null ? `${eta} min` : '-'}</Text>
+              <Text style={styles.metricValue}>{routeLoading ? '...' : routeEtaText ?? '-'}</Text>
             </View>
           </View>
           <View style={styles.coordsBox}>
@@ -1147,6 +1167,17 @@ function toneLabel(tone: LocationRequestViewState['tone']): string {
   }
 }
 
+const sendSheetShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 -8px 18px rgba(0,0,0,0.26)' } as ViewStyle,
+  default: {
+    shadowColor: '#000',
+    shadowOpacity: 0.26,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: -8 },
+    elevation: 6,
+  },
+});
+
 const styles = StyleSheet.create({
   modeRow: { flexDirection: 'row', gap: 8 },
   modeButton: {
@@ -1275,11 +1306,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surface,
     padding: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.26,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: -8 },
-    elevation: 6,
+    ...(sendSheetShadow ?? {}),
   },
   sendSheetHandle: {
     alignSelf: 'center',

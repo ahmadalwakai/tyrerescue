@@ -12,6 +12,10 @@ import {
   isRepairOrAssessService,
   formatGBP,
 } from '@/lib/bookings/normalise-tyre-details';
+import {
+  getBookingPaymentSummary,
+  isPaymentFullySettledForInvoice,
+} from '@/lib/payments/payment-summary';
 
 export default async function CustomerBookingDetailPage(
   props: { params: Promise<{ ref: string }> }
@@ -61,9 +65,23 @@ export default async function CustomerBookingDetailPage(
     .from(bookingStatusHistory)
     .where(eq(bookingStatusHistory.bookingId, booking.id))
     .orderBy(desc(bookingStatusHistory.createdAt));
+  const paymentSummary = await getBookingPaymentSummary({
+    id: booking.id,
+    refNumber: booking.refNumber,
+    status: booking.status,
+    paymentType: booking.paymentType,
+    totalAmount: booking.totalAmount.toString(),
+    subtotal: booking.subtotal.toString(),
+    vatAmount: booking.vatAmount.toString(),
+    depositAmountPence: booking.depositAmountPence,
+    remainingBalancePence: booking.remainingBalancePence,
+    depositPaidAt: booking.depositPaidAt,
+    stripePiId: booking.stripePiId,
+    stripeDepositPiId: booking.stripeDepositPiId,
+  });
 
   const showTracking = ['driver_assigned', 'en_route', 'arrived', 'in_progress'].includes(booking.status);
-  const showInvoice = ['completed', 'paid'].includes(booking.status);
+  const showInvoice = isPaymentFullySettledForInvoice(paymentSummary, booking.status);
   const canCancel = ['draft', 'awaiting_payment'].includes(booking.status);
 
   return (

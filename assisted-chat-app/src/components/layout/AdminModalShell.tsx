@@ -71,7 +71,7 @@ export function AdminModalShell({
 
 export function AdminChromeBackdrop() {
   return (
-    <View pointerEvents="none" style={styles.backdrop}>
+    <View style={[styles.backdrop, styles.noPointerEvents]}>
       <View style={styles.topBand} />
       <View style={styles.midBand} />
       <View style={styles.sideRail} />
@@ -93,7 +93,7 @@ export function AdminModalHeader({
   const entranceStyle = useFadeSlideIn({ distance: 8, duration: 240 });
   return (
     <Animated.View style={[styles.header, { paddingTop: Math.max(insets.top, space.md) }, entranceStyle, style]}>
-      <View pointerEvents="none" style={styles.headerAccent} />
+      <View style={[styles.headerAccent, styles.noPointerEvents]} />
       <View style={styles.copy}>
         {titleNode ?? (
           <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
@@ -144,6 +144,28 @@ export function AdminHeaderButton({ label, onPress, disabled, primary }: AdminHe
   );
 }
 
+const headerShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 10px 18px rgba(0,0,0,0.30)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.3,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 5,
+  },
+});
+
+const buttonShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 6px 10px rgba(0,0,0,0.22)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+});
+
 const styles = StyleSheet.create({
   shell: {
     flex: 1,
@@ -162,6 +184,9 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.bg,
     zIndex: 0,
+  },
+  noPointerEvents: {
+    pointerEvents: 'none',
   },
   topBand: {
     position: 'absolute',
@@ -216,11 +241,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceOverlay,
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.3,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 5,
+    ...(headerShadow ?? {}),
   },
   headerAccent: {
     position: 'absolute',
@@ -264,11 +285,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surfaceElevated,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    ...(buttonShadow ?? {}),
   },
   buttonPrimary: {
     borderColor: colors.accent,

@@ -36,13 +36,26 @@ function quoteFromQuickBookPatch(
     throw new Error('Pricing engine returned no breakdown.');
   }
 
+  const pricingDistanceMiles = breakdown.distanceMiles ?? breakdown.pricingDistanceMiles ?? null;
+  const pricingDistanceKm =
+    pricingDistanceMiles != null
+      ? pricingDistanceMiles * 1.60934
+      : distanceKm
+      ? Number(distanceKm)
+      : null;
   return {
     subtotal: breakdown.subtotal,
     vatAmount: breakdown.vatAmount,
     total: breakdown.total,
     lineItems: breakdown.lineItems,
-    distanceKm: distanceKm ? Number(distanceKm) : null,
-    distanceMiles: breakdown.distanceMiles ?? null,
+    distanceKm: pricingDistanceKm,
+    distanceMiles: pricingDistanceMiles,
+    serviceDistanceMiles: breakdown.serviceDistanceMiles ?? null,
+    pricingDistanceMiles,
+    pricingDurationMinutes: breakdown.pricingDurationMinutes ?? null,
+    garageDistanceMiles: breakdown.garageDistanceMiles ?? null,
+    pricingDistanceSource: breakdown.pricingDistanceSource ?? null,
+    distanceFloorApplied: breakdown.distanceFloorApplied ?? null,
     fittingPrice: breakdown.fittingPrice ?? null,
     tyrePrice: breakdown.tyrePrice ?? null,
     totalPrice: breakdown.totalPrice ?? null,
@@ -115,10 +128,13 @@ export function useAssistedChatDispatch({
         const backendBaseTotal = Math.round((draft.quote.total - existingAdjustmentAmount) * 100) / 100;
         let adjustmentAmount = 0;
         let adjustmentReason: string | null = null;
+        const serviceType = draft.serviceType ?? 'fit';
+        const isInspectionOnly = serviceType === 'assess';
         if (draft.manualPriceGbp != null && Number.isFinite(draft.manualPriceGbp)) {
           adjustmentAmount = Math.round((draft.manualPriceGbp - backendBaseTotal) * 100) / 100;
           adjustmentReason = MANUAL_PRICE_REASON;
         } else if (
+          !isInspectionOnly &&
           lockingNutCharge > 0 &&
           (
             draft.quote.adminAdjustmentReason !== LOCKING_NUT_REASON ||
@@ -129,9 +145,10 @@ export function useAssistedChatDispatch({
           adjustmentReason = LOCKING_NUT_REASON;
         }
         const primaryTyre = primaryBookingTyreLine(draft);
-        const tyreLines = buildBookingTyreLinePayload(draft.tyreLines);
+        const tyreLines = isInspectionOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
         const customerName = draft.customer.name.trim();
         const customerPhone = draft.customer.phone.trim();
+        const customerEmail = draft.customer.email.trim();
 
         // Always sync the quick-book row before finalize. This clears stale
         // hidden admin adjustments that can survive a page reload and make
@@ -139,10 +156,14 @@ export function useAssistedChatDispatch({
         const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${draft.quickBookingId}`, {
           ...(customerName ? { customerName } : {}),
           ...(customerPhone ? { customerPhone } : {}),
+          customerEmail,
           locationAddress: draft.location.address || null,
           locationPostcode: draft.location.postcode || null,
-          tyreSize: primaryTyre.size,
-          tyreCount: totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
+          serviceType,
+          tyreSize: isInspectionOnly ? null : primaryTyre.size,
+          tyreCount: isInspectionOnly
+            ? 1
+            : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
           tyreLines,
           items: tyreLines,
           adminAdjustmentAmount: adjustmentAmount,
@@ -219,12 +240,24 @@ export function useAssistedChatDispatch({
                 lineItems: response.breakdown.lineItems,
                 distanceKm: canonicalQuote.distanceKm,
                 distanceMiles: response.breakdown.distanceMiles ?? canonicalQuote.distanceMiles ?? null,
+                serviceDistanceMiles: response.breakdown.serviceDistanceMiles ?? canonicalQuote.serviceDistanceMiles ?? null,
+                pricingDistanceMiles:
+                  response.breakdown.pricingDistanceMiles ??
+                  response.breakdown.distanceMiles ??
+                  canonicalQuote.pricingDistanceMiles ??
+                  canonicalQuote.distanceMiles ??
+                  null,
+                pricingDurationMinutes: response.breakdown.pricingDurationMinutes ?? canonicalQuote.pricingDurationMinutes ?? null,
+                garageDistanceMiles: response.breakdown.garageDistanceMiles ?? canonicalQuote.garageDistanceMiles ?? null,
+                pricingDistanceSource: response.breakdown.pricingDistanceSource ?? canonicalQuote.pricingDistanceSource ?? null,
+                distanceFloorApplied: response.breakdown.distanceFloorApplied ?? canonicalQuote.distanceFloorApplied ?? null,
                 fittingPrice: response.breakdown.fittingPrice ?? canonicalQuote.fittingPrice ?? null,
                 tyrePrice: response.breakdown.tyrePrice ?? canonicalQuote.tyrePrice ?? null,
                 totalPrice: response.breakdown.totalPrice ?? canonicalQuote.totalPrice ?? null,
                 tyreLines: response.breakdown.tyreLines ?? canonicalQuote.tyreLines ?? undefined,
                 adminAdjustmentAmount: response.breakdown.adminAdjustmentAmount ?? canonicalQuote.adminAdjustmentAmount ?? null,
                 adminAdjustmentReason: response.breakdown.adminAdjustmentReason ?? canonicalQuote.adminAdjustmentReason ?? null,
+                serviceOrigin: response.breakdown.serviceOrigin ?? canonicalQuote.serviceOrigin ?? null,
               }
             : canonicalQuote,
         });

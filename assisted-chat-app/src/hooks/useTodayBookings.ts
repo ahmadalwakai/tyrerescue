@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { AssistedChatPaymentChoice } from '@/types/assisted-chat';
+import type {
+  AssistedChatPaymentChoice,
+  AssistedChatServiceType,
+} from '@/types/assisted-chat';
 
 /**
  * Local-only "Today's bookings" history for the Assisted Chat operator UI.
@@ -33,6 +36,7 @@ export interface TodayBookingItem {
   totalPence?: number;
   totalLabel?: string;
   paymentLink?: string;
+  serviceType?: AssistedChatServiceType;
   customerPhone?: string;
   customerAddress?: string;
   tyreSize?: string;

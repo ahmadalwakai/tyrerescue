@@ -23,16 +23,10 @@ import {
  *  - createdAt: ISO timestamp of that booking (used to compare).
  *
  * IMPORTANT — booking source detection:
- *   Booking source (operator-created vs customer-created) is not available
- *   in the current `/api/mobile/admin/bookings` list response. We use
- *   `bookingType === 'emergency'` as the closest available proxy for an
- *   urgent customer-originated booking, and otherwise fall back to the
- *   safe "newest id/createdAt has changed" comparison. A small
- *   false-positive is possible (operator created an emergency booking
- *   from another device), but no false-negative.
- *   TODO(api): expose a `source` or `createdByRole` field on the
- *   `/api/mobile/admin/bookings` list response so we can scope the alert
- *   strictly to public/customer-originated bookings.
+ *   `/api/mobile/admin/bookings` exposes `isCustomerOriginated` so the
+ *   popup only interrupts for bookings created outside the assisted-chat
+ *   operator flow. Assisted Chat / admin quick bookings are treated as
+ *   already-seen operational work and never open the urgent popup.
  */
 
 const STORAGE_KEY = 'assistedChat.lastSeenCustomerBooking.v1';
@@ -45,6 +39,8 @@ interface BookingsListItem {
   bookingType?: string | null;
   customerName?: string | null;
   customerPhone?: string | null;
+  bookingOrigin?: string | null;
+  isCustomerOriginated?: boolean | null;
   scheduledAt?: string | null;
   createdAt: string | null;
 }
@@ -106,7 +102,14 @@ function isNewerThanSeen(latest: BookingsListItem, seen: LastSeen | null): boole
   return latest.id !== seen.id;
 }
 
+function isCustomerOriginatedBooking(item: BookingsListItem): boolean {
+  if (typeof item.isCustomerOriginated === 'boolean') return item.isCustomerOriginated;
+  if (typeof item.bookingOrigin === 'string') return item.bookingOrigin === 'customer';
+  return true;
+}
+
 function toAlertSummary(item: BookingsListItem): BookingAlertSummary {
+  const customerOriginated = isCustomerOriginatedBooking(item);
   return {
     id: item.id,
     refNumber: item.refNumber ?? null,
@@ -119,7 +122,7 @@ function toAlertSummary(item: BookingsListItem): BookingAlertSummary {
     tyreSize: null,
     scheduledAt: item.scheduledAt ?? null,
     createdAt: item.createdAt ?? null,
-    isUrgent: (item.bookingType ?? '').toLowerCase() === 'emergency',
+    isUrgent: customerOriginated && (item.bookingType ?? '').toLowerCase() === 'emergency',
   };
 }
 
@@ -185,6 +188,12 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
       }
 
       if (isNewerThanSeen(latest, lastSeenRef.current)) {
+        if (!isCustomerOriginatedBooking(latest)) {
+          await persistSeen(latest);
+          setHasNewCustomerBooking(false);
+          setLatestNewBooking(null);
+          return;
+        }
         setHasNewCustomerBooking(true);
         setLatestNewBooking(toAlertSummary(latest));
       }
@@ -260,7 +269,6 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
     if (Platform.OS === 'web') return;
     const sub = addAdminNotificationReceivedListener(() => {
       if (!mountedRef.current) return;
-      setHasNewCustomerBooking(true);
       void fetchOnce();
     });
     return () => sub?.remove();
@@ -281,6 +289,7 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
     if (Platform.OS === 'web') return;
     const booking = latestKnownRef.current;
     if (!booking) return;
+    if (!isCustomerOriginatedBooking(booking)) return;
     const isUrgent = (booking.bookingType ?? '').toLowerCase() === 'emergency';
     if (!isUrgent) return;
 

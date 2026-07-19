@@ -479,10 +479,18 @@ async function calculateQuotePrice(input: QuotePricingInput, quickBooking: Quick
   }
 
   const serviceType = (quickBooking?.serviceType ?? 'fit') as QuickBookServiceType;
+  const quickBreakdown = quickBooking?.priceBreakdown as Record<string, unknown> | null | undefined;
   let distanceKm = optionalNumber(quickBooking?.distanceKm);
+  let pricingDistanceMiles =
+    typeof quickBreakdown?.pricingDistanceMiles === 'number' && Number.isFinite(quickBreakdown.pricingDistanceMiles)
+      ? quickBreakdown.pricingDistanceMiles
+      : distanceKm != null
+      ? distanceKm * 0.621371
+      : null;
   if (distanceKm == null && latitude != null && longitude != null) {
     const distanceResult = await resolveQuickBookDistance({ lat: latitude, lng: longitude });
     distanceKm = distanceResultToKm(distanceResult);
+    pricingDistanceMiles = distanceResult.pricingDistanceMiles;
   }
 
   const selectedTyreLineSnapshots = quickBooking && explicitTyreLines.length === 0
@@ -497,7 +505,6 @@ async function calculateQuotePrice(input: QuotePricingInput, quickBooking: Quick
         selectedTyreSizeDisplay: quickBooking.tyreSize,
       })
     : null;
-  const quickBreakdown = quickBooking?.priceBreakdown as Record<string, unknown> | null | undefined;
   const adminDistanceLimitMiles =
     typeof quickBreakdown?.adminDistanceLimitMiles === 'number' && Number.isFinite(quickBreakdown.adminDistanceLimitMiles)
       ? quickBreakdown.adminDistanceLimitMiles
@@ -509,7 +516,7 @@ async function calculateQuotePrice(input: QuotePricingInput, quickBooking: Quick
       tyreSize,
       tyreCount: quantity,
       tyreLines,
-      distanceMiles: (distanceKm ?? 5) * 0.621371,
+      distanceMiles: pricingDistanceMiles ?? (distanceKm ?? 5) * 0.621371,
       selectedTyreSnapshot,
       selectedTyreSnapshots: selectedTyreLineSnapshots,
       resolveTyreFromSize: selectedTyreLineSnapshots.length === 0 && !selectedTyreSnapshot,

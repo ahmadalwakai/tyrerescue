@@ -6,8 +6,10 @@ import { eq, desc } from 'drizzle-orm';
 import { Box, Heading, Text, VStack, Table } from '@chakra-ui/react';
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
-
-const INVOICEABLE = ['paid', 'driver_assigned', 'en_route', 'arrived', 'in_progress', 'completed'];
+import {
+  getBookingPaymentSummaryMap,
+  isPaymentFullySettledForInvoice,
+} from '@/lib/payments/payment-summary';
 
 export default async function InvoicesPage() {
   const session = await auth();
@@ -19,7 +21,24 @@ export default async function InvoicesPage() {
     .where(eq(bookings.userId, session.user.id))
     .orderBy(desc(bookings.createdAt));
 
-  const invoiceable = paidBookings.filter((b) => INVOICEABLE.includes(b.status));
+  const paymentSummaryMap = await getBookingPaymentSummaryMap(paidBookings.map((booking) => ({
+    id: booking.id,
+    refNumber: booking.refNumber,
+    status: booking.status,
+    paymentType: booking.paymentType,
+    totalAmount: booking.totalAmount.toString(),
+    subtotal: booking.subtotal.toString(),
+    vatAmount: booking.vatAmount.toString(),
+    depositAmountPence: booking.depositAmountPence,
+    remainingBalancePence: booking.remainingBalancePence,
+    depositPaidAt: booking.depositPaidAt,
+    stripePiId: booking.stripePiId,
+    stripeDepositPiId: booking.stripeDepositPiId,
+  })));
+  const invoiceable = paidBookings.filter((booking) => {
+    const payment = paymentSummaryMap.get(booking.id);
+    return payment ? isPaymentFullySettledForInvoice(payment, booking.status) : false;
+  });
 
   return (
     <VStack align="stretch" gap={6}>

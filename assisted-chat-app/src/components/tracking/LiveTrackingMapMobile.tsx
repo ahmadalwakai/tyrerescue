@@ -103,7 +103,7 @@ export function LiveTrackingMapMobile({ driver, customer, height = 220 }: Props)
           srcDoc: html,
           style: { width: '100%', height: '100%', border: 0, background: colors.bg },
           sandbox: 'allow-scripts',
-          referrerPolicy: 'no-referrer',
+          referrerPolicy: 'strict-origin-when-cross-origin',
           title: 'Live tracking map',
         })
       ) : (

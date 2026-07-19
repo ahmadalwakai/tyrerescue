@@ -105,12 +105,13 @@ export async function POST(
     if (body.customerEmailMode === 'send_customer_confirmation') {
       customerEmailMode = 'send_customer_confirmation';
     }
+    const hasBodyTyreLines = Array.isArray(body.tyreLines) || Array.isArray(body.items);
     const rawLines = Array.isArray(body.tyreLines)
       ? body.tyreLines
       : Array.isArray(body.items)
       ? body.items
       : [];
-    bodyTyreLines = rawLines.flatMap((line: unknown, index: number) => {
+    const parsedBodyTyreLines = rawLines.flatMap((line: unknown, index: number) => {
       if (!line || typeof line !== 'object') return [];
       const value = line as Record<string, unknown>;
       const size = typeof value.size === 'string' ? value.size.trim() : '';
@@ -127,6 +128,7 @@ export async function POST(
         price: typeof value.price === 'number' && Number.isFinite(value.price) ? value.price : null,
       }];
     });
+    bodyTyreLines = hasBodyTyreLines ? parsedBodyTyreLines : null;
   } catch {
     // empty body → defaults
   }
@@ -174,28 +176,73 @@ export async function POST(
   const lng = Number(qb.locationLng);
 
   const fallbackDistanceKm = qb.distanceKm ? Number(qb.distanceKm) : NaN;
-  let resolvedDistanceMiles = Number.isFinite(fallbackDistanceKm)
+  let resolvedServiceDistanceMiles = Number.isFinite(fallbackDistanceKm)
     ? fallbackDistanceKm * 0.621371
     : 5;
+  let resolvedPricingDistanceMiles = resolvedServiceDistanceMiles;
   let resolvedDistanceSource: 'driver' | 'garage' = 'garage';
   let resolvedDurationMinutes: number | null = null;
+  let resolvedPricingDurationMinutes: number | null = null;
+  let resolvedGarageDistanceMiles: number | null = null;
+  let resolvedPricingDistanceSource: 'driver' | 'garage' | 'garage_floor' = 'garage';
+  let resolvedDistanceFloorApplied = false;
+  let usedFreshDistanceResult = false;
 
   try {
     const driverCandidates = await loadAvailableDriverDistanceCandidates();
     const distanceResult = await resolveDistance({ lat, lng }, driverCandidates);
-    resolvedDistanceMiles = distanceResult.distanceMiles;
+    resolvedServiceDistanceMiles = distanceResult.distanceMiles;
+    resolvedPricingDistanceMiles = distanceResult.pricingDistanceMiles;
     resolvedDistanceSource = distanceResult.distanceSource;
     resolvedDurationMinutes = distanceResult.durationMinutes ?? null;
+    resolvedPricingDurationMinutes = distanceResult.distanceFloorApplied
+      ? distanceResult.garageDurationMinutes ?? distanceResult.durationMinutes ?? null
+      : distanceResult.durationMinutes ?? null;
+    resolvedGarageDistanceMiles = distanceResult.garageDistanceMiles;
+    resolvedPricingDistanceSource = distanceResult.pricingDistanceSource;
+    resolvedDistanceFloorApplied = distanceResult.distanceFloorApplied;
+    usedFreshDistanceResult = true;
   } catch (distanceError) {
     console.error('[quick-book:finalize] distance resolution fallback', distanceError);
   }
 
   const quickBreakdown = qb.priceBreakdown as Record<string, unknown> | null;
+  if (
+    !usedFreshDistanceResult &&
+    typeof quickBreakdown?.pricingDistanceMiles === 'number' &&
+    Number.isFinite(quickBreakdown.pricingDistanceMiles)
+  ) {
+    resolvedPricingDistanceMiles = quickBreakdown.pricingDistanceMiles;
+  }
   if (resolvedDurationMinutes == null) {
     const existingEta = (quickBreakdown?.serviceOrigin as { etaMinutes?: unknown } | undefined)?.etaMinutes;
     resolvedDurationMinutes = typeof existingEta === 'number' && Number.isFinite(existingEta)
       ? existingEta
       : null;
+  }
+  if (resolvedPricingDurationMinutes == null) {
+    resolvedPricingDurationMinutes =
+      typeof quickBreakdown?.pricingDurationMinutes === 'number' && Number.isFinite(quickBreakdown.pricingDurationMinutes)
+        ? quickBreakdown.pricingDurationMinutes
+        : resolvedDurationMinutes;
+  }
+  if (resolvedGarageDistanceMiles == null) {
+    resolvedGarageDistanceMiles =
+      typeof quickBreakdown?.garageDistanceMiles === 'number' && Number.isFinite(quickBreakdown.garageDistanceMiles)
+        ? quickBreakdown.garageDistanceMiles
+        : null;
+  }
+  if (!usedFreshDistanceResult) {
+    if (
+      quickBreakdown?.pricingDistanceSource === 'driver' ||
+      quickBreakdown?.pricingDistanceSource === 'garage' ||
+      quickBreakdown?.pricingDistanceSource === 'garage_floor'
+    ) {
+      resolvedPricingDistanceSource = quickBreakdown.pricingDistanceSource as 'driver' | 'garage' | 'garage_floor';
+    }
+    if (typeof quickBreakdown?.distanceFloorApplied === 'boolean') {
+      resolvedDistanceFloorApplied = quickBreakdown.distanceFloorApplied;
+    }
   }
 
   let weatherContext: WeatherPricingContext | null = null;
@@ -216,12 +263,14 @@ export async function POST(
       ? quickBreakdown.adminDistanceLimitMiles
       : undefined;
 
-  const resolvedDistanceKm = Math.round(resolvedDistanceMiles * 1.60934 * 100) / 100;
+  const resolvedDistanceKm = Math.round(resolvedServiceDistanceMiles * 1.60934 * 100) / 100;
 
   const serviceType = qb.serviceType as QuickBookServiceType;
   const quantity = qb.tyreCount ?? 1;
   const storedTyreLineSelections = extractQuickBookTyreLineSelections({ priceBreakdown: qb.priceBreakdown });
-  const fallbackTyreLines: QuickBookTyreLineInput[] = bodyTyreLines?.length
+  const fallbackTyreLines: QuickBookTyreLineInput[] = serviceType === 'assess'
+    ? []
+    : bodyTyreLines !== null
     ? bodyTyreLines
     : storedTyreLineSelections.length > 0
     ? storedTyreLineSelections.map((line, index) => ({
@@ -267,7 +316,7 @@ export async function POST(
       tyreSize: qb.tyreSize ?? null,
       tyreCount: totalQuantity,
       tyreLines: fallbackTyreLines,
-      distanceMiles: resolvedDistanceMiles,
+      distanceMiles: resolvedPricingDistanceMiles,
       selectedTyreSnapshot: storedTyreLineSelections.length > 0 ? null : selectedTyreSnapshot,
       selectedTyreSnapshots: storedTyreLineSelections,
       resolveTyreFromSize: false,
@@ -276,7 +325,7 @@ export async function POST(
       adminAdjustmentReason: qb.adminAdjustmentReason,
       adminDistanceLimitMiles,
       pricingContext,
-      durationMinutes: resolvedDurationMinutes,
+      durationMinutes: resolvedPricingDurationMinutes,
       weatherContext,
     });
   } catch (error) {
@@ -306,6 +355,12 @@ export async function POST(
     ...priced.breakdown,
     tyreLines: priced.tyreLineSelections,
     ...(adminDistanceLimitMiles != null ? { adminDistanceLimitMiles } : {}),
+    serviceDistanceMiles: resolvedServiceDistanceMiles,
+    pricingDistanceMiles: priced.breakdown.distanceMiles,
+    pricingDurationMinutes: resolvedPricingDurationMinutes,
+    garageDistanceMiles: resolvedGarageDistanceMiles,
+    pricingDistanceSource: resolvedPricingDistanceSource,
+    distanceFloorApplied: resolvedDistanceFloorApplied,
   };
   const tyreSummaryLines = priced.tyreLineSelections.length > 0
     ? priced.tyreLineSelections.map((line) => {
@@ -456,7 +511,7 @@ export async function POST(
       addressLine,
       lat: String(lat),
       lng: String(lng),
-      distanceMiles: resolvedDistanceMiles.toFixed(2),
+      distanceMiles: resolvedPricingDistanceMiles.toFixed(2),
       distanceSource: resolvedDistanceSource,
       quantity: totalQuantity,
       tyreSizeDisplay: primaryTyreSizeDisplay,
@@ -694,14 +749,17 @@ export async function POST(
     })();
   }
 
-  // Send urgent push for finalized admin emergency quick bookings.
-  void sendUrgentBookingTopicPush({
-    bookingId,
-    customerPhone: qb.customerPhone,
-    createdAt: new Date().toISOString(),
-    title: 'Emergency booking received',
-    body: `${qb.customerName} — ${paymentMethod === 'cash' ? 'cash on site' : 'awaiting payment'}`,
-  }).catch((err: unknown) => console.error('[quick-book:finalize] urgent push failed:', err));
+  // Assisted Chat created this booking in the foreground, so do not
+  // interrupt the same operator with an urgent popup/push for their own work.
+  if (pricingContext !== 'assisted_chat') {
+    void sendUrgentBookingTopicPush({
+      bookingId,
+      customerPhone: qb.customerPhone,
+      createdAt: new Date().toISOString(),
+      title: 'Emergency booking received',
+      body: `${qb.customerName} — ${paymentMethod === 'cash' ? 'cash on site' : 'awaiting payment'}`,
+    }).catch((err: unknown) => console.error('[quick-book:finalize] urgent push failed:', err));
+  }
 
   // Notify admin
   createAdminNotification({
@@ -747,6 +805,12 @@ export async function POST(
       total: breakdown.total,
       lineItems: breakdown.lineItems,
       distanceMiles: breakdown.distanceMiles,
+      serviceDistanceMiles: breakdown.serviceDistanceMiles,
+      pricingDistanceMiles: breakdown.pricingDistanceMiles,
+      pricingDurationMinutes: breakdown.pricingDurationMinutes,
+      garageDistanceMiles: breakdown.garageDistanceMiles,
+      pricingDistanceSource: breakdown.pricingDistanceSource,
+      distanceFloorApplied: breakdown.distanceFloorApplied,
       fittingPrice: breakdown.fittingPrice,
       tyrePrice: breakdown.tyrePrice,
       totalPrice: breakdown.totalPrice,

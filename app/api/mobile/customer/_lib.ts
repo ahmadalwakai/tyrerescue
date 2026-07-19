@@ -10,6 +10,7 @@ import { bookings, emailVerificationTokens, users } from '@/lib/db/schema';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { verifyEmail, welcome } from '@/lib/email/templates';
 import { authMobile, signMobileToken } from '@/lib/auth';
+import { getBookingPaymentSummary, isPaymentFullySettledForInvoice } from '@/lib/payments/payment-summary';
 
 const CUSTOMER_BOOKING_STATUSES = [
   'paid',
@@ -114,6 +115,14 @@ export async function listCustomerMobileBookings(userId: string): Promise<Custom
       serviceType: bookings.serviceType,
       addressLine: bookings.addressLine,
       totalAmount: bookings.totalAmount,
+      subtotal: bookings.subtotal,
+      vatAmount: bookings.vatAmount,
+      paymentType: bookings.paymentType,
+      depositAmountPence: bookings.depositAmountPence,
+      remainingBalancePence: bookings.remainingBalancePence,
+      depositPaidAt: bookings.depositPaidAt,
+      stripePiId: bookings.stripePiId,
+      stripeDepositPiId: bookings.stripeDepositPiId,
       tyreSizeDisplay: bookings.tyreSizeDisplay,
       vehicleReg: bookings.vehicleReg,
       vehicleMake: bookings.vehicleMake,
@@ -126,27 +135,47 @@ export async function listCustomerMobileBookings(userId: string): Promise<Custom
     .orderBy(desc(bookings.createdAt));
 
   return Promise.all(
-    rows.map(async (row) => ({
-      refNumber: row.refNumber,
-      status: row.status,
-      bookingType: row.bookingType,
-      serviceType: row.serviceType,
-      addressLine: row.addressLine,
-      totalAmount: Number(row.totalAmount),
-      tyreSizeDisplay: row.tyreSizeDisplay,
-      vehicleReg: row.vehicleReg,
-      vehicleMake: row.vehicleMake,
-      vehicleModel: row.vehicleModel,
-      scheduledAt: row.scheduledAt ? row.scheduledAt.toISOString() : null,
-      createdAt: row.createdAt ? row.createdAt.toISOString() : null,
-      invoiceDownloadToken: isInvoiceableBookingStatus(row.status)
-        ? await signCustomerInvoiceToken({
-            bookingId: row.id,
-            refNumber: row.refNumber,
-            email: row.customerEmail,
-          })
-        : null,
-    })),
+    rows.map(async (row) => {
+      const paymentSummary = await getBookingPaymentSummary({
+        id: row.id,
+        refNumber: row.refNumber,
+        status: row.status,
+        paymentType: row.paymentType,
+        totalAmount: row.totalAmount.toString(),
+        subtotal: row.subtotal.toString(),
+        vatAmount: row.vatAmount.toString(),
+        depositAmountPence: row.depositAmountPence,
+        remainingBalancePence: row.remainingBalancePence,
+        depositPaidAt: row.depositPaidAt,
+        stripePiId: row.stripePiId,
+        stripeDepositPiId: row.stripeDepositPiId,
+      });
+      const canDownloadInvoice =
+        isInvoiceableBookingStatus(row.status) &&
+        isPaymentFullySettledForInvoice(paymentSummary, row.status);
+
+      return {
+        refNumber: row.refNumber,
+        status: row.status,
+        bookingType: row.bookingType,
+        serviceType: row.serviceType,
+        addressLine: row.addressLine,
+        totalAmount: Number(row.totalAmount),
+        tyreSizeDisplay: row.tyreSizeDisplay,
+        vehicleReg: row.vehicleReg,
+        vehicleMake: row.vehicleMake,
+        vehicleModel: row.vehicleModel,
+        scheduledAt: row.scheduledAt ? row.scheduledAt.toISOString() : null,
+        createdAt: row.createdAt ? row.createdAt.toISOString() : null,
+        invoiceDownloadToken: canDownloadInvoice
+          ? await signCustomerInvoiceToken({
+              bookingId: row.id,
+              refNumber: row.refNumber,
+              email: row.customerEmail,
+            })
+          : null,
+      };
+    }),
   );
 }
 

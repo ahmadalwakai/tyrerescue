@@ -267,25 +267,11 @@ export function InvoiceDetailClient({ invoiceId }: { invoiceId: string }) {
 
       {/* Invoice info */}
       <Box bg={c.card} p={5} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.3s', '0.15s')}>
-        <Grid templateColumns={{ base: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }} gap={4}>
+        <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={4}>
           <Box>
-            <Text {...{ color: c.muted, fontSize: '12px', fontWeight: '500' }}>Issue Date</Text>
+            <Text {...{ color: c.muted, fontSize: '12px', fontWeight: '500' }}>Invoice Date</Text>
             <Text color={c.text} fontSize="sm" fontWeight="600">{fmtDate(invoice.issueDate)}</Text>
           </Box>
-          <Box>
-            <Text {...{ color: c.muted, fontSize: '12px', fontWeight: '500' }}>Due Date</Text>
-            <Text color={c.text} fontSize="sm" fontWeight="600">{fmtDate(invoice.dueDate)}</Text>
-          </Box>
-          <Box>
-            <Text {...{ color: c.muted, fontSize: '12px', fontWeight: '500' }}>Created</Text>
-            <Text color={c.text} fontSize="sm" fontWeight="600">{fmtDate(invoice.createdAt)}</Text>
-          </Box>
-          {invoice.sentAt && (
-            <Box>
-              <Text {...{ color: c.muted, fontSize: '12px', fontWeight: '500' }}>Sent</Text>
-              <Text color={c.text} fontSize="sm" fontWeight="600">{fmtDate(invoice.sentAt)}</Text>
-            </Box>
-          )}
         </Grid>
         {invoice.bookingId && (
           <Text color={c.muted} fontSize="sm" mt={3}>
@@ -294,62 +280,13 @@ export function InvoiceDetailClient({ invoiceId }: { invoiceId: string }) {
         )}
       </Box>
 
-      {/* Line Items */}
-      <Box bg={c.card} borderRadius="md" borderWidth="1px" borderColor={c.border} overflow="hidden" style={anim.fadeUp('0.3s', '0.2s')}>
-        <Table.Root size="sm">
-          <Table.Header>
-            <Table.Row bg={c.surface}>
-              <Table.ColumnHeader color={c.muted} px={4} py={3}>Description</Table.ColumnHeader>
-              <Table.ColumnHeader color={c.muted} px={4} py={3} textAlign="center">Qty</Table.ColumnHeader>
-              <Table.ColumnHeader color={c.muted} px={4} py={3} textAlign="right">Unit Price</Table.ColumnHeader>
-              <Table.ColumnHeader color={c.muted} px={4} py={3} textAlign="right">Total</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {invoice.items.map((item) => (
-              <Table.Row key={item.id}>
-                <Table.Cell px={4} py={3} color={c.text} fontSize="sm">{item.description}</Table.Cell>
-                <Table.Cell px={4} py={3} color={c.text} fontSize="sm" textAlign="center">{item.quantity}</Table.Cell>
-                <Table.Cell px={4} py={3} color={c.text} fontSize="sm" textAlign="right">£{parseFloat(item.unitPrice).toFixed(2)}</Table.Cell>
-                <Table.Cell px={4} py={3} color={c.text} fontSize="sm" fontWeight="600" textAlign="right">£{parseFloat(item.totalPrice).toFixed(2)}</Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
-
-        {/* Totals */}
-        <Box px={4} py={4} borderTopWidth="1px" borderColor={c.border}>
-          <VStack align="flex-end" gap={1}>
-            <HStack gap={8}>
-              <Text color={c.muted} fontSize="sm">Subtotal</Text>
-              <Text color={c.text} fontSize="sm" fontWeight="600" w="100px" textAlign="right">£{parseFloat(invoice.subtotal).toFixed(2)}</Text>
-            </HStack>
-            <Box w="160px" h="2px" bg={c.accent} my={1} />
-            <HStack gap={8}>
-              <Text color={c.text} fontSize="md" fontWeight="700">Total Due</Text>
-              <Text color={c.accent} fontSize="lg" fontWeight="700" w="100px" textAlign="right">£{parseFloat(invoice.totalAmount).toFixed(2)}</Text>
-            </HStack>
-          </VStack>
-        </Box>
+      {/* Final Total */}
+      <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.3s', '0.2s')}>
+        <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
+          <Text color={c.text} fontSize="lg" fontWeight="800">TOTAL</Text>
+          <Text color={c.accent} fontSize="3xl" fontWeight="800">£{parseFloat(invoice.totalAmount).toFixed(2)}</Text>
+        </Flex>
       </Box>
-
-      {/* Notes */}
-      {(invoice.notes || invoice.internalNotes) && (
-        <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={5}>
-          {invoice.notes && (
-            <Box bg={c.card} p={5} borderRadius="md" borderWidth="1px" borderColor={c.border} style={anim.fadeUp('0.3s', '0.25s')}>
-              <Text fontWeight="700" color={c.text} mb={2} fontSize="sm">Notes</Text>
-              <Text color={c.muted} fontSize="sm" whiteSpace="pre-wrap">{invoice.notes}</Text>
-            </Box>
-          )}
-          {invoice.internalNotes && (
-            <Box bg={c.card} p={5} borderRadius="md" borderWidth="1px" borderColor={c.border} data-print-hide style={anim.fadeUp('0.3s', '0.3s')}>
-              <Text fontWeight="700" color="#EF4444" mb={2} fontSize="sm">Internal Notes (admin only)</Text>
-              <Text color={c.muted} fontSize="sm" whiteSpace="pre-wrap">{invoice.internalNotes}</Text>
-            </Box>
-          )}
-        </Grid>
-      )}
 
       {/* Customer Summary */}
       {customerSummary && (

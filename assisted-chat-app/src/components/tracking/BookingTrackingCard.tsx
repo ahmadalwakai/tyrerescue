@@ -94,8 +94,7 @@ function haversineMiles(
 /**
  * Operator-facing live tracking card shown after dispatch. Surfaces the
  * status banner, distance/last-update metrics, the full-screen driver map
- * action, and Copy/WhatsApp share controls. Raw coordinates are tucked
- * behind a "Technical details" toggle so the default view stays clean.
+ * action, and Copy/WhatsApp share controls.
  */
 export function BookingTrackingCard({
   data,
@@ -108,8 +107,6 @@ export function BookingTrackingCard({
   canTrackDriver = false,
   trackDriverHint,
 }: Props) {
-  const [techVisible, setTechVisible] = useState(false);
-
   type BtnState = 'idle' | 'loading' | 'success' | 'error';
   const [customerCopyState, setCustomerCopyState] = useState<BtnState>('idle');
   const [customerSendState, setCustomerSendState] = useState<BtnState>('idle');
@@ -306,50 +303,6 @@ export function BookingTrackingCard({
         ) : null}
       </View>
 
-      {derivedStatus !== 'completed' && derivedStatus !== 'expired' ? (
-        <AppButton
-          label="Open customer live view"
-          variant="ghost"
-          onPress={() => Linking.openURL(customerUrl).catch(() => undefined)}
-          fullWidth
-          style={{ marginTop: space.sm }}
-        />
-      ) : null}
-
-      {/* ── Technical details ────────────────────────────── */}
-      <View style={styles.techBlock}>
-        <AppButton
-          label={techVisible ? 'Hide technical details' : 'Show technical details'}
-          variant="ghost"
-          onPress={() => setTechVisible((v) => !v)}
-        />
-        {techVisible ? (
-          <View style={{ marginTop: space.xs, gap: space.xs / 2 }}>
-            {state.driverLat != null && state.driverLng != null ? (
-              <Text style={styles.techLine}>
-                Driver: {state.driverLat.toFixed(5)}, {state.driverLng.toFixed(5)}
-              </Text>
-            ) : (
-              <Text style={styles.techLine}>Driver: no fix yet</Text>
-            )}
-            {customerPoint ? (
-              <Text style={styles.techLine}>
-                Customer: {customerPoint.lat.toFixed(5)}, {customerPoint.lng.toFixed(5)}
-              </Text>
-            ) : null}
-            {state.accuracyMeters != null ? (
-              <Text style={styles.techLine}>Accuracy: ±{Math.round(state.accuracyMeters)} m</Text>
-            ) : null}
-            {state.speedMetersPerSecond != null ? (
-              <Text style={styles.techLine}>
-                Speed: {(state.speedMetersPerSecond * 2.237).toFixed(1)} mph
-              </Text>
-            ) : null}
-            <Text style={styles.techLine}>Booking id: {data.bookingId}</Text>
-          </View>
-        ) : null}
-      </View>
-
     </View>
   );
 }
@@ -474,15 +427,6 @@ const styles = StyleSheet.create({
   muted: {
     color: colors.muted,
     fontSize: fontSize.sm,
-  },
-  techBlock: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: space.sm,
-  },
-  techLine: {
-    color: colors.subtle,
-    fontSize: fontSize.xs,
   },
   notice: {
     color: colors.success,

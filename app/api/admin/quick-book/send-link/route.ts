@@ -93,7 +93,7 @@ export async function POST(request: Request) {
       const result: SendLinkResponse = {
         ok: false,
         method: 'sms',
-        error: 'Invalid UK phone number — cannot send SMS',
+        error: 'SMS needs a valid UK mobile number.',
       };
       return NextResponse.json(result, { status: 400 });
     }

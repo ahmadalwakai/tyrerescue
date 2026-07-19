@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { db, users, drivers } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { signMobileToken } from '@/lib/auth';
+import { expoDevCorsPreflight, jsonWithExpoDevCors } from '@/lib/api/dev-cors';
 
 export async function POST(request: Request) {
   try {
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     const { email, password } = body;
 
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+      return jsonWithExpoDevCors(request, { error: 'Email and password are required' }, { status: 400 });
     }
 
     const [user] = await db
@@ -20,20 +20,20 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (!user || !user.passwordHash) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      return jsonWithExpoDevCors(request, { error: 'Invalid credentials' }, { status: 401 });
     }
 
     const valid = await bcrypt.compare(String(password), user.passwordHash);
     if (!valid) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      return jsonWithExpoDevCors(request, { error: 'Invalid credentials' }, { status: 401 });
     }
 
     if (user.role !== 'driver') {
-      return NextResponse.json({ error: 'This app is for drivers only' }, { status: 403 });
+      return jsonWithExpoDevCors(request, { error: 'This app is for drivers only' }, { status: 403 });
     }
 
     if (!user.emailVerified) {
-      return NextResponse.json({ error: 'Please verify your email address first' }, { status: 403 });
+      return jsonWithExpoDevCors(request, { error: 'Please verify your email address first' }, { status: 403 });
     }
 
     // Get driver record
@@ -44,7 +44,11 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (!driver) {
-      return NextResponse.json({ error: 'Driver profile not found. Contact your administrator.' }, { status: 403 });
+      return jsonWithExpoDevCors(
+        request,
+        { error: 'Driver profile not found. Contact your administrator.' },
+        { status: 403 },
+      );
     }
 
     const token = await signMobileToken({
@@ -55,7 +59,7 @@ export async function POST(request: Request) {
       driverId: driver.id,
     });
 
-    return NextResponse.json({
+    return jsonWithExpoDevCors(request, {
       token,
       user: {
         id: user.id,
@@ -66,6 +70,10 @@ export async function POST(request: Request) {
       },
     });
   } catch {
-    return NextResponse.json({ error: 'Login failed' }, { status: 500 });
+    return jsonWithExpoDevCors(request, { error: 'Login failed' }, { status: 500 });
   }
+}
+
+export async function OPTIONS(request: Request) {
+  return expoDevCorsPreflight(request);
 }

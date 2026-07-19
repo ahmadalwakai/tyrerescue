@@ -38,25 +38,22 @@ export interface SmsResult {
  *   00447xxxxxxxx → 447xxxxxxxxx
  */
 export function normalizeUkPhoneNumber(input: string): string | null {
-  // Strip everything except digits and leading +
-  let cleaned = input.replace(/[\s\-\(\)]/g, '');
+  let cleaned = input
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/\(0\)/g, '')
+    .replace(/[^\d+]/g, '');
 
-  // Remove leading +
+  cleaned = cleaned.replace(/(?!^)\+/g, '');
   if (cleaned.startsWith('+')) {
     cleaned = cleaned.slice(1);
   }
-
-  // Remove leading 00 international prefix
   if (cleaned.startsWith('00')) {
     cleaned = cleaned.slice(2);
   }
-
-  // Convert local 0 prefix to 44
   if (cleaned.startsWith('0')) {
     cleaned = '44' + cleaned.slice(1);
   }
-
-  // Must now start with 44 and be 12 digits (447xxxxxxxxx)
   if (!/^447\d{9}$/.test(cleaned)) {
     return null;
   }

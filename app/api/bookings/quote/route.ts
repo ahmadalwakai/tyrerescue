@@ -257,7 +257,11 @@ export async function POST(
     console.log('[DISTANCE CALC]', { driverCount: driverCandidates.length });
     // Distance is always calculated server-side — never trusted from the client.
     const distanceResult = await resolveDistance(customerLocation, driverCandidates);
-    const distanceMiles = distanceResult.distanceMiles;
+    const serviceDistanceMiles = distanceResult.distanceMiles;
+    const distanceMiles = distanceResult.pricingDistanceMiles;
+    const pricingDurationMinutes = distanceResult.distanceFloorApplied
+      ? distanceResult.garageDurationMinutes ?? distanceResult.durationMinutes
+      : distanceResult.durationMinutes;
 
     const driverEtaMinutes =
       data.bookingType === 'emergency' && distanceResult.distanceSource === 'driver'
@@ -303,7 +307,7 @@ export async function POST(
     const weatherModifier = calculateWeatherModifier(weatherContext, mode);
     const trafficModifier = calculateTrafficSurcharge({
       distanceMiles,
-      durationMinutes: distanceResult.durationMinutes,
+      durationMinutes: pricingDurationMinutes,
       mode,
     });
 
@@ -373,6 +377,9 @@ export async function POST(
         breakdown: breakdown as unknown as Record<string, unknown>,
         metadata: {
           ...distanceResult as unknown as Record<string, unknown>,
+          serviceDistanceMiles,
+          pricingDistanceMiles: distanceMiles,
+          pricingDurationMinutes,
           fittingLocation,
           pricingContext,
           mode,
@@ -407,6 +414,8 @@ export async function POST(
           quoteDurationMs,
           distanceProvider: distanceResult.distanceProvider,
           distanceSource: distanceResult.distanceSource,
+          pricingDistanceSource: distanceResult.pricingDistanceSource,
+          distanceFloorApplied: distanceResult.distanceFloorApplied,
           selectedDriverId: distanceResult.selectedDriverId,
           fallbackReason: distanceResult.fallbackReason,
         },
@@ -589,6 +598,9 @@ export async function POST(
           JSON.stringify(breakdown),
           JSON.stringify({
             ...distanceResult,
+            serviceDistanceMiles,
+            pricingDistanceMiles: distanceMiles,
+            pricingDurationMinutes,
             fittingLocation,
             pricingContext,
             mode,
@@ -626,6 +638,8 @@ export async function POST(
           quoteDurationMs,
           distanceProvider: distanceResult.distanceProvider,
           distanceSource: distanceResult.distanceSource,
+          pricingDistanceSource: distanceResult.pricingDistanceSource,
+          distanceFloorApplied: distanceResult.distanceFloorApplied,
           selectedDriverId: distanceResult.selectedDriverId,
           fallbackReason: distanceResult.fallbackReason,
         },

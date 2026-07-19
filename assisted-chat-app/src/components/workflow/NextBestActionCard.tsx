@@ -114,7 +114,7 @@ export function NextBestActionCard({
         entranceStyle,
       ]}
     >
-      <View pointerEvents="none" style={[styles.accentLine, { backgroundColor: palette.title }]} />
+      <View style={[styles.accentLine, { backgroundColor: palette.title, pointerEvents: 'none' }]} />
       <View style={styles.header}>
         <View style={[styles.statusDot, { backgroundColor: palette.title }]} />
         <Text style={[styles.title, { color: palette.title }]} numberOfLines={2}>

@@ -3,7 +3,11 @@ import type { ReactNode } from 'react';
 import type { AssistedChatDraft } from '@/types/assisted-chat';
 import { AppButton, StatusBanner } from './ui';
 import { copyToClipboard } from '@/lib/clipboard';
-import { hasAssistedChatTyre, summarizeBookingTyreLines } from '@/lib/assisted-chat-workflow';
+import {
+  formatAssistedChatServiceType,
+  hasAssistedChatTyre,
+  summarizeBookingTyreLines,
+} from '@/lib/assisted-chat-workflow';
 import { formatGbp } from '@/lib/money';
 import { colors, fontSize } from './theme';
 import { useState } from 'react';
@@ -33,6 +37,7 @@ export function ActionButtons({
   const handleCopy = async () => {
     const lines: string[] = [];
     lines.push('Tyre Rescue — Assisted Chat draft');
+    lines.push(`Service: ${formatAssistedChatServiceType(draft.serviceType)}`);
     if (draft.customer.phone) lines.push(`Phone: ${draft.customer.phone}`);
     if (draft.location.address) lines.push(`Address: ${draft.location.address}`);
     if (draft.location.lat != null && draft.location.lng != null) {
@@ -40,7 +45,9 @@ export function ActionButtons({
     }
 
     const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
-    if (tyreSummary.length > 0) {
+    if (draft.serviceType === 'assess') {
+      lines.push('Final tyre cost will be confirmed after inspection.');
+    } else if (tyreSummary.length > 0) {
       lines.push('Tyres:');
       tyreSummary.forEach((line) => lines.push(`- ${line}`));
     }
@@ -91,7 +98,7 @@ export function ActionButtons({
   const sendDisabled = baseDisabled;
   const sendHint = (() => {
     if (draft.dispatchedRefNumber) return null;
-    if (!hasAssistedChatTyre(draft)) return 'Enter a valid tyre size before sending to driver.';
+    if (!hasAssistedChatTyre(draft)) return 'Enter a valid tyre size or choose Unknown / inspection required before sending to driver.';
     if (!draft.quote) return 'Get the price before sending to driver.';
     if (!draft.paymentChoice) return 'Choose deposit, cash, or full payment before sending.';
     return null;

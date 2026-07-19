@@ -14,6 +14,9 @@ const METERS_PER_SECOND_TO_MPH = 2.2369362921;
 const DEFAULT_MAX_SNAP_METERS = 75;
 const DEFAULT_MAX_DISPLAY_SNAP_METERS = 35;
 const DEFAULT_STALE_MS = 12_000;
+const DEFAULT_MAX_RAW_REROUTE_AGE_MS = 12_000;
+const DEFAULT_MAX_RAW_REROUTE_ACCURACY_METERS = 50;
+const MIN_TRUSTED_RECOVERY_SAMPLES = 2;
 const MAX_BACKTRACK_METERS = 35;
 const MAX_PLAUSIBLE_SPEED_MPS = 75;
 const CONFIRMED_REVERSE_MAX_BACKTRACK_METERS = 500;
@@ -114,9 +117,12 @@ export interface NavigationProgress {
   cameraMode: 'following' | 'free-pan' | 'overview';
   isLocationStale: boolean;
   travelledGeometry: LngLat[] | null;
+  remainingGeometry: LngLat[] | null;
   fixTimestampMs: number | null;
   animationDurationMs: number;
   forceSnap: boolean;
+  locationWeak: boolean;
+  trustedSamplesSinceWeak: number;
   stale: boolean;
 }
 
@@ -159,8 +165,12 @@ export interface RerouteOriginInput {
   progress: NavigationProgress | null;
   rawLocation: Coordinates | null;
   rawLocationTimestamp: number | null;
+  rawAccuracyMeters?: number | null;
+  nowMs?: number;
   routeRevision: string;
   maxSnapDistanceMeters?: number;
+  maxRawAgeMs?: number;
+  maxRawAccuracyMeters?: number;
 }
 
 type SegmentProjection = {
@@ -484,72 +494,25 @@ export function getManeuverShimmerSpec(params: ManeuverShimmerInput): ManeuverSh
   }
 }
 
-function matchConfidence(distanceFromRouteMeters: number | null, maxSnapDistanceMeters: number): number | null {
-  if (
-    typeof distanceFromRouteMeters !== 'number' ||
-    !Number.isFinite(distanceFromRouteMeters) ||
-    distanceFromRouteMeters < 0
-  ) {
-    return null;
-  }
-  return Math.max(0, Math.min(1, 1 - distanceFromRouteMeters / maxSnapDistanceMeters));
-}
-
 export function selectRerouteOrigin(input: RerouteOriginInput): RerouteOrigin | null {
-  const maxSnapDistanceMeters = input.maxSnapDistanceMeters ?? DEFAULT_MAX_SNAP_METERS;
-  const progress = input.progress;
-  const progressFresh =
-    progress != null &&
-    progress.routeRevision === input.routeRevision &&
-    progress.fixTimestampMs != null &&
-    progress.stale !== true &&
-    progress.isLocationStale !== true;
-  const confidence = progressFresh
-    ? matchConfidence(progress.distanceFromRouteMeters, maxSnapDistanceMeters)
-    : null;
-  const trustedProgress =
-    progressFresh &&
-    progress.displayMode === 'snapped' &&
-    confidence != null &&
-    confidence >= 0.4;
-
-  if (
-    trustedProgress &&
-    progress?.matchedLocation &&
-    isValidCoord(progress.matchedLocation) &&
-    progress.fixTimestampMs != null
-  ) {
-    return {
-      coordinate: progress.matchedLocation,
-      source: 'matched',
-      routeRevision: input.routeRevision,
-      locationTimestamp: progress.fixTimestampMs,
-      segmentIndex: progress.matchedSegmentIndex,
-      confidence,
-    };
-  }
-
-  if (
-    trustedProgress &&
-    progress?.displayLocation &&
-    isValidCoord(progress.displayLocation) &&
-    progress.fixTimestampMs != null
-  ) {
-    return {
-      coordinate: progress.displayLocation,
-      source: 'display',
-      routeRevision: input.routeRevision,
-      locationTimestamp: progress.fixTimestampMs,
-      segmentIndex: progress.segmentIndex,
-      confidence,
-    };
-  }
-
+  const maxRawAgeMs = input.maxRawAgeMs ?? DEFAULT_MAX_RAW_REROUTE_AGE_MS;
+  const maxRawAccuracyMeters =
+    input.maxRawAccuracyMeters ?? DEFAULT_MAX_RAW_REROUTE_ACCURACY_METERS;
+  const nowMs =
+    typeof input.nowMs === 'number' && Number.isFinite(input.nowMs)
+      ? input.nowMs
+      : Date.now();
   if (
     input.rawLocation &&
     isValidCoord(input.rawLocation) &&
     typeof input.rawLocationTimestamp === 'number' &&
-    Number.isFinite(input.rawLocationTimestamp)
+    Number.isFinite(input.rawLocationTimestamp) &&
+    nowMs - input.rawLocationTimestamp >= 0 &&
+    nowMs - input.rawLocationTimestamp <= maxRawAgeMs &&
+    typeof input.rawAccuracyMeters === 'number' &&
+    Number.isFinite(input.rawAccuracyMeters) &&
+    input.rawAccuracyMeters >= 0 &&
+    input.rawAccuracyMeters <= maxRawAccuracyMeters
   ) {
     return {
       coordinate: input.rawLocation,
@@ -884,6 +847,27 @@ function buildTravelledGeometry(
   return travelled.length >= 2 ? travelled : null;
 }
 
+function buildRemainingGeometry(
+  geometry: LngLat[],
+  match: SegmentProjection | null,
+): LngLat[] | null {
+  if (!match || match.segmentIndex == null || match.segmentIndex < 0) return null;
+  if (match.segmentIndex >= geometry.length - 1) return null;
+  const split: LngLat = [match.point.lng, match.point.lat];
+  const remaining = [split, ...geometry.slice(match.segmentIndex + 1)];
+  if (remaining.length > MAX_TRAVELLED_GEOMETRY_POINTS) return null;
+  if (!remaining.every(isFiniteLngLat)) return null;
+  const nonZeroSegments = remaining.some((coord, index) => {
+    if (index === 0) return false;
+    const prev = remaining[index - 1];
+    return haversineMeters(
+      { lng: prev[0], lat: prev[1] },
+      { lng: coord[0], lat: coord[1] },
+    ) > 0.25;
+  });
+  return nonZeroSegments ? remaining : null;
+}
+
 function stepIndexForProgress(params: {
   steps: RouteStep[];
   geometry: LngLat[];
@@ -952,6 +936,34 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
     fixTimestampMs == null || !Number.isFinite(fixTimestampMs)
       ? true
       : nowMs - fixTimestampMs > staleAfterMs;
+  const accuracyWeak =
+    typeof accuracyMeters === 'number' &&
+    Number.isFinite(accuracyMeters) &&
+    accuracyMeters > maxSnapDistanceMeters;
+  const holdPreviousProgress = (
+    trustedSamplesSinceWeak: number,
+    locationWeak: boolean,
+  ): NavigationProgress | null => {
+    if (!previousForRoute?.displayLocation) return null;
+    return {
+      ...previousForRoute,
+      routeRevision,
+      rawLocation: rawLocation && isValidCoord(rawLocation) ? rawLocation : previousForRoute.rawLocation,
+      acceptedLocation: previousForRoute.acceptedLocation,
+      rawHeading: gpsHeading,
+      speedDisplayReliable: false,
+      accuracy: accuracyMeters,
+      isRecalculating,
+      cameraMode,
+      isLocationStale: stale,
+      fixTimestampMs: previousForRoute.fixTimestampMs,
+      animationDurationMs: 0,
+      forceSnap: false,
+      locationWeak,
+      trustedSamplesSinceWeak,
+      stale,
+    };
+  };
 
   const empty: NavigationProgress = {
     routeRevision,
@@ -996,11 +1008,18 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
     cameraMode,
     isLocationStale: stale,
     travelledGeometry: null,
+    remainingGeometry: null,
     fixTimestampMs,
     animationDurationMs: 700,
     forceSnap: previous?.routeRevision !== routeRevision || stale,
+    locationWeak: stale || accuracyWeak,
+    trustedSamplesSinceWeak: stale || accuracyWeak ? 0 : MIN_TRUSTED_RECOVERY_SAMPLES,
     stale,
   };
+
+  if (stale || accuracyWeak) {
+    return holdPreviousProgress(0, true) ?? empty;
+  }
 
   if (!rawLocation || !isValidCoord(rawLocation) || !routeIsCurrent || !route) {
     return empty;
@@ -1018,7 +1037,7 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
       rawLocation,
       speedMps,
       speedMph,
-      speedDisplayReliable: !stale && speedMph != null,
+      speedDisplayReliable: false,
       rawHeading: gpsHeading,
       accuracy: accuracyMeters,
       isRecalculating,
@@ -1027,6 +1046,9 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
       fixTimestampMs: previousForRoute.fixTimestampMs,
       animationDurationMs: 0,
       forceSnap: false,
+      locationWeak: true,
+      trustedSamplesSinceWeak: 0,
+      stale,
     };
   }
 
@@ -1052,7 +1074,7 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
           rawLocation,
           speedMps,
           speedMph,
-          speedDisplayReliable: !stale && speedMph != null,
+          speedDisplayReliable: false,
           rawHeading: gpsHeading,
           accuracy: accuracyMeters,
           isRecalculating,
@@ -1061,6 +1083,9 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
           fixTimestampMs: previousForRoute.fixTimestampMs,
           animationDurationMs: 0,
           forceSnap: false,
+          locationWeak: true,
+          trustedSamplesSinceWeak: 0,
+          stale,
         };
       }
     }
@@ -1086,6 +1111,24 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
 
   const trustedRouteCorridor = match.distanceMeters <= maxSnapDistanceMeters;
   const trustedDisplaySnap = match.distanceMeters <= maxDisplaySnapDistanceMeters;
+  const currentSampleTrusted = trustedDisplaySnap && !stale && !accuracyWeak;
+  const previousRecoveryCount =
+    previousForRoute?.trustedSamplesSinceWeak ?? MIN_TRUSTED_RECOVERY_SAMPLES;
+  const recoveringFromWeak =
+    previousForRoute != null &&
+    (previousForRoute.locationWeak === true ||
+      previousRecoveryCount < MIN_TRUSTED_RECOVERY_SAMPLES);
+  const trustedSamplesSinceWeak = currentSampleTrusted
+    ? Math.min(
+        MIN_TRUSTED_RECOVERY_SAMPLES,
+        recoveringFromWeak
+          ? previousRecoveryCount + 1
+          : MIN_TRUSTED_RECOVERY_SAMPLES,
+      )
+    : previousRecoveryCount;
+  if (recoveringFromWeak && trustedSamplesSinceWeak < MIN_TRUSTED_RECOVERY_SAMPLES) {
+    return holdPreviousProgress(trustedSamplesSinceWeak, false) ?? empty;
+  }
   const retainedSnappedLocation =
     !trustedDisplaySnap &&
     trustedRouteCorridor &&
@@ -1190,6 +1233,16 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
   const jumpMeters = previousPoint ? haversineMeters(previousPoint, displayLocation) : 0;
   const revisionChanged = previous?.routeRevision !== routeRevision;
   const forceSnap = revisionChanged || stale || elapsedMs > 6_000 || jumpMeters > 160;
+  const travelledGeometry = trustedDisplaySnap
+    ? buildTravelledGeometry(geometry, match)
+    : retainedSnappedLocation != null
+      ? previousForRoute?.travelledGeometry ?? null
+      : null;
+  const remainingGeometry = trustedDisplaySnap
+    ? buildRemainingGeometry(geometry, match)
+    : retainedSnappedLocation != null
+      ? previousForRoute?.remainingGeometry ?? null
+      : null;
 
   return {
     routeRevision,
@@ -1237,14 +1290,13 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
     isRecalculating,
     cameraMode,
     isLocationStale: stale,
-    travelledGeometry: trustedDisplaySnap
-      ? buildTravelledGeometry(geometry, match)
-      : retainedSnappedLocation != null
-        ? previousForRoute?.travelledGeometry ?? null
-        : null,
+    travelledGeometry,
+    remainingGeometry,
     fixTimestampMs,
     animationDurationMs: Math.max(250, Math.min(1_400, elapsedMs * 0.85)),
     forceSnap,
+    locationWeak: false,
+    trustedSamplesSinceWeak,
     stale,
   };
 }

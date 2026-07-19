@@ -18,6 +18,7 @@ import type {
   AssistedChatQuoteBreakdown,
   QuickBookCreateResponse,
   QuickBookGetResponse,
+  QuickBookPatchResponse,
   SendLinkResponse,
 } from '@/types/assisted-chat';
 
@@ -51,14 +52,27 @@ interface UseAssistedChatLocationShareArgs {
 
 function quoteFromBooking(booking: QuickBookCreateResponse['booking']): AssistedChatQuoteBreakdown | null {
   if (!booking.priceBreakdown) return null;
+  const pricingDistanceMiles = booking.priceBreakdown.distanceMiles ?? booking.priceBreakdown.pricingDistanceMiles ?? null;
+  const pricingDistanceKm =
+    pricingDistanceMiles != null
+      ? pricingDistanceMiles * 1.60934
+      : booking.distanceKm
+      ? Number(booking.distanceKm)
+      : null;
   return {
     subtotal: booking.priceBreakdown.subtotal,
     vatAmount: booking.priceBreakdown.vatAmount,
     total: booking.priceBreakdown.total,
     lineItems: booking.priceBreakdown.lineItems,
     serviceOrigin: booking.priceBreakdown.serviceOrigin ?? null,
-    distanceKm: booking.distanceKm ? Number(booking.distanceKm) : null,
-    distanceMiles: booking.priceBreakdown.distanceMiles ?? null,
+    distanceKm: pricingDistanceKm,
+    distanceMiles: pricingDistanceMiles,
+    serviceDistanceMiles: booking.priceBreakdown.serviceDistanceMiles ?? null,
+    pricingDistanceMiles,
+    pricingDurationMinutes: booking.priceBreakdown.pricingDurationMinutes ?? null,
+    garageDistanceMiles: booking.priceBreakdown.garageDistanceMiles ?? null,
+    pricingDistanceSource: booking.priceBreakdown.pricingDistanceSource ?? null,
+    distanceFloorApplied: booking.priceBreakdown.distanceFloorApplied ?? null,
     fittingPrice: booking.priceBreakdown.fittingPrice ?? null,
     tyrePrice: booking.priceBreakdown.tyrePrice ?? null,
     totalPrice: booking.priceBreakdown.totalPrice ?? null,
@@ -105,7 +119,16 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
       method: AssistedChatLocationMethod,
       contact?: LocationShareContactOverride,
     ): Promise<{ id: string; locationLink: string | null; whatsappLink: string | null }> => {
+      const customerPhone = contact?.phone?.trim() || draft.customer.phone.trim() || PLACEHOLDER_PHONE;
+      const customerEmail = contact?.email?.trim() || draft.customer.email.trim();
+      const customerName = contact?.name?.trim() || draft.customer.name.trim() || PLACEHOLDER_NAME;
+
       if (draft.quickBookingId) {
+        await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${draft.quickBookingId}`, {
+          customerName,
+          customerPhone,
+          customerEmail,
+        });
         return {
           id: draft.quickBookingId,
           locationLink: draft.location.link,
@@ -113,21 +136,20 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
         };
       }
       const primaryTyre = primaryBookingTyreLine(draft);
-      const tyreLines = buildBookingTyreLinePayload(draft.tyreLines);
-      const customerPhone = contact?.phone?.trim() || draft.customer.phone.trim() || PLACEHOLDER_PHONE;
-      const customerEmail = contact?.email?.trim() || draft.customer.email.trim() || undefined;
-      const customerName = contact?.name?.trim() || draft.customer.name.trim() || PLACEHOLDER_NAME;
+      const serviceType = draft.serviceType ?? 'fit';
+      const isInspectionOnly = serviceType === 'assess';
+      const tyreLines = isInspectionOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
       const created = await api.post<QuickBookCreateResponse>('/api/admin/quick-book', {
         customerName,
         customerPhone,
-        customerEmail,
+        customerEmail: customerEmail || undefined,
         locationMethod: method,
         locationAddress: method === 'address' ? draft.location.address : undefined,
         locationLat: method === 'address' && draft.location.lat != null ? draft.location.lat : undefined,
         locationLng: method === 'address' && draft.location.lng != null ? draft.location.lng : undefined,
-        serviceType: 'fit',
-        tyreSize: normalizeAssistedChatTyreSize(primaryTyre.size) ?? undefined,
-        tyreCount: totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
+        serviceType,
+        tyreSize: isInspectionOnly ? undefined : normalizeAssistedChatTyreSize(primaryTyre.size) ?? undefined,
+        tyreCount: isInspectionOnly ? 1 : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
         tyreLines,
         items: tyreLines,
         pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,

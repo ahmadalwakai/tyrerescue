@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -12,7 +13,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { api } from '@/lib/api';
+import { api, API_BASE_URL, getAdminToken } from '@/lib/api';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 
@@ -128,6 +129,21 @@ interface MobileDetailResponse {
   assignedDriver: MobileAssignedDriver | null;
   availableDrivers: MobileAvailableDriver[];
   validNextStatuses: string[];
+  paymentSummary?: {
+    state: string;
+    label: string;
+    methodLabel: string;
+    paidVia: string | null;
+    paidPence: number | null;
+    totalPence: number | null;
+    isFullyPaid?: boolean;
+  };
+  invoice: {
+    id: string;
+    invoiceNumber: string;
+    status: string;
+    totalAmount: string | null;
+  } | null;
 }
 
 interface RankedDriver {
@@ -364,6 +380,7 @@ function BookingDetailView({
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
 
   // Status change
   const [statusNote, setStatusNote] = useState('');
@@ -597,6 +614,36 @@ function BookingDetailView({
   const canRefund = data
     ? !!data.booking.stripePiId && ['paid', 'driver_assigned', 'completed'].includes(data.booking.status)
     : false;
+  const canDownloadInvoice = Boolean(data);
+
+  async function handleDownloadInvoice() {
+    if (!data || invoiceLoading) return;
+    setInvoiceLoading(true);
+    setActionError(null);
+    try {
+      const result = await api.post<{ invoice: { id: string; invoiceNumber: string } }>(
+        `/api/mobile/admin/bookings/${encodeURIComponent(refNumber)}/invoice`,
+        {},
+      );
+      const token = getAdminToken();
+      const qs = token ? `?token=${encodeURIComponent(token)}` : '';
+      const url = `${API_BASE_URL}/api/mobile/admin/invoices/${result.invoice.id}/pdf${qs}`;
+      await Linking.openURL(url);
+      void load();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to download invoice.');
+    } finally {
+      setInvoiceLoading(false);
+    }
+  }
+
+  function handleCallCustomer() {
+    const phone = data?.booking.customerPhone?.trim();
+    if (!phone) return;
+    void Linking.openURL(`tel:${phone}`).catch(() => {
+      setActionError('Could not start the call.');
+    });
+  }
 
   // ── Action sub-views ──────────────────────────────────────────────────────
 
@@ -817,7 +864,8 @@ function BookingDetailView({
   }
 
   function renderActionBar() {
-    if (isTerminal || !data) return null;
+    if (!data) return null;
+    if (isTerminal) return null;
     return (
       <View style={styles.actionBar}>
         {canCompleteOneStep ? (
@@ -912,6 +960,7 @@ function BookingDetailView({
 
               {/* Action bar */}
               {renderActionBar()}
+              {actionError && action === null ? <StatusBanner kind="err" message={actionError} /> : null}
 
               {/* Customer */}
               <SectionTitle title="Customer" />
@@ -919,6 +968,34 @@ function BookingDetailView({
                 <DetailRow label="Name" value={data.booking.customerName} />
                 <DetailRow label="Email" value={data.booking.customerEmail} />
                 <DetailRow label="Phone" value={data.booking.customerPhone} />
+                {(data.booking.customerPhone || canDownloadInvoice) ? (
+                  <View style={styles.customerActionRow}>
+                    {data.booking.customerPhone ? (
+                      <Pressable
+                        onPress={handleCallCustomer}
+                        style={({ pressed }) => [styles.customerActionBtn, pressed && styles.customerActionBtnPressed]}
+                      >
+                        <Text style={styles.customerActionText}>Call</Text>
+                      </Pressable>
+                    ) : null}
+                    {canDownloadInvoice ? (
+                      <Pressable
+                        onPress={handleDownloadInvoice}
+                        disabled={invoiceLoading}
+                        style={({ pressed }) => [
+                          styles.customerActionBtn,
+                          styles.customerActionBtnPrimary,
+                          pressed && styles.customerActionBtnPrimaryPressed,
+                          invoiceLoading && styles.actionChipDisabled,
+                        ]}
+                      >
+                        <Text style={[styles.customerActionText, styles.customerActionTextPrimary]}>
+                          {invoiceLoading ? 'Preparing...' : 'Download Invoice'}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ) : null}
               </View>
 
               {/* Booking */}
@@ -998,7 +1075,9 @@ function BookingDetailView({
                   <Text style={styles.totalLabel}>Total</Text>
                   <Text style={styles.totalValue}>{formatCurrency(data.booking.totalAmount)}</Text>
                 </View>
-                <DetailRow label="Payment type" value={data.booking.paymentType} />
+                <DetailRow label="Payment status" value={data.paymentSummary?.label ?? data.booking.paymentType} />
+                <DetailRow label="Payment method" value={data.paymentSummary?.methodLabel} />
+                <DetailRow label="Invoice" value={data.invoice?.invoiceNumber ?? (canDownloadInvoice ? 'Ready to generate' : null)} />
                 <DetailRow label="Stripe PI" value={data.booking.stripePiId} />
               </View>
 
@@ -1649,6 +1728,41 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1.5,
     textAlign: 'right',
+  },
+  customerActionRow: {
+    flexDirection: 'row',
+    gap: space.sm,
+    paddingTop: space.sm,
+  },
+  customerActionBtn: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.inputBg,
+    paddingHorizontal: space.sm,
+  },
+  customerActionBtnPressed: {
+    backgroundColor: colors.card,
+  },
+  customerActionBtnPrimary: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accent,
+  },
+  customerActionBtnPrimaryPressed: {
+    opacity: 0.86,
+  },
+  customerActionText: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  customerActionTextPrimary: {
+    color: colors.bg,
   },
   totalRow: {
     flexDirection: 'row',

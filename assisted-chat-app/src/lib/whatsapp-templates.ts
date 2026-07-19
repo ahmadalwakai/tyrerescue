@@ -1,5 +1,9 @@
 import type { AssistedChatDraft } from '@/types/assisted-chat';
-import { summarizeBookingTyreLines, totalBookingTyreQuantity } from './assisted-chat-workflow';
+import {
+  formatAssistedChatServiceType,
+  summarizeBookingTyreLines,
+  totalBookingTyreQuantity,
+} from './assisted-chat-workflow';
 import { formatGbp } from './money';
 
 export type WhatsAppTemplateId =
@@ -32,8 +36,11 @@ function referenceLines(draft: AssistedChatDraft): string[] {
 
 function jobDetailLines(draft: AssistedChatDraft, effectiveTotal: number): string[] {
   const lines: string[] = [];
+  lines.push(`Service: ${formatAssistedChatServiceType(draft.serviceType)}`);
   const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
-  if (tyreSummary.length > 0) {
+  if (draft.serviceType === 'assess') {
+    lines.push('Final tyre cost will be confirmed after inspection.');
+  } else if (tyreSummary.length > 0) {
     lines.push('Tyres:');
     tyreSummary.forEach((line) => lines.push(`- ${line}`));
   } else {

@@ -3,6 +3,7 @@
 // is not in the Next.js tsconfig include path. Field shapes match exactly.
 
 export type LockingNutAnswer = 'yes' | 'no' | 'unknown';
+export type AssistedChatServiceType = 'fit' | 'repair' | 'assess';
 export type AssistedChatPaymentChoice = 'cash' | 'deposit' | 'full';
 export type CustomerEmailMode = 'walk_in_customer' | 'send_customer_confirmation';
 export type PaymentChoice = AssistedChatPaymentChoice;
@@ -62,6 +63,12 @@ export interface AssistedChatQuoteBreakdown {
   lineItems: AssistedChatQuoteLine[];
   distanceKm: number | null;
   distanceMiles?: number | null;
+  serviceDistanceMiles?: number | null;
+  pricingDistanceMiles?: number | null;
+  pricingDurationMinutes?: number | null;
+  garageDistanceMiles?: number | null;
+  pricingDistanceSource?: 'driver' | 'garage' | 'garage_floor' | null;
+  distanceFloorApplied?: boolean | null;
   fittingPrice?: number | null;
   tyrePrice?: number | null;
   totalPrice?: number | null;
@@ -80,6 +87,7 @@ export interface AssistedChatQuoteBreakdown {
 export interface AssistedChatDraft {
   customer: AssistedChatCustomer;
   location: AssistedChatLocation;
+  serviceType: AssistedChatServiceType;
   tyreLines: BookingTyreLine[];
   lockingNut: AssistedChatLockingWheelNut;
   quickBookingId: string | null;
@@ -133,6 +141,12 @@ export interface QuickBookCreateResponse {
       vatAmount: number;
       total: number;
       distanceMiles?: number | null;
+      serviceDistanceMiles?: number | null;
+      pricingDistanceMiles?: number | null;
+      pricingDurationMinutes?: number | null;
+      garageDistanceMiles?: number | null;
+      pricingDistanceSource?: 'driver' | 'garage' | 'garage_floor' | null;
+      distanceFloorApplied?: boolean | null;
       fittingPrice?: number | null;
       tyrePrice?: number | null;
       totalPrice?: number | null;
@@ -169,6 +183,12 @@ export interface QuickBookPatchResponse {
       vatAmount: number;
       total: number;
       distanceMiles?: number | null;
+      serviceDistanceMiles?: number | null;
+      pricingDistanceMiles?: number | null;
+      pricingDurationMinutes?: number | null;
+      garageDistanceMiles?: number | null;
+      pricingDistanceSource?: 'driver' | 'garage' | 'garage_floor' | null;
+      distanceFloorApplied?: boolean | null;
       fittingPrice?: number | null;
       tyrePrice?: number | null;
       totalPrice?: number | null;
@@ -205,12 +225,19 @@ export interface QuickBookFinalizeResponse {
     total: number;
     lineItems: AssistedChatQuoteLine[];
     distanceMiles?: number | null;
+    serviceDistanceMiles?: number | null;
+    pricingDistanceMiles?: number | null;
+    pricingDurationMinutes?: number | null;
+    garageDistanceMiles?: number | null;
+    pricingDistanceSource?: 'driver' | 'garage' | 'garage_floor' | null;
+    distanceFloorApplied?: boolean | null;
     fittingPrice?: number | null;
     tyrePrice?: number | null;
     totalPrice?: number | null;
     tyreLines?: BookingTyreLine[];
     adminAdjustmentAmount?: number | null;
     adminAdjustmentReason?: string | null;
+    serviceOrigin?: AssistedChatQuoteBreakdown['serviceOrigin'];
   };
 }
 
@@ -258,6 +285,7 @@ export interface RecentCustomer {
   customerName?: string;
   customerEmail?: string;
   customerAddress?: string;
+  serviceType?: AssistedChatServiceType;
   lat?: number | null;
   lng?: number | null;
   postcode?: string | null;

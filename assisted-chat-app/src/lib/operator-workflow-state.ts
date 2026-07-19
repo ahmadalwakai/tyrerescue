@@ -152,16 +152,14 @@ export function deriveOperatorWorkflowSteps(
     {
       id: 'lockingNut',
       label: STEP_LABELS.lockingNut,
-      status: lockingAnswered
-        ? 'complete'
-        : !hasTyre
+      status: !hasTyre
         ? 'blocked'
-        : 'not_started',
+        : 'complete',
       hint: lockingAnswered
         ? draft.lockingNut.answer === 'yes'
           ? 'Has key'
           : 'No key'
-        : 'Not asked',
+        : 'Optional',
     },
     {
       id: 'quote',
@@ -303,15 +301,6 @@ export function deriveNextBestAction(input: NextBestActionInput): NextBestAction
       title: 'Add tyre details',
       body: 'Pick the tyre size and quantity so we can price the job.',
       status: 'info',
-    };
-  }
-
-  if (draft.lockingNut.answer === 'unknown') {
-    return {
-      id: 'lockingNut',
-      title: 'Confirm the locking wheel nut',
-      body: 'Ask if the customer has the locking wheel nut key. This affects price and tools.',
-      status: 'warning',
     };
   }
 

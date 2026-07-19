@@ -35,6 +35,8 @@ import { AlertActionButton } from './ui/AlertActionButton';
 import type {
   AssistedChatDraft,
   AssistedChatPaymentChoice,
+  AssistedChatQuoteBreakdown,
+  AssistedChatServiceType,
   RecentCustomer,
   StripePaymentLinkState,
 } from '@/types/assisted-chat';
@@ -61,14 +63,18 @@ import { MessageSenderModal } from './MessageSenderModal';
 import { AdminChromeBackdrop } from './layout/AdminModalShell';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
-import { api } from '@/lib/api';
+import { api, API_BASE_URL, getAdminToken } from '@/lib/api';
 import { buildCustomerMessage, buildWhatsAppUrl } from '@/lib/customer-message';
-import {
-  buildWhatsAppTemplateMessage,
-  type WhatsAppTemplateId,
-} from '@/lib/whatsapp-templates';
 import { copyToClipboard } from '@/lib/clipboard';
-import { formatGbp, isValidUkPhone } from '@/lib/money';
+import {
+  formatGbp,
+  isValidUkPhone,
+  getEmailDomainSuggestions,
+  normalizeContactPhone,
+  normalizeEmailAddress,
+  normalizePhoneForDial,
+  normalizePhoneForWhatsApp,
+} from '@/lib/money';
 import {
   clearAdminBadge,
   unregisterAdminPushNotifications,
@@ -92,6 +98,7 @@ import { NotificationReliabilityCard } from './alerts/NotificationReliabilityCar
 import {
   buildBookingTyreLinePayload,
   createBookingTyreLine,
+  formatAssistedChatServiceType,
   getAssistedChatWorkflow,
   hasAssistedChatTyre,
   normalizeAssistedChatTyreSize,
@@ -102,17 +109,16 @@ import {
 } from '@/lib/assisted-chat-workflow';
 import {
   deriveOperatorWorkflowSteps,
-  deriveNextBestAction,
   stageForStepId,
 } from '@/lib/operator-workflow-state';
 import { OperatorStepProgress } from './workflow/OperatorStepProgress';
-import { NextBestActionCard } from './workflow/NextBestActionCard';
 
 interface ParsedCallNotes {
   customerName?: string;
   customerPhone?: string;
   customerEmail?: string;
   locationAddress?: string;
+  serviceType?: AssistedChatServiceType;
   tyreSize?: string;
   quantity?: number;
   lockingNutAnswer?: 'yes' | 'no' | 'unknown';
@@ -138,13 +144,6 @@ interface SheetAction {
 interface ActionNotice {
   kind: 'ok' | 'err' | 'info' | 'warn';
   text: string;
-}
-
-type WhatsAppTemplateBusyId = WhatsAppTemplateId | 'request_location' | null;
-
-interface WhatsAppTemplatePreviewState {
-  id: WhatsAppTemplateId;
-  message: string;
 }
 
 const GBP = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
@@ -177,6 +176,14 @@ function parseCallNotes(text: string): ParsedCallNotes {
   const normalized = text.replace(/\s+/g, ' ').trim();
   const lower = normalized.toLowerCase();
   const parsed: ParsedCallNotes = {};
+
+  if (/\b(?:not sure|unsure|unknown|inspect|inspection|assess|assessment|check first|needs checking)\b/i.test(normalized)) {
+    parsed.serviceType = 'assess';
+  } else if (/\b(?:puncture|punctured|repair|repaired|patch|slow puncture|plug)\b/i.test(normalized)) {
+    parsed.serviceType = 'repair';
+  } else if (/\b(?:new tyre|new tire|replacement|replace|fit|fitting)\b/i.test(normalized)) {
+    parsed.serviceType = 'fit';
+  }
 
   const email = normalized.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
   if (email) parsed.customerEmail = email;
@@ -229,6 +236,15 @@ function parseCallNotes(text: string): ParsedCallNotes {
 function formatPence(pence: number): string {
   if (!Number.isFinite(pence)) return GBP.format(0);
   return GBP.format(pence / 100);
+}
+
+function getQuotePricingDistanceMiles(
+  quote: AssistedChatQuoteBreakdown | null | undefined,
+): number | null {
+  if (!quote) return null;
+  if (quote.distanceMiles != null && Number.isFinite(quote.distanceMiles)) return quote.distanceMiles;
+  if (quote.distanceKm != null && Number.isFinite(quote.distanceKm)) return quote.distanceKm * 0.621371;
+  return null;
 }
 
 function getDepositSummary(priceAmountPence: number): { depositAmountPence: number; remainingBalancePence: number } {
@@ -342,6 +358,7 @@ function buildJobDetails(
   selectedPaymentOption: AdminQuotePaymentOption,
 ): string {
   const lines: string[] = ['Tyre Rescue Assisted Chat draft'];
+  lines.push(`Service: ${formatAssistedChatServiceType(draft.serviceType)}`);
   if (draft.customer.name.trim()) lines.push(`Customer: ${draft.customer.name.trim()}`);
   if (draft.customer.phone.trim()) lines.push(`Phone: ${draft.customer.phone.trim()}`);
   if (draft.location.address.trim()) lines.push(`Address: ${draft.location.address.trim()}`);
@@ -359,7 +376,7 @@ function buildJobDetails(
         ? 'Customer has it'
         : draft.lockingNut.answer === 'no'
         ? 'Customer does not have it'
-        : 'Unknown'
+        : 'Not asked / optional'
     }`,
   );
   if (lockingNutCharge > 0) lines.push(`Locking wheel nut removal: ${formatGbp(lockingNutCharge)}`);
@@ -397,6 +414,7 @@ function buildPaymentMessage(paymentLink: StripePaymentLinkState, draft: Assiste
   lines.push(paymentLink.paymentUrl);
   lines.push('');
   lines.push(`${referenceLabel}: ${reference}`);
+  lines.push(`Service: ${formatAssistedChatServiceType(draft.serviceType)}`);
   lines.push(paymentLink.kind === 'deposit' ? `Deposit due now: ${formatPence(paymentLink.amountPence)}` : `Amount due: ${formatPence(paymentLink.amountPence)}`);
   if (paymentLink.remainingBalancePence != null) lines.push(`Balance due on-site: ${formatPence(paymentLink.remainingBalancePence)}`);
   lines.push(`${bookingReady ? 'Total to pay' : 'Quote total'}: ${formatGbp(effectiveTotal)}`);
@@ -440,8 +458,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const [editingStage, setEditingStage] = useState<AssistedChatStage | null>(null);
   const [mapSummaryOpen, setMapSummaryOpen] = useState(false);
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
-  const [whatsAppTemplateBusyId, setWhatsAppTemplateBusyId] = useState<WhatsAppTemplateBusyId>(null);
-  const [whatsAppTemplatePreview, setWhatsAppTemplatePreview] = useState<WhatsAppTemplatePreviewState | null>(null);
+  const [headerInvoiceLoading, setHeaderInvoiceLoading] = useState(false);
   const [editPriceOpen, setEditPriceOpen] = useState(false);
   const [breakdownVisible, setBreakdownVisible] = useState(false);
   const [notifSetupOpen, setNotifSetupOpen] = useState(false);
@@ -705,7 +722,9 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   }
 
   const lockingNutCharge =
-    draft.lockingNut.answer === 'no' && draft.lockingNut.chargeGbp != null
+    draft.serviceType !== 'assess' &&
+    draft.lockingNut.answer === 'no' &&
+    draft.lockingNut.chargeGbp != null
       ? draft.lockingNut.chargeGbp
       : 0;
   const baseTotal = draft.quote?.total ?? 0;
@@ -770,6 +789,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         paymentChoice,
         totalPence: Number.isFinite(total) ? Math.round(total * 100) : undefined,
         paymentLink: paymentLink?.paymentUrl,
+        serviceType: draft.serviceType,
         customerPhone: draft.customer.phone || undefined,
         customerAddress: draft.location.address || undefined,
         tyreSize: primaryTyre.size || undefined,
@@ -781,6 +801,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         customerName: draft.customer.name || undefined,
         customerEmail: draft.customer.email || undefined,
         customerAddress: draft.location.address || undefined,
+        serviceType: draft.serviceType,
         lat: draft.location.lat,
         lng: draft.location.lng,
         postcode: draft.location.postcode,
@@ -939,6 +960,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const activeStage = editingStage ?? workflow.currentStage;
   const hasLocation = draft.location.lat != null && draft.location.lng != null;
   const hasTyre = hasAssistedChatTyre(draft);
+  const quotePricingDistanceMiles = getQuotePricingDistanceMiles(draft.quote);
   const customerName = draft.customer.name.trim() || 'New customer';
   const customerPhone = draft.customer.phone.trim();
   const customerMessage = buildCustomerMessage({ draft, effectiveTotal, paymentChoice: draft.paymentChoice });
@@ -1008,24 +1030,32 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   }, [clear, locationShare, quoteActions]);
 
   const handlePhoneBlur = useCallback(() => {
-    update({ customer: { ...draft.customer, phone: phoneInput.trim() } });
+    const phone = normalizeContactPhone(phoneInput);
+    setPhoneInput(phone);
+    update({ customer: { ...draft.customer, phone } });
   }, [draft.customer, phoneInput, update]);
 
+  const handlePhoneChange = useCallback(
+    (phone: string) => {
+      setPhoneInput(phone);
+      update({ customer: { ...draft.customer, phone } });
+    },
+    [draft.customer, update],
+  );
+
+  const handleEmailBlur = useCallback(() => {
+    const email = normalizeEmailAddress(draft.customer.email);
+    if (email !== draft.customer.email) {
+      update({ customer: { ...draft.customer, email } });
+    }
+  }, [draft.customer, update]);
+
   const customerWhatsAppNumber = useMemo(() => {
-    const raw = draft.customer.phone ?? '';
-    const digits = raw.replace(/\D+/g, '');
-    if (!digits) return null;
-    if (raw.trim().startsWith('+')) return digits;
-    if (digits.startsWith('44')) return digits;
-    if (digits.startsWith('0')) return `44${digits.slice(1)}`;
-    return digits;
+    return normalizePhoneForWhatsApp(draft.customer.phone ?? '');
   }, [draft.customer.phone]);
 
   const customerDialNumber = useMemo(() => {
-    const raw = (draft.customer.phone ?? '').trim();
-    if (!raw) return null;
-    const cleaned = raw.replace(/[^\d+]/g, '');
-    return cleaned || null;
+    return normalizePhoneForDial(draft.customer.phone ?? '');
   }, [draft.customer.phone]);
 
   const handleOpenWhatsApp = useCallback(async () => {
@@ -1038,71 +1068,6 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     }
   }, [customerMessage, customerWhatsAppNumber, draft.customer.phone, flashNotice]);
 
-  const buildWhatsAppTemplatePreview = useCallback(
-    (templateId: WhatsAppTemplateId) => {
-      return buildWhatsAppTemplateMessage(templateId, {
-        draft,
-        effectiveTotal,
-        trackingUrl: bookingTracking.data?.customerUrl ?? null,
-        driverName: currentActiveJob?.driver.name ?? null,
-        etaMinutes: currentActiveJob?.etaMinutes ?? draft.quote?.serviceOrigin?.etaMinutes ?? null,
-        delayMinutes: currentActiveJob?.driverSituation.delayMinutes ?? null,
-      });
-    },
-    [bookingTracking.data?.customerUrl, currentActiveJob, draft, effectiveTotal],
-  );
-
-  const handlePreviewWhatsAppTemplate = useCallback(
-    (templateId: WhatsAppTemplateId) => {
-      setWhatsAppTemplatePreview({
-        id: templateId,
-        message: buildWhatsAppTemplatePreview(templateId),
-      });
-    },
-    [buildWhatsAppTemplatePreview],
-  );
-
-  const handleSendWhatsAppTemplate = useCallback(
-    async (templateId: WhatsAppTemplateId, messageOverride?: string) => {
-      const message = messageOverride ?? buildWhatsAppTemplatePreview(templateId);
-      setWhatsAppTemplateBusyId(templateId);
-      try {
-        const url = buildWhatsAppUrl(draft.customer.phone, message) ?? genericWhatsAppUrl(message);
-        await Linking.openURL(url);
-        flashNotice({ kind: 'ok', text: 'WhatsApp template opened.' });
-        setWhatsAppTemplatePreview(null);
-      } catch {
-        const ok = await copyToClipboard(message);
-        flashNotice({
-          kind: ok ? 'ok' : 'err',
-          text: ok ? 'Template copied. Paste it into WhatsApp.' : 'Could not open WhatsApp or copy template.',
-        });
-        if (ok) setWhatsAppTemplatePreview(null);
-      } finally {
-        setWhatsAppTemplateBusyId(null);
-      }
-    },
-    [buildWhatsAppTemplatePreview, draft.customer.phone, flashNotice],
-  );
-
-  const handleCopyWhatsAppTemplatePreview = useCallback(async () => {
-    if (!whatsAppTemplatePreview) return;
-    const ok = await copyToClipboard(whatsAppTemplatePreview.message);
-    flashNotice({
-      kind: ok ? 'ok' : 'err',
-      text: ok ? 'Template copied.' : 'Could not copy template.',
-    });
-  }, [flashNotice, whatsAppTemplatePreview]);
-
-  const handleRequestLocationWhatsAppTemplate = useCallback(async () => {
-    setWhatsAppTemplateBusyId('request_location');
-    try {
-      await locationShare.requestLink('whatsapp');
-    } finally {
-      setWhatsAppTemplateBusyId(null);
-    }
-  }, [locationShare]);
-
   const handleCallCustomer = useCallback(async () => {
     if (!customerDialNumber) return;
     try {
@@ -1111,6 +1076,30 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       flashNotice({ kind: 'err', text: 'Could not start the call.' });
     }
   }, [customerDialNumber, flashNotice]);
+
+  const handleDownloadHeaderInvoice = useCallback(async () => {
+    const refNumber = draft.dispatchedRefNumber;
+    if (!refNumber || headerInvoiceLoading) return;
+
+    setHeaderInvoiceLoading(true);
+    try {
+      const result = await api.post<{ invoice: { id: string; invoiceNumber: string } }>(
+        `/api/mobile/admin/bookings/${encodeURIComponent(refNumber)}/invoice`,
+        {},
+      );
+      const token = getAdminToken();
+      const qs = token ? `?token=${encodeURIComponent(token)}` : '';
+      await Linking.openURL(`${API_BASE_URL}/api/mobile/admin/invoices/${result.invoice.id}/pdf${qs}`);
+      flashNotice({ kind: 'ok', text: `Invoice ${result.invoice.invoiceNumber} opened.` });
+    } catch (error) {
+      flashNotice({
+        kind: 'err',
+        text: error instanceof Error ? error.message : 'Could not download invoice.',
+      });
+    } finally {
+      setHeaderInvoiceLoading(false);
+    }
+  }, [draft.dispatchedRefNumber, flashNotice, headerInvoiceLoading]);
 
   const handleUseRecent = useCallback(
     (item: RecentCustomer) => {
@@ -1130,6 +1119,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
           whatsappLink: null,
           status: item.lat != null && item.lng != null ? 'received' : 'idle',
         },
+        serviceType: item.serviceType ?? 'fit',
         tyreLines: item.tyreLines?.length
           ? item.tyreLines
           : [createBookingTyreLine({ id: 'tyre-1', size: item.tyreSize ?? '', quantity: item.quantity ?? 1 })],
@@ -1249,6 +1239,25 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       patch.paymentLink = null;
       patch.dispatchedRefNumber = null;
       applied.push('address text');
+    }
+
+    if (parsed.serviceType) {
+      patch.serviceType = parsed.serviceType;
+      patch.quote = null;
+      patch.priceNeedsRefresh = Boolean(draft.quote || draft.priceNeedsRefresh);
+      patch.paymentChoice = null;
+      patch.paymentLink = null;
+      patch.dispatchedRefNumber = null;
+      patch.dispatchedBookingId = null;
+      patch.savedQuoteId = null;
+      patch.savedQuoteRef = null;
+      applied.push(
+        parsed.serviceType === 'repair'
+          ? 'tyre repair'
+          : parsed.serviceType === 'assess'
+          ? 'inspection required'
+          : 'replacement tyre',
+      );
     }
 
     if (parsed.tyreSize || parsed.quantity) {
@@ -1515,7 +1524,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
           id: 'location-sms',
           label: 'Send via SMS',
           description: 'Send the location request by SMS.',
-          disabledReason: noToken ?? (!isValidUkPhone(draft.customer.phone) ? 'Add a valid UK phone number first.' : null),
+          disabledReason: noToken ?? (!isValidUkPhone(draft.customer.phone) ? 'Add a valid UK mobile number first.' : null),
           onPress: () => locationShare.requestLink('sms'),
         },
         {
@@ -1750,7 +1759,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       case 'LOCATION':
         return 'location' as const;
       case 'TYRE':
-        return draft.lockingNut.answer === 'unknown' && hasTyre ? ('lockingNut' as const) : ('tyre' as const);
+        return 'tyre' as const;
       case 'PRICE':
       case 'QUOTE':
       case 'CONFIRMATION':
@@ -1761,37 +1770,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       case 'DISPATCHED':
         return 'dispatch' as const;
     }
-  }, [activeStage, draft.lockingNut.answer, hasTyre]);
-  const nextBestAction = useMemo(
-    () =>
-      deriveNextBestAction({
-        ...operatorDerivationInput,
-        primaryActionLabel: primaryLabel,
-        primaryActionDisabled: primaryDisabled,
-        primaryActionDisabledReason: primaryDisabledReason,
-        onPrimaryPress: handlePrimaryAction,
-        primaryLoading: price.loading || dispatch.busy || quoteActions.busy !== null,
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      activeStage,
-      draft,
-      hasLocation,
-      hasTyre,
-      hasPrice,
-      hasSavedQuote,
-      quoteConfirmed,
-      price.loading,
-      dispatch.busy,
-      locationShare.isPolling,
-      primaryLabel,
-      primaryDisabled,
-      primaryDisabledReason,
-      handlePrimaryAction,
-      quoteActions.busy,
-    ],
-  );
-
+  }, [activeStage]);
   const handleSelectOperatorStep = useCallback(
     (stepId: typeof operatorSteps[number]['id']) => {
       const targetStage = stageForStepId(stepId, {
@@ -1831,6 +1810,8 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     : draft.location.status === 'pending'
     ? 'Waiting location'
     : 'No location';
+  const hasHeaderInvoiceRef = Boolean(draft.dispatchedRefNumber);
+  const headerInvoiceBusy = headerInvoiceLoading;
 
   if (!hydrated) {
     return (
@@ -1849,8 +1830,8 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         keyboardVerticalOffset={0}
       >
         <View style={styles.header}>
-          <View pointerEvents="none" style={styles.headerAccent} />
-          <View pointerEvents="none" style={styles.headerPanel} />
+          <View style={[styles.headerAccent, { pointerEvents: 'none' }]} />
+          <View style={[styles.headerPanel, { pointerEvents: 'none' }]} />
           <View style={styles.headerTopRow}>
             <View style={styles.headerTextBlock}>
               <Text style={styles.headerTitle}>Assisted Chat</Text>
@@ -1874,6 +1855,24 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
                     <Text style={styles.compactContactLabel}>Call</Text>
                   </Pressable>
                 ) : null}
+                {hasHeaderInvoiceRef ? (
+                  <Pressable
+                    onPress={handleDownloadHeaderInvoice}
+                    disabled={headerInvoiceBusy}
+                    accessibilityRole="button"
+                    accessibilityLabel="Download invoice"
+                    accessibilityState={{ disabled: headerInvoiceBusy }}
+                    style={({ pressed }) => [
+                      styles.headerInvoiceButton,
+                      pressed && !headerInvoiceBusy && styles.contactButtonPressed,
+                      headerInvoiceBusy && styles.headerInvoiceButtonDisabled,
+                    ]}
+                  >
+                    <Text style={styles.headerInvoiceLabel} numberOfLines={1}>
+                      {headerInvoiceLoading ? 'Preparing...' : 'Download Invoice'}
+                    </Text>
+                  </Pressable>
+                ) : null}
                 <Pressable
                   onPress={customerWhatsAppNumber ? handleOpenWhatsApp : undefined}
                   disabled={!customerWhatsAppNumber}
@@ -1894,6 +1893,28 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
                     numberOfLines={1}
                   >
                     Send via WhatsApp
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleClear}
+                  disabled={!draftHasContent}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear draft"
+                  accessibilityState={{ disabled: !draftHasContent }}
+                  style={({ pressed }) => [
+                    styles.headerClearDraftButton,
+                    !draftHasContent && styles.headerClearDraftButtonDisabled,
+                    pressed && draftHasContent && styles.contactButtonPressed,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.headerClearDraftLabel,
+                      !draftHasContent && styles.headerClearDraftLabelDisabled,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    Clear Draft
                   </Text>
                 </Pressable>
               </View>
@@ -1951,24 +1972,6 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
           />
         ) : null}
 
-        <NextBestActionCard
-          title={nextBestAction.title}
-          body={nextBestAction.body}
-          status={nextBestAction.status}
-        />
-
-        <WhatsAppTemplatesCard
-          hasCustomerPhone={Boolean(customerWhatsAppNumber)}
-          hasQuote={Boolean(draft.quote && !draft.priceNeedsRefresh)}
-          hasReference={Boolean(draft.dispatchedRefNumber || draft.savedQuoteRef)}
-          hasDispatchedBooking={Boolean(draft.dispatchedRefNumber || draft.dispatchedBookingId)}
-          canRequestLocation={api.hasAdminToken && Boolean(draft.customer.phone.trim())}
-          requestLocationBusy={locationShare.busy === 'whatsapp' || whatsAppTemplateBusyId === 'request_location'}
-          busyTemplateId={whatsAppTemplateBusyId}
-          onRequestLocation={() => { void handleRequestLocationWhatsAppTemplate(); }}
-          onPreviewTemplate={handlePreviewWhatsAppTemplate}
-        />
-
         <OperatorStepProgress
           steps={operatorSteps}
           activeStepId={activeOperatorStepId}
@@ -2006,9 +2009,19 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
           ) : null}
           {hasTyre ? (
             <SummaryCard
-              title="Tyre"
-              value={summarizeBookingTyreLines(draft.tyreLines).join('\n')}
-              detail={draft.lockingNut.answer === 'no' ? 'Locking wheel nut removal may apply' : 'Tyre details ready'}
+              title={draft.serviceType === 'assess' ? 'Inspection' : 'Tyre'}
+              value={
+                draft.serviceType === 'assess'
+                  ? formatAssistedChatServiceType(draft.serviceType)
+                  : summarizeBookingTyreLines(draft.tyreLines).join('\n')
+              }
+              detail={
+                draft.serviceType === 'assess'
+                  ? 'Final tyre cost confirmed after inspection'
+                  : draft.lockingNut.answer === 'no'
+                  ? 'Locking wheel nut removal may apply'
+                  : 'Tyre details ready'
+              }
               done
               active={activeStage === 'TYRE'}
               onPress={() => setEditingStage('TYRE')}
@@ -2018,7 +2031,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
             <SummaryCard
               title="Price"
               value={formatGbp(effectiveTotal)}
-              detail={draft.quote.distanceKm != null ? `${(draft.quote.distanceKm * 0.621371).toFixed(1)} mi pricing distance` : 'Price ready'}
+              detail={quotePricingDistanceMiles != null ? `${quotePricingDistanceMiles.toFixed(1)} mi pricing distance` : 'Price ready'}
               done
               active={activeStage === 'PRICE'}
               onPress={() => setEditingStage('PRICE')}
@@ -2055,7 +2068,9 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
             update,
             phoneInput,
             setPhoneInput,
+            handlePhoneChange,
             handlePhoneBlur,
+            handleEmailBlur,
             noteInput,
             setNoteInput,
             callNotesInput,
@@ -2208,18 +2223,6 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         </View>
       </KeyboardAvoidingView>
 
-      <WhatsAppTemplatePreviewSheet
-        visible={whatsAppTemplatePreview !== null}
-        title={whatsAppTemplatePreview ? WHATSAPP_TEMPLATE_LABELS[whatsAppTemplatePreview.id] : 'WhatsApp template'}
-        message={whatsAppTemplatePreview?.message ?? ''}
-        busy={whatsAppTemplatePreview ? whatsAppTemplateBusyId === whatsAppTemplatePreview.id : false}
-        onClose={() => setWhatsAppTemplatePreview(null)}
-        onCopy={() => { void handleCopyWhatsAppTemplatePreview(); }}
-        onSend={() => {
-          if (!whatsAppTemplatePreview) return;
-          void handleSendWhatsAppTemplate(whatsAppTemplatePreview.id, whatsAppTemplatePreview.message);
-        }}
-      />
       <GuidedActionSheet visible={moreOpen} title="More" actions={sheetActions} onClose={() => setMoreOpen(false)} />
       <DispatchReviewSheet
         visible={reviewOpen}
@@ -2338,7 +2341,9 @@ interface RenderActiveStageArgs {
   update: (patch: Partial<AssistedChatDraft>) => void;
   phoneInput: string;
   setPhoneInput: (value: string) => void;
+  handlePhoneChange: (value: string) => void;
   handlePhoneBlur: () => void;
+  handleEmailBlur: () => void;
   noteInput: string;
   setNoteInput: (value: string) => void;
   callNotesInput: string;
@@ -2375,8 +2380,9 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     draft,
     update,
     phoneInput,
-    setPhoneInput,
+    handlePhoneChange,
     handlePhoneBlur,
+    handleEmailBlur,
     noteInput,
     setNoteInput,
     callNotesInput,
@@ -2407,6 +2413,8 @@ function renderActiveStage(args: RenderActiveStageArgs) {
   } = args;
 
   if (activeStage === 'CUSTOMER') {
+    const emailSuggestions = getEmailDomainSuggestions(draft.customer.email);
+
     return (
       <View style={styles.stepStack}>
         <Pressable onLongPress={handleCopyCustomerDetails} delayLongPress={350}>
@@ -2423,7 +2431,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
             <FieldLabel>Customer phone</FieldLabel>
             <TextInput
               value={phoneInput}
-              onChangeText={setPhoneInput}
+              onChangeText={handlePhoneChange}
               onBlur={handlePhoneBlur}
               placeholder="07... or 0141..."
               placeholderTextColor={colors.subtle}
@@ -2439,6 +2447,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
             <TextInput
               value={draft.customer.email}
               onChangeText={(email) => update({ customer: { ...draft.customer, email } })}
+              onBlur={handleEmailBlur}
               placeholder="you@example.com"
               placeholderTextColor={colors.subtle}
               keyboardType="email-address"
@@ -2446,6 +2455,24 @@ function renderActiveStage(args: RenderActiveStageArgs) {
               autoCorrect={false}
               style={styles.input}
             />
+            {emailSuggestions.length > 0 ? (
+              <View style={styles.emailSuggestionRow}>
+                {emailSuggestions.map((email) => (
+                  <Pressable
+                    key={email}
+                    onPress={() => update({ customer: { ...draft.customer, email } })}
+                    style={({ pressed }) => [
+                      styles.emailSuggestionChip,
+                      pressed && styles.emailSuggestionChipPressed,
+                    ]}
+                  >
+                    <Text style={styles.emailSuggestionText} numberOfLines={1}>
+                      {email}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
             <View style={styles.fieldGap} />
             {/* زر تبديل وضع البريد الإلكتروني */}
             <View style={styles.emailModeRow}>
@@ -2516,7 +2543,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     const pricingDisabledReason = !hasLocation
       ? 'Price is locked until the customer location is confirmed.'
       : !hasTyre
-      ? 'Enter a tyre size before getting the price.'
+      ? 'Enter a tyre size or choose Unknown / inspection required before getting the price.'
       : null;
     const status = computeCompactQuoteStatus({
       activeQuote,
@@ -2575,6 +2602,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
             pricingBlocked={!hasLocation || !hasTyre}
             priceNeedsRefresh={draft.priceNeedsRefresh}
             manualPriceGbp={draft.manualPriceGbp}
+            serviceType={draft.serviceType}
             showGetPriceAction={false}
             showPaymentOptions={false}
           />
@@ -2632,6 +2660,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
             pricingBlocked={false}
             priceNeedsRefresh={draft.priceNeedsRefresh}
             manualPriceGbp={draft.manualPriceGbp}
+            serviceType={draft.serviceType}
             showGetPriceAction={false}
             showPaymentOptions={false}
           />
@@ -2690,6 +2719,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
             pricingBlocked={false}
             priceNeedsRefresh={draft.priceNeedsRefresh}
             manualPriceGbp={draft.manualPriceGbp}
+            serviceType={draft.serviceType}
             showGetPriceAction={false}
             showPaymentOptions={false}
           />
@@ -2755,6 +2785,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
             pricingBlocked={false}
             priceNeedsRefresh={draft.priceNeedsRefresh}
             manualPriceGbp={draft.manualPriceGbp}
+            serviceType={draft.serviceType}
             showGetPriceAction={false}
             showPaymentOptions={false}
           />
@@ -2817,7 +2848,7 @@ function blockedReasonForStage(
       return null;
     case 'PRICE':
       if (!ctx.hasLocation) return 'Complete location before pricing.';
-      if (!ctx.hasTyre) return 'Add tyre details before pricing.';
+      if (!ctx.hasTyre) return 'Add tyre details or choose Unknown / inspection required before pricing.';
       return null;
     case 'QUOTE':
     case 'CONFIRMATION':
@@ -2945,173 +2976,6 @@ function HeaderStat({
         {value}
       </Text>
     </View>
-  );
-}
-
-const WHATSAPP_TEMPLATE_LABELS: Record<WhatsAppTemplateId, string> = {
-  price: 'Send price',
-  booking_confirmation: 'Confirm booking',
-  driver_en_route: 'Driver en route',
-  driver_nearby: 'Driver nearby',
-  delay: 'Delay update',
-  job_completed: 'Job complete',
-};
-
-function WhatsAppTemplatesCard({
-  hasCustomerPhone,
-  hasQuote,
-  hasReference,
-  hasDispatchedBooking,
-  canRequestLocation,
-  requestLocationBusy,
-  busyTemplateId,
-  onRequestLocation,
-  onPreviewTemplate,
-}: {
-  hasCustomerPhone: boolean;
-  hasQuote: boolean;
-  hasReference: boolean;
-  hasDispatchedBooking: boolean;
-  canRequestLocation: boolean;
-  requestLocationBusy: boolean;
-  busyTemplateId: WhatsAppTemplateBusyId;
-  onRequestLocation: () => void;
-  onPreviewTemplate: (templateId: WhatsAppTemplateId) => void;
-}) {
-  const anyBusy = busyTemplateId !== null || requestLocationBusy;
-  const templates: Array<{
-    id: WhatsAppTemplateId | 'request_location';
-    label: string;
-    disabled: boolean;
-    reason: string | null;
-  }> = [
-    {
-      id: 'price',
-      label: 'Send price',
-      disabled: !hasCustomerPhone || !hasQuote,
-      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : !hasQuote ? 'Get a price first.' : null,
-    },
-    {
-      id: 'request_location',
-      label: 'Request location',
-      disabled: !canRequestLocation,
-      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : 'Log in before sending location links.',
-    },
-    {
-      id: 'booking_confirmation',
-      label: 'Confirm booking',
-      disabled: !hasCustomerPhone || !hasReference,
-      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : 'Save a quote or dispatch first.',
-    },
-    {
-      id: 'driver_en_route',
-      label: 'Driver en route',
-      disabled: !hasCustomerPhone || !hasDispatchedBooking,
-      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : 'Dispatch the booking first.',
-    },
-    {
-      id: 'driver_nearby',
-      label: 'Driver nearby',
-      disabled: !hasCustomerPhone || !hasDispatchedBooking,
-      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : 'Dispatch the booking first.',
-    },
-    {
-      id: 'delay',
-      label: 'Delay update',
-      disabled: !hasCustomerPhone || !hasDispatchedBooking,
-      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : 'Dispatch the booking first.',
-    },
-    {
-      id: 'job_completed',
-      label: 'Job complete',
-      disabled: !hasCustomerPhone || !hasDispatchedBooking,
-      reason: !hasCustomerPhone ? 'Add customer phone for WhatsApp.' : 'Dispatch the booking first.',
-    },
-  ];
-
-  const firstReason = templates.find((template) => template.disabled)?.reason ?? null;
-
-  return (
-    <SectionCard title="WhatsApp templates" helperText="Quick customer messages for the common assisted-call moments.">
-      <View style={styles.templateGrid}>
-        {templates.map((template) => {
-          const isRequestLocation = template.id === 'request_location';
-          const loading = isRequestLocation
-            ? requestLocationBusy
-            : busyTemplateId === template.id;
-          return (
-            <AppButton
-              key={template.id}
-              label={template.label}
-              variant={template.id === 'price' || template.id === 'booking_confirmation' ? 'primary' : 'secondary'}
-              onPress={() => {
-                if (isRequestLocation) onRequestLocation();
-                else onPreviewTemplate(template.id as WhatsAppTemplateId);
-              }}
-              loading={loading}
-              disabled={template.disabled || (anyBusy && !loading)}
-              style={styles.templateButton}
-            />
-          );
-        })}
-      </View>
-      {firstReason ? <Text style={styles.templateHint}>{firstReason}</Text> : null}
-    </SectionCard>
-  );
-}
-
-function WhatsAppTemplatePreviewSheet({
-  visible,
-  title,
-  message,
-  busy,
-  onClose,
-  onCopy,
-  onSend,
-}: {
-  visible: boolean;
-  title: string;
-  message: string;
-  busy: boolean;
-  onClose: () => void;
-  onCopy: () => void;
-  onSend: () => void;
-}) {
-  return (
-    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
-      <Pressable style={styles.sheetBackdrop} onPress={onClose}>
-        <Pressable style={styles.templatePreviewSheet} onPress={() => {}}>
-          <View style={styles.sheetGrabber} />
-          <View style={styles.templatePreviewHeader}>
-            <View style={styles.templatePreviewTitleBlock}>
-              <Text style={styles.templatePreviewKicker}>WhatsApp preview</Text>
-              <Text style={styles.templatePreviewTitle} numberOfLines={1}>{title}</Text>
-            </View>
-            <AppButton label="Close" variant="ghost" onPress={onClose} style={styles.templatePreviewCloseButton} />
-          </View>
-          <ScrollView style={styles.templatePreviewScroll} contentContainerStyle={styles.templatePreviewContent}>
-            <Text style={styles.templatePreviewText}>{message}</Text>
-          </ScrollView>
-          <View style={styles.templatePreviewActions}>
-            <AppButton
-              label="Copy"
-              variant="secondary"
-              onPress={onCopy}
-              disabled={!message || busy}
-              style={styles.templatePreviewActionButton}
-            />
-            <AppButton
-              label="Send WhatsApp"
-              variant="primary"
-              onPress={onSend}
-              loading={busy}
-              disabled={!message}
-              style={styles.templatePreviewActionButton}
-            />
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
   );
 }
 
@@ -3326,9 +3190,7 @@ function DispatchReviewSheet({
   onClose: () => void;
   onSend: () => void;
 }) {
-  const distanceMiles =
-    draft.quote?.distanceMiles ??
-    (draft.quote?.distanceKm != null ? draft.quote.distanceKm * 0.621371 : null);
+  const distanceMiles = getQuotePricingDistanceMiles(draft.quote);
   const driveTime = draft.quote?.serviceOrigin?.etaMinutes ?? null;
   const stripeCharge =
     draft.paymentChoice === 'deposit'
@@ -3363,6 +3225,7 @@ function DispatchReviewSheet({
           <ScrollView contentContainerStyle={styles.reviewContent}>
             <DetailRow label="Customer" value={draft.customer.name.trim() || 'New customer'} />
             <DetailRow label="Phone" value={draft.customer.phone.trim() || 'Not set'} />
+            <DetailRow label="Service" value={formatAssistedChatServiceType(draft.serviceType)} />
             <DetailRow label="Tyres" value={summarizeBookingTyreLines(draft.tyreLines).join('\n') || 'Not set'} />
             <DetailRow label="Address/location" value={draft.location.address.trim() || draft.location.status} />
             <DetailRow label="Price" value={formatGbp(effectiveTotal)} />
@@ -3540,6 +3403,26 @@ const styles = StyleSheet.create({
   callButton: { backgroundColor: colors.accent, borderColor: colors.accent },
   whatsappButton: { backgroundColor: '#25D366', borderColor: '#1FB855' },
   compactContactLabel: { color: '#FFFFFF', fontSize: fontSize.sm, fontWeight: '800' },
+  headerInvoiceButton: {
+    minHeight: 42,
+    minWidth: 134,
+    maxWidth: 168,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    paddingHorizontal: 12,
+  },
+  headerInvoiceButtonDisabled: {
+    opacity: 0.62,
+  },
+  headerInvoiceLabel: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: '900',
+  },
   headerWhatsAppButton: {
     minHeight: 42,
     minWidth: 156,
@@ -3563,6 +3446,29 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   headerWhatsAppLabelDisabled: { color: colors.muted },
+  headerClearDraftButton: {
+    minHeight: 42,
+    minWidth: 112,
+    maxWidth: 142,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerBg,
+    paddingHorizontal: 12,
+  },
+  headerClearDraftButtonDisabled: {
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    opacity: 0.58,
+  },
+  headerClearDraftLabel: {
+    color: colors.danger,
+    fontSize: fontSize.sm,
+    fontWeight: '900',
+  },
+  headerClearDraftLabelDisabled: { color: colors.muted },
   contactButtonPressed: { opacity: 0.82 },
   scroll: { paddingHorizontal: 16, paddingTop: 14, gap: 14, paddingBottom: 148 },
   priorityBookingButton: { minHeight: 48 },
@@ -3619,24 +3525,35 @@ const styles = StyleSheet.create({
   },
   summaryRightText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '800' },
   activeStepBlock: { gap: 12 },
-  templateGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  templateButton: {
-    flexGrow: 1,
-    flexBasis: 136,
-  },
-  templateHint: {
-    marginTop: 8,
-    color: colors.subtle,
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-  },
   stepStack: { gap: 12 },
   input: baseInput,
   fieldGap: { height: 10 },
+  emailSuggestionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  emailSuggestionChip: {
+    maxWidth: '100%',
+    minHeight: 32,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radius.sm,
+    backgroundColor: colors.cardMuted,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    justifyContent: 'center',
+  },
+  emailSuggestionChipPressed: {
+    borderColor: colors.accent,
+    backgroundColor: colors.ripple,
+  },
+  emailSuggestionText: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+  },
   emailModeRow: { flexDirection: 'row', gap: 8 },
   emailModeBtn: {
     flex: 1,
@@ -3796,56 +3713,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: colors.accent,
     marginBottom: 12,
-  },
-  templatePreviewSheet: {
-    maxHeight: '88%',
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.glowBorder,
-    backgroundColor: colors.surfaceOverlay,
-    padding: 16,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.38,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: -12 },
-    elevation: 8,
-  },
-  templatePreviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
-  },
-  templatePreviewTitleBlock: { flex: 1, minWidth: 0 },
-  templatePreviewKicker: { color: colors.subtle, fontSize: fontSize.xs, fontWeight: '700', letterSpacing: 0 },
-  templatePreviewTitle: { color: colors.text, fontSize: fontSize.lg, fontWeight: '900', marginTop: 2 },
-  templatePreviewCloseButton: { minWidth: 78 },
-  templatePreviewScroll: {
-    maxHeight: 320,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    borderRadius: radius.md,
-    backgroundColor: colors.inputBg,
-  },
-  templatePreviewContent: {
-    padding: 12,
-  },
-  templatePreviewText: {
-    color: colors.text,
-    fontSize: fontSize.md,
-    lineHeight: 21,
-  },
-  templatePreviewActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 12,
-  },
-  templatePreviewActionButton: {
-    flexGrow: 1,
-    flexBasis: 140,
-    minHeight: 50,
   },
   sheetHeader: {
     flexDirection: 'row',

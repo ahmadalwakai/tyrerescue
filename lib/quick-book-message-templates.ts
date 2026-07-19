@@ -5,6 +5,8 @@
  * via WhatsApp, SMS, Email, or copy-to-clipboard.
  */
 
+import { normalizeCustomerPhoneInput } from './contact-normalization';
+
 export interface LocationMessageContext {
   customerName: string;
   locationLink: string;
@@ -136,19 +138,17 @@ Tyre Rescue
  * Build WhatsApp URL with pre-filled message
  */
 export function buildWhatsAppUrl(phone: string, message: string): string {
-  // Clean phone number - remove spaces, dashes, and ensure it starts with country code
-  let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-  
-  // If starts with 0, replace with UK country code
-  if (cleanPhone.startsWith('0')) {
-    cleanPhone = '44' + cleanPhone.slice(1);
-  }
-  
-  // If doesn't start with +, add it (but WhatsApp URL uses no +)
+  let cleanPhone = normalizeCustomerPhoneInput(phone);
   if (cleanPhone.startsWith('+')) {
     cleanPhone = cleanPhone.slice(1);
   }
-  
+  if (cleanPhone.startsWith('00')) {
+    cleanPhone = cleanPhone.slice(2);
+  }
+  if (cleanPhone.startsWith('0')) {
+    cleanPhone = '44' + cleanPhone.slice(1);
+  }
+
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }
 

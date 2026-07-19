@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createBookingTyreLine, ensureBookingTyreLines } from '@/lib/assisted-chat-workflow';
-import type { AssistedChatDraft, AssistedChatTyreSelection } from '@/types/assisted-chat';
+import type {
+  AssistedChatDraft,
+  AssistedChatServiceType,
+  AssistedChatTyreSelection,
+} from '@/types/assisted-chat';
 
 // Bumped key because old persisted drafts carried fields this streamlined
 // phone-led flow no longer uses. Restore only the current draft shape.
@@ -9,6 +13,10 @@ const STORAGE_KEY = 'assistedChat.draft.v4';
 const LEGACY_KEYS = ['assistedChat.draft.v3', 'assistedChat.draft.v2', 'assistedChat.draft.v1'] as const;
 // Mirrors the web hook so a stale draft doesn't carry forward across days.
 const STALE_AFTER_MS = 1000 * 60 * 60 * 12;
+
+function normalizeServiceType(value: unknown): AssistedChatServiceType {
+  return value === 'repair' || value === 'assess' ? value : 'fit';
+}
 
 export const EMPTY_DRAFT: AssistedChatDraft = {
   customer: { phone: '', name: '', email: '' },
@@ -22,6 +30,7 @@ export const EMPTY_DRAFT: AssistedChatDraft = {
     whatsappLink: null,
     status: 'idle',
   },
+  serviceType: 'fit',
   tyreLines: [createBookingTyreLine({ id: 'tyre-1' })],
   lockingNut: { answer: 'unknown', chargeGbp: null },
   quickBookingId: null,
@@ -86,6 +95,7 @@ export function useAssistedChatDraft() {
               ...EMPTY_DRAFT,
               customer: { ...EMPTY_DRAFT.customer, ...parsed.customer },
               location: { ...EMPTY_DRAFT.location, ...parsed.location },
+              serviceType: normalizeServiceType(parsed.serviceType),
               tyreLines: migratedTyreLines,
               lockingNut: { ...EMPTY_DRAFT.lockingNut, ...parsed.lockingNut },
               quickBookingId: typeof parsed.quickBookingId === 'string' ? parsed.quickBookingId : null,

@@ -16,10 +16,20 @@ import type {
   LocationShareContactOverride,
   LocationShareMethod,
 } from '@/hooks/useAssistedChatLocationShare';
-import { summarizeBookingTyreLines } from '@/lib/assisted-chat-workflow';
+import {
+  formatAssistedChatServiceType,
+  summarizeBookingTyreLines,
+} from '@/lib/assisted-chat-workflow';
 import { copyToClipboard } from '@/lib/clipboard';
 import { buildWhatsAppUrl } from '@/lib/customer-message';
-import { formatGbp, isValidUkPhone } from '@/lib/money';
+import {
+  formatGbp,
+  getEmailDomainSuggestions,
+  isValidUkPhone,
+  normalizeContactPhone,
+  normalizeEmailAddress,
+  normalizeUkMobilePhoneNumber,
+} from '@/lib/money';
 import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
@@ -100,9 +110,12 @@ function jobLines(draft: AssistedChatDraft, effectiveTotal: number): string[] {
   const lines: string[] = [];
   const ref = referenceLine(draft);
   if (ref) lines.push(ref);
+  lines.push(`Service: ${formatAssistedChatServiceType(draft.serviceType)}`);
 
   const tyres = summarizeBookingTyreLines(draft.tyreLines);
-  if (tyres.length) {
+  if (draft.serviceType === 'assess') {
+    lines.push('Final tyre cost will be confirmed after inspection.');
+  } else if (tyres.length) {
     lines.push('Tyres:');
     tyres.forEach((line) => lines.push(`- ${line}`));
   }
@@ -277,14 +290,14 @@ function buildTemplates(ctx: TemplateContext): MessageTemplate[] {
 }
 
 function buildSmsUrl(phone: string, message: string): string | null {
-  const cleaned = phone.replace(/[^\d+]/g, '');
+  const cleaned = normalizeUkMobilePhoneNumber(phone);
   if (!cleaned) return null;
   const separator = Platform.OS === 'ios' ? '&' : '?';
-  return `sms:${cleaned}${separator}body=${encodeURIComponent(message)}`;
+  return `sms:+${cleaned}${separator}body=${encodeURIComponent(message)}`;
 }
 
 function buildEmailUrl(email: string, subject: string, message: string): string | null {
-  const trimmed = email.trim();
+  const trimmed = normalizeEmailAddress(email);
   if (!trimmed) return null;
   return `mailto:${encodeURIComponent(trimmed)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
 }
@@ -361,8 +374,9 @@ export function MessageSenderModal({
     onNotice?.(next);
   };
 
-  const customerPhone = phoneInput.trim();
-  const customerEmail = emailInput.trim();
+  const customerPhone = normalizeContactPhone(phoneInput);
+  const customerEmail = normalizeEmailAddress(emailInput);
+  const emailSuggestions = useMemo(() => getEmailDomainSuggestions(emailInput), [emailInput]);
   const contactDirty =
     customerPhone !== draft.customer.phone.trim() ||
     customerEmail !== draft.customer.email.trim();
@@ -373,7 +387,7 @@ export function MessageSenderModal({
   const channelReason = (() => {
     if (selectedChannel === 'copy') return null;
     if (selectedChannel === 'email') return customerEmail ? null : 'Add customer email first.';
-    if (selectedChannel === 'sms') return isValidUkPhone(customerPhone) ? null : 'Add a valid UK phone number first.';
+    if (selectedChannel === 'sms') return isValidUkPhone(customerPhone) ? null : 'Add a valid UK mobile number first.';
     return customerPhone ? null : 'Add customer phone first.';
   })();
   const externalBusy = locationBusy !== null;
@@ -489,6 +503,24 @@ export function MessageSenderModal({
                     autoCapitalize="none"
                     style={styles.contactInput}
                   />
+                  {emailSuggestions.length > 0 ? (
+                    <View style={styles.emailSuggestionRow}>
+                      {emailSuggestions.map((email) => (
+                        <Pressable
+                          key={email}
+                          onPress={() => setEmailInput(email)}
+                          style={({ pressed }) => [
+                            styles.emailSuggestionChip,
+                            pressed && styles.emailSuggestionChipPressed,
+                          ]}
+                        >
+                          <Text style={styles.emailSuggestionText} numberOfLines={1}>
+                            {email}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
                 </View>
               </View>
               <Text style={styles.contactHint}>
@@ -700,6 +732,32 @@ const styles = StyleSheet.create({
     color: colors.subtle,
     fontSize: fontSize.xs,
     lineHeight: 16,
+  },
+  emailSuggestionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  emailSuggestionChip: {
+    maxWidth: '100%',
+    minHeight: 32,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radius.sm,
+    backgroundColor: colors.cardMuted,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    justifyContent: 'center',
+  },
+  emailSuggestionChipPressed: {
+    borderColor: colors.accent,
+    backgroundColor: colors.ripple,
+  },
+  emailSuggestionText: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    fontWeight: '800',
   },
   linkStrip: {
     flexDirection: 'row',

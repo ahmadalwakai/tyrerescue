@@ -132,9 +132,9 @@ export function StepCard({
       ]}
     >
       <View
-        pointerEvents="none"
         style={[
           styles.statusRail,
+          { pointerEvents: 'none' },
           status === 'active' && styles.statusRailActive,
           status === 'complete' && styles.statusRailComplete,
           status === 'blocked' && styles.statusRailBlocked,

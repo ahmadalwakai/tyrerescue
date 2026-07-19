@@ -99,6 +99,14 @@ export type PaymentSummary = {
   reason: PaymentReason;
 };
 
+const FINAL_INVOICE_BLOCKED_STATUSES = new Set([
+  'cancelled',
+  'cancelled_refund_pending',
+  'payment_failed',
+  'refunded',
+  'refunded_partial',
+]);
+
 type JsonRecord = Record<string, unknown>;
 
 export interface PaymentBookingInput {
@@ -428,6 +436,19 @@ function methodLabel(method: PaymentMethod): string {
 function amountCoversTotal(totalPence: number | null, paidPence: number): boolean {
   if (totalPence == null) return false;
   return paidPence >= Math.max(0, totalPence - 1);
+}
+
+export function isPaymentFullySettledForInvoice(
+  summary: Pick<PaymentSummary, 'state' | 'totalPence' | 'paidPence' | 'amountToCollectPence'>,
+  bookingStatus?: string | null,
+): boolean {
+  if (bookingStatus && FINAL_INVOICE_BLOCKED_STATUSES.has(bookingStatus)) return false;
+  if (summary.state !== 'paid') return false;
+
+  const paidPence = summary.paidPence ?? 0;
+  if (!amountCoversTotal(summary.totalPence, paidPence)) return false;
+
+  return summary.amountToCollectPence == null || summary.amountToCollectPence <= 1;
 }
 
 function newestEventDate(events: CanonicalEvent[]): Date | null {

@@ -20,7 +20,7 @@ import type {
 const PLACEHOLDER_NAME = 'Walk-in customer';
 const PLACEHOLDER_PHONE = '0000000000';
 const LOCKING_NUT_REASON = 'Locking wheel nut removal';
-const QUOTE_STAGE_LABELS = ['Checking stock', 'Calculating price', 'Saving quote'] as const;
+const QUOTE_STAGE_LABELS = ['Checking details', 'Calculating price', 'Saving quote'] as const;
 const QUOTE_STAGE_MS = 450;
 
 export interface UseAssistedChatPriceArgs {
@@ -62,14 +62,27 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
         return;
       }
 
+      const pricingDistanceMiles = breakdown.distanceMiles ?? breakdown.pricingDistanceMiles ?? null;
+      const pricingDistanceKm =
+        pricingDistanceMiles != null
+          ? pricingDistanceMiles * 1.60934
+          : distanceKm
+          ? Number(distanceKm)
+          : null;
       const quote: AssistedChatQuoteBreakdown = {
         subtotal: breakdown.subtotal,
         vatAmount: breakdown.vatAmount,
         total: breakdown.total,
         lineItems: breakdown.lineItems,
         serviceOrigin: breakdown.serviceOrigin ?? null,
-        distanceKm: distanceKm ? Number(distanceKm) : null,
-        distanceMiles: breakdown.distanceMiles ?? null,
+        distanceKm: pricingDistanceKm,
+        distanceMiles: pricingDistanceMiles,
+        serviceDistanceMiles: breakdown.serviceDistanceMiles ?? null,
+        pricingDistanceMiles,
+        pricingDurationMinutes: breakdown.pricingDurationMinutes ?? null,
+        garageDistanceMiles: breakdown.garageDistanceMiles ?? null,
+        pricingDistanceSource: breakdown.pricingDistanceSource ?? null,
+        distanceFloorApplied: breakdown.distanceFloorApplied ?? null,
         fittingPrice: breakdown.fittingPrice ?? null,
         tyrePrice: breakdown.tyrePrice ?? null,
         totalPrice: breakdown.totalPrice ?? null,
@@ -100,15 +113,17 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
     if (inflight.current) return;
     setError(null);
 
-    const tyreError = validateBookingTyreLines(draft.tyreLines);
+    const serviceType = draft.serviceType ?? 'fit';
+    const isInspectionOnly = serviceType === 'assess';
+    const tyreError = isInspectionOnly ? null : validateBookingTyreLines(draft.tyreLines);
     if (tyreError) {
       setError(tyreError);
       return;
     }
     const primaryTyre = primaryBookingTyreLine(draft);
-    const tyreLines = buildBookingTyreLinePayload(draft.tyreLines);
-    const totalTyreCount = totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity;
-    if (draft.lockingNut.answer === 'no') {
+    const tyreLines = isInspectionOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
+    const totalTyreCount = isInspectionOnly ? 1 : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity;
+    if (!isInspectionOnly && draft.lockingNut.answer === 'no') {
       const charge = draft.lockingNut.chargeGbp;
       if (charge == null || !Number.isFinite(charge) || charge < 0) {
         setError('Enter a valid GBP amount for the locking wheel nut removal charge.');
@@ -125,7 +140,7 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
     }
 
     const lockingNutCharge =
-      draft.lockingNut.answer === 'no' && draft.lockingNut.chargeGbp != null
+      !isInspectionOnly && draft.lockingNut.answer === 'no' && draft.lockingNut.chargeGbp != null
         ? draft.lockingNut.chargeGbp
         : 0;
     const adjustmentPayload =
@@ -155,8 +170,8 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
             locationAddress: draft.location.address || undefined,
             locationLat: draft.location.lat,
             locationLng: draft.location.lng,
-            serviceType: 'fit',
-            tyreSize: primaryTyre.size,
+            serviceType,
+            tyreSize: isInspectionOnly ? undefined : primaryTyre.size,
             tyreCount: totalTyreCount,
             tyreLines,
             items: tyreLines,
@@ -175,11 +190,13 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
         const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${draft.quickBookingId}`, {
           customerName: draft.customer.name.trim() || PLACEHOLDER_NAME,
           customerPhone: draft.customer.phone.trim() || PLACEHOLDER_PHONE,
+          customerEmail: draft.customer.email.trim() || '',
           locationLat: draft.location.lat,
           locationLng: draft.location.lng,
           locationAddress: draft.location.address || null,
           locationPostcode: draft.location.postcode || null,
-          tyreSize: primaryTyre.size,
+          serviceType,
+          tyreSize: isInspectionOnly ? null : primaryTyre.size,
           tyreCount: totalTyreCount,
           tyreLines,
           items: tyreLines,

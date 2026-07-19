@@ -340,61 +340,25 @@ function InvoiceDetailView({ invoiceId, onClose, onEdit, onAction, actionLoading
             {detail.customerAddress ? <Text style={s.fieldMuted}>{detail.customerAddress}</Text> : null}
           </View>
 
-          {/* Dates */}
+          {/* Invoice date */}
           <View style={s.card}>
-            <Text style={s.sectionTitle}>Dates</Text>
+            <Text style={s.sectionTitle}>Invoice Date</Text>
             <View style={s.row}>
               <View style={{ flex: 1 }}>
                 <Text style={s.fieldKey}>Issue Date</Text>
                 <Text style={s.fieldVal}>{fmtDate(detail.issueDate)}</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.fieldKey}>Due Date</Text>
-                <Text style={[s.fieldVal, { color: colors.warning }]}>{fmtDate(detail.dueDate)}</Text>
-              </View>
             </View>
-            {detail.sentAt ? (
-              <View style={{ marginTop: space.sm }}>
-                <Text style={s.fieldKey}>Sent</Text>
-                <Text style={[s.fieldVal, { color: STATUS_COLOR.sent }]}>{fmtDate(detail.sentAt)}</Text>
-              </View>
-            ) : null}
           </View>
 
-          {/* Line items */}
+          {/* Final total only */}
           <View style={s.card}>
-            <Text style={s.sectionTitle}>Line Items</Text>
-            {detail.items.map((item, i) => (
-              <View key={item.id} style={[s.lineItemRow, i < detail.items.length - 1 && s.lineItemBorder]}>
-                <Text style={s.lineDesc} numberOfLines={2}>{item.description}</Text>
-                <View style={s.row}>
-                  <Text style={s.fieldMuted}>×{item.quantity} @ {fmtGbp(item.unitPrice)}</Text>
-                  <Text style={[s.lineTotal]}>{fmtGbp(item.totalPrice)}</Text>
-                </View>
-              </View>
-            ))}
-            <View style={[s.row, { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.sm, marginTop: space.sm }]}>
-              <Text style={s.fieldKey}>Subtotal</Text>
-              <Text style={s.fieldVal}>{fmtGbp(detail.subtotal)}</Text>
-            </View>
-            {parseFloat(detail.vatAmount) > 0 && (
-              <View style={[s.row, { marginTop: 4 }]}>
-                <Text style={s.fieldKey}>VAT ({detail.vatRate}%)</Text>
-                <Text style={s.fieldVal}>{fmtGbp(detail.vatAmount)}</Text>
-              </View>
-            )}
-            <View style={[s.row, { marginTop: 4 }]}>
-              <Text style={[s.fieldKey, { color: colors.text, fontWeight: '700' }]}>Total</Text>
-              <Text style={[s.fieldVal, { color: colors.accent, fontWeight: '800' }]}>{fmtGbp(detail.totalAmount)}</Text>
+            <Text style={s.sectionTitle}>Final Total</Text>
+            <View style={[s.row, { marginTop: space.xs }]}>
+              <Text style={[s.fieldKey, { color: colors.text, fontWeight: '800' }]}>TOTAL</Text>
+              <Text style={[s.amountLarge, { color: colors.accent }]}>{fmtGbp(detail.totalAmount)}</Text>
             </View>
           </View>
-
-          {detail.notes ? (
-            <View style={s.card}>
-              <Text style={s.sectionTitle}>Notes</Text>
-              <Text style={s.fieldMuted}>{detail.notes}</Text>
-            </View>
-          ) : null}
 
           {/* Actions */}
           <View style={s.card}>

@@ -1,17 +1,22 @@
 import { NextResponse } from 'next/server';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import {
   db,
   bookings,
   bookingTyres,
   bookingStatusHistory,
+  invoices,
   tyreProducts,
   drivers,
   users,
 } from '@/lib/db';
 import { getMobileAdminUser, unauthorizedResponse } from '@/app/api/mobile/admin/_lib';
 import { executeTransition, getValidNextStates, isValidTransition, type BookingStatus } from '@/lib/state-machine';
-import { getBookingPaymentSummary, recordPaymentEvent } from '@/lib/payments/payment-summary';
+import {
+  getBookingPaymentSummary,
+  isPaymentFullySettledForInvoice,
+  recordPaymentEvent,
+} from '@/lib/payments/payment-summary';
 import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
 import { haversineDistanceMiles } from '@/lib/mapbox';
 import { GARAGE_LOCATION } from '@/lib/garage';
@@ -55,7 +60,7 @@ export async function GET(request: Request, { params }: Props) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
-  const [tyres, statusHistory, availableDrivers] = await Promise.all([
+  const [tyres, statusHistory, availableDrivers, invoice] = await Promise.all([
     db
       .select({
         id: bookingTyres.id,
@@ -85,6 +90,18 @@ export async function GET(request: Request, { params }: Props) {
       .select({ id: drivers.id, name: users.name, isOnline: drivers.isOnline, status: drivers.status })
       .from(drivers)
       .innerJoin(users, eq(drivers.userId, users.id)),
+    db
+      .select({
+        id: invoices.id,
+        invoiceNumber: invoices.invoiceNumber,
+        status: invoices.status,
+        totalAmount: invoices.totalAmount,
+      })
+      .from(invoices)
+      .where(and(eq(invoices.bookingId, booking.id), isNull(invoices.deletedAt)))
+      .orderBy(desc(invoices.createdAt))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
   ]);
 
   let assignedDriver: {
@@ -211,7 +228,16 @@ export async function GET(request: Request, { params }: Props) {
     assignedDriver,
     availableDrivers,
     validNextStatuses: getValidNextStates(booking.status as BookingStatus),
-    paymentSummary,
+    paymentSummary: {
+      ...paymentSummary,
+      isFullyPaid: isPaymentFullySettledForInvoice(paymentSummary, booking.status),
+    },
+    invoice: invoice
+      ? {
+          ...invoice,
+          totalAmount: invoice.totalAmount?.toString() ?? null,
+        }
+      : null,
     driverSituation,
   });
 }

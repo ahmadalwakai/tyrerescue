@@ -1,13 +1,15 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
-import { bookings, invoices } from '@/lib/db/schema';
-import { eq, desc, isNull } from 'drizzle-orm';
+import { bookings } from '@/lib/db/schema';
+import { eq, desc } from 'drizzle-orm';
 import { Box, Heading, Text, VStack, Table, Badge, HStack } from '@chakra-ui/react';
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
-
-const INVOICEABLE = ['paid', 'driver_assigned', 'en_route', 'arrived', 'in_progress', 'completed'];
+import {
+  getBookingPaymentSummaryMap,
+  isPaymentFullySettledForInvoice,
+} from '@/lib/payments/payment-summary';
 
 export default async function CustomerBookingsPage() {
   const session = await auth();
@@ -19,16 +21,20 @@ export default async function CustomerBookingsPage() {
     .where(eq(bookings.userId, session.user.id))
     .orderBy(desc(bookings.createdAt));
 
-  // Fetch invoices linked to this user's bookings for cross-linking
-  const userInvoices = userBookings.length > 0
-    ? await db
-        .select({ id: invoices.id, bookingId: invoices.bookingId, invoiceNumber: invoices.invoiceNumber })
-        .from(invoices)
-        .where(eq(invoices.userId, session.user.id))
-    : [];
-  const invoiceByBookingId = Object.fromEntries(
-    userInvoices.filter((inv) => inv.bookingId).map((inv) => [inv.bookingId!, inv]),
-  );
+  const paymentSummaryMap = await getBookingPaymentSummaryMap(userBookings.map((booking) => ({
+    id: booking.id,
+    refNumber: booking.refNumber,
+    status: booking.status,
+    paymentType: booking.paymentType,
+    totalAmount: booking.totalAmount.toString(),
+    subtotal: booking.subtotal.toString(),
+    vatAmount: booking.vatAmount.toString(),
+    depositAmountPence: booking.depositAmountPence,
+    remainingBalancePence: booking.remainingBalancePence,
+    depositPaidAt: booking.depositPaidAt,
+    stripePiId: booking.stripePiId,
+    stripeDepositPiId: booking.stripeDepositPiId,
+  })));
 
   return (
     <VStack align="stretch" gap={6}>
@@ -68,8 +74,8 @@ export default async function CustomerBookingsPage() {
             </Table.Header>
             <Table.Body>
               {userBookings.map((booking, i) => {
-                const linkedInvoice = invoiceByBookingId[booking.id];
-                const hasInvoice = linkedInvoice || INVOICEABLE.includes(booking.status);
+                const payment = paymentSummaryMap.get(booking.id);
+                const hasInvoice = Boolean(payment && isPaymentFullySettledForInvoice(payment, booking.status));
                 return (
                 <Table.Row key={booking.id} _hover={{ bg: c.surface }} style={{ animation: `fadeUp 0.3s cubic-bezier(0.16,1,0.3,1) ${Math.min(0.1 + i * 0.05, 0.5)}s both` }}>
                   <Table.Cell borderColor={c.border}>
@@ -120,7 +126,8 @@ export default async function CustomerBookingsPage() {
         {/* Mobile cards */}
         <VStack display={{ base: 'flex', md: 'none' }} gap={3} align="stretch">
           {userBookings.map((booking, i) => {
-            const hasInvoice = invoiceByBookingId[booking.id] || INVOICEABLE.includes(booking.status);
+            const payment = paymentSummaryMap.get(booking.id);
+            const hasInvoice = Boolean(payment && isPaymentFullySettledForInvoice(payment, booking.status));
             return (
             <Box key={booking.id} asChild style={{ animation: `fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${Math.min(0.05 + i * 0.05, 0.5).toFixed(2)}s both` }}>
               <NextLink href={`/dashboard/bookings/${booking.refNumber}`} style={{ textDecoration: 'none' }}>

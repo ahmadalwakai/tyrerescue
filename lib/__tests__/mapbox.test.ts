@@ -118,6 +118,8 @@ describe('resolveDistance', () => {
     const drivers = [{ id: 'drv-1', lat: 55.86, lng: -4.25 }];
     // 8000 meters = ~5 miles, 600 seconds = 10 minutes
     mockMapboxDirections(8000, 600);
+    // Garage pricing floor: 50000 meters = ~31 miles
+    mockMapboxDirections(50000, 3600);
 
     const result = await resolveDistance(customer, drivers);
 
@@ -126,6 +128,11 @@ describe('resolveDistance', () => {
     expect(result.selectedDriverId).toBe('drv-1');
     expect(result.distanceMiles).toBeCloseTo(metersToMiles(8000), 1);
     expect(result.durationMinutes).toBe(10);
+    expect(result.pricingDistanceMiles).toBeCloseTo(metersToMiles(50000), 1);
+    expect(result.pricingDistanceSource).toBe('garage_floor');
+    expect(result.garageDistanceMiles).toBeCloseTo(metersToMiles(50000), 1);
+    expect(result.garageDurationMinutes).toBe(60);
+    expect(result.distanceFloorApplied).toBe(true);
     expect(result.fallbackReason).toBeNull();
   });
 
@@ -138,6 +145,7 @@ describe('resolveDistance', () => {
     mockMapboxDirections(15000, 1200);
     // 2nd mock for drv-far-fast: 8000m, 600s (10 min)
     mockMapboxDirections(8000, 600);
+    mockMapboxDirections(50000, 3600);
 
     const result = await resolveDistance(customer, drivers);
 
@@ -154,6 +162,9 @@ describe('resolveDistance', () => {
 
     expect(result.distanceSource).toBe('garage');
     expect(result.distanceProvider).toBe('mapbox');
+    expect(result.pricingDistanceMiles).toBe(result.distanceMiles);
+    expect(result.pricingDistanceSource).toBe('garage');
+    expect(result.distanceFloorApplied).toBe(false);
     expect(result.selectedDriverId).toBeNull();
     expect(result.fallbackReason).toBe('No available drivers; using garage fallback');
   });
@@ -165,6 +176,8 @@ describe('resolveDistance', () => {
 
     expect(result.distanceSource).toBe('garage');
     expect(result.distanceProvider).toBe('mapbox');
+    expect(result.pricingDistanceMiles).toBe(result.distanceMiles);
+    expect(result.pricingDistanceSource).toBe('garage');
     expect(result.originLat).toBeCloseTo(GARAGE_LOCATION.lat, 1);
     expect(result.originLng).toBeCloseTo(GARAGE_LOCATION.lng, 1);
     expect(result.fallbackReason).toBe('No available drivers; using garage fallback');
@@ -173,6 +186,7 @@ describe('resolveDistance', () => {
   it('uses haversine when all Mapbox calls fail for drivers', async () => {
     const drivers = [{ id: 'drv-1', lat: 55.86, lng: -4.25 }];
     mockMapboxFail();
+    mockMapboxDirections(50000, 3600);
 
     const result = await resolveDistance(customer, drivers);
 
@@ -181,6 +195,9 @@ describe('resolveDistance', () => {
     expect(result.selectedDriverId).toBe('drv-1');
     expect(result.fallbackReason).toBe('Mapbox directions unavailable for drivers');
     expect(result.distanceMiles).toBeGreaterThan(0);
+    expect(result.pricingDistanceMiles).toBeCloseTo(metersToMiles(50000), 1);
+    expect(result.pricingDistanceSource).toBe('garage_floor');
+    expect(result.distanceFloorApplied).toBe(true);
   });
 
   it('uses haversine from garage as absolute last resort', async () => {
@@ -198,16 +215,19 @@ describe('resolveDistance', () => {
   it('uses driver haversine fallback when drivers exist and Mapbox fails', async () => {
     const drivers = [{ id: 'drv-1', lat: 55.86, lng: -4.25 }];
     mockMapboxFail();
+    mockMapboxDirections(50000, 3600);
 
     const result = await resolveDistance(customer, drivers);
 
     expect(result.distanceSource).toBe('driver');
     expect(result.distanceProvider).toBe('haversine');
+    expect(result.pricingDistanceSource).toBe('garage_floor');
   });
 
   it('records full metadata for auditability', async () => {
     const drivers = [{ id: 'drv-1', lat: 55.86, lng: -4.25 }];
     mockMapboxDirections(8000, 600);
+    mockMapboxDirections(50000, 3600);
 
     const result = await resolveDistance(customer, drivers);
 
@@ -216,6 +236,11 @@ describe('resolveDistance', () => {
     expect(result).toHaveProperty('durationMinutes');
     expect(result).toHaveProperty('distanceProvider');
     expect(result).toHaveProperty('distanceSource');
+    expect(result).toHaveProperty('pricingDistanceMiles');
+    expect(result).toHaveProperty('pricingDistanceSource', 'garage_floor');
+    expect(result).toHaveProperty('garageDistanceMiles');
+    expect(result).toHaveProperty('garageDurationMinutes', 60);
+    expect(result).toHaveProperty('distanceFloorApplied', true);
     expect(result).toHaveProperty('originLat');
     expect(result).toHaveProperty('originLng');
     expect(result).toHaveProperty('destLat', customer.lat);

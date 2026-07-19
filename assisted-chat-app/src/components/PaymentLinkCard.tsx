@@ -4,7 +4,10 @@ import type { AssistedChatDraft, StripePaymentLinkState } from '@/types/assisted
 import { copyToClipboard } from '@/lib/clipboard';
 import { buildWhatsAppUrl } from '@/lib/customer-message';
 import { formatGbp } from '@/lib/money';
-import { summarizeBookingTyreLines } from '@/lib/assisted-chat-workflow';
+import {
+  formatAssistedChatServiceType,
+  summarizeBookingTyreLines,
+} from '@/lib/assisted-chat-workflow';
 import { AppButton, SectionCard, StatusBanner } from './ui';
 import { colors, fontSize, radius } from './theme';
 
@@ -35,6 +38,7 @@ function buildPaymentMessage(
   lines.push(paymentLink.paymentUrl);
   lines.push('');
   lines.push(`Reference: ${paymentLink.refNumber}`);
+  lines.push(`Service: ${formatAssistedChatServiceType(draft.serviceType)}`);
   lines.push(
     paymentLink.kind === 'deposit'
       ? `Deposit due now: ${moneyFromPence(paymentLink.amountPence)}`
@@ -46,7 +50,9 @@ function buildPaymentMessage(
   lines.push(`Total: ${formatGbp(effectiveTotal)}`);
   if (draft.location.address) lines.push(`Address: ${draft.location.address}`);
   const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
-  if (tyreSummary.length > 0) {
+  if (draft.serviceType === 'assess') {
+    lines.push('Final tyre cost will be confirmed after inspection.');
+  } else if (tyreSummary.length > 0) {
     lines.push('Tyres:');
     tyreSummary.forEach((line) => lines.push(`- ${line}`));
   }

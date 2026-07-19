@@ -2,13 +2,19 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { api } from '@/lib/api';
 import {
+  ASSISTED_CHAT_SERVICE_LABELS,
   compactAssistedChatTyreSize,
   createBookingTyreLine,
   ensureBookingTyreLines,
   normalizeAssistedChatTyreSize,
   summarizeBookingTyreLines,
 } from '@/lib/assisted-chat-workflow';
-import type { AssistedChatDraft, BookingTyreLine, TyreSizeSuggestion } from '@/types/assisted-chat';
+import type {
+  AssistedChatDraft,
+  AssistedChatServiceType,
+  BookingTyreLine,
+  TyreSizeSuggestion,
+} from '@/types/assisted-chat';
 import { AppButton, FieldLabel, SectionCard } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 
@@ -21,15 +27,39 @@ interface TyreLineCardProps {
   line: BookingTyreLine;
   index: number;
   required: boolean;
+  serviceType: AssistedChatServiceType;
   onChange: (patch: Partial<BookingTyreLine>) => void;
   onRemove?: () => void;
 }
+
+const SERVICE_OPTIONS: ReadonlyArray<{
+  value: AssistedChatServiceType;
+  title: string;
+  subtitle: string;
+}> = [
+  {
+    value: 'fit',
+    title: 'Replacement tyre',
+    subtitle: 'Stocked replacement, fitting and travel.',
+  },
+  {
+    value: 'repair',
+    title: 'Tyre repair',
+    subtitle: 'Puncture repair callout, no stock hold.',
+  },
+  {
+    value: 'assess',
+    title: 'Unknown / inspection required',
+    subtitle: 'Quote call-out, inspection and labour only.',
+  },
+];
 
 function clampQuantity(value: number): number {
   return Math.max(1, Math.min(10, Math.round(value)));
 }
 
-function TyreLineCard({ line, index, required, onChange, onRemove }: TyreLineCardProps) {
+function TyreLineCard({ line, index, required, serviceType, onChange, onRemove }: TyreLineCardProps) {
+  const isFit = serviceType === 'fit';
   const [sizeInput, setSizeInput] = useState(line.size);
   const [lastSize, setLastSize] = useState(line.size);
   if (lastSize !== line.size) {
@@ -49,6 +79,11 @@ function TyreLineCard({ line, index, required, onChange, onRemove }: TyreLineCar
   }, []);
 
   const search = useCallback(async (q: string) => {
+    if (!isFit) {
+      setSuggestions([]);
+      setSearched(false);
+      return;
+    }
     if (!q || q.length < 2) {
       setSuggestions([]);
       setSearched(false);
@@ -64,14 +99,19 @@ function TyreLineCard({ line, index, required, onChange, onRemove }: TyreLineCar
       setSuggestions([]);
       setSearched(true);
     }
-  }, []);
+  }, [isFit]);
 
   const handleChange = (value: string) => {
     setSizeInput(value);
     onChange({ size: value });
-    setShowSugs(true);
+    setShowSugs(isFit);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => search(value), 200);
+    if (isFit) {
+      timer.current = setTimeout(() => search(value), 200);
+    } else {
+      setSuggestions([]);
+      setSearched(false);
+    }
   };
 
   const select = (size: string) => {
@@ -94,7 +134,7 @@ function TyreLineCard({ line, index, required, onChange, onRemove }: TyreLineCar
   let stockLabel: string | null = null;
   let stockTone: 'ok' | 'warn' | 'err' | 'muted' = 'muted';
   let insufficientStock = false;
-  if (matchedSuggestion) {
+  if (isFit && matchedSuggestion) {
     const count = matchedSuggestion.count;
     if (typeof count !== 'number' || !Number.isFinite(count)) {
       stockLabel = 'Stock match found. Exact quantity will be confirmed by the system.';
@@ -113,7 +153,7 @@ function TyreLineCard({ line, index, required, onChange, onRemove }: TyreLineCar
       stockLabel = `In stock (${count} available)`;
       stockTone = 'ok';
     }
-  } else if (showSugs && searched && sizeInput.trim().length >= 2 && suggestions.length === 0) {
+  } else if (isFit && showSugs && searched && sizeInput.trim().length >= 2 && suggestions.length === 0) {
     stockLabel = 'No matching in-stock size';
     stockTone = 'err';
   }
@@ -137,19 +177,19 @@ function TyreLineCard({ line, index, required, onChange, onRemove }: TyreLineCar
         ) : null}
       </View>
 
-      <FieldLabel>Size</FieldLabel>
+      <FieldLabel>{isFit ? 'Size' : 'Affected tyre size'}</FieldLabel>
       <View>
         <TextInput
           value={sizeInput}
           onChangeText={handleChange}
-          onFocus={() => setShowSugs(true)}
-          placeholder="e.g. 205/55R16"
+          onFocus={() => setShowSugs(isFit)}
+          placeholder={isFit ? 'e.g. 205/55R16' : 'e.g. 205/55R16 if known'}
           placeholderTextColor={colors.subtle}
           autoCapitalize="characters"
           autoCorrect={false}
           style={styles.input}
         />
-        {showSugs && suggestions.length > 0 ? (
+        {isFit && showSugs && suggestions.length > 0 ? (
           <View style={styles.suggestionsBox}>
             <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 220 }}>
               {suggestions.map((s) => (
@@ -168,7 +208,7 @@ function TyreLineCard({ line, index, required, onChange, onRemove }: TyreLineCar
             </ScrollView>
           </View>
         ) : null}
-        {showSugs && searched && suggestions.length === 0 && sizeInput.length >= 2 ? (
+        {isFit && showSugs && searched && suggestions.length === 0 && sizeInput.length >= 2 ? (
           <Text style={styles.empty}>No in-stock tyres match that size.</Text>
         ) : null}
         {sizeInput.trim().length > 0 && !normalizedInputSize ? (
@@ -195,7 +235,7 @@ function TyreLineCard({ line, index, required, onChange, onRemove }: TyreLineCar
       </View>
 
       <View style={styles.quantityBlock}>
-        <FieldLabel>Quantity</FieldLabel>
+        <FieldLabel>{isFit ? 'Quantity' : 'Tyres to repair'}</FieldLabel>
         <View style={styles.qtyRow}>
           <AppButton
             label="-"
@@ -229,8 +269,10 @@ function TyreLineCard({ line, index, required, onChange, onRemove }: TyreLineCar
 }
 
 export function TyreSelectionSection({ draft, update }: Props) {
+  const serviceType = draft.serviceType ?? 'fit';
+  const isInspectionOnly = serviceType === 'assess';
   const tyreLines = ensureBookingTyreLines(draft.tyreLines);
-  const summary = summarizeBookingTyreLines(tyreLines);
+  const summary = isInspectionOnly ? [] : summarizeBookingTyreLines(tyreLines);
 
   const quoteResetPatch = {
     quote: null,
@@ -246,6 +288,14 @@ export function TyreSelectionSection({ draft, update }: Props) {
   const updateLines = (nextLines: BookingTyreLine[]) => {
     update({
       tyreLines: ensureBookingTyreLines(nextLines),
+      ...quoteResetPatch,
+    });
+  };
+
+  const updateServiceType = (nextServiceType: AssistedChatServiceType) => {
+    if (nextServiceType === serviceType) return;
+    update({
+      serviceType: nextServiceType,
       ...quoteResetPatch,
     });
   };
@@ -277,36 +327,84 @@ export function TyreSelectionSection({ draft, update }: Props) {
   };
 
   return (
-    <SectionCard title="Tyre sizes and quantity">
-      {!tyreLines[0]?.size.trim() ? (
-        <Text style={styles.empty}>Enter the first tyre size to continue. Suggestions appear as you type.</Text>
+    <SectionCard title="Service and tyre details">
+      <View style={styles.servicePicker}>
+        {SERVICE_OPTIONS.map((option) => {
+          const selected = serviceType === option.value;
+          return (
+            <Pressable
+              key={option.value}
+              onPress={() => updateServiceType(option.value)}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              accessibilityLabel={option.title}
+              style={({ pressed }) => [
+                styles.serviceOption,
+                selected && styles.serviceOptionSelected,
+                pressed && styles.pressed,
+              ]}
+            >
+              <View style={[styles.serviceDot, selected && styles.serviceDotSelected]} />
+              <View style={styles.serviceCopy}>
+                <Text style={[styles.serviceTitle, selected && styles.serviceTitleSelected]}>
+                  {option.title}
+                </Text>
+                <Text style={styles.serviceSubtitle}>{option.subtitle}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {isInspectionOnly ? (
+        <View style={styles.inspectNotice}>
+          <Text style={styles.inspectNoticeTitle}>Final tyre cost will be confirmed after inspection.</Text>
+          <Text style={styles.inspectNoticeText}>
+            No tyre size, tyre type, stock match or tyre price is required. The quote only includes call-out, inspection and labour.
+          </Text>
+        </View>
+      ) : !tyreLines[0]?.size.trim() ? (
+        <Text style={styles.empty}>
+          {serviceType === 'fit'
+            ? 'Enter the first tyre size to continue. Suggestions appear as you type.'
+            : 'Enter the affected tyre size so the job details are clear for the driver.'}
+        </Text>
       ) : null}
 
-      <View style={styles.cardStack}>
-        {tyreLines.map((line, index) => (
-          <TyreLineCard
-            key={line.id}
-            line={line}
-            index={index}
-            required={index === 0}
-            onChange={(patch) => updateLine(index, patch)}
-            onRemove={index === 0 ? undefined : () => removeLine(index)}
-          />
-        ))}
-      </View>
+      {!isInspectionOnly ? (
+        <>
+          <View style={styles.cardStack}>
+            {tyreLines.map((line, index) => (
+              <TyreLineCard
+                key={line.id}
+                line={line}
+                index={index}
+                required={index === 0}
+                serviceType={serviceType}
+                onChange={(patch) => updateLine(index, patch)}
+                onRemove={index === 0 ? undefined : () => removeLine(index)}
+              />
+            ))}
+          </View>
 
-      <View style={styles.addButtonWrap}>
-        <AppButton
-          label="+ Add another tyre"
-          variant="secondary"
-          onPress={addLine}
-          fullWidth
-        />
-      </View>
+          <View style={styles.addButtonWrap}>
+            <AppButton
+              label="+ Add another tyre"
+              variant="secondary"
+              onPress={addLine}
+              fullWidth
+            />
+          </View>
+        </>
+      ) : null}
 
-      {summary.length > 0 ? (
+      {summary.length > 0 || isInspectionOnly ? (
         <View style={styles.summaryBox}>
           <Text style={styles.summaryTitle}>Booking summary</Text>
+          <Text style={styles.summaryLine}>Service: {ASSISTED_CHAT_SERVICE_LABELS[serviceType]}</Text>
+          {isInspectionOnly ? (
+            <Text style={styles.summaryLine}>Final tyre cost will be confirmed after inspection.</Text>
+          ) : null}
           {summary.map((line, index) => (
             <Text key={`${line}-${index}`} style={styles.summaryLine}>{line}</Text>
           ))}
@@ -317,6 +415,54 @@ export function TyreSelectionSection({ draft, update }: Props) {
 }
 
 const styles = StyleSheet.create({
+  servicePicker: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space.sm,
+    marginBottom: space.md,
+  },
+  serviceOption: {
+    flexGrow: 1,
+    flexBasis: 170,
+    minHeight: 92,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: space.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    padding: space.md,
+  },
+  serviceOptionSelected: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentMuted,
+  },
+  serviceDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.borderStrong,
+    marginTop: 2,
+  },
+  serviceDotSelected: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accent,
+  },
+  serviceCopy: { flex: 1, minWidth: 0 },
+  serviceTitle: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: '800',
+  },
+  serviceTitleSelected: { color: colors.accent },
+  serviceSubtitle: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    lineHeight: 18,
+    marginTop: 4,
+  },
   cardStack: { gap: space.md },
   tyreCard: {
     borderColor: colors.border,
@@ -375,6 +521,25 @@ const styles = StyleSheet.create({
   suggestionText: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
   suggestionCount: { color: colors.subtle, fontWeight: '400' },
   empty: { marginTop: 6, color: colors.muted, fontSize: fontSize.xs },
+  inspectNotice: {
+    borderWidth: 1,
+    borderColor: colors.warningBorder,
+    borderRadius: radius.md,
+    backgroundColor: colors.warningBg,
+    padding: space.md,
+    gap: 4,
+  },
+  inspectNoticeTitle: {
+    color: colors.warning,
+    fontSize: fontSize.sm,
+    fontWeight: '900',
+  },
+  inspectNoticeText: {
+    color: colors.text,
+    fontSize: fontSize.xs,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
   stockLabel: { marginTop: 6, fontSize: fontSize.xs, fontWeight: '600' },
   stockOk: { color: colors.success },
   stockWarn: { color: colors.warning },

@@ -13,6 +13,7 @@ import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius } from './theme';
 import { copyToClipboard } from '@/lib/clipboard';
 import { formatGbp } from '@/lib/money';
+import { formatAssistedChatServiceType } from '@/lib/assisted-chat-workflow';
 
 interface Props {
   visible: boolean;
@@ -92,6 +93,7 @@ function buildDetailLines(item: TodayBookingItem): string[] {
   const lines: string[] = [];
   lines.push(`Booking ref: ${item.bookingReference}`);
   lines.push(`Date: ${formatDate(item.createdAtIso)}`);
+  lines.push(`Service: ${formatAssistedChatServiceType(item.serviceType)}`);
   const t = formatTime(item.createdAtIso);
   if (t) lines.push(`Time: ${t}`);
   if (item.customerPhone) lines.push(`Phone: ${item.customerPhone}`);
@@ -210,6 +212,7 @@ export function TodayBookingsModal({ visible, items, onClose }: Props) {
                 <DetailRow label="Reference" value={selected.bookingReference} mono />
                 <DetailRow label="Date" value={formatDate(selected.createdAtIso)} />
                 <DetailRow label="Time" value={formatTime(selected.createdAtIso)} />
+                <DetailRow label="Service" value={formatAssistedChatServiceType(selected.serviceType)} />
                 {selected.customerPhone ? (
                   <DetailRow label="Phone" value={selected.customerPhone} />
                 ) : null}
@@ -276,7 +279,7 @@ export function TodayBookingsModal({ visible, items, onClose }: Props) {
                       <Text style={styles.itemTime}>{formatTime(item.createdAtIso)}</Text>
                     </View>
                     <Text style={styles.itemMeta}>
-                      {formatDate(item.createdAtIso)} · {PAYMENT_LABEL[item.paymentChoice]}
+                      {formatDate(item.createdAtIso)} · {formatAssistedChatServiceType(item.serviceType)} · {PAYMENT_LABEL[item.paymentChoice]}
                       {total ? ` · ${total}` : ''}
                     </Text>
                     {item.customerAddress ? (

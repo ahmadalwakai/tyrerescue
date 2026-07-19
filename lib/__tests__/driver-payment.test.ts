@@ -3,12 +3,14 @@ import type { PaymentEvent } from '../db/schema';
 import type { PaymentBookingInput } from '../payments/payment-summary';
 
 type BuildPaymentSummary = typeof import('../payments/payment-summary')['buildPaymentSummary'];
+type IsPaymentFullySettledForInvoice = typeof import('../payments/payment-summary')['isPaymentFullySettledForInvoice'];
 
 let buildPaymentSummary: BuildPaymentSummary;
+let isPaymentFullySettledForInvoice: IsPaymentFullySettledForInvoice;
 
 beforeAll(async () => {
   process.env.DATABASE_URL ??= 'postgresql://user:password@localhost:5432/test';
-  ({ buildPaymentSummary } = await import('../payments/payment-summary'));
+  ({ buildPaymentSummary, isPaymentFullySettledForInvoice } = await import('../payments/payment-summary'));
 });
 
 const baseBooking: PaymentBookingInput = {
@@ -296,5 +298,108 @@ describe('buildPaymentSummary', () => {
       paidVia: 'payment_link',
       amountToCollectPence: 0,
     });
+  });
+
+  it('allows invoice download only when paid evidence covers the final payable amount', () => {
+    const fullPaid = buildPaymentSummary(
+      booking({ paymentType: 'full', stripePiId: 'pi_paid' }),
+      [
+        ledgerEvent({
+          eventType: 'payment_succeeded',
+          paymentMethod: 'card_link',
+          paidVia: 'payment_link',
+          linkStatus: 'paid',
+          amountPence: 12000,
+          stripePaymentIntentId: 'pi_paid',
+          source: 'stripe_webhook',
+          status: 'succeeded',
+        }),
+      ],
+    );
+
+    expect(isPaymentFullySettledForInvoice(fullPaid, 'paid')).toBe(true);
+  });
+
+  it('blocks invoice download for lifecycle-paid bookings without full payment evidence', () => {
+    const statusOnlyPaid = buildPaymentSummary(
+      booking({ status: 'completed', paymentType: 'full' }),
+      [],
+    );
+
+    expect(statusOnlyPaid.state).toBe('needs_checking');
+    expect(isPaymentFullySettledForInvoice(statusOnlyPaid, 'completed')).toBe(false);
+  });
+
+  it('blocks invoice download for deposit-only and partial-payment states', () => {
+    const depositOnly = buildPaymentSummary(
+      booking({
+        paymentType: 'deposit',
+        depositAmountPence: 2400,
+        remainingBalancePence: 9600,
+        stripeDepositPiId: 'pi_deposit',
+      }),
+      [
+        ledgerEvent({
+          eventType: 'deposit_succeeded',
+          paymentMethod: 'deposit_link',
+          paidVia: 'payment_link',
+          linkStatus: 'paid',
+          amountPence: 2400,
+          stripePaymentIntentId: 'pi_deposit',
+          source: 'stripe_webhook',
+          status: 'succeeded',
+        }),
+      ],
+    );
+    const partialFull = buildPaymentSummary(
+      booking({ paymentType: 'full', stripePiId: 'pi_partial' }),
+      [
+        ledgerEvent({
+          eventType: 'payment_succeeded',
+          paymentMethod: 'card_link',
+          paidVia: 'payment_link',
+          amountPence: 6000,
+          stripePaymentIntentId: 'pi_partial',
+          source: 'stripe_webhook',
+          status: 'succeeded',
+        }),
+      ],
+    );
+
+    expect(isPaymentFullySettledForInvoice(depositOnly, 'deposit_paid')).toBe(false);
+    expect(isPaymentFullySettledForInvoice(partialFull, 'awaiting_payment')).toBe(false);
+  });
+
+  it('blocks invoice download for failed, expired, cancelled, refunded, and unknown states', () => {
+    const failed = buildPaymentSummary(
+      booking({ paymentType: 'full', stripePiId: 'pi_failed' }),
+      [ledgerEvent({ eventType: 'payment_failed', amountPence: 12000, status: 'failed' })],
+    );
+    const expired = buildPaymentSummary(
+      booking({ paymentType: 'full', stripePiId: 'cs_expired' }),
+      [ledgerEvent({ eventType: 'link_expired', amountPence: 12000, status: 'expired' })],
+    );
+    const unknown = buildPaymentSummary(booking({ totalAmount: null }), []);
+    const refundedPaid = buildPaymentSummary(
+      booking({ status: 'refunded', paymentType: 'full', stripePiId: 'pi_refunded' }),
+      [
+        ledgerEvent({
+          eventType: 'payment_succeeded',
+          paymentMethod: 'card_link',
+          paidVia: 'payment_link',
+          amountPence: 12000,
+          stripePaymentIntentId: 'pi_refunded',
+          source: 'stripe_webhook',
+          status: 'succeeded',
+        }),
+      ],
+    );
+
+    expect(isPaymentFullySettledForInvoice(failed, 'payment_failed')).toBe(false);
+    expect(isPaymentFullySettledForInvoice(expired, 'awaiting_payment')).toBe(false);
+    expect(isPaymentFullySettledForInvoice(unknown, null)).toBe(false);
+    expect(isPaymentFullySettledForInvoice(refundedPaid, 'refunded')).toBe(false);
+    expect(isPaymentFullySettledForInvoice(refundedPaid, 'refunded_partial')).toBe(false);
+    expect(isPaymentFullySettledForInvoice(refundedPaid, 'cancelled')).toBe(false);
   });
 });

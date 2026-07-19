@@ -92,7 +92,7 @@ function emergencyInput(overrides: Partial<PricingInput> = {}): PricingInput {
 
 // ─── calculateTravelFee ───────────────────────────────────────────────────────
 // Tier structure: base £24 (0–3 mi), +£1.70/mi (3–10), +£2.35/mi (10–20),
-//                +£3.00/mi (20–40), +£3.85/mi (40–60), +£4.25/mi (60–100)
+//                +£3.00/mi (20–40), +£3.85/mi (40–60), +£4.25/mi (60–250)
 
 describe('calculateTravelFee', () => {
   it('returns null for invalid distance', () => {
@@ -100,9 +100,11 @@ describe('calculateTravelFee', () => {
     expect(calculateTravelFee(NaN)).toBeNull();
   });
 
-  it('returns null for distance > 100 miles', () => {
+  it('returns null for distance > 250 miles', () => {
     expect(calculateTravelFee(100)).toBe(366.4);
-    expect(calculateTravelFee(100.01)).toBeNull();
+    expect(calculateTravelFee(100.01)).toBe(366.44);
+    expect(calculateTravelFee(250)).toBe(1003.9);
+    expect(calculateTravelFee(250.01)).toBeNull();
   });
 
   it('returns 24 for 0 miles (base covers first 3 miles)', () => {
@@ -143,9 +145,14 @@ describe('calculateTravelFee', () => {
     expect(calculateTravelFee(60)).toBe(196.4);
   });
 
-  it('returns correct fee for 100 miles (max allowed)', () => {
+  it('returns correct fee for 100 miles', () => {
     // 196.40 + 40*4.25 = 366.40
     expect(calculateTravelFee(100)).toBe(366.4);
+  });
+
+  it('returns correct fee for 250 miles (max allowed)', () => {
+    // 196.40 + 190*4.25 = 1003.90
+    expect(calculateTravelFee(250)).toBe(1003.9);
   });
 
   it('has no price jumps at tier boundaries (continuous) — spec test 4', () => {
@@ -197,8 +204,8 @@ describe('calculateFittingAtLocationPrice', () => {
     if (!result.available) expect(result.reason).toBe('INVALID_DISTANCE');
   });
 
-  it('returns MANUAL_QUOTE_REQUIRED for > 100 miles', () => {
-    const result = calculateFittingAtLocationPrice(100.01);
+  it('returns MANUAL_QUOTE_REQUIRED for > 250 miles', () => {
+    const result = calculateFittingAtLocationPrice(250.01);
     expect(result.available).toBe(false);
     if (!result.available) expect(result.reason).toBe('MANUAL_QUOTE_REQUIRED');
   });
@@ -225,6 +232,12 @@ describe('calculateFittingAtLocationPrice', () => {
     const result = calculateFittingAtLocationPrice(100);
     expect(result.available).toBe(true);
     if (result.available) expect(result.travelFee).toBe(366.4);
+  });
+
+  it('is valid at exactly 250 miles', () => {
+    const result = calculateFittingAtLocationPrice(250);
+    expect(result.available).toBe(true);
+    if (result.available) expect(result.travelFee).toBe(1003.9);
   });
 });
 
@@ -373,7 +386,7 @@ describe('calculatePricing — scheduled_mobile', () => {
     expect(result.total).toBeCloseTo(217.4, 2);
   });
 
-  it('60 miles (max): valid pricing returned', () => {
+  it('60 miles: valid pricing returned', () => {
     const result = calculatePricing(mobileInput({ distanceMiles: 60 }), defaultRules());
     // labour=18, travel=196.40, raw=214.40, service=214.40, total=294.40
     expect(result.isValid).toBe(true);
@@ -381,15 +394,22 @@ describe('calculatePricing — scheduled_mobile', () => {
     expect(result.total).toBe(294.4);
   });
 
-  it('100 miles (max): valid pricing returned', () => {
+  it('100 miles: valid pricing returned', () => {
     const result = calculatePricing(mobileInput({ distanceMiles: 100 }), defaultRules());
     expect(result.isValid).toBe(true);
     expect(result.calloutFee).toBe(366.4);
     expect(result.total).toBe(464.4);
   });
 
-  it('100.01 miles: returns outside auto-pricing area — spec test 11', () => {
-    const result = calculatePricing(mobileInput({ distanceMiles: 100.01 }), defaultRules());
+  it('250 miles (max): valid pricing returned', () => {
+    const result = calculatePricing(mobileInput({ distanceMiles: 250 }), defaultRules());
+    expect(result.isValid).toBe(true);
+    expect(result.calloutFee).toBe(1003.9);
+    expect(result.total).toBe(1101.9);
+  });
+
+  it('250.01 miles: returns outside auto-pricing area — spec test 11', () => {
+    const result = calculatePricing(mobileInput({ distanceMiles: 250.01 }), defaultRules());
     expect(result.isValid).toBe(false);
     expect(result.error).toBe('OUTSIDE_AUTO_PRICING_AREA');
   });
@@ -476,15 +496,16 @@ describe('calculatePricing — scheduled_mobile', () => {
       serviceType: 'repair',
       tyreQuantity: 1,
     }), defaultRules());
-    // Customer-location puncture repair has a 0-5 mile floor above £110.
+    // Repair is labour + the shared travel charge; no repair-specific travel floor.
     expect(result.isValid).toBe(true);
     expect(result.totalTyreCost).toBe(0);
-    expect(result.serviceSubtotal).toBe(115);
-    expect(result.total).toBe(115);
-    expect(result.total).toBeGreaterThan(110);
+    expect(result.calloutFee).toBe(27.4);
+    expect(result.serviceSubtotal).toBe(52.4);
+    expect(result.total).toBe(52.4);
+    expect(result.lineItems.some((line) => line.label === 'Customer-location repair minimum')).toBe(false);
   });
 
-  it('service-only repair increases after 5 miles by the extra travel distance', () => {
+  it('service-only repair uses the same travel charge after 5 miles', () => {
     const fiveMiles = calculatePricing(mobileInput({
       tyreSelections: [],
       serviceType: 'repair',
@@ -498,8 +519,10 @@ describe('calculatePricing — scheduled_mobile', () => {
       distanceMiles: 10,
     }), defaultRules());
 
-    expect(fiveMiles.total).toBe(115);
-    expect(tenMiles.total).toBe(123.5);
+    expect(fiveMiles.calloutFee).toBe(27.4);
+    expect(tenMiles.calloutFee).toBe(35.9);
+    expect(fiveMiles.total).toBe(52.4);
+    expect(tenMiles.total).toBe(60.9);
     expect(tenMiles.total).toBeGreaterThan(fiveMiles.total);
   });
 
@@ -537,7 +560,7 @@ describe('calculatePricing — emergency_mobile', () => {
   it('1 tyre fit 5 miles weekday: correct emergency pricing — spec test 8', () => {
     const result = calculatePricing(emergencyInput(), defaultRules());
     // emergency travel: 27.40 × 1.15 = 31.51, labour: 22, priority: 47
-    // raw service: 100.51; guardrail: max(81, 58.75, 90) = 90 → not triggered
+    // raw service: 100.51; emergency minimum £90 is not triggered
     expect(result.isValid).toBe(true);
     expect(result.mode).toBe('emergency_mobile');
     expect(result.calloutFee).toBeCloseTo(31.51, 2);
@@ -551,7 +574,7 @@ describe('calculatePricing — emergency_mobile', () => {
   it('at 20 miles: service matches ~£137.31 for one fit tyre — spec test 9', () => {
     const result = calculatePricing(emergencyInput({ distanceMiles: 20 }), defaultRules());
     // scheduled travel=59.40, emergency travel=68.31, labour=22, priority=47
-    // raw=137.31; guardrail: max(111.40, 96.75, 90) = 111.40 → not triggered
+    // raw=137.31; emergency minimum £90 is not triggered
     expect(result.isValid).toBe(true);
     expect(result.serviceSubtotal).toBeCloseTo(137.31, 2);
     expect(result.total).toBeCloseTo(217.31, 2);
@@ -560,7 +583,7 @@ describe('calculatePricing — emergency_mobile', () => {
   it('at 40 miles: service matches ~£206.31 for one fit tyre — spec test 10', () => {
     const result = calculatePricing(emergencyInput({ distanceMiles: 40 }), defaultRules());
     // scheduled travel=119.40, emergency travel=137.31, labour=22, priority=47
-    // raw=206.31; guardrail: max(171.40, 171.75, 90) = 171.75 → not triggered
+    // raw=206.31; emergency minimum £90 is not triggered
     expect(result.isValid).toBe(true);
     expect(result.serviceSubtotal).toBeCloseTo(206.31, 2);
     expect(result.total).toBeCloseTo(286.31, 2);
@@ -590,7 +613,7 @@ describe('calculatePricing — emergency_mobile', () => {
 
   it('bank holiday adds emergency_bank_holiday_fee (£45)', () => {
     const result = calculatePricing(emergencyInput({ isBankHoliday: true }), defaultRules());
-    // labour=22, travel=31.51, priority=47, bh=45 → raw=145.51 > guardrail(90)
+    // labour=22, travel=31.51, priority=47, bh=45 → raw=145.51 > minimum(90)
     expect(result.total).toBeCloseTo(225.51, 2);
   });
 
@@ -601,10 +624,8 @@ describe('calculatePricing — emergency_mobile', () => {
     expect(result.total).toBe(weekdayResult.total);
   });
 
-  it('guardrail enforced when priority fee is very low', () => {
+  it('emergency minimum service is enforced when priority fee is very low', () => {
     // With priority_fee=10, raw service = 22+31.51+10 = 63.51
-    // scheduledMobileBase: 18+27.40=45.40 → scheduledMobileService=max(45.40,47)=47
-    // guardrail = max(47+34=81, 47*1.25=58.75, 90) = 90
     // 63.51 < 90 → adjustment = 26.49, service = 90
     const result = calculatePricing(emergencyInput(),
       defaultRules({ emergency_priority_fee: 10 }));
@@ -613,25 +634,22 @@ describe('calculatePricing — emergency_mobile', () => {
     expect(result.total).toBeCloseTo(170, 2);
   });
 
-  it('guardrail uses EMERGENCY_GUARDRAIL_ADJUSTMENT code', () => {
+  it('emergency minimum uses EMERGENCY_MINIMUM_SERVICE_ADJUSTMENT code', () => {
     const result = calculatePricing(emergencyInput(),
       defaultRules({ emergency_priority_fee: 10 }));
-    const guardrailItem = result.lineItems.find((li) => li.code === 'EMERGENCY_GUARDRAIL_ADJUSTMENT');
-    expect(guardrailItem).toBeDefined();
-    expect(guardrailItem?.amount).toBeGreaterThan(0);
+    const minimumItem = result.lineItems.find((li) => li.code === 'EMERGENCY_MINIMUM_SERVICE_ADJUSTMENT');
+    expect(minimumItem).toBeDefined();
+    expect(minimumItem?.amount).toBeGreaterThan(0);
   });
 
-  it('guardrail: emergency >= scheduledMobile + £34 — spec test 3', () => {
-    // Service-only repair at 5 miles:
-    // scheduledMobileService=max(25+27.40, repair floor 115, min 47)=115
-    // guardrailMin = max(115+34=149, 115*1.25=143.75, 90) = 149
+  it('emergency minimum is a flat £90 service floor, not a scheduled-mobile percentage floor', () => {
     const result = calculatePricing(emergencyInput({
       tyreSelections: [],
       serviceType: 'repair',
       tyreQuantity: 1,
     }), defaultRules({ emergency_priority_fee: 1 }));
-    // emergency raw: 30 + 31.51 + 1 = 62.51 < 149 → guardrail applies
-    expect(result.serviceSubtotal).toBeCloseTo(149, 2);
+    // emergency raw: 30 + 31.51 + 1 = 62.51 < 90 → minimum applies
+    expect(result.serviceSubtotal).toBeCloseTo(90, 2);
   });
 
   it('demand clamp for emergency: min 1.00, max 1.25', () => {
@@ -682,8 +700,17 @@ describe('calculatePricing — emergency_mobile', () => {
     expect(result.calloutFee).toBeCloseTo(421.36, 2);
   });
 
-  it('emergency: 100.01 miles returns outside auto-pricing area — spec test 11', () => {
-    const result = calculatePricing(emergencyInput({ distanceMiles: 100.01 }), defaultRules());
+  it('emergency: 250 miles is auto-priced — spec test 11', () => {
+    const result = calculatePricing(emergencyInput({ distanceMiles: 250 }), defaultRules());
+    expect(result.isValid).toBe(true);
+    expect(result.calloutFee).toBeCloseTo(1154.49, 2);
+    expect(result.serviceSubtotal).toBeCloseTo(1223.49, 2);
+    expect(result.total).toBeCloseTo(1303.49, 2);
+    expect(result.lineItems.some((li) => li.code === 'EMERGENCY_MINIMUM_SERVICE_ADJUSTMENT')).toBe(false);
+  });
+
+  it('emergency: 250.01 miles returns outside auto-pricing area — spec test 11', () => {
+    const result = calculatePricing(emergencyInput({ distanceMiles: 250.01 }), defaultRules());
     expect(result.isValid).toBe(false);
     expect(result.error).toBe('OUTSIDE_AUTO_PRICING_AREA');
   });
@@ -908,6 +935,54 @@ describe('calculateHybridPricing', () => {
 // ─── Pricing consistency — spec tests 1, 2, 3, 4, 5, 12, 13 ──────────────────
 
 describe('pricing consistency', () => {
+  const hierarchyDistances = [0, 5, 10, 20, 40, 49.5, 60, 100, 150, 250];
+  const requestedBoundaries = [4.99, 5, 5.01, 9.99, 10, 10.01, 19.99, 20, 20.01, 39.99, 40, 40.01, 99.99, 100, 100.01];
+  const longDistanceBoundaries = [99.99, 100, 100.01, 149.99, 150, 150.01, 249.99, 250, 250.01];
+  const tyreCost = 80;
+
+  function replacementAt(distanceMiles: number, overrides: Partial<PricingInput> = {}) {
+    return calculatePricing(
+      emergencyInput({
+        distanceMiles,
+        tyreSelections: [{ tyreId: 'replacement', quantity: 1, unitPrice: tyreCost, service: 'fit' }],
+        ...overrides,
+      }),
+      defaultRules({ surge_pricing_enabled: Boolean(overrides.surgeMultiplier) }),
+    );
+  }
+
+  function repairAt(distanceMiles: number, overrides: Partial<PricingInput> = {}) {
+    return calculatePricing(
+      emergencyInput({
+        distanceMiles,
+        tyreSelections: [],
+        serviceType: 'repair',
+        tyreQuantity: 1,
+        ...overrides,
+      }),
+      defaultRules({ surge_pricing_enabled: Boolean(overrides.surgeMultiplier) }),
+    );
+  }
+
+  function inspectionAt(distanceMiles: number, overrides: Partial<PricingInput> = {}) {
+    return calculatePricing(
+      emergencyInput({
+        distanceMiles,
+        tyreSelections: [],
+        serviceType: 'assess',
+        tyreQuantity: 1,
+        ...overrides,
+      }),
+      defaultRules({ surge_pricing_enabled: Boolean(overrides.surgeMultiplier) }),
+    );
+  }
+
+  function emergencyMinimumAmount(result: ReturnType<typeof calculatePricing>): number {
+    return result.lineItems
+      .filter((item) => item.code === 'EMERGENCY_MINIMUM_SERVICE_ADJUSTMENT')
+      .reduce((sum, item) => sum + item.amount, 0);
+  }
+
   it('shop service < mobile service < emergency service for same tyre and date — spec tests 1 & 2', () => {
     const rules = defaultRules();
     const shop = calculatePricing(shopInput(), rules);
@@ -920,20 +995,19 @@ describe('pricing consistency', () => {
     expect(mobile.total).toBeGreaterThan(shop.total);
   });
 
-  it('emergency service >= max(£90, scheduledMobile + £34, scheduledMobile * 1.25) — spec test 3', () => {
+  it('emergency service uses genuine components plus the flat emergency minimum only — spec test 3', () => {
     const rules = defaultRules();
-    // Service-only at 5 miles to isolate service comparison
-    const mobileResult = calculatePricing(
-      mobileInput({ tyreSelections: [], serviceType: 'repair', tyreQuantity: 1 }),
+    const lowInspection = calculatePricing(
+      emergencyInput({ distanceMiles: 0, tyreSelections: [], serviceType: 'assess', tyreQuantity: 1 }),
       rules,
     );
-    const emergResult = calculatePricing(
+    const repair = calculatePricing(
       emergencyInput({ tyreSelections: [], serviceType: 'repair', tyreQuantity: 1 }),
       rules,
     );
-    const mS = mobileResult.serviceSubtotal!;
-    const eS = emergResult.serviceSubtotal!;
-    expect(eS).toBeGreaterThanOrEqual(Math.max(mS + 34, mS * 1.25, 90));
+    expect(lowInspection.serviceSubtotal).toBe(90);
+    expect(repair.serviceSubtotal).toBeCloseTo(108.51, 2);
+    expect(repair.lineItems.some((li) => li.code === 'EMERGENCY_MINIMUM_SERVICE_ADJUSTMENT')).toBe(false);
   });
 
   it('tyre cost is never multiplied by demand — spec test 4', () => {
@@ -999,5 +1073,171 @@ describe('pricing consistency', () => {
     const near = calculatePricing(mobileInput({ distanceMiles: 5 }), rules);
     const far = calculatePricing(mobileInput({ distanceMiles: 30 }), rules);
     expect(far.calloutFee).toBeGreaterThan(near.calloutFee);
+  });
+
+  it('keeps repair and inspection below replacement across supplied regression distances', () => {
+    for (const distanceMiles of hierarchyDistances) {
+      const replacement = replacementAt(distanceMiles);
+      const repair = repairAt(distanceMiles);
+      const inspection = inspectionAt(distanceMiles);
+
+      expect(replacement.isValid).toBe(true);
+      expect(repair.isValid).toBe(true);
+      expect(inspection.isValid).toBe(true);
+      expect(replacement.total).toBeGreaterThanOrEqual(tyreCost + defaultRules().emergency_min_service_subtotal);
+      expect(repair.total).toBeLessThan(replacement.total);
+      expect(inspection.total).toBeLessThanOrEqual(repair.total);
+      expect(replacement.calloutFee).toBe(repair.calloutFee);
+      expect(repair.calloutFee).toBe(inspection.calloutFee);
+    }
+  });
+
+  it('keeps hierarchy after shared surcharges and demand adjustments', () => {
+    const scenarios: Array<{ name: string; input: Partial<PricingInput>; rules?: Partial<PricingRules> }> = [
+      {
+        name: 'emergency same-day/weather/traffic/bank holiday/demand',
+        input: {
+          distanceMiles: 49.5,
+          weatherSurcharge: 15,
+          weatherSurchargeCode: 'HEAVY_RAIN',
+          trafficSurcharge: 12,
+          trafficSurchargeCode: 'MODERATE_TRAFFIC',
+          isBankHoliday: true,
+          surgeMultiplier: 1.2,
+        },
+      },
+      {
+        name: 'scheduled weekend/weather/traffic/bank holiday/demand',
+        input: {
+          bookingType: 'scheduled',
+          pricingContext: 'scheduled_mobile_fitting',
+          bookingDate: WEEKEND,
+          distanceMiles: 49.5,
+          weatherSurcharge: 15,
+          weatherSurchargeCode: 'HEAVY_RAIN',
+          trafficSurcharge: 12,
+          trafficSurchargeCode: 'MODERATE_TRAFFIC',
+          isBankHoliday: true,
+          surgeMultiplier: 1.1,
+        },
+      },
+    ];
+
+    for (const scenario of scenarios) {
+      const rules = defaultRules({ surge_pricing_enabled: true, ...scenario.rules });
+      const replacement = calculatePricing(emergencyInput({
+        tyreSelections: [{ tyreId: 'replacement', quantity: 1, unitPrice: tyreCost, service: 'fit' }],
+        ...scenario.input,
+      }), rules);
+      const repair = calculatePricing(emergencyInput({
+        tyreSelections: [],
+        serviceType: 'repair',
+        tyreQuantity: 1,
+        ...scenario.input,
+      }), rules);
+      const inspection = calculatePricing(emergencyInput({
+        tyreSelections: [],
+        serviceType: 'assess',
+        tyreQuantity: 1,
+        ...scenario.input,
+      }), rules);
+
+      expect(replacement.isValid, scenario.name).toBe(true);
+      expect(repair.isValid, scenario.name).toBe(true);
+      expect(inspection.isValid, scenario.name).toBe(true);
+      expect(repair.total, scenario.name).toBeLessThan(replacement.total);
+      expect(inspection.total, scenario.name).toBeLessThanOrEqual(repair.total);
+      expect(replacement.calloutFee, scenario.name).toBe(repair.calloutFee);
+      expect(repair.calloutFee, scenario.name).toBe(inspection.calloutFee);
+    }
+  });
+
+  it('has no hierarchy breaks or pricing jumps at requested distance boundaries', () => {
+    for (let i = 0; i < requestedBoundaries.length; i += 3) {
+      const leftDistance = requestedBoundaries[i];
+      const midDistance = requestedBoundaries[i + 1];
+      const rightDistance = requestedBoundaries[i + 2];
+
+      for (const calculator of [replacementAt, repairAt, inspectionAt]) {
+        const left = calculator(leftDistance);
+        const mid = calculator(midDistance);
+        const right = calculator(rightDistance);
+
+        expect(left.isValid).toBe(true);
+        expect(mid.isValid).toBe(true);
+        expect(right.isValid).toBe(true);
+        expect(mid.total).toBeGreaterThanOrEqual(left.total);
+        expect(right.total).toBeGreaterThanOrEqual(mid.total);
+        expect(right.total - left.total).toBeLessThan(2);
+      }
+
+      const replacement = replacementAt(midDistance);
+      const repair = repairAt(midDistance);
+      const inspection = inspectionAt(midDistance);
+      expect(repair.total).toBeLessThan(replacement.total);
+      expect(inspection.total).toBeLessThanOrEqual(repair.total);
+      expect(replacement.calloutFee).toBe(repair.calloutFee);
+      expect(repair.calloutFee).toBe(inspection.calloutFee);
+    }
+  });
+
+  it('has no hidden long-distance minimum jumps at 100, 150, or 250 miles', () => {
+    for (let i = 0; i < longDistanceBoundaries.length; i += 3) {
+      const leftDistance = longDistanceBoundaries[i];
+      const midDistance = longDistanceBoundaries[i + 1];
+      const rightDistance = longDistanceBoundaries[i + 2];
+
+      for (const calculator of [replacementAt, repairAt, inspectionAt]) {
+        const overrides = { maxAutoPricingMiles: 500 };
+        const left = calculator(leftDistance, overrides);
+        const mid = calculator(midDistance, overrides);
+        const right = calculator(rightDistance, overrides);
+
+        expect(left.isValid).toBe(true);
+        expect(mid.isValid).toBe(true);
+        expect(right.isValid).toBe(true);
+        expect(mid.total).toBeGreaterThanOrEqual(left.total);
+        expect(right.total).toBeGreaterThanOrEqual(mid.total);
+        expect(right.total - left.total).toBeLessThanOrEqual(0.2);
+        expect(emergencyMinimumAmount(left)).toBe(0);
+        expect(emergencyMinimumAmount(mid)).toBe(0);
+        expect(emergencyMinimumAmount(right)).toBe(0);
+      }
+
+      const replacement = replacementAt(midDistance, { maxAutoPricingMiles: 500 });
+      const repair = repairAt(midDistance, { maxAutoPricingMiles: 500 });
+      const inspection = inspectionAt(midDistance, { maxAutoPricingMiles: 500 });
+      expect(replacement.calloutFee).toBe(repair.calloutFee);
+      expect(repair.calloutFee).toBe(inspection.calloutFee);
+      expect(inspection.total).toBeLessThanOrEqual(repair.total);
+      expect(repair.total).toBeLessThan(replacement.total);
+    }
+  });
+
+  it('is monotonic, non-negative, and shared-travel deterministic from 0 to 250 miles', () => {
+    let previousReplacement = -Infinity;
+    let previousRepair = -Infinity;
+    let previousInspection = -Infinity;
+
+    for (let distanceMiles = 0; distanceMiles <= 250; distanceMiles += 1) {
+      const replacement = replacementAt(distanceMiles);
+      const repair = repairAt(distanceMiles);
+      const inspection = inspectionAt(distanceMiles);
+
+      expect(replacement.total).toBeGreaterThanOrEqual(0);
+      expect(repair.total).toBeGreaterThanOrEqual(0);
+      expect(inspection.total).toBeGreaterThanOrEqual(0);
+      expect(replacement.total).toBeGreaterThanOrEqual(previousReplacement);
+      expect(repair.total).toBeGreaterThanOrEqual(previousRepair);
+      expect(inspection.total).toBeGreaterThanOrEqual(previousInspection);
+      expect(replacement.calloutFee).toBe(repair.calloutFee);
+      expect(repair.calloutFee).toBe(inspection.calloutFee);
+      expect(inspection.total).toBeLessThanOrEqual(repair.total);
+      expect(repair.total).toBeLessThan(replacement.total);
+
+      previousReplacement = replacement.total;
+      previousRepair = repair.total;
+      previousInspection = inspection.total;
+    }
   });
 });

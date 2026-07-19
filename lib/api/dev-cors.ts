@@ -1,25 +1,59 @@
 import { NextResponse } from 'next/server';
 
-const ALLOWED_DEV_ORIGINS = new Set([
-  'http://localhost:8081',
-  'http://127.0.0.1:8081',
-  'http://localhost:8082',
-  'http://127.0.0.1:8082',
-  'http://localhost:8083',
-  'http://127.0.0.1:8083',
-  'http://localhost:8084',
-  'http://127.0.0.1:8084',
-  'http://localhost:8095',
-  'http://127.0.0.1:8095',
-  'http://localhost:8096',
-  'http://127.0.0.1:8096',
-  'http://localhost:19006',
-  'http://127.0.0.1:19006',
-]);
+function isExpoDevPort(port: string): boolean {
+  const n = Number(port);
+  return n === 19006 || (Number.isInteger(n) && n >= 8081 && n <= 8099);
+}
+
+export function isLocalNetworkHostname(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '0.0.0.0' ||
+    host === '::1' ||
+    host.endsWith('.local')
+  ) {
+    return true;
+  }
+
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+
+  const match = /^172\.(\d{1,2})\.\d{1,3}\.\d{1,3}$/.exec(host);
+  if (!match) return false;
+
+  const secondOctet = Number(match[1]);
+  return secondOctet >= 16 && secondOctet <= 31;
+}
+
+export function isLocalNetworkHost(hostHeader: string | null): boolean {
+  if (!hostHeader) return false;
+  const host = hostHeader.split(',')[0]?.trim() ?? '';
+  if (!host) return false;
+
+  if (host.startsWith('[')) {
+    const end = host.indexOf(']');
+    return end > 0 && isLocalNetworkHostname(host.slice(1, end));
+  }
+
+  return isLocalNetworkHostname(host.split(':')[0] ?? host);
+}
+
+export function isAllowedExpoDevOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+    return isExpoDevPort(url.port) && isLocalNetworkHostname(url.hostname);
+  } catch {
+    return false;
+  }
+}
 
 function devOrigin(request: Request): string | null {
   const origin = request.headers.get('origin');
-  return origin && ALLOWED_DEV_ORIGINS.has(origin) ? origin : null;
+  return isAllowedExpoDevOrigin(origin) ? origin : null;
 }
 
 export function withExpoDevCors<R extends NextResponse>(request: Request, response: R): R {

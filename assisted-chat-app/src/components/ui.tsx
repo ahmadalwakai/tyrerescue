@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -69,7 +70,7 @@ export function AppButton({
       accessibilityRole="button"
       accessibilityState={{ disabled: !!isDisabled, busy: !!loading }}
     >
-      {variant === 'primary' ? <View pointerEvents="none" style={styles.buttonHighlight} /> : null}
+      {variant === 'primary' ? <View style={[styles.buttonHighlight, styles.noPointerEvents]} /> : null}
       <Animated.View style={[styles.buttonContent, pressScaleStyle]}>
         {loading ? (
           <ActivityIndicator color={variantStyles[variant].textColor} />
@@ -100,7 +101,7 @@ export function SectionCard({ title, children, helperText }: SectionCardProps) {
   const entranceStyle = useFadeSlideIn({ distance: 8, duration: 240 });
   return (
     <Animated.View style={[cardStyles.card, entranceStyle]}>
-      <View pointerEvents="none" style={cardStyles.accentLine} />
+      <View style={[cardStyles.accentLine, cardStyles.noPointerEvents]} />
       <View style={cardStyles.header}>
         <View style={cardStyles.titleRail} />
         <View style={cardStyles.titleBlock}>
@@ -181,6 +182,47 @@ export function StatusBanner({ kind, message }: StatusBannerProps) {
   );
 }
 
+const buttonShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 7px 12px rgba(0,0,0,0.24)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.24,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 4,
+  },
+});
+
+const primaryButtonShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 7px 12px rgba(249,115,22,0.22)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadowWarm,
+    shadowOpacity: 0.22,
+  },
+});
+
+const cardShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 10px 18px rgba(0,0,0,0.28)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 5,
+  },
+});
+
+const bannerShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 5px 10px rgba(0,0,0,0.18)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
+  },
+});
+
 const styles = StyleSheet.create({
   base: {
     minHeight: 46,
@@ -191,11 +233,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.24,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 4,
+    ...(buttonShadow ?? {}),
   },
   label: {
     fontSize: fontSize.md,
@@ -222,6 +260,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radius.md,
     backgroundColor: 'rgba(255,255,255,0.18)',
   },
+  noPointerEvents: {
+    pointerEvents: 'none',
+  },
 });
 
 const variantStyles = {
@@ -230,8 +271,7 @@ const variantStyles = {
     base: {
       backgroundColor: colors.accent,
       borderColor: colors.accent,
-      shadowColor: colors.shadowWarm,
-      shadowOpacity: 0.22,
+      ...(primaryButtonShadow ?? {}),
     } as ViewStyle,
     pressed: { backgroundColor: colors.accentPressed, borderColor: colors.accentPressed } as ViewStyle,
     textColor: colors.accentText,
@@ -264,11 +304,7 @@ const cardStyles = StyleSheet.create({
     padding: 14,
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.28,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 5,
+    ...(cardShadow ?? {}),
   },
   accentLine: {
     position: 'absolute',
@@ -278,6 +314,9 @@ const cardStyles = StyleSheet.create({
     height: 2,
     backgroundColor: colors.accent,
     opacity: 0.9,
+  },
+  noPointerEvents: {
+    pointerEvents: 'none',
   },
   header: {
     flexDirection: 'row',
@@ -345,11 +384,7 @@ const bannerStyles = StyleSheet.create({
     paddingVertical: 10,
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 2,
+    ...(bannerShadow ?? {}),
   },
   rail: {
     position: 'absolute',

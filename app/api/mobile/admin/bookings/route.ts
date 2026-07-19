@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { and, desc, eq, exists, gte, ilike, lte, or, sql } from 'drizzle-orm';
-import { db, bookings, bookingTyres, tyreProducts, drivers, users } from '@/lib/db';
+import { db, bookings, bookingTyres, tyreProducts, drivers, users, quickBookings } from '@/lib/db';
 import { getMobileAdminUser, parsePageParams, unauthorizedResponse } from '@/app/api/mobile/admin/_lib';
 import { haversineDistanceMiles } from '@/lib/mapbox';
 import { GARAGE_LOCATION } from '@/lib/garage';
@@ -13,6 +13,14 @@ function toNumber(value: string | number | null | undefined): number | null {
   if (value == null) return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function bookingOriginFromQuickBreakdown(value: unknown): 'customer' | 'admin_quick_book' | 'assisted_chat' {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const pricingContext = (value as { pricingContext?: unknown }).pricingContext;
+    if (pricingContext === 'assisted_chat') return 'assisted_chat';
+  }
+  return 'admin_quick_book';
 }
 
 export async function GET(request: Request) {
@@ -87,10 +95,13 @@ export async function GET(request: Request) {
         driverIsOnline: drivers.isOnline,
         driverStatus: drivers.status,
         driverLocationAt: drivers.locationAt,
+        quickBookingId: quickBookings.id,
+        quickBookingPriceBreakdown: quickBookings.priceBreakdown,
       })
       .from(bookings)
       .leftJoin(drivers, eq(bookings.driverId, drivers.id))
       .leftJoin(users, eq(drivers.userId, users.id))
+      .leftJoin(quickBookings, eq(quickBookings.bookingId, bookings.id))
       .where(whereClause)
       .orderBy(desc(bookings.createdAt))
       .limit(perPage)
@@ -124,6 +135,9 @@ export async function GET(request: Request) {
               ),
             )
           : null;
+      const bookingOrigin = booking.quickBookingId
+        ? bookingOriginFromQuickBreakdown(booking.quickBookingPriceBreakdown)
+        : 'customer';
 
       return {
         id: booking.id,
@@ -139,6 +153,8 @@ export async function GET(request: Request) {
         createdAt: booking.createdAt?.toISOString() ?? null,
         driverId: booking.driverId,
         driverName: booking.driverName ?? null,
+        bookingOrigin,
+        isCustomerOriginated: bookingOrigin === 'customer',
         driverSituation: calculateDriverSituation({
           jobRef: booking.refNumber,
           driverId: booking.driverId ?? null,

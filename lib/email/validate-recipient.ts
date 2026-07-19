@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizeRecipientEmailInput } from '@/lib/contact-normalization';
 
 export type EmailValidationResult =
   | { ok: true; email: string }
@@ -48,7 +49,7 @@ export function validateRecipientEmail(input: unknown): EmailValidationResult {
     return { ok: false, reason: 'Email is not a string' };
   }
 
-  const trimmed = input.trim().toLowerCase();
+  const trimmed = normalizeRecipientEmailInput(input);
 
   if (!trimmed) {
     return { ok: false, reason: 'Email is empty or whitespace' };

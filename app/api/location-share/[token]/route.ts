@@ -164,10 +164,24 @@ export async function POST(
   let serviceOriginSource: 'driver' | 'garage' | null = null;
   let serviceOriginDriverId: string | null = null;
   let durationMinutes: number | null = null;
+  let serviceDistanceMiles: number | null = null;
+  let pricingDistanceMiles: number | null = null;
+  let pricingDurationMinutes: number | null = null;
+  let garageDistanceMiles: number | null = null;
+  let pricingDistanceSource: 'driver' | 'garage' | 'garage_floor' | null = null;
+  let distanceFloorApplied: boolean | null = null;
   
   try {
     const result = await resolveQuickBookDistance({ lat: parsed.data.lat, lng: parsed.data.lng });
     distanceKm = distanceResultToKm(result);
+    serviceDistanceMiles = result.distanceMiles;
+    pricingDistanceMiles = result.pricingDistanceMiles;
+    pricingDurationMinutes = result.distanceFloorApplied
+      ? result.garageDurationMinutes ?? result.durationMinutes ?? null
+      : result.durationMinutes ?? null;
+    garageDistanceMiles = result.garageDistanceMiles;
+    pricingDistanceSource = result.pricingDistanceSource;
+    distanceFloorApplied = result.distanceFloorApplied;
     serviceOriginLat = result.originLat;
     serviceOriginLng = result.originLng;
     serviceOriginSource = result.distanceSource as 'driver' | 'garage';
@@ -182,12 +196,16 @@ export async function POST(
   let totalPrice: number | null = booking.totalPrice ? Number(booking.totalPrice) : null;
   let priceBreakdown: Record<string, unknown> | null = booking.priceBreakdown as Record<string, unknown> | null;
 
-  const distanceMiles = distanceKm != null ? distanceKm * 0.621371 : 5;
+  const distanceMiles = pricingDistanceMiles ?? (distanceKm != null ? distanceKm * 0.621371 : 5);
   const serviceType = (booking.serviceType ?? 'fit') as QuickBookServiceType;
+  const isInspectionOnly = serviceType === 'assess';
   const pricingContext = resolvePricingContext(booking, priceBreakdown);
   const adminDistanceLimitMiles = getStoredAdminDistanceLimitMiles(priceBreakdown);
   if (durationMinutes == null) {
     durationMinutes = getStoredDurationMinutes(priceBreakdown);
+  }
+  if (pricingDurationMinutes == null) {
+    pricingDurationMinutes = durationMinutes;
   }
 
   let weatherContext: WeatherPricingContext | null = null;
@@ -211,17 +229,17 @@ export async function POST(
 
     const priced = await calculateQuickBookPricing({
       serviceType,
-      tyreSize: booking.tyreSize ?? null,
-      tyreCount: booking.tyreCount ?? 1,
+      tyreSize: isInspectionOnly ? null : booking.tyreSize ?? null,
+      tyreCount: isInspectionOnly ? 1 : booking.tyreCount ?? 1,
       distanceMiles,
-      selectedTyreSnapshot: tyreSnapshot,
-      resolveTyreFromSize: !tyreSnapshot && Boolean(booking.tyreSize?.trim()),
+      selectedTyreSnapshot: isInspectionOnly ? null : tyreSnapshot,
+      resolveTyreFromSize: !isInspectionOnly && !tyreSnapshot && Boolean(booking.tyreSize?.trim()),
       requireTyreForFit: false, // Don't fail if tyre not found - keep existing pricing
       adminAdjustmentAmount: Number(booking.adminAdjustmentAmount ?? 0),
       adminAdjustmentReason: booking.adminAdjustmentReason,
       adminDistanceLimitMiles,
       pricingContext,
-      durationMinutes,
+      durationMinutes: pricingDurationMinutes,
       weatherContext,
     });
 
@@ -232,7 +250,13 @@ export async function POST(
       pricingContext,
       ...(adminDistanceLimitMiles != null ? { adminDistanceLimitMiles } : {}),
       weatherContext,
-      durationMinutes,
+      durationMinutes: pricingDurationMinutes,
+      serviceDistanceMiles,
+      pricingDistanceMiles: priced.breakdown.distanceMiles,
+      pricingDurationMinutes,
+      garageDistanceMiles,
+      pricingDistanceSource,
+      distanceFloorApplied,
       serviceOrigin: serviceOriginLat && serviceOriginLng ? {
         lat: serviceOriginLat,
         lng: serviceOriginLng,
@@ -250,7 +274,13 @@ export async function POST(
         pricingContext,
         ...(adminDistanceLimitMiles != null ? { adminDistanceLimitMiles } : {}),
         weatherContext,
-        durationMinutes,
+        durationMinutes: pricingDurationMinutes,
+        serviceDistanceMiles,
+        pricingDistanceMiles: priceBreakdown.pricingDistanceMiles ?? pricingDistanceMiles,
+        pricingDurationMinutes,
+        garageDistanceMiles,
+        pricingDistanceSource,
+        distanceFloorApplied,
         serviceOrigin: serviceOriginLat && serviceOriginLng ? {
           lat: serviceOriginLat,
           lng: serviceOriginLng,

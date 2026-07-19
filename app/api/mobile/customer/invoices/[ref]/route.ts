@@ -7,8 +7,10 @@ import {
   verifyCustomerInvoiceToken,
 } from '@/app/api/mobile/customer/_lib';
 import { db } from '@/lib/db';
-import { bookings, bookingTyres, tyreProducts } from '@/lib/db/schema';
-import { generateInvoicePdf } from '@/lib/invoice-pdf';
+import { bookings } from '@/lib/db/schema';
+import { generateBookingCustomerInvoicePdf } from '@/lib/invoice-pdf';
+import { buildBookingCustomerInvoiceFromBooking, InvoiceDomainError } from '@/lib/invoices/invoice-domain';
+import { getBookingPaymentSummary } from '@/lib/payments/payment-summary';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -62,34 +64,41 @@ export async function GET(request: Request, props: Props) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const items = await buildInvoiceItems(booking.id, {
-      quantity: booking.quantity,
-      subtotal: Number(booking.subtotal),
-      tyreSizeDisplay: booking.tyreSizeDisplay,
-      serviceType: booking.serviceType,
-      priceSnapshot: booking.priceSnapshot,
+    const paymentSummary = await getBookingPaymentSummary({
+      id: booking.id,
+      refNumber: booking.refNumber,
+      status: booking.status,
+      paymentType: booking.paymentType,
+      totalAmount: booking.totalAmount.toString(),
+      subtotal: booking.subtotal.toString(),
+      vatAmount: booking.vatAmount.toString(),
+      depositAmountPence: booking.depositAmountPence,
+      remainingBalancePence: booking.remainingBalancePence,
+      depositPaidAt: booking.depositPaidAt,
+      stripePiId: booking.stripePiId,
+      stripeDepositPiId: booking.stripeDepositPiId,
     });
-    const issueDate = booking.createdAt ?? new Date();
-
-    const pdfBytes = await generateInvoicePdf({
+    const invoice = buildBookingCustomerInvoiceFromBooking({
+      booking: {
+        id: booking.id,
+        refNumber: booking.refNumber,
+        status: booking.status,
+        customerName: booking.customerName,
+        customerEmail: booking.customerEmail,
+        customerPhone: booking.customerPhone,
+        addressLine: booking.addressLine,
+        totalAmount: booking.totalAmount.toString(),
+        createdAt: booking.createdAt,
+        vehicleReg: booking.vehicleReg,
+        vehicleMake: booking.vehicleMake,
+        vehicleModel: booking.vehicleModel,
+      },
+      paymentSummary,
+      company: COMPANY,
       invoiceNumber: `INV-${booking.refNumber}`,
-      issueDate: issueDate.toISOString(),
-      dueDate: issueDate.toISOString(),
-      status: 'paid',
-      companyName: COMPANY.name,
-      companyAddress: COMPANY.address,
-      companyPhone: COMPANY.phone,
-      companyEmail: COMPANY.email,
-      customerName: booking.customerName,
-      customerEmail: booking.customerEmail,
-      customerPhone: booking.customerPhone,
-      customerAddress: booking.addressLine,
-      items,
-      subtotal: Number(booking.subtotal),
-      vatAmount: Number(booking.vatAmount),
-      totalAmount: Number(booking.totalAmount),
-      notes: `Booking reference: ${booking.refNumber}`,
+      source: `mobile-customer:${booking.refNumber}`,
     });
+    const pdfBytes = await generateBookingCustomerInvoicePdf(invoice);
 
     return new Response(Buffer.from(pdfBytes), {
       status: 200,
@@ -100,76 +109,10 @@ export async function GET(request: Request, props: Props) {
       },
     });
   } catch (error) {
+    if (error instanceof InvoiceDomainError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('[mobile-customer:invoice] error:', error);
     return NextResponse.json({ error: 'Failed to generate invoice' }, { status: 500 });
   }
-}
-
-async function buildInvoiceItems(
-  bookingId: string,
-  fallback: {
-    quantity: number;
-    subtotal: number;
-    tyreSizeDisplay: string | null;
-    serviceType: string;
-    priceSnapshot: unknown;
-  },
-) {
-  const tyreRows = await db
-    .select({
-      quantity: bookingTyres.quantity,
-      unitPrice: bookingTyres.unitPrice,
-      service: bookingTyres.service,
-      brand: tyreProducts.brand,
-      pattern: tyreProducts.pattern,
-      sizeDisplay: tyreProducts.sizeDisplay,
-    })
-    .from(bookingTyres)
-    .leftJoin(tyreProducts, eq(bookingTyres.tyreId, tyreProducts.id))
-    .where(eq(bookingTyres.bookingId, bookingId));
-
-  if (tyreRows.length > 0) {
-    return tyreRows.map((row) => {
-      const quantity = row.quantity || 1;
-      const unitPrice = Number(row.unitPrice);
-      const tyreName = [row.brand, row.pattern, row.sizeDisplay].filter(Boolean).join(' ');
-      return {
-        description: tyreName || humanServiceLabel(row.service),
-        quantity,
-        unitPrice,
-        totalPrice: unitPrice * quantity,
-      };
-    });
-  }
-
-  const snapshot = fallback.priceSnapshot as {
-    lineItems?: { label?: string; amount?: number }[];
-  } | null;
-  const lineItems = snapshot?.lineItems?.filter((item) => Number(item.amount) > 0) ?? [];
-  if (lineItems.length > 0) {
-    return lineItems.map((item) => ({
-      description: item.label || humanServiceLabel(fallback.serviceType),
-      quantity: 1,
-      unitPrice: Number(item.amount),
-      totalPrice: Number(item.amount),
-    }));
-  }
-
-  const quantity = Math.max(1, fallback.quantity || 1);
-  return [
-    {
-      description: fallback.tyreSizeDisplay
-        ? `${humanServiceLabel(fallback.serviceType)} - ${fallback.tyreSizeDisplay}`
-        : humanServiceLabel(fallback.serviceType),
-      quantity,
-      unitPrice: fallback.subtotal / quantity,
-      totalPrice: fallback.subtotal,
-    },
-  ];
-}
-
-function humanServiceLabel(value: string | null | undefined) {
-  return String(value || 'Tyre service')
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
 }

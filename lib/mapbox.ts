@@ -30,10 +30,21 @@ interface DirectionsResult {
  * Records which provider was used, which origin point, and why.
  */
 export interface DistanceResult {
+  /** Operational route distance from the chosen service origin. */
   distanceMiles: number;
   durationMinutes: number | null;
   distanceProvider: 'mapbox' | 'haversine';
   distanceSource: 'driver' | 'garage';
+  /**
+   * Distance used for quote pricing. Driver-origin routing can be useful for
+   * ETA, but quotes must not become artificially cheap when a driver happens
+   * to be near a distant city.
+   */
+  pricingDistanceMiles: number;
+  pricingDistanceSource: 'driver' | 'garage' | 'garage_floor';
+  garageDistanceMiles: number;
+  garageDurationMinutes: number | null;
+  distanceFloorApplied: boolean;
   originLat: number;
   originLng: number;
   destLat: number;
@@ -257,6 +268,73 @@ export function haversineDistanceMiles(
 /** Maximum candidates per type to try via Mapbox directions API */
 const MAX_MAPBOX_CANDIDATES = 3;
 
+async function resolveGarageDistanceForPricing(customer: {
+  lat: number;
+  lng: number;
+}): Promise<{
+  distanceMiles: number;
+  durationMinutes: number | null;
+  provider: 'mapbox' | 'haversine';
+  distanceMeters: number | null;
+  durationSeconds: number | null;
+}> {
+  let garageDirections: DirectionsResult | null = null;
+  try {
+    garageDirections = await getDirections(
+      { lng: GARAGE_LOCATION.lng, lat: GARAGE_LOCATION.lat },
+      { lng: customer.lng, lat: customer.lat },
+    );
+  } catch {
+    garageDirections = null;
+  }
+
+  if (garageDirections) {
+    return {
+      distanceMiles: Math.round(metersToMiles(garageDirections.distance) * 100) / 100,
+      durationMinutes: secondsToMinutes(garageDirections.duration),
+      provider: 'mapbox',
+      distanceMeters: garageDirections.distance,
+      durationSeconds: garageDirections.duration,
+    };
+  }
+
+  const hvDist = haversineDistanceMiles(GARAGE_LOCATION, customer) * 1.3;
+  return {
+    distanceMiles: Math.round(hvDist * 100) / 100,
+    durationMinutes: null,
+    provider: 'haversine',
+    distanceMeters: null,
+    durationSeconds: null,
+  };
+}
+
+function withGaragePricingFloor(
+  result: Omit<
+    DistanceResult,
+    | 'pricingDistanceMiles'
+    | 'pricingDistanceSource'
+    | 'garageDistanceMiles'
+    | 'garageDurationMinutes'
+    | 'distanceFloorApplied'
+  >,
+  garage: {
+    distanceMiles: number;
+    durationMinutes: number | null;
+  },
+): DistanceResult {
+  const floorApplied = garage.distanceMiles > result.distanceMiles;
+  return {
+    ...result,
+    pricingDistanceMiles: floorApplied ? garage.distanceMiles : result.distanceMiles,
+    pricingDistanceSource: floorApplied
+      ? 'garage_floor'
+      : result.distanceSource,
+    garageDistanceMiles: garage.distanceMiles,
+    garageDurationMinutes: garage.durationMinutes,
+    distanceFloorApplied: floorApplied,
+  };
+}
+
 /**
  * Resolve the best origin-to-customer distance using the fallback chain:
  *   1. Nearest online driver (by driving time)
@@ -301,6 +379,11 @@ export async function resolveDistance(
           durationMinutes: mins,
           distanceProvider: 'mapbox',
           distanceSource: 'driver',
+          pricingDistanceMiles: miles,
+          pricingDistanceSource: 'driver',
+          garageDistanceMiles: miles,
+          garageDurationMinutes: null,
+          distanceFloorApplied: false,
           originLat: d.lat,
           originLng: d.lng,
           destLat: customer.lat,
@@ -312,16 +395,24 @@ export async function resolveDistance(
         };
       }
     }
-    if (bestDriver) return bestDriver;
+    if (bestDriver) {
+      const garage = await resolveGarageDistanceForPricing(customer);
+      return withGaragePricingFloor(bestDriver, garage);
+    }
 
     // Haversine fallback for nearest driver
     const d = sortedDrivers[0];
     const hvDist = haversineDistanceMiles(d, customer) * 1.3;
-    return {
+    const driverFallback: DistanceResult = {
       distanceMiles: Math.round(hvDist * 100) / 100,
       durationMinutes: null,
       distanceProvider: 'haversine',
       distanceSource: 'driver',
+      pricingDistanceMiles: Math.round(hvDist * 100) / 100,
+      pricingDistanceSource: 'driver' as const,
+      garageDistanceMiles: Math.round(hvDist * 100) / 100,
+      garageDurationMinutes: null,
+      distanceFloorApplied: false,
       originLat: d.lat,
       originLng: d.lng,
       destLat: customer.lat,
@@ -331,43 +422,46 @@ export async function resolveDistance(
       fallbackReason: 'Mapbox directions unavailable for drivers',
       selectedDriverId: d.id,
     };
+    const garage = await resolveGarageDistanceForPricing(customer);
+    return withGaragePricingFloor(driverFallback, garage);
   }
 
   // --- Phase 2: Garage fallback ---
-  let garageDirections: DirectionsResult | null = null;
-  try {
-    garageDirections = await getDirections(
-      { lng: GARAGE_LOCATION.lng, lat: GARAGE_LOCATION.lat },
-      { lng: customer.lng, lat: customer.lat },
-    );
-  } catch {
-    garageDirections = null;
-  }
+  const garage = await resolveGarageDistanceForPricing(customer);
 
-  if (garageDirections) {
+  if (garage.provider === 'mapbox') {
     return {
-      distanceMiles: Math.round(metersToMiles(garageDirections.distance) * 100) / 100,
-      durationMinutes: secondsToMinutes(garageDirections.duration),
+      distanceMiles: garage.distanceMiles,
+      durationMinutes: garage.durationMinutes,
       distanceProvider: 'mapbox',
       distanceSource: 'garage',
+      pricingDistanceMiles: garage.distanceMiles,
+      pricingDistanceSource: 'garage',
+      garageDistanceMiles: garage.distanceMiles,
+      garageDurationMinutes: garage.durationMinutes,
+      distanceFloorApplied: false,
       originLat: GARAGE_LOCATION.lat,
       originLng: GARAGE_LOCATION.lng,
       destLat: customer.lat,
       destLng: customer.lng,
-      distanceMeters: garageDirections.distance,
-      durationSeconds: garageDirections.duration,
+      distanceMeters: garage.distanceMeters,
+      durationSeconds: garage.durationSeconds,
       fallbackReason: 'No available drivers; using garage fallback',
       selectedDriverId: null,
     };
   }
 
   // Absolute last resort: haversine from garage
-  const hvDist = haversineDistanceMiles(GARAGE_LOCATION, customer) * 1.3;
   return {
-    distanceMiles: Math.round(hvDist * 100) / 100,
+    distanceMiles: garage.distanceMiles,
     durationMinutes: null,
     distanceProvider: 'haversine',
     distanceSource: 'garage',
+    pricingDistanceMiles: garage.distanceMiles,
+    pricingDistanceSource: 'garage',
+    garageDistanceMiles: garage.distanceMiles,
+    garageDurationMinutes: null,
+    distanceFloorApplied: false,
     originLat: GARAGE_LOCATION.lat,
     originLng: GARAGE_LOCATION.lng,
     destLat: customer.lat,

@@ -299,13 +299,16 @@ export async function calculateQuickBookPricing(
   const fittingLocation = input.fittingLocation ?? 'mobile';
   const tyreLineInputs = inputTyreLines(input);
   const normalizedTyreSize = tyreLineInputs[0]?.size?.trim() ? normalizeTyreSize(tyreLineInputs[0].size) : null;
-  const resolveTyreFromSize = input.resolveTyreFromSize !== false;
+  const shouldResolveTyreProduct = input.serviceType === 'fit';
+  const resolveTyreFromSize = shouldResolveTyreProduct && input.resolveTyreFromSize !== false;
   const requireTyreForFit = input.requireTyreForFit ?? false;
 
   const bookingType = resolveQuickBookBookingType(pricingContext);
   const mode = resolveMode({ pricingContext, fittingLocation, bookingType });
 
-  const seededSelections = input.selectedTyreSnapshots?.length
+  const seededSelections = !shouldResolveTyreProduct
+    ? []
+    : input.selectedTyreSnapshots?.length
     ? input.selectedTyreSnapshots
     : input.selectedTyreSnapshot
     ? [{
@@ -359,12 +362,14 @@ export async function calculateQuickBookPricing(
 
   const selectedTyreSnapshot = tyreLineSelections[0] ?? null;
 
-  const tyreSelections: TyreSelection[] = tyreLineSelections.map((line) => ({
-    tyreId: line.productId,
-    quantity: line.quantity,
-    unitPrice: line.unitPrice ?? 0,
-    service: line.service,
-  }));
+  const tyreSelections: TyreSelection[] = shouldResolveTyreProduct
+    ? tyreLineSelections.map((line) => ({
+        tyreId: line.productId,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice ?? 0,
+        service: line.service,
+      }))
+    : [];
   const totalTyreQuantity =
     tyreLineInputs.reduce((sum, line) => sum + line.quantity, 0) || normalizeLineQuantity(input.tyreCount);
 

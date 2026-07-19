@@ -67,13 +67,26 @@ function quoteFromQuickBookPatch(
     throw new Error('Pricing engine returned no breakdown.');
   }
 
+  const pricingDistanceMiles = breakdown.distanceMiles ?? breakdown.pricingDistanceMiles ?? null;
+  const pricingDistanceKm =
+    pricingDistanceMiles != null
+      ? pricingDistanceMiles * 1.60934
+      : distanceKm
+      ? Number(distanceKm)
+      : null;
   return {
     subtotal: breakdown.subtotal,
     vatAmount: breakdown.vatAmount,
     total: breakdown.total,
     lineItems: breakdown.lineItems,
-    distanceKm: distanceKm ? Number(distanceKm) : null,
-    distanceMiles: breakdown.distanceMiles ?? null,
+    distanceKm: pricingDistanceKm,
+    distanceMiles: pricingDistanceMiles,
+    serviceDistanceMiles: breakdown.serviceDistanceMiles ?? null,
+    pricingDistanceMiles,
+    pricingDurationMinutes: breakdown.pricingDurationMinutes ?? null,
+    garageDistanceMiles: breakdown.garageDistanceMiles ?? null,
+    pricingDistanceSource: breakdown.pricingDistanceSource ?? null,
+    distanceFloorApplied: breakdown.distanceFloorApplied ?? null,
     fittingPrice: breakdown.fittingPrice ?? null,
     tyrePrice: breakdown.tyrePrice ?? null,
     totalPrice: breakdown.totalPrice ?? null,
@@ -94,7 +107,9 @@ function getBackendPriceAmountPence(draft: AssistedChatDraft, fallbackTotal: num
 
 function buildQuoteInput(draft: AssistedChatDraft, priceAmountPence: number, lockingNutCharge: number): CreateAdminQuoteInput {
   const primaryTyre = primaryBookingTyreLine(draft);
-  const tyreLines = buildBookingTyreLinePayload(draft.tyreLines);
+  const isInspectionOnly = draft.serviceType === 'assess';
+  const tyreLines = isInspectionOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
+  const quoteLockingNutCharge = isInspectionOnly ? 0 : lockingNutCharge;
   return {
     quickBookingId: draft.quickBookingId,
     customerName: draft.customer.name || null,
@@ -103,12 +118,12 @@ function buildQuoteInput(draft: AssistedChatDraft, priceAmountPence: number, loc
     postcode: draft.location.postcode,
     latitude: draft.location.lat,
     longitude: draft.location.lng,
-    tyreSize: primaryTyre.size || null,
-    quantity: totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
+    tyreSize: isInspectionOnly ? null : primaryTyre.size || null,
+    quantity: isInspectionOnly ? 1 : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
     tyreLines,
     items: tyreLines,
-    lockingWheelNutStatus: draft.lockingNut.answer,
-    lockingWheelNutChargePence: Math.round(lockingNutCharge * 100),
+    lockingWheelNutStatus: isInspectionOnly || draft.lockingNut.answer === 'unknown' ? null : draft.lockingNut.answer,
+    lockingWheelNutChargePence: Math.round(quoteLockingNutCharge * 100),
     priceAmount: priceAmountPence,
     currency: 'GBP',
     quoteStatus: 'QUOTED',
@@ -170,22 +185,35 @@ export function useAssistedChatQuoteActions({
       const backendBaseTotal = Math.round((draft.quote.total - existingAdjustmentAmount) * 100) / 100;
       let adjustmentAmount = 0;
       let adjustmentReason: string | null = null;
+      const serviceType = draft.serviceType ?? 'fit';
+      const isInspectionOnly = serviceType === 'assess';
 
       if (draft.manualPriceGbp != null && Number.isFinite(draft.manualPriceGbp)) {
         adjustmentAmount = Math.round((draft.manualPriceGbp - backendBaseTotal) * 100) / 100;
         adjustmentReason = MANUAL_PRICE_REASON;
-      } else if (lockingNutCharge > 0) {
+      } else if (!isInspectionOnly && lockingNutCharge > 0) {
         adjustmentAmount = lockingNutCharge;
         adjustmentReason = LOCKING_NUT_REASON;
       }
 
       const customerName = draft.customer.name.trim();
       const customerPhone = draft.customer.phone.trim();
+      const customerEmail = draft.customer.email.trim();
+      const primaryTyre = primaryBookingTyreLine(draft);
+      const tyreLines = isInspectionOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
       const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${draft.quickBookingId}`, {
         ...(customerName ? { customerName } : {}),
         ...(customerPhone ? { customerPhone } : {}),
+        customerEmail,
         locationAddress: draft.location.address || null,
         locationPostcode: draft.location.postcode || null,
+        serviceType,
+        tyreSize: isInspectionOnly ? null : primaryTyre.size,
+        tyreCount: isInspectionOnly
+          ? 1
+          : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
+        tyreLines,
+        items: tyreLines,
         adminAdjustmentAmount: adjustmentAmount,
         adminAdjustmentReason: adjustmentReason,
         pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,

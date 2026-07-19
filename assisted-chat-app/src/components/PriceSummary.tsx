@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type {
   AssistedChatPaymentChoice,
   AssistedChatQuoteBreakdown,
+  AssistedChatServiceType,
   StripePaymentLinkState,
 } from '@/types/assisted-chat';
 import { AppButton, SectionCard, StatusBanner } from './ui';
@@ -43,6 +44,7 @@ interface Props {
    * final highlighted row shows the manual price instead.
    */
   manualPriceGbp?: number | null;
+  serviceType?: AssistedChatServiceType;
 }
 
 export function PriceSummary({
@@ -67,6 +69,7 @@ export function PriceSummary({
   showGetPriceAction = true,
   showPaymentOptions = true,
   manualPriceGbp = null,
+  serviceType = 'fit',
 }: Props) {
   const baseTotal = quote?.total ?? 0;
   const calculatedTotal = baseTotal;
@@ -79,14 +82,35 @@ export function PriceSummary({
   const depositPercent = 0.20;
   const deposit = effectiveTotal * depositPercent;
   const priceLines = quote?.lineItems.filter((line) => line.type !== 'subtotal' && line.type !== 'total') ?? [];
-  const pricingSource = quote?.serviceOrigin?.source === 'driver' ? 'nearest driver' : quote?.serviceOrigin?.source === 'garage' ? 'garage' : null;
+  const pricingDistanceMiles =
+    quote?.distanceMiles ?? (quote?.distanceKm != null ? quote.distanceKm * 0.621371 : null);
+  const pricingDistanceKm = pricingDistanceMiles != null ? pricingDistanceMiles * 1.60934 : quote?.distanceKm ?? null;
+  const pricingSource =
+    quote?.pricingDistanceSource === 'garage_floor'
+      ? 'garage route'
+      : quote?.pricingDistanceSource === 'garage'
+      ? 'garage'
+      : quote?.pricingDistanceSource === 'driver'
+      ? 'nearest driver'
+      : quote?.serviceOrigin?.source === 'driver'
+      ? 'nearest driver'
+      : quote?.serviceOrigin?.source === 'garage'
+      ? 'garage'
+      : null;
   const hasDistanceCharge = priceLines.some((line) => /callout|rural|distance/i.test(line.label));
   const hasRuralSurcharge = priceLines.some((line) => /rural/i.test(line.label));
   const customerPriceSentence = quote
-    ? `Tell customer: total is ${formatGbp(effectiveTotal)} including tyre, fitting${hasDistanceCharge ? ', callout and distance charges' : ''}.`
+    ? serviceType === 'assess'
+      ? `Tell customer: total is ${formatGbp(effectiveTotal)} for call-out, inspection and labour. Final tyre cost will be confirmed after inspection.`
+      : serviceType === 'repair'
+      ? `Tell customer: total is ${formatGbp(effectiveTotal)} for tyre repair, call-out and labour.`
+      : `Tell customer: total is ${formatGbp(effectiveTotal)} including tyre, fitting${hasDistanceCharge ? ', callout and distance charges' : ''}.`
     : null;
   const smartWarnings = [
-    quote?.distanceKm != null && quote.distanceKm >= 48
+    quote && serviceType === 'assess'
+      ? 'Final tyre cost will be confirmed after inspection.'
+      : null,
+    pricingDistanceMiles != null && pricingDistanceMiles >= 30
       ? 'Long-distance job. The price includes extra travel distance.'
       : null,
     hasRuralSurcharge ? 'Rural surcharge is included in this quote. Mention this if the customer asks why the total is higher.' : null,
@@ -174,9 +198,11 @@ export function PriceSummary({
             </View>
           ) : null}
 
-          {quote.distanceKm != null ? (
+          {pricingDistanceMiles != null ? (
             <Text style={styles.meta}>
-              Distance used for pricing: {quote.distanceKm.toFixed(1)} km{pricingSource ? ` from ${pricingSource}` : ''}
+              Distance used for pricing: {pricingDistanceMiles.toFixed(1)} mi
+              {pricingDistanceKm != null ? ` (${pricingDistanceKm.toFixed(1)} km)` : ''}
+              {pricingSource ? ` from ${pricingSource}` : ''}
             </Text>
           ) : (
             <Text style={styles.warnMeta}>Pricing distance unavailable. Price used the fallback distance.</Text>

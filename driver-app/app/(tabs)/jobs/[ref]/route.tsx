@@ -72,7 +72,6 @@ import { buildGoogleMapsSearchUrl } from '@/lib/navigation/google-maps';
 import {
   buildNavigationProgress,
   getManeuverShimmerSpec,
-  selectRerouteOrigin,
   splitInstructionRoadName,
   validateRouteGeometry,
   type NavigationProgress,
@@ -139,6 +138,7 @@ const REROUTE_DEBOUNCE_FAST_MS = 1_800;
 const REROUTE_DEBOUNCE_SLOW_MS = 4_500;
 const REROUTE_MIN_INTERVAL_MS = 15_000;
 const POOR_ACCURACY_METERS = 50;
+const PROVISIONAL_ACCURACY_METERS = 100;
 // Force a route refresh when the route is stale AND the driver has moved far.
 const ROUTE_STALE_WHILE_MOVING_MS = 45_000;
 const ROUTE_FORCE_REFRESH_MOVE_M = 120;
@@ -163,6 +163,7 @@ const ROUTE_EVENT_TICK_MS = 2_000;
 const COCKPIT_PAD_COLLAPSED = 210;
 const COCKPIT_PAD_EXPANDED = 460;
 const NAVIGATION_PROGRESS_STALE_MS = GPS_WEAK_SECONDS * 1000;
+const ROUTE_ORIGIN_MAX_RAW_ACCURACY_M = POOR_ACCURACY_METERS;
 const DEV_GPS_PANEL_STACK_HEIGHT = 188;
 // ── Offline / weak-network handling ─────────────────────────────────────────
 // While a network failure is latched we suppress reroute/refresh spam, but
@@ -172,12 +173,6 @@ const OFFLINE_RETRY_MS = 15_000;
 // A fix implying a speed above this (~168 mph) is treated as a teleport/stale
 // outlier and rejected UNLESS the fix is highly accurate (genuine motorway).
 const MAX_PLAUSIBLE_SPEED_MPS = 75;
-// Below this speed (m/s, ~1.3 mph) AND with little movement the driver is
-// treated as stationary, so excess fixes are throttled to save work/battery.
-const STATIONARY_SPEED_MPS = 0.6;
-const STATIONARY_MOVE_M = 6;
-// Minimum gap between PROCESSED fixes while stationary (excess fixes dropped).
-const STATIONARY_MIN_INTERVAL_MS = 5_000;
 const DEV_GPS_SPEEDS = [10, 20, 30, 50] as const;
 type DevGpsSpeedMph = (typeof DEV_GPS_SPEEDS)[number];
 const DEV_GPS_LOST_MS = 30_000;
@@ -240,11 +235,15 @@ const ROUTE_EVENT_VOICE: Record<RouteEventType, string | null> = {
   route_restored: null,
 };
 
-// Reference-style navigation map: satellite imagery plus Mapbox road labels.
-// The WebView adds DEM terrain + building extrusions after style load when the
-// driver keeps the map in 3D mode.
-const PRIMARY_STYLE = 'mapbox://styles/mapbox/satellite-streets-v12';
+// Active driving defaults to a navigation-focused streets style. Satellite
+// Streets remains an explicit map-style choice in the expanded cockpit.
+const PRIMARY_STYLE = 'mapbox://styles/mapbox/streets-v12';
+const SATELLITE_STYLE = 'mapbox://styles/mapbox/satellite-streets-v12';
 const FALLBACK_STYLE = 'mapbox://styles/mapbox/streets-v12';
+const NAV_ROUTE_BLUE = '#1A73E8';
+const NAV_ROUTE_FALLBACK = '#F59E0B';
+const NAV_ROUTE_PASSED = '#5F6368';
+const ROUTE_VISUAL_VERSION = 'authoritative-live-route-v6';
 const FOLLOW_ZOOM_URBAN_MIN = 17.05;
 const FOLLOW_ZOOM_URBAN_MAX = 17.85;
 const FOLLOW_ZOOM_MOTORWAY_MIN = 16.25;
@@ -263,6 +262,7 @@ const DRIVER_MARKER_HEADING_OFFSET_DEG = 0;
  */
 export type FollowMode = 'north_up' | 'heading_up' | 'overview';
 type MapDepthMode = '2d' | '3d';
+type MapStyleMode = 'streets' | 'satellite';
 
 type RoutePreferences = {
   motorways: boolean;
@@ -288,6 +288,34 @@ type RouteOption = {
     tolls?: boolean;
     ferries?: boolean;
   };
+};
+
+type DriverFixSource = 'last-known' | 'watch' | 'dev-simulator' | 'tracking-fallback';
+type DriverFixQuality = 'accepted' | 'provisional';
+type NavigationLocationState =
+  | 'requesting'
+  | 'permission-denied'
+  | 'unavailable'
+  | 'weak'
+  | 'accepted'
+  | 'stale'
+  | 'error';
+
+type AcceptedDriverFix = {
+  coordinate: Coordinates;
+  timestampMs: number;
+  accuracyMeters: number | null;
+  heading: number | null;
+  speedMps: number | null;
+  source: DriverFixSource;
+  quality: DriverFixQuality;
+};
+
+type TrackingRouteFallback = Awaited<ReturnType<typeof driverApi.getTrackingData>> & {
+  driverLocationAt?: string | null;
+  routeCoordinates?: [number, number][] | null;
+  estimatedArrivalAt?: string | null;
+  distanceMiles?: number | null;
 };
 
 type ReturnRouteEstimateState = {
@@ -405,6 +433,67 @@ function makeRouteState(
     error,
     loading: false,
   };
+}
+
+function parseTrackingTimestamp(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.min(parsed, Date.now());
+}
+
+function geometryDistanceMeters(geometry: [number, number][]): number {
+  let total = 0;
+  for (let index = 1; index < geometry.length; index += 1) {
+    const prev = lngLatToCoordinates(geometry[index - 1]);
+    const next = lngLatToCoordinates(geometry[index]);
+    if (prev && next) total += haversineMeters(prev, next);
+  }
+  return total;
+}
+
+function makeTrackingFallbackRoute(
+  tracking: TrackingRouteFallback,
+  destination: Coordinates,
+): DirectionsRoute | null {
+  const geometry = Array.isArray(tracking.routeCoordinates)
+    ? tracking.routeCoordinates.filter((coord): coord is [number, number] =>
+        Array.isArray(coord) &&
+        coord.length >= 2 &&
+        Number.isFinite(coord[0]) &&
+        Number.isFinite(coord[1]) &&
+        isValidCoord({ lng: coord[0], lat: coord[1] }),
+      )
+    : [];
+  if (geometry.length < 2) return null;
+  const first = lngLatToCoordinates(geometry[0]);
+  if (!first) return null;
+  const distanceMeters =
+    typeof tracking.distanceMiles === 'number' && Number.isFinite(tracking.distanceMiles)
+      ? tracking.distanceMiles * 1609.344
+      : geometryDistanceMeters(geometry);
+  const durationSeconds =
+    typeof tracking.etaMinutes === 'number' && Number.isFinite(tracking.etaMinutes)
+      ? Math.max(0, Math.round(tracking.etaMinutes * 60))
+      : 0;
+  const route: DirectionsRoute = {
+    geometry,
+    distanceMeters,
+    durationSeconds,
+    trafficDurationSeconds: null,
+    typicalDurationSeconds: null,
+    steps: [],
+    congestion: null,
+    maxspeeds: null,
+    roadClasses: {
+      motorways: false,
+      tolls: false,
+      ferries: false,
+    },
+    destinationSnap: geometry[geometry.length - 1] ?? [destination.lng, destination.lat],
+  };
+  const validation = validateRouteGeometry({ route, origin: first, destination });
+  return validation.ok ? route : null;
 }
 
 function trafficMinutes(route: DirectionsRoute): {
@@ -747,9 +836,12 @@ function buildHtml(token: string): string {
   html,body,#m{margin:0;padding:0;width:100%;height:100%;background:#F8FAFE}
   .mapboxgl-canvas{outline:none}
   .dwrap,.cwrap{position:relative;pointer-events:none}
-  .dwrap{width:56px;height:56px;filter:drop-shadow(0 2px 7px rgba(60,64,67,.28));z-index:4}
+  .dwrap{width:68px;height:68px;filter:drop-shadow(0 3px 9px rgba(60,64,67,.30));z-index:4}
+  .dwrap.weak{opacity:.78}
+  .dwrap.weak .driver-icon{filter:saturate(.7)}
+  .dwrap.stale{opacity:.58}
   .cwrap{width:44px;height:54px;filter:drop-shadow(0 3px 7px rgba(60,64,67,.32))}
-  .driver-icon{position:absolute;left:0;top:0;width:56px;height:56px;transform:none;z-index:2}
+  .driver-icon{position:absolute;left:0;top:0;width:68px;height:68px;transform:none;z-index:2}
   .pin-icon{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2}
   .pin-icon{top:auto;bottom:0;transform:translateX(-50%)}
   .customer-pulse{position:absolute;left:50%;top:39%;width:28px;height:28px;border-radius:50%;border:2px solid rgba(234,67,53,.62);background:rgba(234,67,53,.10);box-shadow:0 0 18px rgba(234,67,53,.22);transform:translate(-50%,-50%) scale(.35);opacity:0;animation:customerRadarPulse 2400ms ease-out infinite;z-index:1}
@@ -861,6 +953,7 @@ var lastRouteRev = -1;
 var lastRouteSeq = -1;
 var lastLocationTimestamp = 0;
 var lastMapDepthMode = '3d';
+var lastMapStyleMode = 'streets';
 var driverMarker = null, customerMarker = null;
 // Driver-marker interpolation state: the dot is eased between ~1s GPS fixes
 // (instead of snapping) so movement reads smooth like a real nav app.
@@ -879,6 +972,11 @@ var FOLLOW_ZOOM_2D = ${FOLLOW_ZOOM_2D};
 var FOLLOW_ZOOM_3D = ${FOLLOW_ZOOM_3D};
 var OVERVIEW_MAX_ZOOM = ${OVERVIEW_MAX_ZOOM};
 var DRIVER_MARKER_HEADING_OFFSET_DEG = ${DRIVER_MARKER_HEADING_OFFSET_DEG};
+var NAV_ROUTE_BLUE = ${JSON.stringify(NAV_ROUTE_BLUE)};
+var NAV_ROUTE_FALLBACK = ${JSON.stringify(NAV_ROUTE_FALLBACK)};
+var NAV_ROUTE_PASSED = ${JSON.stringify(NAV_ROUTE_PASSED)};
+var PRIMARY_STYLE_URL = ${JSON.stringify(PRIMARY_STYLE)};
+var SATELLITE_STYLE_URL = ${JSON.stringify(SATELLITE_STYLE)};
 // DEV-only diagnostics flag (baked in at build time).
 var NAV_DEV = ${__DEV__};
 // Bottom map padding (px) reserved for the cockpit sheet so route framing is
@@ -908,7 +1006,7 @@ if(canStartMap){
 // points along the real travel direction.
 function driverEl(){
   var w = document.createElement('div'); w.className='dwrap';
-  w.innerHTML='<svg class="driver-icon" width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="22" fill="rgba(249,115,22,.18)"/><circle cx="28" cy="28" r="16" fill="#F97316"/><path d="M28 8L42 42L28 35L14 42Z" fill="#FFFFFF"/></svg>';
+  w.innerHTML='<svg class="driver-icon" width="68" height="68" viewBox="0 0 68 68"><circle cx="34" cy="34" r="31" fill="rgba(26,115,232,.16)"/><circle cx="34" cy="34" r="23" fill="#FFFFFF"/><path d="M34 10L50 54L34 45L18 54Z" fill="'+NAV_ROUTE_BLUE+'"/><path d="M34 20L42 45L34 40L26 45Z" fill="rgba(255,255,255,.62)"/></svg>';
   return w;
 }
 function customerEl(){
@@ -921,13 +1019,11 @@ function emptyFC(){ return {type:'FeatureCollection',features:[]}; }
 function featureCollection(features){ return {type:'FeatureCollection',features:features || []}; }
 function lineFeature(coords){ return {type:'Feature',properties:{},geometry:{type:'LineString',coordinates:coords}}; }
 function approxMeters(a,b){ var k=111320; var dx=(a[0]-b[0])*k*Math.cos(b[1]*Math.PI/180); var dy=(a[1]-b[1])*k; return Math.hypot(dx,dy); }
-function visualRouteCoords(coords, driver, customer){
-  return coords || [];
-}
-function syncDynamicRouteOverlays(route, driver, customer, travelled){
+function syncDynamicRouteOverlays(route, driver, customer, travelled, remaining){
   if(!map || !layersReady || !route || !route.coords || route.coords.length<2) return;
   try {
-    if(map.getSource('rsel')) map.getSource('rsel').setData(featureCollection([lineFeature(visualRouteCoords(route.coords, driver, customer))]));
+    var upcomingRaw = (remaining && remaining.length >= 2) ? remaining : route.coords;
+    if(map.getSource('rsel')) map.getSource('rsel').setData(featureCollection([lineFeature(upcomingRaw)]));
     var passed = (travelled && travelled.length >= 2) ? travelled : null;
     if(map.getSource('rpassed')) map.getSource('rpassed').setData(passed ? featureCollection([lineFeature(passed)]) : emptyFC());
   } catch(e) {
@@ -967,7 +1063,7 @@ function animateDriver(to, rot, opts){
   duration = Math.max(220, Math.min(1400, duration));
   var displayRot = rot == null ? null : rot + DRIVER_MARKER_HEADING_OFFSET_DEG;
   if(!driverMarker){
-    driverMarker = new mapboxgl.Marker({element:driverEl(), anchor:'center', rotationAlignment:'map', pitchAlignment:'map'}).setLngLat(to).addTo(map);
+    driverMarker = new mapboxgl.Marker({element:driverEl(), anchor:'center', rotationAlignment:'map', pitchAlignment:'viewport'}).setLngLat(to).addTo(map);
     driverAnimPos = { lng: to[0], lat: to[1] };
     if(displayRot != null){ driverMarker.setRotation(displayRot); lastRenderedRot = ((displayRot % 360) + 360) % 360; }
     if(ts) lastLocationTimestamp = ts;
@@ -1108,6 +1204,20 @@ function applyGooglePalette(){
     if(NAV_DEV) postWarn('palette setup failed: '+String(e && (e.message||e)));
   }
 }
+function styleUrlForMode(mode){
+  return mode === 'satellite' ? SATELLITE_STYLE_URL : PRIMARY_STYLE_URL;
+}
+function applyMapStyle(mode){
+  var nextMode = mode === 'satellite' ? 'satellite' : 'streets';
+  if(nextMode === lastMapStyleMode) return;
+  lastMapStyleMode = nextMode;
+  layersReady = false;
+  try {
+    map.setStyle(styleUrlForMode(nextMode), {diff:false});
+  } catch(e) {
+    if(NAV_DEV) postWarn('map style apply failed: '+String(e && (e.message||e)));
+  }
+}
 function ensureDepthLayers(){
   try {
     if(!map.getSource('mapbox-dem')){
@@ -1170,7 +1280,7 @@ function isMapStyleReady(){
   }
 }
 function promoteRouteLayers(){
-  var ids = ['acc-fill','acc-line','alt-lines','r-shadow','r-case','r-main','r-traffic-low','r-traffic-slow','r-passed','r-arrows'];
+  var ids = ['acc-fill','acc-line','alt-case','alt-lines','r-shadow','r-case','r-main','r-traffic-low','r-traffic-slow','r-passed','r-arrows'];
   for(var i=0;i<ids.length;i++){
     try { if(map.getLayer(ids[i])) map.moveLayer(ids[i]); } catch(_){}
   }
@@ -1184,25 +1294,27 @@ function ensureLayers(){
     applyGooglePalette();
     applyMapDepth(lastMapDepthMode);
     addSourceIfMissing('acc',{type:'geojson',data:emptyFC()});
-    addLayerIfMissing({id:'acc-fill',type:'fill',source:'acc',paint:{'fill-color':'#F97316','fill-opacity':0.14}});
-    addLayerIfMissing({id:'acc-line',type:'line',source:'acc',paint:{'line-color':'#F97316','line-opacity':0.28,'line-width':1}});
+    addLayerIfMissing({id:'acc-fill',type:'fill',source:'acc',paint:{'fill-color':NAV_ROUTE_BLUE,'fill-opacity':0.10}});
+    addLayerIfMissing({id:'acc-line',type:'line',source:'acc',paint:{'line-color':NAV_ROUTE_BLUE,'line-opacity':0.22,'line-width':1}});
     addSourceIfMissing('alts',{type:'geojson',data:emptyFC()});
-    // Alternatives stay quiet until expanded, like Google Maps route options.
-    addLayerIfMissing({id:'alt-lines',type:'line',source:'alts',layout:{'line-cap':'round','line-join':'round','visibility':'none'},paint:{'line-color':'#FDBA74','line-width':['interpolate',['linear'],['zoom'],10,4,15,7,18,10],'line-opacity':0.55}});
+    // Alternative routes stay thinner than the selected route, but remain clear
+    // in overview like Google Maps route options.
+    addLayerIfMissing({id:'alt-case',type:'line',source:'alts',layout:{'line-cap':'round','line-join':'round','visibility':'none'},paint:{'line-color':'#FFFFFF','line-width':['interpolate',['linear'],['zoom'],10,7,15,10,18,13],'line-opacity':0.90}});
+    addLayerIfMissing({id:'alt-lines',type:'line',source:'alts',layout:{'line-cap':'round','line-join':'round','visibility':'none'},paint:{'line-color':'#4C63FF','line-width':['interpolate',['linear'],['zoom'],10,3,15,5,18,7],'line-opacity':0.84}});
     addSourceIfMissing('rsel',{type:'geojson',data:emptyFC()});
     // Google-style route: clean orange stroke with a white casing and no dark
     // neon shadow from the previous driver map. The passed portion is overlaid
     // separately in grey so the remaining route stays obvious.
     addLayerIfMissing({id:'r-shadow',type:'line',source:'rsel',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'rgba(60,64,67,0.16)','line-width':['interpolate',['linear'],['zoom'],10,15,15,22,18,29],'line-blur':1.2,'line-opacity':0.45,'line-translate':[0,1]}});
     addLayerIfMissing({id:'r-case',type:'line',source:'rsel',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#FFFFFF','line-width':['interpolate',['linear'],['zoom'],10,13,15,20,18,27]}});
-    addLayerIfMissing({id:'r-main',type:'line',source:'rsel',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#F97316','line-width':['interpolate',['linear'],['zoom'],10,8,15,13,18,18],'line-opacity':1}});
+    addLayerIfMissing({id:'r-main',type:'line',source:'rsel',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':NAV_ROUTE_BLUE,'line-width':['interpolate',['linear'],['zoom'],10,9,15,15,18,20],'line-opacity':1}});
     addSourceIfMissing('rcong',{type:'geojson',data:emptyFC()});
     // Route-only traffic accents. Clear traffic is a slim green center stripe;
     // moderate/heavy/severe widen and intensify without painting every road.
     addLayerIfMissing({id:'r-traffic-low',type:'line',source:'rcong',filter:['==',['get','level'],'low'],layout:{'line-cap':'round','line-join':'round'},paint:{'line-width':['interpolate',['linear'],['zoom'],10,2,15,3,18,5],'line-opacity':0.62,'line-color':'#34A853'}});
     addLayerIfMissing({id:'r-traffic-slow',type:'line',source:'rcong',filter:['any',['==',['get','level'],'moderate'],['==',['get','level'],'heavy'],['==',['get','level'],'severe']],layout:{'line-cap':'round','line-join':'round'},paint:{'line-width':['interpolate',['linear'],['zoom'],10,4,15,7,18,10],'line-opacity':0.96,'line-color':['match',['get','level'],'moderate','#FBBC04','heavy','#EA4335','severe','#B3261E','#EA4335']}});
     addSourceIfMissing('rpassed',{type:'geojson',data:emptyFC()});
-    addLayerIfMissing({id:'r-passed',type:'line',source:'rpassed',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#9AA0A6','line-width':['interpolate',['linear'],['zoom'],10,7,15,12,18,17],'line-opacity':0.92}});
+    addLayerIfMissing({id:'r-passed',type:'line',source:'rpassed',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':NAV_ROUTE_PASSED,'line-width':['interpolate',['linear'],['zoom'],10,7,15,12,18,17],'line-opacity':0.72}});
     addLayerIfMissing({id:'r-arrows',type:'symbol',source:'rsel',layout:{'visibility':'none'},paint:{'text-opacity':0}});
     if(!altClickBound){
       map.on('click','alt-lines',function(e){ if(e.features && e.features[0] && e.features[0].properties){ post({type:'select-alt', index:e.features[0].properties.altIndex}); } });
@@ -1235,15 +1347,15 @@ function setRoutes(routes, selIdx, fallback, customer){
   }
   try {
     map.getSource('alts').setData(featureCollection(altF));
-    map.getSource('rsel').setData(featureCollection([lineFeature(visualRouteCoords(sel.coords, lastDriver, customer))]));
+    map.getSource('rsel').setData(featureCollection([lineFeature(sel.coords)]));
     // Bright orange base is ALWAYS visible. Dashed + lighter orange only for the
     // approximate straight-line fallback so the driver can tell it apart.
     if(fallback){
       map.setPaintProperty('r-main','line-dasharray',[2,2]);
-      map.setPaintProperty('r-main','line-color','#F59E0B');
+      map.setPaintProperty('r-main','line-color',NAV_ROUTE_FALLBACK);
     } else {
       try { map.setPaintProperty('r-main','line-dasharray', null); } catch(_){}
-      map.setPaintProperty('r-main','line-color','#F97316');
+      map.setPaintProperty('r-main','line-color',NAV_ROUTE_BLUE);
     }
     // Traffic overlay: real Mapbox congestion annotations on the selected route.
     // Unknown stays transparent; low/moderate/heavy/severe become green/amber/red.
@@ -1303,7 +1415,22 @@ function applyCamera(s){
   }
   var displayLocation = s.displayLocation || s.driver;
   var displayHeading = (s.displayHeading == null ? s.heading : s.displayHeading);
-  if(cameraMode==='free-pan' || !s.follow || !displayLocation){ cameraEpoch = s.epoch; return; }
+  if(cameraMode==='free-pan' || !s.follow || !displayLocation){
+    if(cameraMode!=='free-pan' && s.follow && !displayLocation && s.fallbackCamera && s.epoch!==cameraEpoch){
+      cameraEpoch = s.epoch;
+      programmatic = true;
+      try { if(map && map.stop) map.stop(); } catch(_){}
+      map.easeTo({
+        center: s.fallbackCamera,
+        zoom: (typeof s.fallbackZoom === 'number' && isFinite(s.fallbackZoom)) ? s.fallbackZoom : 11.4,
+        bearing: 0,
+        pitch: depthMode === '3d' ? 45 : 0,
+        duration: 380
+      });
+      return;
+    }
+    cameraEpoch = s.epoch; return;
+  }
   var resetZoom = (s.epoch !== cameraEpoch);
   cameraEpoch = s.epoch;
   var opts = { center: displayLocation, duration: 380, offset:[0, Math.min(170, Math.max(105, bottomPad * 0.34))] };
@@ -1344,6 +1471,7 @@ function applyState(s){
     driverAnimSerial++;
   }
   if(typeof s.bottomPad === 'number' && s.bottomPad >= 0) bottomPad = s.bottomPad;
+  if(s.mapStyleMode === 'streets' || s.mapStyleMode === 'satellite') applyMapStyle(s.mapStyleMode);
   if(s.mapDepthMode === '2d' || s.mapDepthMode === '3d') applyMapDepth(s.mapDepthMode);
   if(s.customer){
     lastCustomer = s.customer;
@@ -1360,9 +1488,17 @@ function applyState(s){
       if(displayHeading!=null) lastHeading = displayHeading;
     }
   }
+  if(driverMarker && driverMarker.getElement){
+    var driverElement = driverMarker.getElement();
+    if(driverElement){
+      driverElement.classList.toggle('weak', s.locationState === 'weak');
+      driverElement.classList.toggle('stale', s.locationState === 'stale');
+    }
+  }
   if(layersReady && map.getSource('acc')){
     var accCenter = s.rawDriver || displayLocation;
-    if(accCenter && s.accuracy!=null && s.accuracy>0 && s.accuracy<=120) map.getSource('acc').setData(circlePolygon(accCenter, s.accuracy));
+    var showAccuracyOverlay = !!s.showAccuracyOverlay && NAV_DEV;
+    if(showAccuracyOverlay && accCenter && s.accuracy!=null && s.accuracy>0 && s.accuracy<=120) map.getSource('acc').setData(circlePolygon(accCenter, s.accuracy));
     else map.getSource('acc').setData(emptyFC());
   }
   if(s.routes && s.routes.length){
@@ -1384,11 +1520,14 @@ function applyState(s){
   }
   if(lastRoutes && layersReady){
     var activeRoute = lastRoutes[lastSelIdx] || lastRoutes[0];
-    syncDynamicRouteOverlays(activeRoute, lastDriver, lastCustomer, s.travelledGeometry);
+    syncDynamicRouteOverlays(activeRoute, lastDriver, lastCustomer, s.travelledGeometry, s.remainingGeometry);
   }
   // Alternatives visibility is independent of the route rebuild: toggling the
   // cockpit must never redraw the route, only show/hide the muted alt lines.
-  if(typeof s.showAlts === 'boolean') setVis('alt-lines', s.showAlts);
+  if(typeof s.showAlts === 'boolean'){
+    setVis('alt-case', s.showAlts);
+    setVis('alt-lines', s.showAlts);
+  }
   if(s.fit && s.followMode==='overview' && s.fitCoords && s.fitCoords.length>=2){ fitToCoords(s.fitCoords); cameraEpoch = s.epoch; return; }
   if(driverAccepted) applyCamera(s);
 }
@@ -1522,8 +1661,11 @@ export default function JobRouteScreen() {
   }, [currentRouteJobRef]);
 
   const [job, setJob] = useState<JobDetail | null>(null);
+  const [trackingCustomerCoord, setTrackingCustomerCoord] = useState<Coordinates | null>(null);
   const [driverLoc, setDriverLoc] = useState<Coordinates | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [navigationLocationState, setNavigationLocationState] =
+    useState<NavigationLocationState>('requesting');
   const [permRetry, setPermRetry] = useState(0);
   const [actioning, setActioning] = useState(false);
 
@@ -1532,6 +1674,7 @@ export default function JobRouteScreen() {
   const [isFollowingDriver, setIsFollowingDriver] = useState(true);
   const [followMode, setFollowMode] = useState<FollowMode>('heading_up');
   const [mapDepthMode, setMapDepthMode] = useState<MapDepthMode>('3d');
+  const [mapStyleMode, setMapStyleMode] = useState<MapStyleMode>('streets');
   // Bumped on recenter / follow-mode change to authorise a one-off camera zoom
   // reset in the WebView. Plain GPS fixes keep the same epoch (no auto-zoom).
   const [cameraEpoch, setCameraEpoch] = useState(0);
@@ -1624,6 +1767,9 @@ export default function JobRouteScreen() {
   const returnRouteAbortRef = useRef<AbortController | null>(null);
   const destinationRef = useRef<Coordinates | null>(null);
   const driverLocRef = useRef<Coordinates | null>(null);
+  const driverFixRef = useRef<AcceptedDriverFix | null>(null);
+  const lastAcceptedDriverFixRef = useRef<AcceptedDriverFix | null>(null);
+  const navigationLocationStateRef = useRef<NavigationLocationState>('requesting');
   // Heading/speed/accuracy derived from the GPS stream, read by the camera
   // push effect (kept in refs so a fix doesn't force the effect to re-subscribe).
   const headingRef = useRef<number | null>(null);
@@ -1645,7 +1791,7 @@ export default function JobRouteScreen() {
   // reasons; 0 means "online". While set we keep the last good route on screen
   // and suppress reroute/refresh spam (one probe per OFFLINE_RETRY_MS only).
   const networkFailRef = useRef<number>(0);
-  // Monotonic GPS guard: timestamp (ms, from the OS fix) of the last ACCEPTED
+  // Monotonic GPS guard: timestamp (ms, from the OS fix) of the last displayed
   // fix, and the last fix we actually PROCESSED (used to throttle when parked).
   const lastFixTimeRef = useRef<number>(0);
   const lastProcessedFixTimeRef = useRef<number>(0);
@@ -1725,11 +1871,178 @@ export default function JobRouteScreen() {
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { reroutingRef.current = rerouting; }, [rerouting]);
   useEffect(() => { lastFixAtRef.current = lastFixAt; }, [lastFixAt]);
+  useEffect(() => { navigationLocationStateRef.current = navigationLocationState; }, [navigationLocationState]);
   useEffect(() => { voiceEnabledRef.current = voiceEnabled; }, [voiceEnabled]);
   useEffect(() => { localeRef.current = locale === 'ar' ? 'ar' : 'en'; }, [locale]);
   useEffect(() => { jobStatusRef.current = job?.status ?? null; }, [job?.status]);
   useEffect(() => { showArrivalPromptRef.current = showArrivalPrompt; }, [showArrivalPrompt]);
   useEffect(() => { routePreferencesRef.current = routePreferences; }, [routePreferences]);
+
+  const acceptDriverFix = useCallback(
+    (params: {
+      coordinate: Coordinates;
+      timestampMs?: number | null;
+      accuracyMeters?: number | null;
+      heading?: number | null;
+      speedMps?: number | null;
+      source: DriverFixSource;
+    }): AcceptedDriverFix | null => {
+      const coordinate = params.coordinate;
+      const now = Date.now();
+      const timestampMs =
+        typeof params.timestampMs === 'number' &&
+        Number.isFinite(params.timestampMs) &&
+        params.timestampMs > 0
+          ? params.timestampMs
+          : now;
+      const accuracyMeters =
+        typeof params.accuracyMeters === 'number' &&
+        Number.isFinite(params.accuracyMeters) &&
+        params.accuracyMeters >= 0
+          ? params.accuracyMeters
+          : null;
+      const speedMps =
+        typeof params.speedMps === 'number' &&
+        Number.isFinite(params.speedMps) &&
+        params.speedMps >= 0
+          ? params.speedMps
+          : null;
+      const gpsHeading =
+        typeof params.heading === 'number' &&
+        Number.isFinite(params.heading) &&
+        params.heading >= 0
+          ? params.heading
+          : null;
+      const ageMs = now - timestampMs;
+
+      logRouteDiagnostic('gps-fix-received', {
+        source: params.source,
+        ageMs,
+        accuracyMeters,
+        speedMps,
+      });
+
+      if (!isValidCoord(coordinate)) {
+        logRouteDiagnostic('gps-fix-rejected', {
+          reason: 'invalid-coordinate',
+          source: params.source,
+        });
+        return null;
+      }
+
+      if (ageMs < 0 || ageMs > NAVIGATION_PROGRESS_STALE_MS) {
+        logRouteDiagnostic('gps-fix-rejected', {
+          reason: 'stale',
+          source: params.source,
+          ageMs,
+          accuracyMeters,
+        });
+        setNavigationLocationState('stale');
+        return null;
+      }
+
+      const quality: DriverFixQuality =
+        accuracyMeters != null && accuracyMeters <= ROUTE_ORIGIN_MAX_RAW_ACCURACY_M
+          ? 'accepted'
+          : 'provisional';
+      const provisionalAccuracyAllowed =
+        accuracyMeters == null || accuracyMeters <= PROVISIONAL_ACCURACY_METERS;
+      if (quality === 'provisional' && !provisionalAccuracyAllowed) {
+        logRouteDiagnostic('gps-fix-rejected', {
+          reason: 'accuracy',
+          source: params.source,
+          ageMs,
+          accuracyMeters,
+        });
+        setNavigationLocationState('weak');
+        return null;
+      }
+
+      if (lastFixTimeRef.current > 0 && timestampMs <= lastFixTimeRef.current) {
+        logRouteDiagnostic('gps-fix-rejected', {
+          reason: 'older-than-current',
+          source: params.source,
+          ageMs,
+          accuracyMeters,
+        });
+        return null;
+      }
+
+      const previousAcceptedFix = lastAcceptedDriverFixRef.current;
+      if (previousAcceptedFix) {
+        const elapsedSec = (timestampMs - previousAcceptedFix.timestampMs) / 1000;
+        const highlyAccurate =
+          quality === 'accepted' &&
+          accuracyMeters != null &&
+          accuracyMeters <= 30;
+        if (elapsedSec > 0) {
+          const impliedSpeed = haversineMeters(previousAcceptedFix.coordinate, coordinate) / elapsedSec;
+          if (impliedSpeed > MAX_PLAUSIBLE_SPEED_MPS && !highlyAccurate) {
+            logRouteDiagnostic('gps-fix-rejected', {
+              reason: 'impossible-jump',
+              source: params.source,
+              ageMs,
+              accuracyMeters,
+              impliedSpeed,
+            });
+            return null;
+          }
+        }
+      }
+
+      const previousCoordinate = prevLocRef.current;
+      let heading: number | null = null;
+      if (gpsHeading != null && speedMps != null && speedMps > 1) {
+        heading = gpsHeading;
+      } else if (previousCoordinate && haversineMeters(previousCoordinate, coordinate) > 5) {
+        heading = bearingDegrees(previousCoordinate, coordinate);
+      }
+
+      if (heading != null) headingRef.current = heading;
+      speedRef.current = speedMps;
+      accuracyRef.current = accuracyMeters;
+      lastFixTimeRef.current = timestampMs;
+      lastProcessedFixTimeRef.current = timestampMs;
+      lastFixAtRef.current = timestampMs;
+      prevLocRef.current = coordinate;
+      driverLocRef.current = coordinate;
+      const fix: AcceptedDriverFix = {
+        coordinate,
+        timestampMs,
+        accuracyMeters,
+        heading: headingRef.current,
+        speedMps,
+        source: params.source,
+        quality,
+      };
+      driverFixRef.current = fix;
+      if (quality === 'accepted') {
+        lastAcceptedDriverFixRef.current = fix;
+      }
+      setDriverLoc(coordinate);
+      setLastFixAt(timestampMs);
+      setNavigationLocationState(quality === 'accepted' ? 'accepted' : 'weak');
+      logRouteDiagnostic(
+        quality === 'accepted' ? 'gps-fix-accepted' : 'gps-fix-provisional',
+        {
+          source: params.source,
+          ageMs,
+          accuracyMeters,
+          speedMps,
+        },
+      );
+      if (quality === 'provisional') {
+        logRouteDiagnostic('route-origin-rejected', {
+          reason: 'provisional',
+          source: params.source,
+          ageMs,
+          accuracyMeters,
+        });
+      }
+      return fix;
+    },
+    [],
+  );
   // When the job status changes, clear cooldowns so next-phase reminders surface
   // immediately. The 2-second timer will naturally discard any stale reminder on
   // its next tick — no direct setState needed here.
@@ -1807,10 +2120,10 @@ export default function JobRouteScreen() {
   const customerCoord: Coordinates | null = useMemo(() => {
     const lat = parseLatLng(job?.lat);
     const lng = parseLatLng(job?.lng);
-    if (lat == null || lng == null) return null;
+    if (lat == null || lng == null) return trackingCustomerCoord;
     const c = { lat, lng };
-    return isValidCoord(c) ? c : null;
-  }, [job?.lat, job?.lng]);
+    return isValidCoord(c) ? c : trackingCustomerCoord;
+  }, [job?.lat, job?.lng, trackingCustomerCoord]);
   const currentDestinationKey = useMemo(() => coordKey(customerCoord), [customerCoord]);
 
   const bumpRouteSequence = useCallback(() => {
@@ -1890,13 +2203,65 @@ export default function JobRouteScreen() {
   const customerMarkerPosition = customerCoord;
 
   const makeRerouteOrigin = useCallback((driver: Coordinates | null): RerouteOrigin | null => {
-    return selectRerouteOrigin({
-      progress: navigationProgressRef.current,
-      rawLocation: driver,
-      rawLocationTimestamp: lastFixAtRef.current ?? Date.now(),
+    void driver;
+    const now = Date.now();
+    const fix = driverFixRef.current;
+    if (!fix) {
+      logRouteDiagnostic('route-origin-rejected', { reason: 'missing-fix' });
+      return null;
+    }
+    if (fix.quality !== 'accepted') {
+      logRouteDiagnostic('route-origin-rejected', {
+        reason: 'provisional',
+        source: fix.source,
+        accuracyMeters: fix.accuracyMeters,
+      });
+      return null;
+    }
+    const coordinate = fix.coordinate;
+    const timestampMs = fix.timestampMs;
+    const accuracyMeters = fix.accuracyMeters;
+    const timestamp =
+      typeof timestampMs === 'number' && Number.isFinite(timestampMs)
+        ? timestampMs
+        : null;
+    if (timestamp == null) {
+      logRouteDiagnostic('route-origin-rejected', { reason: 'missing-timestamp' });
+      return null;
+    }
+    const ageMs = now - timestamp;
+    if (!coordinate || !isValidCoord(coordinate)) {
+      logRouteDiagnostic('route-origin-rejected', { reason: 'invalid-coordinate' });
+      return null;
+    }
+    if (ageMs < 0 || ageMs > NAVIGATION_PROGRESS_STALE_MS) {
+      logRouteDiagnostic('route-origin-rejected', {
+        reason: 'stale',
+        ageMs,
+      });
+      return null;
+    }
+    if (
+      typeof accuracyMeters !== 'number' ||
+      !Number.isFinite(accuracyMeters) ||
+      accuracyMeters < 0 ||
+      accuracyMeters > ROUTE_ORIGIN_MAX_RAW_ACCURACY_M
+    ) {
+      logRouteDiagnostic('route-origin-rejected', {
+        reason: 'accuracy',
+        ageMs,
+        accuracyMeters,
+      });
+      return null;
+    }
+    return {
+      coordinate,
+      source: 'raw',
       routeRevision: currentRouteRevisionRef.current,
-      maxSnapDistanceMeters: SNAP_TO_ROUTE_MAX_DRIFT_M,
-    });
+      locationTimestamp: timestamp,
+      segmentIndex: null,
+      confidence: null,
+    };
   }, []);
 
   // ── Route request (client-side Mapbox Directions, road-following) ──
@@ -1916,6 +2281,8 @@ export default function JobRouteScreen() {
       logRouteDiagnostic('route-request-origin', {
         requestId,
         source: origin.source,
+        lat: Number(origin.coordinate.lat.toFixed(6)),
+        lng: Number(origin.coordinate.lng.toFixed(6)),
         segmentIndex: origin.segmentIndex,
         confidence: origin.confidence,
       });
@@ -1976,7 +2343,6 @@ export default function JobRouteScreen() {
           setRouteState(next);
           return;
         }
-        const primary = routes[0];
         // A successful fetch means we are back online — clear the latch so
         // reroute/refresh is allowed again.
         // Only fit the whole route on the very first fetch for this session or when in
@@ -1986,7 +2352,7 @@ export default function JobRouteScreen() {
         lastRouteAtRef.current = Date.now();
         offRouteSinceRef.current = null;
         fitPendingRef.current = followModeRef.current === 'overview';
-        stepIndexRef.current = primary.steps.length > 1 ? 1 : 0;
+        stepIndexRef.current = 0;
         navigationProgressRef.current = null;
         setCurrentStepIndex(stepIndexRef.current);
         setRerouting(false);
@@ -2047,11 +2413,12 @@ export default function JobRouteScreen() {
       routeStateRef.current = next;
       setRouteState(next);
     },
-    [bumpRouteSequence, currentRouteJobRef, locale, logRouteDiagnostic],
+    [bumpRouteSequence, currentRouteJobRef, locale],
   );
 
   useEffect(() => {
     return () => {
+      routeAbortRef.current?.abort();
       returnRouteAbortRef.current?.abort();
     };
   }, []);
@@ -2139,6 +2506,40 @@ export default function JobRouteScreen() {
     routePreferences,
   ]);
 
+  const markRouteOriginUnavailable = useCallback(
+    (destination: Coordinates) => {
+      const prev = routeStateRef.current;
+      const destinationKey = coordKey(destination);
+      const canKeepPreviousRoute =
+        prev.source === 'mapbox' &&
+        prev.geometry != null &&
+        prev.geometry.length >= 2 &&
+        prev.routeJobRef === currentRouteJobRef &&
+        prev.routeDestinationKey === destinationKey;
+      setRerouting(false);
+      devGpsPauseOnRouteChangeRef.current = false;
+      lastRouteAtRef.current = Date.now();
+      const err: RouteError = {
+        kind: 'no-route',
+        message: 'Waiting for an accurate GPS position before requesting a route.',
+      };
+      if (canKeepPreviousRoute) {
+        const next: RouteState = { ...prev, error: err, loading: false };
+        routeStateRef.current = next;
+        setRouteState(next);
+        return;
+      }
+      bumpRouteSequence();
+      const next = makeRouteState('none', [], 0, err, {
+        routeJobRef: currentRouteJobRef,
+        routeDestinationKey: destinationKey,
+      });
+      routeStateRef.current = next;
+      setRouteState(next);
+    },
+    [bumpRouteSequence, currentRouteJobRef],
+  );
+
   // ── Per-GPS-fix evaluation: step advance, off-route reroute, refresh ──
   const evaluateRoute = useCallback(
     (driver: Coordinates) => {
@@ -2162,6 +2563,7 @@ export default function JobRouteScreen() {
         setRouteState(next);
         const origin = makeRerouteOrigin(driver);
         if (origin) requestRoute(origin, dest);
+        else markRouteOriginUnavailable(dest);
         return;
       }
 
@@ -2181,6 +2583,12 @@ export default function JobRouteScreen() {
       if (routeBelongsToCurrentJob && rs.geometry) {
         const d = distanceToRouteMeters(driver, rs.geometry);
         const currentAccuracy = accuracyRef.current;
+        logRouteDiagnostic('route-distance-sample', {
+          distanceMeters: Math.round(d),
+          accuracyMeters: currentAccuracy,
+          loading: rs.loading,
+          routeRevision: currentRouteRevisionRef.current,
+        });
         const likelyPoorAccuracyDrift =
           typeof currentAccuracy === 'number' &&
           Number.isFinite(currentAccuracy) &&
@@ -2200,6 +2608,11 @@ export default function JobRouteScreen() {
         } else {
           if (offRouteSinceRef.current == null) {
             offRouteSinceRef.current = now;
+            logRouteDiagnostic('off-route-suspected', {
+              distanceMeters: Math.round(d),
+              accuracyMeters: currentAccuracy,
+              confirmationCount: 1,
+            });
             setRouteDeviation({
               kind: 'gps-drift',
               distanceMeters: d,
@@ -2212,6 +2625,13 @@ export default function JobRouteScreen() {
           ) {
             const rerouteAllowed =
               now - lastOffRouteRerouteAtRef.current > REROUTE_MIN_INTERVAL_MS;
+            logRouteDiagnostic('off-route-confirmed', {
+              distanceMeters: Math.round(d),
+              accuracyMeters: currentAccuracy,
+              confirmationMs: now - offRouteSinceRef.current,
+              rerouteAllowed,
+              loading: rs.loading,
+            });
             setRouteDeviation({
               kind: 'off-route',
               distanceMeters: d,
@@ -2223,6 +2643,7 @@ export default function JobRouteScreen() {
               setRerouting(true);
               const origin = makeRerouteOrigin(driver);
               if (origin) requestRoute(origin, dest);
+              else markRouteOriginUnavailable(dest);
               return;
             }
             return;
@@ -2262,17 +2683,15 @@ export default function JobRouteScreen() {
       ) {
         const origin = makeRerouteOrigin(driver);
         if (origin) requestRoute(origin, dest);
+        else if (rs.source === 'none') markRouteOriginUnavailable(dest);
       }
     },
-    [bumpRouteSequence, currentRouteJobRef, makeRerouteOrigin, requestRoute],
+    [bumpRouteSequence, currentRouteJobRef, makeRerouteOrigin, markRouteOriginUnavailable, requestRoute],
   );
 
   // First fix / subsequent fixes funnel through here.
   const onFix = useCallback(
     (driver: Coordinates) => {
-      const now = Date.now();
-      lastFixAtRef.current = now;
-      setLastFixAt(now);
       const dest = destinationRef.current;
       if (!dest) return;
       if (phaseRef.current !== 'to_dropoff') {
@@ -2287,11 +2706,12 @@ export default function JobRouteScreen() {
         hasRequestedRef.current = true;
         const origin = makeRerouteOrigin(driver);
         if (origin) requestRoute(origin, dest);
+        else markRouteOriginUnavailable(dest);
         return;
       }
       evaluateRoute(driver);
     },
-    [evaluateRoute, makeRerouteOrigin, requestRoute],
+    [evaluateRoute, makeRerouteOrigin, markRouteOriginUnavailable, requestRoute],
   );
 
   useEffect(() => { handlersRef.current.onFix = onFix; }, [onFix]);
@@ -2336,11 +2756,146 @@ export default function JobRouteScreen() {
   // When the destination becomes known after a fix already exists, kick a
   // route. Deferred via microtask so this effect never setStates synchronously.
   useEffect(() => {
-    if (customerCoord && driverLocRef.current) {
-      const driver = driverLocRef.current;
+    const fix = driverFixRef.current;
+    if (customerCoord && fix?.quality === 'accepted') {
+      const driver = fix.coordinate;
       Promise.resolve().then(() => handlersRef.current.onFix(driver));
     }
   }, [customerCoord, currentDestinationKey, currentRouteJobRef]);
+
+  useEffect(() => {
+    if (!currentRouteJobRef) return undefined;
+    let cancelled = false;
+
+    const hydrateTrackingFallback = async () => {
+      if (lastAcceptedDriverFixRef.current?.quality === 'accepted') return;
+      try {
+        const tracking = (await driverApi.getTrackingData(
+          currentRouteJobRef,
+        )) as TrackingRouteFallback;
+        if (cancelled) return;
+
+        const trackingDestination =
+          typeof tracking.customerLat === 'number' &&
+          Number.isFinite(tracking.customerLat) &&
+          typeof tracking.customerLng === 'number' &&
+          Number.isFinite(tracking.customerLng)
+            ? { lat: tracking.customerLat, lng: tracking.customerLng }
+            : null;
+        const destination =
+          customerCoord && isValidCoord(customerCoord)
+            ? customerCoord
+            : trackingDestination && isValidCoord(trackingDestination)
+              ? trackingDestination
+              : null;
+        if (!destination) {
+          logRouteDiagnostic('tracking-fallback-skipped', {
+            reason: 'missing-customer-location',
+          });
+          return;
+        }
+        if (trackingDestination && isValidCoord(trackingDestination)) {
+          setTrackingCustomerCoord((prev) =>
+            coordKey(prev) === coordKey(trackingDestination) ? prev : trackingDestination,
+          );
+        }
+
+        const driver =
+          typeof tracking.driverLat === 'number' &&
+          Number.isFinite(tracking.driverLat) &&
+          typeof tracking.driverLng === 'number' &&
+          Number.isFinite(tracking.driverLng)
+            ? { lat: tracking.driverLat, lng: tracking.driverLng }
+            : null;
+        if (!driver || !isValidCoord(driver)) {
+          logRouteDiagnostic('tracking-fallback-skipped', {
+            reason: 'missing-driver-location',
+          });
+          return;
+        }
+
+        const trackingTimestampMs = parseTrackingTimestamp(tracking.driverLocationAt);
+        const displayTimestampMs = Date.now();
+        const fix: AcceptedDriverFix = {
+          coordinate: driver,
+          timestampMs: displayTimestampMs,
+          accuracyMeters: null,
+          heading: null,
+          speedMps: null,
+          source: 'tracking-fallback',
+          quality: 'provisional',
+        };
+        driverFixRef.current = fix;
+        driverLocRef.current = driver;
+        prevLocRef.current = prevLocRef.current ?? driver;
+        accuracyRef.current = null;
+        speedRef.current = null;
+        lastFixAtRef.current = displayTimestampMs;
+        setDriverLoc(driver);
+        setLastFixAt(displayTimestampMs);
+        if (
+          navigationLocationStateRef.current !== 'permission-denied' &&
+          navigationLocationStateRef.current !== 'accepted'
+        ) {
+          setNavigationLocationState('weak');
+        }
+
+        const route = makeTrackingFallbackRoute(tracking, destination);
+        if (!route) {
+          logRouteDiagnostic('tracking-fallback-route-skipped', {
+            reason: 'missing-or-invalid-route',
+          });
+          return;
+        }
+
+        const destinationKey = coordKey(destination);
+        const prev = routeStateRef.current;
+        const canSkip =
+          prev.source === 'mapbox' &&
+          prev.routeJobRef === currentRouteJobRef &&
+          prev.routeDestinationKey === destinationKey &&
+          prev.geometry != null &&
+          prev.geometry.length === route.geometry.length &&
+          prev.geometry[0]?.[0] === route.geometry[0]?.[0] &&
+          prev.geometry[0]?.[1] === route.geometry[0]?.[1] &&
+          prev.geometry[prev.geometry.length - 1]?.[0] ===
+            route.geometry[route.geometry.length - 1]?.[0] &&
+          prev.geometry[prev.geometry.length - 1]?.[1] ===
+            route.geometry[route.geometry.length - 1]?.[1];
+        if (canSkip) return;
+
+        networkFailRef.current = 0;
+        lastRouteOriginRef.current = driver;
+        lastRouteAtRef.current = Date.now();
+        hasRequestedRef.current = true;
+        offRouteSinceRef.current = null;
+        bumpRouteSequence();
+        const next = makeRouteState('mapbox', [route], 0, null, {
+          routeJobRef: currentRouteJobRef,
+          routeDestinationKey: destinationKey,
+          routeCalculatedAt: Date.now(),
+          routeOriginFixAt: trackingTimestampMs ?? displayTimestampMs,
+        });
+        routeStateRef.current = next;
+        setRouteState(next);
+        logRouteDiagnostic('tracking-fallback-route-applied', {
+          source: 'tracking-fallback',
+          coords: route.geometry.length,
+        });
+      } catch (error) {
+        logRouteDiagnostic('tracking-fallback-error', {
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    };
+
+    hydrateTrackingFallback();
+    const interval = setInterval(hydrateTrackingFallback, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [bumpRouteSequence, currentRouteJobRef, customerCoord, currentDestinationKey]);
 
   // ── Foreground GPS watcher (single subscription, cleaned up on unmount) ──
   useEffect(() => {
@@ -2349,123 +2904,123 @@ export default function JobRouteScreen() {
     let sub: Location.LocationSubscription | null = null;
 
     (async () => {
-      const current = await Location.getForegroundPermissionsAsync();
-      let granted = current.status === 'granted';
-      if (!granted) {
-        const requested = await Location.requestForegroundPermissionsAsync();
-        granted = requested.status === 'granted';
+      if (
+        navigationLocationStateRef.current !== 'accepted' &&
+        navigationLocationStateRef.current !== 'weak'
+      ) {
+        setNavigationLocationState('requesting');
       }
+      logRouteDiagnostic('gps-watch-start', { source: 'foreground' });
+
+      let granted = false;
+      try {
+        const current = await Location.getForegroundPermissionsAsync();
+        logRouteDiagnostic('gps-permission-state', {
+          phase: 'current',
+          status: current.status,
+          granted: current.granted,
+          canAskAgain: current.canAskAgain,
+        });
+        granted = current.status === 'granted';
+        if (!granted) {
+          const requested = await Location.requestForegroundPermissionsAsync();
+          logRouteDiagnostic('gps-permission-state', {
+            phase: 'requested',
+            status: requested.status,
+            granted: requested.granted,
+            canAskAgain: requested.canAskAgain,
+          });
+          granted = requested.status === 'granted';
+        }
+      } catch (error) {
+        logRouteDiagnostic('gps-permission-error', {
+          message: error instanceof Error ? error.message : String(error),
+        });
+        if (!cancelled) {
+          setPermissionDenied(false);
+          setNavigationLocationState('unavailable');
+        }
+        return;
+      }
+
       if (cancelled) return;
       if (!granted) {
         setPermissionDenied(true);
+        setNavigationLocationState('permission-denied');
         return;
       }
       setPermissionDenied(false);
 
       const last = await Location.getLastKnownPositionAsync({ maxAge: 60_000 }).catch(
-        () => null,
+        (error) => {
+          logRouteDiagnostic('gps-last-known-error', {
+            message: error instanceof Error ? error.message : String(error),
+          });
+          return null;
+        },
       );
       if (!cancelled && last && !devGpsActiveRef.current) {
         const c = { lat: last.coords.latitude, lng: last.coords.longitude };
-        // Seed the monotonic guard from the last-known fix timestamp and never
-        // render an invalid (e.g. 0,0) seed position.
-        if (isValidCoord(c)) {
-          lastFixTimeRef.current =
-            typeof last.timestamp === 'number' ? last.timestamp : Date.now();
-          lastProcessedFixTimeRef.current = lastFixTimeRef.current;
-          prevLocRef.current = c;
-          driverLocRef.current = c;
-          setDriverLoc(c);
-          handlersRef.current.onFix(c);
+        logRouteDiagnostic('gps-last-known-received', {
+          ageMs: Date.now() - last.timestamp,
+          accuracyMeters: last.coords.accuracy,
+        });
+        const accepted = acceptDriverFix({
+          coordinate: c,
+          timestampMs: last.timestamp,
+          accuracyMeters: last.coords.accuracy,
+          speedMps: last.coords.speed,
+          heading: last.coords.heading,
+          source: 'last-known',
+        });
+        if (accepted?.quality === 'accepted') {
+          handlersRef.current.onFix(accepted.coordinate);
         }
+      } else if (!cancelled && !last) {
+        logRouteDiagnostic('gps-last-known-missing', { source: 'last-known' });
       }
 
-      sub = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          timeInterval: 2_000,
-          distanceInterval: 5,
-        },
-        (loc) => {
-          if (devGpsActiveRef.current) return;
-          const c = { lat: loc.coords.latitude, lng: loc.coords.longitude };
-          const fixTime =
-            typeof loc.timestamp === 'number' ? loc.timestamp : Date.now();
-          // ── Monotonic GPS guard ──
-          // 1) Never render an invalid/0,0 fix — keep the last good position.
-          if (!isValidCoord(c)) return;
-          // 2) Reject stale / out-of-order fixes that arrive after a newer one
-          //    (they would drag the marker + camera backwards).
-          if (fixTime <= lastFixTimeRef.current) return;
-          // 3) Reject physically impossible jumps (stale buffered fix or a wild
-          //    outlier) UNLESS the fix is highly accurate (a genuine fast leg).
-          const prevAccepted = prevLocRef.current;
-          if (prevAccepted && lastFixTimeRef.current > 0) {
-            const dtSec = (fixTime - lastFixTimeRef.current) / 1000;
-            const acc = loc.coords.accuracy;
-            const accurate = typeof acc === 'number' && acc >= 0 && acc <= 30;
-            if (dtSec > 0) {
-              const impliedSpeed = haversineMeters(prevAccepted, c) / dtSec;
-              if (impliedSpeed > MAX_PLAUSIBLE_SPEED_MPS && !accurate) return;
+      try {
+        sub = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.High,
+            timeInterval: 2_000,
+            distanceInterval: 5,
+          },
+          (loc) => {
+            if (devGpsActiveRef.current) return;
+            const c = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+            const fixTime =
+              typeof loc.timestamp === 'number' ? loc.timestamp : Date.now();
+            logRouteDiagnostic('gps-watch-fix-received', {
+              ageMs: Date.now() - fixTime,
+              accuracyMeters: loc.coords.accuracy,
+              speedMps: loc.coords.speed,
+            });
+            const accepted = acceptDriverFix({
+              coordinate: c,
+              timestampMs: fixTime,
+              accuracyMeters: loc.coords.accuracy,
+              speedMps: loc.coords.speed,
+              heading: loc.coords.heading,
+              source: 'watch',
+            });
+            if (accepted?.quality === 'accepted') {
+              handlersRef.current.onFix(accepted.coordinate);
             }
-          }
-          // Heading: trust the GPS course while genuinely moving; otherwise
-          // derive a bearing from the previous fix so the arrow/map still face
-          // the direction of travel.
-          const gpsHeading = loc.coords.heading;
-          const speed = loc.coords.speed;
-          // ── Adaptive accuracy ──
-          // While stationary (low speed AND negligible movement) throttle the
-          // PROCESSED fixes: drop excess updates so we stop pushing state /
-          // re-evaluating the route every couple of seconds when parked. This
-          // uses the SAME single watcher — no second subscription is opened.
-          const movedFromPrev = prevAccepted
-            ? haversineMeters(prevAccepted, c)
-            : Infinity;
-          const stationary =
-            (speed == null || speed < 0 || speed < STATIONARY_SPEED_MPS) &&
-            movedFromPrev < STATIONARY_MOVE_M;
-          if (
-            stationary &&
-            fixTime - lastProcessedFixTimeRef.current < STATIONARY_MIN_INTERVAL_MS
-          ) {
-            // Still accept the timestamp so the monotonic guard advances, but do
-            // no further work this tick.
-            lastFixTimeRef.current = fixTime;
-            return;
-          }
-          lastFixTimeRef.current = fixTime;
-          lastProcessedFixTimeRef.current = fixTime;
-          // Rule 1: GPS heading only when driver is genuinely moving (speed > 1 m/s).
-          // Rule 2: Bearing from last accepted fix when moved > 5 m (avoids GPS jitter).
-          // Rule 3: Keep last stable heading (headingRef unchanged) — never snap to 0.
-          let heading: number | null = null;
-          if (
-            typeof gpsHeading === 'number' &&
-            gpsHeading >= 0 &&
-            typeof speed === 'number' &&
-            speed > 1
-          ) {
-            heading = gpsHeading;
-          } else {
-            const prev = prevLocRef.current;
-            if (prev && haversineMeters(prev, c) > 5) {
-              heading = bearingDegrees(prev, c);
-            }
-          }
-          if (heading != null) headingRef.current = heading;
-          speedRef.current =
-            typeof speed === 'number' && speed >= 0 ? speed : null;
-          accuracyRef.current =
-            typeof loc.coords.accuracy === 'number' && loc.coords.accuracy >= 0
-              ? loc.coords.accuracy
-              : null;
-          prevLocRef.current = c;
-          driverLocRef.current = c;
-          setDriverLoc(c);
-          handlersRef.current.onFix(c);
-        },
-      );
+          },
+        );
+        logRouteDiagnostic('gps-watch-ready', { source: 'foreground' });
+      } catch (error) {
+        logRouteDiagnostic('gps-watch-error', {
+          message: error instanceof Error ? error.message : String(error),
+        });
+        if (!cancelled) {
+          setPermissionDenied(false);
+          setNavigationLocationState('error');
+        }
+        return;
+      }
       if (cancelled) {
         sub.remove();
         sub = null;
@@ -2475,9 +3030,19 @@ export default function JobRouteScreen() {
     return () => {
       cancelled = true;
       sub?.remove();
-      routeAbortRef.current?.abort();
+      logRouteDiagnostic('gps-watch-stop', { hadSubscription: sub != null });
     };
-  }, [token, permRetry]);
+  }, [acceptDriverFix, token, permRetry]);
+
+  useEffect(() => {
+    if (permissionDenied || lastFixAt == null) return;
+    if (
+      nowTick - lastFixAt > NAVIGATION_PROGRESS_STALE_MS &&
+      navigationLocationStateRef.current !== 'stale'
+    ) {
+      setNavigationLocationState('stale');
+    }
+  }, [lastFixAt, nowTick, permissionDenied]);
 
   // Route signature: changes ONLY when the drawn route truly changes
   // (geometry length / endpoints / selected index / source). The WebView uses
@@ -2486,7 +3051,7 @@ export default function JobRouteScreen() {
   // single rebuild. Initial WebView value is -1 so the first push always wins.
   const routeRev = useMemo(() => {
     const g = routeState.geometry;
-    return `${routeState.source}|${routeState.routeJobRef ?? ''}|${
+    return `${ROUTE_VISUAL_VERSION}|${routeState.source}|${routeState.routeJobRef ?? ''}|${
       routeState.routeDestinationKey ?? ''
     }|${routeState.selectedIndex}|${g ? g.length : 0}|${
       routeState.routeCalculatedAt ?? ''
@@ -2524,7 +3089,7 @@ export default function JobRouteScreen() {
         speedMps: speedRef.current,
         accuracyMeters: accuracyRef.current,
         fixTimestampMs: lastFixAt,
-        nowMs: lastFixAt ?? 0,
+        nowMs: nowTick,
         maxSnapDistanceMeters: SNAP_TO_ROUTE_MAX_DRIFT_M,
         maxDisplaySnapDistanceMeters: GPS_DRIFT_METERS,
         staleAfterMs: NAVIGATION_PROGRESS_STALE_MS,
@@ -2537,7 +3102,17 @@ export default function JobRouteScreen() {
               ? 'following'
               : 'free-pan',
       }),
-    [driverLoc, followMode, isFollowingDriver, lastFixAt, rerouting, routeIsCurrent, routeRev, selectedRoute],
+    [
+      driverLoc,
+      followMode,
+      isFollowingDriver,
+      lastFixAt,
+      nowTick,
+      rerouting,
+      routeIsCurrent,
+      routeRev,
+      selectedRoute,
+    ],
   );
 
   useEffect(() => {
@@ -2571,6 +3146,7 @@ export default function JobRouteScreen() {
       rawLocation,
       displayHeading,
       locationTimestamp: navigationProgress.fixTimestampMs,
+      forceSnap: navigationProgress.forceSnap,
       followZoom: navigationFollowZoom({
         mapDepthMode,
         roadClass: navigationProgress.currentRoadClass,
@@ -2586,6 +3162,7 @@ export default function JobRouteScreen() {
     navigationProgress.displayHeading,
     navigationProgress.distanceToManeuverMeters,
     navigationProgress.fixTimestampMs,
+    navigationProgress.forceSnap,
     navigationProgress.speedMps,
     rawDriverPosition,
     routeHeading,
@@ -2601,10 +3178,16 @@ export default function JobRouteScreen() {
     const customer = customerMarkerPosition
       ? [customerMarkerPosition.lng, customerMarkerPosition.lat]
       : null;
+    const remainingGeometry = routeCanRender
+      ? navigationProgress.remainingGeometry ?? selectedRouteCoordinates
+      : navigationProgress.remainingGeometry;
     const routeRevChanged = routeRev !== lastInjectedRouteRevRef.current;
     const routesPayload = routeCanRender
       ? routeRevChanged
-        ? routeState.routes.map((r) => ({ coords: r.geometry, congestion: r.congestion }))
+        ? routeState.routes.map((r, index) => ({
+            coords: r.geometry,
+            congestion: r.congestion,
+          }))
         : undefined
       : routeRevChanged
         ? []
@@ -2626,7 +3209,10 @@ export default function JobRouteScreen() {
         : isFollowingDriver
           ? 'following'
           : 'free-pan';
+    const fallbackCamera =
+      displayNavigationState.displayLocation == null && customer ? customer : null;
     const json = JSON.stringify({
+      locationState: navigationLocationState,
       displayLocation: displayNavigationState.displayLocation,
       rawDriver: displayNavigationState.rawLocation,
       driverDisplayMode: displayMode,
@@ -2634,16 +3220,20 @@ export default function JobRouteScreen() {
       accuracy: accuracyRef.current,
       locationTimestamp: displayNavigationState.locationTimestamp,
       animationDurationMs: navigationProgress.animationDurationMs,
-      forceSnap: navigationProgress.forceSnap,
+      forceSnap: displayNavigationState.forceSnap,
       customer,
       routes: routesPayload,
       selectedIndex: routeState.selectedIndex,
       routeRev,
       routeSeq: routeSequence,
       travelledGeometry: navigationProgress.travelledGeometry,
-      // Alternatives are hidden while the cockpit is collapsed so they never
-      // compete with the main route; shown only when details are expanded.
-      showAlts: !cockpitCollapsed,
+      remainingGeometry,
+      // Alternatives are visible in route overview like Google Maps; in normal
+      // driving mode they stay tucked away unless the details sheet is open.
+      showAlts:
+        (Platform.OS === 'web' && __DEV__) ||
+        followMode === 'overview' ||
+        !cockpitCollapsed,
       fallback: false,
       fit,
       // Only include the full coordinate array when the map must actually call
@@ -2652,7 +3242,11 @@ export default function JobRouteScreen() {
       follow: isFollowingDriver,
       followMode,
       mapDepthMode,
+      mapStyleMode,
+      showAccuracyOverlay: false,
       followZoom: displayNavigationState.followZoom,
+      fallbackCamera,
+      fallbackZoom: 11.4,
       cameraMode,
       epoch: cameraEpoch,
       bottomPad: cockpitCollapsed ? COCKPIT_PAD_COLLAPSED + insets.bottom : COCKPIT_PAD_EXPANDED + insets.bottom,
@@ -2680,11 +3274,13 @@ export default function JobRouteScreen() {
     routeState.routeDestinationKey,
     routeRev,
     routeSequence,
+    navigationLocationState,
     selectedRouteCoordinates,
     navigationProgress,
     isFollowingDriver,
     followMode,
     mapDepthMode,
+    mapStyleMode,
     cameraEpoch,
     cockpitCollapsed,
     insets.bottom,
@@ -3240,7 +3836,8 @@ export default function JobRouteScreen() {
     if (Date.now() - lastRouteAtRef.current < ROUTE_MIN_INTERVAL_MS) return;
     const origin = makeRerouteOrigin(driver);
     if (origin) requestRoute(origin, dest);
-  }, [makeRerouteOrigin, requestRoute]);
+    else markRouteOriginUnavailable(dest);
+  }, [makeRerouteOrigin, markRouteOriginUnavailable, requestRoute]);
 
   const handleToggleRoutePreference = useCallback(
     (key: keyof RoutePreferences) => {
@@ -3258,9 +3855,10 @@ export default function JobRouteScreen() {
         }
         const origin = makeRerouteOrigin(driver);
         if (origin) requestRoute(origin, dest);
+        else markRouteOriginUnavailable(dest);
       }
     },
-    [makeRerouteOrigin, requestRoute],
+    [makeRerouteOrigin, markRouteOriginUnavailable, requestRoute],
   );
 
   const handleCallCustomer = useCallback(() => {
@@ -3282,15 +3880,6 @@ export default function JobRouteScreen() {
     setCameraEpoch((e) => e + 1);
   }, []);
 
-  // Cycle north-up ↔ heading-up and re-engage follow. Route overview is a
-  // separate control so the driver has a real 2D/3D toggle and overview button.
-  const handleCycleFollowMode = useCallback(() => {
-    lightHaptic();
-    setFollowMode((m) => (m === 'heading_up' ? 'north_up' : 'heading_up'));
-    setIsFollowingDriver(true);
-    setCameraEpoch((e) => e + 1);
-  }, []);
-
   const handleToggleRouteOverview = useCallback(() => {
     lightHaptic();
     setFollowMode((m) => (m === 'overview' ? 'heading_up' : 'overview'));
@@ -3302,6 +3891,11 @@ export default function JobRouteScreen() {
     lightHaptic();
     setMapDepthMode((m) => (m === '3d' ? '2d' : '3d'));
     setCameraEpoch((e) => e + 1);
+  }, []);
+
+  const handleSelectMapStyle = useCallback((mode: MapStyleMode) => {
+    lightHaptic();
+    setMapStyleMode(mode);
   }, []);
 
   // Toggle spoken voice guidance (persisted). Stops any active speech on mute.
@@ -3491,20 +4085,22 @@ export default function JobRouteScreen() {
     async (update: DriverLocationUpdate) => {
       if (!devGpsAllowed) return;
       const c = { lat: update.lat, lng: update.lng };
-      if (!isValidCoord(c)) return;
 
       const fixTime = Date.parse(update.recordedAt);
       const acceptedFixTime = Number.isFinite(fixTime) ? fixTime : Date.now();
-      headingRef.current = update.heading;
-      speedRef.current = update.speedMph * 0.44704;
-      accuracyRef.current = update.accuracyMeters;
-      lastFixTimeRef.current = Math.max(lastFixTimeRef.current, acceptedFixTime);
-      lastProcessedFixTimeRef.current = lastFixTimeRef.current;
-      prevLocRef.current = c;
-      driverLocRef.current = c;
-      setDriverLoc(c);
+      const speedMps = update.speedMph * 0.44704;
+      const accepted = acceptDriverFix({
+        coordinate: c,
+        timestampMs: acceptedFixTime,
+        accuracyMeters: update.accuracyMeters,
+        heading: update.heading,
+        speedMps,
+        source: 'dev-simulator',
+      });
+      if (!accepted) return;
       setDevGpsLastUpdate(update);
-      handlersRef.current.onFix(c);
+      if (accepted.quality !== 'accepted') return;
+      handlersRef.current.onFix(accepted.coordinate);
 
       if (!currentRouteJobRef) return;
       const now = Date.now();
@@ -3512,11 +4108,11 @@ export default function JobRouteScreen() {
 
       devGpsInFlightRef.current = true;
       try {
-        await driverApi.updateLocation(c.lat, c.lng, currentRouteJobRef, {
+        await driverApi.updateLocation(accepted.coordinate.lat, accepted.coordinate.lng, currentRouteJobRef, {
           timestamp: new Date(acceptedFixTime).toISOString(),
           accuracy: update.accuracyMeters,
           heading: update.heading,
-          speed: update.speedMph * 0.44704,
+          speed: speedMps,
           source: 'foreground',
         });
         const sentAt = Date.now();
@@ -3535,7 +4131,7 @@ export default function JobRouteScreen() {
         devGpsInFlightRef.current = false;
       }
     },
-    [currentRouteJobRef, devGpsAllowed],
+    [acceptDriverFix, currentRouteJobRef, devGpsAllowed],
   );
 
   const ensureDevGpsSimulator = useCallback(() => {
@@ -3750,14 +4346,42 @@ export default function JobRouteScreen() {
   // full-screen new-job alert path. Requires a native rebuild to function.
   // hasLiveStep is false while rerouting so old turn instructions are never shown
   // or spoken while a new route is being fetched.
+  const maneuverLocationTrusted =
+    !navigationProgress.isOffRoute &&
+    !navigationProgress.locationWeak &&
+    !navigationProgress.isLocationStale &&
+    routeDeviation?.kind !== 'off-route' &&
+    (distanceFromRouteMeters == null || distanceFromRouteMeters <= OFF_ROUTE_METERS);
   const hasLiveStep =
-    !rerouting && routeIsCurrent && !!upcomingStep && phase === 'to_dropoff';
+    !rerouting &&
+    routeIsCurrent &&
+    maneuverLocationTrusted &&
+    !!upcomingStep &&
+    phase === 'to_dropoff';
+  const locationStatusInstruction =
+    permissionDenied || navigationLocationState === 'permission-denied'
+      ? t('route.locationPermissionRequired')
+      : navigationLocationState === 'requesting'
+        ? t('route.findingLocation')
+        : navigationLocationState === 'weak'
+          ? t('route.gpsSignalWeak')
+          : navigationLocationState === 'stale'
+            ? t('route.locationStale')
+            : navigationLocationState === 'unavailable'
+              ? t('route.locationUnavailable')
+              : navigationLocationState === 'error'
+                ? t('route.locationError')
+                : null;
   const primaryInstruction = arrival
     ? arrival
     : rerouting
       ? t('route.findingBetterRoute')
     : hasLiveStep && upcomingStep
       ? humanizeInstruction(upcomingStep, t)
+      : routeState.loading
+        ? t('route.calculatingRoute')
+        : locationStatusInstruction != null
+          ? locationStatusInstruction
       : fallbackGuidance(metersToCustomer, t);
   const primaryDistance =
     !arrival && hasLiveStep && distanceToManeuver != null
@@ -3894,16 +4518,17 @@ export default function JobRouteScreen() {
   const navigationFixStale =
     lastFixAt == null || nowTick - lastFixAt > NAVIGATION_PROGRESS_STALE_MS;
   const speedMph =
-    !navigationFixStale && navigationProgress.speedMph != null
+    !navigationFixStale &&
+    navigationProgress.speedDisplayReliable &&
+    navigationProgress.speedMph != null
       ? Math.max(0, Math.round(navigationProgress.speedMph))
       : null;
-  const speedValueText = speedMph != null ? String(speedMph) : '—';
+  const speedValueText = speedMph != null ? String(speedMph) : '--';
   const speedUnitText = 'mph';
   const speedLimitMph =
     !navigationFixStale && navigationProgress.speedLimitSource === 'mapbox-maxspeed'
       ? navigationProgress.currentSpeedLimitMph
       : null;
-  const speedLimitValueText = speedLimitMph != null ? String(speedLimitMph) : '--';
   const speedLimitReliable = speedLimitMph != null;
   const speedOverLimit =
     speedMph != null && speedLimitMph != null && speedMph > speedLimitMph + 2;
@@ -3977,7 +4602,7 @@ export default function JobRouteScreen() {
             <Ionicons
               name={circulation === 'clockwise' ? 'arrow-redo' : 'arrow-undo'}
               size={20}
-              color="#F97316"
+              color={NAV_ROUTE_BLUE}
             />
           </View>
           {roundaboutBranches.map((branch) => (
@@ -4093,8 +4718,19 @@ export default function JobRouteScreen() {
   }
 
   let metaText: string;
-  if (permissionDenied) {
+  if (permissionDenied || navigationLocationState === 'permission-denied') {
     metaText = t('route.locationPermissionRequired');
+  } else if (navigationLocationState === 'requesting') {
+    metaText = t('route.findingLocation');
+  } else if (navigationLocationState === 'weak') {
+    metaText = t('route.gpsSignalWeak');
+  } else if (navigationLocationState === 'stale') {
+    metaText = t('route.locationStale');
+  } else if (
+    navigationLocationState === 'unavailable' ||
+    navigationLocationState === 'error'
+  ) {
+    metaText = t('route.locationUnavailable');
   } else if (routeIsCurrent) {
     metaText = t('route.liveRoute');
   } else if (routeState.error?.kind === 'network') {
@@ -4109,6 +4745,8 @@ export default function JobRouteScreen() {
 
   // ── Route health pill (Part 5) — truthful, derived from existing state. ──
   const gpsWeak =
+    navigationLocationState === 'weak' ||
+    navigationLocationState === 'stale' ||
     (fixSeconds != null && fixSeconds > GPS_WEAK_SECONDS) ||
     (devGpsAllowed && devGpsWeak);
   // Perpendicular drift of the raw GPS fix from the active road route. Beyond
@@ -4125,8 +4763,15 @@ export default function JobRouteScreen() {
       offRouteMeters > GPS_DRIFT_METERS &&
       offRouteMeters <= OFF_ROUTE_METERS);
   let routeHealth: { label: string; tone: 'good' | 'warn' | 'bad' };
-  if (permissionDenied) {
+  if (permissionDenied || navigationLocationState === 'permission-denied') {
     routeHealth = { label: t('route.gpsOff'), tone: 'bad' };
+  } else if (navigationLocationState === 'requesting') {
+    routeHealth = { label: t('route.findingLocation'), tone: 'warn' };
+  } else if (
+    navigationLocationState === 'unavailable' ||
+    navigationLocationState === 'error'
+  ) {
+    routeHealth = { label: t('route.locationUnavailable'), tone: 'bad' };
   } else if (routeState.error?.kind === 'network') {
     // Offline: if the last good Mapbox route is still on screen, say so
     // explicitly so the driver knows it is the last known route, not a live one.
@@ -4179,6 +4824,18 @@ export default function JobRouteScreen() {
           : 'Heavy traffic';
   const routeCalculationError =
     routeState.error != null && routeState.error.kind !== 'aborted' && !routeState.loading;
+  const showInstructionCard =
+    !!token &&
+    mapLoaded &&
+    !mapFatal &&
+    primaryInstruction.length > 0 &&
+    (arrival != null ||
+      rerouting ||
+      routeState.loading ||
+      locationStatusInstruction != null ||
+      (routeIsCurrent && !rerouteFailed));
+  const showPermissionOverlay =
+    permissionDenied && !routeIsCurrent && driverLoc == null;
   const jobClockMinuteTick = Math.floor(nowTick / 60_000);
   const jobClockNow = useMemo(
     () => new Date(jobClockMinuteTick * 60_000),
@@ -4287,19 +4944,6 @@ export default function JobRouteScreen() {
       : null;
   const routeEndsShort = snapGapMeters != null && snapGapMeters > ARRIVAL_HERE_M;
 
-  // Follow-mode toggle presentation.
-  const followModeIcon: IoniconName =
-    followMode === 'heading_up'
-      ? 'navigate'
-      : followMode === 'overview'
-        ? 'scan-outline'
-        : 'compass-outline';
-  const followModeLabel =
-    followMode === 'heading_up'
-      ? t('route.headingUp')
-      : followMode === 'overview'
-        ? t('route.overview')
-        : t('route.northUp');
   const mapDepthLabel = mapDepthMode === '3d' ? '3D' : '2D';
   const routeOverviewActive = followMode === 'overview';
 
@@ -4420,7 +5064,7 @@ export default function JobRouteScreen() {
               </View>
             )}
 
-            {mapLoaded && !mapFatal && permissionDenied && (
+            {mapLoaded && !mapFatal && showPermissionOverlay && (
               <View style={styles.mapOverlay}>
                 <Ionicons name="location-outline" size={36} color="#F97316" />
                 <Text style={styles.fallbackTitle}>{t('route.locationNeeded')}</Text>
@@ -4469,7 +5113,7 @@ export default function JobRouteScreen() {
 
       {/* ── Live instruction card — hidden when route has failed (recovery panel handles it)
            but kept when arrival wording is active so the driver sees their destination. ── */}
-      {token && mapLoaded && !mapFatal && !permissionDenied && primaryInstruction.length > 0 && (arrival != null || rerouting || (routeIsCurrent && !rerouteFailed)) && (
+      {showInstructionCard && (
         <View
           style={[
             styles.instructionCard,
@@ -4524,6 +5168,8 @@ export default function JobRouteScreen() {
                   ? 'flag'
                   : rerouting
                     ? 'refresh'
+                    : locationStatusInstruction != null && !routeState.loading && !hasLiveStep
+                      ? 'locate'
                     : hasLiveStep && upcomingStep
                       ? maneuverIcon(upcomingStep)
                       : 'navigate'
@@ -4599,23 +5245,23 @@ export default function JobRouteScreen() {
               <Text style={styles.currentSpeedValue}>{speedValueText}</Text>
               <Text style={styles.currentSpeedUnit}>{speedUnitText}</Text>
             </View>
-            <View
-              style={[
-                styles.speedLimitSign,
-                !speedLimitReliable && styles.speedLimitSignUnavailable,
-                speedOverLimit && styles.speedLimitSignWarning,
-              ]}
-            >
-              <Text
+            {speedLimitReliable && (
+              <View
                 style={[
-                  styles.speedLimitValue,
-                  !speedLimitReliable && styles.speedLimitValueUnavailable,
-                  speedOverLimit && styles.speedLimitValueWarning,
+                  styles.speedLimitSign,
+                  speedOverLimit && styles.speedLimitSignWarning,
                 ]}
               >
-                {speedLimitValueText}
-              </Text>
-            </View>
+                <Text
+                  style={[
+                    styles.speedLimitValue,
+                    speedOverLimit && styles.speedLimitValueWarning,
+                  ]}
+                >
+                  {speedLimitMph}
+                </Text>
+              </View>
+            )}
           </View>
           <Text style={styles.speedRoadText} numberOfLines={1}>
             {roadMetaText}
@@ -4635,23 +5281,21 @@ export default function JobRouteScreen() {
             },
           ]}
         >
-          {!isFollowingDriver && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('route.recenter')}
-              onPress={handleRecenter}
-              style={[styles.ctrlBtn, styles.ctrlBtnAccent, styles.ctrlBtnRecenter]}
-            >
-              <Ionicons name="locate" size={22} color="#F97316" />
-            </Pressable>
-          )}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t('route.mapOrientation', { mode: followModeLabel })}
-            onPress={handleCycleFollowMode}
-            style={styles.ctrlBtn}
+            accessibilityState={{ selected: isFollowingDriver && !routeOverviewActive }}
+            accessibilityLabel={t('route.recenter')}
+            onPress={handleRecenter}
+            style={[
+              styles.ctrlBtn,
+              isFollowingDriver && !routeOverviewActive && styles.ctrlBtnAccent,
+            ]}
           >
-            <Ionicons name={followModeIcon} size={22} color="#3C4043" />
+            <Ionicons
+              name={isFollowingDriver && !routeOverviewActive ? 'navigate' : 'locate'}
+              size={22}
+              color={isFollowingDriver && !routeOverviewActive ? NAV_ROUTE_BLUE : '#FFFFFF'}
+            />
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -4660,7 +5304,7 @@ export default function JobRouteScreen() {
             onPress={handleToggleRouteOverview}
             style={[styles.ctrlBtn, routeOverviewActive && styles.ctrlBtnAccent]}
           >
-            <Ionicons name="scan-outline" size={22} color={routeOverviewActive ? '#F97316' : '#3C4043'} />
+            <Ionicons name="scan-outline" size={22} color={routeOverviewActive ? NAV_ROUTE_BLUE : '#FFFFFF'} />
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -4672,7 +5316,7 @@ export default function JobRouteScreen() {
             <Ionicons
               name={mapDepthMode === '3d' ? 'cube-outline' : 'map-outline'}
               size={20}
-              color={mapDepthMode === '3d' ? '#F97316' : '#3C4043'}
+              color={mapDepthMode === '3d' ? NAV_ROUTE_BLUE : '#FFFFFF'}
             />
             <Text style={[styles.ctrlBtnText, mapDepthMode === '3d' && styles.ctrlBtnTextAccent]}>
               {mapDepthLabel}
@@ -4688,7 +5332,7 @@ export default function JobRouteScreen() {
             <Ionicons
               name={voiceEnabled ? 'volume-high' : 'volume-mute'}
               size={22}
-              color={voiceEnabled ? '#F97316' : '#3C4043'}
+              color={voiceEnabled ? NAV_ROUTE_BLUE : '#FFFFFF'}
             />
           </Pressable>
         </View>
@@ -5268,6 +5912,62 @@ export default function JobRouteScreen() {
               )}
             </View>
 
+            <View style={styles.routePrefsPanel}>
+              <View style={styles.routePrefsHeader}>
+                <Text style={styles.routeSectionTitle}>Map display</Text>
+              </View>
+              <View style={styles.routePrefsRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: mapStyleMode === 'streets' }}
+                  accessibilityLabel="Use streets map style"
+                  onPress={() => handleSelectMapStyle('streets')}
+                  style={[
+                    styles.routePrefChip,
+                    mapStyleMode === 'streets' && styles.routePrefChipActive,
+                  ]}
+                >
+                  <Ionicons
+                    name="map-outline"
+                    size={13}
+                    color={mapStyleMode === 'streets' ? '#F97316' : '#5F6368'}
+                  />
+                  <Text
+                    style={[
+                      styles.routePrefChipText,
+                      mapStyleMode === 'streets' && styles.routePrefChipTextActive,
+                    ]}
+                  >
+                    Streets
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: mapStyleMode === 'satellite' }}
+                  accessibilityLabel="Use satellite map style"
+                  onPress={() => handleSelectMapStyle('satellite')}
+                  style={[
+                    styles.routePrefChip,
+                    mapStyleMode === 'satellite' && styles.routePrefChipActive,
+                  ]}
+                >
+                  <Ionicons
+                    name="earth-outline"
+                    size={13}
+                    color={mapStyleMode === 'satellite' ? '#F97316' : '#5F6368'}
+                  />
+                  <Text
+                    style={[
+                      styles.routePrefChipText,
+                      mapStyleMode === 'satellite' && styles.routePrefChipTextActive,
+                    ]}
+                  >
+                    Satellite
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
             {/* Route alternatives — expanded only, never in collapsed driving mode */}
             {routeOptions.length > 1 ? (
               <ScrollView
@@ -5435,8 +6135,17 @@ export default function JobRouteScreen() {
 
             {/* Route/GPS meta line */}
             <Text style={styles.cockpitMeta}>
-              {permissionDenied
+              {permissionDenied || navigationLocationState === 'permission-denied'
                 ? t('route.locationDeniedNav')
+                : navigationLocationState === 'requesting' && fixSeconds == null
+                  ? t('route.findingLocation')
+                : navigationLocationState === 'weak'
+                  ? t('route.gpsSignalWeak')
+                : navigationLocationState === 'stale'
+                  ? t('route.locationStale')
+                : navigationLocationState === 'unavailable' ||
+                    navigationLocationState === 'error'
+                  ? t('route.locationUnavailable')
                 : fixSeconds == null
                   ? routeState.loading || phase === 'preview'
                     ? t('route.calculatingRoute')
@@ -5744,12 +6453,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.98)',
+    backgroundColor: 'rgba(13,18,20,0.92)',
     borderWidth: 1,
-    borderColor: 'rgba(218,220,224,0.95)',
-    shadowColor: '#3C4043',
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
+    borderColor: 'rgba(249,115,22,0.86)',
+    shadowColor: '#F97316',
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 4 },
     elevation: 7,
   },
@@ -5810,17 +6519,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   instructionDistance: {
-    color: '#F97316',
+    color: '#FFFFFF',
     fontSize: fontSize.lg,
     fontWeight: '800',
   },
   instructionText: {
-    color: '#202124',
+    color: '#FFFFFF',
     fontSize: fontSize.md,
     fontWeight: '700',
   },
   instructionNext: {
-    color: '#5F6368',
+    color: 'rgba(255,255,255,0.72)',
     fontSize: fontSize.xs,
     fontWeight: '600',
     marginTop: 1,
@@ -5834,18 +6543,17 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 7,
     borderRadius: radius.full,
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
     borderWidth: 1,
-    borderColor: '#E8EAED',
+    borderColor: 'rgba(255,255,255,0.16)',
   },
   instructionStatusText: {
-    color: '#3C4043',
+    color: 'rgba(255,255,255,0.78)',
     fontSize: fontSize.xs,
     fontWeight: '700',
   },
   laneGuidanceRow: {
     flexDirection: 'row',
-    direction: 'ltr',
     alignItems: 'center',
     gap: 5,
     marginTop: 6,
@@ -5861,19 +6569,18 @@ const styles = StyleSheet.create({
     borderColor: '#DADCE0',
   },
   laneCellValid: {
-    backgroundColor: '#3C4043',
-    borderColor: '#3C4043',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderColor: 'rgba(255,255,255,0.32)',
   },
   laneCellActive: {
-    backgroundColor: '#F97316',
-    borderColor: '#F97316',
+    backgroundColor: NAV_ROUTE_BLUE,
+    borderColor: NAV_ROUTE_BLUE,
   },
   roundaboutDiagram: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     marginTop: 7,
-    direction: 'ltr',
   },
   roundaboutStage: {
     width: 76,
@@ -5886,8 +6593,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 4,
-    borderColor: '#3C4043',
-    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(255,255,255,0.78)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
@@ -5903,17 +6610,17 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   roundaboutBranchAllowed: {
-    backgroundColor: '#5F6368',
+    backgroundColor: 'rgba(255,255,255,0.62)',
     opacity: 0.86,
   },
   roundaboutApproachBranch: {
-    backgroundColor: '#3C4043',
+    backgroundColor: '#FFFFFF',
     opacity: 1,
   },
   roundaboutExitBranch: {
     width: 7,
     left: 34.5,
-    backgroundColor: '#F97316',
+    backgroundColor: NAV_ROUTE_BLUE,
     opacity: 1,
     zIndex: 3,
   },
@@ -5926,7 +6633,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F97316',
+    backgroundColor: NAV_ROUTE_BLUE,
     borderWidth: 2,
     borderColor: '#FFFFFF',
     zIndex: 4,
@@ -5941,12 +6648,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   roundaboutLabel: {
-    color: '#202124',
+    color: '#FFFFFF',
     fontSize: fontSize.xs,
     fontWeight: '800',
   },
   roundaboutSubLabel: {
-    color: '#5F6368',
+    color: 'rgba(255,255,255,0.72)',
     fontSize: fontSize.xs,
     fontWeight: '600',
   },
@@ -6030,17 +6737,17 @@ const styles = StyleSheet.create({
   speedPanel: {
     position: 'absolute',
     left: spacing.md,
-    width: 132,
-    minHeight: 76,
+    width: 112,
+    minHeight: 72,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.98)',
+    backgroundColor: 'rgba(13,18,20,0.92)',
     borderWidth: 1,
-    borderColor: '#DADCE0',
+    borderColor: 'rgba(255,255,255,0.12)',
     shadowColor: '#3C4043',
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
+    shadowOpacity: 0.24,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 3 },
     elevation: 6,
     paddingVertical: 7,
@@ -6060,14 +6767,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   currentSpeedValue: {
-    color: '#202124',
+    color: '#FFFFFF',
     fontSize: 26,
     fontWeight: '900',
     lineHeight: 29,
     writingDirection: 'ltr',
   },
   currentSpeedUnit: {
-    color: '#5F6368',
+    color: 'rgba(255,255,255,0.78)',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0,
@@ -6106,7 +6813,7 @@ const styles = StyleSheet.create({
   speedRoadText: {
     width: '100%',
     marginTop: 4,
-    color: '#5F6368',
+    color: 'rgba(255,255,255,0.78)',
     fontSize: 10,
     fontWeight: '700',
     lineHeight: 13,
@@ -6203,28 +6910,28 @@ const styles = StyleSheet.create({
     borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(13,18,20,0.92)',
     borderWidth: 1,
-    borderColor: '#DADCE0',
+    borderColor: 'rgba(255,255,255,0.12)',
     shadowColor: '#3C4043',
-    shadowOpacity: 0.16,
-    shadowRadius: 9,
+    shadowOpacity: 0.24,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 3 },
     elevation: 6,
   },
   ctrlBtnAccent: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#F97316',
+    backgroundColor: 'rgba(13,18,20,0.94)',
+    borderColor: NAV_ROUTE_BLUE,
   },
   ctrlBtnText: {
     marginTop: -2,
-    color: '#3C4043',
+    color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0,
   },
   ctrlBtnTextAccent: {
-    color: '#F97316',
+    color: NAV_ROUTE_BLUE,
   },
   devGpsPanel: {
     position: 'absolute',

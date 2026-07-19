@@ -8,8 +8,8 @@ export const FITTING_LOCATION_INVALID_DISTANCE_ERROR = 'FITTING_LOCATION_INVALID
 export const GARAGE_ORIGIN_ADDRESS = '3, 10 Gateside St, Glasgow G31 1PD';
 
 /** Maximum distance for automatic mobile pricing. Beyond this, a manual quote is required. */
-export const MOBILE_AUTO_PRICING_MAX_MILES = 100;
-export const ASSISTED_CHAT_AUTO_PRICING_MAX_MILES = 250;
+export const MOBILE_AUTO_PRICING_MAX_MILES = 250;
+export const ASSISTED_CHAT_AUTO_PRICING_MAX_MILES = 500;
 export const MOBILE_MAX_DISTANCE_MILES = MOBILE_AUTO_PRICING_MAX_MILES;
 
 export type FittingLocationPricingUnavailableReason =

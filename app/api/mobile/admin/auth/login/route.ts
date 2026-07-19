@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { db, users } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { signMobileToken } from '@/lib/auth';
+import { expoDevCorsPreflight, jsonWithExpoDevCors } from '@/lib/api/dev-cors';
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     const password = String(body?.password || '');
 
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+      return jsonWithExpoDevCors(request, { error: 'Email and password are required' }, { status: 400 });
     }
 
     const [user] = await db
@@ -21,20 +21,20 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (!user || !user.passwordHash) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      return jsonWithExpoDevCors(request, { error: 'Invalid credentials' }, { status: 401 });
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      return jsonWithExpoDevCors(request, { error: 'Invalid credentials' }, { status: 401 });
     }
 
     if (user.role !== 'admin') {
-      return NextResponse.json({ error: 'This app is for administrators only' }, { status: 403 });
+      return jsonWithExpoDevCors(request, { error: 'This app is for administrators only' }, { status: 403 });
     }
 
     if (!user.emailVerified) {
-      return NextResponse.json({ error: 'Please verify your email before signing in' }, { status: 403 });
+      return jsonWithExpoDevCors(request, { error: 'Please verify your email before signing in' }, { status: 403 });
     }
 
     const token = await signMobileToken({
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       role: 'admin',
     });
 
-    return NextResponse.json({
+    return jsonWithExpoDevCors(request, {
       token,
       user: {
         id: user.id,
@@ -54,6 +54,10 @@ export async function POST(request: Request) {
       },
     });
   } catch {
-    return NextResponse.json({ error: 'Login failed' }, { status: 500 });
+    return jsonWithExpoDevCors(request, { error: 'Login failed' }, { status: 500 });
   }
+}
+
+export async function OPTIONS(request: Request) {
+  return expoDevCorsPreflight(request);
 }

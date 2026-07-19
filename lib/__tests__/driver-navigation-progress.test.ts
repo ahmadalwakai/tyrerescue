@@ -541,6 +541,33 @@ describe('driver navigation progress', () => {
     expect(progress.roundaboutExitNumber).toBeNull();
   });
 
+  it('allows a trusted departure on a legitimate service or car-park road', () => {
+    const serviceRoadRoute = route({
+      steps: [
+        step(0, { name: 'Customer car park', roadClass: 'service' }),
+        step(2, { name: 'Industrial Estate Road', roadClass: 'service' }),
+        step(4, { name: 'A1', roadClass: 'primary' }),
+      ],
+    });
+
+    const progress = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9992 },
+      route: serviceRoadRoute,
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 6,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+
+    expect(progress.displayMode).toBe('snapped');
+    expect(progress.isOffRoute).toBe(false);
+    expect(progress.currentRoadClass).toBe('service');
+  });
+
   it('maps maneuver warning phases by road class, speed, and GPS trust', () => {
     const base = {
       speedMps: null,
@@ -606,7 +633,7 @@ describe('driver navigation progress', () => {
     expect(paused.scale).toEqual([1, 1]);
   });
 
-  it('selects reroute origins from trusted matched progress before raw GPS', () => {
+  it('selects reroute origins only from fresh accurate raw GPS', () => {
     const progress = buildNavigationProgress({
       rawLocation: { lat: 55, lng: -3.9995 },
       route: route(),
@@ -620,22 +647,30 @@ describe('driver navigation progress', () => {
       nowMs: 1_100,
     });
 
-    const matched = selectRerouteOrigin({
+    const rawOrigin = selectRerouteOrigin({
       progress,
       rawLocation: { lat: 55.0001, lng: -3.9995 },
       rawLocationTimestamp: 1_050,
+      rawAccuracyMeters: 8,
+      nowMs: 1_100,
       routeRevision: 'r1',
       maxSnapDistanceMeters: 75,
     });
-    expect(matched?.source).toBe('matched');
-    expect(matched?.coordinate).toEqual(progress.matchedLocation);
-    expect(matched?.segmentIndex).toBe(progress.matchedSegmentIndex);
-    expect(matched?.confidence).toBeGreaterThan(0.95);
+    expect(rawOrigin).toEqual({
+      coordinate: { lat: 55.0001, lng: -3.9995 },
+      source: 'raw',
+      routeRevision: 'r1',
+      locationTimestamp: 1_050,
+      segmentIndex: null,
+      confidence: null,
+    });
 
     const rawFallback = selectRerouteOrigin({
       progress,
       rawLocation: { lat: 55.0001, lng: -3.9995 },
       rawLocationTimestamp: 2_000,
+      rawAccuracyMeters: 8,
+      nowMs: 2_100,
       routeRevision: 'r2',
       maxSnapDistanceMeters: 75,
     });
@@ -647,6 +682,38 @@ describe('driver navigation progress', () => {
       segmentIndex: null,
       confidence: null,
     });
+
+    expect(
+      selectRerouteOrigin({
+        progress,
+        rawLocation: null,
+        rawLocationTimestamp: null,
+        routeRevision: 'r1',
+        maxSnapDistanceMeters: 75,
+      }),
+    ).toBeNull();
+
+    expect(
+      selectRerouteOrigin({
+        progress: null,
+        rawLocation: { lat: 55.0001, lng: -3.9995 },
+        rawLocationTimestamp: 1_000,
+        rawAccuracyMeters: 8,
+        nowMs: 30_000,
+        routeRevision: 'r1',
+      }),
+    ).toBeNull();
+
+    expect(
+      selectRerouteOrigin({
+        progress: null,
+        rawLocation: { lat: 55.0001, lng: -3.9995 },
+        rawLocationTimestamp: 2_000,
+        rawAccuracyMeters: 80,
+        nowMs: 2_100,
+        routeRevision: 'r1',
+      }),
+    ).toBeNull();
 
     expect(
       selectRerouteOrigin({
@@ -708,6 +775,28 @@ describe('driver navigation progress', () => {
     expect(progress.travelledGeometry?.length).toBeLessThanOrEqual((progress.segmentIndex ?? 0) + 2);
     const last = progress.travelledGeometry?.[progress.travelledGeometry.length - 1];
     expect(last).toEqual([progress.matchedLocation?.lng, progress.matchedLocation?.lat]);
+  });
+
+  it('splits passed and upcoming route geometry at one exact coordinate', () => {
+    const progress = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9974 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 10,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+
+    expect(progress.travelledGeometry).not.toBeNull();
+    expect(progress.remainingGeometry).not.toBeNull();
+    const travelledEnd = progress.travelledGeometry?.[progress.travelledGeometry.length - 1];
+    const remainingStart = progress.remainingGeometry?.[0];
+    expect(travelledEnd).toEqual(remainingStart);
+    expect(remainingStart).toEqual([progress.matchedLocation?.lng, progress.matchedLocation?.lat]);
   });
 
   it('does not extend the passed-route overlay from an untrusted off-route fix', () => {
@@ -857,6 +946,71 @@ describe('driver navigation progress', () => {
     });
     expect(impossible.displayLocation).toEqual(previous.displayLocation);
     expect(impossible.fixTimestampMs).toBe(previous.fixTimestampMs);
+  });
+
+  it('freezes camera display through weak GPS and requires two trusted recovery samples', () => {
+    const previous = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9992 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: null,
+      gpsHeading: 90,
+      speedMps: 10,
+      accuracyMeters: 5,
+      fixTimestampMs: 1_000,
+      nowMs: 1_100,
+    });
+
+    const weak = buildNavigationProgress({
+      rawLocation: { lat: 55.0008, lng: -3.9986 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous,
+      gpsHeading: 70,
+      speedMps: 15,
+      accuracyMeters: 95,
+      fixTimestampMs: 2_000,
+      nowMs: 2_100,
+    });
+    expect(weak.displayLocation).toEqual(previous.displayLocation);
+    expect(weak.displayHeading).toBe(previous.displayHeading);
+    expect(weak.speedDisplayReliable).toBe(false);
+    expect(weak.locationWeak).toBe(true);
+    expect(weak.trustedSamplesSinceWeak).toBe(0);
+
+    const firstRecovered = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9988 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: weak,
+      gpsHeading: 90,
+      speedMps: 9,
+      accuracyMeters: 5,
+      fixTimestampMs: 3_000,
+      nowMs: 3_100,
+    });
+    expect(firstRecovered.displayLocation).toEqual(previous.displayLocation);
+    expect(firstRecovered.trustedSamplesSinceWeak).toBe(1);
+    expect(firstRecovered.speedDisplayReliable).toBe(false);
+
+    const secondRecovered = buildNavigationProgress({
+      rawLocation: { lat: 55, lng: -3.9985 },
+      route: route(),
+      routeRevision: 'r1',
+      routeIsCurrent: true,
+      previous: firstRecovered,
+      gpsHeading: 90,
+      speedMps: 9,
+      accuracyMeters: 5,
+      fixTimestampMs: 4_000,
+      nowMs: 4_100,
+    });
+    expect(secondRecovered.displayLocation).not.toEqual(previous.displayLocation);
+    expect(secondRecovered.speedDisplayReliable).toBe(true);
+    expect(secondRecovered.trustedSamplesSinceWeak).toBe(2);
   });
 
   it('resets filters and matching when the route revision changes', () => {
