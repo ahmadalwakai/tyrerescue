@@ -1,7 +1,6 @@
 import { createElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  ImageBackground,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -26,7 +25,6 @@ import { AppIcon } from './icons/AppIcon';
 
 const GARAGE_LOCATION = { lat: 55.8547, lng: -4.2206 } as const;
 const ROUTE_MAP_MESSAGE_SOURCE = 'tyrerescue-location-route-map';
-const locationCardBackground = require('../../assets/images/location-card-background.png');
 
 interface MapPoint {
   lat: number;
@@ -722,13 +720,8 @@ export function LocationSection({
     <View style={[styles.locationPanel, displayMode === 'mapOnly' && styles.locationPanelMapOnly]}>
       {displayMode === 'full' ? (
         <>
-          <ImageBackground
-            source={locationCardBackground}
-            resizeMode="cover"
-            style={styles.locationPanelBackground}
-            imageStyle={styles.locationPanelBackgroundImage}
-          />
-          <View style={styles.locationPanelBackgroundShade} />
+          <View style={styles.locationPanelSoftLight} />
+          <View style={styles.locationPanelTexture} />
         </>
       ) : null}
       {displayMode === 'full' ? (
@@ -1273,17 +1266,18 @@ const styles = StyleSheet.create({
     position: 'relative',
     ...(locationCardShadow ?? {}),
   },
-  locationPanelBackground: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.88,
-    transform: [{ scale: 1.02 }],
+  locationPanelSoftLight: {
+    position: 'absolute',
+    left: -40,
+    right: -40,
+    top: -70,
+    height: 160,
+    borderRadius: 120,
+    backgroundColor: 'rgba(255,123,18,0.08)',
   },
-  locationPanelBackgroundImage: {
-    opacity: 1,
-  },
-  locationPanelBackgroundShade: {
+  locationPanelTexture: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(3,6,15,0.28)',
+    backgroundColor: 'rgba(255,255,255,0.018)',
   },
   locationPanelMapOnly: {
     borderColor: colors.borderStrong,

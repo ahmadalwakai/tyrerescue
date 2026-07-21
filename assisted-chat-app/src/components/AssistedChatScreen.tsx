@@ -72,6 +72,15 @@ import { usePressScale } from './motion';
 import { AppIcon, type AppIconName } from './icons/AppIcon';
 import { api } from '@/lib/api';
 import { downloadInvoicePdfToDevice } from '@/lib/invoice-download';
+import {
+  HEADER_VIDEO_STARTUP_TIMEOUT_MS,
+  buildHeaderVideoHtml,
+  getHeaderVideoReadAccessUri,
+  parseHeaderVideoWebViewMessage,
+  sanitizeHeaderVideoDiagnostic,
+  shouldShowHeaderVideoFallback,
+  validateHeaderVideoUri,
+} from '@/lib/header-video';
 import { buildCustomerMessage, buildWhatsAppUrl } from '@/lib/customer-message';
 import { copyToClipboard } from '@/lib/clipboard';
 import {
@@ -3017,63 +3026,230 @@ function HeaderNotificationButton({
 }
 
 function HeaderVideoBackground() {
-  const resolvedVideo = Asset.fromModule(assistedChatHeaderVideoSource);
-  const videoUri = resolvedVideo.localUri ?? resolvedVideo.uri;
+  const videoAsset = useMemo(() => {
+    try {
+      return Asset.fromModule(assistedChatHeaderVideoSource);
+    } catch {
+      if (__DEV__) {
+        throw new Error('Assisted Chat header video asset could not be resolved.');
+      }
+      return null;
+    }
+  }, []);
+  const webViewRef = useRef<WebView>(null);
+  const webVideoRef = useRef<{ play?: () => Promise<void> | void; pause?: () => void } | null>(null);
+  const retryAttemptedRef = useRef(false);
+  const appIsActiveRef = useRef(AppState.currentState === 'active');
+  const [videoUri, setVideoUri] = useState<string | null>(null);
+  const [videoStarted, setVideoStarted] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [videoDiagnostic, setVideoDiagnostic] = useState<string | null>(null);
+  const [webViewKey, setWebViewKey] = useState(0);
+  const [appIsActive, setAppIsActive] = useState(appIsActiveRef.current);
 
-  if (!videoUri) return null;
+  useEffect(() => {
+    let mounted = true;
+
+    const preload = async () => {
+      if (!videoAsset) {
+        if (mounted) {
+          setVideoFailed(true);
+          setVideoDiagnostic('asset-module-unresolved');
+        }
+        return;
+      }
+
+      try {
+        const loadedVideo = await videoAsset.downloadAsync();
+        if (!mounted) return;
+        const bundledUri = loadedVideo.localUri ?? videoAsset.localUri ?? (Platform.OS === 'web' ? loadedVideo.uri ?? videoAsset.uri : null);
+        const productionNative = !__DEV__ && Platform.OS !== 'web';
+        const validation = validateHeaderVideoUri(bundledUri, productionNative);
+
+        if (!validation.ok) {
+          setVideoFailed(true);
+          setVideoDiagnostic(validation.reason ?? 'invalid-video-uri');
+          return;
+        }
+
+        setVideoUri(bundledUri);
+        setVideoStarted(false);
+        setVideoFailed(false);
+        setVideoDiagnostic(null);
+      } catch {
+        if (mounted) {
+          setVideoFailed(true);
+          setVideoDiagnostic('asset-preload-failed');
+        }
+      }
+    };
+
+    void preload();
+
+    return () => {
+      mounted = false;
+    };
+  }, [videoAsset]);
+
+  const sendVideoCommand = useCallback((command: 'pause' | 'play') => {
+    if (Platform.OS === 'web') {
+      if (command === 'pause') {
+        webVideoRef.current?.pause?.();
+        return;
+      }
+      const playResult = webVideoRef.current?.play?.();
+      if (playResult && typeof (playResult as Promise<void>).catch === 'function') {
+        (playResult as Promise<void>).catch(() => {
+          setVideoDiagnostic('web-playback-rejected');
+        });
+      }
+      return;
+    }
+
+    webViewRef.current?.injectJavaScript(
+      `window.__headerVideoControl && window.__headerVideoControl(${JSON.stringify(command)}); true;`,
+    );
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      const isActive = nextState === 'active';
+      appIsActiveRef.current = isActive;
+      setAppIsActive(isActive);
+      sendVideoCommand(isActive ? 'play' : 'pause');
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [sendVideoCommand]);
+
+  useEffect(() => {
+    if (!videoUri || videoStarted || videoFailed || !appIsActive) return undefined;
+
+    const startupTimer = setTimeout(() => {
+      if (!retryAttemptedRef.current) {
+        retryAttemptedRef.current = true;
+        setVideoStarted(false);
+        setVideoDiagnostic('startup-timeout-retry');
+        setWebViewKey((current) => current + 1);
+        return;
+      }
+
+      setVideoFailed(true);
+      setVideoDiagnostic('startup-timeout');
+    }, HEADER_VIDEO_STARTUP_TIMEOUT_MS);
+
+    return () => clearTimeout(startupTimer);
+  }, [appIsActive, videoFailed, videoStarted, videoUri, webViewKey]);
+
+  useEffect(() => {
+    if (__DEV__ && videoDiagnostic) {
+      console.warn('[assisted-chat-header-video]', sanitizeHeaderVideoDiagnostic(videoDiagnostic));
+    }
+  }, [videoDiagnostic]);
+
+  const showFallback = shouldShowHeaderVideoFallback({ videoStarted, videoFailed, videoUri });
 
   if (Platform.OS === 'web') {
     return (
       <View style={[styles.headerVideoLayer, styles.pointerNone]} testID="assisted-chat-header-video-background">
-        {createElement('video', {
-          src: videoUri,
-          autoPlay: true,
-          muted: true,
-          loop: true,
-          playsInline: true,
-          preload: 'auto',
-          controls: false,
-          'aria-hidden': true,
-          tabIndex: -1,
-          style: {
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            pointerEvents: 'none',
-          },
-        })}
+        {showFallback ? <HeaderVideoFallback /> : null}
+        {videoUri && !videoFailed
+          ? createElement('video', {
+              ref: webVideoRef,
+              src: videoUri,
+              autoPlay: true,
+              muted: true,
+              loop: true,
+              playsInline: true,
+              preload: 'auto',
+              controls: false,
+              'aria-hidden': true,
+              tabIndex: -1,
+              onPlaying: () => setVideoStarted(true),
+              onPause: () => setVideoStarted(false),
+              onEnded: () => setVideoStarted(false),
+              onError: () => {
+                setVideoFailed(true);
+                setVideoDiagnostic('web-media-error');
+              },
+              style: {
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                opacity: videoStarted ? 1 : 0,
+                pointerEvents: 'none',
+              },
+            })
+          : null}
       </View>
     );
   }
 
-  const html = `<!doctype html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <style>
-      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-      video { width: 100%; height: 100%; object-fit: cover; display: block; }
-    </style>
-  </head>
-  <body>
-    <video src="${videoUri}" autoplay muted loop playsinline preload="auto"></video>
-  </body>
-</html>`;
+  const videoReadAccessUri = getHeaderVideoReadAccessUri(videoUri);
+  const html = buildHeaderVideoHtml(videoUri);
 
   return (
-    <WebView
-      source={{ html }}
-      originWhitelist={['*']}
-      style={styles.headerVideoNative}
-      scrollEnabled={false}
-      javaScriptEnabled={false}
-      allowsInlineMediaPlayback
-      mediaPlaybackRequiresUserAction={false}
-      pointerEvents="none"
-      testID="assisted-chat-header-video-background"
-    />
+    <View style={[styles.headerVideoLayer, styles.pointerNone]} testID="assisted-chat-header-video-background">
+      {showFallback ? <HeaderVideoFallback /> : null}
+      {videoUri && !videoFailed ? (
+        <WebView
+          key={webViewKey}
+          ref={webViewRef}
+          source={{ html, baseUrl: videoReadAccessUri ?? videoUri }}
+          originWhitelist={['*', 'file://*']}
+          allowingReadAccessToURL={videoReadAccessUri ?? videoUri}
+          allowFileAccess
+          allowFileAccessFromFileURLs
+          allowsFullscreenVideo={false}
+          style={[styles.headerVideoNative, !videoStarted && styles.headerVideoHidden]}
+          scrollEnabled={false}
+          javaScriptEnabled
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
+          onMessage={(event) => {
+            const message = parseHeaderVideoWebViewMessage(event.nativeEvent.data);
+            if (!message) return;
+
+            if (message.type === 'playing') {
+              setVideoStarted(true);
+              setVideoFailed(false);
+              setVideoDiagnostic(null);
+            }
+            if (message.type === 'paused' || message.type === 'ended') {
+              setVideoStarted(false);
+            }
+            if (message.type === 'error') {
+              setVideoStarted(false);
+              setVideoFailed(true);
+              setVideoDiagnostic(message.reason ?? 'webview-media-error');
+            }
+          }}
+          onError={() => {
+            setVideoFailed(true);
+            setVideoDiagnostic('webview-load-error');
+          }}
+          onHttpError={() => {
+            setVideoFailed(true);
+            setVideoDiagnostic('webview-http-error');
+          }}
+          pointerEvents="none"
+          testID="assisted-chat-header-video-webview"
+        />
+      ) : null}
+    </View>
+  );
+}
+
+function HeaderVideoFallback() {
+  return (
+    <View style={styles.headerVideoFallback}>
+      <View style={styles.headerVideoFallbackSoftLight} />
+      <View style={styles.headerVideoFallbackSurface} />
+    </View>
   );
 }
 
@@ -3880,6 +4056,27 @@ const styles = StyleSheet.create({
     inset: 0,
     zIndex: 0,
     backgroundColor: 'transparent',
+  },
+  headerVideoHidden: {
+    opacity: 0,
+  },
+  headerVideoFallback: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(4,7,20,0.96)',
+  },
+  headerVideoFallbackSoftLight: {
+    position: 'absolute',
+    left: -80,
+    right: 24,
+    bottom: -90,
+    height: 170,
+    borderRadius: 120,
+    backgroundColor: 'rgba(255,123,18,0.16)',
+    opacity: 0.72,
+  },
+  headerVideoFallbackSurface: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(4,7,20,0.42)',
   },
   headerTopRow: {
     flexDirection: 'row',
