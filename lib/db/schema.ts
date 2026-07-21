@@ -540,7 +540,7 @@ export const bookingMessages = pgTable('booking_messages', {
   senderId: uuid('sender_id').references(() => users.id).notNull(),
   senderRole: text('sender_role').notNull(), // 'customer' | 'admin' | 'driver'
   body: text('body'),
-  messageType: text('message_type').notNull().default('text'), // 'text' | 'image' | 'admin_note'
+  messageType: text('message_type').notNull().default('text'), // 'text' | 'image' | 'audio' | 'admin_note'
   deliveryStatus: text('delivery_status').notNull().default('sent'), // 'sending' | 'sent' | 'delivered' | 'failed'
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
 });

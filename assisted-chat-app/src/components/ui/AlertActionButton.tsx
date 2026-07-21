@@ -174,11 +174,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   idleBase: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.glassStrong,
+    borderColor: colors.borderStrong,
   },
   idlePressed: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.panel,
   },
   alertBase: {
     backgroundColor: ALERT_RED,
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   label: {
     fontSize: fontSize.sm,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   idleLabel: { color: colors.text },
   alertLabel: { color: '#FFFFFF' },
@@ -220,6 +220,6 @@ const styles = StyleSheet.create({
     color: ALERT_RED,
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0,
   },
 });

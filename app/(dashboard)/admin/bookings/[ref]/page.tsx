@@ -8,6 +8,7 @@ import { normaliseTyreDetailsFromDb } from '@/lib/bookings/normalise-tyre-detail
 import { getBookingPaymentSummary, type PaymentSummary } from '@/lib/payments/payment-summary';
 import { haversineDistanceMiles } from '@/lib/mapbox';
 import { GARAGE_LOCATION } from '@/lib/garage';
+import { buildBookingTimeline, deriveBookingInformation } from '@/lib/bookings/booking-audit';
 import {
   calculateDriverSituation,
   estimateUrbanDriveMinutesFromMiles,
@@ -61,11 +62,15 @@ export default async function AdminBookingDetailPage({ params }: Props) {
       id: bookingStatusHistory.id,
       fromStatus: bookingStatusHistory.fromStatus,
       toStatus: bookingStatusHistory.toStatus,
+      actorUserId: bookingStatusHistory.actorUserId,
       actorRole: bookingStatusHistory.actorRole,
+      actorName: users.name,
+      actorEmail: users.email,
       note: bookingStatusHistory.note,
       createdAt: bookingStatusHistory.createdAt,
     })
     .from(bookingStatusHistory)
+    .leftJoin(users, eq(bookingStatusHistory.actorUserId, users.id))
     .where(eq(bookingStatusHistory.bookingId, booking.id))
     .orderBy(desc(bookingStatusHistory.createdAt));
 
@@ -178,14 +183,12 @@ export default async function AdminBookingDetailPage({ params }: Props) {
     tyreRows,
   );
 
-  const historyData = statusHistory.map((h) => ({
-    id: h.id,
-    fromStatus: h.fromStatus,
-    toStatus: h.toStatus,
-    actorRole: h.actorRole,
-    note: h.note,
-    createdAt: h.createdAt?.toISOString() ?? null,
-  }));
+  const historyData = buildBookingTimeline(statusHistory);
+  const bookingInformation = deriveBookingInformation({
+    timeline: historyData,
+    bookingCreatedAt: booking.createdAt,
+    bookingUpdatedAt: booking.updatedAt,
+  });
 
   const driversData = availableDrivers.map((d) => ({
     id: d.id,
@@ -257,6 +260,7 @@ export default async function AdminBookingDetailPage({ params }: Props) {
       <BookingDetailClient
         booking={bookingData}
         tyreDetails={tyreDetails}
+        bookingInformation={bookingInformation}
         statusHistory={historyData}
         assignedDriver={assignedDriver}
         availableDrivers={driversData}

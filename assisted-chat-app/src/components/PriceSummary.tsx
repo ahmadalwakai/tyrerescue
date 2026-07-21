@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import type { ReactNode } from 'react';
 import type {
   AssistedChatPaymentChoice,
@@ -271,22 +271,34 @@ export function PriceSummary({
   );
 }
 
+const priceCardShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 14px 34px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.07)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+  },
+});
+
 const styles = StyleSheet.create({
   breakdown: {
     marginTop: 12,
-    padding: 10,
-    borderColor: colors.border,
+    padding: 12,
+    borderColor: colors.borderStrong,
     borderWidth: 1,
     borderRadius: radius.md,
-    backgroundColor: colors.card,
+    backgroundColor: colors.glassStrong,
     gap: 6,
+    ...priceCardShadow,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   rowLabel: { color: colors.text, fontSize: fontSize.sm, flexShrink: 1, paddingRight: 8 },
   rowValue: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 4 },
-  totalLabel: { color: colors.text, fontSize: fontSize.lg, fontWeight: '700' },
-  totalValue: { color: colors.text, fontSize: fontSize.lg, fontWeight: '700' },
+  totalLabel: { color: colors.text, fontSize: fontSize.lg, fontWeight: '900' },
+  totalValue: { color: colors.accent, fontSize: fontSize.lg, fontWeight: '900' },
   finalRow: {
     backgroundColor: colors.infoBg,
     borderWidth: 1,
@@ -297,13 +309,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   finalLabel: { color: colors.text, fontSize: fontSize.lg, fontWeight: '800' },
-  finalValue: { color: colors.text, fontSize: fontSize.lg, fontWeight: '800' },
+  finalValue: { color: colors.accent, fontSize: fontSize.lg, fontWeight: '900' },
   manualNoteText: {
     marginTop: 4,
     color: colors.warning,
     fontSize: fontSize.xs,
     fontWeight: '700',
-    letterSpacing: 0.4,
+    letterSpacing: 0,
   },
   sayBox: {
     marginTop: 8,
@@ -313,6 +325,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.infoBg,
     paddingHorizontal: 10,
     paddingVertical: 8,
+    ...priceCardShadow,
   },
   sayText: { color: colors.info, fontSize: fontSize.sm, fontWeight: '700', lineHeight: 19 },
   meta: { marginTop: 6, color: colors.subtle, fontSize: fontSize.xs },
@@ -325,5 +338,5 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   warningStack: { marginTop: 8, gap: 6 },
-  payLabel: { color: colors.muted, fontWeight: '700', fontSize: fontSize.xs, letterSpacing: 1 },
+  payLabel: { color: colors.muted, fontWeight: '700', fontSize: fontSize.xs, letterSpacing: 0 },
 });

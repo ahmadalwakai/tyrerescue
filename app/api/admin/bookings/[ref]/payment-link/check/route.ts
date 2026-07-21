@@ -231,8 +231,9 @@ async function respondWithSummary(
 }
 
 export async function PATCH(request: Request, { params }: Props) {
+  let session: Awaited<ReturnType<typeof requireAdminMobile>>;
   try {
-    await requireAdminMobile(request);
+    session = await requireAdminMobile(request);
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -527,7 +528,7 @@ export async function PATCH(request: Request, { params }: Props) {
     bookingId: booking.id,
     fromStatus: booking.status,
     toStatus: booking.status,
-    actorUserId: null,
+    actorUserId: session.user.id,
     actorRole: 'admin',
     note: `Stripe payment checked manually: ${result.detail}`,
   });

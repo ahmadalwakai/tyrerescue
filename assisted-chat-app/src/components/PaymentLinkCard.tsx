@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import type { AssistedChatDraft, StripePaymentLinkState } from '@/types/assisted-chat';
 import { copyToClipboard } from '@/lib/clipboard';
 import { buildWhatsAppUrl } from '@/lib/customer-message';
@@ -136,14 +136,26 @@ export function PaymentLinkCard({ paymentLink, draft, effectiveTotal, manualPric
   );
 }
 
+const paymentCardShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 14px 34px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.07)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+  },
+});
+
 const styles = StyleSheet.create({
   summary: {
-    padding: 10,
+    padding: 12,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    borderColor: colors.successBorder,
+    backgroundColor: colors.successBg,
     gap: 4,
+    ...paymentCardShadow,
   },
   readyText: { color: colors.text, fontSize: fontSize.sm, fontWeight: '700' },
   amountText: { color: colors.accent, fontSize: fontSize.md, fontWeight: '800' },
@@ -153,10 +165,11 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.bg,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.glassStrong,
     color: colors.muted,
     fontSize: fontSize.xs,
+    ...paymentCardShadow,
   },
   actions: { gap: 8, marginTop: 10 },
 });

@@ -9,7 +9,8 @@ import {
   drivers,
   users,
 } from '@/lib/db/schema';
-import { eq, and, desc, sql, inArray, isNull } from 'drizzle-orm';
+import { eq, and, desc, sql, inArray, or } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import type {
   ChatChannel,
   ChatRole,
@@ -18,6 +19,47 @@ import type {
   ConversationDetail,
 } from './types';
 
+type BookingMessageRow = typeof bookingMessages.$inferSelect;
+
+function isDeletedMessage(message: BookingMessageRow, attachments: Array<typeof messageAttachments.$inferSelect>): boolean {
+  if (message.body) return false;
+  if (attachments.length === 0) return true;
+  return attachments.every((attachment) => attachment.deletedAt !== null);
+}
+
+async function toMessageView(message: BookingMessageRow): Promise<MessageView> {
+  const [sender] = await db
+    .select({ name: users.name })
+    .from(users)
+    .where(eq(users.id, message.senderId))
+    .limit(1);
+
+  const attachments = await db
+    .select()
+    .from(messageAttachments)
+    .where(eq(messageAttachments.messageId, message.id));
+
+  return {
+    id: message.id,
+    senderId: message.senderId,
+    senderName: sender?.name ?? 'Unknown',
+    senderRole: message.senderRole as ChatRole,
+    body: message.body,
+    messageType: message.messageType as MessageView['messageType'],
+    deliveryStatus: message.deliveryStatus as MessageView['deliveryStatus'],
+    attachments: attachments.map((attachment) => ({
+      id: attachment.id,
+      url: attachment.url,
+      mimeType: attachment.mimeType,
+      fileSize: attachment.fileSize,
+      fileName: attachment.fileName,
+      deleted: attachment.deletedAt !== null,
+    })),
+    deleted: isDeletedMessage(message, attachments),
+    createdAt: message.createdAt?.toISOString() ?? '',
+  };
+}
+
 /* ─── Get or create a conversation for a booking + channel ──────── */
 
 export async function getOrCreateConversation(
@@ -25,18 +67,40 @@ export async function getOrCreateConversation(
   channel: ChatChannel,
   initiatorUserId: string,
   initiatorRole: ChatRole,
+  options?: { targetDriverUserId?: string | null },
 ): Promise<string> {
+  const targetDriverUserId = options?.targetDriverUserId ?? null;
+
   // Check for existing
-  const [existing] = await db
-    .select({ id: bookingConversations.id })
-    .from(bookingConversations)
-    .where(
-      and(
-        eq(bookingConversations.bookingId, bookingId),
-        eq(bookingConversations.channel, channel),
-      ),
-    )
-    .limit(1);
+  const [existing] =
+    targetDriverUserId && channel === 'admin_driver'
+      ? await db
+          .select({ id: bookingConversations.id })
+          .from(bookingConversations)
+          .innerJoin(
+            conversationParticipants,
+            and(
+              eq(conversationParticipants.conversationId, bookingConversations.id),
+              eq(conversationParticipants.userId, targetDriverUserId),
+            ),
+          )
+          .where(
+            and(
+              eq(bookingConversations.bookingId, bookingId),
+              eq(bookingConversations.channel, channel),
+            ),
+          )
+          .limit(1)
+      : await db
+          .select({ id: bookingConversations.id })
+          .from(bookingConversations)
+          .where(
+            and(
+              eq(bookingConversations.bookingId, bookingId),
+              eq(bookingConversations.channel, channel),
+            ),
+          )
+          .limit(1);
 
   if (existing) return existing.id;
 
@@ -60,6 +124,20 @@ export async function getOrCreateConversation(
     unreadCount: 0,
   });
 
+  if (targetDriverUserId && targetDriverUserId !== initiatorUserId) {
+    await db.insert(conversationParticipants).values({
+      conversationId: conv.id,
+      userId: targetDriverUserId,
+      role: 'driver',
+    });
+
+    await db.insert(messageReadState).values({
+      conversationId: conv.id,
+      userId: targetDriverUserId,
+      unreadCount: 0,
+    });
+  }
+
   return conv.id;
 }
 
@@ -68,10 +146,10 @@ export async function getOrCreateConversation(
 export async function listConversations(
   userId: string,
   role: ChatRole,
-  filters?: { bookingRef?: string; status?: string; channel?: string },
+  filters?: { bookingRef?: string; status?: string; channel?: string; driverId?: string },
 ): Promise<ConversationSummary[]> {
   // Build base query conditions
-  const conditions: ReturnType<typeof eq>[] = [];
+  const conditions: SQL[] = [];
 
   if (filters?.status) {
     conditions.push(eq(bookingConversations.status, filters.status));
@@ -80,15 +158,15 @@ export async function listConversations(
     conditions.push(eq(bookingConversations.channel, filters.channel));
   }
 
-  // Role-scoped: get relevant booking IDs first
-  let bookingIds: string[] | null = null;
-
   if (role === 'customer') {
     const rows = await db
       .select({ id: bookings.id })
       .from(bookings)
       .where(eq(bookings.userId, userId));
-    bookingIds = rows.map((r) => r.id);
+    const bookingIds = rows.map((r) => r.id);
+    if (bookingIds.length === 0) return [];
+    conditions.push(inArray(bookingConversations.bookingId, bookingIds));
+    conditions.push(sql`${bookingConversations.channel} != 'admin_driver'`);
   } else if (role === 'driver') {
     const [driver] = await db
       .select({ id: drivers.id })
@@ -96,15 +174,52 @@ export async function listConversations(
       .where(eq(drivers.userId, userId))
       .limit(1);
     if (!driver) return [];
-    const rows = await db
+    const bookingRows = await db
       .select({ id: bookings.id })
       .from(bookings)
       .where(eq(bookings.driverId, driver.id));
-    bookingIds = rows.map((r) => r.id);
+    const participantRows = await db
+      .select({ conversationId: conversationParticipants.conversationId })
+      .from(conversationParticipants)
+      .where(eq(conversationParticipants.userId, userId));
+    const bookingIds = bookingRows.map((r) => r.id);
+    const participantConversationIds = participantRows.map((r) => r.conversationId);
+    const driverVisibility: SQL[] = [];
+    if (bookingIds.length > 0) driverVisibility.push(inArray(bookingConversations.bookingId, bookingIds));
+    if (participantConversationIds.length > 0) {
+      driverVisibility.push(inArray(bookingConversations.id, participantConversationIds));
+    }
+    if (driverVisibility.length === 0) return [];
+    conditions.push(driverVisibility.length === 1 ? driverVisibility[0] : or(...driverVisibility)!);
+    conditions.push(sql`${bookingConversations.channel} in ('customer_driver', 'admin_driver')`);
+  } else if (filters?.driverId) {
+    const [driver] = await db
+      .select({ id: drivers.id, userId: drivers.userId })
+      .from(drivers)
+      .where(eq(drivers.id, filters.driverId))
+      .limit(1);
+    if (!driver) return [];
+    const bookingRows = await db
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(eq(bookings.driverId, driver.id));
+    const participantRows = driver.userId
+      ? await db
+          .select({ conversationId: conversationParticipants.conversationId })
+          .from(conversationParticipants)
+          .where(eq(conversationParticipants.userId, driver.userId))
+      : [];
+    const bookingIds = bookingRows.map((r) => r.id);
+    const participantConversationIds = participantRows.map((r) => r.conversationId);
+    const driverFilter: SQL[] = [];
+    if (bookingIds.length > 0) driverFilter.push(inArray(bookingConversations.bookingId, bookingIds));
+    if (participantConversationIds.length > 0) {
+      driverFilter.push(inArray(bookingConversations.id, participantConversationIds));
+    }
+    if (driverFilter.length === 0) return [];
+    conditions.push(driverFilter.length === 1 ? driverFilter[0] : or(...driverFilter)!);
   }
-  // admin: bookingIds stays null → no booking filter
-
-  if (bookingIds !== null && bookingIds.length === 0) return [];
+  // admin without driverId: no booking filter
 
   // Filter by booking ref if given
   if (filters?.bookingRef) {
@@ -114,16 +229,7 @@ export async function listConversations(
       .where(eq(bookings.refNumber, filters.bookingRef))
       .limit(1);
     if (!b) return [];
-    if (bookingIds) {
-      if (!bookingIds.includes(b.id)) return [];
-      bookingIds = [b.id];
-    } else {
-      bookingIds = [b.id];
-    }
-  }
-
-  if (bookingIds !== null) {
-    conditions.push(inArray(bookingConversations.bookingId, bookingIds));
+    conditions.push(eq(bookingConversations.bookingId, b.id));
   }
 
   const convRows = await db
@@ -157,8 +263,28 @@ export async function listConversations(
       .where(eq(bookings.id, conv.bookingId))
       .limit(1);
 
+    let driverId: string | null = booking?.driverId ?? null;
     let driverName: string | null = null;
-    if (booking?.driverId) {
+    const [participantDriver] = await db
+      .select({
+        driverId: drivers.id,
+        name: users.name,
+      })
+      .from(conversationParticipants)
+      .innerJoin(users, eq(users.id, conversationParticipants.userId))
+      .innerJoin(drivers, eq(drivers.userId, users.id))
+      .where(
+        and(
+          eq(conversationParticipants.conversationId, conv.id),
+          eq(conversationParticipants.role, 'driver'),
+        ),
+      )
+      .limit(1);
+
+    if (participantDriver) {
+      driverId = participantDriver.driverId;
+      driverName = participantDriver.name ?? null;
+    } else if (booking?.driverId) {
       const [d] = await db
         .select({ userId: drivers.userId })
         .from(drivers)
@@ -182,6 +308,7 @@ export async function listConversations(
     const [lastMsg] = await db
       .select({
         body: bookingMessages.body,
+        messageType: bookingMessages.messageType,
         createdAt: bookingMessages.createdAt,
         senderRole: bookingMessages.senderRole,
       })
@@ -211,8 +338,11 @@ export async function listConversations(
       locked: conv.locked ?? false,
       muted: conv.muted ?? false,
       customerName: booking?.customerName ?? '',
+      driverId,
       driverName,
-      lastMessageBody: lastMsg?.body ?? null,
+      lastMessageBody:
+        lastMsg?.body ??
+        (lastMsg?.messageType === 'audio' ? 'Voice message' : lastMsg?.messageType === 'image' ? 'Photo' : null),
       lastMessageAt: lastMsg?.createdAt?.toISOString() ?? null,
       lastMessageSenderRole: (lastMsg?.senderRole as ChatRole) ?? null,
       unreadCount: readState?.unreadCount ?? 0,
@@ -307,35 +437,7 @@ export async function getMessages(
 
   const messages: MessageView[] = [];
   for (const m of messageRows) {
-    const [sender] = await db
-      .select({ name: users.name })
-      .from(users)
-      .where(eq(users.id, m.senderId))
-      .limit(1);
-
-    const attachments = await db
-      .select()
-      .from(messageAttachments)
-      .where(eq(messageAttachments.messageId, m.id));
-
-    messages.push({
-      id: m.id,
-      senderId: m.senderId,
-      senderName: sender?.name ?? 'Unknown',
-      senderRole: m.senderRole as ChatRole,
-      body: m.body,
-      messageType: m.messageType as MessageView['messageType'],
-      deliveryStatus: m.deliveryStatus as MessageView['deliveryStatus'],
-      attachments: attachments.map((a) => ({
-        id: a.id,
-        url: a.url,
-        mimeType: a.mimeType,
-        fileSize: a.fileSize,
-        fileName: a.fileName,
-        deleted: a.deletedAt !== null,
-      })),
-      createdAt: m.createdAt?.toISOString() ?? '',
-    });
+    messages.push(await toMessageView(m));
   }
 
   // Reverse so oldest first
@@ -354,7 +456,7 @@ export async function sendMessage(
   senderId: string,
   senderRole: ChatRole,
   body: string | null,
-  messageType: 'text' | 'image' | 'admin_note' = 'text',
+  messageType: 'text' | 'image' | 'audio' | 'admin_note' = 'text',
   attachmentData?: { url: string; mimeType: string; fileSize: number; fileName?: string },
 ): Promise<MessageView> {
   const [msg] = await db
@@ -459,8 +561,64 @@ export async function sendMessage(
     messageType: msg.messageType as MessageView['messageType'],
     deliveryStatus: 'sent',
     attachments,
+    deleted: false,
     createdAt: msg.createdAt?.toISOString() ?? '',
   };
+}
+
+export async function getMessageById(
+  conversationId: string,
+  messageId: string,
+  viewerRole: ChatRole,
+): Promise<MessageView | null> {
+  const conditions = [eq(bookingMessages.id, messageId), eq(bookingMessages.conversationId, conversationId)];
+  if (viewerRole !== 'admin') {
+    conditions.push(sql`${bookingMessages.messageType} != 'admin_note'`);
+  }
+
+  const [message] = await db.select().from(bookingMessages).where(and(...conditions)).limit(1);
+  return message ? toMessageView(message) : null;
+}
+
+export async function editMessage(
+  conversationId: string,
+  messageId: string,
+  body: string,
+): Promise<MessageView | null> {
+  const [message] = await db
+    .update(bookingMessages)
+    .set({ body })
+    .where(and(eq(bookingMessages.id, messageId), eq(bookingMessages.conversationId, conversationId)))
+    .returning();
+
+  if (!message) return null;
+  await db
+    .update(bookingConversations)
+    .set({ updatedAt: new Date() })
+    .where(eq(bookingConversations.id, conversationId));
+  return toMessageView(message);
+}
+
+export async function deleteMessage(
+  conversationId: string,
+  messageId: string,
+): Promise<MessageView | null> {
+  const [message] = await db
+    .update(bookingMessages)
+    .set({ body: null })
+    .where(and(eq(bookingMessages.id, messageId), eq(bookingMessages.conversationId, conversationId)))
+    .returning();
+
+  if (!message) return null;
+  await db
+    .update(messageAttachments)
+    .set({ deletedAt: new Date() })
+    .where(eq(messageAttachments.messageId, messageId));
+  await db
+    .update(bookingConversations)
+    .set({ updatedAt: new Date() })
+    .where(eq(bookingConversations.id, conversationId));
+  return toMessageView(message);
 }
 
 /* ─── Mark conversation as read ────────────────────────────────── */

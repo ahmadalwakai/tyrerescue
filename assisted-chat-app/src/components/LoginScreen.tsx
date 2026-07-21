@@ -251,6 +251,8 @@ function LoginBackdrop() {
   return (
     <View style={[styles.backdrop, styles.noPointerEvents]}>
       <View style={styles.backdropTop} />
+      <View style={styles.backdropCoolBloom} />
+      <View style={styles.backdropWarmBloom} />
       <View style={styles.backdropPanel} />
       <View style={styles.backdropBottom} />
     </View>
@@ -263,46 +265,46 @@ const webFormStyle = {
 };
 
 const panelShadow = Platform.select<ViewStyle>({
-  web: { boxShadow: '0 10px 18px rgba(0,0,0,0.22)' } as ViewStyle,
+  web: { boxShadow: '0 18px 42px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.08)' } as ViewStyle,
   default: {
     shadowColor: colors.shadow,
-    shadowOpacity: 0.22,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 4,
+    shadowOpacity: 0.36,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 6,
   },
 });
 
 const cardShadow = Platform.select<ViewStyle>({
-  web: { boxShadow: '0 14px 24px rgba(0,0,0,0.32)' } as ViewStyle,
+  web: { boxShadow: '0 20px 46px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.08)' } as ViewStyle,
   default: {
     shadowColor: colors.shadow,
-    shadowOpacity: 0.32,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 7,
+    shadowOpacity: 0.42,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 16 },
+    elevation: 8,
   },
 });
 
 const fieldShadow = Platform.select<ViewStyle>({
-  web: { boxShadow: '0 4px 8px rgba(0,0,0,0.12)' } as ViewStyle,
+  web: { boxShadow: '0 8px 18px rgba(0,0,0,0.22)' } as ViewStyle,
   default: {
     shadowColor: colors.shadow,
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
 });
 
 const buttonShadow = Platform.select<ViewStyle>({
-  web: { boxShadow: '0 8px 14px rgba(249,115,22,0.24)' } as ViewStyle,
+  web: { boxShadow: '0 14px 32px rgba(255,122,24,0.36), 0 0 28px rgba(255,122,24,0.22)' } as ViewStyle,
   default: {
     shadowColor: colors.shadowWarm,
-    shadowOpacity: 0.24,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 5,
+    shadowOpacity: 0.36,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 11 },
+    elevation: 6,
   },
 });
 
@@ -321,9 +323,29 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
-    height: 190,
-    backgroundColor: colors.surface,
-    opacity: 0.72,
+    height: 240,
+    backgroundColor: colors.surfaceOverlay,
+    opacity: 0.9,
+  },
+  backdropCoolBloom: {
+    position: 'absolute',
+    right: -52,
+    top: 72,
+    width: 214,
+    height: 154,
+    borderRadius: radius.lg,
+    backgroundColor: colors.blueBg,
+    opacity: 0.8,
+  },
+  backdropWarmBloom: {
+    position: 'absolute',
+    left: -44,
+    top: 156,
+    width: 184,
+    height: 118,
+    borderRadius: radius.lg,
+    backgroundColor: colors.accentSoft,
+    opacity: 0.74,
   },
   backdropPanel: {
     position: 'absolute',
@@ -334,8 +356,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.borderSoft,
-    backgroundColor: colors.cardMuted,
-    opacity: 0.36,
+    backgroundColor: colors.glass,
+    opacity: 0.7,
   },
   backdropBottom: {
     position: 'absolute',
@@ -343,8 +365,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: 138,
-    backgroundColor: colors.surfaceElevated,
-    opacity: 0.24,
+    backgroundColor: colors.bgDeep,
+    opacity: 0.66,
   },
   scroll: {
     flexGrow: 1,
@@ -357,9 +379,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   shellNarrow: {
-    width: '82%',
-    minWidth: 294,
-    maxWidth: 326,
+    width: '100%',
+    maxWidth: 430,
   },
   shellWide: {
     width: 940,
@@ -372,7 +393,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSoft,
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(18,20,28,0.84)',
+    backgroundColor: colors.glassStrong,
     ...panelShadow,
   },
   brandPanelWide: {
@@ -449,7 +470,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: 'rgba(7,8,12,0.48)',
+    backgroundColor: colors.glass,
     justifyContent: 'center',
   },
   statusLabel: {
@@ -464,7 +485,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   card: {
-    backgroundColor: 'rgba(23,25,34,0.96)',
+    backgroundColor: colors.surfaceOverlay,
     borderColor: colors.borderStrong,
     borderWidth: 1,
     borderRadius: radius.lg,
@@ -524,7 +545,7 @@ const styles = StyleSheet.create({
   },
   inputFocused: {
     borderColor: colors.accent,
-    backgroundColor: '#10131B',
+    backgroundColor: colors.panelSoft,
   },
   errorWrap: {
     marginTop: 14,

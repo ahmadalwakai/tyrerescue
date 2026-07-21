@@ -498,21 +498,21 @@ const styles = StyleSheet.create({
   sheetClose: {
     minHeight: 38,
     borderWidth: 1,
-    borderColor: colors.borderStrong,
+    borderColor: colors.dangerBorder,
     borderRadius: radius.sm,
     paddingHorizontal: space.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.card,
+    backgroundColor: colors.dangerBg,
   },
   sheetClosePressed: {
-    borderColor: colors.accent,
-    backgroundColor: colors.panel,
+    borderColor: colors.danger,
+    backgroundColor: 'rgba(255,77,99,0.22)',
   },
   sheetCloseText: {
-    color: colors.text,
+    color: colors.danger,
     fontSize: fontSize.sm,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   clearSelection: {
     minHeight: 42,

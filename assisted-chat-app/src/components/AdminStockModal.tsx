@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,6 +11,7 @@ import {
   Text,
   TextInput,
   View,
+  type ViewStyle,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Clipboard from 'expo-clipboard';
@@ -32,6 +34,30 @@ const SEASON_OPTS: { value: StockSeason; label: string }[] = [
   { value: 'summer', label: 'Summer' },
   { value: 'winter', label: 'Winter' },
 ];
+
+const stockListCardShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 6px 12px rgba(79,140,255,0.10)' }
+    : {
+        shadowColor: colors.blue,
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 2,
+      }
+) as ViewStyle;
+
+const stockFormCardShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 6px 12px rgba(249,115,22,0.08)' }
+    : {
+        shadowColor: colors.accent,
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 2,
+      }
+) as ViewStyle;
 
 const SORT_OPTS: { value: SortOption; label: string }[] = [
   { value: 'size', label: 'Size' },
@@ -1041,7 +1067,7 @@ const s = StyleSheet.create({
     marginHorizontal: space.md, padding: space.md, backgroundColor: colors.card,
     borderRadius: radius.lg, borderWidth: 1, borderColor: colors.borderStrong, marginBottom: space.sm,
   },
-  filterPanelTitle: { fontSize: fontSize.xs, fontWeight: '700', color: colors.subtle, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: space.sm },
+  filterPanelTitle: { fontSize: fontSize.xs, fontWeight: '700', color: colors.subtle, textTransform: 'uppercase', letterSpacing: 0, marginBottom: space.sm },
   dimBtn: { paddingHorizontal: space.sm, paddingVertical: 4, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.panelSoft },
   dimBtnActive: { borderColor: colors.accent, backgroundColor: 'rgba(255,121,0,0.16)' },
   dimBtnText: { fontSize: fontSize.xs, color: colors.muted },
@@ -1053,11 +1079,7 @@ const s = StyleSheet.create({
   stockCard: {
     backgroundColor: colors.card, borderRadius: radius.lg,
     borderWidth: 1, borderColor: colors.borderStrong, marginBottom: space.sm, overflow: 'hidden',
-    shadowColor: colors.blue,
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    ...stockListCardShadow,
   },
   stockCardInactive: { opacity: 0.7 },
   stockCardTop: { padding: space.md, flexDirection: 'row', gap: space.sm },
@@ -1100,17 +1122,19 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   formTitle: { fontSize: fontSize.xl, fontWeight: '800', color: colors.text },
-  closeBtn: { padding: space.sm, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.border },
-  closeBtnText: { fontSize: fontSize.md, color: colors.muted },
+  closeBtn: {
+    padding: space.sm,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerBg,
+  },
+  closeBtnText: { fontSize: fontSize.md, color: colors.danger, fontWeight: '900' },
   formBody: { padding: space.md, paddingBottom: 80 },
   card: {
     backgroundColor: colors.card, borderRadius: radius.lg, padding: space.md,
     marginBottom: space.md, borderWidth: 1, borderColor: colors.borderStrong,
-    shadowColor: colors.accent,
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    ...stockFormCardShadow,
   },
   fieldRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

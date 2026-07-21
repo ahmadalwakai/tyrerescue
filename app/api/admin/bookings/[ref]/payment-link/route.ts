@@ -103,8 +103,9 @@ export async function GET(request: Request, { params }: Props) {
  * source of truth for completion.
  */
 export async function POST(request: Request, { params }: Props) {
+  let session: Awaited<ReturnType<typeof requireAdminMobile>>;
   try {
-    await requireAdminMobile(request);
+    session = await requireAdminMobile(request);
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -267,7 +268,7 @@ export async function POST(request: Request, { params }: Props) {
     bookingId: booking.id,
     fromStatus: booking.status,
     toStatus: booking.status,
-    actorUserId: null,
+    actorUserId: session.user.id,
     actorRole: 'admin',
     note: `Full outstanding payment link created (£${(amountPence / 100).toFixed(2)})${
       parsed.data.note ? ` — ${parsed.data.note}` : ''

@@ -10,6 +10,7 @@ import {
   Text,
   TextInput,
   View,
+  type ViewStyle,
 } from 'react-native';
 import type { AssistedChatDraft } from '@/types/assisted-chat';
 import type {
@@ -33,6 +34,30 @@ import {
 import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
+
+const senderPanelShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 8px 14px rgba(0,0,0,0.22)' }
+    : {
+        shadowColor: colors.shadow,
+        shadowOpacity: 0.22,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 8 },
+        elevation: 3,
+      }
+) as ViewStyle;
+
+const senderTemplateShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 7px 12px rgba(0,0,0,0.18)' }
+    : {
+        shadowColor: colors.shadow,
+        shadowOpacity: 0.18,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 7 },
+        elevation: 2,
+      }
+) as ViewStyle;
 
 type MessageTemplateId =
   | 'quote_close'
@@ -672,11 +697,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceElevated,
     padding: space.md,
     gap: space.md,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.22,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    ...senderPanelShadow,
   },
   contactHeader: {
     flexDirection: 'row',
@@ -798,11 +819,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.surfaceElevated,
     padding: space.md,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 2,
+    ...senderTemplateShadow,
   },
   templateCardActive: {
     borderColor: colors.accent,
@@ -838,11 +855,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceElevated,
     padding: space.md,
     gap: space.md,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.22,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    ...senderPanelShadow,
   },
   previewHeader: {
     flexDirection: 'row',

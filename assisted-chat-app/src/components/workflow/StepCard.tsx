@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { colors, fontSize, radius, space } from '../theme';
 import { useFadeSlideIn } from '../motion';
 import type { OperatorWorkflowStepStatus } from '@/types/operator-workflow';
@@ -170,14 +170,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.glassStrong,
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.22,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    ...Platform.select<ViewStyle>({
+      web: { boxShadow: '0 16px 38px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.07)' } as ViewStyle,
+      default: {
+        shadowColor: colors.shadow,
+        shadowOpacity: 0.32,
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 12 },
+        elevation: 5,
+      },
+    }),
   },
   cardActive: {
     borderColor: colors.glowBorder,
@@ -213,7 +218,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   headerPressed: {
-    backgroundColor: colors.panel,
+    backgroundColor: colors.panelSoft,
   },
   headerInner: {
     flexDirection: 'row',
@@ -228,7 +233,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontSize: fontSize.md,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   description: {
     color: colors.subtle,

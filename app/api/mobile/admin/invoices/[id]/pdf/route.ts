@@ -47,7 +47,7 @@ export async function GET(request: Request, { params }: Props) {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="${invoice.invoiceNumber}.pdf"`,
+        'Content-Disposition': `attachment; filename="${invoice.invoiceNumber}.pdf"`,
         'Content-Length': String(pdfBytes.length),
         'Cache-Control': 'private, no-store',
       },

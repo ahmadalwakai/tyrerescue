@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getOutboundUrl } from '@/lib/config/site';
 import { requireAdmin, requireAdminMobile, hashPassword } from '@/lib/auth';
 import { db, users, drivers, bookings } from '@/lib/db';
-import { eq, inArray } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { driverWelcome } from '@/lib/email/templates';
 import { createAdminNotification } from '@/lib/notifications';
@@ -40,6 +40,7 @@ export async function GET(request: Request) {
 
     const activeBookings = await db
       .select({
+        id: bookings.id,
         driverId: bookings.driverId,
         refNumber: bookings.refNumber,
         status: bookings.status,
@@ -56,9 +57,27 @@ export async function GET(request: Request) {
         .filter((booking) => booking.driverId)
         .map((booking) => [booking.driverId!, booking]),
     );
+    const driverIds = rows.map((driver) => driver.id);
+    const latestAssignedBookings = driverIds.length > 0
+      ? await db
+          .select({
+            id: bookings.id,
+            driverId: bookings.driverId,
+            refNumber: bookings.refNumber,
+          })
+          .from(bookings)
+          .where(inArray(bookings.driverId, driverIds))
+          .orderBy(desc(bookings.updatedAt))
+      : [];
+    const latestBookingByDriver = new Map<string, { id: string; refNumber: string }>();
+    for (const booking of latestAssignedBookings) {
+      if (!booking.driverId || latestBookingByDriver.has(booking.driverId)) continue;
+      latestBookingByDriver.set(booking.driverId, { id: booking.id, refNumber: booking.refNumber });
+    }
 
     return NextResponse.json(rows.map((driver) => {
       const activeBooking = activeBookingByDriver.get(driver.id) ?? null;
+      const latestBooking = latestBookingByDriver.get(driver.id) ?? null;
       const customerLat = toNumber(activeBooking?.customerLat);
       const customerLng = toNumber(activeBooking?.customerLng);
       const driverLat = toNumber(driver.currentLat);
@@ -84,7 +103,10 @@ export async function GET(request: Request) {
 
       return {
         ...driver,
+        activeJobId: activeBooking?.id ?? null,
         activeJobRef: activeBooking?.refNumber ?? null,
+        latestJobId: latestBooking?.id ?? null,
+        latestJobRef: latestBooking?.refNumber ?? null,
         driverSituation: activeBooking
           ? calculateDriverSituation({
               jobRef: activeBooking.refNumber,

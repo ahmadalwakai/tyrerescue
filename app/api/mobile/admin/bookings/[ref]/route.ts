@@ -20,6 +20,7 @@ import {
 import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
 import { haversineDistanceMiles } from '@/lib/mapbox';
 import { GARAGE_LOCATION } from '@/lib/garage';
+import { buildBookingTimeline, deriveBookingInformation } from '@/lib/bookings/booking-audit';
 import {
   calculateDriverSituation,
   estimateUrbanDriveMinutesFromMiles,
@@ -79,11 +80,15 @@ export async function GET(request: Request, { params }: Props) {
         id: bookingStatusHistory.id,
         fromStatus: bookingStatusHistory.fromStatus,
         toStatus: bookingStatusHistory.toStatus,
+        actorUserId: bookingStatusHistory.actorUserId,
         actorRole: bookingStatusHistory.actorRole,
+        actorName: users.name,
+        actorEmail: users.email,
         note: bookingStatusHistory.note,
         createdAt: bookingStatusHistory.createdAt,
       })
       .from(bookingStatusHistory)
+      .leftJoin(users, eq(bookingStatusHistory.actorUserId, users.id))
       .where(eq(bookingStatusHistory.bookingId, booking.id))
       .orderBy(desc(bookingStatusHistory.createdAt)),
     db
@@ -197,6 +202,12 @@ export async function GET(request: Request, { params }: Props) {
     routeAvailable: outboundMinutes != null,
     garageConfigured: true,
   });
+  const timeline = buildBookingTimeline(statusHistory);
+  const bookingInformation = deriveBookingInformation({
+    timeline,
+    bookingCreatedAt: booking.createdAt,
+    bookingUpdatedAt: booking.updatedAt,
+  });
 
   return NextResponse.json({
     booking: {
@@ -221,10 +232,8 @@ export async function GET(request: Request, { params }: Props) {
       ...item,
       unitPrice: item.unitPrice.toString(),
     })),
-    statusHistory: statusHistory.map((entry) => ({
-      ...entry,
-      createdAt: entry.createdAt?.toISOString() ?? null,
-    })),
+    bookingInformation,
+    statusHistory: timeline,
     assignedDriver,
     availableDrivers,
     validNextStatuses: getValidNextStates(booking.status as BookingStatus),

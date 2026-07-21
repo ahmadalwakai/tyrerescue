@@ -1,6 +1,7 @@
 import { createElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  ImageBackground,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -19,11 +20,13 @@ import { extractPostcode, getMapboxToken, searchMapboxAddress, type MapboxFeatur
 import { isValidUkPhone } from '@/lib/money';
 import type { AssistedChatDraft, AssistedChatLocationMethod } from '@/types/assisted-chat';
 import type { LocationShareMessage, LocationShareMethod, LocationShareProgress } from '@/hooks/useAssistedChatLocationShare';
-import { AppButton, FieldLabel, SectionCard, StatusBanner } from './ui';
-import { colors, fontSize, radius } from './theme';
+import { AppButton, StatusBanner } from './ui';
+import { colors, fontSize, radius, space } from './theme';
+import { AppIcon } from './icons/AppIcon';
 
 const GARAGE_LOCATION = { lat: 55.8547, lng: -4.2206 } as const;
 const ROUTE_MAP_MESSAGE_SOURCE = 'tyrerescue-location-route-map';
+const locationCardBackground = require('../../assets/images/location-card-background.png');
 
 interface MapPoint {
   lat: number;
@@ -716,9 +719,31 @@ export function LocationSection({
   const resetMapView = () => sendRouteMapCommand('fit');
 
   return (
-    <SectionCard title={displayMode === 'mapOnly' ? 'Route map' : 'Location'}>
+    <View style={[styles.locationPanel, displayMode === 'mapOnly' && styles.locationPanelMapOnly]}>
       {displayMode === 'full' ? (
         <>
+          <ImageBackground
+            source={locationCardBackground}
+            resizeMode="cover"
+            style={styles.locationPanelBackground}
+            imageStyle={styles.locationPanelBackgroundImage}
+          />
+          <View style={styles.locationPanelBackgroundShade} />
+        </>
+      ) : null}
+      {displayMode === 'full' ? (
+        <>
+      <View style={styles.locationHeader}>
+        <View style={styles.locationIcon}>
+          <AppIcon name="map-marker" size={27} color={colors.accent} />
+        </View>
+        <View style={styles.locationHeaderCopy}>
+          <Text style={styles.locationEyebrow}>Location</Text>
+          <Text style={styles.locationTitle}>Where is the customer located?</Text>
+          <Text style={styles.locationHelper}>Confirm an address, ask the customer, or work from a live shared location.</Text>
+        </View>
+      </View>
+
       <View style={styles.modeRow}>
         {(['address', 'link'] as const).map((method) => (
           <Pressable
@@ -736,6 +761,13 @@ export function LocationSection({
               pressed && styles.modeButtonPressed,
             ]}
           >
+            <View style={[styles.modeIcon, draft.location.method === method && styles.modeIconActive]}>
+              <AppIcon
+                name={method === 'address' ? 'keyboard-o' : 'headphones'}
+                size={17}
+                color={draft.location.method === method ? colors.accent : colors.muted}
+              />
+            </View>
             <Text style={[styles.modeLabel, draft.location.method === method && styles.modeLabelActive]}>
               {method === 'address' ? 'Type address' : 'Ask customer'}
             </Text>
@@ -744,19 +776,51 @@ export function LocationSection({
       </View>
 
       {draft.location.method === 'address' ? (
-        <View style={{ marginTop: 12 }}>
-          <FieldLabel>Start typing address or postcode</FieldLabel>
-          <View>
+        <View style={styles.addressSurface}>
+          <Text style={styles.addressLabel}>Start typing address or postcode</Text>
+          <View style={styles.searchShell}>
+            <View style={styles.searchIconBox}>
+              <AppIcon name="search" size={20} color={colors.info} />
+            </View>
             <TextInput
               value={addressInput}
               onChangeText={handleAddressChange}
               onFocus={() => setShowSuggestions(true)}
-              placeholder="Start typing address or postcode..."
+              placeholder="Eg. 123 High Street, Glasgow or G1 2AB"
               placeholderTextColor={colors.subtle}
               autoCorrect={false}
               style={styles.input}
             />
-            {searching ? <ActivityIndicator color={colors.accent} style={styles.searching} /> : null}
+            {addressInput ? (
+              <Pressable
+                onPress={() => {
+                  setAddressInput('');
+                  update({
+                    location: {
+                      ...draft.location,
+                      address: '',
+                      lat: null,
+                      lng: null,
+                      postcode: null,
+                      status: 'idle',
+                    },
+                  });
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Clear address"
+                style={({ pressed }) => [styles.searchClearButton, pressed && styles.quickOptionPressed]}
+              >
+                <AppIcon name="times" size={18} color={colors.muted} />
+              </Pressable>
+            ) : null}
+            <Pressable
+              onPress={() => setShowSuggestions(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Search location"
+              style={({ pressed }) => [styles.searchSubmitButton, pressed && styles.quickOptionPressed]}
+            >
+              {searching ? <ActivityIndicator color={colors.text} /> : <AppIcon name="location-arrow" size={23} color={colors.accentText} />}
+            </Pressable>
           </View>
           {showSuggestions && suggestions.length > 0 ? (
             <View style={styles.suggestionsBox}>
@@ -773,6 +837,12 @@ export function LocationSection({
             <Text style={styles.confirmedText}>
               Location confirmed ({draft.location.lat?.toFixed(4)}, {draft.location.lng?.toFixed(4)})
             </Text>
+          ) : null}
+          {!addressInput && suggestions.length === 0 && !hasCoords ? (
+            <View style={styles.locationEmptyState}>
+              <Text style={styles.locationEmptyTitle}>No address selected yet</Text>
+              <Text style={styles.locationEmptyText}>Start typing a postcode or send a customer location link.</Text>
+            </View>
           ) : null}
         </View>
       ) : (
@@ -934,7 +1004,7 @@ export function LocationSection({
         onClose={() => setSendOptionsOpen(false)}
         onSend={(method) => { void handleSendLocationRequest(method); }}
       />
-    </SectionCard>
+    </View>
   );
 }
 
@@ -1080,7 +1150,7 @@ function LocationSendOptionsSheet({
                   Choose how to send the secure link. The app creates the link first if needed.
                 </Text>
               </View>
-              <AppButton label="Close" variant="ghost" onPress={onClose} disabled={anyBusy} style={styles.sendSheetCloseButton} />
+              <AppButton label="Close" variant="danger" onPress={onClose} disabled={anyBusy} style={styles.sendSheetCloseButton} />
             </View>
             <View style={styles.sendOptionList}>
               {options.map((option) => {
@@ -1167,37 +1237,121 @@ function toneLabel(tone: LocationRequestViewState['tone']): string {
   }
 }
 
-const sendSheetShadow = Platform.select<ViewStyle>({
-  web: { boxShadow: '0 -8px 18px rgba(0,0,0,0.26)' } as ViewStyle,
-  default: {
-    shadowColor: '#000',
-    shadowOpacity: 0.26,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: -8 },
-    elevation: 6,
-  },
-});
+const sendSheetShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 -18px 42px rgba(0,0,0,0.46), inset 0 1px 0 rgba(255,255,255,0.08)' }
+    : {
+        shadowColor: colors.shadow,
+        shadowOpacity: 0.38,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: -12 },
+        elevation: 8,
+      }
+) as ViewStyle;
+
+const locationCardShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 14px 34px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.07)' }
+    : {
+        shadowColor: colors.shadow,
+        shadowOpacity: 0.28,
+        shadowRadius: 18,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 4,
+      }
+) as ViewStyle;
 
 const styles = StyleSheet.create({
-  modeRow: { flexDirection: 'row', gap: 8 },
-  modeButton: {
-    flex: 1,
-    minHeight: 52,
-    borderRadius: radius.md,
-    borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+  locationPanel: {
+    borderWidth: 1,
+    borderColor: colors.glowBorder,
+    borderRadius: 20,
+    backgroundColor: 'rgba(13,20,39,0.84)',
+    padding: 14,
+    gap: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    ...(locationCardShadow ?? {}),
+  },
+  locationPanelBackground: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.88,
+    transform: [{ scale: 1.02 }],
+  },
+  locationPanelBackgroundImage: {
+    opacity: 1,
+  },
+  locationPanelBackgroundShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(3,6,15,0.28)',
+  },
+  locationPanelMapOnly: {
+    borderColor: colors.borderStrong,
+    padding: space.sm,
+  },
+  locationHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    flexWrap: 'nowrap',
+    zIndex: 2,
+  },
+  locationIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.glowBorder,
+    backgroundColor: colors.accentMuted,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 10,
+  },
+  locationHeaderCopy: { flex: 1, minWidth: 0 },
+  locationEyebrow: { color: colors.text, fontSize: 30, fontWeight: '900', letterSpacing: 0 },
+  locationTitle: { color: colors.muted, fontSize: 17, fontWeight: '700', letterSpacing: 0, marginTop: 1 },
+  locationHelper: { display: 'none' },
+  modeRow: {
+    flexDirection: 'row',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: 19,
+    padding: 4,
+    backgroundColor: 'rgba(8,12,28,0.56)',
+    marginTop: 8,
+    zIndex: 2,
+  },
+  modeButton: {
+    flex: 1,
+    minHeight: 56,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    gap: 8,
   },
   modeButtonActive: {
     borderColor: colors.accent,
-    backgroundColor: colors.ripple,
+    backgroundColor: colors.accent,
   },
   modeButtonPressed: { borderColor: colors.borderStrong },
-  modeLabel: { color: colors.text, fontSize: fontSize.sm, fontWeight: '700' },
-  modeLabelActive: { color: colors.accent },
+  modeIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.glass,
+  },
+  modeIconActive: { borderColor: 'rgba(255,255,255,0.46)', backgroundColor: 'rgba(255,255,255,0.12)' },
+  modeLabel: { color: colors.text, fontSize: fontSize.sm, fontWeight: '800' },
+  modeLabelActive: { color: colors.text },
   copyLinkButton: {
     flex: 0,
     minWidth: 110,
@@ -1207,25 +1361,66 @@ const styles = StyleSheet.create({
   },
   copyLinkButtonBusy: { opacity: 0.7 },
   copyLinkLabel: { color: colors.accent },
-  input: {
-    minHeight: 48,
-    borderColor: colors.border,
+  addressSurface: { gap: 10, zIndex: 2 },
+  addressLabel: { color: colors.muted, fontSize: fontSize.sm, fontWeight: '800' },
+  searchShell: {
+    minHeight: 58,
+    borderColor: colors.borderStrong,
     borderWidth: 1,
-    borderRadius: radius.md,
-    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(7,13,27,0.66)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
+    paddingHorizontal: 10,
+    ...(locationCardShadow ?? {}),
+  },
+  searchIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  input: {
+    flex: 1,
+    minHeight: 52,
+    borderWidth: 0,
+    paddingHorizontal: 4,
     paddingVertical: 10,
     fontSize: fontSize.md,
     color: colors.text,
-    backgroundColor: colors.inputBg,
+    backgroundColor: 'transparent',
   },
   searching: { position: 'absolute', right: 12, top: 12 },
+  searchClearButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.glass,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchSubmitButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 15,
+    backgroundColor: colors.glassStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   suggestionsBox: {
     marginTop: 6,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceOverlay,
     overflow: 'hidden',
+    ...locationCardShadow,
   },
   suggestionItem: {
     paddingHorizontal: 12,
@@ -1235,6 +1430,10 @@ const styles = StyleSheet.create({
   },
   suggestionText: { color: colors.text, fontSize: fontSize.sm },
   confirmedText: { marginTop: 6, color: colors.success, fontSize: fontSize.xs, fontWeight: '700' },
+  locationEmptyState: { display: 'none' },
+  locationEmptyTitle: { color: colors.text, fontSize: fontSize.sm, fontWeight: '900' },
+  locationEmptyText: { color: colors.subtle, fontSize: fontSize.xs, lineHeight: 17, marginTop: 3 },
+  quickOptionPressed: { opacity: 0.8, borderColor: colors.glowBorder },
   linkBox: { marginTop: 12, gap: 10 },
   linkHelp: { color: colors.muted, fontSize: fontSize.sm, lineHeight: 19 },
   linkText: { color: colors.accent, fontSize: fontSize.sm, lineHeight: 18 },
@@ -1243,8 +1442,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: 10,
     gap: 8,
+    ...locationCardShadow,
   },
-  requestCard_idle: { backgroundColor: colors.card, borderColor: colors.border },
+  requestCard_idle: { backgroundColor: colors.glassStrong, borderColor: colors.border },
   requestCard_busy: { backgroundColor: colors.infoBg, borderColor: colors.infoBorder },
   requestCard_ok: { backgroundColor: colors.successBg, borderColor: colors.successBorder },
   requestCard_warn: { backgroundColor: colors.warningBg, borderColor: colors.warningBorder },
@@ -1259,11 +1459,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 1,
   },
-  requestChip_idle: { backgroundColor: colors.surface, borderColor: colors.border },
-  requestChip_busy: { backgroundColor: colors.card, borderColor: colors.infoBorder },
-  requestChip_ok: { backgroundColor: colors.card, borderColor: colors.successBorder },
-  requestChip_warn: { backgroundColor: colors.card, borderColor: colors.warningBorder },
-  requestChip_err: { backgroundColor: colors.card, borderColor: colors.dangerBorder },
+  requestChip_idle: { backgroundColor: colors.glass, borderColor: colors.border },
+  requestChip_busy: { backgroundColor: colors.glassStrong, borderColor: colors.infoBorder },
+  requestChip_ok: { backgroundColor: colors.glassStrong, borderColor: colors.successBorder },
+  requestChip_warn: { backgroundColor: colors.glassStrong, borderColor: colors.warningBorder },
+  requestChip_err: { backgroundColor: colors.glassStrong, borderColor: colors.dangerBorder },
   requestChipText_idle: { color: colors.muted },
   requestChipText_busy: { color: colors.info },
   requestChipText_ok: { color: colors.success },
@@ -1292,7 +1492,7 @@ const styles = StyleSheet.create({
   requestHint: { color: colors.subtle, fontSize: fontSize.xs, lineHeight: 16 },
   sendSheetBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.62)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   sendSheetKeyboard: {
@@ -1303,8 +1503,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.glowBorder,
+    backgroundColor: colors.surfaceOverlay,
     padding: 14,
     ...(sendSheetShadow ?? {}),
   },
@@ -1313,7 +1513,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.borderStrong,
+    backgroundColor: colors.accent,
     marginBottom: 12,
   },
   sendSheetHeader: {
@@ -1323,22 +1523,23 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sendSheetTitleBlock: { flex: 1, minWidth: 0 },
-  sendSheetKicker: { color: colors.subtle, fontSize: fontSize.xs, fontWeight: '700' },
+  sendSheetKicker: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '900' },
   sendSheetTitle: { color: colors.text, fontSize: fontSize.lg, fontWeight: '900', marginTop: 2 },
   sendSheetSubtitle: { color: colors.muted, fontSize: fontSize.xs, lineHeight: 16, marginTop: 4 },
-  sendSheetCloseButton: { minWidth: 78 },
+  sendSheetCloseButton: { minWidth: 92 },
   sendOptionList: { gap: 8 },
   sendOption: {
     minHeight: 66,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.card,
+    backgroundColor: colors.glassStrong,
     paddingHorizontal: 12,
     paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    ...locationCardShadow,
   },
   sendOptionPrimary: {
     borderColor: colors.infoBorder,
@@ -1363,9 +1564,10 @@ const styles = StyleSheet.create({
     height: 430,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: colors.borderStrong,
     backgroundColor: '#09090B',
     overflow: 'hidden',
+    ...locationCardShadow,
   },
   mapWrapExpanded: {
     height: 660,
@@ -1411,8 +1613,8 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
-    backgroundColor: 'rgba(9,9,11,0.76)',
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surfaceOverlay,
   },
   legendDot: {
     width: 8,
@@ -1437,8 +1639,8 @@ const styles = StyleSheet.create({
     minHeight: 42,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
-    backgroundColor: 'rgba(9,9,11,0.78)',
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surfaceOverlay,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1454,7 +1656,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   mapControlButtonPressed: {
-    backgroundColor: 'rgba(39,39,42,0.94)',
+    backgroundColor: colors.panel,
     borderColor: colors.accent,
   },
   mapControlText: {
@@ -1470,8 +1672,8 @@ const styles = StyleSheet.create({
     maxWidth: 290,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
-    backgroundColor: 'rgba(9,9,11,0.84)',
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surfaceOverlay,
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
@@ -1509,8 +1711,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.card,
+    backgroundColor: colors.glassStrong,
     padding: 10,
+    ...locationCardShadow,
   },
   metricLabel: { color: colors.muted, fontSize: fontSize.xs, marginBottom: 4 },
   metricValue: { color: colors.accent, fontSize: fontSize.lg, fontWeight: '800' },

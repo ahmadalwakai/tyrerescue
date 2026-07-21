@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: fontSize.xs,
     fontWeight: '700',
-    letterSpacing: 2,
+    letterSpacing: 0,
     textTransform: 'uppercase',
     marginBottom: space.sm,
     marginTop: space.xs,

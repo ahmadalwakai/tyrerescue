@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
 import { api } from '@/lib/api';
 import {
   ASSISTED_CHAT_SERVICE_LABELS,
@@ -414,6 +414,17 @@ export function TyreSelectionSection({ draft, update }: Props) {
   );
 }
 
+const tyreCardShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 14px 34px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.07)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+  },
+});
+
 const styles = StyleSheet.create({
   servicePicker: {
     flexDirection: 'row',
@@ -431,8 +442,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.glassStrong,
     padding: space.md,
+    ...tyreCardShadow,
   },
   serviceOptionSelected: {
     borderColor: colors.accent,
@@ -468,9 +480,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.glassStrong,
     padding: space.md,
     gap: space.sm,
+    ...tyreCardShadow,
   },
   tyreHeader: {
     flexDirection: 'row',
@@ -503,14 +516,16 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.text,
     backgroundColor: colors.inputBg,
+    ...tyreCardShadow,
   },
   suggestionsBox: {
     marginTop: 6,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceOverlay,
     overflow: 'hidden',
+    ...tyreCardShadow,
   },
   suggestionItem: {
     paddingHorizontal: 12,
@@ -556,7 +571,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.md,
-    backgroundColor: colors.card,
+    backgroundColor: colors.glassStrong,
     color: colors.text,
     fontSize: fontSize.lg,
     fontWeight: '700',
@@ -569,9 +584,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.card,
+    backgroundColor: colors.glassStrong,
     padding: space.md,
     gap: 4,
+    ...tyreCardShadow,
   },
   summaryTitle: {
     color: colors.muted,

@@ -10,7 +10,10 @@ export interface DriverListItem {
   currentLat: string | null;
   currentLng: string | null;
   locationAt: string | null;
+  activeJobId?: string | null;
   activeJobRef?: string | null;
+  latestJobId?: string | null;
+  latestJobRef?: string | null;
 }
 
 export function useDriverList() {

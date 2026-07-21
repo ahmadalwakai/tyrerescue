@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { cookieSettings, auditLogs } from '@/lib/db/schema';
+import { isProtectedSecuritySettingKey } from '@/lib/admin-management';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -17,6 +18,10 @@ export async function PATCH(
   }
 
   const { key } = await params;
+  if (isProtectedSecuritySettingKey(key)) {
+    return NextResponse.json({ error: 'Setting not found' }, { status: 404 });
+  }
+
   const body = await request.json();
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {

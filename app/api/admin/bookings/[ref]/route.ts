@@ -14,6 +14,7 @@ import { getBookingPaymentSummary, recordPaymentEvent } from '@/lib/payments/pay
 import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
 import { haversineDistanceMiles } from '@/lib/mapbox';
 import { GARAGE_LOCATION } from '@/lib/garage';
+import { buildBookingTimeline, deriveBookingInformation } from '@/lib/bookings/booking-audit';
 import {
   calculateDriverSituation,
   estimateUrbanDriveMinutesFromMiles,
@@ -527,11 +528,15 @@ export async function GET(request: NextRequest, { params }: Props) {
       id: bookingStatusHistory.id,
       fromStatus: bookingStatusHistory.fromStatus,
       toStatus: bookingStatusHistory.toStatus,
+      actorUserId: bookingStatusHistory.actorUserId,
       actorRole: bookingStatusHistory.actorRole,
+      actorName: users.name,
+      actorEmail: users.email,
       note: bookingStatusHistory.note,
       createdAt: bookingStatusHistory.createdAt,
     })
     .from(bookingStatusHistory)
+    .leftJoin(users, eq(bookingStatusHistory.actorUserId, users.id))
     .where(eq(bookingStatusHistory.bookingId, booking.id))
     .orderBy(desc(bookingStatusHistory.createdAt));
 
@@ -616,6 +621,12 @@ export async function GET(request: NextRequest, { params }: Props) {
     routeAvailable: outboundMinutes != null,
     garageConfigured: true,
   });
+  const timeline = buildBookingTimeline(statusHistory);
+  const bookingInformation = deriveBookingInformation({
+    timeline,
+    bookingCreatedAt: booking.createdAt,
+    bookingUpdatedAt: booking.updatedAt,
+  });
 
   return NextResponse.json({
     booking: {
@@ -675,14 +686,8 @@ export async function GET(request: NextRequest, { params }: Props) {
       aspect: t.aspect,
       rim: t.rim,
     })),
-    statusHistory: statusHistory.map((h) => ({
-      id: h.id,
-      fromStatus: h.fromStatus,
-      toStatus: h.toStatus,
-      actorRole: h.actorRole,
-      note: h.note,
-      createdAt: h.createdAt?.toISOString() ?? null,
-    })),
+    bookingInformation,
+    statusHistory: timeline,
     assignedDriver,
     paymentSummary,
     driverSituation,

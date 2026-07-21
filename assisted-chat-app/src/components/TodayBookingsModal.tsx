@@ -161,7 +161,7 @@ export function TodayBookingsModal({ visible, items, onClose }: Props) {
                   : `${items.length} bookings created today`}
               </Text>
             </View>
-            <AppButton label="Close" variant="ghost" onPress={handleClose} />
+            <AppButton label="Close" variant="danger" onPress={handleClose} />
           </View>
 
           {copyState !== 'idle' ? (

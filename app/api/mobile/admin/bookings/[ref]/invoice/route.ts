@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { and, count, desc, eq, ilike, isNull } from 'drizzle-orm';
 
 import { getMobileAdminUser, unauthorizedResponse } from '@/app/api/mobile/admin/_lib';
-import { db, auditLogs, bookings, invoices } from '@/lib/db';
+import { db, auditLogs, bookings, bookingStatusHistory, invoices } from '@/lib/db';
 import { GARAGE_ADDRESS } from '@/lib/garage';
 import { getBookingPaymentSummary } from '@/lib/payments/payment-summary';
 import { assertBookingInvoiceTotalMatches, InvoiceDomainError } from '@/lib/invoices/invoice-domain';
@@ -78,6 +78,15 @@ export async function POST(request: Request, { params }: Props) {
       throw error;
     }
 
+    await db.insert(bookingStatusHistory).values({
+      bookingId: booking.id,
+      fromStatus: booking.status,
+      toStatus: booking.status,
+      actorUserId: user.id,
+      actorRole: 'admin',
+      note: `Invoice downloaded (${existing.invoiceNumber})`,
+    });
+
     return NextResponse.json({
       invoice: {
         id: existing.id,
@@ -132,6 +141,15 @@ export async function POST(request: Request, { params }: Props) {
       invoiceNumber: created.invoiceNumber,
       totalAmount: totalAmount.toFixed(2),
     },
+  });
+
+  await db.insert(bookingStatusHistory).values({
+    bookingId: booking.id,
+    fromStatus: booking.status,
+    toStatus: booking.status,
+    actorUserId: user.id,
+    actorRole: 'admin',
+    note: `Invoice downloaded (${created.invoiceNumber})`,
   });
 
   return NextResponse.json({

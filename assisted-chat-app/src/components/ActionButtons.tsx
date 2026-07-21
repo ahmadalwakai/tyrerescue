@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.muted,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0,
   },
   hint: {
     color: colors.subtle,

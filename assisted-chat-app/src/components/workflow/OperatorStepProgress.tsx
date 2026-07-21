@@ -1,6 +1,7 @@
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { colors, fontSize, radius, space } from '../theme';
 import { useFadeSlideIn } from '../motion';
+import { AppIcon, type AppIconName } from '../icons/AppIcon';
 import type {
   OperatorWorkflowStep,
   OperatorWorkflowStepId,
@@ -13,77 +14,87 @@ export interface OperatorStepProgressProps {
   onStepPress: (stepId: OperatorWorkflowStepId) => void;
 }
 
-interface ChipPalette {
+interface StepTone {
   border: string;
-  background: string;
+  surface: string;
   text: string;
-  hint: string;
+  muted: string;
+  dot: string;
 }
 
-function chipPalette(status: OperatorWorkflowStepStatus, isActive: boolean): ChipPalette {
+const STEP_ICONS: Record<OperatorWorkflowStepId, AppIconName> = {
+  customer: 'user',
+  location: 'map-marker',
+  tyre: 'life-ring',
+  lockingNut: 'lock',
+  quote: 'file-text-o',
+  payment: 'credit-card',
+  dispatch: 'truck',
+};
+
+function stepTone(status: OperatorWorkflowStepStatus, isActive: boolean): StepTone {
   if (isActive) {
     return {
-      border: colors.accent,
-      background: colors.ripple,
+      border: colors.glowBorder,
+      surface: colors.accentMuted,
       text: colors.accent,
-      hint: colors.text,
+      muted: colors.text,
+      dot: colors.accent,
     };
   }
+
   switch (status) {
     case 'complete':
       return {
         border: colors.successBorder,
-        background: colors.successBg,
+        surface: colors.successBg,
         text: colors.success,
-        hint: colors.muted,
+        muted: colors.muted,
+        dot: colors.success,
       };
     case 'waiting':
       return {
         border: colors.infoBorder,
-        background: colors.infoBg,
+        surface: colors.infoBg,
         text: colors.info,
-        hint: colors.muted,
+        muted: colors.muted,
+        dot: colors.info,
       };
     case 'blocked':
       return {
         border: colors.warningBorder,
-        background: colors.warningBg,
+        surface: colors.warningBg,
         text: colors.warning,
-        hint: colors.muted,
+        muted: colors.muted,
+        dot: colors.warning,
       };
     case 'error':
       return {
         border: colors.dangerBorder,
-        background: colors.dangerBg,
+        surface: colors.dangerBg,
         text: colors.danger,
-        hint: colors.muted,
+        muted: colors.muted,
+        dot: colors.danger,
       };
     case 'active':
       return {
-        border: colors.accent,
-        background: colors.ripple,
+        border: colors.glowBorder,
+        surface: colors.accentMuted,
         text: colors.accent,
-        hint: colors.text,
+        muted: colors.text,
+        dot: colors.accent,
       };
     default:
       return {
         border: colors.border,
-        background: colors.bg,
+        surface: colors.cardMuted,
         text: colors.muted,
-        hint: colors.subtle,
+        muted: colors.subtle,
+        dot: colors.borderStrong,
       };
   }
 }
 
-/**
- * Horizontal-scroll workflow strip that doubles as a tap-to-jump nav. Used
- * directly under the screen header so the operator can always see (a) which
- * step they are on and (b) which steps are done / waiting / blocked.
- *
- * Designed for 360px-wide phones: chips have `flexShrink: 0` so they stay
- * readable instead of collapsing into a single character. The horizontal
- * ScrollView lets the full 7-step flow fit any screen width.
- */
 export function OperatorStepProgress({
   steps,
   activeStepId,
@@ -95,43 +106,45 @@ export function OperatorStepProgress({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        snapToAlignment="start"
         contentContainerStyle={styles.row}
         keyboardShouldPersistTaps="handled"
       >
         {steps.map((step, index) => {
           const isActive = step.id === activeStepId;
-          const palette = chipPalette(step.status, isActive);
-          const showHint = Boolean(
-            step.hint && (isActive || step.status === 'waiting' || step.status === 'blocked' || step.status === 'error'),
-          );
+          const tone = stepTone(step.status, isActive);
+          const showConnector = index < steps.length - 1;
           return (
-            <View key={step.id} style={styles.chipWrap}>
+            <View key={step.id} style={styles.stepWrap}>
               <Pressable
                 onPress={() => onStepPress(step.id)}
                 android_ripple={{ color: colors.ripple }}
                 accessibilityRole="button"
                 accessibilityLabel={`Step ${index + 1}. ${step.label}. Status: ${step.status.replace('_', ' ')}.`}
+                accessibilityState={{ selected: isActive }}
                 style={({ pressed }) => [
-                  styles.chip,
+                  styles.stepNode,
                   {
-                    borderColor: palette.border,
-                    backgroundColor: palette.background,
+                    borderColor: tone.border,
+                    backgroundColor: tone.surface,
                   },
-                  pressed && styles.chipPressed,
+                  isActive && styles.stepNodeActive,
+                  pressed && styles.stepNodePressed,
                 ]}
               >
-                <Text style={styles.index}>{index + 1}</Text>
-                <View style={styles.chipText}>
-                  <Text style={[styles.label, { color: palette.text }]} numberOfLines={1}>
-                    {step.label}
-                  </Text>
-                  {showHint ? (
-                    <Text style={[styles.hint, { color: palette.hint }]} numberOfLines={1}>
-                      {step.hint}
-                    </Text>
-                  ) : null}
+                <View style={[styles.iconOrb, { borderColor: tone.border, backgroundColor: colors.bgDeep }]}>
+                  <AppIcon name={STEP_ICONS[step.id]} size={20} color={tone.text} />
                 </View>
+                <Text style={[styles.label, { color: tone.text }]} numberOfLines={1}>
+                  {step.label}
+                </Text>
+                {isActive ? <Text style={styles.currentHint} numberOfLines={1}>Current</Text> : null}
               </Pressable>
+              {showConnector ? (
+                <View style={[styles.connectorWrap, styles.pointerNone]}>
+                  <View style={[styles.connectorLine, { backgroundColor: tone.dot }]} />
+                </View>
+              ) : null}
             </View>
           );
         })}
@@ -144,64 +157,76 @@ const styles = StyleSheet.create({
   shell: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.md,
-    backgroundColor: colors.cardMuted,
-    paddingVertical: 4,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.16,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    borderRadius: 18,
+    backgroundColor: 'rgba(13,20,39,0.82)',
+    paddingVertical: 6,
+    overflow: 'hidden',
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 14px 34px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.07)' } as ViewStyle)
+      : ({
+          shadowColor: colors.shadow,
+          shadowOpacity: 0.26,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 9 },
+          elevation: 4,
+        } as ViewStyle)),
   },
   row: {
-    paddingVertical: space.xs,
-    paddingHorizontal: 8,
-    gap: space.sm,
-    alignItems: 'stretch',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    alignItems: 'center',
   },
-  chipWrap: {
-    // flexShrink:0 so chips don't squish on narrow screens (360px target).
-    flexShrink: 0,
-  },
-  chip: {
+  pointerNone: { pointerEvents: 'none' },
+  stepWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    minHeight: 42,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    flexShrink: 0,
+  },
+  stepNode: {
+    minWidth: 78,
+    minHeight: 66,
     borderWidth: 1,
-    borderRadius: radius.md,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+    borderRadius: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  chipPressed: {
-    opacity: 0.75,
+  stepNodeActive: {
+    minWidth: 90,
   },
-  index: {
-    color: colors.subtle,
-    fontSize: 10,
-    fontWeight: '900',
-    minWidth: 18,
-    minHeight: 18,
-    borderRadius: 9,
-    backgroundColor: colors.surfaceElevated,
-    lineHeight: 18,
-    textAlign: 'center',
+  stepNodePressed: {
+    opacity: 0.78,
   },
-  chipText: {
-    minWidth: 0,
-    maxWidth: 130,
+  iconOrb: {
+    width: 32,
+    height: 32,
+    borderRadius: 19,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   label: {
     fontSize: fontSize.xs,
-    fontWeight: '700',
+    fontWeight: '900',
+    textAlign: 'center',
   },
-  hint: {
+  currentHint: {
+    color: colors.text,
     fontSize: 10,
-    marginTop: 0,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  connectorWrap: {
+    width: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  connectorLine: {
+    width: 14,
+    height: 2,
+    borderRadius: 2,
+    opacity: 0.74,
   },
 });

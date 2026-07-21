@@ -2,11 +2,13 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  type ViewStyle,
 } from 'react-native';
 import { colors, fontSize, radius, space } from './theme';
 import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
@@ -31,6 +33,30 @@ const A = {
 };
 
 const PIE_COLORS = [A.indigo, A.emerald, A.orange, A.cyan, A.pink, A.yellow, A.purple];
+
+const statCardShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: `0 5px 10px ${colors.blue}1A` }
+    : {
+        shadowColor: colors.blue,
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 5 },
+        elevation: 2,
+      }
+) as ViewStyle;
+
+const sectionCardShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 6px 12px rgba(249,115,22,0.08)' }
+    : {
+        shadowColor: colors.accent,
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 2,
+      }
+) as ViewStyle;
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -580,8 +606,14 @@ const s = StyleSheet.create({
   },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: A.emerald },
   liveText: { fontSize: fontSize.xs, color: A.emerald, fontFamily: 'monospace', fontWeight: '700' },
-  closeBtn: { padding: space.sm },
-  closeBtnText: { fontSize: fontSize.lg, color: colors.muted },
+  closeBtn: {
+    padding: space.sm,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerBg,
+  },
+  closeBtnText: { fontSize: fontSize.lg, color: colors.danger, fontWeight: '900' },
 
   // Period
   periodRow: {
@@ -611,11 +643,7 @@ const s = StyleSheet.create({
     width: 96, backgroundColor: colors.card,
     borderRadius: radius.md, padding: space.sm,
     borderTopWidth: 2, borderWidth: 1, borderColor: colors.borderStrong,
-    shadowColor: colors.blue,
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 2,
+    ...statCardShadow,
   },
   statValue: { fontSize: fontSize.lg, fontWeight: '800', fontFamily: 'monospace' },
   statLabel: { fontSize: fontSize.xs, color: colors.subtle, marginTop: 2 },
@@ -654,11 +682,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.card, borderRadius: radius.lg,
     padding: space.md, marginBottom: space.md,
     borderWidth: 1, borderColor: colors.borderStrong,
-    shadowColor: colors.accent,
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    ...sectionCardShadow,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space.sm },
   cardTitle: { fontSize: fontSize.md, fontWeight: '700', color: colors.text },
@@ -725,7 +749,7 @@ const s = StyleSheet.create({
     paddingHorizontal: space.sm, paddingBottom: space.sm,
   },
   expandSection: { marginTop: space.sm },
-  expandSectionTitle: { fontSize: fontSize.xs, fontWeight: '700', color: colors.subtle, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  expandSectionTitle: { fontSize: fontSize.xs, fontWeight: '700', color: colors.subtle, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0 },
   expandGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   expandCell: { minWidth: 100 },
   expandKey: { fontSize: fontSize.xs, color: colors.subtle },

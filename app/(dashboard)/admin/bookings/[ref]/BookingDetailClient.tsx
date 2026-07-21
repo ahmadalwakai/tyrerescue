@@ -32,6 +32,7 @@ import {
 } from '@/lib/bookings/normalise-tyre-details';
 import type { PaymentSummary } from '@/lib/payments/payment-summary';
 import type { DriverSituation } from '@/lib/admin/driverSituation';
+import type { BookingInformation } from '@/lib/bookings/booking-audit';
 
 interface RankedDriver {
   driverId: string;
@@ -93,7 +94,13 @@ interface StatusHistoryItem {
   id: string;
   fromStatus: string | null;
   toStatus: string;
+  actorUserId: string | null;
   actorRole: string | null;
+  actorName?: string | null;
+  actorEmail?: string | null;
+  actorDisplayName: string;
+  action: string;
+  description: string | null;
   note: string | null;
   createdAt: string | null;
 }
@@ -113,6 +120,7 @@ interface Driver {
 interface Props {
   booking: Booking;
   tyreDetails: NormalisedTyreDetails;
+  bookingInformation: BookingInformation;
   statusHistory: StatusHistoryItem[];
   assignedDriver: Driver | null;
   availableDrivers: Driver[];
@@ -206,6 +214,7 @@ const ADMIN_TRANSITIONS: Record<string, string[]> = {
 export function BookingDetailClient({
   booking,
   tyreDetails,
+  bookingInformation,
   statusHistory,
   assignedDriver,
   availableDrivers,
@@ -597,6 +606,35 @@ export function BookingDetailClient({
                   <Text fontSize="lg" fontWeight="medium" color={c.text}>{booking.scheduledAt ? formatDate(booking.scheduledAt) : '-'}</Text>
                 )}
               </Box>
+            </Grid>
+          </Box>
+
+          {/* Booking ownership and audit summary */}
+          <Box bg={c.card} p={{ base: 4, md: 5 }} borderRadius="md" borderWidth="1px" borderColor={c.border}>
+            <Heading size="sm" mb={3} color={c.text}>Booking Information</Heading>
+            <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)' }} gap={4}>
+              <Box>
+                <Text fontSize="xs" color={c.muted} fontWeight="600">Created by</Text>
+                <Text fontWeight="medium" color={c.text}>{bookingInformation.createdBy}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="xs" color={c.muted} fontWeight="600">Created at</Text>
+                <Text fontWeight="medium" color={c.text}>{formatDate(bookingInformation.createdAt)}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="xs" color={c.muted} fontWeight="600">Last updated by</Text>
+                <Text fontWeight="medium" color={c.text}>{bookingInformation.lastUpdatedBy}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="xs" color={c.muted} fontWeight="600">Last updated at</Text>
+                <Text fontWeight="medium" color={c.text}>{formatDate(bookingInformation.lastUpdatedAt)}</Text>
+              </Box>
+              {bookingInformation.currentAssignedAdmin ? (
+                <Box>
+                  <Text fontSize="xs" color={c.muted} fontWeight="600">Current assigned admin</Text>
+                  <Text fontWeight="medium" color={c.text}>{bookingInformation.currentAssignedAdmin}</Text>
+                </Box>
+              ) : null}
             </Grid>
           </Box>
 
@@ -1320,24 +1358,24 @@ export function BookingDetailClient({
             </Box>
           )}
 
-          {/* Status history */}
+          {/* Booking timeline */}
           <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border}>
-            <Heading size="md" mb={4} color={c.text}>Status History</Heading>
+            <Heading size="md" mb={4} color={c.text}>Booking Timeline</Heading>
             {statusHistory.length > 0 ? (
               <VStack align="stretch" gap={3}>
                 {statusHistory.map((item) => (
                   <Box key={item.id} pl={4} borderLeft="2px solid" borderColor={STATUS_COLORS[item.toStatus] || c.border}>
-                    <Text fontWeight="medium" color={c.text}>{STATUS_LABELS[item.toStatus] || item.toStatus}</Text>
+                    <Text fontWeight="medium" color={c.text}>{item.action}</Text>
                     <Text fontSize="sm" color={c.muted}>
                       {formatDate(item.createdAt)}
-                      {item.actorRole && ` by ${item.actorRole}`}
+                      {item.actorDisplayName && ` by ${item.actorDisplayName}`}
                     </Text>
-                    {item.note && <Text fontSize="sm" color={c.muted} mt={1}>{item.note}</Text>}
+                    {item.description && <Text fontSize="sm" color={c.muted} mt={1}>{item.description}</Text>}
                   </Box>
                 ))}
               </VStack>
             ) : (
-              <Text color={c.muted}>No status history</Text>
+              <Text color={c.muted}>No booking timeline</Text>
             )}
           </Box>
         </VStack>

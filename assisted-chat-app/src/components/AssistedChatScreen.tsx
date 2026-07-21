@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createElement, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   AppState,
   KeyboardAvoidingView,
   Linking,
@@ -13,10 +14,14 @@ import {
   TextInput,
   View,
   type TextStyle,
+  type ViewStyle,
 } from 'react-native';
+import { Asset } from 'expo-asset';
 import { useAudioPlayer } from 'expo-audio';
+import { WebView } from 'react-native-webview';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import driverNearbySoundSource from '../../assets/sounds/urgent_booking.mp3';
+import assistedChatHeaderVideoSource from '../../assets/video/assisted-chat-header.mp4';
 import { useAssistedChatDraft } from '@/hooks/useAssistedChatDraft';
 import { useAssistedChatPrice } from '@/hooks/useAssistedChatPrice';
 import { useAssistedChatDispatch } from '@/hooks/useAssistedChatDispatch';
@@ -31,7 +36,6 @@ import { useBookingTracking } from '@/hooks/useBookingTracking';
 import { useActiveJobs, type ActiveJobItem } from '@/hooks/useActiveJobs';
 import { BookingTrackingCard } from './tracking/BookingTrackingCard';
 import { DriverAssignSection } from './tracking/DriverAssignSection';
-import { AlertActionButton } from './ui/AlertActionButton';
 import type {
   AssistedChatDraft,
   AssistedChatPaymentChoice,
@@ -55,6 +59,7 @@ import { AdminBookingsModal } from './AdminBookingsModal';
 import { AdminVisitorsModal } from './AdminVisitorsModal';
 import { AdminInvoicesModal } from './AdminInvoicesModal';
 import { AdminStockModal } from './AdminStockModal';
+import { AddAdminModal } from './AddAdminModal';
 import { ActiveJobsModal, ActiveJobMapModal } from './ActiveJobsModal';
 import { TrackingModal } from './TrackingModal';
 import { DriverChatModal } from './DriverChatModal';
@@ -63,7 +68,10 @@ import { MessageSenderModal } from './MessageSenderModal';
 import { AdminChromeBackdrop } from './layout/AdminModalShell';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
-import { api, API_BASE_URL, getAdminToken } from '@/lib/api';
+import { usePressScale } from './motion';
+import { AppIcon, type AppIconName } from './icons/AppIcon';
+import { api } from '@/lib/api';
+import { downloadInvoicePdfToDevice } from '@/lib/invoice-download';
 import { buildCustomerMessage, buildWhatsAppUrl } from '@/lib/customer-message';
 import { copyToClipboard } from '@/lib/clipboard';
 import {
@@ -91,7 +99,6 @@ import {
   showLocalUrgentBookingAlert,
   isUrgentBookingNotificationData,
   clearTopicSubscriptionFlag,
-  openFullScreenIntentSettings,
 } from '@/lib/urgent-alerts';
 import { UrgentBookingPopup } from './alerts/UrgentBookingPopup';
 import { NotificationReliabilityCard } from './alerts/NotificationReliabilityCard';
@@ -111,6 +118,16 @@ import {
   deriveOperatorWorkflowSteps,
   stageForStepId,
 } from '@/lib/operator-workflow-state';
+import {
+  ASSISTED_CHAT_HEADER_INFO_MIN_WIDTH,
+  ASSISTED_CHAT_HEADER_MIN_BUTTON_HEIGHT,
+  ASSISTED_CHAT_HEADER_TOP_ROW_GAP,
+} from '@/lib/header-layout';
+import {
+  formatHeaderNotificationBadge,
+  getHeaderNotificationAccessibilityLabel,
+  type HeaderNotificationVisualState,
+} from '@/lib/header-notifications';
 import { OperatorStepProgress } from './workflow/OperatorStepProgress';
 
 interface ParsedCallNotes {
@@ -135,6 +152,7 @@ interface AssistedChatScreenProps {
 interface SheetAction {
   id: string;
   label: string;
+  icon?: AppIconName;
   description?: string;
   disabledReason?: string | null;
   destructive?: boolean;
@@ -165,6 +183,97 @@ const CONFIRMED_QUOTE_STATUSES: readonly AdminQuoteStatus[] = [
 ];
 
 const ALERT_ARM_RETRY_DELAYS_MS = [3000, 10000, 30000, 30000, 30000, 30000];
+
+type PremiumTone = 'orange' | 'blue' | 'green' | 'red' | 'neutral' | 'warn';
+
+function heroCopyForStage(stage: AssistedChatStage, customerName: string): {
+  title: string;
+  helper: string;
+  badge: string;
+  tone: PremiumTone;
+} {
+  switch (stage) {
+    case 'CUSTOMER':
+      return {
+        title: customerName && customerName !== 'New customer' ? customerName : 'New Customer',
+        helper: 'Add customer phone to call or WhatsApp',
+        badge: 'Customer',
+        tone: 'orange',
+      };
+    case 'LOCATION':
+      return {
+        title: 'Location',
+        helper: 'Confirm where the vehicle is before pricing or dispatch.',
+        badge: 'Route ready',
+        tone: 'orange',
+      };
+    case 'TYRE':
+      return {
+        title: 'Tyre Details',
+        helper: 'Choose repair, replacement, or inspection required.',
+        badge: 'Service',
+        tone: 'blue',
+      };
+    case 'PRICE':
+      return {
+        title: 'Quote',
+        helper: 'Review the calculated price and save the customer quote.',
+        badge: 'Pricing',
+        tone: 'green',
+      };
+    case 'QUOTE':
+    case 'CONFIRMATION':
+      return {
+        title: 'Confirm Quote',
+        helper: 'Make sure the customer has agreed before payment or dispatch.',
+        badge: 'Confirm',
+        tone: 'green',
+      };
+    case 'PAYMENT':
+      return {
+        title: 'Payment',
+        helper: 'Choose the payment route and collect the agreed amount.',
+        badge: 'Payment',
+        tone: 'blue',
+      };
+    case 'READY_TO_DISPATCH':
+      return {
+        title: 'Ready To Dispatch',
+        helper: 'Review the job and send it to the driver.',
+        badge: 'Ready',
+        tone: 'warn',
+      };
+    case 'DISPATCHED':
+      return {
+        title: 'Dispatch',
+        helper: 'Track the job, assign the driver, and keep the customer updated.',
+        badge: 'Live job',
+        tone: 'green',
+      };
+  }
+}
+
+function activePanelCopyForStage(stage: AssistedChatStage): { title: string; helper: string; icon: AppIconName } {
+  switch (stage) {
+    case 'CUSTOMER':
+      return { title: 'Customer', helper: 'Capture reliable contact details for the job.', icon: 'user' };
+    case 'LOCATION':
+      return { title: 'Location', helper: 'Find the customer and send a location link if needed.', icon: 'map-marker' };
+    case 'TYRE':
+      return { title: 'Tyre', helper: 'Record service type, tyre details, and locking nut status.', icon: 'life-ring' };
+    case 'PRICE':
+      return { title: 'Quote', helper: 'Calculate and save the agreed customer price.', icon: 'file-text-o' };
+    case 'QUOTE':
+    case 'CONFIRMATION':
+      return { title: 'Quote check', helper: 'Review the agreed total before moving to payment.', icon: 'check-circle' };
+    case 'PAYMENT':
+      return { title: 'Payment', helper: 'Select payment method and create the booking.', icon: 'credit-card' };
+    case 'READY_TO_DISPATCH':
+      return { title: 'Dispatch review', helper: 'Final check before sending to the driver.', icon: 'road' };
+    case 'DISPATCHED':
+      return { title: 'Live dispatch', helper: 'Manage driver assignment, tracking, and payment follow-up.', icon: 'truck' };
+  }
+}
 
 function normalizeTyreSizeFromText(text: string): string | undefined {
   const match = text.match(/\b(\d{3})\s*[\/ -]?\s*(\d{2})\s*(?:[\/ -]?\s*r\s*|[\/ -]+)(\d{2})\b/i);
@@ -447,6 +556,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const [visitorsOpen, setVisitorsOpen] = useState(false);
   const [invoicesOpen, setInvoicesOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
+  const [addAdminOpen, setAddAdminOpen] = useState(false);
   const [activeJobsOpen, setActiveJobsOpen] = useState(false);
   const [driverTrackingOpen, setDriverTrackingOpen] = useState(false);
   const [chatHubOpen, setChatHubOpen] = useState(false);
@@ -532,21 +642,6 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       if (retryTimer) clearTimeout(retryTimer);
     };
   }, [armingCycle]);
-
-  const handleRetryUrgentAlertArming = useCallback(() => {
-    if (Platform.OS === 'web') return;
-    if (!api.hasAdminToken) return;
-    if (Platform.OS === 'android' && !fullScreenIntentGranted) {
-      // Deep-link directly to the per-app full-screen intent permission
-      // page (Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT on API 34+,
-      // falls back to app notification settings on older devices).
-      void openFullScreenIntentSettings();
-      setArmingCycle((v) => v + 1);
-      return;
-    }
-    setAlertReadinessState('checking');
-    setArmingCycle((v) => v + 1);
-  }, [fullScreenIntentGranted]);
 
   // Open the bookings modal when the admin taps a notification.
   // For urgent_booking payloads we also persist a pending flag so that if
@@ -681,6 +776,21 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     }
   }, [urgentBookingId]);
 
+  const handleOpenHeaderNotifications = useCallback(() => {
+    setMoreOpen(false);
+    if (hasNewCustomerBooking) {
+      void markBookingsSeen();
+      openBookingsInApp();
+      return;
+    }
+    setNotifSetupOpen(true);
+  }, [hasNewCustomerBooking, markBookingsSeen, openBookingsInApp]);
+
+  const handleOpenHeaderChatHub = useCallback(() => {
+    setMoreOpen(false);
+    setChatHubOpen(true);
+  }, []);
+
   // Clear badge when app comes back to the foreground.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
@@ -696,18 +806,6 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     setAlertReadinessState('not_armed');
     await onLogout?.();
   }, [onLogout]);
-
-  const alertReadinessLabel =
-    alertReadinessState === 'checking'
-      ? 'Checking urgent alerts...'
-      : alertReadinessState === 'armed'
-      ? 'Urgent alerts armed'
-      : !fullScreenIntentGranted
-      ? 'Full-screen alerts blocked'
-      : 'Urgent alerts not armed';
-
-  const canRetryAlertArming =
-    Platform.OS !== 'web' && api.hasAdminToken && alertReadinessState !== 'checking';
 
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -1087,10 +1185,16 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         `/api/mobile/admin/bookings/${encodeURIComponent(refNumber)}/invoice`,
         {},
       );
-      const token = getAdminToken();
-      const qs = token ? `?token=${encodeURIComponent(token)}` : '';
-      await Linking.openURL(`${API_BASE_URL}/api/mobile/admin/invoices/${result.invoice.id}/pdf${qs}`);
-      flashNotice({ kind: 'ok', text: `Invoice ${result.invoice.invoiceNumber} opened.` });
+      const download = await downloadInvoicePdfToDevice({
+        invoiceId: result.invoice.id,
+        invoiceNumber: result.invoice.invoiceNumber,
+      });
+      flashNotice({
+        kind: 'ok',
+        text: download.openedSaveSheet
+          ? `Invoice ${download.filename} ready to save.`
+          : `Invoice ${download.filename} downloaded.`,
+      });
     } catch (error) {
       flashNotice({
         kind: 'err',
@@ -1398,6 +1502,16 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   }, [dispatch, draft.paymentChoice]);
 
   const handlePrimaryAction = useCallback(async () => {
+    if (editingStage === 'LOCATION') {
+      const method = draft.customer.phone.trim()
+        ? 'whatsapp'
+        : draft.customer.email.trim()
+        ? 'email'
+        : 'copy';
+      await locationShare.requestLink(method);
+      return;
+    }
+
     if (editingStage) {
       setEditingStage(null);
       return;
@@ -1636,6 +1750,15 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     });
 
     actions.push({
+      id: 'add-admin',
+      label: 'Add Admin',
+      icon: 'lock',
+      description: 'Owner-protected admin account creation.',
+      disabledReason: noToken,
+      onPress: () => setAddAdminOpen(true),
+    });
+
+    actions.push({
       id: 'notification-setup',
       label: 'Notification setup',
       description: 'Check urgent alert status and open notification settings.',
@@ -1699,8 +1822,8 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     urgentBookingId,
   ]);
 
-  const primaryLabel = editingStage ? 'Done Editing' : workflow.primaryActionLabel;
-  const primaryDisabled = editingStage ? false : workflow.primaryActionDisabled;
+  const primaryLabel = editingStage === 'LOCATION' ? 'Send Location Link' : editingStage ? 'Done Editing' : workflow.primaryActionLabel;
+  const primaryDisabled = editingStage === 'LOCATION' ? Boolean(locationShare.busy) : editingStage ? false : workflow.primaryActionDisabled;
   const primaryDisabledReason = editingStage ? null : workflow.primaryActionDisabledReason;
   const hasCustomerSummary = Boolean(
     draft.customer.name.trim() || draft.customer.phone.trim() || draft.customer.email.trim(),
@@ -1798,21 +1921,18 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     },
     [draft, flashNotice, hasLocation, hasPrice, hasSavedQuote, hasTyre, quoteConfirmed],
   );
-  const headerStageLabel = operatorSteps.find((step) => step.id === activeOperatorStepId)?.label ?? 'Customer';
-  const headerRecordLabel = draft.dispatchedRefNumber
-    ? `Booking ${draft.dispatchedRefNumber}`
-    : savedQuoteRef
-    ? `Quote ${savedQuoteRef}`
-    : 'Draft';
-  const headerMoneyLabel = hasPrice ? formatGbp(effectiveTotal) : 'No price';
-  const headerLocationLabel = hasLocation
-    ? 'Location ready'
-    : draft.location.status === 'pending'
-    ? 'Waiting location'
-    : 'No location';
   const hasHeaderInvoiceRef = Boolean(draft.dispatchedRefNumber);
   const headerInvoiceBusy = headerInvoiceLoading;
-
+  const headerNotificationUnreadCount = hasNewCustomerBooking ? 1 : 0;
+  const headerNotificationVisualState: HeaderNotificationVisualState =
+    alertReadinessState === 'checking'
+      ? 'loading'
+      : alertReadinessState === 'not_armed'
+      ? 'offline'
+      : 'ready';
+  const heroStage = hasCustomerSummary ? activeStage : 'CUSTOMER';
+  const heroCopy = heroCopyForStage(heroStage, customerName);
+  const activePanelCopy = activePanelCopyForStage(activeStage);
   if (!hydrated) {
     return (
       <SafeAreaView style={styles.loading}>
@@ -1829,394 +1949,217 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
-        <View style={styles.header}>
-          <View style={[styles.headerAccent, { pointerEvents: 'none' }]} />
-          <View style={[styles.headerPanel, { pointerEvents: 'none' }]} />
-          <View style={styles.headerTopRow}>
-            <View style={styles.headerTextBlock}>
-              <Text style={styles.headerTitle}>Assisted Chat</Text>
-              <Text style={styles.headerCustomer} numberOfLines={1}>{customerName}</Text>
-              <Text style={styles.headerPhone} numberOfLines={1}>{customerPhone || 'Add customer phone to call or WhatsApp'}</Text>
-            </View>
-            <View style={styles.headerRight}>
-              <AppButton label="More" variant="secondary" onPress={() => setMoreOpen(true)} style={styles.headerMoreButton} />
-              <View style={styles.headerContactRow}>
-                {customerDialNumber ? (
-                  <Pressable
-                    onPress={handleCallCustomer}
-                    accessibilityRole="button"
-                    accessibilityLabel="Call customer"
-                    style={({ pressed }) => [
-                      styles.compactContactButton,
-                      styles.callButton,
-                      pressed && styles.contactButtonPressed,
-                    ]}
-                  >
-                    <Text style={styles.compactContactLabel}>Call</Text>
-                  </Pressable>
-                ) : null}
-                {hasHeaderInvoiceRef ? (
-                  <Pressable
-                    onPress={handleDownloadHeaderInvoice}
-                    disabled={headerInvoiceBusy}
-                    accessibilityRole="button"
-                    accessibilityLabel="Download invoice"
-                    accessibilityState={{ disabled: headerInvoiceBusy }}
-                    style={({ pressed }) => [
-                      styles.headerInvoiceButton,
-                      pressed && !headerInvoiceBusy && styles.contactButtonPressed,
-                      headerInvoiceBusy && styles.headerInvoiceButtonDisabled,
-                    ]}
-                  >
-                    <Text style={styles.headerInvoiceLabel} numberOfLines={1}>
-                      {headerInvoiceLoading ? 'Preparing...' : 'Download Invoice'}
-                    </Text>
-                  </Pressable>
-                ) : null}
-                <Pressable
-                  onPress={customerWhatsAppNumber ? handleOpenWhatsApp : undefined}
-                  disabled={!customerWhatsAppNumber}
-                  accessibilityRole="button"
-                  accessibilityLabel="Send via WhatsApp"
-                  accessibilityState={{ disabled: !customerWhatsAppNumber }}
-                  style={({ pressed }) => [
-                    styles.headerWhatsAppButton,
-                    !customerWhatsAppNumber && styles.headerWhatsAppButtonDisabled,
-                    pressed && customerWhatsAppNumber && styles.contactButtonPressed,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.headerWhatsAppLabel,
-                      !customerWhatsAppNumber && styles.headerWhatsAppLabelDisabled,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    Send via WhatsApp
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={handleClear}
-                  disabled={!draftHasContent}
-                  accessibilityRole="button"
-                  accessibilityLabel="Clear draft"
-                  accessibilityState={{ disabled: !draftHasContent }}
-                  style={({ pressed }) => [
-                    styles.headerClearDraftButton,
-                    !draftHasContent && styles.headerClearDraftButtonDisabled,
-                    pressed && draftHasContent && styles.contactButtonPressed,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.headerClearDraftLabel,
-                      !draftHasContent && styles.headerClearDraftLabelDisabled,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    Clear Draft
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-          <View style={styles.headerStatsRow}>
-            <HeaderStat label="Stage" value={headerStageLabel} tone="accent" />
-            <HeaderStat label="Value" value={headerMoneyLabel} tone={hasPrice ? 'success' : 'default'} />
-            <HeaderStat label="Record" value={headerRecordLabel} tone={draft.dispatchedRefNumber ? 'success' : savedQuoteRef ? 'accent' : 'default'} />
-            <HeaderStat label="Location" value={headerLocationLabel} tone={hasLocation ? 'success' : draft.location.status === 'pending' ? 'warn' : 'default'} />
-          </View>
-        </View>
-
         <ScrollView
           contentContainerStyle={[styles.scroll, { paddingBottom: scrollPaddingBottom }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         >
-        {!api.hasAdminToken ? <InlineNotice kind="warn">No admin token. Log in to enable API calls.</InlineNotice> : null}
-        {actionNotice ? <StatusBanner kind={actionNotice.kind} message={actionNotice.text} /> : null}
-        {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind === 'ok' ? 'ok' : quoteActions.message.kind === 'err' ? 'err' : 'info'} message={quoteActions.message.text} /> : null}
-        {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
-
-        {alertReadinessState !== 'armed' ? (
-          <Pressable
-            onPress={canRetryAlertArming ? handleRetryUrgentAlertArming : undefined}
-            accessibilityRole="button"
-            accessibilityLabel="Urgent alert readiness"
-            style={({ pressed }) => [
-              styles.alertReadinessPill,
-              alertReadinessState === 'not_armed' ? styles.alertReadinessPillNotArmed : null,
-              pressed && canRetryAlertArming && styles.alertReadinessPillPressed,
-            ]}
-          >
-            <Text style={styles.alertReadinessText}>{alertReadinessLabel}</Text>
-            {alertReadinessState === 'not_armed' ? (
-              <Text style={styles.alertReadinessRetryText}>
-                {!fullScreenIntentGranted ? 'Tap to grant permission' : 'Tap to retry'}
-              </Text>
-            ) : null}
-          </Pressable>
-        ) : null}
-
-        {hasNewCustomerBooking ? (
-          <AlertActionButton
-            label="Open new booking"
-            active={hasNewCustomerBooking}
-            badgeLabel="New"
-            onPress={() => {
-              markBookingsSeen();
-              openBookingsInApp();
-            }}
-            style={styles.priorityBookingButton}
-            testID="all-bookings-alert-button"
+          <PremiumAppHeader
+            customerName={customerName}
+            customerPhone={customerPhone || 'Add customer phone to call or WhatsApp'}
+            heroTitle={heroCopy.title}
+            heroHelper={heroCopy.helper}
+            onMore={() => setMoreOpen(true)}
+            onOpenChatHub={handleOpenHeaderChatHub}
+            onOpenNotifications={handleOpenHeaderNotifications}
+            notificationUnreadCount={headerNotificationUnreadCount}
+            notificationState={headerNotificationVisualState}
+            onCall={customerDialNumber ? handleCallCustomer : undefined}
+            onWhatsApp={customerWhatsAppNumber ? handleOpenWhatsApp : undefined}
+            onClearDraft={handleClear}
+            clearDraftDisabled={!draftHasContent}
+            onDownloadInvoice={hasHeaderInvoiceRef ? handleDownloadHeaderInvoice : undefined}
+            invoiceBusy={headerInvoiceBusy}
           />
-        ) : null}
 
-        <OperatorStepProgress
-          steps={operatorSteps}
-          activeStepId={activeOperatorStepId}
-          onStepPress={handleSelectOperatorStep}
-        />
+          {!api.hasAdminToken ? <InlineNotice kind="warn">No admin token. Log in to enable API calls.</InlineNotice> : null}
+          {actionNotice ? <StatusBanner kind={actionNotice.kind} message={actionNotice.text} /> : null}
+          {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind === 'ok' ? 'ok' : quoteActions.message.kind === 'err' ? 'err' : 'info'} message={quoteActions.message.text} /> : null}
+          {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
 
-        {showWorkflowSummary ? (
-        <View style={styles.summaryStack}>
-          {hasCustomerSummary ? (
-            <SummaryCard
-              title="Customer"
-              value={customerName}
-              detail={customerPhone || draft.customer.email || 'No contact details yet'}
-              done
-              active={activeStage === 'CUSTOMER'}
-              onPress={() => setEditingStage('CUSTOMER')}
-              onLongPress={handleCopyCustomerDetails}
-            />
-          ) : null}
-          {hasLocation || draft.location.status === 'pending' ? (
-            <SummaryCard
-              title="Location"
-              value={hasLocation ? 'Confirmed' : 'Waiting for share'}
-              detail={draft.location.address || draft.location.link || 'Location link sent'}
-              done={hasLocation}
-              active={activeStage === 'LOCATION'}
-              onPress={() => setEditingStage('LOCATION')}
-              onLongPress={handleCopyLocationDetails}
-              rightLabel={hasLocation ? (mapSummaryOpen ? 'Hide map' : 'Show map') : undefined}
-              onRightPress={hasLocation ? () => setMapSummaryOpen((value) => !value) : undefined}
-            />
-          ) : null}
-          {hasLocation && mapSummaryOpen && activeStage !== 'LOCATION' ? (
-            <LocationSection draft={draft} update={update} locationShare={locationShare} showInlineActions={false} displayMode="mapOnly" />
-          ) : null}
-          {hasTyre ? (
-            <SummaryCard
-              title={draft.serviceType === 'assess' ? 'Inspection' : 'Tyre'}
-              value={
-                draft.serviceType === 'assess'
-                  ? formatAssistedChatServiceType(draft.serviceType)
-                  : summarizeBookingTyreLines(draft.tyreLines).join('\n')
-              }
-              detail={
-                draft.serviceType === 'assess'
-                  ? 'Final tyre cost confirmed after inspection'
-                  : draft.lockingNut.answer === 'no'
-                  ? 'Locking wheel nut removal may apply'
-                  : 'Tyre details ready'
-              }
-              done
-              active={activeStage === 'TYRE'}
-              onPress={() => setEditingStage('TYRE')}
-            />
-          ) : null}
-          {draft.quote && !draft.priceNeedsRefresh ? (
-            <SummaryCard
-              title="Price"
-              value={formatGbp(effectiveTotal)}
-              detail={quotePricingDistanceMiles != null ? `${quotePricingDistanceMiles.toFixed(1)} mi pricing distance` : 'Price ready'}
-              done
-              active={activeStage === 'PRICE'}
-              onPress={() => setEditingStage('PRICE')}
-            />
-          ) : null}
-          {savedQuoteRef ? (
-            <SummaryCard
-              title="Quote"
-              value={`Quote ${savedQuoteRef}`}
-              detail={quoteExpiryStatus ?? 'Valid until unknown'}
-              done={quoteConfirmed}
-              active={activeStage === 'QUOTE' || activeStage === 'CONFIRMATION'}
-              onPress={() => setEditingStage(quoteConfirmed ? 'PAYMENT' : 'CONFIRMATION')}
-              onLongPress={quoteActions.copyConfirmedMessage}
-            />
-          ) : null}
-          {draft.paymentChoice ? (
-            <SummaryCard
-              title="Payment"
-              value={paymentChoiceLabel(draft.paymentChoice)}
-              detail={draft.paymentLink ? 'Payment link ready' : quoteConfirmed ? 'Quote payment option selected' : 'Selected before confirmation'}
-              done={quoteConfirmed}
-              active={activeStage === 'PAYMENT'}
-              onPress={() => setEditingStage('PAYMENT')}
-            />
-          ) : null}
-        </View>
-        ) : null}
+          <PrimaryActionDeck
+            canCall={Boolean(customerDialNumber)}
+            canWhatsApp={Boolean(customerWhatsAppNumber)}
+            clearDraftDisabled={!draftHasContent}
+            invoiceAvailable={hasHeaderInvoiceRef}
+            invoiceBusy={headerInvoiceBusy}
+            onCall={handleCallCustomer}
+            onWhatsApp={handleOpenWhatsApp}
+            onClearDraft={handleClear}
+            onDownloadInvoice={handleDownloadHeaderInvoice}
+          />
 
-        <View style={styles.activeStepBlock}>
-          {renderActiveStage({
-            activeStage,
-            draft,
-            update,
-            phoneInput,
-            setPhoneInput,
-            handlePhoneChange,
-            handlePhoneBlur,
-            handleEmailBlur,
-            noteInput,
-            setNoteInput,
-            callNotesInput,
-            setCallNotesInput,
-            callAssistMessage,
-            setCallAssistMessage,
-            handleApplyCallNotes,
-            locationShare,
-            price,
-            lockingNutCharge,
-            effectiveTotal,
-            duplicateMatch,
-            duplicateAck,
-            setDuplicateAck,
-            setHistoryOpen,
-            quoteActions,
-            activeQuote,
-            savedQuoteRef,
-            quoteConfirmed,
-            quoteExpiryStatus,
-            dispatch,
-            handleCopyCustomerDetails,
-            engineEffectiveTotal,
-            setEditPriceOpen,
-            breakdownVisible,
-            setBreakdownVisible,
-            openPaymentStage: () => setEditingStage('PAYMENT'),
-          })}
-          {activeStage === 'DISPATCHED' && draft.dispatchedBookingId ? (
-            <>
-              <DriverAssignSection
-                bookingRef={draft.dispatchedRefNumber}
-                trackingData={bookingTracking.data}
-                customerLat={draft.location.lat}
-                customerLng={draft.location.lng}
-                onSelectDriver={(phone) => setSelectedDriverPhone(phone)}
-                onAssigned={() => { void bookingTracking.refresh(); }}
-              />
-              <BookingTrackingCard
-                data={bookingTracking.data}
-                ensureFailed={bookingTracking.ensureFailed}
-                busy={bookingTracking.busy}
-                customerPhone={draft.customer.phone.trim() || null}
-                onRetryEnsure={() => { void bookingTracking.ensure(); }}
-                onRefresh={() => { void bookingTracking.refresh(); }}
-                onTrackDriver={() => setTrackingMapOpen(true)}
-                canTrackDriver={canTrackDriver}
-                trackDriverHint={trackDriverHint}
-              />
-              <AppButton
-                label="Chat with driver"
-                variant="secondary"
-                onPress={handleOpenDriverChat}
-                disabled={!draft.dispatchedBookingId}
-                fullWidth
-              />
+          <OperatorStepProgress
+            steps={operatorSteps}
+            activeStepId={activeOperatorStepId}
+            onStepPress={handleSelectOperatorStep}
+          />
 
-              <SectionCard title="Payment">
-                {draft.paymentLink ? (
-                  <>
-                    <Text style={styles.paymentLinkAmount}>
-                      Payment link created · {formatPence(draft.paymentLink.amountPence)}
-                    </Text>
-                    <View style={[
-                      styles.paymentStatusBadge,
-                      paymentLinkActions.liveStatus === 'paid' && styles.paymentStatusBadgePaid,
-                      paymentLinkActions.liveStatus === 'failed' && styles.paymentStatusBadgeFailed,
-                      paymentLinkActions.liveStatus === 'checking' && styles.paymentStatusBadgeChecking,
-                    ]}>
-                      <Text style={[
-                        styles.paymentLinkStatus,
-                        paymentLinkActions.liveStatus === 'paid' && { color: colors.success },
-                        paymentLinkActions.liveStatus === 'failed' && { color: colors.danger },
-                        paymentLinkActions.liveStatus === 'checking' && { color: colors.warning },
-                      ]}>
-                        {paymentLinkActions.liveStatus === 'paid'
-                          ? 'Payment received'
-                          : paymentLinkActions.liveStatus === 'failed'
-                            ? 'Payment failed'
-                            : paymentLinkActions.liveStatus === 'checking'
-                              ? 'Payment needs checking'
-                              : 'Awaiting payment'}
+          <ActiveWorkflowPanel
+            icon={activePanelCopy.icon}
+            title={activePanelCopy.title}
+            helper={activePanelCopy.helper}
+            tone={heroCopy.tone}
+            plain={activeStage === 'LOCATION'}
+          >
+            {renderActiveStage({
+              activeStage,
+              draft,
+              update,
+              phoneInput,
+              setPhoneInput,
+              handlePhoneChange,
+              handlePhoneBlur,
+              handleEmailBlur,
+              noteInput,
+              setNoteInput,
+              callNotesInput,
+              setCallNotesInput,
+              callAssistMessage,
+              setCallAssistMessage,
+              handleApplyCallNotes,
+              locationShare,
+              price,
+              lockingNutCharge,
+              effectiveTotal,
+              duplicateMatch,
+              duplicateAck,
+              setDuplicateAck,
+              setHistoryOpen,
+              quoteActions,
+              activeQuote,
+              savedQuoteRef,
+              quoteConfirmed,
+              quoteExpiryStatus,
+              dispatch,
+              handleCopyCustomerDetails,
+              engineEffectiveTotal,
+              setEditPriceOpen,
+              breakdownVisible,
+              setBreakdownVisible,
+              openPaymentStage: () => setEditingStage('PAYMENT'),
+            })}
+            {activeStage === 'DISPATCHED' && draft.dispatchedBookingId ? (
+              <View style={styles.dispatchedStack}>
+                <DriverAssignSection
+                  bookingRef={draft.dispatchedRefNumber}
+                  trackingData={bookingTracking.data}
+                  customerLat={draft.location.lat}
+                  customerLng={draft.location.lng}
+                  onSelectDriver={(phone) => setSelectedDriverPhone(phone)}
+                  onAssigned={() => { void bookingTracking.refresh(); }}
+                />
+                <BookingTrackingCard
+                  data={bookingTracking.data}
+                  ensureFailed={bookingTracking.ensureFailed}
+                  busy={bookingTracking.busy}
+                  customerPhone={draft.customer.phone.trim() || null}
+                  onRetryEnsure={() => { void bookingTracking.ensure(); }}
+                  onRefresh={() => { void bookingTracking.refresh(); }}
+                  onTrackDriver={() => setTrackingMapOpen(true)}
+                  canTrackDriver={canTrackDriver}
+                  trackDriverHint={trackDriverHint}
+                />
+                <AppButton
+                  label="Chat with driver"
+                  variant="secondary"
+                  onPress={handleOpenDriverChat}
+                  disabled={!draft.dispatchedBookingId}
+                  fullWidth
+                />
+
+                <SectionCard title="Payment">
+                  {draft.paymentLink ? (
+                    <>
+                      <Text style={styles.paymentLinkAmount}>
+                        Payment link created · {formatPence(draft.paymentLink.amountPence)}
                       </Text>
-                    </View>
-                    <AppButton
-                      label="Copy link"
-                      variant="secondary"
-                      onPress={() => { void handleCopyPaymentLink(); }}
-                      fullWidth
-                    />
-                    <AppButton
-                      label="Send payment link"
-                      variant="primary"
-                      onPress={() => { void handleWhatsAppPaymentLink(); }}
-                      fullWidth
-                    />
-                    <AppButton
-                      label={paymentLinkActions.liveStatus === 'paid' ? 'Payment confirmed' : 'Check Stripe payment'}
-                      variant="secondary"
-                      onPress={() => { void paymentLinkActions.checkNow(); }}
-                      loading={paymentLinkActions.checking}
-                      disabled={paymentLinkActions.checking || paymentLinkActions.liveStatus === 'paid'}
-                      fullWidth
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.paymentLinkHint}>
-                      Create a Stripe link for the outstanding balance and send it to the customer.
-                    </Text>
-                    <AppButton
-                      label="Create payment link"
-                      variant="primary"
-                      onPress={() => { void paymentLinkActions.createForDispatchedBooking(); }}
-                      loading={paymentLinkActions.busy}
-                      disabled={paymentLinkActions.busy}
-                      fullWidth
-                    />
-                  </>
-                )}
-                {paymentLinkActions.error ? (
-                  <StatusBanner kind="err" message={paymentLinkActions.error} />
-                ) : null}
-              </SectionCard>
-            </>
-          ) : null}
-        </View>
+                      <View style={[
+                        styles.paymentStatusBadge,
+                        paymentLinkActions.liveStatus === 'paid' && styles.paymentStatusBadgePaid,
+                        paymentLinkActions.liveStatus === 'failed' && styles.paymentStatusBadgeFailed,
+                        paymentLinkActions.liveStatus === 'checking' && styles.paymentStatusBadgeChecking,
+                      ]}>
+                        <Text style={[
+                          styles.paymentLinkStatus,
+                          paymentLinkActions.liveStatus === 'paid' && { color: colors.success },
+                          paymentLinkActions.liveStatus === 'failed' && { color: colors.danger },
+                          paymentLinkActions.liveStatus === 'checking' && { color: colors.warning },
+                        ]}>
+                          {paymentLinkActions.liveStatus === 'paid'
+                            ? 'Payment received'
+                            : paymentLinkActions.liveStatus === 'failed'
+                              ? 'Payment failed'
+                              : paymentLinkActions.liveStatus === 'checking'
+                                ? 'Payment needs checking'
+                                : 'Awaiting payment'}
+                        </Text>
+                      </View>
+                      <AppButton
+                        label="Copy link"
+                        variant="secondary"
+                        onPress={() => { void handleCopyPaymentLink(); }}
+                        fullWidth
+                      />
+                      <AppButton
+                        label="Send payment link"
+                        variant="primary"
+                        onPress={() => { void handleWhatsAppPaymentLink(); }}
+                        fullWidth
+                      />
+                      <AppButton
+                        label={paymentLinkActions.liveStatus === 'paid' ? 'Payment confirmed' : 'Check Stripe payment'}
+                        variant="secondary"
+                        onPress={() => { void paymentLinkActions.checkNow(); }}
+                        loading={paymentLinkActions.checking}
+                        disabled={paymentLinkActions.checking || paymentLinkActions.liveStatus === 'paid'}
+                        fullWidth
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.paymentLinkHint}>
+                        Create a Stripe link for the outstanding balance and send it to the customer.
+                      </Text>
+                      <AppButton
+                        label="Create payment link"
+                        variant="primary"
+                        onPress={() => { void paymentLinkActions.createForDispatchedBooking(); }}
+                        loading={paymentLinkActions.busy}
+                        disabled={paymentLinkActions.busy}
+                        fullWidth
+                      />
+                    </>
+                  )}
+                  {paymentLinkActions.error ? (
+                    <StatusBanner kind="err" message={paymentLinkActions.error} />
+                  ) : null}
+                </SectionCard>
+              </View>
+            ) : null}
+          </ActiveWorkflowPanel>
 
-        <View style={styles.bottomSpacer} />
+          <View style={styles.bottomSpacer} />
         </ScrollView>
 
         <View style={[styles.bottomBar, { paddingBottom: bottomBarPaddingBottom }]}>
-          {editingStage ? (
-            <AppButton label="Back" variant="ghost" onPress={() => setEditingStage(null)} style={styles.backButton} />
-          ) : null}
+          <Pressable
+            onPress={editingStage ? () => setEditingStage(null) : () => setMoreOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={editingStage ? 'Back' : 'Open quick actions'}
+            style={({ pressed }) => [styles.bottomUtilityButton, pressed && styles.contactButtonPressed]}
+          >
+            <AppIcon name="bolt" size={26} color={colors.text} />
+          </Pressable>
           <View style={styles.primaryWrap}>
-            <AppButton
+            <PremiumBottomAction
               label={primaryLabel}
-              variant={primaryDisabled ? 'secondary' : 'primary'}
+              helper={activeStage === 'LOCATION' ? 'Customer will receive the location link for confirmation' : primaryDisabledReason ?? 'Continue the assisted workflow'}
               onPress={() => {
                 void handlePrimaryAction();
               }}
-              loading={!editingStage && (price.loading || quoteActions.busy === 'save' || quoteActions.busy === 'confirm' || dispatch.busy)}
+              loading={(editingStage === 'LOCATION' && Boolean(locationShare.busy)) || (!editingStage && (price.loading || quoteActions.busy === 'save' || quoteActions.busy === 'confirm' || dispatch.busy))}
               disabled={primaryDisabled}
-              style={styles.primaryButton}
-              fullWidth
             />
             {primaryDisabledReason ? <Text style={styles.primaryReason}>{primaryDisabledReason}</Text> : null}
           </View>
@@ -2259,6 +2202,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       <AdminVisitorsModal visible={visitorsOpen} onClose={() => setVisitorsOpen(false)} />
       <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
       <AdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
+      <AddAdminModal visible={addAdminOpen} onClose={() => setAddAdminOpen(false)} />
       <ActiveJobsModal visible={activeJobsOpen} onClose={() => setActiveJobsOpen(false)} />
       <TrackingModal visible={driverTrackingOpen} onClose={() => setDriverTrackingOpen(false)} />
       <ChatHubModal visible={chatHubOpen} onClose={() => setChatHubOpen(false)} />
@@ -2859,10 +2803,552 @@ function blockedReasonForStage(
       return null;
     case 'READY_TO_DISPATCH':
     case 'DISPATCHED':
-      if (!ctx.quoteConfirmed) return 'Confirm the quote before dispatch.';
+      if (!ctx.quoteConfirmed) return 'Approve the quote before dispatch.';
       if (!ctx.hasPaymentChoice) return 'Choose a payment option before dispatch.';
       return null;
   }
+}
+
+function tonePalette(tone: PremiumTone): {
+  border: string;
+  surface: string;
+  soft: string;
+  fg: string;
+  shadow: string;
+} {
+  switch (tone) {
+    case 'blue':
+      return { border: colors.infoBorder, surface: colors.infoBg, soft: colors.blueBg, fg: colors.blue, shadow: colors.shadowCool };
+    case 'green':
+      return { border: colors.successBorder, surface: colors.successBg, soft: colors.successBg, fg: colors.success, shadow: colors.success };
+    case 'red':
+      return { border: colors.dangerBorder, surface: colors.dangerBg, soft: colors.dangerBg, fg: colors.danger, shadow: colors.danger };
+    case 'warn':
+      return { border: colors.warningBorder, surface: colors.warningBg, soft: colors.warningBg, fg: colors.warning, shadow: colors.warning };
+    case 'neutral':
+      return { border: colors.borderStrong, surface: colors.glass, soft: colors.panelSoft, fg: colors.muted, shadow: colors.shadowCool };
+    case 'orange':
+    default:
+      return { border: colors.glowBorder, surface: colors.accentMuted, soft: colors.accentSoft, fg: colors.accent, shadow: colors.shadowWarm };
+  }
+}
+
+function IconBadge({
+  name,
+  tone = 'orange',
+  size = 'md',
+}: {
+  name: AppIconName;
+  tone?: PremiumTone;
+  size?: 'sm' | 'md' | 'lg';
+}) {
+  const palette = tonePalette(tone);
+  const iconSize = size === 'lg' ? 24 : size === 'sm' ? 15 : 20;
+  return (
+    <View
+      style={[
+        styles.iconBadge,
+        size === 'sm' && styles.iconBadgeSm,
+        size === 'lg' && styles.iconBadgeLg,
+        { borderColor: palette.border, backgroundColor: palette.surface },
+      ]}
+    >
+      <AppIcon name={name} size={iconSize} color={palette.fg} />
+    </View>
+  );
+}
+
+function PremiumAppHeader({
+  customerName,
+  customerPhone,
+  heroTitle,
+  heroHelper,
+  onMore,
+  onOpenChatHub,
+  onOpenNotifications,
+  notificationUnreadCount,
+  notificationState,
+}: {
+  customerName: string;
+  customerPhone: string;
+  heroTitle: string;
+  heroHelper: string;
+  onMore: () => void;
+  onOpenChatHub: () => void;
+  onOpenNotifications: () => void;
+  notificationUnreadCount: number;
+  notificationState: HeaderNotificationVisualState;
+  onCall?: () => void;
+  onWhatsApp?: () => void;
+  onClearDraft: () => void;
+  clearDraftDisabled: boolean;
+  onDownloadInvoice?: () => void;
+  invoiceBusy: boolean;
+}) {
+  const titleParts = heroTitle.split(' ');
+  const heroLead = titleParts.slice(0, -1).join(' ') || heroTitle;
+  const heroAccent = titleParts.length > 1 ? titleParts[titleParts.length - 1] : '';
+  const showCustomerMeta = customerName.trim().toLowerCase() !== 'new customer';
+  return (
+    <View style={styles.header} testID="assisted-chat-header">
+      <HeaderVideoBackground />
+      <View style={styles.headerTopRow}>
+        <View style={styles.headerIdentityRow}>
+          <Pressable
+            onPress={onMore}
+            accessibilityRole="button"
+            accessibilityLabel="Open menu"
+            testID="assisted-chat-header-more-button"
+            style={({ pressed }) => [styles.headerIconButton, pressed && styles.contactButtonPressed]}
+          >
+            <AppIcon name="bars" size={24} color={colors.text} />
+          </Pressable>
+          <View style={styles.headerTextBlock} testID="assisted-chat-header-info">
+            <View style={styles.headerBrandRow}>
+              <Pressable
+                onPress={onOpenChatHub}
+                accessibilityRole="button"
+                accessibilityLabel="Open chat hub"
+                testID="assisted-chat-header-chat-hub-button"
+                style={({ pressed }) => [styles.assistedChatMarkButton, pressed && styles.contactButtonPressed]}
+              >
+                <View style={styles.assistedChatMark}>
+                  <AppIcon name="comments-o" size={18} color={colors.accent} />
+                </View>
+              </Pressable>
+              <Text style={styles.headerTitle} numberOfLines={1} testID="assisted-chat-header-title">Assisted Chat</Text>
+            </View>
+            <Text style={styles.headerCustomer} numberOfLines={1} ellipsizeMode="tail" testID="assisted-chat-header-customer">{showCustomerMeta ? customerName : ''}</Text>
+            <Text style={styles.headerPhone} numberOfLines={1} ellipsizeMode="tail" testID="assisted-chat-header-phone">{showCustomerMeta ? customerPhone : ''}</Text>
+          </View>
+        </View>
+        <View style={styles.headerUtilityRow}>
+          <HeaderNotificationButton
+            unreadCount={notificationUnreadCount}
+            state={notificationState}
+            onPress={onOpenNotifications}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Profile"
+            style={({ pressed }) => [styles.headerIconButton, pressed && styles.contactButtonPressed]}
+          >
+            <IconBadge name="user-circle" tone="blue" size="sm" />
+          </Pressable>
+        </View>
+      </View>
+      <View style={styles.heroCopyBlock}>
+        <Text style={styles.heroTitle} numberOfLines={2}>
+          <Text>{heroLead}</Text>
+          {heroAccent ? <Text style={styles.heroTitleAccent}> {heroAccent}</Text> : null}
+        </Text>
+        <Text style={styles.heroHelper} numberOfLines={2}>{heroHelper}</Text>
+      </View>
+    </View>
+  );
+}
+
+function HeroPanel({
+  title,
+  helper,
+  badge,
+  tone,
+}: {
+  title: string;
+  helper: string;
+  badge: string;
+  tone: PremiumTone;
+}) {
+  const palette = tonePalette(tone);
+  return (
+    <View style={[styles.heroPanel, { borderColor: palette.border }]}>
+      <View style={styles.heroContent}>
+        <View style={[styles.heroStatusBadge, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+          <View style={[styles.heroStatusDot, { backgroundColor: palette.fg }]} />
+          <Text style={[styles.heroStatusText, { color: palette.fg }]} numberOfLines={1}>{badge}</Text>
+        </View>
+        <Text style={styles.heroTitle} numberOfLines={2}>{title}</Text>
+        <Text style={styles.heroHelper} numberOfLines={2}>{helper}</Text>
+      </View>
+    </View>
+  );
+}
+
+function HeaderNotificationButton({
+  unreadCount,
+  state,
+  onPress,
+}: {
+  unreadCount: number;
+  state: HeaderNotificationVisualState;
+  onPress: () => void;
+}) {
+  const badgeLabel = formatHeaderNotificationBadge(unreadCount, state);
+  const accessibilityLabel = getHeaderNotificationAccessibilityLabel(unreadCount, state);
+  const isLoading = state === 'loading';
+  const isOffline = state === 'offline';
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ busy: isLoading }}
+      testID="assisted-chat-header-notifications-button"
+      style={({ pressed }) => [
+        styles.headerNotificationButton,
+        isOffline && styles.headerNotificationButtonOffline,
+        pressed && !isOffline && styles.headerNotificationButtonPressed,
+      ]}
+    >
+      <View style={styles.notificationBellGlow} />
+      {isLoading ? (
+        <ActivityIndicator color={colors.accent} />
+      ) : (
+        <AppIcon name="bell-o" size={21} color={isOffline ? colors.disabledText : colors.text} />
+      )}
+      {badgeLabel ? (
+        <View style={styles.notificationBadge} testID="assisted-chat-header-notification-badge">
+          <Text style={styles.notificationBadgeText}>{badgeLabel}</Text>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function HeaderVideoBackground() {
+  const resolvedVideo = Asset.fromModule(assistedChatHeaderVideoSource);
+  const videoUri = resolvedVideo.localUri ?? resolvedVideo.uri;
+
+  if (!videoUri) return null;
+
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[styles.headerVideoLayer, styles.pointerNone]} testID="assisted-chat-header-video-background">
+        {createElement('video', {
+          src: videoUri,
+          autoPlay: true,
+          muted: true,
+          loop: true,
+          playsInline: true,
+          preload: 'auto',
+          controls: false,
+          'aria-hidden': true,
+          tabIndex: -1,
+          style: {
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            pointerEvents: 'none',
+          },
+        })}
+      </View>
+    );
+  }
+
+  const html = `<!doctype html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <style>
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+      video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    </style>
+  </head>
+  <body>
+    <video src="${videoUri}" autoplay muted loop playsinline preload="auto"></video>
+  </body>
+</html>`;
+
+  return (
+    <WebView
+      source={{ html }}
+      originWhitelist={['*']}
+      style={styles.headerVideoNative}
+      scrollEnabled={false}
+      javaScriptEnabled={false}
+      allowsInlineMediaPlayback
+      mediaPlaybackRequiresUserAction={false}
+      pointerEvents="none"
+      testID="assisted-chat-header-video-background"
+    />
+  );
+}
+
+function PrimaryActionDeck({
+  canCall,
+  canWhatsApp,
+  clearDraftDisabled,
+  invoiceAvailable,
+  invoiceBusy,
+  onCall,
+  onWhatsApp,
+  onClearDraft,
+  onDownloadInvoice,
+}: {
+  canCall: boolean;
+  canWhatsApp: boolean;
+  clearDraftDisabled: boolean;
+  invoiceAvailable: boolean;
+  invoiceBusy: boolean;
+  onCall: () => void;
+  onWhatsApp: () => void;
+  onClearDraft: () => void;
+  onDownloadInvoice: () => void;
+}) {
+  return (
+    <View style={styles.headerActionsRow} testID="assisted-chat-header-actions">
+      <PrimaryActionCard
+        icon="phone"
+        tone="blue"
+        disabled={!canCall}
+        onPress={onCall}
+        accessibilityLabel="Call customer"
+        testID="assisted-chat-header-call-button"
+      />
+      <PrimaryActionCard
+        icon="whatsapp"
+        tone="green"
+        disabled={!canWhatsApp}
+        onPress={onWhatsApp}
+        accessibilityLabel="Send via WhatsApp"
+        testID="assisted-chat-header-whatsapp-button"
+      />
+      {invoiceAvailable ? (
+        <PrimaryActionCard
+          icon="file-pdf-o"
+          tone="blue"
+          loading={invoiceBusy}
+          disabled={invoiceBusy}
+          onPress={onDownloadInvoice}
+          accessibilityLabel="Download invoice"
+          testID="assisted-chat-header-invoice-button"
+        />
+      ) : null}
+      <PrimaryActionCard
+        icon="trash"
+        tone="red"
+        disabled={clearDraftDisabled}
+        onPress={onClearDraft}
+        accessibilityLabel="Clear draft"
+        testID="assisted-chat-header-clear-draft-button"
+      />
+    </View>
+  );
+}
+
+function PrimaryActionCard({
+  icon,
+  tone,
+  disabled,
+  loading,
+  onPress,
+  accessibilityLabel,
+  testID,
+}: {
+  icon: AppIconName;
+  tone: PremiumTone;
+  disabled?: boolean;
+  loading?: boolean;
+  onPress: () => void;
+  accessibilityLabel: string;
+  testID: string;
+}) {
+  const isDisabled = Boolean(disabled || loading);
+  const palette = tonePalette(tone);
+  const { pressScaleStyle, pressIn, pressOut } = usePressScale(isDisabled, 0.975);
+  const glow = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isDisabled) {
+      glow.stopAnimation();
+      glow.setValue(0);
+      return;
+    }
+
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glow, {
+          toValue: 1,
+          duration: 1600,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.timing(glow, {
+          toValue: 0,
+          duration: 1600,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [glow, isDisabled]);
+
+  const ringStyle = {
+    opacity: glow.interpolate({
+      inputRange: [0, 0.5, 1],
+      outputRange: [0.14, 0.44, 0.14],
+    }),
+    transform: [
+      {
+        scale: glow.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.88, 1.18],
+        }),
+      },
+    ],
+  };
+  const iconLiftStyle = {
+    transform: [
+      {
+        translateY: glow.interpolate({
+          inputRange: [0, 0.5, 1],
+          outputRange: [0, -1.5, 0],
+        }),
+      },
+    ],
+  };
+  const shineStyle = {
+    opacity: glow.interpolate({
+      inputRange: [0, 0.24, 0.52, 1],
+      outputRange: [0, 0.2, 0.5, 0],
+    }),
+    transform: [
+      {
+        translateX: glow.interpolate({
+          inputRange: [0, 1],
+          outputRange: [-30, 30],
+        }),
+      },
+      { rotate: '-18deg' },
+    ],
+  };
+
+  return (
+    <Pressable
+      onPress={isDisabled ? undefined : onPress}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: isDisabled, busy: Boolean(loading) }}
+      testID={testID}
+      style={({ pressed }) => [
+        styles.actionCard,
+        { borderColor: palette.border, backgroundColor: palette.surface },
+        disabled && styles.actionCardDisabled,
+        pressed && !isDisabled && styles.actionCardPressed,
+      ]}
+    >
+      <Animated.View style={[styles.actionCardInner, pressScaleStyle]}>
+        <View style={styles.actionGlyphFrame}>
+          <Animated.View
+            style={[
+              styles.actionGlyphRing,
+              {
+                borderColor: palette.border,
+                backgroundColor: palette.soft,
+              },
+              ringStyle,
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.actionGlyph,
+              {
+                borderColor: palette.border,
+                backgroundColor: palette.surface,
+              },
+              iconLiftStyle,
+            ]}
+          >
+            <View style={[styles.actionGlyphCore, { backgroundColor: palette.soft }]}>
+              <AppIcon name={icon} size={24} color={palette.fg} />
+            </View>
+            <Animated.View style={[styles.actionGlyphShine, shineStyle]} />
+          </Animated.View>
+        </View>
+        {loading ? <ActivityIndicator color={palette.fg} style={styles.actionCardLoader} /> : null}
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+function ActiveWorkflowPanel({
+  icon,
+  title,
+  helper,
+  tone,
+  plain = false,
+  children,
+}: {
+  icon: AppIconName;
+  title: string;
+  helper: string;
+  tone: PremiumTone;
+  plain?: boolean;
+  children: ReactNode;
+}) {
+  const palette = tonePalette(tone);
+  if (plain) {
+    return <View style={styles.activePanelPlain}>{children}</View>;
+  }
+  return (
+    <View style={[styles.activeStepBlock, { borderColor: palette.border }]}>
+      <View style={styles.activePanelHeader}>
+        <IconBadge name={icon} tone={tone} size="lg" />
+        <View style={styles.activePanelCopy}>
+          <Text style={styles.activePanelTitle} numberOfLines={1}>{title}</Text>
+          <Text style={styles.activePanelHelper} numberOfLines={2}>{helper}</Text>
+        </View>
+      </View>
+      <View style={styles.activePanelBody}>{children}</View>
+    </View>
+  );
+}
+
+function PremiumBottomAction({
+  label,
+  helper,
+  loading,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  helper: string;
+  loading: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  const { pressScaleStyle, pressIn, pressOut } = usePressScale(disabled || loading, 0.985);
+  return (
+    <Pressable
+      onPress={disabled || loading ? undefined : onPress}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled, busy: loading }}
+      style={({ pressed }) => [
+        styles.premiumCta,
+        disabled && styles.premiumCtaDisabled,
+        pressed && !disabled && !loading && styles.premiumCtaPressed,
+      ]}
+    >
+      <Animated.View style={[styles.premiumCtaInner, pressScaleStyle]}>
+        <View style={styles.premiumCtaIcon}>
+          {loading ? <ActivityIndicator color={colors.text} /> : <AppIcon name="paper-plane" size={24} color={colors.text} />}
+        </View>
+        <View style={styles.premiumCtaCopy}>
+          <Text style={styles.premiumCtaLabel} numberOfLines={1}>{label}</Text>
+          <Text style={styles.premiumCtaHelper} numberOfLines={1}>{helper}</Text>
+        </View>
+        <AppIcon name="chevron-right" size={24} color={colors.accentText} />
+      </Animated.View>
+    </Pressable>
+  );
 }
 
 function SummaryCard({
@@ -2945,40 +3431,6 @@ function SummaryCard({
   );
 }
 
-function HeaderStat({
-  label,
-  value,
-  tone = 'default',
-}: {
-  label: string;
-  value: string;
-  tone?: 'default' | 'accent' | 'success' | 'warn';
-}) {
-  return (
-    <View
-      style={[
-        styles.headerStat,
-        tone === 'accent' && styles.headerStatAccent,
-        tone === 'success' && styles.headerStatSuccess,
-        tone === 'warn' && styles.headerStatWarn,
-      ]}
-    >
-      <Text style={styles.headerStatLabel} numberOfLines={1}>{label}</Text>
-      <Text
-        style={[
-          styles.headerStatValue,
-          tone === 'accent' && styles.headerStatValueAccent,
-          tone === 'success' && styles.headerStatValueSuccess,
-          tone === 'warn' && styles.headerStatValueWarn,
-        ]}
-        numberOfLines={1}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
 function CallNotesCard({
   callNotesInput,
   setCallNotesInput,
@@ -3049,6 +3501,47 @@ function PaymentLinkInline({ link, isManualPrice = false }: { link: StripePaymen
       </View>
     </SectionCard>
   );
+}
+
+const SHEET_ACTION_ICONS: Record<string, AppIconName> = {
+  'today-bookings': 'calendar-check-o',
+  'recent-customers': 'users',
+  'active-jobs': 'briefcase',
+  'driver-tracking': 'map',
+  'chat-hub': 'comments-o',
+  'message-sender': 'paper-plane',
+  'saved-quotes': 'file-text-o',
+  'copy-location-link': 'link',
+  'location-whatsapp': 'whatsapp',
+  'location-sms': 'mobile',
+  'location-email': 'envelope-o',
+  'open-maps': 'map-marker',
+  'open-directions': 'location-arrow',
+  'open-waze': 'road',
+  'copy-route': 'copy',
+  'copy-coords': 'crosshairs',
+  'copy-quote-message': 'quote-left',
+  'send-quote': 'send',
+  'copy-customer-message': 'commenting-o',
+  'send-customer-whatsapp': 'whatsapp',
+  'copy-job-details': 'clipboard',
+  'copy-payment-instructions': 'credit-card',
+  'copy-payment-link': 'link',
+  'open-payment-link': 'external-link',
+  'whatsapp-payment-link': 'whatsapp',
+  'admin-bookings': 'list-alt',
+  'admin-visitors': 'line-chart',
+  'admin-invoices': 'file-pdf-o',
+  'admin-stock': 'cubes',
+  'add-admin': 'lock',
+  'notification-setup': 'bell-o',
+  'test-urgent-alert': 'exclamation-triangle',
+  'clear-draft': 'trash',
+  logout: 'sign-out',
+};
+
+function iconForSheetAction(action: SheetAction): AppIconName {
+  return action.icon ?? SHEET_ACTION_ICONS[action.id] ?? 'circle-o';
 }
 
 function PaymentDispatchPanel({
@@ -3133,11 +3626,12 @@ function GuidedActionSheet({ visible, title, actions, onClose }: { visible: bool
         <Pressable style={styles.actionSheet} onPress={() => {}}>
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle}>{title}</Text>
-            <AppButton label="Close" variant="ghost" onPress={onClose} style={styles.sheetCloseButton} />
+            <AppButton label="Close" variant="danger" onPress={onClose} style={styles.sheetCloseButton} />
           </View>
           <ScrollView contentContainerStyle={styles.sheetList}>
             {actions.map((action) => {
               const disabled = Boolean(action.disabledReason);
+              const iconName = iconForSheetAction(action);
               return (
                 <Pressable
                   key={action.id}
@@ -3154,9 +3648,44 @@ function GuidedActionSheet({ visible, title, actions, onClose }: { visible: bool
                     pressed && !disabled && styles.sheetActionPressed,
                   ]}
                 >
-                  <Text style={[styles.sheetActionLabel, action.destructive && styles.sheetActionDangerLabel]}>{action.label}</Text>
-                  {action.description ? <Text style={styles.sheetActionDescription}>{action.description}</Text> : null}
-                  {action.disabledReason ? <Text style={styles.sheetActionReason}>{action.disabledReason}</Text> : null}
+                  <View style={styles.sheetActionRow}>
+                    <View
+                      style={[
+                        styles.sheetActionIcon,
+                        action.destructive && styles.sheetActionDangerIcon,
+                        disabled && styles.sheetActionIconDisabled,
+                      ]}
+                    >
+                      <AppIcon
+                        name={iconName}
+                        size={17}
+                        color={action.destructive ? colors.danger : disabled ? colors.muted : colors.accent}
+                      />
+                    </View>
+                    <View style={styles.sheetActionCopy}>
+                      <View style={styles.sheetActionLabelRow}>
+                        <Text
+                          style={[styles.sheetActionLabel, action.destructive && styles.sheetActionDangerLabel]}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {action.label}
+                        </Text>
+                        <AppIcon
+                          name="angle-right"
+                          size={16}
+                          color={disabled ? colors.subtle : action.destructive ? colors.danger : colors.muted}
+                          style={styles.sheetActionChevron}
+                        />
+                      </View>
+                      {action.description ? (
+                        <Text style={styles.sheetActionDescription} numberOfLines={2}>
+                          {action.description}
+                        </Text>
+                      ) : null}
+                      {action.disabledReason ? <Text style={styles.sheetActionReason}>{action.disabledReason}</Text> : null}
+                    </View>
+                  </View>
                 </Pressable>
               );
             })}
@@ -3220,7 +3749,7 @@ function DispatchReviewSheet({
         <View style={styles.reviewSheet}>
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle}>Review dispatch</Text>
-            <AppButton label="Close" variant="ghost" onPress={onClose} style={styles.sheetCloseButton} />
+            <AppButton label="Close" variant="danger" onPress={onClose} style={styles.sheetCloseButton} />
           </View>
           <ScrollView contentContainerStyle={styles.reviewContent}>
             <DetailRow label="Customer" value={draft.customer.name.trim() || 'New customer'} />
@@ -3265,155 +3794,268 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 const baseInput: TextStyle = {
-  minHeight: 48,
+  minHeight: 50,
   borderColor: colors.borderStrong,
   borderWidth: 1,
   borderRadius: radius.md,
-  paddingHorizontal: 12,
-  paddingVertical: 10,
+  paddingHorizontal: 14,
+  paddingVertical: 12,
   fontSize: fontSize.md,
   color: colors.text,
   backgroundColor: colors.inputBg,
 };
 
+const premiumPanelShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 18px 42px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.08)' }
+    : {
+        shadowColor: colors.shadow,
+        shadowOpacity: 0.36,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 14 },
+        elevation: 6,
+      }
+) as ViewStyle;
+
+const compactCardShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 12px 28px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.06)' }
+    : {
+        shadowColor: colors.shadow,
+        shadowOpacity: 0.28,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 9 },
+        elevation: 4,
+      }
+) as ViewStyle;
+
+const warmActionShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 12px 28px rgba(255,122,24,0.32), 0 0 22px rgba(255,122,24,0.20)' }
+    : {
+        shadowColor: colors.shadowWarm,
+        shadowOpacity: 0.32,
+        shadowRadius: 18,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 5,
+      }
+) as ViewStyle;
+
+const coolActionShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 12px 28px rgba(92,167,255,0.22)' }
+    : {
+        shadowColor: colors.shadowCool,
+        shadowOpacity: 0.22,
+        shadowRadius: 18,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 4,
+      }
+) as ViewStyle;
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' },
+  pointerNone: { pointerEvents: 'none' },
   keyboardAvoider: { flex: 1, zIndex: 1 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   header: {
-    paddingHorizontal: 16,
+    minHeight: 220,
+    paddingHorizontal: space.md,
     paddingTop: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.glowBorder,
-    backgroundColor: colors.surfaceOverlay,
-    gap: 12,
+    paddingBottom: 18,
+    borderBottomWidth: 0,
+    backgroundColor: 'rgba(4,7,20,0.92)',
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.32,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
+    borderRadius: 0,
+    ...(premiumPanelShadow ?? {}),
   },
-  headerAccent: {
+  headerVideoLayer: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    height: 2,
-    backgroundColor: colors.accent,
+    inset: 0,
+    zIndex: 0,
   },
-  headerPanel: {
+  headerVideoNative: {
     position: 'absolute',
-    left: 14,
-    right: 14,
-    top: 8,
-    bottom: 8,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.accentMuted,
-    opacity: 0.72,
+    inset: 0,
+    zIndex: 0,
+    backgroundColor: 'transparent',
   },
   headerTopRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 12,
-    zIndex: 1,
-  },
-  headerTextBlock: { flex: 1, minWidth: 0 },
-  headerTitle: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '900', letterSpacing: 0 },
-  headerCustomer: { color: colors.text, fontSize: fontSize.xxl, fontWeight: '900', marginTop: 2 },
-  headerPhone: { color: colors.muted, fontSize: fontSize.xs, marginTop: 2, fontWeight: '700' },
-  headerStatsRow: {
-    flexDirection: 'row',
+    alignItems: 'flex-start',
     flexWrap: 'wrap',
     gap: 8,
     zIndex: 1,
   },
-  headerStat: {
+  headerIdentityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     flexGrow: 1,
-    flexBasis: 134,
-    minHeight: 52,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: ASSISTED_CHAT_HEADER_INFO_MIN_WIDTH + 70,
+    maxWidth: '100%',
+  },
+  headerTextBlock: {
+    flexGrow: 1,
+    flexShrink: 0,
+    flexBasis: ASSISTED_CHAT_HEADER_INFO_MIN_WIDTH,
+    minWidth: ASSISTED_CHAT_HEADER_INFO_MIN_WIDTH,
+    maxWidth: '100%',
+  },
+  headerBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 0,
+  },
+  assistedChatMarkButton: {
+    borderRadius: 15,
+  },
+  assistedChatMark: {
+    width: 34,
+    height: 34,
+    borderRadius: 15,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    backgroundColor: colors.cardMuted,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    justifyContent: 'center',
-  },
-  headerStatAccent: {
     borderColor: colors.glowBorder,
-    backgroundColor: colors.accentMuted,
+    backgroundColor: 'rgba(255,122,24,0.13)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  headerStatSuccess: {
+  headerTitle: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 0,
+    flexShrink: 0,
+  },
+  headerCustomer: { color: colors.text, fontSize: fontSize.sm, fontWeight: '900', marginTop: 3, minWidth: 0 },
+  headerPhone: { color: colors.muted, fontSize: 11, marginTop: 1, fontWeight: '800', minWidth: 0 },
+  headerUtilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 10,
+    flexShrink: 0,
+    marginLeft: 'auto',
+    marginTop: 0,
+    alignSelf: 'flex-start',
+  },
+  headerIconButton: {
+    minWidth: 46,
+    minHeight: 46,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: 23,
+    backgroundColor: 'rgba(17,27,51,0.78)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(compactCardShadow ?? {}),
+  },
+  headerNotificationButton: {
+    minWidth: 46,
+    minHeight: 46,
+    borderWidth: 1,
+    borderColor: colors.glowBorder,
+    borderRadius: 23,
+    backgroundColor: colors.glass,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'visible',
+    ...(warmActionShadow ?? {}),
+  },
+  headerNotificationButtonPressed: {
+    opacity: 0.84,
+  },
+  headerNotificationButtonOffline: {
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.glassStrong,
+    opacity: 0.72,
+  },
+  notificationBellGlow: {
+    position: 'absolute',
+    width: 31,
+    height: 31,
+    borderRadius: 16,
+    backgroundColor: colors.accentSoft,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    right: -3,
+    top: -5,
+    minWidth: 21,
+    height: 21,
+    borderRadius: 11,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.bg,
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: { color: colors.text, fontSize: 10, fontWeight: '900' },
+  livePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
     borderColor: colors.successBorder,
+    borderRadius: radius.pill,
     backgroundColor: colors.successBg,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    flexShrink: 0,
   },
-  headerStatWarn: {
-    borderColor: colors.warningBorder,
-    backgroundColor: colors.warningBg,
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.success,
   },
-  headerStatLabel: {
-    color: colors.subtle,
+  liveText: {
+    color: colors.success,
     fontSize: 10,
     fontWeight: '900',
   },
-  headerStatValue: {
-    color: colors.text,
-    fontSize: fontSize.xs,
-    fontWeight: '900',
-    marginTop: 3,
+  headerActionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'stretch',
+    gap: 10,
   },
-  headerStatValueAccent: { color: colors.accent },
-  headerStatValueSuccess: { color: colors.success },
-  headerStatValueWarn: { color: colors.warning },
-  alertReadinessPill: {
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    borderRadius: radius.sm,
-    backgroundColor: colors.panelSoft,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    minHeight: 34,
-    justifyContent: 'center',
-  },
-  alertReadinessPillNotArmed: {
-    borderColor: colors.warning,
-    backgroundColor: colors.warningBg,
-  },
-  alertReadinessPillPressed: { opacity: 0.78 },
-  alertReadinessText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '700' },
-  alertReadinessRetryText: { color: colors.warning, fontSize: fontSize.xs, marginTop: 2, fontWeight: '700' },
-  headerRight: { alignItems: 'flex-end', gap: 8, flexShrink: 1, maxWidth: '100%' },
-  headerMoreButton: { minHeight: 42, minWidth: 88 },
-  headerContactRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 },
   compactContactButton: {
-    minHeight: 42,
-    minWidth: 54,
+    minHeight: ASSISTED_CHAT_HEADER_MIN_BUTTON_HEIGHT,
+    flexGrow: 0,
+    flexShrink: 0,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     paddingHorizontal: 10,
+    ...(warmActionShadow ?? {}),
   },
   callButton: { backgroundColor: colors.accent, borderColor: colors.accent },
   whatsappButton: { backgroundColor: '#25D366', borderColor: '#1FB855' },
   compactContactLabel: { color: '#FFFFFF', fontSize: fontSize.sm, fontWeight: '800' },
   headerInvoiceButton: {
-    minHeight: 42,
-    minWidth: 134,
-    maxWidth: 168,
+    minHeight: ASSISTED_CHAT_HEADER_MIN_BUTTON_HEIGHT,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 132,
+    minWidth: 0,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    borderColor: colors.infoBorder,
+    backgroundColor: colors.infoBg,
     paddingHorizontal: 12,
+    ...(coolActionShadow ?? {}),
   },
   headerInvoiceButtonDisabled: {
     opacity: 0.62,
@@ -3422,11 +4064,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.sm,
     fontWeight: '900',
+    textAlign: 'center',
   },
   headerWhatsAppButton: {
-    minHeight: 42,
-    minWidth: 156,
-    maxWidth: 190,
+    minHeight: ASSISTED_CHAT_HEADER_MIN_BUTTON_HEIGHT,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 94,
+    minWidth: 0,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -3434,6 +4079,7 @@ const styles = StyleSheet.create({
     borderColor: '#1FB855',
     backgroundColor: '#25D366',
     paddingHorizontal: 12,
+    ...(compactCardShadow ?? {}),
   },
   headerWhatsAppButtonDisabled: {
     borderColor: colors.border,
@@ -3444,12 +4090,15 @@ const styles = StyleSheet.create({
     color: '#052E16',
     fontSize: fontSize.sm,
     fontWeight: '900',
+    textAlign: 'center',
   },
   headerWhatsAppLabelDisabled: { color: colors.muted },
   headerClearDraftButton: {
-    minHeight: 42,
-    minWidth: 112,
-    maxWidth: 142,
+    minHeight: ASSISTED_CHAT_HEADER_MIN_BUTTON_HEIGHT,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 108,
+    minWidth: 0,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -3457,6 +4106,7 @@ const styles = StyleSheet.create({
     borderColor: colors.dangerBorder,
     backgroundColor: colors.dangerBg,
     paddingHorizontal: 12,
+    ...(compactCardShadow ?? {}),
   },
   headerClearDraftButtonDisabled: {
     borderColor: colors.border,
@@ -3467,10 +4117,146 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: fontSize.sm,
     fontWeight: '900',
+    textAlign: 'center',
   },
   headerClearDraftLabelDisabled: { color: colors.muted },
   contactButtonPressed: { opacity: 0.82 },
-  scroll: { paddingHorizontal: 16, paddingTop: 14, gap: 14, paddingBottom: 148 },
+  scroll: { paddingHorizontal: 14, paddingTop: 0, gap: 10, paddingBottom: 148 },
+  iconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconBadgeSm: { width: 26, height: 26, borderRadius: 10 },
+  iconBadgeLg: { width: 56, height: 56, borderRadius: 20 },
+  heroPanel: {
+    minHeight: 212,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    backgroundColor: colors.hero,
+    overflow: 'hidden',
+    position: 'relative',
+    flexDirection: 'row',
+    padding: space.lg,
+    ...(premiumPanelShadow ?? {}),
+  },
+  heroContent: {
+    flex: 1,
+    minWidth: 0,
+    zIndex: 2,
+    justifyContent: 'flex-end',
+    paddingRight: 86,
+  },
+  heroStatusBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: space.sm,
+  },
+  heroStatusDot: { width: 8, height: 8, borderRadius: 4 },
+  heroStatusText: { fontSize: fontSize.xs, fontWeight: '900' },
+  heroTitle: {
+    color: colors.text,
+    fontSize: 34,
+    fontWeight: '900',
+    lineHeight: 38,
+    letterSpacing: 0,
+  },
+  heroTitleAccent: { color: colors.accent },
+  heroHelper: {
+    color: colors.muted,
+    fontSize: 16,
+    lineHeight: 20,
+    marginTop: 3,
+    maxWidth: 330,
+  },
+  heroCopyBlock: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 18,
+    zIndex: 3,
+  },
+  actionCard: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    minHeight: 64,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(compactCardShadow ?? {}),
+  },
+  actionCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 0,
+  },
+  actionCardPressed: { opacity: 0.84 },
+  actionCardDisabled: { opacity: 0.56 },
+  actionCardLoader: { position: 'absolute' },
+  actionGlyphFrame: {
+    width: 54,
+    height: 54,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  actionGlyphRing: {
+    position: 'absolute',
+    width: 52,
+    height: 52,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  actionGlyph: {
+    width: 46,
+    height: 46,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+    ...(Platform.OS === 'web'
+      ? { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.26), 0 10px 22px rgba(0,0,0,0.34)' }
+      : {
+          shadowColor: colors.shadow,
+          shadowOpacity: 0.28,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 7 },
+          elevation: 4,
+        }),
+  },
+  actionGlyphCore: {
+    width: 34,
+    height: 34,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  actionGlyphShine: {
+    position: 'absolute',
+    top: -8,
+    bottom: -8,
+    width: 18,
+    backgroundColor: 'rgba(255,255,255,0.34)',
+    zIndex: 3,
+  },
+  activePanelPlain: { gap: 0 },
   priorityBookingButton: { minHeight: 48 },
   summaryStack: { gap: 10 },
   summaryCard: {
@@ -3481,15 +4267,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderStrong,
     borderRadius: radius.md,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.glassStrong,
     padding: 12,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.24,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    overflow: 'hidden',
+    position: 'relative',
+    ...(compactCardShadow ?? {}),
   },
-  summaryCardDone: { borderColor: colors.successBorder, backgroundColor: colors.card },
+  summaryCardDone: { borderColor: colors.successBorder, backgroundColor: colors.successBg },
   summaryCardActive: { borderColor: colors.accent, backgroundColor: colors.accentMuted },
   summaryCardPressed: { backgroundColor: colors.panel },
   summaryMarker: {
@@ -3521,10 +4305,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.cardMuted,
+    backgroundColor: colors.glassStrong,
   },
   summaryRightText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '800' },
-  activeStepBlock: { gap: 12 },
+  activeStepBlock: {
+    gap: space.lg,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    backgroundColor: colors.glass,
+    padding: space.lg,
+    ...(premiumPanelShadow ?? {}),
+  },
+  activePanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+  },
+  activePanelCopy: { flex: 1, minWidth: 0 },
+  activePanelTitle: { color: colors.text, fontSize: fontSize.xxl, fontWeight: '900', letterSpacing: 0 },
+  activePanelHelper: { color: colors.muted, fontSize: fontSize.sm, marginTop: 3, lineHeight: 19 },
+  activePanelBody: { gap: space.md },
+  dispatchedStack: { gap: space.md },
   stepStack: { gap: 12 },
   input: baseInput,
   fieldGap: { height: 10 },
@@ -3540,7 +4341,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderStrong,
     borderRadius: radius.sm,
-    backgroundColor: colors.cardMuted,
+    backgroundColor: colors.glassStrong,
     paddingHorizontal: 10,
     paddingVertical: 7,
     justifyContent: 'center',
@@ -3563,6 +4364,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
     alignItems: 'center' as const,
+    backgroundColor: colors.glass,
   },
   emailModeBtnActive: { borderColor: colors.accent, backgroundColor: colors.ripple },
   emailModeBtnText: { fontSize: 11, fontWeight: '600' as const, color: colors.subtle, textAlign: 'center' as const },
@@ -3577,14 +4379,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderStrong,
     borderRadius: radius.md,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.glassStrong,
     padding: 12,
     gap: 4,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    ...(compactCardShadow ?? {}),
   },
   quoteTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
   quoteTotal: { color: colors.accent, fontSize: fontSize.xl, fontWeight: '900' },
@@ -3608,9 +4406,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderStrong,
     borderRadius: radius.md,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.glassStrong,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    ...(compactCardShadow ?? {}),
   },
   paymentOptionSelected: { borderColor: colors.accent, backgroundColor: colors.accentMuted },
   paymentOptionPressed: { borderColor: colors.glowBorder, backgroundColor: colors.panel },
@@ -3635,9 +4434,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderStrong,
     borderRadius: radius.md,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.glassStrong,
     padding: 12,
     gap: 5,
+    ...(compactCardShadow ?? {}),
   },
   paymentLinkTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
   paymentLinkMeta: { color: colors.muted, fontSize: fontSize.xs, lineHeight: 17 },
@@ -3663,30 +4463,73 @@ const styles = StyleSheet.create({
     borderColor: colors.warningBorder,
     backgroundColor: colors.warningBg,
   },
-  bottomSpacer: { height: 8 },
+  bottomSpacer: { height: 4 },
   bottomBar: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+    left: 10,
+    right: 10,
+    bottom: 8,
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    paddingHorizontal: 14,
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
     paddingTop: 12,
     paddingBottom: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.glowBorder,
-    backgroundColor: colors.surfaceOverlay,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.34,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: -10 },
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 22,
+    backgroundColor: 'rgba(6,10,24,0.96)',
+    ...(premiumPanelShadow ?? {}),
   },
-  backButton: { minWidth: 76, minHeight: 56 },
+  backButton: { minWidth: 76, minHeight: 66 },
+  bottomUtilityButton: {
+    width: 58,
+    minHeight: 70,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.glassStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(compactCardShadow ?? {}),
+  },
   primaryWrap: { flex: 1, minWidth: 0 },
-  primaryButton: { minHeight: 56 },
+  premiumCta: {
+    minHeight: 70,
+    borderRadius: 20,
+    backgroundColor: colors.accent,
+    borderWidth: 1,
+    borderColor: colors.accentHover,
+    justifyContent: 'center',
+    paddingHorizontal: space.sm,
+    ...(warmActionShadow ?? {}),
+  },
+  premiumCtaInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    minWidth: 0,
+  },
+  premiumCtaDisabled: {
+    backgroundColor: colors.glassStrong,
+    borderColor: colors.borderStrong,
+    opacity: 0.72,
+  },
+  premiumCtaPressed: { opacity: 0.86 },
+  premiumCtaIcon: {
+    width: 54,
+    height: 46,
+    borderRadius: 18,
+    backgroundColor: 'rgba(8,11,18,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.30)',
+  },
+  premiumCtaCopy: { flex: 1, minWidth: 0 },
+  premiumCtaLabel: { color: colors.accentText, fontSize: 22, fontWeight: '900' },
+  premiumCtaHelper: { color: 'rgba(8,11,18,0.72)', fontSize: fontSize.xs, fontWeight: '800', marginTop: 2 },
+  premiumCtaArrow: { color: colors.accentText, fontSize: 24, fontWeight: '900', paddingHorizontal: 4 },
   primaryReason: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '700', marginTop: 5 },
   paymentLinkHint: { color: colors.muted, fontSize: fontSize.sm, marginBottom: 8 },
   paymentLinkAmount: { color: colors.text, fontSize: fontSize.md, fontWeight: '700', marginBottom: 2 },
@@ -3700,11 +4543,7 @@ const styles = StyleSheet.create({
     borderColor: colors.glowBorder,
     backgroundColor: colors.surfaceOverlay,
     padding: 16,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.38,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: -12 },
-    elevation: 8,
+    ...(premiumPanelShadow ?? {}),
   },
   sheetGrabber: {
     alignSelf: 'center',
@@ -3724,30 +4563,77 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   sheetTitle: { flex: 1, color: colors.text, fontSize: fontSize.lg, fontWeight: '900' },
-  sheetCloseButton: { minWidth: 86 },
-  sheetList: { gap: 8, paddingBottom: space.md },
+  sheetCloseButton: { minWidth: 96 },
+  sheetList: { gap: 9, paddingBottom: space.md },
   sheetAction: {
-    minHeight: 60,
+    minHeight: 64,
     borderWidth: 1,
     borderColor: colors.borderStrong,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceElevated,
+    borderRadius: 16,
+    backgroundColor: 'rgba(17,24,48,0.82)',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 11,
     justifyContent: 'center',
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    ...(compactCardShadow ?? {}),
   },
-  sheetActionPressed: { backgroundColor: colors.panel, borderColor: colors.glowBorder },
+  sheetActionPressed: { backgroundColor: 'rgba(30,41,79,0.94)', borderColor: colors.glowBorder },
   sheetActionDisabled: { opacity: 0.58 },
   sheetActionDanger: { borderColor: colors.dangerBorder, backgroundColor: colors.dangerBg },
-  sheetActionLabel: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
+  sheetActionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  sheetActionIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.glowBorder,
+    backgroundColor: 'rgba(255,122,24,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web'
+      ? { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 18px rgba(255,122,24,0.12)' }
+      : {
+          shadowColor: colors.shadowWarm,
+          shadowOpacity: 0.16,
+          shadowRadius: 9,
+          shadowOffset: { width: 0, height: 5 },
+          elevation: 2,
+        }),
+  },
+  sheetActionDangerIcon: {
+    borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerBg,
+  },
+  sheetActionIconDisabled: {
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.glass,
+  },
+  sheetActionCopy: { flex: 1, minWidth: 0 },
+  sheetActionLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 0,
+  },
+  sheetActionLabel: {
+    flex: 1,
+    minWidth: 0,
+    color: colors.text,
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '900',
+    letterSpacing: 0,
+  },
   sheetActionDangerLabel: { color: colors.danger },
-  sheetActionDescription: { color: colors.muted, fontSize: fontSize.xs, lineHeight: 16, marginTop: 3 },
-  sheetActionReason: { color: colors.warning, fontSize: fontSize.xs, lineHeight: 16, marginTop: 4, fontWeight: '700' },
+  sheetActionChevron: { flexShrink: 0 },
+  sheetActionDescription: {
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 3,
+    fontWeight: '600',
+    letterSpacing: 0,
+  },
+  sheetActionReason: { color: colors.warning, fontSize: 11, lineHeight: 16, marginTop: 4, fontWeight: '800' },
   reviewBackdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   reviewSheet: {
     maxHeight: '88%',
@@ -3757,33 +4643,34 @@ const styles = StyleSheet.create({
     borderColor: colors.glowBorder,
     backgroundColor: colors.surfaceOverlay,
     padding: 16,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.38,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: -12 },
-    elevation: 8,
+    ...(premiumPanelShadow ?? {}),
   },
   reviewContent: { gap: 8, paddingBottom: 12 },
   reviewActions: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10 },
   reviewPrimary: { minHeight: 56 },
   notifSetupOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   notifSetupSheet: {
-    backgroundColor: colors.bg,
+    backgroundColor: colors.surfaceOverlay,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.glowBorder,
     padding: space.lg,
     gap: space.md,
+    ...(premiumPanelShadow ?? {}),
   },
   notifSetupClose: {
     alignItems: 'center',
     paddingVertical: 14,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.dangerBg,
+    borderWidth: 1,
+    borderColor: colors.dangerBorder,
   },
-  notifSetupClosePressed: { opacity: 0.7 },
-  notifSetupCloseLabel: { color: colors.text, fontSize: fontSize.md, fontWeight: '600' },
+  notifSetupClosePressed: { opacity: 0.76, backgroundColor: 'rgba(255,77,99,0.22)' },
+  notifSetupCloseLabel: { color: colors.danger, fontSize: fontSize.md, fontWeight: '900' },
 });

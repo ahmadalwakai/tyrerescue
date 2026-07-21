@@ -6,12 +6,12 @@ import { getMessages, sendMessage } from '@/lib/chat/queries';
 import type { ChatRole, MessageType } from '@/lib/chat/types';
 import { createAdminNotification } from '@/lib/notifications';
 import { notifyDriverNewMessage } from '@/lib/notifications/driver-push';
-import { db, bookingConversations, bookings } from '@/lib/db';
-import { eq } from 'drizzle-orm';
+import { db, bookingConversations, bookings, conversationParticipants, drivers } from '@/lib/db';
+import { and, eq } from 'drizzle-orm';
 
 const sendSchema = z.object({
   body: z.string().max(5000).nullable(),
-  messageType: z.enum(['text', 'image', 'admin_note']).default('text'),
+  messageType: z.enum(['text', 'image', 'audio', 'admin_note']).default('text'),
   attachment: z.object({
     url: z.string().url(),
     mimeType: z.string(),
@@ -21,6 +21,45 @@ const sendSchema = z.object({
 });
 
 type RouteContext = { params: Promise<{ conversationId: string }> };
+
+function attachmentPreview(messageType: MessageType): string {
+  if (messageType === 'audio') return 'Sent a voice message';
+  if (messageType === 'image') return 'Sent a photo';
+  return 'Sent an attachment';
+}
+
+function getRequestOrigin(request: NextRequest): string {
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? request.nextUrl.host;
+  const protocol = request.headers.get('x-forwarded-proto') ?? request.nextUrl.protocol.replace(':', '') ?? 'http';
+  return `${protocol}://${host}`;
+}
+
+function normalizeLocalChatUploadUrl(rawUrl: string, request: NextRequest): string {
+  try {
+    const url = new URL(rawUrl);
+    const staticPrefix = '/uploads/chat-attachments/';
+    const apiPrefix = '/api/chat/uploads/';
+    if (url.pathname.startsWith(staticPrefix)) {
+      return new URL(`${apiPrefix}${url.pathname.slice(staticPrefix.length)}`, getRequestOrigin(request)).toString();
+    }
+    if (url.pathname.startsWith(apiPrefix) && ['localhost', '127.0.0.1', '0.0.0.0'].includes(url.hostname)) {
+      return new URL(url.pathname, getRequestOrigin(request)).toString();
+    }
+  } catch {
+    // Keep remote blob URLs and unexpected values unchanged.
+  }
+  return rawUrl;
+}
+
+function normalizeMessageUploadUrls<T extends { attachments: { url: string }[] }>(message: T, request: NextRequest): T {
+  return {
+    ...message,
+    attachments: message.attachments.map((attachment) => ({
+      ...attachment,
+      url: normalizeLocalChatUploadUrl(attachment.url, request),
+    })),
+  };
+}
 
 /** GET /api/chat/conversations/[conversationId]/messages — paginated messages */
 export async function GET(req: NextRequest, ctx: RouteContext) {
@@ -42,7 +81,10 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
   const limit = Math.min(parseInt(req.nextUrl.searchParams.get('limit') ?? '50', 10), 100);
 
   const result = await getMessages(conversationId, role, cursor, limit);
-  return NextResponse.json(result);
+  return NextResponse.json({
+    ...result,
+    messages: result.messages.map((message) => normalizeMessageUploadUrls(message, req)),
+  });
 }
 
 /** POST /api/chat/conversations/[conversationId]/messages — send a message */
@@ -75,6 +117,14 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
   // Must have body or attachment
   if (!msgBody && !attachment) {
     return NextResponse.json({ error: 'Message must have text or an attachment' }, { status: 400 });
+  }
+
+  if (messageType === 'audio' && !attachment?.mimeType.toLowerCase().startsWith('audio/')) {
+    return NextResponse.json({ error: 'Voice messages must include an audio attachment' }, { status: 400 });
+  }
+
+  if (messageType === 'image' && !attachment?.mimeType.toLowerCase().startsWith('image/')) {
+    return NextResponse.json({ error: 'Image messages must include an image attachment' }, { status: 400 });
   }
 
   // Ensure sender is a participant
@@ -111,7 +161,7 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
     createAdminNotification({
       type: 'chat.message.received',
       title: 'New Chat Message',
-      body: `${role === 'driver' ? 'Driver' : 'Customer'}: ${msgBody?.slice(0, 80) || 'Sent an attachment'}`,
+      body: `${role === 'driver' ? 'Driver' : 'Customer'}: ${msgBody?.slice(0, 80) || attachmentPreview(messageType)}`,
       entityType: 'chat',
       entityId: conversationId,
       link: adminLink,
@@ -122,7 +172,7 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
         customerName: convContext?.customerName,
         customerPhone: convContext?.customerPhone,
         chatSenderRole: role,
-        chatPreview: msgBody?.slice(0, 160) || 'Sent an attachment',
+        chatPreview: msgBody?.slice(0, 160) || attachmentPreview(messageType),
         important: true,
         updateType: 'created',
         adminPath: adminLink,
@@ -134,12 +184,24 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
   if (role !== 'driver') {
     (async () => {
       try {
-        if (!convContext?.driverId) return;
+        const [participantDriver] = await db
+          .select({ driverId: drivers.id })
+          .from(conversationParticipants)
+          .innerJoin(drivers, eq(drivers.userId, conversationParticipants.userId))
+          .where(
+            and(
+              eq(conversationParticipants.conversationId, conversationId),
+              eq(conversationParticipants.role, 'driver'),
+            ),
+          )
+          .limit(1);
+        const notifyDriverId = participantDriver?.driverId ?? convContext?.driverId;
+        if (!notifyDriverId) return;
         await notifyDriverNewMessage(
-          convContext.driverId,
+          notifyDriverId,
           conversationId,
           session.user.name ?? (role === 'admin' ? 'Admin' : 'Customer'),
-          msgBody?.slice(0, 100) || 'Sent an attachment',
+          msgBody?.slice(0, 100) || attachmentPreview(messageType),
         );
       } catch (err) {
         console.error('[chat] Failed to notify driver:', err);
@@ -147,5 +209,5 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
     })();
   }
 
-  return NextResponse.json(message, { status: 201 });
+  return NextResponse.json(normalizeMessageUploadUrls(message, req), { status: 201 });
 }

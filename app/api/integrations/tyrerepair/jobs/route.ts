@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { db, bookings, drivers } from "@/lib/db";
+import { db, bookings, bookingStatusHistory, drivers } from "@/lib/db";
 import { generateRefNumber } from "@/lib/utils";
 import { executeTransition } from "@/lib/state-machine";
 import { notifyDriverNewJob } from "@/lib/notifications/driver-push";
@@ -238,6 +238,15 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+
+  await db.insert(bookingStatusHistory).values({
+    bookingId,
+    fromStatus: null,
+    toStatus: "paid",
+    actorUserId: null,
+    actorRole: "system",
+    note: "Booking created via tyrerepair.uk integration",
+  });
 
   // Move the booking into the driver-assigned state via the canonical machine.
   const transition = await executeTransition(

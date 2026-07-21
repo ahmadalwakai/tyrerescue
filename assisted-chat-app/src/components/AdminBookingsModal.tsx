@@ -13,7 +13,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { api, API_BASE_URL, getAdminToken } from '@/lib/api';
+import { api } from '@/lib/api';
+import { downloadInvoicePdfToDevice } from '@/lib/invoice-download';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 
@@ -57,9 +58,25 @@ interface MobileStatusHistoryEntry {
   id: string;
   fromStatus: string | null;
   toStatus: string;
+  actorUserId: string | null;
   actorRole: string | null;
+  actorName?: string | null;
+  actorEmail?: string | null;
+  actorDisplayName: string;
+  action: string;
+  description: string | null;
   note: string | null;
   createdAt: string | null;
+}
+
+interface MobileBookingInformation {
+  createdBy: string;
+  createdByUserId: string | null;
+  createdAt: string | null;
+  lastUpdatedBy: string;
+  lastUpdatedByUserId: string | null;
+  lastUpdatedAt: string | null;
+  currentAssignedAdmin?: string | null;
 }
 
 interface MobileAssignedDriver {
@@ -124,6 +141,7 @@ interface MobileBooking {
 
 interface MobileDetailResponse {
   booking: MobileBooking;
+  bookingInformation: MobileBookingInformation;
   tyres: MobileTyre[];
   statusHistory: MobileStatusHistoryEntry[];
   assignedDriver: MobileAssignedDriver | null;
@@ -625,10 +643,10 @@ function BookingDetailView({
         `/api/mobile/admin/bookings/${encodeURIComponent(refNumber)}/invoice`,
         {},
       );
-      const token = getAdminToken();
-      const qs = token ? `?token=${encodeURIComponent(token)}` : '';
-      const url = `${API_BASE_URL}/api/mobile/admin/invoices/${result.invoice.id}/pdf${qs}`;
-      await Linking.openURL(url);
+      await downloadInvoicePdfToDevice({
+        invoiceId: result.invoice.id,
+        invoiceNumber: result.invoice.invoiceNumber,
+      });
       void load();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Failed to download invoice.');
@@ -699,7 +717,7 @@ function BookingDetailView({
         </Pressable>
         {actionError ? <StatusBanner kind="err" message={actionError} /> : null}
         {actionSuccess ? <Text style={styles.actionSuccessText}>{actionSuccess}</Text> : null}
-        <AppButton label="Close" variant="ghost" onPress={() => setAction(null)} style={styles.actionCloseBtn} />
+        <AppButton label="Close" variant="danger" onPress={() => setAction(null)} style={styles.actionCloseBtn} />
         <View style={{ height: 32 }} />
       </ScrollView>
     );
@@ -962,6 +980,16 @@ function BookingDetailView({
               {renderActionBar()}
               {actionError && action === null ? <StatusBanner kind="err" message={actionError} /> : null}
 
+              {/* Booking Information */}
+              <SectionTitle title="Booking Information" />
+              <View style={styles.card}>
+                <DetailRow label="Created by" value={data.bookingInformation.createdBy} />
+                <DetailRow label="Created at" value={formatDate(data.bookingInformation.createdAt)} />
+                <DetailRow label="Last updated by" value={data.bookingInformation.lastUpdatedBy} />
+                <DetailRow label="Last updated at" value={formatDate(data.bookingInformation.lastUpdatedAt)} />
+                <DetailRow label="Current assigned admin" value={data.bookingInformation.currentAssignedAdmin} />
+              </View>
+
               {/* Customer */}
               <SectionTitle title="Customer" />
               <View style={styles.card}>
@@ -1107,21 +1135,17 @@ function BookingDetailView({
                 </>
               ) : null}
 
-              {/* Status History */}
+              {/* Booking Timeline */}
               {data.statusHistory.length > 0 ? (
                 <>
-                  <SectionTitle title="Status History" />
+                  <SectionTitle title="Booking Timeline" />
                   <View style={styles.card}>
                     {data.statusHistory.map((h) => (
                       <View key={h.id} style={styles.historyRow}>
                         <View style={styles.historyLeft}>
-                          <Text style={styles.historyTransition}>
-                            {h.fromStatus
-                              ? `${STATUS_LABELS[h.fromStatus] ?? h.fromStatus} → ${STATUS_LABELS[h.toStatus] ?? h.toStatus}`
-                              : STATUS_LABELS[h.toStatus] ?? h.toStatus}
-                          </Text>
-                          {h.note ? <Text style={styles.historyNote}>{h.note}</Text> : null}
-                          {h.actorRole ? <Text style={styles.historyActor}>{h.actorRole}</Text> : null}
+                          <Text style={styles.historyTransition}>{h.action}</Text>
+                          {h.description ? <Text style={styles.historyNote}>{h.description}</Text> : null}
+                          {h.actorDisplayName ? <Text style={styles.historyActor}>{h.actorDisplayName}</Text> : null}
                         </View>
                         <Text style={styles.historyDate}>{formatDate(h.createdAt)}</Text>
                       </View>
@@ -1452,18 +1476,19 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     minHeight: 44,
-    minWidth: 64,
+    minWidth: 76,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.dangerBorder,
     borderRadius: radius.md,
+    backgroundColor: colors.dangerBg,
     paddingHorizontal: space.md,
   },
   closeBtnText: {
-    color: colors.muted,
+    color: colors.danger,
     fontSize: fontSize.sm,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   backBtn: {
     minHeight: 44,
@@ -1702,7 +1727,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: fontSize.xs,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0,
     textTransform: 'uppercase',
     marginTop: space.sm,
     marginBottom: 2,
@@ -1954,7 +1979,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: fontSize.xs,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0,
     textTransform: 'uppercase',
     marginTop: space.md,
     marginBottom: 2,

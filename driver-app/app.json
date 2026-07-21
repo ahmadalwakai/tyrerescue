@@ -18,6 +18,9 @@
       "bundleIdentifier": "uk.tyrerescue.driver",
       "buildNumber": "5",
       "infoPlist": {
+        "NSCameraUsageDescription": "Tyre Rescue uses the camera so drivers can send job photos in chat.",
+        "NSMicrophoneUsageDescription": "Tyre Rescue uses the microphone so drivers can send voice messages in chat.",
+        "NSPhotoLibraryUsageDescription": "Tyre Rescue uses your photo library so drivers can send images in chat.",
         "NSLocationWhenInUseUsageDescription": "We use your location to show your route to the customer and update dispatch while you are working on a job.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "We use background location during active jobs so dispatch can see progress and support customers. Tracking stops when the job is closed.",
         "UIBackgroundModes": [
@@ -44,15 +47,19 @@
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_LOCATION",
         "RECEIVE_BOOT_COMPLETED",
+        "CAMERA",
         "POST_NOTIFICATIONS",
+        "RECORD_AUDIO",
         "VIBRATE",
         "WAKE_LOCK",
         "USE_FULL_SCREEN_INTENT",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.CAMERA",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.RECORD_AUDIO",
         "android.permission.USE_FULL_SCREEN_INTENT"
       ]
     },
@@ -95,14 +102,23 @@
       ],
       "expo-localization",
       [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Tyre Rescue uses the camera so drivers can send job photos in chat.",
+          "photosPermission": "Tyre Rescue uses your photo library so drivers can send images in chat.",
+          "microphonePermission": "Tyre Rescue uses the microphone so drivers can send voice messages in chat."
+        }
+      ],
+      [
         "expo-audio",
         {
           "enableBackgroundPlayback": false,
           "enableBackgroundRecording": false,
-          "recordAudioAndroid": false,
-          "microphonePermission": false
+          "recordAudioAndroid": true,
+          "microphonePermission": "Tyre Rescue uses the microphone so drivers can send voice messages in chat."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "extra": {
       "router": {

@@ -209,6 +209,81 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
   return data as T;
 }
 
+async function appendMultipartFile(
+  formData: FormData,
+  uri: string,
+  fileName: string,
+  mimeType: string,
+  webFile?: File,
+): Promise<void> {
+  if (Platform.OS === 'web') {
+    if (webFile) {
+      formData.append('file', webFile, fileName);
+      return;
+    }
+    const response = await fetch(uri);
+    const sourceBlob = await response.blob();
+    const blob = sourceBlob.type ? sourceBlob : new Blob([await sourceBlob.arrayBuffer()], { type: mimeType });
+    formData.append('file', blob, fileName);
+    return;
+  }
+
+  formData.append('file', { uri, name: fileName, type: mimeType } as unknown as Blob);
+}
+
+async function multipartApi<T = unknown>(path: string, formData: FormData): Promise<T> {
+  const baseUrl = await getApiUrl();
+  const token = await getToken();
+  const headers: Record<string, string> = {};
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  let res: Response;
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeout = controller
+    ? setTimeout(() => controller.abort(), API_TIMEOUT_MS)
+    : null;
+  try {
+    res = await fetch(`${baseUrl}${path}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      signal: controller?.signal,
+    });
+  } catch {
+    throw new ApiError('Network error. Check your connection and try again.', 0, null, 'network');
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+
+  if (res.status === 401) {
+    await clearToken();
+    throw new ApiError('Session expired. Please log in again.', 401);
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  let data: unknown;
+  try {
+    data = contentType.includes('application/json') ? await res.json() : await res.text();
+  } catch {
+    throw new ApiError(
+      res.ok ? 'Invalid server response' : `Request failed (${res.status})`,
+      res.status,
+      null,
+      'parse',
+    );
+  }
+
+  if (!res.ok) {
+    const errBody = data as Record<string, string> | null;
+    throw new ApiError(errBody?.error || `Request failed (${res.status})`, res.status);
+  }
+
+  return data as T;
+}
+
 // ── Typed API methods ──
 
 export interface LoginResponse {
@@ -521,13 +596,22 @@ export interface ChatMessage {
   messageType: string;
   readAt: string | null;
   createdAt: string;
+  deleted?: boolean;
   attachments?: {
     id: string;
     url: string;
     mimeType: string;
     fileSize: number;
     fileName: string | null;
+    deleted?: boolean;
   }[];
+}
+
+export interface ChatAttachmentUpload {
+  url: string;
+  mimeType: string;
+  fileSize: number;
+  fileName?: string;
 }
 
 export interface MessagesResponse {
@@ -556,6 +640,36 @@ export const chatApi = {
     api<ChatMessage>(`/api/chat/conversations/${conversationId}/messages`, {
       method: 'POST',
       body: { body, messageType: 'text' },
+    }),
+
+  uploadAttachment: async (uri: string, mimeType: string, fileName: string, webFile?: File) => {
+    const formData = new FormData();
+    await appendMultipartFile(formData, uri, fileName, mimeType, webFile);
+    return multipartApi<ChatAttachmentUpload>('/api/chat/upload', formData);
+  },
+
+  sendVoiceMessage: (conversationId: string, attachment: ChatAttachmentUpload) =>
+    api<ChatMessage>(`/api/chat/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: { body: null, messageType: 'audio', attachment },
+    }),
+
+  sendImageMessage: (conversationId: string, attachment: ChatAttachmentUpload) =>
+    api<ChatMessage>(`/api/chat/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: { body: null, messageType: 'image', attachment },
+    }),
+
+  updateMessage: (conversationId: string, messageId: string, body: string) =>
+    api<ChatMessage>(`/api/chat/conversations/${conversationId}/messages/${messageId}`, {
+      method: 'PATCH',
+      body: { action: 'edit', body },
+    }),
+
+  deleteMessage: (conversationId: string, messageId: string) =>
+    api<ChatMessage>(`/api/chat/conversations/${conversationId}/messages/${messageId}`, {
+      method: 'PATCH',
+      body: { action: 'delete' },
     }),
 
   markRead: (conversationId: string) =>

@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type ViewStyle,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { WebView } from 'react-native-webview';
@@ -32,6 +33,30 @@ const STATUS_LABEL: Record<string, string> = {
   arrived: 'Arrived',
   in_progress: 'In progress',
 };
+
+const activeJobsPanelShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 -6px 14px rgba(249,115,22,0.16)' }
+    : {
+        shadowColor: colors.accent,
+        shadowOpacity: 0.16,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: -6 },
+        elevation: 5,
+      }
+) as ViewStyle;
+
+const activeJobsRowShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 6px 12px rgba(79,140,255,0.10)' }
+    : {
+        shadowColor: colors.blue,
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 2,
+      }
+) as ViewStyle;
 
 const gbpFormatter = new Intl.NumberFormat('en-GB', {
   style: 'currency',
@@ -1511,11 +1536,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.glowBorder,
     backgroundColor: colors.surface,
     gap: space.sm,
-    shadowColor: colors.accent,
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: -6 },
-    elevation: 5,
+    ...activeJobsPanelShadow,
   },
   panelTop: {
     flexDirection: 'row',
@@ -1539,9 +1560,10 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerBg,
   },
-  closeBtnText: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
+  closeBtnText: { color: colors.danger, fontSize: fontSize.sm, fontWeight: '900' },
   btnPressed: { opacity: 0.65 },
   metaRow: {
     flexDirection: 'row',
@@ -1601,11 +1623,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     padding: space.md,
     gap: 4,
-    shadowColor: colors.blue,
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    ...activeJobsRowShadow,
   },
   rowPressed: { opacity: 0.7 },
   rowMain: { gap: 4 },
@@ -1644,7 +1662,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0,
   },
   rowStatusStale: { color: colors.warning },
   rowPrimary: { color: colors.text, fontSize: fontSize.md, fontWeight: '600' },

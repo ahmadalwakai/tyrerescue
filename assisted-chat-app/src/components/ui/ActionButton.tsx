@@ -42,21 +42,21 @@ interface VariantPalette {
 }
 
 const buttonShadow = Platform.select<ViewStyle>({
-  web: { boxShadow: '0 7px 12px rgba(0,0,0,0.22)' } as ViewStyle,
+  web: { boxShadow: '0 12px 28px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.08)' } as ViewStyle,
   default: {
     shadowColor: colors.shadow,
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.32,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 4,
   },
 });
 
 const primaryButtonShadow = Platform.select<ViewStyle>({
-  web: { boxShadow: '0 7px 12px rgba(249,115,22,0.22)' } as ViewStyle,
+  web: { boxShadow: '0 14px 32px rgba(255,122,24,0.36), 0 0 24px rgba(255,122,24,0.20)' } as ViewStyle,
   default: {
     shadowColor: colors.shadowWarm,
-    shadowOpacity: 0.22,
+    shadowOpacity: 0.34,
   },
 });
 
@@ -71,12 +71,12 @@ const VARIANTS: Record<ActionButtonVariant, VariantPalette> = {
     textColor: colors.accentText,
   },
   secondary: {
-    base: { backgroundColor: colors.surfaceElevated, borderColor: colors.borderStrong },
-    pressed: { backgroundColor: colors.panel, borderColor: colors.glowBorder },
+    base: { backgroundColor: colors.glassStrong, borderColor: colors.borderStrong },
+    pressed: { backgroundColor: colors.panel, borderColor: colors.infoBorder },
     textColor: colors.text,
   },
   ghost: {
-    base: { backgroundColor: colors.cardMuted, borderColor: colors.border },
+    base: { backgroundColor: colors.glass, borderColor: colors.border },
     pressed: { backgroundColor: colors.surfaceElevated, borderColor: colors.borderStrong },
     textColor: colors.muted,
   },
@@ -228,8 +228,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: 0,
+    textAlign: 'center',
   },
   disabled: {
     opacity: 0.55,

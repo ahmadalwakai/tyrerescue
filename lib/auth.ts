@@ -7,10 +7,13 @@ import '@/lib/config/auth-url-guard';
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
-import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { db, users, accounts, drivers } from '@/lib/db';
 import { eq, and } from 'drizzle-orm';
+import {
+  hashPassword as hashPasswordValue,
+  verifyPassword as verifyPasswordValue,
+} from './password-hashing';
 
 // Extend NextAuth types
 declare module 'next-auth' {
@@ -63,7 +66,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+        const isValidPassword = await verifyPasswordValue(password, user.passwordHash);
 
         if (!isValidPassword) {
           return null;
@@ -231,7 +234,7 @@ export async function requireDriverOrAdmin() {
 
 // Password hashing utility
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12);
+  return hashPasswordValue(password);
 }
 
 // Verify password utility
@@ -239,7 +242,7 @@ export async function verifyPassword(
   password: string,
   hashedPassword: string
 ): Promise<boolean> {
-  return bcrypt.compare(password, hashedPassword);
+  return verifyPasswordValue(password, hashedPassword);
 }
 
 // ── Mobile JWT helpers ──

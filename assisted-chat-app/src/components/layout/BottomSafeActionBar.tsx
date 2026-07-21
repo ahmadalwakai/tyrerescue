@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, space } from '../theme';
 
@@ -34,13 +34,18 @@ const styles = StyleSheet.create({
     gap: space.sm,
     paddingHorizontal: space.lg,
     paddingTop: space.md,
-    backgroundColor: colors.surfaceOverlay,
+    backgroundColor: 'rgba(3,6,15,0.97)',
     borderTopWidth: 1,
-    borderTopColor: colors.glowBorder,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.32,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: -10 },
-    elevation: 8,
+    borderTopColor: colors.border,
+    ...Platform.select<ViewStyle>({
+      web: { boxShadow: '0 -18px 40px rgba(0,0,0,0.44), inset 0 1px 0 rgba(255,255,255,0.08)' } as ViewStyle,
+      default: {
+        shadowColor: colors.shadow,
+        shadowOpacity: 0.36,
+        shadowRadius: 22,
+        shadowOffset: { width: 0, height: -11 },
+        elevation: 8,
+      },
+    }),
   },
 });

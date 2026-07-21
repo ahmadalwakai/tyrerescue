@@ -36,6 +36,7 @@ interface AdminHeaderButtonProps {
   onPress: () => void;
   disabled?: boolean;
   primary?: boolean;
+  danger?: boolean;
 }
 
 export function AdminModalShell({
@@ -73,6 +74,8 @@ export function AdminChromeBackdrop() {
   return (
     <View style={[styles.backdrop, styles.noPointerEvents]}>
       <View style={styles.topBand} />
+      <View style={styles.coolBloom} />
+      <View style={styles.warmBloom} />
       <View style={styles.midBand} />
       <View style={styles.sideRail} />
       <View style={styles.bottomBand} />
@@ -107,12 +110,18 @@ export function AdminModalHeader({
         ) : null}
       </View>
       {actions ? <View style={styles.actions}>{actions}</View> : null}
-      {onClose ? <AdminHeaderButton label={closeLabel} onPress={onClose} /> : null}
+      {onClose ? (
+        <AdminHeaderButton
+          label={closeLabel}
+          onPress={onClose}
+          danger={closeLabel.trim().toLowerCase() === 'close'}
+        />
+      ) : null}
     </Animated.View>
   );
 }
 
-export function AdminHeaderButton({ label, onPress, disabled, primary }: AdminHeaderButtonProps) {
+export function AdminHeaderButton({ label, onPress, disabled, primary, danger }: AdminHeaderButtonProps) {
   const { pressScaleStyle, pressIn, pressOut } = usePressScale(Boolean(disabled));
   const handlePressIn = (_event: GestureResponderEvent) => {
     pressIn();
@@ -131,12 +140,21 @@ export function AdminHeaderButton({ label, onPress, disabled, primary }: AdminHe
       style={({ pressed }) => [
         styles.button,
         primary && styles.buttonPrimary,
+        danger && styles.buttonDanger,
         pressed && !disabled && styles.pressed,
+        pressed && !disabled && danger && styles.buttonDangerPressed,
         disabled && styles.disabled,
       ]}
     >
       <Animated.View style={pressScaleStyle}>
-        <Text style={[styles.buttonText, primary && styles.buttonPrimaryText]} numberOfLines={1}>
+        <Text
+          style={[
+            styles.buttonText,
+            primary && styles.buttonPrimaryText,
+            danger && styles.buttonDangerText,
+          ]}
+          numberOfLines={1}
+        >
           {label}
         </Text>
       </Animated.View>
@@ -145,24 +163,35 @@ export function AdminHeaderButton({ label, onPress, disabled, primary }: AdminHe
 }
 
 const headerShadow = Platform.select<ViewStyle>({
-  web: { boxShadow: '0 10px 18px rgba(0,0,0,0.30)' } as ViewStyle,
+  web: { boxShadow: '0 18px 40px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.08)' } as ViewStyle,
   default: {
     shadowColor: colors.shadow,
-    shadowOpacity: 0.3,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.38,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
     elevation: 5,
   },
 });
 
 const buttonShadow = Platform.select<ViewStyle>({
-  web: { boxShadow: '0 6px 10px rgba(0,0,0,0.22)' } as ViewStyle,
+  web: { boxShadow: '0 10px 24px rgba(0,0,0,0.34)' } as ViewStyle,
   default: {
     shadowColor: colors.shadow,
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 9 },
     elevation: 3,
+  },
+});
+
+const dangerButtonShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 12px 28px rgba(255,77,99,0.28), inset 0 1px 0 rgba(255,255,255,0.16)' } as ViewStyle,
+  default: {
+    shadowColor: colors.danger,
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
   },
 });
 
@@ -193,41 +222,61 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
-    height: 156,
-    backgroundColor: colors.surfaceElevated,
-    opacity: 0.78,
+    height: 188,
+    backgroundColor: colors.surfaceOverlay,
+    opacity: 0.92,
     borderBottomWidth: 1,
     borderBottomColor: colors.glowBorder,
+  },
+  coolBloom: {
+    position: 'absolute',
+    right: -54,
+    top: 42,
+    width: 180,
+    height: 132,
+    borderRadius: 8,
+    backgroundColor: colors.blueBg,
+    opacity: 0.8,
+  },
+  warmBloom: {
+    position: 'absolute',
+    left: -38,
+    top: 86,
+    width: 146,
+    height: 112,
+    borderRadius: 8,
+    backgroundColor: colors.accentSoft,
+    opacity: 0.72,
   },
   midBand: {
     position: 'absolute',
     left: 18,
     right: 18,
-    top: 96,
-    height: 76,
+    top: 104,
+    height: 86,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.borderSoft,
-    backgroundColor: colors.accentMuted,
-    opacity: 0.72,
+    backgroundColor: colors.glass,
+    opacity: 0.88,
   },
   sideRail: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    width: 3,
+    width: 2,
     backgroundColor: colors.accent,
-    opacity: 0.78,
+    opacity: 0.58,
   },
   bottomBand: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: 110,
-    backgroundColor: colors.surfaceElevated,
-    opacity: 0.3,
+    height: 126,
+    backgroundColor: colors.bgDeep,
+    opacity: 0.68,
   },
   header: {
     flexDirection: 'row',
@@ -254,7 +303,7 @@ const styles = StyleSheet.create({
   },
   copy: {
     flex: 1,
-    minWidth: 160,
+    minWidth: 184,
   },
   title: {
     color: colors.text,
@@ -284,20 +333,34 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.glassStrong,
     ...(buttonShadow ?? {}),
   },
   buttonPrimary: {
     borderColor: colors.accent,
     backgroundColor: colors.accent,
   },
+  buttonDanger: {
+    borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerBg,
+    ...(dangerButtonShadow ?? {}),
+  },
+  buttonDangerPressed: {
+    backgroundColor: 'rgba(255,77,99,0.22)',
+    borderColor: colors.danger,
+    opacity: 0.86,
+  },
   buttonText: {
     color: colors.text,
     fontSize: fontSize.xs,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   buttonPrimaryText: {
     color: colors.accentText,
+  },
+  buttonDangerText: {
+    color: colors.danger,
+    fontWeight: '900',
   },
   pressed: {
     opacity: 0.65,

@@ -2,17 +2,19 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  type ViewStyle,
 } from 'react-native';
 import { colors, fontSize, radius, space } from './theme';
-import { api, API_BASE_URL, getAdminToken } from '@/lib/api';
+import { api } from '@/lib/api';
+import { downloadInvoicePdfToDevice } from '@/lib/invoice-download';
 import { AdminHeaderButton, AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 import {
   useAdminInvoices,
@@ -32,6 +34,30 @@ const STATUS_OPTIONS = [
   { value: 'archived', label: 'Archived' },
   { value: 'cancelled', label: 'Cancelled' },
 ];
+
+const invoiceListCardShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 6px 12px rgba(79,140,255,0.10)' }
+    : {
+        shadowColor: colors.blue,
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 2,
+      }
+) as ViewStyle;
+
+const invoiceSectionShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 6px 12px rgba(249,115,22,0.08)' }
+    : {
+        shadowColor: colors.accent,
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 2,
+      }
+) as ViewStyle;
 
 const STATUS_COLOR: Record<string, string> = {
   draft: '#A1A1AA',
@@ -305,10 +331,16 @@ function InvoiceDetailView({ invoiceId, onClose, onEdit, onAction, actionLoading
   const busy = actionLoading === invoiceId;
 
   function openPdf() {
-    const token = getAdminToken();
-    const qs = token ? `?token=${encodeURIComponent(token)}` : '';
-    const url = `${API_BASE_URL}/api/mobile/admin/invoices/${invoiceId}/pdf${qs}`;
-    void Linking.openURL(url);
+    if (!detail) return;
+    void downloadInvoicePdfToDevice({
+      invoiceId,
+      invoiceNumber: detail.invoiceNumber,
+    }).catch((error) => {
+      Alert.alert(
+        'Download failed',
+        error instanceof Error ? error.message : 'Could not download invoice.',
+      );
+    });
   }
 
   return (
@@ -674,11 +706,7 @@ const s = StyleSheet.create({
   invoiceCard: {
     backgroundColor: colors.card, borderRadius: radius.lg,
     borderWidth: 1, borderColor: colors.borderStrong, marginBottom: space.sm, overflow: 'hidden',
-    shadowColor: colors.blue,
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    ...invoiceListCardShadow,
   },
   invoiceCardTop: { padding: space.md, flexDirection: 'row', gap: space.sm },
   invoiceCardExpanded: { borderTopWidth: 1, borderTopColor: colors.border, padding: space.md },
@@ -718,21 +746,18 @@ const s = StyleSheet.create({
   formTitle: { fontSize: fontSize.xl, fontWeight: '800', color: colors.text },
   closeBtn: {
     padding: space.sm, borderRadius: radius.sm,
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: 1, borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerBg,
   },
-  closeBtnText: { fontSize: fontSize.md, color: colors.muted },
+  closeBtnText: { fontSize: fontSize.md, color: colors.danger, fontWeight: '900' },
   formBody: { padding: space.md, paddingBottom: 80 },
   section: {
     backgroundColor: colors.card, borderRadius: radius.lg,
     padding: space.md, marginBottom: space.md,
     borderWidth: 1, borderColor: colors.borderStrong,
-    shadowColor: colors.accent,
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    ...invoiceSectionShadow,
   },
-  sectionTitle: { fontSize: fontSize.xs, fontWeight: '700', color: colors.subtle, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: space.md },
+  sectionTitle: { fontSize: fontSize.xs, fontWeight: '700', color: colors.subtle, textTransform: 'uppercase', letterSpacing: 0, marginBottom: space.md },
   grid2: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   fieldGroup: { minWidth: '45%', flex: 1, marginBottom: space.sm },
   fieldLabel: { fontSize: fontSize.xs, color: colors.muted, marginBottom: 4 },
@@ -765,11 +790,7 @@ const s = StyleSheet.create({
   card: {
     backgroundColor: colors.card, borderRadius: radius.lg,
     padding: space.md, marginBottom: space.md, borderWidth: 1, borderColor: colors.borderStrong,
-    shadowColor: colors.accent,
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    ...invoiceSectionShadow,
   },
   amountLarge: { fontSize: 28, fontWeight: '800', fontFamily: 'monospace' },
   lineItemRow: { marginBottom: space.sm },

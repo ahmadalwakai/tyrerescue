@@ -226,7 +226,7 @@ export function useActiveJobs(enabled: boolean) {
       setLastUpdated(Date.now());
     } catch (err) {
       if (!aliveRef.current) return;
-      console.error('[active-jobs] load failed', err);
+      console.warn('[active-jobs] load failed', err);
       setError(err instanceof Error ? err.message : 'Failed to load active jobs');
     } finally {
       if (aliveRef.current) setLoading(false);

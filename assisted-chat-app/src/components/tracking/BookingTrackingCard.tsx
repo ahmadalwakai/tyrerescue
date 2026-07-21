@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { AppButton, StatusBanner } from '@/components/ui';
 import { colors, fontSize, radius, space } from '@/components/theme';
 import { copyToClipboard } from '@/lib/clipboard';
@@ -307,14 +307,26 @@ export function BookingTrackingCard({
   );
 }
 
+const trackingCardShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 16px 38px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.07)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.32,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 5,
+  },
+});
+
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.glassStrong,
     borderRadius: radius.lg,
     padding: space.lg,
     gap: space.sm,
+    ...trackingCardShadow,
   },
   headerRow: {
     flexDirection: 'row',
@@ -325,7 +337,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: fontSize.xs,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0,
   },
   refNumber: {
     color: colors.text,
@@ -345,15 +357,16 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.card,
+    backgroundColor: colors.glass,
     borderRadius: radius.md,
     padding: space.sm,
+    ...trackingCardShadow,
   },
   metricLabel: {
     color: colors.subtle,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0,
   },
   metricValue: {
     color: colors.text,

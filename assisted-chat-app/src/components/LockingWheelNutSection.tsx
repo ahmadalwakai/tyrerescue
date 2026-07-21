@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
 import type { AssistedChatDraft, LockingNutAnswer } from '@/types/assisted-chat';
 import { FieldLabel, SectionCard } from './ui';
 import { colors, fontSize, radius } from './theme';
@@ -120,6 +120,17 @@ export function LockingWheelNutSection({ draft, update }: Props) {
   );
 }
 
+const lockingCardShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 12px 28px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.06)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.26,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 9 },
+    elevation: 4,
+  },
+});
+
 const styles = StyleSheet.create({
   question: {
     fontSize: fontSize.md,
@@ -135,8 +146,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.md,
-    backgroundColor: colors.card,
+    backgroundColor: colors.glassStrong,
     gap: 12,
+    ...lockingCardShadow,
   },
   optionSelected: {
     borderColor: colors.accent,
@@ -177,6 +189,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.text,
     backgroundColor: colors.inputBg,
+    ...lockingCardShadow,
   },
   error: { marginTop: 6, color: colors.danger, fontSize: fontSize.xs },
   warning: {

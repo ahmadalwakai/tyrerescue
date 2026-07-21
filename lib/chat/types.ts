@@ -3,7 +3,7 @@
 export type ChatChannel = 'customer_admin' | 'customer_driver' | 'admin_driver';
 export type ChatRole = 'customer' | 'admin' | 'driver';
 export type ConversationStatus = 'open' | 'closed' | 'archived';
-export type MessageType = 'text' | 'image' | 'admin_note';
+export type MessageType = 'text' | 'image' | 'audio' | 'admin_note';
 export type DeliveryStatus = 'sending' | 'sent' | 'delivered' | 'failed';
 
 export interface ConversationSummary {
@@ -15,6 +15,7 @@ export interface ConversationSummary {
   locked: boolean;
   muted: boolean;
   customerName: string;
+  driverId: string | null;
   driverName: string | null;
   lastMessageBody: string | null;
   lastMessageAt: string | null;
@@ -32,6 +33,7 @@ export interface MessageView {
   messageType: MessageType;
   deliveryStatus: DeliveryStatus;
   attachments: AttachmentView[];
+  deleted: boolean;
   createdAt: string;
 }
 

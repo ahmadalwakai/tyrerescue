@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { cookieSettings, users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 export async function GET() {
   const session = await auth();
@@ -21,7 +21,8 @@ export async function GET() {
       updatedByName: users.name,
     })
     .from(cookieSettings)
-    .leftJoin(users, eq(cookieSettings.updatedBy, users.id));
+    .leftJoin(users, eq(cookieSettings.updatedBy, users.id))
+    .where(sql`${cookieSettings.key} NOT LIKE 'security.%'`);
 
   return NextResponse.json(rows);
 }

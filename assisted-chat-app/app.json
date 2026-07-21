@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tyre Rescue Assisted Chat",
     "slug": "tyre-rescue-assisted-chat",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "scheme": "tyrerescueassistedchat",
     "userInterfaceStyle": "dark",
@@ -19,10 +19,12 @@
     },
     "android": {
       "package": "uk.tyrerescue.assistedchat",
-      "versionCode": 4,
+      "versionCode": 5,
       "permissions": [
         "INTERNET",
+        "CAMERA",
         "POST_NOTIFICATIONS",
+        "RECORD_AUDIO",
         "USE_FULL_SCREEN_INTENT",
         "WAKE_LOCK",
         "VIBRATE"
@@ -35,11 +37,14 @@
     },
     "ios": {
       "bundleIdentifier": "uk.tyrerescue.assistedchat",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "supportsTablet": true,
       "icon": "./assets/icon.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Tyre Rescue uses the camera so operators can send job photos in Assisted Chat.",
+        "NSMicrophoneUsageDescription": "Tyre Rescue uses the microphone so operators can send voice messages in Assisted Chat.",
+        "NSPhotoLibraryUsageDescription": "Tyre Rescue uses your photo library so operators can send images in Assisted Chat.",
         "NSLocationWhenInUseUsageDescription": "Tyre Rescue Assisted Chat lets operators view customer and driver locations for active rescue bookings."
       }
     },
@@ -63,14 +68,23 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Tyre Rescue uses the camera so operators can send job photos in Assisted Chat.",
+          "photosPermission": "Tyre Rescue uses your photo library so operators can send images in Assisted Chat.",
+          "microphonePermission": "Tyre Rescue uses the microphone so operators can send voice messages in Assisted Chat."
+        }
+      ],
+      [
         "expo-audio",
         {
           "enableBackgroundPlayback": false,
           "enableBackgroundRecording": false,
-          "recordAudioAndroid": false,
-          "microphonePermission": false
+          "recordAudioAndroid": true,
+          "microphonePermission": "Tyre Rescue uses the microphone so operators can send voice messages in Assisted Chat."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "extra": {
       "router": {

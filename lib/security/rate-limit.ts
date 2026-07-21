@@ -79,6 +79,7 @@ export const RATE_LIMITS = {
   vehicleLookup: { limit: 30, windowMs: 60_000 },
   locationShare: { limit: 10, windowMs: 10 * 60_000 },
   sms: { limit: 3, windowMs: 15 * 60_000 },
+  adminAddAdminPin: { limit: 5, windowMs: 10 * 60_000 },
 } as const satisfies Record<string, RateLimitConfig>;
 
 /** Test-only: clear all buckets. Not exported by default index. */

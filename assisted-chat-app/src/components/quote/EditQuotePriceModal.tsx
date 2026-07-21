@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: fontSize.xs,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0,
     textTransform: 'uppercase',
   },
   input: {

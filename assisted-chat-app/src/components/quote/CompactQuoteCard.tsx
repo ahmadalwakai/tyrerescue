@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { formatGbp } from '@/lib/money';
 import { ActionButton } from '../ui/ActionButton';
 import { colors, fontSize, radius, space } from '../theme';
@@ -194,14 +194,26 @@ export function CompactQuoteCard({
   );
 }
 
+const quoteCardShadow = Platform.select<ViewStyle>({
+  web: { boxShadow: '0 16px 38px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.07)' } as ViewStyle,
+  default: {
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.32,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 5,
+  },
+});
+
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.glassStrong,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     padding: space.lg,
     gap: 12,
+    ...quoteCardShadow,
   },
   headerRow: {
     flexDirection: 'row',
@@ -215,22 +227,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
-  statusText: { fontSize: fontSize.xs, fontWeight: '700', letterSpacing: 0.5 },
+  statusText: { fontSize: fontSize.xs, fontWeight: '700', letterSpacing: 0 },
 
   priceTouch: {
     paddingVertical: space.md,
     paddingHorizontal: space.md,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.bg,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.inputBg,
     alignItems: 'flex-start',
     gap: 4,
+    ...quoteCardShadow,
   },
-  priceTouchPressed: { backgroundColor: colors.card },
+  priceTouchPressed: { backgroundColor: colors.panelSoft },
   priceTouchDisabled: { opacity: 0.55 },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  priceValue: { color: colors.text, fontSize: 36, fontWeight: '900', letterSpacing: -0.5 },
+  priceValue: { color: colors.text, fontSize: 36, fontWeight: '900', letterSpacing: 0 },
   manualBadge: {
     backgroundColor: colors.warningBg,
     borderWidth: 1,
@@ -239,7 +252,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
-  manualBadgeText: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '700' },
+  manualBadgeText: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '900' },
   originalCalculatedText: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '600' },
   priceHint: { color: colors.subtle, fontSize: fontSize.xs, fontWeight: '600' },
 
@@ -248,7 +261,13 @@ const styles = StyleSheet.create({
 
   actions: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
 
-  breakdownToggle: { alignSelf: 'flex-start', paddingVertical: 6 },
+  breakdownToggle: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+    paddingVertical: 8,
+  },
   breakdownToggleText: {
     color: colors.muted,
     fontSize: fontSize.sm,

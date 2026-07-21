@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -37,6 +38,30 @@ interface WebFrameRef {
     postMessage: (message: unknown, targetOrigin: string) => void;
   } | null;
 }
+
+const driverRosterCardShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 6px 10px rgba(79,140,255,0.12)' }
+    : {
+        shadowColor: colors.blue,
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 3,
+      }
+) as ViewStyle;
+
+const trackingPanelShadow = (
+  Platform.OS === 'web'
+    ? { boxShadow: '0 -6px 18px rgba(249,115,22,0.12)' }
+    : {
+        shadowColor: colors.accent,
+        shadowOpacity: 0.12,
+        shadowRadius: 18,
+        shadowOffset: { width: 0, height: -6 },
+        elevation: 4,
+      }
+) as ViewStyle;
 
 interface TrackingMapState {
   drivers: Array<{
@@ -1463,9 +1488,10 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerBg,
   },
-  closeBtnText: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
+  closeBtnText: { color: colors.danger, fontSize: fontSize.sm, fontWeight: '900' },
   btnPressed: { opacity: 0.65 },
   btnDisabled: { opacity: 0.45 },
   errorBanner: {
@@ -1631,11 +1657,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     padding: space.sm,
     gap: space.sm,
-    shadowColor: colors.blue,
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    ...driverRosterCardShadow,
   },
   driverRosterCardSelected: {
     borderColor: colors.accent,
@@ -1726,11 +1748,7 @@ const styles = StyleSheet.create({
     paddingTop: space.md,
     gap: space.sm,
     maxHeight: '48%',
-    shadowColor: colors.accent,
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: -6 },
-    elevation: 4,
+    ...trackingPanelShadow,
   },
   panelScroll: {
     flexShrink: 1,
@@ -1775,16 +1793,15 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     backgroundColor: colors.card,
     padding: space.md,
-    ...Platform.select({
-      web: { boxShadow: '0 8px 14px rgba(0,0,0,0.24)' },
-      default: {
-        shadowColor: '#000',
-        shadowOpacity: 0.24,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 8 },
-        elevation: 5,
-      },
-    }),
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 8px 14px rgba(0,0,0,0.24)' } as ViewStyle)
+      : ({
+          shadowColor: '#000',
+          shadowOpacity: 0.24,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 8 },
+          elevation: 5,
+        } as ViewStyle)),
   },
   detailHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   detailTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '700' },
@@ -1836,16 +1853,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     padding: space.sm,
     gap: space.xs,
-    ...Platform.select({
-      web: { boxShadow: '0 9px 14px rgba(0,0,0,0.28)' },
-      default: {
-        shadowColor: '#000',
-        shadowOpacity: 0.28,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 9 },
-        elevation: 6,
-      },
-    }),
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 9px 14px rgba(0,0,0,0.28)' } as ViewStyle)
+      : ({
+          shadowColor: '#000',
+          shadowOpacity: 0.28,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 9 },
+          elevation: 6,
+        } as ViewStyle)),
     transform: [{ perspective: 650 }, { rotateX: '1deg' }],
   },
   cardBadgeTop: {
@@ -1861,16 +1877,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      web: { boxShadow: '0 6px 10px rgba(0,0,0,0.28)' },
-      default: {
-        shadowColor: '#000',
-        shadowOpacity: 0.28,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 5,
-      },
-    }),
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 6px 10px rgba(0,0,0,0.28)' } as ViewStyle)
+      : ({
+          shadowColor: '#000',
+          shadowOpacity: 0.28,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 5,
+        } as ViewStyle)),
   },
   driverAvatar3d: {
     backgroundColor: colors.accent,
@@ -1997,16 +2012,15 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     padding: space.md,
     gap: space.sm,
-    ...Platform.select({
-      web: { boxShadow: '0 8px 12px rgba(0,0,0,0.18)' },
-      default: {
-        shadowColor: '#000',
-        shadowOpacity: 0.18,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 8 },
-        elevation: 4,
-      },
-    }),
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 8px 12px rgba(0,0,0,0.18)' } as ViewStyle)
+      : ({
+          shadowColor: '#000',
+          shadowOpacity: 0.18,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 8 },
+          elevation: 4,
+        } as ViewStyle)),
   },
   listItemSelected: { borderColor: colors.accent, backgroundColor: 'rgba(255,121,0,0.12)' },
   listItemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

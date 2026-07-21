@@ -34,6 +34,7 @@ export async function canAccessConversation(
   if (!conv) return false;
 
   if (user.role === 'customer') {
+    if (conv.channel === 'admin_driver') return false;
     const [booking] = await db
       .select({ userId: bookings.userId })
       .from(bookings)
@@ -50,6 +51,17 @@ export async function canAccessConversation(
       .where(eq(drivers.userId, user.id))
       .limit(1);
     if (!driver) return false;
+    const [participant] = await db
+      .select({ id: conversationParticipants.id })
+      .from(conversationParticipants)
+      .where(
+        and(
+          eq(conversationParticipants.conversationId, conversationId),
+          eq(conversationParticipants.userId, user.id),
+        ),
+      )
+      .limit(1);
+    if (participant) return true;
     const [booking] = await db
       .select({ driverId: bookings.driverId })
       .from(bookings)
