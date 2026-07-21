@@ -373,6 +373,11 @@ function optionalNumber(value: string | number | null | undefined): number | nul
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizePriceAmountPence(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return Math.max(0, Math.min(MAX_PRICE_AMOUNT_PENCE, Math.round(value)));
+}
+
 function normalizeQuoteTyreLines(input: {
   tyreLines?: QuickBookTyreLineInput[] | null;
   items?: QuickBookTyreLineInput[] | null;
@@ -459,16 +464,42 @@ async function calculateQuotePrice(input: QuotePricingInput, quickBooking: Quick
   const longitude = input.longitude ?? optionalNumber(quickBooking?.locationLng);
   const address = optionalString(input.address) ?? quickBooking?.locationAddress ?? null;
   const postcode = optionalString(input.postcode) ?? quickBooking?.locationPostcode ?? null;
-  const lockingWheelNutChargePence = input.lockingWheelNutChargePence ?? 0;
+  const explicitFinalPayablePence = normalizePriceAmountPence(input.priceAmount);
+  const forceRecalculation = 'refreshPrice' in input && input.refreshPrice === true;
+  const hasExplicitLockingNutCharge = Object.prototype.hasOwnProperty.call(input, 'lockingWheelNutChargePence');
+  const lockingWheelNutChargePence = hasExplicitLockingNutCharge ? input.lockingWheelNutChargePence ?? 0 : 0;
+  const quickBookingAdminAdjustmentAmount = optionalNumber(quickBooking?.adminAdjustmentAmount);
+  const recalculationAdminAdjustmentAmount =
+    hasExplicitLockingNutCharge
+      ? lockingWheelNutChargePence / 100
+      : quickBookingAdminAdjustmentAmount ?? 0;
+  const recalculationAdminAdjustmentReason =
+    hasExplicitLockingNutCharge
+      ? lockingWheelNutChargePence > 0
+        ? 'Locking wheel nut removal'
+        : null
+      : quickBooking?.adminAdjustmentReason ?? null;
+
+  if (explicitFinalPayablePence != null && !forceRecalculation) {
+    return {
+      priceAmount: explicitFinalPayablePence,
+      tyreSize,
+      quantity,
+      latitude,
+      longitude,
+      address,
+      postcode,
+    };
+  }
 
   const canCalculate = Boolean((tyreLines.length > 0 || tyreSize) && (quickBooking || (latitude != null && longitude != null)));
 
   if (!canCalculate) {
-    if (input.priceAmount === undefined) {
+    if (explicitFinalPayablePence == null) {
       throw new AdminQuoteError('Unable to calculate quote price from the supplied data', 400);
     }
     return {
-      priceAmount: input.priceAmount,
+      priceAmount: explicitFinalPayablePence,
       tyreSize,
       quantity,
       latitude,
@@ -521,8 +552,8 @@ async function calculateQuotePrice(input: QuotePricingInput, quickBooking: Quick
       selectedTyreSnapshots: selectedTyreLineSnapshots,
       resolveTyreFromSize: selectedTyreLineSnapshots.length === 0 && !selectedTyreSnapshot,
       requireTyreForFit: serviceType === 'fit' && Boolean(tyreSize),
-      adminAdjustmentAmount: lockingWheelNutChargePence / 100,
-      adminAdjustmentReason: lockingWheelNutChargePence > 0 ? 'Locking wheel nut removal' : null,
+      adminAdjustmentAmount: recalculationAdminAdjustmentAmount,
+      adminAdjustmentReason: recalculationAdminAdjustmentReason,
       adminDistanceLimitMiles,
       pricingContext: 'manual_quote',
     });
@@ -574,14 +605,17 @@ export async function buildAdminQuoteInsert(input: CreateAdminQuoteInput, create
 export async function buildAdminQuoteUpdate(input: UpdateAdminQuoteInput, existing: AdminQuoteDraft): Promise<Partial<NewAdminQuoteDraft>> {
   const requestedQuickBookingId = input.quickBookingId === undefined ? existing.quickBookingId : input.quickBookingId;
   const quickBooking = await findQuickBooking(requestedQuickBookingId);
+  const explicitFinalPayablePence = normalizePriceAmountPence(input.priceAmount);
+  const hasExplicitFinalPayable = explicitFinalPayablePence != null && input.refreshPrice !== true;
   const shouldRefreshPrice = Boolean(
-    input.refreshPrice ||
+    !hasExplicitFinalPayable &&
+      (input.refreshPrice ||
       input.quickBookingId !== undefined ||
       input.tyreSize !== undefined ||
       input.quantity !== undefined ||
       input.latitude !== undefined ||
       input.longitude !== undefined ||
-      input.lockingWheelNutChargePence !== undefined,
+      input.lockingWheelNutChargePence !== undefined),
   );
 
   const mergedForPricing: UpdateAdminQuoteInput = {
@@ -596,7 +630,8 @@ export async function buildAdminQuoteUpdate(input: UpdateAdminQuoteInput, existi
     quantity: input.quantity ?? existing.quantity,
     lockingWheelNutStatus: input.lockingWheelNutStatus ?? existing.lockingWheelNutStatus,
     lockingWheelNutChargePence: input.lockingWheelNutChargePence ?? existing.lockingWheelNutChargePence ?? 0,
-    priceAmount: input.priceAmount ?? existing.priceAmount,
+    ...(input.refreshPrice === true ? { refreshPrice: true } : {}),
+    ...(explicitFinalPayablePence != null ? { priceAmount: explicitFinalPayablePence } : {}),
   };
 
   const update: Partial<NewAdminQuoteDraft> = { updatedAt: new Date() };
@@ -631,8 +666,8 @@ export async function buildAdminQuoteUpdate(input: UpdateAdminQuoteInput, existi
         update.quoteStatus = 'QUOTED';
       }
     }
-  } else if (input.priceAmount !== undefined) {
-    update.priceAmount = input.priceAmount;
+  } else if (explicitFinalPayablePence != null) {
+    update.priceAmount = explicitFinalPayablePence;
   }
 
   return update;

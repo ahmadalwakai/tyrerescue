@@ -1,4 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
 type InvoiceDomainModule = typeof import('../invoices/invoice-domain');
 type InvoicePdfModule = typeof import('../invoice-pdf');
@@ -26,6 +29,12 @@ const company = {
   phone: '0141 266 0690',
   email: 'support@tyrerescue.uk',
 };
+const quickAccessQrPath = path.resolve(__dirname, '../../public/images/invoices/customer-quick-access-qr.jpeg');
+const quickAccessQrSha256 = '474C548471AF26FEA0661AEE5484A1AE0B6B23DD9FDA4FBAC3F4D2BCC5C1E36E';
+
+function sha256(filePath: string): string {
+  return createHash('sha256').update(readFileSync(filePath)).digest('hex').toUpperCase();
+}
 
 function customerInvoice(overrides: Partial<BookingCustomerInvoice> = {}): BookingCustomerInvoice {
   return {
@@ -168,6 +177,49 @@ describe('BookingCustomerInvoice domain boundary', () => {
     expect(text).not.toContain('Weekend Charge');
     expect(text).not.toContain('Same Day Charge');
     expect(text).not.toContain('Internal Pricing Breakdown');
+  });
+
+  it('uses the new premium customer invoice language without copying reference data', () => {
+    const invoice = customerInvoice({
+      invoiceNumber: 'INV-TYR-DYNAMIC-42',
+      bookingReference: 'TYR-DYNAMIC-42',
+      customer: {
+        name: 'Dynamic Customer',
+        email: 'dynamic.customer@example.com',
+        phone: '07900000000',
+        address: '22 Live Booking Road, Glasgow',
+      },
+      finalTotal: 142.35,
+    });
+    const text = invoicePdf.buildBookingCustomerInvoicePdfText(invoice).join('\n');
+    const rendererSource = readFileSync(path.resolve(__dirname, '../invoice-pdf.ts'), 'utf8');
+
+    expect(text).toContain('COMPANY DETAILS');
+    expect(text).toContain('BOOKING DETAILS');
+    expect(text).toContain('24/7 RESPONSE');
+    expect(text).toContain('MOBILE SERVICE');
+    expect(text).toContain('SECURE PAYMENT');
+    expect(text).toContain('CUSTOMER FOCUSED');
+    expect(text).toContain('TOTAL DUE');
+    expect(text).toContain('THANK YOU');
+    expect(text).toContain('QUICK ACCESS');
+    expect(text).toContain('Scan to make a new booking, track your booking or contact us.');
+    expect(text).toContain('INV-TYR-DYNAMIC-42');
+    expect(text).toContain('TYR-DYNAMIC-42');
+    expect(text).toContain('Dynamic Customer');
+    expect(text.match(/£\d+\.\d{2}/g)).toEqual(['£142.35']);
+
+    for (const copiedReferenceValue of ['INV-2026-0317', 'TYR-2026-56535', 'G44 5RF', '£95.24']) {
+      expect(text).not.toContain(copiedReferenceValue);
+      expect(rendererSource).not.toContain(copiedReferenceValue);
+    }
+    expect(rendererSource).not.toContain("page.drawText('FINAL AGREED CUSTOMER TOTAL'");
+    expect(rendererSource).toContain("page.drawText('FINAL AGREED'");
+    expect(rendererSource).toContain("page.drawText('CUSTOMER TOTAL'");
+  });
+
+  it('ships the exact official customer quick access QR asset', () => {
+    expect(sha256(quickAccessQrPath)).toBe(quickAccessQrSha256);
   });
 
   it('keeps standalone admin invoices able to retain line items', () => {

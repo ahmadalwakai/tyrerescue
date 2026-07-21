@@ -720,12 +720,6 @@ export function LocationSection({
     <View style={[styles.locationPanel, displayMode === 'mapOnly' && styles.locationPanelMapOnly]}>
       {displayMode === 'full' ? (
         <>
-          <View style={styles.locationPanelSoftLight} />
-          <View style={styles.locationPanelTexture} />
-        </>
-      ) : null}
-      {displayMode === 'full' ? (
-        <>
       <View style={styles.locationHeader}>
         <View style={styles.locationIcon}>
           <AppIcon name="map-marker" size={27} color={colors.accent} />
@@ -1257,27 +1251,14 @@ const locationCardShadow = (
 const styles = StyleSheet.create({
   locationPanel: {
     borderWidth: 1,
-    borderColor: colors.glowBorder,
+    borderColor: colors.borderStrong,
     borderRadius: 20,
-    backgroundColor: 'rgba(13,20,39,0.84)',
+    backgroundColor: 'rgba(13,20,39,0.92)',
     padding: 14,
     gap: 12,
     overflow: 'hidden',
     position: 'relative',
     ...(locationCardShadow ?? {}),
-  },
-  locationPanelSoftLight: {
-    position: 'absolute',
-    left: -40,
-    right: -40,
-    top: -70,
-    height: 160,
-    borderRadius: 120,
-    backgroundColor: 'rgba(255,123,18,0.08)',
-  },
-  locationPanelTexture: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.018)',
   },
   locationPanelMapOnly: {
     borderColor: colors.borderStrong,

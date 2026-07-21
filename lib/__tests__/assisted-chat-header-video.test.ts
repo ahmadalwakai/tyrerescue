@@ -110,10 +110,23 @@ describe('Assisted Chat header video production readiness', () => {
   it('does not keep a duplicate Location hero background', () => {
     const locationSource = locationSectionSource();
     const assistedSource = assistedChatScreenSource();
+    const locationPanelStyle = locationSource.match(/locationPanel:\s*\{[\s\S]*?\n  \},/)?.[0] ?? '';
 
     expect(fs.existsSync(staleLocationBackgroundPath)).toBe(false);
     expect(locationSource).not.toContain('ImageBackground');
     expect(locationSource).not.toContain('location-card-background');
+    expect(locationSource).not.toContain('<View style={styles.locationPanelSoftLight}');
+    expect(locationSource).not.toContain('<View style={styles.locationPanelTexture}');
+    expect(locationPanelStyle).not.toContain('colors.glowBorder');
     expect(assistedSource).not.toContain('location-card-background');
+  });
+
+  it('keeps the main screen free of shared chrome backgrounds during overscroll', () => {
+    const assistedSource = assistedChatScreenSource();
+
+    expect(assistedSource).not.toContain('AdminChromeBackdrop');
+    expect(assistedSource).toContain('bounces={false}');
+    expect(assistedSource).toContain('alwaysBounceVertical={false}');
+    expect(assistedSource).toContain('overScrollMode="never"');
   });
 });

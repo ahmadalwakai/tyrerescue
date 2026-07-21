@@ -48,6 +48,15 @@ function normalizePaymentOption(option: AdminQuotePaymentOption): AdminQuotePaym
   return option === 'DEPOSIT_15' ? 'DEPOSIT_20' : option;
 }
 
+function toPence(amountGbp: number): number {
+  return Math.max(0, Math.round((Number.isFinite(amountGbp) ? amountGbp : 0) * 100));
+}
+
+function quoteMatchesFinalPayable(quote: AdminQuote | null, finalPayablePence: number): boolean {
+  if (!quote) return false;
+  return Math.round(quote.priceAmount) === finalPayablePence;
+}
+
 function isDepositPaymentOption(option: AdminQuotePaymentOption): boolean {
   return option === 'DEPOSIT_20' || option === 'DEPOSIT_15';
 }
@@ -69,7 +78,7 @@ function buildQuoteInput(draft: AssistedChatDraft, effectiveTotal: number, locki
     items: tyreLines,
     lockingWheelNutStatus: draft.lockingNut.answer === 'unknown' ? null : draft.lockingNut.answer,
     lockingWheelNutChargePence: Math.round(lockingNutCharge * 100),
-    priceAmount: Math.round(effectiveTotal * 100),
+    priceAmount: toPence(effectiveTotal),
     currency: 'GBP',
     quoteStatus: 'QUOTED',
     internalNotes: draft.note || null,
@@ -124,11 +133,12 @@ export function QuoteDraftActions({ draft, update, effectiveTotal, lockingNutCha
   }, [draft.savedQuoteId, persistQuote, saveQuote, update]);
 
   const ensureSavedQuote = useCallback(async (): Promise<AdminQuote> => {
-    if (currentQuote) return currentQuote;
+    const finalPayablePence = toPence(effectiveTotal);
+    if (quoteMatchesFinalPayable(currentQuote, finalPayablePence)) return currentQuote as AdminQuote;
     const quote = await saveQuote();
     persistQuote(quote);
     return quote;
-  }, [currentQuote, persistQuote, saveQuote]);
+  }, [currentQuote, effectiveTotal, persistQuote, saveQuote]);
 
   const handleSendQuote = useCallback(async () => {
     setBusy('send');
@@ -212,7 +222,9 @@ export function QuoteDraftActions({ draft, update, effectiveTotal, lockingNutCha
   }, [confirmResult, ensureSavedQuote]);
 
   const savedLabel = currentQuote?.quoteRef ?? draft.savedQuoteRef;
-  const quotePricePence = currentQuote?.priceAmount ?? Math.round(effectiveTotal * 100);
+  const quotePricePence = quoteMatchesFinalPayable(currentQuote, toPence(effectiveTotal))
+    ? currentQuote!.priceAmount
+    : toPence(effectiveTotal);
   const deposit = depositSummary(quotePricePence);
   const quoteStatus = currentQuote?.quoteStatus ?? 'DRAFT';
   const expiryStatus = currentQuote?.isExpired ? 'Expired' : currentQuote ? 'Valid' : 'Save quote first';

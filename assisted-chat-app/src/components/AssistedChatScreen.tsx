@@ -65,7 +65,6 @@ import { TrackingModal } from './TrackingModal';
 import { DriverChatModal } from './DriverChatModal';
 import { ChatHubModal } from './ChatHubModal';
 import { MessageSenderModal } from './MessageSenderModal';
-import { AdminChromeBackdrop } from './layout/AdminModalShell';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 import { usePressScale } from './motion';
@@ -1952,7 +1951,6 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <AdminChromeBackdrop />
       <KeyboardAvoidingView
         style={styles.keyboardAvoider}
         behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -1962,6 +1960,9 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
           contentContainerStyle={[styles.scroll, { paddingBottom: scrollPaddingBottom }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          bounces={false}
+          alwaysBounceVertical={false}
+          overScrollMode="never"
         >
           <PremiumAppHeader
             customerName={customerName}

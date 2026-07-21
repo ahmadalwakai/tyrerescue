@@ -51,8 +51,10 @@ describe('Assisted Chat premium design system', () => {
     expect(screen).toContain('ASSISTED_CHAT_HEADER_INFO_MIN_WIDTH');
     expect(screen).toContain('function HeroPanel');
     expect(screen).toContain('function PrimaryActionDeck');
-    expect(screen).toContain('function UrgentMonitorPanel');
-    expect(screen).toContain('function TrustStrip');
+    expect(screen).not.toContain('function UrgentMonitorPanel');
+    expect(screen).not.toContain('function TrustStrip');
+    expect(screen).not.toContain('Checking urgent alerts');
+    expect(screen).not.toContain('Trusted service');
     expect(screen).not.toContain('headerCoolBloom');
     expect(screen).not.toContain('headerWarmBloom');
     expect(screen).not.toContain('headerContactRow');

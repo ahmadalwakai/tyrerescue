@@ -59,6 +59,10 @@ function finiteAmount(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
+function toPence(amountGbp: number): number {
+  return Math.max(0, Math.round(finiteAmount(amountGbp) * 100));
+}
+
 function quoteFromQuickBookPatch(
   breakdown: QuickBookPatchResponse['booking']['priceBreakdown'],
   distanceKm: string | null,
@@ -98,11 +102,19 @@ function quoteFromQuickBookPatch(
 }
 
 function getBackendPriceAmountPence(draft: AssistedChatDraft, fallbackTotal: number): number {
+  if (draft.manualPriceGbp != null && Number.isFinite(draft.manualPriceGbp)) {
+    return toPence(draft.manualPriceGbp);
+  }
   const total =
     typeof draft.quote?.total === 'number' && Number.isFinite(draft.quote.total)
       ? draft.quote.total
       : fallbackTotal;
-  return Math.round(total * 100);
+  return toPence(total);
+}
+
+function quoteMatchesFinalPayable(quote: AdminQuote | null, finalPayablePence: number): boolean {
+  if (!quote) return false;
+  return Math.round(quote.priceAmount) === finalPayablePence;
 }
 
 function buildQuoteInput(draft: AssistedChatDraft, priceAmountPence: number, lockingNutCharge: number): CreateAdminQuoteInput {
@@ -258,11 +270,12 @@ export function useAssistedChatQuoteActions({
   }, [draft.savedQuoteId, persistQuote, saveQuote, update]);
 
   const ensureSavedQuote = useCallback(async (): Promise<AdminQuote> => {
-    if (currentQuote) return currentQuote;
+    const finalPayablePence = getBackendPriceAmountPence(draft, effectiveTotal);
+    if (quoteMatchesFinalPayable(currentQuote, finalPayablePence)) return currentQuote as AdminQuote;
     const quote = await saveQuote();
     persistQuote(quote);
     return quote;
-  }, [currentQuote, persistQuote, saveQuote]);
+  }, [currentQuote, draft, effectiveTotal, persistQuote, saveQuote]);
 
   const sendQuote = useCallback(async () => {
     setBusy('send');

@@ -116,6 +116,10 @@ async function writeToClipboard(text: string): Promise<boolean> {
   }
 }
 
+function toPence(amountGbp: number): number {
+  return Math.max(0, Math.round((Number.isFinite(amountGbp) ? amountGbp : 0) * 100));
+}
+
 function buildQuoteInput(draft: AssistedChatDraft, effectiveTotal: number, lockingNutCharge: number): CreateAdminQuoteInput {
   return {
     quickBookingId: draft.quickBookingId,
@@ -129,7 +133,7 @@ function buildQuoteInput(draft: AssistedChatDraft, effectiveTotal: number, locki
     quantity: draft.tyre.quantity,
     lockingWheelNutStatus: draft.lockingNut.answer,
     lockingWheelNutChargePence: Math.round(lockingNutCharge * 100),
-    priceAmount: Math.round(effectiveTotal * 100),
+    priceAmount: toPence(effectiveTotal),
     currency: 'GBP',
     quoteStatus: 'QUOTED',
     internalNotes: draft.note || null,
@@ -157,6 +161,11 @@ function statusTone(status: AdminQuoteStatus): string {
 
 function formatPence(pence: number): string {
   return GBP.format(pence / 100);
+}
+
+function quoteMatchesFinalPayable(quote: AdminQuote | null, finalPayablePence: number): boolean {
+  if (!quote) return false;
+  return Math.round(quote.priceAmount) === finalPayablePence;
 }
 
 function depositSummary(priceAmount: number): { depositAmountPence: number; remainingBalancePence: number } {
@@ -217,14 +226,15 @@ export function AdminQuotePanel({ draft, effectiveTotal, lockingNutCharge, updat
   }, [draft.savedQuoteId, saveQuote, update]);
 
   const ensureSavedQuote = useCallback(async (): Promise<AdminQuote> => {
-    if (activeQuote) return activeQuote;
+    const finalPayablePence = toPence(effectiveTotal);
+    if (quoteMatchesFinalPayable(activeQuote, finalPayablePence)) return activeQuote as AdminQuote;
     const quote = await saveQuote();
     update({ savedQuoteId: quote.id, savedQuoteRef: quote.quoteRef });
     setActiveQuote(quote);
     if (quote.selectedPaymentOption) setPaymentOption(quote.selectedPaymentOption);
     setNotesDraft(quote.internalNotes ?? '');
     return quote;
-  }, [activeQuote, saveQuote, update]);
+  }, [activeQuote, effectiveTotal, saveQuote, update]);
 
   const handleCopyMessage = useCallback(async () => {
     setBusy('send');
@@ -358,7 +368,9 @@ export function AdminQuotePanel({ draft, effectiveTotal, lockingNutCharge, updat
     }
   }, [activeQuote]);
 
-  const priceAmountPence = activeQuote?.priceAmount ?? Math.round(effectiveTotal * 100);
+  const priceAmountPence = quoteMatchesFinalPayable(activeQuote, toPence(effectiveTotal))
+    ? activeQuote!.priceAmount
+    : toPence(effectiveTotal);
   const deposit = depositSummary(priceAmountPence);
   const paymentInstructionAvailable = paymentOption === 'PAYMENT_LINK' || Boolean(confirmResult?.paymentInstruction);
   const canStartPayment = Boolean(confirmResult?.paymentHandoff.canStartPayment && confirmResult.paymentHandoff.paymentUrl);
