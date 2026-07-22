@@ -63,6 +63,7 @@ export async function buildStandaloneAdminInvoicePdfData(invoice: Invoice): Prom
     vehicleRegistration: booking?.vehicleReg ?? null,
     vehicleMake: booking?.vehicleMake ?? null,
     vehicleModel: booking?.vehicleModel ?? null,
+    tyreSizeDisplay: booking?.tyreSizeDisplay ?? null,
     paymentStatus: paymentSummary?.label ?? invoice.status,
     paymentMethod: paymentSummary?.methodLabel ?? null,
   };
@@ -107,6 +108,9 @@ export async function buildBookingCustomerInvoicePdfData(
       vehicleReg: booking.vehicleReg,
       vehicleMake: booking.vehicleMake,
       vehicleModel: booking.vehicleModel,
+      tyreSizeDisplay: booking.tyreSizeDisplay,
+      serviceType: booking.serviceType,
+      vatAmount: booking.vatAmount.toString(),
     },
     paymentSummary,
     source: `invoice:${invoice.id}`,

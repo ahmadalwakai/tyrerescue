@@ -38,6 +38,7 @@ export async function GET(
       totalAmount: bookings.totalAmount,
       createdAt: bookings.createdAt,
       status: bookings.status,
+      serviceType: bookings.serviceType,
       paymentType: bookings.paymentType,
       depositAmountPence: bookings.depositAmountPence,
       remainingBalancePence: bookings.remainingBalancePence,
@@ -48,6 +49,7 @@ export async function GET(
       vehicleReg: bookings.vehicleReg,
       vehicleMake: bookings.vehicleMake,
       vehicleModel: bookings.vehicleModel,
+      tyreSizeDisplay: bookings.tyreSizeDisplay,
     })
     .from(bookings)
     .where(and(eq(bookings.refNumber, ref), eq(bookings.userId, session.user.id)))
@@ -87,6 +89,9 @@ export async function GET(
         vehicleReg: booking.vehicleReg,
         vehicleMake: booking.vehicleMake,
         vehicleModel: booking.vehicleModel,
+        tyreSizeDisplay: booking.tyreSizeDisplay,
+        serviceType: booking.serviceType,
+        vatAmount: booking.vatAmount.toString(),
       },
       paymentSummary,
       company: COMPANY,

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireAdminMobile } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { quickBookings } from '@/lib/db/schema';
-import { desc } from 'drizzle-orm';
+import { auditLogs, quickBookings, virtualLandlineInteractions } from '@/lib/db/schema';
+import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
 import { geocodeAddress } from '@/lib/mapbox';
@@ -22,6 +22,11 @@ import {
 import { validateRecipientEmail } from '@/lib/email/validate-recipient';
 import { ASSISTED_CHAT_AUTO_PRICING_MAX_MILES } from '@/lib/fitting-location-pricing';
 import { normalizeCustomerPhoneInput, normalizeRecipientEmailInput } from '@/lib/contact-normalization';
+import {
+  VIRTUAL_LANDLINE_PREVIEW_ONLY,
+  VIRTUAL_LANDLINE_PREVIEW_ONLY_CODE,
+  VIRTUAL_LANDLINE_PREVIEW_ONLY_MESSAGE,
+} from '@/lib/virtual-landline/mode';
 
 export type CustomerEmailMode = 'walk_in_customer' | 'send_customer_confirmation';
 
@@ -70,6 +75,7 @@ const createSchema = z.object({
     'manual_quote',
   ]).optional(),
   notes: z.string().optional(),
+  virtualLandlineInteractionId: z.string().uuid().optional(),
 });
 
 export async function GET(request: Request) {
@@ -111,6 +117,17 @@ export async function POST(request: Request) {
   }
 
   const data = parsed.data;
+  if (VIRTUAL_LANDLINE_PREVIEW_ONLY && data.virtualLandlineInteractionId) {
+    return NextResponse.json(
+      {
+        error: VIRTUAL_LANDLINE_PREVIEW_ONLY_MESSAGE,
+        code: VIRTUAL_LANDLINE_PREVIEW_ONLY_CODE,
+        previewMode: true,
+      },
+      { status: 423 },
+    );
+  }
+
   const tyreLines: QuickBookTyreLineInput[] = (
     data.tyreLines?.length
       ? data.tyreLines
@@ -373,6 +390,27 @@ export async function POST(request: Request) {
       notes: data.notes ?? null,
     })
     .returning();
+
+  if (data.virtualLandlineInteractionId) {
+    await db
+      .update(virtualLandlineInteractions)
+      .set({
+        linkedQuickBookingId: created.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(virtualLandlineInteractions.id, data.virtualLandlineInteractionId));
+    await db.insert(auditLogs).values({
+      action: 'virtual_landline.quick_booking_created',
+      entityType: 'quick_booking',
+      entityId: created.id,
+      actorUserId: session.user.id,
+      actorRole: 'admin',
+      afterJson: {
+        virtualLandlineInteractionId: data.virtualLandlineInteractionId,
+        quickBookingId: created.id,
+      },
+    });
+  }
 
   // Use env-aware origin so local-dev API emits localhost links the
   // assisted-chat-app can poll, while production keeps emitting SITE_URL.

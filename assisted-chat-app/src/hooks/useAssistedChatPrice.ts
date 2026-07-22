@@ -179,6 +179,7 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
             pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
             adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
             notes: draft.note || undefined,
+            virtualLandlineInteractionId: draft.virtualLandlineInteractionId ?? undefined,
           });
           return {
             quickBookingId: created.booking.id,

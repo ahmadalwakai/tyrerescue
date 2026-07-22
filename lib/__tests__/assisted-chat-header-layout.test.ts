@@ -230,6 +230,12 @@ describe('Assisted Chat mobile header layout', () => {
     expect(primaryDeck).not.toContain('Start over');
     expect(source).toContain('styles.headerActionsRow');
     expect(source).toContain('flexShrink: 0');
+    expect(styleBlock(source, 'headerTopRow')).toContain("flexWrap: 'nowrap'");
+    expect(styleBlock(source, 'headerIdentityRow')).toContain('paddingRight: 112');
+    const utilityBlock = styleBlock(source, 'headerUtilityRow');
+    expect(utilityBlock).toContain("position: 'absolute'");
+    expect(utilityBlock).toContain('top: 0');
+    expect(utilityBlock).toContain('right: 0');
     expect(source).not.toMatch(/headerTextBlock:\s*\{\s*flex:\s*1,\s*minWidth:\s*0\s*\}/);
     expect(source).not.toMatch(/headerContactRow/);
     for (const styleName of ['headerInvoiceButton', 'headerWhatsAppButton', 'headerClearDraftButton']) {

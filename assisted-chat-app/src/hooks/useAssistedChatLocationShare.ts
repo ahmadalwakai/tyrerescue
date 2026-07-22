@@ -155,6 +155,7 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
         pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
         adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
         notes: draft.note || undefined,
+        virtualLandlineInteractionId: draft.virtualLandlineInteractionId ?? undefined,
       });
       applyBooking(created.booking, {
         method,

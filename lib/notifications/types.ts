@@ -14,6 +14,7 @@ export const NOTIFICATION_TYPES = {
   PAYMENT_RECEIVED: "payment.received",
   PAYMENT_FAILED: "payment.failed",
   TESTIMONIAL_SUBMITTED: "testimonial.submitted",
+  VIRTUAL_LANDLINE_MISSED_CALLS_IMPORTED: "virtual_landline.missed_calls_imported",
 } as const;
 
 export type NotificationType =
@@ -31,7 +32,8 @@ export type NotificationEntityType =
   | "driver"
   | "availability"
   | "payment"
-  | "testimonial";
+  | "testimonial"
+  | "virtual_landline";
 
 export interface AdminNotificationMetadata extends Record<string, unknown> {
   refNumber?: string;
@@ -52,6 +54,10 @@ export interface AdminNotificationMetadata extends Record<string, unknown> {
   reason?: string;
   important?: boolean;
   adminPath?: string;
+  imported?: number;
+  skipped?: number;
+  duplicate?: number;
+  missedCalls?: number;
 }
 
 export interface CreateNotificationInput {

@@ -30,6 +30,8 @@ export interface BookingCustomerInvoice {
     make: string | null;
     model: string | null;
   };
+  tyreSizeDisplay: string | null;
+  serviceInclusions: string[];
   payment: {
     status: string;
     method: string | null;
@@ -70,6 +72,7 @@ export interface StandaloneAdminInvoice {
   vehicleRegistration?: string | null;
   vehicleMake?: string | null;
   vehicleModel?: string | null;
+  tyreSizeDisplay?: string | null;
   paymentStatus?: string | null;
   paymentMethod?: string | null;
 }
@@ -87,6 +90,9 @@ export interface BookingInvoiceSource {
   vehicleReg: string | null;
   vehicleMake: string | null;
   vehicleModel: string | null;
+  tyreSizeDisplay?: string | null;
+  serviceType?: string | null;
+  vatAmount?: string | number | null;
 }
 
 const FORBIDDEN_BOOKING_CUSTOMER_INVOICE_KEYS = new Set([
@@ -130,6 +136,8 @@ const ALLOWED_BOOKING_CUSTOMER_INVOICE_KEYS = new Set([
   'customer',
   'vehicle',
   'payment',
+  'tyreSizeDisplay',
+  'serviceInclusions',
   'finalTotal',
 ]);
 
@@ -190,6 +198,67 @@ function requiredInteger(value: unknown, field: string, source: string): number 
   throw new InvoiceDomainError(`Missing customer invoice field ${field} from ${source}`, 500);
 }
 
+function stringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === 'string' ? cleanInvoiceText(item) : ''))
+    .filter(Boolean);
+}
+
+function cleanInvoiceText(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+function hasPositiveMoney(value: string | number | null | undefined): boolean {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) && n > 0;
+}
+
+function normaliseServiceType(value: string | null | undefined): string {
+  return String(value ?? '').replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return values.filter((value, index, all) => value && all.indexOf(value) === index);
+}
+
+export function buildBookingServiceInclusions(booking: Pick<
+  BookingInvoiceSource,
+  'serviceType' | 'vatAmount'
+>): string[] {
+  const serviceType = normaliseServiceType(booking.serviceType);
+  const inclusions: string[] = [];
+
+  if (serviceType === 'fit' || serviceType === 'tyre_replacement' || serviceType === 'replacement') {
+    inclusions.push(
+      'Mobile tyre fitting service',
+      'Removal of the old tyre from the wheel',
+      'Professional fitting and balancing (when applicable)',
+      'Final safety inspection',
+    );
+  } else if (serviceType === 'repair' || serviceType === 'puncture_repair') {
+    inclusions.push(
+      'Mobile tyre repair service',
+      'Puncture repair assessment and repair where safe',
+      'Final safety inspection',
+    );
+  } else if (serviceType === 'assess' || serviceType === 'inspection' || serviceType === 'unknown') {
+    inclusions.push(
+      'Mobile tyre inspection service',
+      'Inspection findings confirmed on site',
+      'Final safety inspection',
+    );
+  } else {
+    inclusions.push('Mobile tyre service', 'Final safety inspection');
+  }
+
+  if (hasPositiveMoney(booking.vatAmount)) {
+    inclusions.push('VAT included where applicable');
+  }
+
+  return uniqueStrings(inclusions);
+}
+
 function toPence(value: string | number): number {
   const n = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(n)) throw new InvoiceDomainError('Invalid invoice total amount', 500);
@@ -233,6 +302,8 @@ export function createBookingCustomerInvoice(value: unknown, source = 'unknown')
       make: nullableString(vehicle.make),
       model: nullableString(vehicle.model),
     },
+    tyreSizeDisplay: nullableString(record.tyreSizeDisplay),
+    serviceInclusions: stringList(record.serviceInclusions),
     payment: {
       status: requiredString(payment.status, 'payment.status', source),
       method: nullableString(payment.method),
@@ -275,6 +346,8 @@ export function buildBookingCustomerInvoiceFromBooking(input: {
       make: input.booking.vehicleMake,
       model: input.booking.vehicleModel,
     },
+    tyreSizeDisplay: input.booking.tyreSizeDisplay ?? null,
+    serviceInclusions: buildBookingServiceInclusions(input.booking),
     payment: {
       status: input.paymentSummary.label,
       method: input.paymentSummary.methodLabel,
@@ -338,6 +411,8 @@ export function buildBookingCustomerInvoiceFromStoredInvoice(input: {
       make: input.booking.vehicleMake,
       model: input.booking.vehicleModel,
     },
+    tyreSizeDisplay: input.booking.tyreSizeDisplay ?? null,
+    serviceInclusions: buildBookingServiceInclusions(input.booking),
     payment: {
       status: input.paymentSummary.label,
       method: input.paymentSummary.methodLabel,

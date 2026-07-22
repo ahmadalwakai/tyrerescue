@@ -1,5 +1,6 @@
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { formatGbp } from '@/lib/money';
+import { getQuotePriceReductionDisplay } from '@/lib/quote-price-display';
 import { ActionButton } from '../ui/ActionButton';
 import { colors, fontSize, radius, space } from '../theme';
 
@@ -85,12 +86,9 @@ export function CompactQuoteCard({
 }: CompactQuoteCardProps) {
   const statusInfo = STATUS_COPY[status];
   const hasPrice = displayedPriceGbp > 0;
-  const showOriginalCalculated =
-    isManualPrice &&
-    typeof originalCalculatedPriceGbp === 'number' &&
-    Number.isFinite(originalCalculatedPriceGbp) &&
-    originalCalculatedPriceGbp > 0 &&
-    Math.round(originalCalculatedPriceGbp * 100) !== Math.round(displayedPriceGbp * 100);
+  const priceReduction = isManualPrice
+    ? getQuotePriceReductionDisplay(displayedPriceGbp, originalCalculatedPriceGbp)
+    : null;
 
   let saveDisabledReason: string | undefined;
   if (missingQuickBooking) saveDisabledReason = 'Pull a price first.';
@@ -141,10 +139,11 @@ export function CompactQuoteCard({
             </View>
           ) : null}
         </View>
-        {showOriginalCalculated ? (
-          <Text style={styles.originalCalculatedText}>
-            Original calculated price: {formatGbp(originalCalculatedPriceGbp as number)}
-          </Text>
+        {priceReduction ? (
+          <View style={styles.priceReductionPanel}>
+            <Text style={styles.priceReductionComparison}>{priceReduction.comparisonLabel}</Text>
+            <Text style={styles.priceReductionDiscount}>{priceReduction.discountLabel}</Text>
+          </View>
         ) : null}
         <Text style={styles.priceHint}>
           {editDisabled ? 'Pull a price to enable editing.' : 'Tap price to edit'}
@@ -253,7 +252,28 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   manualBadgeText: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '900' },
-  originalCalculatedText: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '600' },
+  priceReductionPanel: {
+    borderWidth: 1,
+    borderColor: colors.successBorder,
+    borderRadius: radius.md,
+    backgroundColor: colors.successBg,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 2,
+    marginTop: 2,
+  },
+  priceReductionComparison: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: '900',
+    letterSpacing: 0,
+  },
+  priceReductionDiscount: {
+    color: colors.success,
+    fontSize: fontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 0,
+  },
   priceHint: { color: colors.subtle, fontSize: fontSize.xs, fontWeight: '600' },
 
   metaRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },

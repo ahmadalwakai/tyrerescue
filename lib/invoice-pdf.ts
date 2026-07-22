@@ -28,6 +28,8 @@ interface InvoiceRenderData {
   vehicleRegistration?: string | null;
   vehicleMake?: string | null;
   vehicleModel?: string | null;
+  tyreSizeDisplay?: string | null;
+  serviceInclusions?: string[];
   paymentStatus?: string | null;
   paymentMethod?: string | null;
 }
@@ -60,6 +62,7 @@ const COLORS = {
   white: rgb(1, 1, 1),
   orange: rgb(249 / 255, 115 / 255, 22 / 255),
   orangeDeep: rgb(194 / 255, 65 / 255, 12 / 255),
+  green: rgb(34 / 255, 197 / 255, 94 / 255),
 };
 
 /** Strip characters outside the WinAnsi range that pdf-lib StandardFonts cannot encode. */
@@ -470,11 +473,14 @@ function drawBookingDetails(page: PDFPage, data: InvoiceRenderData, fonts: Invoi
     ['Booking Reference', data.bookingReference ?? 'Not available'],
     ['Payment Status', data.paymentStatus ?? data.status],
     ...(data.paymentMethod ? [['Payment Method', data.paymentMethod]] : []),
+    ...(data.tyreSizeDisplay ? [['Tyre Size', data.tyreSizeDisplay]] : []),
     ...(vehicleText(data) ? [['Vehicle', vehicleText(data)!]] : []),
   ];
 
-  let rowY = y + 78;
-  for (const [label, value] of rows.slice(0, 4)) {
+  const visibleRows = rows.slice(0, 5);
+  let rowY = y + 76;
+  const rowGap = visibleRows.length > 4 ? 16 : 20;
+  for (const [label, value] of visibleRows) {
     page.drawText(label, { x: x + 18, y: rowY, size: 8.5, font: fonts.normal, color: COLORS.muted });
     page.drawText(fitText(cleanText(value), fonts.bold, 8.8, 112), {
       x: x + 122,
@@ -483,7 +489,7 @@ function drawBookingDetails(page: PDFPage, data: InvoiceRenderData, fonts: Invoi
       font: fonts.bold,
       color: COLORS.ink,
     });
-    rowY -= 20;
+    rowY -= rowGap;
   }
 }
 
@@ -515,6 +521,77 @@ function drawTrustStrip(page: PDFPage, fonts: InvoiceFonts, x: number, y: number
       size: 7,
       font: fonts.normal,
       color: COLORS.softMuted,
+    });
+  });
+}
+
+function drawCheckIcon(page: PDFPage, x: number, y: number): void {
+  page.drawCircle({ x, y, size: 5.2, color: COLORS.green, opacity: 0.14 });
+  page.drawCircle({ x, y, size: 5.2, borderColor: COLORS.green, borderWidth: 0.8, opacity: 0.95 });
+  page.drawLine({
+    start: { x: x - 2.7, y: y - 0.1 },
+    end: { x: x - 0.7, y: y - 2.1 },
+    thickness: 1,
+    color: COLORS.green,
+  });
+  page.drawLine({
+    start: { x: x - 0.7, y: y - 2.1 },
+    end: { x: x + 3.1, y: y + 2.5 },
+    thickness: 1,
+    color: COLORS.green,
+  });
+}
+
+function drawServiceInclusions(
+  page: PDFPage,
+  data: InvoiceRenderData,
+  fonts: InvoiceFonts,
+  x: number,
+  y: number,
+  width: number,
+): void {
+  const height = 58;
+  const inclusions = (data.serviceInclusions ?? []).slice(0, 6);
+  drawPanel(page, { x, y, width, height, fill: COLORS.softPanel, border: COLORS.border, accent: true });
+  page.drawRectangle({
+    x: x + 4,
+    y,
+    width: width - 4,
+    height,
+    color: COLORS.palePanel,
+    opacity: 0.34,
+  });
+
+  page.drawText('Included in Your Service', {
+    x: x + 18,
+    y: y + 35,
+    size: 12,
+    font: fonts.bold,
+    color: COLORS.ink,
+  });
+  page.drawRectangle({ x: x + 18, y: y + 29, width: 34, height: 2, color: COLORS.orange });
+  page.drawText('Included with this booking.', {
+    x: x + 18,
+    y: y + 14,
+    size: 7.2,
+    font: fonts.normal,
+    color: COLORS.muted,
+  });
+
+  const listX = x + 168;
+  const columnWidth = (width - 190) / 2;
+  inclusions.forEach((item, index) => {
+    const column = index % 2;
+    const row = Math.floor(index / 2);
+    const left = listX + column * columnWidth;
+    const baselineY = y + 39 - row * 15;
+    drawCheckIcon(page, left, baselineY + 3);
+    page.drawText(fitText(cleanText(item), fonts.normal, 7.3, columnWidth - 18), {
+      x: left + 12,
+      y: baselineY,
+      size: 7.3,
+      font: fonts.normal,
+      color: COLORS.ink,
     });
   });
 }
@@ -755,6 +832,8 @@ function bookingCustomerInvoiceToRenderData(invoice: BookingCustomerInvoice): In
     vehicleRegistration: safe.vehicle.registration,
     vehicleMake: safe.vehicle.make,
     vehicleModel: safe.vehicle.model,
+    tyreSizeDisplay: safe.tyreSizeDisplay,
+    serviceInclusions: safe.serviceInclusions,
     paymentStatus: safe.payment.status,
     paymentMethod: safe.payment.method,
   };
@@ -780,6 +859,7 @@ function standaloneAdminInvoiceToRenderData(invoice: StandaloneAdminInvoice): In
     vehicleRegistration: invoice.vehicleRegistration,
     vehicleMake: invoice.vehicleMake,
     vehicleModel: invoice.vehicleModel,
+    tyreSizeDisplay: invoice.tyreSizeDisplay,
     paymentStatus: invoice.paymentStatus,
     paymentMethod: invoice.paymentMethod,
   };
@@ -841,11 +921,11 @@ function collectInvoicePdfText(data: InvoiceRenderData): string[] {
     'Payment Status',
     paymentStatus,
     ...(data.paymentMethod ? ['Payment Method', data.paymentMethod] : []),
+    ...(data.tyreSizeDisplay ? ['Tyre Size', data.tyreSizeDisplay] : []),
     ...(vehicleText(data) ? ['Vehicle', vehicleText(data)!] : []),
-    '24/7 RESPONSE',
-    'MOBILE SERVICE',
-    'SECURE PAYMENT',
-    'CUSTOMER FOCUSED',
+    ...(data.serviceInclusions?.length
+      ? ['Included in Your Service', ...data.serviceInclusions]
+      : ['24/7 RESPONSE', 'MOBILE SERVICE', 'SECURE PAYMENT', 'CUSTOMER FOCUSED']),
     'TOTAL DUE',
     fmtPrice(data.totalAmount, data.currency),
     `All amounts are in ${data.currency.toUpperCase()}`,
@@ -876,7 +956,11 @@ async function renderInvoicePdf(data: InvoiceRenderData): Promise<Uint8Array> {
   drawInvoiceInfo(page, data, fonts, 312, 526);
   drawBillTo(page, data, fonts, 40, 366);
   drawBookingDetails(page, data, fonts, 305, 366);
-  drawTrustStrip(page, fonts, 40, 314, width - 80);
+  if (data.serviceInclusions?.length) {
+    drawServiceInclusions(page, data, fonts, 40, 306, width - 80);
+  } else {
+    drawTrustStrip(page, fonts, 40, 314, width - 80);
+  }
   drawTotalDue(page, data, fonts, 40, 186, width - 80);
   drawThankYou(page, data, fonts, 40, 138, width - 80);
   drawQuickAccess(page, fonts, quickAccessQr, 40, 66, width - 80);

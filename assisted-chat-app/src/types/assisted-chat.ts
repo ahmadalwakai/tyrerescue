@@ -91,6 +91,7 @@ export interface AssistedChatDraft {
   tyreLines: BookingTyreLine[];
   lockingNut: AssistedChatLockingWheelNut;
   quickBookingId: string | null;
+  virtualLandlineInteractionId: string | null;
   savedQuoteId: string | null;
   savedQuoteRef: string | null;
   note: string;

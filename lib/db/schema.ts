@@ -770,6 +770,38 @@ export const quickBookings = pgTable('quick_bookings', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// Virtual Landline call-history interactions imported from provider CSV exports.
+export const virtualLandlineInteractions = pgTable('virtual_landline_interactions', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  provider: varchar('provider', { length: 50 }).notNull().default('virtual_landline'),
+  source: varchar('source', { length: 30 }).notNull().default('csv'),
+  importKey: varchar('import_key', { length: 128 }).notNull().unique(),
+  providerCallId: varchar('provider_call_id', { length: 255 }),
+  direction: text('direction').notNull(), // incoming | outgoing | missed | unknown
+  callStatus: text('call_status').notNull().default('unknown'),
+  callerNumberRaw: varchar('caller_number_raw', { length: 80 }),
+  destinationNumberRaw: varchar('destination_number_raw', { length: 80 }),
+  callerNumberNormalized: varchar('caller_number_normalized', { length: 20 }),
+  destinationNumberNormalized: varchar('destination_number_normalized', { length: 20 }),
+  customerPhoneNormalized: varchar('customer_phone_normalized', { length: 20 }),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+  endedAt: timestamp('ended_at', { withTimezone: true }),
+  durationSeconds: integer('duration_seconds'),
+  recordingUrl: text('recording_url'),
+  sourceFileName: varchar('source_file_name', { length: 255 }),
+  sourceRowNumber: integer('source_row_number').notNull(),
+  rawRow: jsonb('raw_row').notNull(),
+  matchedUserId: uuid('matched_user_id').references(() => users.id, { onDelete: 'set null' }),
+  linkedBookingId: uuid('linked_booking_id').references(() => bookings.id, { onDelete: 'set null' }),
+  linkedQuickBookingId: uuid('linked_quick_booking_id').references(() => quickBookings.id, { onDelete: 'set null' }),
+  reviewed: boolean('reviewed').notNull().default(false),
+  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+  reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+  importedBy: uuid('imported_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
 // ──────────────────────────────────────────────
 // Admin Quote Drafts (internal operator quotes only)
 // ──────────────────────────────────────────────

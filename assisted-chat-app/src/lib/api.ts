@@ -82,7 +82,16 @@ export class ApiError extends Error {
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+interface RequestOptions {
+  signal?: AbortSignal;
+}
+
+async function request<T>(
+  method: Method,
+  path: string,
+  body?: unknown,
+  options: RequestOptions = {},
+): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
     headers: {
@@ -90,6 +99,7 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
       ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
+    signal: options.signal,
   });
 
   const ct = res.headers.get('content-type') || '';
@@ -119,11 +129,11 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
 }
 
 export const api = {
-  get: <T>(p: string) => request<T>('GET', p),
-  post: <T>(p: string, b?: unknown) => request<T>('POST', p, b),
-  patch: <T>(p: string, b?: unknown) => request<T>('PATCH', p, b),
-  put: <T>(p: string, b?: unknown) => request<T>('PUT', p, b),
-  del: <T>(p: string) => request<T>('DELETE', p),
+  get: <T>(p: string, options?: RequestOptions) => request<T>('GET', p, undefined, options),
+  post: <T>(p: string, b?: unknown, options?: RequestOptions) => request<T>('POST', p, b, options),
+  patch: <T>(p: string, b?: unknown, options?: RequestOptions) => request<T>('PATCH', p, b, options),
+  put: <T>(p: string, b?: unknown, options?: RequestOptions) => request<T>('PUT', p, b, options),
+  del: <T>(p: string, options?: RequestOptions) => request<T>('DELETE', p, undefined, options),
   baseUrl: API_BASE_URL,
   get hasAdminToken() {
     return currentToken !== null;

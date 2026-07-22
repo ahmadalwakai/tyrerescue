@@ -22,7 +22,7 @@ import { WebView } from 'react-native-webview';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import driverNearbySoundSource from '../../assets/sounds/urgent_booking.mp3';
 import assistedChatHeaderVideoSource from '../../assets/video/assisted-chat-header.mp4';
-import { useAssistedChatDraft } from '@/hooks/useAssistedChatDraft';
+import { EMPTY_DRAFT, useAssistedChatDraft } from '@/hooks/useAssistedChatDraft';
 import { useAssistedChatPrice } from '@/hooks/useAssistedChatPrice';
 import { useAssistedChatDispatch } from '@/hooks/useAssistedChatDispatch';
 import { useAdminPaymentLink } from '@/hooks/useAdminPaymentLink';
@@ -65,12 +65,18 @@ import { TrackingModal } from './TrackingModal';
 import { DriverChatModal } from './DriverChatModal';
 import { ChatHubModal } from './ChatHubModal';
 import { MessageSenderModal } from './MessageSenderModal';
+import { VirtualLandlineModal, type VirtualLandlineDraftPrefill } from './VirtualLandlineModal';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 import { usePressScale } from './motion';
 import { AppIcon, type AppIconName } from './icons/AppIcon';
 import { api } from '@/lib/api';
 import { downloadInvoicePdfToDevice } from '@/lib/invoice-download';
+import {
+  getPaymentLinkStatusLabel,
+  getStripeCheckButtonLabel,
+  type PaymentLinkLiveStatus,
+} from '@/lib/payment-link-status';
 import {
   HEADER_VIDEO_STARTUP_TIMEOUT_MS,
   buildHeaderVideoHtml,
@@ -129,7 +135,6 @@ import {
 import {
   ASSISTED_CHAT_HEADER_INFO_MIN_WIDTH,
   ASSISTED_CHAT_HEADER_MIN_BUTTON_HEIGHT,
-  ASSISTED_CHAT_HEADER_TOP_ROW_GAP,
 } from '@/lib/header-layout';
 import {
   formatHeaderNotificationBadge,
@@ -549,7 +554,7 @@ function genericWhatsAppUrl(message: string): string {
 }
 
 export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
-  const { draft, hydrated, update, clear } = useAssistedChatDraft();
+  const { draft, hydrated, update, replace, clear } = useAssistedChatDraft();
   const [noteInput, setNoteInput] = useState('');
   const [noteSynced, setNoteSynced] = useState(false);
   const [callNotesInput, setCallNotesInput] = useState('');
@@ -569,6 +574,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const [driverTrackingOpen, setDriverTrackingOpen] = useState(false);
   const [chatHubOpen, setChatHubOpen] = useState(false);
   const [messageSenderOpen, setMessageSenderOpen] = useState(false);
+  const [virtualLandlineOpen, setVirtualLandlineOpen] = useState(false);
   const [trackingMapOpen, setTrackingMapOpen] = useState(false);
   const [duplicateAck, setDuplicateAck] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -844,6 +850,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       )) * 100,
   ) / 100;
   const engineEffectiveTotal = baseTotal;
+  const originalCalculatedPriceGbp = backendBaseTotal;
   // When the operator has typed a manual final price, that overrides the
   // backend total everywhere the customer-facing price is used. The override
   // is stored as a backend admin adjustment before save/finalize.
@@ -928,10 +935,6 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     lockingNutCharge,
     onBookingCreated: handleBookingCreated,
   });
-
-  // Admin-created Stripe payment link for an already-dispatched booking's
-  // outstanding balance. The backend is the source of truth for completion.
-  const paymentLinkActions = useAdminPaymentLink({ draft, update });
 
   // Live tracking session for the dispatched booking. Hook is a no-op when
   // dispatchedBookingId is null; auto-ensures (idempotent) the first time we
@@ -1064,6 +1067,14 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   );
 
   const activeStage = editingStage ?? workflow.currentStage;
+  const paymentAutoCheckActive = activeStage === 'PAYMENT' || activeStage === 'DISPATCHED';
+  // Admin-created Stripe payment links are verified by the backend checker.
+  // Auto-checking runs only while the payment surface is visible.
+  const paymentLinkActions = useAdminPaymentLink({
+    draft,
+    update,
+    autoCheckActive: paymentAutoCheckActive,
+  });
   const hasLocation = draft.location.lat != null && draft.location.lng != null;
   const hasTyre = hasAssistedChatTyre(draft);
   const quotePricingDistanceMiles = getQuotePricingDistanceMiles(draft.quote);
@@ -1134,6 +1145,32 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     quoteActions.setMessage(null);
     locationShare.setMessage(null);
   }, [clear, locationShare, quoteActions]);
+
+  const handleCreateVirtualLandlineDraft = useCallback(
+    (prefill: VirtualLandlineDraftPrefill) => {
+      const matched = prefill.matchedCustomer;
+      const phone = matched?.phone?.trim() || prefill.phone;
+      const nextDraft: AssistedChatDraft = {
+        ...EMPTY_DRAFT,
+        customer: {
+          phone,
+          name: matched?.name?.trim() || '',
+          email: matched?.email?.trim() || '',
+        },
+        virtualLandlineInteractionId: prefill.interactionId,
+      };
+      replace(nextDraft);
+      setPhoneInput(phone);
+      setPhoneSynced(true);
+      setNoteInput('');
+      setCallNotesInput('');
+      setCallAssistMessage(null);
+      setDuplicateAck(false);
+      setEditingStage('CUSTOMER');
+      flashNotice({ kind: 'ok', text: 'Virtual Landline call loaded into a new draft.' });
+    },
+    [flashNotice, replace],
+  );
 
   const handlePhoneBlur = useCallback(() => {
     const phone = normalizeContactPhone(phoneInput);
@@ -1598,6 +1635,14 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         onPress: () => setActiveJobsOpen(true),
       },
       {
+        id: 'virtual-landline',
+        label: 'Virtual Landline',
+        icon: 'phone',
+        description: 'Import and review Virtual Landline call history.',
+        disabledReason: noToken,
+        onPress: () => setVirtualLandlineOpen(true),
+      },
+      {
         id: 'driver-tracking',
         label: 'Tracking hub',
         description: 'Live map for all drivers and dispatch jobs.',
@@ -2044,10 +2089,12 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
               dispatch,
               handleCopyCustomerDetails,
               engineEffectiveTotal,
+              originalCalculatedPriceGbp,
               setEditPriceOpen,
               breakdownVisible,
               setBreakdownVisible,
               openPaymentStage: () => setEditingStage('PAYMENT'),
+              paymentLinkActions,
             })}
             {activeStage === 'DISPATCHED' && draft.dispatchedBookingId ? (
               <View style={styles.dispatchedStack}>
@@ -2086,25 +2133,17 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
                       </Text>
                       <View style={[
                         styles.paymentStatusBadge,
-                        paymentLinkActions.liveStatus === 'paid' && styles.paymentStatusBadgePaid,
-                        paymentLinkActions.liveStatus === 'failed' && styles.paymentStatusBadgeFailed,
-                        paymentLinkActions.liveStatus === 'checking' && styles.paymentStatusBadgeChecking,
+                        paymentLinkStatusBadgeStyle(paymentLinkActions.liveStatus),
                       ]}>
-                        <Text style={[
-                          styles.paymentLinkStatus,
-                          paymentLinkActions.liveStatus === 'paid' && { color: colors.success },
-                          paymentLinkActions.liveStatus === 'failed' && { color: colors.danger },
-                          paymentLinkActions.liveStatus === 'checking' && { color: colors.warning },
-                        ]}>
-                          {paymentLinkActions.liveStatus === 'paid'
-                            ? 'Payment received'
-                            : paymentLinkActions.liveStatus === 'failed'
-                              ? 'Payment failed'
-                              : paymentLinkActions.liveStatus === 'checking'
-                                ? 'Payment needs checking'
-                                : 'Awaiting payment'}
+                        <Text style={[styles.paymentLinkStatus, { color: paymentLinkStatusColor(paymentLinkActions.liveStatus) }]}>
+                          {getPaymentLinkStatusLabel(paymentLinkActions.liveStatus)}
                         </Text>
                       </View>
+                      {paymentLinkActions.autoCheckMessage ? (
+                        <Text style={styles.paymentAutoCheckText}>
+                          {paymentLinkActions.autoCheckMessage}
+                        </Text>
+                      ) : null}
                       <AppButton
                         label="Copy link"
                         variant="secondary"
@@ -2118,7 +2157,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
                         fullWidth
                       />
                       <AppButton
-                        label={paymentLinkActions.liveStatus === 'paid' ? 'Payment confirmed' : 'Check Stripe payment'}
+                        label={paymentLinkActions.checking ? 'Checking Stripe...' : getStripeCheckButtonLabel(paymentLinkActions.liveStatus)}
                         variant="secondary"
                         onPress={() => { void paymentLinkActions.checkNow(); }}
                         loading={paymentLinkActions.checking}
@@ -2212,6 +2251,11 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       <AdminVisitorsModal visible={visitorsOpen} onClose={() => setVisitorsOpen(false)} />
       <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
       <AdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
+      <VirtualLandlineModal
+        visible={virtualLandlineOpen}
+        onClose={() => setVirtualLandlineOpen(false)}
+        onCreateDraft={handleCreateVirtualLandlineDraft}
+      />
       <AddAdminModal visible={addAdminOpen} onClose={() => setAddAdminOpen(false)} />
       <ActiveJobsModal visible={activeJobsOpen} onClose={() => setActiveJobsOpen(false)} />
       <TrackingModal visible={driverTrackingOpen} onClose={() => setDriverTrackingOpen(false)} />
@@ -2321,10 +2365,12 @@ interface RenderActiveStageArgs {
   dispatch: ReturnType<typeof useAssistedChatDispatch>;
   handleCopyCustomerDetails: () => void | Promise<void>;
   engineEffectiveTotal: number;
+  originalCalculatedPriceGbp: number;
   setEditPriceOpen: (value: boolean) => void;
   breakdownVisible: boolean;
   setBreakdownVisible: (value: boolean) => void;
   openPaymentStage: () => void;
+  paymentLinkActions: ReturnType<typeof useAdminPaymentLink>;
 
 }
 
@@ -2360,10 +2406,12 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     dispatch,
     handleCopyCustomerDetails,
     engineEffectiveTotal,
+    originalCalculatedPriceGbp,
     setEditPriceOpen,
     breakdownVisible,
     setBreakdownVisible,
     openPaymentStage,
+    paymentLinkActions,
   } = args;
 
   if (activeStage === 'CUSTOMER') {
@@ -2521,7 +2569,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
         <CompactQuoteCard
           displayedPriceGbp={effectiveTotal}
           isManualPrice={draft.manualPriceGbp != null}
-          originalCalculatedPriceGbp={engineEffectiveTotal}
+          originalCalculatedPriceGbp={originalCalculatedPriceGbp}
           status={status}
           savedQuoteRef={savedQuoteRef}
           expiryText={quoteExpiryStatus}
@@ -2562,7 +2610,17 @@ function renderActiveStage(args: RenderActiveStageArgs) {
           />
         ) : null}
         {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
-        {draft.paymentLink ? <PaymentLinkInline link={draft.paymentLink} isManualPrice={draft.manualPriceGbp != null} /> : null}
+        {draft.paymentLink ? (
+          <PaymentLinkInline
+            link={draft.paymentLink}
+            isManualPrice={draft.manualPriceGbp != null}
+            liveStatus={paymentLinkActions.liveStatus}
+            checking={paymentLinkActions.checking}
+            error={paymentLinkActions.error}
+            autoCheckMessage={paymentLinkActions.autoCheckMessage}
+            onCheck={paymentLinkActions.checkNow}
+          />
+        ) : null}
       </View>
     );
   }
@@ -2579,7 +2637,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
         <CompactQuoteCard
           displayedPriceGbp={effectiveTotal}
           isManualPrice={draft.manualPriceGbp != null}
-          originalCalculatedPriceGbp={engineEffectiveTotal}
+          originalCalculatedPriceGbp={originalCalculatedPriceGbp}
           status={status}
           savedQuoteRef={savedQuoteRef}
           expiryText={quoteExpiryStatus}
@@ -2621,7 +2679,17 @@ function renderActiveStage(args: RenderActiveStageArgs) {
         ) : null}
         {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind} message={quoteActions.message.text} /> : null}
         {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
-        {draft.paymentLink ? <PaymentLinkInline link={draft.paymentLink} isManualPrice={draft.manualPriceGbp != null} /> : null}
+        {draft.paymentLink ? (
+          <PaymentLinkInline
+            link={draft.paymentLink}
+            isManualPrice={draft.manualPriceGbp != null}
+            liveStatus={paymentLinkActions.liveStatus}
+            checking={paymentLinkActions.checking}
+            error={paymentLinkActions.error}
+            autoCheckMessage={paymentLinkActions.autoCheckMessage}
+            onCheck={paymentLinkActions.checkNow}
+          />
+        ) : null}
       </View>
     );
   }
@@ -2638,7 +2706,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
         <CompactQuoteCard
           displayedPriceGbp={effectiveTotal}
           isManualPrice={draft.manualPriceGbp != null}
-          originalCalculatedPriceGbp={engineEffectiveTotal}
+          originalCalculatedPriceGbp={originalCalculatedPriceGbp}
           status={status}
           savedQuoteRef={savedQuoteRef}
           expiryText={quoteExpiryStatus}
@@ -2680,7 +2748,17 @@ function renderActiveStage(args: RenderActiveStageArgs) {
         ) : null}
         {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind} message={quoteActions.message.text} /> : null}
         {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
-        {draft.paymentLink ? <PaymentLinkInline link={draft.paymentLink} isManualPrice={draft.manualPriceGbp != null} /> : null}
+        {draft.paymentLink ? (
+          <PaymentLinkInline
+            link={draft.paymentLink}
+            isManualPrice={draft.manualPriceGbp != null}
+            liveStatus={paymentLinkActions.liveStatus}
+            checking={paymentLinkActions.checking}
+            error={paymentLinkActions.error}
+            autoCheckMessage={paymentLinkActions.autoCheckMessage}
+            onCheck={paymentLinkActions.checkNow}
+          />
+        ) : null}
       </View>
     );
   }
@@ -2697,7 +2775,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
         <CompactQuoteCard
           displayedPriceGbp={effectiveTotal}
           isManualPrice={draft.manualPriceGbp != null}
-          originalCalculatedPriceGbp={engineEffectiveTotal}
+          originalCalculatedPriceGbp={originalCalculatedPriceGbp}
           status={status}
           savedQuoteRef={savedQuoteRef}
           expiryText={quoteExpiryStatus}
@@ -2746,7 +2824,17 @@ function renderActiveStage(args: RenderActiveStageArgs) {
         ) : null}
         {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind} message={quoteActions.message.text} /> : null}
         {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
-        {draft.paymentLink ? <PaymentLinkInline link={draft.paymentLink} isManualPrice={draft.manualPriceGbp != null} /> : null}
+        {draft.paymentLink ? (
+          <PaymentLinkInline
+            link={draft.paymentLink}
+            isManualPrice={draft.manualPriceGbp != null}
+            liveStatus={paymentLinkActions.liveStatus}
+            checking={paymentLinkActions.checking}
+            error={paymentLinkActions.error}
+            autoCheckMessage={paymentLinkActions.autoCheckMessage}
+            onCheck={paymentLinkActions.checkNow}
+          />
+        ) : null}
       </View>
     );
   }
@@ -3657,7 +3745,59 @@ function CallNotesCard({
   );
 }
 
-function PaymentLinkInline({ link, isManualPrice = false }: { link: StripePaymentLinkState; isManualPrice?: boolean }) {
+function paymentLinkStatusColor(status: PaymentLinkLiveStatus | null): string {
+  switch (status) {
+    case 'paid':
+      return colors.success;
+    case 'failed':
+    case 'cancelled':
+    case 'refunded':
+      return colors.danger;
+    case 'expired':
+    case 'partial':
+    case 'checking':
+      return colors.warning;
+    case 'awaiting':
+    default:
+      return colors.warning;
+  }
+}
+
+function paymentLinkStatusBadgeStyle(status: PaymentLinkLiveStatus | null): ViewStyle | null {
+  switch (status) {
+    case 'paid':
+      return styles.paymentStatusBadgePaid;
+    case 'failed':
+    case 'cancelled':
+    case 'refunded':
+      return styles.paymentStatusBadgeFailed;
+    case 'expired':
+    case 'partial':
+    case 'checking':
+      return styles.paymentStatusBadgeChecking;
+    case 'awaiting':
+    default:
+      return null;
+  }
+}
+
+function PaymentLinkInline({
+  link,
+  isManualPrice = false,
+  liveStatus,
+  checking,
+  error,
+  autoCheckMessage,
+  onCheck,
+}: {
+  link: StripePaymentLinkState;
+  isManualPrice?: boolean;
+  liveStatus: PaymentLinkLiveStatus | null;
+  checking: boolean;
+  error: string | null;
+  autoCheckMessage: string | null;
+  onCheck: () => Promise<PaymentLinkLiveStatus | null>;
+}) {
   const kindLabel = link.kind === 'deposit' ? 'Deposit payment link' : 'Full payment link';
   const handleOpen = (): void => {
     void Linking.openURL(link.paymentUrl);
@@ -3665,6 +3805,9 @@ function PaymentLinkInline({ link, isManualPrice = false }: { link: StripePaymen
   const handleCopy = (): void => {
     void copyToClipboard(link.paymentUrl);
   };
+  const statusLabel = getPaymentLinkStatusLabel(liveStatus);
+  const checkLabel = checking ? 'Checking Stripe...' : getStripeCheckButtonLabel(liveStatus);
+  const checkDisabled = checking || liveStatus === 'paid';
   return (
     <SectionCard title={kindLabel}>
       <Text style={styles.paymentLinkMeta} numberOfLines={2}>{link.paymentUrl}</Text>
@@ -3672,10 +3815,27 @@ function PaymentLinkInline({ link, isManualPrice = false }: { link: StripePaymen
       {isManualPrice ? (
         <Text style={styles.paymentLinkMeta}>Manual price used for payment</Text>
       ) : null}
+      <View style={[styles.paymentStatusBadge, paymentLinkStatusBadgeStyle(liveStatus)]}>
+        <Text style={[styles.paymentLinkStatus, { color: paymentLinkStatusColor(liveStatus) }]}>
+          {statusLabel}
+        </Text>
+      </View>
+      {autoCheckMessage ? (
+        <Text style={styles.paymentAutoCheckText}>{autoCheckMessage}</Text>
+      ) : null}
       <View style={styles.paymentLinkActions}>
         <AppButton label="Copy link" variant="secondary" onPress={handleCopy} style={styles.flexActionButton} />
         <AppButton label="Open" variant="ghost" onPress={handleOpen} style={styles.flexActionButton} />
+        <AppButton
+          label={checkLabel}
+          variant="secondary"
+          onPress={() => { void onCheck(); }}
+          loading={checking}
+          disabled={checkDisabled}
+          style={styles.flexActionButton}
+        />
       </View>
+      {error ? <StatusBanner kind="err" message={error} /> : null}
     </SectionCard>
   );
 }
@@ -3707,6 +3867,7 @@ const SHEET_ACTION_ICONS: Record<string, AppIconName> = {
   'open-payment-link': 'external-link',
   'whatsapp-payment-link': 'whatsapp',
   'admin-bookings': 'list-alt',
+  'virtual-landline': 'phone',
   'admin-visitors': 'line-chart',
   'admin-invoices': 'file-pdf-o',
   'admin-stock': 'cubes',
@@ -4082,9 +4243,9 @@ const styles = StyleSheet.create({
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    flexWrap: 'wrap',
-    gap: 8,
-    zIndex: 1,
+    flexWrap: 'nowrap',
+    minHeight: 46,
+    zIndex: 4,
   },
   headerIdentityRow: {
     flexDirection: 'row',
@@ -4093,14 +4254,15 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: 0,
-    minWidth: ASSISTED_CHAT_HEADER_INFO_MIN_WIDTH + 70,
+    minWidth: 0,
     maxWidth: '100%',
+    paddingRight: 112,
   },
   headerTextBlock: {
     flexGrow: 1,
-    flexShrink: 0,
+    flexShrink: 1,
     flexBasis: ASSISTED_CHAT_HEADER_INFO_MIN_WIDTH,
-    minWidth: ASSISTED_CHAT_HEADER_INFO_MIN_WIDTH,
+    minWidth: 0,
     maxWidth: '100%',
   },
   headerBrandRow: {
@@ -4128,19 +4290,21 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: 0,
-    flexShrink: 0,
+    flexShrink: 1,
+    minWidth: 0,
   },
   headerCustomer: { color: colors.text, fontSize: fontSize.sm, fontWeight: '900', marginTop: 3, minWidth: 0 },
   headerPhone: { color: colors.muted, fontSize: 11, marginTop: 1, fontWeight: '800', minWidth: 0 },
   headerUtilityRow: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 10,
     flexShrink: 0,
-    marginLeft: 'auto',
-    marginTop: 0,
-    alignSelf: 'flex-start',
+    zIndex: 5,
   },
   headerIconButton: {
     minWidth: 46,
@@ -4639,6 +4803,7 @@ const styles = StyleSheet.create({
   },
   paymentLinkTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
   paymentLinkMeta: { color: colors.muted, fontSize: fontSize.xs, lineHeight: 17 },
+  paymentAutoCheckText: { color: colors.subtle, fontSize: fontSize.xs, lineHeight: 17 },
   paymentLinkActions: { flexDirection: 'row', gap: 10, marginTop: 6, flexWrap: 'wrap' },
   paymentStatusBadge: {
     alignSelf: 'flex-start',
@@ -4731,7 +4896,7 @@ const styles = StyleSheet.create({
   primaryReason: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '700', marginTop: 5 },
   paymentLinkHint: { color: colors.muted, fontSize: fontSize.sm, marginBottom: 8 },
   paymentLinkAmount: { color: colors.text, fontSize: fontSize.md, fontWeight: '700', marginBottom: 2 },
-  paymentLinkStatus: { color: colors.warning, fontSize: fontSize.sm, fontWeight: '700', marginBottom: 8 },
+  paymentLinkStatus: { color: colors.warning, fontSize: fontSize.sm, fontWeight: '700' },
   sheetBackdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   actionSheet: {
     maxHeight: '86%',

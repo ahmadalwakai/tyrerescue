@@ -9,8 +9,8 @@ import type {
 
 // Bumped key because old persisted drafts carried fields this streamlined
 // phone-led flow no longer uses. Restore only the current draft shape.
-const STORAGE_KEY = 'assistedChat.draft.v4';
-const LEGACY_KEYS = ['assistedChat.draft.v3', 'assistedChat.draft.v2', 'assistedChat.draft.v1'] as const;
+const STORAGE_KEY = 'assistedChat.draft.v5';
+const LEGACY_KEYS = ['assistedChat.draft.v4', 'assistedChat.draft.v3', 'assistedChat.draft.v2', 'assistedChat.draft.v1'] as const;
 // Mirrors the web hook so a stale draft doesn't carry forward across days.
 const STALE_AFTER_MS = 1000 * 60 * 60 * 12;
 
@@ -34,6 +34,7 @@ export const EMPTY_DRAFT: AssistedChatDraft = {
   tyreLines: [createBookingTyreLine({ id: 'tyre-1' })],
   lockingNut: { answer: 'unknown', chargeGbp: null },
   quickBookingId: null,
+  virtualLandlineInteractionId: null,
   savedQuoteId: null,
   savedQuoteRef: null,
   note: '',
@@ -99,6 +100,10 @@ export function useAssistedChatDraft() {
               tyreLines: migratedTyreLines,
               lockingNut: { ...EMPTY_DRAFT.lockingNut, ...parsed.lockingNut },
               quickBookingId: typeof parsed.quickBookingId === 'string' ? parsed.quickBookingId : null,
+              virtualLandlineInteractionId:
+                typeof parsed.virtualLandlineInteractionId === 'string'
+                  ? parsed.virtualLandlineInteractionId
+                  : null,
               savedQuoteId: typeof parsed.savedQuoteId === 'string' ? parsed.savedQuoteId : null,
               savedQuoteRef: typeof parsed.savedQuoteRef === 'string' ? parsed.savedQuoteRef : null,
               note: typeof parsed.note === 'string' ? parsed.note : EMPTY_DRAFT.note,

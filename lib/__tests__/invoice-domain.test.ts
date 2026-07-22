@@ -53,6 +53,13 @@ function customerInvoice(overrides: Partial<BookingCustomerInvoice> = {}): Booki
       make: 'Ford',
       model: 'Focus',
     },
+    tyreSizeDisplay: '205/55R17',
+    serviceInclusions: [
+      'Mobile tyre fitting service',
+      'Removal of the old tyre from the wheel',
+      'Professional fitting and balancing (when applicable)',
+      'Final safety inspection',
+    ],
     payment: {
       status: 'Paid',
       method: 'Payment link',
@@ -100,6 +107,9 @@ const booking: BookingInvoiceSource = {
   vehicleReg: 'AB12 CDE',
   vehicleMake: 'Ford',
   vehicleModel: 'Focus',
+  tyreSizeDisplay: '205/55R17',
+  serviceType: 'fit',
+  vatAmount: '0.00',
 };
 
 function standaloneInvoice(overrides: Partial<StandaloneAdminInvoice> = {}): StandaloneAdminInvoice {
@@ -157,6 +167,7 @@ describe('BookingCustomerInvoice domain boundary', () => {
     expect(invoice).not.toHaveProperty('items');
     expect(invoice).not.toHaveProperty('pricingBreakdown');
     expect(invoice).not.toHaveProperty('adminAdjustment');
+    expect(invoice.tyreSizeDisplay).toBe('205/55R17');
     expect(JSON.stringify(invoice)).not.toContain('Emergency Call-out');
     expect(JSON.stringify(invoice)).not.toContain('Labour');
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('lineItems'));
@@ -177,6 +188,12 @@ describe('BookingCustomerInvoice domain boundary', () => {
     expect(text).not.toContain('Weekend Charge');
     expect(text).not.toContain('Same Day Charge');
     expect(text).not.toContain('Internal Pricing Breakdown');
+    expect(text).toContain('Tyre Size');
+    expect(text).toContain('205/55R17');
+    expect(text).toContain('Included in Your Service');
+    expect(text).toContain('Mobile tyre fitting service');
+    expect(text.indexOf('Included in Your Service')).toBeLessThan(text.indexOf('TOTAL DUE'));
+    expect(text).not.toContain('Disposal');
   });
 
   it('uses the new premium customer invoice language without copying reference data', () => {
@@ -196,10 +213,8 @@ describe('BookingCustomerInvoice domain boundary', () => {
 
     expect(text).toContain('COMPANY DETAILS');
     expect(text).toContain('BOOKING DETAILS');
-    expect(text).toContain('24/7 RESPONSE');
-    expect(text).toContain('MOBILE SERVICE');
-    expect(text).toContain('SECURE PAYMENT');
-    expect(text).toContain('CUSTOMER FOCUSED');
+    expect(text).toContain('Included in Your Service');
+    expect(text).toContain('Final safety inspection');
     expect(text).toContain('TOTAL DUE');
     expect(text).toContain('THANK YOU');
     expect(text).toContain('QUICK ACCESS');
@@ -218,6 +233,43 @@ describe('BookingCustomerInvoice domain boundary', () => {
     expect(rendererSource).toContain("page.drawText('CUSTOMER TOTAL'");
   });
 
+  it('generates accurate service inclusions from existing booking fields only', () => {
+    expect(invoiceDomain.buildBookingServiceInclusions({ serviceType: 'fit', vatAmount: '0.00' })).toEqual([
+      'Mobile tyre fitting service',
+      'Removal of the old tyre from the wheel',
+      'Professional fitting and balancing (when applicable)',
+      'Final safety inspection',
+    ]);
+
+    expect(invoiceDomain.buildBookingServiceInclusions({ serviceType: 'repair', vatAmount: '0.00' })).toEqual([
+      'Mobile tyre repair service',
+      'Puncture repair assessment and repair where safe',
+      'Final safety inspection',
+    ]);
+
+    expect(invoiceDomain.buildBookingServiceInclusions({ serviceType: 'assess', vatAmount: '0.00' })).toEqual([
+      'Mobile tyre inspection service',
+      'Inspection findings confirmed on site',
+      'Final safety inspection',
+    ]);
+  });
+
+  it('does not claim disposal or VAT unless existing booking data supports it', () => {
+    const repairInclusions = invoiceDomain.buildBookingServiceInclusions({
+      serviceType: 'repair',
+      vatAmount: '0.00',
+    });
+    const vatInclusions = invoiceDomain.buildBookingServiceInclusions({
+      serviceType: 'fit',
+      vatAmount: '12.34',
+    });
+
+    expect(repairInclusions.join('\n')).not.toContain('Disposal');
+    expect(repairInclusions.join('\n')).not.toContain('recycling');
+    expect(repairInclusions.join('\n')).not.toContain('VAT included');
+    expect(vatInclusions).toContain('VAT included where applicable');
+  });
+
   it('ships the exact official customer quick access QR asset', () => {
     expect(sha256(quickAccessQrPath)).toBe(quickAccessQrSha256);
   });
@@ -234,6 +286,7 @@ describe('BookingCustomerInvoice domain boundary', () => {
       totalPrice: 40,
     });
     expect(text.match(/£\d+\.\d{2}/g)).toEqual(['£120.00']);
+    expect(text).not.toContain('Included in Your Service');
   });
 
   it('rejects accidental interchange of admin invoice data into the customer renderer', () => {

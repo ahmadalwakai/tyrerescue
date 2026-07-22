@@ -1,0 +1,6 @@
+Call ID,Caller Number,Destination Number,Direction,Start Time,End Time,Duration,Call Status,Recording URL,Notes
+VL-SAFE-001,+44 7700 900123,020 7946 0000,Incoming,21/07/2026 03:17:50,21/07/2026 03:20:00,00:02:10,Answered,https://recordings.example.invalid/call-001.mp3,"Answered, transferred to operator"
+VL-SAFE-002,Withheld,020 7946 0000,Incoming,21/07/2026 03:25:00,,0,Missed,,
+VL-SAFE-003,020 7946 0000,07700 900456,Outgoing,2026-07-21 04:00:00,,83 seconds,Answered,,
+VL-SAFE-004,Anonymous,020 7946 0000,Missed,27/10/2024 01:30:00,,00:00,No Answer,,
+VL-SAFE-005,07700 900789,020 7946 0000,Incoming,31/03/2024 00:30:00,,00:01:05,Answered,javascript:alert(1),Bad recording URL is ignored
