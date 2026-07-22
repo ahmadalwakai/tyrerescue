@@ -2,7 +2,7 @@
 
 Date: 2026-07-22
 Scope: `assisted-chat-app` startup instrumentation for the next TestFlight build.
-Build status: no production build has been run for this pass.
+Build status: startup instrumentation added; TestFlight submission attempts are tracked in EAS build logs.
 
 ## Instrumentation Added
 
@@ -28,7 +28,7 @@ Every instrumented startup module logs `started`, `completed`, and `failed` when
 
 Actual order in the current app, preserving business logic:
 
-1. `index.js`
+1. `src/startup-entry.js`
    - Loads `@expo/metro-runtime`.
    - Logs `Native app started`.
    - Logs `JS runtime started`.
@@ -88,7 +88,7 @@ Note: the user-requested checkpoint list is all emitted, but exact chronological
 
 ## Startup Dependency Graph
 
-`index.js`
+`src/startup-entry.js`
 -> `@expo/metro-runtime`
 -> `src/lib/startup-logging.ts`
 -> `expo-router/entry`

@@ -2,7 +2,7 @@
   "name": "tyre-rescue-assisted-chat",
   "version": "1.0.9",
   "private": true,
-  "main": "index.js",
+  "main": "./src/startup-entry.js",
   "scripts": {
     "start": "expo start --port 8081",
     "android": "expo start --android --port 8081",

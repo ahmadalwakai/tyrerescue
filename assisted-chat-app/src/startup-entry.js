@@ -7,7 +7,7 @@ const {
   logStartupModuleCompleted,
   logStartupModuleFailed,
   logStartupModuleStarted,
-} = require('./src/lib/startup-logging');
+} = require('./lib/startup-logging');
 
 logStartupCheckpoint('Native app started', { source: 'js-entry' });
 logStartupModuleStarted('JS runtime');
