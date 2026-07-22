@@ -18,7 +18,6 @@ import {
 } from 'react-native';
 import { Asset } from 'expo-asset';
 import { useAudioPlayer } from 'expo-audio';
-import { WebView } from 'react-native-webview';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import driverNearbySoundSource from '../../assets/sounds/urgent_booking.mp3';
 import assistedChatHeaderVideoSource from '../../assets/video/assisted-chat-header.mp4';
@@ -78,10 +77,6 @@ import {
   type PaymentLinkLiveStatus,
 } from '@/lib/payment-link-status';
 import {
-  HEADER_VIDEO_STARTUP_TIMEOUT_MS,
-  buildHeaderVideoHtml,
-  getHeaderVideoReadAccessUri,
-  parseHeaderVideoWebViewMessage,
   sanitizeHeaderVideoDiagnostic,
   shouldShowHeaderVideoFallback,
   validateHeaderVideoUri,
@@ -3115,6 +3110,18 @@ function HeaderNotificationButton({
 }
 
 function HeaderVideoBackground() {
+  if (Platform.OS !== 'web') {
+    return (
+      <View style={[styles.headerVideoLayer, styles.pointerNone]} testID="assisted-chat-header-video-background">
+        <HeaderVideoFallback />
+      </View>
+    );
+  }
+
+  return <HeaderVideoBackgroundWeb />;
+}
+
+function HeaderVideoBackgroundWeb() {
   const videoAsset = useMemo(() => {
     try {
       return Asset.fromModule(assistedChatHeaderVideoSource);
@@ -3125,16 +3132,11 @@ function HeaderVideoBackground() {
       return null;
     }
   }, []);
-  const webViewRef = useRef<WebView>(null);
   const webVideoRef = useRef<{ play?: () => Promise<void> | void; pause?: () => void } | null>(null);
-  const retryAttemptedRef = useRef(false);
-  const appIsActiveRef = useRef(AppState.currentState === 'active');
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [videoStarted, setVideoStarted] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoDiagnostic, setVideoDiagnostic] = useState<string | null>(null);
-  const [webViewKey, setWebViewKey] = useState(0);
-  const [appIsActive, setAppIsActive] = useState(appIsActiveRef.current);
 
   useEffect(() => {
     let mounted = true;
@@ -3151,9 +3153,8 @@ function HeaderVideoBackground() {
       try {
         const loadedVideo = await videoAsset.downloadAsync();
         if (!mounted) return;
-        const bundledUri = loadedVideo.localUri ?? videoAsset.localUri ?? (Platform.OS === 'web' ? loadedVideo.uri ?? videoAsset.uri : null);
-        const productionNative = !__DEV__ && Platform.OS !== 'web';
-        const validation = validateHeaderVideoUri(bundledUri, productionNative);
+        const bundledUri = loadedVideo.localUri ?? videoAsset.localUri ?? loadedVideo.uri ?? videoAsset.uri ?? null;
+        const validation = validateHeaderVideoUri(bundledUri, false);
 
         if (!validation.ok) {
           setVideoFailed(true);
@@ -3181,56 +3182,45 @@ function HeaderVideoBackground() {
   }, [videoAsset]);
 
   const sendVideoCommand = useCallback((command: 'pause' | 'play') => {
-    if (Platform.OS === 'web') {
-      if (command === 'pause') {
-        webVideoRef.current?.pause?.();
-        return;
-      }
-      const playResult = webVideoRef.current?.play?.();
-      if (playResult && typeof (playResult as Promise<void>).catch === 'function') {
-        (playResult as Promise<void>).catch(() => {
-          setVideoDiagnostic('web-playback-rejected');
-        });
-      }
+    if (command === 'pause') {
+      webVideoRef.current?.pause?.();
       return;
     }
 
-    webViewRef.current?.injectJavaScript(
-      `window.__headerVideoControl && window.__headerVideoControl(${JSON.stringify(command)}); true;`,
-    );
+    const playResult = webVideoRef.current?.play?.();
+    if (playResult && typeof (playResult as Promise<void>).catch === 'function') {
+      (playResult as Promise<void>).catch(() => {
+        setVideoDiagnostic('web-playback-rejected');
+      });
+    }
   }, []);
 
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      const isActive = nextState === 'active';
-      appIsActiveRef.current = isActive;
-      setAppIsActive(isActive);
-      sendVideoCommand(isActive ? 'play' : 'pause');
-    });
+    const onFocus = () => sendVideoCommand('play');
+    const onBlur = () => sendVideoCommand('pause');
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', onFocus);
+      window.addEventListener('blur', onBlur);
+    }
 
     return () => {
-      subscription.remove();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', onFocus);
+        window.removeEventListener('blur', onBlur);
+      }
     };
   }, [sendVideoCommand]);
 
   useEffect(() => {
-    if (!videoUri || videoStarted || videoFailed || !appIsActive) return undefined;
+    if (!videoUri || videoStarted || videoFailed) return undefined;
 
     const startupTimer = setTimeout(() => {
-      if (!retryAttemptedRef.current) {
-        retryAttemptedRef.current = true;
-        setVideoStarted(false);
-        setVideoDiagnostic('startup-timeout-retry');
-        setWebViewKey((current) => current + 1);
-        return;
-      }
-
       setVideoFailed(true);
       setVideoDiagnostic('startup-timeout');
-    }, HEADER_VIDEO_STARTUP_TIMEOUT_MS);
+    }, 5000);
 
     return () => clearTimeout(startupTimer);
-  }, [appIsActive, videoFailed, videoStarted, videoUri, webViewKey]);
+  }, [videoFailed, videoStarted, videoUri]);
 
   useEffect(() => {
     if (__DEV__ && videoDiagnostic) {
@@ -3240,95 +3230,39 @@ function HeaderVideoBackground() {
 
   const showFallback = shouldShowHeaderVideoFallback({ videoStarted, videoFailed, videoUri });
 
-  if (Platform.OS === 'web') {
-    return (
-      <View style={[styles.headerVideoLayer, styles.pointerNone]} testID="assisted-chat-header-video-background">
-        {showFallback ? <HeaderVideoFallback /> : null}
-        {videoUri && !videoFailed
-          ? createElement('video', {
-              ref: webVideoRef,
-              src: videoUri,
-              autoPlay: true,
-              muted: true,
-              loop: true,
-              playsInline: true,
-              preload: 'auto',
-              controls: false,
-              'aria-hidden': true,
-              tabIndex: -1,
-              onPlaying: () => setVideoStarted(true),
-              onPause: () => setVideoStarted(false),
-              onEnded: () => setVideoStarted(false),
-              onError: () => {
-                setVideoFailed(true);
-                setVideoDiagnostic('web-media-error');
-              },
-              style: {
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                opacity: videoStarted ? 1 : 0,
-                pointerEvents: 'none',
-              },
-            })
-          : null}
-      </View>
-    );
-  }
-
-  const videoReadAccessUri = getHeaderVideoReadAccessUri(videoUri);
-  const html = buildHeaderVideoHtml(videoUri);
-
   return (
     <View style={[styles.headerVideoLayer, styles.pointerNone]} testID="assisted-chat-header-video-background">
       {showFallback ? <HeaderVideoFallback /> : null}
-      {videoUri && !videoFailed ? (
-        <WebView
-          key={webViewKey}
-          ref={webViewRef}
-          source={{ html, baseUrl: videoReadAccessUri ?? videoUri }}
-          originWhitelist={['*', 'file://*']}
-          allowingReadAccessToURL={videoReadAccessUri ?? videoUri}
-          allowFileAccess
-          allowFileAccessFromFileURLs
-          allowsFullscreenVideo={false}
-          style={[styles.headerVideoNative, !videoStarted && styles.headerVideoHidden]}
-          scrollEnabled={false}
-          javaScriptEnabled
-          allowsInlineMediaPlayback
-          mediaPlaybackRequiresUserAction={false}
-          onMessage={(event) => {
-            const message = parseHeaderVideoWebViewMessage(event.nativeEvent.data);
-            if (!message) return;
-
-            if (message.type === 'playing') {
-              setVideoStarted(true);
-              setVideoFailed(false);
-              setVideoDiagnostic(null);
-            }
-            if (message.type === 'paused' || message.type === 'ended') {
-              setVideoStarted(false);
-            }
-            if (message.type === 'error') {
-              setVideoStarted(false);
+      {videoUri && !videoFailed
+        ? createElement('video', {
+            ref: webVideoRef,
+            src: videoUri,
+            autoPlay: true,
+            muted: true,
+            loop: true,
+            playsInline: true,
+            preload: 'auto',
+            controls: false,
+            'aria-hidden': true,
+            tabIndex: -1,
+            onPlaying: () => setVideoStarted(true),
+            onPause: () => setVideoStarted(false),
+            onEnded: () => setVideoStarted(false),
+            onError: () => {
               setVideoFailed(true);
-              setVideoDiagnostic(message.reason ?? 'webview-media-error');
-            }
-          }}
-          onError={() => {
-            setVideoFailed(true);
-            setVideoDiagnostic('webview-load-error');
-          }}
-          onHttpError={() => {
-            setVideoFailed(true);
-            setVideoDiagnostic('webview-http-error');
-          }}
-          pointerEvents="none"
-          testID="assisted-chat-header-video-webview"
-        />
-      ) : null}
+              setVideoDiagnostic('web-media-error');
+            },
+            style: {
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              opacity: videoStarted ? 1 : 0,
+              pointerEvents: 'none',
+            },
+          })
+        : null}
     </View>
   );
 }

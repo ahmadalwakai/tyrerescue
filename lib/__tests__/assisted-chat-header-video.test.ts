@@ -88,21 +88,25 @@ describe('Assisted Chat header video production readiness', () => {
     expect(shouldShowHeaderVideoFallback({ videoStarted: false, videoFailed: false, videoUri: null })).toBe(true);
   });
 
-  it('cleans up startup timers and AppState listeners', () => {
+  it('keeps native launch on a safe fallback and cleans up web startup timers', () => {
     const source = assistedChatScreenSource();
 
     expect(HEADER_VIDEO_STARTUP_TIMEOUT_MS).toBeGreaterThanOrEqual(3000);
+    expect(source).toContain("if (Platform.OS !== 'web')");
+    expect(source).toContain('<HeaderVideoFallback />');
+    expect(source).not.toContain("from 'react-native-webview'");
     expect(source).toContain('setTimeout(() =>');
     expect(source).toContain('clearTimeout(startupTimer)');
-    expect(source).toContain("AppState.addEventListener('change'");
-    expect(source).toContain('subscription.remove()');
   });
 
-  it('pauses in background and resumes on foreground without trusting arbitrary messages', () => {
+  it('keeps web playback lifecycle browser-only without trusting arbitrary native messages', () => {
     const source = assistedChatScreenSource();
 
-    expect(source).toContain("sendVideoCommand(isActive ? 'play' : 'pause')");
-    expect(source).toContain('parseHeaderVideoWebViewMessage(event.nativeEvent.data)');
+    expect(source).toContain("window.addEventListener('focus', onFocus)");
+    expect(source).toContain("window.addEventListener('blur', onBlur)");
+    expect(source).toContain("window.removeEventListener('focus', onFocus)");
+    expect(source).toContain("window.removeEventListener('blur', onBlur)");
+    expect(source).not.toContain('parseHeaderVideoWebViewMessage(event.nativeEvent.data)');
     expect(source).not.toContain("event.nativeEvent.data === 'playing'");
     expect(source).not.toContain("event.nativeEvent.data === 'error'");
   });
