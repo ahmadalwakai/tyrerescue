@@ -17,9 +17,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Asset } from 'expo-asset';
-import { useAudioPlayer } from 'expo-audio';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import driverNearbySoundSource from '../../assets/sounds/urgent_booking.mp3';
 import assistedChatHeaderVideoSource from '../../assets/video/assisted-chat-header.mp4';
 import { EMPTY_DRAFT, useAssistedChatDraft } from '@/hooks/useAssistedChatDraft';
 import { useAssistedChatPrice } from '@/hooks/useAssistedChatPrice';
@@ -61,10 +59,8 @@ import { AdminStockModal } from './AdminStockModal';
 import { AddAdminModal } from './AddAdminModal';
 import { ActiveJobsModal, ActiveJobMapModal } from './ActiveJobsModal';
 import { TrackingModal } from './TrackingModal';
-import { DriverChatModal } from './DriverChatModal';
-import { ChatHubModal } from './ChatHubModal';
 import { MessageSenderModal } from './MessageSenderModal';
-import { VirtualLandlineModal, type VirtualLandlineDraftPrefill } from './VirtualLandlineModal';
+import type { VirtualLandlineDraftPrefill } from './VirtualLandlineModal';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 import { usePressScale } from './motion';
@@ -175,7 +171,36 @@ interface ActionNotice {
 const GBP = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
 const DEPOSIT_PERCENT = 20;
 const DRIVER_NEARBY_ALERT_MINUTES = 5;
-const DRIVER_NEARBY_SOUND_SOURCE = driverNearbySoundSource;
+
+function DeferredVirtualLandlineModal(props: {
+  visible: boolean;
+  onClose: () => void;
+  onCreateDraft: (draft: VirtualLandlineDraftPrefill) => void;
+}) {
+  if (!props.visible) return null;
+  const { VirtualLandlineModal } = require('./VirtualLandlineModal') as typeof import('./VirtualLandlineModal');
+  return <VirtualLandlineModal {...props} />;
+}
+
+function DeferredChatHubModal(props: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  if (!props.visible) return null;
+  const { ChatHubModal } = require('./ChatHubModal') as typeof import('./ChatHubModal');
+  return <ChatHubModal {...props} />;
+}
+
+function DeferredDriverChatModal(props: {
+  visible: boolean;
+  bookingId: string | null;
+  bookingRef: string | null;
+  onClose: () => void;
+}) {
+  if (!props.visible) return null;
+  const { DriverChatModal } = require('./DriverChatModal') as typeof import('./DriverChatModal');
+  return <DriverChatModal {...props} />;
+}
 
 const PAYMENT_OPTIONS: ReadonlyArray<{ value: AdminQuotePaymentOption; label: string; description: string }> = [
   { value: 'FULL_PAYMENT', label: 'Full payment', description: 'Customer completes the full Stripe payment.' },
@@ -857,9 +882,6 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const todayBookings = useTodayBookings();
   const recentCustomers = useRecentCustomers();
   const activeJobsForNearbyAlert = useActiveJobs(api.hasAdminToken);
-  const nearbyAlertPlayer = useAudioPlayer(
-    Platform.OS === 'web' ? null : DRIVER_NEARBY_SOUND_SOURCE,
-  );
   const nearbyAlertedBookingRefs = useRef<Set<string>>(new Set());
   const duplicateMatch = useDuplicateBookingWarning({
     draft,
@@ -1084,14 +1106,9 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   }, []);
 
   const playDriverNearbyAlertSound = useCallback(() => {
-    if (Platform.OS === 'web') return;
-    try {
-      nearbyAlertPlayer.seekTo(0);
-      nearbyAlertPlayer.play();
-    } catch (err) {
-      if (__DEV__) console.warn('[driver-nearby-alert] sound failed:', err);
-    }
-  }, [nearbyAlertPlayer]);
+    // Keep native launch isolated from expo-audio. The visual warning remains;
+    // sound can be restored after TestFlight confirms this crash path is gone.
+  }, []);
 
   useEffect(() => {
     if (!api.hasAdminToken) {
@@ -2246,7 +2263,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       <AdminVisitorsModal visible={visitorsOpen} onClose={() => setVisitorsOpen(false)} />
       <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
       <AdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
-      <VirtualLandlineModal
+      <DeferredVirtualLandlineModal
         visible={virtualLandlineOpen}
         onClose={() => setVirtualLandlineOpen(false)}
         onCreateDraft={handleCreateVirtualLandlineDraft}
@@ -2254,7 +2271,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       <AddAdminModal visible={addAdminOpen} onClose={() => setAddAdminOpen(false)} />
       <ActiveJobsModal visible={activeJobsOpen} onClose={() => setActiveJobsOpen(false)} />
       <TrackingModal visible={driverTrackingOpen} onClose={() => setDriverTrackingOpen(false)} />
-      <ChatHubModal visible={chatHubOpen} onClose={() => setChatHubOpen(false)} />
+      <DeferredChatHubModal visible={chatHubOpen} onClose={() => setChatHubOpen(false)} />
       <MessageSenderModal
         visible={messageSenderOpen}
         draft={draft}
@@ -2284,7 +2301,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         job={trackingJob}
         onClose={() => setTrackingMapOpen(false)}
       />
-      <DriverChatModal
+      <DeferredDriverChatModal
         visible={driverChatOpen}
         bookingId={draft.dispatchedBookingId}
         bookingRef={draft.dispatchedRefNumber}
