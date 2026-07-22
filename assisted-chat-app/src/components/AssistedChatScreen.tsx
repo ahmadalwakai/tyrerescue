@@ -127,7 +127,15 @@ import {
   getHeaderNotificationAccessibilityLabel,
   type HeaderNotificationVisualState,
 } from '@/lib/header-notifications';
+import {
+  logStartupCheckpoint,
+  logStartupModuleCompleted,
+  logStartupModuleFailed,
+  logStartupModuleStarted,
+} from '@/lib/startup-logging';
 import { OperatorStepProgress } from './workflow/OperatorStepProgress';
+
+logStartupModuleStarted('Assisted Chat module');
 
 interface ParsedCallNotes {
   customerName?: string;
@@ -163,6 +171,22 @@ interface ActionNotice {
   text: string;
 }
 
+const startupImportsLogged = new Set<string>();
+
+function requireStartupModule<T>(label: string, load: () => T): T {
+  if (startupImportsLogged.has(label)) return load();
+  logStartupModuleStarted(label);
+  try {
+    const mod = load();
+    startupImportsLogged.add(label);
+    logStartupModuleCompleted(label);
+    return mod;
+  } catch (error) {
+    logStartupModuleFailed(label, error);
+    throw error;
+  }
+}
+
 const GBP = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
 const DEPOSIT_PERCENT = 20;
 const DRIVER_NEARBY_ALERT_MINUTES = 5;
@@ -173,7 +197,10 @@ function DeferredVirtualLandlineModal(props: {
   onCreateDraft: (draft: VirtualLandlineDraftPrefill) => void;
 }) {
   if (!props.visible) return null;
-  const { VirtualLandlineModal } = require('./VirtualLandlineModal') as typeof import('./VirtualLandlineModal');
+  const { VirtualLandlineModal } = requireStartupModule(
+    'Virtual Landline import',
+    () => require('./VirtualLandlineModal') as typeof import('./VirtualLandlineModal'),
+  );
   return <VirtualLandlineModal {...props} />;
 }
 
@@ -182,7 +209,10 @@ function DeferredChatHubModal(props: {
   onClose: () => void;
 }) {
   if (!props.visible) return null;
-  const { ChatHubModal } = require('./ChatHubModal') as typeof import('./ChatHubModal');
+  const { ChatHubModal } = requireStartupModule(
+    'Chat Hub import',
+    () => require('./ChatHubModal') as typeof import('./ChatHubModal'),
+  );
   return <ChatHubModal {...props} />;
 }
 
@@ -193,42 +223,63 @@ function DeferredDriverChatModal(props: {
   onClose: () => void;
 }) {
   if (!props.visible) return null;
-  const { DriverChatModal } = require('./DriverChatModal') as typeof import('./DriverChatModal');
+  const { DriverChatModal } = requireStartupModule(
+    'Driver Chat import',
+    () => require('./DriverChatModal') as typeof import('./DriverChatModal'),
+  );
   return <DriverChatModal {...props} />;
 }
 
 function DeferredUrgentBookingPopup(props: ComponentProps<typeof import('./alerts/UrgentBookingPopup')['UrgentBookingPopup']>) {
   if (!props.visible) return null;
-  const { UrgentBookingPopup } = require('./alerts/UrgentBookingPopup') as typeof import('./alerts/UrgentBookingPopup');
+  const { UrgentBookingPopup } = requireStartupModule(
+    'Urgent Booking Popup import',
+    () => require('./alerts/UrgentBookingPopup') as typeof import('./alerts/UrgentBookingPopup'),
+  );
   return <UrgentBookingPopup {...props} />;
 }
 
 function DeferredAdminStockModal(props: ComponentProps<typeof import('./AdminStockModal')['AdminStockModal']>) {
   if (!props.visible) return null;
-  const { AdminStockModal } = require('./AdminStockModal') as typeof import('./AdminStockModal');
+  const { AdminStockModal } = requireStartupModule(
+    'Admin Stock import',
+    () => require('./AdminStockModal') as typeof import('./AdminStockModal'),
+  );
   return <AdminStockModal {...props} />;
 }
 
 function DeferredActiveJobsModal(props: ComponentProps<typeof import('./ActiveJobsModal')['ActiveJobsModal']>) {
   if (!props.visible) return null;
-  const { ActiveJobsModal } = require('./ActiveJobsModal') as typeof import('./ActiveJobsModal');
+  const { ActiveJobsModal } = requireStartupModule(
+    'Active Jobs import',
+    () => require('./ActiveJobsModal') as typeof import('./ActiveJobsModal'),
+  );
   return <ActiveJobsModal {...props} />;
 }
 
 function DeferredActiveJobMapModal(props: ComponentProps<typeof import('./ActiveJobsModal')['ActiveJobMapModal']>) {
   if (!props.visible) return null;
-  const { ActiveJobMapModal } = require('./ActiveJobsModal') as typeof import('./ActiveJobsModal');
+  const { ActiveJobMapModal } = requireStartupModule(
+    'Active Job Map import',
+    () => require('./ActiveJobsModal') as typeof import('./ActiveJobsModal'),
+  );
   return <ActiveJobMapModal {...props} />;
 }
 
 function DeferredTrackingModal(props: ComponentProps<typeof import('./TrackingModal')['TrackingModal']>) {
   if (!props.visible) return null;
-  const { TrackingModal } = require('./TrackingModal') as typeof import('./TrackingModal');
+  const { TrackingModal } = requireStartupModule(
+    'Tracking Modal import',
+    () => require('./TrackingModal') as typeof import('./TrackingModal'),
+  );
   return <TrackingModal {...props} />;
 }
 
 function DeferredLocationSection(props: ComponentProps<typeof import('./LocationSection')['LocationSection']>) {
-  const { LocationSection } = require('./LocationSection') as typeof import('./LocationSection');
+  const { LocationSection } = requireStartupModule(
+    'Location Section import',
+    () => require('./LocationSection') as typeof import('./LocationSection'),
+  );
   return <LocationSection {...props} />;
 }
 
@@ -639,6 +690,8 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const [alertReadinessState, setAlertReadinessState] = useState<UrgentAlertsReadinessState>('checking');
   const [fullScreenIntentGranted, setFullScreenIntentGranted] = useState<boolean>(true);
   const [armingCycle, setArmingCycle] = useState(0);
+  const notificationsStartupStarted = useRef(false);
+  const notificationsStartupCompleted = useRef(false);
   const openBookingsInApp = useCallback((refNumber: string | null = null) => {
     setBookingInitialRef(refNumber);
     setBookingsOpen(true);
@@ -652,6 +705,12 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const bottomBarPaddingBottom = Math.max(insets.bottom + 8, 16);
   const scrollPaddingBottom = 132 + bottomBarPaddingBottom;
 
+  useEffect(() => {
+    logStartupModuleStarted('Assisted Chat screen');
+    logStartupCheckpoint('Assisted Chat mounted');
+    logStartupModuleCompleted('Assisted Chat screen');
+  }, []);
+
   // ── Push Notifications ─────────────────────────────────────────────────────
 
   // Register and confirm urgent alert readiness after login/app startup.
@@ -661,6 +720,20 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     if (Platform.OS === 'web') return;
     let cancelled = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const markNotificationsStarted = () => {
+      if (notificationsStartupStarted.current) return;
+      notificationsStartupStarted.current = true;
+      logStartupModuleStarted('Notifications initialization');
+      logStartupCheckpoint('Notifications initialization started');
+    };
+
+    const markNotificationsCompleted = (details: Record<string, unknown>) => {
+      if (notificationsStartupCompleted.current) return;
+      notificationsStartupCompleted.current = true;
+      logStartupCheckpoint('Notifications initialization completed', details);
+      logStartupModuleCompleted('Notifications initialization', details);
+    };
 
     const scheduleRetry = (attempt: number) => {
       const retryIndex = Math.min(attempt, ALERT_ARM_RETRY_DELAYS_MS.length - 1);
@@ -672,28 +745,42 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
 
     const runAttempt = async (attempt: number) => {
       if (cancelled) return;
-      setAlertReadinessState('checking');
-      const result = await ensureUrgentAlertsArmed();
-      if (cancelled) return;
+      markNotificationsStarted();
+      try {
+        setAlertReadinessState('checking');
+        const result = await ensureUrgentAlertsArmed();
+        if (cancelled) return;
 
-      setFullScreenIntentGranted(result.fullScreenIntentGranted);
+        markNotificationsCompleted({
+          armed: result.armed,
+          fullScreenIntentGranted: result.fullScreenIntentGranted,
+          watcherStarted: result.watcherStarted,
+        });
 
-      if (result.armed) {
-        setAlertReadinessState('armed');
-        if (__DEV__ && result.snapshot.tokenSuffix) {
-          console.log(
-            `[urgent-alerts] ALERT_SYSTEM_ARMED tokenSuffix=${result.snapshot.tokenSuffix}`,
-          );
+        setFullScreenIntentGranted(result.fullScreenIntentGranted);
+
+        if (result.armed) {
+          setAlertReadinessState('armed');
+          if (__DEV__ && result.snapshot.tokenSuffix) {
+            console.log(
+              `[urgent-alerts] ALERT_SYSTEM_ARMED tokenSuffix=${result.snapshot.tokenSuffix}`,
+            );
+          }
+          return;
         }
-        return;
-      }
 
-      setAlertReadinessState('not_armed');
-      scheduleRetry(attempt);
+        setAlertReadinessState('not_armed');
+        scheduleRetry(attempt);
+      } catch (error) {
+        logStartupModuleFailed('Notifications initialization', error);
+        throw error;
+      }
     };
 
     if (!api.hasAdminToken) {
+      markNotificationsStarted();
       setAlertReadinessState('not_armed');
+      markNotificationsCompleted({ skipped: 'missing-admin-token' });
       return () => {
         cancelled = true;
         if (retryTimer) clearTimeout(retryTimer);
@@ -5018,3 +5105,5 @@ const styles = StyleSheet.create({
   notifSetupClosePressed: { opacity: 0.76, backgroundColor: 'rgba(255,77,99,0.22)' },
   notifSetupCloseLabel: { color: colors.danger, fontSize: fontSize.md, fontWeight: '900' },
 });
+
+logStartupModuleCompleted('Assisted Chat module');

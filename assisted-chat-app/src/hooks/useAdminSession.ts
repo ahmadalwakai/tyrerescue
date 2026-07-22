@@ -5,6 +5,12 @@ import {
   setAdminToken,
   setOnUnauthorized,
 } from '@/lib/api';
+import {
+  logStartupCheckpoint,
+  logStartupModuleCompleted,
+  logStartupModuleFailed,
+  logStartupModuleStarted,
+} from '@/lib/startup-logging';
 
 const STORAGE_KEY = 'assistedChat.adminToken.v1';
 
@@ -43,6 +49,8 @@ export function useAdminSession(): AdminSession {
   // Hydrate from AsyncStorage on mount + register 401 handler.
   useEffect(() => {
     cancelled.current = false;
+    logStartupModuleStarted('Session hydration');
+    logStartupCheckpoint('Session hydration started');
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
@@ -53,11 +61,14 @@ export function useAdminSession(): AdminSession {
             setAdminToken(parsed.token);
             setUser(parsed.user);
             setStatus('logged-in');
+            logStartupCheckpoint('Session hydration completed', { status: 'logged-in', source: 'storage' });
+            logStartupModuleCompleted('Session hydration');
             return;
           }
         }
-      } catch {
-        // ignore corrupt session
+      } catch (error) {
+        logStartupModuleFailed('Session hydration', error);
+        throw error;
       }
       // Fall back to env token (dev convenience). Still treated as "logged-in"
       // so the chat opens, but no profile is shown.
@@ -65,9 +76,13 @@ export function useAdminSession(): AdminSession {
       if (envToken) {
         setAdminToken(envToken);
         setStatus('logged-in');
+        logStartupCheckpoint('Session hydration completed', { status: 'logged-in', source: 'env' });
+        logStartupModuleCompleted('Session hydration');
         return;
       }
       setStatus('logged-out');
+      logStartupCheckpoint('Session hydration completed', { status: 'logged-out', source: 'none' });
+      logStartupModuleCompleted('Session hydration');
     })();
     return () => {
       cancelled.current = true;

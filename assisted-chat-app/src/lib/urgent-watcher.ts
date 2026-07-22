@@ -1,4 +1,9 @@
 import { NativeModules, Platform } from 'react-native';
+import {
+  logStartupModuleCompleted,
+  logStartupModuleFailed,
+  logStartupModuleStarted,
+} from './startup-logging';
 
 interface UrgentWatcherModuleSpec {
   startWatcher(): Promise<boolean>;
@@ -9,8 +14,18 @@ interface UrgentWatcherModuleSpec {
   clearAuth(): Promise<boolean>;
 }
 
-const moduleRef: UrgentWatcherModuleSpec | undefined =
-  (NativeModules as Record<string, UrgentWatcherModuleSpec | undefined>).UrgentWatcherModule;
+logStartupModuleStarted('Urgent watcher native module');
+let moduleRef: UrgentWatcherModuleSpec | undefined;
+try {
+  moduleRef = (NativeModules as Record<string, UrgentWatcherModuleSpec | undefined>).UrgentWatcherModule;
+  logStartupModuleCompleted('Urgent watcher native module', {
+    platform: Platform.OS,
+    available: Boolean(moduleRef),
+  });
+} catch (error) {
+  logStartupModuleFailed('Urgent watcher native module', error, { platform: Platform.OS });
+  throw error;
+}
 
 export async function startUrgentWatcher(): Promise<boolean> {
   if (Platform.OS !== 'android') return true;

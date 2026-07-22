@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createBookingTyreLine, ensureBookingTyreLines } from '@/lib/assisted-chat-workflow';
+import {
+  logStartupModuleCompleted,
+  logStartupModuleFailed,
+  logStartupModuleStarted,
+} from '@/lib/startup-logging';
 import type {
   AssistedChatDraft,
   AssistedChatServiceType,
@@ -56,6 +61,7 @@ export function useAssistedChatDraft() {
 
   useEffect(() => {
     let cancelled = false;
+    logStartupModuleStarted('Assisted Chat draft hydration');
     (async () => {
       try {
         // Try v3 first; fall back through legacy keys so an in-flight
@@ -129,8 +135,12 @@ export function useAssistedChatDraft() {
             }
           }
         }
-      } catch {
-        // ignore corrupt draft
+        if (!cancelled) {
+          logStartupModuleCompleted('Assisted Chat draft hydration');
+        }
+      } catch (error) {
+        logStartupModuleFailed('Assisted Chat draft hydration', error);
+        throw error;
       } finally {
         if (!cancelled) setHydrated(true);
       }

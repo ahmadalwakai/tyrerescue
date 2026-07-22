@@ -1,7 +1,14 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import {
+  logStartupModuleCompleted,
+  logStartupModuleFailed,
+  logStartupModuleStarted,
+} from './startup-logging';
 
 const PRODUCTION_API_URL = 'https://www.tyrerescue.uk';
+
+logStartupModuleStarted('API config module');
 
 function buildDevHttpUrl(host: string, port: string): string {
   return ['http://', host, ':', port].join('');
@@ -34,7 +41,23 @@ function inferBaseUrl(): string {
   return buildDevHttpUrl('10.0.2.2', '3000');
 }
 
-export const API_BASE_URL = inferBaseUrl();
+let resolvedApiBaseUrl: string;
+try {
+  resolvedApiBaseUrl = inferBaseUrl();
+  logStartupModuleCompleted('API config module', {
+    platform: Platform.OS,
+    nodeEnv: process.env.NODE_ENV,
+    hasExplicitBaseUrl: Boolean(process.env.EXPO_PUBLIC_API_BASE_URL?.trim()),
+  });
+} catch (error) {
+  logStartupModuleFailed('API config module', error, {
+    platform: Platform.OS,
+    nodeEnv: process.env.NODE_ENV,
+  });
+  throw error;
+}
+
+export const API_BASE_URL = resolvedApiBaseUrl;
 
 // Dev-only diagnostic so engineers can see exactly which Next.js host the
 // app will hit. Never logs tokens, credentials, or env values besides the
