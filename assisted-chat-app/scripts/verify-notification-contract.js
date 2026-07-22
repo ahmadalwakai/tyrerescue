@@ -11,6 +11,7 @@ const contractPath = path.join(projectRoot, 'src', 'lib', 'notification-contract
 const notificationsPath = path.join(projectRoot, 'src', 'lib', 'notifications.ts');
 const patchPath = path.join(projectRoot, 'patches', 'expo-notifications+55.0.25.patch');
 const easConfigPath = path.join(projectRoot, 'eas.json');
+const rootEasIgnorePath = path.join(projectRoot, '..', '.easignore');
 
 function loadContract() {
   const source = fs.readFileSync(contractPath, 'utf8');
@@ -74,5 +75,8 @@ assert.match(nativePatch, /if !shouldThrowOnKeychainFailure/);
 
 const easConfig = fs.readFileSync(easConfigPath, 'utf8');
 assert.doesNotMatch(easConfig, /EXPO_PUBLIC_DISABLE_SERVER_REGISTRATION_STARTUP/);
+
+const rootEasIgnore = fs.readFileSync(rootEasIgnorePath, 'utf8');
+assert.match(rootEasIgnore, /!assisted-chat-app\/patches\/\*\*/);
 
 console.log('notification contract checks passed');

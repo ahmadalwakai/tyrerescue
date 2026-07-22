@@ -74,6 +74,9 @@
 !assisted-chat-app/scripts
 !assisted-chat-app/scripts/
 !assisted-chat-app/scripts/**
+!assisted-chat-app/patches
+!assisted-chat-app/patches/
+!assisted-chat-app/patches/**
 !assisted-chat-app/src
 !assisted-chat-app/src/
 !assisted-chat-app/src/**

@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ignore-pattern dist/**",
     "test:notification-contract": "node scripts/verify-notification-contract.js",
-    "postinstall": "patch-package"
+    "postinstall": "node scripts/apply-patches.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.12",
