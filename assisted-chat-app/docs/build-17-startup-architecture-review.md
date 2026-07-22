@@ -136,3 +136,9 @@ Physical iOS TestFlight validation is still required for APNs delivery because t
 ## Upstream Tracking
 
 Expo issue `expo/expo#43828` and merged PR `expo/expo#43829` cover the same family of iOS `getRegistrationInfoAsync` Keychain failures. The local package already has the TypeScript rejection handler and `AfterFirstUnlock` accessibility, but it still allows the native registration-info read to reject. Keep this patch until a future Expo update is verified locally to make registration-info reads non-fatal in the same Keychain failure states.
+
+## Build 17 Upload Follow-Up
+
+Build `1.0.9 (17)` was uploaded and processed by Apple, but the EAS worker logs showed `patch-package` ran with `No patch files found` during both dependency installation and prebuild. The cause was the repo-root `.easignore`, which archives from the monorepo root and did not allowlist `assisted-chat-app/patches/**`.
+
+Commit `bde021a` fixes the packaging path by allowlisting the patch folder and replacing raw `patch-package` with a guarded postinstall script. The corrected next TestFlight binary must use build number `18`, because App Store Connect has already consumed build number `17`.

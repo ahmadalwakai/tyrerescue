@@ -23,6 +23,24 @@ Apple reported an iOS startup abort roughly `0.12s` after launch:
 
 The supplied report excerpt did not include the JavaScript exception message or the Keychain `OSStatus`.
 
+## Additional Apple Incident
+
+Incident `C3D07D36-71C5-4099-BE7A-0047AE109C17` was reported from the same app/build family:
+
+- Version: `1.0.9 (16)`
+- Distributor: TestFlight
+- Device: `iPhone15,2`
+- OS: `iPhone OS 18.7.3 (22H217)`
+- Launch time: `2026-07-23 00:16:12.2716 +0100`
+- Crash time: `2026-07-23 00:16:12.5794 +0100`
+- Time from launch to crash: about `0.31s`
+- Exception: `EXC_CRASH (SIGABRT)`
+- Termination: `Abort trap: 6`
+- React path: `RCTFatal` through `RCTExceptionsManager reportException`
+- Thread evidence: main thread was in the normal UIKit run loop; React JS thread existed; crashed thread was dispatching the React fatal exception report.
+
+This incident does not include `Application Specific Information`, the JavaScript exception text, a startup checkpoint log, or the native source frames that identify the originating module. On its own, it proves an extremely early React Native fatal exception in Build 16. It does not independently identify the original throwing module.
+
 ## Exact Implementation Paths
 
 Native implementation:
@@ -171,7 +189,9 @@ Failed / not available:
 
 ## Why Build 16 Crashed
 
-Build 16 still imported `expo-notifications` during Assisted Chat startup. The package's auto server-registration side effect called `NotificationsServerRegistrationModule.getRegistrationInfoAsync()` immediately at module scope. That native method queried the iOS Keychain and threw on a non-success/non-item-not-found status. React Native reported the resulting fatal exception through `RCTFatal`, aborting launch before the app had a recoverable UI.
+The earlier Apple report that included `ServerRegistrationModule` source frames ties the Build 16 crash path to `expo-notifications`. Build 16 still imported `expo-notifications` during Assisted Chat startup. The package's auto server-registration side effect called `NotificationsServerRegistrationModule.getRegistrationInfoAsync()` immediately at module scope. That native method queried the iOS Keychain and threw on a non-success/non-item-not-found status. React Native reported the resulting fatal exception through `RCTFatal`, aborting launch before the app had a recoverable UI.
+
+Incident `C3D07D36-71C5-4099-BE7A-0047AE109C17` is consistent with that failure mode because it is also Build 16 and aborts through `RCTFatal` about `0.31s` after launch. It is supporting evidence, not standalone proof of the originating module.
 
 ## Remaining Uncertainty
 
@@ -182,4 +202,4 @@ Build 16 still imported `expo-notifications` during Assisted Chat startup. The p
 
 ## Recommended Next Build Number
 
-Use iOS build number `17`.
+Use iOS build number `18` for the next corrected binary. Build `17` was already uploaded to App Store Connect before the repo-root EAS archive allowlist included `assisted-chat-app/patches/**`, so its remote build logs showed `patch-package` ran with `No patch files found`.
