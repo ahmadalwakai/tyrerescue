@@ -12,19 +12,12 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import {
-  RecordingPresets,
-  requestRecordingPermissionsAsync,
-  setAudioModeAsync,
-  useAudioRecorder,
-  useAudioRecorderState,
-} from 'expo-audio';
 import { api } from '@/lib/api';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 import { AdminHeaderButton, AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 import { useDriverList, type DriverListItem } from '@/hooks/useDriverList';
-import { uploadChatImageAttachment, uploadChatVoiceAttachment, type ChatLocalAsset } from '@/lib/chat-attachments';
+import { uploadChatImageAttachment, type ChatLocalAsset } from '@/lib/chat-attachments';
 import { saveChatAttachmentToDevice } from '@/lib/chat-download';
 import { ChatComposerIconButton } from './ChatComposerIconButton';
 import { ChatImageBubble } from './ChatImageBubble';
@@ -117,6 +110,9 @@ const CHANNEL_FILTERS: Array<{ value: 'all' | ChatChannel; label: string }> = [
   { value: 'customer_driver', label: 'Customer/Driver' },
 ];
 
+const VOICE_UNAVAILABLE_MESSAGE =
+  'Voice messages are temporarily disabled in this TestFlight build while the native audio crash is being fixed.';
+
 function formatRelative(dateStr: string | null): string {
   if (!dateStr) return 'No messages';
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -165,8 +161,7 @@ function getDriverChatBooking(driver: DriverListItem | null): { id: string; ref:
 
 export function ChatHubModal({ visible, onClose }: Props) {
   const { drivers, loading: driversLoading, error: driversError, reload: reloadDrivers } = useDriverList();
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const recorderState = useAudioRecorderState(recorder, 250);
+  const recorderState = { durationMillis: 0 };
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [selected, setSelected] = useState<ConversationSummary | null>(null);
   const [detail, setDetail] = useState<ConversationDetail | null>(null);
@@ -320,10 +315,6 @@ export function ChatHubModal({ visible, onClose }: Props) {
 
   useEffect(() => {
     if (!visible) {
-      if (recorder.isRecording || recorderState.isRecording) {
-        recorder.stop().catch(() => undefined);
-        setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => undefined);
-      }
       setSelected(null);
       setDetail(null);
       setMessages([]);
@@ -334,7 +325,7 @@ export function ChatHubModal({ visible, onClose }: Props) {
       setEditTarget(null);
       setEditText('');
     }
-  }, [recorder, recorderState.isRecording, visible]);
+  }, [visible]);
 
   const updateMessage = useCallback((updated: MessageView) => {
     setMessages((items) => items.map((item) => (item.id === updated.id ? updated : item)));
@@ -370,86 +361,20 @@ export function ChatHubModal({ visible, onClose }: Props) {
     detail?.locked === true ||
     detail?.status === 'closed' ||
     detail?.status === 'archived';
-  const recordingActive = recorderState.isRecording || recorder.isRecording;
-  const recordingComposerActive = recordingActive || (voiceBusy && sending);
+  const recordingComposerActive = false;
 
   const startVoiceRecording = useCallback(async () => {
-    if (inputDisabled || recordingActive || voiceBusy) return;
-    setVoiceBusy(true);
-    setError(null);
-    try {
-      const permission = await requestRecordingPermissionsAsync();
-      if (!permission.granted) {
-        setError('Microphone permission is required to send a voice message.');
-        return;
-      }
-      await setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
-        interruptionMode: 'doNotMix',
-      });
-      await recorder.prepareToRecordAsync();
-      recorder.record();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start voice recording.');
-    } finally {
-      setVoiceBusy(false);
-    }
-  }, [inputDisabled, recorder, recordingActive, voiceBusy]);
+    if (inputDisabled || voiceBusy) return;
+    setError(VOICE_UNAVAILABLE_MESSAGE);
+  }, [inputDisabled, voiceBusy]);
 
   const cancelVoiceRecording = useCallback(async () => {
-    if (!recordingActive || voiceBusy) return;
-    setVoiceBusy(true);
-    try {
-      await recorder.stop();
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
-    } catch {
-      // Nothing to show; cancellation should stay quiet.
-    } finally {
-      setVoiceBusy(false);
-    }
-  }, [recorder, recordingActive, voiceBusy]);
+    setVoiceBusy(false);
+  }, []);
 
   const sendVoiceRecording = useCallback(async () => {
-    if (!selected || !recordingActive || voiceBusy) return;
-    setVoiceBusy(true);
-    setSending(true);
-    setError(null);
-    try {
-      const durationMillis = recorderState.durationMillis;
-      await recorder.stop();
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
-      const status = recorder.getStatus();
-      const uri = recorder.uri ?? status.url ?? recorderState.url;
-      if (!uri) throw new Error('No voice recording was created.');
-      if (durationMillis > 0 && durationMillis < 650) {
-        throw new Error('Voice message is too short.');
-      }
-
-      const attachment = await uploadChatVoiceAttachment(uri);
-      const sent = await api.post<MessageView>(
-        `/api/chat/conversations/${encodeURIComponent(selected.id)}/messages`,
-        { body: null, messageType: 'audio', attachment },
-      );
-      setMessages((items) => [...items, sent]);
-      markRead(selected.id);
-      void fetchConversations();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send voice message.');
-    } finally {
-      setSending(false);
-      setVoiceBusy(false);
-    }
-  }, [
-    fetchConversations,
-    markRead,
-    recorder,
-    recorderState.durationMillis,
-    recorderState.url,
-    recordingActive,
-    selected,
-    voiceBusy,
-  ]);
+    setError(VOICE_UNAVAILABLE_MESSAGE);
+  }, []);
 
   const sendImageAsset = useCallback(async (asset: ChatLocalAsset) => {
     if (!selected || mediaBusy || sending) return;

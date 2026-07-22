@@ -1,5 +1,4 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { AssistedChatScreen } from '@/components/AssistedChatScreen';
 import { LoginScreen } from '@/components/LoginScreen';
 import { useAdminSession } from '@/hooks/useAdminSession';
 import { colors } from '@/components/theme';
@@ -28,6 +27,7 @@ export default function Index() {
     );
   }
 
+  const { AssistedChatScreen } = require('@/components/AssistedChatScreen') as typeof import('@/components/AssistedChatScreen');
   return <AssistedChatScreen user={session.user} onLogout={session.logout} />;
 }
 

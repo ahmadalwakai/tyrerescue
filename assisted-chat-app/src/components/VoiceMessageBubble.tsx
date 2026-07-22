@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fontSize, radius, space } from './theme';
 import { resolveChatAudioUri } from '@/lib/chat-attachments';
 
@@ -23,11 +22,8 @@ export function VoiceMessageBubble({
   onLongPress?: () => void;
 }) {
   const sourceUri = useMemo(() => resolveChatAudioUri(uri), [uri]);
-  const player = useAudioPlayer({ uri: sourceUri }, { updateInterval: 250, downloadFirst: true });
-  const status = useAudioPlayerStatus(player);
-  const duration = status.duration || 0;
-  const current = status.currentTime || 0;
-  const progress = duration > 0 ? Math.min(1, current / duration) : 0;
+  const [opening, setOpening] = useState(false);
+  const progress = 0;
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearLongPressTimer = useCallback(() => {
@@ -45,23 +41,19 @@ export function VoiceMessageBubble({
     }, 280);
   }, [clearLongPressTimer, onLongPress]);
 
-  useEffect(() => {
-    if (!status.didJustFinish) return;
-    player.seekTo(0).catch(() => undefined);
-  }, [player, status.didJustFinish]);
+  const togglePlayback = useCallback(async () => {
+    if (opening) return;
+    setOpening(true);
+    try {
+      await Linking.openURL(sourceUri);
+    } catch {
+      // Playback is best-effort in this crash-safe TestFlight path.
+    } finally {
+      setOpening(false);
+    }
+  }, [opening, sourceUri]);
 
   useEffect(() => clearLongPressTimer, [clearLongPressTimer]);
-
-  const togglePlayback = () => {
-    if (status.playing) {
-      player.pause();
-      return;
-    }
-    if (status.didJustFinish) {
-      player.seekTo(0).catch(() => undefined);
-    }
-    player.play();
-  };
 
   return (
     <View
@@ -73,7 +65,7 @@ export function VoiceMessageBubble({
       <Pressable
         onPress={togglePlayback}
         accessibilityRole="button"
-        accessibilityLabel={status.playing ? 'Pause voice message' : 'Play voice message'}
+        accessibilityLabel="Open voice message"
         style={({ pressed }) => [
           styles.playButton,
           mine ? styles.playButtonMine : styles.playButtonOther,
@@ -81,7 +73,7 @@ export function VoiceMessageBubble({
         ]}
       >
         <Text style={[styles.playIcon, mine ? styles.playIconMine : styles.playIconOther]}>
-          {status.playing ? 'II' : '>'}
+          {opening ? '...' : '>'}
         </Text>
       </Pressable>
       <View style={styles.voiceContent}>
@@ -102,7 +94,7 @@ export function VoiceMessageBubble({
           })}
         </View>
         <Text style={[styles.duration, mine ? styles.durationMine : styles.durationOther]}>
-          {formatAudioTime(status.playing || current > 0 ? current : duration)}
+          {formatAudioTime(0)}
         </Text>
       </View>
     </View>

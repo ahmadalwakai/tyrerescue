@@ -1,4 +1,4 @@
-import { createElement, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createElement, useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -42,7 +42,6 @@ import type {
   StripePaymentLinkState,
 } from '@/types/assisted-chat';
 import type { AdminQuote, AdminQuotePaymentOption, AdminQuoteStatus } from '@/types/admin-quotes';
-import { LocationSection } from './LocationSection';
 import { TyreSelectionSection } from './TyreSelectionSection';
 import { LockingWheelNutSection } from './LockingWheelNutSection';
 import { PriceSummary } from './PriceSummary';
@@ -55,10 +54,7 @@ import { AdminQuotesModal } from './AdminQuotesModal';
 import { AdminBookingsModal } from './AdminBookingsModal';
 import { AdminVisitorsModal } from './AdminVisitorsModal';
 import { AdminInvoicesModal } from './AdminInvoicesModal';
-import { AdminStockModal } from './AdminStockModal';
 import { AddAdminModal } from './AddAdminModal';
-import { ActiveJobsModal, ActiveJobMapModal } from './ActiveJobsModal';
-import { TrackingModal } from './TrackingModal';
 import { MessageSenderModal } from './MessageSenderModal';
 import type { VirtualLandlineDraftPrefill } from './VirtualLandlineModal';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
@@ -105,7 +101,6 @@ import {
   isUrgentBookingNotificationData,
   clearTopicSubscriptionFlag,
 } from '@/lib/urgent-alerts';
-import { UrgentBookingPopup } from './alerts/UrgentBookingPopup';
 import { NotificationReliabilityCard } from './alerts/NotificationReliabilityCard';
 import {
   buildBookingTyreLinePayload,
@@ -200,6 +195,41 @@ function DeferredDriverChatModal(props: {
   if (!props.visible) return null;
   const { DriverChatModal } = require('./DriverChatModal') as typeof import('./DriverChatModal');
   return <DriverChatModal {...props} />;
+}
+
+function DeferredUrgentBookingPopup(props: ComponentProps<typeof import('./alerts/UrgentBookingPopup')['UrgentBookingPopup']>) {
+  if (!props.visible) return null;
+  const { UrgentBookingPopup } = require('./alerts/UrgentBookingPopup') as typeof import('./alerts/UrgentBookingPopup');
+  return <UrgentBookingPopup {...props} />;
+}
+
+function DeferredAdminStockModal(props: ComponentProps<typeof import('./AdminStockModal')['AdminStockModal']>) {
+  if (!props.visible) return null;
+  const { AdminStockModal } = require('./AdminStockModal') as typeof import('./AdminStockModal');
+  return <AdminStockModal {...props} />;
+}
+
+function DeferredActiveJobsModal(props: ComponentProps<typeof import('./ActiveJobsModal')['ActiveJobsModal']>) {
+  if (!props.visible) return null;
+  const { ActiveJobsModal } = require('./ActiveJobsModal') as typeof import('./ActiveJobsModal');
+  return <ActiveJobsModal {...props} />;
+}
+
+function DeferredActiveJobMapModal(props: ComponentProps<typeof import('./ActiveJobsModal')['ActiveJobMapModal']>) {
+  if (!props.visible) return null;
+  const { ActiveJobMapModal } = require('./ActiveJobsModal') as typeof import('./ActiveJobsModal');
+  return <ActiveJobMapModal {...props} />;
+}
+
+function DeferredTrackingModal(props: ComponentProps<typeof import('./TrackingModal')['TrackingModal']>) {
+  if (!props.visible) return null;
+  const { TrackingModal } = require('./TrackingModal') as typeof import('./TrackingModal');
+  return <TrackingModal {...props} />;
+}
+
+function DeferredLocationSection(props: ComponentProps<typeof import('./LocationSection')['LocationSection']>) {
+  const { LocationSection } = require('./LocationSection') as typeof import('./LocationSection');
+  return <LocationSection {...props} />;
 }
 
 const PAYMENT_OPTIONS: ReadonlyArray<{ value: AdminQuotePaymentOption; label: string; description: string }> = [
@@ -1106,7 +1136,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   }, []);
 
   const playDriverNearbyAlertSound = useCallback(() => {
-    // Keep native launch isolated from expo-audio. The visual warning remains;
+    // Keep native launch isolated from native audio playback. The visual warning remains;
     // sound can be restored after TestFlight confirms this crash path is gone.
   }, []);
 
@@ -2254,7 +2284,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         onClose={closeBookingsInApp}
         initialRefNumber={bookingInitialRef}
       />
-      <UrgentBookingPopup
+      <DeferredUrgentBookingPopup
         visible={urgentPopupOpen}
         booking={latestNewBooking}
         onOpenBookings={handleUrgentOpenBookings}
@@ -2262,15 +2292,15 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       />
       <AdminVisitorsModal visible={visitorsOpen} onClose={() => setVisitorsOpen(false)} />
       <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
-      <AdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
+      <DeferredAdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
       <DeferredVirtualLandlineModal
         visible={virtualLandlineOpen}
         onClose={() => setVirtualLandlineOpen(false)}
         onCreateDraft={handleCreateVirtualLandlineDraft}
       />
       <AddAdminModal visible={addAdminOpen} onClose={() => setAddAdminOpen(false)} />
-      <ActiveJobsModal visible={activeJobsOpen} onClose={() => setActiveJobsOpen(false)} />
-      <TrackingModal visible={driverTrackingOpen} onClose={() => setDriverTrackingOpen(false)} />
+      <DeferredActiveJobsModal visible={activeJobsOpen} onClose={() => setActiveJobsOpen(false)} />
+      <DeferredTrackingModal visible={driverTrackingOpen} onClose={() => setDriverTrackingOpen(false)} />
       <DeferredChatHubModal visible={chatHubOpen} onClose={() => setChatHubOpen(false)} />
       <MessageSenderModal
         visible={messageSenderOpen}
@@ -2296,7 +2326,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         }}
         onNotice={flashNotice}
       />
-      <ActiveJobMapModal
+      <DeferredActiveJobMapModal
         visible={trackingMapOpen}
         job={trackingJob}
         onClose={() => setTrackingMapOpen(false)}
@@ -2524,7 +2554,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
   if (activeStage === 'LOCATION') {
     return (
       <View>
-        <LocationSection draft={draft} update={update} locationShare={locationShare} showInlineActions={false} />
+        <DeferredLocationSection draft={draft} update={update} locationShare={locationShare} showInlineActions={false} />
       </View>
     );
   }

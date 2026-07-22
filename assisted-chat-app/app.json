@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tyre Rescue Assisted Chat",
     "slug": "tyre-rescue-assisted-chat",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "orientation": "portrait",
     "scheme": "tyrerescueassistedchat",
     "userInterfaceStyle": "dark",
@@ -37,7 +37,7 @@
     },
     "ios": {
       "bundleIdentifier": "uk.tyrerescue.assistedchat",
-      "buildNumber": "14",
+      "buildNumber": "15",
       "supportsTablet": true,
       "icon": "./assets/icon.png",
       "infoPlist": {
@@ -75,16 +75,9 @@
           "microphonePermission": "Tyre Rescue uses the microphone so operators can send voice messages in Assisted Chat."
         }
       ],
-      [
-        "expo-audio",
-        {
-          "enableBackgroundPlayback": false,
-          "enableBackgroundRecording": false,
-          "recordAudioAndroid": true,
-          "microphonePermission": "Tyre Rescue uses the microphone so operators can send voice messages in Assisted Chat."
-        }
-      ],
-      "expo-sharing"
+      "expo-sharing",
+      "expo-font",
+      "expo-asset"
     ],
     "extra": {
       "router": {
