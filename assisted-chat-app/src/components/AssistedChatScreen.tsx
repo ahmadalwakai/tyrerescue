@@ -773,7 +773,8 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         scheduleRetry(attempt);
       } catch (error) {
         logStartupModuleFailed('Notifications initialization', error);
-        throw error;
+        setAlertReadinessState('not_armed');
+        markNotificationsCompleted({ failed: true });
       }
     };
 

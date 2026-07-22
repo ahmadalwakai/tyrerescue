@@ -1,0 +1,32 @@
+diff --git a/node_modules/expo-notifications/ios/ExpoNotifications/ServerRegistration/ServerRegistrationModule.swift b/node_modules/expo-notifications/ios/ExpoNotifications/ServerRegistration/ServerRegistrationModule.swift
+index f3caefd..0d94030 100644
+--- a/node_modules/expo-notifications/ios/ExpoNotifications/ServerRegistration/ServerRegistrationModule.swift
++++ b/node_modules/expo-notifications/ios/ExpoNotifications/ServerRegistration/ServerRegistrationModule.swift
+@@ -86,7 +86,7 @@ open class ServerRegistrationModule: Module {
+   // MARK: - Registration information
+ 
+   private func getRegistrationInfo() throws -> String? {
+-    return try fetchStringWithQuery(registrationGetQuery())
++    return try fetchStringWithQuery(registrationGetQuery(), shouldThrowOnKeychainFailure: false)
+   }
+ 
+   private func setRegistrationInfo(registrationInfo: String) throws {
+@@ -132,7 +132,7 @@ open class ServerRegistrationModule: Module {
+     return query as CFDictionary
+   }
+ 
+-  private func fetchStringWithQuery(_ query: CFDictionary) throws -> String? {
++  private func fetchStringWithQuery(_ query: CFDictionary, shouldThrowOnKeychainFailure: Bool = true) throws -> String? {
+     var item: CFTypeRef?
+     let status = SecItemCopyMatching(query, &item)
+     if status == errSecSuccess {
+@@ -145,6 +145,9 @@ open class ServerRegistrationModule: Module {
+     if status == errSecItemNotFound {
+       return nil
+     }
++    if !shouldThrowOnKeychainFailure {
++      return nil
++    }
+     throw keychainException(status)
+   }
+ 

@@ -22,7 +22,7 @@ Checkpoint labels now emitted:
 10. Home screen mounted
 11. Assisted Chat mounted
 
-Every instrumented startup module logs `started`, `completed`, and `failed` when an exception/rejection reaches that module boundary. Failure handlers rethrow after logging.
+Every instrumented startup module logs `started`, `completed`, and `failed` when an exception/rejection reaches that module boundary. Critical import failures rethrow after logging; recoverable startup surfaces such as splash promises, session storage parsing, and notification arming log failure and continue to a safe UI state.
 
 ## Startup Execution Order
 
@@ -57,7 +57,7 @@ Actual order in the current app, preserving business logic:
    - On valid stored token, sets the admin token and marks `logged-in`.
    - Otherwise falls back to `EXPO_PUBLIC_ADMIN_TOKEN` or `logged-out`.
    - Logs `Session hydration completed`.
-   - Hydration errors log `failed` and rethrow.
+   - Hydration errors log `failed` and continue to the env/logged-out fallback path.
 7. Logged-out path
    - Renders `LoginScreen`.
    - Assisted Chat, notifications initialization, WebView maps, camera flows, and Stripe payment link actions do not run.
@@ -67,7 +67,7 @@ Actual order in the current app, preserving business logic:
    - If any static dependency under Assisted Chat fails at module scope, the import logs `failed` and rethrows.
 9. `src/components/AssistedChatScreen.tsx` static import tree
    - Loads static hooks, UI components, API helpers, payment-link helpers, header video helpers, notification helpers, urgent alert helpers, and workflow helpers.
-   - `src/lib/notifications.ts` imports `expo-notifications` and installs `Notifications.setNotificationHandler()` at module scope.
+   - `src/lib/notifications.ts` imports only the notification facade at module scope; `expo-notifications` is not imported or configured yet.
    - `src/lib/urgent-alerts.ts` imports `src/lib/urgent-watcher.ts`.
    - `src/lib/urgent-watcher.ts` reads `NativeModules.UrgentWatcherModule` at module scope and logs availability.
    - End of `AssistedChatScreen.tsx` logs `Assisted Chat module completed`.
@@ -76,6 +76,8 @@ Actual order in the current app, preserving business logic:
     - Logs `Assisted Chat mounted`.
     - Starts notification arming and logs `Notifications initialization started`.
     - Calls `ensureUrgentAlertsArmed()`.
+    - Lazily imports `expo-notifications`, then configures the notification handler.
+    - Performs the Expo server registration lookup from the post-render notification path.
     - Logs `Notifications initialization completed` after the first arming attempt returns.
 11. Hydrated Assisted Chat UI
     - After draft hydration, the main chat UI renders.
@@ -110,8 +112,11 @@ Logged-in branch:
 `useAssistedChatDraft`, `useAssistedChatPrice`, `useAssistedChatDispatch`, `useAdminPaymentLink`, `useAssistedChatLocationShare`, `useAssistedChatQuoteActions`, `useTodayBookings`, `useRecentCustomers`, `useDuplicateBookingWarning`, `useNewCustomerBookingAlert`, `useBookingTracking`, `useActiveJobs`
 -> static libs:
 `api`, `invoice-download`, `payment-link-status`, `header-video`, `customer-message`, `clipboard`, `money`, `notifications`, `urgent-alerts`, `assisted-chat-workflow`, `operator-workflow-state`, `header-layout`, `header-notifications`
--> `notifications`
--> `expo-notifications`, `expo-device`, AsyncStorage
+-> `notifications` facade
+-> `expo-device`, AsyncStorage, API helper
+-> first mount effects
+-> dynamic `expo-notifications` import
+-> Expo server registration lookup
 -> `urgent-alerts`
 -> `urgent-watcher`
 -> `NativeModules.UrgentWatcherModule`
@@ -163,8 +168,9 @@ Production-only branches
 - `src/lib/native-urgent-sound.ts` reads `NativeModules.UrgentSoundModule` only through `getModule()`, used by the deferred urgent popup path.
 
 Notifications
-- `src/lib/notifications.ts` statically imports `expo-notifications`.
-- `Notifications.setNotificationHandler()` runs at module scope during Assisted Chat import.
+- `src/lib/notifications.ts` uses a type-only `expo-notifications` import at module scope.
+- Runtime `expo-notifications` loading occurs through `import('expo-notifications')` after Assisted Chat has rendered and notification arming begins.
+- `Notifications.setNotificationHandler()` is configured after the lazy import, not during module evaluation.
 - `registerAdminPushNotifications()` runs during notification arming after Assisted Chat mounts and an admin token exists.
 
 SecureStore
@@ -190,11 +196,13 @@ Stripe
 
 ## Highest-Risk Startup Module
 
-Highest-risk by startup blast radius, not by proven cause: `src/lib/notifications.ts`.
+Highest-risk by proven crash path: `expo-notifications` `ServerRegistrationModule`.
 
-Reason: it statically imports `expo-notifications` and calls `Notifications.setNotificationHandler()` at module scope during the logged-in Assisted Chat import path. That is native-backed, release-relevant, and runs before the main Assisted Chat UI can finish rendering.
+Reason: Expo's auto server-registration code still reads registration info from Keychain when `expo-notifications` is first loaded. The app now delays that load until after the first UI render, and the patch makes the registration-info read return empty state instead of throwing on a registration Keychain access failure.
 
-Second-highest risk: `src/components/LocationSection.tsx`, because it imports `react-native-webview` and renders the Mapbox WebView path once the Assisted Chat draft has hydrated. It is now bracketed by the `Location Section import` checkpoint.
+Second-highest startup-scope risk: `src/lib/urgent-watcher.ts`, because it reads a native module reference at module scope during the logged-in Assisted Chat import path. Use is Android-gated and availability is logged.
+
+Third-highest risk: `src/components/LocationSection.tsx`, because it imports `react-native-webview` and renders the Mapbox WebView path once the Assisted Chat draft has hydrated. It is bracketed by the `Location Section import` checkpoint.
 
 ## Remaining Uncertainty Before Next TestFlight
 
@@ -203,3 +211,4 @@ Second-highest risk: `src/components/LocationSection.tsx`, because it imports `r
 3. If a native module crashes during static import before module body execution, the nearest enclosing checkpoint will be the parent import. Example: `Assisted Chat import started` without `Notifications module started` points at a static dependency load before `notifications.ts` could execute.
 4. Console logs may not be included in every TestFlight crash submission. Device console capture during launch is still the strongest way to read the timeline.
 5. If the tester is logged out or has no stored admin token, the Assisted Chat, notifications, WebView, camera, map, and Stripe-related logged-in branches will not run.
+6. The Expo notification native patch has not been validated by a local Swift build because this repo has no checked-in iOS project.

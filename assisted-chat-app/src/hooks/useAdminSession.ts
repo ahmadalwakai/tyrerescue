@@ -68,7 +68,6 @@ export function useAdminSession(): AdminSession {
         }
       } catch (error) {
         logStartupModuleFailed('Session hydration', error);
-        throw error;
       }
       // Fall back to env token (dev convenience). Still treated as "logged-in"
       // so the chat opens, but no profile is shown.

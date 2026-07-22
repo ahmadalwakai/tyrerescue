@@ -19,7 +19,6 @@ SplashScreen.preventAutoHideAsync()
   })
   .catch((error: unknown) => {
     logStartupModuleFailed('Splash screen prevent auto hide', error);
-    throw error;
   });
 logStartupModuleCompleted('Root layout module');
 
@@ -43,7 +42,6 @@ export default function RootLayout() {
       })
       .catch((error: unknown) => {
         logStartupModuleFailed('Splash screen hide', error);
-        throw error;
       });
   }, []);
 

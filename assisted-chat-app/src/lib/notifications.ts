@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
+import type * as ExpoNotifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { api } from './api';
 import {
@@ -9,7 +9,65 @@ import {
   logStartupModuleStarted,
 } from './startup-logging';
 
-logStartupModuleStarted('Notifications module');
+type NotificationsModule = typeof ExpoNotifications;
+
+logStartupModuleStarted('Notifications facade module');
+logStartupModuleCompleted('Notifications facade module', {
+  expoNotificationsImported: false,
+});
+
+let notificationsModulePromise: Promise<NotificationsModule | null> | null = null;
+let notificationHandlerConfigured = false;
+
+async function loadNotificationsModule(context: string): Promise<NotificationsModule | null> {
+  if (Platform.OS === 'web') return null;
+  if (!notificationsModulePromise) {
+    logStartupModuleStarted('Expo Notifications module load', { context });
+    notificationsModulePromise = import('expo-notifications')
+      .then((module) => {
+        logStartupModuleCompleted('Expo Notifications module load', { context });
+        return module;
+      })
+      .catch((error: unknown) => {
+        notificationsModulePromise = null;
+        logStartupModuleFailed('Expo Notifications module load', error, { context });
+        console.error('[notif] failed to load expo-notifications:', error);
+        return null;
+      });
+  }
+  return notificationsModulePromise;
+}
+
+async function getConfiguredNotifications(context: string): Promise<NotificationsModule | null> {
+  const Notifications = await loadNotificationsModule(context);
+  if (!Notifications) return null;
+  if (notificationHandlerConfigured) return Notifications;
+  logStartupModuleStarted('Notifications handler configuration', { context });
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+    notificationHandlerConfigured = true;
+    logStartupModuleCompleted('Notifications handler configuration', {
+      context,
+      platform: Platform.OS,
+    });
+  } catch (error) {
+    logStartupModuleFailed('Notifications handler configuration', error, {
+      context,
+      platform: Platform.OS,
+    });
+    console.error('[notif] failed to configure notification handler:', error);
+    return null;
+  }
+  return Notifications;
+}
 
 // ─── Channel IDs ─────────────────────────────────────────────────────────────
 
@@ -52,35 +110,17 @@ export const PENDING_OPEN_BOOKINGS_KEY = 'assistedChat.pendingOpenBookings.v1';
 export const DISMISSED_URGENT_BOOKING_ID_KEY =
   'assistedChat.dismissedUrgentBookingId.v1';
 
-// ─── Notification Handler ────────────────────────────────────────────────────
-
-// Show notification banner + play sound when app is in foreground.
-try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  });
-  logStartupModuleCompleted('Notifications module', { platform: Platform.OS });
-} catch (error) {
-  logStartupModuleFailed('Notifications module', error, { platform: Platform.OS });
-  throw error;
-}
-
 // ─── Android Channels ────────────────────────────────────────────────────────
 
 // Helper to read enum values defensively in case a future expo-notifications
 // version renames or drops a member. We never want a missing enum to crash
 // the registration flow on production devices.
 function getImportance(
+  Notifications: NotificationsModule,
   preferred: 'MAX' | 'HIGH' | 'DEFAULT',
-): Notifications.AndroidImportance {
+): ExpoNotifications.AndroidImportance {
   const enumRef = Notifications.AndroidImportance as unknown as
-    | Record<string, Notifications.AndroidImportance | undefined>
+    | Record<string, ExpoNotifications.AndroidImportance | undefined>
     | undefined;
   const max = enumRef?.MAX;
   const high = enumRef?.HIGH;
@@ -89,12 +129,14 @@ function getImportance(
   if ((preferred === 'MAX' || preferred === 'HIGH') && typeof high === 'number') return high;
   if (typeof def === 'number') return def;
   // Fallback to numeric Android value (DEFAULT = 3) — safe last resort.
-  return 3 as Notifications.AndroidImportance;
+  return 3 as ExpoNotifications.AndroidImportance;
 }
 
-function getPublicVisibility(): Notifications.AndroidNotificationVisibility | undefined {
+function getPublicVisibility(
+  Notifications: NotificationsModule,
+): ExpoNotifications.AndroidNotificationVisibility | undefined {
   const enumRef = Notifications.AndroidNotificationVisibility as unknown as
-    | Record<string, Notifications.AndroidNotificationVisibility | undefined>
+    | Record<string, ExpoNotifications.AndroidNotificationVisibility | undefined>
     | undefined;
   const v = enumRef?.PUBLIC;
   return typeof v === 'number' ? v : undefined;
@@ -118,15 +160,15 @@ function getPublicVisibility(): Notifications.AndroidNotificationVisibility | un
 //   are the only place this custom sound is guaranteed to play.
 const URGENT_SOUND: string = 'urgent_booking.mp3';
 
-async function setupAndroidChannels(): Promise<void> {
+async function setupAndroidChannels(Notifications: NotificationsModule): Promise<void> {
   if (Platform.OS !== 'android') return;
 
-  const publicVisibility = getPublicVisibility();
+  const publicVisibility = getPublicVisibility(Notifications);
 
   try {
     await Notifications.setNotificationChannelAsync(URGENT_BOOKINGS_CHANNEL_ID, {
       name: 'Urgent bookings',
-      importance: getImportance('MAX'),
+      importance: getImportance(Notifications, 'MAX'),
       sound: URGENT_SOUND,
       vibrationPattern: [0, 500, 250, 500, 250, 900],
       enableVibrate: true,
@@ -141,7 +183,7 @@ async function setupAndroidChannels(): Promise<void> {
   try {
     await Notifications.setNotificationChannelAsync(DEFAULT_CHANNEL_ID, {
       name: 'General',
-      importance: getImportance('DEFAULT'),
+      importance: getImportance(Notifications, 'DEFAULT'),
       sound: 'default',
       enableVibrate: true,
     });
@@ -156,7 +198,7 @@ async function setupAndroidChannels(): Promise<void> {
   try {
     await Notifications.setNotificationChannelAsync(URGENT_BOOKINGS_V1_CHANNEL_ID, {
       name: 'Urgent bookings (native)',
-      importance: getImportance('MAX'),
+      importance: getImportance(Notifications, 'MAX'),
       sound: URGENT_SOUND,
       vibrationPattern: [0, 500, 250, 500, 250, 900],
       enableVibrate: true,
@@ -175,7 +217,7 @@ async function setupAndroidChannels(): Promise<void> {
   try {
     await Notifications.setNotificationChannelAsync(URGENT_BOOKINGS_V3_CHANNEL_ID, {
       name: 'Urgent bookings',
-      importance: getImportance('MAX'),
+      importance: getImportance(Notifications, 'MAX'),
       sound: URGENT_SOUND,
       vibrationPattern: [0, 500, 250, 500, 250, 900],
       enableVibrate: true,
@@ -192,7 +234,7 @@ async function setupAndroidChannels(): Promise<void> {
   try {
     await Notifications.setNotificationChannelAsync(LEGACY_BOOKINGS_CHANNEL_ID, {
       name: 'Booking Alerts',
-      importance: getImportance('MAX'),
+      importance: getImportance(Notifications, 'MAX'),
       vibrationPattern: [0, 300, 150, 300],
       lightColor: '#F97316',
       sound: 'default',
@@ -217,7 +259,9 @@ export async function presentLocalUrgentBookingNotification(args: {
 }): Promise<void> {
   if (Platform.OS === 'web') return;
   try {
-    await scheduleNotificationSafe({
+    const Notifications = await getConfiguredNotifications('local-urgent-notification');
+    if (!Notifications) return;
+    await scheduleNotificationSafe(Notifications, {
       title: args.title ?? 'Emergency booking received',
       body: args.body ?? 'Open Assisted Chat now',
       bookingId: args.bookingId,
@@ -231,23 +275,66 @@ export function addAdminNotificationReceivedListener(
   listener: () => void,
 ): NotificationSubscription | null {
   if (Platform.OS === 'web') return null;
-  return Notifications.addNotificationReceivedListener(listener);
+  let removed = false;
+  let subscription: NotificationSubscription | null = null;
+  void getConfiguredNotifications('notification-received-listener')
+    .then((Notifications) => {
+      if (removed || !Notifications) return;
+      subscription = Notifications.addNotificationReceivedListener(listener);
+      if (removed) {
+        subscription.remove();
+        subscription = null;
+      }
+    })
+    .catch((error: unknown) => {
+      console.error('[notif] failed to attach notification received listener:', error);
+    });
+  return {
+    remove: () => {
+      removed = true;
+      subscription?.remove();
+      subscription = null;
+    },
+  };
 }
 
 export function addAdminNotificationResponseListener(
   listener: (data: unknown) => void,
 ): NotificationSubscription | null {
   if (Platform.OS === 'web') return null;
-  return Notifications.addNotificationResponseReceivedListener((response) => {
-    listener(response.notification.request.content.data);
-  });
+  let removed = false;
+  let subscription: NotificationSubscription | null = null;
+  void getConfiguredNotifications('notification-response-listener')
+    .then((Notifications) => {
+      if (removed || !Notifications) return;
+      subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+        listener(response.notification.request.content.data);
+      });
+      if (removed) {
+        subscription.remove();
+        subscription = null;
+      }
+    })
+    .catch((error: unknown) => {
+      console.error('[notif] failed to attach notification response listener:', error);
+    });
+  return {
+    remove: () => {
+      removed = true;
+      subscription?.remove();
+      subscription = null;
+    },
+  };
 }
 
-async function scheduleNotificationSafe(args: {
-  title: string;
-  body: string;
-  bookingId: string;
-}): Promise<void> {
+async function scheduleNotificationSafe(
+  Notifications: NotificationsModule,
+  args: {
+    title: string;
+    body: string;
+    bookingId: string;
+  },
+): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     content: {
       title: args.title,
@@ -290,7 +377,13 @@ export async function registerAdminPushNotifications(): Promise<string | null> {
 
     // Always set up channels first so any push that arrives between this
     // call and token registration already targets the right channel.
-    await setupAndroidChannels();
+    const Notifications = await getConfiguredNotifications('push-registration');
+    if (!Notifications) {
+      console.log('[notif] push registration unavailable — notifications module not loaded');
+      return null;
+    }
+
+    await setupAndroidChannels(Notifications);
 
     const { status: existing } = await Notifications.getPermissionsAsync();
     let finalStatus = existing;
@@ -336,9 +429,11 @@ export async function registerAdminPushNotifications(): Promise<string | null> {
  */
 export async function clearAdminBadge(): Promise<void> {
   try {
+    const Notifications = await getConfiguredNotifications('clear-badge');
+    if (!Notifications) return;
     await Notifications.setBadgeCountAsync(0);
-  } catch {
-    // Badge not supported — ignore.
+  } catch (error) {
+    console.warn('[notif] failed to clear badge:', error);
   }
 }
 
@@ -429,6 +524,8 @@ export async function getDeviceFcmToken(): Promise<string | null> {
   if (Platform.OS === 'web') return null;
   if (!Device.isDevice) return null;
   try {
+    const Notifications = await getConfiguredNotifications('device-fcm-token');
+    if (!Notifications) return null;
     const tokenData = await Notifications.getDevicePushTokenAsync();
     if (tokenData.type === 'android' && tokenData.data) return tokenData.data;
     if (__DEV__) {
@@ -451,6 +548,8 @@ export async function getDeviceFcmToken(): Promise<string | null> {
 export async function getUrgentAlertsPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {
   if (Platform.OS === 'web') return 'undetermined';
   try {
+    const Notifications = await getConfiguredNotifications('permission-status');
+    if (!Notifications) return 'undetermined';
     const { status } = await Notifications.getPermissionsAsync();
     return status;
   } catch {
