@@ -300,6 +300,10 @@ assert.match(startupEntrySource, /handlingPromiseRejection/);
 const rootLayoutSource = fs.readFileSync(rootLayoutPath, 'utf8');
 assert.match(rootLayoutSource, /export function ErrorBoundary/);
 assert.match(rootLayoutSource, /root\.error_boundary/);
+assert.match(rootLayoutSource, /Copy Report/);
+assert.match(rootLayoutSource, /typeof preventAutoHideAsync !== 'function'/);
+assert.match(rootLayoutSource, /typeof hideSplashAsync !== 'function'/);
+assert.doesNotMatch(rootLayoutSource, /useRootNavigationState/);
 assert.match(rootLayoutSource, /StartupDiagnosticsPanel/);
 assert.match(rootLayoutSource, /readStartupDiagnostic/);
 assert.match(rootLayoutSource, /Clear Diagnostics/);
@@ -317,7 +321,7 @@ assert.match(easConfig, /EXPO_PUBLIC_ASSISTED_CHAT_DISABLE_NOTIFICATION_STARTUP/
 assert.match(easConfig, /EXPO_PUBLIC_ASSISTED_CHAT_DISABLE_SESSION_RESTORE/);
 
 const appConfig = JSON.parse(fs.readFileSync(appConfigPath, 'utf8'));
-assert.equal(appConfig.expo.ios.buildNumber, '22');
+assert.equal(appConfig.expo.ios.buildNumber, '23');
 assert.equal(
   JSON.stringify(appConfig.expo.plugins).includes('expo-notifications'),
   false,

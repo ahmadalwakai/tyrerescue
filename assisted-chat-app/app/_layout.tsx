@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ErrorBoundary as ExpoRouterErrorBoundary,
-  Slot,
-  useRootNavigationState,
-  type ErrorBoundaryProps,
-} from 'expo-router';
+import { Slot, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -22,29 +17,124 @@ import {
 } from '@/lib/startup-logging';
 
 logStartupModuleStarted('Root layout module');
-logStartupModuleStarted('Splash screen prevent auto hide');
-SplashScreen.preventAutoHideAsync()
-  .then(() => {
-    logStartupModuleCompleted('Splash screen prevent auto hide');
-  })
-  .catch((error: unknown) => {
-    logStartupModuleFailed('Splash screen prevent auto hide', error);
-  });
+preventSplashAutoHide();
 logStartupModuleCompleted('Root layout module');
 
-export function ErrorBoundary(props: ErrorBoundaryProps) {
+function preventSplashAutoHide(): void {
+  logStartupModuleStarted('Splash screen prevent auto hide');
+  const preventAutoHideAsync = SplashScreen.preventAutoHideAsync;
+
+  if (typeof preventAutoHideAsync !== 'function') {
+    logStartupCheckpoint('Splash screen prevent auto hide unavailable');
+    logStartupModuleCompleted('Splash screen prevent auto hide', {
+      available: false,
+    });
+    return;
+  }
+
+  preventAutoHideAsync()
+    .then(() => {
+      logStartupModuleCompleted('Splash screen prevent auto hide', {
+        available: true,
+      });
+    })
+    .catch((error: unknown) => {
+      logStartupModuleFailed('Splash screen prevent auto hide', error);
+    });
+}
+
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  const mountedRef = useRef(false);
+  const [diagnostic, setDiagnostic] = useState<StartupDiagnosticRecord | null>(null);
+  const [statusText, setStatusText] = useState<string | null>(null);
+
   useEffect(() => {
-    logStartupModuleFailed('root.error_boundary', props.error);
-  }, [props.error]);
+    mountedRef.current = true;
+    logStartupModuleFailed('root.error_boundary', error);
+    void readStartupDiagnostic()
+      .then((record) => {
+        if (!mountedRef.current) return;
+        setDiagnostic(record);
+      })
+      .catch((readError: unknown) => {
+        logStartupModuleFailed('root.error_boundary.diagnostic_read.failed', readError);
+      });
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [error]);
+
+  const errorReport = useMemo(() => {
+    return JSON.stringify(
+      {
+        source: 'root.error_boundary',
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack ?? 'none',
+        },
+        startupDiagnostic: buildDiagnosticDisplay(diagnostic),
+      },
+      null,
+      2,
+    );
+  }, [diagnostic, error.message, error.name, error.stack]);
+
+  const copyErrorReport = useCallback(() => {
+    void (async () => {
+      const { copyToClipboard } = await import('@/lib/clipboard');
+      return copyToClipboard(errorReport);
+    })()
+      .then((ok) => {
+        if (!mountedRef.current) return;
+        setStatusText(ok ? 'Copied' : 'Copy failed');
+      })
+      .catch((copyError: unknown) => {
+        logStartupModuleFailed('root.error_boundary.copy.failed', copyError);
+      });
+  }, [errorReport]);
+
+  const retryAfterLog = useCallback(async () => {
+    logStartupCheckpoint('root.error_boundary.retry');
+    await retry();
+  }, [retry]);
 
   return (
-    <ExpoRouterErrorBoundary
-      {...props}
-      retry={async () => {
-        logStartupCheckpoint('root.error_boundary.retry');
-        await props.retry();
-      }}
-    />
+    <View style={styles.errorBoundaryScreen}>
+      <StatusBar style="light" backgroundColor="#09090B" />
+      <Text style={styles.errorBoundaryTitle}>Something went wrong</Text>
+      <Text style={styles.errorBoundaryMessage}>{error.message}</Text>
+      <ScrollView
+        style={styles.errorBoundaryReport}
+        contentContainerStyle={styles.errorBoundaryReportContent}
+      >
+        <Text style={styles.errorBoundaryReportText}>{errorReport}</Text>
+      </ScrollView>
+      <View style={styles.errorBoundaryActions}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={retryAfterLog}
+          style={({ pressed }) => [
+            styles.errorBoundaryButton,
+            pressed ? styles.diagnosticPressed : null,
+          ]}
+        >
+          <Text style={styles.errorBoundaryButtonText}>Retry</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={copyErrorReport}
+          style={({ pressed }) => [
+            styles.errorBoundaryButton,
+            pressed ? styles.diagnosticPressed : null,
+          ]}
+        >
+          <Text style={styles.errorBoundaryButtonText}>Copy Report</Text>
+        </Pressable>
+      </View>
+      {statusText ? <Text style={styles.errorBoundaryStatus}>{statusText}</Text> : null}
+    </View>
   );
 }
 
@@ -273,37 +363,40 @@ function DiagnosticRow({
 }
 
 export default function RootLayout() {
-  const rootNavigationState = useRootNavigationState();
-  const navigationReadyLogged = useRef(false);
-
   useEffect(() => {
     logStartupModuleStarted('Root component');
     logStartupCheckpoint('Root component mounted');
     logStartupModuleCompleted('Root component');
+
+    logStartupModuleStarted('Navigation');
+    logStartupCheckpoint('Navigation mounted with root layout');
+    logStartupModuleCompleted('Navigation');
 
     logStartupModuleStarted('Providers');
     logStartupCheckpoint('Providers initialized');
     logStartupModuleCompleted('Providers');
 
     logStartupModuleStarted('Splash screen hide');
-    SplashScreen.hideAsync()
+    const hideSplashAsync = SplashScreen.hideAsync;
+
+    if (typeof hideSplashAsync !== 'function') {
+      logStartupCheckpoint('Splash screen hide unavailable');
+      logStartupModuleCompleted('Splash screen hide', {
+        available: false,
+      });
+      return;
+    }
+
+    hideSplashAsync()
       .then(() => {
-        logStartupModuleCompleted('Splash screen hide');
+        logStartupModuleCompleted('Splash screen hide', {
+          available: true,
+        });
       })
       .catch((error: unknown) => {
         logStartupModuleFailed('Splash screen hide', error);
       });
   }, []);
-
-  useEffect(() => {
-    if (navigationReadyLogged.current || !rootNavigationState?.key) return;
-    navigationReadyLogged.current = true;
-    logStartupModuleStarted('Navigation');
-    logStartupCheckpoint('Navigation ready');
-    logStartupModuleCompleted('Navigation', {
-      routeCount: rootNavigationState.routes.length,
-    });
-  }, [rootNavigationState?.key, rootNavigationState?.routes.length]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#09090B' }}>
@@ -317,6 +410,68 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  errorBoundaryScreen: {
+    flex: 1,
+    backgroundColor: '#09090B',
+    paddingHorizontal: 22,
+    paddingTop: 92,
+    paddingBottom: 36,
+    gap: space.md,
+  },
+  errorBoundaryTitle: {
+    color: colors.text,
+    fontSize: 32,
+    fontWeight: '900',
+    lineHeight: 38,
+  },
+  errorBoundaryMessage: {
+    color: colors.muted,
+    fontSize: fontSize.md,
+    fontWeight: '800',
+    lineHeight: 24,
+  },
+  errorBoundaryReport: {
+    flex: 1,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.glass,
+  },
+  errorBoundaryReportContent: {
+    padding: space.md,
+  },
+  errorBoundaryReportText: {
+    color: colors.subtle,
+    fontFamily: 'monospace',
+    fontSize: fontSize.xs,
+    lineHeight: 17,
+  },
+  errorBoundaryActions: {
+    flexDirection: 'row',
+    gap: space.sm,
+  },
+  errorBoundaryButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.glassStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  errorBoundaryButtonText: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: '900',
+    letterSpacing: 0,
+  },
+  errorBoundaryStatus: {
+    color: colors.warning,
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+  },
   diagnosticTab: {
     position: 'absolute',
     right: 12,
