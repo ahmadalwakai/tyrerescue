@@ -2,8 +2,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import type * as ExpoNotifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { api } from './api';
+import { api, getAdminToken } from './api';
+import { isNotificationStartupDisabled } from './notification-startup-config';
 import {
+  extractNotificationResponseData,
+  isOkResponse,
+  normalizeDevicePushToken,
+  normalizeExpoPushToken,
+  normalizePermissionResponse,
+  parseUrgentBookingNotificationOpenRequest,
+  type NotificationPermissionStatus,
+} from './notification-safety';
+import {
+  logStartupCheckpoint,
   logStartupModuleCompleted,
   logStartupModuleFailed,
   logStartupModuleStarted,
@@ -15,6 +26,7 @@ logStartupModuleStarted('Notifications facade module');
 logStartupModuleCompleted('Notifications facade module', {
   expoNotificationsImported: false,
 });
+logStartupCheckpoint('NOTIFICATIONS_IMPORT_READY', { expoNotificationsImported: false });
 
 let notificationsModulePromise: Promise<NotificationsModule | null> | null = null;
 let notificationHandlerConfigured = false;
@@ -39,6 +51,10 @@ async function loadNotificationsModule(context: string): Promise<NotificationsMo
 }
 
 async function getConfiguredNotifications(context: string): Promise<NotificationsModule | null> {
+  if (isNotificationStartupDisabled()) {
+    logStartupCheckpoint('notifications.startup.disabled', { context });
+    return null;
+  }
   const Notifications = await loadNotificationsModule(context);
   if (!Notifications) return null;
   if (notificationHandlerConfigured) return Notifications;
@@ -67,6 +83,23 @@ async function getConfiguredNotifications(context: string): Promise<Notification
     return null;
   }
   return Notifications;
+}
+
+function logNotificationFailure(stage: string, error: unknown, details?: Record<string, unknown>): void {
+  logStartupModuleFailed(stage, error, details);
+  console.error(`[notif] ${stage}:`, error);
+}
+
+function removeNotificationSubscription(
+  subscription: NotificationSubscription | null,
+  context: string,
+): void {
+  if (!subscription) return;
+  try {
+    subscription.remove();
+  } catch (error) {
+    logNotificationFailure('notifications.subscription.remove.failed', error, { context });
+  }
 }
 
 // ─── Channel IDs ─────────────────────────────────────────────────────────────
@@ -275,14 +308,26 @@ export function addAdminNotificationReceivedListener(
   listener: () => void,
 ): NotificationSubscription | null {
   if (Platform.OS === 'web') return null;
+  if (isNotificationStartupDisabled()) {
+    logStartupCheckpoint('notifications.received-listener.skipped', { reason: 'startup-disabled' });
+    return null;
+  }
   let removed = false;
   let subscription: NotificationSubscription | null = null;
+  logStartupCheckpoint('NOTIFICATIONS_LISTENERS_ATTACH_START', { listener: 'received' });
   void getConfiguredNotifications('notification-received-listener')
     .then((Notifications) => {
       if (removed || !Notifications) return;
-      subscription = Notifications.addNotificationReceivedListener(listener);
+      subscription = Notifications.addNotificationReceivedListener(() => {
+        try {
+          listener();
+        } catch (error) {
+          logNotificationFailure('notifications.received-listener.callback.failed', error);
+        }
+      });
+      logStartupCheckpoint('NOTIFICATIONS_LISTENERS_ATTACHED', { listener: 'received' });
       if (removed) {
-        subscription.remove();
+        removeNotificationSubscription(subscription, 'received-late-remove');
         subscription = null;
       }
     })
@@ -292,7 +337,7 @@ export function addAdminNotificationReceivedListener(
   return {
     remove: () => {
       removed = true;
-      subscription?.remove();
+      removeNotificationSubscription(subscription, 'received');
       subscription = null;
     },
   };
@@ -302,16 +347,33 @@ export function addAdminNotificationResponseListener(
   listener: (data: unknown) => void,
 ): NotificationSubscription | null {
   if (Platform.OS === 'web') return null;
+  if (isNotificationStartupDisabled()) {
+    logStartupCheckpoint('notifications.response-listener.skipped', { reason: 'startup-disabled' });
+    return null;
+  }
   let removed = false;
   let subscription: NotificationSubscription | null = null;
+  logStartupCheckpoint('NOTIFICATIONS_LISTENERS_ATTACH_START', { listener: 'response' });
   void getConfiguredNotifications('notification-response-listener')
     .then((Notifications) => {
       if (removed || !Notifications) return;
       subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-        listener(response.notification.request.content.data);
+        const data = extractNotificationResponseData(response);
+        if (!data) {
+          logStartupCheckpoint('notifications.response-listener.payload.ignored', {
+            reason: 'missing-or-malformed-data',
+          });
+          return;
+        }
+        try {
+          listener(data);
+        } catch (error) {
+          logNotificationFailure('notifications.response-listener.callback.failed', error);
+        }
       });
+      logStartupCheckpoint('NOTIFICATIONS_LISTENERS_ATTACHED', { listener: 'response' });
       if (removed) {
-        subscription.remove();
+        removeNotificationSubscription(subscription, 'response-late-remove');
         subscription = null;
       }
     })
@@ -321,10 +383,34 @@ export function addAdminNotificationResponseListener(
   return {
     remove: () => {
       removed = true;
-      subscription?.remove();
+      removeNotificationSubscription(subscription, 'response');
       subscription = null;
     },
   };
+}
+
+export async function getLastAdminNotificationResponseData(): Promise<unknown | null> {
+  if (Platform.OS === 'web') return null;
+  if (isNotificationStartupDisabled()) {
+    logStartupCheckpoint('notifications.last-response.skipped', { reason: 'startup-disabled' });
+    return null;
+  }
+  try {
+    const Notifications = await getConfiguredNotifications('last-notification-response');
+    if (!Notifications) return null;
+    const response = await Notifications.getLastNotificationResponseAsync();
+    const data = extractNotificationResponseData(response);
+    if (!data) {
+      logStartupCheckpoint('notifications.last-response.ignored', {
+        reason: 'missing-or-malformed-data',
+      });
+      return null;
+    }
+    return data;
+  } catch (error) {
+    logNotificationFailure('notifications.last-response.failed', error);
+    return null;
+  }
 }
 
 async function scheduleNotificationSafe(
@@ -335,90 +421,190 @@ async function scheduleNotificationSafe(
     bookingId: string;
   },
 ): Promise<void> {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: args.title,
-      body: args.body,
-      sound: URGENT_SOUND,
-      priority: Notifications.AndroidNotificationPriority.MAX,
-      vibrate: [0, 500, 250, 500, 250, 900],
-      data: { type: 'urgent_booking', bookingId: args.bookingId },
-      ...(Platform.OS === 'android'
-        ? { channelId: URGENT_BOOKINGS_V3_CHANNEL_ID }
-        : {}),
-    },
-    trigger: null,
-  });
+  try {
+    const androidPriority = Notifications.AndroidNotificationPriority as
+      | Record<string, ExpoNotifications.AndroidNotificationPriority | undefined>
+      | undefined;
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: args.title,
+        body: args.body,
+        sound: URGENT_SOUND,
+        ...(typeof androidPriority?.MAX === 'string' || typeof androidPriority?.MAX === 'number'
+          ? { priority: androidPriority.MAX }
+          : {}),
+        vibrate: [0, 500, 250, 500, 250, 900],
+        data: { type: 'urgent_booking', bookingId: args.bookingId },
+        ...(Platform.OS === 'android'
+          ? { channelId: URGENT_BOOKINGS_V3_CHANNEL_ID }
+          : {}),
+      },
+      trigger: null,
+    });
+  } catch (error) {
+    logNotificationFailure('notifications.schedule.failed', error);
+  }
 }
 
 // ─── Registration ─────────────────────────────────────────────────────────────
 
 let registrationInFlight: Promise<string | null> | null = null;
 
+export async function readAdminNotificationPermissionStatus(): Promise<NotificationPermissionStatus> {
+  if (Platform.OS === 'web') return 'undetermined';
+  if (isNotificationStartupDisabled()) {
+    logStartupCheckpoint('notifications.permission-read.skipped', { reason: 'startup-disabled' });
+    return 'undetermined';
+  }
+  const Notifications = await getConfiguredNotifications('permission-read');
+  if (!Notifications) return 'undetermined';
+
+  logStartupCheckpoint('NOTIFICATIONS_PERMISSION_READ_START');
+  try {
+    const response = await Notifications.getPermissionsAsync();
+    const status = normalizePermissionResponse(response);
+    if (!status) {
+      throw new Error('Malformed notification permission response');
+    }
+    logStartupCheckpoint('NOTIFICATIONS_PERMISSION_READ_SUCCESS', { status });
+    return status;
+  } catch (error) {
+    logStartupModuleFailed('NOTIFICATIONS_PERMISSION_READ_FAILED', error);
+    console.error('[notif] failed to read notification permission:', error);
+    return 'undetermined';
+  }
+}
+
+export async function requestAdminNotificationPermission(): Promise<NotificationPermissionStatus> {
+  if (Platform.OS === 'web') return 'undetermined';
+  if (isNotificationStartupDisabled()) {
+    logStartupCheckpoint('notifications.permission-request.unavailable', {
+      reason: 'startup-disabled',
+    });
+    return 'undetermined';
+  }
+  const Notifications = await getConfiguredNotifications('permission-request');
+  if (!Notifications) return 'undetermined';
+
+  logStartupCheckpoint('NOTIFICATIONS_PERMISSION_REQUEST_START');
+  try {
+    const response = await Notifications.requestPermissionsAsync();
+    const status = normalizePermissionResponse(response);
+    if (!status) {
+      throw new Error('Malformed notification permission request response');
+    }
+    logStartupCheckpoint('NOTIFICATIONS_PERMISSION_REQUEST_SUCCESS', { status });
+    return status;
+  } catch (error) {
+    logStartupModuleFailed('NOTIFICATIONS_PERMISSION_REQUEST_FAILED', error);
+    console.error('[notif] failed to request notification permission:', error);
+    return 'undetermined';
+  }
+}
+
+async function getAdminExpoPushToken(Notifications: NotificationsModule): Promise<string | null> {
+  logStartupCheckpoint('NOTIFICATIONS_TOKEN_START', { tokenKind: 'expo' });
+  try {
+    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const token = normalizeExpoPushToken(tokenData);
+    if (!token) {
+      throw new Error('Malformed Expo push token response');
+    }
+    logStartupCheckpoint('NOTIFICATIONS_TOKEN_SUCCESS', {
+      tokenKind: 'expo',
+      tokenSuffix: token.slice(-8),
+    });
+    return token;
+  } catch (error) {
+    logStartupModuleFailed('NOTIFICATIONS_TOKEN_FAILED', error, { tokenKind: 'expo' });
+    console.error('[notif] failed to get Expo push token:', error);
+    return null;
+  }
+}
+
+async function syncAdminExpoPushToken(token: string): Promise<boolean> {
+  if (!getAdminToken()) {
+    logStartupCheckpoint('NOTIFICATIONS_API_SYNC_FAILED', { reason: 'missing-admin-token' });
+    return false;
+  }
+
+  logStartupCheckpoint('NOTIFICATIONS_API_SYNC_START', { tokenKind: 'expo' });
+  try {
+    const response = await api.post('/api/mobile/admin/push-token', {
+      token,
+      platform: Platform.OS === 'ios' ? 'ios' : 'android',
+    });
+    if (!isOkResponse(response)) {
+      throw new Error('Backend did not confirm Expo push-token sync');
+    }
+    logStartupCheckpoint('NOTIFICATIONS_API_SYNC_SUCCESS', { tokenKind: 'expo' });
+    return true;
+  } catch (error) {
+    logStartupModuleFailed('NOTIFICATIONS_API_SYNC_FAILED', error, { tokenKind: 'expo' });
+    console.error('[notif] failed to upload push token:', error);
+    return false;
+  }
+}
+
 /**
- * Request push notification permissions, register the Expo push token,
- * and upload it to the server. Returns the token or null if unavailable.
+ * Inspect push notification permissions, register the Expo push token when
+ * already authorized, and upload it to the server. It never prompts on startup.
  */
 export async function registerAdminPushNotifications(): Promise<string | null> {
   if (registrationInFlight) return registrationInFlight;
 
   registrationInFlight = (async () => {
-    // Web has no expo-notifications push surface; bail early so a web
-    // preview does not spam permission / token errors.
-    if (Platform.OS === 'web') {
-      return null;
-    }
-
-    // Physical device required for push tokens.
-    if (!Device.isDevice) {
-      console.log('[notif] push not available on simulator');
-      return null;
-    }
-
-    // Always set up channels first so any push that arrives between this
-    // call and token registration already targets the right channel.
-    const Notifications = await getConfiguredNotifications('push-registration');
-    if (!Notifications) {
-      console.log('[notif] push registration unavailable — notifications module not loaded');
-      return null;
-    }
-
-    await setupAndroidChannels(Notifications);
-
-    const { status: existing } = await Notifications.getPermissionsAsync();
-    let finalStatus = existing;
-
-    if (existing !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-
-    if (finalStatus !== 'granted') {
-      console.log('[notif] push permission denied');
-      return null;
-    }
-
-    let token: string;
     try {
-      const tokenData = await Notifications.getExpoPushTokenAsync();
-      token = tokenData.data;
-    } catch (err) {
-      console.error('[notif] failed to get Expo push token:', err);
+      // Web has no expo-notifications push surface; bail early so a web
+      // preview does not spam permission / token errors.
+      if (Platform.OS === 'web') {
+        return null;
+      }
+
+      if (isNotificationStartupDisabled()) {
+        logStartupCheckpoint('notifications.registration.skipped', { reason: 'startup-disabled' });
+        return null;
+      }
+
+      // Physical device required for push tokens.
+      if (!Device.isDevice) {
+        console.log('[notif] push not available on simulator');
+        return null;
+      }
+
+      // Always set up channels first so any push that arrives between this
+      // call and token registration already targets the right channel.
+      const Notifications = await getConfiguredNotifications('push-registration');
+      if (!Notifications) {
+        console.log('[notif] push registration unavailable — notifications module not loaded');
+        return null;
+      }
+
+      await setupAndroidChannels(Notifications);
+
+      const permission = await readAdminNotificationPermissionStatus();
+
+      if (permission !== 'granted') {
+        console.log(`[notif] push permission not granted status=${permission}`);
+        return null;
+      }
+
+      const token = await getAdminExpoPushToken(Notifications);
+      if (!token) return null;
+
+      await syncAdminExpoPushToken(token);
+
+      console.log(`[notif] Expo push token registered tokenSuffix=${token.slice(-8)}`);
+
+      return token;
+    } catch (error) {
+      logStartupModuleFailed('notifications.registration.failed', error);
+      console.error('[notif] push registration failed:', error);
       return null;
     }
-
-    // Upload token to server (fire-and-forget — don't block UI).
-    api
-      .post('/api/mobile/admin/push-token', {
-        token,
-        platform: Platform.OS === 'ios' ? 'ios' : 'android',
-      })
-      .catch((err: unknown) => console.error('[notif] failed to upload push token:', err));
-
-    console.log(`[notif] Expo push token registered tokenSuffix=${token.slice(-8)}`);
-
-    return token;
-  })();
+  })().finally(() => {
+    registrationInFlight = null;
+  });
 
   return registrationInFlight;
 }
@@ -428,11 +614,13 @@ export async function registerAdminPushNotifications(): Promise<string | null> {
  * the admin opens the bookings list.
  */
 export async function clearAdminBadge(): Promise<void> {
+  if (isNotificationStartupDisabled()) return;
   try {
     const Notifications = await getConfiguredNotifications('clear-badge');
     if (!Notifications) return;
     await Notifications.setBadgeCountAsync(0);
   } catch (error) {
+    logStartupModuleFailed('notifications.clear-badge.failed', error);
     console.warn('[notif] failed to clear badge:', error);
   }
 }
@@ -448,8 +636,8 @@ export async function unregisterAdminPushNotifications(): Promise<void> {
       api.del('/api/mobile/admin/push-token'),
       api.del('/api/mobile/admin/native-alert-token'),
     ]);
-  } catch {
-    // Best-effort.
+  } catch (error) {
+    logStartupModuleFailed('notifications.unregister.failed', error);
   }
 }
 
@@ -459,8 +647,8 @@ export async function unregisterAdminPushNotifications(): Promise<void> {
 export async function setPendingOpenBookings(): Promise<void> {
   try {
     await AsyncStorage.setItem(PENDING_OPEN_BOOKINGS_KEY, '1');
-  } catch {
-    // ignore — pending flag is a best-effort UX nicety
+  } catch (error) {
+    logStartupModuleFailed('notifications.pending-open.persist.failed', error);
   }
 }
 
@@ -471,7 +659,8 @@ export async function consumePendingOpenBookings(): Promise<boolean> {
     if (!v) return false;
     await AsyncStorage.removeItem(PENDING_OPEN_BOOKINGS_KEY);
     return true;
-  } catch {
+  } catch (error) {
+    logStartupModuleFailed('notifications.pending-open.consume.failed', error);
     return false;
   }
 }
@@ -481,9 +670,11 @@ export async function consumePendingOpenBookings(): Promise<boolean> {
  * booking. Backend should send `data: { type: "urgent_booking", ... }`.
  */
 export function isUrgentBookingNotificationData(data: unknown): boolean {
-  if (!data || typeof data !== 'object') return false;
-  const t = (data as { type?: unknown }).type;
-  return t === 'urgent_booking';
+  return parseUrgentBookingNotificationOpenRequest(data) !== null;
+}
+
+export function getUrgentBookingNotificationOpenRequest(data: unknown) {
+  return parseUrgentBookingNotificationOpenRequest(data);
 }
 
 // ─── Dismissed Urgent Booking Memory (survives app restart) ─────────────────
@@ -492,7 +683,8 @@ export function isUrgentBookingNotificationData(data: unknown): boolean {
 export async function getDismissedUrgentBookingId(): Promise<string | null> {
   try {
     return await AsyncStorage.getItem(DISMISSED_URGENT_BOOKING_ID_KEY);
-  } catch {
+  } catch (error) {
+    logStartupModuleFailed('notifications.dismissed-booking.read.failed', error);
     return null;
   }
 }
@@ -502,8 +694,8 @@ export async function setDismissedUrgentBookingId(bookingId: string): Promise<vo
   if (!bookingId) return;
   try {
     await AsyncStorage.setItem(DISMISSED_URGENT_BOOKING_ID_KEY, bookingId);
-  } catch {
-    // ignore — best-effort
+  } catch (error) {
+    logStartupModuleFailed('notifications.dismissed-booking.persist.failed', error);
   }
 }
 
@@ -523,19 +715,33 @@ export async function setDismissedUrgentBookingId(bookingId: string): Promise<vo
 export async function getDeviceFcmToken(): Promise<string | null> {
   if (Platform.OS === 'web') return null;
   if (!Device.isDevice) return null;
+  if (isNotificationStartupDisabled()) return null;
+  logStartupCheckpoint('NOTIFICATIONS_TOKEN_START', { tokenKind: 'native-device' });
   try {
     const Notifications = await getConfiguredNotifications('device-fcm-token');
     if (!Notifications) return null;
     const tokenData = await Notifications.getDevicePushTokenAsync();
-    if (tokenData.type === 'android' && tokenData.data) return tokenData.data;
-    if (__DEV__) {
-      console.warn('[notif] unexpected device push token type:', tokenData.type);
+    const token = normalizeDevicePushToken(tokenData, 'android');
+    if (token) {
+      logStartupCheckpoint('NOTIFICATIONS_TOKEN_SUCCESS', {
+        tokenKind: 'native-device',
+        tokenSuffix: token.slice(-8),
+      });
+      return token;
     }
+    if (__DEV__) {
+      console.warn('[notif] unexpected device push token payload');
+    }
+    logStartupCheckpoint('NOTIFICATIONS_TOKEN_FAILED', {
+      tokenKind: 'native-device',
+      reason: 'malformed-or-non-android-token',
+    });
     return null;
   } catch (err) {
     // Without a valid Firebase Android app config (google-services.json
     // matching this package), raw FCM token retrieval fails and the device
     // cannot subscribe to urgent_bookings topic for background delivery.
+    logStartupModuleFailed('NOTIFICATIONS_TOKEN_FAILED', err, { tokenKind: 'native-device' });
     console.warn('[notif] failed to get raw Android FCM token:', err);
     return null;
   }
@@ -546,13 +752,5 @@ export async function getDeviceFcmToken(): Promise<string | null> {
  * permission request. Used by urgent-alerts.ts for status display.
  */
 export async function getUrgentAlertsPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {
-  if (Platform.OS === 'web') return 'undetermined';
-  try {
-    const Notifications = await getConfiguredNotifications('permission-status');
-    if (!Notifications) return 'undetermined';
-    const { status } = await Notifications.getPermissionsAsync();
-    return status;
-  } catch {
-    return 'undetermined';
-  }
+  return readAdminNotificationPermissionStatus();
 }

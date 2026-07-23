@@ -39,6 +39,14 @@ export async function registerAdminPushNotifications(): Promise<string | null> {
   return null;
 }
 
+export async function readAdminNotificationPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {
+  return 'undetermined';
+}
+
+export async function requestAdminNotificationPermission(): Promise<'granted' | 'denied' | 'undetermined'> {
+  return 'undetermined';
+}
+
 export async function clearAdminBadge(): Promise<void> {
   return undefined;
 }
@@ -67,8 +75,30 @@ export async function consumePendingOpenBookings(): Promise<boolean> {
 }
 
 export function isUrgentBookingNotificationData(data: unknown): boolean {
-  if (!data || typeof data !== 'object') return false;
-  return (data as { type?: unknown }).type === 'urgent_booking';
+  return getUrgentBookingNotificationOpenRequest(data) !== null;
+}
+
+export function getUrgentBookingNotificationOpenRequest(
+  data: unknown,
+): { bookingId: string; refNumber: string | null } | null {
+  if (!data || typeof data !== 'object') return null;
+  const value = data as { type?: unknown; bookingId?: unknown; refNumber?: unknown; jobRef?: unknown };
+  if (value.type !== 'urgent_booking') return null;
+  const bookingId = typeof value.bookingId === 'string' && value.bookingId.trim()
+    ? value.bookingId.trim()
+    : null;
+  if (!bookingId) return null;
+  const refNumber =
+    typeof value.refNumber === 'string' && value.refNumber.trim()
+      ? value.refNumber.trim()
+      : typeof value.jobRef === 'string' && value.jobRef.trim()
+        ? value.jobRef.trim()
+        : null;
+  return { bookingId, refNumber };
+}
+
+export async function getLastAdminNotificationResponseData(): Promise<unknown | null> {
+  return null;
 }
 
 export async function getDismissedUrgentBookingId(): Promise<string | null> {

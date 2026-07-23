@@ -88,17 +88,18 @@ import {
   clearAdminBadge,
   unregisterAdminPushNotifications,
   consumePendingOpenBookings,
-  setPendingOpenBookings,
   getDismissedUrgentBookingId,
   setDismissedUrgentBookingId,
   addAdminNotificationResponseListener,
+  getLastAdminNotificationResponseData,
+  getUrgentBookingNotificationOpenRequest,
   type NotificationSubscription,
 } from '@/lib/notifications';
+import { isNotificationStartupDisabled } from '@/lib/notification-startup-config';
 import {
   ensureUrgentAlertsArmed,
   type UrgentAlertsReadinessState,
   showLocalUrgentBookingAlert,
-  isUrgentBookingNotificationData,
   clearTopicSubscriptionFlag,
 } from '@/lib/urgent-alerts';
 import { NotificationReliabilityCard } from './alerts/NotificationReliabilityCard';
@@ -700,6 +701,19 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     setBookingsOpen(false);
     setBookingInitialRef(null);
   }, []);
+  const handleNotificationOpenData = useCallback((data: unknown) => {
+    const request = getUrgentBookingNotificationOpenRequest(data);
+    if (!request) {
+      logStartupCheckpoint('notifications.open-request.ignored', {
+        reason: 'missing-route-or-booking-id',
+      });
+      return;
+    }
+    openBookingsInApp(request.refNumber);
+    void clearAdminBadge().catch((error) => {
+      logStartupModuleFailed('notifications.open-request.clear-badge.failed', error);
+    });
+  }, [openBookingsInApp]);
 
   const insets = useSafeAreaInsets();
   const bottomBarPaddingBottom = Math.max(insets.bottom + 8, 16);
@@ -719,6 +733,11 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   // armed/not-armed state instead of assuming alerts are active.
   useEffect(() => {
     if (Platform.OS === 'web') return;
+    if (isNotificationStartupDisabled()) {
+      logStartupCheckpoint('notifications.startup.skipped', { reason: 'startup-disabled' });
+      setAlertReadinessState('not_armed');
+      return;
+    }
     let cancelled = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -729,12 +748,14 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       logStartupCheckpoint('postLogin.initialization.started', { service: 'notifications' });
       logStartupModuleStarted('Notifications initialization');
       logStartupCheckpoint('Notifications initialization started');
+      logStartupCheckpoint('NOTIFICATIONS_INIT_START');
     };
 
     const markNotificationsCompleted = (details: Record<string, unknown>) => {
       if (notificationsStartupCompleted.current) return;
       notificationsStartupCompleted.current = true;
       logStartupCheckpoint('Notifications initialization completed', details);
+      logStartupCheckpoint('NOTIFICATIONS_INIT_COMPLETE', details);
       logStartupModuleCompleted('Notifications initialization', details);
       logStartupCheckpoint('postLogin.initialization.completed', {
         service: 'notifications',
@@ -750,7 +771,9 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       const retryIndex = Math.min(attempt, ALERT_ARM_RETRY_DELAYS_MS.length - 1);
       const delay = ALERT_ARM_RETRY_DELAYS_MS[retryIndex];
       retryTimer = setTimeout(() => {
-        void runAttempt(attempt + 1);
+        void runAttempt(attempt + 1).catch((error) => {
+          logStartupModuleFailed('notifications.retry.failed', error);
+        });
       }, delay);
     };
 
@@ -758,6 +781,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       if (cancelled) return;
       markNotificationsStarted();
       try {
+        if (cancelled) return;
         setAlertReadinessState('checking');
         const result = await ensureUrgentAlertsArmed();
         if (cancelled) return;
@@ -785,7 +809,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       } catch (error) {
         logStartupModuleFailed('notifications.initialization.failed', error);
         logStartupModuleFailed('postLogin.initialization.failed', error, { service: 'notifications' });
-        setAlertReadinessState('not_armed');
+        if (!cancelled) setAlertReadinessState('not_armed');
         markNotificationsCompleted({ failed: true });
       }
     };
@@ -800,7 +824,9 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       };
     }
 
-    void runAttempt(0);
+    void runAttempt(0).catch((error) => {
+      logStartupModuleFailed('notifications.initial-attempt.failed', error);
+    });
     return () => {
       cancelled = true;
       if (retryTimer) clearTimeout(retryTimer);
@@ -815,29 +841,50 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const notifResponseRef = useRef<NotificationSubscription | null>(null);
   useEffect(() => {
     if (Platform.OS === 'web') return;
+    if (isNotificationStartupDisabled()) return;
+    let cancelled = false;
     notifResponseRef.current = addAdminNotificationResponseListener((data) => {
-      if (isUrgentBookingNotificationData(data)) {
-        void setPendingOpenBookings();
-      }
-      openBookingsInApp();
-      void clearAdminBadge();
+      if (cancelled) return;
+      handleNotificationOpenData(data);
     });
+    void getLastAdminNotificationResponseData()
+      .then((data) => {
+        if (cancelled || !data) return;
+        handleNotificationOpenData(data);
+      })
+      .catch((error) => {
+        logStartupModuleFailed('notifications.last-response.effect.failed', error);
+      });
     return () => {
+      cancelled = true;
       notifResponseRef.current?.remove();
+      notifResponseRef.current = null;
     };
-  }, [openBookingsInApp]);
+  }, [handleNotificationOpenData]);
 
   // Cold-start path: if a push notification tap stored the pending flag
   // before this screen mounted, open the bookings modal once.
   useEffect(() => {
     if (Platform.OS === 'web') return;
+    if (isNotificationStartupDisabled()) return;
+    let cancelled = false;
     void (async () => {
-      const pending = await consumePendingOpenBookings();
-      if (pending) {
+      try {
+        const pending = await consumePendingOpenBookings();
+        if (cancelled || !pending) return;
         openBookingsInApp();
-        void clearAdminBadge();
+        void clearAdminBadge().catch((error) => {
+          logStartupModuleFailed('notifications.pending-open.clear-badge.failed', error);
+        });
+      } catch (error) {
+        logStartupModuleFailed('notifications.pending-open.effect.failed', error);
       }
-    })();
+    })().catch((error) => {
+      logStartupModuleFailed('notifications.pending-open.effect.rejected', error);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [openBookingsInApp]);
 
   const {
@@ -857,12 +904,20 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      const saved = await getDismissedUrgentBookingId();
-      if (cancelled) return;
-      dismissedUrgentBookingIdRef.current = saved;
-      setDismissedHydrated(true);
-    })();
+    void (async () => {
+      try {
+        const saved = await getDismissedUrgentBookingId();
+        if (cancelled) return;
+        dismissedUrgentBookingIdRef.current = saved;
+        setDismissedHydrated(true);
+      } catch (error) {
+        logStartupModuleFailed('notifications.dismissed-booking.effect.failed', error);
+        if (!cancelled) setDismissedHydrated(true);
+      }
+    })().catch((error) => {
+      logStartupModuleFailed('notifications.dismissed-booking.effect.rejected', error);
+      if (!cancelled) setDismissedHydrated(true);
+    });
     return () => {
       cancelled = true;
     };
@@ -881,7 +936,9 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     if (bookingsOpen) return;
     if (dismissedUrgentBookingIdRef.current === urgentBookingId) return;
     setUrgentPopupOpen(true);
-    void triggerForegroundUrgentAlert();
+    void triggerForegroundUrgentAlert().catch((error) => {
+      logStartupModuleFailed('notifications.foreground-alert.failed', error);
+    });
   }, [
     dismissedHydrated,
     hasNewCustomerBooking,
@@ -897,7 +954,9 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   useEffect(() => {
     if (!urgentPopupOpen) return;
     const id = setInterval(() => {
-      void triggerForegroundUrgentAlert();
+      void triggerForegroundUrgentAlert().catch((error) => {
+        logStartupModuleFailed('notifications.foreground-alert.reminder.failed', error);
+      });
     }, 60_000);
     return () => clearInterval(id);
   }, [urgentPopupOpen, triggerForegroundUrgentAlert]);
@@ -905,17 +964,23 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   // Clear the badge whenever the bookings modal is opened.
   useEffect(() => {
     if (bookingsOpen) {
-      void clearAdminBadge();
+      void clearAdminBadge().catch((error) => {
+        logStartupModuleFailed('notifications.bookings-open.clear-badge.failed', error);
+      });
       setUrgentPopupOpen(false);
       // Persist this booking id as acknowledged so reopening the app
       // does not bring the popup back. We keep the local ref in sync.
       if (urgentBookingId) {
         dismissedUrgentBookingIdRef.current = urgentBookingId;
-        void setDismissedUrgentBookingId(urgentBookingId);
+        void setDismissedUrgentBookingId(urgentBookingId).catch((error) => {
+          logStartupModuleFailed('notifications.bookings-open.dismissed.persist.failed', error);
+        });
       }
       // Also clear the visual "new booking" alert on the toolbar button
       // regardless of how the modal was opened (push tap, More-actions, etc.).
-      void markBookingsSeen();
+      void markBookingsSeen().catch((error) => {
+        logStartupModuleFailed('notifications.bookings-open.mark-seen.failed', error);
+      });
     }
   }, [bookingsOpen, markBookingsSeen, urgentBookingId]);
 
@@ -923,9 +988,13 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     setUrgentPopupOpen(false);
     if (urgentBookingId) {
       dismissedUrgentBookingIdRef.current = urgentBookingId;
-      void setDismissedUrgentBookingId(urgentBookingId);
+      void setDismissedUrgentBookingId(urgentBookingId).catch((error) => {
+        logStartupModuleFailed('notifications.urgent-open.dismissed.persist.failed', error);
+      });
     }
-    void markBookingsSeen();
+    void markBookingsSeen().catch((error) => {
+      logStartupModuleFailed('notifications.urgent-open.mark-seen.failed', error);
+    });
     openBookingsInApp();
   }, [markBookingsSeen, openBookingsInApp, urgentBookingId]);
 
@@ -936,14 +1005,18 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     setUrgentPopupOpen(false);
     if (urgentBookingId) {
       dismissedUrgentBookingIdRef.current = urgentBookingId;
-      void setDismissedUrgentBookingId(urgentBookingId);
+      void setDismissedUrgentBookingId(urgentBookingId).catch((error) => {
+        logStartupModuleFailed('notifications.urgent-dismiss.persist.failed', error);
+      });
     }
   }, [urgentBookingId]);
 
   const handleOpenHeaderNotifications = useCallback(() => {
     setMoreOpen(false);
     if (hasNewCustomerBooking) {
-      void markBookingsSeen();
+      void markBookingsSeen().catch((error) => {
+        logStartupModuleFailed('notifications.header-open.mark-seen.failed', error);
+      });
       openBookingsInApp();
       return;
     }
@@ -958,7 +1031,11 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   // Clear badge when app comes back to the foreground.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void clearAdminBadge();
+      if (state === 'active') {
+        void clearAdminBadge().catch((error) => {
+          logStartupModuleFailed('notifications.app-active.clear-badge.failed', error);
+        });
+      }
     });
     return () => sub.remove();
   }, []);
@@ -1968,7 +2045,9 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         label: 'Test urgent alert (dev)',
         description: 'Trigger a local urgent booking alert for the current booking.',
         onPress: () => {
-          void showLocalUrgentBookingAlert({ bookingId: urgentBookingId });
+          void showLocalUrgentBookingAlert({ bookingId: urgentBookingId }).catch((error) => {
+            logStartupModuleFailed('notifications.dev-test-alert.failed', error);
+          });
         },
       });
     }

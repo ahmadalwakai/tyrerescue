@@ -6,6 +6,8 @@ import {
   addAdminNotificationReceivedListener,
   presentLocalUrgentBookingNotification,
 } from '@/lib/notifications';
+import { isNotificationStartupDisabled } from '@/lib/notification-startup-config';
+import { logStartupModuleFailed } from '@/lib/startup-logging';
 
 /**
  * Detects when a NEW booking lands on the system after the operator has
@@ -209,7 +211,7 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
   // Hydrate last seen and run an initial fetch.
   useEffect(() => {
     mountedRef.current = true;
-    (async () => {
+    void (async () => {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
@@ -218,12 +220,15 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
             lastSeenRef.current = parsed;
           }
         }
-      } catch {
-        // Corrupt storage — treat as first run.
+      } catch (error) {
+        logStartupModuleFailed('notifications.booking-alert.storage-read.failed', error);
       }
       hydratedRef.current = true;
       await fetchOnce();
-    })();
+    })().catch((error) => {
+      hydratedRef.current = true;
+      logStartupModuleFailed('notifications.booking-alert.hydration.failed', error);
+    });
 
     return () => {
       mountedRef.current = false;
@@ -236,7 +241,9 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
     const start = () => {
       if (timerRef.current) return;
       timerRef.current = setInterval(() => {
-        void fetchOnce();
+        void fetchOnce().catch((error) => {
+          logStartupModuleFailed('notifications.booking-alert.poll.failed', error);
+        });
       }, POLL_INTERVAL_MS);
     };
     const stop = () => {
@@ -250,7 +257,9 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
       appStateRef.current = state;
       if (state === 'active') {
         start();
-        void fetchOnce();
+        void fetchOnce().catch((error) => {
+          logStartupModuleFailed('notifications.booking-alert.fetch.failed', error);
+        });
       } else {
         stop();
       }
@@ -267,9 +276,12 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
   // Web has no expo-notifications push surface, so skip the listener there.
   useEffect(() => {
     if (Platform.OS === 'web') return;
+    if (isNotificationStartupDisabled()) return;
     const sub = addAdminNotificationReceivedListener(() => {
       if (!mountedRef.current) return;
-      void fetchOnce();
+      void fetchOnce().catch((error) => {
+        logStartupModuleFailed('notifications.booking-alert.push-fetch.failed', error);
+      });
     });
     return () => sub?.remove();
   }, [fetchOnce]);

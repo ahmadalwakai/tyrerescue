@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
+  ADMIN_SESSION_STORAGE_KEY,
+  clearInvalidAdminSessionStorage,
+} from '@/lib/admin-session-storage';
+import {
   API_BASE_URL,
   setAdminToken,
   setOnUnauthorized,
@@ -12,7 +16,7 @@ import {
   logStartupModuleStarted,
 } from '@/lib/startup-logging';
 
-const STORAGE_KEY = 'assistedChat.adminToken.v1';
+const STORAGE_KEY = ADMIN_SESSION_STORAGE_KEY;
 const GENERIC_LOGIN_ERROR = 'Login failed. Please try again.';
 const FRIENDLY_LOGIN_ERRORS = new Set([
   'Email or password is incorrect, or this account is not an admin.',
@@ -72,11 +76,7 @@ function userFacingLoginError(error: unknown): string {
 }
 
 async function clearStoredSession(reason: string): Promise<void> {
-  try {
-    await AsyncStorage.removeItem(STORAGE_KEY);
-  } catch (error) {
-    logStartupModuleFailed('session.storage.clear.failed', error, { reason });
-  }
+  await clearInvalidAdminSessionStorage(reason);
 }
 
 export type AdminSessionStatus = 'loading' | 'logged-out' | 'logged-in';

@@ -1,6 +1,12 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, API_BASE_URL, getAdminToken } from './api';
+import { isNotificationStartupDisabled } from './notification-startup-config';
+import { isOkResponse } from './notification-safety';
+import {
+  logStartupCheckpoint,
+  logStartupModuleFailed,
+} from './startup-logging';
 import {
   registerAdminPushNotifications,
   getDeviceFcmToken,
@@ -53,6 +59,8 @@ const DIRECT_TOKEN_REGISTERED_SUFFIX_KEY = 'assistedChat.directFcmRegisteredSuff
 const DIRECT_TOKEN_REGISTERED_AT_KEY = 'assistedChat.directFcmRegisteredAt.v1';
 
 const tokenSuffix = (token: string): string => token.slice(-8);
+let directRegistrationInFlight: Promise<boolean> | null = null;
+let topicSubscriptionInFlight: Promise<boolean> | null = null;
 
 async function readReadinessSnapshot(): Promise<UrgentAlertsReadinessSnapshot> {
   try {
@@ -65,7 +73,8 @@ async function readReadinessSnapshot(): Promise<UrgentAlertsReadinessSnapshot> {
       tokenSuffix: suffix ?? null,
       registeredAt: Number.isFinite(atNum) ? atNum : null,
     };
-  } catch {
+  } catch (error) {
+    logStartupModuleFailed('urgent-alerts.readiness-snapshot.read.failed', error);
     return { tokenSuffix: null, registeredAt: null };
   }
 }
@@ -82,8 +91,8 @@ async function clearDirectReadinessSnapshot(): Promise<void> {
       AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_SUFFIX_KEY),
       AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_AT_KEY),
     ]);
-  } catch {
-    // ignore
+  } catch (error) {
+    logStartupModuleFailed('urgent-alerts.readiness-snapshot.clear.failed', error);
   }
 }
 
@@ -102,11 +111,16 @@ async function clearDirectReadinessSnapshot(): Promise<void> {
  */
 export async function initializeUrgentAlerts(): Promise<void> {
   if (Platform.OS === 'web') return;
+  if (isNotificationStartupDisabled()) {
+    logStartupCheckpoint('urgent-alerts.initialization.skipped', { reason: 'startup-disabled' });
+    return;
+  }
   try {
     await registerAdminPushNotifications();
     await registerDirectUrgentBookingToken();
     await subscribeToUrgentBookingTopic();
   } catch (err) {
+    logStartupModuleFailed('urgent-alerts.initialization.failed', err);
     console.error('[urgent-alerts] initialization error:', err);
   }
 }
@@ -116,63 +130,86 @@ export async function initializeUrgentAlerts(): Promise<void> {
  * token messages (primary urgent path).
  */
 export async function registerDirectUrgentBookingToken(): Promise<boolean> {
-  if (Platform.OS !== 'android') return false;
+  if (directRegistrationInFlight) return directRegistrationInFlight;
 
-  try {
-    const fcmToken = await getDeviceFcmToken();
-    if (!fcmToken) {
-      await clearDirectReadinessSnapshot();
-      console.log('[urgent-alerts] FCM device token unavailable — direct token registration skipped');
+  directRegistrationInFlight = (async () => {
+    if (Platform.OS !== 'android') return false;
+    if (isNotificationStartupDisabled()) return false;
+    if (!getAdminToken()) {
+      logStartupCheckpoint('NOTIFICATIONS_API_SYNC_FAILED', {
+        tokenKind: 'native-device',
+        reason: 'missing-admin-token',
+      });
       return false;
     }
 
-    const [existing, existingToken] = await Promise.all([
-      AsyncStorage.getItem(DIRECT_TOKEN_REGISTERED_KEY),
-      AsyncStorage.getItem(DIRECT_TOKEN_REGISTERED_TOKEN_KEY),
-    ]);
-    if (existing === '1' && existingToken === fcmToken) {
-      const snapshot = await readReadinessSnapshot();
-      if (!snapshot.tokenSuffix || !snapshot.registeredAt) {
-        await Promise.all([
-          AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_SUFFIX_KEY, tokenSuffix(fcmToken)),
-          AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_AT_KEY, String(Date.now())),
-        ]);
+    try {
+      const fcmToken = await getDeviceFcmToken();
+      if (!fcmToken) {
+        await clearDirectReadinessSnapshot();
+        console.log('[urgent-alerts] FCM device token unavailable — direct token registration skipped');
+        return false;
       }
+
+      const [existing, existingToken] = await Promise.all([
+        AsyncStorage.getItem(DIRECT_TOKEN_REGISTERED_KEY),
+        AsyncStorage.getItem(DIRECT_TOKEN_REGISTERED_TOKEN_KEY),
+      ]);
+      if (existing === '1' && existingToken === fcmToken) {
+        const snapshot = await readReadinessSnapshot();
+        if (!snapshot.tokenSuffix || !snapshot.registeredAt) {
+          await Promise.all([
+            AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_SUFFIX_KEY, tokenSuffix(fcmToken)),
+            AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_AT_KEY, String(Date.now())),
+          ]);
+        }
+        return true;
+      }
+
+      logStartupCheckpoint('NOTIFICATIONS_API_SYNC_START', { tokenKind: 'native-device' });
+      const response = await api.post<NativeTokenRegisterResponse>('/api/mobile/admin/native-alert-token', {
+        token: fcmToken,
+        platform: 'android',
+      });
+
+      if (!isOkResponse(response) || response.registered !== true) {
+        await clearDirectReadinessSnapshot();
+        logStartupCheckpoint('NOTIFICATIONS_API_SYNC_FAILED', {
+          tokenKind: 'native-device',
+          reason: 'backend-not-confirmed',
+        });
+        console.error('[urgent-alerts] native token registration not confirmed by backend');
+        return false;
+      }
+
+      const registeredAt = Date.now();
+      const suffix = tokenSuffix(fcmToken);
+
+      await Promise.all([
+        AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_KEY, '1'),
+        AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_TOKEN_KEY, fcmToken),
+        AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_SUFFIX_KEY, suffix),
+        AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_AT_KEY, String(registeredAt)),
+      ]);
+
+      logStartupCheckpoint('NOTIFICATIONS_API_SYNC_SUCCESS', { tokenKind: 'native-device' });
+      console.log(`[urgent-alerts] direct FCM token registered tokenSuffix=${suffix}`);
       return true;
-    }
-
-    const response = await api.post<NativeTokenRegisterResponse>('/api/mobile/admin/native-alert-token', {
-      token: fcmToken,
-      platform: 'android',
-    });
-
-    if (!response?.ok || !response?.registered) {
+    } catch (err) {
       await clearDirectReadinessSnapshot();
-      console.error('[urgent-alerts] native token registration not confirmed by backend');
+      logStartupModuleFailed('NOTIFICATIONS_API_SYNC_FAILED', err, { tokenKind: 'native-device' });
+      console.error('[urgent-alerts] direct token registration failed:', err);
       return false;
     }
+  })().finally(() => {
+    directRegistrationInFlight = null;
+  });
 
-    const registeredAt = Date.now();
-    const suffix = tokenSuffix(fcmToken);
-
-    await Promise.all([
-      AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_KEY, '1'),
-      AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_TOKEN_KEY, fcmToken),
-      AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_SUFFIX_KEY, suffix),
-      AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_AT_KEY, String(registeredAt)),
-    ]);
-
-    console.log(`[urgent-alerts] direct FCM token registered tokenSuffix=${suffix}`);
-    return true;
-  } catch (err) {
-    await clearDirectReadinessSnapshot();
-    console.error('[urgent-alerts] direct token registration failed:', err);
-    return false;
-  }
+  return directRegistrationInFlight;
 }
 
 export async function ensureUrgentAlertsArmed(): Promise<EnsureUrgentAlertsArmedResult> {
-  if (Platform.OS === 'web') {
+  if (Platform.OS === 'web' || isNotificationStartupDisabled()) {
     return {
       armed: false,
       snapshot: { tokenSuffix: null, registeredAt: null },
@@ -210,7 +247,8 @@ export async function ensureUrgentAlertsArmed(): Promise<EnsureUrgentAlertsArmed
       fullScreenIntentGranted,
       watcherStarted,
     };
-  } catch {
+  } catch (error) {
+    logStartupModuleFailed('urgent-alerts.ensure-armed.failed', error);
     return {
       armed: false,
       snapshot: await readReadinessSnapshot(),
@@ -235,45 +273,67 @@ export async function ensureUrgentAlertsArmed(): Promise<EnsureUrgentAlertsArmed
  * Returns false on iOS, web, simulator, or if the token is unavailable.
  */
 export async function subscribeToUrgentBookingTopic(): Promise<boolean> {
-  if (Platform.OS !== 'android') return false;
+  if (topicSubscriptionInFlight) return topicSubscriptionInFlight;
 
-  // TODO: Preferred approach — client-side topic subscription:
-  //   import messaging from '@react-native-firebase/messaging';
-  //   await messaging().subscribeToTopic('urgent_bookings');
-  // This requires:
-  //   1. @react-native-firebase/app + @react-native-firebase/messaging in package.json
-  //   2. google-services.json added to the assisted-chat-app root
-  //   3. @react-native-firebase/app plugin configured in app.json
-  //   4. expo prebuild to generate the native android/ folder (bare workflow)
-  // Until those prerequisites are met, we use the backend IID batchAdd approach
-  // below (POST /api/mobile/admin/topic-subscribe), which is functionally
-  // equivalent but requires a server round-trip.
-
-  try {
-    const fcmToken = await getDeviceFcmToken();
-    if (!fcmToken) {
-      console.log('[urgent-alerts] FCM device token unavailable — topic subscription skipped');
+  topicSubscriptionInFlight = (async () => {
+    if (Platform.OS !== 'android') return false;
+    if (isNotificationStartupDisabled()) return false;
+    if (!getAdminToken()) {
+      logStartupCheckpoint('NOTIFICATIONS_API_SYNC_FAILED', {
+        tokenKind: 'topic-subscribe',
+        reason: 'missing-admin-token',
+      });
       return false;
     }
 
-    // Skip if we've already subscribed this exact token.
-    const [existing, existingToken] = await Promise.all([
-      AsyncStorage.getItem(TOPIC_SUBSCRIBED_KEY),
-      AsyncStorage.getItem(TOPIC_SUBSCRIBED_TOKEN_KEY),
-    ]);
-    if (existing === '1' && existingToken === fcmToken) return true;
+    // TODO: Preferred approach — client-side topic subscription:
+    //   import messaging from '@react-native-firebase/messaging';
+    //   await messaging().subscribeToTopic('urgent_bookings');
+    // This requires:
+    //   1. @react-native-firebase/app + @react-native-firebase/messaging in package.json
+    //   2. google-services.json added to the assisted-chat-app root
+    //   3. @react-native-firebase/app plugin configured in app.json
+    //   4. expo prebuild to generate the native android/ folder (bare workflow)
+    // Until those prerequisites are met, we use the backend IID batchAdd approach
+    // below (POST /api/mobile/admin/topic-subscribe), which is functionally
+    // equivalent but requires a server round-trip.
 
-    await api.post('/api/mobile/admin/topic-subscribe', { token: fcmToken });
-    await Promise.all([
-      AsyncStorage.setItem(TOPIC_SUBSCRIBED_KEY, '1'),
-      AsyncStorage.setItem(TOPIC_SUBSCRIBED_TOKEN_KEY, fcmToken),
-    ]);
-    console.log('[urgent-alerts] subscribed to urgent_bookings FCM topic');
-    return true;
-  } catch (err) {
-    console.error('[urgent-alerts] topic subscription failed:', err);
-    return false;
-  }
+    try {
+      const fcmToken = await getDeviceFcmToken();
+      if (!fcmToken) {
+        console.log('[urgent-alerts] FCM device token unavailable — topic subscription skipped');
+        return false;
+      }
+
+      // Skip if we've already subscribed this exact token.
+      const [existing, existingToken] = await Promise.all([
+        AsyncStorage.getItem(TOPIC_SUBSCRIBED_KEY),
+        AsyncStorage.getItem(TOPIC_SUBSCRIBED_TOKEN_KEY),
+      ]);
+      if (existing === '1' && existingToken === fcmToken) return true;
+
+      logStartupCheckpoint('NOTIFICATIONS_API_SYNC_START', { tokenKind: 'topic-subscribe' });
+      const response = await api.post('/api/mobile/admin/topic-subscribe', { token: fcmToken });
+      if (!isOkResponse(response)) {
+        throw new Error('Backend did not confirm topic subscription');
+      }
+      await Promise.all([
+        AsyncStorage.setItem(TOPIC_SUBSCRIBED_KEY, '1'),
+        AsyncStorage.setItem(TOPIC_SUBSCRIBED_TOKEN_KEY, fcmToken),
+      ]);
+      logStartupCheckpoint('NOTIFICATIONS_API_SYNC_SUCCESS', { tokenKind: 'topic-subscribe' });
+      console.log('[urgent-alerts] subscribed to urgent_bookings FCM topic');
+      return true;
+    } catch (err) {
+      logStartupModuleFailed('NOTIFICATIONS_API_SYNC_FAILED', err, { tokenKind: 'topic-subscribe' });
+      console.error('[urgent-alerts] topic subscription failed:', err);
+      return false;
+    }
+  })().finally(() => {
+    topicSubscriptionInFlight = null;
+  });
+
+  return topicSubscriptionInFlight;
 }
 
 /**
@@ -284,13 +344,13 @@ export async function subscribeToUrgentBookingTopic(): Promise<boolean> {
 export async function clearTopicSubscriptionFlag(): Promise<void> {
   try {
     await clearUrgentWatcherAuth();
-  } catch {
-    // ignore
+  } catch (error) {
+    logStartupModuleFailed('urgent-alerts.clear-watcher-auth.failed', error);
   }
   try {
     await stopUrgentWatcher();
-  } catch {
-    // ignore
+  } catch (error) {
+    logStartupModuleFailed('urgent-alerts.stop-watcher.failed', error);
   }
   try {
     await Promise.all([
@@ -301,8 +361,8 @@ export async function clearTopicSubscriptionFlag(): Promise<void> {
       AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_SUFFIX_KEY),
       AsyncStorage.removeItem(DIRECT_TOKEN_REGISTERED_AT_KEY),
     ]);
-  } catch {
-    // ignore
+  } catch (error) {
+    logStartupModuleFailed('urgent-alerts.clear-subscription-flags.failed', error);
   }
 }
 
@@ -322,7 +382,8 @@ export async function getUrgentAlertsStatus(): Promise<UrgentAlertsStatus> {
   try {
     const subscribed = await AsyncStorage.getItem(TOPIC_SUBSCRIBED_KEY);
     return subscribed === '1' ? 'active' : 'no_permission';
-  } catch {
+  } catch (error) {
+    logStartupModuleFailed('urgent-alerts.status.read.failed', error);
     return 'no_permission';
   }
 }
@@ -339,5 +400,6 @@ export async function showLocalUrgentBookingAlert(args: {
   body?: string;
 }): Promise<void> {
   if (Platform.OS === 'web') return;
+  if (isNotificationStartupDisabled()) return;
   await presentLocalUrgentBookingNotification(args);
 }
