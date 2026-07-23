@@ -40,6 +40,15 @@ async function saveOnWeb(url: string, filename: string): Promise<void> {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     throw new Error('Saving attachments is unavailable in this environment.');
   }
+  if (
+    typeof window.URL?.createObjectURL !== 'function' ||
+    typeof window.URL?.revokeObjectURL !== 'function' ||
+    typeof document.createElement !== 'function' ||
+    !document.body ||
+    typeof document.body.appendChild !== 'function'
+  ) {
+    throw new Error('Saving attachments is unavailable in this browser.');
+  }
 
   const response = await fetch(url, { headers: authHeaders() });
   if (!response.ok) throw new Error(`Attachment download failed (${response.status}).`);

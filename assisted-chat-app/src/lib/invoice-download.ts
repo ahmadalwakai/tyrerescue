@@ -34,6 +34,15 @@ async function downloadInvoicePdfOnWeb(url: string, filename: string): Promise<D
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     throw new Error('Invoice download is unavailable in this environment.');
   }
+  if (
+    typeof window.URL?.createObjectURL !== 'function' ||
+    typeof window.URL?.revokeObjectURL !== 'function' ||
+    typeof document.createElement !== 'function' ||
+    !document.body ||
+    typeof document.body.appendChild !== 'function'
+  ) {
+    throw new Error('Invoice download is unavailable in this browser.');
+  }
 
   const response = await fetch(url, { headers: authHeaders() });
   if (!response.ok) {

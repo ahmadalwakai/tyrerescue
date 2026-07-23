@@ -14,7 +14,11 @@ import {
   STRIPE_AUTO_CHECK_SLOW_INTERVAL_MS,
   STRIPE_AUTO_CHECK_STOP_AFTER_MS,
 } from '../../assisted-chat-app/src/lib/payment-link-status';
-import { resolveBrowserNetworkEventTarget } from '../../assisted-chat-app/src/lib/browser-network-events';
+import {
+  resolveBrowserNetworkEventTarget,
+  subscribeBrowserNetworkEvents,
+} from '../../assisted-chat-app/src/lib/browser-network-events';
+import { removeNativeEventSubscription } from '../../assisted-chat-app/src/lib/native-event-subscription';
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 const assistedChatScreenPath = path.join(repoRoot, 'assisted-chat-app/src/components/AssistedChatScreen.tsx');
@@ -51,6 +55,9 @@ describe('Assisted Chat Stripe checker regression', () => {
     expect(source).toContain('Stripe payment check timed out');
     expect(source).toContain('AbortController');
     expect(source).toContain('abortControllerRef.current?.abort()');
+    expect(source).toContain('if (!mountedRef.current) return liveStatusRef.current;');
+    expect(source).toContain('if (!mountedRef.current) return null;');
+    expect(source).toContain('if (mountedRef.current) setBusy(false);');
     expect(source).toContain("runStripeCheck('manual')");
     expect(source).toContain("runStripeCheck('auto')");
     expect(source).toContain('/payment-link/check');
@@ -86,6 +93,10 @@ describe('Assisted Chat Stripe checker regression', () => {
     expect(resolveBrowserNetworkEventTarget('web', {
       addEventListener,
     })).toBeNull();
+    expect(subscribeBrowserNetworkEvents('ios', listener, {
+      addEventListener,
+      removeEventListener,
+    })).toBeNull();
 
     const webTarget = resolveBrowserNetworkEventTarget('web', {
       addEventListener,
@@ -97,7 +108,82 @@ describe('Assisted Chat Stripe checker regression', () => {
     webTarget?.removeEventListener('online', listener);
     expect(addEventListener).toHaveBeenCalledWith('online', listener);
     expect(removeEventListener).toHaveBeenCalledWith('online', listener);
-    expect(hookSource).toContain('resolveBrowserNetworkEventTarget(Platform.OS)');
+    expect(hookSource).toContain('subscribeBrowserNetworkEvents(Platform.OS, syncNetwork)');
+    expect(hookSource).not.toContain("window.addEventListener('online'");
+    expect(hookSource).not.toContain("window.addEventListener('offline'");
+  });
+
+  it('attaches and cleans up exactly one browser network listener pair', () => {
+    const listener = () => {};
+    const addEventListener = vi.fn();
+    const removeEventListener = vi.fn();
+    const cleanup = subscribeBrowserNetworkEvents('web', listener, {
+      addEventListener,
+      removeEventListener,
+    });
+
+    expect(typeof cleanup).toBe('function');
+    expect(addEventListener.mock.calls).toEqual([
+      ['online', listener],
+      ['offline', listener],
+    ]);
+
+    cleanup?.();
+
+    expect(removeEventListener.mock.calls).toEqual([
+      ['online', listener],
+      ['offline', listener],
+    ]);
+  });
+
+  it('does not hide browser listener attachment failures', () => {
+    const listener = () => {};
+    const error = new Error('listener boom');
+    const removeEventListener = vi.fn();
+
+    expect(() => subscribeBrowserNetworkEvents('web', listener, {
+      addEventListener: () => {
+        throw error;
+      },
+      removeEventListener,
+    })).toThrow(error);
+    expect(removeEventListener).not.toHaveBeenCalled();
+
+    const partialRemoveEventListener = vi.fn();
+    expect(() => subscribeBrowserNetworkEvents('web', listener, {
+      addEventListener: vi.fn((type: 'online' | 'offline') => {
+        if (type === 'offline') throw error;
+      }),
+      removeEventListener: partialRemoveEventListener,
+    })).toThrow(error);
+    expect(partialRemoveEventListener).toHaveBeenCalledWith('online', listener);
+  });
+
+  it('tolerates native AppState subscriptions without remove on cleanup', () => {
+    const hookSource = paymentHookSource();
+    const remove = vi.fn();
+
+    expect(() => removeNativeEventSubscription(null)).not.toThrow();
+    expect(() => removeNativeEventSubscription({})).not.toThrow();
+    expect(() => removeNativeEventSubscription({ remove: 'missing' })).not.toThrow();
+
+    removeNativeEventSubscription({ remove });
+
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(hookSource).toContain('removeNativeEventSubscription(subscription)');
+  });
+
+  it('keeps network transitions from duplicating listeners or Stripe checks', () => {
+    const hookSource = paymentHookSource();
+    const networkEffectStart = hookSource.indexOf('subscribeBrowserNetworkEvents(Platform.OS, syncNetwork)');
+    const networkEffectEnd = hookSource.indexOf('const applyStatus', networkEffectStart);
+    const networkEffectSource = hookSource.slice(networkEffectStart, networkEffectEnd);
+
+    expect([...hookSource.matchAll(/subscribeBrowserNetworkEvents\(Platform\.OS, syncNetwork\)/g)]).toHaveLength(1);
+    expect(networkEffectSource).toContain('return cleanup');
+    expect(networkEffectSource).toContain('}, []);');
+    expect(hookSource).toContain('if (checkInflight.current) return liveStatusRef.current;');
+    expect(hookSource).toContain('networkOnlineRef.current = networkOnline');
     expect(hookSource).not.toContain("window.addEventListener('online'");
     expect(hookSource).not.toContain("window.addEventListener('offline'");
   });

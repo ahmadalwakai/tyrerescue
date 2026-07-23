@@ -102,10 +102,12 @@ describe('Assisted Chat header video production readiness', () => {
   it('keeps web playback lifecycle browser-only without trusting arbitrary native messages', () => {
     const source = assistedChatScreenSource();
 
-    expect(source).toContain("window.addEventListener('focus', onFocus)");
-    expect(source).toContain("window.addEventListener('blur', onBlur)");
-    expect(source).toContain("window.removeEventListener('focus', onFocus)");
-    expect(source).toContain("window.removeEventListener('blur', onBlur)");
+    expect(source).toContain("typeof window.addEventListener === 'function'");
+    expect(source).toContain("typeof window.removeEventListener === 'function'");
+    expect(source).toContain("windowEventTarget?.addEventListener('focus', onFocus)");
+    expect(source).toContain("windowEventTarget?.addEventListener('blur', onBlur)");
+    expect(source).toContain("windowEventTarget?.removeEventListener('focus', onFocus)");
+    expect(source).toContain("windowEventTarget?.removeEventListener('blur', onBlur)");
     expect(source).not.toContain('parseHeaderVideoWebViewMessage(event.nativeEvent.data)');
     expect(source).not.toContain("event.nativeEvent.data === 'playing'");
     expect(source).not.toContain("event.nativeEvent.data === 'error'");

@@ -1145,6 +1145,13 @@ export function TrackingModal({ visible, onClose }: Props) {
 
   useEffect(() => {
     if (!visible || Platform.OS !== 'web' || typeof window === 'undefined') return;
+    if (
+      typeof window.addEventListener !== 'function' ||
+      typeof window.removeEventListener !== 'function'
+    ) {
+      return;
+    }
+
     const handleIframeMessage = (event: MessageEvent) => {
       const message = event.data as { source?: string; payload?: unknown };
       if (!message || message.source !== 'tyrerescue-tracking-map') return;

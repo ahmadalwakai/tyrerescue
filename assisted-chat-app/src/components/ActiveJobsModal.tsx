@@ -1095,6 +1095,13 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
 
   useEffect(() => {
     if (!visible || Platform.OS !== 'web' || typeof window === 'undefined') return;
+    if (
+      typeof window.addEventListener !== 'function' ||
+      typeof window.removeEventListener !== 'function'
+    ) {
+      return;
+    }
+
     const handleIframeMessage = (event: MessageEvent) => {
       const message = event.data as { source?: string; payload?: unknown };
       if (!message || message.source !== ACTIVE_JOB_MAP_MESSAGE_SOURCE) return;

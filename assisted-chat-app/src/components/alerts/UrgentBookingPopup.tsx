@@ -71,6 +71,14 @@ function ensureWebAudioUnlock(): void {
   if (webAudioUnlocked) return;
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
   if (typeof window.Audio !== 'function') return;
+  if (
+    typeof document.addEventListener !== 'function' ||
+    typeof document.removeEventListener !== 'function'
+  ) {
+    return;
+  }
+
+  const documentEventTarget = document;
   const url = resolveWebSoundUrl();
   if (!url) return;
   const unlock = () => {
@@ -97,13 +105,13 @@ function ensureWebAudioUnlock(): void {
     } catch {
       webAudioUnlocked = false;
     }
-    document.removeEventListener('click', unlock, true);
-    document.removeEventListener('touchstart', unlock, true);
-    document.removeEventListener('keydown', unlock, true);
+    documentEventTarget.removeEventListener('click', unlock, true);
+    documentEventTarget.removeEventListener('touchstart', unlock, true);
+    documentEventTarget.removeEventListener('keydown', unlock, true);
   };
-  document.addEventListener('click', unlock, true);
-  document.addEventListener('touchstart', unlock, true);
-  document.addEventListener('keydown', unlock, true);
+  documentEventTarget.addEventListener('click', unlock, true);
+  documentEventTarget.addEventListener('touchstart', unlock, true);
+  documentEventTarget.addEventListener('keydown', unlock, true);
 }
 
 function formatCreatedAt(value: string | null): string {

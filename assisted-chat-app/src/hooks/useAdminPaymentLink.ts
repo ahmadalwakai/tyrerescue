@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
 import { api, ApiError } from '@/lib/api';
-import { resolveBrowserNetworkEventTarget } from '@/lib/browser-network-events';
+import { subscribeBrowserNetworkEvents } from '@/lib/browser-network-events';
+import { removeNativeEventSubscription } from '@/lib/native-event-subscription';
+import { logStartupModuleFailed } from '@/lib/startup-logging';
 import type {
   AdminPaymentLinkResponse,
   AssistedChatDraft,
@@ -222,49 +224,51 @@ export function useAdminPaymentLink({
     if (Platform.OS === 'web') {
       const syncVisibility = () => setAppIsForeground(browserDocumentIsVisible());
       const markFocused = () => setAppIsForeground(browserDocumentIsVisible());
+      const documentEventTarget =
+        typeof document !== 'undefined' &&
+        typeof document.addEventListener === 'function' &&
+        typeof document.removeEventListener === 'function'
+          ? document
+          : null;
+      const windowEventTarget =
+        typeof window !== 'undefined' &&
+        typeof window.addEventListener === 'function' &&
+        typeof window.removeEventListener === 'function'
+          ? window
+          : null;
+
       syncVisibility();
 
-      if (typeof document !== 'undefined') {
-        document.addEventListener('visibilitychange', syncVisibility);
-      }
-      if (typeof window !== 'undefined') {
-        window.addEventListener('focus', markFocused);
-        window.addEventListener('blur', syncVisibility);
-      }
+      documentEventTarget?.addEventListener('visibilitychange', syncVisibility);
+      windowEventTarget?.addEventListener('focus', markFocused);
+      windowEventTarget?.addEventListener('blur', syncVisibility);
 
       return () => {
-        if (typeof document !== 'undefined') {
-          document.removeEventListener('visibilitychange', syncVisibility);
-        }
-        if (typeof window !== 'undefined') {
-          window.removeEventListener('focus', markFocused);
-          window.removeEventListener('blur', syncVisibility);
-        }
+        documentEventTarget?.removeEventListener('visibilitychange', syncVisibility);
+        windowEventTarget?.removeEventListener('focus', markFocused);
+        windowEventTarget?.removeEventListener('blur', syncVisibility);
       };
     }
 
     const subscription = AppState.addEventListener('change', (nextState) => {
       setAppIsForeground(isForegroundState(nextState));
     });
-    return () => {
-      if (subscription && typeof subscription.remove === 'function') {
-        subscription.remove();
-      }
-    };
+    return () => removeNativeEventSubscription(subscription);
   }, []);
 
   useEffect(() => {
-    const networkEventTarget = resolveBrowserNetworkEventTarget(Platform.OS);
-    if (!networkEventTarget) return;
-
     const syncNetwork = () => setNetworkOnline(browserNetworkIsOnline());
-    syncNetwork();
-    networkEventTarget.addEventListener('online', syncNetwork);
-    networkEventTarget.addEventListener('offline', syncNetwork);
-    return () => {
-      networkEventTarget.removeEventListener('online', syncNetwork);
-      networkEventTarget.removeEventListener('offline', syncNetwork);
-    };
+
+    try {
+      const cleanup = subscribeBrowserNetworkEvents(Platform.OS, syncNetwork);
+      if (!cleanup) return;
+
+      syncNetwork();
+      return cleanup;
+    } catch (error) {
+      logStartupModuleFailed('payment-link.network-listener.failed', error);
+      return;
+    }
   }, []);
 
   const applyStatus = useCallback((res: PaymentLinkStatusResponse): PaymentLinkLiveStatus => {
@@ -282,6 +286,7 @@ export function useAdminPaymentLink({
   const runStripeCheck = useCallback(async (
     source: 'manual' | 'auto',
   ): Promise<PaymentLinkLiveStatus | null> => {
+    if (!mountedRef.current) return liveStatusRef.current;
     if (checkInflight.current) return liveStatusRef.current;
 
     const currentRef = refRef.current;
@@ -335,6 +340,7 @@ export function useAdminPaymentLink({
       return nextStatus;
     } catch (err) {
       if (isAbortError(err)) return liveStatusRef.current;
+      if (!mountedRef.current) return null;
       const message =
         err instanceof ApiError
           ? err.message
@@ -465,6 +471,7 @@ export function useAdminPaymentLink({
   ]);
 
   const createForDispatchedBooking = useCallback(async () => {
+    if (!mountedRef.current) return null;
     if (createInflight.current) return null;
     const ref = draft.dispatchedRefNumber;
     if (!ref) {
@@ -487,8 +494,9 @@ export function useAdminPaymentLink({
         remainingBalancePence: null,
         bookingId: res.bookingId,
         refNumber: res.refNumber,
-        createdAtIso: res.createdAtIso,
+          createdAtIso: res.createdAtIso,
       };
+      if (!mountedRef.current) return null;
       liveStatusRef.current = 'awaiting';
       setLiveStatus('awaiting');
       autoWindowStartedAtRef.current = null;
@@ -497,12 +505,13 @@ export function useAdminPaymentLink({
       update({ paymentLink });
       return paymentLink;
     } catch (err) {
+      if (!mountedRef.current) return null;
       const message =
         err instanceof ApiError ? err.message : 'Failed to create payment link.';
       setError(message);
       return null;
     } finally {
-      setBusy(false);
+      if (mountedRef.current) setBusy(false);
       createInflight.current = false;
     }
   }, [draft.dispatchedRefNumber, update]);

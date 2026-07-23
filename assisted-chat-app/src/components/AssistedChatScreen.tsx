@@ -3426,16 +3426,19 @@ function HeaderVideoBackgroundWeb() {
   useEffect(() => {
     const onFocus = () => sendVideoCommand('play');
     const onBlur = () => sendVideoCommand('pause');
-    if (typeof window !== 'undefined') {
-      window.addEventListener('focus', onFocus);
-      window.addEventListener('blur', onBlur);
-    }
+    const windowEventTarget =
+      typeof window !== 'undefined' &&
+      typeof window.addEventListener === 'function' &&
+      typeof window.removeEventListener === 'function'
+        ? window
+        : null;
+
+    windowEventTarget?.addEventListener('focus', onFocus);
+    windowEventTarget?.addEventListener('blur', onBlur);
 
     return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('focus', onFocus);
-        window.removeEventListener('blur', onBlur);
-      }
+      windowEventTarget?.removeEventListener('focus', onFocus);
+      windowEventTarget?.removeEventListener('blur', onBlur);
     };
   }, [sendVideoCommand]);
 
