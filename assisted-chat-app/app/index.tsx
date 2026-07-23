@@ -27,7 +27,7 @@ function getAssistedChatScreen() {
     logStartupModuleCompleted('Assisted Chat import');
     return AssistedChatScreenComponent;
   } catch (error) {
-    logStartupModuleFailed('Assisted Chat import', error);
+    logStartupModuleFailed('protected.screen.import.failed', error);
     throw error;
   }
 }
@@ -73,14 +73,14 @@ function LoggedInAssistedChat({
   onLogout: AdminSession['logout'];
 }) {
   useState(() => {
-    logStartupModuleStarted('Protected layout', { route: 'index' });
-    logStartupCheckpoint('auth.navigation.started', { route: 'index' });
+    logStartupModuleStarted('Protected tree', { route: 'index' });
+    logStartupCheckpoint('protected.tree.render.started', { route: 'index' });
     return true;
   });
 
   useEffect(() => {
-    logStartupCheckpoint('protected.layout.mounted', { route: 'index' });
-    logStartupModuleCompleted('Protected layout', { route: 'index' });
+    logStartupCheckpoint('protected.tree.mounted', { route: 'index' });
+    logStartupModuleCompleted('Protected tree', { route: 'index' });
   }, []);
 
   return createElement(

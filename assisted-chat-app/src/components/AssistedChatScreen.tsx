@@ -707,7 +707,6 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
 
   useEffect(() => {
     logStartupModuleStarted('Assisted Chat screen');
-    logStartupCheckpoint('auth.navigation.completed', { screen: 'AssistedChatScreen' });
     logStartupCheckpoint('protected.screen.mounted', { screen: 'AssistedChatScreen' });
     logStartupCheckpoint('Assisted Chat mounted');
     logStartupModuleCompleted('Assisted Chat screen');
@@ -784,8 +783,8 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         setAlertReadinessState('not_armed');
         scheduleRetry(attempt);
       } catch (error) {
-        logStartupModuleFailed('Notifications initialization', error);
-        logStartupModuleFailed('postLogin.initialization', error, { service: 'notifications' });
+        logStartupModuleFailed('notifications.initialization.failed', error);
+        logStartupModuleFailed('postLogin.initialization.failed', error, { service: 'notifications' });
         setAlertReadinessState('not_armed');
         markNotificationsCompleted({ failed: true });
       }

@@ -75,7 +75,7 @@ async function clearStoredSession(reason: string): Promise<void> {
   try {
     await AsyncStorage.removeItem(STORAGE_KEY);
   } catch (error) {
-    logStartupModuleFailed('Session storage clear', error, { reason });
+    logStartupModuleFailed('session.storage.clear.failed', error, { reason });
   }
 }
 
@@ -126,7 +126,7 @@ export function useAdminSession(): AdminSession {
         }
       } catch (error) {
         storageSource = 'malformed-storage';
-        logStartupModuleFailed('Session hydration', error, { source: 'storage' });
+        logStartupModuleFailed('session.hydration.failed', error, { source: 'storage' });
         await clearStoredSession('hydrate-failed');
       }
       // Fall back to env token (dev convenience). Still treated as "logged-in"
@@ -153,7 +153,7 @@ export function useAdminSession(): AdminSession {
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
     } catch (error) {
-      logStartupModuleFailed('Session logout storage', error);
+      logStartupModuleFailed('session.logout.storage.failed', error);
     }
     setAdminToken(null);
     setUser(null);
@@ -190,7 +190,7 @@ export function useAdminSession(): AdminSession {
           }),
         });
       } catch (error) {
-        logStartupModuleFailed('auth.request', error, { stage });
+        logStartupModuleFailed('auth.request.failed', error, { stage });
         // Network error: server not reachable, DNS, CORS, etc.
         const looksLikeLocalhost = /localhost|127\.0\.0\.1/.test(API_BASE_URL);
         throw new Error(
@@ -206,7 +206,7 @@ export function useAdminSession(): AdminSession {
         try {
           payload = await res.json();
         } catch (error) {
-          logStartupModuleFailed('auth.response.decode', error, { status: res.status });
+          logStartupModuleFailed('auth.response.decode.failed', error, { status: res.status });
         }
       }
       stage = 'auth.response.received';
@@ -261,7 +261,7 @@ export function useAdminSession(): AdminSession {
       try {
         await AsyncStorage.setItem(STORAGE_KEY, serializedSession);
       } catch (error) {
-        logStartupModuleFailed('auth.session.persist', error);
+        logStartupModuleFailed('auth.session.persist.failed', error);
         throw error;
       }
       stage = 'auth.session.persist.completed';
@@ -269,14 +269,16 @@ export function useAdminSession(): AdminSession {
       logStartupModuleCompleted('auth.session.persist');
 
       if (cancelled.current) return;
+      stage = 'auth.state.commit.started';
+      logStartupCheckpoint('auth.state.commit.started');
       setAdminToken(data.token);
       setUser(data.user);
       setStatus('logged-in');
-      stage = 'auth.state.updated';
-      logStartupCheckpoint('auth.state.updated', { status: 'logged-in' });
+      stage = 'auth.state.commit.completed';
+      logStartupCheckpoint('auth.state.commit.completed', { status: 'logged-in' });
       logStartupModuleCompleted('auth.submit');
     } catch (err) {
-      logStartupModuleFailed('auth.submit', err, { stage });
+      logStartupModuleFailed('auth.submit.failed', err, { stage });
       if (!cancelled.current) setLoginError(userFacingLoginError(err));
       throw err;
     } finally {
@@ -289,7 +291,7 @@ export function useAdminSession(): AdminSession {
   useEffect(() => {
     setOnUnauthorized(() => {
       clearStoredSession('unauthorized').catch((error) => {
-        logStartupModuleFailed('Session unauthorized clear', error);
+        logStartupModuleFailed('session.unauthorized.clear.failed', error);
       });
       setAdminToken(null);
       setUser(null);

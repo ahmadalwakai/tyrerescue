@@ -267,7 +267,7 @@ export function useAssistedChatDraft() {
             setDraft(merged);
             if (usedLegacyKey) {
               AsyncStorage.removeItem(usedLegacyKey).catch((error) => {
-                logStartupModuleFailed('Assisted Chat legacy draft cleanup', error);
+                logStartupModuleFailed('assistedChat.legacyDraft.cleanup.failed', error);
               });
             }
           }
@@ -276,12 +276,12 @@ export function useAssistedChatDraft() {
           logStartupModuleCompleted('Assisted Chat draft hydration');
         }
       } catch (error) {
-        logStartupModuleFailed('Assisted Chat draft hydration', error);
+        logStartupModuleFailed('assistedChat.draft.hydration.failed', error);
         await Promise.all([
           AsyncStorage.removeItem(STORAGE_KEY),
           ...LEGACY_KEYS.map((key) => AsyncStorage.removeItem(key)),
         ]).catch((cleanupError) => {
-          logStartupModuleFailed('Assisted Chat draft cleanup', cleanupError);
+          logStartupModuleFailed('assistedChat.draft.cleanup.failed', cleanupError);
         });
         if (!cancelled) {
           setDraft(EMPTY_DRAFT);
@@ -302,7 +302,7 @@ export function useAssistedChatDraft() {
     if (writeTimer.current) clearTimeout(writeTimer.current);
     writeTimer.current = setTimeout(() => {
       AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch((error) => {
-        logStartupModuleFailed('Assisted Chat draft persist', error);
+        logStartupModuleFailed('assistedChat.draft.persist.failed', error);
       });
     }, 200);
   }, []);
@@ -330,7 +330,7 @@ export function useAssistedChatDraft() {
   const clear = useCallback(() => {
     setDraft(EMPTY_DRAFT);
     AsyncStorage.removeItem(STORAGE_KEY).catch((error) => {
-      logStartupModuleFailed('Assisted Chat draft clear', error);
+      logStartupModuleFailed('assistedChat.draft.clear.failed', error);
     });
   }, []);
 

@@ -1,3 +1,5 @@
+import Constants from 'expo-constants';
+
 type StartupPhase = 'checkpoint' | 'started' | 'completed' | 'failed';
 
 interface StartupEvent {
@@ -5,6 +7,8 @@ interface StartupEvent {
   phase: StartupPhase;
   label: string;
   timestampIso: string;
+  appVersion: string;
+  buildNumber: string;
   details?: Record<string, unknown>;
   error?: {
     name: string;
@@ -18,6 +22,30 @@ interface StartupGlobal {
 }
 
 const STARTUP_PREFIX = '[startup]';
+
+function readBuildMetadata(): { appVersion: string; buildNumber: string } {
+  try {
+    const expoConfig = Constants.expoConfig as
+      | {
+          version?: string;
+          ios?: { buildNumber?: string };
+        }
+      | null
+      | undefined;
+    const platform = Constants.platform as
+      | {
+          ios?: { buildNumber?: string | null };
+        }
+      | null
+      | undefined;
+    return {
+      appVersion: expoConfig?.version ?? 'unknown',
+      buildNumber: platform?.ios?.buildNumber ?? expoConfig?.ios?.buildNumber ?? 'unknown',
+    };
+  } catch {
+    return { appVersion: 'unknown', buildNumber: 'unknown' };
+  }
+}
 
 function timeline(): StartupEvent[] {
   const target = globalThis as StartupGlobal;
@@ -57,22 +85,31 @@ function emit(
   error?: unknown,
 ): void {
   const events = timeline();
+  const build = readBuildMetadata();
   const event: StartupEvent = {
     sequence: events.length + 1,
     phase,
     label,
     timestampIso: new Date().toISOString(),
+    appVersion: build.appVersion,
+    buildNumber: build.buildNumber,
     ...(details ? { details } : {}),
     ...(phase === 'failed' ? { error: normalizeError(error) } : {}),
   };
   events.push(event);
 
   const line = `${STARTUP_PREFIX} ${String(event.sequence).padStart(3, '0')} ${phase} ${label}`;
+  const consoleDetails = {
+    timestampIso: event.timestampIso,
+    appVersion: event.appVersion,
+    buildNumber: event.buildNumber,
+    ...(details ?? {}),
+  };
   try {
     if (phase === 'failed') {
-      console.error(line, event.error, details ?? {});
+      console.error(line, event.error, consoleDetails);
     } else {
-      console.log(line, details ?? {});
+      console.log(line, consoleDetails);
     }
   } catch {
     // Console logging itself must never be the cause of a startup failure.
