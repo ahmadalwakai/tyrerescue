@@ -175,10 +175,9 @@ function getPublicVisibility(
   return typeof v === 'number' ? v : undefined;
 }
 
-// Custom alert sound bundled at `assets/sounds/urgent-booking.mp3` and
-// registered in `app.json` under `expo.plugins["expo-notifications"].sounds`.
-// The Expo config plugin copies it into Android's `res/raw/` at build time
-// so the sound name below resolves on a real device APK.
+// Custom alert sound bundled at `assets/sounds/urgent-booking.mp3`. Normal
+// notification-enabled builds must register it through the expo-notifications
+// config plugin so Android copies it into `res/raw/` at build time.
 //
 // IMPORTANT (Android channel semantics):
 //   Once a channel is created on a device with a given sound, the sound

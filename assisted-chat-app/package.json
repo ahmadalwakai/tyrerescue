@@ -3,6 +3,15 @@
   "version": "1.0.9",
   "private": true,
   "main": "./src/startup-entry.js",
+  "expo": {
+    "autolinking": {
+      "ios": {
+        "exclude": [
+          "expo-notifications"
+        ]
+      }
+    }
+  },
   "scripts": {
     "start": "expo start --port 8081",
     "android": "expo start --android --port 8081",

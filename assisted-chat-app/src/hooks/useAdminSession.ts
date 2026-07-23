@@ -15,6 +15,7 @@ import {
   logStartupModuleFailed,
   logStartupModuleStarted,
 } from '@/lib/startup-logging';
+import { isSessionRestoreDisabled } from '@/lib/session-startup-config';
 
 const STORAGE_KEY = ADMIN_SESSION_STORAGE_KEY;
 const GENERIC_LOGIN_ERROR = 'Login failed. Please try again.';
@@ -106,23 +107,29 @@ export function useAdminSession(): AdminSession {
     logStartupModuleStarted('Session hydration');
     logStartupCheckpoint('Session hydration started');
     (async () => {
-      let storageSource: 'none' | 'storage' | 'malformed-storage' = 'none';
+      const restoreDisabled = isSessionRestoreDisabled();
+      let storageSource: 'none' | 'storage' | 'malformed-storage' | 'restore-disabled' =
+        restoreDisabled ? 'restore-disabled' : 'none';
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (cancelled.current) return;
-        if (raw) {
-          const parsed = JSON.parse(raw) as unknown;
-          const storedSession = validateStoredSession(parsed);
-          if (storedSession) {
-            setAdminToken(storedSession.token);
-            setUser(storedSession.user);
-            setStatus('logged-in');
-            logStartupCheckpoint('Session hydration completed', { status: 'logged-in', source: 'storage' });
-            logStartupModuleCompleted('Session hydration');
-            return;
+        if (restoreDisabled) {
+          logStartupCheckpoint('Session restore skipped', { reason: 'startup-disabled' });
+        } else {
+          const raw = await AsyncStorage.getItem(STORAGE_KEY);
+          if (cancelled.current) return;
+          if (raw) {
+            const parsed = JSON.parse(raw) as unknown;
+            const storedSession = validateStoredSession(parsed);
+            if (storedSession) {
+              setAdminToken(storedSession.token);
+              setUser(storedSession.user);
+              setStatus('logged-in');
+              logStartupCheckpoint('Session hydration completed', { status: 'logged-in', source: 'storage' });
+              logStartupModuleCompleted('Session hydration');
+              return;
+            }
+            storageSource = 'malformed-storage';
+            await clearStoredSession('malformed-session');
           }
-          storageSource = 'malformed-storage';
-          await clearStoredSession('malformed-session');
         }
       } catch (error) {
         storageSource = 'malformed-storage';

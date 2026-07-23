@@ -37,7 +37,7 @@
     },
     "ios": {
       "bundleIdentifier": "uk.tyrerescue.assistedchat",
-      "buildNumber": "21",
+      "buildNumber": "22",
       "supportsTablet": true,
       "icon": "./assets/icon.png",
       "infoPlist": {
@@ -55,18 +55,6 @@
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#09090B",
-          "defaultChannel": "urgent_bookings_v3",
-          "androidMode": "default",
-          "sounds": [
-            "./assets/sounds/urgent_booking.mp3"
-          ]
-        }
-      ],
       [
         "expo-image-picker",
         {

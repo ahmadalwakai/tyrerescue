@@ -11,6 +11,7 @@ const contractPath = path.join(projectRoot, 'src', 'lib', 'notification-contract
 const safetyPath = path.join(projectRoot, 'src', 'lib', 'notification-safety.ts');
 const startupLoggingPath = path.join(projectRoot, 'src', 'lib', 'startup-logging.ts');
 const startupConfigPath = path.join(projectRoot, 'src', 'lib', 'notification-startup-config.ts');
+const sessionStartupConfigPath = path.join(projectRoot, 'src', 'lib', 'session-startup-config.ts');
 const notificationsPath = path.join(projectRoot, 'src', 'lib', 'notifications.ts');
 const assistedChatScreenPath = path.join(projectRoot, 'src', 'components', 'AssistedChatScreen.tsx');
 const bookingAlertHookPath = path.join(projectRoot, 'src', 'hooks', 'useNewCustomerBookingAlert.ts');
@@ -19,7 +20,9 @@ const adminSessionStoragePath = path.join(projectRoot, 'src', 'lib', 'admin-sess
 const startupEntryPath = path.join(projectRoot, 'src', 'startup-entry.js');
 const rootLayoutPath = path.join(projectRoot, 'app', '_layout.tsx');
 const patchPath = path.join(projectRoot, 'patches', 'expo-notifications+55.0.25.patch');
+const appConfigPath = path.join(projectRoot, 'app.json');
 const easConfigPath = path.join(projectRoot, 'eas.json');
+const packageJsonPath = path.join(projectRoot, 'package.json');
 const rootEasIgnorePath = path.join(projectRoot, '..', '.easignore');
 
 function loadTsModule(filePath, extraSandbox = {}) {
@@ -59,6 +62,11 @@ const {
   NOTIFICATION_STARTUP_DISABLE_ENV,
   isNotificationStartupDisabled,
 } = loadTsModule(startupConfigPath);
+
+const {
+  SESSION_RESTORE_DISABLE_ENV,
+  isSessionRestoreDisabled,
+} = loadTsModule(sessionStartupConfigPath);
 
 assert.equal(parsePersistedRegistrationInfo('{"isEnabled":true}').isEnabled, true);
 assert.equal(isServerRegistrationEnabled('{"isEnabled":true}'), true);
@@ -174,10 +182,26 @@ for (const value of ['1', 'yes', 'false', '0', '', 'TRUE', 'true ']) {
 }
 delete process.env[NOTIFICATION_STARTUP_DISABLE_ENV];
 
+delete process.env[SESSION_RESTORE_DISABLE_ENV];
+assert.equal(isSessionRestoreDisabled(), false);
+process.env[SESSION_RESTORE_DISABLE_ENV] = 'true';
+assert.equal(isSessionRestoreDisabled(), true);
+for (const value of ['1', 'yes', 'false', '0', '', 'TRUE', 'true ']) {
+  process.env[SESSION_RESTORE_DISABLE_ENV] = value;
+  assert.equal(isSessionRestoreDisabled(), false);
+}
+delete process.env[SESSION_RESTORE_DISABLE_ENV];
+
 const startupConfigSource = fs.readFileSync(startupConfigPath, 'utf8');
 assert.match(
   startupConfigSource,
   /process\.env\.EXPO_PUBLIC_ASSISTED_CHAT_DISABLE_NOTIFICATION_STARTUP === 'true'/,
+);
+
+const sessionStartupConfigSource = fs.readFileSync(sessionStartupConfigPath, 'utf8');
+assert.match(
+  sessionStartupConfigSource,
+  /process\.env\.EXPO_PUBLIC_ASSISTED_CHAT_DISABLE_SESSION_RESTORE === 'true'/,
 );
 
 const notificationsSource = fs.readFileSync(notificationsPath, 'utf8');
@@ -245,6 +269,8 @@ assert.match(sessionHookSource, /malformed-session/);
 assert.match(sessionHookSource, /setAdminToken\(storedSession\.token\)/);
 assert.match(sessionHookSource, /setStatus\('logged-out'\)/);
 assert.match(sessionHookSource, /ADMIN_SESSION_STORAGE_KEY/);
+assert.match(sessionHookSource, /isSessionRestoreDisabled/);
+assert.match(sessionHookSource, /Session restore skipped/);
 assert.match(adminSessionStorageSource, /assistedChat\.adminToken\.v1/);
 assert.match(adminSessionStorageSource, /clearInvalidAdminSessionStorage/);
 
@@ -288,6 +314,17 @@ assert.match(nativePatch, /if !shouldThrowOnKeychainFailure/);
 const easConfig = fs.readFileSync(easConfigPath, 'utf8');
 assert.doesNotMatch(easConfig, /EXPO_PUBLIC_DISABLE_SERVER_REGISTRATION_STARTUP/);
 assert.match(easConfig, /EXPO_PUBLIC_ASSISTED_CHAT_DISABLE_NOTIFICATION_STARTUP/);
+assert.match(easConfig, /EXPO_PUBLIC_ASSISTED_CHAT_DISABLE_SESSION_RESTORE/);
+
+const appConfig = JSON.parse(fs.readFileSync(appConfigPath, 'utf8'));
+assert.equal(appConfig.expo.ios.buildNumber, '22');
+assert.equal(
+  JSON.stringify(appConfig.expo.plugins).includes('expo-notifications'),
+  false,
+);
+
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+assert.deepEqual(packageJson.expo.autolinking.ios.exclude, ['expo-notifications']);
 
 const rootEasIgnore = fs.readFileSync(rootEasIgnorePath, 'utf8');
 assert.match(rootEasIgnore, /!assisted-chat-app\/patches\/\*\*/);
