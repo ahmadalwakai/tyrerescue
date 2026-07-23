@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
 import { api, ApiError } from '@/lib/api';
+import { resolveBrowserNetworkEventTarget } from '@/lib/browser-network-events';
 import type {
   AdminPaymentLinkResponse,
   AssistedChatDraft,
@@ -245,18 +246,24 @@ export function useAdminPaymentLink({
     const subscription = AppState.addEventListener('change', (nextState) => {
       setAppIsForeground(isForegroundState(nextState));
     });
-    return () => subscription.remove();
+    return () => {
+      if (subscription && typeof subscription.remove === 'function') {
+        subscription.remove();
+      }
+    };
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    const networkEventTarget = resolveBrowserNetworkEventTarget(Platform.OS);
+    if (!networkEventTarget) return;
+
     const syncNetwork = () => setNetworkOnline(browserNetworkIsOnline());
     syncNetwork();
-    window.addEventListener('online', syncNetwork);
-    window.addEventListener('offline', syncNetwork);
+    networkEventTarget.addEventListener('online', syncNetwork);
+    networkEventTarget.addEventListener('offline', syncNetwork);
     return () => {
-      window.removeEventListener('online', syncNetwork);
-      window.removeEventListener('offline', syncNetwork);
+      networkEventTarget.removeEventListener('online', syncNetwork);
+      networkEventTarget.removeEventListener('offline', syncNetwork);
     };
   }, []);
 

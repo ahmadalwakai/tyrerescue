@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import path from 'path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   derivePaymentLinkLiveStatus,
   getStripeAutoCheckDelayMs,
@@ -14,6 +14,7 @@ import {
   STRIPE_AUTO_CHECK_SLOW_INTERVAL_MS,
   STRIPE_AUTO_CHECK_STOP_AFTER_MS,
 } from '../../assisted-chat-app/src/lib/payment-link-status';
+import { resolveBrowserNetworkEventTarget } from '../../assisted-chat-app/src/lib/browser-network-events';
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 const assistedChatScreenPath = path.join(repoRoot, 'assisted-chat-app/src/components/AssistedChatScreen.tsx');
@@ -66,6 +67,39 @@ describe('Assisted Chat Stripe checker regression', () => {
     expect(hookSource).toContain('visibilitychange');
     expect(hookSource).toContain('browserNetworkIsOnline');
     expect(hookSource).toContain('STRIPE_AUTO_CHECK_STOP_AFTER_MS');
+  });
+
+  it('does not attach browser network listeners to native window shims', () => {
+    const hookSource = paymentHookSource();
+    const listener = () => {};
+    const addEventListener = vi.fn();
+    const removeEventListener = vi.fn();
+
+    expect(resolveBrowserNetworkEventTarget('ios', {})).toBeNull();
+    expect(resolveBrowserNetworkEventTarget('ios', {
+      addEventListener,
+      removeEventListener,
+    })).toBeNull();
+    expect(resolveBrowserNetworkEventTarget('web', {
+      removeEventListener,
+    })).toBeNull();
+    expect(resolveBrowserNetworkEventTarget('web', {
+      addEventListener,
+    })).toBeNull();
+
+    const webTarget = resolveBrowserNetworkEventTarget('web', {
+      addEventListener,
+      removeEventListener,
+    });
+
+    expect(webTarget).not.toBeNull();
+    webTarget?.addEventListener('online', listener);
+    webTarget?.removeEventListener('online', listener);
+    expect(addEventListener).toHaveBeenCalledWith('online', listener);
+    expect(removeEventListener).toHaveBeenCalledWith('online', listener);
+    expect(hookSource).toContain('resolveBrowserNetworkEventTarget(Platform.OS)');
+    expect(hookSource).not.toContain("window.addEventListener('online'");
+    expect(hookSource).not.toContain("window.addEventListener('offline'");
   });
 
   it('maps Stripe and canonical payment states to operator-facing labels', () => {
