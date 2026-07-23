@@ -707,6 +707,8 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
 
   useEffect(() => {
     logStartupModuleStarted('Assisted Chat screen');
+    logStartupCheckpoint('auth.navigation.completed', { screen: 'AssistedChatScreen' });
+    logStartupCheckpoint('protected.screen.mounted', { screen: 'AssistedChatScreen' });
     logStartupCheckpoint('Assisted Chat mounted');
     logStartupModuleCompleted('Assisted Chat screen');
   }, []);
@@ -724,6 +726,8 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     const markNotificationsStarted = () => {
       if (notificationsStartupStarted.current) return;
       notificationsStartupStarted.current = true;
+      logStartupModuleStarted('postLogin.initialization', { service: 'notifications' });
+      logStartupCheckpoint('postLogin.initialization.started', { service: 'notifications' });
       logStartupModuleStarted('Notifications initialization');
       logStartupCheckpoint('Notifications initialization started');
     };
@@ -733,6 +737,14 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       notificationsStartupCompleted.current = true;
       logStartupCheckpoint('Notifications initialization completed', details);
       logStartupModuleCompleted('Notifications initialization', details);
+      logStartupCheckpoint('postLogin.initialization.completed', {
+        service: 'notifications',
+        ...details,
+      });
+      logStartupModuleCompleted('postLogin.initialization', {
+        service: 'notifications',
+        ...details,
+      });
     };
 
     const scheduleRetry = (attempt: number) => {
@@ -773,6 +785,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         scheduleRetry(attempt);
       } catch (error) {
         logStartupModuleFailed('Notifications initialization', error);
+        logStartupModuleFailed('postLogin.initialization', error, { service: 'notifications' });
         setAlertReadinessState('not_armed');
         markNotificationsCompleted({ failed: true });
       }
@@ -961,15 +974,17 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
 
   // ──────────────────────────────────────────────────────────────────────────
 
-  if (hydrated && !noteSynced) {
+  useEffect(() => {
+    if (!hydrated || noteSynced) return;
     setNoteSynced(true);
-    setNoteInput(draft.note);
-  }
+    setNoteInput(typeof draft.note === 'string' ? draft.note : '');
+  }, [draft.note, hydrated, noteSynced]);
 
-  if (hydrated && !phoneSynced) {
+  useEffect(() => {
+    if (!hydrated || phoneSynced) return;
     setPhoneSynced(true);
-    setPhoneInput(draft.customer.phone);
-  }
+    setPhoneInput(typeof draft.customer?.phone === 'string' ? draft.customer.phone : '');
+  }, [draft.customer?.phone, hydrated, phoneSynced]);
 
   const lockingNutCharge =
     draft.serviceType !== 'assess' &&

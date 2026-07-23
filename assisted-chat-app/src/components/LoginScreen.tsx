@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -45,6 +45,7 @@ export function LoginScreen({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
+  const submitInFlight = useRef(false);
 
   // react-native-web has no native animation module, so we must opt out there
   // to avoid the "useNativeDriver is not supported" warning. Native platforms
@@ -78,12 +79,17 @@ export function LoginScreen({
   const canSubmit = email.trim().length > 0 && password.length > 0 && !loggingIn;
 
   const handleSubmit = () => {
-    if (!canSubmit) return;
-    onLogin(email, password).catch(() => {
-      // Failure is surfaced through `loginError` from the parent. Clear the
-      // password so the user can re-enter it; keep the email value intact.
-      setPassword('');
-    });
+    if (!canSubmit || submitInFlight.current) return;
+    submitInFlight.current = true;
+    onLogin(email, password)
+      .catch(() => {
+        // Failure is surfaced through `loginError` from the parent. Clear the
+        // password so the user can re-enter it; keep the email value intact.
+        setPassword('');
+      })
+      .finally(() => {
+        submitInFlight.current = false;
+      });
   };
 
   const handleWebSubmit = (event: { preventDefault: () => void }) => {

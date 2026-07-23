@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { createElement, useEffect, useState, type ComponentType } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { LoginScreen } from '@/components/LoginScreen';
-import { useAdminSession } from '@/hooks/useAdminSession';
+import { useAdminSession, type AdminSession } from '@/hooks/useAdminSession';
 import { colors } from '@/components/theme';
 import {
   logStartupCheckpoint,
@@ -62,8 +62,34 @@ export default function Index() {
     );
   }
 
-  const AssistedChatScreen = getAssistedChatScreen();
-  return <AssistedChatScreen user={session.user} onLogout={session.logout} />;
+  return <LoggedInAssistedChat user={session.user} onLogout={session.logout} />;
+}
+
+function LoggedInAssistedChat({
+  user,
+  onLogout,
+}: {
+  user: AdminSession['user'];
+  onLogout: AdminSession['logout'];
+}) {
+  useState(() => {
+    logStartupModuleStarted('Protected layout', { route: 'index' });
+    logStartupCheckpoint('auth.navigation.started', { route: 'index' });
+    return true;
+  });
+
+  useEffect(() => {
+    logStartupCheckpoint('protected.layout.mounted', { route: 'index' });
+    logStartupModuleCompleted('Protected layout', { route: 'index' });
+  }, []);
+
+  return createElement(
+    getAssistedChatScreen() as ComponentType<{
+      user: AdminSession['user'];
+      onLogout: AdminSession['logout'];
+    }>,
+    { user, onLogout },
+  );
 }
 
 const styles = StyleSheet.create({

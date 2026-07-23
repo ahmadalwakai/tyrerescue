@@ -8,6 +8,10 @@ import {
 } from '@/lib/startup-logging';
 import type {
   AssistedChatDraft,
+  AssistedChatLocation,
+  AssistedChatLockingWheelNut,
+  AssistedChatQuoteBreakdown,
+  AssistedChatQuoteLine,
   AssistedChatServiceType,
   AssistedChatTyreSelection,
 } from '@/types/assisted-chat';
@@ -21,6 +25,135 @@ const STALE_AFTER_MS = 1000 * 60 * 60 * 12;
 
 function normalizeServiceType(value: unknown): AssistedChatServiceType {
   return value === 'repair' || value === 'assess' ? value : 'fit';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function stringValue(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function nullableString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function finiteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function normalizeCustomer(value: unknown): AssistedChatDraft['customer'] {
+  const record = isRecord(value) ? value : {};
+  return {
+    phone: stringValue(record.phone),
+    name: stringValue(record.name),
+    email: stringValue(record.email),
+  };
+}
+
+function normalizeLocation(value: unknown): AssistedChatLocation {
+  const record = isRecord(value) ? value : {};
+  const status =
+    record.status === 'pending' || record.status === 'received' || record.status === 'idle'
+      ? record.status
+      : EMPTY_DRAFT.location.status;
+  return {
+    method: record.method === 'link' ? 'link' : 'address',
+    address: stringValue(record.address),
+    lat: finiteNumber(record.lat),
+    lng: finiteNumber(record.lng),
+    postcode: nullableString(record.postcode),
+    link: nullableString(record.link),
+    whatsappLink: nullableString(record.whatsappLink),
+    status,
+  };
+}
+
+function normalizeLockingNut(value: unknown): AssistedChatLockingWheelNut {
+  const record = isRecord(value) ? value : {};
+  return {
+    answer: record.answer === 'yes' || record.answer === 'no' ? record.answer : 'unknown',
+    chargeGbp: finiteNumber(record.chargeGbp),
+  };
+}
+
+function normalizePaymentChoice(value: unknown): AssistedChatDraft['paymentChoice'] {
+  return value === 'cash' || value === 'deposit' || value === 'full' ? value : null;
+}
+
+function normalizeCustomerEmailMode(value: unknown): AssistedChatDraft['customerEmailMode'] {
+  return value === 'send_customer_confirmation' ? 'send_customer_confirmation' : 'walk_in_customer';
+}
+
+function normalizeQuoteLine(value: unknown): AssistedChatQuoteLine | null {
+  if (!isRecord(value)) return null;
+  const amount = finiteNumber(value.amount);
+  if (amount == null) return null;
+  return {
+    label: stringValue(value.label, 'Line item'),
+    amount,
+    type: stringValue(value.type, 'custom'),
+    ...(finiteNumber(value.quantity) != null ? { quantity: finiteNumber(value.quantity) ?? undefined } : {}),
+    ...(finiteNumber(value.unitPrice) != null ? { unitPrice: finiteNumber(value.unitPrice) ?? undefined } : {}),
+  };
+}
+
+function normalizeQuote(value: unknown): AssistedChatQuoteBreakdown | null {
+  if (!isRecord(value)) return null;
+  const lineItems = Array.isArray(value.lineItems)
+    ? value.lineItems.flatMap((line) => {
+        const normalized = normalizeQuoteLine(line);
+        return normalized ? [normalized] : [];
+      })
+    : [];
+  return {
+    ...(value as Partial<AssistedChatQuoteBreakdown>),
+    subtotal: finiteNumber(value.subtotal) ?? 0,
+    vatAmount: finiteNumber(value.vatAmount) ?? 0,
+    total: finiteNumber(value.total) ?? 0,
+    lineItems,
+    distanceKm: finiteNumber(value.distanceKm),
+    distanceMiles: finiteNumber(value.distanceMiles),
+    serviceDistanceMiles: finiteNumber(value.serviceDistanceMiles),
+    pricingDistanceMiles: finiteNumber(value.pricingDistanceMiles),
+    pricingDurationMinutes: finiteNumber(value.pricingDurationMinutes),
+    garageDistanceMiles: finiteNumber(value.garageDistanceMiles),
+    fittingPrice: finiteNumber(value.fittingPrice),
+    tyrePrice: finiteNumber(value.tyrePrice),
+    totalPrice: finiteNumber(value.totalPrice),
+    tyreLines: Array.isArray(value.tyreLines) ? ensureBookingTyreLines(value.tyreLines) : undefined,
+    adminAdjustmentAmount: finiteNumber(value.adminAdjustmentAmount),
+    adminAdjustmentReason: nullableString(value.adminAdjustmentReason),
+  };
+}
+
+function normalizePaymentLink(value: unknown): AssistedChatDraft['paymentLink'] {
+  if (!isRecord(value)) return null;
+  const amountPence = finiteNumber(value.amountPence);
+  const paymentUrl = stringValue(value.paymentUrl);
+  const bookingId = stringValue(value.bookingId);
+  const refNumber = stringValue(value.refNumber);
+  const createdAtIso = stringValue(value.createdAtIso);
+  if (
+    (value.kind !== 'deposit' && value.kind !== 'full') ||
+    amountPence == null ||
+    !paymentUrl ||
+    !bookingId ||
+    !refNumber ||
+    !createdAtIso
+  ) {
+    return null;
+  }
+  return {
+    kind: value.kind,
+    paymentUrl,
+    amountPence,
+    remainingBalancePence: finiteNumber(value.remainingBalancePence),
+    bookingId,
+    refNumber,
+    createdAtIso,
+  };
 }
 
 export const EMPTY_DRAFT: AssistedChatDraft = {
@@ -81,57 +214,61 @@ export function useAssistedChatDraft() {
           }
         }
         if (raw && !cancelled) {
-          const parsed = JSON.parse(raw) as Partial<AssistedChatDraft> & {
+          const parsed = JSON.parse(raw) as unknown;
+          const parsedRecord: (Partial<AssistedChatDraft> & {
             updatedAt?: number;
             tyre?: Partial<AssistedChatTyreSelection>;
-          };
-          if (parsed.updatedAt && Date.now() - parsed.updatedAt < STALE_AFTER_MS) {
-            const migratedTyreLines = Array.isArray(parsed.tyreLines)
-              ? ensureBookingTyreLines(parsed.tyreLines)
+          }) | null = isRecord(parsed) ? (parsed as Partial<AssistedChatDraft>) : null;
+          const updatedAt = finiteNumber(parsedRecord?.updatedAt) ?? 0;
+          if (parsedRecord && updatedAt && Date.now() - updatedAt < STALE_AFTER_MS) {
+            const legacyTyre = isRecord(parsedRecord.tyre) ? parsedRecord.tyre : {};
+            const migratedTyreLines = Array.isArray(parsedRecord.tyreLines)
+              ? ensureBookingTyreLines(parsedRecord.tyreLines)
               : ensureBookingTyreLines([
                   createBookingTyreLine({
                     id: 'tyre-1',
-                    size: typeof parsed.tyre?.size === 'string' ? parsed.tyre.size : '',
+                    size: typeof legacyTyre.size === 'string' ? legacyTyre.size : '',
                     quantity:
-                      typeof parsed.tyre?.quantity === 'number' && Number.isFinite(parsed.tyre.quantity)
-                        ? parsed.tyre.quantity
+                      typeof legacyTyre.quantity === 'number' && Number.isFinite(legacyTyre.quantity)
+                        ? legacyTyre.quantity
                         : 1,
                   }),
                 ]);
             const merged: AssistedChatDraft = {
               ...EMPTY_DRAFT,
-              customer: { ...EMPTY_DRAFT.customer, ...parsed.customer },
-              location: { ...EMPTY_DRAFT.location, ...parsed.location },
-              serviceType: normalizeServiceType(parsed.serviceType),
+              customer: normalizeCustomer(parsedRecord.customer),
+              location: normalizeLocation(parsedRecord.location),
+              serviceType: normalizeServiceType(parsedRecord.serviceType),
               tyreLines: migratedTyreLines,
-              lockingNut: { ...EMPTY_DRAFT.lockingNut, ...parsed.lockingNut },
-              quickBookingId: typeof parsed.quickBookingId === 'string' ? parsed.quickBookingId : null,
+              lockingNut: normalizeLockingNut(parsedRecord.lockingNut),
+              quickBookingId: typeof parsedRecord.quickBookingId === 'string' ? parsedRecord.quickBookingId : null,
               virtualLandlineInteractionId:
-                typeof parsed.virtualLandlineInteractionId === 'string'
-                  ? parsed.virtualLandlineInteractionId
+                typeof parsedRecord.virtualLandlineInteractionId === 'string'
+                  ? parsedRecord.virtualLandlineInteractionId
                   : null,
-              savedQuoteId: typeof parsed.savedQuoteId === 'string' ? parsed.savedQuoteId : null,
-              savedQuoteRef: typeof parsed.savedQuoteRef === 'string' ? parsed.savedQuoteRef : null,
-              note: typeof parsed.note === 'string' ? parsed.note : EMPTY_DRAFT.note,
-              quote: parsed.quote ?? null,
-              priceNeedsRefresh: Boolean(parsed.priceNeedsRefresh),
+              savedQuoteId: typeof parsedRecord.savedQuoteId === 'string' ? parsedRecord.savedQuoteId : null,
+              savedQuoteRef: typeof parsedRecord.savedQuoteRef === 'string' ? parsedRecord.savedQuoteRef : null,
+              note: typeof parsedRecord.note === 'string' ? parsedRecord.note : EMPTY_DRAFT.note,
+              quote: normalizeQuote(parsedRecord.quote),
+              priceNeedsRefresh: Boolean(parsedRecord.priceNeedsRefresh),
               manualPriceGbp:
-                typeof parsed.manualPriceGbp === 'number' && Number.isFinite(parsed.manualPriceGbp)
-                  ? parsed.manualPriceGbp
+                typeof parsedRecord.manualPriceGbp === 'number' && Number.isFinite(parsedRecord.manualPriceGbp)
+                  ? parsedRecord.manualPriceGbp
                   : null,
-              paymentChoice: parsed.paymentChoice ?? null,
-              paymentLink: parsed.paymentLink ?? null,
-              dispatchedRefNumber: parsed.dispatchedRefNumber ?? null,
-              dispatchedBookingId: typeof parsed.dispatchedBookingId === 'string' ? parsed.dispatchedBookingId : null,
-              customerEmailMode:
-                parsed.customerEmailMode === 'send_customer_confirmation'
-                  ? 'send_customer_confirmation'
-                  : 'walk_in_customer',
-              updatedAt: parsed.updatedAt,
+              paymentChoice: normalizePaymentChoice(parsedRecord.paymentChoice),
+              paymentLink: normalizePaymentLink(parsedRecord.paymentLink),
+              dispatchedRefNumber:
+                typeof parsedRecord.dispatchedRefNumber === 'string' ? parsedRecord.dispatchedRefNumber : null,
+              dispatchedBookingId:
+                typeof parsedRecord.dispatchedBookingId === 'string' ? parsedRecord.dispatchedBookingId : null,
+              customerEmailMode: normalizeCustomerEmailMode(parsedRecord.customerEmailMode),
+              updatedAt,
             };
             setDraft(merged);
             if (usedLegacyKey) {
-              AsyncStorage.removeItem(usedLegacyKey).catch(() => {});
+              AsyncStorage.removeItem(usedLegacyKey).catch((error) => {
+                logStartupModuleFailed('Assisted Chat legacy draft cleanup', error);
+              });
             }
           }
         }
@@ -143,7 +280,9 @@ export function useAssistedChatDraft() {
         await Promise.all([
           AsyncStorage.removeItem(STORAGE_KEY),
           ...LEGACY_KEYS.map((key) => AsyncStorage.removeItem(key)),
-        ]).catch(() => {});
+        ]).catch((cleanupError) => {
+          logStartupModuleFailed('Assisted Chat draft cleanup', cleanupError);
+        });
         if (!cancelled) {
           setDraft(EMPTY_DRAFT);
           logStartupModuleCompleted('Assisted Chat draft hydration', {
@@ -162,8 +301,8 @@ export function useAssistedChatDraft() {
   const persist = useCallback((next: AssistedChatDraft) => {
     if (writeTimer.current) clearTimeout(writeTimer.current);
     writeTimer.current = setTimeout(() => {
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {
-        // best-effort; ignore quota errors
+      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch((error) => {
+        logStartupModuleFailed('Assisted Chat draft persist', error);
       });
     }, 200);
   }, []);
@@ -190,7 +329,9 @@ export function useAssistedChatDraft() {
 
   const clear = useCallback(() => {
     setDraft(EMPTY_DRAFT);
-    AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
+    AsyncStorage.removeItem(STORAGE_KEY).catch((error) => {
+      logStartupModuleFailed('Assisted Chat draft clear', error);
+    });
   }, []);
 
   return { draft, hydrated, update, replace, clear };
