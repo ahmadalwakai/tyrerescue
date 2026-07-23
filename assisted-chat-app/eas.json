@@ -15,7 +15,8 @@
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://www.tyrerescue.uk"
+        "EXPO_PUBLIC_API_BASE_URL": "https://www.tyrerescue.uk",
+        "EXPO_PUBLIC_ASSISTED_CHAT_DISABLE_NOTIFICATION_STARTUP": "true"
       },
       "android": {
         "buildType": "apk"

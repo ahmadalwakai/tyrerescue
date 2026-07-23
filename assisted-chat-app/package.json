@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ignore-pattern dist/**",
     "test:notification-contract": "node scripts/verify-notification-contract.js",
+    "test:ios-notification-startup-config": "node scripts/verify-ios-notification-startup-config.js",
     "postinstall": "node scripts/apply-patches.js"
   },
   "dependencies": {

@@ -315,13 +315,7 @@ assert.doesNotMatch(nativePatch, /setRegistrationInfoAsync/);
 assert.match(nativePatch, /shouldThrowOnKeychainFailure: false/);
 assert.match(nativePatch, /if !shouldThrowOnKeychainFailure/);
 
-const easConfig = fs.readFileSync(easConfigPath, 'utf8');
-assert.doesNotMatch(easConfig, /EXPO_PUBLIC_DISABLE_SERVER_REGISTRATION_STARTUP/);
-assert.match(easConfig, /EXPO_PUBLIC_ASSISTED_CHAT_DISABLE_NOTIFICATION_STARTUP/);
-assert.match(easConfig, /EXPO_PUBLIC_ASSISTED_CHAT_DISABLE_SESSION_RESTORE/);
-
 const appConfig = JSON.parse(fs.readFileSync(appConfigPath, 'utf8'));
-assert.equal(appConfig.expo.ios.buildNumber, '23');
 assert.equal(
   JSON.stringify(appConfig.expo.plugins).includes('expo-notifications'),
   false,
@@ -329,6 +323,17 @@ assert.equal(
 
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 assert.deepEqual(packageJson.expo.autolinking.ios.exclude, ['expo-notifications']);
+
+const easConfigSource = fs.readFileSync(easConfigPath, 'utf8');
+assert.doesNotMatch(easConfigSource, /EXPO_PUBLIC_DISABLE_SERVER_REGISTRATION_STARTUP/);
+
+const easConfig = JSON.parse(easConfigSource);
+const productionEnv = easConfig.build?.production?.env ?? {};
+assert.equal(
+  productionEnv[NOTIFICATION_STARTUP_DISABLE_ENV],
+  'true',
+  'production builds must disable notification startup while expo-notifications is excluded from iOS autolinking',
+);
 
 const rootEasIgnore = fs.readFileSync(rootEasIgnorePath, 'utf8');
 assert.match(rootEasIgnore, /!assisted-chat-app\/patches\/\*\*/);

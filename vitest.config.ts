@@ -8,6 +8,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname),
+      'react-native': path.resolve(__dirname, 'lib/__tests__/mocks/react-native.ts'),
+      'expo-constants': path.resolve(__dirname, 'lib/__tests__/mocks/expo-constants.ts'),
+      'expo-device': path.resolve(__dirname, 'lib/__tests__/mocks/expo-device.ts'),
+      'expo-notifications': path.resolve(__dirname, 'lib/__tests__/mocks/expo-notifications.ts'),
+      '@react-native-async-storage/async-storage': path.resolve(
+        __dirname,
+        'lib/__tests__/mocks/async-storage.ts',
+      ),
     },
   },
 });
