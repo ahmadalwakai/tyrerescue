@@ -24,7 +24,7 @@ try {
   });
 } catch (error) {
   logStartupModuleFailed('Urgent watcher native module', error, { platform: Platform.OS });
-  throw error;
+  moduleRef = undefined;
 }
 
 export async function startUrgentWatcher(): Promise<boolean> {

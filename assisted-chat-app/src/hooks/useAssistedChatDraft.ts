@@ -140,7 +140,16 @@ export function useAssistedChatDraft() {
         }
       } catch (error) {
         logStartupModuleFailed('Assisted Chat draft hydration', error);
-        throw error;
+        await Promise.all([
+          AsyncStorage.removeItem(STORAGE_KEY),
+          ...LEGACY_KEYS.map((key) => AsyncStorage.removeItem(key)),
+        ]).catch(() => {});
+        if (!cancelled) {
+          setDraft(EMPTY_DRAFT);
+          logStartupModuleCompleted('Assisted Chat draft hydration', {
+            recovered: true,
+          });
+        }
       } finally {
         if (!cancelled) setHydrated(true);
       }
