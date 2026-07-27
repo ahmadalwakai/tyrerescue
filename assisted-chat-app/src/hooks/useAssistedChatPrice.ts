@@ -1,7 +1,9 @@
 import { useCallback, useRef, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import {
+  buildAssistedChatVehiclePayload,
   buildBookingTyreLinePayload,
+  isAssistedChatServiceOnly,
   primaryBookingTyreLine,
   totalBookingTyreQuantity,
   validateBookingTyreLines,
@@ -114,16 +116,21 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
     setError(null);
 
     const serviceType = draft.serviceType ?? 'fit';
-    const isInspectionOnly = serviceType === 'assess';
-    const tyreError = isInspectionOnly ? null : validateBookingTyreLines(draft.tyreLines);
+    const isServiceOnly = isAssistedChatServiceOnly(serviceType);
+    const tyreError = isServiceOnly ? null : validateBookingTyreLines(draft.tyreLines);
     if (tyreError) {
       setError(tyreError);
       return;
     }
+    if (!isServiceOnly && !draft.tyreConfirmedFromSidewall) {
+      setError('Confirm the tyre size from the sidewall before pricing.');
+      return;
+    }
     const primaryTyre = primaryBookingTyreLine(draft);
-    const tyreLines = isInspectionOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
-    const totalTyreCount = isInspectionOnly ? 1 : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity;
-    if (!isInspectionOnly && draft.lockingNut.answer === 'no') {
+    const tyreLines = isServiceOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
+    const totalTyreCount = isServiceOnly ? 1 : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity;
+    const vehicle = buildAssistedChatVehiclePayload(draft);
+    if (!isServiceOnly && draft.lockingNut.answer === 'no') {
       const charge = draft.lockingNut.chargeGbp;
       if (charge == null || !Number.isFinite(charge) || charge < 0) {
         setError('Enter a valid GBP amount for the locking wheel nut removal charge.');
@@ -140,7 +147,7 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
     }
 
     const lockingNutCharge =
-      !isInspectionOnly && draft.lockingNut.answer === 'no' && draft.lockingNut.chargeGbp != null
+      !isServiceOnly && draft.lockingNut.answer === 'no' && draft.lockingNut.chargeGbp != null
         ? draft.lockingNut.chargeGbp
         : 0;
     const adjustmentPayload =
@@ -171,10 +178,11 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
             locationLat: draft.location.lat,
             locationLng: draft.location.lng,
             serviceType,
-            tyreSize: isInspectionOnly ? undefined : primaryTyre.size,
+            tyreSize: isServiceOnly ? undefined : primaryTyre.size,
             tyreCount: totalTyreCount,
             tyreLines,
             items: tyreLines,
+            vehicle,
             ...adjustmentPayload,
             pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
             adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
@@ -197,10 +205,11 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
           locationAddress: draft.location.address || null,
           locationPostcode: draft.location.postcode || null,
           serviceType,
-          tyreSize: isInspectionOnly ? null : primaryTyre.size,
+          tyreSize: isServiceOnly ? null : primaryTyre.size,
           tyreCount: totalTyreCount,
           tyreLines,
           items: tyreLines,
+          vehicle,
           notes: draft.note || null,
           ...adjustmentPayload,
           pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,

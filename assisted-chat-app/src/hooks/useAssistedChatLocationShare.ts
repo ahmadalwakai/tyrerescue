@@ -3,7 +3,9 @@ import { Linking } from 'react-native';
 import { api, ApiError } from '@/lib/api';
 import { copyToClipboard } from '@/lib/clipboard';
 import {
+  buildAssistedChatVehiclePayload,
   buildBookingTyreLinePayload,
+  isAssistedChatServiceOnly,
   normalizeAssistedChatTyreSize,
   primaryBookingTyreLine,
   totalBookingTyreQuantity,
@@ -128,6 +130,7 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
           customerName,
           customerPhone,
           customerEmail,
+          vehicle: buildAssistedChatVehiclePayload(draft),
         });
         return {
           id: draft.quickBookingId,
@@ -137,8 +140,9 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
       }
       const primaryTyre = primaryBookingTyreLine(draft);
       const serviceType = draft.serviceType ?? 'fit';
-      const isInspectionOnly = serviceType === 'assess';
-      const tyreLines = isInspectionOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
+      const isServiceOnly = isAssistedChatServiceOnly(serviceType);
+      const tyreLines = isServiceOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
+      const vehicle = buildAssistedChatVehiclePayload(draft);
       const created = await api.post<QuickBookCreateResponse>('/api/admin/quick-book', {
         customerName,
         customerPhone,
@@ -148,10 +152,11 @@ export function useAssistedChatLocationShare({ draft, update }: UseAssistedChatL
         locationLat: method === 'address' && draft.location.lat != null ? draft.location.lat : undefined,
         locationLng: method === 'address' && draft.location.lng != null ? draft.location.lng : undefined,
         serviceType,
-        tyreSize: isInspectionOnly ? undefined : normalizeAssistedChatTyreSize(primaryTyre.size) ?? undefined,
-        tyreCount: isInspectionOnly ? 1 : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
+        tyreSize: isServiceOnly ? undefined : normalizeAssistedChatTyreSize(primaryTyre.size) ?? undefined,
+        tyreCount: isServiceOnly ? 1 : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
         tyreLines,
         items: tyreLines,
+        vehicle,
         pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
         adminDistanceLimitMiles: ASSISTED_CHAT_ADMIN_DISTANCE_LIMIT_MILES,
         notes: draft.note || undefined,

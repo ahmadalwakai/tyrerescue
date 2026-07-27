@@ -6,6 +6,7 @@ import { copyToClipboard } from '@/lib/clipboard';
 import {
   formatAssistedChatServiceType,
   hasAssistedChatTyre,
+  isAssistedChatServiceOnly,
   summarizeBookingTyreLines,
 } from '@/lib/assisted-chat-workflow';
 import { formatGbp } from '@/lib/money';
@@ -44,23 +45,28 @@ export function ActionButtons({
       lines.push(`Coordinates: ${draft.location.lat.toFixed(6)}, ${draft.location.lng.toFixed(6)}`);
     }
 
-    const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
-    if (draft.serviceType === 'assess') {
+    const serviceOnly = isAssistedChatServiceOnly(draft.serviceType);
+    const tyreSummary = serviceOnly ? [] : summarizeBookingTyreLines(draft.tyreLines);
+    if (draft.serviceType === 'locking_nut') {
+      lines.push('No tyre replacement or repair is included.');
+    } else if (draft.serviceType === 'assess') {
       lines.push('Final tyre cost will be confirmed after inspection.');
     } else if (tyreSummary.length > 0) {
       lines.push('Tyres:');
       tyreSummary.forEach((line) => lines.push(`- ${line}`));
     }
-    lines.push(
-      `Locking wheel nut: ${
-        draft.lockingNut.answer === 'yes'
-          ? 'Customer has it'
-          : draft.lockingNut.answer === 'no'
-          ? 'Customer does NOT have it'
-          : 'Unknown'
-      }`,
-    );
-    if (lockingNutCharge > 0) {
+    if (!serviceOnly) {
+      lines.push(
+        `Locking wheel nut: ${
+          draft.lockingNut.answer === 'yes'
+            ? 'Customer has it'
+            : draft.lockingNut.answer === 'no'
+            ? 'Customer does NOT have it'
+            : 'Unknown'
+        }`,
+      );
+    }
+    if (!serviceOnly && lockingNutCharge > 0) {
       lines.push(`Locking wheel nut removal: ${formatGbp(lockingNutCharge)}`);
     }
     if (draft.note.trim()) lines.push(`Note: ${draft.note.trim()}`);
@@ -98,7 +104,7 @@ export function ActionButtons({
   const sendDisabled = baseDisabled;
   const sendHint = (() => {
     if (draft.dispatchedRefNumber) return null;
-    if (!hasAssistedChatTyre(draft)) return 'Enter a valid tyre size or choose Unknown / inspection required before sending to driver.';
+    if (!hasAssistedChatTyre(draft)) return 'Enter a valid tyre size or choose a service-only job before sending to driver.';
     if (!draft.quote) return 'Get the price before sending to driver.';
     if (!draft.paymentChoice) return 'Choose deposit, cash, or full payment before sending.';
     return null;

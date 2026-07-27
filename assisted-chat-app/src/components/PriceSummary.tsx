@@ -102,6 +102,8 @@ export function PriceSummary({
   const customerPriceSentence = quote
     ? serviceType === 'assess'
       ? `Tell customer: total is ${formatGbp(effectiveTotal)} for call-out, inspection and labour. Final tyre cost will be confirmed after inspection.`
+      : serviceType === 'locking_nut'
+      ? `Tell customer: total is ${formatGbp(effectiveTotal)} for locking wheel nut removal, call-out and labour.`
       : serviceType === 'repair'
       ? `Tell customer: total is ${formatGbp(effectiveTotal)} for tyre repair, call-out and labour.`
       : `Tell customer: total is ${formatGbp(effectiveTotal)} including tyre, fitting${hasDistanceCharge ? ', callout and distance charges' : ''}.`
@@ -109,6 +111,9 @@ export function PriceSummary({
   const smartWarnings = [
     quote && serviceType === 'assess'
       ? 'Final tyre cost will be confirmed after inspection.'
+      : null,
+    quote && serviceType === 'locking_nut'
+      ? 'No tyre replacement or repair is included in this quote.'
       : null,
     pricingDistanceMiles != null && pricingDistanceMiles >= 30
       ? 'Long-distance job. The price includes extra travel distance.'

@@ -6,6 +6,7 @@ import { buildWhatsAppUrl } from '@/lib/customer-message';
 import { formatGbp } from '@/lib/money';
 import {
   formatAssistedChatServiceType,
+  isAssistedChatServiceOnly,
   summarizeBookingTyreLines,
 } from '@/lib/assisted-chat-workflow';
 import { AppButton, SectionCard, StatusBanner } from './ui';
@@ -49,8 +50,11 @@ function buildPaymentMessage(
   }
   lines.push(`Total: ${formatGbp(effectiveTotal)}`);
   if (draft.location.address) lines.push(`Address: ${draft.location.address}`);
-  const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
-  if (draft.serviceType === 'assess') {
+  const serviceOnly = isAssistedChatServiceOnly(draft.serviceType);
+  const tyreSummary = serviceOnly ? [] : summarizeBookingTyreLines(draft.tyreLines);
+  if (draft.serviceType === 'locking_nut') {
+    lines.push('No tyre replacement or repair is included.');
+  } else if (draft.serviceType === 'assess') {
     lines.push('Final tyre cost will be confirmed after inspection.');
   } else if (tyreSummary.length > 0) {
     lines.push('Tyres:');

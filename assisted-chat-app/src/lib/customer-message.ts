@@ -5,6 +5,7 @@ import type {
 import { formatGbp, normalizePhoneForWhatsApp } from './money';
 import {
   formatAssistedChatServiceType,
+  isAssistedChatServiceOnly,
   summarizeBookingTyreLines,
   totalBookingTyreQuantity,
 } from './assisted-chat-workflow';
@@ -25,6 +26,7 @@ export interface CustomerMessageInput {
 
 function serviceNoun(draft: AssistedChatDraft): string {
   if (draft.serviceType === 'repair') return 'tyre repair';
+  if (draft.serviceType === 'locking_nut') return 'locking wheel nut removal';
   if (draft.serviceType === 'assess') return 'inspection';
   return 'replacement tyre';
 }
@@ -85,8 +87,11 @@ export function buildCustomerMessage(input: CustomerMessageInput): string {
   } else if (draft.savedQuoteRef) {
     detail.push(`Quote ref: ${draft.savedQuoteRef}`);
   }
-  const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
-  if (draft.serviceType === 'assess') {
+  const serviceOnly = isAssistedChatServiceOnly(draft.serviceType);
+  const tyreSummary = serviceOnly ? [] : summarizeBookingTyreLines(draft.tyreLines);
+  if (draft.serviceType === 'locking_nut') {
+    detail.push('No tyre replacement or repair is included.');
+  } else if (draft.serviceType === 'assess') {
     detail.push('Final tyre cost will be confirmed after inspection.');
   } else if (tyreSummary.length > 0) {
     detail.push('Tyres:');
@@ -98,7 +103,7 @@ export function buildCustomerMessage(input: CustomerMessageInput): string {
   if (draft.location.address) {
     detail.push(`Address: ${draft.location.address}`);
   }
-  if (draft.lockingNut.answer === 'no' && draft.lockingNut.chargeGbp != null) {
+  if (!serviceOnly && draft.lockingNut.answer === 'no' && draft.lockingNut.chargeGbp != null) {
     detail.push(`Locking wheel nut removal: ${formatGbp(draft.lockingNut.chargeGbp)}`);
   }
   if (draft.quote && Number.isFinite(effectiveTotal) && effectiveTotal > 0) {

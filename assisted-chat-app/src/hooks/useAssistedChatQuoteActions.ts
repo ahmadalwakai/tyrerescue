@@ -8,7 +8,9 @@ import {
   ASSISTED_CHAT_PRICING_CONTEXT,
 } from '@/lib/pricing-context';
 import {
+  buildAssistedChatVehiclePayload,
   buildBookingTyreLinePayload,
+  isAssistedChatServiceOnly,
   primaryBookingTyreLine,
   totalBookingTyreQuantity,
 } from '@/lib/assisted-chat-workflow';
@@ -119,9 +121,9 @@ function quoteMatchesFinalPayable(quote: AdminQuote | null, finalPayablePence: n
 
 function buildQuoteInput(draft: AssistedChatDraft, priceAmountPence: number, lockingNutCharge: number): CreateAdminQuoteInput {
   const primaryTyre = primaryBookingTyreLine(draft);
-  const isInspectionOnly = draft.serviceType === 'assess';
-  const tyreLines = isInspectionOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
-  const quoteLockingNutCharge = isInspectionOnly ? 0 : lockingNutCharge;
+  const isServiceOnly = isAssistedChatServiceOnly(draft.serviceType);
+  const tyreLines = isServiceOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
+  const quoteLockingNutCharge = isServiceOnly ? 0 : lockingNutCharge;
   return {
     quickBookingId: draft.quickBookingId,
     customerName: draft.customer.name || null,
@@ -130,11 +132,11 @@ function buildQuoteInput(draft: AssistedChatDraft, priceAmountPence: number, loc
     postcode: draft.location.postcode,
     latitude: draft.location.lat,
     longitude: draft.location.lng,
-    tyreSize: isInspectionOnly ? null : primaryTyre.size || null,
-    quantity: isInspectionOnly ? 1 : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
+    tyreSize: isServiceOnly ? null : primaryTyre.size || null,
+    quantity: isServiceOnly ? 1 : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
     tyreLines,
     items: tyreLines,
-    lockingWheelNutStatus: isInspectionOnly || draft.lockingNut.answer === 'unknown' ? null : draft.lockingNut.answer,
+    lockingWheelNutStatus: isServiceOnly || draft.lockingNut.answer === 'unknown' ? null : draft.lockingNut.answer,
     lockingWheelNutChargePence: Math.round(quoteLockingNutCharge * 100),
     priceAmount: priceAmountPence,
     currency: 'GBP',
@@ -198,12 +200,12 @@ export function useAssistedChatQuoteActions({
       let adjustmentAmount = 0;
       let adjustmentReason: string | null = null;
       const serviceType = draft.serviceType ?? 'fit';
-      const isInspectionOnly = serviceType === 'assess';
+      const isServiceOnly = isAssistedChatServiceOnly(serviceType);
 
       if (draft.manualPriceGbp != null && Number.isFinite(draft.manualPriceGbp)) {
         adjustmentAmount = Math.round((draft.manualPriceGbp - backendBaseTotal) * 100) / 100;
         adjustmentReason = MANUAL_PRICE_REASON;
-      } else if (!isInspectionOnly && lockingNutCharge > 0) {
+      } else if (!isServiceOnly && lockingNutCharge > 0) {
         adjustmentAmount = lockingNutCharge;
         adjustmentReason = LOCKING_NUT_REASON;
       }
@@ -212,7 +214,8 @@ export function useAssistedChatQuoteActions({
       const customerPhone = draft.customer.phone.trim();
       const customerEmail = draft.customer.email.trim();
       const primaryTyre = primaryBookingTyreLine(draft);
-      const tyreLines = isInspectionOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
+      const tyreLines = isServiceOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
+      const vehicle = buildAssistedChatVehiclePayload(draft);
       const patched = await api.patch<QuickBookPatchResponse>(`/api/admin/quick-book/${draft.quickBookingId}`, {
         ...(customerName ? { customerName } : {}),
         ...(customerPhone ? { customerPhone } : {}),
@@ -220,12 +223,13 @@ export function useAssistedChatQuoteActions({
         locationAddress: draft.location.address || null,
         locationPostcode: draft.location.postcode || null,
         serviceType,
-        tyreSize: isInspectionOnly ? null : primaryTyre.size,
-        tyreCount: isInspectionOnly
+        tyreSize: isServiceOnly ? null : primaryTyre.size,
+        tyreCount: isServiceOnly
           ? 1
           : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
         tyreLines,
         items: tyreLines,
+        vehicle,
         adminAdjustmentAmount: adjustmentAmount,
         adminAdjustmentReason: adjustmentReason,
         pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,

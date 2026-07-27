@@ -33,15 +33,30 @@ export type AssistedChatStepState = 'done' | 'active' | 'todo';
 export const ASSISTED_CHAT_SERVICE_LABELS: Record<AssistedChatServiceType, string> = {
   fit: 'Replacement tyre',
   repair: 'Tyre repair',
+  locking_nut: 'Locking wheel nut removal',
   assess: 'Unknown / inspection required',
 };
+
+export function normalizeAssistedChatServiceType(
+  serviceType: AssistedChatServiceType | null | undefined,
+): AssistedChatServiceType {
+  return serviceType === 'repair' || serviceType === 'assess' || serviceType === 'locking_nut'
+    ? serviceType
+    : 'fit';
+}
 
 export function formatAssistedChatServiceType(
   serviceType: AssistedChatServiceType | null | undefined,
 ): string {
-  const normalized: AssistedChatServiceType =
-    serviceType === 'repair' || serviceType === 'assess' ? serviceType : 'fit';
+  const normalized = normalizeAssistedChatServiceType(serviceType);
   return ASSISTED_CHAT_SERVICE_LABELS[normalized];
+}
+
+export function isAssistedChatServiceOnly(
+  serviceType: AssistedChatServiceType | null | undefined,
+): boolean {
+  const normalized = normalizeAssistedChatServiceType(serviceType);
+  return normalized === 'assess' || normalized === 'locking_nut';
 }
 
 export type AssistedChatSecondaryAction =
@@ -138,11 +153,25 @@ function isValidTyreRange(width: number, aspect: number, rim: number): boolean {
   return width >= 100 && width <= 400 && aspect >= 0 && aspect <= 100 && rim >= 10 && rim <= 26;
 }
 
+function cleanOptionalText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function cleanOptionalBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
+}
+
 export function createBookingTyreLine(partial: Partial<BookingTyreLine> = {}): BookingTyreLine {
   return {
     id: partial.id ?? `tyre-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     size: partial.size ?? '',
     quantity: Math.max(1, Math.round(partial.quantity ?? 1)),
+    axle: cleanOptionalText(partial.axle),
+    loadIndex: cleanOptionalText(partial.loadIndex),
+    speedIndex: cleanOptionalText(partial.speedIndex),
+    runFlat: cleanOptionalBoolean(partial.runFlat),
+    xl: cleanOptionalBoolean(partial.xl),
+    commercial: cleanOptionalBoolean(partial.commercial),
     brand: partial.brand ?? null,
     pattern: partial.pattern ?? null,
     season: partial.season ?? null,
@@ -159,6 +188,12 @@ export function ensureBookingTyreLines(lines: unknown): BookingTyreLine[] {
       id: typeof raw.id === 'string' && raw.id.trim() ? raw.id : `tyre-${index + 1}`,
       size: typeof raw.size === 'string' ? raw.size : '',
       quantity: typeof raw.quantity === 'number' && Number.isFinite(raw.quantity) ? raw.quantity : 1,
+      axle: cleanOptionalText(raw.axle),
+      loadIndex: cleanOptionalText(raw.loadIndex),
+      speedIndex: cleanOptionalText(raw.speedIndex),
+      runFlat: cleanOptionalBoolean(raw.runFlat),
+      xl: cleanOptionalBoolean(raw.xl),
+      commercial: cleanOptionalBoolean(raw.commercial),
       brand: typeof raw.brand === 'string' ? raw.brand : null,
       pattern: typeof raw.pattern === 'string' ? raw.pattern : null,
       season: typeof raw.season === 'string' ? raw.season : null,
@@ -173,6 +208,12 @@ export function isEmptyOptionalTyreLine(line: BookingTyreLine, index: number): b
   return (
     index > 0 &&
     !line.size.trim() &&
+    !line.axle?.trim() &&
+    !line.loadIndex?.trim() &&
+    !line.speedIndex?.trim() &&
+    line.runFlat == null &&
+    line.xl == null &&
+    line.commercial == null &&
     !line.brand?.trim() &&
     !line.pattern?.trim() &&
     !line.season?.trim() &&
@@ -229,6 +270,12 @@ export function buildBookingTyreLinePayload(lines: BookingTyreLine[]): BookingTy
     id: line.id,
     size: line.size,
     quantity: Math.max(1, Math.round(line.quantity || 1)),
+    axle: line.axle ?? null,
+    loadIndex: line.loadIndex ?? null,
+    speedIndex: line.speedIndex ?? null,
+    runFlat: line.runFlat ?? null,
+    xl: line.xl ?? null,
+    commercial: line.commercial ?? null,
     brand: line.brand ?? null,
     pattern: line.pattern ?? null,
     season: line.season ?? null,
@@ -237,12 +284,36 @@ export function buildBookingTyreLinePayload(lines: BookingTyreLine[]): BookingTy
   }));
 }
 
+export function buildAssistedChatVehiclePayload(draft: AssistedChatDraft): {
+  registrationNumber: string;
+  make: string;
+  model: string | null;
+} | null {
+  if (!draft.vehicle) return null;
+  const registrationNumber = draft.vehicle.registrationNumber.trim().toUpperCase().replace(/\s+/g, '');
+  const make = draft.vehicle.make.trim();
+  const model = draft.vehicle.model?.trim() || null;
+  if (!registrationNumber || !make) return null;
+  return { registrationNumber, make, model };
+}
+
 export function primaryBookingTyreLine(draft: AssistedChatDraft): BookingTyreLine {
   return buildBookingTyreLinePayload(draft.tyreLines)[0] ?? createBookingTyreLine({ id: 'tyre-1' });
 }
 
 export function summarizeBookingTyreLines(lines: BookingTyreLine[]): string[] {
-  return buildBookingTyreLinePayload(lines).map((line) => `${line.quantity} × ${line.size}`);
+  return buildBookingTyreLinePayload(lines).map((line) => {
+    const axle = line.axle?.trim().toLowerCase();
+    const prefix =
+      axle === 'front'
+        ? 'Front'
+        : axle === 'rear'
+        ? 'Rear'
+        : axle === 'all'
+        ? 'All'
+        : line.axle?.trim() || null;
+    return prefix ? `${prefix}: ${line.quantity} × ${line.size}` : `${line.quantity} × ${line.size}`;
+  });
 }
 
 export function totalBookingTyreQuantity(lines: BookingTyreLine[]): number {
@@ -250,8 +321,8 @@ export function totalBookingTyreQuantity(lines: BookingTyreLine[]): number {
 }
 
 export function hasAssistedChatTyre(draft: AssistedChatDraft): boolean {
-  if (draft.serviceType === 'assess') return true;
-  return validateBookingTyreLines(draft.tyreLines) === null;
+  if (isAssistedChatServiceOnly(draft.serviceType)) return true;
+  return validateBookingTyreLines(draft.tyreLines) === null && draft.tyreConfirmedFromSidewall;
 }
 
 function hasSavedQuote(draft: AssistedChatDraft): boolean {
@@ -289,9 +360,24 @@ export function getAssistedChatBlockedReason(input: AssistedChatWorkflowInput): 
     return 'Log in again before using admin actions.';
   }
 
+  if (stage === 'TYRE') {
+    if (isAssistedChatServiceOnly(draft.serviceType)) return null;
+    const tyreError = validateBookingTyreLines(draft.tyreLines);
+    if (tyreError) return tyreError;
+    if (!draft.tyreConfirmedFromSidewall) {
+      return 'Confirm the tyre size from the sidewall before pricing.';
+    }
+    return null;
+  }
+
   if (stage === 'PRICE') {
     if (!hasLocation(draft)) return 'Confirm the customer location before pricing.';
-    if (!hasAssistedChatTyre(draft)) return 'Enter a valid tyre size and quantity before pricing, or choose Unknown / inspection required.';
+    if (!isAssistedChatServiceOnly(draft.serviceType) && validateBookingTyreLines(draft.tyreLines)) {
+      return 'Enter a valid tyre size and quantity before pricing, or choose a service-only job.';
+    }
+    if (!draft.tyreConfirmedFromSidewall && !isAssistedChatServiceOnly(draft.serviceType)) {
+      return 'Confirm the tyre size from the sidewall before pricing.';
+    }
     if (input.priceLoading) return 'Price is already being calculated.';
     return null;
   }

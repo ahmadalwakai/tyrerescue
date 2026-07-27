@@ -3,7 +3,7 @@
 // is not in the Next.js tsconfig include path. Field shapes match exactly.
 
 export type LockingNutAnswer = 'yes' | 'no' | 'unknown';
-export type AssistedChatServiceType = 'fit' | 'repair' | 'assess';
+export type AssistedChatServiceType = 'fit' | 'repair' | 'assess' | 'locking_nut';
 export type AssistedChatPaymentChoice = 'cash' | 'deposit' | 'full';
 export type CustomerEmailMode = 'walk_in_customer' | 'send_customer_confirmation';
 export type PaymentChoice = AssistedChatPaymentChoice;
@@ -32,10 +32,129 @@ export interface AssistedChatTyreSelection {
   quantity: number;
 }
 
+export interface AssistedChatVehicle {
+  registrationNumber: string;
+  make: string;
+  model: string | null;
+  yearOfManufacture: number | null;
+  fuelType: 'PETROL' | 'DIESEL' | 'ELECTRIC' | 'HYBRID' | 'OTHER';
+  colour: string | null;
+}
+
+export interface AssistedChatTyreSize {
+  width: string;
+  aspect: string;
+  rim: string;
+  sizeDisplay?: string;
+  loadIndex?: string;
+  speedIndex?: string;
+  runFlat?: boolean;
+  xl?: boolean;
+  commercial?: boolean;
+  source?: string;
+  oem?: boolean;
+  fallback?: boolean;
+}
+
+export interface AssistedChatTyreFitmentOption {
+  id: string;
+  label: string;
+  front: AssistedChatTyreSize;
+  rear: AssistedChatTyreSize;
+  source: string;
+  sourceLabel: string;
+  confidence: 'high' | 'medium' | 'low';
+  oem?: boolean;
+  optional?: boolean;
+  staggered?: boolean;
+  vehicleModel?: string;
+  vehicleVariant?: string | null;
+  fitmentRank?: number;
+  notes?: string[];
+  tyreLines?: Array<{
+    id?: string | null;
+    size: AssistedChatTyreSize;
+    quantity: number;
+    axle?: string | null;
+    loadIndex?: string | null;
+    speedIndex?: string | null;
+    runFlat?: boolean | null;
+    xl?: boolean | null;
+    commercial?: boolean | null;
+  }>;
+}
+
+export type AssistedChatVehicleFitmentLookupStatus =
+  | 'dvla_resolved'
+  | 'locally_confirmed'
+  | 'model_required'
+  | 'multiple_models'
+  | 'catalogue_candidates'
+  | 'multiple_fitments'
+  | 'identity_conflict'
+  | 'manual_vehicle_required'
+  | 'manual_tyre_required'
+  | 'sidewall_confirmation_required'
+  | 'dvla_not_found'
+  | 'dvla_unavailable';
+
+export interface AssistedChatVehicleModelCandidate {
+  id: string;
+  make: string;
+  model: string;
+  variants: string[];
+  from: number;
+  to: number;
+  matchReason: string;
+}
+
+export interface AssistedChatVehicleIdentityConflict {
+  registrationNumber: string;
+  currentVehicle: AssistedChatVehicle;
+  previousVehicle: AssistedChatVehicle;
+  conflictFields: string[];
+  message: string;
+}
+
+export interface AssistedChatTyreAssistance {
+  provider: 'groq' | 'deterministic';
+  recommendedOptionId: string | null;
+  summary: string;
+  warnings: string[];
+}
+
+export interface AssistedChatVehicleFitmentLookupResponse {
+  ok: boolean;
+  status?: AssistedChatVehicleFitmentLookupStatus;
+  states?: AssistedChatVehicleFitmentLookupStatus[];
+  vehicle?: AssistedChatVehicle;
+  localVehicle?: AssistedChatVehicle;
+  vehicleSource?: 'dvla' | 'locally_confirmed' | 'manual';
+  tyreSize?: AssistedChatTyreSize | null;
+  tyreOptions?: AssistedChatTyreFitmentOption[];
+  tyreAssistance?: AssistedChatTyreAssistance;
+  tyreCatalogStatus?: 'hit' | 'local_catalog' | 'miss' | 'not_configured' | 'error';
+  modelCandidates?: AssistedChatVehicleModelCandidate[];
+  identityConflict?: AssistedChatVehicleIdentityConflict;
+  requiresModelSelection?: boolean;
+  requiresManualVehicle?: boolean;
+  requiresManualTyre?: boolean;
+  requiresSidewallConfirmation?: boolean;
+  requiresIdentityConfirmation?: boolean;
+  messages?: string[];
+  error?: { code: string; message: string };
+}
+
 export type BookingTyreLine = {
   id: string;
   size: string;
   quantity: number;
+  axle?: string | null;
+  loadIndex?: string | null;
+  speedIndex?: string | null;
+  runFlat?: boolean | null;
+  xl?: boolean | null;
+  commercial?: boolean | null;
   brand?: string | null;
   pattern?: string | null;
   season?: string | null;
@@ -89,6 +208,8 @@ export interface AssistedChatDraft {
   location: AssistedChatLocation;
   serviceType: AssistedChatServiceType;
   tyreLines: BookingTyreLine[];
+  vehicle: AssistedChatVehicle | null;
+  tyreConfirmedFromSidewall: boolean;
   lockingNut: AssistedChatLockingWheelNut;
   quickBookingId: string | null;
   virtualLandlineInteractionId: string | null;

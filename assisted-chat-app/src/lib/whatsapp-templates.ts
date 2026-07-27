@@ -1,6 +1,7 @@
 import type { AssistedChatDraft } from '@/types/assisted-chat';
 import {
   formatAssistedChatServiceType,
+  isAssistedChatServiceOnly,
   summarizeBookingTyreLines,
   totalBookingTyreQuantity,
 } from './assisted-chat-workflow';
@@ -37,8 +38,11 @@ function referenceLines(draft: AssistedChatDraft): string[] {
 function jobDetailLines(draft: AssistedChatDraft, effectiveTotal: number): string[] {
   const lines: string[] = [];
   lines.push(`Service: ${formatAssistedChatServiceType(draft.serviceType)}`);
-  const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
-  if (draft.serviceType === 'assess') {
+  const serviceOnly = isAssistedChatServiceOnly(draft.serviceType);
+  const tyreSummary = serviceOnly ? [] : summarizeBookingTyreLines(draft.tyreLines);
+  if (draft.serviceType === 'locking_nut') {
+    lines.push('No tyre replacement or repair is included.');
+  } else if (draft.serviceType === 'assess') {
     lines.push('Final tyre cost will be confirmed after inspection.');
   } else if (tyreSummary.length > 0) {
     lines.push('Tyres:');

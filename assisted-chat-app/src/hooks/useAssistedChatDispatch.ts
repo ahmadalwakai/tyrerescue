@@ -5,7 +5,9 @@ import {
   ASSISTED_CHAT_PRICING_CONTEXT,
 } from '@/lib/pricing-context';
 import {
+  buildAssistedChatVehiclePayload,
   buildBookingTyreLinePayload,
+  isAssistedChatServiceOnly,
   primaryBookingTyreLine,
   totalBookingTyreQuantity,
 } from '@/lib/assisted-chat-workflow';
@@ -129,12 +131,12 @@ export function useAssistedChatDispatch({
         let adjustmentAmount = 0;
         let adjustmentReason: string | null = null;
         const serviceType = draft.serviceType ?? 'fit';
-        const isInspectionOnly = serviceType === 'assess';
+        const isServiceOnly = isAssistedChatServiceOnly(serviceType);
         if (draft.manualPriceGbp != null && Number.isFinite(draft.manualPriceGbp)) {
           adjustmentAmount = Math.round((draft.manualPriceGbp - backendBaseTotal) * 100) / 100;
           adjustmentReason = MANUAL_PRICE_REASON;
         } else if (
-          !isInspectionOnly &&
+          !isServiceOnly &&
           lockingNutCharge > 0 &&
           (
             draft.quote.adminAdjustmentReason !== LOCKING_NUT_REASON ||
@@ -145,10 +147,11 @@ export function useAssistedChatDispatch({
           adjustmentReason = LOCKING_NUT_REASON;
         }
         const primaryTyre = primaryBookingTyreLine(draft);
-        const tyreLines = isInspectionOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
+        const tyreLines = isServiceOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
         const customerName = draft.customer.name.trim();
         const customerPhone = draft.customer.phone.trim();
         const customerEmail = draft.customer.email.trim();
+        const vehicle = buildAssistedChatVehiclePayload(draft);
 
         // Always sync the quick-book row before finalize. This clears stale
         // hidden admin adjustments that can survive a page reload and make
@@ -160,12 +163,13 @@ export function useAssistedChatDispatch({
           locationAddress: draft.location.address || null,
           locationPostcode: draft.location.postcode || null,
           serviceType,
-          tyreSize: isInspectionOnly ? null : primaryTyre.size,
-          tyreCount: isInspectionOnly
+          tyreSize: isServiceOnly ? null : primaryTyre.size,
+          tyreCount: isServiceOnly
             ? 1
             : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity,
           tyreLines,
           items: tyreLines,
+          vehicle,
           adminAdjustmentAmount: adjustmentAmount,
           adminAdjustmentReason: adjustmentReason,
           pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,

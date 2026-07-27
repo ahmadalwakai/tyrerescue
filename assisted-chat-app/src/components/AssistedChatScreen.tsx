@@ -1,8 +1,9 @@
-import { createElement, useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
   AppState,
+  Image,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -16,9 +17,8 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { Asset } from 'expo-asset';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import assistedChatHeaderVideoSource from '../../assets/video/assisted-chat-header.mp4';
+import assistedChatHeaderImageSource from '../../assets/images/assisted-chat-header.png';
 import { EMPTY_DRAFT, useAssistedChatDraft } from '@/hooks/useAssistedChatDraft';
 import { useAssistedChatPrice } from '@/hooks/useAssistedChatPrice';
 import { useAssistedChatDispatch } from '@/hooks/useAssistedChatDispatch';
@@ -68,11 +68,6 @@ import {
   getStripeCheckButtonLabel,
   type PaymentLinkLiveStatus,
 } from '@/lib/payment-link-status';
-import {
-  sanitizeHeaderVideoDiagnostic,
-  shouldShowHeaderVideoFallback,
-  validateHeaderVideoUri,
-} from '@/lib/header-video';
 import { buildCustomerMessage, buildWhatsAppUrl } from '@/lib/customer-message';
 import { copyToClipboard } from '@/lib/clipboard';
 import {
@@ -109,6 +104,7 @@ import {
   formatAssistedChatServiceType,
   getAssistedChatWorkflow,
   hasAssistedChatTyre,
+  isAssistedChatServiceOnly,
   normalizeAssistedChatTyreSize,
   primaryBookingTyreLine,
   summarizeBookingTyreLines,
@@ -401,7 +397,15 @@ function parseCallNotes(text: string): ParsedCallNotes {
   const lower = normalized.toLowerCase();
   const parsed: ParsedCallNotes = {};
 
-  if (/\b(?:not sure|unsure|unknown|inspect|inspection|assess|assessment|check first|needs checking)\b/i.test(normalized)) {
+  const wantsLockingNutRemoval =
+    /\b(?:break|remove|drill|cut|force|smash)\w*\s+(?:off\s+)?(?:the\s+)?(?:locking\s+)?(?:wheel\s+)?(?:nut|bolt)\b/i.test(normalized) ||
+    /\b(?:locking\s+)?wheel\s+nut\s+removal\b/i.test(normalized) ||
+    /\blocking\s+(?:wheel\s+)?nut\s+(?:removed|removal|broken|drilled|off)\b/i.test(normalized) ||
+    /\b(?:lost|missing|no)\s+(?:the\s+)?locking\s+(?:wheel\s+)?nut\s+key\b.*\b(?:remove|break|drill|cut|force)\b/i.test(normalized);
+
+  if (wantsLockingNutRemoval) {
+    parsed.serviceType = 'locking_nut';
+  } else if (/\b(?:not sure|unsure|unknown|inspect|inspection|assess|assessment|check first|needs checking)\b/i.test(normalized)) {
     parsed.serviceType = 'assess';
   } else if (/\b(?:puncture|punctured|repair|repaired|patch|slow puncture|plug)\b/i.test(normalized)) {
     parsed.serviceType = 'repair';
@@ -589,21 +593,28 @@ function buildJobDetails(
   if (draft.location.lat != null && draft.location.lng != null) {
     lines.push(`Coordinates: ${draft.location.lat.toFixed(6)}, ${draft.location.lng.toFixed(6)}`);
   }
-  const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
-  if (tyreSummary.length > 0) {
+  const serviceOnly = isAssistedChatServiceOnly(draft.serviceType);
+  const tyreSummary = serviceOnly ? [] : summarizeBookingTyreLines(draft.tyreLines);
+  if (draft.serviceType === 'locking_nut') {
+    lines.push('No tyre replacement or repair is included.');
+  } else if (draft.serviceType === 'assess') {
+    lines.push('Final tyre cost will be confirmed after inspection.');
+  } else if (tyreSummary.length > 0) {
     lines.push('Tyres:');
     tyreSummary.forEach((line) => lines.push(`- ${line}`));
   }
-  lines.push(
-    `Locking wheel nut: ${
-      draft.lockingNut.answer === 'yes'
-        ? 'Customer has it'
-        : draft.lockingNut.answer === 'no'
-        ? 'Customer does not have it'
-        : 'Not asked / optional'
-    }`,
-  );
-  if (lockingNutCharge > 0) lines.push(`Locking wheel nut removal: ${formatGbp(lockingNutCharge)}`);
+  if (!serviceOnly) {
+    lines.push(
+      `Locking wheel nut: ${
+        draft.lockingNut.answer === 'yes'
+          ? 'Customer has it'
+          : draft.lockingNut.answer === 'no'
+          ? 'Customer does not have it'
+          : 'Not asked / optional'
+      }`,
+    );
+  }
+  if (!serviceOnly && lockingNutCharge > 0) lines.push(`Locking wheel nut removal: ${formatGbp(lockingNutCharge)}`);
   if (draft.note.trim()) lines.push(`Driver note: ${draft.note.trim()}`);
   if (draft.quote) {
     lines.push(`Total: ${formatGbp(effectiveTotal)}`);
@@ -643,8 +654,13 @@ function buildPaymentMessage(paymentLink: StripePaymentLinkState, draft: Assiste
   if (paymentLink.remainingBalancePence != null) lines.push(`Balance due on-site: ${formatPence(paymentLink.remainingBalancePence)}`);
   lines.push(`${bookingReady ? 'Total to pay' : 'Quote total'}: ${formatGbp(effectiveTotal)}`);
   if (draft.location.address) lines.push(`Address: ${draft.location.address}`);
-  const tyreSummary = summarizeBookingTyreLines(draft.tyreLines);
-  if (tyreSummary.length > 0) {
+  const serviceOnly = isAssistedChatServiceOnly(draft.serviceType);
+  const tyreSummary = serviceOnly ? [] : summarizeBookingTyreLines(draft.tyreLines);
+  if (draft.serviceType === 'locking_nut') {
+    lines.push('No tyre replacement or repair is included.');
+  } else if (draft.serviceType === 'assess') {
+    lines.push('Final tyre cost will be confirmed after inspection.');
+  } else if (tyreSummary.length > 0) {
     lines.push('Tyres:');
     tyreSummary.forEach((line) => lines.push(`- ${line}`));
   }
@@ -1063,7 +1079,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   }, [draft.customer?.phone, hydrated, phoneSynced]);
 
   const lockingNutCharge =
-    draft.serviceType !== 'assess' &&
+    !isAssistedChatServiceOnly(draft.serviceType) &&
     draft.lockingNut.answer === 'no' &&
     draft.lockingNut.chargeGbp != null
       ? draft.lockingNut.chargeGbp
@@ -1624,6 +1640,8 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       applied.push(
         parsed.serviceType === 'repair'
           ? 'tyre repair'
+          : parsed.serviceType === 'locking_nut'
+          ? 'locking wheel nut removal'
           : parsed.serviceType === 'assess'
           ? 'inspection required'
           : 'replacement tyre',
@@ -1694,6 +1712,16 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     const ok = await copyToClipboard(buildJobDetails(draft, effectiveTotal, lockingNutCharge, selectedPaymentOption));
     flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Job details copied.' : 'Could not copy job details.' });
   }, [draft, effectiveTotal, flashNotice, lockingNutCharge, selectedPaymentOption]);
+
+  const handleCopyReferenceNumber = useCallback(async () => {
+    const refNumber = draft.dispatchedRefNumber?.trim();
+    if (!refNumber) {
+      flashNotice({ kind: 'info', text: 'No booking reference to copy yet.' });
+      return;
+    }
+    const ok = await copyToClipboard(refNumber);
+    flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? `Reference ${refNumber} copied.` : 'Could not copy reference.' });
+  }, [draft.dispatchedRefNumber, flashNotice]);
 
   const handleCopyCustomerMessage = useCallback(async () => {
     const ok = await copyToClipboard(customerMessage);
@@ -2261,8 +2289,10 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
             clearDraftDisabled={!draftHasContent}
             invoiceAvailable={hasHeaderInvoiceRef}
             invoiceBusy={headerInvoiceBusy}
+            referenceAvailable={hasHeaderInvoiceRef}
             onCall={handleCallCustomer}
             onWhatsApp={handleOpenWhatsApp}
+            onCopyReference={handleCopyReferenceNumber}
             onClearDraft={handleClear}
             onDownloadInvoice={handleDownloadHeaderInvoice}
           />
@@ -2311,6 +2341,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
               quoteExpiryStatus,
               dispatch,
               handleCopyCustomerDetails,
+              handleCopyReferenceNumber,
               engineEffectiveTotal,
               originalCalculatedPriceGbp,
               setEditPriceOpen,
@@ -2587,6 +2618,7 @@ interface RenderActiveStageArgs {
   quoteExpiryStatus: string | null;
   dispatch: ReturnType<typeof useAssistedChatDispatch>;
   handleCopyCustomerDetails: () => void | Promise<void>;
+  handleCopyReferenceNumber: () => void | Promise<void>;
   engineEffectiveTotal: number;
   originalCalculatedPriceGbp: number;
   setEditPriceOpen: (value: boolean) => void;
@@ -2628,6 +2660,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     quoteExpiryStatus,
     dispatch,
     handleCopyCustomerDetails,
+    handleCopyReferenceNumber,
     engineEffectiveTotal,
     originalCalculatedPriceGbp,
     setEditPriceOpen,
@@ -2744,7 +2777,9 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     return (
       <View style={styles.stepStack}>
         <TyreSelectionSection draft={draft} update={update} />
-        <LockingWheelNutSection draft={draft} update={update} />
+        {!isAssistedChatServiceOnly(draft.serviceType) ? (
+          <LockingWheelNutSection draft={draft} update={update} />
+        ) : null}
         <SectionCard title="Driver note">
           <FieldLabel>Admin note</FieldLabel>
           <TextInput
@@ -2768,7 +2803,7 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     const pricingDisabledReason = !hasLocation
       ? 'Price is locked until the customer location is confirmed.'
       : !hasTyre
-      ? 'Enter a tyre size or choose Unknown / inspection required before getting the price.'
+      ? 'Enter a tyre size or choose a service-only job before getting the price.'
       : null;
     const status = computeCompactQuoteStatus({
       activeQuote,
@@ -3078,6 +3113,17 @@ function renderActiveStage(args: RenderActiveStageArgs) {
   return (
     <SectionCard title="Dispatched">
       <Text style={styles.bodyText}>Booking {draft.dispatchedRefNumber ?? 'created'} is ready.</Text>
+      {draft.dispatchedRefNumber ? (
+        <View style={styles.referenceActions}>
+          <DetailRow label="Reference" value={draft.dispatchedRefNumber} />
+          <AppButton
+            label="Copy reference"
+            variant="secondary"
+            onPress={handleCopyReferenceNumber}
+            fullWidth
+          />
+        </View>
+      ) : null}
       {draft.paymentLink ? (
         <View style={styles.paymentLinkSummary}>
           <Text style={styles.paymentLinkTitle}>{draft.paymentLink.kind === 'deposit' ? 'Deposit payment link' : 'Full payment link'}</Text>
@@ -3212,7 +3258,7 @@ function PremiumAppHeader({
   const showCustomerMeta = customerName.trim().toLowerCase() !== 'new customer';
   return (
     <View style={styles.header} testID="assisted-chat-header">
-      <HeaderVideoBackground />
+      <HeaderImageBackground />
       <View style={styles.headerTopRow}>
         <View style={styles.headerIdentityRow}>
           <Pressable
@@ -3337,172 +3383,12 @@ function HeaderNotificationButton({
   );
 }
 
-function HeaderVideoBackground() {
-  if (Platform.OS !== 'web') {
-    return (
-      <View style={[styles.headerVideoLayer, styles.pointerNone]} testID="assisted-chat-header-video-background">
-        <HeaderVideoFallback />
-      </View>
-    );
-  }
-
-  return <HeaderVideoBackgroundWeb />;
-}
-
-function HeaderVideoBackgroundWeb() {
-  const videoAsset = useMemo(() => {
-    try {
-      return Asset.fromModule(assistedChatHeaderVideoSource);
-    } catch {
-      if (__DEV__) {
-        throw new Error('Assisted Chat header video asset could not be resolved.');
-      }
-      return null;
-    }
-  }, []);
-  const webVideoRef = useRef<{ play?: () => Promise<void> | void; pause?: () => void } | null>(null);
-  const [videoUri, setVideoUri] = useState<string | null>(null);
-  const [videoStarted, setVideoStarted] = useState(false);
-  const [videoFailed, setVideoFailed] = useState(false);
-  const [videoDiagnostic, setVideoDiagnostic] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const preload = async () => {
-      if (!videoAsset) {
-        if (mounted) {
-          setVideoFailed(true);
-          setVideoDiagnostic('asset-module-unresolved');
-        }
-        return;
-      }
-
-      try {
-        const loadedVideo = await videoAsset.downloadAsync();
-        if (!mounted) return;
-        const bundledUri = loadedVideo.localUri ?? videoAsset.localUri ?? loadedVideo.uri ?? videoAsset.uri ?? null;
-        const validation = validateHeaderVideoUri(bundledUri, false);
-
-        if (!validation.ok) {
-          setVideoFailed(true);
-          setVideoDiagnostic(validation.reason ?? 'invalid-video-uri');
-          return;
-        }
-
-        setVideoUri(bundledUri);
-        setVideoStarted(false);
-        setVideoFailed(false);
-        setVideoDiagnostic(null);
-      } catch {
-        if (mounted) {
-          setVideoFailed(true);
-          setVideoDiagnostic('asset-preload-failed');
-        }
-      }
-    };
-
-    void preload();
-
-    return () => {
-      mounted = false;
-    };
-  }, [videoAsset]);
-
-  const sendVideoCommand = useCallback((command: 'pause' | 'play') => {
-    if (command === 'pause') {
-      webVideoRef.current?.pause?.();
-      return;
-    }
-
-    const playResult = webVideoRef.current?.play?.();
-    if (playResult && typeof (playResult as Promise<void>).catch === 'function') {
-      (playResult as Promise<void>).catch(() => {
-        setVideoDiagnostic('web-playback-rejected');
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    const onFocus = () => sendVideoCommand('play');
-    const onBlur = () => sendVideoCommand('pause');
-    const windowEventTarget =
-      typeof window !== 'undefined' &&
-      typeof window.addEventListener === 'function' &&
-      typeof window.removeEventListener === 'function'
-        ? window
-        : null;
-
-    windowEventTarget?.addEventListener('focus', onFocus);
-    windowEventTarget?.addEventListener('blur', onBlur);
-
-    return () => {
-      windowEventTarget?.removeEventListener('focus', onFocus);
-      windowEventTarget?.removeEventListener('blur', onBlur);
-    };
-  }, [sendVideoCommand]);
-
-  useEffect(() => {
-    if (!videoUri || videoStarted || videoFailed) return undefined;
-
-    const startupTimer = setTimeout(() => {
-      setVideoFailed(true);
-      setVideoDiagnostic('startup-timeout');
-    }, 5000);
-
-    return () => clearTimeout(startupTimer);
-  }, [videoFailed, videoStarted, videoUri]);
-
-  useEffect(() => {
-    if (__DEV__ && videoDiagnostic) {
-      console.warn('[assisted-chat-header-video]', sanitizeHeaderVideoDiagnostic(videoDiagnostic));
-    }
-  }, [videoDiagnostic]);
-
-  const showFallback = shouldShowHeaderVideoFallback({ videoStarted, videoFailed, videoUri });
-
+function HeaderImageBackground() {
   return (
-    <View style={[styles.headerVideoLayer, styles.pointerNone]} testID="assisted-chat-header-video-background">
-      {showFallback ? <HeaderVideoFallback /> : null}
-      {videoUri && !videoFailed
-        ? createElement('video', {
-            ref: webVideoRef,
-            src: videoUri,
-            autoPlay: true,
-            muted: true,
-            loop: true,
-            playsInline: true,
-            preload: 'auto',
-            controls: false,
-            'aria-hidden': true,
-            tabIndex: -1,
-            onPlaying: () => setVideoStarted(true),
-            onPause: () => setVideoStarted(false),
-            onEnded: () => setVideoStarted(false),
-            onError: () => {
-              setVideoFailed(true);
-              setVideoDiagnostic('web-media-error');
-            },
-            style: {
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              opacity: videoStarted ? 1 : 0,
-              pointerEvents: 'none',
-            },
-          })
-        : null}
-    </View>
-  );
-}
-
-function HeaderVideoFallback() {
-  return (
-    <View style={styles.headerVideoFallback}>
-      <View style={styles.headerVideoFallbackSoftLight} />
-      <View style={styles.headerVideoFallbackSurface} />
+    <View style={[styles.headerImageLayer, styles.pointerNone]} testID="assisted-chat-header-image-background">
+      <Image source={assistedChatHeaderImageSource} resizeMode="cover" style={styles.headerImage} />
+      <Image source={assistedChatHeaderImageSource} resizeMode="contain" style={styles.headerFeaturedImage} />
+      <View style={styles.headerImageOverlay} />
     </View>
   );
 }
@@ -3513,8 +3399,10 @@ function PrimaryActionDeck({
   clearDraftDisabled,
   invoiceAvailable,
   invoiceBusy,
+  referenceAvailable,
   onCall,
   onWhatsApp,
+  onCopyReference,
   onClearDraft,
   onDownloadInvoice,
 }: {
@@ -3523,8 +3411,10 @@ function PrimaryActionDeck({
   clearDraftDisabled: boolean;
   invoiceAvailable: boolean;
   invoiceBusy: boolean;
+  referenceAvailable: boolean;
   onCall: () => void;
   onWhatsApp: () => void;
+  onCopyReference: () => void;
   onClearDraft: () => void;
   onDownloadInvoice: () => void;
 }) {
@@ -3555,6 +3445,15 @@ function PrimaryActionDeck({
           onPress={onDownloadInvoice}
           accessibilityLabel="Download invoice"
           testID="assisted-chat-header-invoice-button"
+        />
+      ) : null}
+      {referenceAvailable ? (
+        <PrimaryActionCard
+          icon="clipboard"
+          tone="green"
+          onPress={onCopyReference}
+          accessibilityLabel="Copy booking reference"
+          testID="assisted-chat-header-copy-reference-button"
         />
       ) : null}
       <PrimaryActionCard
@@ -4258,7 +4157,14 @@ function DispatchReviewSheet({
             <DetailRow label="Customer" value={draft.customer.name.trim() || 'New customer'} />
             <DetailRow label="Phone" value={draft.customer.phone.trim() || 'Not set'} />
             <DetailRow label="Service" value={formatAssistedChatServiceType(draft.serviceType)} />
-            <DetailRow label="Tyres" value={summarizeBookingTyreLines(draft.tyreLines).join('\n') || 'Not set'} />
+            <DetailRow
+              label="Tyres"
+              value={
+                isAssistedChatServiceOnly(draft.serviceType)
+                  ? 'Not required'
+                  : summarizeBookingTyreLines(draft.tyreLines).join('\n') || 'Not set'
+              }
+            />
             <DetailRow label="Address/location" value={draft.location.address.trim() || draft.location.status} />
             <DetailRow label="Price" value={formatGbp(effectiveTotal)} />
             <DetailRow label="Quote ref" value={activeQuote?.quoteRef ?? draft.savedQuoteRef ?? 'Not saved'} />
@@ -4373,37 +4279,26 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     ...(premiumPanelShadow ?? {}),
   },
-  headerVideoLayer: {
+  headerImageLayer: {
     position: 'absolute',
     inset: 0,
     zIndex: 0,
   },
-  headerVideoNative: {
-    position: 'absolute',
-    inset: 0,
-    zIndex: 0,
-    backgroundColor: 'transparent',
-  },
-  headerVideoHidden: {
-    opacity: 0,
-  },
-  headerVideoFallback: {
+  headerImage: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(4,7,20,0.96)',
+    opacity: 1,
   },
-  headerVideoFallbackSoftLight: {
+  headerFeaturedImage: {
     position: 'absolute',
-    left: -80,
-    right: 24,
-    bottom: -90,
-    height: 170,
-    borderRadius: 120,
-    backgroundColor: 'rgba(255,123,18,0.16)',
-    opacity: 0.72,
+    top: -300,
+    right: -62,
+    width: 580,
+    height: 1030,
+    opacity: 1,
   },
-  headerVideoFallbackSurface: {
+  headerImageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(4,7,20,0.42)',
+    backgroundColor: 'rgba(4,7,20,0)',
   },
   headerTopRow: {
     flexDirection: 'row',
@@ -4957,6 +4852,7 @@ const styles = StyleSheet.create({
   paymentDetail: { color: colors.muted, fontSize: fontSize.xs, marginTop: 3, lineHeight: 16 },
   bodyText: { color: colors.text, fontSize: fontSize.sm, lineHeight: 20, marginBottom: 10 },
   readySummary: { gap: 8, marginBottom: 12 },
+  referenceActions: { gap: 8, marginBottom: 12 },
   paymentLinkSummary: {
     borderWidth: 1,
     borderColor: colors.borderStrong,

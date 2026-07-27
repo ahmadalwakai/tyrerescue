@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tyre Rescue Assisted Chat",
     "slug": "tyre-rescue-assisted-chat",
-    "version": "1.0.9",
+    "version": "1.0.10",
     "orientation": "portrait",
     "scheme": "tyrerescueassistedchat",
     "userInterfaceStyle": "dark",
@@ -37,7 +37,7 @@
     },
     "ios": {
       "bundleIdentifier": "uk.tyrerescue.assistedchat",
-      "buildNumber": "25",
+      "buildNumber": "26",
       "supportsTablet": true,
       "icon": "./assets/icon.png",
       "infoPlist": {

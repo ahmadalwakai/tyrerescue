@@ -19,6 +19,7 @@ import type {
 } from '@/hooks/useAssistedChatLocationShare';
 import {
   formatAssistedChatServiceType,
+  isAssistedChatServiceOnly,
   summarizeBookingTyreLines,
 } from '@/lib/assisted-chat-workflow';
 import { copyToClipboard } from '@/lib/clipboard';
@@ -137,8 +138,11 @@ function jobLines(draft: AssistedChatDraft, effectiveTotal: number): string[] {
   if (ref) lines.push(ref);
   lines.push(`Service: ${formatAssistedChatServiceType(draft.serviceType)}`);
 
-  const tyres = summarizeBookingTyreLines(draft.tyreLines);
-  if (draft.serviceType === 'assess') {
+  const serviceOnly = isAssistedChatServiceOnly(draft.serviceType);
+  const tyres = serviceOnly ? [] : summarizeBookingTyreLines(draft.tyreLines);
+  if (draft.serviceType === 'locking_nut') {
+    lines.push('No tyre replacement or repair is included.');
+  } else if (draft.serviceType === 'assess') {
     lines.push('Final tyre cost will be confirmed after inspection.');
   } else if (tyres.length) {
     lines.push('Tyres:');

@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createBookingTyreLine, ensureBookingTyreLines } from '@/lib/assisted-chat-workflow';
+import {
+  createBookingTyreLine,
+  ensureBookingTyreLines,
+  normalizeAssistedChatServiceType,
+} from '@/lib/assisted-chat-workflow';
 import {
   logStartupModuleCompleted,
   logStartupModuleFailed,
@@ -14,17 +18,18 @@ import type {
   AssistedChatQuoteLine,
   AssistedChatServiceType,
   AssistedChatTyreSelection,
+  AssistedChatVehicle,
 } from '@/types/assisted-chat';
 
 // Bumped key because old persisted drafts carried fields this streamlined
 // phone-led flow no longer uses. Restore only the current draft shape.
-const STORAGE_KEY = 'assistedChat.draft.v5';
-const LEGACY_KEYS = ['assistedChat.draft.v4', 'assistedChat.draft.v3', 'assistedChat.draft.v2', 'assistedChat.draft.v1'] as const;
+const STORAGE_KEY = 'assistedChat.draft.v6';
+const LEGACY_KEYS = ['assistedChat.draft.v5', 'assistedChat.draft.v4', 'assistedChat.draft.v3', 'assistedChat.draft.v2', 'assistedChat.draft.v1'] as const;
 // Mirrors the web hook so a stale draft doesn't carry forward across days.
 const STALE_AFTER_MS = 1000 * 60 * 60 * 12;
 
 function normalizeServiceType(value: unknown): AssistedChatServiceType {
-  return value === 'repair' || value === 'assess' ? value : 'fit';
+  return normalizeAssistedChatServiceType(value as AssistedChatServiceType | null | undefined);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -80,6 +85,29 @@ function normalizeLockingNut(value: unknown): AssistedChatLockingWheelNut {
 
 function normalizePaymentChoice(value: unknown): AssistedChatDraft['paymentChoice'] {
   return value === 'cash' || value === 'deposit' || value === 'full' ? value : null;
+}
+
+function normalizeVehicle(value: unknown): AssistedChatVehicle | null {
+  if (!isRecord(value)) return null;
+  const registrationNumber = stringValue(value.registrationNumber).toUpperCase().replace(/\s+/g, '');
+  const make = stringValue(value.make);
+  if (!registrationNumber || !make) return null;
+  const fuelType =
+    value.fuelType === 'PETROL' ||
+    value.fuelType === 'DIESEL' ||
+    value.fuelType === 'ELECTRIC' ||
+    value.fuelType === 'HYBRID' ||
+    value.fuelType === 'OTHER'
+      ? value.fuelType
+      : 'OTHER';
+  return {
+    registrationNumber,
+    make,
+    model: nullableString(value.model),
+    yearOfManufacture: finiteNumber(value.yearOfManufacture),
+    fuelType,
+    colour: nullableString(value.colour),
+  };
 }
 
 function normalizeCustomerEmailMode(value: unknown): AssistedChatDraft['customerEmailMode'] {
@@ -170,6 +198,8 @@ export const EMPTY_DRAFT: AssistedChatDraft = {
   },
   serviceType: 'fit',
   tyreLines: [createBookingTyreLine({ id: 'tyre-1' })],
+  vehicle: null,
+  tyreConfirmedFromSidewall: false,
   lockingNut: { answer: 'unknown', chargeGbp: null },
   quickBookingId: null,
   virtualLandlineInteractionId: null,
@@ -240,6 +270,8 @@ export function useAssistedChatDraft() {
               location: normalizeLocation(parsedRecord.location),
               serviceType: normalizeServiceType(parsedRecord.serviceType),
               tyreLines: migratedTyreLines,
+              vehicle: normalizeVehicle(parsedRecord.vehicle),
+              tyreConfirmedFromSidewall: parsedRecord.tyreConfirmedFromSidewall === true,
               lockingNut: normalizeLockingNut(parsedRecord.lockingNut),
               quickBookingId: typeof parsedRecord.quickBookingId === 'string' ? parsedRecord.quickBookingId : null,
               virtualLandlineInteractionId:

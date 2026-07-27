@@ -108,6 +108,8 @@ interface MobileBooking {
   distanceSource: string | null;
   quantity: number;
   tyreSizeDisplay: string | null;
+  tyreDisplayLines?: string[];
+  tyreLineSource?: string;
   vehicleReg: string | null;
   vehicleMake: string | null;
   vehicleModel: string | null;
@@ -337,23 +339,31 @@ function OptionPicker({
   value,
   options,
   onChange,
+  disabled = false,
 }: {
   value: string;
   options: { value: string; label: string }[];
   onChange: (v: string) => void;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const current = options.find((o) => o.value === value) ?? options[0];
   return (
     <>
       <Pressable
-        onPress={() => setOpen(true)}
-        style={({ pressed }) => [styles.pickerButton, pressed && styles.pickerButtonPressed]}
+        onPress={() => {
+          if (!disabled) setOpen(true);
+        }}
+        style={({ pressed }) => [
+          styles.pickerButton,
+          pressed && !disabled && styles.pickerButtonPressed,
+          disabled && styles.pickerButtonDisabled,
+        ]}
       >
         <Text style={styles.pickerText} numberOfLines={1}>{current?.label ?? value}</Text>
         <Text style={styles.pickerChevron}>▾</Text>
       </Pressable>
-      <Modal visible={open} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setOpen(false)}>
+      <Modal visible={open && !disabled} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.pickerBackdrop} onPress={() => setOpen(false)}>
           <View style={styles.pickerSheet}>
             <ScrollView>
@@ -458,7 +468,7 @@ function BookingDetailView({
     setEditPhone(b.customerPhone);
     setEditAddress(b.addressLine);
     setEditNotes(b.notes ?? '');
-    setEditVehicleReg(b.vehicleReg ?? '');
+    setEditVehicleReg((b.vehicleReg ?? '').toUpperCase());
     setEditVehicleMake(b.vehicleMake ?? '');
     setEditVehicleModel(b.vehicleModel ?? '');
     setEditServiceType(b.serviceType);
@@ -545,21 +555,10 @@ function BookingDetailView({
     if (editPhone !== b.customerPhone) payload.customerPhone = editPhone;
     if (editAddress !== b.addressLine) payload.addressLine = editAddress;
     if (editNotes !== (b.notes ?? '')) payload.notes = editNotes || null;
-    if (editVehicleReg !== (b.vehicleReg ?? '')) payload.vehicleReg = editVehicleReg || null;
+    if (editVehicleReg !== (b.vehicleReg ?? '')) payload.vehicleReg = editVehicleReg.trim().toUpperCase() || null;
     if (editVehicleMake !== (b.vehicleMake ?? '')) payload.vehicleMake = editVehicleMake || null;
     if (editVehicleModel !== (b.vehicleModel ?? '')) payload.vehicleModel = editVehicleModel || null;
-    if (editServiceType !== b.serviceType) payload.serviceType = editServiceType;
-    if (editBookingType !== b.bookingType) payload.bookingType = editBookingType;
-    if (editTyreSize !== (b.tyreSizeDisplay ?? '')) payload.tyreSizeDisplay = editTyreSize || null;
-    if (editQty !== String(b.quantity)) payload.quantity = parseInt(editQty, 10);
     if (editLockingNut !== (b.lockingNutStatus ?? 'standard')) payload.lockingNutStatus = editLockingNut;
-    const origScheduled = b.scheduledAt ? new Date(b.scheduledAt).toISOString().slice(0, 16) : '';
-    if (editScheduledAt !== origScheduled) {
-      payload.scheduledAt = editScheduledAt ? new Date(editScheduledAt).toISOString() : null;
-    }
-    if (editSubtotal !== b.subtotal) payload.subtotal = editSubtotal;
-    if (editVat !== b.vatAmount) payload.vatAmount = editVat;
-    if (editTotal !== b.totalAmount) payload.totalAmount = editTotal;
 
     if (Object.keys(payload).length === 0) {
       setActionError('No changes to save.');
@@ -738,7 +737,7 @@ function BookingDetailView({
 
         <Text style={styles.fieldGroup}>Vehicle</Text>
         <Text style={styles.fieldLabel}>Registration</Text>
-        <TextInput value={editVehicleReg} onChangeText={setEditVehicleReg} style={styles.actionInput} autoCapitalize="characters" />
+        <TextInput value={editVehicleReg} onChangeText={(value) => setEditVehicleReg(value.toUpperCase())} style={styles.actionInput} autoCapitalize="characters" />
         <Text style={styles.fieldLabel}>Make</Text>
         <TextInput value={editVehicleMake} onChangeText={setEditVehicleMake} style={styles.actionInput} autoCapitalize="words" />
         <Text style={styles.fieldLabel}>Model</Text>
@@ -746,17 +745,17 @@ function BookingDetailView({
 
         <Text style={styles.fieldGroup}>Booking</Text>
         <Text style={styles.fieldLabel}>Service Type</Text>
-        <OptionPicker value={editServiceType} options={SERVICE_OPTIONS} onChange={setEditServiceType} />
+        <OptionPicker value={editServiceType} options={SERVICE_OPTIONS} onChange={setEditServiceType} disabled />
         <Text style={styles.fieldLabel}>Booking Type</Text>
-        <OptionPicker value={editBookingType} options={BOOKING_TYPE_OPTIONS} onChange={setEditBookingType} />
+        <OptionPicker value={editBookingType} options={BOOKING_TYPE_OPTIONS} onChange={setEditBookingType} disabled />
         <Text style={styles.fieldLabel}>Tyre Size</Text>
-        <TextInput value={editTyreSize} onChangeText={setEditTyreSize} style={styles.actionInput} placeholder="e.g. 225/45R17" placeholderTextColor={colors.subtle} autoCapitalize="none" />
+        <TextInput value={editTyreSize} onChangeText={setEditTyreSize} style={[styles.actionInput, styles.actionInputDisabled]} editable={false} placeholder="e.g. 225/45R17" placeholderTextColor={colors.subtle} autoCapitalize="none" />
         <Text style={styles.fieldLabel}>Quantity</Text>
-        <TextInput value={editQty} onChangeText={setEditQty} style={styles.actionInput} keyboardType="number-pad" />
+        <TextInput value={editQty} onChangeText={setEditQty} style={[styles.actionInput, styles.actionInputDisabled]} editable={false} keyboardType="number-pad" />
         <Text style={styles.fieldLabel}>Locking Nut</Text>
         <OptionPicker value={editLockingNut} options={LOCKING_NUT_OPTIONS} onChange={setEditLockingNut} />
         <Text style={styles.fieldLabel}>Scheduled At (YYYY-MM-DDTHH:MM)</Text>
-        <TextInput value={editScheduledAt} onChangeText={setEditScheduledAt} style={styles.actionInput} placeholder="2026-05-20T10:00" placeholderTextColor={colors.subtle} autoCapitalize="none" autoCorrect={false} />
+        <TextInput value={editScheduledAt} onChangeText={setEditScheduledAt} style={[styles.actionInput, styles.actionInputDisabled]} editable={false} placeholder="2026-05-20T10:00" placeholderTextColor={colors.subtle} autoCapitalize="none" autoCorrect={false} />
 
         <Text style={styles.fieldGroup}>Location</Text>
         <Text style={styles.fieldLabel}>Address</Text>
@@ -764,11 +763,11 @@ function BookingDetailView({
 
         <Text style={styles.fieldGroup}>Pricing</Text>
         <Text style={styles.fieldLabel}>Subtotal (£)</Text>
-        <TextInput value={editSubtotal} onChangeText={setEditSubtotal} style={styles.actionInput} keyboardType="decimal-pad" />
+        <TextInput value={editSubtotal} onChangeText={setEditSubtotal} style={[styles.actionInput, styles.actionInputDisabled]} editable={false} keyboardType="decimal-pad" />
         <Text style={styles.fieldLabel}>VAT (£)</Text>
-        <TextInput value={editVat} onChangeText={setEditVat} style={styles.actionInput} keyboardType="decimal-pad" />
+        <TextInput value={editVat} onChangeText={setEditVat} style={[styles.actionInput, styles.actionInputDisabled]} editable={false} keyboardType="decimal-pad" />
         <Text style={styles.fieldLabel}>Total (£)</Text>
-        <TextInput value={editTotal} onChangeText={setEditTotal} style={styles.actionInput} keyboardType="decimal-pad" />
+        <TextInput value={editTotal} onChangeText={setEditTotal} style={[styles.actionInput, styles.actionInputDisabled]} editable={false} keyboardType="decimal-pad" />
 
         <Text style={styles.fieldGroup}>Notes</Text>
         <TextInput value={editNotes} onChangeText={setEditNotes} style={[styles.actionInput, styles.actionInputMulti]} multiline placeholder="Internal notes…" placeholderTextColor={colors.subtle} />
@@ -1075,8 +1074,19 @@ function BookingDetailView({
               {/* Tyres */}
               <SectionTitle title="Tyres" />
               <View style={styles.card}>
-                <DetailRow label="Size" value={data.booking.tyreSizeDisplay} />
-                <DetailRow label="Quantity" value={String(data.booking.quantity)} />
+                {(data.booking.tyreDisplayLines ?? []).length > 0 ? (
+                  <>
+                    {(data.booking.tyreDisplayLines ?? []).map((line, index) => (
+                      <DetailRow key={`${line}-${index}`} label={index === 0 ? 'Required' : `Line ${index + 1}`} value={line} />
+                    ))}
+                    <DetailRow label="Total quantity" value={String(data.booking.quantity)} />
+                  </>
+                ) : (
+                  <>
+                    <DetailRow label="Size" value={data.booking.tyreSizeDisplay} />
+                    <DetailRow label="Quantity" value={String(data.booking.quantity)} />
+                  </>
+                )}
                 <DetailRow label="Locking nut" value={data.booking.lockingNutStatus} />
               </View>
               {data.tyres.length > 0 && (
@@ -1873,6 +1883,9 @@ const styles = StyleSheet.create({
   pickerButtonPressed: {
     backgroundColor: colors.card,
   },
+  pickerButtonDisabled: {
+    opacity: 0.62,
+  },
   pickerText: {
     flex: 1,
     color: colors.text,
@@ -2001,6 +2014,9 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.text,
     backgroundColor: colors.inputBg,
+  },
+  actionInputDisabled: {
+    opacity: 0.62,
   },
   actionInputMulti: {
     minHeight: 80,
