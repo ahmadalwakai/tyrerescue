@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  typescript: {
+    tsconfigPath: 'tsconfig.next.json',
+  },
   // Allow the Expo web dev apps (assisted-chat, driver-app, customer app) to call the Next.js
   // dev server cross-origin. This only applies in development; production CORS
   // is handled by the proxy function.
