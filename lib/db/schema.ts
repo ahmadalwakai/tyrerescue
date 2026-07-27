@@ -122,6 +122,34 @@ export const tyreProducts = pgTable('tyre_products', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// Registration-level tyre fitments confirmed by an admin from the sidewall.
+// This is the runtime source of truth; JSON catalogues are read-only seed data.
+export const vehicleTyreFitments = pgTable('vehicle_tyre_fitments', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  registrationNumber: varchar('registration_number', { length: 16 }).unique().notNull(),
+  vehicleFingerprint: varchar('vehicle_fingerprint', { length: 255 }).notNull(),
+  vehicleFingerprintPayload: jsonb('vehicle_fingerprint_payload')
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
+  make: varchar('make', { length: 100 }),
+  model: varchar('model', { length: 150 }),
+  yearOfManufacture: integer('year_of_manufacture'),
+  fuelType: varchar('fuel_type', { length: 30 }),
+  colour: varchar('colour', { length: 60 }),
+  options: jsonb('options').$type<Array<Record<string, unknown>>>().notNull().default(sql`'[]'::jsonb`),
+  source: varchar('source', { length: 80 }).notNull().default('assisted_chat_sidewall'),
+  status: varchar('status', { length: 30 }).notNull().default('confirmed'),
+  reviewHistory: jsonb('review_history')
+    .$type<Array<Record<string, unknown>>>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  confirmedBy: uuid('confirmed_by').references(() => users.id, { onDelete: 'set null' }),
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+});
+
 // Bookings table
 export const bookings = pgTable('bookings', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
@@ -749,7 +777,7 @@ export const quickBookings = pgTable('quick_bookings', {
   locationLinkToken: varchar('location_link_token', { length: 64 }).unique(),
   locationLinkExpiry: timestamp('location_link_expiry', { withTimezone: true }),
   locationLinkUsed: boolean('location_link_used').default(false),
-  serviceType: text('service_type').notNull(), // 'fit' | 'repair' | 'assess'
+  serviceType: text('service_type').notNull(), // 'fit' | 'repair' | 'assess' | 'locking_nut'
   tyreSize: varchar('tyre_size', { length: 20 }),
   tyreCount: integer('tyre_count').default(1),
   selectedTyreProductId: uuid('selected_tyre_product_id').references(() => tyreProducts.id),
@@ -1074,6 +1102,8 @@ export type TyreCatalogueItem = typeof tyreCatalogue.$inferSelect;
 export type NewTyreCatalogueItem = typeof tyreCatalogue.$inferInsert;
 export type TyreProduct = typeof tyreProducts.$inferSelect;
 export type NewTyreProduct = typeof tyreProducts.$inferInsert;
+export type VehicleTyreFitment = typeof vehicleTyreFitments.$inferSelect;
+export type NewVehicleTyreFitment = typeof vehicleTyreFitments.$inferInsert;
 export type Booking = typeof bookings.$inferSelect;
 export type NewBooking = typeof bookings.$inferInsert;
 export type BookingTyre = typeof bookingTyres.$inferSelect;

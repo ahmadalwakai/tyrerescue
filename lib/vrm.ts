@@ -9,7 +9,7 @@
 const UK_VRM_REGEX = /^[A-Z0-9]{1,8}$/;
 
 export function normalizeVrm(input: string): string {
-  return input.replace(/\s+/g, '').toUpperCase();
+  return input.toUpperCase().replace(/[^A-Z0-9]+/g, '');
 }
 
 export function isValidVrm(input: string): boolean {

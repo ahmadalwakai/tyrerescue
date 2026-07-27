@@ -150,7 +150,8 @@ function vehicleDescription(
 
 function TyreLineCard({ line, index, required, serviceType, stockSearchEnabled, onChange, onRemove }: TyreLineCardProps) {
   const isFit = serviceType === 'fit';
-  const canSearchStock = isFit && stockSearchEnabled;
+  const canSearchTyreSizes = isFit;
+  const canCheckStockAvailability = isFit && stockSearchEnabled;
   const [sizeInput, setSizeInput] = useState(line.size);
   const [lastSize, setLastSize] = useState(line.size);
   if (lastSize !== line.size) {
@@ -174,7 +175,7 @@ function TyreLineCard({ line, index, required, serviceType, stockSearchEnabled, 
   const search = useCallback(async (q: string) => {
     const requestSeq = ++searchSeq.current;
     const query = q.trim();
-    if (!canSearchStock) {
+    if (!canSearchTyreSizes) {
       setSuggestions([]);
       setSearched(false);
       return;
@@ -198,14 +199,14 @@ function TyreLineCard({ line, index, required, serviceType, stockSearchEnabled, 
         setSearched(true);
       }
     }
-  }, [canSearchStock]);
+  }, [canSearchTyreSizes]);
 
   useEffect(() => {
     if (localSizeEdit.current) {
       localSizeEdit.current = false;
       return;
     }
-    if (!canSearchStock || line.size.trim().length < 2) {
+    if (!canSearchTyreSizes || line.size.trim().length < 2) {
       searchSeq.current += 1;
       const resetTimer = setTimeout(() => {
         setSuggestions([]);
@@ -217,15 +218,15 @@ function TyreLineCard({ line, index, required, serviceType, stockSearchEnabled, 
       void search(line.size);
     }, 0);
     return () => clearTimeout(searchTimer);
-  }, [canSearchStock, line.size, search]);
+  }, [canSearchTyreSizes, line.size, search]);
 
   const handleChange = (value: string) => {
     setSizeInput(value);
     localSizeEdit.current = true;
     onChange({ size: value });
-    setShowSugs(canSearchStock);
+    setShowSugs(canSearchTyreSizes);
     if (timer.current) clearTimeout(timer.current);
-    if (canSearchStock && value.trim().length >= 2) {
+    if (canSearchTyreSizes && value.trim().length >= 2) {
       timer.current = setTimeout(() => search(value), 200);
     } else {
       searchSeq.current += 1;
@@ -254,7 +255,7 @@ function TyreLineCard({ line, index, required, serviceType, stockSearchEnabled, 
   let stockLabel: string | null = null;
   let stockTone: 'ok' | 'warn' | 'err' | 'muted' = 'muted';
   let insufficientStock = false;
-  if (canSearchStock && matchedSuggestion) {
+  if (canCheckStockAvailability && matchedSuggestion) {
     const count = matchedSuggestion.count;
     if (typeof count !== 'number' || !Number.isFinite(count)) {
       stockLabel = 'Stock match found. Exact quantity will be confirmed by the system.';
@@ -273,7 +274,7 @@ function TyreLineCard({ line, index, required, serviceType, stockSearchEnabled, 
       stockLabel = `In stock (${count} available)`;
       stockTone = 'ok';
     }
-  } else if (canSearchStock && showSugs && searched && sizeInput.trim().length >= 2 && suggestions.length === 0) {
+  } else if (canCheckStockAvailability && showSugs && searched && sizeInput.trim().length >= 2 && suggestions.length === 0) {
     stockLabel = 'No matching in-stock size';
     stockTone = 'err';
   }
@@ -302,14 +303,14 @@ function TyreLineCard({ line, index, required, serviceType, stockSearchEnabled, 
         <TextInput
           value={sizeInput}
           onChangeText={handleChange}
-          onFocus={() => setShowSugs(canSearchStock)}
+          onFocus={() => setShowSugs(canSearchTyreSizes)}
           placeholder={isFit ? 'e.g. 205/55R16' : 'e.g. 205/55R16 if known'}
           placeholderTextColor={colors.subtle}
           autoCapitalize="characters"
           autoCorrect={false}
           style={styles.input}
         />
-        {canSearchStock && showSugs && suggestions.length > 0 ? (
+        {canSearchTyreSizes && showSugs && suggestions.length > 0 ? (
           <View style={styles.suggestionsBox}>
             <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 220 }}>
               {suggestions.map((s) => (
@@ -328,7 +329,7 @@ function TyreLineCard({ line, index, required, serviceType, stockSearchEnabled, 
             </ScrollView>
           </View>
         ) : null}
-        {canSearchStock && showSugs && searched && suggestions.length === 0 && sizeInput.length >= 2 ? (
+        {canSearchTyreSizes && showSugs && searched && suggestions.length === 0 && sizeInput.length >= 2 ? (
           <Text style={styles.empty}>No in-stock tyres match that size.</Text>
         ) : null}
         {sizeInput.trim().length > 0 && !normalizedInputSize ? (

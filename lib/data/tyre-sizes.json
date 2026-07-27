@@ -1,142 +1,9054 @@
 {
-  "version": 1,
-  "updated": "2025-04-25",
-  "comment": "Common UK passenger-car OEM tyre fitments. Lookup key is `${makeUpper}|${modelUpper}` with a year band. Year ranges are inclusive. Sizes use the standard width/aspect/rim format. Fallback sizes per category live in lib/tyre-sizes.ts.",
+  "version": 3,
+  "updated": "2026-07-26",
+  "comment": "Comprehensive UK passenger-car OEM tyre fitments. Includes mainstream, premium, commercial, and performance variants. Year ranges are inclusive. Lookup key is ${makeUpper}|${modelUpper}. Fallback sizes in lib/tyre-sizes.ts. Added 120 missing variant and EV entries from supplemental catalogue on 2026-07-26.",
   "vehicles": [
-    { "make": "FORD", "model": "FIESTA",        "from": 2008, "to": 2017, "size": { "width": "195", "aspect": "50", "rim": "16" } },
-    { "make": "FORD", "model": "FIESTA",        "from": 2017, "to": 2030, "size": { "width": "195", "aspect": "55", "rim": "16" } },
-    { "make": "FORD", "model": "FOCUS",         "from": 2011, "to": 2018, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "FORD", "model": "FOCUS",         "from": 2018, "to": 2030, "size": { "width": "215", "aspect": "55", "rim": "16" } },
-    { "make": "FORD", "model": "MONDEO",        "from": 2007, "to": 2030, "size": { "width": "215", "aspect": "55", "rim": "17" } },
-    { "make": "FORD", "model": "KUGA",          "from": 2013, "to": 2030, "size": { "width": "235", "aspect": "55", "rim": "17" } },
-    { "make": "FORD", "model": "PUMA",          "from": 2019, "to": 2030, "size": { "width": "215", "aspect": "55", "rim": "17" } },
-    { "make": "FORD", "model": "TRANSIT CONNECT","from": 2014, "to": 2030, "size": { "width": "215", "aspect": "60", "rim": "16" } },
-    { "make": "FORD", "model": "TRANSIT CUSTOM","from": 2013, "to": 2030, "size": { "width": "215", "aspect": "65", "rim": "16" } },
-    { "make": "FORD", "model": "RANGER",        "from": 2012, "to": 2030, "size": { "width": "265", "aspect": "65", "rim": "17" } },
-
-    { "make": "VAUXHALL", "model": "CORSA",     "from": 2006, "to": 2014, "size": { "width": "185", "aspect": "65", "rim": "15" } },
-    { "make": "VAUXHALL", "model": "CORSA",     "from": 2014, "to": 2019, "size": { "width": "195", "aspect": "55", "rim": "16" } },
-    { "make": "VAUXHALL", "model": "CORSA",     "from": 2019, "to": 2030, "size": { "width": "195", "aspect": "55", "rim": "16" } },
-    { "make": "VAUXHALL", "model": "ASTRA",     "from": 2009, "to": 2015, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "VAUXHALL", "model": "ASTRA",     "from": 2015, "to": 2030, "size": { "width": "215", "aspect": "50", "rim": "17" } },
-    { "make": "VAUXHALL", "model": "INSIGNIA",  "from": 2008, "to": 2030, "size": { "width": "225", "aspect": "55", "rim": "17" } },
-    { "make": "VAUXHALL", "model": "MOKKA",     "from": 2012, "to": 2030, "size": { "width": "215", "aspect": "60", "rim": "17" } },
-    { "make": "VAUXHALL", "model": "GRANDLAND", "from": 2017, "to": 2030, "size": { "width": "225", "aspect": "55", "rim": "18" } },
-    { "make": "VAUXHALL", "model": "VIVARO",    "from": 2014, "to": 2030, "size": { "width": "215", "aspect": "65", "rim": "16" } },
-
-    { "make": "VOLKSWAGEN", "model": "POLO",    "from": 2009, "to": 2017, "size": { "width": "185", "aspect": "60", "rim": "15" } },
-    { "make": "VOLKSWAGEN", "model": "POLO",    "from": 2017, "to": 2030, "size": { "width": "185", "aspect": "65", "rim": "15" } },
-    { "make": "VOLKSWAGEN", "model": "GOLF",    "from": 2008, "to": 2020, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "VOLKSWAGEN", "model": "GOLF",    "from": 2020, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "VOLKSWAGEN", "model": "PASSAT",  "from": 2010, "to": 2030, "size": { "width": "215", "aspect": "55", "rim": "17" } },
-    { "make": "VOLKSWAGEN", "model": "TIGUAN",  "from": 2008, "to": 2030, "size": { "width": "235", "aspect": "55", "rim": "18" } },
-    { "make": "VOLKSWAGEN", "model": "T-ROC",   "from": 2017, "to": 2030, "size": { "width": "215", "aspect": "55", "rim": "17" } },
-    { "make": "VOLKSWAGEN", "model": "TRANSPORTER","from": 2010, "to": 2030, "size": { "width": "215", "aspect": "65", "rim": "16" } },
-
-    { "make": "BMW", "model": "1 SERIES",       "from": 2011, "to": 2019, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "BMW", "model": "1 SERIES",       "from": 2019, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "BMW", "model": "2 SERIES",       "from": 2014, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "BMW", "model": "3 SERIES",       "from": 2012, "to": 2019, "size": { "width": "225", "aspect": "50", "rim": "17" } },
-    { "make": "BMW", "model": "3 SERIES",       "from": 2019, "to": 2030, "size": { "width": "225", "aspect": "45", "rim": "18" } },
-    { "make": "BMW", "model": "5 SERIES",       "from": 2010, "to": 2030, "size": { "width": "225", "aspect": "55", "rim": "17" } },
-    { "make": "BMW", "model": "X1",             "from": 2015, "to": 2030, "size": { "width": "225", "aspect": "50", "rim": "18" } },
-    { "make": "BMW", "model": "X3",             "from": 2010, "to": 2030, "size": { "width": "245", "aspect": "50", "rim": "18" } },
-    { "make": "BMW", "model": "X5",             "from": 2013, "to": 2030, "size": { "width": "255", "aspect": "50", "rim": "19" } },
-
-    { "make": "AUDI", "model": "A1",            "from": 2010, "to": 2030, "size": { "width": "185", "aspect": "60", "rim": "15" } },
-    { "make": "AUDI", "model": "A3",            "from": 2012, "to": 2020, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "AUDI", "model": "A3",            "from": 2020, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "AUDI", "model": "A4",            "from": 2008, "to": 2030, "size": { "width": "225", "aspect": "50", "rim": "17" } },
-    { "make": "AUDI", "model": "A6",            "from": 2011, "to": 2030, "size": { "width": "225", "aspect": "55", "rim": "17" } },
-    { "make": "AUDI", "model": "Q2",            "from": 2016, "to": 2030, "size": { "width": "215", "aspect": "55", "rim": "17" } },
-    { "make": "AUDI", "model": "Q3",            "from": 2011, "to": 2030, "size": { "width": "235", "aspect": "55", "rim": "17" } },
-    { "make": "AUDI", "model": "Q5",            "from": 2008, "to": 2030, "size": { "width": "235", "aspect": "60", "rim": "18" } },
-
-    { "make": "MERCEDES-BENZ", "model": "A-CLASS","from": 2012, "to": 2018, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "MERCEDES-BENZ", "model": "A-CLASS","from": 2018, "to": 2030, "size": { "width": "205", "aspect": "60", "rim": "16" } },
-    { "make": "MERCEDES-BENZ", "model": "C-CLASS","from": 2014, "to": 2030, "size": { "width": "205", "aspect": "60", "rim": "16" } },
-    { "make": "MERCEDES-BENZ", "model": "E-CLASS","from": 2009, "to": 2030, "size": { "width": "225", "aspect": "55", "rim": "16" } },
-    { "make": "MERCEDES-BENZ", "model": "GLA",    "from": 2014, "to": 2030, "size": { "width": "215", "aspect": "60", "rim": "17" } },
-    { "make": "MERCEDES-BENZ", "model": "GLC",    "from": 2015, "to": 2030, "size": { "width": "235", "aspect": "60", "rim": "18" } },
-    { "make": "MERCEDES-BENZ", "model": "SPRINTER","from": 2006, "to": 2030, "size": { "width": "235", "aspect": "65", "rim": "16" } },
-
-    { "make": "TOYOTA", "model": "YARIS",       "from": 2011, "to": 2030, "size": { "width": "175", "aspect": "65", "rim": "15" } },
-    { "make": "TOYOTA", "model": "AURIS",       "from": 2012, "to": 2018, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "TOYOTA", "model": "COROLLA",     "from": 2018, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "TOYOTA", "model": "RAV4",        "from": 2013, "to": 2030, "size": { "width": "225", "aspect": "65", "rim": "17" } },
-    { "make": "TOYOTA", "model": "C-HR",        "from": 2016, "to": 2030, "size": { "width": "225", "aspect": "50", "rim": "18" } },
-    { "make": "TOYOTA", "model": "PRIUS",       "from": 2009, "to": 2030, "size": { "width": "195", "aspect": "65", "rim": "15" } },
-
-    { "make": "NISSAN", "model": "MICRA",       "from": 2010, "to": 2030, "size": { "width": "175", "aspect": "65", "rim": "15" } },
-    { "make": "NISSAN", "model": "JUKE",        "from": 2010, "to": 2030, "size": { "width": "215", "aspect": "55", "rim": "17" } },
-    { "make": "NISSAN", "model": "QASHQAI",     "from": 2013, "to": 2030, "size": { "width": "215", "aspect": "60", "rim": "17" } },
-    { "make": "NISSAN", "model": "X-TRAIL",     "from": 2014, "to": 2030, "size": { "width": "225", "aspect": "60", "rim": "18" } },
-    { "make": "NISSAN", "model": "LEAF",        "from": 2017, "to": 2030, "size": { "width": "215", "aspect": "50", "rim": "17" } },
-
-    { "make": "HONDA", "model": "JAZZ",         "from": 2008, "to": 2030, "size": { "width": "175", "aspect": "65", "rim": "15" } },
-    { "make": "HONDA", "model": "CIVIC",        "from": 2012, "to": 2030, "size": { "width": "215", "aspect": "55", "rim": "16" } },
-    { "make": "HONDA", "model": "CR-V",         "from": 2012, "to": 2030, "size": { "width": "225", "aspect": "65", "rim": "17" } },
-
-    { "make": "HYUNDAI", "model": "I10",        "from": 2014, "to": 2030, "size": { "width": "175", "aspect": "65", "rim": "14" } },
-    { "make": "HYUNDAI", "model": "I20",        "from": 2014, "to": 2030, "size": { "width": "185", "aspect": "65", "rim": "15" } },
-    { "make": "HYUNDAI", "model": "I30",        "from": 2012, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "HYUNDAI", "model": "TUCSON",     "from": 2015, "to": 2030, "size": { "width": "225", "aspect": "60", "rim": "17" } },
-    { "make": "HYUNDAI", "model": "KONA",       "from": 2017, "to": 2030, "size": { "width": "215", "aspect": "55", "rim": "17" } },
-
-    { "make": "KIA", "model": "PICANTO",        "from": 2011, "to": 2030, "size": { "width": "175", "aspect": "65", "rim": "14" } },
-    { "make": "KIA", "model": "RIO",            "from": 2011, "to": 2030, "size": { "width": "185", "aspect": "65", "rim": "15" } },
-    { "make": "KIA", "model": "CEED",           "from": 2012, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "KIA", "model": "SPORTAGE",       "from": 2010, "to": 2030, "size": { "width": "225", "aspect": "60", "rim": "17" } },
-    { "make": "KIA", "model": "NIRO",           "from": 2016, "to": 2030, "size": { "width": "215", "aspect": "55", "rim": "17" } },
-
-    { "make": "PEUGEOT", "model": "208",        "from": 2012, "to": 2030, "size": { "width": "185", "aspect": "65", "rim": "15" } },
-    { "make": "PEUGEOT", "model": "308",        "from": 2013, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "PEUGEOT", "model": "2008",       "from": 2013, "to": 2030, "size": { "width": "215", "aspect": "60", "rim": "16" } },
-    { "make": "PEUGEOT", "model": "3008",       "from": 2009, "to": 2030, "size": { "width": "225", "aspect": "55", "rim": "18" } },
-    { "make": "PEUGEOT", "model": "PARTNER",    "from": 2008, "to": 2030, "size": { "width": "195", "aspect": "65", "rim": "15" } },
-
-    { "make": "CITROEN", "model": "C1",         "from": 2014, "to": 2030, "size": { "width": "165", "aspect": "65", "rim": "14" } },
-    { "make": "CITROEN", "model": "C3",         "from": 2009, "to": 2030, "size": { "width": "185", "aspect": "65", "rim": "15" } },
-    { "make": "CITROEN", "model": "C4",         "from": 2010, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "CITROEN", "model": "BERLINGO",   "from": 2008, "to": 2030, "size": { "width": "195", "aspect": "65", "rim": "15" } },
-
-    { "make": "RENAULT", "model": "CLIO",       "from": 2012, "to": 2030, "size": { "width": "185", "aspect": "65", "rim": "15" } },
-    { "make": "RENAULT", "model": "MEGANE",     "from": 2012, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "RENAULT", "model": "CAPTUR",     "from": 2013, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "17" } },
-    { "make": "RENAULT", "model": "KADJAR",     "from": 2015, "to": 2030, "size": { "width": "215", "aspect": "60", "rim": "17" } },
-    { "make": "RENAULT", "model": "TRAFIC",     "from": 2014, "to": 2030, "size": { "width": "215", "aspect": "65", "rim": "16" } },
-
-    { "make": "SKODA", "model": "FABIA",        "from": 2014, "to": 2030, "size": { "width": "185", "aspect": "60", "rim": "15" } },
-    { "make": "SKODA", "model": "OCTAVIA",      "from": 2013, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "SKODA", "model": "SUPERB",       "from": 2008, "to": 2030, "size": { "width": "215", "aspect": "55", "rim": "17" } },
-    { "make": "SKODA", "model": "KAROQ",        "from": 2017, "to": 2030, "size": { "width": "215", "aspect": "55", "rim": "17" } },
-    { "make": "SKODA", "model": "KODIAQ",       "from": 2016, "to": 2030, "size": { "width": "235", "aspect": "55", "rim": "18" } },
-
-    { "make": "SEAT", "model": "IBIZA",         "from": 2008, "to": 2030, "size": { "width": "185", "aspect": "60", "rim": "15" } },
-    { "make": "SEAT", "model": "LEON",          "from": 2012, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "16" } },
-    { "make": "SEAT", "model": "ATECA",         "from": 2016, "to": 2030, "size": { "width": "215", "aspect": "60", "rim": "17" } },
-
-    { "make": "MINI", "model": "COOPER",        "from": 2013, "to": 2030, "size": { "width": "175", "aspect": "65", "rim": "15" } },
-    { "make": "MINI", "model": "COUNTRYMAN",    "from": 2010, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "17" } },
-
-    { "make": "LAND ROVER", "model": "DISCOVERY SPORT", "from": 2014, "to": 2030, "size": { "width": "235", "aspect": "60", "rim": "18" } },
-    { "make": "LAND ROVER", "model": "RANGE ROVER EVOQUE","from": 2011, "to": 2030, "size": { "width": "235", "aspect": "60", "rim": "18" } },
-    { "make": "JAGUAR", "model": "XE",          "from": 2015, "to": 2030, "size": { "width": "225", "aspect": "45", "rim": "18" } },
-    { "make": "JAGUAR", "model": "F-PACE",      "from": 2016, "to": 2030, "size": { "width": "255", "aspect": "60", "rim": "18" } },
-
-    { "make": "TESLA", "model": "MODEL 3",      "from": 2018, "to": 2030, "size": { "width": "235", "aspect": "45", "rim": "18" } },
-    { "make": "TESLA", "model": "MODEL Y",      "from": 2020, "to": 2030, "size": { "width": "255", "aspect": "45", "rim": "19" } },
-
-    { "make": "FIAT", "model": "500",           "from": 2007, "to": 2030, "size": { "width": "175", "aspect": "65", "rim": "14" } },
-    { "make": "FIAT", "model": "PANDA",         "from": 2012, "to": 2030, "size": { "width": "175", "aspect": "65", "rim": "14" } },
-    { "make": "FIAT", "model": "DUCATO",        "from": 2006, "to": 2030, "size": { "width": "215", "aspect": "70", "rim": "15" } },
-
-    { "make": "MAZDA", "model": "2",            "from": 2014, "to": 2030, "size": { "width": "185", "aspect": "60", "rim": "15" } },
-    { "make": "MAZDA", "model": "3",            "from": 2013, "to": 2030, "size": { "width": "205", "aspect": "60", "rim": "16" } },
-    { "make": "MAZDA", "model": "CX-5",         "from": 2012, "to": 2030, "size": { "width": "225", "aspect": "65", "rim": "17" } },
-
-    { "make": "VOLVO", "model": "XC40",         "from": 2017, "to": 2030, "size": { "width": "235", "aspect": "55", "rim": "18" } },
-    { "make": "VOLVO", "model": "XC60",         "from": 2008, "to": 2030, "size": { "width": "235", "aspect": "60", "rim": "18" } },
-    { "make": "VOLVO", "model": "V40",          "from": 2012, "to": 2030, "size": { "width": "205", "aspect": "55", "rim": "16" } }
+    {
+      "make": "ALFA ROMEO",
+      "model": "GIULIETTA",
+      "from": 2010,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "ALFA ROMEO",
+      "model": "GIULIA",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "ALFA ROMEO",
+      "model": "STELVIO",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "ALFA ROMEO",
+      "model": "MITO",
+      "from": 2008,
+      "to": 2018,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "ASTON MARTIN",
+      "model": "DB9",
+      "from": 2004,
+      "to": 2016,
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "ASTON MARTIN",
+      "model": "VANTAGE",
+      "from": 2005,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A1",
+      "from": 2010,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A1",
+      "from": 2010,
+      "to": 2030,
+      "variant": "S1",
+      "size": {
+        "width": "225",
+        "aspect": "35",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A3",
+      "from": 2003,
+      "to": 2012,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A3",
+      "from": 2012,
+      "to": 2020,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A3",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A3",
+      "from": 2012,
+      "to": 2030,
+      "variant": "S3",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A3",
+      "from": 2015,
+      "to": 2030,
+      "variant": "RS3",
+      "size": {
+        "width": "235",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A4",
+      "from": 2001,
+      "to": 2008,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A4",
+      "from": 2008,
+      "to": 2015,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A4",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A4",
+      "from": 2008,
+      "to": 2030,
+      "variant": "S4",
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A4",
+      "from": 2012,
+      "to": 2030,
+      "variant": "RS4",
+      "size": {
+        "width": "265",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A5",
+      "from": 2007,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A5",
+      "from": 2007,
+      "to": 2030,
+      "variant": "S5",
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A5",
+      "from": 2010,
+      "to": 2030,
+      "variant": "RS5",
+      "size": {
+        "width": "265",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A6",
+      "from": 2004,
+      "to": 2011,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A6",
+      "from": 2011,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A6",
+      "from": 2012,
+      "to": 2030,
+      "variant": "S6",
+      "size": {
+        "width": "255",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A7",
+      "from": 2010,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A7",
+      "from": 2010,
+      "to": 2030,
+      "variant": "S7",
+      "size": {
+        "width": "265",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A8",
+      "from": 2002,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q2",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q3",
+      "from": 2011,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q3",
+      "from": 2013,
+      "to": 2030,
+      "variant": "RSQ3",
+      "size": {
+        "width": "255",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q5",
+      "from": 2008,
+      "to": 2017,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q5",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q5",
+      "from": 2008,
+      "to": 2030,
+      "variant": "SQ5",
+      "size": {
+        "width": "255",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q7",
+      "from": 2005,
+      "to": 2015,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q7",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q7",
+      "from": 2005,
+      "to": 2030,
+      "variant": "SQ7",
+      "size": {
+        "width": "285",
+        "aspect": "40",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q8",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "275",
+        "aspect": "50",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q8",
+      "from": 2018,
+      "to": 2030,
+      "variant": "RSQ8",
+      "size": {
+        "width": "295",
+        "aspect": "40",
+        "rim": "22"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "TT",
+      "from": 1998,
+      "to": 2006,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "TT",
+      "from": 2006,
+      "to": 2014,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "TT",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "TT",
+      "from": 2006,
+      "to": 2030,
+      "variant": "TTS",
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "TT",
+      "from": 2009,
+      "to": 2030,
+      "variant": "TTRS",
+      "size": {
+        "width": "255",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "E-TRON",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "50",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "E-TRON GT",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "40",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "BENTLEY",
+      "model": "CONTINENTAL",
+      "from": 2003,
+      "to": 2030,
+      "size": {
+        "width": "275",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BENTLEY",
+      "model": "FLYING SPUR",
+      "from": 2005,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BENTLEY",
+      "model": "BENTAYGA",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "285",
+        "aspect": "45",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "1 SERIES",
+      "from": 2004,
+      "to": 2011,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "1 SERIES",
+      "from": 2011,
+      "to": 2019,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "1 SERIES",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "1 SERIES",
+      "from": 2004,
+      "to": 2030,
+      "variant": "M135I",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "2 SERIES",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "2 SERIES",
+      "from": 2014,
+      "to": 2030,
+      "variant": "M240I",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "2 SERIES",
+      "from": 2016,
+      "to": 2030,
+      "variant": "M2",
+      "size": {
+        "width": "245",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "3 SERIES",
+      "from": 2000,
+      "to": 2005,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "3 SERIES",
+      "from": 2005,
+      "to": 2012,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "3 SERIES",
+      "from": 2012,
+      "to": 2019,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "3 SERIES",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "3 SERIES",
+      "from": 2000,
+      "to": 2030,
+      "variant": "M3",
+      "size": {
+        "width": "255",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "4 SERIES",
+      "from": 2013,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "4 SERIES",
+      "from": 2013,
+      "to": 2030,
+      "variant": "M4",
+      "size": {
+        "width": "255",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "5 SERIES",
+      "from": 2003,
+      "to": 2010,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "5 SERIES",
+      "from": 2010,
+      "to": 2017,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "5 SERIES",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "5 SERIES",
+      "from": 2003,
+      "to": 2030,
+      "variant": "M5",
+      "size": {
+        "width": "265",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "6 SERIES",
+      "from": 2004,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "6 SERIES",
+      "from": 2004,
+      "to": 2030,
+      "variant": "M6",
+      "size": {
+        "width": "265",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "7 SERIES",
+      "from": 2001,
+      "to": 2008,
+      "size": {
+        "width": "245",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "7 SERIES",
+      "from": 2008,
+      "to": 2015,
+      "size": {
+        "width": "245",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "7 SERIES",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "8 SERIES",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "I3",
+      "from": 2013,
+      "to": 2022,
+      "size": {
+        "width": "155",
+        "aspect": "70",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "I4",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "I8",
+      "from": 2014,
+      "to": 2020,
+      "size": {
+        "width": "195",
+        "aspect": "50",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "IX",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "50",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X1",
+      "from": 2009,
+      "to": 2015,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X1",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X2",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X3",
+      "from": 2003,
+      "to": 2010,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X3",
+      "from": 2010,
+      "to": 2017,
+      "size": {
+        "width": "245",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X3",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X3",
+      "from": 2010,
+      "to": 2030,
+      "variant": "X3 M",
+      "size": {
+        "width": "265",
+        "aspect": "40",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X4",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X5",
+      "from": 2000,
+      "to": 2006,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X5",
+      "from": 2006,
+      "to": 2013,
+      "size": {
+        "width": "255",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X5",
+      "from": 2013,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "50",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X5",
+      "from": 2006,
+      "to": 2030,
+      "variant": "X5 M",
+      "size": {
+        "width": "285",
+        "aspect": "40",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X6",
+      "from": 2008,
+      "to": 2014,
+      "size": {
+        "width": "255",
+        "aspect": "50",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X6",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "50",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X6",
+      "from": 2008,
+      "to": 2030,
+      "variant": "X6 M",
+      "size": {
+        "width": "285",
+        "aspect": "40",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "X7",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "275",
+        "aspect": "45",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "Z3",
+      "from": 1995,
+      "to": 2002,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "Z4",
+      "from": 2002,
+      "to": 2009,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "Z4",
+      "from": 2009,
+      "to": 2016,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "Z4",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "Z4",
+      "from": 2002,
+      "to": 2030,
+      "variant": "Z4M",
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C1",
+      "from": 2005,
+      "to": 2014,
+      "size": {
+        "width": "155",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C1",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "165",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C2",
+      "from": 2003,
+      "to": 2011,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C3",
+      "from": 2002,
+      "to": 2009,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C3",
+      "from": 2009,
+      "to": 2016,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C3",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C3 AIRCROSS",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C4",
+      "from": 2004,
+      "to": 2010,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C4",
+      "from": 2010,
+      "to": 2018,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C4",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C4 CACTUS",
+      "from": 2014,
+      "to": 2021,
+      "size": {
+        "width": "195",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C5",
+      "from": 2001,
+      "to": 2008,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C5",
+      "from": 2008,
+      "to": 2017,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C5 AIRCROSS",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "BERLINGO",
+      "from": 1996,
+      "to": 2008,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "BERLINGO",
+      "from": 2008,
+      "to": 2018,
+      "size": {
+        "width": "195",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "BERLINGO",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "DISPATCH",
+      "from": 2007,
+      "to": 2016,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "DISPATCH",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "CUPRA",
+      "model": "IBIZA",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "CUPRA",
+      "model": "LEON",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "CUPRA",
+      "model": "ATECA",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "CUPRA",
+      "model": "FORMENTOR",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "CUPRA",
+      "model": "BORN",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "DACIA",
+      "model": "SANDERO",
+      "from": 2008,
+      "to": 2012,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "DACIA",
+      "model": "SANDERO",
+      "from": 2012,
+      "to": 2020,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "DACIA",
+      "model": "SANDERO",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "DACIA",
+      "model": "SANDERO STEPWAY",
+      "from": 2012,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "DACIA",
+      "model": "DUSTER",
+      "from": 2010,
+      "to": 2018,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "DACIA",
+      "model": "DUSTER",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "DACIA",
+      "model": "LOGAN",
+      "from": 2008,
+      "to": 2012,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "DACIA",
+      "model": "LOGAN",
+      "from": 2012,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "DACIA",
+      "model": "JOGGER",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "DS",
+      "model": "DS3",
+      "from": 2009,
+      "to": 2019,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "DS",
+      "model": "DS4",
+      "from": 2011,
+      "to": 2021,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "DS",
+      "model": "DS5",
+      "from": 2011,
+      "to": 2020,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "DS",
+      "model": "DS7 CROSSBACK",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "500",
+      "from": 2007,
+      "to": 2030,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "500",
+      "from": 2007,
+      "to": 2030,
+      "variant": "500 ABARTH",
+      "size": {
+        "width": "195",
+        "aspect": "45",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "500X",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "500L",
+      "from": 2012,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "PANDA",
+      "from": 2003,
+      "to": 2012,
+      "size": {
+        "width": "155",
+        "aspect": "80",
+        "rim": "13"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "PANDA",
+      "from": 2012,
+      "to": 2030,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "PUNTO",
+      "from": 2005,
+      "to": 2018,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "TIPO",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "DUCATO",
+      "from": 2006,
+      "to": 2014,
+      "size": {
+        "width": "215",
+        "aspect": "70",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "DUCATO",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "70",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "SCUDO",
+      "from": 2007,
+      "to": 2016,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "SCUDO",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "FIESTA",
+      "from": 2002,
+      "to": 2008,
+      "size": {
+        "width": "195",
+        "aspect": "50",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "FIESTA",
+      "from": 2008,
+      "to": 2017,
+      "size": {
+        "width": "195",
+        "aspect": "50",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "FIESTA",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "FIESTA",
+      "from": 2008,
+      "to": 2030,
+      "variant": "ST",
+      "size": {
+        "width": "205",
+        "aspect": "40",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "FIESTA",
+      "from": 2013,
+      "to": 2030,
+      "variant": "ST-3",
+      "size": {
+        "width": "205",
+        "aspect": "40",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "FOCUS",
+      "from": 2005,
+      "to": 2011,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "FOCUS",
+      "from": 2011,
+      "to": 2018,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "FOCUS",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "FOCUS",
+      "from": 2011,
+      "to": 2030,
+      "variant": "ST",
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "FOCUS",
+      "from": 2015,
+      "to": 2030,
+      "variant": "RS",
+      "size": {
+        "width": "235",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "MONDEO",
+      "from": 2000,
+      "to": 2007,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "MONDEO",
+      "from": 2007,
+      "to": 2014,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "MONDEO",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "MONDEO",
+      "from": 2007,
+      "to": 2030,
+      "variant": "ST220",
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "FUSION",
+      "from": 2002,
+      "to": 2012,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "C-MAX",
+      "from": 2003,
+      "to": 2010,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "C-MAX",
+      "from": 2010,
+      "to": 2019,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "S-MAX",
+      "from": 2006,
+      "to": 2014,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "S-MAX",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "GALAXY",
+      "from": 2006,
+      "to": 2014,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "GALAXY",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "KUGA",
+      "from": 2008,
+      "to": 2012,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "KUGA",
+      "from": 2012,
+      "to": 2019,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "KUGA",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "PUMA",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "PUMA",
+      "from": 2020,
+      "to": 2030,
+      "variant": "ST",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "MUSTANG",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "MUSTANG",
+      "from": 2015,
+      "to": 2030,
+      "variant": "GT",
+      "size": {
+        "width": "255",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "TRANSIT CONNECT",
+      "from": 2002,
+      "to": 2013,
+      "size": {
+        "width": "195",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "TRANSIT CONNECT",
+      "from": 2013,
+      "to": 2024,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "TRANSIT CONNECT",
+      "from": 2024,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "TRANSIT CUSTOM",
+      "from": 2012,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "TRANSIT",
+      "from": 2006,
+      "to": 2014,
+      "size": {
+        "width": "215",
+        "aspect": "70",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "TRANSIT",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "70",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "RANGER",
+      "from": 2006,
+      "to": 2012,
+      "size": {
+        "width": "255",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "RANGER",
+      "from": 2012,
+      "to": 2023,
+      "size": {
+        "width": "265",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "RANGER",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "JAZZ",
+      "from": 2002,
+      "to": 2008,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "JAZZ",
+      "from": 2008,
+      "to": 2015,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "JAZZ",
+      "from": 2015,
+      "to": 2020,
+      "size": {
+        "width": "185",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "JAZZ",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "CIVIC",
+      "from": 2001,
+      "to": 2005,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "CIVIC",
+      "from": 2005,
+      "to": 2011,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "CIVIC",
+      "from": 2011,
+      "to": 2017,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "CIVIC",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "CIVIC",
+      "from": 2015,
+      "to": 2030,
+      "variant": "TYPE R",
+      "size": {
+        "width": "235",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "ACCORD",
+      "from": 2003,
+      "to": 2008,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "ACCORD",
+      "from": 2008,
+      "to": 2015,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "CR-V",
+      "from": 2001,
+      "to": 2006,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "CR-V",
+      "from": 2006,
+      "to": 2012,
+      "size": {
+        "width": "225",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "CR-V",
+      "from": 2012,
+      "to": 2018,
+      "size": {
+        "width": "225",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "CR-V",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "HR-V",
+      "from": 1999,
+      "to": 2006,
+      "size": {
+        "width": "205",
+        "aspect": "70",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "HR-V",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "CR-Z",
+      "from": 2010,
+      "to": 2016,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "E",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "I10",
+      "from": 2008,
+      "to": 2013,
+      "size": {
+        "width": "155",
+        "aspect": "80",
+        "rim": "13"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "I10",
+      "from": 2013,
+      "to": 2020,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "I10",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "I20",
+      "from": 2008,
+      "to": 2014,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "I20",
+      "from": 2014,
+      "to": 2020,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "I20",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "I20",
+      "from": 2014,
+      "to": 2030,
+      "variant": "N",
+      "size": {
+        "width": "205",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "I30",
+      "from": 2007,
+      "to": 2012,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "I30",
+      "from": 2012,
+      "to": 2017,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "I30",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "I30",
+      "from": 2017,
+      "to": 2030,
+      "variant": "N",
+      "size": {
+        "width": "235",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "IONIQ",
+      "from": 2016,
+      "to": 2022,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "IONIQ 5",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "IONIQ 6",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "KONA",
+      "from": 2017,
+      "to": 2023,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "KONA",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "KONA",
+      "from": 2017,
+      "to": 2030,
+      "variant": "N",
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "TUCSON",
+      "from": 2004,
+      "to": 2010,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "TUCSON",
+      "from": 2010,
+      "to": 2015,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "TUCSON",
+      "from": 2015,
+      "to": 2021,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "TUCSON",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "SANTA FE",
+      "from": 2006,
+      "to": 2012,
+      "size": {
+        "width": "235",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "SANTA FE",
+      "from": 2012,
+      "to": 2018,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "SANTA FE",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "INFINITI",
+      "model": "Q30",
+      "from": 2015,
+      "to": 2019,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "INFINITI",
+      "model": "Q50",
+      "from": 2013,
+      "to": 2020,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "INFINITI",
+      "model": "QX30",
+      "from": 2016,
+      "to": 2019,
+      "size": {
+        "width": "235",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "XE",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "XE",
+      "from": 2015,
+      "to": 2030,
+      "variant": "SVR",
+      "size": {
+        "width": "265",
+        "aspect": "35",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "XF",
+      "from": 2007,
+      "to": 2011,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "XF",
+      "from": 2011,
+      "to": 2015,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "XF",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "XJ",
+      "from": 2003,
+      "to": 2009,
+      "size": {
+        "width": "235",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "XJ",
+      "from": 2009,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "F-PACE",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "F-PACE",
+      "from": 2016,
+      "to": 2030,
+      "variant": "SVR",
+      "size": {
+        "width": "265",
+        "aspect": "45",
+        "rim": "22"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "E-PACE",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "I-PACE",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "F-TYPE",
+      "from": 2013,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "F-TYPE",
+      "from": 2013,
+      "to": 2030,
+      "variant": "SVR",
+      "size": {
+        "width": "265",
+        "aspect": "35",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "JEEP",
+      "model": "RENEGADE",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "JEEP",
+      "model": "RENEGADE",
+      "from": 2014,
+      "to": 2030,
+      "variant": "TRAILHAWK",
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "JEEP",
+      "model": "COMPASS",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "JEEP",
+      "model": "GRAND CHEROKEE",
+      "from": 2005,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "JEEP",
+      "model": "WRANGLER",
+      "from": 2007,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "70",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "PICANTO",
+      "from": 2004,
+      "to": 2011,
+      "size": {
+        "width": "155",
+        "aspect": "70",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "PICANTO",
+      "from": 2011,
+      "to": 2017,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "PICANTO",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "RIO",
+      "from": 2005,
+      "to": 2011,
+      "size": {
+        "width": "175",
+        "aspect": "70",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "RIO",
+      "from": 2011,
+      "to": 2017,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "RIO",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "CEED",
+      "from": 2006,
+      "to": 2012,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "CEED",
+      "from": 2012,
+      "to": 2018,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "CEED",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "CEED",
+      "from": 2018,
+      "to": 2030,
+      "variant": "GT",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "OPTIMA",
+      "from": 2010,
+      "to": 2020,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "SPORTAGE",
+      "from": 2004,
+      "to": 2010,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "SPORTAGE",
+      "from": 2010,
+      "to": 2015,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "SPORTAGE",
+      "from": 2015,
+      "to": 2022,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "SPORTAGE",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "NIRO",
+      "from": 2016,
+      "to": 2022,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "NIRO",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "STINGER",
+      "from": 2017,
+      "to": 2023,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "STINGER",
+      "from": 2017,
+      "to": 2023,
+      "variant": "GT",
+      "size": {
+        "width": "255",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "SOUL",
+      "from": 2008,
+      "to": 2014,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "SOUL",
+      "from": 2014,
+      "to": 2019,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "SOUL",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "EV6",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "EV9",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "DEFENDER",
+      "from": 1983,
+      "to": 2016,
+      "size": {
+        "width": "205",
+        "aspect": "80",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "DEFENDER",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "60",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "DEFENDER",
+      "from": 2020,
+      "to": 2030,
+      "variant": "90",
+      "size": {
+        "width": "255",
+        "aspect": "60",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "DEFENDER",
+      "from": 2020,
+      "to": 2030,
+      "variant": "110",
+      "size": {
+        "width": "255",
+        "aspect": "60",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "DISCOVERY",
+      "from": 2004,
+      "to": 2009,
+      "size": {
+        "width": "235",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "DISCOVERY",
+      "from": 2009,
+      "to": 2017,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "DISCOVERY",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "DISCOVERY SPORT",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "FREELANDER",
+      "from": 1997,
+      "to": 2006,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "FREELANDER",
+      "from": 2006,
+      "to": 2014,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "RANGE ROVER",
+      "from": 2002,
+      "to": 2012,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "RANGE ROVER",
+      "from": 2012,
+      "to": 2022,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "RANGE ROVER",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "RANGE ROVER EVOQUE",
+      "from": 2011,
+      "to": 2018,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "RANGE ROVER EVOQUE",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "RANGE ROVER SPORT",
+      "from": 2005,
+      "to": 2013,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "RANGE ROVER SPORT",
+      "from": 2013,
+      "to": 2022,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "RANGE ROVER SPORT",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "RANGE ROVER SPORT",
+      "from": 2013,
+      "to": 2030,
+      "variant": "SVR",
+      "size": {
+        "width": "275",
+        "aspect": "40",
+        "rim": "22"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "VELAR",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "CT200H",
+      "from": 2011,
+      "to": 2020,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "CT200H",
+      "from": 2011,
+      "to": 2020,
+      "variant": "F-SPORT",
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "IS",
+      "from": 2005,
+      "to": 2013,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "IS",
+      "from": 2013,
+      "to": 2020,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "IS",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "ES",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "GS",
+      "from": 2005,
+      "to": 2012,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "GS",
+      "from": 2012,
+      "to": 2020,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "NX",
+      "from": 2014,
+      "to": 2022,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "NX",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "RX",
+      "from": 2003,
+      "to": 2009,
+      "size": {
+        "width": "225",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "RX",
+      "from": 2009,
+      "to": 2015,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "RX",
+      "from": 2015,
+      "to": 2023,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "RX",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "UX",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "LC",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "LS",
+      "from": 2006,
+      "to": 2017,
+      "size": {
+        "width": "235",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "LS",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "50",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "LOTUS",
+      "model": "ELISE",
+      "from": 1996,
+      "to": 2021,
+      "size": {
+        "width": "175",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "LOTUS",
+      "model": "EXIGE",
+      "from": 2000,
+      "to": 2021,
+      "size": {
+        "width": "195",
+        "aspect": "50",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "LOTUS",
+      "model": "EVORA",
+      "from": 2009,
+      "to": 2021,
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MASERATI",
+      "model": "GHIBLI",
+      "from": 2013,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MASERATI",
+      "model": "LEVANTE",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "50",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MASERATI",
+      "model": "QUATTROPORTE",
+      "from": 2003,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MASERATI",
+      "model": "GRANTURISMO",
+      "from": 2007,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "35",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "2",
+      "from": 2007,
+      "to": 2014,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "2",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "3",
+      "from": 2003,
+      "to": 2008,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "3",
+      "from": 2008,
+      "to": 2013,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "3",
+      "from": 2013,
+      "to": 2019,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "3",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "6",
+      "from": 2002,
+      "to": 2007,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "6",
+      "from": 2007,
+      "to": 2012,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "6",
+      "from": 2012,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "CX-3",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "CX-5",
+      "from": 2012,
+      "to": 2017,
+      "size": {
+        "width": "225",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "CX-5",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "CX-30",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "CX-60",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "50",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "MX-5",
+      "from": 2005,
+      "to": 2015,
+      "size": {
+        "width": "205",
+        "aspect": "50",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "MX-5",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "195",
+        "aspect": "50",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "MX-5",
+      "from": 2015,
+      "to": 2030,
+      "variant": "RF",
+      "size": {
+        "width": "205",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "A-CLASS",
+      "from": 1997,
+      "to": 2004,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "A-CLASS",
+      "from": 2004,
+      "to": 2012,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "A-CLASS",
+      "from": 2012,
+      "to": 2018,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "A-CLASS",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "A-CLASS",
+      "from": 2012,
+      "to": 2030,
+      "variant": "AMG A35",
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "A-CLASS",
+      "from": 2013,
+      "to": 2030,
+      "variant": "AMG A45",
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "B-CLASS",
+      "from": 2005,
+      "to": 2011,
+      "size": {
+        "width": "215",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "B-CLASS",
+      "from": 2011,
+      "to": 2019,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "C-CLASS",
+      "from": 2000,
+      "to": 2007,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "C-CLASS",
+      "from": 2007,
+      "to": 2014,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "C-CLASS",
+      "from": 2014,
+      "to": 2021,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "C-CLASS",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "C-CLASS",
+      "from": 2000,
+      "to": 2030,
+      "variant": "AMG C63",
+      "size": {
+        "width": "255",
+        "aspect": "35",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "C-CLASS",
+      "from": 2014,
+      "to": 2030,
+      "variant": "AMG C43",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "E-CLASS",
+      "from": 2002,
+      "to": 2009,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "E-CLASS",
+      "from": 2009,
+      "to": 2016,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "E-CLASS",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "E-CLASS",
+      "from": 2002,
+      "to": 2030,
+      "variant": "AMG E63",
+      "size": {
+        "width": "265",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "S-CLASS",
+      "from": 1998,
+      "to": 2005,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "S-CLASS",
+      "from": 2005,
+      "to": 2013,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "S-CLASS",
+      "from": 2013,
+      "to": 2020,
+      "size": {
+        "width": "245",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "S-CLASS",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "CLA",
+      "from": 2013,
+      "to": 2019,
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "CLA",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "CLA",
+      "from": 2013,
+      "to": 2030,
+      "variant": "AMG CLA45",
+      "size": {
+        "width": "235",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "CLS",
+      "from": 2004,
+      "to": 2010,
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "CLS",
+      "from": 2010,
+      "to": 2018,
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "CLS",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "GLA",
+      "from": 2013,
+      "to": 2020,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "GLA",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "GLB",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "GLC",
+      "from": 2015,
+      "to": 2022,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "GLC",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "GLC",
+      "from": 2015,
+      "to": 2030,
+      "variant": "AMG GLC43",
+      "size": {
+        "width": "255",
+        "aspect": "40",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "GLE",
+      "from": 2015,
+      "to": 2019,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "GLE",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "GLE",
+      "from": 2015,
+      "to": 2030,
+      "variant": "AMG GLE63",
+      "size": {
+        "width": "275",
+        "aspect": "40",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "GLS",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "275",
+        "aspect": "50",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "GLS",
+      "from": 2016,
+      "to": 2030,
+      "variant": "AMG GLS63",
+      "size": {
+        "width": "285",
+        "aspect": "40",
+        "rim": "22"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "G-CLASS",
+      "from": 1990,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "V-CLASS",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "SPRINTER",
+      "from": 2006,
+      "to": 2018,
+      "size": {
+        "width": "235",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "SPRINTER",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "VITO",
+      "from": 2003,
+      "to": 2014,
+      "size": {
+        "width": "205",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "VITO",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MG",
+      "model": "MG3",
+      "from": 2013,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "MG",
+      "model": "MG5",
+      "from": 2012,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MG",
+      "model": "MG6",
+      "from": 2011,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MG",
+      "model": "ZS",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MG",
+      "model": "HS",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MG",
+      "model": "MARVEL R",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "COOPER",
+      "from": 2001,
+      "to": 2006,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "COOPER",
+      "from": 2006,
+      "to": 2013,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "COOPER",
+      "from": 2013,
+      "to": 2030,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "COOPER",
+      "from": 2001,
+      "to": 2030,
+      "variant": "COOPER S",
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "COOPER",
+      "from": 2013,
+      "to": 2030,
+      "variant": "JOHN COOPER WORKS",
+      "size": {
+        "width": "205",
+        "aspect": "40",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "CLUBMAN",
+      "from": 2007,
+      "to": 2014,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "CLUBMAN",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "COUNTRYMAN",
+      "from": 2010,
+      "to": 2017,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "COUNTRYMAN",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "COUNTRYMAN",
+      "from": 2010,
+      "to": 2030,
+      "variant": "COOPER S",
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "COUNTRYMAN",
+      "from": 2017,
+      "to": 2030,
+      "variant": "JOHN COOPER WORKS",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "PACEMAN",
+      "from": 2012,
+      "to": 2016,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MITSUBISHI",
+      "model": "MIRAGE",
+      "from": 2012,
+      "to": 2030,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "MITSUBISHI",
+      "model": "SPACE STAR",
+      "from": 2012,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "MITSUBISHI",
+      "model": "ASX",
+      "from": 2010,
+      "to": 2023,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MITSUBISHI",
+      "model": "OUTLANDER",
+      "from": 2006,
+      "to": 2012,
+      "size": {
+        "width": "215",
+        "aspect": "70",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MITSUBISHI",
+      "model": "OUTLANDER",
+      "from": 2012,
+      "to": 2021,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MITSUBISHI",
+      "model": "SHOGUN",
+      "from": 2006,
+      "to": 2021,
+      "size": {
+        "width": "265",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MITSUBISHI",
+      "model": "L200",
+      "from": 2006,
+      "to": 2015,
+      "size": {
+        "width": "245",
+        "aspect": "70",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "MITSUBISHI",
+      "model": "L200",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MITSUBISHI",
+      "model": "ECLIPSE CROSS",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "MICRA",
+      "from": 2003,
+      "to": 2010,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "MICRA",
+      "from": 2010,
+      "to": 2016,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "MICRA",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "NOTE",
+      "from": 2005,
+      "to": 2013,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "NOTE",
+      "from": 2013,
+      "to": 2017,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "NOTE",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "PULSAR",
+      "from": 2014,
+      "to": 2018,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "JUKE",
+      "from": 2010,
+      "to": 2019,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "JUKE",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "JUKE",
+      "from": 2010,
+      "to": 2030,
+      "variant": "NISMO",
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "QASHQAI",
+      "from": 2007,
+      "to": 2013,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "QASHQAI",
+      "from": 2013,
+      "to": 2021,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "QASHQAI",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "X-TRAIL",
+      "from": 2007,
+      "to": 2014,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "X-TRAIL",
+      "from": 2014,
+      "to": 2022,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "X-TRAIL",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "LEAF",
+      "from": 2010,
+      "to": 2017,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "LEAF",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "NAVARA",
+      "from": 2005,
+      "to": 2015,
+      "size": {
+        "width": "255",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "NAVARA",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "NV200",
+      "from": 2009,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "PRIMASTAR",
+      "from": 2007,
+      "to": 2014,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "107",
+      "from": 2005,
+      "to": 2014,
+      "size": {
+        "width": "155",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "108",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "165",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "206",
+      "from": 1998,
+      "to": 2008,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "207",
+      "from": 2006,
+      "to": 2013,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "208",
+      "from": 2012,
+      "to": 2019,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "208",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "208",
+      "from": 2012,
+      "to": 2030,
+      "variant": "GTI",
+      "size": {
+        "width": "205",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "308",
+      "from": 2007,
+      "to": 2013,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "308",
+      "from": 2013,
+      "to": 2021,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "308",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "308",
+      "from": 2013,
+      "to": 2030,
+      "variant": "GTI",
+      "size": {
+        "width": "235",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "408",
+      "from": 2010,
+      "to": 2019,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "508",
+      "from": 2010,
+      "to": 2018,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "508",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "2008",
+      "from": 2013,
+      "to": 2019,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "2008",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "3008",
+      "from": 2009,
+      "to": 2016,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "3008",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "5008",
+      "from": 2009,
+      "to": 2017,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "5008",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "PARTNER",
+      "from": 2008,
+      "to": 2018,
+      "size": {
+        "width": "195",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "PARTNER",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "EXPERT",
+      "from": 2007,
+      "to": 2016,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "EXPERT",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "BOXER",
+      "from": 2006,
+      "to": 2014,
+      "size": {
+        "width": "215",
+        "aspect": "70",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "BOXER",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "70",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "POLESTAR",
+      "model": "POLESTAR 2",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "911",
+      "from": 1998,
+      "to": 2004,
+      "size": {
+        "width": "205",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "911",
+      "from": 2004,
+      "to": 2011,
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "911",
+      "from": 2011,
+      "to": 2019,
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "911",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "911",
+      "from": 2004,
+      "to": 2030,
+      "variant": "TURBO",
+      "size": {
+        "width": "305",
+        "aspect": "30",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "911",
+      "from": 2004,
+      "to": 2030,
+      "variant": "GT3",
+      "size": {
+        "width": "245",
+        "aspect": "35",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "BOXSTER",
+      "from": 1996,
+      "to": 2004,
+      "size": {
+        "width": "205",
+        "aspect": "50",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "BOXSTER",
+      "from": 2004,
+      "to": 2012,
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "BOXSTER",
+      "from": 2012,
+      "to": 2016,
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "718 BOXSTER",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "718 CAYMAN",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "CAYMAN",
+      "from": 2005,
+      "to": 2012,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "CAYMAN",
+      "from": 2012,
+      "to": 2016,
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "PANAMERA",
+      "from": 2009,
+      "to": 2016,
+      "size": {
+        "width": "245",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "PANAMERA",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "CAYENNE",
+      "from": 2002,
+      "to": 2010,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "CAYENNE",
+      "from": 2010,
+      "to": 2017,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "CAYENNE",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "CAYENNE",
+      "from": 2010,
+      "to": 2030,
+      "variant": "TURBO",
+      "size": {
+        "width": "295",
+        "aspect": "35",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "MACAN",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "MACAN",
+      "from": 2014,
+      "to": 2030,
+      "variant": "TURBO",
+      "size": {
+        "width": "265",
+        "aspect": "40",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "TAYCAN",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "TAYCAN",
+      "from": 2019,
+      "to": 2030,
+      "variant": "TURBO",
+      "size": {
+        "width": "285",
+        "aspect": "35",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "CLIO",
+      "from": 2005,
+      "to": 2012,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "CLIO",
+      "from": 2012,
+      "to": 2019,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "CLIO",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "CLIO",
+      "from": 2012,
+      "to": 2030,
+      "variant": "RS",
+      "size": {
+        "width": "205",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "MEGANE",
+      "from": 2002,
+      "to": 2008,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "MEGANE",
+      "from": 2008,
+      "to": 2012,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "MEGANE",
+      "from": 2012,
+      "to": 2016,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "MEGANE",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "MEGANE",
+      "from": 2008,
+      "to": 2030,
+      "variant": "RS",
+      "size": {
+        "width": "235",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "CAPTUR",
+      "from": 2013,
+      "to": 2019,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "CAPTUR",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "KADJAR",
+      "from": 2015,
+      "to": 2022,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "KADJAR",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "ARKANA",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "AUSTRAL",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "SCENIC",
+      "from": 2003,
+      "to": 2009,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "SCENIC",
+      "from": 2009,
+      "to": 2016,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "GRAND SCENIC",
+      "from": 2009,
+      "to": 2016,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "TRAFIC",
+      "from": 2001,
+      "to": 2014,
+      "size": {
+        "width": "205",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "TRAFIC",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "MASTER",
+      "from": 2003,
+      "to": 2010,
+      "size": {
+        "width": "215",
+        "aspect": "75",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "MASTER",
+      "from": 2010,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "75",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "ZOE",
+      "from": 2012,
+      "to": 2030,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "ROLLS-ROYCE",
+      "model": "PHANTOM",
+      "from": 2003,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "50",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "ROLLS-ROYCE",
+      "model": "GHOST",
+      "from": 2009,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "ROLLS-ROYCE",
+      "model": "CULLINAN",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "50",
+        "rim": "22"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "IBIZA",
+      "from": 2002,
+      "to": 2008,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "IBIZA",
+      "from": 2008,
+      "to": 2017,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "IBIZA",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "IBIZA",
+      "from": 2008,
+      "to": 2030,
+      "variant": "CUPRA",
+      "size": {
+        "width": "215",
+        "aspect": "40",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "LEON",
+      "from": 2005,
+      "to": 2012,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "LEON",
+      "from": 2012,
+      "to": 2020,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "LEON",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "LEON",
+      "from": 2005,
+      "to": 2030,
+      "variant": "CUPRA",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "LEON",
+      "from": 2014,
+      "to": 2030,
+      "variant": "CUPRA 300",
+      "size": {
+        "width": "235",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "ATECA",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "ATECA",
+      "from": 2016,
+      "to": 2030,
+      "variant": "CUPRA",
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "TARRACO",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "ARONA",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "MII",
+      "from": 2011,
+      "to": 2020,
+      "size": {
+        "width": "185",
+        "aspect": "55",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "FABIA",
+      "from": 2007,
+      "to": 2014,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "FABIA",
+      "from": 2014,
+      "to": 2021,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "FABIA",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "FABIA",
+      "from": 2014,
+      "to": 2030,
+      "variant": "VRS",
+      "size": {
+        "width": "205",
+        "aspect": "40",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "OCTAVIA",
+      "from": 2004,
+      "to": 2013,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "OCTAVIA",
+      "from": 2013,
+      "to": 2020,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "OCTAVIA",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "OCTAVIA",
+      "from": 2004,
+      "to": 2030,
+      "variant": "VRS",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "SUPERB",
+      "from": 2001,
+      "to": 2008,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "SUPERB",
+      "from": 2008,
+      "to": 2015,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "SUPERB",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "KAROQ",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "KODIAQ",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "KODIAQ",
+      "from": 2016,
+      "to": 2030,
+      "variant": "VRS",
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "SCALA",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "KAMIQ",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "ENYAQ",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "ENYAQ",
+      "from": 2020,
+      "to": 2030,
+      "variant": "VRS",
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "SMART",
+      "model": "FORTWO",
+      "from": 1998,
+      "to": 2007,
+      "size": {
+        "width": "145",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SMART",
+      "model": "FORTWO",
+      "from": 2007,
+      "to": 2014,
+      "size": {
+        "width": "155",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SMART",
+      "model": "FORTWO",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "165",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SMART",
+      "model": "FORFOUR",
+      "from": 2004,
+      "to": 2006,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SMART",
+      "model": "FORFOUR",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SSANGYONG",
+      "model": "KORANDO",
+      "from": 2010,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SSANGYONG",
+      "model": "TIVOLI",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "IMPREZA",
+      "from": 2000,
+      "to": 2007,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "IMPREZA",
+      "from": 2007,
+      "to": 2014,
+      "size": {
+        "width": "205",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "IMPREZA",
+      "from": 2000,
+      "to": 2030,
+      "variant": "WRX",
+      "size": {
+        "width": "225",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "IMPREZA",
+      "from": 2007,
+      "to": 2030,
+      "variant": "STI",
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "LEGACY",
+      "from": 2003,
+      "to": 2009,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "LEGACY",
+      "from": 2009,
+      "to": 2014,
+      "size": {
+        "width": "215",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "FORESTER",
+      "from": 2002,
+      "to": 2008,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "FORESTER",
+      "from": 2008,
+      "to": 2013,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "FORESTER",
+      "from": 2013,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "OUTBACK",
+      "from": 2003,
+      "to": 2009,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "OUTBACK",
+      "from": 2009,
+      "to": 2014,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "OUTBACK",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "XV",
+      "from": 2012,
+      "to": 2017,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "XV",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "BRZ",
+      "from": 2012,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "ALTO",
+      "from": 2005,
+      "to": 2014,
+      "size": {
+        "width": "155",
+        "aspect": "65",
+        "rim": "13"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "ALTO",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "155",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "SPLASH",
+      "from": 2008,
+      "to": 2015,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "SWIFT",
+      "from": 2005,
+      "to": 2010,
+      "size": {
+        "width": "185",
+        "aspect": "55",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "SWIFT",
+      "from": 2010,
+      "to": 2017,
+      "size": {
+        "width": "185",
+        "aspect": "55",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "SWIFT",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "55",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "SWIFT",
+      "from": 2010,
+      "to": 2030,
+      "variant": "SPORT",
+      "size": {
+        "width": "205",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "SX4",
+      "from": 2006,
+      "to": 2013,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "SX4",
+      "from": 2013,
+      "to": 2020,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "VITARA",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "GRAND VITARA",
+      "from": 2005,
+      "to": 2015,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "IGNIS",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "175",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "ACROSS",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "TESLA",
+      "model": "MODEL S",
+      "from": 2012,
+      "to": 2021,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "TESLA",
+      "model": "MODEL S",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "TESLA",
+      "model": "MODEL 3",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "TESLA",
+      "model": "MODEL 3",
+      "from": 2018,
+      "to": 2030,
+      "variant": "PERFORMANCE",
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "TESLA",
+      "model": "MODEL X",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "TESLA",
+      "model": "MODEL Y",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "TESLA",
+      "model": "MODEL Y",
+      "from": 2020,
+      "to": 2030,
+      "variant": "PERFORMANCE",
+      "size": {
+        "width": "255",
+        "aspect": "40",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "AYGO",
+      "from": 2005,
+      "to": 2014,
+      "size": {
+        "width": "155",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "AYGO",
+      "from": 2014,
+      "to": 2022,
+      "size": {
+        "width": "165",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "AYGO",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "165",
+        "aspect": "65",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "YARIS",
+      "from": 2005,
+      "to": 2011,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "YARIS",
+      "from": 2011,
+      "to": 2020,
+      "size": {
+        "width": "175",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "YARIS",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "YARIS",
+      "from": 2020,
+      "to": 2030,
+      "variant": "GR",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "AURIS",
+      "from": 2006,
+      "to": 2012,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "AURIS",
+      "from": 2012,
+      "to": 2018,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "COROLLA",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "COROLLA",
+      "from": 2018,
+      "to": 2030,
+      "variant": "GR",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "PRIUS",
+      "from": 2003,
+      "to": 2009,
+      "size": {
+        "width": "195",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "PRIUS",
+      "from": 2009,
+      "to": 2015,
+      "size": {
+        "width": "195",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "PRIUS",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "195",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "RAV4",
+      "from": 2006,
+      "to": 2013,
+      "size": {
+        "width": "225",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "RAV4",
+      "from": 2013,
+      "to": 2019,
+      "size": {
+        "width": "225",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "RAV4",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "C-HR",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "CAMRY",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "HILUX",
+      "from": 2005,
+      "to": 2015,
+      "size": {
+        "width": "255",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "HILUX",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "LAND CRUISER",
+      "from": 2007,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "CORSA",
+      "from": 2000,
+      "to": 2006,
+      "size": {
+        "width": "165",
+        "aspect": "70",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "CORSA",
+      "from": 2006,
+      "to": 2014,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "CORSA",
+      "from": 2014,
+      "to": 2019,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "CORSA",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "CORSA",
+      "from": 2006,
+      "to": 2030,
+      "variant": "VXR",
+      "size": {
+        "width": "215",
+        "aspect": "35",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "ASTRA",
+      "from": 2004,
+      "to": 2009,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "ASTRA",
+      "from": 2009,
+      "to": 2015,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "ASTRA",
+      "from": 2015,
+      "to": 2022,
+      "size": {
+        "width": "215",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "ASTRA",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "ASTRA",
+      "from": 2004,
+      "to": 2030,
+      "variant": "VXR",
+      "size": {
+        "width": "235",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "INSIGNIA",
+      "from": 2008,
+      "to": 2017,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "INSIGNIA",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "INSIGNIA",
+      "from": 2008,
+      "to": 2030,
+      "variant": "VXR",
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "MOKKA",
+      "from": 2012,
+      "to": 2016,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "MOKKA",
+      "from": 2016,
+      "to": 2019,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "MOKKA",
+      "from": 2019,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "MOKKA",
+      "from": 2012,
+      "to": 2030,
+      "variant": "VXR",
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "CROSSLAND",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "GRANDLAND",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "COMBO",
+      "from": 2012,
+      "to": 2018,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "COMBO",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "VIVARO",
+      "from": 2001,
+      "to": 2014,
+      "size": {
+        "width": "205",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "VIVARO",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "MOVANO",
+      "from": 2003,
+      "to": 2010,
+      "size": {
+        "width": "215",
+        "aspect": "75",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "MOVANO",
+      "from": 2010,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "75",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "POLO",
+      "from": 2002,
+      "to": 2009,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "14"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "POLO",
+      "from": 2009,
+      "to": 2017,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "POLO",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "POLO",
+      "from": 2009,
+      "to": 2030,
+      "variant": "GTI",
+      "size": {
+        "width": "215",
+        "aspect": "40",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "POLO",
+      "from": 2017,
+      "to": 2030,
+      "variant": "GTI",
+      "size": {
+        "width": "215",
+        "aspect": "40",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "GOLF",
+      "from": 2003,
+      "to": 2008,
+      "size": {
+        "width": "195",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "GOLF",
+      "from": 2008,
+      "to": 2012,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "GOLF",
+      "from": 2012,
+      "to": 2020,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "GOLF",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "GOLF",
+      "from": 2003,
+      "to": 2030,
+      "variant": "GTI",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "GOLF",
+      "from": 2008,
+      "to": 2030,
+      "variant": "R",
+      "size": {
+        "width": "235",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "GOLF",
+      "from": 2014,
+      "to": 2030,
+      "variant": "E-GOLF",
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "PASSAT",
+      "from": 2000,
+      "to": 2005,
+      "size": {
+        "width": "195",
+        "aspect": "65",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "PASSAT",
+      "from": 2005,
+      "to": 2010,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "PASSAT",
+      "from": 2010,
+      "to": 2014,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "PASSAT",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "PASSAT",
+      "from": 2005,
+      "to": 2030,
+      "variant": "R36",
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "CC",
+      "from": 2008,
+      "to": 2017,
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "ARTEON",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "ARTEON",
+      "from": 2017,
+      "to": 2030,
+      "variant": "R",
+      "size": {
+        "width": "245",
+        "aspect": "35",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "TIGUAN",
+      "from": 2007,
+      "to": 2016,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "TIGUAN",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "TIGUAN",
+      "from": 2016,
+      "to": 2030,
+      "variant": "R",
+      "size": {
+        "width": "255",
+        "aspect": "40",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "T-ROC",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "T-ROC",
+      "from": 2017,
+      "to": 2030,
+      "variant": "R",
+      "size": {
+        "width": "235",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "T-CROSS",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "TAIGO",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "TOUAREG",
+      "from": 2002,
+      "to": 2010,
+      "size": {
+        "width": "235",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "TOUAREG",
+      "from": 2010,
+      "to": 2018,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "TOUAREG",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "TOURAN",
+      "from": 2003,
+      "to": 2010,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "TOURAN",
+      "from": 2010,
+      "to": 2015,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "TOURAN",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "SHARAN",
+      "from": 2005,
+      "to": 2010,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "SHARAN",
+      "from": 2010,
+      "to": 2022,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "TRANSPORTER",
+      "from": 2003,
+      "to": 2015,
+      "size": {
+        "width": "205",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "TRANSPORTER",
+      "from": 2015,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "CRAFTER",
+      "from": 2006,
+      "to": 2017,
+      "size": {
+        "width": "235",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "CRAFTER",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "ID3",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "ID4",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "ID5",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "ID7",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "AMAROK",
+      "from": 2010,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "C30",
+      "from": 2006,
+      "to": 2013,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "S40",
+      "from": 2004,
+      "to": 2012,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "V50",
+      "from": 2004,
+      "to": 2012,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "S60",
+      "from": 2000,
+      "to": 2009,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "S60",
+      "from": 2010,
+      "to": 2018,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "S60",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "V60",
+      "from": 2010,
+      "to": 2018,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "V60",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "S90",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "V90",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "XC40",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "XC60",
+      "from": 2008,
+      "to": 2017,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "XC60",
+      "from": 2017,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "XC90",
+      "from": 2002,
+      "to": 2014,
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "XC90",
+      "from": 2014,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "50",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "V40",
+      "from": 2012,
+      "to": 2019,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "V40",
+      "from": 2012,
+      "to": 2019,
+      "variant": "CROSS COUNTRY",
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "C40",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "50",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "EX30",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "EX90",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "50",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "ALFA ROMEO",
+      "model": "GIULIETTA",
+      "from": 2010,
+      "to": 2030,
+      "variant": "QUADRIFOGLIO",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "ALFA ROMEO",
+      "model": "GIULIA",
+      "from": 2016,
+      "to": 2030,
+      "variant": "QUADRIFOGLIO",
+      "size": {
+        "width": "245",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "ALFA ROMEO",
+      "model": "STELVIO",
+      "from": 2017,
+      "to": 2030,
+      "variant": "QUADRIFOGLIO",
+      "size": {
+        "width": "255",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "ASTON MARTIN",
+      "model": "DB11",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "40",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "ASTON MARTIN",
+      "model": "DBS",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "35",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "A1",
+      "from": 2010,
+      "to": 2030,
+      "variant": "ALLSTREET",
+      "size": {
+        "width": "205",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q4 E-TRON",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q4 E-TRON",
+      "from": 2021,
+      "to": 2030,
+      "variant": "SPORTBACK",
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "AUDI",
+      "model": "Q6 E-TRON",
+      "from": 2024,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "50",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "BENTLEY",
+      "model": "CONTINENTAL",
+      "from": 2018,
+      "to": 2030,
+      "variant": "GT",
+      "size": {
+        "width": "265",
+        "aspect": "40",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "2 SERIES",
+      "from": 2021,
+      "to": 2030,
+      "variant": "ACTIVE TOURER",
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "3 SERIES",
+      "from": 2019,
+      "to": 2030,
+      "variant": "M340I",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "4 SERIES",
+      "from": 2020,
+      "to": 2030,
+      "variant": "M440I",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "5 SERIES",
+      "from": 2023,
+      "to": 2030,
+      "variant": "I5",
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "IX1",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "IX2",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "BMW",
+      "model": "IX3",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "50",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C3",
+      "from": 2016,
+      "to": 2030,
+      "variant": "AIRCROSS",
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C4",
+      "from": 2020,
+      "to": 2030,
+      "variant": "SPACETOURER",
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "CITROEN",
+      "model": "C4",
+      "from": 2020,
+      "to": 2030,
+      "variant": "X",
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "DACIA",
+      "model": "DUSTER",
+      "from": 2018,
+      "to": 2030,
+      "variant": "SEVERE",
+      "size": {
+        "width": "215",
+        "aspect": "70",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "DACIA",
+      "model": "BIGSTER",
+      "from": 2024,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "DS",
+      "model": "DS3",
+      "from": 2019,
+      "to": 2030,
+      "variant": "CROSSBACK",
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "DS",
+      "model": "DS4",
+      "from": 2021,
+      "to": 2030,
+      "variant": "E-TENSE",
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "500",
+      "from": 2020,
+      "to": 2030,
+      "variant": "ELEKTRIC",
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FIAT",
+      "model": "600",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "FIESTA",
+      "from": 2019,
+      "to": 2030,
+      "variant": "ACTIVE",
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "FOCUS",
+      "from": 2018,
+      "to": 2030,
+      "variant": "ACTIVE",
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "MUSTANG",
+      "from": 2024,
+      "to": 2030,
+      "variant": "MACH-E",
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "MUSTANG",
+      "from": 2024,
+      "to": 2030,
+      "variant": "MACH-E GT",
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "FORD",
+      "model": "TOURNEO CUSTOM",
+      "from": 2024,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "CIVIC",
+      "from": 2022,
+      "to": 2030,
+      "variant": "E-HEV",
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "HONDA",
+      "model": "ZR-V",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "I20",
+      "from": 2020,
+      "to": 2030,
+      "variant": "N LINE",
+      "size": {
+        "width": "205",
+        "aspect": "45",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "IONIQ 5",
+      "from": 2021,
+      "to": 2030,
+      "variant": "N",
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "BAYON",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "HYUNDAI",
+      "model": "STARIA",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "65",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "JAGUAR",
+      "model": "XF",
+      "from": 2015,
+      "to": 2030,
+      "variant": "SPORTBRAKE",
+      "size": {
+        "width": "245",
+        "aspect": "40",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "JEEP",
+      "model": "AVENGER",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "CEED",
+      "from": 2018,
+      "to": 2030,
+      "variant": "SPORTY",
+      "size": {
+        "width": "225",
+        "aspect": "40",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "XCED",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "EV6",
+      "from": 2021,
+      "to": 2030,
+      "variant": "GT",
+      "size": {
+        "width": "255",
+        "aspect": "40",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "EV3",
+      "from": 2024,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "KIA",
+      "model": "EV4",
+      "from": 2024,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "LAND ROVER",
+      "model": "RANGE ROVER",
+      "from": 2022,
+      "to": 2030,
+      "variant": "E-PACE",
+      "size": {
+        "width": "235",
+        "aspect": "60",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "LBX",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "RZ",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "50",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "LEXUS",
+      "model": "LM",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MASERATI",
+      "model": "MC20",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "35",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "MASERATI",
+      "model": "GRECALE",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MASERATI",
+      "model": "GRECALE",
+      "from": 2022,
+      "to": 2030,
+      "variant": "TROFEO",
+      "size": {
+        "width": "255",
+        "aspect": "45",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "MASERATI",
+      "model": "FOLGORE",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "40",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "MX-30",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MAZDA",
+      "model": "CX-80",
+      "from": 2024,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "50",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "A-CLASS",
+      "from": 2022,
+      "to": 2030,
+      "variant": "AMG A45 S",
+      "size": {
+        "width": "245",
+        "aspect": "35",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "C-CLASS",
+      "from": 2021,
+      "to": 2030,
+      "variant": "AMG C63 S E",
+      "size": {
+        "width": "265",
+        "aspect": "35",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "E-CLASS",
+      "from": 2023,
+      "to": 2030,
+      "variant": "EQS",
+      "size": {
+        "width": "255",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "EQE",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "50",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "EQE SUV",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "50",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "EQS",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "EQS SUV",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "275",
+        "aspect": "45",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "GLB",
+      "from": 2019,
+      "to": 2030,
+      "variant": "AMG GLB35",
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "GLC",
+      "from": 2022,
+      "to": 2030,
+      "variant": "AMG GLC63 S E",
+      "size": {
+        "width": "265",
+        "aspect": "40",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "MERCEDES-BENZ",
+      "model": "CLE",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MG",
+      "model": "MG4",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "MG",
+      "model": "MG4",
+      "from": 2022,
+      "to": 2030,
+      "variant": "X-POWER",
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MG",
+      "model": "CYBERSTER",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "ACEMAN",
+      "from": 2024,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "MINI",
+      "model": "COUNTRYMAN",
+      "from": 2023,
+      "to": 2030,
+      "variant": "E",
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "ARIYA",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "ARIYA",
+      "from": 2022,
+      "to": 2030,
+      "variant": "EVO",
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "NISSAN",
+      "model": "TOWNSTAR",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "208",
+      "from": 2019,
+      "to": 2030,
+      "variant": "E-208",
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "308",
+      "from": 2021,
+      "to": 2030,
+      "variant": "E-308",
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "408",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "225",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "3008",
+      "from": 2023,
+      "to": 2030,
+      "variant": "E-3008",
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "5008",
+      "from": 2023,
+      "to": 2030,
+      "variant": "E-5008",
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "PEUGEOT",
+      "model": "RIFTER",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "60",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "POLESTAR",
+      "model": "POLESTAR 3",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "45",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "POLESTAR",
+      "model": "POLESTAR 4",
+      "from": 2024,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "45",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "PORSCHE",
+      "model": "911",
+      "from": 2023,
+      "to": 2030,
+      "variant": "D AKR M",
+      "size": {
+        "width": "315",
+        "aspect": "30",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "MEGANE",
+      "from": 2022,
+      "to": 2030,
+      "variant": "E-TECH",
+      "size": {
+        "width": "215",
+        "aspect": "50",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "SCENIC",
+      "from": 2023,
+      "to": 2030,
+      "variant": "E-TECH",
+      "size": {
+        "width": "235",
+        "aspect": "50",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "R5",
+      "from": 2024,
+      "to": 2030,
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "R4",
+      "from": 2024,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "RENAULT",
+      "model": "SYMBIOZ",
+      "from": 2024,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "SEAT",
+      "model": "BORN",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "SKODA",
+      "model": "ELROQ",
+      "from": 2025,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "SMART",
+      "model": "#1",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "50",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "SMART",
+      "model": "#3",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "50",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "SUBARU",
+      "model": "SOLTERRA",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "SUZUKI",
+      "model": "SWACE",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "185",
+        "aspect": "60",
+        "rim": "15"
+      }
+    },
+    {
+      "make": "TESLA",
+      "model": "CYBERTRUCK",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "285",
+        "aspect": "65",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "YARIS CROSS",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "COROLLA CROSS",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "BZ4X",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "TOYOTA",
+      "model": "PRIUS",
+      "from": 2023,
+      "to": 2030,
+      "variant": "PLUG-IN",
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "ASTRA",
+      "from": 2022,
+      "to": 2030,
+      "variant": "ELECTRIC",
+      "size": {
+        "width": "215",
+        "aspect": "50",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VAUXHALL",
+      "model": "MOKKA",
+      "from": 2020,
+      "to": 2030,
+      "variant": "ELECTRIC",
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "POLO",
+      "from": 2021,
+      "to": 2030,
+      "variant": "STYLE",
+      "size": {
+        "width": "195",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "GOLF",
+      "from": 2020,
+      "to": 2030,
+      "variant": "E-HYBRID",
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "16"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "PASSAT",
+      "from": 2023,
+      "to": 2030,
+      "variant": "VARIANT",
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "TIGUAN",
+      "from": 2023,
+      "to": 2030,
+      "variant": "ALLSPACE",
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "18"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "T-ROC",
+      "from": 2022,
+      "to": 2030,
+      "variant": "E-HYBRID",
+      "size": {
+        "width": "215",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "ID. BUZZ",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "ID. BUZZ",
+      "from": 2022,
+      "to": 2030,
+      "variant": "CARGO",
+      "size": {
+        "width": "235",
+        "aspect": "55",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VOLKSWAGEN",
+      "model": "ID.2ALL",
+      "from": 2025,
+      "to": 2030,
+      "size": {
+        "width": "205",
+        "aspect": "55",
+        "rim": "17"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "S60",
+      "from": 2022,
+      "to": 2030,
+      "variant": "RECHARGE",
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "V60",
+      "from": 2022,
+      "to": 2030,
+      "variant": "RECHARGE",
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "S90",
+      "from": 2022,
+      "to": 2030,
+      "variant": "RECHARGE",
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "V90",
+      "from": 2022,
+      "to": 2030,
+      "variant": "RECHARGE",
+      "size": {
+        "width": "245",
+        "aspect": "45",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "VOLVO",
+      "model": "EX30",
+      "from": 2023,
+      "to": 2030,
+      "variant": "TWIN MOTOR",
+      "size": {
+        "width": "235",
+        "aspect": "45",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "ASTON MARTIN",
+      "model": "VALKYRIE",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "35",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "BUGATTI",
+      "model": "CHIRON",
+      "from": 2016,
+      "to": 2030,
+      "size": {
+        "width": "285",
+        "aspect": "30",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "FERRARI",
+      "model": "ROMA",
+      "from": 2020,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "35",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "FERRARI",
+      "model": "PURASANGUE",
+      "from": 2022,
+      "to": 2030,
+      "size": {
+        "width": "255",
+        "aspect": "35",
+        "rim": "22"
+      }
+    },
+    {
+      "make": "LAMBORGHINI",
+      "model": "URUS",
+      "from": 2018,
+      "to": 2030,
+      "size": {
+        "width": "285",
+        "aspect": "45",
+        "rim": "21"
+      }
+    },
+    {
+      "make": "LAMBORGHINI",
+      "model": "REVUELTO",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "265",
+        "aspect": "35",
+        "rim": "20"
+      }
+    },
+    {
+      "make": "MCLAREN",
+      "model": "ARTURA",
+      "from": 2021,
+      "to": 2030,
+      "size": {
+        "width": "235",
+        "aspect": "35",
+        "rim": "19"
+      }
+    },
+    {
+      "make": "MCLAREN",
+      "model": "750S",
+      "from": 2023,
+      "to": 2030,
+      "size": {
+        "width": "245",
+        "aspect": "35",
+        "rim": "19"
+      }
+    }
   ]
 }

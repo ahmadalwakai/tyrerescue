@@ -23,7 +23,9 @@ const FETCH_TIMEOUT_MS = 5_000;
 interface DvlaApiResponse {
   registrationNumber: string;
   make?: string;
-  model?: string; // DVLA does not always populate this; falls back to monthOfFirstRegistration heuristics
+  // Not guaranteed by official DVLA VES. Some mocks/proxies may enrich it,
+  // so callers must keep treating model as nullable.
+  model?: string;
   yearOfManufacture?: number;
   fuelType?: string;
   colour?: string;
@@ -134,6 +136,7 @@ export async function lookupVrm(registrationNumber: string): Promise<VrmLookupRe
       method: 'POST',
       signal: controller.signal,
       headers: {
+        Accept: 'application/json',
         'Content-Type': 'application/json',
         'x-api-key': env.DVLA_API_KEY,
       },
@@ -153,7 +156,10 @@ export async function lookupVrm(registrationNumber: string): Promise<VrmLookupRe
   if (response.status === 404) {
     return {
       ok: false,
-      error: { code: 'not_found', message: 'We could not find that registration with the DVLA.' },
+      error: {
+        code: 'not_found',
+        message: `DVLA did not find registration ${vrm}. Check the plate characters and try again.`,
+      },
     };
   }
   if (response.status === 400) {
@@ -186,7 +192,23 @@ export async function lookupVrm(registrationNumber: string): Promise<VrmLookupRe
     return { ok: false, error: { code: 'unknown', message: detail } };
   }
 
-  const payload = (await response.json()) as DvlaApiResponse;
+  let payload: DvlaApiResponse;
+  try {
+    payload = (await response.json()) as DvlaApiResponse;
+  } catch {
+    return {
+      ok: false,
+      error: { code: 'malformed_response', message: 'DVLA returned a malformed vehicle response.' },
+    };
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    return {
+      ok: false,
+      error: { code: 'malformed_response', message: 'DVLA returned an empty vehicle response.' },
+    };
+  }
+
   return {
     ok: true,
     vehicle: {

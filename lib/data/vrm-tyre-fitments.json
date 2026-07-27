@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "updated": "2026-07-25",
+  "comment": "Tyre Rescue owned exact-registration fitment overrides. Add records only when the tyre size has been confirmed from the sidewall, door placard, manufacturer data, or a paid fitment source.",
+  "records": []
+}
