@@ -1034,6 +1034,41 @@ function ConversionHero() {
                 </Box>
               </ChakraLink>
             </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.34, delay: 1.18, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <ChakraLink
+                asChild
+                mt={3}
+                minH="54px"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                gap={2}
+                borderRadius="18px"
+                bg="rgba(9,9,11,0.68)"
+                color={colors.textPrimary}
+                borderWidth="1px"
+                borderColor="rgba(249,115,22,0.54)"
+                fontSize={{ base: '17px', md: '18px' }}
+                fontWeight="900"
+                textDecoration="none"
+                boxShadow="0 14px 34px rgba(0,0,0,0.24)"
+                _hover={{ bg: 'rgba(249,115,22,0.13)', color: colors.accent, textDecoration: 'none' }}
+                _active={{ transform: 'scale(0.99)' }}
+                transition="background 0.2s ease, color 0.2s ease, transform 0.2s ease"
+                aria-label="Book a tyre fitting online"
+              >
+                <Link href="/book">
+                  Book Online
+                  <Text as="span" color={colors.accent} aria-hidden="true">
+                    →
+                  </Text>
+                </Link>
+              </ChakraLink>
+            </motion.div>
           </Box>
         </Box>
       </Container>
