@@ -417,7 +417,7 @@ export function StepEligibility({
           lineHeight="1"
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          1–2 hours
+          45 min - 1 hour
         </Text>
         <Text
           fontSize="14px"

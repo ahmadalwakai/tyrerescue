@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { drivers, users, pricingRules, bookings } from '@/lib/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { resolveDistance } from '@/lib/mapbox';
 import { parsePricingRules } from '@/lib/pricing-engine';
 import { shouldDriverAppearOnline, isLocationTrustworthy, isLocationFromMobileApp } from '@/lib/driver-presence';
@@ -110,23 +110,9 @@ export async function POST(request: NextRequest) {
     const etaMinMinutes = Math.min(etaMinRaw, etaMaxRaw);
     const etaMaxMinutes = Math.max(etaMinRaw, etaMaxRaw);
 
-    // Human-friendly label
-    // For emergency availability the owner-approved label is always "1–2 hours".
-    // We never show misleading minute-precision ETA on this card.
-    function formatEtaLabel(min: number, max: number): string {
-      // Normalise so min <= max
-      const lo = Math.min(min, max);
-      const hi = Math.max(min, max);
-      if (hi >= 60) {
-        const loH = lo / 60;
-        const hiH = hi / 60;
-        return `${Math.max(1, Math.round(loH))}–${Math.max(Math.ceil(hiH), 2)} hours`;
-      }
-      // Even for sub-hour, clamp to at least "1–2 hours" for emergency use
-      return '1–2 hours';
-    }
-
-    const etaLabel = formatEtaLabel(etaMinMinutes, etaMaxMinutes);
+    // Customer-facing emergency availability promise. The route card still shows
+    // live drive time separately, so this should stay a simple service window.
+    const etaLabel = '45 min - 1 hour';
 
     // Find matching driver name if sourced from a driver
     let driverName: string | null = null;

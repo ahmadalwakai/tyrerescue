@@ -10,15 +10,14 @@ import {
   Textarea,
   SimpleGrid,
   Grid,
+  Image,
+  Button,
   Link as ChakraLink,
 } from '@chakra-ui/react';
+import { motion } from 'motion/react';
 import Link from 'next/link';
-import { Nav } from '@/components/ui/Nav';
 import { Footer } from '@/components/ui/Footer';
 import { colorTokens, inputProps, textareaProps } from '@/lib/design-tokens';
-import { HomeImageShowcase } from '@/components/home/HomeImageShowcase';
-import { PostcodeChecker } from '@/components/home/PostcodeChecker';
-import type { HomeSlide } from '@/components/home/homeImageSlides';
 import { cities } from '@/lib/cities';
 import { services as seoServices, serviceCities } from '@/lib/areas';
 import {
@@ -28,7 +27,6 @@ import {
 } from '@/lib/pricing';
 import { homepageFAQItems } from '@/lib/content/faq';
 import { TrustpilotReviewCollector } from '@/components/ui/TrustpilotReviewCollector';
-import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt';
 import { trackCallClick, trackContactSubmit } from '@/lib/analytics/gtag';
 import { AIOptimizedSection } from '@/components/seo/AIOptimizedSection';
 import { HONEYPOT_FIELD } from '@/lib/security/honeypot';
@@ -44,6 +42,29 @@ const colors = {
 };
 
 const PHONE_NUMBER = '0141 266 0690';
+const PHONE_HREF = `tel:${PHONE_NUMBER.replace(/\s/g, '')}`;
+const HERO_BACKGROUND_SRC = '/images/home/slide-2.webp';
+
+const heroHeadlineLines = [
+  ['Emergency', 'Mobile'],
+  ['Tyre', 'Fitting'],
+  ['Across', 'Scotland'],
+];
+
+const heroTrustChips = [
+  '★★★★★ 4.9 Google',
+  '45 min - 1 hour',
+  'Roadside',
+  'Home & Work',
+];
+
+const heroMenuItems = [
+  { label: 'Emergency', href: '/emergency' },
+  { label: 'Book Online', href: '/book' },
+  { label: 'Instant Quote', href: '/quote' },
+  { label: 'Track Booking', href: '/tracking' },
+  { label: 'Contact', href: '/contact' },
+];
 
 const services = [
   {
@@ -89,6 +110,8 @@ const marqueeItems = [
   'EMERGENCY CALLOUT',
   'GLASGOW & EDINBURGH',
   '24 HOURS A DAY',
+  'FULLY INSURED',
+  '100 MILE COVERAGE',
   'MOBILE TYRE FITTING',
   'PUNCTURE REPAIR',
   'QUALITY TYRES',
@@ -135,208 +158,82 @@ const cssKeyframes = `
     from { width: 0; }
     to { width: 100%; }
   }
+  @keyframes trCallCardBreathe {
+    0%, 100% {
+      transform: translateZ(0) scale(1);
+      box-shadow: 0 24px 64px rgba(249,115,22,0.44), 0 0 0 1px rgba(255,255,255,0.22) inset;
+    }
+    50% {
+      transform: translateZ(0) scale(1.018);
+      box-shadow: 0 30px 82px rgba(249,115,22,0.66), 0 0 0 7px rgba(249,115,22,0.13), 0 0 0 1px rgba(255,255,255,0.28) inset;
+    }
+  }
+  @keyframes trCallSweep {
+    0%, 38% { transform: translateX(-155%) skewX(-18deg); opacity: 0; }
+    48% { opacity: 0.65; }
+    68%, 100% { transform: translateX(255%) skewX(-18deg); opacity: 0; }
+  }
+  @keyframes trCallRing {
+    0% { opacity: 0.58; transform: scale(0.98); }
+    65%, 100% { opacity: 0; transform: scale(1.08); }
+  }
+  @keyframes trPhoneRing {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    8% { transform: rotate(-12deg) scale(1.05); }
+    16% { transform: rotate(12deg) scale(1.05); }
+    24% { transform: rotate(-8deg) scale(1.04); }
+    32% { transform: rotate(8deg) scale(1.04); }
+    42% { transform: rotate(0deg) scale(1); }
+  }
+  @keyframes trCallTextGlow {
+    0%, 100% { text-shadow: none; }
+    50% { text-shadow: 0 0 18px rgba(9,9,11,0.28); }
+  }
+  .tr-call-attention-card {
+    animation: trCallCardBreathe 2.15s ease-in-out infinite;
+    will-change: transform, box-shadow;
+  }
+  .tr-call-attention-card:hover {
+    animation-play-state: paused;
+  }
+  .tr-call-attention-sweep {
+    position: absolute;
+    top: -45%;
+    bottom: -45%;
+    left: 0;
+    width: 36%;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.42) 48%, transparent 100%);
+    pointer-events: none;
+    animation: trCallSweep 2.75s ease-in-out infinite;
+    z-index: 1;
+  }
+  .tr-call-attention-ring {
+    position: absolute;
+    inset: 5px;
+    border-radius: inherit;
+    border: 2px solid rgba(255,255,255,0.38);
+    pointer-events: none;
+    animation: trCallRing 2.15s ease-out infinite;
+    z-index: 1;
+  }
+  .tr-call-attention-icon {
+    animation: trPhoneRing 2.15s ease-in-out infinite;
+    transform-origin: center;
+    z-index: 2;
+  }
+  .tr-call-attention-text {
+    animation: trCallTextGlow 2.15s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tr-call-attention-card,
+    .tr-call-attention-sweep,
+    .tr-call-attention-ring,
+    .tr-call-attention-icon,
+    .tr-call-attention-text {
+      animation: none !important;
+    }
+  }
 `;
-
-type FallingSquareDepth = 'far' | 'mid' | 'accent';
-type FallingSquareVariant = 'fill' | 'outline' | 'blur';
-
-type FallingSquare = {
-  id: string;
-  x: number;
-  size: 8 | 12 | 16 | 20 | 24;
-  depth: FallingSquareDepth;
-  variant: FallingSquareVariant;
-  driftX: number;
-  rotate: number;
-  duration: number;
-  delay: number;
-};
-
-const heroFallingSquares: FallingSquare[] = [
-  // Reduced from 14 to 6 squares to cut Lighthouse "non-composited animations"
-  // count and main-thread paint cost. Hidden entirely on mobile via CSS.
-  // mid — black + dark orange, transform/opacity only (composited)
-  { id: 'm1', x: 78, size: 16, depth: 'mid', variant: 'fill',    driftX: -5, rotate: 5,  duration: 28, delay: -4 },
-  { id: 'm2', x: 11, size: 16, depth: 'mid', variant: 'outline', driftX: 4,  rotate: -4, duration: 30, delay: -8 },
-  { id: 'm3', x: 19, size: 12, depth: 'mid', variant: 'fill',    driftX: -3, rotate: 3,  duration: 25, delay: -21 },
-  { id: 'm4', x: 75, size: 16, depth: 'mid', variant: 'outline', driftX: -4, rotate: -2, duration: 27, delay: -12 },
-  // accent — orange, restrained
-  { id: 'a1', x: 86, size: 16, depth: 'accent', variant: 'outline', driftX: -3, rotate: 3, duration: 22, delay: -6 },
-  { id: 'a2', x: 7,  size: 12, depth: 'accent', variant: 'fill',    driftX: 2,  rotate: -2, duration: 24, delay: -16 },
-];
-
-function HeroFallingSquares() {
-  return (
-    <Box
-      position="absolute"
-      inset={0}
-      zIndex={0}
-      overflow="hidden"
-      pointerEvents="none"
-      aria-hidden
-      display={{ base: 'none', md: 'block' }}
-    >
-      {heroFallingSquares.map((sq) => (
-        <Box
-          key={sq.id}
-          as="span"
-          position="absolute"
-          top="-30px"
-          display="block"
-          className={`hero-sq depth-${sq.depth} variant-${sq.variant}`}
-          w={`${sq.size}px`}
-          h={`${sq.size}px`}
-          borderRadius="2px"
-          style={{
-            left: `${sq.x}%`,
-            animationDuration: `${sq.duration}s`,
-            animationDelay: `${sq.delay}s`,
-            willChange: 'transform',
-            '--sq-dx': `${sq.driftX}px`,
-            '--sq-rot': `${sq.rotate}deg`,
-          } as React.CSSProperties}
-        />
-      ))}
-    </Box>
-  );
-}
-
-// ─── Glasgow O Letter Animation ─────────────────────────
-function GlasgowO({ delay }: { delay: string }) {
-  return (
-    <Box
-      as="span"
-      display="inline-block"
-      position="relative"
-      w="1ch"
-      verticalAlign="baseline"
-    >
-      <Box
-        as="span"
-        className="neon-char"
-        position="absolute"
-        top={0}
-        left={0}
-        w="100%"
-        h="100%"
-        style={{
-          animation: `glasgowORollPath 9.6s cubic-bezier(0.22,1,0.36,1) ${delay} infinite, glasgowOLetterOpacity 9.6s ease-in-out ${delay} infinite, orangeNeon 3s ease-in-out ${delay} infinite`,
-        }}
-      >
-        O
-      </Box>
-
-      <Box
-        as="span"
-        position="absolute"
-        top={0}
-        left={0}
-        w="100%"
-        h="100%"
-        pointerEvents="none"
-        style={{
-          animation: `glasgowORollPath 9.6s cubic-bezier(0.22,1,0.36,1) ${delay} infinite, glasgowOTyreOpacity 9.6s ease-in-out ${delay} infinite`,
-        }}
-      >
-        <Box
-          as="span"
-          display="inline-block"
-          w="1.15ch"
-          h="1.15em"
-          style={{
-            transform: 'translateY(-0.04em)',
-            animation: `glasgowOTyreBounce 1.6s ease-in-out ${delay} infinite`,
-          }}
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 100 100"
-            width="100%"
-            height="100%"
-            style={{
-              animation: 'tyreSpin 2s linear infinite',
-              transformOrigin: 'center',
-              filter: 'drop-shadow(0 0 3px rgba(249,115,22,0.6)) drop-shadow(0 0 8px rgba(249,115,22,0.35))',
-            }}
-          >
-            <circle cx="50" cy="50" r="46" fill="#1A1A1A" />
-            <circle cx="50" cy="50" r="46" fill="none" stroke="#2A2A2A" strokeWidth="2" />
-            <circle cx="50" cy="50" r="46" fill="none" stroke="#F97316" strokeWidth="10" />
-            <circle cx="50" cy="50" r="30" fill="#27272A" stroke="#3F3F46" strokeWidth="2" />
-            <circle cx="50" cy="50" r="30" fill="none" stroke="#A1A1AA" strokeWidth="1" opacity="0.5" />
-            {[0, 72, 144, 216, 288].map((angle) => {
-              const rad = (angle * Math.PI) / 180;
-              const x2 = 50 + 24 * Math.cos(rad);
-              const y2 = 50 + 24 * Math.sin(rad);
-              return (
-                <line
-                  key={angle}
-                  x1="50"
-                  y1="50"
-                  x2={x2}
-                  y2={y2}
-                  stroke="#A1A1AA"
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                />
-              );
-            })}
-            <circle cx="50" cy="50" r="6" fill="#F97316" />
-            <circle cx="50" cy="50" r="3" fill="#09090B" />
-            {Array.from({ length: 8 }).map((_, i) => (
-              <rect
-                key={i}
-                x="47"
-                y="3"
-                width="6"
-                height="10"
-                fill="#F97316"
-                opacity="0.55"
-                transform={`rotate(${i * 45} 50 50)`}
-              />
-            ))}
-          </svg>
-        </Box>
-      </Box>
-
-      <Box as="span" visibility="hidden">O</Box>
-    </Box>
-  );
-}
-
-// ─── Counter Hook ────────────────────────────────────────
-function useCountUp(end: number, duration: number = 1500, decimals: number = 0) {
-  const [value, setValue] = useState(end);
-  const ref = useRef<HTMLDivElement>(null);
-  const started = useRef(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !started.current) {
-          started.current = true;
-          setValue(0);
-          const startTime = performance.now();
-          const step = (now: number) => {
-            const elapsed = now - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setValue(parseFloat((eased * end).toFixed(decimals)));
-            if (progress < 1) requestAnimationFrame(step);
-          };
-          requestAnimationFrame(step);
-        }
-      },
-      { threshold: 0.3 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [end, duration, decimals]);
-
-  return { value, ref };
-}
 
 // ─── Animated Section ────────────────────────────────────
 function AnimatedSection({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -626,11 +523,544 @@ function ContactSection() {
   );
 }
 
+function PhoneIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.94.35 1.86.7 2.75a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.33-1.27a2 2 0 0 1 2.11-.45c.89.35 1.81.57 2.75.7A2 2 0 0 1 22 16.92z" />
+    </svg>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" aria-hidden="true">
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  );
+}
+
+function LandingHeader() {
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 16);
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    return () => window.removeEventListener('scroll', update);
+  }, []);
+
+  return (
+    <Box position="fixed" top={0} left={0} right={0} zIndex={80} pointerEvents="none">
+      <Box
+        as="header"
+        h={{ base: '66px', md: '76px' }}
+        display="flex"
+        alignItems="center"
+        bg={scrolled || menuOpen ? 'rgba(9,9,11,0.94)' : 'rgba(9,9,11,0.18)'}
+        borderBottomWidth="1px"
+        borderColor={scrolled || menuOpen ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.04)'}
+        transition="background 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease"
+        boxShadow={scrolled || menuOpen ? '0 16px 40px rgba(0,0,0,0.28)' : 'none'}
+        style={{
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }}
+        pointerEvents="auto"
+      >
+        <Container maxW="7xl">
+          <Flex align="center" justify="space-between" gap={4}>
+            <motion.div
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <Link href="/" aria-label="Tyre Rescue home">
+                <Image
+                  src="/logo.svg"
+                  alt="Tyre Rescue"
+                  h={{ base: '44px', md: '52px' }}
+                  w="auto"
+                  display="block"
+                />
+              </Link>
+            </motion.div>
+
+            <Button
+              type="button"
+              display="inline-flex"
+              alignItems="center"
+              justifyContent="center"
+              gap="9px"
+              h="42px"
+              px={{ base: 3, md: 4 }}
+              borderRadius="999px"
+              borderWidth="1px"
+              borderColor="rgba(255,255,255,0.14)"
+              bg="rgba(15,15,18,0.56)"
+              color={colors.textPrimary}
+              fontSize="12px"
+              fontWeight="800"
+              letterSpacing="0.08em"
+              cursor="pointer"
+              transition="all 0.2s ease"
+              _hover={{ borderColor: 'rgba(249,115,22,0.55)', color: colors.accent }}
+              _active={{ transform: 'scale(0.97)' }}
+              aria-expanded={menuOpen}
+              aria-controls="home-conversion-menu"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              onClick={() => setMenuOpen((open) => !open)}
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {menuOpen ? <CloseIcon /> : <MenuIcon />}
+              Menu
+            </Button>
+          </Flex>
+        </Container>
+      </Box>
+
+      {menuOpen && (
+        <Box
+          id="home-conversion-menu"
+          position="fixed"
+          top={{ base: '78px', md: '88px' }}
+          left={{ base: 3, md: 'auto' }}
+          right={{ base: 3, md: 6 }}
+          w={{ base: 'auto', md: '360px' }}
+          p={3}
+          bg="rgba(9,9,11,0.96)"
+          borderWidth="1px"
+          borderColor="rgba(255,255,255,0.12)"
+          borderRadius="18px"
+          boxShadow="0 28px 80px rgba(0,0,0,0.48)"
+          style={{
+            backdropFilter: 'blur(22px)',
+            WebkitBackdropFilter: 'blur(22px)',
+          }}
+          pointerEvents="auto"
+        >
+          <Flex direction="column" gap={1}>
+            {heroMenuItems.map((item, index) => (
+              <motion.div
+                key={item.href}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.24, delay: index * 0.035 }}
+              >
+                <ChakraLink
+                  asChild
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  px={4}
+                  py={3}
+                  borderRadius="12px"
+                  color={colors.textPrimary}
+                  fontSize="15px"
+                  fontWeight="800"
+                  textDecoration="none"
+                  _hover={{ bg: 'rgba(249,115,22,0.12)', color: colors.accent, textDecoration: 'none' }}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <Link href={item.href}>
+                    {item.label}
+                    <Text as="span" color={colors.accent} aria-hidden="true">→</Text>
+                  </Link>
+                </ChakraLink>
+              </motion.div>
+            ))}
+          </Flex>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+function ProgressiveCallBar() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const heroCallCard = document.getElementById('home-hero-call-card');
+    if (!heroCallCard) return;
+
+    const update = () => {
+      const headerOffset = window.innerWidth < 768 ? 78 : 88;
+      const rect = heroCallCard.getBoundingClientRect();
+      setVisible(window.scrollY > 80 && rect.bottom <= headerOffset);
+    };
+
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <Box
+      position="fixed"
+      top={{ base: '78px', md: '88px' }}
+      left={0}
+      right={0}
+      zIndex={70}
+      display="flex"
+      justifyContent="center"
+      pointerEvents="none"
+      px={4}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: -14, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+        style={{ width: 'min(78vw, 420px)', minWidth: '260px', pointerEvents: 'auto' }}
+      >
+        <ChakraLink
+          className="tr-call-attention-card"
+          href={PHONE_HREF}
+          onClick={() => trackCallClick('home_progressive_call_bar')}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          gap={3}
+          minH={{ base: '54px', md: '58px' }}
+          px={{ base: 4, md: 5 }}
+          borderRadius="18px"
+          bg="linear-gradient(135deg, rgba(255,139,36,0.98) 0%, rgba(249,115,22,0.98) 52%, rgba(194,65,12,0.98) 100%)"
+          color="#09090B"
+          textDecoration="none"
+          boxShadow="0 18px 46px rgba(249,115,22,0.34), 0 0 0 1px rgba(255,255,255,0.22) inset"
+          _hover={{
+            textDecoration: 'none',
+            transform: 'translateY(-1px)',
+            boxShadow: '0 22px 56px rgba(249,115,22,0.44), 0 0 0 1px rgba(255,255,255,0.28) inset',
+          }}
+          _active={{ transform: 'scale(0.99)' }}
+          transition="transform 0.2s ease, box-shadow 0.2s ease"
+          position="relative"
+          overflow="hidden"
+          aria-label={`Call Tyre Rescue now on ${PHONE_NUMBER}`}
+        >
+          <Box className="tr-call-attention-sweep" aria-hidden="true" />
+          <Box className="tr-call-attention-ring" aria-hidden="true" />
+          <Box className="tr-call-attention-icon" position="relative" zIndex={2} display="inline-flex">
+            <PhoneIcon size={22} />
+          </Box>
+          <Box textAlign="left" position="relative" zIndex={2}>
+            <Text className="tr-call-attention-text" fontSize={{ base: '18px', md: '21px' }} fontWeight="900" lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>
+              Call Now
+            </Text>
+            <Text fontSize="11px" fontWeight="800" mt="3px" lineHeight="1">
+              Available 24/7
+            </Text>
+          </Box>
+        </ChakraLink>
+      </motion.div>
+    </Box>
+  );
+}
+
+function LiveAvailability() {
+  const [nightResponse, setNightResponse] = useState(false);
+
+  useEffect(() => {
+    const update = () => {
+      const hour = new Date().getHours();
+      setNightResponse(hour < 6 || hour >= 22);
+    };
+    update();
+    const timer = window.setInterval(update, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.42, delay: 0.08 }}
+    >
+      <Flex
+        align="center"
+        gap={2}
+        w="fit-content"
+        maxW="100%"
+        px={3}
+        py={2}
+        borderRadius="999px"
+        bg="rgba(9,9,11,0.58)"
+        borderWidth="1px"
+        borderColor={nightResponse ? 'rgba(249,115,22,0.34)' : 'rgba(34,197,94,0.34)'}
+        color={colors.textPrimary}
+        boxShadow="0 10px 30px rgba(0,0,0,0.24)"
+        style={{
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+        }}
+      >
+        <Box
+          w="9px"
+          h="9px"
+          borderRadius="full"
+          bg={nightResponse ? '#F97316' : '#22C55E'}
+          boxShadow={nightResponse ? '0 0 14px rgba(249,115,22,0.72)' : '0 0 14px rgba(34,197,94,0.72)'}
+          flexShrink={0}
+        />
+        <Text fontSize={{ base: '13px', md: '14px' }} fontWeight="800">
+          {nightResponse ? 'Night Response Available' : 'Engineers Available Now'}
+        </Text>
+      </Flex>
+    </motion.div>
+  );
+}
+
+function ConversionHero() {
+  return (
+    <Box
+      as="section"
+      position="relative"
+      minH={{ base: '100svh', md: '100vh' }}
+      overflow="hidden"
+      display="flex"
+      alignItems="center"
+      pt={{ base: '96px', md: '112px' }}
+      pb={{ base: '112px', md: '74px' }}
+      bg="#09090B"
+    >
+      <Box
+        position="absolute"
+        inset={0}
+        bgImage={`url(${HERO_BACKGROUND_SRC})`}
+        bgSize="cover"
+        backgroundPosition={{ base: '60% center', md: 'center center' }}
+        transform="scale(1.02)"
+        filter="saturate(1.04) contrast(1.08)"
+        aria-hidden="true"
+      />
+      <Box
+        position="absolute"
+        inset={0}
+        bg="linear-gradient(90deg, rgba(5,5,7,0.94) 0%, rgba(5,5,7,0.82) 38%, rgba(5,5,7,0.58) 64%, rgba(5,5,7,0.38) 100%)"
+        aria-hidden="true"
+      />
+      <Box
+        position="absolute"
+        inset={0}
+        bg="radial-gradient(circle at 18% 38%, rgba(249,115,22,0.22) 0%, rgba(249,115,22,0.08) 26%, transparent 54%), linear-gradient(180deg, rgba(9,9,11,0.16) 0%, rgba(9,9,11,0.78) 100%)"
+        aria-hidden="true"
+      />
+
+      <Container maxW="7xl" position="relative" zIndex={1}>
+        <Box maxW={{ base: '100%', md: '760px', lg: '820px' }}>
+          <LiveAvailability />
+
+          <Text
+            mt={{ base: 5, md: 7 }}
+            mb={{ base: 3, md: 4 }}
+            color={colors.accent}
+            fontSize={{ base: '11px', md: '12px' }}
+            fontWeight="900"
+            letterSpacing="0.18em"
+            textTransform="uppercase"
+          >
+            Emergency mobile tyre fitting
+          </Text>
+
+          <Text
+            as="h1"
+            color={colors.textPrimary}
+            fontSize={{ base: '48px', md: '76px', lg: '92px' }}
+            lineHeight={{ base: '0.94', md: '0.9' }}
+            fontWeight="900"
+            letterSpacing="0"
+            maxW="850px"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            {heroHeadlineLines.map((line, lineIndex) => (
+              <Box key={line.join('-')} as="span" display="block">
+                {line.map((word, wordInLineIndex) => {
+                  const current = heroHeadlineLines
+                    .slice(0, lineIndex)
+                    .reduce((count, previousLine) => count + previousLine.length, wordInLineIndex);
+                  return (
+                    <motion.span
+                      key={`${lineIndex}-${word}`}
+                      initial={{ opacity: 0, y: 30, filter: 'blur(8px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      transition={{ duration: 0.58, delay: 0.18 + current * 0.075, ease: [0.16, 1, 0.3, 1] }}
+                      style={{
+                        display: 'inline-block',
+                        marginRight: '0.18em',
+                        color: lineIndex === 2 ? colors.accent : undefined,
+                      }}
+                    >
+                      {word}
+                    </motion.span>
+                  );
+                })}
+              </Box>
+            ))}
+          </Text>
+
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.72, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <Text
+              mt={{ base: 4, md: 5 }}
+              color="rgba(250,250,250,0.88)"
+              fontSize={{ base: '17px', md: '21px' }}
+              lineHeight="1.45"
+              maxW="640px"
+            >
+              We come to you at home, work or roadside with emergency mobile fitting across Central Scotland.
+            </Text>
+          </motion.div>
+
+          <Flex as="ul" listStyleType="none" wrap="wrap" gap={{ base: 2, md: 2.5 }} mt={{ base: 5, md: 6 }} maxW="720px">
+            {heroTrustChips.map((chip, index) => (
+              <motion.li
+                key={chip}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.36, delay: 0.82 + index * 0.045 }}
+                style={{ listStyle: 'none' }}
+              >
+                <Flex
+                  align="center"
+                  minH="34px"
+                  px={{ base: 3, md: 3.5 }}
+                  borderRadius="999px"
+                  bg={chip.includes('★') ? 'rgba(250,204,21,0.13)' : 'rgba(255,255,255,0.08)'}
+                  borderWidth="1px"
+                  borderColor={chip.includes('★') ? 'rgba(250,204,21,0.28)' : 'rgba(255,255,255,0.13)'}
+                  color={chip.includes('★') ? '#FACC15' : 'rgba(250,250,250,0.88)'}
+                  fontSize={{ base: '12px', md: '13px' }}
+                  fontWeight="800"
+                  whiteSpace="nowrap"
+                  boxShadow="0 8px 28px rgba(0,0,0,0.18)"
+                  style={{
+                    backdropFilter: 'blur(14px)',
+                    WebkitBackdropFilter: 'blur(14px)',
+                  }}
+                >
+                  {chip}
+                </Flex>
+              </motion.li>
+            ))}
+          </Flex>
+
+          <Box mt={{ base: 6, md: 8 }} maxW="610px">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 18 }}
+              animate={{
+                opacity: 1,
+                scale: [1, 1.012, 1],
+                y: 0,
+              }}
+              transition={{
+                opacity: { duration: 0.35, delay: 1.05 },
+                y: { duration: 0.35, delay: 1.05 },
+                scale: { duration: 3.8, repeat: Infinity, repeatDelay: 1.7, ease: 'easeInOut' },
+              }}
+              whileHover={{ scale: 1.018 }}
+              whileTap={{ scale: 0.985 }}
+            >
+              <ChakraLink
+                className="tr-call-attention-card"
+                id="home-hero-call-card"
+                href={PHONE_HREF}
+                onClick={() => trackCallClick('home_hero_primary_card')}
+                display="flex"
+                alignItems="center"
+                gap={{ base: 4, md: 5 }}
+                minH={{ base: '108px', md: '124px' }}
+                p={{ base: 5, md: 6 }}
+                borderRadius="22px"
+                color="#09090B"
+                textDecoration="none"
+                bg="linear-gradient(135deg, #FFB15D 0%, #F97316 44%, #B83B0A 100%)"
+                boxShadow="0 26px 68px rgba(249,115,22,0.42), 0 0 0 1px rgba(255,255,255,0.24) inset"
+                position="relative"
+                overflow="hidden"
+                _hover={{ textDecoration: 'none' }}
+                aria-label={`Call Tyre Rescue now on ${PHONE_NUMBER}`}
+              >
+                <Box position="absolute" inset={0} bg="linear-gradient(120deg, rgba(255,255,255,0.28) 0%, transparent 26%, transparent 72%, rgba(255,255,255,0.12) 100%)" aria-hidden="true" />
+                <Box className="tr-call-attention-sweep" aria-hidden="true" />
+                <Box className="tr-call-attention-ring" aria-hidden="true" />
+                <Flex
+                  className="tr-call-attention-icon"
+                  w={{ base: '56px', md: '68px' }}
+                  h={{ base: '56px', md: '68px' }}
+                  align="center"
+                  justify="center"
+                  borderRadius="18px"
+                  bg="rgba(9,9,11,0.14)"
+                  color="#09090B"
+                  borderWidth="1px"
+                  borderColor="rgba(255,255,255,0.28)"
+                  flexShrink={0}
+                  position="relative"
+                  zIndex={2}
+                >
+                  <PhoneIcon size={30} />
+                </Flex>
+                <Box position="relative" zIndex={2} minW={0}>
+                  <Text className="tr-call-attention-text" fontSize={{ base: '34px', md: '44px' }} fontWeight="900" lineHeight="0.92" style={{ fontFamily: 'var(--font-display)' }}>
+                    Call Now
+                  </Text>
+                  <Text fontSize={{ base: '14px', md: '16px' }} fontWeight="900" mt={2}>
+                    Available 24/7
+                  </Text>
+                  <Text fontSize={{ base: '12px', md: '13px' }} fontWeight="800" opacity={0.82} mt={1}>
+                    Average answer under 15 seconds
+                  </Text>
+                </Box>
+              </ChakraLink>
+            </motion.div>
+          </Box>
+        </Box>
+      </Container>
+
+      <motion.div
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 1.38, repeat: Infinity, repeatType: 'reverse', repeatDelay: 0.8 }}
+        style={{
+          position: 'absolute',
+          left: '50%',
+          bottom: 22,
+          zIndex: 2,
+          transform: 'translateX(-50%)',
+        }}
+        aria-hidden="true"
+      >
+        <Box w="28px" h="44px" borderRadius="999px" borderWidth="1px" borderColor="rgba(255,255,255,0.32)" display={{ base: 'none', md: 'flex' }} alignItems="flex-start" justifyContent="center" p="7px">
+          <Box w="4px" h="8px" borderRadius="999px" bg={colors.accent} />
+        </Box>
+      </motion.div>
+    </Box>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────────
-export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
-  const stat1 = useCountUp(97, 1500);
-  const stat2 = useCountUp(4.8, 1500, 1);
-  const stat3 = useCountUp(45, 1500);
+export function HomePage() {
   const [timelineVisible, setTimelineVisible] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
 
@@ -651,624 +1081,14 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
   return (
     <Box minH="100vh" display="flex" flexDirection="column" bg={colors.bg}>
       <style>{cssKeyframes}</style>
-      <Nav />
+      <LandingHeader />
+      <ProgressiveCallBar />
 
       <Box as="main" id="main-content" flex={1}>
         {/* ═══════════════════════════════════════════════════
-            SECTION 1: HERO
+            SECTION 1: CONVERSION HERO
         ═══════════════════════════════════════════════════ */}
-        <Box
-          position="relative"
-          minH="100vh"
-          overflow="hidden"
-          display="flex"
-          alignItems="center"
-        >
-          {/* Background layers */}
-          <Box position="absolute" inset={0} bg={colors.bg} />
-          <Box
-            position="absolute"
-            inset={0}
-            style={{
-              background: 'radial-gradient(ellipse at top right, rgba(249,115,22,0.06) 0%, transparent 60%)',
-            }}
-          />
-          <Box
-            position="absolute"
-            inset={0}
-            style={{
-              backgroundImage: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 60px)',
-              backgroundSize: '60px 60px',
-            }}
-          />
-          {/* Noise overlay */}
-          <Box
-            position="absolute"
-            inset={0}
-            opacity={0.03}
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-            }}
-          />
-          <HeroFallingSquares />
-          {/* Giant watermark */}
-          <Text
-            position="absolute"
-            bottom="-80px"
-            right="-40px"
-            fontSize={{ base: '200px', lg: '400px' }}
-            color="rgba(255,255,255,0.025)"
-            lineHeight="1"
-            zIndex={0}
-            userSelect="none"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            24/7
-          </Text>
-
-          {/* Content */}
-          <Container maxW="7xl" position="relative" zIndex={1} py={{ base: 16, lg: 0 }}>
-            <Flex
-              direction={{ base: 'column', lg: 'row' }}
-              gap={{ base: 12, lg: 16 }}
-              align={{ base: 'stretch', lg: 'center' }}
-            >
-              {/* Left column — 55% */}
-              <Box flex={{ lg: '0 0 55%' }}>
-                <Text
-                  fontSize="10px"
-                  fontWeight="600"
-                  letterSpacing="0.22em"
-                  color={colors.accent}
-                  mb={4}
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    animation: 'fadeUp 0.5s ease-out both',
-                    opacity: 0.85,
-                  }}
-                >
-                  EMERGENCY MOBILE TYRE FITTING
-                </Text>
-
-                <Box
-                  style={{
-                    animation: 'fadeUp 0.6s ease-out 0.1s both',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <Text
-                    as="h1"
-                    className="hero-headline-shimmer"
-                    lineHeight="1"
-                    mb={0}
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: 'clamp(44px, 8vw, 108px)',
-                      letterSpacing: '-0.01em',
-                      animation: 'slideInLeft 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s both, heroHeadlineShimmer 5s linear 1s infinite',
-                    }}
-                  >
-                    24/7 Emergency{' '}
-                    <Text as="span" className="hero-headline-accent" style={{ fontFamily: 'var(--font-display)' }}>
-                      Mobile Tyre Fitting
-                    </Text>{' '}
-                    Across{' '}
-                    <Text as="span" className="hero-headline-accent" style={{ fontFamily: 'var(--font-display)' }}>
-                      Central Scotland
-                    </Text>
-                  </Text>
-                </Box>
-
-                {/* Accent line */}
-                <Box
-                  h="2px"
-                  bg={colors.accent}
-                  mt="28px"
-                  mb="20px"
-                  style={{
-                    animation: 'lineGrow 0.6s ease-out 0.3s both',
-                  }}
-                />
-
-                <Flex
-                  as="ul"
-                  listStyleType="none"
-                  direction={{ base: 'column', md: 'row' }}
-                  align={{ base: 'flex-start', md: 'center' }}
-                  gap={{ base: '10px', md: '20px' }}
-                  maxW="540px"
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    animation: 'fadeUp 0.6s ease-out 0.4s both',
-                    color: 'rgba(161,161,170,0.9)',
-                  }}
-                >
-                  {/* On-site in 45 minutes */}
-                  <Flex as="li" align="center" gap="10px" lineHeight="1.6">
-                    <Box as="span" color={colors.accent} display="inline-flex" className="speed-clock" aria-hidden="true">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-                    </Box>
-                    <Text as="span" fontSize={{ base: '15px', md: '16px' }}>
-                      Fast response in Glasgow, Edinburgh &amp; surrounding areas · Fitting from £20 + tyre price{' '}
-                      <Text as="span" className="speed-text" fontWeight="700">45 min avg</Text>
-                      <Box as="span" className="speed-arrows" aria-hidden="true" display="inline-flex" alignItems="center" ml="6px" verticalAlign="-2px">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
-                      </Box>
-                    </Text>
-                  </Flex>
-                </Flex>
-
-                {/* Pricing footnote */}
-                <Text
-                  as="p"
-                  mt="12px"
-                  fontSize={{ base: '12px', md: '13px' }}
-                  color="rgba(161,161,170,0.75)"
-                  lineHeight="1.5"
-                  maxW="540px"
-                  style={{ fontFamily: 'var(--font-body)' }}
-                >
-                  * {PRICING_DISCLAIMER}.{' '}
-                  <ChakraLink
-                    href={PRICING_DISCLAIMER_HREF}
-                    color={colors.accent}
-                    textDecoration="underline"
-                    _hover={{ opacity: 0.8 }}
-                  >
-                    See full pricing FAQ
-                  </ChakraLink>
-                </Text>
-
-                {/* Buttons */}
-                <Box
-                  className="hero-cta-panel"
-                  mt="32px"
-                  maxW={{ base: '100%', md: '480px' }}
-                  style={{ animation: 'fadeUp 0.6s ease-out 0.45s both' }}
-                >
-                  {/* Primary CTA */}
-                  <ChakraLink
-                    href={`tel:${PHONE_NUMBER.replace(/\s/g, '')}`}
-                    onClick={() => trackCallClick('home_hero')}
-                    className="hero-cta-call"
-                    display="inline-flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    gap="12px"
-                    w="100%"
-                    h={{ base: '72px', md: '76px' }}
-                    px={{ base: '24px', md: '32px' }}
-                    bg="linear-gradient(135deg, #f97316 0%, #c2410c 100%)"
-                    color="white"
-                    fontSize={{ base: '22px', md: '24px' }}
-                    fontWeight="900"
-                    letterSpacing="0.05em"
-                    borderRadius="14px"
-                    transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
-                    _hover={{ transform: 'translateY(-3px)' }}
-                    _active={{ transform: 'scale(0.97)' }}
-                    aria-label="Call now"
-                    mb={{ base: '12px', md: '10px' }}
-                    style={{ fontFamily: 'var(--font-display)' }}
-                  >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                    Call Now
-                  </ChakraLink>
-
-                  {/* Trust reassurance badges — sit under primary CTA */}
-                  <Flex
-                    as="ul"
-                    listStyleType="none"
-                    wrap="wrap"
-                    gap={{ base: '6px', md: '8px' }}
-                    mb={{ base: '14px', md: '12px' }}
-                    aria-label="Service guarantees"
-                    style={{ fontFamily: 'var(--font-body)' }}
-                  >
-                    {/* No hidden fees */}
-                    <Flex
-                      as="li"
-                      align="center"
-                      gap="6px"
-                      px="10px"
-                      py="6px"
-                      borderRadius="999px"
-                      bg="rgba(249,115,22,0.08)"
-                      borderWidth="1px"
-                      borderColor="rgba(249,115,22,0.25)"
-                      color="rgba(250,250,250,0.85)"
-                    >
-                      <Box as="span" color={colors.accent} display="inline-flex" aria-hidden="true">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      </Box>
-                      <Text as="span" fontSize="11px" fontWeight="600" letterSpacing="0.01em">No hidden fees</Text>
-                    </Flex>
-
-                    {/* Pay after service */}
-                    <Flex
-                      as="li"
-                      align="center"
-                      gap="6px"
-                      px="10px"
-                      py="6px"
-                      borderRadius="999px"
-                      bg="rgba(249,115,22,0.08)"
-                      borderWidth="1px"
-                      borderColor="rgba(249,115,22,0.25)"
-                      color="rgba(250,250,250,0.85)"
-                    >
-                      <Box as="span" color={colors.accent} display="inline-flex" aria-hidden="true">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><line x1="2" y1="11" x2="22" y2="11"/></svg>
-                      </Box>
-                      <Text as="span" fontSize="11px" fontWeight="600" letterSpacing="0.01em">Pay after service</Text>
-                    </Flex>
-
-                    {/* 24/7 available */}
-                    <Flex
-                      as="li"
-                      align="center"
-                      gap="6px"
-                      px="10px"
-                      py="6px"
-                      borderRadius="999px"
-                      bg="rgba(249,115,22,0.08)"
-                      borderWidth="1px"
-                      borderColor="rgba(249,115,22,0.25)"
-                      color="rgba(250,250,250,0.85)"
-                    >
-                      <Box as="span" color={colors.accent} display="inline-flex" aria-hidden="true">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-                      </Box>
-                      <Text as="span" fontSize="11px" fontWeight="600" letterSpacing="0.01em">24/7 available</Text>
-                    </Flex>
-
-                    {/* Fully insured */}
-                    <Flex
-                      as="li"
-                      align="center"
-                      gap="6px"
-                      px="10px"
-                      py="6px"
-                      borderRadius="999px"
-                      bg="rgba(249,115,22,0.08)"
-                      borderWidth="1px"
-                      borderColor="rgba(249,115,22,0.25)"
-                      color="rgba(250,250,250,0.85)"
-                    >
-                      <Box as="span" color={colors.accent} display="inline-flex" aria-hidden="true">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z"/></svg>
-                      </Box>
-                      <Text as="span" fontSize="11px" fontWeight="600" letterSpacing="0.01em">Fully insured</Text>
-                    </Flex>
-                  </Flex>
-
-                  {/* Secondary CTA — instant quote for non-emergency users */}
-                  <ChakraLink
-                    asChild
-                    className="hero-cta-book"
-                    w="100%"
-                    h={{ base: '56px', md: '56px' }}
-                    display="inline-flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    gap="8px"
-                    bg="transparent"
-                    color={colors.accent}
-                    fontSize={{ base: '16px', md: '16px' }}
-                    fontWeight="700"
-                    letterSpacing="0.03em"
-                    borderRadius="10px"
-                    borderWidth="1.5px"
-                    borderColor={colors.accent}
-                    transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
-                    _hover={{ bg: 'rgba(249,115,22,0.12)', color: '#FAFAFA' }}
-                    _active={{ transform: 'scale(0.98)' }}
-                    style={{ fontFamily: 'var(--font-body)' }}
-                  >
-                    <Link href="/quote">Get Instant Quote</Link>
-                  </ChakraLink>
-
-                {/* 3-step process */}
-                <Flex
-                  mt="24px"
-                  direction={{ base: 'column', md: 'row' }}
-                  align={{ base: 'stretch', md: 'center' }}
-                  justify="space-between"
-                  gap={{ base: '10px', md: '8px' }}
-                  style={{ fontFamily: 'var(--font-body)' }}
-                  aria-label="How it works"
-                >
-                  {/* Step 1 — Call */}
-                  <Flex align="center" gap="10px" flex="1" className="flow-step flow-step-1">
-                    <Flex
-                      w="32px"
-                      h="32px"
-                      flexShrink={0}
-                      align="center"
-                      justify="center"
-                      borderRadius="50%"
-                      bg="rgba(249,115,22,0.12)"
-                      color={colors.accent}
-                      borderWidth="1px"
-                      borderColor="rgba(249,115,22,0.35)"
-                      className="flow-step-badge"
-                      aria-hidden="true"
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                    </Flex>
-                    <Text fontSize="13px" fontWeight="600" color="rgba(250,250,250,0.85)" lineHeight="1.2">Call Us</Text>
-                  </Flex>
-
-                  {/* Connector */}
-                  <Box
-                    display={{ base: 'none', md: 'block' }}
-                    flex="0 0 16px"
-                    h="1px"
-                    bg="rgba(161,161,170,0.25)"
-                    className="flow-connector flow-connector-1"
-                    aria-hidden="true"
-                  />
-
-                  {/* Step 2 — We Come to You */}
-                  <Flex align="center" gap="10px" flex="1" className="flow-step flow-step-2">
-                    <Flex
-                      w="32px"
-                      h="32px"
-                      flexShrink={0}
-                      align="center"
-                      justify="center"
-                      borderRadius="50%"
-                      bg="rgba(249,115,22,0.12)"
-                      color={colors.accent}
-                      borderWidth="1px"
-                      borderColor="rgba(249,115,22,0.35)"
-                      className="flow-step-badge"
-                      aria-hidden="true"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17h2l1-3h11l1 3h3v-5l-3-2-1-4H6l-1 4-2 2v5z"/><circle cx="7.5" cy="17.5" r="1.7"/><circle cx="16.5" cy="17.5" r="1.7"/></svg>
-                    </Flex>
-                    <Text fontSize="13px" fontWeight="600" color="rgba(250,250,250,0.85)" lineHeight="1.2">We Come to You</Text>
-                  </Flex>
-
-                  {/* Connector */}
-                  <Box
-                    display={{ base: 'none', md: 'block' }}
-                    flex="0 0 16px"
-                    h="1px"
-                    bg="rgba(161,161,170,0.25)"
-                    className="flow-connector flow-connector-2"
-                    aria-hidden="true"
-                  />
-
-                  {/* Step 3 — Tyre Fixed */}
-                  <Flex align="center" gap="10px" flex="1" className="flow-step flow-step-3">
-                    <Flex
-                      w="32px"
-                      h="32px"
-                      flexShrink={0}
-                      align="center"
-                      justify="center"
-                      borderRadius="50%"
-                      bg="rgba(249,115,22,0.12)"
-                      color={colors.accent}
-                      borderWidth="1px"
-                      borderColor="rgba(249,115,22,0.35)"
-                      className="flow-step-badge"
-                      aria-hidden="true"
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    </Flex>
-                    <Text fontSize="13px" fontWeight="600" color="rgba(250,250,250,0.85)" lineHeight="1.2">Tyre Fixed</Text>
-                  </Flex>
-                </Flex>
-
-                {/* Trust line */}
-                <Flex
-                  mt="18px"
-                  align="center"
-                  gap="8px"
-                  wrap="wrap"
-                  style={{ fontFamily: 'var(--font-body)' }}
-                >
-                  <Text as="span" color="#FACC15" fontSize="13px" lineHeight="1" aria-hidden="true">★</Text>
-                  <Text as="span" fontSize="12px" color="rgba(161,161,170,0.7)" fontWeight="500">4.8 Rating</Text>
-                  <Text as="span" fontSize="12px" color="rgba(161,161,170,0.4)">·</Text>
-                  <Text as="span" fontSize="12px" color="rgba(161,161,170,0.7)" fontWeight="500">97 Google Reviews</Text>
-                  <Text as="span" fontSize="12px" color="rgba(161,161,170,0.4)">·</Text>
-                  <Text as="span" fontSize="12px" color="rgba(161,161,170,0.7)" fontWeight="500">45 min avg in Glasgow &amp; Edinburgh</Text>
-                </Flex>
-
-                {/* Coverage check — supporting form below the main CTAs */}
-                <Box mt="24px">
-                  <PostcodeChecker />
-                </Box>
-                </Box>
-
-                {/* Stats */}
-                <Flex mt="48px" gap={{ base: 4, md: 0 }} wrap="wrap" style={{ animation: 'fadeUp 0.6s ease-out 0.6s both' }}>
-                  <Box pr={{ base: '16px', md: '32px' }} ref={stat1.ref}>
-                    <Text
-                      fontSize={{ base: '32px', md: '48px' }}
-                      color={colors.textPrimary}
-                      lineHeight="1"
-                      style={{ fontFamily: 'var(--font-display)' }}
-                    >
-                      {stat1.value}
-                    </Text>
-                    <Text fontSize="12px" color={colors.textSecondary} style={{ fontFamily: 'var(--font-body)' }}>
-                      Google Reviews
-                    </Text>
-                  </Box>
-                  <Box
-                    borderLeftWidth="1px"
-                    borderRightWidth="1px"
-                    borderColor={colors.border}
-                    px={{ base: '16px', md: '32px' }}
-                    ref={stat2.ref}
-                  >
-                    <Text
-                      fontSize={{ base: '32px', md: '48px' }}
-                      color={colors.accent}
-                      lineHeight="1"
-                      style={{ fontFamily: 'var(--font-display)' }}
-                    >
-                      {stat2.value}
-                    </Text>
-                    <Text fontSize="12px" color={colors.textSecondary} style={{ fontFamily: 'var(--font-body)' }}>
-                      Star Rating
-                    </Text>
-                  </Box>
-                  <Box pl={{ base: '16px', md: '32px' }} ref={stat3.ref}>
-                    <Text
-                      fontSize={{ base: '32px', md: '48px' }}
-                      color={colors.textPrimary}
-                      lineHeight="1"
-                      style={{ fontFamily: 'var(--font-display)' }}
-                    >
-                      {stat3.value}min
-                    </Text>
-                    <Text fontSize="12px" color={colors.textSecondary} style={{ fontFamily: 'var(--font-body)' }}>
-                      Avg Response
-                    </Text>
-                  </Box>
-                </Flex>
-              </Box>
-
-              {/* Right column — 45% */}
-              <Box flex={{ lg: '0 0 45%' }} position="relative">
-                {/* Accent line */}
-                <Box
-                  position="absolute"
-                  left="-1px"
-                  top="20%"
-                  w="3px"
-                  h="60%"
-                  bg={colors.accent}
-                  zIndex={2}
-                />
-
-                {/* Hero image showcase */}
-                <Box mb={{ base: 6, lg: 8 }} style={{ animation: 'slideInRight 0.8s ease-out 0.2s both' }}>
-                  <HomeImageShowcase slides={heroSlides} />
-                </Box>
-
-                <Box
-                  style={{
-                    filter: 'drop-shadow(0 0 6px rgba(249,115,22,0.3)) drop-shadow(0 0 18px rgba(249,115,22,0.12))',
-                  }}
-                >
-                <Box
-                  bg={colors.card}
-                  borderWidth="1px"
-                  borderColor="rgba(249,115,22,0.35)"
-                  p="40px"
-                  position="relative"
-                  style={{
-                    clipPath: 'polygon(0 0, 100% 0, 100% 92%, 92% 100%, 0 100%)',
-                    fontFamily: 'var(--font-body)',
-                    animation: 'slideInRight 0.8s ease-out 0.3s both',
-                  }}
-                >
-                  <Text
-                    fontSize="10px"
-                    color={colors.accent}
-                    letterSpacing="0.2em"
-                    mb={3}
-                    style={{ fontFamily: 'var(--font-body)', animation: 'fadeUp 0.5s ease-out 0.6s both' }}
-                  >
-                    OUR WORKSHOP
-                  </Text>
-                  <Text
-                    fontSize="36px"
-                    color={colors.textPrimary}
-                    lineHeight="1.1"
-                    mb={1}
-                    style={{ fontFamily: 'var(--font-display)', animation: 'fadeUp 0.5s ease-out 0.7s both' }}
-                  >
-                    {'MOBILE TYRE FITTING'.split('').map((ch, i) => (
-                      <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                        {ch === ' ' ? '\u00A0' : ch}
-                      </span>
-                    ))}
-                  </Text>
-                  <Text fontSize="13px" color={colors.textSecondary} mb={0} style={{ animation: 'fadeUp 0.5s ease-out 0.8s both' }}>
-                    {'Duke Street Tyres'.split('').map((ch, i) => (
-                      <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                        {ch === ' ' ? '\u00A0' : ch}
-                      </span>
-                    ))}
-                  </Text>
-
-                  <Box h="1px" bg={colors.border} my="24px" style={{ animation: 'lineGrow 0.5s ease-out 0.9s both' }} />
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px' }}>
-                    <div>
-                      <Text fontSize="14px" color={colors.textPrimary} lineHeight="1.5" style={{ animation: 'fadeUp 0.4s ease-out 1.0s both' }}>
-                        {'3, 10 Gateside St'.split('').map((ch, i) => (
-                          <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                            {ch === ' ' ? '\u00A0' : ch}
-                          </span>
-                        ))}
-                      </Text>
-                      <Text fontSize="14px" color={colors.textPrimary} mb={4} style={{ animation: 'fadeUp 0.4s ease-out 1.05s both' }}>
-                        {'Glasgow G31 1PD'.split('').map((ch, i) => (
-                          <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                            {ch === ' ' ? '\u00A0' : ch}
-                          </span>
-                        ))}
-                      </Text>
-                    </div>
-                    <img
-                      src="/tyre-fitters.png"
-                      alt="Tyre Fitters"
-                      style={{ height: '140px', width: 'auto', objectFit: 'contain', filter: 'invert(1)', opacity: 0.85, animation: 'scaleIn 0.6s ease-out 1.0s both, floatGently 3s ease-in-out 1.6s infinite', flexShrink: 0 }}
-                    />
-                  </div>
-
-                  <ChakraLink
-                    href={`tel:${PHONE_NUMBER.replace(/\s/g, '')}`}
-                    onClick={() => trackCallClick('home_workshop_card')}
-                    display="block"
-                    color={colors.accent}
-                    letterSpacing="0.02em"
-                    _hover={{ color: colors.textPrimary }}
-                    transition="color 0.2s"
-                    mb={2}
-                    fontSize={{ base: '32px', md: '52px' }}
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      animation: 'fadeUp 0.5s ease-out 1.1s both',
-                    }}
-                  >
-                    {PHONE_NUMBER.split('').map((ch, i) => (
-                      <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                        {ch === ' ' ? '\u00A0' : ch}
-                      </span>
-                    ))}
-                  </ChakraLink>
-
-                  <Text fontSize="12px" color={colors.textSecondary} style={{ animation: 'fadeUp 0.4s ease-out 1.2s both' }}>
-                    Open 8am to Midnight, Every Day
-                  </Text>
-
-                  <Box h="1px" bg={colors.border} my="24px" style={{ animation: 'lineGrow 0.5s ease-out 1.3s both' }} />
-
-                  <Flex justify="space-between" align="center" style={{ animation: 'fadeUp 0.4s ease-out 1.4s both' }}>
-                    <Text fontSize="11px" color={colors.textSecondary}>
-                      Google Reviews
-                    </Text>
-                    <Text fontSize="13px" color={colors.textPrimary} fontWeight="500">
-                      4.8 stars — 97 reviews
-                    </Text>
-                  </Flex>
-                </Box>
-                </Box>
-              </Box>
-            </Flex>
-          </Container>
-        </Box>
+        <ConversionHero />
 
         {/* ═══════════════════════════════════════════════════
             SECTION 2: MARQUEE STRIP
@@ -2264,7 +2084,6 @@ export function HomePage({ heroSlides }: { heroSlides?: HomeSlide[] }) {
       </Box>
 
       <Footer />
-      <PwaInstallPrompt />
     </Box>
   );
 }

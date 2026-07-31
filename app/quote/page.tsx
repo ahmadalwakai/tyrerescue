@@ -49,6 +49,9 @@ export function QuotePageClient() {
     setTyreSize(size);
   }, []);
 
+  const needsManualTyreAfterLookup = Boolean(vehicle && !tyreSize);
+  const manualToggleLabel = vehicle ? 'Use a different tyre size' : 'Enter tyre size manually';
+
   return (
     <Box bg={c.bg} minH="100vh" color={c.text}>
       <Nav />
@@ -73,9 +76,11 @@ export function QuotePageClient() {
               {VRM_ENABLED && !manualMode && (
                 <>
                   <VrmLookup onResolved={handleResolved} onManualFallback={handleManualFallback} />
-                  <Flex mt={4} justify="flex-end">
-                    <ManualSizeToggle onClick={() => setManualMode(true)} />
-                  </Flex>
+                  {!needsManualTyreAfterLookup && (
+                    <Flex mt={4} justify="flex-end">
+                      <ManualSizeToggle label={manualToggleLabel} onClick={() => setManualMode(true)} />
+                    </Flex>
+                  )}
                 </>
               )}
               {manualMode && (
@@ -83,7 +88,7 @@ export function QuotePageClient() {
                   <ManualSizeInput initial={tyreSize} onChange={handleManualChange} />
                   {VRM_ENABLED && (
                     <Flex mt={4} justify="flex-end">
-                      <ManualSizeToggle onClick={() => setManualMode(false)} />
+                      <ManualSizeToggle label="Use number plate instead" onClick={() => setManualMode(false)} />
                     </Flex>
                   )}
                 </>

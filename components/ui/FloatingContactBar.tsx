@@ -123,7 +123,7 @@ export function FloatingContactBar() {
             bg="rgba(24,24,27,0.8)"
             borderRadius="16px"
             border="1px solid rgba(63,63,70,0.5)"
-            p="5px"
+            p="4px"
             boxShadow="0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset"
             style={{ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
           >
@@ -135,12 +135,12 @@ export function FloatingContactBar() {
               alignItems="center"
               justifyContent="center"
               gap="7px"
-              h="42px"
-              px="14px"
+              h="40px"
+              px="12px"
               bg="linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
               color="white"
               borderRadius="12px"
-              fontSize="13px"
+              fontSize="12px"
               fontWeight="700"
               letterSpacing="0.01em"
               transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
@@ -152,7 +152,7 @@ export function FloatingContactBar() {
               aria-label={`Call ${PHONE_NUMBER}`}
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              <PhoneIcon size={16} />
+              <PhoneIcon size={15} />
               {PHONE_NUMBER}
             </ChakraLink>
             <ChakraLink
@@ -165,12 +165,12 @@ export function FloatingContactBar() {
               alignItems="center"
               justifyContent="center"
               gap="7px"
-              h="42px"
-              px="14px"
+              h="40px"
+              px="12px"
               bg="linear-gradient(135deg, #25D366 0%, #1DA851 100%)"
               color="white"
               borderRadius="12px"
-              fontSize="13px"
+              fontSize="12px"
               fontWeight="700"
               letterSpacing="0.01em"
               transition="all 0.25s cubic-bezier(0.4,0,0.2,1)"
@@ -182,7 +182,7 @@ export function FloatingContactBar() {
               aria-label="WhatsApp us"
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              <WhatsAppIcon size={16} />
+              <WhatsAppIcon size={15} />
               WhatsApp
             </ChakraLink>
           </Flex>
@@ -217,7 +217,7 @@ export function FloatingContactBar() {
         style={{
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 92px)',
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 76px)',
         }}
       >
         <ChevronUpIcon />
@@ -242,10 +242,10 @@ export function FloatingContactBar() {
         }}
       >
         <Flex
-          gap="10px"
+          gap="8px"
           align="center"
-          px="12px"
-          py="10px"
+          px="10px"
+          py="6px"
         >
           <ChakraLink
             href={`tel:${PHONE_TEL}`}
@@ -255,12 +255,12 @@ export function FloatingContactBar() {
             display="flex"
             alignItems="center"
             justifyContent="center"
-            gap="10px"
-            h="56px"
+            gap="8px"
+            h="48px"
             bg="linear-gradient(135deg, #f97316 0%, #c2410c 100%)"
             color="white"
-            borderRadius="14px"
-            fontSize="18px"
+            borderRadius="12px"
+            fontSize="16px"
             fontWeight="900"
             letterSpacing="0.05em"
             transition="all 0.2s cubic-bezier(0.4,0,0.2,1)"
@@ -268,7 +268,7 @@ export function FloatingContactBar() {
             aria-label={`Call ${PHONE_NUMBER}`}
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            <PhoneIcon size={22} />
+            <PhoneIcon size={20} />
             Call Now
           </ChakraLink>
 
@@ -281,17 +281,17 @@ export function FloatingContactBar() {
             display="flex"
             alignItems="center"
             justifyContent="center"
-            w="56px"
-            h="56px"
+            w="48px"
+            h="48px"
             flexShrink={0}
             bg="linear-gradient(135deg, #25D366 0%, #1DA851 100%)"
             color="white"
-            borderRadius="14px"
+            borderRadius="12px"
             transition="all 0.2s cubic-bezier(0.4,0,0.2,1)"
             _active={{ transform: 'scale(0.92)' }}
             aria-label="WhatsApp us"
           >
-            <WhatsAppIcon size={24} />
+            <WhatsAppIcon size={22} />
           </ChakraLink>
         </Flex>
       </Box>

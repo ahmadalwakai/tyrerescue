@@ -16,7 +16,15 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { Box, Button, Flex, Input, Spinner, Stack, Text } from '@chakra-ui/react';
 import { colorTokens } from '@/lib/design-tokens';
 import { isValidVrm, normalizeVrm } from '@/lib/vrm';
-import type { TyreSize, Vehicle, VrmErrorCode } from '@/types/vehicle';
+import type {
+  TyreCatalogStatus,
+  TyreFitmentAssistance,
+  TyreFitmentOption,
+  TyreSize,
+  Vehicle,
+  VehicleFitmentLookupStatus,
+  VrmErrorCode,
+} from '@/types/vehicle';
 
 const c = colorTokens;
 
@@ -24,14 +32,28 @@ interface LookupResponse {
   ok: boolean;
   vehicle?: Vehicle;
   tyreSize?: TyreSize | null;
+  tyreOptions?: TyreFitmentOption[];
+  tyreAssistance?: TyreFitmentAssistance;
+  tyreCatalogStatus?: TyreCatalogStatus;
+  status?: VehicleFitmentLookupStatus;
+  states?: VehicleFitmentLookupStatus[];
+  requiresManualVehicle?: boolean;
+  requiresManualTyre?: boolean;
+  messages?: string[];
   error?: { code: VrmErrorCode; message: string };
 }
 
 type View =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'success'; vehicle: Vehicle; tyreSize: TyreSize | null }
-  | { status: 'error'; code: VrmErrorCode; message: string };
+  | {
+      status: 'success';
+      vehicle: Vehicle;
+      tyreSize: TyreSize | null;
+      tyreOptions: TyreFitmentOption[];
+      tyreAssistance: TyreFitmentAssistance | null;
+    }
+  | { status: 'error'; code: VrmErrorCode | 'manual_required'; message: string };
 
 export interface VrmLookupProps {
   onResolved: (vehicle: Vehicle, tyreSize: TyreSize | null) => void;
@@ -68,7 +90,7 @@ export function VrmLookup({ onResolved, onManualFallback }: VrmLookupProps) {
       });
       const body = (await res.json().catch(() => null)) as LookupResponse | null;
 
-      if (!res.ok || !body || !body.ok || !body.vehicle) {
+      if (!res.ok || !body || !body.ok) {
         setView({
           status: 'error',
           code: body?.error?.code ?? 'unknown',
@@ -76,7 +98,21 @@ export function VrmLookup({ onResolved, onManualFallback }: VrmLookupProps) {
         });
         return;
       }
-      setView({ status: 'success', vehicle: body.vehicle, tyreSize: body.tyreSize ?? null });
+      if (!body.vehicle) {
+        setView({
+          status: 'error',
+          code: 'manual_required',
+          message: body.messages?.[0] ?? 'Enter the vehicle and tyre size manually.',
+        });
+        return;
+      }
+      setView({
+        status: 'success',
+        vehicle: body.vehicle,
+        tyreSize: body.tyreSize ?? null,
+        tyreOptions: body.tyreOptions ?? [],
+        tyreAssistance: body.tyreAssistance ?? null,
+      });
       onResolved(body.vehicle, body.tyreSize ?? null);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -173,7 +209,13 @@ export function VrmLookup({ onResolved, onManualFallback }: VrmLookupProps) {
 
       <Box id="vrm-status" aria-live="polite" mt={3}>
         {view.status === 'success' && (
-          <VehicleCard vehicle={view.vehicle} tyreSize={view.tyreSize} />
+          <VehicleCard
+            vehicle={view.vehicle}
+            tyreSize={view.tyreSize}
+            tyreOptions={view.tyreOptions}
+            tyreAssistance={view.tyreAssistance}
+            onManualFallback={onManualFallback}
+          />
         )}
 
         {view.status === 'error' && (
@@ -188,7 +230,7 @@ export function VrmLookup({ onResolved, onManualFallback }: VrmLookupProps) {
             <Text color="#EF4444" fontSize="14px" fontWeight="600">
               {view.message}
             </Text>
-            {view.code === 'not_found' && (
+            {(view.code === 'not_found' || view.code === 'manual_required') && (
               <Text color={c.muted} fontSize="13px">
                 You can still continue and tell us your tyre size manually.
               </Text>
@@ -204,7 +246,7 @@ export function VrmLookup({ onResolved, onManualFallback }: VrmLookupProps) {
               >
                 Try again
               </Button>
-              {view.code === 'not_found' && (
+              {(view.code === 'not_found' || view.code === 'manual_required') && (
                 <Button size="sm" bg={c.accent} color="#09090B" fontWeight="700" onClick={onManualFallback}>
                   Enter size manually
                 </Button>
@@ -217,7 +259,65 @@ export function VrmLookup({ onResolved, onManualFallback }: VrmLookupProps) {
   );
 }
 
-function VehicleCard({ vehicle, tyreSize }: { vehicle: Vehicle; tyreSize: TyreSize | null }) {
+function formatTyreSize(size: TyreSize): string {
+  return size.sizeDisplay ?? `${size.width}/${size.aspect}R${size.rim}${size.commercial ? 'C' : ''}`;
+}
+
+function tyreMeta(size: TyreSize): string | null {
+  const rating = `${size.loadIndex ?? ''}${size.speedIndex ?? ''}`.trim();
+  const flags = [rating || null, size.runFlat ? 'Run-flat' : null].filter(Boolean);
+  return flags.length > 0 ? flags.join(' - ') : null;
+}
+
+function optionSizeLabel(option: TyreFitmentOption): string {
+  if (!option.staggered) return formatTyreSize(option.front);
+  return `Front ${formatTyreSize(option.front)} / Rear ${formatTyreSize(option.rear)}`;
+}
+
+function isVerifiedOption(option: TyreFitmentOption): boolean {
+  return (
+    option.confidence === 'high' &&
+    option.source === 'local_vrm_catalog' &&
+    !option.front.fallback &&
+    !option.rear.fallback
+  );
+}
+
+function sourceTextFor(option: TyreFitmentOption | null, tyreSize: TyreSize | null): string {
+  if (!option) return tyreSize?.fallback ? 'estimate' : 'OEM';
+  if (option.source === 'local_vrm_catalog') return 'local catalog';
+  if (option.source === 'local_vehicle_catalog' || option.source === 'static_dataset') {
+    return 'local table';
+  }
+  return 'catalog';
+}
+
+function VehicleCard({
+  vehicle,
+  tyreSize,
+  tyreOptions,
+  tyreAssistance,
+  onManualFallback,
+}: {
+  vehicle: Vehicle;
+  tyreSize: TyreSize | null;
+  tyreOptions: TyreFitmentOption[];
+  tyreAssistance: TyreFitmentAssistance | null;
+  onManualFallback: () => void;
+}) {
+  const recommended = tyreAssistance?.recommendedOptionId
+    ? tyreOptions.find(
+        (option) => option.id === tyreAssistance.recommendedOptionId && isVerifiedOption(option)
+      ) ?? null
+    : null;
+  const otherOptions = (recommended
+    ? tyreOptions.filter((option) => option.id !== recommended.id)
+    : tyreOptions
+  ).slice(0, 2);
+  const sourceText = sourceTextFor(recommended, tyreSize);
+  const sizeLabel = recommended ? optionSizeLabel(recommended) : tyreSize ? formatTyreSize(tyreSize) : null;
+  const meta = recommended ? tyreMeta(recommended.front) : tyreSize ? tyreMeta(tyreSize) : null;
+
   return (
     <Box
       p={4}
@@ -234,15 +334,98 @@ function VehicleCard({ vehicle, tyreSize }: { vehicle: Vehicle; tyreSize: TyreSi
       <Text color={c.muted} fontSize="13px" mt={1}>
         {[vehicle.yearOfManufacture, vehicle.fuelType, vehicle.colour].filter(Boolean).join(' · ')}
       </Text>
-      {tyreSize && (
+      {sizeLabel && (
         <Box mt={3} p={2} bg={c.bg} borderRadius="6px" borderWidth="1px" borderColor={c.border}>
           <Text color={c.muted} fontSize="11px" letterSpacing="0.08em" textTransform="uppercase">
-            Suggested tyre size {tyreSize.fallback ? '(estimate)' : '(OEM)'}
+            Suggested tyre size ({sourceText})
           </Text>
-          <Text color={c.text} fontSize="20px" fontWeight="700" fontFamily="monospace">
-            {tyreSize.width}/{tyreSize.aspect}R{tyreSize.rim}
+          <Text color={c.text} fontSize="20px" fontWeight="700" fontFamily="monospace" lineHeight="1.35">
+            {sizeLabel}
           </Text>
+          {recommended && (
+            <Text color={c.muted} fontSize="12px" mt={1}>
+              {recommended.sourceLabel}
+            </Text>
+          )}
+          {meta && (
+            <Text color={c.muted} fontSize="12px" mt={1}>
+              {meta}
+            </Text>
+          )}
+          {tyreAssistance?.summary && (
+            <Text color={c.muted} fontSize="12px" mt={2}>
+              {tyreAssistance.summary}
+            </Text>
+          )}
+          {tyreAssistance?.warnings.slice(0, 2).map((warning) => (
+            <Text key={warning} color="#F59E0B" fontSize="12px" mt={1}>
+              {warning}
+            </Text>
+          ))}
+          {otherOptions.length > 0 && (
+            <Box mt={2} pt={2} borderTopWidth="1px" borderColor={c.border}>
+              <Text color={c.muted} fontSize="11px" letterSpacing="0.08em" textTransform="uppercase">
+                Other catalog fitments
+              </Text>
+              {otherOptions.map((option) => (
+                <Text key={option.id} color={c.text} fontSize="13px" fontFamily="monospace" mt={1}>
+                  {optionSizeLabel(option)}
+                </Text>
+              ))}
+            </Box>
+          )}
         </Box>
+      )}
+      {!sizeLabel && (tyreAssistance || otherOptions.length > 0) && (
+        <Box mt={3} p={2} bg={c.bg} borderRadius="6px" borderWidth="1px" borderColor={c.border}>
+          <Text color={c.muted} fontSize="11px" letterSpacing="0.08em" textTransform="uppercase">
+            Tyre size needs confirmation
+          </Text>
+          {tyreAssistance?.summary && (
+            <Text color={c.muted} fontSize="12px" mt={2}>
+              {tyreAssistance.summary}
+            </Text>
+          )}
+          {tyreAssistance?.warnings.slice(0, 2).map((warning) => (
+            <Text key={warning} color="#F59E0B" fontSize="12px" mt={1}>
+              {warning}
+            </Text>
+          ))}
+          {otherOptions.length > 0 && (
+            <Box mt={2} pt={2} borderTopWidth="1px" borderColor={c.border}>
+              <Text color={c.muted} fontSize="11px" letterSpacing="0.08em" textTransform="uppercase">
+                Estimates to check
+              </Text>
+              {otherOptions.map((option) => (
+                <Text key={option.id} color={c.text} fontSize="13px" fontFamily="monospace" mt={1}>
+                  {optionSizeLabel(option)}
+                </Text>
+              ))}
+            </Box>
+          )}
+        </Box>
+      )}
+      {!sizeLabel && (
+        <Flex
+          mt={4}
+          gap={3}
+          direction={{ base: 'column', md: 'row' }}
+          align={{ base: 'stretch', md: 'center' }}
+          justify="space-between"
+        >
+          <Text color={c.muted} fontSize="13px" lineHeight="1.45">
+            Check the tyre sidewall or door placard, then enter the size to continue.
+          </Text>
+          <Button
+            bg={c.accent}
+            color="#09090B"
+            fontWeight="800"
+            minW={{ md: '240px' }}
+            onClick={onManualFallback}
+          >
+            Continue: enter tyre size
+          </Button>
+        </Flex>
       )}
     </Box>
   );

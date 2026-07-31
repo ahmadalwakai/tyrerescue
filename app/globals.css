@@ -35,8 +35,8 @@ body {
 /* ─── Mobile sticky CTA bar — reserve space below content ─ */
 @media (max-width: 767px) {
   body {
-    /* sticky-cta-bar is ~76px tall (10px py + 56px button + 10px) plus iOS safe area */
-    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    /* sticky-cta-bar is ~60px tall (6px py + 48px button + 6px) plus iOS safe area */
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -712,7 +712,9 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .floating-call-btn { animation: none !important; }
+  .floating-call-btn,
+  .floating-call-btn::after,
+  .floating-call-btn svg { animation: none !important; }
   .floating-wa-btn { animation: none !important; }
   .floating-top-btn { transition: opacity 0.1s !important; transform: none !important; }
 }
@@ -720,14 +722,32 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 /* ─── Floating Call – premium orange aura pulse ────────── */
 @keyframes floatingCallPulse {
   0%   {
-    box-shadow: 0 4px 24px rgba(249,115,22,0.35), 0 0 0 0 rgba(249,115,22,0.25), 0 0 0 1px rgba(255,255,255,0.08) inset;
+    box-shadow: 0 5px 24px rgba(249,115,22,0.42), 0 0 0 0 rgba(249,115,22,0.34), 0 0 0 1px rgba(255,255,255,0.10) inset;
+    transform: translateZ(0) scale(1);
   }
   50%  {
-    box-shadow: 0 6px 28px rgba(249,115,22,0.45), 0 0 0 10px rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.08) inset;
+    box-shadow: 0 8px 34px rgba(249,115,22,0.62), 0 0 0 9px rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.12) inset;
+    transform: translateZ(0) scale(1.018);
   }
   100% {
-    box-shadow: 0 4px 24px rgba(249,115,22,0.35), 0 0 0 0 rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.08) inset;
+    box-shadow: 0 5px 24px rgba(249,115,22,0.42), 0 0 0 0 rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.10) inset;
+    transform: translateZ(0) scale(1);
   }
+}
+
+@keyframes floatingCallSweep {
+  0%, 40% { transform: translateX(-135%) skewX(-18deg); opacity: 0; }
+  50% { opacity: 0.5; }
+  70%, 100% { transform: translateX(180%) skewX(-18deg); opacity: 0; }
+}
+
+@keyframes floatingPhoneRing {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  8% { transform: rotate(-13deg) scale(1.06); }
+  16% { transform: rotate(13deg) scale(1.06); }
+  24% { transform: rotate(-8deg) scale(1.04); }
+  32% { transform: rotate(8deg) scale(1.04); }
+  44% { transform: rotate(0deg) scale(1); }
 }
 
 /* ─── Floating WhatsApp – softer green breathing glow ── */
@@ -744,7 +764,33 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 }
 
 /* ─── Floating CTA animation application ──────────────── */
-.floating-call-btn { animation: floatingCallPulse 2.8s ease-in-out infinite; }
+.floating-call-btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  animation: floatingCallPulse 2.15s ease-in-out infinite;
+  will-change: transform, box-shadow;
+}
+
+.floating-call-btn::after {
+  content: "";
+  position: absolute;
+  top: -45%;
+  bottom: -45%;
+  left: 0;
+  width: 38%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 48%, transparent 100%);
+  pointer-events: none;
+  animation: floatingCallSweep 2.65s ease-in-out infinite;
+}
+
+.floating-call-btn svg {
+  position: relative;
+  z-index: 1;
+  animation: floatingPhoneRing 2.15s ease-in-out infinite;
+  transform-origin: center;
+}
+
 .floating-wa-btn   { animation: floatingWaPulse 3.2s ease-in-out infinite; }
 
 @keyframes floatGently {

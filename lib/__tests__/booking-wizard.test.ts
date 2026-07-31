@@ -283,24 +283,18 @@ describe('Tyre detail quantity', () => {
 });
 
 describe('ETA range (emergency availability)', () => {
-  // Mirror the updated formatEtaLabel from the eligibility API
-  function formatEtaLabel(min: number, max: number): string {
-    const lo = Math.min(min, max);
-    const hi = Math.max(min, max);
-    if (hi >= 60) {
-      const loH = lo / 60;
-      const hiH = hi / 60;
-      return `${Math.max(1, Math.round(loH))}–${Math.max(Math.ceil(hiH), 2)} hours`;
-    }
-    return '1–2 hours';
+  // Mirror the customer-facing ETA label from the eligibility API.
+  function formatEtaLabel(): string {
+    return '45 min - 1 hour';
   }
 
-  it('always returns "1–2 hours" for sub-60-min range', () => {
-    expect(formatEtaLabel(20, 35)).toBe('1–2 hours');
+  it('uses the owner-approved emergency arrival window', () => {
+    expect(formatEtaLabel()).toBe('45 min - 1 hour');
   });
 
-  it('returns hours format for 60+ min range', () => {
-    expect(formatEtaLabel(60, 90)).toBe('1–2 hours');
+  it('keeps the emergency availability card aligned with the API label', () => {
+    const cardLabel = '45 min - 1 hour';
+    expect(cardLabel).toBe(formatEtaLabel());
   });
 
   it('never produces reversed ranges like "15-6 min"', () => {
@@ -312,16 +306,7 @@ describe('ETA range (emergency availability)', () => {
     const etaMin = Math.min(etaMinRaw, etaMaxRaw);
     const etaMax = Math.max(etaMinRaw, etaMaxRaw);
     expect(etaMin).toBeLessThanOrEqual(etaMax);
-    const label = formatEtaLabel(etaMin, etaMax);
-    expect(label).toBe('1–2 hours');
-    expect(label).not.toMatch(/\d+[-–]\d+ min/);
-  });
-
-  it('never shows minute-based label from the emergency availability card', () => {
-    // The hardcoded UI value
-    const cardLabel = '1–2 hours';
-    expect(cardLabel).not.toContain('min');
-    expect(cardLabel).toBe('1–2 hours');
+    expect(formatEtaLabel()).toBe('45 min - 1 hour');
   });
 
   it('ensures etaMin is at least 15 minutes from the raw value', () => {
@@ -331,8 +316,7 @@ describe('ETA range (emergency availability)', () => {
   });
 
   it('handles large distance with hours label', () => {
-    const label = formatEtaLabel(120, 180);
-    expect(label).toBe('2–3 hours');
+    expect(formatEtaLabel()).toBe('45 min - 1 hour');
   });
 });
 

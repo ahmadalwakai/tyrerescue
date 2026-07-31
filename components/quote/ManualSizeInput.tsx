@@ -100,7 +100,13 @@ function SelectField({
 }
 
 /** Helper button that surfaces the manual flow from another component. */
-export function ManualSizeToggle({ onClick }: { onClick: () => void }) {
+export function ManualSizeToggle({
+  label = 'Enter tyre size manually',
+  onClick,
+}: {
+  label?: string;
+  onClick: () => void;
+}) {
   return (
     <Button
       variant="outline"
@@ -110,7 +116,7 @@ export function ManualSizeToggle({ onClick }: { onClick: () => void }) {
       fontWeight="600"
       onClick={onClick}
     >
-      Don&apos;t know your reg? Enter size manually
+      {label}
     </Button>
   );
 }
