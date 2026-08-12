@@ -52,6 +52,13 @@ interface ClaimBookingInput {
   password: string;
 }
 
+interface RegisterInput {
+  name: string;
+  email: string;
+  phone?: string | null;
+  password: string;
+}
+
 interface LoginInput {
   email: string;
   password: string;
@@ -65,6 +72,7 @@ interface CustomerAccountContextValue {
   createAccountFromBooking: (input: ClaimBookingInput) => Promise<CustomerAccountPayload>;
   forgotPassword: (email: string) => Promise<string>;
   login: (input: LoginInput) => Promise<void>;
+  register: (input: RegisterInput) => Promise<CustomerAccountPayload>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -151,6 +159,18 @@ export function CustomerAccountProvider({ children }: PropsWithChildren) {
     [applyPayload],
   );
 
+  const register = useCallback(
+    async (input: RegisterInput) => {
+      const payload = await requestJson<CustomerAccountPayload>(API.customerRegister, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      });
+      await applyPayload(payload);
+      return payload;
+    },
+    [applyPayload],
+  );
+
   const forgotPassword = useCallback(async (email: string) => {
     const payload = await requestJson<{ success: boolean; message: string }>(API.customerForgotPassword, {
       method: 'POST',
@@ -174,10 +194,11 @@ export function CustomerAccountProvider({ children }: PropsWithChildren) {
       createAccountFromBooking,
       forgotPassword,
       login,
+      register,
       logout: clearAccount,
       refresh,
     }),
-    [bookings, clearAccount, createAccountFromBooking, forgotPassword, loading, login, profile, refresh, token],
+    [bookings, clearAccount, createAccountFromBooking, forgotPassword, loading, login, profile, refresh, register, token],
   );
 
   return <CustomerAccountContext.Provider value={value}>{children}</CustomerAccountContext.Provider>;

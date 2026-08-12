@@ -6,6 +6,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { API, requestJson } from '@/src/api';
 import { PHONE_DISPLAY, PHONE_TEL } from '@/src/config';
+import { notifyCustomerDriverNearbyAsync } from '@/src/customer-notifications';
 import {
   fallbackRouteCoordinates,
   getDrivingRouteCoordinates,
@@ -30,12 +31,28 @@ interface TrackingResponse {
   scheduledAt: string | null;
 }
 
+const DRIVER_NEARBY_DISTANCE_MILES = 0.35;
+const DRIVER_NEARBY_ETA_MINUTES = 5;
+
 function humanStatus(status: string) {
   return status.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function isLiveTrackingStatus(status: string) {
   return !['completed', 'cancelled', 'refunded', 'refunded_partial'].includes(status);
+}
+
+function isDriverNearby(tracking: TrackingResponse) {
+  if (!isLiveTrackingStatus(tracking.status)) return false;
+
+  const closeByDistance =
+    typeof tracking.distanceMiles === 'number' &&
+    tracking.distanceMiles <= DRIVER_NEARBY_DISTANCE_MILES;
+  const closeByEta =
+    typeof tracking.etaMinutes === 'number' &&
+    tracking.etaMinutes <= DRIVER_NEARBY_ETA_MINUTES;
+
+  return closeByDistance || closeByEta;
 }
 
 export default function TrackScreen() {
@@ -47,6 +64,7 @@ export default function TrackScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const loadedParamRef = useRef<string | null>(null);
+  const notifiedNearbyRefs = useRef<Set<string>>(new Set());
   const normalizedReference = reference.trim().toUpperCase();
 
   const mapMarkers = tracking
@@ -79,6 +97,15 @@ export default function TrackScreen() {
     try {
       const data = await requestJson<TrackingResponse>(`${API.tracking}/${encodeURIComponent(ref)}`);
       setTracking(data);
+      if (isDriverNearby(data) && !notifiedNearbyRefs.current.has(ref)) {
+        notifiedNearbyRefs.current.add(ref);
+        void notifyCustomerDriverNearbyAsync({
+          refNumber: ref,
+          driverName: data.driverName,
+          etaMinutes: data.etaMinutes,
+          distanceMiles: data.distanceMiles,
+        });
+      }
       void getDrivingRouteCoordinates({
         customerLat: data.customerLat,
         customerLng: data.customerLng,

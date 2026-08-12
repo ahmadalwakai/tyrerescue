@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -23,6 +23,7 @@ import Animated, {
   FadeInDown,
   FadeInLeft,
   FadeInRight,
+  interpolateColor,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -76,6 +77,7 @@ import {
   type FittingLocation,
   type MapboxFeature,
   type PricingBreakdown,
+  type ProblemType,
   type SelectedTyre,
   type TimeSlot,
   type TyreProduct,
@@ -96,6 +98,14 @@ const WIZARD_ORDER: WizardStep[] = [
   'payment',
   'done',
 ];
+
+const HERO_TITLE_TEXT = 'Choose how soon you need us';
+const LETTER_CASCADE_BLUR = 7;
+const LETTER_CASCADE_STEP_MS = 28;
+const HERO_TITLE_LETTER_COUNT = HERO_TITLE_TEXT.replace(/\s/g, '').length;
+const GOLD_SHIMMER_START_DELAY_MS = HERO_TITLE_LETTER_COUNT * LETTER_CASCADE_STEP_MS + 900;
+const GOLD_SHIMMER_STEP_MS = 36;
+const CAN_ANIMATE_TEXT_BLUR = Platform.OS === 'web';
 
 type UpdateState = (updates: Partial<BookingState>) => void;
 
@@ -129,8 +139,9 @@ function AmbientBookingBackground() {
   return <Animated.View pointerEvents="none" style={[screenStyles.ambientBackground, ambientStyle]} />;
 }
 
-function FallingLetter({ char, delay }: { char: string; delay: number }) {
+function CascadeLetter({ char, delay, shimmerDelay }: { char: string; delay: number; shimmerDelay: number }) {
   const progress = useSharedValue(0);
+  const shimmer = useSharedValue(0);
 
   useEffect(() => {
     progress.value = withDelay(
@@ -140,20 +151,52 @@ function FallingLetter({ char, delay }: { char: string; delay: number }) {
         withSpring(1, { damping: 14, stiffness: 180, mass: 0.7 }),
       ),
     );
-  }, [delay, progress]);
 
-  const letterStyle = useAnimatedStyle(() => ({
-    opacity: Math.min(1, progress.value),
-    transform: [
-      { translateY: -32 + progress.value * 32 },
-      { scaleY: 0.96 + progress.value * 0.04 },
-    ],
-  }));
+    shimmer.value = withDelay(
+      shimmerDelay,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 420, easing: Easing.out(Easing.quad) }),
+          withTiming(0, { duration: 640, easing: Easing.inOut(Easing.quad) }),
+          withDelay(2100, withTiming(0, { duration: 1 })),
+        ),
+        -1,
+        false,
+      ),
+    );
+  }, [delay, progress, shimmer, shimmerDelay]);
+
+  const letterStyle = useAnimatedStyle(() => {
+    const settledProgress = Math.min(1, progress.value);
+    const blur = LETTER_CASCADE_BLUR * (1 - settledProgress);
+    const shimmerColor = interpolateColor(
+      shimmer.value,
+      [0, 0.48, 1],
+      [colors.text, '#FFD166', '#FFF2B8'],
+    );
+    const shimmerGlow = interpolateColor(
+      shimmer.value,
+      [0, 0.55, 1],
+      ['rgba(245,245,245,0.32)', 'rgba(255,209,102,0.92)', 'rgba(255,242,184,0.54)'],
+    );
+
+    return {
+      color: shimmerColor,
+      filter: CAN_ANIMATE_TEXT_BLUR ? `blur(${blur}px)` : undefined,
+      opacity: settledProgress,
+      textShadowColor: shimmerGlow,
+      textShadowRadius: blur + shimmer.value * 9,
+      transform: [
+        { translateX: -18 + settledProgress * 18 },
+        { scale: 0.92 + progress.value * 0.08 },
+      ],
+    };
+  });
 
   return <Animated.Text style={[screenStyles.heroTitleLetter, letterStyle]}>{char}</Animated.Text>;
 }
 
-function FallingTitle({ title }: { title: string }) {
+function LetterCascadeTitle({ title }: { title: string }) {
   let letterIndex = 0;
   const words = title.toUpperCase().split(' ');
 
@@ -162,9 +205,10 @@ function FallingTitle({ title }: { title: string }) {
       {words.map((word, wordIndex) => (
         <View key={`${word}-${wordIndex}`} style={screenStyles.heroTitleWord}>
           {word.split('').map((char, charIndex) => {
-            const delay = 140 + letterIndex * 30;
+            const delay = 140 + letterIndex * LETTER_CASCADE_STEP_MS;
+            const shimmerDelay = GOLD_SHIMMER_START_DELAY_MS + letterIndex * GOLD_SHIMMER_STEP_MS;
             letterIndex += 1;
-            return <FallingLetter key={`${word}-${char}-${charIndex}`} char={char} delay={delay} />;
+            return <CascadeLetter key={`${word}-${char}-${charIndex}`} char={char} delay={delay} shimmerDelay={shimmerDelay} />;
           })}
         </View>
       ))}
@@ -173,15 +217,14 @@ function FallingTitle({ title }: { title: string }) {
 }
 
 function ServiceHeroHeader() {
-  const title = 'Choose how soon you need us';
-  const detailDelay = title.replace(/\s/g, '').length * 30 + 620;
+  const detailDelay = HERO_TITLE_LETTER_COUNT * LETTER_CASCADE_STEP_MS + 620;
 
   return (
     <View style={screenStyles.heroHeader}>
       <Animated.Text entering={FadeIn.duration(260).delay(70)} style={screenStyles.heroEyebrow}>
         Start your booking
       </Animated.Text>
-      <FallingTitle title={title} />
+      <LetterCascadeTitle title={HERO_TITLE_TEXT} />
       <Animated.Text entering={FadeIn.duration(360).delay(detailDelay)} style={screenStyles.heroDetail}>
         Emergency dispatch and scheduled fitting use the same live pricing, stock, and availability rules as the website.
       </Animated.Text>
@@ -741,6 +784,185 @@ interface SizeSuggestion {
   count: number;
 }
 
+type FeatherName = ComponentProps<typeof Feather>['name'];
+
+const PROBLEM_OPTIONS: {
+  value: ProblemType;
+  title: string;
+  detail: string;
+  meta: string;
+  icon: FeatherName;
+  condition: ConditionAssessment;
+}[] = [
+  {
+    value: 'puncture',
+    title: 'Puncture or slow leak',
+    detail: 'Nail, small puncture, or pressure dropping.',
+    meta: 'Repair check',
+    icon: 'tool',
+    condition: 'repair',
+  },
+  {
+    value: 'flat_tyre',
+    title: 'Flat tyre',
+    detail: 'Tyre is flat now and you need roadside help.',
+    meta: 'Fast rescue',
+    icon: 'alert-triangle',
+    condition: 'not_sure',
+  },
+  {
+    value: 'damaged_tyre',
+    title: 'Damaged or worn tyre',
+    detail: 'Sidewall damage, blowout, or tread is too low.',
+    meta: 'Replacement',
+    icon: 'disc',
+    condition: 'replacement',
+  },
+  {
+    value: 'not_sure',
+    title: 'Not sure',
+    detail: 'Send the details and our driver will assess it.',
+    meta: 'Assessment',
+    icon: 'help-circle',
+    condition: 'not_sure',
+  },
+];
+
+function conditionToProblemType(condition: ConditionAssessment | null): ProblemType | null {
+  if (condition === 'repair') return 'puncture';
+  if (condition === 'replacement') return 'damaged_tyre';
+  if (condition === 'not_sure') return 'not_sure';
+  return null;
+}
+
+function problemTitle(problemType: ProblemType | null) {
+  return PROBLEM_OPTIONS.find((item) => item.value === problemType)?.title ?? 'Tyre problem';
+}
+
+function rimEstimate(size: BookingState['tyreSize']) {
+  const rim = Number(size.rim);
+  if (!Number.isFinite(rim) || rim <= 0) return { low: 85, high: 155 };
+  if (rim <= 15) return { low: 70, high: 115 };
+  if (rim <= 17) return { low: 85, high: 145 };
+  if (rim <= 19) return { low: 115, high: 190 };
+  return { low: 145, high: 240 };
+}
+
+function bookingExtrasEstimate(input: Pick<BookingState, 'bookingType' | 'fittingLocation' | 'lockingNutStatus'>) {
+  let low = 0;
+  let high = 0;
+  if (input.bookingType === 'emergency') {
+    low += 20;
+    high += 45;
+  }
+  if (input.fittingLocation === 'mobile') {
+    low += 15;
+    high += 35;
+  }
+  if (input.lockingNutStatus === 'no_key') {
+    low += 20;
+    high += 55;
+  }
+  return { low, high };
+}
+
+function getPriceEstimate(input: BookingState) {
+  const quantity = clampQuantity(input.quantity || 1);
+  const extras = bookingExtrasEstimate(input);
+  const isRepair = input.serviceType === 'repair' || input.conditionAssessment === 'repair';
+  const isAssessment = input.serviceType === 'assess' || input.conditionAssessment === 'not_sure';
+
+  if (input.selectedTyres.length > 0) {
+    const tyreTotal = input.selectedTyres.reduce((sum, tyre) => sum + tyre.unitPrice * tyre.quantity, 0);
+    const fitCount = input.selectedTyres.reduce((sum, tyre) => sum + tyre.quantity, 0);
+    const fittingLow = fitCount * 18;
+    const fittingHigh = fitCount * 34;
+    return {
+      low: tyreTotal + fittingLow + extras.low,
+      high: tyreTotal + fittingHigh + extras.high,
+      label: 'Tyres selected',
+      detail: 'Estimate includes selected tyres plus fitting and location extras. Final quote appears before payment.',
+    };
+  }
+
+  if (isRepair) {
+    return {
+      low: 45 + extras.low + (quantity - 1) * 18,
+      high: 85 + extras.high + (quantity - 1) * 35,
+      label: 'Repair estimate',
+      detail: 'Final price depends on tyre condition, location, and whether repair is safe on arrival.',
+    };
+  }
+
+  const tyre = rimEstimate(input.tyreSize);
+  const baseLow = isAssessment ? 45 + tyre.low * 0.65 : tyre.low;
+  const baseHigh = isAssessment ? 80 + tyre.high : tyre.high;
+
+  return {
+    low: baseLow * quantity + extras.low,
+    high: baseHigh * quantity + extras.high,
+    label: isAssessment ? 'Assessment estimate' : 'Replacement estimate',
+    detail: 'Range is based on tyre size, quantity, appointment type, and common fitting costs.',
+  };
+}
+
+function PriceEstimateCard({ state }: { state: BookingState }) {
+  if (!state.bookingType || !state.conditionAssessment) return null;
+
+  const estimate = getPriceEstimate(state);
+
+  return (
+    <Card style={screenStyles.estimateCard}>
+      <View style={screenStyles.estimateHeader}>
+        <View style={screenStyles.estimateIcon}>
+          <Feather name="tag" size={18} color={colors.accent} />
+        </View>
+        <View style={screenStyles.flex}>
+          <Text style={screenStyles.estimateLabel}>{estimate.label}</Text>
+          <Text style={screenStyles.estimateRange}>
+            {formatPrice(estimate.low)} - {formatPrice(estimate.high)}
+          </Text>
+        </View>
+      </View>
+      <Text style={screenStyles.estimateDetail}>{estimate.detail}</Text>
+    </Card>
+  );
+}
+
+function ProblemCard({
+  option,
+  selected,
+  onPress,
+}: {
+  option: (typeof PROBLEM_OPTIONS)[number];
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        screenStyles.problemCard,
+        selected ? screenStyles.problemCardSelected : null,
+        pressed ? screenStyles.problemCardPressed : null,
+      ]}
+    >
+      <View style={[screenStyles.problemIcon, selected ? screenStyles.problemIconSelected : null]}>
+        <Feather name={option.icon} size={24} color={selected ? colors.accent : colors.text} />
+      </View>
+      <View style={screenStyles.problemCopy}>
+        <Text style={[screenStyles.problemTitle, selected ? screenStyles.problemTitleSelected : null]}>
+          {option.title}
+        </Text>
+        <Text style={screenStyles.problemDetail}>{option.detail}</Text>
+      </View>
+      <Pill tone={selected ? 'accent' : 'neutral'}>{option.meta}</Pill>
+    </Pressable>
+  );
+}
+
 function DetailsStep({ state, updateState, goNext }: StepProps) {
   const [vehicleReg, setVehicleReg] = useState(state.vehicleReg);
   const [vehicleMake, setVehicleMake] = useState(state.vehicleMake);
@@ -748,6 +970,9 @@ function DetailsStep({ state, updateState, goNext }: StepProps) {
   const [width, setWidth] = useState(state.tyreSize.width);
   const [aspect, setAspect] = useState(state.tyreSize.aspect);
   const [rim, setRim] = useState(state.tyreSize.rim);
+  const [problemType, setProblemType] = useState<ProblemType | null>(
+    state.problemType ?? conditionToProblemType(state.conditionAssessment),
+  );
   const [condition, setCondition] = useState<ConditionAssessment | null>(state.conditionAssessment);
   const [quantity, setQuantity] = useState(clampQuantity(state.quantity));
   const [lockingNut, setLockingNut] = useState(state.lockingNutStatus);
@@ -846,6 +1071,15 @@ function DetailsStep({ state, updateState, goNext }: StepProps) {
 
   const canContinue = width.length >= 3 && aspect.length >= 2 && rim.length >= 2 && condition;
   const showQuantity = condition === 'repair' || state.bookingType === 'emergency';
+  const draftEstimateState: BookingState = {
+    ...state,
+    tyreSize: { width, aspect, rim },
+    problemType,
+    conditionAssessment: condition,
+    serviceType: condition === 'repair' ? 'repair' : condition === 'replacement' ? 'fit' : condition ? 'assess' : state.serviceType,
+    quantity: clampQuantity(quantity),
+    lockingNutStatus: lockingNut,
+  };
 
   return (
     <View style={screenStyles.stepGap}>
@@ -895,10 +1129,21 @@ function DetailsStep({ state, updateState, goNext }: StepProps) {
         ) : null}
       </Section>
 
-      <Section title="Service">
-        <OptionCard title="Puncture repair" detail="Small puncture, slow leak, or nail in tyre." selected={condition === 'repair'} icon="tool" onPress={() => setCondition('repair')} />
-        <OptionCard title="Tyre replacement" detail="Damaged sidewall, blowout, or worn tread." selected={condition === 'replacement'} icon="disc" onPress={() => setCondition('replacement')} />
-        <OptionCard title="Not sure" detail="Driver assesses and advises on arrival." selected={condition === 'not_sure'} icon="help-circle" onPress={() => setCondition('not_sure')} />
+      <Section title="Problem">
+        <View style={screenStyles.problemGrid}>
+          {PROBLEM_OPTIONS.map((option) => (
+            <ProblemCard
+              key={option.value}
+              option={option}
+              selected={problemType === option.value}
+              onPress={() => {
+                void Haptics.selectionAsync().catch(() => {});
+                setProblemType(option.value);
+                setCondition(option.condition);
+              }}
+            />
+          ))}
+        </View>
       </Section>
 
       {showQuantity ? (
@@ -942,6 +1187,8 @@ function DetailsStep({ state, updateState, goNext }: StepProps) {
         </PrimaryButton>
       </Section>
 
+      <PriceEstimateCard state={draftEstimateState} />
+
       {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
 
       <PrimaryButton
@@ -952,6 +1199,8 @@ function DetailsStep({ state, updateState, goNext }: StepProps) {
           const nextServiceType = condition === 'repair' ? 'repair' : condition === 'replacement' ? 'fit' : 'assess';
           const shouldClearTyres =
             condition === 'repair' ||
+            state.problemType !== problemType ||
+            state.conditionAssessment !== condition ||
             state.tyreSize.width !== width ||
             state.tyreSize.aspect !== aspect ||
             state.tyreSize.rim !== rim ||
@@ -962,6 +1211,7 @@ function DetailsStep({ state, updateState, goNext }: StepProps) {
             vehicleMake,
             vehicleModel,
             tyreSize: { width, aspect, rim },
+            problemType,
             conditionAssessment: condition,
             serviceType: nextServiceType,
             quantity: clampQuantity(quantity),
@@ -1097,6 +1347,8 @@ function TyresStep({ state, updateState, goNext }: StepProps) {
         </Card>
       ) : null}
 
+      <PriceEstimateCard state={state} />
+
       <PrimaryButton icon="arrow-right" disabled={state.selectedTyres.length === 0} onPress={goNext}>
         Continue
       </PrimaryButton>
@@ -1208,6 +1460,8 @@ function ScheduleStep({ state, updateState, goNext }: StepProps) {
           ))}
         </View>
       </Section>
+
+      <PriceEstimateCard state={{ ...state, fittingLocation }} />
 
       <PrimaryButton
         icon="arrow-right"
@@ -1334,6 +1588,7 @@ function QuoteStep({ state, updateState, goNext, goTo }: StepProps) {
         <>
           <Card>
             <Row label="Service" value={state.serviceType === 'repair' ? 'Puncture repair' : state.serviceType === 'assess' ? 'Assessment' : 'Tyre fitting'} />
+            <Row label="Problem" value={problemTitle(state.problemType)} />
             <Row label="Location" value={state.address} />
             {state.scheduledDate && state.scheduledTime ? <Row label="Appointment" value={`${state.scheduledDate} ${state.scheduledTime}`} /> : null}
             {state.selectedTyres.map((tyre) => (
@@ -1903,6 +2158,63 @@ const screenStyles = StyleSheet.create({
     fontFamily: typography.bodyMedium,
     fontSize: 12,
   },
+  problemGrid: {
+    gap: 10,
+  },
+  problemCard: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 104,
+    padding: 14,
+  },
+  problemCardSelected: {
+    backgroundColor: 'rgba(249,115,22,0.1)',
+    borderColor: 'rgba(249,115,22,0.72)',
+    borderWidth: 2,
+  },
+  problemCardPressed: {
+    opacity: 0.86,
+  },
+  problemIcon: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    height: 54,
+    justifyContent: 'center',
+    width: 54,
+  },
+  problemIconSelected: {
+    backgroundColor: 'rgba(249,115,22,0.16)',
+    borderColor: 'rgba(249,115,22,0.42)',
+  },
+  problemCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  problemTitle: {
+    color: colors.text,
+    flexShrink: 1,
+    fontFamily: typography.bodyBold,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  problemTitleSelected: {
+    color: colors.accent,
+  },
+  problemDetail: {
+    color: colors.muted,
+    flexShrink: 1,
+    fontFamily: typography.body,
+    fontSize: 12,
+    lineHeight: 17,
+  },
   quantityRow: {
     flexDirection: 'row',
     gap: 10,
@@ -1960,6 +2272,44 @@ const screenStyles = StyleSheet.create({
     borderRadius: radii.lg,
     height: 190,
     width: '100%',
+  },
+  estimateCard: {
+    backgroundColor: '#202024',
+    gap: 10,
+  },
+  estimateHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  estimateIcon: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(249,115,22,0.12)',
+    borderColor: 'rgba(249,115,22,0.34)',
+    borderRadius: radii.md,
+    borderWidth: 1,
+    height: 42,
+    justifyContent: 'center',
+    width: 42,
+  },
+  estimateLabel: {
+    color: colors.muted,
+    fontFamily: typography.bodyBold,
+    fontSize: 12,
+    textTransform: 'uppercase',
+  },
+  estimateRange: {
+    color: colors.accent,
+    flexShrink: 1,
+    fontFamily: typography.display,
+    fontSize: 34,
+    lineHeight: 36,
+  },
+  estimateDetail: {
+    color: colors.muted,
+    fontFamily: typography.body,
+    fontSize: 12,
+    lineHeight: 18,
   },
   tyreTop: {
     alignItems: 'flex-start',

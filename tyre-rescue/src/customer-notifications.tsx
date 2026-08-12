@@ -13,6 +13,15 @@ type RegisterCustomerPushInput = {
   email?: string | null;
 };
 
+type DriverNearbyNotificationInput = {
+  refNumber: string;
+  driverName?: string | null;
+  etaMinutes?: number | null;
+  distanceMiles?: number | null;
+};
+
+const BOOKING_UPDATES_CHANNEL_ID = 'booking_updates';
+
 let cachedExpoPushToken: string | null = null;
 let tokenRequest: Promise<string | null> | null = null;
 
@@ -32,40 +41,49 @@ function getProjectId() {
   return Constants.easConfig?.projectId ?? extra?.eas?.projectId ?? null;
 }
 
+async function ensureBookingUpdatesChannelAsync() {
+  if (Platform.OS !== 'android') return;
+
+  await Notifications.setNotificationChannelAsync(BOOKING_UPDATES_CHANNEL_ID, {
+    name: 'Booking updates',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#F97316',
+  });
+}
+
+async function ensureCustomerNotificationPermissionAsync() {
+  if (Platform.OS === 'web') return false;
+
+  const current = await Notifications.getPermissionsAsync();
+  let granted =
+    current.granted ||
+    current.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+
+  if (!granted) {
+    const requested = await Notifications.requestPermissionsAsync({
+      ios: {
+        allowAlert: true,
+        allowBadge: true,
+        allowSound: true,
+      },
+    });
+    granted =
+      requested.granted ||
+      requested.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+  }
+
+  return granted;
+}
+
 async function getExpoPushToken() {
   if (Platform.OS === 'web') return null;
   if (cachedExpoPushToken) return cachedExpoPushToken;
   if (tokenRequest) return tokenRequest;
 
   tokenRequest = (async () => {
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('booking_updates', {
-        name: 'Booking updates',
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#F97316',
-      });
-    }
-
-    const current = await Notifications.getPermissionsAsync();
-    let granted =
-      current.granted ||
-      current.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
-
-    if (!granted) {
-      const requested = await Notifications.requestPermissionsAsync({
-        ios: {
-          allowAlert: true,
-          allowBadge: true,
-          allowSound: true,
-        },
-      });
-      granted =
-        requested.granted ||
-        requested.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
-    }
-
-    if (!granted) return null;
+    await ensureBookingUpdatesChannelAsync();
+    if (!(await ensureCustomerNotificationPermissionAsync())) return null;
 
     const projectId = getProjectId();
     const pushToken = await Notifications.getExpoPushTokenAsync(
@@ -78,6 +96,45 @@ async function getExpoPushToken() {
   });
 
   return tokenRequest;
+}
+
+function getNearbyNotificationBody(input: DriverNearbyNotificationInput) {
+  const driverLabel = input.driverName?.trim() || 'Your driver';
+  const details = [
+    typeof input.etaMinutes === 'number' ? `about ${input.etaMinutes} min away` : null,
+    typeof input.distanceMiles === 'number' ? `${input.distanceMiles.toFixed(input.distanceMiles < 1 ? 1 : 0)} mi away` : null,
+  ].filter(Boolean);
+
+  if (details.length) return `${driverLabel} is ${details.join(', ')}.`;
+  return `${driverLabel} is near your location.`;
+}
+
+export async function notifyCustomerDriverNearbyAsync(input: DriverNearbyNotificationInput) {
+  try {
+    if (Platform.OS === 'web') return false;
+
+    await ensureBookingUpdatesChannelAsync();
+    if (!(await ensureCustomerNotificationPermissionAsync())) return false;
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Your driver is nearby',
+        body: getNearbyNotificationBody(input),
+        sound: true,
+        data: {
+          event: 'driver_nearby',
+          ref: input.refNumber,
+          url: `/track?ref=${encodeURIComponent(input.refNumber)}`,
+        },
+      },
+      trigger: Platform.OS === 'android' ? { channelId: BOOKING_UPDATES_CHANNEL_ID } : null,
+    });
+
+    return true;
+  } catch (error) {
+    console.warn('[customer-notifications] driver nearby notification failed', error);
+    return false;
+  }
 }
 
 export async function registerForCustomerPushNotificationsAsync(input: RegisterCustomerPushInput = {}) {

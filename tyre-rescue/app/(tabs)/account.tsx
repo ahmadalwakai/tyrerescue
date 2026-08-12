@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { customerInvoiceUrl } from '@/src/api';
 import {
@@ -12,15 +12,38 @@ import { colors, spacing, typography } from '@/src/theme';
 import { formatPrice } from '@/src/types';
 import { Card, InlineNotice, LoadingState, Logo, PrimaryButton, Row, ScreenHeader, TextField, useScreenContentInsets } from '@/src/ui';
 
+type AuthMode = 'login' | 'register';
+
+const PASSWORD_RULES_MESSAGE = 'Password needs 8+ characters, one uppercase letter, one lowercase letter, and one number.';
+
 export default function AccountScreen() {
   const account = useCustomerAccount();
   const safeContentInsets = useScreenContentInsets();
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [forgotBusy, setForgotBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  function switchAuthMode(nextMode: AuthMode) {
+    setAuthMode(nextMode);
+    setError(null);
+    setMessage(null);
+  }
+
+  function passwordMeetsRules(nextPassword: string) {
+    return (
+      nextPassword.length >= 8 &&
+      /[A-Z]/.test(nextPassword) &&
+      /[a-z]/.test(nextPassword) &&
+      /[0-9]/.test(nextPassword)
+    );
+  }
 
   async function handleLogin() {
     setBusy(true);
@@ -30,6 +53,48 @@ export default function AccountScreen() {
       await account.login({ email, password });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to sign in.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRegister() {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPhone = phone.trim();
+
+    if (trimmedName.length < 2) {
+      setError('Enter your full name.');
+      return;
+    }
+    if (!trimmedEmail) {
+      setError('Enter your email address.');
+      return;
+    }
+    if (!passwordMeetsRules(password)) {
+      setError(PASSWORD_RULES_MESSAGE);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const payload = await account.register({
+        name: trimmedName,
+        email: trimmedEmail,
+        phone: trimmedPhone || null,
+        password,
+      });
+      setPassword('');
+      setConfirmPassword('');
+      setMessage(payload.message || 'Account created.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to create account.');
     } finally {
       setBusy(false);
     }
@@ -64,7 +129,11 @@ export default function AccountScreen() {
   return (
     <ScrollView contentContainerStyle={[styles.content, safeContentInsets]} keyboardShouldPersistTaps="handled">
       <Logo />
-      <ScreenHeader eyebrow="Account" title={account.profile ? 'Your account' : 'Sign in'} />
+      <ScreenHeader
+        eyebrow="Account"
+        title={account.profile ? 'Your account' : authMode === 'login' ? 'Sign in' : 'Create account'}
+        detail={account.profile ? undefined : 'Create an account or sign in to manage bookings, invoices, and tracking.'}
+      />
 
       {account.profile ? (
         <>
@@ -102,21 +171,67 @@ export default function AccountScreen() {
         </>
       ) : (
         <>
+          <View style={styles.authTabs}>
+            <AuthTab label="Sign in" selected={authMode === 'login'} onPress={() => switchAuthMode('login')} />
+            <AuthTab label="Create account" selected={authMode === 'register'} onPress={() => switchAuthMode('register')} />
+          </View>
           <Card>
+            {authMode === 'register' ? (
+              <>
+                <TextField label="Full name" value={name} onChangeText={setName} placeholder="John Smith" autoComplete="name" />
+                <TextField label="Phone" value={phone} onChangeText={setPhone} placeholder="07123 456789" keyboardType="phone-pad" autoComplete="tel" />
+              </>
+            ) : null}
             <TextField label="Email" value={email} onChangeText={setEmail} placeholder="john@example.com" keyboardType="email-address" autoComplete="email" />
             <TextField label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry autoComplete="password" />
+            {authMode === 'register' ? (
+              <>
+                <TextField label="Confirm password" value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Confirm password" secureTextEntry autoComplete="password-new" />
+                <Text style={styles.passwordHelp}>{PASSWORD_RULES_MESSAGE}</Text>
+              </>
+            ) : null}
           </Card>
           {message ? <InlineNotice tone="success">{message}</InlineNotice> : null}
           {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
-          <PrimaryButton icon="log-in" loading={busy} disabled={!email || !password} onPress={handleLogin}>
-            Sign in
-          </PrimaryButton>
-          <PrimaryButton icon="key" variant="secondary" loading={forgotBusy} disabled={!email} onPress={handleForgotPassword}>
-            Forgot password
-          </PrimaryButton>
+          {authMode === 'login' ? (
+            <>
+              <PrimaryButton icon="log-in" loading={busy} disabled={!email || !password} onPress={handleLogin}>
+                Sign in
+              </PrimaryButton>
+              <PrimaryButton icon="key" variant="secondary" loading={forgotBusy} disabled={!email} onPress={handleForgotPassword}>
+                Forgot password
+              </PrimaryButton>
+            </>
+          ) : (
+            <PrimaryButton
+              icon="user-plus"
+              loading={busy}
+              disabled={!name.trim() || !email.trim() || !password || !confirmPassword}
+              onPress={handleRegister}
+            >
+              Create account
+            </PrimaryButton>
+          )}
         </>
       )}
     </ScrollView>
+  );
+}
+
+function AuthTab({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.authTab,
+        selected ? styles.authTabSelected : null,
+        pressed ? styles.authTabPressed : null,
+      ]}
+    >
+      <Text style={[styles.authTabText, selected ? styles.authTabTextSelected : null]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -185,6 +300,45 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+  },
+  authTabs: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 4,
+    padding: 4,
+  },
+  authTab: {
+    alignItems: 'center',
+    borderRadius: 6,
+    flex: 1,
+    minHeight: 42,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  authTabSelected: {
+    backgroundColor: colors.accent,
+  },
+  authTabPressed: {
+    opacity: 0.84,
+  },
+  authTabText: {
+    color: colors.muted,
+    flexShrink: 1,
+    fontFamily: typography.bodyBold,
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  authTabTextSelected: {
+    color: colors.bg,
+  },
+  passwordHelp: {
+    color: colors.muted,
+    fontFamily: typography.body,
+    fontSize: 12,
+    lineHeight: 18,
   },
   section: {
     gap: 10,

@@ -2,6 +2,7 @@ export type BookingType = 'emergency' | 'scheduled';
 export type ServiceType = 'repair' | 'fit' | 'both' | 'assess';
 export type FittingLocation = 'shop' | 'mobile';
 export type ConditionAssessment = 'repair' | 'replacement' | 'not_sure';
+export type ProblemType = 'puncture' | 'flat_tyre' | 'damaged_tyre' | 'not_sure';
 export type LockingNutStatus = 'has_key' | 'no_key' | 'standard';
 
 export interface TyreSize {
@@ -51,6 +52,7 @@ export interface BookingState {
   vehicleMake: string;
   vehicleModel: string;
   tyreSize: TyreSize;
+  problemType: ProblemType | null;
   conditionAssessment: ConditionAssessment | null;
   tyrePhotoUrl: string | null;
   lockingNutStatus: LockingNutStatus;
@@ -135,6 +137,7 @@ export const initialBookingState: BookingState = {
   vehicleMake: '',
   vehicleModel: '',
   tyreSize: { width: '', aspect: '', rim: '' },
+  problemType: null,
   conditionAssessment: null,
   tyrePhotoUrl: null,
   lockingNutStatus: 'standard',

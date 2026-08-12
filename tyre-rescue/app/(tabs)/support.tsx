@@ -1,7 +1,7 @@
 import { Feather } from '@expo/vector-icons';
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { PHONE_DISPLAY, PHONE_TEL, SUPPORT_EMAIL, whatsappUrl } from '@/src/config';
+import { PHONE_DISPLAY, PHONE_TEL, SMS_PHONE_TEL, SUPPORT_EMAIL, whatsappUrl } from '@/src/config';
 import { colors, spacing, typography } from '@/src/theme';
 import { Card, Logo, PrimaryButton, Row, ScreenHeader, useScreenContentInsets } from '@/src/ui';
 
@@ -27,7 +27,7 @@ export default function SupportScreen() {
       >
         WhatsApp Support
       </PrimaryButton>
-      <PrimaryButton icon="message-circle" variant="secondary" onPress={() => Linking.openURL(`sms:${PHONE_TEL}`)}>
+      <PrimaryButton icon="message-circle" variant="secondary" onPress={() => Linking.openURL(`sms:${SMS_PHONE_TEL}`)}>
         Send SMS
       </PrimaryButton>
       <PrimaryButton

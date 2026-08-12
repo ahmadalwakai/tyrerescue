@@ -37,6 +37,11 @@ export const PHONE_TEL = PHONE_DISPLAY.replace(/[^\d+]/g, '');
 export const WHATSAPP_PHONE =
   process.env.EXPO_PUBLIC_WHATSAPP_PHONE || '+44 7423 262955';
 
+export const SMS_PHONE =
+  process.env.EXPO_PUBLIC_SMS_PHONE || WHATSAPP_PHONE;
+
+export const SMS_PHONE_TEL = SMS_PHONE.replace(/[^\d+]/g, '');
+
 export const SUPPORT_EMAIL =
   process.env.EXPO_PUBLIC_SUPPORT_EMAIL || 'support@tyrerescue.uk';
 

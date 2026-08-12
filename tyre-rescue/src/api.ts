@@ -15,6 +15,7 @@ export const API = {
   confirmBooking: '/api/bookings/confirm',
   tracking: '/api/tracking',
   customerClaimBooking: '/api/mobile/customer/auth/claim-booking',
+  customerRegister: '/api/mobile/customer/auth/register',
   customerLogin: '/api/mobile/customer/auth/login',
   customerForgotPassword: '/api/mobile/customer/auth/forgot-password',
   customerMe: '/api/mobile/customer/me',
