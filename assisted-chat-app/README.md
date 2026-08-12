@@ -169,10 +169,10 @@ Expo path to surface a customer emergency booking as fast as possible.
   - `default` — standard importance for everything else.
   - `admin_bookings` — kept for back-compat with previously registered
     push tokens.
-- Custom sound: `assets/sounds/urgent-booking.mp3`, registered in
+- Custom sound: `assets/sounds/urgent_booking.mp3`, registered in
   `expo.plugins["expo-notifications"].sounds`. The Expo config plugin
-  bundles it into Android `res/raw/` at build time. Expo Go and web
-  preview fall back to the system default sound.
+  bundles it into the native app at build time. Expo Go and web preview
+  fall back to the system default sound.
 - Local urgent notification triggered while the app is foregrounded so
   the operator hears the channel sound + feels vibration even when the
   device would otherwise stay silent.
@@ -243,13 +243,13 @@ other apps on every device. What this implementation actually delivers:
   if the channel sound is not muted by the user / DND.
 - **Background:** high-priority push notification via the
   `urgent-bookings` channel. Heads-up banner where the OEM honours it.
-- **Locked screen:** lock-screen notification (PUBLIC visibility) where
-  device settings allow. No reliable full-screen-intent in the Expo
-  managed workflow.
+- **Locked screen:** lock-screen notification where device settings allow.
+  Android native builds also request full-screen alert support; iOS uses
+  standard APNs lock-screen notification behavior.
 - **Killed app:** push delivery depends on Android, FCM, and the OEM
   battery optimiser. Aggressive killers (Samsung, Xiaomi, Huawei,
   OnePlus, Oppo, Vivo) can silently drop pushes — this is why the setup
   checklist above is mandatory for the admin device.
 
-Full-screen intents and bypass-DND require native Android changes beyond
-the Expo managed workflow and are intentionally not claimed here.
+Bypass-DND and iOS forceful popups are not guaranteed by the OS and are
+intentionally not claimed here.

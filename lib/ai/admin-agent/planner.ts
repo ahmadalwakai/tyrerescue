@@ -111,7 +111,7 @@ function deterministicPlan(message: string): AgentPlan | null {
     return {
       intent: 'create_quick_booking',
       tools: [{ toolName: 'create_quick_booking', params: {} }],
-      clarificationNeeded: 'To book, I need: customer name, phone number, and service type (fit/repair/assess). For example: "quick book tyre fit for Ahmed 07123456789"',
+      clarificationNeeded: 'To book, I need: customer name, phone number, and service type (fit/repair/assess/locking_nut). For example: "quick book tyre fit for Ahmed 07123456789"',
     };
   }
 
@@ -120,7 +120,7 @@ function deterministicPlan(message: string): AgentPlan | null {
     return {
       intent: 'create_quick_booking',
       tools: [{ toolName: 'create_quick_booking', params: {} }],
-      clarificationNeeded: 'I can create a quick booking for you. I need: customer name, phone number, and service type (fit/repair/assess). What are the details?',
+      clarificationNeeded: 'I can create a quick booking for you. I need: customer name, phone number, and service type (fit/repair/assess/locking_nut). What are the details?',
     };
   }
 

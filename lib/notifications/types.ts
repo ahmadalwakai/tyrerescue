@@ -8,6 +8,7 @@ export const NOTIFICATION_TYPES = {
   CHAT_MESSAGE_RECEIVED: "chat.message.received",
   CONTACT_RECEIVED: "contact.received",
   STOCK_LOW: "stock.low",
+  STOCK_DAILY_BUY_REPORT: "stock.daily_buy_report",
   INVOICE_CREATED: "invoice.created",
   DRIVER_STATUS_CHANGED: "driver.status.changed",
   AVAILABILITY_UPDATED: "availability.updated",

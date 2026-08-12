@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@/lib/db';
-import { adminQuoteDrafts } from '@/lib/db/schema';
+import { adminQuoteDrafts, quickBookings } from '@/lib/db/schema';
 import {
   authenticateAdminQuoteRequest,
   buildAdminQuoteWhatsAppMessage,
   serializeAdminQuote,
 } from '@/lib/admin-quotes';
+import { extractQuickBookTyreLineSelections } from '@/lib/quick-book-pricing';
 import { sendVoodooSms } from '@/lib/voodoo-sms';
 
 export const runtime = 'nodejs';
@@ -22,6 +23,16 @@ async function loadQuote(id: string) {
     .where(eq(adminQuoteDrafts.id, id))
     .limit(1);
   return quote ?? null;
+}
+
+async function loadLinkedTyreLines(quickBookingId: string | null) {
+  if (!quickBookingId) return [];
+  const [quickBooking] = await db
+    .select({ priceBreakdown: quickBookings.priceBreakdown })
+    .from(quickBookings)
+    .where(eq(quickBookings.id, quickBookingId))
+    .limit(1);
+  return extractQuickBookTyreLineSelections({ priceBreakdown: quickBooking?.priceBreakdown });
 }
 
 export async function POST(
@@ -54,11 +65,13 @@ export async function POST(
     return NextResponse.json({ error: 'Customer phone is required', quote }, { status: 400 });
   }
 
+  const tyreLines = await loadLinkedTyreLines(row.quickBookingId);
   const message = buildAdminQuoteWhatsAppMessage({
     quoteRef: row.quoteRef,
     priceAmount: row.priceAmount,
     quantity: row.quantity,
     tyreSize: row.tyreSize,
+    tyreLines,
     expiresAt: row.expiresAt,
   });
   const result = await sendVoodooSms({ to: quote.customerPhone, message });

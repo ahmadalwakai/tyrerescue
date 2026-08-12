@@ -31,6 +31,12 @@ import {
 import * as secureStorage from '@/services/secure-storage';
 import { useI18n } from '@/i18n';
 import { getDriverPaymentDisplay, paymentToneColors } from '@/lib/payment-status';
+import {
+  formatJobTyreLine,
+  formatJobTyreLinesSummary,
+  getJobTyreLines,
+  totalJobTyreQuantity,
+} from '@/lib/tyre-lines';
 
 const ACTIVE_JOB_STATUSES = new Set([
   'driver_assigned',
@@ -218,6 +224,17 @@ export default function JobDetailScreen() {
 
   const handleStatusAction = async (nextStatus: string) => {
     if (!ref || actionLockRef.current) return;
+    if (
+      nextStatus === 'completed' &&
+      job?.wheelNutConsent?.required &&
+      !job.wheelNutConsent.canComplete
+    ) {
+      Alert.alert(t('wheelNutConsent.requiredTitle'), t('wheelNutConsent.requiredBeforeComplete'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('wheelNutConsent.openConsent'), onPress: () => void openWheelNutConsent() },
+      ]);
+      return;
+    }
     actionLockRef.current = true;
     const confirmMsg =
       nextStatus === 'completed'
@@ -287,14 +304,9 @@ export default function JobDetailScreen() {
   const toggleCheck = (key: string) =>
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  // Tyre summary built straight from the real job payload (never fabricated).
-  // Mirrors the "{count} × {size}" format used on the route cockpit.
-  const tyreCount =
-    job?.tyres?.reduce((sum, ty) => sum + (ty.quantity ?? 0), 0) ?? 0;
-  const tyreSizeSummary =
-    job?.tyreSizeDisplay != null && job.tyreSizeDisplay.length > 0
-      ? `${tyreCount > 0 ? tyreCount : 1} × ${job.tyreSizeDisplay}`
-      : null;
+  const tyreLines = getJobTyreLines(job);
+  const tyreCount = totalJobTyreQuantity(job);
+  const tyreSizeSummary = formatJobTyreLinesSummary(job);
 
   const paymentForJob = job?.paymentSummary ?? job?.payment ?? null;
   const amountToCollectPence = paymentForJob?.amountToCollectPence ?? 0;
@@ -466,6 +478,19 @@ export default function JobDetailScreen() {
     }
   };
 
+  const openWheelNutConsent = async () => {
+    if (!ref) return;
+    setActioning(true);
+    try {
+      await driverApi.markWheelNutConsentRequired(ref, 'driver_requested_wheel_nut_extraction_consent');
+    } catch {
+      // The consent screen retries this before the customer signs.
+    } finally {
+      setActioning(false);
+    }
+    router.push(`/(tabs)/jobs/${ref}/wheel-nut-consent`);
+  };
+
   const handleReject = async () => {
     if (!ref || actionLockRef.current) return;
     actionLockRef.current = true;
@@ -530,6 +555,14 @@ export default function JobDetailScreen() {
 
   const DRIVER_ACTIONS = getDriverActions(t);
   const action = DRIVER_ACTIONS[job.status];
+  const wheelNutConsent = job.wheelNutConsent ?? null;
+  const consentRequired = Boolean(wheelNutConsent?.required);
+  const consentSigned = Boolean(wheelNutConsent?.signedAt && wheelNutConsent?.declarationAccepted);
+  const actionBlockedByConsent = Boolean(
+    action?.next === 'completed' &&
+      consentRequired &&
+      wheelNutConsent?.canComplete === false,
+  );
 
   return (
     <>
@@ -559,11 +592,11 @@ export default function JobDetailScreen() {
             {[job.vehicleReg, job.vehicleMake].filter(Boolean).join(' · ') || t('jobs.noVehicle')}
           </Text>
         </View>
-        {job.tyres.length > 0 && (
+        {tyreLines.length > 0 && (
           <View style={styles.contextChip}>
             <Ionicons name="disc-outline" size={14} color={colors.accent} />
             <Text style={styles.contextChipText}>
-              {job.tyres.reduce((s, t) => s + t.quantity, 0)} tyre{job.tyres.reduce((s, t) => s + t.quantity, 0) !== 1 ? 's' : ''}
+              {tyreCount} tyre{tyreCount !== 1 ? 's' : ''}
             </Text>
           </View>
         )}
@@ -702,20 +735,68 @@ export default function JobDetailScreen() {
         </View>
       )}
 
+      {(['arrived', 'in_progress'].includes(job.status) || consentRequired || consentSigned) && (
+        <View style={[styles.card, styles.consentCard]}>
+          <View style={styles.consentHeader}>
+            <View
+              style={[
+                styles.consentIcon,
+                consentSigned && styles.consentIconSigned,
+                consentRequired && !consentSigned && styles.consentIconRequired,
+              ]}
+            >
+              <Ionicons
+                name={consentSigned ? 'shield-checkmark' : 'warning-outline'}
+                size={18}
+                color={consentSigned ? '#86EFAC' : '#FDBA74'}
+              />
+            </View>
+            <View style={styles.consentCopy}>
+              <Text style={styles.consentTitle}>
+                {consentSigned
+                  ? t('wheelNutConsent.signedStatus')
+                  : consentRequired
+                    ? t('wheelNutConsent.requiredStatus')
+                    : t('wheelNutConsent.optionalStatus')}
+              </Text>
+              <Text style={styles.consentText}>
+                {consentSigned
+                  ? t('wheelNutConsent.signedDetail')
+                  : consentRequired
+                    ? t('wheelNutConsent.requiredDetail')
+                    : t('wheelNutConsent.optionalDetail')}
+              </Text>
+            </View>
+          </View>
+          {consentSigned && wheelNutConsent?.signedAt && (
+            <Text style={styles.cardMeta}>
+              {t('wheelNutConsent.signedAt', {
+                value: format(new Date(wheelNutConsent.signedAt), 'dd MMM yyyy · HH:mm', { locale: dateLocale }),
+              })}
+            </Text>
+          )}
+          {!consentSigned && (
+            <Pressable
+              style={[styles.consentButton, actioning && styles.buttonDisabled]}
+              disabled={actioning}
+              onPress={() => void openWheelNutConsent()}
+            >
+              <Ionicons name="create-outline" size={18} color="#0B0F1A" />
+              <Text style={styles.consentButtonText}>{t('wheelNutConsent.openConsent')}</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
+
       {/* Tyres */}
-      {job.tyres.length > 0 && (
+      {tyreLines.length > 0 && (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{t('jobDetail.tyres')}</Text>
-          {job.tyres.map((t, i) => (
-            <View key={t.id || i} style={styles.tyreRow}>
+          {tyreLines.map((tyre, i) => (
+            <View key={tyre.id || i} style={styles.tyreRow}>
               <Text style={styles.cardValue}>
-                {t.quantity}× {[t.brand, t.pattern].filter(Boolean).join(' ')}
+                {formatJobTyreLine(tyre)}
               </Text>
-              {(t.width || t.aspect || t.rim) && (
-                <Text style={styles.cardMeta}>
-                  {t.width}/{t.aspect}R{t.rim}
-                </Text>
-              )}
             </View>
           ))}
         </View>
@@ -793,13 +874,21 @@ export default function JobDetailScreen() {
 
       {action && job.status !== 'driver_assigned' && (
         <AnimatedPressable
-          style={[styles.actionButton, actioning && styles.buttonDisabled]}
+          style={[
+            styles.actionButton,
+            actionBlockedByConsent && styles.actionButtonWarning,
+            actioning && styles.buttonDisabled,
+          ]}
           onPress={() => handleStatusAction(action.next)}
           disabled={actioning}
           pressScale={0.95}
         >
           <Text style={styles.actionButtonText}>
-            {actioning ? t('common.updating') : action.label}
+            {actioning
+              ? t('common.updating')
+              : actionBlockedByConsent
+                ? t('wheelNutConsent.getConsentToComplete')
+                : action.label}
           </Text>
         </AnimatedPressable>
       )}
@@ -1012,6 +1101,62 @@ const styles = StyleSheet.create({
   tyreRow: {
     marginBottom: 6,
   },
+  consentCard: {
+    borderColor: 'rgba(253,186,116,0.28)',
+  },
+  consentHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  consentIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(253,186,116,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(253,186,116,0.35)',
+  },
+  consentIconRequired: {
+    backgroundColor: 'rgba(180,83,9,0.18)',
+  },
+  consentIconSigned: {
+    backgroundColor: 'rgba(34,197,94,0.14)',
+    borderColor: 'rgba(134,239,172,0.35)',
+  },
+  consentCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  consentTitle: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.base,
+    color: colors.text,
+  },
+  consentText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.sm,
+    color: colors.muted,
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  consentButton: {
+    marginTop: spacing.sm,
+    minHeight: 46,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  consentButtonText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.sm,
+    color: '#0B0F1A',
+  },
   callAdminButton: {
     flex: 1,
     flexDirection: 'row',
@@ -1066,6 +1211,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     marginBottom: spacing.sm,
     gap: 6,
+  },
+  actionButtonWarning: {
+    backgroundColor: '#B45309',
   },
   acceptButton: {
     flex: 2,

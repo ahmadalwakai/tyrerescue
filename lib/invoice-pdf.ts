@@ -29,6 +29,7 @@ interface InvoiceRenderData {
   vehicleMake?: string | null;
   vehicleModel?: string | null;
   tyreSizeDisplay?: string | null;
+  tyreLines?: string[];
   serviceInclusions?: string[];
   paymentStatus?: string | null;
   paymentMethod?: string | null;
@@ -67,7 +68,6 @@ const COLORS = {
 
 /** Strip characters outside the WinAnsi range that pdf-lib StandardFonts cannot encode. */
 function sanitize(text: string): string {
-  // eslint-disable-next-line no-control-regex
   return text.replace(/[^\x20-\x7E\xA0-\xFF\n\r\t]/g, '');
 }
 
@@ -466,21 +466,26 @@ function vehicleText(data: InvoiceRenderData): string | null {
   return vehicle || null;
 }
 
+function tyreLinesForDisplay(data: InvoiceRenderData): string[] {
+  const lines = (data.tyreLines ?? [])
+    .map((line) => cleanText(line, ''))
+    .filter(Boolean);
+  if (lines.length > 0) return lines;
+  return data.tyreSizeDisplay ? [data.tyreSizeDisplay] : [];
+}
+
 function drawBookingDetails(page: PDFPage, data: InvoiceRenderData, fonts: InvoiceFonts, x: number, y: number): void {
   drawPanel(page, { x, y, width: 250, height: 132, fill: COLORS.palePanel, border: COLORS.border });
   drawSectionHeading(page, 'BOOKING DETAILS', x + 18, y + 104, fonts);
+  const tyreLines = tyreLinesForDisplay(data);
   const rows = [
     ['Booking Reference', data.bookingReference ?? 'Not available'],
     ['Payment Status', data.paymentStatus ?? data.status],
     ...(data.paymentMethod ? [['Payment Method', data.paymentMethod]] : []),
-    ...(data.tyreSizeDisplay ? [['Tyre Size', data.tyreSizeDisplay]] : []),
-    ...(vehicleText(data) ? [['Vehicle', vehicleText(data)!]] : []),
   ];
 
-  const visibleRows = rows.slice(0, 5);
   let rowY = y + 76;
-  const rowGap = visibleRows.length > 4 ? 16 : 20;
-  for (const [label, value] of visibleRows) {
+  for (const [label, value] of rows.slice(0, 3)) {
     page.drawText(label, { x: x + 18, y: rowY, size: 8.5, font: fonts.normal, color: COLORS.muted });
     page.drawText(fitText(cleanText(value), fonts.bold, 8.8, 112), {
       x: x + 122,
@@ -489,7 +494,39 @@ function drawBookingDetails(page: PDFPage, data: InvoiceRenderData, fonts: Invoi
       font: fonts.bold,
       color: COLORS.ink,
     });
-    rowY -= rowGap;
+    rowY -= 16;
+  }
+
+  if (tyreLines.length > 0) {
+    page.drawText(tyreLines.length > 1 ? 'Tyres' : 'Tyre', {
+      x: x + 18,
+      y: rowY,
+      size: 8.5,
+      font: fonts.normal,
+      color: COLORS.muted,
+    });
+    rowY = drawWrappedText(page, tyreLines.join(' | '), {
+      x: x + 122,
+      y: rowY,
+      maxWidth: 112,
+      maxLines: 4,
+      lineHeight: 8.5,
+      size: 7.2,
+      font: fonts.bold,
+      color: COLORS.ink,
+    }) - 3;
+  }
+
+  const vehicle = vehicleText(data);
+  if (vehicle && rowY >= y + 18) {
+    page.drawText('Vehicle', { x: x + 18, y: rowY, size: 8.5, font: fonts.normal, color: COLORS.muted });
+    page.drawText(fitText(vehicle, fonts.bold, 8.2, 112), {
+      x: x + 122,
+      y: rowY,
+      size: 8.2,
+      font: fonts.bold,
+      color: COLORS.ink,
+    });
   }
 }
 
@@ -833,6 +870,7 @@ function bookingCustomerInvoiceToRenderData(invoice: BookingCustomerInvoice): In
     vehicleMake: safe.vehicle.make,
     vehicleModel: safe.vehicle.model,
     tyreSizeDisplay: safe.tyreSizeDisplay,
+    tyreLines: safe.tyreLines,
     serviceInclusions: safe.serviceInclusions,
     paymentStatus: safe.payment.status,
     paymentMethod: safe.payment.method,
@@ -860,6 +898,7 @@ function standaloneAdminInvoiceToRenderData(invoice: StandaloneAdminInvoice): In
     vehicleMake: invoice.vehicleMake,
     vehicleModel: invoice.vehicleModel,
     tyreSizeDisplay: invoice.tyreSizeDisplay,
+    tyreLines: invoice.tyreLines ?? undefined,
     paymentStatus: invoice.paymentStatus,
     paymentMethod: invoice.paymentMethod,
   };
@@ -895,6 +934,7 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
 
 function collectInvoicePdfText(data: InvoiceRenderData): string[] {
   const paymentStatus = data.paymentStatus ?? data.status;
+  const tyreLines = tyreLinesForDisplay(data);
   const rows = [
     data.companyName.toUpperCase(),
     'INVOICE',
@@ -921,7 +961,7 @@ function collectInvoicePdfText(data: InvoiceRenderData): string[] {
     'Payment Status',
     paymentStatus,
     ...(data.paymentMethod ? ['Payment Method', data.paymentMethod] : []),
-    ...(data.tyreSizeDisplay ? ['Tyre Size', data.tyreSizeDisplay] : []),
+    ...(tyreLines.length > 0 ? [tyreLines.length > 1 ? 'Tyres' : 'Tyre', ...tyreLines] : []),
     ...(vehicleText(data) ? ['Vehicle', vehicleText(data)!] : []),
     ...(data.serviceInclusions?.length
       ? ['Included in Your Service', ...data.serviceInclusions]

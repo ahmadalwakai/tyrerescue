@@ -1,7 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { tyreProducts } from '@/lib/db/schema';
-import { sql, ilike, or, eq, and } from 'drizzle-orm';
+import { sql, eq, and } from 'drizzle-orm';
+
+function normalizeTyreSizeSearchKey(value: string): string {
+  const cleaned = value.trim().toUpperCase().replace(/[^0-9RC]/g, '');
+  const standardDigits = cleaned.match(/^(\d{3})(\d{2,3})(\d{2})(C?)$/);
+  if (standardDigits) {
+    return `${standardDigits[1]}${standardDigits[2]}R${standardDigits[3]}${standardDigits[4]}`;
+  }
+
+  const compactDigits = cleaned.match(/^(\d{3})(\d{2})(C?)$/);
+  if (compactDigits) {
+    const rim = Number(compactDigits[2]);
+    if (rim >= 10 && rim <= 26) {
+      return `${compactDigits[1]}R${compactDigits[2]}${compactDigits[3]}`;
+    }
+  }
+
+  return cleaned;
+}
+
+function isTyreSizeLikeSearch(key: string): boolean {
+  return key.includes('R') || /^\d{3}\d{2,3}\d{2}C?$/.test(key) || /^\d{5,6}$/.test(key);
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,17 +33,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ sizes: [] });
     }
 
-    // Sanitise: only allow digits, slash, R, spaces
-    const sanitised = q.replace(/[^0-9/rR\s]/g, '');
-    if (!sanitised) return NextResponse.json({ sizes: [] });
+    const searchKey = normalizeTyreSizeSearchKey(q);
+    if (!searchKey) return NextResponse.json({ sizes: [] });
 
     const availableCondition = eq(tyreProducts.availableNew, true);
-    const looksLikeFullSize = /[/rR]/.test(sanitised);
+    const sizeKeyExpr = sql<string>`regexp_replace(upper(${tyreProducts.sizeDisplay}), '[^0-9RC]', '', 'g')`;
 
     let results;
 
-    if (looksLikeFullSize) {
-      const pattern = `%${sanitised.replace(/\s+/g, '')}%`;
+    if (isTyreSizeLikeSearch(searchKey)) {
+      const pattern = `%${searchKey}%`;
       results = await db
         .select({
           size: tyreProducts.sizeDisplay,
@@ -31,17 +52,14 @@ export async function GET(request: NextRequest) {
         .where(
           and(
             availableCondition,
-            or(
-              ilike(tyreProducts.sizeDisplay, pattern),
-              ilike(tyreProducts.sizeDisplay, pattern.replace(/r/gi, 'R'))
-            )
-          )
+            sql`${sizeKeyExpr} LIKE ${pattern}`,
+          ),
         )
         .groupBy(tyreProducts.sizeDisplay)
         .orderBy(sql`sum(${tyreProducts.stockNew}) desc`)
         .limit(8);
     } else {
-      const widthNum = parseInt(sanitised, 10);
+      const widthNum = parseInt(searchKey, 10);
       if (isNaN(widthNum)) return NextResponse.json({ sizes: [] });
 
       results = await db

@@ -6,6 +6,7 @@ import { put } from '@vercel/blob';
 
 const ALLOWED_MIME_TYPES = ['audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/ogg', 'audio/mp3'];
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+type RequestFormData = { get(name: string): unknown };
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -13,9 +14,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const formData = await request.formData();
-  const file = formData.get('file') as File | null;
-  const displayName = formData.get('displayName') as string | null;
+  const formData = await request.formData() as unknown as RequestFormData;
+  const fileValue = formData.get('file');
+  const file = fileValue instanceof File ? fileValue : null;
+  const displayNameValue = formData.get('displayName');
+  const displayName = typeof displayNameValue === 'string' ? displayNameValue : null;
 
   if (!file) {
     return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });

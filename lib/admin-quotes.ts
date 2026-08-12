@@ -51,6 +51,12 @@ const adminQuoteTyreLineSchema = z.object({
   id: nullableText(50),
   size: z.string().trim().min(1).max(30),
   quantity: z.number().int().min(1).max(10),
+  axle: nullableText(20),
+  loadIndex: nullableText(8),
+  speedIndex: nullableText(8),
+  runFlat: z.boolean().nullable().optional(),
+  xl: z.boolean().nullable().optional(),
+  commercial: z.boolean().nullable().optional(),
   brand: nullableText(80),
   pattern: nullableText(80),
   season: nullableText(40),
@@ -266,11 +272,40 @@ export function buildAdminQuoteWhatsAppMessage(input: {
   priceAmount: number;
   quantity: number;
   tyreSize: string | null;
+  tyreLines?: Array<{
+    sizeDisplay?: string | null;
+    normalizedSize?: string | null;
+    requestedSize?: string | null;
+    quantity?: number | null;
+    axle?: string | null;
+    loadIndex?: string | null;
+    speedIndex?: string | null;
+    runFlat?: boolean | null;
+    xl?: boolean | null;
+    commercial?: boolean | null;
+  }> | null;
   expiresAt: Date;
 }): string {
-  const tyreSize = input.tyreSize?.trim() || 'the requested size';
+  const tyreLines = (input.tyreLines ?? []).flatMap((line) => {
+    const size = line.sizeDisplay?.trim() || line.normalizedSize?.trim() || line.requestedSize?.trim();
+    if (!size) return [];
+    const quantity = Math.max(1, Math.round(Number(line.quantity) || 1));
+    const parts: string[] = [];
+    if (line.axle) parts.push(`${line.axle}:`);
+    parts.push(size);
+    const loadSpeed = `${line.loadIndex ?? ''}${line.speedIndex ?? ''}`.trim();
+    if (loadSpeed) parts.push(loadSpeed);
+    if (line.runFlat === true) parts.push('run-flat');
+    if (line.xl === true) parts.push('XL');
+    if (line.commercial === true && !/C$/i.test(size)) parts.push('commercial');
+    parts.push(`x${quantity}`);
+    return [parts.join(' ')];
+  });
+  const tyreText = tyreLines.length > 0
+    ? `for:\n${tyreLines.map((line) => `- ${line}`).join('\n')}`
+    : `for ${input.quantity} tyre(s), size ${input.tyreSize?.trim() || 'the requested size'}.`;
   return [
-    `Your quote is ${formatAdminQuotePrice(input.priceAmount)} for ${input.quantity} tyre(s), size ${tyreSize}.`,
+    `Your quote is ${formatAdminQuotePrice(input.priceAmount)} ${tyreText}`,
     `Quote ref: ${input.quoteRef}.`,
     `This quote is valid until ${formatQuoteExpiry(input.expiresAt)}.`,
     'Call or WhatsApp us to confirm.',
@@ -395,6 +430,12 @@ function normalizeQuoteTyreLines(input: {
       id: optionalString(line.id) ?? `tyre-${index + 1}`,
       size,
       quantity: Math.max(1, Math.min(10, Math.round(Number(line.quantity) || 1))),
+      axle: optionalString(line.axle),
+      loadIndex: optionalString(line.loadIndex),
+      speedIndex: optionalString(line.speedIndex),
+      runFlat: typeof line.runFlat === 'boolean' ? line.runFlat : null,
+      xl: typeof line.xl === 'boolean' ? line.xl : null,
+      commercial: typeof line.commercial === 'boolean' ? line.commercial : null,
       brand: optionalString(line.brand),
       pattern: optionalString(line.pattern),
       season: optionalString(line.season),
@@ -412,8 +453,16 @@ function quickBookingTyreLines(quickBooking: QuickBooking | null): QuickBookTyre
       id: line.id || `tyre-${index + 1}`,
       size: line.normalizedSize ?? line.sizeDisplay ?? line.requestedSize,
       quantity: line.quantity,
+      axle: line.axle ?? null,
+      loadIndex: line.loadIndex ?? null,
+      speedIndex: line.speedIndex ?? null,
+      runFlat: line.runFlat ?? null,
+      xl: line.xl ?? null,
+      commercial: line.commercial ?? null,
       brand: line.brand,
       pattern: line.pattern,
+      season: line.season ?? null,
+      source: line.source ?? null,
       price: line.unitPrice,
     }));
   }

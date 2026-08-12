@@ -88,6 +88,27 @@ interface Booking {
   arrivedAt: string | null;
   inProgressAt: string | null;
   completedAt: string | null;
+  wheelNutConsentRequiredAt: string | null;
+  wheelNutConsentReason: string | null;
+}
+
+interface WheelNutConsentEvidence {
+  id: string;
+  customerName: string;
+  vehicleReg: string | null;
+  driverName: string | null;
+  declarationAccepted: boolean;
+  signatureUrl: string;
+  pdfUrl: string;
+  gpsLat: string | null;
+  gpsLng: string | null;
+  gpsAccuracy: number | null;
+  deviceId: string | null;
+  deviceLabel: string | null;
+  emailStatus: string;
+  emailSentAt: string | null;
+  emailError: string | null;
+  createdAt: string | null;
 }
 
 interface StatusHistoryItem {
@@ -128,6 +149,7 @@ interface Props {
   currentUserRole: 'admin' | 'driver' | 'customer';
   payment: PaymentSummary;
   driverSituation: DriverSituation;
+  wheelNutConsent: WheelNutConsentEvidence | null;
 }
 
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
@@ -222,8 +244,11 @@ export function BookingDetailClient({
   currentUserRole,
   payment,
   driverSituation,
+  wheelNutConsent,
 }: Props) {
   const router = useRouter();
+  const primaryTyreSize = tyreDetails.items[0]?.size ?? tyreDetails.size ?? booking.tyreSizeDisplay ?? '';
+  const primaryTyreQuantity = tyreDetails.items[0]?.quantity ?? tyreDetails.quantity ?? booking.quantity;
 
   // ── Driver assignment ──
   const [selectedDriverId, setSelectedDriverId] = useState(assignedDriver?.id || '');
@@ -275,7 +300,7 @@ export function BookingDetailClient({
     customerName: booking.customerName,
     customerEmail: booking.customerEmail,
     customerPhone: booking.customerPhone,
-    vehicleReg: booking.vehicleReg || '',
+    vehicleReg: (booking.vehicleReg || '').toUpperCase(),
     vehicleMake: booking.vehicleMake || '',
     vehicleModel: booking.vehicleModel || '',
     addressLine: booking.addressLine,
@@ -283,8 +308,8 @@ export function BookingDetailClient({
     notes: booking.notes || '',
     serviceType: booking.serviceType,
     bookingType: booking.bookingType,
-    tyreSizeDisplay: booking.tyreSizeDisplay || '',
-    quantity: String(booking.quantity),
+    tyreSizeDisplay: primaryTyreSize,
+    quantity: String(primaryTyreQuantity),
     lockingNutStatus: booking.lockingNutStatus || 'standard',
     subtotal: booking.subtotal,
     vatAmount: booking.vatAmount,
@@ -313,6 +338,12 @@ export function BookingDetailClient({
   const isTerminal = isTerminalStatus;
   const nextStatuses = ADMIN_TRANSITIONS[booking.status] || [];
   const canRefund = ['paid', 'driver_assigned', 'completed'].includes(booking.status) && booking.stripePiId;
+  const wheelNutConsentRequired = Boolean(
+    booking.wheelNutConsentRequiredAt ||
+      booking.lockingNutStatus === 'no_key' ||
+      booking.serviceType === 'locking_nut' ||
+      booking.serviceType === 'locking_nut_removal',
+  );
 
   // ── Handlers ──
   async function handleAssignDriver() {
@@ -370,15 +401,15 @@ export function BookingDetailClient({
         if (editData.customerName !== booking.customerName) payload.customerName = editData.customerName;
         if (editData.customerEmail !== booking.customerEmail) payload.customerEmail = editData.customerEmail;
         if (editData.customerPhone !== booking.customerPhone) payload.customerPhone = editData.customerPhone;
-        if (editData.vehicleReg !== (booking.vehicleReg || '')) payload.vehicleReg = editData.vehicleReg || null;
+        if (editData.vehicleReg !== (booking.vehicleReg || '')) payload.vehicleReg = editData.vehicleReg.trim().toUpperCase() || null;
         if (editData.vehicleMake !== (booking.vehicleMake || '')) payload.vehicleMake = editData.vehicleMake || null;
         if (editData.vehicleModel !== (booking.vehicleModel || '')) payload.vehicleModel = editData.vehicleModel || null;
         if (editData.addressLine !== booking.addressLine) payload.addressLine = editData.addressLine;
         if (editData.notes !== (booking.notes || '')) payload.notes = editData.notes || null;
         if (editData.serviceType !== booking.serviceType) payload.serviceType = editData.serviceType;
         if (editData.bookingType !== booking.bookingType) payload.bookingType = editData.bookingType;
-        if (editData.tyreSizeDisplay !== (booking.tyreSizeDisplay || '')) payload.tyreSizeDisplay = editData.tyreSizeDisplay || null;
-        if (editData.quantity !== String(booking.quantity)) payload.quantity = editData.quantity;
+        if (editData.tyreSizeDisplay !== primaryTyreSize) payload.tyreSizeDisplay = editData.tyreSizeDisplay || null;
+        if (editData.quantity !== String(primaryTyreQuantity)) payload.quantity = editData.quantity;
         if (editData.lockingNutStatus !== (booking.lockingNutStatus || 'standard')) payload.lockingNutStatus = editData.lockingNutStatus;
         if (editData.subtotal !== booking.subtotal) payload.subtotal = editData.subtotal;
         if (editData.vatAmount !== booking.vatAmount) payload.vatAmount = editData.vatAmount;
@@ -486,7 +517,7 @@ export function BookingDetailClient({
   }
 
   function ed(field: keyof typeof editData, value: string) {
-    setEditData((p) => ({ ...p, [field]: value }));
+    setEditData((p) => ({ ...p, [field]: field === 'vehicleReg' ? value.toUpperCase() : value }));
   }
 
   function formatRelative(dateStr: string): string {
@@ -755,11 +786,11 @@ export function BookingDetailClient({
             {editing ? (
               <Grid templateColumns={{ base: '1fr', sm: 'repeat(2, 1fr)' }} gap={4} mb={4}>
                 <Box>
-                  <Text fontSize="sm" color={c.muted} mb={1}>Tyre Size</Text>
+                  <Text fontSize="sm" color={c.muted} mb={1}>Primary Tyre Size</Text>
                   <Input {...inputProps} size="sm" height="36px" value={editData.tyreSizeDisplay} onChange={(e) => ed('tyreSizeDisplay', e.target.value)} placeholder="e.g. 225/40R18" />
                 </Box>
                 <Box>
-                  <Text fontSize="sm" color={c.muted} mb={1}>Quantity</Text>
+                  <Text fontSize="sm" color={c.muted} mb={1}>Primary Quantity</Text>
                   <Input {...inputProps} size="sm" height="36px" type="number" min={1} max={20} value={editData.quantity} onChange={(e) => ed('quantity', e.target.value)} />
                 </Box>
                 <Box>
@@ -775,27 +806,22 @@ export function BookingDetailClient({
               </Grid>
             ) : (
               <VStack align="stretch" gap={3} mb={tyreDetails.items.length > 0 || booking.tyrePhotoUrl ? 4 : 0}>
-                {/* Size line */}
-                {tyreDetails.size && (
-                  <Text color={c.text}>Size: {tyreDetails.size}</Text>
-                )}
-
                 {/* Tyre items */}
                 {tyreDetails.items.length > 0 ? (
                   <>
-                    <Text color={c.text}>Quantity: {tyreDetails.quantity}</Text>
+                    <Text color={c.text}>Total Quantity: {tyreDetails.quantity}</Text>
                     <VStack align="stretch" gap={3}>
                       {tyreDetails.items.map((item, idx) => (
                         <Box key={idx} p={3} bg={c.surface} borderRadius="md">
                           <HStack justify="space-between" flexWrap="wrap" gap={2}>
                             <Box minW={0} flex={1}>
                               <Text fontWeight="medium" color={c.text} lineClamp={2}>
-                                {[item.brand, item.model].filter(Boolean).join(' ') || item.service}
+                                {item.label ?? ([item.brand, item.model, item.size].filter(Boolean).join(' ') || item.service || 'Tyre')}
                               </Text>
-                              {(item.size ?? tyreDetails.size) && (
+                              {(item.brand || item.model || item.service) && (item.size ?? tyreDetails.size) && (
                                 <Text fontSize="sm" color={c.muted}>
                                   {item.size ?? tyreDetails.size}
-                                  {item.service ? ` — ${item.service}` : ''}
+                                  {item.service ? ` - ${item.service}` : ''}
                                 </Text>
                               )}
                             </Box>
@@ -1070,6 +1096,90 @@ export function BookingDetailClient({
                     </VStack>
                   )}
                 </Box>
+              )}
+            </Box>
+          )}
+
+          {(wheelNutConsentRequired || wheelNutConsent) && (
+            <Box
+              bg={c.card}
+              p={6}
+              borderRadius="md"
+              borderWidth="1px"
+              borderColor={wheelNutConsent ? 'rgba(34,197,94,0.45)' : 'rgba(249,115,22,0.45)'}
+              style={anim.slideInRight('0.55s', '0.05s')}
+            >
+              <HStack justify="space-between" mb={3} align="start">
+                <Box>
+                  <Heading size="md" color={c.text}>Wheel Nut Consent</Heading>
+                  <Text fontSize="sm" color={c.muted}>Wheel damage and locking nut extraction evidence</Text>
+                </Box>
+                <Badge colorPalette={wheelNutConsent ? 'green' : 'orange'}>
+                  {wheelNutConsent ? 'Signed' : 'Required'}
+                </Badge>
+              </HStack>
+
+              {wheelNutConsent ? (
+                <VStack align="stretch" gap={3}>
+                  <Box p={3} bg="rgba(34,197,94,0.1)" borderRadius="md">
+                    <Text fontWeight="600" color="green.400">Customer declaration accepted</Text>
+                    <Text fontSize="xs" color={c.muted}>
+                      Signed {formatDate(wheelNutConsent.createdAt)} by {wheelNutConsent.customerName}
+                    </Text>
+                  </Box>
+                  <VStack align="stretch" gap={2}>
+                    <HStack justify="space-between">
+                      <Text fontSize="sm" color={c.muted}>Vehicle</Text>
+                      <Text fontSize="sm" fontWeight="600" color={c.text}>{wheelNutConsent.vehicleReg || booking.vehicleReg || '-'}</Text>
+                    </HStack>
+                    <HStack justify="space-between">
+                      <Text fontSize="sm" color={c.muted}>Driver</Text>
+                      <Text fontSize="sm" fontWeight="600" color={c.text}>{wheelNutConsent.driverName || assignedDriver?.name || '-'}</Text>
+                    </HStack>
+                    <HStack justify="space-between" align="start">
+                      <Text fontSize="sm" color={c.muted}>GPS</Text>
+                      <Text fontSize="sm" fontWeight="600" color={c.text} textAlign="right">
+                        {wheelNutConsent.gpsLat && wheelNutConsent.gpsLng
+                          ? `${Number(wheelNutConsent.gpsLat).toFixed(5)}, ${Number(wheelNutConsent.gpsLng).toFixed(5)}`
+                          : '-'}
+                      </Text>
+                    </HStack>
+                    <HStack justify="space-between">
+                      <Text fontSize="sm" color={c.muted}>Email</Text>
+                      <Text fontSize="sm" fontWeight="600" color={c.text}>{wheelNutConsent.emailStatus.replace(/_/g, ' ')}</Text>
+                    </HStack>
+                  </VStack>
+                  <Button asChild bg={c.accent} color="#09090B" _hover={{ bg: c.accentHover }} minH="42px">
+                    <a href={wheelNutConsent.pdfUrl} target="_blank" rel="noopener noreferrer">
+                      Download PDF
+                    </a>
+                  </Button>
+                  {wheelNutConsent.signatureUrl && (
+                    <Button asChild variant="outline" borderColor={c.border} color={c.text} minH="38px">
+                      <a href={wheelNutConsent.signatureUrl} target="_blank" rel="noopener noreferrer">
+                        View Signature PNG
+                      </a>
+                    </Button>
+                  )}
+                  {wheelNutConsent.emailError && (
+                    <Text fontSize="xs" color="red.400">{wheelNutConsent.emailError}</Text>
+                  )}
+                </VStack>
+              ) : (
+                <VStack align="stretch" gap={3}>
+                  <Box p={3} bg="rgba(249,115,22,0.1)" borderRadius="md" borderWidth="1px" borderColor="rgba(249,115,22,0.35)">
+                    <Text fontWeight="600" color="orange.300">Awaiting customer signature</Text>
+                    <Text fontSize="xs" color={c.muted}>
+                      Complete Job should remain blocked in the driver app until a valid signature is recorded.
+                    </Text>
+                  </Box>
+                  {booking.wheelNutConsentRequiredAt && (
+                    <Text fontSize="xs" color={c.muted}>
+                      Required {formatDate(booking.wheelNutConsentRequiredAt)}
+                      {booking.wheelNutConsentReason ? ` - ${booking.wheelNutConsentReason.replace(/_/g, ' ')}` : ''}
+                    </Text>
+                  )}
+                </VStack>
               )}
             </Box>
           )}

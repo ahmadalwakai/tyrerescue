@@ -14,6 +14,11 @@ import {
   getStatusAfterDriverUnassignment,
   isActiveAssignmentStatus,
 } from '@/lib/bookings/assignment-status';
+import {
+  formatTyreDisplayLine,
+  resolveBookingTyreDisplay,
+  totalTyreLineQuantity,
+} from '@/lib/bookings/tyre-line-display';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -127,21 +132,29 @@ export async function PATCH(request: Request, { params }: Props) {
     const siteUrl = getOutboundUrl();
     const trackingUrl = `${siteUrl}/tracking/${booking.refNumber}`;
 
-    // Resolve the tyre size for the driver job email.
-    let tyreSizeDisplay = 'N/A';
-    const [bookingTyre] = await db
-      .select()
+    const tyreRows = await db
+      .select({
+        quantity: bookingTyres.quantity,
+        unitPrice: bookingTyres.unitPrice,
+        service: bookingTyres.service,
+        brand: tyreProducts.brand,
+        pattern: tyreProducts.pattern,
+        sizeDisplay: tyreProducts.sizeDisplay,
+        width: tyreProducts.width,
+        aspect: tyreProducts.aspect,
+        rim: tyreProducts.rim,
+      })
       .from(bookingTyres)
-      .where(eq(bookingTyres.bookingId, booking.id))
-      .limit(1);
-    if (bookingTyre?.tyreId) {
-      const [tyre] = await db
-        .select()
-        .from(tyreProducts)
-        .where(eq(tyreProducts.id, bookingTyre.tyreId))
-        .limit(1);
-      if (tyre) tyreSizeDisplay = tyre.sizeDisplay;
-    }
+      .leftJoin(tyreProducts, eq(bookingTyres.tyreId, tyreProducts.id))
+      .where(eq(bookingTyres.bookingId, booking.id));
+    const tyreDisplay = resolveBookingTyreDisplay({
+      priceSnapshot: booking.priceSnapshot,
+      tyreRows,
+      tyreSizeDisplay: booking.tyreSizeDisplay,
+      quantity: booking.quantity,
+    });
+    const tyreDisplayLines = tyreDisplay.lines.map(formatTyreDisplayLine);
+    const totalTyreQuantity = totalTyreLineQuantity(tyreDisplay.lines) || booking.quantity;
 
     // Customer email — "driver assigned".
     try {
@@ -179,8 +192,10 @@ export async function PATCH(request: Request, { params }: Props) {
           customerAddress: booking.addressLine,
           customerLat: parseFloat(booking.lat),
           customerLng: parseFloat(booking.lng),
-          tyreSizeDisplay,
-          quantity: booking.quantity,
+          tyreSizeDisplay: tyreDisplay.lines[0]?.size ?? booking.tyreSizeDisplay ?? 'N/A',
+          quantity: totalTyreQuantity,
+          tyreLines: tyreDisplayLines,
+          totalTyreQuantity,
           serviceType: booking.serviceType,
           customerPhone: booking.customerPhone,
           lockingNutStatus: booking.lockingNutStatus,

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tyre Rescue Assisted Chat",
     "slug": "tyre-rescue-assisted-chat",
-    "version": "1.0.11",
+    "version": "1.0.12",
     "orientation": "portrait",
     "scheme": "tyrerescueassistedchat",
     "userInterfaceStyle": "dark",
@@ -37,7 +37,7 @@
     },
     "ios": {
       "bundleIdentifier": "uk.tyrerescue.assistedchat",
-      "buildNumber": "27",
+      "buildNumber": "29",
       "supportsTablet": true,
       "icon": "./assets/icon.png",
       "infoPlist": {
@@ -65,7 +65,15 @@
       ],
       "expo-sharing",
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sounds/urgent_booking.mp3"
+          ]
+        }
+      ]
     ],
     "extra": {
       "router": {

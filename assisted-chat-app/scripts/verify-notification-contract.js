@@ -318,21 +318,27 @@ assert.match(nativePatch, /if !shouldThrowOnKeychainFailure/);
 const appConfig = JSON.parse(fs.readFileSync(appConfigPath, 'utf8'));
 assert.equal(
   JSON.stringify(appConfig.expo.plugins).includes('expo-notifications'),
-  false,
+  true,
+  'app.json must configure expo-notifications for iOS urgent booking alerts',
 );
 
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-assert.deepEqual(packageJson.expo.autolinking.ios.exclude, ['expo-notifications']);
+assert.notDeepEqual(packageJson.expo?.autolinking?.ios?.exclude, ['expo-notifications']);
 
 const easConfigSource = fs.readFileSync(easConfigPath, 'utf8');
 assert.doesNotMatch(easConfigSource, /EXPO_PUBLIC_DISABLE_SERVER_REGISTRATION_STARTUP/);
+assert.doesNotMatch(
+  easConfigSource,
+  /EXPO_PUBLIC_ASSISTED_CHAT_DISABLE_NOTIFICATION_STARTUP/,
+  'production builds must not disable notification startup while iOS urgent alerts are enabled',
+);
 
 const easConfig = JSON.parse(easConfigSource);
 const productionEnv = easConfig.build?.production?.env ?? {};
 assert.equal(
   productionEnv[NOTIFICATION_STARTUP_DISABLE_ENV],
-  'true',
-  'production builds must disable notification startup while expo-notifications is excluded from iOS autolinking',
+  undefined,
+  'production builds must leave notification startup enabled for iOS urgent alerts',
 );
 
 const rootEasIgnore = fs.readFileSync(rootEasIgnorePath, 'utf8');

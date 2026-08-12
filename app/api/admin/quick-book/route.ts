@@ -39,12 +39,26 @@ const tyreLineSchema = z.object({
   id: z.string().optional(),
   size: z.string().max(30),
   quantity: z.number().int().min(1).max(10),
+  axle: z.string().max(20).nullable().optional(),
+  loadIndex: z.string().max(8).nullable().optional(),
+  speedIndex: z.string().max(8).nullable().optional(),
+  runFlat: z.boolean().nullable().optional(),
+  xl: z.boolean().nullable().optional(),
+  commercial: z.boolean().nullable().optional(),
   brand: z.string().nullable().optional(),
   pattern: z.string().nullable().optional(),
   season: z.string().nullable().optional(),
   source: z.string().nullable().optional(),
   price: z.number().nullable().optional(),
 });
+
+const vehicleSnapshotSchema = z.object({
+  registrationNumber: z.string().max(10),
+  make: z.string().max(100),
+  model: z.string().max(100).nullable().optional(),
+}).nullable().optional();
+
+type QuickBookVehicleSnapshot = NonNullable<z.infer<typeof vehicleSnapshotSchema>>;
 
 const createSchema = z.object({
   customerName: z.string().min(1).max(255),
@@ -58,11 +72,12 @@ const createSchema = z.object({
   locationLat: z.number().optional(),
   locationLng: z.number().optional(),
   locationAddress: z.string().optional(),
-  serviceType: z.enum(['fit', 'repair', 'assess']),
+  serviceType: z.enum(['fit', 'repair', 'assess', 'locking_nut']),
   tyreSize: z.string().optional(),
   tyreCount: z.number().int().min(1).max(10).default(1),
   tyreLines: z.array(tyreLineSchema).optional(),
   items: z.array(tyreLineSchema).optional(),
+  vehicle: vehicleSnapshotSchema,
   adminAdjustmentAmount: z.number().optional(),
   adminAdjustmentReason: z.string().max(500).nullable().optional(),
   adminDistanceLimitMiles: z.number().int().min(1).max(ASSISTED_CHAT_AUTO_PRICING_MAX_MILES).optional(),
@@ -77,6 +92,22 @@ const createSchema = z.object({
   notes: z.string().optional(),
   virtualLandlineInteractionId: z.string().uuid().optional(),
 });
+
+function normalizeVehicleSnapshot(vehicle: QuickBookVehicleSnapshot | null | undefined): QuickBookVehicleSnapshot | null {
+  if (!vehicle) return null;
+  const registrationNumber = vehicle.registrationNumber.trim().toUpperCase().replace(/\s+/g, '');
+  const make = vehicle.make.trim();
+  const model = vehicle.model?.trim() || null;
+  if (!registrationNumber || !make) return null;
+  return { registrationNumber, make, model };
+}
+
+function withVehicleSnapshot<T extends object>(
+  breakdown: T,
+  vehicle: QuickBookVehicleSnapshot | null,
+): T & { vehicle?: QuickBookVehicleSnapshot } {
+  return vehicle ? { ...breakdown, vehicle } : breakdown;
+}
 
 export async function GET(request: Request) {
   try {
@@ -117,6 +148,7 @@ export async function POST(request: Request) {
   }
 
   const data = parsed.data;
+  const vehicleSnapshot = normalizeVehicleSnapshot(data.vehicle);
   if (VIRTUAL_LANDLINE_PREVIEW_ONLY && data.virtualLandlineInteractionId) {
     return NextResponse.json(
       {
@@ -128,27 +160,36 @@ export async function POST(request: Request) {
     );
   }
 
-  const tyreLines: QuickBookTyreLineInput[] = (
-    data.tyreLines?.length
-      ? data.tyreLines
-      : data.items?.length
-      ? data.items
-      : data.tyreSize?.trim()
-      ? [{ id: 'tyre-1', size: data.tyreSize.trim(), quantity: data.tyreCount }]
-      : []
-  ).map((line, index) => ({
-    id: line.id || `tyre-${index + 1}`,
-    size: line.size.trim(),
-    quantity: line.quantity,
-    brand: line.brand ?? null,
-    pattern: line.pattern ?? null,
-    season: line.season ?? null,
-    source: line.source ?? null,
-    price: line.price ?? null,
-  }));
+  const isServiceOnly = data.serviceType === 'assess' || data.serviceType === 'locking_nut';
+  const tyreLines: QuickBookTyreLineInput[] = isServiceOnly
+    ? []
+    : (
+        data.tyreLines?.length
+          ? data.tyreLines
+          : data.items?.length
+          ? data.items
+          : data.tyreSize?.trim()
+          ? [{ id: 'tyre-1', size: data.tyreSize.trim(), quantity: data.tyreCount }]
+          : []
+      ).map((line, index) => ({
+        id: line.id || `tyre-${index + 1}`,
+        size: line.size.trim(),
+        quantity: line.quantity,
+        axle: line.axle ?? null,
+        loadIndex: line.loadIndex ?? null,
+        speedIndex: line.speedIndex ?? null,
+        runFlat: line.runFlat ?? null,
+        xl: line.xl ?? null,
+        commercial: line.commercial ?? null,
+        brand: line.brand ?? null,
+        pattern: line.pattern ?? null,
+        season: line.season ?? null,
+        source: line.source ?? null,
+        price: line.price ?? null,
+      }));
   const primaryTyreLine = tyreLines[0] ?? null;
-  const primaryTyreSize = primaryTyreLine?.size ?? data.tyreSize?.trim() ?? null;
-  const primaryTyreCount = primaryTyreLine?.quantity ?? data.tyreCount;
+  const primaryTyreSize = isServiceOnly ? null : primaryTyreLine?.size ?? data.tyreSize?.trim() ?? null;
+  const primaryTyreCount = isServiceOnly ? 1 : primaryTyreLine?.quantity ?? data.tyreCount;
 
   // تطبيق سياسة البريد الإلكتروني — الافتراضي walk_in_customer لا يتطلب بريدًا
   const emailMode: CustomerEmailMode = data.customerEmailMode ?? 'walk_in_customer';
@@ -262,7 +303,7 @@ export async function POST(request: Request) {
       basePrice = pricing.breakdown.subtotal;
       totalPrice = pricing.breakdown.total;
       // Extend priceBreakdown with service origin info for map display
-      priceBreakdown = {
+      priceBreakdown = withVehicleSnapshot({
         ...pricing.breakdown,
         tyreLines: pricing.tyreLineSelections,
         pricingContext,
@@ -282,7 +323,7 @@ export async function POST(request: Request) {
           driverId: serviceOriginDriverId,
           etaMinutes: durationMinutes,
         } : null,
-      };
+      }, vehicleSnapshot);
       selectedTyreSnapshot = pricing.selectedTyreSnapshot;
       normalizedTyreSize = pricing.normalizedTyreSize ?? normalizedTyreSize;
     } catch (error) {
@@ -296,7 +337,7 @@ export async function POST(request: Request) {
 
   // Ensure service origin is stored even if pricing was skipped
   if (!priceBreakdown && serviceOriginLat && serviceOriginLng) {
-    priceBreakdown = {
+    priceBreakdown = withVehicleSnapshot({
       lineItems: [],
       pricingContext,
       tyreLines,
@@ -328,11 +369,11 @@ export async function POST(request: Request) {
         driverId: serviceOriginDriverId,
         etaMinutes: durationMinutes,
       },
-    };
+    }, vehicleSnapshot);
   }
 
   if (!priceBreakdown && data.adminDistanceLimitMiles != null) {
-    priceBreakdown = {
+    priceBreakdown = withVehicleSnapshot({
       lineItems: [],
       pricingContext,
       tyreLines,
@@ -350,7 +391,28 @@ export async function POST(request: Request) {
       quoteExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
       isValid: true,
       serviceOrigin: null,
-    };
+    }, vehicleSnapshot);
+  }
+
+  if (!priceBreakdown && vehicleSnapshot) {
+    priceBreakdown = withVehicleSnapshot({
+      lineItems: [],
+      pricingContext,
+      tyreLines,
+      pricingEngineVersion: 'canonical-context-weather-traffic-v1',
+      totalTyreCost: 0,
+      totalServiceFee: 0,
+      calloutFee: 0,
+      totalSurcharges: 0,
+      discountAmount: 0,
+      surgeMultiplier: 1,
+      subtotal: 0,
+      vatAmount: 0,
+      total: 0,
+      quoteExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      isValid: true,
+      serviceOrigin: null,
+    }, vehicleSnapshot);
   }
 
   const initialStatus = data.locationMethod === 'link'

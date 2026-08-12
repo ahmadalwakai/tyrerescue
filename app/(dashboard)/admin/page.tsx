@@ -24,6 +24,7 @@ import {
 } from '@/lib/admin/driverSituation';
 import { DriverSituationBadge } from '@/components/admin/DriverSituationBadge';
 import Link from 'next/link';
+import { extractCanonicalTyreLines, totalTyreLineQuantity } from '@/lib/bookings/tyre-line-display';
 
 function formatCurrency(val: string | number) {
   return `£${Number(val || 0).toFixed(2)}`;
@@ -50,6 +51,10 @@ function toNumber(value: string | number | null | undefined): number | null {
   if (value == null) return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function tyreCountFromSnapshot(priceSnapshot: unknown, fallback: number | null | undefined): number | null {
+  return (totalTyreLineQuantity(extractCanonicalTyreLines(priceSnapshot)) || fallback) ?? null;
 }
 
 export default async function AdminDashboardPage() {
@@ -114,6 +119,7 @@ export default async function AdminDashboardPage() {
         driverId: bookings.driverId,
         serviceType: bookings.serviceType,
         quantity: bookings.quantity,
+        priceSnapshot: bookings.priceSnapshot,
         paymentType: bookings.paymentType,
         customerLat: bookings.lat,
         customerLng: bookings.lng,
@@ -171,6 +177,7 @@ export default async function AdminDashboardPage() {
         status: bookings.status,
         serviceType: bookings.serviceType,
         quantity: bookings.quantity,
+        priceSnapshot: bookings.priceSnapshot,
         paymentType: bookings.paymentType,
         customerLat: bookings.lat,
         customerLng: bookings.lng,
@@ -376,7 +383,7 @@ export default async function AdminDashboardPage() {
                               outboundMinutes,
                               returnMinutes,
                               serviceType: b.serviceType,
-                              tyreCount: b.quantity,
+                              tyreCount: tyreCountFromSnapshot(b.priceSnapshot, b.quantity),
                               paymentStatus: b.paymentType,
                               returnEstimateAvailable: returnMinutes != null,
                               routeAvailable: outboundMinutes != null,
@@ -442,7 +449,7 @@ export default async function AdminDashboardPage() {
                         outboundMinutes,
                         returnMinutes,
                         serviceType: activeBooking.serviceType,
-                        tyreCount: activeBooking.quantity,
+                        tyreCount: tyreCountFromSnapshot(activeBooking.priceSnapshot, activeBooking.quantity),
                         paymentStatus: activeBooking.paymentType,
                         returnEstimateAvailable: returnMinutes != null,
                         routeAvailable: outboundMinutes != null,

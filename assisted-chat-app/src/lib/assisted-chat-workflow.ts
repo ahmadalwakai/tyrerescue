@@ -245,7 +245,7 @@ export function validateBookingTyreLines(lines: BookingTyreLine[]): string | nul
   const filled = getFilledBookingTyreLines(ensured);
 
   if (filled.length === 0 || isEmptyOptionalTyreLine(ensured[0], 0)) {
-    return 'Enter a valid tyre size for Tyre 1.';
+    return 'Add tyre size.';
   }
 
   for (let i = 0; i < ensured.length; i += 1) {
@@ -254,8 +254,8 @@ export function validateBookingTyreLines(lines: BookingTyreLine[]): string | nul
     const label = `Tyre ${i + 1}`;
     if (!normalizeAssistedChatTyreSize(line.size)) {
       return i === 0
-        ? `Enter a valid tyre size for ${label}.`
-        : `Enter a valid tyre size for ${label} or remove it.`;
+        ? 'Add tyre size.'
+        : `Update ${label} size or remove it.`;
     }
     if (!Number.isFinite(line.quantity) || line.quantity < 1) {
       return `${label} quantity must be at least 1.`;
@@ -322,7 +322,7 @@ export function totalBookingTyreQuantity(lines: BookingTyreLine[]): number {
 
 export function hasAssistedChatTyre(draft: AssistedChatDraft): boolean {
   if (isAssistedChatServiceOnly(draft.serviceType)) return true;
-  return validateBookingTyreLines(draft.tyreLines) === null && draft.tyreConfirmedFromSidewall;
+  return validateBookingTyreLines(draft.tyreLines) === null;
 }
 
 function hasSavedQuote(draft: AssistedChatDraft): boolean {
@@ -364,19 +364,13 @@ export function getAssistedChatBlockedReason(input: AssistedChatWorkflowInput): 
     if (isAssistedChatServiceOnly(draft.serviceType)) return null;
     const tyreError = validateBookingTyreLines(draft.tyreLines);
     if (tyreError) return tyreError;
-    if (!draft.tyreConfirmedFromSidewall) {
-      return 'Confirm the tyre size from the sidewall before pricing.';
-    }
     return null;
   }
 
   if (stage === 'PRICE') {
     if (!hasLocation(draft)) return 'Confirm the customer location before pricing.';
     if (!isAssistedChatServiceOnly(draft.serviceType) && validateBookingTyreLines(draft.tyreLines)) {
-      return 'Enter a valid tyre size and quantity before pricing, or choose a service-only job.';
-    }
-    if (!draft.tyreConfirmedFromSidewall && !isAssistedChatServiceOnly(draft.serviceType)) {
-      return 'Confirm the tyre size from the sidewall before pricing.';
+      return 'Add tyre size and quantity before pricing, or choose a service-only job.';
     }
     if (input.priceLoading) return 'Price is already being calculated.';
     return null;

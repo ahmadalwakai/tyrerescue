@@ -31,6 +31,10 @@
     {
       "path": "/api/availability/sync",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/daily-stock-buy-report",
+      "schedule": "0 * * * *"
     }
   ]
 }

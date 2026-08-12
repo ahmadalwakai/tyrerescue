@@ -104,7 +104,7 @@ export function ActionButtons({
   const sendDisabled = baseDisabled;
   const sendHint = (() => {
     if (draft.dispatchedRefNumber) return null;
-    if (!hasAssistedChatTyre(draft)) return 'Enter a valid tyre size or choose a service-only job before sending to driver.';
+    if (!hasAssistedChatTyre(draft)) return 'Add tyre size or choose a service-only job before sending to driver.';
     if (!draft.quote) return 'Get the price before sending to driver.';
     if (!draft.paymentChoice) return 'Choose deposit, cash, or full payment before sending.';
     return null;

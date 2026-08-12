@@ -127,6 +127,30 @@ describe('assisted chat emergency pricing context', () => {
     expect(result.total).toBeGreaterThan(0);
   });
 
+  it('prices locking wheel nut assisted chat jobs without tyre details', async () => {
+    const { ASSISTED_CHAT_PRICING_CONTEXT } = await import('../../assisted-chat-app/src/lib/pricing-context');
+    const rules = parsePricingRules([]);
+    const result = calculatePricing(
+      {
+        tyreSelections: [],
+        serviceType: 'locking_nut',
+        tyreQuantity: 1,
+        distanceMiles: 12,
+        bookingType: 'emergency',
+        bookingDate: new Date('2025-01-06T10:00:00Z'),
+        isBankHoliday: false,
+        pricingContext: ASSISTED_CHAT_PRICING_CONTEXT,
+        maxAutoPricingMiles: 500,
+      },
+      rules,
+    );
+
+    expect(result.isValid).toBe(true);
+    expect(result.tyreSubtotal).toBe(0);
+    expect(result.lineItems.some((item) => item.label === 'Locking Wheel Nut Removal × 1')).toBe(true);
+    expect(result.total).toBeGreaterThan(0);
+  });
+
   it('keeps replacement, repair, and inspection assisted chat prices distinct', async () => {
     const { ASSISTED_CHAT_PRICING_CONTEXT } = await import('../../assisted-chat-app/src/lib/pricing-context');
     const rules = parsePricingRules([]);
@@ -241,43 +265,121 @@ describe('assisted chat price copy and display regressions', () => {
     expect(source).not.toContain("(hasField('locationLat') || hasField('locationLng')) && mergedLat");
   });
 
-  it('supports an assisted chat unknown inspection flow without requiring tyre fields', () => {
+  it('supports assisted chat service-only flows without requiring tyre fields', () => {
     const workflowSource = readSource('assisted-chat-app/src/lib/assisted-chat-workflow.ts');
     expect(workflowSource).toContain("assess: 'Unknown / inspection required'");
-    expect(workflowSource).toContain("if (draft.serviceType === 'assess') return true;");
+    expect(workflowSource).toContain("locking_nut: 'Locking wheel nut removal'");
+    expect(workflowSource).toContain('isAssistedChatServiceOnly(draft.serviceType)');
 
     const tyreSectionSource = readSource('assisted-chat-app/src/components/TyreSelectionSection.tsx');
     expect(tyreSectionSource).toContain("value: 'assess'");
+    expect(tyreSectionSource).toContain("value: 'locking_nut'");
     expect(tyreSectionSource).toContain('No tyre size, tyre type, stock match or tyre price is required.');
     expect(tyreSectionSource).toContain('Final tyre cost will be confirmed after inspection.');
+    expect(tyreSectionSource).toContain('No tyre replacement or repair is included.');
 
     const priceHookSource = readSource('assisted-chat-app/src/hooks/useAssistedChatPrice.ts');
-    expect(priceHookSource).toContain("const isInspectionOnly = serviceType === 'assess'");
-    expect(priceHookSource).toContain('const tyreError = isInspectionOnly ? null : validateBookingTyreLines(draft.tyreLines)');
-    expect(priceHookSource).toContain('const tyreLines = isInspectionOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines)');
+    expect(priceHookSource).toContain('const isServiceOnly = isAssistedChatServiceOnly(serviceType)');
+    expect(priceHookSource).toContain('const tyreError = isServiceOnly ? null : validateBookingTyreLines(draft.tyreLines)');
+    expect(priceHookSource).toContain('const tyreLines = isServiceOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines)');
     expect(priceHookSource).toContain('serviceType,');
     expect(priceHookSource).not.toContain("serviceType: 'fit'");
 
     const dispatchHookSource = readSource('assisted-chat-app/src/hooks/useAssistedChatDispatch.ts');
-    expect(dispatchHookSource).toContain("const isInspectionOnly = serviceType === 'assess'");
-    expect(dispatchHookSource).toContain('const tyreLines = isInspectionOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines)');
-    expect(dispatchHookSource).toContain('tyreSize: isInspectionOnly ? null : primaryTyre.size');
+    expect(dispatchHookSource).toContain('const isServiceOnly = isAssistedChatServiceOnly(serviceType)');
+    expect(dispatchHookSource).toContain('const tyreLines = isServiceOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines)');
+    expect(dispatchHookSource).toContain('tyreSize: isServiceOnly ? null : primaryTyre.size');
 
     const locationShareSource = readSource('assisted-chat-app/src/hooks/useAssistedChatLocationShare.ts');
-    expect(locationShareSource).toContain("const isInspectionOnly = serviceType === 'assess'");
-    expect(locationShareSource).toContain('const tyreLines = isInspectionOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines)');
+    expect(locationShareSource).toContain('const isServiceOnly = isAssistedChatServiceOnly(serviceType)');
+    expect(locationShareSource).toContain('const tyreLines = isServiceOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines)');
 
     const quickBookPricingSource = readSource('lib/quick-book-pricing.ts');
+    expect(quickBookPricingSource).toContain("export type QuickBookServiceType = 'fit' | 'repair' | 'assess' | 'locking_nut'");
     expect(quickBookPricingSource).toContain("const shouldResolveTyreProduct = input.serviceType === 'fit'");
     expect(quickBookPricingSource).toContain('const tyreSelections: TyreSelection[] = shouldResolveTyreProduct');
 
     const quickBookPatchSource = readSource('app/api/admin/quick-book/[id]/route.ts');
     expect(quickBookPatchSource).toContain("const incomingTyreLines = hasField('tyreLines')");
-    expect(quickBookPatchSource).toContain('const mergedTyreLines: QuickBookTyreLineInput[] = incomingTyreLines !== null');
+    expect(quickBookPatchSource).toContain("const isServiceOnly = mergedServiceType === 'assess' || mergedServiceType === 'locking_nut'");
+    expect(quickBookPatchSource).toContain('const mergedTyreLines: QuickBookTyreLineInput[] = isServiceOnly');
 
     const summarySource = readSource('assisted-chat-app/src/components/PriceSummary.tsx');
     expect(summarySource).toContain('for call-out, inspection and labour');
+    expect(summarySource).toContain('for locking wheel nut removal, call-out and labour');
     expect(summarySource).toContain('for tyre repair, call-out and labour');
     expect(summarySource).toContain('Final tyre cost will be confirmed after inspection.');
+  });
+
+  it('keeps vehicle lookup stale guards and blocks stock/pricing before sidewall confirmation', () => {
+    const tyreSectionSource = readSource('assisted-chat-app/src/components/TyreSelectionSection.tsx');
+    expect(tyreSectionSource).toContain('vehicleLookupSeq.current += 1');
+    expect(tyreSectionSource).toContain('vehicleLookupAbort.current?.abort()');
+    expect(tyreSectionSource).toContain('if (!mountedRef.current || seq !== vehicleLookupSeq.current) return');
+    expect(tyreSectionSource).toContain('stockSearchEnabled={draft.tyreConfirmedFromSidewall}');
+    expect(tyreSectionSource).toContain('Confirm this size against the tyre sidewall before booking.');
+    expect(tyreSectionSource).toContain('tyreConfirmedFromSidewall: false');
+    expect(tyreSectionSource).toContain('loadIndex: line.loadIndex ?? null');
+    expect(tyreSectionSource).toContain('speedIndex: line.speedIndex ?? null');
+    expect(tyreSectionSource).toContain('runFlat: line.runFlat ?? null');
+    expect(tyreSectionSource).toContain('commercial: line.commercial ?? null');
+
+    const workflowSource = readSource('assisted-chat-app/src/lib/assisted-chat-workflow.ts');
+    expect(workflowSource).toContain('!draft.tyreConfirmedFromSidewall');
+    expect(workflowSource).toContain('Confirm the tyre size from the sidewall before pricing.');
+  });
+
+  it('keeps one-tyre legacy assisted-chat payloads compatible with enriched tyre lines', () => {
+    const workflowSource = readSource('assisted-chat-app/src/lib/assisted-chat-workflow.ts');
+
+    expect(workflowSource).toContain('size: normalizeAssistedChatTyreSize(line.size) ?? line.size.trim()');
+    expect(workflowSource).toContain('quantity: Math.max(1, Math.round(line.quantity || 1))');
+    expect(workflowSource).toContain('axle: line.axle ?? null');
+    expect(workflowSource).toContain('loadIndex: line.loadIndex ?? null');
+    expect(workflowSource).toContain('speedIndex: line.speedIndex ?? null');
+    expect(workflowSource).toContain('return prefix ? `${prefix}: ${line.quantity} × ${line.size}` : `${line.quantity} × ${line.size}`');
+  });
+
+  it('preserves enriched quick-book tyre-line metadata from canonical price breakdowns', async () => {
+    process.env.DATABASE_URL ??= 'postgresql://test:test@localhost:5432/test';
+    const { extractQuickBookTyreLineSelections } = await import('../quick-book-pricing');
+
+    const lines = extractQuickBookTyreLineSelections({
+      priceBreakdown: {
+        tyreLines: [
+          {
+            id: 'front',
+            productId: 'tyre-a',
+            unitPrice: 90,
+            requestedSize: '225/40R18',
+            normalizedSize: '225/40R18',
+            quantity: 1,
+            service: 'fit',
+            axle: 'front',
+            loadIndex: '92',
+            speedIndex: 'Y',
+            runFlat: false,
+            xl: true,
+            commercial: false,
+            season: 'summer',
+            source: 'sidewall',
+          },
+        ],
+      },
+    });
+
+    expect(lines).toEqual([
+      expect.objectContaining({
+        id: 'front',
+        axle: 'front',
+        loadIndex: '92',
+        speedIndex: 'Y',
+        runFlat: false,
+        xl: true,
+        commercial: false,
+        season: 'summer',
+        source: 'sidewall',
+      }),
+    ]);
   });
 });

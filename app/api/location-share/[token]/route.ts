@@ -49,7 +49,12 @@ function resolvePricingContext(
   // Legacy quick-book rows predate canonical context storage. They were admin
   // or assisted phone flows, not public emergency checkout, so keep them out of
   // the emergency context unless it was explicitly stored above.
-  if (booking.serviceType === 'fit' || booking.serviceType === 'repair' || booking.serviceType === 'assess') {
+  if (
+    booking.serviceType === 'fit' ||
+    booking.serviceType === 'repair' ||
+    booking.serviceType === 'assess' ||
+    booking.serviceType === 'locking_nut'
+  ) {
     return 'admin_quick_book';
   }
 
@@ -198,7 +203,7 @@ export async function POST(
 
   const distanceMiles = pricingDistanceMiles ?? (distanceKm != null ? distanceKm * 0.621371 : 5);
   const serviceType = (booking.serviceType ?? 'fit') as QuickBookServiceType;
-  const isInspectionOnly = serviceType === 'assess';
+  const isServiceOnly = serviceType === 'assess' || serviceType === 'locking_nut';
   const pricingContext = resolvePricingContext(booking, priceBreakdown);
   const adminDistanceLimitMiles = getStoredAdminDistanceLimitMiles(priceBreakdown);
   if (durationMinutes == null) {
@@ -229,11 +234,11 @@ export async function POST(
 
     const priced = await calculateQuickBookPricing({
       serviceType,
-      tyreSize: isInspectionOnly ? null : booking.tyreSize ?? null,
-      tyreCount: isInspectionOnly ? 1 : booking.tyreCount ?? 1,
+      tyreSize: isServiceOnly ? null : booking.tyreSize ?? null,
+      tyreCount: isServiceOnly ? 1 : booking.tyreCount ?? 1,
       distanceMiles,
-      selectedTyreSnapshot: isInspectionOnly ? null : tyreSnapshot,
-      resolveTyreFromSize: !isInspectionOnly && !tyreSnapshot && Boolean(booking.tyreSize?.trim()),
+      selectedTyreSnapshot: isServiceOnly ? null : tyreSnapshot,
+      resolveTyreFromSize: !isServiceOnly && !tyreSnapshot && Boolean(booking.tyreSize?.trim()),
       requireTyreForFit: false, // Don't fail if tyre not found - keep existing pricing
       adminAdjustmentAmount: Number(booking.adminAdjustmentAmount ?? 0),
       adminAdjustmentReason: booking.adminAdjustmentReason,

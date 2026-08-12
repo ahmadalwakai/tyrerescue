@@ -19,6 +19,7 @@ interface AdminModalShellProps {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   keyboardAvoidingEnabled?: boolean;
+  chrome?: 'default' | 'plain';
 }
 
 interface AdminModalHeaderProps {
@@ -29,6 +30,7 @@ interface AdminModalHeaderProps {
   onClose?: () => void;
   closeLabel?: string;
   style?: StyleProp<ViewStyle>;
+  accentVisible?: boolean;
 }
 
 interface AdminHeaderButtonProps {
@@ -43,6 +45,7 @@ export function AdminModalShell({
   children,
   style,
   keyboardAvoidingEnabled = true,
+  chrome = 'default',
 }: AdminModalShellProps) {
   const insets = useSafeAreaInsets();
   const entranceStyle = useFadeSlideIn({ distance: 14, duration: 280 });
@@ -54,7 +57,7 @@ export function AdminModalShell({
       style={[styles.shell, { paddingBottom: Math.max(insets.bottom, 0) }, style]}
       edges={['left', 'right', 'bottom']}
     >
-      <AdminChromeBackdrop />
+      {chrome === 'default' ? <AdminChromeBackdrop /> : <PlainChromeBackdrop />}
       {keyboardAvoidingEnabled ? (
         <KeyboardAvoidingView
           style={styles.keyboardAvoider}
@@ -67,6 +70,15 @@ export function AdminModalShell({
         content
       )}
     </SafeAreaView>
+  );
+}
+
+export function PlainChromeBackdrop() {
+  return (
+    <View style={[styles.backdrop, styles.noPointerEvents]}>
+      <View style={styles.plainTopBand} />
+      <View style={styles.plainBottomBand} />
+    </View>
   );
 }
 
@@ -91,12 +103,13 @@ export function AdminModalHeader({
   onClose,
   closeLabel = 'Close',
   style,
+  accentVisible = true,
 }: AdminModalHeaderProps) {
   const insets = useSafeAreaInsets();
   const entranceStyle = useFadeSlideIn({ distance: 8, duration: 240 });
   return (
     <Animated.View style={[styles.header, { paddingTop: Math.max(insets.top, space.md) }, entranceStyle, style]}>
-      <View style={[styles.headerAccent, styles.noPointerEvents]} />
+      {accentVisible ? <View style={[styles.headerAccent, styles.noPointerEvents]} /> : null}
       <View style={styles.copy}>
         {titleNode ?? (
           <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
@@ -228,6 +241,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.glowBorder,
   },
+  plainTopBand: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: 188,
+    backgroundColor: colors.surfaceOverlay,
+    opacity: 0.9,
+  },
   coolBloom: {
     position: 'absolute',
     right: -54,
@@ -270,6 +292,15 @@ const styles = StyleSheet.create({
     opacity: 0.58,
   },
   bottomBand: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 126,
+    backgroundColor: colors.bgDeep,
+    opacity: 0.68,
+  },
+  plainBottomBand: {
     position: 'absolute',
     left: 0,
     right: 0,

@@ -44,12 +44,6 @@ export interface QuoteActionMessage {
   text: string;
 }
 
-function paymentOptionToDispatchChoice(option: AdminQuotePaymentOption): AssistedChatPaymentChoice {
-  if (option === 'DEPOSIT_20' || option === 'DEPOSIT_15') return 'deposit';
-  if (option === 'CASH_ON_ARRIVAL') return 'cash';
-  return 'full';
-}
-
 function dispatchChoiceToPaymentOption(choice: AssistedChatPaymentChoice | null): AdminQuotePaymentOption | null {
   if (choice === 'deposit') return 'DEPOSIT_20';
   if (choice === 'cash') return 'CASH_ON_ARRIVAL';
@@ -168,9 +162,8 @@ export function useAssistedChatQuoteActions({
   const selectPaymentOption = useCallback(
     (option: AdminQuotePaymentOption) => {
       setSelectedPaymentOption(option);
-      update({ paymentChoice: paymentOptionToDispatchChoice(option) });
     },
-    [update],
+    [],
   );
 
   const persistQuote = useCallback(
@@ -178,12 +171,6 @@ export function useAssistedChatQuoteActions({
       setCurrentQuote(quote);
       if (quote.selectedPaymentOption) {
         setSelectedPaymentOption(quote.selectedPaymentOption);
-        update({
-          savedQuoteId: quote.id,
-          savedQuoteRef: quote.quoteRef,
-          paymentChoice: paymentOptionToDispatchChoice(quote.selectedPaymentOption),
-        });
-        return;
       }
       update({ savedQuoteId: quote.id, savedQuoteRef: quote.quoteRef });
     },
@@ -314,7 +301,6 @@ export function useAssistedChatQuoteActions({
       });
       persistQuote(response.quote);
       setConfirmResult(response);
-      update({ paymentChoice: paymentOptionToDispatchChoice(response.selectedPaymentOption ?? selectedPaymentOption) });
       setMessage({
         kind: 'ok',
         text: response.alreadyConfirmed
@@ -370,13 +356,11 @@ export function useAssistedChatQuoteActions({
       setCurrentQuote(quote);
       if (quote.selectedPaymentOption) {
         setSelectedPaymentOption(quote.selectedPaymentOption);
-        update({ paymentChoice: paymentOptionToDispatchChoice(quote.selectedPaymentOption) });
       } else {
         setSelectedPaymentOption('FULL_PAYMENT');
-        update({ paymentChoice: null });
       }
     },
-    [update],
+    [],
   );
 
   return {

@@ -9,14 +9,34 @@ export interface BookingConfirmedData {
   address: string;
   tyreSummary: string;
   quantity: number;
+  tyreLines?: string[];
+  totalTyreQuantity?: number;
   trackingUrl: string;
 }
 
-function formatPrice(amount: number): string {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-  }).format(amount);
+function tyreDetailRows(input: { tyreSummary: string; quantity: number; tyreLines?: string[]; totalTyreQuantity?: number }): string {
+  const lines = (input.tyreLines ?? []).map((line) => line.trim()).filter(Boolean);
+  if (lines.length === 0) {
+    return `
+      <div class="info-row">
+        <span class="label">${input.tyreSummary}</span>
+        <span class="value">x${input.quantity}</span>
+      </div>
+    `;
+  }
+
+  return `
+      ${lines.map((line, index) => `
+      <div class="info-row">
+        <span class="label">${index === 0 ? 'Tyres' : ''}</span>
+        <span class="value">${line}</span>
+      </div>
+      `).join('')}
+      <div class="info-row">
+        <span class="label">Total Quantity</span>
+        <span class="value">${input.totalTyreQuantity ?? input.quantity}</span>
+      </div>
+  `;
 }
 
 export function bookingConfirmed(data: BookingConfirmedData): { subject: string; html: string } {
@@ -29,6 +49,8 @@ export function bookingConfirmed(data: BookingConfirmedData): { subject: string;
     address,
     tyreSummary,
     quantity,
+    tyreLines,
+    totalTyreQuantity,
     trackingUrl,
   } = data;
 
@@ -83,10 +105,7 @@ export function bookingConfirmed(data: BookingConfirmedData): { subject: string;
 
     <h2>Tyre Details</h2>
     <div class="info-box">
-      <div class="info-row">
-        <span class="label">${tyreSummary}</span>
-        <span class="value">x${quantity}</span>
-      </div>
+      ${tyreDetailRows({ tyreSummary, quantity, tyreLines, totalTyreQuantity })}
     </div>
 
     <div style="text-align: center; margin: 32px 0;">

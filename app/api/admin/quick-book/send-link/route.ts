@@ -82,7 +82,7 @@ export async function POST(request: Request) {
   const name = booking.customerName;
   const phone = booking.customerPhone;
   const email = booking.customerEmail;
-  const serviceType = (booking.serviceType as 'fit' | 'repair' | 'assess') || undefined;
+  const serviceType = (booking.serviceType as 'fit' | 'repair' | 'assess' | 'locking_nut') || undefined;
 
   const msgCtx = { customerName: name, locationLink, serviceType };
 

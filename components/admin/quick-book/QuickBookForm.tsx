@@ -19,6 +19,7 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 
 type LocationMethod = 'address' | 'link';
 type FormStatus = 'idle' | 'submitting' | 'success' | 'error' | 'polling' | 'finalizing';
+type QuickBookFormServiceType = 'fit' | 'repair' | 'assess' | 'locking_nut';
 
 interface FormState {
   customerName: string;
@@ -29,7 +30,7 @@ interface FormState {
   locationAddress: string;
   locationLat: number | null;
   locationLng: number | null;
-  serviceType: 'fit' | 'repair' | 'assess';
+  serviceType: QuickBookFormServiceType;
   tyreSize: string;
   tyreCount: number;
   notes: string;
@@ -348,6 +349,7 @@ export function QuickBookForm() {
   const [tyreSuggestions, setTyreSuggestions] = useState<TyreSizeSuggestion[]>([]);
   const [showTyreSuggestions, setShowTyreSuggestions] = useState(false);
   const tyreSizeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isServiceOnly = form.serviceType === 'assess' || form.serviceType === 'locking_nut';
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -431,6 +433,7 @@ export function QuickBookForm() {
     setStatus('submitting');
     setError('');
     try {
+      const submitServiceOnly = form.serviceType === 'assess' || form.serviceType === 'locking_nut';
       const res = await fetch('/api/admin/quick-book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -444,8 +447,8 @@ export function QuickBookForm() {
           locationLat: form.locationLat ?? undefined,
           locationLng: form.locationLng ?? undefined,
           serviceType: form.serviceType,
-          tyreSize: form.tyreSize || undefined,
-          tyreCount: form.tyreCount,
+          tyreSize: submitServiceOnly ? undefined : form.tyreSize || undefined,
+          tyreCount: submitServiceOnly ? 1 : form.tyreCount,
           pricingContext: 'admin_quick_book',
           notes: form.notes || undefined,
         }),
@@ -1709,30 +1712,44 @@ export function QuickBookForm() {
           Service
         </Text>
         <Flex gap={3}>
-          {(['fit', 'repair', 'assess'] as const).map((s) => (
+          {([
+            { value: 'fit', label: 'Tyre Fitting' },
+            { value: 'repair', label: 'Repair' },
+            { value: 'locking_nut', label: 'Locking Nut' },
+            { value: 'assess', label: 'Assessment' },
+          ] as const).map((service) => (
             <Box
-              key={s}
+              key={service.value}
               as="button"
               flex={1}
               py={3}
               borderRadius="8px"
               borderWidth="2px"
-              borderColor={form.serviceType === s ? c.accent : c.border}
-              bg={form.serviceType === s ? 'rgba(249,115,22,0.1)' : c.surface}
-              color={form.serviceType === s ? c.accent : c.text}
+              borderColor={form.serviceType === service.value ? c.accent : c.border}
+              bg={form.serviceType === service.value ? 'rgba(249,115,22,0.1)' : c.surface}
+              color={form.serviceType === service.value ? c.accent : c.text}
               cursor="pointer"
               transition="all 0.2s"
               textAlign="center"
-              onClick={() => set('serviceType', s)}
+              onClick={() => set('serviceType', service.value)}
               _hover={{ borderColor: c.accent }}
             >
               <Text fontSize="13px" fontWeight="600" textTransform="capitalize">
-                {s === 'fit' ? 'Tyre Fitting' : s === 'repair' ? 'Repair' : 'Assessment'}
+                {service.label}
               </Text>
             </Box>
           ))}
         </Flex>
 
+        {isServiceOnly ? (
+          <Box bg={c.surface} p={3} borderRadius="8px">
+            <Text color={c.muted} fontSize="sm">
+              {form.serviceType === 'locking_nut'
+                ? 'Locking wheel nut removal does not need a tyre size or stock match.'
+                : 'Assessment bookings do not need a tyre size or stock match.'}
+            </Text>
+          </Box>
+        ) : (
         <Flex gap={3}>
           <Box flex={1} position="relative">
             <Input
@@ -1790,6 +1807,7 @@ export function QuickBookForm() {
             <Text color={c.muted} fontSize="xs" textAlign="center" mt={1}>Qty</Text>
           </Box>
         </Flex>
+        )}
 
         <Textarea
           placeholder="Notes (optional)"

@@ -25,6 +25,11 @@ import {
   calculateDriverSituation,
   estimateUrbanDriveMinutesFromMiles,
 } from '@/lib/admin/driverSituation';
+import {
+  formatTyreDisplayLine,
+  resolveBookingTyreDisplay,
+  totalTyreLineQuantity,
+} from '@/lib/bookings/tyre-line-display';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -71,6 +76,9 @@ export async function GET(request: Request, { params }: Props) {
         brand: tyreProducts.brand,
         pattern: tyreProducts.pattern,
         sizeDisplay: tyreProducts.sizeDisplay,
+        width: tyreProducts.width,
+        aspect: tyreProducts.aspect,
+        rim: tyreProducts.rim,
       })
       .from(bookingTyres)
       .leftJoin(tyreProducts, eq(bookingTyres.tyreId, tyreProducts.id))
@@ -186,6 +194,24 @@ export async function GET(request: Request, { params }: Props) {
           ),
         )
       : null;
+  const tyreRows = tyres.map((item) => ({
+    brand: item.brand,
+    pattern: item.pattern,
+    sizeDisplay: item.sizeDisplay,
+    width: item.width,
+    aspect: item.aspect,
+    rim: item.rim,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice.toString(),
+    service: item.service,
+  }));
+  const tyreDisplay = resolveBookingTyreDisplay({
+    priceSnapshot: booking.priceSnapshot,
+    tyreRows,
+    tyreSizeDisplay: booking.tyreSizeDisplay,
+    quantity: booking.quantity,
+  });
+  const tyreQuantity = totalTyreLineQuantity(tyreDisplay.lines) || booking.quantity;
   const driverSituation = calculateDriverSituation({
     jobRef: booking.refNumber,
     driverId: booking.driverId ?? null,
@@ -196,7 +222,7 @@ export async function GET(request: Request, { params }: Props) {
     outboundMinutes,
     returnMinutes,
     serviceType: booking.serviceType,
-    tyreCount: booking.quantity,
+    tyreCount: tyreQuantity,
     paymentStatus: booking.paymentType,
     returnEstimateAvailable: returnMinutes != null,
     routeAvailable: outboundMinutes != null,
@@ -212,6 +238,11 @@ export async function GET(request: Request, { params }: Props) {
   return NextResponse.json({
     booking: {
       ...booking,
+      quantity: tyreQuantity,
+      tyreSizeDisplay: tyreDisplay.lines[0]?.size ?? booking.tyreSizeDisplay,
+      tyreLines: tyreDisplay.lines,
+      tyreDisplayLines: tyreDisplay.lines.map(formatTyreDisplayLine),
+      tyreLineSource: tyreDisplay.source,
       lat: booking.lat.toString(),
       lng: booking.lng.toString(),
       distanceMiles: booking.distanceMiles?.toString() ?? null,

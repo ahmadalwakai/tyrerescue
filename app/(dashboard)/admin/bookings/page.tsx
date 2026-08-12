@@ -10,6 +10,7 @@ import {
   calculateDriverSituation,
   estimateUrbanDriveMinutesFromMiles,
 } from '@/lib/admin/driverSituation';
+import { extractCanonicalTyreLines, totalTyreLineQuantity } from '@/lib/bookings/tyre-line-display';
 
 interface Props {
   searchParams: Promise<{
@@ -25,6 +26,10 @@ function toNumber(value: string | number | null | undefined): number | null {
   if (value == null) return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function tyreCountFromSnapshot(priceSnapshot: unknown, fallback: number | null | undefined): number | null {
+  return (totalTyreLineQuantity(extractCanonicalTyreLines(priceSnapshot)) || fallback) ?? null;
 }
 
 export default async function AdminBookingsPage({ searchParams }: Props) {
@@ -90,6 +95,7 @@ export default async function AdminBookingsPage({ searchParams }: Props) {
         createdAt: bookings.createdAt,
         paymentType: bookings.paymentType,
         quantity: bookings.quantity,
+        priceSnapshot: bookings.priceSnapshot,
         customerLat: bookings.lat,
         customerLng: bookings.lng,
         driverId: bookings.driverId,
@@ -150,7 +156,7 @@ export default async function AdminBookingsPage({ searchParams }: Props) {
         outboundMinutes,
         returnMinutes,
         serviceType: b.serviceType,
-        tyreCount: b.quantity,
+        tyreCount: tyreCountFromSnapshot(b.priceSnapshot, b.quantity),
         paymentStatus: b.paymentType,
         returnEstimateAvailable: returnMinutes != null,
         routeAvailable: outboundMinutes != null,

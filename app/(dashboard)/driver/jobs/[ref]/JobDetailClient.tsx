@@ -29,6 +29,7 @@ interface Booking {
   lng: string;
   tyreSizeDisplay: string | null;
   quantity: number;
+  tyreLines: string[];
   customerName: string;
   customerPhone: string;
   tyrePhotoUrl: string | null;
@@ -60,6 +61,7 @@ interface Tyre {
   service: string;
   brand: string | null;
   pattern: string | null;
+  sizeDisplay: string | null;
   width: number | null;
   aspect: number | null;
   rim: number | null;
@@ -393,23 +395,30 @@ export function JobDetailClient({ booking, tyres, statusHistory, currentUserId }
                   {SERVICE_LABELS[booking.serviceType] || booking.serviceType}
                 </Text>
               </Box>
-              {booking.tyreSizeDisplay && (
-                <Box>
-                  <Text fontSize="sm" color={c.muted}>
-                    Size
-                  </Text>
-                  <Text fontWeight="medium" color={c.text}>{booking.tyreSizeDisplay}</Text>
-                </Box>
-              )}
               <Box>
                 <Text fontSize="sm" color={c.muted}>
-                  Quantity
+                  Total Quantity
                 </Text>
                 <Text fontWeight="medium" color={c.text}>
                   {booking.quantity} tyre{booking.quantity !== 1 ? 's' : ''}
                 </Text>
               </Box>
-              {tyres.length > 0 && (
+              {booking.tyreLines.length > 0 ? (
+                <Box>
+                  <Text fontSize="sm" color={c.muted} mb={2}>
+                    Required Tyres
+                  </Text>
+                  <VStack align="stretch" gap={2}>
+                    {booking.tyreLines.map((line, index) => (
+                      <Box key={`${line}-${index}`} p={3} bg={c.surface} borderRadius="md">
+                        <Text fontWeight="medium" color={c.text}>
+                          {line}
+                        </Text>
+                      </Box>
+                    ))}
+                  </VStack>
+                </Box>
+              ) : tyres.length > 0 ? (
                 <Box>
                   <Text fontSize="sm" color={c.muted} mb={2}>
                     Selected Tyres
@@ -421,7 +430,7 @@ export function JobDetailClient({ booking, tyres, statusHistory, currentUserId }
                           {tyre.brand} {tyre.pattern}
                         </Text>
                         <Text fontSize="sm" color={c.muted}>
-                          {tyre.width}/{tyre.aspect}R{tyre.rim} - {tyre.service}
+                          {tyre.sizeDisplay ?? `${tyre.width}/${tyre.aspect}R${tyre.rim}`} - {tyre.service}
                         </Text>
                         <Text fontSize="sm">
                           {formatCurrency(tyre.unitPrice)} x {tyre.quantity}
@@ -430,6 +439,10 @@ export function JobDetailClient({ booking, tyres, statusHistory, currentUserId }
                     ))}
                   </VStack>
                 </Box>
+              ) : (
+                <Text fontSize="sm" color={c.muted}>
+                  Size not specified
+                </Text>
               )}
             </VStack>
           </Box>

@@ -27,6 +27,11 @@ import { commitReservationsForBooking } from '@/lib/inventory/stock-service';
 import { ensureTrackingSession } from '@/lib/tracking-session';
 import { signCustomerInvoiceToken } from '@/app/api/mobile/customer/_lib';
 import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
+import {
+  formatTyreDisplayLine,
+  resolveBookingTyreDisplay,
+  totalTyreLineQuantity,
+} from '@/lib/bookings/tyre-line-display';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -197,11 +202,8 @@ export async function POST(request: NextRequest) {
       // to retry payment, which would be wrong.
     }
 
-    // 8. Load booking_tyres for downstream email rendering.
-    const tyresInBooking = await db
-      .select()
-      .from(bookingTyres)
-      .where(eq(bookingTyres.bookingId, booking.id));
+    // 8. Resolve all booking tyres for downstream email rendering.
+    const tyreDisplay = await loadBookingTyreDisplay(booking);
 
     // Structured visibility for production triage. customerEmail must be
     // present (it's required at booking creation) but log explicitly so a
@@ -224,7 +226,7 @@ export async function POST(request: NextRequest) {
     // which is exactly why customer confirmation emails were not arriving.
     after(async () => {
       try {
-        await sendConfirmationEmails(booking, tyresInBooking);
+        await sendConfirmationEmails(booking, tyreDisplay);
       } catch (err) {
         console.error('[confirm] Email dispatch error:', err);
       }
@@ -300,28 +302,57 @@ export async function POST(request: NextRequest) {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+interface BookingTyreEmailDisplay {
+  tyreSummary: string;
+  tyreSizeDisplay: string;
+  tyreDisplayLines: string[];
+  totalQuantity: number;
+  receiptDescription: string;
+}
+
+async function loadBookingTyreDisplay(booking: typeof bookings.$inferSelect): Promise<BookingTyreEmailDisplay> {
+  const tyreRows = await db
+    .select({
+      quantity: bookingTyres.quantity,
+      unitPrice: bookingTyres.unitPrice,
+      service: bookingTyres.service,
+      brand: tyreProducts.brand,
+      pattern: tyreProducts.pattern,
+      sizeDisplay: tyreProducts.sizeDisplay,
+      width: tyreProducts.width,
+      aspect: tyreProducts.aspect,
+      rim: tyreProducts.rim,
+    })
+    .from(bookingTyres)
+    .leftJoin(tyreProducts, eq(bookingTyres.tyreId, tyreProducts.id))
+    .where(eq(bookingTyres.bookingId, booking.id));
+
+  const resolved = resolveBookingTyreDisplay({
+    priceSnapshot: booking.priceSnapshot,
+    tyreRows,
+    tyreSizeDisplay: booking.tyreSizeDisplay,
+    quantity: booking.quantity,
+  });
+  const tyreDisplayLines = resolved.lines.map(formatTyreDisplayLine);
+  const totalQuantity = totalTyreLineQuantity(resolved.lines) || booking.quantity;
+  const receiptDescription = tyreDisplayLines.length > 0 ? tyreDisplayLines.join('; ') : 'Tyre service';
+
+  return {
+    tyreSummary: tyreDisplayLines.length > 0 ? tyreDisplayLines.join(', ') : 'Tyre service',
+    tyreSizeDisplay: resolved.lines[0]?.size ?? booking.tyreSizeDisplay ?? 'N/A',
+    tyreDisplayLines,
+    totalQuantity,
+    receiptDescription,
+  };
+}
+
 async function sendConfirmationEmails(
   booking: typeof bookings.$inferSelect,
-  tyresInBooking: (typeof bookingTyres.$inferSelect)[],
+  tyreDisplay: BookingTyreEmailDisplay,
 ) {
   // Customer-facing email link: must always be the production URL.
   const siteUrl = getOutboundUrl();
   const trackingUrl = `${siteUrl}/tracking/${booking.refNumber}`;
-
-  // Build tyre summary
-  let tyreSummary = 'Tyre service';
-  let tyreSizeDisplay = 'N/A';
-  if (tyresInBooking.length > 0 && tyresInBooking[0].tyreId) {
-    const [tyre] = await db
-      .select()
-      .from(tyreProducts)
-      .where(eq(tyreProducts.id, tyresInBooking[0].tyreId))
-      .limit(1);
-    if (tyre) {
-      tyreSummary = `${tyre.brand} ${tyre.pattern} ${tyre.sizeDisplay}`;
-      tyreSizeDisplay = tyre.sizeDisplay;
-    }
-  }
 
   const priceSnapshot = booking.priceSnapshot as {
     subtotal: number;
@@ -338,8 +369,10 @@ async function sendConfirmationEmails(
       serviceType: booking.serviceType,
       scheduledAt: booking.scheduledAt || undefined,
       address: booking.addressLine,
-      tyreSummary,
-      quantity: booking.quantity,
+      tyreSummary: tyreDisplay.tyreSummary,
+      quantity: tyreDisplay.totalQuantity,
+      tyreLines: tyreDisplay.tyreDisplayLines,
+      totalTyreQuantity: tyreDisplay.totalQuantity,
       trackingUrl,
     });
     await sendBookingEmailOnce({
@@ -362,9 +395,9 @@ async function sendConfirmationEmails(
       invoiceDate: new Date(),
       lineItems: [
         {
-          description: `${tyreSummary} x${booking.quantity}`,
-          quantity: booking.quantity,
-          unitPrice: priceSnapshot.subtotal / booking.quantity,
+          description: tyreDisplay.receiptDescription,
+          quantity: 1,
+          unitPrice: priceSnapshot.subtotal,
           total: priceSnapshot.subtotal,
         },
       ],
@@ -401,8 +434,10 @@ async function sendConfirmationEmails(
           address: booking.addressLine,
           lat: parseFloat(booking.lat),
           lng: parseFloat(booking.lng),
-          tyreSizeDisplay,
-          quantity: booking.quantity,
+          tyreSizeDisplay: tyreDisplay.tyreSizeDisplay,
+          quantity: tyreDisplay.totalQuantity,
+          tyreLines: tyreDisplay.tyreDisplayLines,
+          totalTyreQuantity: tyreDisplay.totalQuantity,
           total: priceSnapshot.total,
           scheduledAt: booking.scheduledAt || undefined,
         },

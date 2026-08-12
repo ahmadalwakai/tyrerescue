@@ -19,6 +19,12 @@ import {
   calculateDriverSituation,
   estimateUrbanDriveMinutesFromMiles,
 } from '@/lib/admin/driverSituation';
+import {
+  applyPrimaryTyreEditToSnapshot,
+  formatTyreDisplayLine,
+  resolveBookingTyreDisplay,
+  totalTyreLineQuantity,
+} from '@/lib/bookings/tyre-line-display';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -263,15 +269,34 @@ export async function PUT(request: NextRequest, { params }: Props) {
     }
 
     // Tyre details
+    let tyreSizeEdit: string | null | undefined;
+    let quantityEdit: number | undefined;
     if (body.tyreSizeDisplay !== undefined) {
-      updates.tyreSizeDisplay = body.tyreSizeDisplay ? String(body.tyreSizeDisplay).trim() : null;
+      tyreSizeEdit = body.tyreSizeDisplay ? String(body.tyreSizeDisplay).trim() : null;
     }
     if (body.quantity !== undefined) {
       const qty = parseInt(body.quantity, 10);
       if (isNaN(qty) || qty < 1 || qty > 20) {
         return NextResponse.json({ error: 'Quantity must be between 1 and 20' }, { status: 400 });
       }
-      updates.quantity = qty;
+      quantityEdit = qty;
+    }
+    if (body.tyreSizeDisplay !== undefined || body.quantity !== undefined) {
+      const snapshotEdit = applyPrimaryTyreEditToSnapshot(booking.priceSnapshot, {
+        tyreSizeDisplay: tyreSizeEdit,
+        quantity: quantityEdit,
+      });
+
+      if (snapshotEdit.usedCanonical && snapshotEdit.priceSnapshot) {
+        updates.priceSnapshot = snapshotEdit.priceSnapshot;
+        updates.tyreSizeDisplay = snapshotEdit.tyreSizeDisplay ?? tyreSizeEdit ?? null;
+        if (snapshotEdit.quantity !== undefined) {
+          updates.quantity = snapshotEdit.quantity;
+        }
+      } else {
+        if (body.tyreSizeDisplay !== undefined) updates.tyreSizeDisplay = tyreSizeEdit ?? null;
+        if (quantityEdit !== undefined) updates.quantity = quantityEdit;
+      }
     }
     if (body.lockingNutStatus !== undefined) {
       const validLock = ['standard', 'has_key', 'no_key'];
@@ -336,7 +361,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
       updates.vatAmount = nextVatAmount.toFixed(2);
       updates.totalAmount = nextTotalAmount.toFixed(2);
       updates.priceSnapshot = buildSyncedPriceSnapshot(
-        booking.priceSnapshot,
+        updates.priceSnapshot ?? booking.priceSnapshot,
         nextSubtotal,
         nextVatAmount,
         nextTotalAmount,
@@ -415,6 +440,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
       'scheduledAt',
       'serviceType',
       'bookingType',
+      'tyreSizeDisplay',
       'quantity',
       'subtotal',
       'vatAmount',
@@ -515,6 +541,7 @@ export async function GET(request: NextRequest, { params }: Props) {
       service: bookingTyres.service,
       brand: tyreProducts.brand,
       pattern: tyreProducts.pattern,
+      sizeDisplay: tyreProducts.sizeDisplay,
       width: tyreProducts.width,
       aspect: tyreProducts.aspect,
       rim: tyreProducts.rim,
@@ -605,6 +632,24 @@ export async function GET(request: NextRequest, { params }: Props) {
           ),
         )
       : null;
+  const tyreRows = tyres.map((t) => ({
+    brand: t.brand,
+    pattern: t.pattern,
+    sizeDisplay: t.sizeDisplay,
+    width: t.width,
+    aspect: t.aspect,
+    rim: t.rim,
+    quantity: t.quantity,
+    unitPrice: t.unitPrice.toString(),
+    service: t.service,
+  }));
+  const tyreDisplay = resolveBookingTyreDisplay({
+    priceSnapshot: booking.priceSnapshot,
+    tyreRows,
+    tyreSizeDisplay: booking.tyreSizeDisplay,
+    quantity: booking.quantity,
+  });
+  const tyreQuantity = totalTyreLineQuantity(tyreDisplay.lines) || booking.quantity;
   const driverSituation = calculateDriverSituation({
     jobRef: booking.refNumber,
     driverId: booking.driverId ?? null,
@@ -615,7 +660,7 @@ export async function GET(request: NextRequest, { params }: Props) {
     outboundMinutes,
     returnMinutes,
     serviceType: booking.serviceType,
-    tyreCount: booking.quantity,
+    tyreCount: tyreQuantity,
     paymentStatus: booking.paymentType,
     returnEstimateAvailable: returnMinutes != null,
     routeAvailable: outboundMinutes != null,
@@ -640,8 +685,11 @@ export async function GET(request: NextRequest, { params }: Props) {
       lng: booking.lng.toString(),
       distanceMiles: booking.distanceMiles?.toString() ?? null,
       distanceSource: booking.distanceSource ?? null,
-      quantity: booking.quantity,
-      tyreSizeDisplay: booking.tyreSizeDisplay,
+      quantity: tyreQuantity,
+      tyreSizeDisplay: tyreDisplay.lines[0]?.size ?? booking.tyreSizeDisplay,
+      tyreLines: tyreDisplay.lines,
+      tyreDisplayLines: tyreDisplay.lines.map(formatTyreDisplayLine),
+      tyreLineSource: tyreDisplay.source,
       vehicleReg: booking.vehicleReg,
       vehicleMake: booking.vehicleMake,
       vehicleModel: booking.vehicleModel,
@@ -682,6 +730,7 @@ export async function GET(request: NextRequest, { params }: Props) {
       service: t.service,
       brand: t.brand,
       pattern: t.pattern,
+      sizeDisplay: t.sizeDisplay,
       width: t.width,
       aspect: t.aspect,
       rim: t.rim,

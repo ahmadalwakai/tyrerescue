@@ -804,12 +804,12 @@ const getInvoiceByNumber: ToolDefinition = {
 const createQuickBooking: ToolDefinition = {
   name: 'create_quick_booking',
   kind: 'write',
-  description: 'Create a quick booking for a customer via chat. Provide customerName, customerPhone, serviceType (fit/repair/assess), and optional tyreSize, tyreCount, locationAddress, locationPostcode, notes.',
+  description: 'Create a quick booking for a customer via chat. Provide customerName, customerPhone, serviceType (fit/repair/assess/locking_nut), and optional tyreSize, tyreCount, locationAddress, locationPostcode, notes.',
   requiresConfirmation: true,
   parameterNames: ['customerName', 'customerPhone', 'customerEmail', 'serviceType', 'tyreSize', 'tyreCount', 'locationAddress', 'locationPostcode', 'scheduledAt', 'notes'],
   async execute(params, ctx): Promise<ToolResult> {
     const parsed = createQuickBookingSchema.safeParse(params);
-    if (!parsed.success) return { success: false, error: 'Invalid booking params. Need: customerName, customerPhone, serviceType (fit/repair/assess).' };
+    if (!parsed.success) return { success: false, error: 'Invalid booking params. Need: customerName, customerPhone, serviceType (fit/repair/assess/locking_nut).' };
 
     const preview = buildBookingPreview(parsed.data);
     const result = await persistQuickBookingDraft(parsed.data, ctx.userId);

@@ -13,6 +13,7 @@ import {
 } from '@chakra-ui/react';
 import NextLink from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { resolveBookingTyreDisplay, summarizeTyreDisplayLines } from '@/lib/bookings/tyre-line-display';
 
 const STATUS_LABELS: Record<string, string> = {
   driver_assigned: 'Assigned',
@@ -46,6 +47,8 @@ export default async function DriverJobsPage() {
       refNumber: bookings.refNumber,
       addressLine: bookings.addressLine,
       tyreSizeDisplay: bookings.tyreSizeDisplay,
+      quantity: bookings.quantity,
+      priceSnapshot: bookings.priceSnapshot,
       status: bookings.status,
       scheduledAt: bookings.scheduledAt,
       createdAt: bookings.createdAt,
@@ -65,6 +68,8 @@ export default async function DriverJobsPage() {
       refNumber: bookings.refNumber,
       addressLine: bookings.addressLine,
       tyreSizeDisplay: bookings.tyreSizeDisplay,
+      quantity: bookings.quantity,
+      priceSnapshot: bookings.priceSnapshot,
       status: bookings.status,
       scheduledAt: bookings.scheduledAt,
       createdAt: bookings.createdAt,
@@ -87,6 +92,15 @@ export default async function DriverJobsPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  }
+
+  function tyreSummary(job: { priceSnapshot: unknown; tyreSizeDisplay: string | null; quantity: number | null }): string {
+    const display = resolveBookingTyreDisplay({
+      priceSnapshot: job.priceSnapshot,
+      tyreSizeDisplay: job.tyreSizeDisplay,
+      quantity: job.quantity,
+    });
+    return display.lines.length > 0 ? summarizeTyreDisplayLines(display.lines) : '-';
   }
 
   return (
@@ -141,7 +155,7 @@ export default async function DriverJobsPage() {
                           {job.addressLine}
                         </Text>
                       </Table.Cell>
-                      <Table.Cell>{job.tyreSizeDisplay || '-'}</Table.Cell>
+                      <Table.Cell>{tyreSummary(job)}</Table.Cell>
                       <Table.Cell>
                         <Text fontWeight="medium" color={c.accent}>
                           {STATUS_LABELS[job.status] || job.status}
@@ -174,7 +188,7 @@ export default async function DriverJobsPage() {
                       </Box>
                       <Text color={c.text} fontSize="sm" mb={1} lineClamp={2}>{job.addressLine}</Text>
                       <Box display="flex" justifyContent="space-between" alignItems="center">
-                        <Text color={c.muted} fontSize="xs">{job.tyreSizeDisplay || '-'}</Text>
+                        <Text color={c.muted} fontSize="xs">{tyreSummary(job)}</Text>
                         <Text color={c.muted} fontSize="xs">{formatDate(job.scheduledAt || job.createdAt)}</Text>
                       </Box>
                     </Box>
@@ -230,7 +244,7 @@ export default async function DriverJobsPage() {
                           {job.addressLine}
                         </Text>
                       </Table.Cell>
-                      <Table.Cell>{job.tyreSizeDisplay || '-'}</Table.Cell>
+                      <Table.Cell>{tyreSummary(job)}</Table.Cell>
                       <Table.Cell>
                         <Text fontWeight="medium" color="green.400">
                           Completed
@@ -261,7 +275,7 @@ export default async function DriverJobsPage() {
                       </Box>
                       <Text color={c.text} fontSize="sm" mb={1} lineClamp={2}>{job.addressLine}</Text>
                       <Box display="flex" justifyContent="space-between" alignItems="center">
-                        <Text color={c.muted} fontSize="xs">{job.tyreSizeDisplay || '-'}</Text>
+                        <Text color={c.muted} fontSize="xs">{tyreSummary(job)}</Text>
                         <Text color={c.muted} fontSize="xs">{formatDate(job.scheduledAt || job.createdAt)}</Text>
                       </Box>
                     </Box>

@@ -1,13 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { lookupVrm, normalizeVrm } from '@/lib/dvla';
-import { getTyreSizeForVehicle } from '@/lib/tyre-sizes';
-import type { TyreSize, Vehicle, VrmErrorCode } from '@/types/vehicle';
+import { resolveVehicleFitmentLookup } from '@/lib/vehicle-fitment-lookup';
+import type { VehicleFitmentLookupResponse, VrmErrorCode } from '@/types/vehicle';
 
 export const runtime = 'nodejs';
 
 const bodySchema = z.object({
-  registrationNumber: z.string().min(2).max(10),
+  registrationNumber: z.string().min(2).max(24),
 });
 
 // In-memory rate limit per IP. TODO: swap for Upstash when available.
@@ -33,12 +32,6 @@ function consumeRateLimit(ip: string): boolean {
   if (bucket.count >= RATE_LIMIT_PER_MINUTE) return false;
   bucket.count += 1;
   return true;
-}
-
-interface SuccessResponse {
-  ok: true;
-  vehicle: Vehicle;
-  tyreSize: TyreSize | null;
 }
 
 interface ErrorResponse {
@@ -81,29 +74,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const result = await lookupVrm(normalizeVrm(parsed.data.registrationNumber));
-  if (!result.ok) {
-    const status =
-      result.error.code === 'not_found'
-        ? 404
-        : result.error.code === 'invalid_format'
-          ? 400
-          : result.error.code === 'rate_limited'
-            ? 429
-            : result.error.code === 'upstream_error'
-              ? 502
-              : 500;
-    return NextResponse.json<ErrorResponse>({ ok: false, error: result.error }, { status });
-  }
-
-  const tyreSize = getTyreSizeForVehicle(
-    result.vehicle.make,
-    result.vehicle.model,
-    result.vehicle.yearOfManufacture
-  );
-
-  return NextResponse.json<SuccessResponse>(
-    { ok: true, vehicle: result.vehicle, tyreSize },
-    { status: 200 }
-  );
+  const result = await resolveVehicleFitmentLookup(parsed.data.registrationNumber);
+  return NextResponse.json<VehicleFitmentLookupResponse>(result, {
+    status: result.error?.code === 'invalid_format' ? 400 : 200,
+  });
 }

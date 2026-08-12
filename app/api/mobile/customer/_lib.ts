@@ -11,6 +11,11 @@ import { createNotificationAndSend } from '@/lib/email/resend';
 import { verifyEmail, welcome } from '@/lib/email/templates';
 import { authMobile, signMobileToken } from '@/lib/auth';
 import { getBookingPaymentSummary, isPaymentFullySettledForInvoice } from '@/lib/payments/payment-summary';
+import {
+  formatTyreDisplayLine,
+  resolveBookingTyreDisplay,
+  totalTyreLineQuantity,
+} from '@/lib/bookings/tyre-line-display';
 
 const CUSTOMER_BOOKING_STATUSES = [
   'paid',
@@ -53,6 +58,8 @@ export interface CustomerMobileBooking {
   addressLine: string;
   totalAmount: number;
   tyreSizeDisplay: string | null;
+  tyreLines: string[];
+  tyreQuantity: number | null;
   vehicleReg: string | null;
   vehicleMake: string | null;
   vehicleModel: string | null;
@@ -124,6 +131,8 @@ export async function listCustomerMobileBookings(userId: string): Promise<Custom
       stripePiId: bookings.stripePiId,
       stripeDepositPiId: bookings.stripeDepositPiId,
       tyreSizeDisplay: bookings.tyreSizeDisplay,
+      quantity: bookings.quantity,
+      priceSnapshot: bookings.priceSnapshot,
       vehicleReg: bookings.vehicleReg,
       vehicleMake: bookings.vehicleMake,
       vehicleModel: bookings.vehicleModel,
@@ -153,6 +162,12 @@ export async function listCustomerMobileBookings(userId: string): Promise<Custom
       const canDownloadInvoice =
         isInvoiceableBookingStatus(row.status) &&
         isPaymentFullySettledForInvoice(paymentSummary, row.status);
+      const tyreDisplay = resolveBookingTyreDisplay({
+        priceSnapshot: row.priceSnapshot,
+        tyreSizeDisplay: row.tyreSizeDisplay,
+        quantity: row.quantity,
+      });
+      const tyreQuantity = totalTyreLineQuantity(tyreDisplay.lines) || row.quantity || null;
 
       return {
         refNumber: row.refNumber,
@@ -161,7 +176,9 @@ export async function listCustomerMobileBookings(userId: string): Promise<Custom
         serviceType: row.serviceType,
         addressLine: row.addressLine,
         totalAmount: Number(row.totalAmount),
-        tyreSizeDisplay: row.tyreSizeDisplay,
+        tyreSizeDisplay: tyreDisplay.lines[0]?.size ?? row.tyreSizeDisplay,
+        tyreLines: tyreDisplay.lines.map(formatTyreDisplayLine),
+        tyreQuantity,
         vehicleReg: row.vehicleReg,
         vehicleMake: row.vehicleMake,
         vehicleModel: row.vehicleModel,

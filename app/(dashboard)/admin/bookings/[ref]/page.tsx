@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { db, bookings, bookingTyres, bookingStatusHistory, drivers, users, tyreProducts } from '@/lib/db';
+import { db, bookings, bookingTyres, bookingStatusHistory, drivers, users, tyreProducts, wheelNutConsents } from '@/lib/db';
 import { eq, desc } from 'drizzle-orm';
 import { Box, Heading } from '@chakra-ui/react';
 import { BookingDetailClient } from './BookingDetailClient';
@@ -73,6 +73,13 @@ export default async function AdminBookingDetailPage({ params }: Props) {
     .leftJoin(users, eq(bookingStatusHistory.actorUserId, users.id))
     .where(eq(bookingStatusHistory.bookingId, booking.id))
     .orderBy(desc(bookingStatusHistory.createdAt));
+
+  const [latestWheelNutConsent] = await db
+    .select()
+    .from(wheelNutConsents)
+    .where(eq(wheelNutConsents.bookingId, booking.id))
+    .orderBy(desc(wheelNutConsents.createdAt))
+    .limit(1);
 
   // Fetch assigned driver if any
   let assignedDriver = null;
@@ -158,7 +165,30 @@ export default async function AdminBookingDetailPage({ params }: Props) {
     arrivedAt: booking.arrivedAt?.toISOString() ?? null,
     inProgressAt: booking.inProgressAt?.toISOString() ?? null,
     completedAt: booking.completedAt?.toISOString() ?? null,
+    wheelNutConsentRequiredAt: booking.wheelNutConsentRequiredAt?.toISOString() ?? null,
+    wheelNutConsentReason: booking.wheelNutConsentReason ?? null,
   };
+
+  const wheelNutConsentData = latestWheelNutConsent
+    ? {
+        id: latestWheelNutConsent.id,
+        customerName: latestWheelNutConsent.customerName,
+        vehicleReg: latestWheelNutConsent.vehicleReg,
+        driverName: latestWheelNutConsent.driverName,
+        declarationAccepted: latestWheelNutConsent.declarationAccepted,
+        signatureUrl: latestWheelNutConsent.signatureUrl,
+        pdfUrl: latestWheelNutConsent.pdfUrl,
+        gpsLat: latestWheelNutConsent.gpsLat?.toString() ?? null,
+        gpsLng: latestWheelNutConsent.gpsLng?.toString() ?? null,
+        gpsAccuracy: latestWheelNutConsent.gpsAccuracy ?? null,
+        deviceId: latestWheelNutConsent.deviceId,
+        deviceLabel: latestWheelNutConsent.deviceLabel,
+        emailStatus: latestWheelNutConsent.emailStatus,
+        emailSentAt: latestWheelNutConsent.emailSentAt?.toISOString() ?? null,
+        emailError: latestWheelNutConsent.emailError,
+        createdAt: latestWheelNutConsent.createdAt?.toISOString() ?? null,
+      }
+    : null;
 
   const tyreRows = tyres.map((t) => ({
     brand: t.brand,
@@ -176,6 +206,7 @@ export default async function AdminBookingDetailPage({ params }: Props) {
     {
       tyreSizeDisplay: booking.tyreSizeDisplay,
       quantity: booking.quantity,
+      priceSnapshot: booking.priceSnapshot,
       lockingNutStatus: booking.lockingNutStatus,
       serviceType: booking.serviceType,
       notes: booking.notes,
@@ -245,7 +276,7 @@ export default async function AdminBookingDetailPage({ params }: Props) {
     outboundMinutes,
     returnMinutes,
     serviceType: booking.serviceType,
-    tyreCount: booking.quantity,
+    tyreCount: tyreDetails.quantity,
     paymentStatus: booking.paymentType,
     returnEstimateAvailable: returnMinutes != null,
     routeAvailable: outboundMinutes != null,
@@ -268,6 +299,7 @@ export default async function AdminBookingDetailPage({ params }: Props) {
         currentUserRole={(session?.user?.role as 'admin' | 'driver' | 'customer') ?? 'admin'}
         payment={payment}
         driverSituation={driverSituation}
+        wheelNutConsent={wheelNutConsentData}
       />
     </Box>
   );

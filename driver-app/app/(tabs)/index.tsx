@@ -33,6 +33,7 @@ import { useNewJobDetector } from '@/hooks/useNewJobDetector';
 import { DriverAlertWatcher } from '@/services/driver-watcher';
 import { useI18n } from '@/i18n';
 import { getDriverPaymentDisplay } from '@/lib/payment-status';
+import { hasJobTyreDetails } from '@/lib/tyre-lines';
 import {
   requestLocationPermissions,
   startBackgroundLocation,
@@ -132,7 +133,7 @@ function getAttentionReason(job: JobSummary, t: Translate): { title: string; bod
     };
   }
 
-  if (!job.tyreSizeDisplay?.trim()) {
+  if (!hasJobTyreDetails(job)) {
     return {
       title: t('dashboard.missingTyre'),
       body: `#${job.refNumber} · ${job.customerName}`,

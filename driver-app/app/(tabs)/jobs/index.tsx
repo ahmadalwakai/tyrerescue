@@ -23,6 +23,7 @@ import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { lightHaptic } from '@/services/haptics';
 import { useI18n } from '@/i18n';
 import { getDriverPaymentDisplay } from '@/lib/payment-status';
+import { formatJobTyreLinesSummary, hasJobTyreDetails } from '@/lib/tyre-lines';
 
 type Tab = 'active' | 'upcoming' | 'completed';
 type TabIconName = keyof typeof Ionicons.glyphMap;
@@ -54,7 +55,7 @@ function jobNeedsAttention(job: JobSummary): boolean {
   const paymentDisplay = payment ? getDriverPaymentDisplay(payment, job.refNumber) : null;
   const paymentNeedsAttention =
     paymentDisplay != null && ['warning', 'failed', 'pending', 'unknown'].includes(paymentDisplay.tone);
-  const missingTyre = !job.tyreSizeDisplay?.trim();
+  const missingTyre = !hasJobTyreDetails(job);
   const missingLocation = !job.addressLine?.trim() || !job.lat || !job.lng;
   return paymentNeedsAttention || missingTyre || missingLocation;
 }
@@ -67,7 +68,7 @@ function matchesSearch(job: JobSummary, query: string): boolean {
     job.customerName,
     job.customerPhone,
     job.addressLine,
-    job.tyreSizeDisplay,
+    formatJobTyreLinesSummary(job),
     job.status,
     job.serviceType,
   ]

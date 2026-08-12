@@ -53,18 +53,24 @@ if (excludesExpoNotifications) {
       'The post-login protected effects can attempt notification startup without a linked native module.',
     ].join(' '),
   );
-}
-
-if (notificationStartupDisabled) {
-  assert.equal(
-    excludesExpoNotifications,
-    true,
-    'notification startup should only be disabled here while iOS excludes expo-notifications',
-  );
   assert.equal(
     appConfigIncludesExpoNotifications,
     false,
     'app.json should not configure expo-notifications while notification startup is disabled for the iOS-isolated build',
+  );
+} else {
+  assert.equal(
+    notificationStartupDisabled,
+    false,
+    [
+      'iOS notification config is inconsistent:',
+      'expo-notifications is linked, but notification startup is disabled.',
+    ].join(' '),
+  );
+  assert.equal(
+    appConfigIncludesExpoNotifications,
+    true,
+    'app.json must configure expo-notifications when iOS notification startup is enabled',
   );
 }
 

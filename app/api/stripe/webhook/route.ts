@@ -25,6 +25,11 @@ import { sendAdminExpoPush } from '@/lib/notifications/expo-admin-push';
 import { notifyDriverPaymentReceived } from '@/lib/notifications/driver-push';
 import { getBookingPaymentSummary, recordPaymentEvent } from '@/lib/payments/payment-summary';
 import { stripe } from '@/lib/stripe';
+import {
+  formatTyreDisplayLine,
+  resolveBookingTyreDisplay,
+  totalTyreLineQuantity,
+} from '@/lib/bookings/tyre-line-display';
 
 // Disable body parsing - we need the raw body for signature verification
 export const runtime = 'nodejs';
@@ -399,23 +404,7 @@ async function handlePaymentSucceeded(
     .from(bookingTyres)
     .where(eq(bookingTyres.bookingId, bookingId));
 
-  // Build tyre summary for email
-  const tyreSummary = tyresInBooking.length > 0
-    ? await buildTyreSummary(tyresInBooking[0].tyreId!)
-    : 'Tyre service';
-
-  // Get tyre details for admin email
-  let tyreSizeDisplay = 'N/A';
-  if (tyresInBooking.length > 0 && tyresInBooking[0].tyreId) {
-    const [tyre] = await db
-      .select()
-      .from(tyreProducts)
-      .where(eq(tyreProducts.id, tyresInBooking[0].tyreId))
-      .limit(1);
-    if (tyre) {
-      tyreSizeDisplay = tyre.sizeDisplay;
-    }
-  }
+  const tyreDisplay = await buildBookingTyreEmailDisplay(booking, tyresInBooking);
 
   // Parse price snapshot
   const priceSnapshot = booking.priceSnapshot as {
@@ -435,8 +424,10 @@ async function handlePaymentSucceeded(
       serviceType: booking.serviceType,
       scheduledAt: booking.scheduledAt || undefined,
       address: booking.addressLine,
-      tyreSummary,
-      quantity: booking.quantity,
+      tyreSummary: tyreDisplay.tyreSummary,
+      quantity: tyreDisplay.totalQuantity,
+      tyreLines: tyreDisplay.tyreDisplayLines,
+      totalTyreQuantity: tyreDisplay.totalQuantity,
       trackingUrl,
     });
 
@@ -461,9 +452,9 @@ async function handlePaymentSucceeded(
       refNumber: booking.refNumber,
       invoiceDate: new Date(),
       lineItems: [{
-        description: `${tyreSummary} x${booking.quantity}`,
-        quantity: booking.quantity,
-        unitPrice: priceSnapshot.subtotal / booking.quantity,
+        description: tyreDisplay.receiptDescription,
+        quantity: 1,
+        unitPrice: priceSnapshot.subtotal,
         total: priceSnapshot.subtotal,
       }],
       subtotal: priceSnapshot.subtotal,
@@ -502,8 +493,10 @@ async function handlePaymentSucceeded(
           address: booking.addressLine,
           lat: parseFloat(booking.lat),
           lng: parseFloat(booking.lng),
-          tyreSizeDisplay,
-          quantity: booking.quantity,
+          tyreSizeDisplay: tyreDisplay.tyreSizeDisplay,
+          quantity: tyreDisplay.totalQuantity,
+          tyreLines: tyreDisplay.tyreDisplayLines,
+          totalTyreQuantity: tyreDisplay.totalQuantity,
           total: priceSnapshot.total,
           scheduledAt: booking.scheduledAt || undefined,
         },
@@ -1090,19 +1083,62 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent, stripeEv
   }
 }
 
-/**
- * Build a tyre summary string from a tyre ID
- */
-async function buildTyreSummary(tyreId: string): Promise<string> {
-  const [tyre] = await db
-    .select()
-    .from(tyreProducts)
-    .where(eq(tyreProducts.id, tyreId))
-    .limit(1);
+interface BookingTyreEmailDisplay {
+  tyreSummary: string;
+  tyreSizeDisplay: string;
+  tyreDisplayLines: string[];
+  totalQuantity: number;
+  receiptDescription: string;
+}
 
-  if (tyre) {
-    return `${tyre.brand} ${tyre.pattern} ${tyre.sizeDisplay}`;
+async function buildBookingTyreEmailDisplay(
+  booking: typeof bookings.$inferSelect,
+  tyresInBooking: (typeof bookingTyres.$inferSelect)[],
+): Promise<BookingTyreEmailDisplay> {
+  const tyreIds = tyresInBooking
+    .map((row) => row.tyreId)
+    .filter((tyreId): tyreId is string => Boolean(tyreId));
+  const productById = new Map<string, typeof tyreProducts.$inferSelect>();
+
+  for (const tyreId of tyreIds) {
+    const [tyre] = await db
+      .select()
+      .from(tyreProducts)
+      .where(eq(tyreProducts.id, tyreId))
+      .limit(1);
+    if (tyre) productById.set(tyreId, tyre);
   }
 
-  return 'Tyre service';
+  const tyreRows = tyresInBooking.map((row) => {
+    const tyre = row.tyreId ? productById.get(row.tyreId) : null;
+    return {
+      quantity: row.quantity,
+      unitPrice: row.unitPrice,
+      service: row.service,
+      brand: tyre?.brand ?? null,
+      pattern: tyre?.pattern ?? null,
+      sizeDisplay: tyre?.sizeDisplay ?? null,
+      width: tyre?.width ?? null,
+      aspect: tyre?.aspect ?? null,
+      rim: tyre?.rim ?? null,
+    };
+  });
+
+  const resolved = resolveBookingTyreDisplay({
+    priceSnapshot: booking.priceSnapshot,
+    tyreRows,
+    tyreSizeDisplay: booking.tyreSizeDisplay,
+    quantity: booking.quantity,
+  });
+  const tyreDisplayLines = resolved.lines.map(formatTyreDisplayLine);
+  const totalQuantity = totalTyreLineQuantity(resolved.lines) || booking.quantity;
+  const receiptDescription = tyreDisplayLines.length > 0 ? tyreDisplayLines.join('; ') : 'Tyre service';
+
+  return {
+    tyreSummary: tyreDisplayLines.length > 0 ? tyreDisplayLines.join(', ') : 'Tyre service',
+    tyreSizeDisplay: resolved.lines[0]?.size ?? booking.tyreSizeDisplay ?? 'N/A',
+    tyreDisplayLines,
+    totalQuantity,
+    receiptDescription,
+  };
 }

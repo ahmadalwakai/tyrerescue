@@ -27,6 +27,7 @@ interface ActiveJob {
   lng: string;
   tyreSizeDisplay: string | null;
   quantity: number;
+  tyreLines: string[];
   customerName: string;
   customerPhone: string;
   tyrePhotoUrl: string | null;
@@ -43,6 +44,7 @@ interface ActiveJob {
     quantity: number;
     brand: string | null;
     pattern: string | null;
+    sizeDisplay?: string | null;
   }[];
 }
 
@@ -243,18 +245,28 @@ export function DriverDashboardClient({
                 Tyre Required
               </Text>
               <Text fontWeight="medium" color={c.text}>
-                {activeJob.tyreSizeDisplay || 'Size not specified'}
-                {' - '}
                 {activeJob.quantity} tyre{activeJob.quantity !== 1 ? 's' : ''}
               </Text>
-              {activeJob.tyres.length > 0 && (
+              {activeJob.tyreLines.length > 0 ? (
                 <VStack align="stretch" gap={1} mt={2}>
-                  {activeJob.tyres.map((tyre, idx) => (
-                    <Text key={idx} fontSize="sm" color={c.muted}>
-                      {tyre.brand} {tyre.pattern} x{tyre.quantity}
+                  {activeJob.tyreLines.map((line, idx) => (
+                    <Text key={`${line}-${idx}`} fontSize="sm" color={c.muted}>
+                      {line}
                     </Text>
                   ))}
                 </VStack>
+              ) : activeJob.tyres.length > 0 ? (
+                <VStack align="stretch" gap={1} mt={2}>
+                  {activeJob.tyres.map((tyre, idx) => (
+                    <Text key={idx} fontSize="sm" color={c.muted}>
+                      {[tyre.brand, tyre.pattern, tyre.sizeDisplay].filter(Boolean).join(' ')} x{tyre.quantity}
+                    </Text>
+                  ))}
+                </VStack>
+              ) : (
+                <Text fontSize="sm" color={c.muted} mt={2}>
+                  Size not specified
+                </Text>
               )}
             </Box>
 

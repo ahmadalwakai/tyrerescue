@@ -20,6 +20,7 @@ import { AdminChromeBackdrop, AdminModalHeader } from './layout/AdminModalShell'
 import { AppIcon } from './icons/AppIcon';
 
 const PIN_LENGTH = 4;
+const PIN_KEYPAD_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'Clear', '0', 'Delete'] as const;
 
 type Phase = 'checking' | 'forbidden' | 'locked' | 'unlocking' | 'unlocked' | 'submitting' | 'success';
 
@@ -78,6 +79,7 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
   const [phase, setPhase] = useState<Phase>('checking');
   const [roles, setRoles] = useState<string[]>([]);
   const [pinConfigured, setPinConfigured] = useState<boolean | null>(null);
+  const [pinValue, setPinValue] = useState('');
   const [pinLength, setPinLength] = useState(0);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
@@ -90,6 +92,7 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
 
   const clearPin = useCallback(() => {
     pinRef.current = '';
+    setPinValue('');
     setPinLength(0);
     pinInputRef.current?.clear();
   }, []);
@@ -158,8 +161,11 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
       .catch((error) => {
         if (!mountedRef.current) return;
         if (error instanceof ApiError && error.status === 403) {
-          setPhase('forbidden');
-          setNotice('Only the owner-level admin can add another admin.');
+          setRoles(['admin']);
+          setPinConfigured(true);
+          setSelectedRole('admin');
+          setPhase('locked');
+          setNotice('Enter the protected PIN to continue.');
           return;
         }
         setPhase('locked');
@@ -176,8 +182,8 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
   }, [cooldownSeconds]);
 
   const submitPin = useCallback(
-    async (pinValue?: string) => {
-      const pin = (pinValue ?? pinRef.current).replace(/\D/g, '').slice(0, PIN_LENGTH);
+    async (submittedPin?: string) => {
+      const pin = (submittedPin ?? pinRef.current).replace(/\D/g, '').slice(0, PIN_LENGTH);
       if (pin.length !== PIN_LENGTH || phase === 'unlocking' || cooldownSeconds > 0) return;
 
       setPhase('unlocking');
@@ -204,12 +210,27 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
     (value: string) => {
       const next = value.replace(/\D/g, '').slice(0, PIN_LENGTH);
       pinRef.current = next;
+      setPinValue(next);
       setPinLength(next.length);
-      if (next.length === PIN_LENGTH) {
-        void submitPin(next);
-      }
     },
-    [submitPin],
+    [],
+  );
+
+  const pressPinKey = useCallback(
+    (key: (typeof PIN_KEYPAD_KEYS)[number]) => {
+      if (phase === 'unlocking' || cooldownSeconds > 0) return;
+      if (key === 'Clear') {
+        clearPin();
+        return;
+      }
+      if (key === 'Delete') {
+        handlePinChange(pinRef.current.slice(0, -1));
+        return;
+      }
+      handlePinChange(`${pinRef.current}${key}`);
+      pinInputRef.current?.focus();
+    },
+    [clearPin, cooldownSeconds, handlePinChange, phase],
   );
 
   const submitAdmin = useCallback(async () => {
@@ -260,7 +281,7 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
         <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <AdminModalHeader
             title="Add Admin"
-            subtitle="Owner protected admin creation"
+            subtitle="PIN protected admin creation"
             onClose={closeModal}
           />
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -277,7 +298,7 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
                   <AppIcon name="lock" size={24} color={colors.warning} />
                 </View>
                 <Text style={styles.panelTitle}>Restricted</Text>
-                <Text style={styles.mutedText}>Only the owner-level admin can unlock this screen.</Text>
+                <Text style={styles.mutedText}>Admin access is required before this screen can be unlocked.</Text>
               </View>
             ) : null}
 
@@ -304,15 +325,43 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
                   autoComplete="off"
                   autoCorrect={false}
                   autoCapitalize="none"
-                  secureTextEntry
+                  secureTextEntry={Platform.OS !== 'web'}
                   maxLength={PIN_LENGTH}
+                  value={pinValue}
                   editable={phase !== 'unlocking' && cooldownSeconds <= 0}
                   onChangeText={handlePinChange}
-                  placeholder="Security PIN"
+                  placeholder="Type PIN or tap numbers below"
                   placeholderTextColor={colors.subtle}
                   style={styles.pinInput}
                   accessibilityLabel="Security PIN"
                 />
+                <View style={styles.pinKeypad}>
+                  {PIN_KEYPAD_KEYS.map((key) => {
+                    const isAction = key === 'Clear' || key === 'Delete';
+                    const disabled =
+                      phase === 'unlocking' ||
+                      cooldownSeconds > 0 ||
+                      (key === 'Delete' && pinLength === 0) ||
+                      (!isAction && pinLength >= PIN_LENGTH);
+                    return (
+                      <Pressable
+                        key={key}
+                        accessibilityRole="button"
+                        accessibilityLabel={isAction ? `${key} PIN` : `PIN digit ${key}`}
+                        disabled={disabled}
+                        onPress={() => pressPinKey(key)}
+                        style={({ pressed }) => [
+                          styles.pinKey,
+                          isAction && styles.pinKeyAction,
+                          pressed && !disabled && styles.pinKeyPressed,
+                          disabled && styles.pinKeyDisabled,
+                        ]}
+                      >
+                        <Text style={[styles.pinKeyText, isAction && styles.pinKeyActionText]}>{key}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
                 {cooldownSeconds > 0 ? (
                   <Text style={styles.cooldownText}>Try again in {cooldownSeconds}s.</Text>
                 ) : null}
@@ -491,6 +540,40 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     textAlign: 'center',
     letterSpacing: 6,
+  },
+  pinKeypad: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space.sm,
+  },
+  pinKey: {
+    width: '31.5%',
+    minHeight: 48,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pinKeyAction: {
+    backgroundColor: colors.cardMuted,
+  },
+  pinKeyPressed: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentSoft,
+  },
+  pinKeyDisabled: {
+    opacity: 0.45,
+  },
+  pinKeyText: {
+    color: colors.text,
+    fontSize: fontSize.lg,
+    fontWeight: '900',
+  },
+  pinKeyActionText: {
+    color: colors.muted,
+    fontSize: fontSize.sm,
   },
   cooldownText: {
     color: colors.warning,

@@ -54,8 +54,31 @@ describe('normaliseTyreDetailsFromDb', () => {
     const result = normaliseTyreDetailsFromDb(booking({ tyreSizeDisplay: null, quantity: 1 }), [
       tyreRow({ sizeDisplay: '205/55R16' }),
     ]);
-    expect(result.size).toBeUndefined();
+    expect(result.size).toBe('205/55R16');
     expect(result.items[0].size).toBe('205/55R16');
+  });
+
+  it('uses canonical priceSnapshot tyre lines before stale legacy values', () => {
+    const result = normaliseTyreDetailsFromDb(
+      booking({
+        tyreSizeDisplay: '195/55R16',
+        quantity: 1,
+        priceSnapshot: {
+          tyreLines: [
+            { axle: 'front', normalizedSize: '225/40R18', quantity: 1, loadIndex: '92', speedIndex: 'Y', xl: true },
+            { axle: 'rear', normalizedSize: '255/35R18', quantity: 2, runFlat: true },
+          ],
+        },
+      }),
+      [tyreRow({ sizeDisplay: '205/55R16', quantity: 1 })],
+    );
+
+    expect(result.quantity).toBe(3);
+    expect(result.size).toBe('225/40R18');
+    expect(result.items.map((item) => item.label)).toEqual([
+      'Front: 225/40R18 92Y XL x1',
+      'Rear: 255/35R18 run-flat x2',
+    ]);
   });
 
   it('falls back to width/aspect/rim when sizeDisplay is null', () => {
@@ -65,13 +88,14 @@ describe('normaliseTyreDetailsFromDb', () => {
     expect(result.items[0].size).toBe('205/55R16');
   });
 
-  it('returns quantity from booking when items list is empty (repair booking)', () => {
+  it('returns legacy tyre display item for repair booking size fallback', () => {
     const result = normaliseTyreDetailsFromDb(
       booking({ serviceType: 'puncture_repair', quantity: 1, tyreSizeDisplay: '205/40R18' }),
       [],
     );
 
-    expect(result.items).toHaveLength(0);
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].size).toBe('205/40R18');
     expect(result.quantity).toBe(1);
     expect(result.size).toBe('205/40R18');
   });
@@ -176,6 +200,7 @@ describe('isRepairOrAssessService', () => {
   it('returns true for wizard values', () => {
     expect(isRepairOrAssessService('repair')).toBe(true);
     expect(isRepairOrAssessService('assess')).toBe(true);
+    expect(isRepairOrAssessService('locking_nut')).toBe(true);
   });
 
   it('returns true for admin quick-book mapped values', () => {

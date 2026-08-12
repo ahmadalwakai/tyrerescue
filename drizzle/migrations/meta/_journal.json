@@ -148,6 +148,20 @@
       "when": 1785196800000,
       "tag": "0020_vehicle_tyre_fitments",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1785888000000,
+      "tag": "0021_wheel_nut_consents",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1786406400000,
+      "tag": "0022_stock_city_foundation",
+      "breakpoints": true
     }
   ]
 }

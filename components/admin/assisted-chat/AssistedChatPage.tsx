@@ -259,6 +259,7 @@ export function AssistedChatPage() {
   const [dispatchError, setDispatchError] = useState<string | null>(null);
 
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'err'>('idle');
+  const [referenceCopyState, setReferenceCopyState] = useState<'idle' | 'ok' | 'err'>('idle');
 
   // ── Derived ──
   const lockingNutCharge =
@@ -858,6 +859,18 @@ export function AssistedChatPage() {
     writeToClipboard,
   ]);
 
+  const handleCopyReferenceNumber = useCallback(async () => {
+    const refNumber = draft.dispatchedRefNumber?.trim();
+    if (!refNumber) {
+      setReferenceCopyState('err');
+      window.setTimeout(() => setReferenceCopyState('idle'), 1800);
+      return;
+    }
+    const ok = await writeToClipboard(refNumber);
+    setReferenceCopyState(ok ? 'ok' : 'err');
+    window.setTimeout(() => setReferenceCopyState('idle'), 1800);
+  }, [draft.dispatchedRefNumber, writeToClipboard]);
+
   const handleClearDraft = () => {
     clear();
     setPhoneInput('');
@@ -874,6 +887,7 @@ export function AssistedChatPage() {
     setLinkResult(null);
     setDispatchError(null);
     setCopyState('idle');
+    setReferenceCopyState('idle');
     syncedRef.current = false;
   };
 
@@ -1426,6 +1440,15 @@ export function AssistedChatPage() {
           <Button {...secondaryButton} px={5} onClick={handleCopyDetails}>
             {copyState === 'ok' ? 'Copied' : copyState === 'err' ? 'Copy failed' : 'Copy details'}
           </Button>
+          {draft.dispatchedRefNumber && (
+            <Button {...secondaryButton} px={5} onClick={handleCopyReferenceNumber}>
+              {referenceCopyState === 'ok'
+                ? 'Reference copied'
+                : referenceCopyState === 'err'
+                ? 'Copy failed'
+                : 'Copy reference'}
+            </Button>
+          )}
           <Button
             {...primaryButton}
             px={6}

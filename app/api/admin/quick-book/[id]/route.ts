@@ -24,6 +24,23 @@ function normalizeOptionalEmailInput(input: unknown): string | undefined {
   return normalizeRecipientEmailInput(input);
 }
 
+const tyreLineSchema = z.object({
+  id: z.string().optional(),
+  size: z.string().max(30),
+  quantity: z.number().int().min(1).max(10),
+  axle: z.string().max(20).nullable().optional(),
+  loadIndex: z.string().max(8).nullable().optional(),
+  speedIndex: z.string().max(8).nullable().optional(),
+  runFlat: z.boolean().nullable().optional(),
+  xl: z.boolean().nullable().optional(),
+  commercial: z.boolean().nullable().optional(),
+  brand: z.string().nullable().optional(),
+  pattern: z.string().nullable().optional(),
+  season: z.string().nullable().optional(),
+  source: z.string().nullable().optional(),
+  price: z.number().nullable().optional(),
+});
+
 const updateSchema = z.object({
   customerName: z.string().min(1).max(255).optional(),
   customerPhone: z.preprocess(normalizeCustomerPhoneInput, z.string().min(5).max(20)).optional(),
@@ -36,29 +53,16 @@ const updateSchema = z.object({
   locationAddress: z.string().nullable().optional(),
   locationPostcode: z.string().nullable().optional(),
   distanceKm: z.number().nullable().optional(),
-  serviceType: z.enum(['fit', 'repair', 'assess']).optional(),
+  serviceType: z.enum(['fit', 'repair', 'assess', 'locking_nut']).optional(),
   tyreSize: z.string().max(20).nullable().optional(),
   tyreCount: z.number().int().min(1).max(10).optional(),
-  tyreLines: z.array(z.object({
-    id: z.string().optional(),
-    size: z.string().max(30),
-    quantity: z.number().int().min(1).max(10),
-    brand: z.string().nullable().optional(),
-    pattern: z.string().nullable().optional(),
-    season: z.string().nullable().optional(),
-    source: z.string().nullable().optional(),
-    price: z.number().nullable().optional(),
-  })).optional(),
-  items: z.array(z.object({
-    id: z.string().optional(),
-    size: z.string().max(30),
-    quantity: z.number().int().min(1).max(10),
-    brand: z.string().nullable().optional(),
-    pattern: z.string().nullable().optional(),
-    season: z.string().nullable().optional(),
-    source: z.string().nullable().optional(),
-    price: z.number().nullable().optional(),
-  })).optional(),
+  tyreLines: z.array(tyreLineSchema).optional(),
+  items: z.array(tyreLineSchema).optional(),
+  vehicle: z.object({
+    registrationNumber: z.string().max(10),
+    make: z.string().max(100),
+    model: z.string().max(100).nullable().optional(),
+  }).nullable().optional(),
   basePrice: z.number().optional(),
   surchargePercent: z.number().optional(),
   totalPrice: z.number().optional(),
@@ -77,6 +81,49 @@ const updateSchema = z.object({
     'manual_quote',
   ]).optional(),
 });
+
+type QuickBookVehicleSnapshot = {
+  registrationNumber: string;
+  make: string;
+  model: string | null;
+};
+
+function normalizeVehicleSnapshot(vehicle: z.infer<typeof updateSchema>['vehicle']): QuickBookVehicleSnapshot | null {
+  if (!vehicle) return null;
+  const registrationNumber = vehicle.registrationNumber.trim().toUpperCase().replace(/\s+/g, '');
+  const make = vehicle.make.trim();
+  const model = vehicle.model?.trim() || null;
+  if (!registrationNumber || !make) return null;
+  return { registrationNumber, make, model };
+}
+
+function withVehicleSnapshot<T extends object>(
+  breakdown: T,
+  vehicle: QuickBookVehicleSnapshot | null,
+): T & { vehicle?: QuickBookVehicleSnapshot } {
+  return vehicle ? { ...breakdown, vehicle } : breakdown;
+}
+
+function emptyPriceBreakdown(pricingContext: PricingContext, tyreLines: QuickBookTyreLineInput[]) {
+  return {
+    lineItems: [],
+    pricingContext,
+    tyreLines,
+    pricingEngineVersion: 'canonical-context-weather-traffic-v1',
+    totalTyreCost: 0,
+    totalServiceFee: 0,
+    calloutFee: 0,
+    totalSurcharges: 0,
+    discountAmount: 0,
+    surgeMultiplier: 1,
+    subtotal: 0,
+    vatAmount: 0,
+    total: 0,
+    quoteExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+    isValid: true,
+    serviceOrigin: null,
+  };
+}
 
 export async function GET(
   request: Request,
@@ -143,6 +190,7 @@ export async function PATCH(
   }
 
   const data = parsed.data;
+  const vehicleSnapshot = normalizeVehicleSnapshot(data.vehicle);
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   const existingBreakdown = existing.priceBreakdown as Record<string, unknown> | null;
   const hasTyreLinesField = hasField('tyreLines') || hasField('items');
@@ -172,17 +220,26 @@ export async function PATCH(
   if (data.adminAdjustmentReason !== undefined) updateData.adminAdjustmentReason = data.adminAdjustmentReason;
 
   const mergedServiceType = (data.serviceType ?? existing.serviceType) as QuickBookServiceType;
+  const isServiceOnly = mergedServiceType === 'assess' || mergedServiceType === 'locking_nut';
   const existingTyreLineSelections = extractQuickBookTyreLineSelections({ priceBreakdown: existing.priceBreakdown });
   const mergedTyreCount = data.tyreCount ?? existing.tyreCount ?? 1;
   const mergedTyreSize =
     data.tyreSize !== undefined
       ? (data.tyreSize?.trim() || null)
       : (existing.tyreSize ?? null);
-  const mergedTyreLines: QuickBookTyreLineInput[] = incomingTyreLines !== null
+  const mergedTyreLines: QuickBookTyreLineInput[] = isServiceOnly
+    ? []
+    : incomingTyreLines !== null
     ? incomingTyreLines.map((line, index) => ({
         id: line.id || `tyre-${index + 1}`,
         size: line.size.trim(),
         quantity: line.quantity,
+        axle: line.axle ?? null,
+        loadIndex: line.loadIndex ?? null,
+        speedIndex: line.speedIndex ?? null,
+        runFlat: line.runFlat ?? null,
+        xl: line.xl ?? null,
+        commercial: line.commercial ?? null,
         brand: line.brand ?? null,
         pattern: line.pattern ?? null,
         season: line.season ?? null,
@@ -194,18 +251,26 @@ export async function PATCH(
         id: line.id || `tyre-${index + 1}`,
         size: line.normalizedSize ?? line.sizeDisplay ?? line.requestedSize,
         quantity: line.quantity,
+        axle: line.axle ?? null,
+        loadIndex: line.loadIndex ?? null,
+        speedIndex: line.speedIndex ?? null,
+        runFlat: line.runFlat ?? null,
+        xl: line.xl ?? null,
+        commercial: line.commercial ?? null,
         brand: line.brand,
         pattern: line.pattern,
+        season: line.season ?? null,
+        source: line.source ?? null,
         price: line.unitPrice,
       }))
     : mergedTyreSize
     ? [{ id: 'tyre-1', size: mergedTyreSize, quantity: mergedTyreCount }]
     : [];
   const primaryTyreLine = mergedTyreLines[0] ?? null;
-  const primaryTyreSize = primaryTyreLine?.size ?? mergedTyreSize;
-  const primaryTyreCount = primaryTyreLine?.quantity ?? mergedTyreCount;
+  const primaryTyreSize = isServiceOnly ? null : primaryTyreLine?.size ?? mergedTyreSize;
+  const primaryTyreCount = isServiceOnly ? 1 : primaryTyreLine?.quantity ?? mergedTyreCount;
 
-  if (hasTyreLinesField) {
+  if (hasTyreLinesField || (isServiceOnly && hasField('serviceType'))) {
     updateData.tyreSize = primaryTyreSize;
     updateData.tyreCount = primaryTyreCount;
   }
@@ -374,7 +439,7 @@ export async function PATCH(
       updateData.basePrice = priced.breakdown.subtotal.toFixed(2);
       updateData.totalPrice = priced.breakdown.total.toFixed(2);
       // Extend priceBreakdown with service origin info for map display
-      updateData.priceBreakdown = {
+      updateData.priceBreakdown = withVehicleSnapshot({
         ...priced.breakdown,
         tyreLines: priced.tyreLineSelections,
         ...(mergedAdminDistanceLimitMiles != null
@@ -395,7 +460,11 @@ export async function PATCH(
           address: serviceOriginSource === 'garage' ? GARAGE_ADDRESS : null,
           etaMinutes: durationMinutes,
         } : existingBreakdown?.serviceOrigin ?? null,
-      };
+      }, vehicleSnapshot ?? (
+        existingBreakdown?.vehicle && typeof existingBreakdown.vehicle === 'object'
+          ? existingBreakdown.vehicle as QuickBookVehicleSnapshot
+          : null
+      ));
       updateData.selectedTyreProductId = priced.selectedTyreSnapshot?.productId ?? null;
       updateData.selectedTyreUnitPrice =
         priced.selectedTyreSnapshot?.unitPrice != null
@@ -410,6 +479,13 @@ export async function PATCH(
       console.error('[quick-book:update] pricing error', error);
       return NextResponse.json({ error: 'Failed to recalculate pricing' }, { status: 500 });
     }
+  }
+
+  if (vehicleSnapshot && !updateData.priceBreakdown) {
+    updateData.priceBreakdown = withVehicleSnapshot(
+      existingBreakdown ?? emptyPriceBreakdown(mergedPricingContext, mergedTyreLines),
+      vehicleSnapshot,
+    );
   }
 
   await db.update(quickBookings).set(updateData).where(eq(quickBookings.id, id));

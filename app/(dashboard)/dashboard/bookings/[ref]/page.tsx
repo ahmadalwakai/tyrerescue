@@ -53,6 +53,7 @@ export default async function CustomerBookingDetailPage(
     {
       tyreSizeDisplay: booking.tyreSizeDisplay,
       quantity: booking.quantity,
+      priceSnapshot: booking.priceSnapshot,
       lockingNutStatus: booking.lockingNutStatus,
       serviceType: booking.serviceType,
       notes: booking.notes,
@@ -188,8 +189,10 @@ export default async function CustomerBookingDetailPage(
       {/* Tyres */}
       <Box bg={c.card} p={6} borderRadius="md" borderWidth="1px" borderColor={c.border} style={{ animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.3s both' }}>
         <Text fontWeight="600" color={c.text} mb={4}>Tyre Details</Text>
-        {tyreDetails.size && (
-          <Text fontSize="sm" color={c.muted} mb={2}>Size: {tyreDetails.size}</Text>
+        {tyreDetails.quantity > 0 && (
+          <Text fontSize="sm" color={c.muted} mb={2}>
+            Total Quantity: {tyreDetails.quantity}
+          </Text>
         )}
         {tyreDetails.items.length > 0 ? (
           <VStack align="stretch" gap={3}>
@@ -205,9 +208,9 @@ export default async function CustomerBookingDetailPage(
               >
                 <Box minW={0} flex={1}>
                   <Text fontSize="sm" color={c.text}>
-                    {[item.brand, item.model].filter(Boolean).join(' ') || item.service}
+                    {item.label || [item.brand, item.model].filter(Boolean).join(' ') || item.service}
                   </Text>
-                  {(item.size ?? tyreDetails.size) && (
+                  {!item.label && (item.size ?? tyreDetails.size) && (
                     <Text fontSize="xs" color={c.muted}>
                       {item.size ?? tyreDetails.size}
                       {item.service ? ` / ${item.service}` : ''}

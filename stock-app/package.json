@@ -1,0 +1,37 @@
+{
+  "name": "tyre-rescue-stock",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start --port 8081",
+    "web": "expo start --web --port 8081",
+    "ios": "expo start --ios --port 8081",
+    "android": "expo start --android --port 8081",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
+    "@react-navigation/native": "^7.1.18",
+    "expo": "~55.0.28",
+    "expo-constants": "~55.0.17",
+    "expo-linking": "~55.0.16",
+    "expo-router": "~55.0.17",
+    "expo-secure-store": "~55.0.15",
+    "expo-splash-screen": "~55.0.23",
+    "expo-status-bar": "~55.0.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-native": "0.83.6",
+    "react-native-gesture-handler": "~2.30.0",
+    "react-native-safe-area-context": "~5.6.2",
+    "react-native-screens": "~4.23.0",
+    "react-native-web": "^0.21.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@types/react": "~19.2.10",
+    "babel-preset-expo": "~55.0.8",
+    "typescript": "~5.9.2"
+  }
+}

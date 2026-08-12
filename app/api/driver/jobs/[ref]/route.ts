@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
-import { db, bookings, bookingTyres, tyreProducts, bookingStatusHistory } from '@/lib/db';
+import { db, bookings, bookingTyres, tyreProducts, bookingStatusHistory, wheelNutConsents } from '@/lib/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { requireDriverMobile } from '@/lib/auth';
 import { getBookingPaymentSummary } from '@/lib/payments/payment-summary';
+import {
+  resolveBookingTyreDisplay,
+  totalTyreLineQuantity,
+} from '@/lib/bookings/tyre-line-display';
+import { serializeWheelNutConsentStatus } from '@/lib/wheel-nut-consent';
 
 export async function GET(
   request: Request,
@@ -36,6 +41,7 @@ export async function GET(
         service: bookingTyres.service,
         brand: tyreProducts.brand,
         pattern: tyreProducts.pattern,
+        sizeDisplay: tyreProducts.sizeDisplay,
         width: tyreProducts.width,
         aspect: tyreProducts.aspect,
         rim: tyreProducts.rim,
@@ -56,6 +62,12 @@ export async function GET(
       .from(bookingStatusHistory)
       .where(eq(bookingStatusHistory.bookingId, booking.id))
       .orderBy(desc(bookingStatusHistory.createdAt));
+    const [latestWheelNutConsent] = await db
+      .select()
+      .from(wheelNutConsents)
+      .where(eq(wheelNutConsents.bookingId, booking.id))
+      .orderBy(desc(wheelNutConsents.createdAt))
+      .limit(1);
     const paymentSummary = await getBookingPaymentSummary({
       id: booking.id,
       refNumber: booking.refNumber,
@@ -70,6 +82,24 @@ export async function GET(
       stripePiId: booking.stripePiId,
       stripeDepositPiId: booking.stripeDepositPiId,
     });
+    const tyreRows = tyres.map((t) => ({
+      brand: t.brand,
+      pattern: t.pattern,
+      sizeDisplay: t.sizeDisplay,
+      width: t.width,
+      aspect: t.aspect,
+      rim: t.rim,
+      quantity: t.quantity,
+      unitPrice: t.unitPrice?.toString() ?? null,
+      service: t.service,
+    }));
+    const tyreDisplay = resolveBookingTyreDisplay({
+      priceSnapshot: booking.priceSnapshot,
+      tyreRows,
+      tyreSizeDisplay: booking.tyreSizeDisplay,
+      quantity: booking.quantity,
+    });
+    const tyreQuantity = totalTyreLineQuantity(tyreDisplay.lines) || booking.quantity;
 
     return NextResponse.json({
       id: booking.id,
@@ -80,8 +110,10 @@ export async function GET(
       addressLine: booking.addressLine,
       lat: booking.lat?.toString() ?? null,
       lng: booking.lng?.toString() ?? null,
-      tyreSizeDisplay: booking.tyreSizeDisplay,
-      quantity: booking.quantity,
+      tyreSizeDisplay: tyreDisplay.lines[0]?.size ?? booking.tyreSizeDisplay,
+      quantity: tyreQuantity,
+      tyreLines: tyreDisplay.lines,
+      tyreLineSource: tyreDisplay.source,
       customerName: booking.customerName,
       customerEmail: booking.customerEmail,
       customerPhone: booking.customerPhone,
@@ -89,6 +121,7 @@ export async function GET(
       vehicleMake: booking.vehicleMake,
       vehicleModel: booking.vehicleModel,
       lockingNutStatus: booking.lockingNutStatus,
+      wheelNutConsent: serializeWheelNutConsentStatus(booking, latestWheelNutConsent ?? null),
       tyrePhotoUrl: booking.tyrePhotoUrl,
       notes: booking.notes,
       scheduledAt: booking.scheduledAt?.toISOString() ?? null,
@@ -112,6 +145,7 @@ export async function GET(
         service: t.service,
         brand: t.brand,
         pattern: t.pattern,
+        sizeDisplay: t.sizeDisplay,
         width: t.width,
         aspect: t.aspect,
         rim: t.rim,

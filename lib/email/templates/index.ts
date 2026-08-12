@@ -39,6 +39,14 @@ export type { AdminUrgentNoDriverData } from './admin-urgent-no-driver';
 export { adminLowStock } from './admin-low-stock';
 export type { AdminLowStockData } from './admin-low-stock';
 
+export { stockDailyBuyReport } from './stock-daily-buy-report';
+export type {
+  StockDailyAdditionItem,
+  StockDailyBuyReportData,
+  StockDailyBuyReportItem,
+  StockDailyMissingItem,
+} from './stock-daily-buy-report';
+
 export { bookingCancelled } from './booking-cancelled';
 export type { BookingCancelledData } from './booking-cancelled';
 

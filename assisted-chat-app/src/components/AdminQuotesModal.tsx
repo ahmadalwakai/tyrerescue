@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -26,6 +26,7 @@ import { colors, fontSize, radius } from './theme';
 import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 
 type QuoteMode = 'recent' | 'today' | 'pending' | 'expired';
+const QUOTE_REACTIVATION_MS = 2 * 60 * 60 * 1000;
 
 interface Props {
   visible: boolean;
@@ -116,6 +117,7 @@ function getErrorMessage(err: unknown, fallback: string): string {
 }
 
 export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
+  const scrollRef = useRef<ScrollView>(null);
   const [mode, setMode] = useState<QuoteMode>('recent');
   const [search, setSearch] = useState('');
   const [quotes, setQuotes] = useState<AdminQuote[]>([]);
@@ -144,6 +146,14 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
     }
   }, [mode, search]);
 
+  const selectMode = useCallback((nextMode: QuoteMode) => {
+    setMode(nextMode);
+    setSelected(null);
+    setConfirmationResult(null);
+    setDetailError(null);
+    setSuccess(null);
+  }, []);
+
   useEffect(() => {
     if (visible) {
       void loadQuotes();
@@ -159,6 +169,7 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
 
   const openQuote = useCallback(async (quote: AdminQuote) => {
     setSelected(quote);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
     setPaymentOption(quote.selectedPaymentOption ? normalizePaymentOption(quote.selectedPaymentOption) : 'FULL_PAYMENT');
     setConfirmationResult(null);
     setNotesDraft(quote.internalNotes ?? '');
@@ -185,8 +196,11 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
     setSelected(quote);
     if (quote.selectedPaymentOption) setPaymentOption(normalizePaymentOption(quote.selectedPaymentOption));
     setNotesDraft(quote.internalNotes ?? '');
-    setQuotes((items) => items.map((item) => (item.id === quote.id ? quote : item)));
-  }, []);
+    setQuotes((items) => {
+      if (mode === 'expired' && !quote.isExpired) return items.filter((item) => item.id !== quote.id);
+      return items.map((item) => (item.id === quote.id ? quote : item));
+    });
+  }, [mode]);
 
   const saveNotes = useCallback(async () => {
     if (!selected) return;
@@ -237,16 +251,26 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
     setActionBusy('refresh');
     setDetailError(null);
     setSuccess(null);
+    const patch = selected.isExpired
+      ? {
+          quoteStatus: 'QUOTED' as AdminQuoteStatus,
+          expiresAt: new Date(Date.now() + QUOTE_REACTIVATION_MS).toISOString(),
+        }
+      : {
+          refreshPrice: true,
+        };
     try {
-      const response = await api.patch<AdminQuoteResponse>(`/api/admin/quotes/${selected.id}`, {
-        refreshPrice: true,
-      });
+      const response = await api.patch<AdminQuoteResponse>(`/api/admin/quotes/${selected.id}`, patch);
       updateSelected(response.quote);
       setConfirmationResult(null);
-      setSuccess(`Quote ${response.quote.quoteRef} refreshed for 2 hours.`);
+      setSuccess(
+        selected.isExpired
+          ? `Quote ${response.quote.quoteRef} reactivated for 2 hours.`
+          : `Quote ${response.quote.quoteRef} recalculated for 2 hours.`,
+      );
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) removeStaleQuote(selected.id);
-      else setDetailError(getErrorMessage(err, 'Failed to recalculate quote.'));
+      else setDetailError(getErrorMessage(err, selected.isExpired ? 'Failed to reactivate quote.' : 'Failed to recalculate quote.'));
     } finally {
       setActionBusy(null);
     }
@@ -317,6 +341,12 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
 
   const visibleQuotes = useMemo(() => quotes, [quotes]);
   const selectedDeposit = selected ? depositSummary(selected.priceAmount) : null;
+  const canRecalculateSelectedQuote = Boolean(
+    selected?.quickBookingId ||
+      (selected?.tyreSize && selected.latitude != null && selected.longitude != null),
+  );
+  const refreshActionLabel = selected?.isExpired ? 'Reactivate quote' : 'Recalculate Price';
+  const refreshActionDisabled = !selected || actionBusy !== null || (!selected.isExpired && !canRecalculateSelectedQuote);
   const canStartPayment = Boolean(confirmationResult?.paymentHandoff.canStartPayment && confirmationResult.paymentHandoff.paymentUrl);
   const paymentInstructionAvailable = Boolean(
     confirmationResult?.paymentInstruction || (selected && paymentOption === 'PAYMENT_LINK'),
@@ -336,7 +366,7 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
             {(Object.keys(MODE_LABELS) as QuoteMode[]).map((item) => (
               <Pressable
                 key={item}
-                onPress={() => setMode(item)}
+                onPress={() => selectMode(item)}
                 style={[styles.modePill, mode === item && styles.modePillActive]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: mode === item }}
@@ -359,38 +389,17 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
 
         {error ? <StatusBanner kind="err" message={error} /> : null}
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          {loading ? (
-            <View style={styles.centerState}>
-              <ActivityIndicator color={colors.accent} />
-              <Text style={styles.stateText}>Loading quotes...</Text>
-            </View>
-          ) : visibleQuotes.length === 0 ? (
-            <View style={styles.centerState}>
-              <Text style={styles.stateText}>No saved quotes found.</Text>
-            </View>
-          ) : (
-            <View style={styles.list}>
-              {visibleQuotes.map((quote) => (
-                <Pressable key={quote.id} onPress={() => openQuote(quote)} style={styles.card} accessibilityRole="button">
-                  <View style={styles.cardTopRow}>
-                    <Text style={styles.quoteRef}>{quote.quoteRef}</Text>
-                    <Text style={[styles.status, { color: statusColor(quote.quoteStatus) }]}>{quote.quoteStatus}</Text>
-                  </View>
-                  <Text style={styles.cardLine}>{quote.customerPhone ?? 'No phone'} · {quote.tyreSize ?? 'No tyre size'} x {quote.quantity}</Text>
-                  <Text style={styles.price}>{formatGbp(quote.priceAmount / 100)}</Text>
-                  <Text style={styles.meta}>Created {formatDateTime(quote.createdAt)} · Expires {formatDateTime(quote.expiresAt)}</Text>
-                  {quote.internalNotes ? <Text style={styles.notesPreview} numberOfLines={2}>{quote.internalNotes}</Text> : null}
-                </Pressable>
-              ))}
-            </View>
-          )}
-
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {selected ? (
             <View style={styles.detailCard}>
               <View style={styles.cardTopRow}>
-                <Text style={styles.detailTitle}>{selected.quoteRef}</Text>
-                <Text style={[styles.status, { color: statusColor(selected.quoteStatus) }]}>{selected.quoteStatus}</Text>
+                <View style={styles.detailHeading}>
+                  <Text style={styles.detailTitle}>{selected.quoteRef}</Text>
+                  <Text style={[styles.status, { color: statusColor(selected.quoteStatus) }]}>{selected.quoteStatus}</Text>
+                </View>
+                <Pressable onPress={() => setSelected(null)} style={styles.closeDetailButton} accessibilityRole="button">
+                  <Text style={styles.closeDetailText}>Close details</Text>
+                </Pressable>
               </View>
               {detailLoading ? <ActivityIndicator color={colors.accent} /> : null}
               <Text style={styles.detailLine}>Phone: {selected.customerPhone ?? 'Not set'}</Text>
@@ -464,16 +473,49 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
               </View>
               <View style={styles.detailActions}>
                 <AppButton label="Save notes" variant="secondary" onPress={saveNotes} loading={actionBusy === 'notes'} disabled={actionBusy !== null} fullWidth />
-                <AppButton label="Recalculate Price" variant="secondary" onPress={refreshQuote} loading={actionBusy === 'refresh'} disabled={actionBusy !== null || !selected.quickBookingId} fullWidth />
+                <AppButton label={refreshActionLabel} variant={selected.isExpired ? 'primary' : 'secondary'} onPress={refreshQuote} loading={actionBusy === 'refresh'} disabled={refreshActionDisabled} fullWidth />
                 <AppButton label="Send SMS" variant="secondary" onPress={sendSms} loading={actionBusy === 'sms'} disabled={actionBusy !== null || !selected.smsAvailable} fullWidth />
                 <AppButton label="Use quote in draft" variant="ghost" onPress={() => onUseQuote(selected)} disabled={actionBusy !== null} fullWidth />
               </View>
               {!selected.smsAvailable && selected.smsUnavailableReason ? <StatusBanner kind="info" message={selected.smsUnavailableReason} /> : null}
-              {selected.isExpired ? <StatusBanner kind="warn" message="This quote is expired. Recalculate it before confirming." /> : null}
+              {selected.isExpired ? <StatusBanner kind="warn" message="This quote is expired. Reactivate it before confirming." /> : null}
+              {!selected.isExpired && !canRecalculateSelectedQuote ? <StatusBanner kind="info" message="This quote can be used, but it cannot be recalculated because it has no saved booking/location pricing context." /> : null}
               {success ? <StatusBanner kind="ok" message={success} /> : null}
               {detailError ? <StatusBanner kind="err" message={detailError} /> : null}
             </View>
           ) : null}
+
+          {loading ? (
+            <View style={styles.centerState}>
+              <ActivityIndicator color={colors.accent} />
+              <Text style={styles.stateText}>Loading quotes...</Text>
+            </View>
+          ) : visibleQuotes.length === 0 ? (
+            <View style={styles.centerState}>
+              <Text style={styles.stateText}>No saved quotes found.</Text>
+            </View>
+          ) : (
+            <View style={styles.list}>
+              {visibleQuotes.map((quote) => (
+                <Pressable
+                  key={quote.id}
+                  onPress={() => openQuote(quote)}
+                  style={[styles.card, selected?.id === quote.id && styles.cardSelected]}
+                  accessibilityRole="button"
+                >
+                  <View style={styles.cardTopRow}>
+                    <Text style={styles.quoteRef}>{quote.quoteRef}</Text>
+                    <Text style={[styles.status, { color: statusColor(quote.quoteStatus) }]}>{quote.quoteStatus}</Text>
+                  </View>
+                  <Text style={styles.cardLine}>{quote.customerPhone ?? 'No phone'} · {quote.tyreSize ?? 'No tyre size'} x {quote.quantity}</Text>
+                  <Text style={styles.price}>{formatGbp(quote.priceAmount / 100)}</Text>
+                  <Text style={styles.meta}>Created {formatDateTime(quote.createdAt)} · Expires {formatDateTime(quote.expiresAt)}</Text>
+                  {quote.internalNotes ? <Text style={styles.notesPreview} numberOfLines={2}>{quote.internalNotes}</Text> : null}
+                  <Text style={styles.openHint}>Tap to open quote actions</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </ScrollView>
         </View>
       </AdminModalShell>
@@ -534,6 +576,10 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 6,
   },
+  cardSelected: {
+    borderColor: colors.accent,
+    backgroundColor: colors.panel,
+  },
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' },
   quoteRef: { color: colors.text, fontSize: fontSize.lg, fontWeight: '800' },
   status: { fontSize: fontSize.xs, fontWeight: '800' },
@@ -541,6 +587,7 @@ const styles = StyleSheet.create({
   price: { color: colors.text, fontSize: fontSize.lg, fontWeight: '800' },
   meta: { color: colors.subtle, fontSize: fontSize.xs },
   notesPreview: { color: colors.text, fontSize: fontSize.sm, marginTop: 4 },
+  openHint: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '800', marginTop: 4 },
   detailCard: {
     backgroundColor: colors.surface,
     borderColor: colors.borderStrong,
@@ -549,7 +596,17 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 10,
   },
+  detailHeading: { flex: 1, minWidth: 0, gap: 4 },
   detailTitle: { color: colors.text, fontSize: fontSize.xl, fontWeight: '800' },
+  closeDetailButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  closeDetailText: { color: colors.muted, fontSize: fontSize.xs, fontWeight: '800' },
   detailLine: { color: colors.text, fontSize: fontSize.sm, lineHeight: 20 },
   notesInput: { minHeight: 86, paddingTop: 10 },
   confirmPanel: {

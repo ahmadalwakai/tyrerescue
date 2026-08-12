@@ -7,22 +7,13 @@ import {
   RATE_LIMITS,
   rateLimitedResponse,
 } from '@/lib/security';
+import { lookupVrm } from '@/lib/dvla';
 
 const regSchema = z
   .string()
   .min(2)
   .max(10)
   .transform((v) => v.replace(/\s+/g, '').toUpperCase());
-
-interface DvlaVehicle {
-  make?: string;
-  colour?: string;
-  fuelType?: string;
-  yearOfManufacture?: number;
-  engineCapacity?: number;
-  monthOfFirstRegistration?: string;
-  wheelplan?: string;
-}
 
 export async function GET(request: NextRequest) {
   // Light per-IP rate limit. DVLA is a paid third-party — we don't want bots
@@ -50,62 +41,36 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const apiKey = process.env.DVSA_MOT_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: 'Vehicle lookup not configured' },
-      { status: 503 }
-    );
-  }
-
   try {
-    const res = await fetch(
-      'https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
+    const result = await lookupVrm(parsed.data);
+    if (!result.ok) {
+      const httpStatus = result.error.code === 'invalid_format' ? 400 : 200;
+      return NextResponse.json(
+        {
+          ok: false,
+          status: result.error.code === 'not_found' ? 'dvla_not_found' : 'dvla_unavailable',
+          error: result.error.message,
+          code: result.error.code,
         },
-        body: JSON.stringify({ registrationNumber: parsed.data }),
-        signal: AbortSignal.timeout(8000),
-      }
-    );
-
-    if (res.status === 404) {
-      return NextResponse.json(
-        { error: 'Vehicle not found' },
-        { status: 404 }
+        { status: httpStatus },
       );
     }
 
-    if (!res.ok) {
-      return NextResponse.json(
-        { error: 'Lookup failed' },
-        { status: 502 }
-      );
-    }
-
-    const vehicle: DvlaVehicle = await res.json();
-
-    // Format engine capacity: 1995 → "2.0L"
-    let engineSize: string | null = null;
-    if (vehicle.engineCapacity) {
-      engineSize = (vehicle.engineCapacity / 1000).toFixed(1) + 'L';
-    }
-
+    const vehicle = result.vehicle;
     return NextResponse.json({
+      ok: true,
+      status: 'dvla_resolved',
       make: vehicle.make || null,
       colour: vehicle.colour || null,
       fuelType: vehicle.fuelType || null,
       year: vehicle.yearOfManufacture?.toString() || null,
-      engineSize,
+      engineSize: null,
     });
   } catch (err) {
     console.error('DVLA lookup error:', err);
     return NextResponse.json(
-      { error: 'Vehicle lookup timed out' },
-      { status: 504 }
+      { ok: false, status: 'dvla_unavailable', error: 'Vehicle lookup failed' },
+      { status: 200 }
     );
   }
 }

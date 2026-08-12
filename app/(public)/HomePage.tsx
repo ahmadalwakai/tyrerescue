@@ -189,6 +189,30 @@ const cssKeyframes = `
     0%, 100% { text-shadow: none; }
     50% { text-shadow: 0 0 18px rgba(9,9,11,0.28); }
   }
+  @keyframes trBookCardBreathe {
+    0%, 100% {
+      transform: translateZ(0) scale(1);
+      box-shadow: 0 16px 42px rgba(0,0,0,0.34), 0 0 0 1px rgba(249,115,22,0.48) inset;
+    }
+    50% {
+      transform: translateZ(0) scale(1.012);
+      box-shadow: 0 20px 56px rgba(249,115,22,0.28), 0 0 0 5px rgba(249,115,22,0.10), 0 0 0 1px rgba(249,115,22,0.72) inset;
+    }
+  }
+  @keyframes trBookIconLift {
+    0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+    18% { transform: translateY(-2px) rotate(-3deg) scale(1.04); }
+    36% { transform: translateY(0) rotate(3deg) scale(1.02); }
+    52% { transform: translateY(-1px) rotate(0deg) scale(1); }
+  }
+  @keyframes trBookArrowNudge {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(5px); }
+  }
+  @keyframes trBookTextGlow {
+    0%, 100% { text-shadow: none; }
+    50% { text-shadow: 0 0 16px rgba(249,115,22,0.5); }
+  }
   .tr-call-attention-card {
     animation: trCallCardBreathe 2.15s ease-in-out infinite;
     will-change: transform, box-shadow;
@@ -224,12 +248,58 @@ const cssKeyframes = `
   .tr-call-attention-text {
     animation: trCallTextGlow 2.15s ease-in-out infinite;
   }
+  .tr-book-attention-card {
+    animation: trBookCardBreathe 2.15s ease-in-out infinite;
+    will-change: transform, box-shadow;
+  }
+  .tr-book-attention-card:hover {
+    animation-play-state: paused;
+  }
+  .tr-book-attention-sweep {
+    position: absolute;
+    top: -45%;
+    bottom: -45%;
+    left: 0;
+    width: 34%;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.24) 40%, rgba(249,115,22,0.42) 52%, transparent 100%);
+    pointer-events: none;
+    animation: trCallSweep 2.75s ease-in-out infinite;
+    z-index: 1;
+  }
+  .tr-book-attention-ring {
+    position: absolute;
+    inset: 5px;
+    border-radius: inherit;
+    border: 1px solid rgba(249,115,22,0.48);
+    pointer-events: none;
+    animation: trCallRing 2.15s ease-out infinite;
+    z-index: 1;
+  }
+  .tr-book-attention-icon {
+    animation: trBookIconLift 2.15s ease-in-out infinite;
+    transform-origin: center;
+    z-index: 2;
+  }
+  .tr-book-attention-text {
+    animation: trBookTextGlow 2.15s ease-in-out infinite;
+  }
+  .tr-book-attention-arrow {
+    animation: trBookArrowNudge 1.2s ease-in-out infinite;
+    display: inline-flex;
+    transform-origin: center;
+  }
   @media (prefers-reduced-motion: reduce) {
     .tr-call-attention-card,
     .tr-call-attention-sweep,
     .tr-call-attention-ring,
     .tr-call-attention-icon,
-    .tr-call-attention-text {
+    .tr-call-attention-text,
+    .tr-book-attention-card,
+    .tr-book-attention-sweep,
+    .tr-book-attention-ring,
+    .tr-book-attention-icon,
+    .tr-book-attention-text,
+    .tr-book-attention-arrow {
       animation: none !important;
     }
   }
@@ -527,6 +597,18 @@ function PhoneIcon({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.94.35 1.86.7 2.75a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.33-1.27a2 2 0 0 1 2.11-.45c.89.35 1.81.57 2.75.7A2 2 0 0 1 22 16.92z" />
+    </svg>
+  );
+}
+
+function BookingIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 2v4" />
+      <path d="M16 2v4" />
+      <path d="M3.5 9.5h17" />
+      <path d="M6 4h12a2.5 2.5 0 0 1 2.5 2.5v12A2.5 2.5 0 0 1 18 21H6a2.5 2.5 0 0 1-2.5-2.5v-12A2.5 2.5 0 0 1 6 4z" />
+      <path d="m8 15 2.2 2.2L16.5 11" />
     </svg>
   );
 }
@@ -1041,29 +1123,62 @@ function ConversionHero() {
             >
               <ChakraLink
                 asChild
+                className="tr-book-attention-card"
                 mt={3}
-                minH="54px"
+                minH={{ base: '70px', md: '76px' }}
                 display="flex"
                 alignItems="center"
-                justifyContent="center"
-                gap={2}
+                justifyContent="space-between"
+                gap={{ base: 3, md: 4 }}
+                px={{ base: 4, md: 5 }}
+                py={{ base: 3, md: 4 }}
                 borderRadius="18px"
-                bg="rgba(9,9,11,0.68)"
+                bg="linear-gradient(135deg, rgba(9,9,11,0.88) 0%, rgba(24,24,27,0.9) 48%, rgba(67,28,11,0.9) 100%)"
                 color={colors.textPrimary}
                 borderWidth="1px"
-                borderColor="rgba(249,115,22,0.54)"
-                fontSize={{ base: '17px', md: '18px' }}
-                fontWeight="900"
+                borderColor="rgba(249,115,22,0.62)"
                 textDecoration="none"
-                boxShadow="0 14px 34px rgba(0,0,0,0.24)"
-                _hover={{ bg: 'rgba(249,115,22,0.13)', color: colors.accent, textDecoration: 'none' }}
+                boxShadow="0 16px 42px rgba(0,0,0,0.34), 0 0 0 1px rgba(249,115,22,0.48) inset"
+                position="relative"
+                overflow="hidden"
+                _hover={{
+                  bg: 'linear-gradient(135deg, rgba(18,18,20,0.92) 0%, rgba(38,24,14,0.94) 48%, rgba(92,37,9,0.94) 100%)',
+                  color: colors.textPrimary,
+                  textDecoration: 'none',
+                }}
                 _active={{ transform: 'scale(0.99)' }}
-                transition="background 0.2s ease, color 0.2s ease, transform 0.2s ease"
+                transition="background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease"
                 aria-label="Book a tyre fitting online"
               >
                 <Link href="/book">
-                  Book Online
-                  <Text as="span" color={colors.accent} aria-hidden="true">
+                  <Box className="tr-book-attention-sweep" aria-hidden="true" />
+                  <Box className="tr-book-attention-ring" aria-hidden="true" />
+                  <Flex
+                    className="tr-book-attention-icon"
+                    w={{ base: '44px', md: '50px' }}
+                    h={{ base: '44px', md: '50px' }}
+                    align="center"
+                    justify="center"
+                    borderRadius="15px"
+                    bg="rgba(249,115,22,0.18)"
+                    color={colors.accent}
+                    borderWidth="1px"
+                    borderColor="rgba(249,115,22,0.38)"
+                    flexShrink={0}
+                    position="relative"
+                    zIndex={2}
+                  >
+                    <BookingIcon size={24} />
+                  </Flex>
+                  <Box position="relative" zIndex={2} flex="1" minW={0}>
+                    <Text className="tr-book-attention-text" fontSize={{ base: '22px', md: '26px' }} fontWeight="900" lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>
+                      Book Online
+                    </Text>
+                    <Text fontSize={{ base: '12px', md: '13px' }} fontWeight="800" color={colors.textSecondary} mt={1}>
+                      Get a quote and reserve your slot
+                    </Text>
+                  </Box>
+                  <Text className="tr-book-attention-arrow" as="span" color={colors.accent} fontSize={{ base: '24px', md: '28px' }} fontWeight="900" position="relative" zIndex={2} aria-hidden="true">
                     →
                   </Text>
                 </Link>

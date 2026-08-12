@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { bookings } from '@/lib/db/schema';
+import { bookings, bookingTyres, tyreProducts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { generateBookingCustomerInvoicePdf } from '@/lib/invoice-pdf';
 import { buildBookingCustomerInvoiceFromBooking, InvoiceDomainError } from '@/lib/invoices/invoice-domain';
 import { getBookingPaymentSummary } from '@/lib/payments/payment-summary';
+import { displayStringsForBookingTyres } from '@/lib/bookings/tyre-line-display';
 
 const COMPANY = {
   name: 'Tyre Rescue',
@@ -50,6 +51,8 @@ export async function GET(
       vehicleMake: bookings.vehicleMake,
       vehicleModel: bookings.vehicleModel,
       tyreSizeDisplay: bookings.tyreSizeDisplay,
+      quantity: bookings.quantity,
+      priceSnapshot: bookings.priceSnapshot,
     })
     .from(bookings)
     .where(and(eq(bookings.refNumber, ref), eq(bookings.userId, session.user.id)))
@@ -73,6 +76,27 @@ export async function GET(
     stripePiId: booking.stripePiId,
     stripeDepositPiId: booking.stripeDepositPiId,
   });
+  const tyreRows = await db
+    .select({
+      quantity: bookingTyres.quantity,
+      unitPrice: bookingTyres.unitPrice,
+      service: bookingTyres.service,
+      brand: tyreProducts.brand,
+      pattern: tyreProducts.pattern,
+      sizeDisplay: tyreProducts.sizeDisplay,
+      width: tyreProducts.width,
+      aspect: tyreProducts.aspect,
+      rim: tyreProducts.rim,
+    })
+    .from(bookingTyres)
+    .leftJoin(tyreProducts, eq(bookingTyres.tyreId, tyreProducts.id))
+    .where(eq(bookingTyres.bookingId, booking.id));
+  const tyreLines = displayStringsForBookingTyres({
+    priceSnapshot: booking.priceSnapshot,
+    tyreRows,
+    tyreSizeDisplay: booking.tyreSizeDisplay,
+    quantity: booking.quantity,
+  });
 
   try {
     const invoice = buildBookingCustomerInvoiceFromBooking({
@@ -90,6 +114,9 @@ export async function GET(
         vehicleMake: booking.vehicleMake,
         vehicleModel: booking.vehicleModel,
         tyreSizeDisplay: booking.tyreSizeDisplay,
+        quantity: booking.quantity,
+        priceSnapshot: booking.priceSnapshot,
+        tyreLines,
         serviceType: booking.serviceType,
         vatAmount: booking.vatAmount.toString(),
       },

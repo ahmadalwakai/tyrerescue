@@ -10,6 +10,8 @@ import {
   validateVirtualLandlineCsvFile,
 } from '@/lib/virtual-landline/server';
 
+type RequestFormData = { get(name: string): unknown };
+
 export async function readVirtualLandlineCsvFromRequest(request: Request): Promise<
   | {
       ok: true;
@@ -22,9 +24,9 @@ export async function readVirtualLandlineCsvFromRequest(request: Request): Promi
       response: NextResponse;
     }
 > {
-  let formData: FormData;
+  let formData: RequestFormData;
   try {
-    formData = await request.formData();
+    formData = await request.formData() as unknown as RequestFormData;
   } catch {
     return {
       ok: false,

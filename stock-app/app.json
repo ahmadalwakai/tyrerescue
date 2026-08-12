@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Tyre Rescue Stock",
+    "slug": "tyre-rescue-stock",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "tyrerescuestock",
+    "userInterfaceStyle": "dark",
+    "icon": "./assets/logo.png",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "uk.tyrerescue.stock",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "uk.tyrerescue.stock",
+      "permissions": [
+        "INTERNET"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#0B1117"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/logo.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/logo.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#0B1117"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -8,10 +8,31 @@ export interface JobAssignedData {
   customerLng: number;
   tyreSizeDisplay: string;
   quantity: number;
+  tyreLines?: string[];
+  totalTyreQuantity?: number;
   serviceType: string;
   customerPhone: string;
   tyrePhotoUrl?: string;
   lockingNutStatus?: string | null;
+}
+
+function tyreDetailRows(input: { tyreSizeDisplay: string; quantity: number; tyreLines?: string[]; totalTyreQuantity?: number }): string {
+  const lines = (input.tyreLines ?? []).map((line) => line.trim()).filter(Boolean);
+  const detailLines = lines.length > 0 ? lines : [input.tyreSizeDisplay].filter(Boolean);
+  const quantity = input.totalTyreQuantity ?? input.quantity;
+
+  return `
+      ${detailLines.map((line, index) => `
+      <div class="info-row">
+        <span class="label">${index === 0 ? 'Tyres' : ''}</span>
+        <span class="value">${line}</span>
+      </div>
+      `).join('')}
+      <div class="info-row">
+        <span class="label">Total Quantity</span>
+        <span class="value">${quantity}</span>
+      </div>
+  `;
 }
 
 export function jobAssigned(data: JobAssignedData): { subject: string; html: string } {
@@ -23,6 +44,8 @@ export function jobAssigned(data: JobAssignedData): { subject: string; html: str
     customerLng,
     tyreSizeDisplay,
     quantity,
+    tyreLines,
+    totalTyreQuantity,
     serviceType,
     customerPhone,
     tyrePhotoUrl,
@@ -55,14 +78,7 @@ export function jobAssigned(data: JobAssignedData): { subject: string; html: str
         <span class="label">Service Type</span>
         <span class="value">${serviceType}</span>
       </div>
-      <div class="info-row">
-        <span class="label">Tyre Size</span>
-        <span class="value">${tyreSizeDisplay}</span>
-      </div>
-      <div class="info-row">
-        <span class="label">Quantity</span>
-        <span class="value">${quantity}</span>
-      </div>
+      ${tyreDetailRows({ tyreSizeDisplay, quantity, tyreLines, totalTyreQuantity })}
     </div>
 
     <h2>Customer Contact</h2>

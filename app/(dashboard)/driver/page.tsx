@@ -4,6 +4,11 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Box, Heading } from '@chakra-ui/react';
 import { DriverDashboardClient } from './DriverDashboardClient';
+import {
+  formatTyreDisplayLine,
+  resolveBookingTyreDisplay,
+  totalTyreLineQuantity,
+} from '@/lib/bookings/tyre-line-display';
 
 export default async function DriverDashboardPage() {
   const session = await auth();
@@ -38,6 +43,7 @@ export default async function DriverDashboardPage() {
       lng: bookings.lng,
       tyreSizeDisplay: bookings.tyreSizeDisplay,
       quantity: bookings.quantity,
+      priceSnapshot: bookings.priceSnapshot,
       customerName: bookings.customerName,
       customerPhone: bookings.customerPhone,
       tyrePhotoUrl: bookings.tyrePhotoUrl,
@@ -61,18 +67,55 @@ export default async function DriverDashboardPage() {
     .limit(1);
 
   // Get tyre details for active job
-  let activeJobTyres: { quantity: number; brand: string | null; pattern: string | null }[] = [];
+  let activeJobTyres: {
+    quantity: number;
+    brand: string | null;
+    pattern: string | null;
+    sizeDisplay: string | null;
+    width: number | null;
+    aspect: number | null;
+    rim: number | null;
+    unitPrice: string;
+    service: string;
+  }[] = [];
   if (activeJob) {
     activeJobTyres = await db
       .select({
         quantity: bookingTyres.quantity,
+        unitPrice: bookingTyres.unitPrice,
+        service: bookingTyres.service,
         brand: tyreProducts.brand,
         pattern: tyreProducts.pattern,
+        sizeDisplay: tyreProducts.sizeDisplay,
+        width: tyreProducts.width,
+        aspect: tyreProducts.aspect,
+        rim: tyreProducts.rim,
       })
       .from(bookingTyres)
       .leftJoin(tyreProducts, eq(bookingTyres.tyreId, tyreProducts.id))
       .where(eq(bookingTyres.bookingId, activeJob.id));
   }
+  const activeJobTyreDisplay = activeJob
+    ? resolveBookingTyreDisplay({
+        priceSnapshot: activeJob.priceSnapshot,
+        tyreRows: activeJobTyres.map((t) => ({
+          brand: t.brand,
+          pattern: t.pattern,
+          sizeDisplay: t.sizeDisplay,
+          width: t.width,
+          aspect: t.aspect,
+          rim: t.rim,
+          quantity: t.quantity,
+          unitPrice: t.unitPrice.toString(),
+          service: t.service,
+        })),
+        tyreSizeDisplay: activeJob.tyreSizeDisplay,
+        quantity: activeJob.quantity,
+      })
+    : null;
+  const activeJobTyreQuantity = activeJobTyreDisplay
+    ? totalTyreLineQuantity(activeJobTyreDisplay.lines) || activeJob?.quantity || 0
+    : 0;
 
   // Get today's completed jobs count
   const today = new Date();
@@ -116,8 +159,9 @@ export default async function DriverDashboardPage() {
         addressLine: activeJob.addressLine,
         lat: activeJob.lat.toString(),
         lng: activeJob.lng.toString(),
-        tyreSizeDisplay: activeJob.tyreSizeDisplay,
-        quantity: activeJob.quantity,
+        tyreSizeDisplay: activeJobTyreDisplay?.lines[0]?.size ?? activeJob.tyreSizeDisplay,
+        quantity: activeJobTyreQuantity,
+        tyreLines: activeJobTyreDisplay?.lines.map(formatTyreDisplayLine) ?? [],
         customerName: activeJob.customerName,
         customerPhone: activeJob.customerPhone,
         tyrePhotoUrl: activeJob.tyrePhotoUrl,
@@ -134,6 +178,7 @@ export default async function DriverDashboardPage() {
           quantity: t.quantity,
           brand: t.brand,
           pattern: t.pattern,
+          sizeDisplay: t.sizeDisplay,
         })),
       }
     : null;

@@ -7,10 +7,11 @@ import {
   verifyCustomerInvoiceToken,
 } from '@/app/api/mobile/customer/_lib';
 import { db } from '@/lib/db';
-import { bookings } from '@/lib/db/schema';
+import { bookings, bookingTyres, tyreProducts } from '@/lib/db/schema';
 import { generateBookingCustomerInvoicePdf } from '@/lib/invoice-pdf';
 import { buildBookingCustomerInvoiceFromBooking, InvoiceDomainError } from '@/lib/invoices/invoice-domain';
 import { getBookingPaymentSummary } from '@/lib/payments/payment-summary';
+import { displayStringsForBookingTyres } from '@/lib/bookings/tyre-line-display';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -78,6 +79,27 @@ export async function GET(request: Request, props: Props) {
       stripePiId: booking.stripePiId,
       stripeDepositPiId: booking.stripeDepositPiId,
     });
+    const tyreRows = await db
+      .select({
+        quantity: bookingTyres.quantity,
+        unitPrice: bookingTyres.unitPrice,
+        service: bookingTyres.service,
+        brand: tyreProducts.brand,
+        pattern: tyreProducts.pattern,
+        sizeDisplay: tyreProducts.sizeDisplay,
+        width: tyreProducts.width,
+        aspect: tyreProducts.aspect,
+        rim: tyreProducts.rim,
+      })
+      .from(bookingTyres)
+      .leftJoin(tyreProducts, eq(bookingTyres.tyreId, tyreProducts.id))
+      .where(eq(bookingTyres.bookingId, booking.id));
+    const tyreLines = displayStringsForBookingTyres({
+      priceSnapshot: booking.priceSnapshot,
+      tyreRows,
+      tyreSizeDisplay: booking.tyreSizeDisplay,
+      quantity: booking.quantity,
+    });
     const invoice = buildBookingCustomerInvoiceFromBooking({
       booking: {
         id: booking.id,
@@ -93,6 +115,9 @@ export async function GET(request: Request, props: Props) {
         vehicleMake: booking.vehicleMake,
         vehicleModel: booking.vehicleModel,
         tyreSizeDisplay: booking.tyreSizeDisplay,
+        quantity: booking.quantity,
+        priceSnapshot: booking.priceSnapshot,
+        tyreLines,
         serviceType: booking.serviceType,
         vatAmount: booking.vatAmount.toString(),
       },

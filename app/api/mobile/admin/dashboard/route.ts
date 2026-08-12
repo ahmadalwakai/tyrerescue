@@ -18,11 +18,16 @@ import {
   calculateDriverSituation,
   estimateUrbanDriveMinutesFromMiles,
 } from '@/lib/admin/driverSituation';
+import { extractCanonicalTyreLines, totalTyreLineQuantity } from '@/lib/bookings/tyre-line-display';
 
 function toNumber(value: string | number | null | undefined): number | null {
   if (value == null) return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function tyreCountFromSnapshot(priceSnapshot: unknown, fallback: number | null | undefined): number | null {
+  return (totalTyreLineQuantity(extractCanonicalTyreLines(priceSnapshot)) || fallback) ?? null;
 }
 
 export async function GET(request: Request) {
@@ -80,6 +85,7 @@ export async function GET(request: Request) {
         createdAt: bookings.createdAt,
         serviceType: bookings.serviceType,
         quantity: bookings.quantity,
+        priceSnapshot: bookings.priceSnapshot,
         customerLat: bookings.lat,
         customerLng: bookings.lng,
         driverId: bookings.driverId,
@@ -130,6 +136,7 @@ export async function GET(request: Request) {
               ),
             )
           : null;
+      const tyreCount = tyreCountFromSnapshot(booking.priceSnapshot, booking.quantity);
 
       return {
         id: booking.id,
@@ -149,7 +156,7 @@ export async function GET(request: Request) {
           outboundMinutes,
           returnMinutes,
           serviceType: booking.serviceType,
-          tyreCount: booking.quantity,
+          tyreCount,
           paymentStatus: null,
           returnEstimateAvailable: returnMinutes != null,
           routeAvailable: outboundMinutes != null,

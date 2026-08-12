@@ -245,6 +245,15 @@ function DeferredAdminStockModal(props: ComponentProps<typeof import('./AdminSto
   return <AdminStockModal {...props} />;
 }
 
+function DeferredGarageModal(props: ComponentProps<typeof import('./GarageModal')['GarageModal']>) {
+  if (!props.visible) return null;
+  const { GarageModal } = requireStartupModule(
+    'Garage import',
+    () => require('./GarageModal') as typeof import('./GarageModal'),
+  );
+  return <GarageModal {...props} />;
+}
+
 function DeferredActiveJobsModal(props: ComponentProps<typeof import('./ActiveJobsModal')['ActiveJobsModal']>) {
   if (!props.visible) return null;
   const { ActiveJobsModal } = requireStartupModule(
@@ -687,6 +696,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const [visitorsOpen, setVisitorsOpen] = useState(false);
   const [invoicesOpen, setInvoicesOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
+  const [garageOpen, setGarageOpen] = useState(false);
   const [addAdminOpen, setAddAdminOpen] = useState(false);
   const [activeJobsOpen, setActiveJobsOpen] = useState(false);
   const [driverTrackingOpen, setDriverTrackingOpen] = useState(false);
@@ -2044,6 +2054,14 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     });
 
     actions.push({
+      id: 'garage',
+      label: 'Garage',
+      description: 'City stock buying list, driver reductions, additions, missing tyres and shifts.',
+      disabledReason: noToken,
+      onPress: () => setGarageOpen(true),
+    });
+
+    actions.push({
       id: 'admin-stock',
       label: 'Stock',
       description: 'Manage tyre stock levels, prices and availability.',
@@ -2504,6 +2522,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       />
       <AdminVisitorsModal visible={visitorsOpen} onClose={() => setVisitorsOpen(false)} />
       <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
+      <DeferredGarageModal visible={garageOpen} onClose={() => setGarageOpen(false)} />
       <DeferredAdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
       <DeferredVirtualLandlineModal
         visible={virtualLandlineOpen}
@@ -2558,7 +2577,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       >
         <View style={styles.notifSetupOverlay}>
           <View style={styles.notifSetupSheet}>
-            <NotificationReliabilityCard />
+            <NotificationReliabilityCard onSetupChanged={() => setArmingCycle((value) => value + 1)} />
             <Pressable
               onPress={() => setNotifSetupOpen(false)}
               accessibilityRole="button"
@@ -3127,10 +3146,15 @@ function renderActiveStage(args: RenderActiveStageArgs) {
       {draft.paymentLink ? (
         <View style={styles.paymentLinkSummary}>
           <Text style={styles.paymentLinkTitle}>{draft.paymentLink.kind === 'deposit' ? 'Deposit payment link' : 'Full payment link'}</Text>
-          <Text style={styles.paymentLinkMeta}>{draft.paymentLink.paymentUrl}</Text>
-          <Text style={styles.paymentLinkMeta}>Amount: {formatPence(draft.paymentLink.amountPence)}</Text>
+          <View style={styles.paymentAmountTile}>
+            <Text style={styles.paymentAmountLabel}>Amount</Text>
+            <Text style={styles.paymentAmountValue}>{formatPence(draft.paymentLink.amountPence)}</Text>
+          </View>
           {draft.paymentLink.remainingBalancePence != null ? (
-            <Text style={styles.paymentLinkMeta}>Balance on arrival: {formatPence(draft.paymentLink.remainingBalancePence)}</Text>
+            <View style={styles.paymentAmountTile}>
+              <Text style={styles.paymentAmountLabel}>Balance on arrival</Text>
+              <Text style={styles.paymentAmountValue}>{formatPence(draft.paymentLink.remainingBalancePence)}</Text>
+            </View>
           ) : null}
         </View>
       ) : null}
@@ -3863,9 +3887,6 @@ function PaymentLinkInline({
   onCheck: () => Promise<PaymentLinkLiveStatus | null>;
 }) {
   const kindLabel = link.kind === 'deposit' ? 'Deposit payment link' : 'Full payment link';
-  const handleOpen = (): void => {
-    void Linking.openURL(link.paymentUrl);
-  };
   const handleCopy = (): void => {
     void copyToClipboard(link.paymentUrl);
   };
@@ -3874,8 +3895,23 @@ function PaymentLinkInline({
   const checkDisabled = checking || liveStatus === 'paid';
   return (
     <SectionCard title={kindLabel}>
-      <Text style={styles.paymentLinkMeta} numberOfLines={2}>{link.paymentUrl}</Text>
-      <Text style={styles.paymentLinkMeta}>Amount: {formatPence(link.amountPence)}</Text>
+      <View style={styles.paymentLinkHero}>
+        <View style={styles.paymentLinkHeroIcon}>
+          <AppIcon name="credit-card" size={22} color={colors.success} />
+        </View>
+        <View style={styles.paymentLinkHeroCopy}>
+          <Text style={styles.paymentLinkHeroLabel}>
+            {link.kind === 'deposit' ? 'Deposit amount' : 'Payment amount'}
+          </Text>
+          <Text style={styles.paymentLinkHeroAmount}>{formatPence(link.amountPence)}</Text>
+        </View>
+      </View>
+      {link.remainingBalancePence != null ? (
+        <View style={styles.paymentAmountTile}>
+          <Text style={styles.paymentAmountLabel}>Balance on arrival</Text>
+          <Text style={styles.paymentAmountValue}>{formatPence(link.remainingBalancePence)}</Text>
+        </View>
+      ) : null}
       {isManualPrice ? (
         <Text style={styles.paymentLinkMeta}>Manual price used for payment</Text>
       ) : null}
@@ -3888,15 +3924,14 @@ function PaymentLinkInline({
         <Text style={styles.paymentAutoCheckText}>{autoCheckMessage}</Text>
       ) : null}
       <View style={styles.paymentLinkActions}>
-        <AppButton label="Copy link" variant="secondary" onPress={handleCopy} style={styles.flexActionButton} />
-        <AppButton label="Open" variant="ghost" onPress={handleOpen} style={styles.flexActionButton} />
+        <AppButton label="Copy link" variant="primary" onPress={handleCopy} fullWidth />
         <AppButton
           label={checkLabel}
           variant="secondary"
           onPress={() => { void onCheck(); }}
           loading={checking}
           disabled={checkDisabled}
-          style={styles.flexActionButton}
+          fullWidth
         />
       </View>
       {error ? <StatusBanner kind="err" message={error} /> : null}
@@ -3934,6 +3969,7 @@ const SHEET_ACTION_ICONS: Record<string, AppIconName> = {
   'virtual-landline': 'phone',
   'admin-visitors': 'line-chart',
   'admin-invoices': 'file-pdf-o',
+  garage: 'wrench',
   'admin-stock': 'cubes',
   'add-admin': 'lock',
   'notification-setup': 'bell-o',
@@ -4001,16 +4037,16 @@ function PaymentDispatchPanel({
                 disabled && styles.paymentOptionDisabled,
               ]}
             >
-              <View style={styles.radioOuter}>
+              <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
                 {busy && selected ? (
-                  <ActivityIndicator color={colors.accent} size="small" />
+                  <ActivityIndicator color={colors.success} size="small" />
                 ) : selected ? (
-                  <View style={styles.radioInner} />
+                  <AppIcon name="check" size={13} color={colors.success} />
                 ) : null}
               </View>
               <View style={styles.paymentCopy}>
                 <Text style={[styles.paymentLabel, selected && styles.paymentLabelSelected]}>{option.label}</Text>
-                <Text style={styles.paymentDetail}>{option.detail}</Text>
+                <Text style={[styles.paymentDetail, selected && styles.paymentDetailSelected]}>{option.detail}</Text>
               </View>
             </Pressable>
           );
@@ -4833,7 +4869,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     ...(compactCardShadow ?? {}),
   },
-  paymentOptionSelected: { borderColor: colors.accent, backgroundColor: colors.accentMuted },
+  paymentOptionSelected: { borderColor: colors.successBorder, backgroundColor: colors.successBg },
   paymentOptionPressed: { borderColor: colors.glowBorder, backgroundColor: colors.panel },
   paymentOptionDisabled: { opacity: 0.62 },
   radioOuter: {
@@ -4845,11 +4881,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
+  radioOuterSelected: {
+    borderColor: colors.success,
+    backgroundColor: 'rgba(56,240,109,0.12)',
+  },
   paymentCopy: { flex: 1, minWidth: 0 },
   paymentLabel: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
-  paymentLabelSelected: { color: colors.accent },
+  paymentLabelSelected: { color: colors.success },
   paymentDetail: { color: colors.muted, fontSize: fontSize.xs, marginTop: 3, lineHeight: 16 },
+  paymentDetailSelected: { color: colors.text },
   bodyText: { color: colors.text, fontSize: fontSize.sm, lineHeight: 20, marginBottom: 10 },
   readySummary: { gap: 8, marginBottom: 12 },
   referenceActions: { gap: 8, marginBottom: 12 },
@@ -4864,8 +4904,61 @@ const styles = StyleSheet.create({
   },
   paymentLinkTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
   paymentLinkMeta: { color: colors.muted, fontSize: fontSize.xs, lineHeight: 17 },
+  paymentLinkHero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.successBorder,
+    borderRadius: radius.md,
+    backgroundColor: colors.successBg,
+    padding: 12,
+  },
+  paymentLinkHeroIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.successBorder,
+    backgroundColor: 'rgba(56,240,109,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentLinkHeroCopy: { flex: 1, minWidth: 0 },
+  paymentLinkHeroLabel: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  paymentLinkHeroAmount: {
+    color: colors.success,
+    fontSize: 28,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  paymentAmountTile: {
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radius.md,
+    backgroundColor: colors.inputBg,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 3,
+  },
+  paymentAmountLabel: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  paymentAmountValue: {
+    color: colors.text,
+    fontSize: fontSize.lg,
+    fontWeight: '900',
+  },
   paymentAutoCheckText: { color: colors.subtle, fontSize: fontSize.xs, lineHeight: 17 },
-  paymentLinkActions: { flexDirection: 'row', gap: 10, marginTop: 6, flexWrap: 'wrap' },
+  paymentLinkActions: { gap: 10, marginTop: 6 },
   paymentStatusBadge: {
     alignSelf: 'flex-start',
     borderWidth: 1,

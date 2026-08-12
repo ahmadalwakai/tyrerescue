@@ -17,7 +17,6 @@ const mockState = vi.hoisted(() => {
 
   return {
     getMobileAdminUser: vi.fn(),
-    isOwnerLevelAdmin: vi.fn(),
     recordAdminManagementAudit: vi.fn(),
     getAddAdminPinHash: vi.fn(),
     verifyAddAdminUnlock: vi.fn(),
@@ -57,7 +56,6 @@ vi.mock('@/lib/admin-management', async () => {
       pin: z.string().regex(/^\d{4}$/),
     }),
     getMobileAdminUser: mockState.getMobileAdminUser,
-    isOwnerLevelAdmin: mockState.isOwnerLevelAdmin,
     recordAdminManagementAudit: mockState.recordAdminManagementAudit,
     getAddAdminPinHash: mockState.getAddAdminPinHash,
     verifyAddAdminUnlock: mockState.verifyAddAdminUnlock,
@@ -81,7 +79,6 @@ describe('mobile Add Admin routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.getMobileAdminUser.mockResolvedValue({ id: 'admin-a', role: 'admin' });
-    mockState.isOwnerLevelAdmin.mockResolvedValue(true);
     mockState.recordAdminManagementAudit.mockResolvedValue(undefined);
     mockState.getAddAdminPinHash.mockResolvedValue('hash');
     mockState.verifyAddAdminUnlock.mockReturnValue(true);
@@ -111,23 +108,14 @@ describe('mobile Add Admin routes', () => {
     expect(response.status).toBe(401);
   });
 
-  it('forbids normal admins even when they manually call the create endpoint', async () => {
-    mockState.isOwnerLevelAdmin.mockResolvedValueOnce(false);
-    const { POST } = await import('../../app/api/mobile/admin/add-admin/route');
+  it('exposes PIN-gated Add Admin status to authenticated admins', async () => {
+    const { GET } = await import('../../app/api/mobile/admin/add-admin/route');
 
-    const response = await POST(new Request('http://test.local/api/mobile/admin/add-admin', {
-      method: 'POST',
-      body: JSON.stringify({
-        unlockToken: 'x'.repeat(40),
-        name: 'Admin B',
-        email: 'admin-b@example.com',
-        phone: '',
-        role: 'admin',
-      }),
-    }));
+    const response = await GET(new Request('http://test.local/api/mobile/admin/add-admin'));
+    const body = await response.json() as { canAccess?: boolean; roles?: string[]; pinConfigured?: boolean };
 
-    expect(response.status).toBe(403);
-    expect(mockState.createAdminAccount).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(body).toEqual({ canAccess: true, roles: ['admin'], pinConfigured: true });
   });
 
   it('requires a live server-side unlock before creating an admin', async () => {
@@ -217,7 +205,7 @@ describe('mobile Add Admin routes', () => {
     expect(mockState.issueAddAdminUnlock).not.toHaveBeenCalled();
   });
 
-  it('temporarily unlocks Add Admin for the authenticated owner only', async () => {
+  it('temporarily unlocks Add Admin for an authenticated admin with the protected PIN', async () => {
     const { POST } = await import('../../app/api/mobile/admin/add-admin/unlock/route');
 
     const response = await POST(new Request('http://test.local/api/mobile/admin/add-admin/unlock', {

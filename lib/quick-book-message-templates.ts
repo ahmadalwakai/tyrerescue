@@ -10,7 +10,7 @@ import { normalizeCustomerPhoneInput } from './contact-normalization';
 export interface LocationMessageContext {
   customerName: string;
   locationLink: string;
-  serviceType?: 'fit' | 'repair' | 'assess';
+  serviceType?: 'fit' | 'repair' | 'assess' | 'locking_nut';
   expiryHours?: number;
 }
 
@@ -18,6 +18,7 @@ const SERVICE_LABELS: Record<string, string> = {
   fit: 'mobile tyre fitting',
   repair: 'tyre repair',
   assess: 'vehicle assessment',
+  locking_nut: 'locking wheel nut removal',
 };
 
 /**

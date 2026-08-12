@@ -54,6 +54,7 @@ function customerInvoice(overrides: Partial<BookingCustomerInvoice> = {}): Booki
       model: 'Focus',
     },
     tyreSizeDisplay: '205/55R17',
+    tyreLines: ['205/55R17 x1'],
     serviceInclusions: [
       'Mobile tyre fitting service',
       'Removal of the old tyre from the wheel',
@@ -108,6 +109,7 @@ const booking: BookingInvoiceSource = {
   vehicleMake: 'Ford',
   vehicleModel: 'Focus',
   tyreSizeDisplay: '205/55R17',
+  tyreLines: ['205/55R17 x1'],
   serviceType: 'fit',
   vatAmount: '0.00',
 };
@@ -188,8 +190,8 @@ describe('BookingCustomerInvoice domain boundary', () => {
     expect(text).not.toContain('Weekend Charge');
     expect(text).not.toContain('Same Day Charge');
     expect(text).not.toContain('Internal Pricing Breakdown');
-    expect(text).toContain('Tyre Size');
-    expect(text).toContain('205/55R17');
+    expect(text).toContain('Tyre');
+    expect(text).toContain('205/55R17 x1');
     expect(text).toContain('Included in Your Service');
     expect(text).toContain('Mobile tyre fitting service');
     expect(text.indexOf('Included in Your Service')).toBeLessThan(text.indexOf('TOTAL DUE'));
@@ -250,6 +252,12 @@ describe('BookingCustomerInvoice domain boundary', () => {
     expect(invoiceDomain.buildBookingServiceInclusions({ serviceType: 'assess', vatAmount: '0.00' })).toEqual([
       'Mobile tyre inspection service',
       'Inspection findings confirmed on site',
+      'Final safety inspection',
+    ]);
+
+    expect(invoiceDomain.buildBookingServiceInclusions({ serviceType: 'locking_nut_removal', vatAmount: '0.00' })).toEqual([
+      'Mobile locking wheel nut removal service',
+      'Locking wheel nut removal labour',
       'Final safety inspection',
     ]);
   });
@@ -321,6 +329,35 @@ describe('BookingCustomerInvoice domain boundary', () => {
     expect(invoice.payment.totalPence).toBe(12000);
     expect(invoice.payment.paidPence).toBe(12000);
     expect(invoicePdf.buildBookingCustomerInvoicePdfText(invoice).join('\n').match(/£\d+\.\d{2}/g)).toEqual(['£120.00']);
+  });
+
+  it('uses canonical tyre lines from the booking snapshot in customer invoice output', () => {
+    const invoice = invoiceDomain.buildBookingCustomerInvoiceFromBooking({
+      booking: {
+        ...booking,
+        tyreSizeDisplay: '195/55R16',
+        quantity: 1,
+        priceSnapshot: {
+          tyreLines: [
+            { axle: 'front', normalizedSize: '225/40R18', quantity: 1, loadIndex: '92', speedIndex: 'Y', xl: true },
+            { axle: 'rear', normalizedSize: '255/35R18', quantity: 2, runFlat: true },
+          ],
+        },
+      },
+      paymentSummary: paidSummary,
+      company,
+      source: 'canonical-tyre-lines-test',
+    });
+    const text = invoicePdf.buildBookingCustomerInvoicePdfText(invoice).join('\n');
+
+    expect(invoice.tyreLines).toEqual([
+      'Front: 225/40R18 92Y XL x1',
+      'Rear: 255/35R18 run-flat x2',
+    ]);
+    expect(text).toContain('Tyres');
+    expect(text).toContain('Front: 225/40R18 92Y XL x1');
+    expect(text).toContain('Rear: 255/35R18 run-flat x2');
+    expect(text).not.toContain('195/55R16');
   });
 
   it('blocks invoice output when stored invoice total does not match booking final payable', () => {

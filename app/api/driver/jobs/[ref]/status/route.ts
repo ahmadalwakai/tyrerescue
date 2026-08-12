@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getOutboundUrl } from '@/lib/config/site';
 import { requireDriverMobile } from '@/lib/auth';
-import { db, drivers, bookings, bookingStatusHistory } from '@/lib/db';
-import { eq } from 'drizzle-orm';
+import { db, drivers, bookings, bookingStatusHistory, wheelNutConsents } from '@/lib/db';
+import { desc, eq } from 'drizzle-orm';
 import { BookingStatus } from '@/lib/state-machine';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { jobComplete } from '@/lib/email/templates';
 import { createAdminNotification } from '@/lib/notifications';
 import { sendDriverPushNotification } from '@/lib/notifications/driver-push';
 import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
+import {
+  bookingRequiresWheelNutConsent,
+  isValidWheelNutConsent,
+} from '@/lib/wheel-nut-consent';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -74,6 +78,25 @@ export async function PATCH(request: Request, { params }: Props) {
         { error: `Invalid status transition. Expected ${expectedNextStatus}, got ${newStatus}` },
         { status: 400 }
       );
+    }
+
+    if (newStatus === 'completed' && bookingRequiresWheelNutConsent(booking)) {
+      const [latestConsent] = await db
+        .select()
+        .from(wheelNutConsents)
+        .where(eq(wheelNutConsents.bookingId, booking.id))
+        .orderBy(desc(wheelNutConsents.createdAt))
+        .limit(1);
+
+      if (!isValidWheelNutConsent(latestConsent)) {
+        return NextResponse.json(
+          {
+            error: 'Wheel damage and locking wheel nut consent must be signed before completing this job.',
+            code: 'WHEEL_NUT_CONSENT_REQUIRED',
+          },
+          { status: 409 },
+        );
+      }
     }
 
     // Perform the transition

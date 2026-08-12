@@ -18,7 +18,7 @@ import {
   normalizeMobileAutoPricingMaxMiles,
 } from '@/lib/fitting-location-pricing';
 
-export type QuickBookServiceType = 'fit' | 'repair' | 'assess';
+export type QuickBookServiceType = 'fit' | 'repair' | 'assess' | 'locking_nut';
 
 export interface QuickBookTyreSnapshot {
   productId: string;
@@ -32,6 +32,12 @@ export interface QuickBookTyreLineInput {
   id?: string | null;
   size: string | null;
   quantity: number;
+  axle?: string | null;
+  loadIndex?: string | null;
+  speedIndex?: string | null;
+  runFlat?: boolean | null;
+  xl?: boolean | null;
+  commercial?: boolean | null;
   brand?: string | null;
   pattern?: string | null;
   season?: string | null;
@@ -45,6 +51,14 @@ export interface QuickBookTyreLineSelection extends QuickBookTyreSnapshot {
   normalizedSize: string | null;
   quantity: number;
   service: QuickBookServiceType;
+  axle?: string | null;
+  loadIndex?: string | null;
+  speedIndex?: string | null;
+  runFlat?: boolean | null;
+  xl?: boolean | null;
+  commercial?: boolean | null;
+  season?: string | null;
+  source?: string | null;
 }
 
 export interface QuickBookPricingInput {
@@ -166,6 +180,14 @@ function normalizeLineQuantity(quantity: unknown): number {
   return Math.max(1, Math.min(10, Math.round(Number(quantity) || 1)));
 }
 
+function cleanOptionalText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function cleanOptionalBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
+}
+
 function inputTyreLines(input: QuickBookPricingInput): QuickBookTyreLineInput[] {
   const explicit = Array.isArray(input.tyreLines)
     ? input.tyreLines.filter((line) => line?.size?.trim())
@@ -176,6 +198,12 @@ function inputTyreLines(input: QuickBookPricingInput): QuickBookTyreLineInput[] 
       id: line.id || `tyre-${index + 1}`,
       size: line.size?.trim() || null,
       quantity: normalizeLineQuantity(line.quantity),
+      axle: cleanOptionalText(line.axle),
+      loadIndex: cleanOptionalText(line.loadIndex),
+      speedIndex: cleanOptionalText(line.speedIndex),
+      runFlat: cleanOptionalBoolean(line.runFlat),
+      xl: cleanOptionalBoolean(line.xl),
+      commercial: cleanOptionalBoolean(line.commercial),
       brand: line.brand ?? null,
       pattern: line.pattern ?? null,
       season: line.season ?? null,
@@ -219,7 +247,18 @@ export function extractQuickBookTyreLineSelections(raw: {
       requestedSize: value.requestedSize ?? value.sizeDisplay ?? null,
       normalizedSize: value.normalizedSize ?? value.sizeDisplay ?? null,
       quantity: normalizeLineQuantity(value.quantity),
-      service: (value.service === 'repair' || value.service === 'assess') ? value.service : 'fit',
+      axle: cleanOptionalText(value.axle),
+      loadIndex: cleanOptionalText(value.loadIndex),
+      speedIndex: cleanOptionalText(value.speedIndex),
+      runFlat: cleanOptionalBoolean(value.runFlat),
+      xl: cleanOptionalBoolean(value.xl),
+      commercial: cleanOptionalBoolean(value.commercial),
+      season: cleanOptionalText(value.season),
+      source: cleanOptionalText(value.source),
+      service:
+        value.service === 'repair' || value.service === 'assess' || value.service === 'locking_nut'
+          ? value.service
+          : 'fit',
     }];
   });
 }
@@ -356,6 +395,14 @@ export async function calculateQuickBookPricing(
         normalizedSize,
         quantity: line.quantity,
         service: input.serviceType,
+        axle: line.axle ?? null,
+        loadIndex: line.loadIndex ?? null,
+        speedIndex: line.speedIndex ?? null,
+        runFlat: line.runFlat ?? null,
+        xl: line.xl ?? null,
+        commercial: line.commercial ?? null,
+        season: line.season ?? null,
+        source: line.source ?? null,
       });
     }
   }

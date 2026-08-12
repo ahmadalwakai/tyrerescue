@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import type { JobSummary } from '@/api/client';
 import { useI18n } from '@/i18n';
 import { formatGbpFromPence, getDriverPaymentDisplay, paymentToneColors } from '@/lib/payment-status';
+import { formatJobTyreLinesSummary } from '@/lib/tyre-lines';
 
 type JobCardIcon = keyof typeof Ionicons.glyphMap;
 
@@ -76,6 +77,7 @@ export function JobCard({ job, onPress }: JobCardProps) {
   const paymentLabel = paymentDisplay
     ? `${t(paymentDisplay.labelKey)}${paymentDisplay.amountLabel != null ? ` · ${paymentDisplay.amountLabel}` : ''}`
     : null;
+  const tyreSummary = formatJobTyreLinesSummary(job);
   // Guard against a rapid double-tap pushing the detail screen twice.
   const navLockRef = useRef(false);
   return (
@@ -116,7 +118,7 @@ export function JobCard({ job, onPress }: JobCardProps) {
 
       <View style={styles.metaGrid}>
         <MetaChip icon="calendar-outline" label={scheduledLabel} />
-        <MetaChip icon="disc-outline" label={job.tyreSizeDisplay} />
+        <MetaChip icon="disc-outline" label={tyreSummary} />
         <MetaChip icon="cash-outline" label={totalLabel} />
       </View>
 

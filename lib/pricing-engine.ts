@@ -53,7 +53,7 @@ export interface TyreSelection {
   tyreId: string;
   quantity: number;
   unitPrice: number;
-  service: 'fit' | 'repair' | 'assess';
+  service: 'fit' | 'repair' | 'assess' | 'locking_nut';
   requiresTpms?: boolean;
 }
 
@@ -108,7 +108,7 @@ export interface PricingInput {
   bookingDate: Date;
   isBankHoliday: boolean;
   surgeMultiplier?: number;
-  serviceType?: 'repair' | 'fit' | 'both' | 'assess';
+  serviceType?: 'repair' | 'fit' | 'both' | 'assess' | 'locking_nut';
   tyreQuantity?: number;
   fittingLocation?: 'shop' | 'mobile';
   /** @deprecated v2 always uses emergency_priority_fee default (55). No longer needed. */
@@ -196,7 +196,13 @@ export interface PricingBreakdown {
     pattern?: string | null;
     season?: string | null;
     source?: string | null;
-    service?: 'fit' | 'repair' | 'assess';
+    axle?: string | null;
+    loadIndex?: string | null;
+    speedIndex?: string | null;
+    runFlat?: boolean | null;
+    xl?: boolean | null;
+    commercial?: boolean | null;
+    service?: 'fit' | 'repair' | 'assess' | 'locking_nut';
   }>;
   serviceOrigin?: {
     lat: number;
@@ -374,14 +380,18 @@ export function calculatePricing(
         code: 'LABOUR_REPAIR',
       });
     } else {
+      const isAssessmentService = input.serviceType === 'assess';
+      const isLockingNutService = input.serviceType === 'locking_nut';
       const rate =
-        input.serviceType === 'assess'
+        isAssessmentService || isLockingNutService
           ? getAssessmentRate(mode, rules)
           : getFitRate(mode, rules);
       const amount = new Decimal(rate).times(totalQty);
       labourTotal = amount;
       const label =
-        input.serviceType === 'assess'
+        isLockingNutService
+          ? `Locking Wheel Nut Removal × ${totalQty}`
+          : isAssessmentService
           ? `Assessment × ${totalQty}`
           : `Tyre Fitting × ${totalQty}`;
       lineItems.push({
@@ -420,14 +430,18 @@ export function calculatePricing(
           code: 'LABOUR_REPAIR',
         });
       } else {
+        const isAssessmentService = sel.service === 'assess';
+        const isLockingNutService = sel.service === 'locking_nut';
         const rate =
-          sel.service === 'assess'
+          isAssessmentService || isLockingNutService
             ? getAssessmentRate(mode, rules)
             : getFitRate(mode, rules);
         const amount = new Decimal(rate).times(sel.quantity);
         labourTotal = labourTotal.plus(amount);
         const label =
-          sel.service === 'assess'
+          isLockingNutService
+            ? `Locking Wheel Nut Removal × ${sel.quantity}`
+            : isAssessmentService
             ? `Assessment × ${sel.quantity}`
             : `Tyre Fitting × ${sel.quantity}`;
         lineItems.push({

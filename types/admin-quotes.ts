@@ -37,6 +37,12 @@ export interface AdminQuoteTyreLineInput {
   id?: string | null;
   size: string;
   quantity: number;
+  axle?: string | null;
+  loadIndex?: string | null;
+  speedIndex?: string | null;
+  runFlat?: boolean | null;
+  xl?: boolean | null;
+  commercial?: boolean | null;
   brand?: string | null;
   pattern?: string | null;
   season?: string | null;

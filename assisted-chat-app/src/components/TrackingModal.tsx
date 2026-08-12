@@ -667,96 +667,125 @@ function DriverListSheet({ visible, drivers, selectedId, onSelect, onClose }: Dr
 interface DriverRosterProps {
   drivers: TrackingDriver[];
   selectedId: string | null;
+  collapsed: boolean;
+  onToggle: () => void;
   onSelect: (id: string) => void;
   onOpenAll: () => void;
 }
 
-function DriverRoster({ drivers, selectedId, onSelect, onOpenAll }: DriverRosterProps) {
+function DriverRoster({ drivers, selectedId, collapsed, onToggle, onSelect, onOpenAll }: DriverRosterProps) {
   if (drivers.length === 0) {
     return (
-      <View style={styles.driverRosterEmpty}>
-        <Text style={styles.driverRosterTitle}>Drivers</Text>
-        <Text style={styles.driverRosterEmptyText}>No drivers found.</Text>
+      <View style={[styles.driverRosterEmpty, styles.driverRosterCollapsed]}>
+        <View style={[styles.driverRosterHeader, styles.driverRosterHeaderCollapsed]}>
+          <View style={styles.driverRosterTitleBlock}>
+            <Text style={styles.driverRosterTitle}>Drivers (0)</Text>
+            <Text style={styles.driverRosterEmptyText}>No drivers found.</Text>
+          </View>
+          <Pressable
+            onPress={onToggle}
+            accessibilityRole="button"
+            accessibilityLabel="Toggle driver cards"
+            style={({ pressed }) => [styles.driverRosterMenuBtn, pressed && styles.btnPressed]}
+          >
+            <Text style={styles.driverRosterMenuText}>⋮</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.driverRoster}>
-      <View style={styles.driverRosterHeader}>
-        <View>
-          <Text style={styles.driverRosterTitle}>Drivers as individuals</Text>
-          <Text style={styles.driverRosterSubtitle}>
-            Select a driver to inspect, call, or assign a job.
-          </Text>
+    <View style={[styles.driverRoster, collapsed && styles.driverRosterCollapsed]}>
+      <View style={[styles.driverRosterHeader, collapsed && styles.driverRosterHeaderCollapsed]}>
+        <View style={styles.driverRosterTitleBlock}>
+          <Text style={styles.driverRosterTitle}>Drivers ({drivers.length})</Text>
+          {!collapsed ? (
+            <Text style={styles.driverRosterSubtitle}>
+              Select a driver to inspect, call, or assign a job.
+            </Text>
+          ) : null}
         </View>
-        <Pressable
-          onPress={onOpenAll}
-          accessibilityRole="button"
-          accessibilityLabel="Open all drivers"
-          style={({ pressed }) => [styles.driverRosterAllBtn, pressed && styles.btnPressed]}
-        >
-          <Text style={styles.driverRosterAllText}>All drivers</Text>
-        </Pressable>
+        <View style={styles.driverRosterActions}>
+          <Pressable
+            onPress={onOpenAll}
+            accessibilityRole="button"
+            accessibilityLabel="Open all drivers"
+            style={({ pressed }) => [styles.driverRosterAllBtn, pressed && styles.btnPressed]}
+          >
+            <Text style={styles.driverRosterAllText}>All drivers</Text>
+          </Pressable>
+          <Pressable
+            onPress={onToggle}
+            accessibilityRole="button"
+            accessibilityLabel={collapsed ? 'Expand driver cards' : 'Collapse driver cards'}
+            accessibilityState={{ expanded: !collapsed }}
+            style={({ pressed }) => [styles.driverRosterMenuBtn, !collapsed && styles.driverRosterMenuBtnActive, pressed && styles.btnPressed]}
+          >
+            <Text style={styles.driverRosterMenuText}>⋮</Text>
+          </Pressable>
+        </View>
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.driverRosterScroll}
-      >
-        {drivers.map((driver) => {
-          const selected = driver.id === selectedId;
-          const stale = driver.locationFreshness === 'stale' || driver.locationFreshness === 'offline';
-          const live = driver.locationFreshness === 'live';
-          return (
-            <Pressable
-              key={driver.id}
-              onPress={() => onSelect(driver.id)}
-              accessibilityRole="button"
-              accessibilityLabel={`Open driver ${driver.name}`}
-              style={({ pressed }) => [
-                styles.driverRosterCard,
-                selected && styles.driverRosterCardSelected,
-                pressed && styles.btnPressed,
-              ]}
-            >
-              <View style={styles.driverRosterCardTop}>
-                <View style={[
-                  styles.driverRosterAvatar,
-                  live && styles.driverRosterAvatarLive,
-                  stale && styles.driverRosterAvatarStale,
-                ]}>
-                  <Text style={styles.driverRosterAvatarText}>{initials(driver.name, 'D')}</Text>
+      {!collapsed ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.driverRosterScroll}
+        >
+          {drivers.map((driver) => {
+            const selected = driver.id === selectedId;
+            const stale = driver.locationFreshness === 'stale' || driver.locationFreshness === 'offline';
+            const live = driver.locationFreshness === 'live';
+            return (
+              <Pressable
+                key={driver.id}
+                onPress={() => onSelect(driver.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Open driver ${driver.name}`}
+                style={({ pressed }) => [
+                  styles.driverRosterCard,
+                  selected && styles.driverRosterCardSelected,
+                  pressed && styles.btnPressed,
+                ]}
+              >
+                <View style={styles.driverRosterCardTop}>
+                  <View style={[
+                    styles.driverRosterAvatar,
+                    live && styles.driverRosterAvatarLive,
+                    stale && styles.driverRosterAvatarStale,
+                  ]}>
+                    <Text style={styles.driverRosterAvatarText}>{initials(driver.name, 'D')}</Text>
+                  </View>
+                  <View style={styles.driverRosterCopy}>
+                    <Text style={styles.driverRosterName} numberOfLines={1}>{driver.name}</Text>
+                    <Text style={[styles.driverRosterMeta, stale && styles.driverRosterMetaWarn]} numberOfLines={1}>
+                      {freshnessLabel(driver.locationFreshness)}
+                      {driver.lastSeenAt ? ` · ${formatRelative(driver.lastSeenAt)}` : ''}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.driverRosterCopy}>
-                  <Text style={styles.driverRosterName} numberOfLines={1}>{driver.name}</Text>
-                  <Text style={[styles.driverRosterMeta, stale && styles.driverRosterMetaWarn]} numberOfLines={1}>
-                    {freshnessLabel(driver.locationFreshness)}
-                    {driver.lastSeenAt ? ` · ${formatRelative(driver.lastSeenAt)}` : ''}
+                <View style={styles.driverRosterPillRow}>
+                  <Text style={[
+                    styles.driverRosterPill,
+                    driver.status === 'available' && styles.driverRosterPillAvailable,
+                    driver.status === 'busy' && styles.driverRosterPillBusy,
+                  ]}>
+                    {driver.status}
+                  </Text>
+                  <Text style={styles.driverRosterPill}>
+                    {driver.activeJobRef ? `#${driver.activeJobRef}` : 'No job'}
                   </Text>
                 </View>
-              </View>
-              <View style={styles.driverRosterPillRow}>
-                <Text style={[
-                  styles.driverRosterPill,
-                  driver.status === 'available' && styles.driverRosterPillAvailable,
-                  driver.status === 'busy' && styles.driverRosterPillBusy,
-                ]}>
-                  {driver.status}
-                </Text>
-                <Text style={styles.driverRosterPill}>
-                  {driver.activeJobRef ? `#${driver.activeJobRef}` : 'No job'}
-                </Text>
-              </View>
-              {situationLine(driver.driverSituation) ? (
-                <Text style={styles.driverRosterMeta} numberOfLines={1}>
-                  {situationLine(driver.driverSituation)}
-                </Text>
-              ) : null}
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+                {situationLine(driver.driverSituation) ? (
+                  <Text style={styles.driverRosterMeta} numberOfLines={1}>
+                    {situationLine(driver.driverSituation)}
+                  </Text>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : null}
     </View>
   );
 }
@@ -987,6 +1016,7 @@ export function TrackingModal({ visible, onClose }: Props) {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [driversOpen, setDriversOpen] = useState(false);
   const [jobsOpen, setJobsOpen] = useState(false);
+  const [driverRosterCollapsed, setDriverRosterCollapsed] = useState(true);
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
@@ -1002,6 +1032,7 @@ export function TrackingModal({ visible, onClose }: Props) {
       setSelectedJobId(null);
       setDriversOpen(false);
       setJobsOpen(false);
+      setDriverRosterCollapsed(true);
       setAssignOpen(false);
       setAssignError(null);
       setDidFit(false);
@@ -1234,6 +1265,97 @@ export function TrackingModal({ visible, onClose }: Props) {
           </View>
         ) : null}
 
+        <View style={styles.trackingHeaderControls}>
+          <View style={styles.jobRangeRow}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.jobRangeContent}
+            >
+              {JOB_RANGE_OPTIONS.map((option) => {
+                const selected = jobsRange === option.value;
+                return (
+                  <Pressable
+                    key={option.value}
+                    onPress={() => setJobsRange(option.value)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Show ${option.label} jobs`}
+                    style={({ pressed }) => [
+                      styles.rangeChip,
+                      selected && styles.rangeChipActive,
+                      pressed && styles.btnPressed,
+                    ]}
+                  >
+                    <Text style={[styles.rangeChipText, selected && styles.rangeChipTextActive]}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          <View style={styles.filterRow}>
+            <Pressable
+              onPress={() => setDriversOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`Show ${driverCount} drivers`}
+              style={({ pressed }) => [styles.filterBtn, pressed && styles.btnPressed]}
+            >
+              <Text style={styles.filterBtnText}>Drivers ({driverCount})</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setJobsOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`Show ${jobCount} jobs`}
+              style={({ pressed }) => [styles.filterBtn, pressed && styles.btnPressed]}
+            >
+              <Text style={styles.filterBtnText}>Jobs ({jobCount})</Text>
+            </Pressable>
+            <Text style={styles.updatedText} numberOfLines={1}>
+              {loading
+                ? 'Updating...'
+                : lastUpdated != null
+                ? `Updated ${formatRelative(new Date(lastUpdated).toISOString())}`
+                : 'Not yet loaded'}
+            </Text>
+          </View>
+
+          <View style={styles.legendRow}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#22c55e' }]} />
+              <Text style={styles.legendLabel}>Available</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#FF7900' }]} />
+              <Text style={styles.legendLabel}>Busy</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#D97706' }]} />
+              <Text style={styles.legendLabel}>Stale GPS</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
+              <Text style={styles.legendLabel}>Unassigned job</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#F97316' }]} />
+              <Text style={styles.legendLabel}>Assigned job</Text>
+            </View>
+          </View>
+
+          {data ? (
+            <DriverRoster
+              drivers={data.drivers}
+              selectedId={selectedDriverId}
+              collapsed={driverRosterCollapsed}
+              onToggle={() => setDriverRosterCollapsed((value) => !value)}
+              onSelect={setSelectedDriverId}
+              onOpenAll={() => setDriversOpen(true)}
+            />
+          ) : null}
+        </View>
+
         {/* Map */}
         <View style={styles.mapWrap}>
           {!token ? (
@@ -1294,95 +1416,6 @@ export function TrackingModal({ visible, onClose }: Props) {
             </View>
           ) : null}
         </View>
-
-        {/* Filter row */}
-        <View style={styles.jobRangeRow}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.jobRangeContent}
-          >
-            {JOB_RANGE_OPTIONS.map((option) => {
-              const selected = jobsRange === option.value;
-              return (
-                <Pressable
-                  key={option.value}
-                  onPress={() => setJobsRange(option.value)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Show ${option.label} jobs`}
-                  style={({ pressed }) => [
-                    styles.rangeChip,
-                    selected && styles.rangeChipActive,
-                    pressed && styles.btnPressed,
-                  ]}
-                >
-                  <Text style={[styles.rangeChipText, selected && styles.rangeChipTextActive]}>
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        <View style={styles.filterRow}>
-          <Pressable
-            onPress={() => setDriversOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel={`Show ${driverCount} drivers`}
-            style={({ pressed }) => [styles.filterBtn, pressed && styles.btnPressed]}
-          >
-            <Text style={styles.filterBtnText}>Drivers ({driverCount})</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setJobsOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel={`Show ${jobCount} jobs`}
-            style={({ pressed }) => [styles.filterBtn, pressed && styles.btnPressed]}
-          >
-            <Text style={styles.filterBtnText}>Jobs ({jobCount})</Text>
-          </Pressable>
-          <Text style={styles.updatedText} numberOfLines={1}>
-            {loading
-              ? 'Updating…'
-              : lastUpdated != null
-              ? `Updated ${formatRelative(new Date(lastUpdated).toISOString())}`
-              : 'Not yet loaded'}
-          </Text>
-        </View>
-
-        {/* Legend row */}
-        <View style={styles.legendRow}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#22c55e' }]} />
-            <Text style={styles.legendLabel}>Available</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#FF7900' }]} />
-            <Text style={styles.legendLabel}>Busy</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#D97706' }]} />
-            <Text style={styles.legendLabel}>Stale GPS</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
-            <Text style={styles.legendLabel}>Unassigned job</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#F97316' }]} />
-            <Text style={styles.legendLabel}>Assigned job</Text>
-          </View>
-        </View>
-
-        {data ? (
-          <DriverRoster
-            drivers={data.drivers}
-            selectedId={selectedDriverId}
-            onSelect={setSelectedDriverId}
-            onOpenAll={() => setDriversOpen(true)}
-          />
-        ) : null}
 
         {/* Detail panel */}
         {hasPanel ? (
@@ -1522,6 +1555,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dangerBorder,
   },
   retryBtnText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '700' },
+  trackingHeaderControls: {
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.glowBorder,
+    paddingTop: space.sm,
+    paddingBottom: space.sm,
+    gap: space.xs,
+  },
   mapWrap: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -1556,19 +1597,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.glowBorder,
+    paddingVertical: 2,
     gap: space.sm,
   },
   jobRangeRow: {
-    borderTopWidth: 1,
-    borderTopColor: colors.glowBorder,
-    paddingTop: space.sm,
+    paddingTop: 0,
   },
   jobRangeContent: {
     paddingHorizontal: space.lg,
-    paddingBottom: space.sm,
+    paddingBottom: 2,
     gap: space.sm,
   },
   rangeChip: {
@@ -1607,17 +1644,21 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
     paddingHorizontal: space.lg,
-    paddingBottom: space.sm,
+    paddingBottom: 0,
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
   legendLabel: { color: colors.muted, fontSize: 10 },
   driverRoster: {
     borderTopWidth: 1,
-    borderTopColor: colors.glowBorder,
-    backgroundColor: colors.surface,
+    borderTopColor: colors.border,
+    backgroundColor: 'transparent',
     paddingTop: space.sm,
-    paddingBottom: space.sm,
+    paddingBottom: 0,
+  },
+  driverRosterCollapsed: {
+    paddingTop: 4,
+    paddingBottom: 0,
   },
   driverRosterHeader: {
     flexDirection: 'row',
@@ -1626,6 +1667,13 @@ const styles = StyleSheet.create({
     gap: space.sm,
     paddingHorizontal: space.lg,
     marginBottom: space.sm,
+  },
+  driverRosterHeaderCollapsed: {
+    marginBottom: 0,
+  },
+  driverRosterTitleBlock: {
+    flex: 1,
+    minWidth: 0,
   },
   driverRosterTitle: {
     color: colors.text,
@@ -1636,6 +1684,11 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 10,
     marginTop: 2,
+  },
+  driverRosterActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
   },
   driverRosterAllBtn: {
     minHeight: 32,
@@ -1650,6 +1703,26 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.xs,
     fontWeight: '800',
+  },
+  driverRosterMenuBtn: {
+    width: 38,
+    minHeight: 34,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.panelSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  driverRosterMenuBtnActive: {
+    borderColor: colors.accent,
+    backgroundColor: 'rgba(255,121,0,0.16)',
+  },
+  driverRosterMenuText: {
+    color: colors.text,
+    fontSize: fontSize.lg,
+    fontWeight: '900',
+    lineHeight: 22,
   },
   driverRosterScroll: {
     gap: space.sm,

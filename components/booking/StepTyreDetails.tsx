@@ -41,7 +41,7 @@ export function StepTyreDetails({
   goToNext,
   goToPrev,
 }: StepTyreDetailsProps) {
-  const [vehicleReg, setVehicleReg] = useState(state.vehicleReg || '');
+  const [vehicleReg, setVehicleReg] = useState((state.vehicleReg || '').toUpperCase());
   const [vehicleMake, setVehicleMake] = useState(state.vehicleMake || '');
   const [vehicleModel] = useState(state.vehicleModel || '');
   const [vehicleColour, setVehicleColour] = useState('');
@@ -220,7 +220,7 @@ export function StepTyreDetails({
     const shouldClearTyres = condition === 'repair' || tyreDetailsChanged || quantityChanged;
 
     updateState({
-      vehicleReg,
+      vehicleReg: vehicleReg.toUpperCase(),
       vehicleMake,
       vehicleModel,
       tyreSize: { width, aspect, rim },

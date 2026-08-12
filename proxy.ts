@@ -53,6 +53,7 @@ export async function proxy(request: NextRequest) {
   const requestOrigin = request.headers.get('origin');
   const isExpoDevCorsApi =
     pathname.startsWith('/api/mobile/') ||
+    pathname.startsWith('/api/stock/') ||
     pathname.startsWith('/api/driver/') ||
     pathname.startsWith('/api/chat/') ||
     pathname === '/api/admin/quotes' ||
@@ -63,6 +64,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/api/admin/bookings/') ||
     pathname === '/api/admin/drivers' ||
     pathname.startsWith('/api/admin/drivers/') ||
+    pathname.startsWith('/api/admin/vehicle-fitments/') ||
     pathname === '/api/admin/tracking' ||
     pathname.startsWith('/api/admin/active-jobs/') ||
     pathname === '/api/driver/status/available' ||

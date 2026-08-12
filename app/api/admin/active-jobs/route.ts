@@ -12,6 +12,7 @@ import {
   estimateUrbanDriveMinutesFromMiles,
   type DriverSituation,
 } from '@/lib/admin/driverSituation';
+import { extractCanonicalTyreLines, totalTyreLineQuantity } from '@/lib/bookings/tyre-line-display';
 
 const ACTIVE_STATUSES = [
   'driver_assigned',
@@ -60,6 +61,10 @@ function toNumber(value: string | number | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function tyreCountFromSnapshot(priceSnapshot: unknown, fallback: number | null | undefined): number | null {
+  return (totalTyreLineQuantity(extractCanonicalTyreLines(priceSnapshot)) || fallback) ?? null;
+}
+
 export async function GET(request: NextRequest) {
   try {
     await requireAdminMobile(request);
@@ -82,6 +87,7 @@ export async function GET(request: NextRequest) {
       customerLng: bookings.lng,
       serviceType: bookings.serviceType,
       tyreCount: bookings.quantity,
+      priceSnapshot: bookings.priceSnapshot,
       totalAmount: bookings.totalAmount,
       subtotal: bookings.subtotal,
       vatAmount: bookings.vatAmount,
@@ -215,7 +221,7 @@ export async function GET(request: NextRequest) {
         returnMinutes: returnEtaMinutes,
         trafficDelayMinutes: null,
         serviceType: row.serviceType ?? null,
-        tyreCount: row.tyreCount ?? null,
+        tyreCount: tyreCountFromSnapshot(row.priceSnapshot, row.tyreCount),
         paymentStatus: row.paymentType ?? null,
         gpsState: isStale ? 'weak' : 'normal',
         returnEstimateAvailable: returnEtaMinutes != null,

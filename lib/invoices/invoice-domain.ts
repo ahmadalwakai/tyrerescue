@@ -1,6 +1,7 @@
 import type { Invoice } from '@/lib/db';
 import type { PaymentSummary } from '@/lib/payments/payment-summary';
 import { isPaymentFullySettledForInvoice } from '@/lib/payments/payment-summary';
+import { displayStringsForBookingTyres } from '@/lib/bookings/tyre-line-display';
 
 export class InvoiceDomainError extends Error {
   constructor(message: string, public readonly status = 400) {
@@ -31,6 +32,7 @@ export interface BookingCustomerInvoice {
     model: string | null;
   };
   tyreSizeDisplay: string | null;
+  tyreLines: string[];
   serviceInclusions: string[];
   payment: {
     status: string;
@@ -73,6 +75,7 @@ export interface StandaloneAdminInvoice {
   vehicleMake?: string | null;
   vehicleModel?: string | null;
   tyreSizeDisplay?: string | null;
+  tyreLines?: string[] | null;
   paymentStatus?: string | null;
   paymentMethod?: string | null;
 }
@@ -91,6 +94,9 @@ export interface BookingInvoiceSource {
   vehicleMake: string | null;
   vehicleModel: string | null;
   tyreSizeDisplay?: string | null;
+  quantity?: string | number | null;
+  priceSnapshot?: unknown;
+  tyreLines?: string[] | null;
   serviceType?: string | null;
   vatAmount?: string | number | null;
 }
@@ -137,6 +143,7 @@ const ALLOWED_BOOKING_CUSTOMER_INVOICE_KEYS = new Set([
   'vehicle',
   'payment',
   'tyreSizeDisplay',
+  'tyreLines',
   'serviceInclusions',
   'finalTotal',
 ]);
@@ -205,6 +212,21 @@ function stringList(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function bookingTyreLines(
+  booking: Pick<BookingInvoiceSource, 'priceSnapshot' | 'quantity' | 'tyreLines' | 'tyreSizeDisplay'>,
+): string[] {
+  const canonicalLines = displayStringsForBookingTyres({ priceSnapshot: booking.priceSnapshot });
+  if (canonicalLines.length > 0) return canonicalLines;
+
+  const suppliedLines = stringList(booking.tyreLines);
+  if (suppliedLines.length > 0) return suppliedLines;
+
+  return displayStringsForBookingTyres({
+    tyreSizeDisplay: booking.tyreSizeDisplay,
+    quantity: booking.quantity,
+  });
+}
+
 function cleanInvoiceText(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
 }
@@ -246,6 +268,12 @@ export function buildBookingServiceInclusions(booking: Pick<
     inclusions.push(
       'Mobile tyre inspection service',
       'Inspection findings confirmed on site',
+      'Final safety inspection',
+    );
+  } else if (serviceType === 'locking_nut' || serviceType === 'locking_nut_removal') {
+    inclusions.push(
+      'Mobile locking wheel nut removal service',
+      'Locking wheel nut removal labour',
       'Final safety inspection',
     );
   } else {
@@ -303,6 +331,7 @@ export function createBookingCustomerInvoice(value: unknown, source = 'unknown')
       model: nullableString(vehicle.model),
     },
     tyreSizeDisplay: nullableString(record.tyreSizeDisplay),
+    tyreLines: stringList(record.tyreLines),
     serviceInclusions: stringList(record.serviceInclusions),
     payment: {
       status: requiredString(payment.status, 'payment.status', source),
@@ -330,6 +359,8 @@ export function buildBookingCustomerInvoiceFromBooking(input: {
     });
   }
 
+  const tyreLines = bookingTyreLines(input.booking);
+
   return createBookingCustomerInvoice({
     invoiceNumber: input.invoiceNumber ?? `INV-${input.booking.refNumber}`,
     invoiceDate: new Date(input.invoiceDate ?? input.booking.createdAt ?? new Date()).toISOString(),
@@ -347,6 +378,7 @@ export function buildBookingCustomerInvoiceFromBooking(input: {
       model: input.booking.vehicleModel,
     },
     tyreSizeDisplay: input.booking.tyreSizeDisplay ?? null,
+    tyreLines,
     serviceInclusions: buildBookingServiceInclusions(input.booking),
     payment: {
       status: input.paymentSummary.label,
@@ -390,6 +422,8 @@ export function buildBookingCustomerInvoiceFromStoredInvoice(input: {
     });
   }
 
+  const tyreLines = bookingTyreLines(input.booking);
+
   return createBookingCustomerInvoice({
     invoiceNumber: input.invoice.invoiceNumber,
     invoiceDate: new Date(input.invoice.issueDate ?? input.booking.createdAt ?? new Date()).toISOString(),
@@ -412,6 +446,7 @@ export function buildBookingCustomerInvoiceFromStoredInvoice(input: {
       model: input.booking.vehicleModel,
     },
     tyreSizeDisplay: input.booking.tyreSizeDisplay ?? null,
+    tyreLines,
     serviceInclusions: buildBookingServiceInclusions(input.booking),
     payment: {
       status: input.paymentSummary.label,

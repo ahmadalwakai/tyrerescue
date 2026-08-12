@@ -4,6 +4,11 @@ import { eq, and, desc } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { Box, Heading } from '@chakra-ui/react';
 import { JobDetailClient } from './JobDetailClient';
+import {
+  formatTyreDisplayLine,
+  resolveBookingTyreDisplay,
+  totalTyreLineQuantity,
+} from '@/lib/bookings/tyre-line-display';
 
 interface Props {
   params: Promise<{ ref: string }>;
@@ -53,6 +58,7 @@ export default async function DriverJobDetailPage({ params }: Props) {
       service: bookingTyres.service,
       brand: tyreProducts.brand,
       pattern: tyreProducts.pattern,
+      sizeDisplay: tyreProducts.sizeDisplay,
       width: tyreProducts.width,
       aspect: tyreProducts.aspect,
       rim: tyreProducts.rim,
@@ -75,6 +81,26 @@ export default async function DriverJobDetailPage({ params }: Props) {
     .orderBy(desc(bookingStatusHistory.createdAt));
 
   // Transform data for client
+  const tyreRows = tyres.map((t) => ({
+    brand: t.brand,
+    pattern: t.pattern,
+    sizeDisplay: t.sizeDisplay,
+    width: t.width,
+    aspect: t.aspect,
+    rim: t.rim,
+    quantity: t.quantity,
+    unitPrice: t.unitPrice.toString(),
+    service: t.service,
+  }));
+  const tyreDisplay = resolveBookingTyreDisplay({
+    priceSnapshot: booking.priceSnapshot,
+    tyreRows,
+    tyreSizeDisplay: booking.tyreSizeDisplay,
+    quantity: booking.quantity,
+  });
+  const tyreQuantity = totalTyreLineQuantity(tyreDisplay.lines) || booking.quantity;
+
+  // Transform data for client
   const bookingData = {
     id: booking.id,
     refNumber: booking.refNumber,
@@ -84,8 +110,9 @@ export default async function DriverJobDetailPage({ params }: Props) {
     addressLine: booking.addressLine,
     lat: booking.lat.toString(),
     lng: booking.lng.toString(),
-    tyreSizeDisplay: booking.tyreSizeDisplay,
-    quantity: booking.quantity,
+    tyreSizeDisplay: tyreDisplay.lines[0]?.size ?? booking.tyreSizeDisplay,
+    quantity: tyreQuantity,
+    tyreLines: tyreDisplay.lines.map(formatTyreDisplayLine),
     customerName: booking.customerName,
     customerPhone: booking.customerPhone,
     tyrePhotoUrl: booking.tyrePhotoUrl,
@@ -116,6 +143,7 @@ export default async function DriverJobDetailPage({ params }: Props) {
     service: t.service,
     brand: t.brand,
     pattern: t.pattern,
+    sizeDisplay: t.sizeDisplay,
     width: t.width,
     aspect: t.aspect,
     rim: t.rim,

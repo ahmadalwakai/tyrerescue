@@ -1,7 +1,7 @@
 {
   "configVersion": 0,
   "apple": {
-    "version": "1.0.2",
+    "version": "1.0.12",
     "copyright": "(c) 2026 Tyre Rescue",
     "release": {
       "automaticRelease": false

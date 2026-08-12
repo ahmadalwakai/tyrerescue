@@ -5,7 +5,6 @@ import {
   addAdminUnlockSchema,
   buildAddAdminAttemptKey,
   getAddAdminPinCooldownMs,
-  isOwnerLevelAdmin,
   issueAddAdminUnlock,
   recordAddAdminPinFailure,
   recordAdminManagementAudit,
@@ -20,10 +19,6 @@ import { rateLimitedResponse } from '@/lib/security/responses';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-function forbiddenResponse() {
-  return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
-}
 
 function incorrectPinResponse(retryAfterSeconds?: number) {
   const headers: Record<string, string> = { 'Cache-Control': 'no-store' };
@@ -41,17 +36,6 @@ function incorrectPinResponse(retryAfterSeconds?: number) {
 export async function POST(request: Request) {
   const admin = await getMobileAdminUser(request);
   if (!admin) return unauthorizedResponse();
-
-  const ownerAllowed = await isOwnerLevelAdmin(admin.id);
-  if (!ownerAllowed) {
-    await recordAdminManagementAudit({
-      request,
-      actorUserId: admin.id,
-      action: 'add_admin_unlock_forbidden',
-      afterJson: { reason: 'not_owner_level' },
-    });
-    return forbiddenResponse();
-  }
 
   const attemptKey = buildAddAdminAttemptKey({
     adminId: admin.id,

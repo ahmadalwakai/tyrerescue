@@ -16,6 +16,7 @@ import {
   estimateUrbanDriveMinutesFromMiles,
   type DriverSituation,
 } from '@/lib/admin/driverSituation';
+import { extractCanonicalTyreLines, totalTyreLineQuantity } from '@/lib/bookings/tyre-line-display';
 
 const ACTIVE_STATUSES = [
   'driver_assigned',
@@ -68,6 +69,10 @@ function toNumber(value: string | number | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function tyreCountFromSnapshot(priceSnapshot: unknown, fallback: number | null | undefined): number | null {
+  return (totalTyreLineQuantity(extractCanonicalTyreLines(priceSnapshot)) || fallback) ?? null;
+}
+
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ ref: string }> },
@@ -94,6 +99,7 @@ export async function GET(
       customerLng: bookings.lng,
       serviceType: bookings.serviceType,
       tyreCount: bookings.quantity,
+      priceSnapshot: bookings.priceSnapshot,
       paymentType: bookings.paymentType,
       driverId: drivers.id,
       driverName: users.name,
@@ -185,7 +191,7 @@ export async function GET(
           : null,
       trafficDelayMinutes: null,
       serviceType: row.serviceType ?? null,
-      tyreCount: row.tyreCount ?? null,
+      tyreCount: tyreCountFromSnapshot(row.priceSnapshot, row.tyreCount),
       paymentStatus: row.paymentType ?? null,
       gpsState: isStale ? 'weak' : 'normal',
       returnEstimateAvailable: customerLat != null && customerLng != null,
@@ -249,7 +255,7 @@ export async function GET(
       ),
       trafficDelayMinutes: null,
       serviceType: row.serviceType ?? null,
-      tyreCount: row.tyreCount ?? null,
+      tyreCount: tyreCountFromSnapshot(row.priceSnapshot, row.tyreCount),
       paymentStatus: row.paymentType ?? null,
       gpsState: isStale ? 'weak' : 'normal',
       returnEstimateAvailable: true,

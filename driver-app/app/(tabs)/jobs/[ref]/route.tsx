@@ -30,6 +30,12 @@ import {
   getDriverPaymentDisplay,
   paymentToneColors,
 } from '@/lib/payment-status';
+import {
+  formatJobTyreLinesSummary,
+  getJobTyreLines,
+  hasJobTyreDetails,
+  totalJobTyreQuantity,
+} from '@/lib/tyre-lines';
 import { RouteEventEngine, type RouteEventType } from '@/lib/route-events';
 import {
   Coordinates,
@@ -3509,7 +3515,7 @@ export default function JobRouteScreen() {
               payDisplay.tone === 'action' ||
               payDisplay.tone === 'warning' ||
               payDisplay.tone === 'failed',
-            hasTyreSize: !!(currentJob.tyreSizeDisplay?.trim()),
+            hasTyreSize: hasJobTyreDetails(currentJob),
             hasAddress: !!(currentJob.addressLine?.trim()),
             gpsStale: fixAge == null || fixAge > 12_000,
             routeFailed: rs.source === 'none' && rs.error != null,
@@ -3657,15 +3663,41 @@ export default function JobRouteScreen() {
     [ref, t],
   );
 
+  const openWheelNutConsent = useCallback(async () => {
+    if (!ref) return;
+    setActioning(true);
+    try {
+      await driverApi.markWheelNutConsentRequired(ref, 'driver_requested_wheel_nut_extraction_consent_from_route');
+    } catch {
+      // The consent screen retries this before signing.
+    } finally {
+      setActioning(false);
+    }
+    router.push(`/(tabs)/jobs/${ref}/wheel-nut-consent`);
+  }, [ref, router]);
+
   const handleStatusAction = useCallback(
     (nextStatus: string) => {
       if (!ref || actionLockRef.current) return;
 
       // Completion checklist — shown before marking complete.
       if (nextStatus === 'completed') {
+        if (job?.wheelNutConsent?.required && !job.wheelNutConsent.canComplete) {
+          Alert.alert(t('wheelNutConsent.requiredTitle'), t('wheelNutConsent.requiredBeforeComplete'), [
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('wheelNutConsent.openConsent'), onPress: () => void openWheelNutConsent() },
+          ]);
+          return;
+        }
         setCompletionChecks({ tyreFitted: false, wheelNuts: false, customerInformed: false, paymentChecked: false });
         setCompletionError(null);
         setShowCompletionChecklist(true);
+        return;
+      }
+
+      if (nextStatus === 'en_route' && job?.status === 'driver_assigned') {
+        setPreJobChecks({ tyreSizeChecked: false, addressChecked: false, paymentChecked: false });
+        setShowPreJobChecklist(true);
         return;
       }
 
@@ -3676,7 +3708,7 @@ export default function JobRouteScreen() {
             : undefined,
       });
     },
-    [ref, updateRouteStatus],
+    [job?.status, job?.wheelNutConsent, openWheelNutConsent, ref, t, updateRouteStatus],
   );
 
   // Confirms the pre-job checklist and starts travel (driver_assigned → en_route).
@@ -4634,30 +4666,35 @@ export default function JobRouteScreen() {
   };
 
   // Cockpit data (all from the real driver job payload).
-  const nextActionLabel =
-    job && NEXT_ACTION_LABEL[job.status] ? t(NEXT_ACTION_LABEL[job.status]) : null;
+  const wheelNutConsent = job?.wheelNutConsent ?? null;
+  const routeActionBlockedByConsent = Boolean(
+    statusAction?.next === 'completed' &&
+      wheelNutConsent?.required &&
+      wheelNutConsent?.canComplete === false,
+  );
+  const nextActionLabel = routeActionBlockedByConsent
+    ? t('wheelNutConsent.getConsentToComplete')
+    : job && NEXT_ACTION_LABEL[job.status] ? t(NEXT_ACTION_LABEL[job.status]) : null;
   const phone = cleanPhone(job?.customerPhone);
   const vehicleLabel =
     job && (job.vehicleReg || job.vehicleMake || job.vehicleModel)
       ? [job.vehicleReg, job.vehicleMake, job.vehicleModel].filter(Boolean).join(' · ')
       : null;
-  const tyreCount = job?.tyres?.reduce((sum, ty) => sum + (ty.quantity ?? 0), 0) ?? 0;
+  const tyreLines = getJobTyreLines(job);
+  const tyreCount = totalJobTyreQuantity(job);
   const tyreSummary =
-    job?.tyreSizeDisplay != null && job.tyreSizeDisplay.length > 0
-      ? tyreCount > 0
-        ? `${tyreCount} × ${job.tyreSizeDisplay}`
-        : job.tyreSizeDisplay
-      : tyreCount > 0
-        ? t(tyreCount === 1 ? 'route.tyreUnitSingular' : 'route.tyreUnitPlural', {
-            count: tyreCount,
-          })
-        : null;
+    formatJobTyreLinesSummary(job) ??
+    (tyreCount > 0
+      ? t(tyreCount === 1 ? 'route.tyreUnitSingular' : 'route.tyreUnitPlural', {
+          count: tyreCount,
+        })
+      : null);
   const addressLine = job?.addressLine && job.addressLine.length > 0 ? job.addressLine : null;
   const payDisplay = getDriverPaymentDisplay(job?.paymentSummary ?? job?.payment ?? null, job?.refNumber ?? null);
   const payColors = paymentToneColors(payDisplay.tone);
 
   // ── Checklist derived warnings ──
-  const checklistTyreMissing = !job?.tyreSizeDisplay?.trim();
+  const checklistTyreMissing = tyreLines.length === 0;
   const checklistAddressMissing = !addressLine;
   const checklistPaymentWarning =
     payDisplay.tone === 'pending' ||
@@ -6117,6 +6154,7 @@ export default function JobRouteScreen() {
                 style={[
                   styles.primaryBtn,
                   emphasiseArrived && styles.primaryBtnEmphasis,
+                  routeActionBlockedByConsent && styles.primaryBtnWarning,
                   actioning && styles.btnDisabled,
                 ]}
               >
@@ -7506,6 +7544,9 @@ const styles = StyleSheet.create({
   primaryBtnEmphasis: {
     minHeight: 60,
     backgroundColor: '#34A853',
+  },
+  primaryBtnWarning: {
+    backgroundColor: '#B45309',
   },
   arrivalHint: {
     flexDirection: 'row',

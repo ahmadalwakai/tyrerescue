@@ -20,6 +20,37 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## VRM tyre fitment lookup
+
+The quote VRM endpoint uses DVLA Vehicle Enquiry Service for vehicle identity and Tyre Rescue-owned local data for tyre-fitment guidance:
+
+```bash
+NEXT_PUBLIC_VRM_ENABLED=true
+DVLA_API_KEY=...
+GROQ_API_KEY=...
+```
+
+DVLA does not provide tyre sizes. The app can show locally confirmed registration fitments and non-comprehensive make/model/year catalogue candidates, but booking and pricing require the operator to confirm the tyre sidewall first. `GROQ_API_KEY` is optional and may only rank/explain existing local candidates; it must not invent tyre sizes or source fitment data.
+
+Tyre Rescue also has a self-owned exact-registration catalog at `lib/data/vrm-tyre-fitments.json`. Add a record there only after the tyre has been confirmed from the sidewall, door placard, manufacturer data, or a paid fitment source:
+
+```json
+{
+  "registrationNumber": "AB12CDE",
+  "options": [
+    {
+      "label": "Confirmed sidewall fitment",
+      "front": "215/55R16",
+      "rear": "215/55R16",
+      "confidence": "high",
+      "notes": ["Confirmed by admin"]
+    }
+  ]
+}
+```
+
+Do not add third-party vehicle-fitment APIs or scraping to this flow. Confirmed sidewall data should be saved through Assisted Chat or added to the owned local catalogue after review.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

@@ -325,11 +325,29 @@ export interface JobTyre {
   quantity: number;
   brand: string | null;
   pattern: string | null;
+  sizeDisplay?: string | null;
   width?: number | null;
   aspect?: number | null;
   rim?: number | null;
   unitPrice?: string | null;
   service?: string | null;
+}
+
+export interface JobTyreLine {
+  id?: string | null;
+  size: string;
+  quantity: number;
+  axle?: string | null;
+  loadIndex?: string | null;
+  speedIndex?: string | null;
+  runFlat?: boolean | null;
+  xl?: boolean | null;
+  commercial?: boolean | null;
+  brand?: string | null;
+  pattern?: string | null;
+  service?: string | null;
+  unitPrice?: number | null;
+  source?: string | null;
 }
 
 export interface JobSummary {
@@ -342,7 +360,9 @@ export interface JobSummary {
   lat?: string | null;
   lng?: string | null;
   tyreSizeDisplay: string | null;
-  quantity: string | null;
+  quantity: string | number | null;
+  tyreLines?: JobTyreLine[];
+  tyreLineSource?: string;
   customerName: string;
   customerPhone?: string | null;
   scheduledAt: string | null;
@@ -398,12 +418,34 @@ export interface PaymentSummary {
   reason: string;
 }
 
+export interface WheelNutConsentStatus {
+  required: boolean;
+  requiredAt: string | null;
+  requiredReason: string | null;
+  signedAt: string | null;
+  consentId: string | null;
+  customerName: string | null;
+  vehicleReg: string | null;
+  driverName: string | null;
+  declarationAccepted: boolean;
+  signatureUrl: string | null;
+  pdfUrl: string | null;
+  emailStatus: string | null;
+  emailSentAt: string | null;
+  gpsLat: string | null;
+  gpsLng: string | null;
+  gpsAccuracy: number | null;
+  deviceId: string | null;
+  canComplete: boolean;
+}
+
 export interface JobDetail extends JobSummary {
   customerEmail: string | null;
   vehicleReg: string | null;
   vehicleMake: string | null;
   vehicleModel: string | null;
   lockingNutStatus: string | null;
+  wheelNutConsent?: WheelNutConsentStatus | null;
   tyrePhotoUrl: string | null;
   notes: string | null;
   assignedAt: string | null;
@@ -513,6 +555,33 @@ export const driverApi = {
     api<{ success: boolean; previousStatus: string; newStatus: string }>(
       `/api/driver/jobs/${encodeURIComponent(ref)}/status`,
       { method: 'PATCH', body: { status } },
+    ),
+
+  markWheelNutConsentRequired: (ref: string, reason?: string) =>
+    api<{ success: boolean; wheelNutConsent: WheelNutConsentStatus | null }>(
+      `/api/driver/jobs/${encodeURIComponent(ref)}/wheel-nut-consent`,
+      {
+        method: 'PATCH',
+        body: { reason: reason ?? 'driver_reported_extraction_or_wheel_damage_risk' },
+      },
+    ),
+
+  saveWheelNutConsent: (
+    ref: string,
+    payload: {
+      customerName: string;
+      vehicleReg: string | null;
+      declarationAccepted: boolean;
+      signatureDataUrl: string;
+      signaturePointCount: number;
+      gps?: { lat: number; lng: number; accuracy?: number | null } | null;
+      deviceId?: string | null;
+      deviceLabel?: string | null;
+    },
+  ) =>
+    api<{ success: boolean; wheelNutConsent: WheelNutConsentStatus | null }>(
+      `/api/driver/jobs/${encodeURIComponent(ref)}/wheel-nut-consent`,
+      { method: 'POST', body: payload },
     ),
 
   // Push token management

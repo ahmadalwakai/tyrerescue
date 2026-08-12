@@ -1,6 +1,10 @@
 import {
   pgTable,
   pgEnum,
+  index,
+  uniqueIndex,
+  check,
+  foreignKey,
   uuid,
   varchar,
   text,
@@ -122,6 +126,106 @@ export const tyreProducts = pgTable('tyre_products', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// ──────────────────────────────────────────────
+// Stock city foundation (city-scoped stock system)
+// ──────────────────────────────────────────────
+
+export const stockCityRoleEnum = pgEnum('stock_city_role', [
+  'viewer',
+  'operator',
+  'manager',
+]);
+
+export const stockShiftStatusEnum = pgEnum('stock_shift_status', [
+  'active',
+  'ended',
+  'void',
+]);
+
+export const stockMovementTypeEnum = pgEnum('stock_movement_type', [
+  'RECEIVED',
+  'SALE',
+  'SALE_REVERSAL',
+  'RETURN',
+  'DAMAGED',
+  'CORRECTION',
+]);
+
+export const stockSaleChannelEnum = pgEnum('stock_sale_channel', [
+  'GARAGE',
+  'EMERGENCY_CALL_OUT',
+]);
+
+export const stockCities = pgTable('stock_cities', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  slug: varchar('slug', { length: 100 }).notNull().unique(),
+  name: varchar('name', { length: 120 }).notNull(),
+  isActive: boolean('is_active').notNull().default(true),
+  createdByUserId: uuid('created_by_user_id').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+}, (table) => [
+  index('stock_cities_active_idx').on(table.isActive),
+]);
+
+export const stockUserCityAccess = pgTable('stock_user_city_access', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  cityId: uuid('city_id').notNull().references(() => stockCities.id, { onDelete: 'cascade' }),
+  roleInCity: stockCityRoleEnum('role_in_city').notNull().default('operator'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdByUserId: uuid('created_by_user_id').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+}, (table) => [
+  uniqueIndex('stock_user_city_access_user_city_unique').on(table.userId, table.cityId),
+  index('stock_user_city_access_user_idx').on(table.userId),
+  index('stock_user_city_access_city_idx').on(table.cityId),
+]);
+
+export const stockShifts = pgTable('stock_shifts', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  cityId: uuid('city_id').notNull().references(() => stockCities.id, { onDelete: 'restrict' }),
+  startedAt: timestamp('started_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  endedAt: timestamp('ended_at', { withTimezone: true }),
+  status: stockShiftStatusEnum('status').notNull().default('active'),
+  endedByUserId: uuid('ended_by_user_id').references(() => users.id),
+  adminOverrideReason: text('admin_override_reason'),
+  idempotencyKey: varchar('idempotency_key', { length: 200 }).unique(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+}, (table) => [
+  uniqueIndex('stock_shifts_one_active_per_user_idx')
+    .on(table.userId)
+    .where(sql`${table.endedAt} IS NULL`),
+  index('stock_shifts_city_started_idx').on(table.cityId, table.startedAt),
+  index('stock_shifts_user_started_idx').on(table.userId, table.startedAt),
+]);
+
+export const stockInventoryBalances = pgTable('stock_inventory_balances', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  cityId: uuid('city_id').notNull().references(() => stockCities.id, { onDelete: 'cascade' }),
+  tyreProductId: uuid('tyre_product_id').notNull().references(() => tyreProducts.id, { onDelete: 'restrict' }),
+  currentStock: integer('current_stock').notNull().default(0),
+  reservedStock: integer('reserved_stock').notNull().default(0),
+  orderedStock: integer('ordered_stock').notNull().default(0),
+  minStock: integer('min_stock').notNull().default(0),
+  targetStock: integer('target_stock').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+}, (table) => [
+  uniqueIndex('stock_inventory_balances_city_product_unique').on(table.cityId, table.tyreProductId),
+  index('stock_inventory_balances_city_idx').on(table.cityId),
+  index('stock_inventory_balances_product_idx').on(table.tyreProductId),
+  check('stock_inventory_balances_current_stock_nonnegative', sql`${table.currentStock} >= 0`),
+  check('stock_inventory_balances_reserved_stock_nonnegative', sql`${table.reservedStock} >= 0`),
+  check('stock_inventory_balances_ordered_stock_nonnegative', sql`${table.orderedStock} >= 0`),
+  check('stock_inventory_balances_min_stock_nonnegative', sql`${table.minStock} >= 0`),
+  check('stock_inventory_balances_target_stock_nonnegative', sql`${table.targetStock} >= 0`),
+]);
+
 // Registration-level tyre fitments confirmed by an admin from the sidewall.
 // This is the runtime source of truth; JSON catalogues are read-only seed data.
 export const vehicleTyreFitments = pgTable('vehicle_tyre_fitments', {
@@ -186,6 +290,8 @@ export const bookings = pgTable('bookings', {
   remainingBalancePence: integer('remaining_balance_pence'),
   stripeDepositPiId: varchar('stripe_deposit_pi_id', { length: 255 }),
   quoteExpiresAt: timestamp('quote_expires_at', { withTimezone: true }),
+  stockCityId: uuid('stock_city_id').references(() => stockCities.id),
+  stockCityLockedAt: timestamp('stock_city_locked_at', { withTimezone: true }),
   lockingNutStatus: text('locking_nut_status'),
   hasPreOrderItems: boolean('has_pre_order_items').default(false),
   fulfillmentOption: text('fulfillment_option'),
@@ -207,6 +313,9 @@ export const bookings = pgTable('bookings', {
   inProgressAt: timestamp('in_progress_at', { withTimezone: true }),
   completedAt: timestamp('completed_at', { withTimezone: true }),
   acceptanceDeadline: timestamp('acceptance_deadline', { withTimezone: true }),
+  wheelNutConsentRequiredAt: timestamp('wheel_nut_consent_required_at', { withTimezone: true }),
+  wheelNutConsentRequiredByDriverId: uuid('wheel_nut_consent_required_by_driver_id').references(() => drivers.id),
+  wheelNutConsentReason: text('wheel_nut_consent_reason'),
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
 });
@@ -233,6 +342,38 @@ export const bookingStatusHistory = pgTable('booking_status_history', {
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// Signed customer consent for locking wheel nut extraction / wheel damage risk.
+export const wheelNutConsents = pgTable('wheel_nut_consents', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: uuid('booking_id').notNull().references(() => bookings.id, { onDelete: 'cascade' }),
+  bookingRef: varchar('booking_ref', { length: 20 }).notNull(),
+  driverId: uuid('driver_id').references(() => drivers.id),
+  driverUserId: uuid('driver_user_id').references(() => users.id),
+  driverName: varchar('driver_name', { length: 255 }),
+  customerName: varchar('customer_name', { length: 255 }).notNull(),
+  customerEmail: varchar('customer_email', { length: 255 }),
+  vehicleReg: varchar('vehicle_reg', { length: 16 }),
+  declarationText: text('declaration_text').notNull(),
+  declarationAccepted: boolean('declaration_accepted').notNull().default(false),
+  signatureUrl: text('signature_url').notNull(),
+  signatureMimeType: varchar('signature_mime_type', { length: 50 }).notNull().default('image/png'),
+  signatureFileSize: integer('signature_file_size'),
+  signaturePointCount: integer('signature_point_count'),
+  signatureSha256: varchar('signature_sha256', { length: 64 }),
+  pdfUrl: text('pdf_url').notNull(),
+  pdfFileSize: integer('pdf_file_size'),
+  pdfSha256: varchar('pdf_sha256', { length: 64 }),
+  gpsLat: decimal('gps_lat', { precision: 9, scale: 6 }),
+  gpsLng: decimal('gps_lng', { precision: 9, scale: 6 }),
+  gpsAccuracy: real('gps_accuracy'),
+  deviceId: text('device_id'),
+  deviceLabel: text('device_label'),
+  emailStatus: text('email_status').notNull().default('not_sent'),
+  emailSentAt: timestamp('email_sent_at', { withTimezone: true }),
+  emailError: text('email_error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+});
+
 // Inventory reservations
 export const inventoryReservations = pgTable('inventory_reservations', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
@@ -255,6 +396,77 @@ export const inventoryMovements = pgTable('inventory_movements', {
   note: text('note'),
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
 });
+
+export const stockReservations = pgTable('stock_reservations', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  cityId: uuid('city_id').notNull().references(() => stockCities.id, { onDelete: 'cascade' }),
+  tyreProductId: uuid('tyre_product_id').notNull().references(() => tyreProducts.id, { onDelete: 'restrict' }),
+  bookingId: uuid('booking_id').references(() => bookings.id, { onDelete: 'cascade' }),
+  quantity: integer('quantity').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  released: boolean('released').notNull().default(false),
+  releasedAt: timestamp('released_at', { withTimezone: true }),
+  idempotencyKey: varchar('idempotency_key', { length: 200 }).unique(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+}, (table) => [
+  index('stock_reservations_city_product_expires_idx').on(table.cityId, table.tyreProductId, table.expiresAt),
+  index('stock_reservations_booking_idx').on(table.bookingId),
+  check('stock_reservations_quantity_positive', sql`${table.quantity} > 0`),
+]);
+
+export const stockMovements = pgTable('stock_movements', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  cityId: uuid('city_id').notNull().references(() => stockCities.id, { onDelete: 'restrict' }),
+  tyreProductId: uuid('tyre_product_id').notNull().references(() => tyreProducts.id, { onDelete: 'restrict' }),
+  movementType: stockMovementTypeEnum('movement_type').notNull(),
+  quantityDelta: integer('quantity_delta').notNull(),
+  previousBalance: integer('previous_balance').notNull(),
+  resultingBalance: integer('resulting_balance').notNull(),
+  actorUserId: uuid('actor_user_id').references(() => users.id),
+  shiftId: uuid('shift_id').references(() => stockShifts.id),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  saleChannel: stockSaleChannelEnum('sale_channel'),
+  reversesMovementId: uuid('reverses_movement_id'),
+  idempotencyKey: varchar('idempotency_key', { length: 200 }).unique(),
+  reason: text('reason'),
+  note: text('note'),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  occurredAt: timestamp('occurred_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+}, (table) => [
+  uniqueIndex('stock_movements_reverses_unique_idx')
+    .on(table.reversesMovementId)
+    .where(sql`${table.reversesMovementId} IS NOT NULL`),
+  index('stock_movements_city_product_occurred_idx').on(table.cityId, table.tyreProductId, table.occurredAt),
+  index('stock_movements_booking_idx').on(table.bookingId),
+  index('stock_movements_shift_idx').on(table.shiftId),
+  foreignKey({
+    name: 'stock_movements_reverses_movement_id_stock_movements_id_fk',
+    columns: [table.reversesMovementId],
+    foreignColumns: [table.id],
+  }),
+  check('stock_movements_quantity_delta_nonzero', sql`${table.quantityDelta} != 0`),
+  check('stock_movements_previous_balance_nonnegative', sql`${table.previousBalance} >= 0`),
+  check('stock_movements_resulting_balance_nonnegative', sql`${table.resultingBalance} >= 0`),
+]);
+
+export const missingTyreRequests = pgTable('missing_tyre_requests', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  cityId: uuid('city_id').notNull().references(() => stockCities.id, { onDelete: 'cascade' }),
+  normalizedSize: varchar('normalized_size', { length: 32 }).notNull(),
+  requesterUserId: uuid('requester_user_id').references(() => users.id),
+  shiftId: uuid('shift_id').references(() => stockShifts.id),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  saleChannel: stockSaleChannelEnum('sale_channel'),
+  context: jsonb('context').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`).notNull(),
+}, (table) => [
+  index('missing_tyre_requests_city_size_created_idx').on(table.cityId, table.normalizedSize, table.createdAt),
+  index('missing_tyre_requests_booking_idx').on(table.bookingId),
+  index('missing_tyre_requests_shift_idx').on(table.shiftId),
+]);
 
 // Payments
 export const payments = pgTable('payments', {
@@ -1102,12 +1314,22 @@ export type TyreCatalogueItem = typeof tyreCatalogue.$inferSelect;
 export type NewTyreCatalogueItem = typeof tyreCatalogue.$inferInsert;
 export type TyreProduct = typeof tyreProducts.$inferSelect;
 export type NewTyreProduct = typeof tyreProducts.$inferInsert;
+export type StockCity = typeof stockCities.$inferSelect;
+export type NewStockCity = typeof stockCities.$inferInsert;
+export type StockUserCityAccess = typeof stockUserCityAccess.$inferSelect;
+export type NewStockUserCityAccess = typeof stockUserCityAccess.$inferInsert;
+export type StockShift = typeof stockShifts.$inferSelect;
+export type NewStockShift = typeof stockShifts.$inferInsert;
+export type StockInventoryBalance = typeof stockInventoryBalances.$inferSelect;
+export type NewStockInventoryBalance = typeof stockInventoryBalances.$inferInsert;
 export type VehicleTyreFitment = typeof vehicleTyreFitments.$inferSelect;
 export type NewVehicleTyreFitment = typeof vehicleTyreFitments.$inferInsert;
 export type Booking = typeof bookings.$inferSelect;
 export type NewBooking = typeof bookings.$inferInsert;
 export type BookingTyre = typeof bookingTyres.$inferSelect;
 export type NewBookingTyre = typeof bookingTyres.$inferInsert;
+export type WheelNutConsent = typeof wheelNutConsents.$inferSelect;
+export type NewWheelNutConsent = typeof wheelNutConsents.$inferInsert;
 export type Invoice = typeof invoices.$inferSelect;
 export type NewInvoice = typeof invoices.$inferInsert;
 export type InvoiceItem = typeof invoiceItems.$inferSelect;
@@ -1117,6 +1339,12 @@ export type NewInvoiceItem = typeof invoiceItems.$inferInsert;
 export type BookingStatusHistory = typeof bookingStatusHistory.$inferSelect;
 export type InventoryReservation = typeof inventoryReservations.$inferSelect;
 export type InventoryMovement = typeof inventoryMovements.$inferSelect;
+export type StockReservation = typeof stockReservations.$inferSelect;
+export type NewStockReservation = typeof stockReservations.$inferInsert;
+export type StockMovement = typeof stockMovements.$inferSelect;
+export type NewStockMovement = typeof stockMovements.$inferInsert;
+export type MissingTyreRequest = typeof missingTyreRequests.$inferSelect;
+export type NewMissingTyreRequest = typeof missingTyreRequests.$inferInsert;
 export type Payment = typeof payments.$inferSelect;
 export type PaymentEvent = typeof paymentEvents.$inferSelect;
 export type NewPaymentEvent = typeof paymentEvents.$inferInsert;

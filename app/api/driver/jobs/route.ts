@@ -3,6 +3,11 @@ import { db, bookings, bookingTyres, tyreProducts } from '@/lib/db';
 import { eq, and, inArray, desc } from 'drizzle-orm';
 import { requireDriverMobile } from '@/lib/auth';
 import { getBookingPaymentSummaryMap, type PaymentSummary } from '@/lib/payments/payment-summary';
+import {
+  type BookingTyreDisplayLine,
+  resolveBookingTyreDisplay,
+  totalTyreLineQuantity,
+} from '@/lib/bookings/tyre-line-display';
 
 const OPERATIONAL_STATUSES = ['en_route', 'arrived', 'in_progress'] as const;
 const UPCOMING_STATUSES = ['driver_assigned'] as const;
@@ -18,6 +23,7 @@ const JOB_LIST_SELECTION = {
   lng: bookings.lng,
   tyreSizeDisplay: bookings.tyreSizeDisplay,
   quantity: bookings.quantity,
+  priceSnapshot: bookings.priceSnapshot,
   customerName: bookings.customerName,
   customerPhone: bookings.customerPhone,
   scheduledAt: bookings.scheduledAt,
@@ -47,6 +53,7 @@ interface RawJobRow {
   lng: string | null;
   tyreSizeDisplay: string | null;
   quantity: number | null;
+  priceSnapshot: unknown;
   customerName: string;
   customerPhone: string | null;
   scheduledAt: Date | null;
@@ -69,6 +76,12 @@ interface TyreRef {
   quantity: number;
   brand: string | null;
   pattern: string | null;
+  sizeDisplay: string | null;
+  width?: number | null;
+  aspect?: number | null;
+  rim?: number | null;
+  unitPrice?: string | null;
+  service?: string | null;
 }
 
 interface SerialisedJob {
@@ -93,6 +106,8 @@ interface SerialisedJob {
   paymentSummary: PaymentSummary;
   payment: PaymentSummary;
   tyres: TyreRef[];
+  tyreLines: BookingTyreDisplayLine[];
+  tyreLineSource: string;
 }
 
 export async function GET(request: Request) {
@@ -133,7 +148,7 @@ export async function GET(request: Request) {
       .orderBy(desc(bookings.completedAt))
       .limit(50)) as RawJobRow[];
 
-    const idsNeedingTyres = [...activeRows, ...upcomingRows].map((j) => j.id);
+    const idsNeedingTyres = [...activeRows, ...upcomingRows, ...completedRows].map((j) => j.id);
     const tyreMap = await fetchTyreMap(idsNeedingTyres);
     const paymentSummaryMap = await getBookingPaymentSummaryMap([
       ...activeRows,
@@ -148,7 +163,7 @@ export async function GET(request: Request) {
       serialiseJob(row, tyreMap.get(row.id) ?? [], paymentSummaryMap.get(row.id)),
     );
     const completed = completedRows.map((row) =>
-      serialiseJob(row, [], paymentSummaryMap.get(row.id)),
+      serialiseJob(row, tyreMap.get(row.id) ?? [], paymentSummaryMap.get(row.id)),
     );
 
     return NextResponse.json({ active, upcoming, completed });
@@ -171,6 +186,12 @@ async function fetchTyreMap(bookingIds: string[]): Promise<Map<string, TyreRef[]
       quantity: bookingTyres.quantity,
       brand: tyreProducts.brand,
       pattern: tyreProducts.pattern,
+      sizeDisplay: tyreProducts.sizeDisplay,
+      width: tyreProducts.width,
+      aspect: tyreProducts.aspect,
+      rim: tyreProducts.rim,
+      unitPrice: bookingTyres.unitPrice,
+      service: bookingTyres.service,
     })
     .from(bookingTyres)
     .leftJoin(tyreProducts, eq(bookingTyres.tyreId, tyreProducts.id))
@@ -179,7 +200,17 @@ async function fetchTyreMap(bookingIds: string[]): Promise<Map<string, TyreRef[]
   for (const row of rows) {
     if (row.bookingId == null) continue;
     const list = map.get(row.bookingId) ?? [];
-    list.push({ quantity: row.quantity, brand: row.brand, pattern: row.pattern });
+    list.push({
+      quantity: row.quantity,
+      brand: row.brand,
+      pattern: row.pattern,
+      sizeDisplay: row.sizeDisplay,
+      width: row.width,
+      aspect: row.aspect,
+      rim: row.rim,
+      unitPrice: row.unitPrice?.toString() ?? null,
+      service: row.service,
+    });
     map.set(row.bookingId, list);
   }
   return map;
@@ -191,6 +222,13 @@ function serialiseJob(
   paymentSummary?: PaymentSummary,
 ): SerialisedJob {
   const payment = paymentSummary ?? rowToUnknownPaymentSummary(row);
+  const tyreDisplay = resolveBookingTyreDisplay({
+    priceSnapshot: row.priceSnapshot,
+    tyreRows: tyres,
+    tyreSizeDisplay: row.tyreSizeDisplay,
+    quantity: row.quantity,
+  });
+  const tyreQuantity = totalTyreLineQuantity(tyreDisplay.lines) || row.quantity || null;
 
   return {
     id: row.id,
@@ -201,8 +239,8 @@ function serialiseJob(
     addressLine: row.addressLine,
     lat: row.lat?.toString() ?? null,
     lng: row.lng?.toString() ?? null,
-    tyreSizeDisplay: row.tyreSizeDisplay,
-    quantity: row.quantity != null ? row.quantity.toString() : null,
+    tyreSizeDisplay: tyreDisplay.lines[0]?.size ?? row.tyreSizeDisplay,
+    quantity: tyreQuantity != null ? tyreQuantity.toString() : null,
     customerName: row.customerName,
     customerPhone: row.customerPhone,
     scheduledAt: row.scheduledAt?.toISOString() ?? null,
@@ -214,6 +252,8 @@ function serialiseJob(
     paymentSummary: payment,
     payment,
     tyres,
+    tyreLines: tyreDisplay.lines,
+    tyreLineSource: tyreDisplay.source,
   };
 }
 

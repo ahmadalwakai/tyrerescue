@@ -5,15 +5,28 @@
  * NormalisedTyreDetails shape consumed by every UI consumer.
  *
  * Reads from (in priority order):
- *   1. bookingTyres rows joined with tyreProducts  → items[]
- *   2. booking.tyreSizeDisplay                     → size
- *   3. booking.quantity                            → fallback quantity
- *   4. booking.lockingNutStatus                   → hasLockingNutKey
- *   5. booking.notes (Fitting location: …)         → fittingLocation
+ *   1. booking.priceSnapshot.tyreLines             → canonical items[]
+ *   2. bookingTyres rows joined with tyreProducts  → items[]
+ *   3. booking.tyreSizeDisplay                     → fallback size
+ *   4. booking.quantity                            → fallback quantity
+ *   5. booking.lockingNutStatus                    → hasLockingNutKey
+ *   6. booking.notes (Fitting location: …)         → fittingLocation
  */
+
+import {
+  formatTyreDisplayLine,
+  resolveBookingTyreDisplay,
+  totalTyreLineQuantity,
+} from './tyre-line-display';
 
 export interface NormalisedTyreItem {
   size?: string;
+  axle?: string | null;
+  loadIndex?: string | null;
+  speedIndex?: string | null;
+  runFlat?: boolean | null;
+  xl?: boolean | null;
+  commercial?: boolean | null;
   brand?: string;
   /** pattern / model name from tyre catalogue */
   model?: string;
@@ -36,6 +49,7 @@ export interface NormalisedTyreDetails {
 export interface BookingTyreSourceFields {
   tyreSizeDisplay?: string | null;
   quantity: number;
+  priceSnapshot?: unknown;
   lockingNutStatus?: string | null;
   serviceType: string;
   notes?: string | null;
@@ -61,7 +75,7 @@ export interface RawBookingTyreRow {
  * admin quick-book mapped values (puncture_repair, locking_nut_removal).
  */
 export function isRepairOrAssessService(serviceType: string): boolean {
-  return ['repair', 'puncture_repair', 'assess', 'locking_nut_removal'].includes(serviceType);
+  return ['repair', 'puncture_repair', 'assess', 'locking_nut', 'locking_nut_removal'].includes(serviceType);
 }
 
 /**
@@ -82,35 +96,31 @@ export function normaliseTyreDetailsFromDb(
   booking: BookingTyreSourceFields,
   tyreRows: RawBookingTyreRow[],
 ): NormalisedTyreDetails {
-  const items: NormalisedTyreItem[] = tyreRows.map((row) => {
-    const size =
-      row.sizeDisplay ??
-      (row.width != null && row.aspect != null && row.rim != null
-        ? `${row.width}/${row.aspect}R${row.rim}`
-        : undefined);
-
-    const brand = row.brand ?? undefined;
-    const model = row.pattern ?? undefined;
-
-    const labelParts = [brand, model, size, row.service ? `- ${row.service}` : undefined].filter(
-      (p): p is string => typeof p === 'string' && p.length > 0,
-    );
-    const label = labelParts.length > 0 ? labelParts.join(' ') : undefined;
-
-    return {
-      size,
-      brand,
-      model,
-      service: row.service,
-      price: parseFloat(row.unitPrice),
-      quantity: row.quantity,
-      label,
-    };
+  const resolved = resolveBookingTyreDisplay({
+    priceSnapshot: booking.priceSnapshot,
+    tyreRows,
+    tyreSizeDisplay: booking.tyreSizeDisplay,
+    quantity: booking.quantity,
   });
+  const items: NormalisedTyreItem[] = resolved.lines.map((line) => ({
+    size: line.size,
+    axle: line.axle ?? null,
+    loadIndex: line.loadIndex ?? null,
+    speedIndex: line.speedIndex ?? null,
+    runFlat: line.runFlat ?? null,
+    xl: line.xl ?? null,
+    commercial: line.commercial ?? null,
+    brand: line.brand ?? undefined,
+    model: line.pattern ?? undefined,
+    service: line.service ?? undefined,
+    price: line.unitPrice ?? undefined,
+    quantity: line.quantity,
+    label: formatTyreDisplayLine(line),
+  }));
 
-  const totalQtyFromItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const totalQtyFromItems = totalTyreLineQuantity(resolved.lines);
   const quantity = totalQtyFromItems > 0 ? totalQtyFromItems : booking.quantity;
-  const size = booking.tyreSizeDisplay ?? undefined;
+  const size = resolved.lines[0]?.size ?? booking.tyreSizeDisplay ?? undefined;
 
   // 'standard' → null (not applicable), 'has_key' → true, 'no_key' → false
   let hasLockingNutKey: boolean | null = null;

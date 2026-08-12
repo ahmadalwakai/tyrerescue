@@ -43,6 +43,7 @@ const SERVICE_MAP: Record<string, string> = {
   fit: 'tyre_replacement',
   repair: 'puncture_repair',
   assess: 'locking_nut_removal',
+  locking_nut: 'locking_nut_removal',
 };
 
 // عنوان احتياطي لعملاء walk-in الذين لا يملكون بريدًا إلكترونيًا حقيقيًا
@@ -64,6 +65,23 @@ function formatPence(amountPence: number): string {
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown error';
+}
+
+function readVehicleSnapshot(value: unknown): {
+  registrationNumber: string;
+  make: string;
+  model: string | null;
+} | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const registrationNumber =
+    typeof record.registrationNumber === 'string'
+      ? record.registrationNumber.trim().toUpperCase().replace(/\s+/g, '')
+      : '';
+  const make = typeof record.make === 'string' ? record.make.trim() : '';
+  const model = typeof record.model === 'string' && record.model.trim() ? record.model.trim() : null;
+  if (!registrationNumber || !make) return null;
+  return { registrationNumber, make, model };
 }
 
 async function generateInvoiceNumber(): Promise<string> {
@@ -121,6 +139,12 @@ export async function POST(
         id: typeof value.id === 'string' ? value.id : `tyre-${index + 1}`,
         size,
         quantity: Math.max(1, Math.min(10, Math.round(quantity))),
+        axle: typeof value.axle === 'string' && value.axle.trim() ? value.axle.trim() : null,
+        loadIndex: typeof value.loadIndex === 'string' && value.loadIndex.trim() ? value.loadIndex.trim() : null,
+        speedIndex: typeof value.speedIndex === 'string' && value.speedIndex.trim() ? value.speedIndex.trim() : null,
+        runFlat: typeof value.runFlat === 'boolean' ? value.runFlat : null,
+        xl: typeof value.xl === 'boolean' ? value.xl : null,
+        commercial: typeof value.commercial === 'boolean' ? value.commercial : null,
         brand: typeof value.brand === 'string' ? value.brand : null,
         pattern: typeof value.pattern === 'string' ? value.pattern : null,
         season: typeof value.season === 'string' ? value.season : null,
@@ -207,6 +231,7 @@ export async function POST(
   }
 
   const quickBreakdown = qb.priceBreakdown as Record<string, unknown> | null;
+  const vehicleSnapshot = readVehicleSnapshot(quickBreakdown?.vehicle);
   if (
     !usedFreshDistanceResult &&
     typeof quickBreakdown?.pricingDistanceMiles === 'number' &&
@@ -266,9 +291,10 @@ export async function POST(
   const resolvedDistanceKm = Math.round(resolvedServiceDistanceMiles * 1.60934 * 100) / 100;
 
   const serviceType = qb.serviceType as QuickBookServiceType;
-  const quantity = qb.tyreCount ?? 1;
+  const isServiceOnly = serviceType === 'assess' || serviceType === 'locking_nut';
+  const quantity = isServiceOnly ? 1 : qb.tyreCount ?? 1;
   const storedTyreLineSelections = extractQuickBookTyreLineSelections({ priceBreakdown: qb.priceBreakdown });
-  const fallbackTyreLines: QuickBookTyreLineInput[] = serviceType === 'assess'
+  const fallbackTyreLines: QuickBookTyreLineInput[] = isServiceOnly
     ? []
     : bodyTyreLines !== null
     ? bodyTyreLines
@@ -277,15 +303,23 @@ export async function POST(
         id: line.id || `tyre-${index + 1}`,
         size: line.normalizedSize ?? line.sizeDisplay ?? line.requestedSize,
         quantity: line.quantity,
+        axle: line.axle ?? null,
+        loadIndex: line.loadIndex ?? null,
+        speedIndex: line.speedIndex ?? null,
+        runFlat: line.runFlat ?? null,
+        xl: line.xl ?? null,
+        commercial: line.commercial ?? null,
         brand: line.brand,
         pattern: line.pattern,
+        season: line.season ?? null,
+        source: line.source ?? null,
         price: line.unitPrice,
       }))
     : qb.tyreSize
     ? [{ id: 'tyre-1', size: qb.tyreSize, quantity }]
     : [];
   const totalQuantity = fallbackTyreLines.reduce((sum, line) => sum + line.quantity, 0) || quantity;
-  const primaryTyreSizeDisplay = fallbackTyreLines[0]?.size ?? qb.tyreSize ?? null;
+  const primaryTyreSizeDisplay = isServiceOnly ? null : fallbackTyreLines[0]?.size ?? qb.tyreSize ?? null;
 
   const selectedTyreSnapshot = extractQuickBookTyreSnapshot({
     selectedTyreProductId: qb.selectedTyreProductId,
@@ -354,6 +388,7 @@ export async function POST(
   const breakdown = {
     ...priced.breakdown,
     tyreLines: priced.tyreLineSelections,
+    ...(vehicleSnapshot ? { vehicle: vehicleSnapshot } : {}),
     ...(adminDistanceLimitMiles != null ? { adminDistanceLimitMiles } : {}),
     serviceDistanceMiles: resolvedServiceDistanceMiles,
     pricingDistanceMiles: priced.breakdown.distanceMiles,
@@ -515,9 +550,9 @@ export async function POST(
       distanceSource: resolvedDistanceSource,
       quantity: totalQuantity,
       tyreSizeDisplay: primaryTyreSizeDisplay,
-      vehicleReg: null,
-      vehicleMake: null,
-      vehicleModel: null,
+      vehicleReg: vehicleSnapshot?.registrationNumber ?? null,
+      vehicleMake: vehicleSnapshot?.make ?? null,
+      vehicleModel: vehicleSnapshot?.model ?? null,
       tyrePhotoUrl: null,
       customerName: qb.customerName,
       customerEmail: dbCustomerEmail,
@@ -734,6 +769,8 @@ export async function POST(
           address: addressLine,
           tyreSummary,
           quantity: totalQuantity,
+          tyreLines: tyreSummaryLines,
+          totalTyreQuantity: totalQuantity,
           trackingUrl,
         });
         await sendBookingEmailOnce({

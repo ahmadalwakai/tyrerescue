@@ -12,6 +12,12 @@ import {
   estimateUrbanDriveMinutesFromMiles,
   type DriverSituation,
 } from '@/lib/admin/driverSituation';
+import {
+  extractCanonicalTyreLines,
+  resolveBookingTyreDisplay,
+  summarizeTyreDisplayLines,
+  totalTyreLineQuantity,
+} from '@/lib/bookings/tyre-line-display';
 
 type LocationFreshness = 'live' | 'stale' | 'offline' | 'unknown';
 type DriverStatus = 'available' | 'busy' | 'offline' | 'unknown';
@@ -91,6 +97,10 @@ function toNum(v: string | number | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function tyreCountFromSnapshot(priceSnapshot: unknown, fallback: number | null | undefined): number | null {
+  return (totalTyreLineQuantity(extractCanonicalTyreLines(priceSnapshot)) || fallback) ?? null;
+}
+
 function readJobsRange(request: NextRequest): JobsRange {
   const value = request.nextUrl.searchParams.get('jobsRange');
   return JOBS_RANGE_VALUES.has(value as JobsRange) ? (value as JobsRange) : 'today';
@@ -166,11 +176,17 @@ function computeFreshness(locationAt: Date | null | undefined): LocationFreshnes
   return 'offline';
 }
 
-function buildTyreSummary(qty: number | null, sizeDisplay: string | null | undefined): string | null {
-  const size = sizeDisplay ?? null;
-  if (!qty && !size) return null;
-  if (!size) return qty != null ? `${qty}x` : null;
-  return qty != null ? `${qty}x ${size}` : size;
+function buildTyreSummary(
+  qty: number | null,
+  sizeDisplay: string | null | undefined,
+  priceSnapshot: unknown,
+): string | null {
+  const resolved = resolveBookingTyreDisplay({
+    priceSnapshot,
+    tyreSizeDisplay: sizeDisplay,
+    quantity: qty,
+  });
+  return summarizeTyreDisplayLines(resolved.lines) || null;
 }
 
 function buildVehicleSummary(
@@ -219,6 +235,7 @@ export async function GET(request: NextRequest) {
           status: bookings.status,
           serviceType: bookings.serviceType,
           quantity: bookings.quantity,
+          priceSnapshot: bookings.priceSnapshot,
           paymentType: bookings.paymentType,
           customerLat: bookings.lat,
           customerLng: bookings.lng,
@@ -251,6 +268,8 @@ export async function GET(request: NextRequest) {
       lng: bookings.lng,
       quantity: bookings.quantity,
       tyreSizeDisplay: bookings.tyreSizeDisplay,
+      priceSnapshot: bookings.priceSnapshot,
+      serviceType: bookings.serviceType,
       vehicleMake: bookings.vehicleMake,
       vehicleModel: bookings.vehicleModel,
       vehicleReg: bookings.vehicleReg,
@@ -349,7 +368,7 @@ export async function GET(request: NextRequest) {
             outboundMinutes,
             returnMinutes,
             serviceType: activeBooking.serviceType,
-            tyreCount: activeBooking.quantity,
+            tyreCount: tyreCountFromSnapshot(activeBooking.priceSnapshot, activeBooking.quantity),
             paymentStatus: activeBooking.paymentType,
             returnEstimateAvailable: returnMinutes != null,
             routeAvailable: outboundMinutes != null,
@@ -398,7 +417,7 @@ export async function GET(request: NextRequest) {
       address: row.addressLine,
       lat,
       lng,
-      tyreSummary: buildTyreSummary(row.quantity, row.tyreSizeDisplay),
+      tyreSummary: buildTyreSummary(row.quantity, row.tyreSizeDisplay, row.priceSnapshot),
       vehicleSummary: buildVehicleSummary(row.vehicleMake, row.vehicleModel, row.vehicleReg),
       paymentSummary,
       driverSituation: calculateDriverSituation({
@@ -410,8 +429,8 @@ export async function GET(request: NextRequest) {
         lastLocationAt: driver?.locationAt ?? null,
         outboundMinutes,
         returnMinutes,
-        serviceType: null,
-        tyreCount: row.quantity,
+        serviceType: row.serviceType,
+        tyreCount: tyreCountFromSnapshot(row.priceSnapshot, row.quantity),
         paymentStatus: row.paymentType,
         returnEstimateAvailable: returnMinutes != null,
         routeAvailable: outboundMinutes != null,

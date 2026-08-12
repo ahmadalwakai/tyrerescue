@@ -8,17 +8,12 @@ import {
   createAdminAccount,
   createAdminUserSchema,
   getAddAdminPinHash,
-  isOwnerLevelAdmin,
   recordAdminManagementAudit,
   verifyAddAdminUnlock,
 } from '@/lib/admin-management';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-function forbiddenResponse() {
-  return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
-}
 
 function validationResponse(error: ZodError) {
   return NextResponse.json(
@@ -35,17 +30,6 @@ export async function GET(request: Request) {
   const admin = await getMobileAdminUser(request);
   if (!admin) return unauthorizedResponse();
 
-  const ownerAllowed = await isOwnerLevelAdmin(admin.id);
-  if (!ownerAllowed) {
-    await recordAdminManagementAudit({
-      request,
-      actorUserId: admin.id,
-      action: 'add_admin_forbidden',
-      afterJson: { reason: 'not_owner_level' },
-    });
-    return forbiddenResponse();
-  }
-
   return NextResponse.json(
     {
       canAccess: true,
@@ -59,17 +43,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const admin = await getMobileAdminUser(request);
   if (!admin) return unauthorizedResponse();
-
-  const ownerAllowed = await isOwnerLevelAdmin(admin.id);
-  if (!ownerAllowed) {
-    await recordAdminManagementAudit({
-      request,
-      actorUserId: admin.id,
-      action: 'add_admin_forbidden',
-      afterJson: { reason: 'not_owner_level' },
-    });
-    return forbiddenResponse();
-  }
 
   const body = await request.json().catch(() => null);
   const parsed = createAdminUserSchema.safeParse(body);
