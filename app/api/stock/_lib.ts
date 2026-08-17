@@ -40,7 +40,7 @@ export async function getStockApiUser(request: Request): Promise<StockApiUser | 
 }
 
 export function canUseSharedStockWorkerMode(user: StockApiUser): boolean {
-  return user.role === 'admin' && user.email.toLowerCase() === SHARED_STOCK_ADMIN_EMAIL;
+  return user.email.trim().toLowerCase() === SHARED_STOCK_ADMIN_EMAIL;
 }
 
 export async function getStockCityAccess(

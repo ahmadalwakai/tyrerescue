@@ -406,7 +406,7 @@ export default function StockApp() {
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [loadingWorkers, setLoadingWorkers] = useState(false);
   const [saving, setSaving] = useState(false);
-  const sharedWorkerMode = user?.email.toLowerCase() === SHARED_STOCK_ADMIN_EMAIL;
+  const sharedWorkerMode = user?.email.trim().toLowerCase() === SHARED_STOCK_ADMIN_EMAIL;
 
   const selectedCity = useMemo(
     () => cities.find((city) => city.id === selectedCityId) ?? null,
