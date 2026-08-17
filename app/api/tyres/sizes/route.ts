@@ -47,6 +47,8 @@ export async function GET(request: NextRequest) {
         .select({
           size: tyreProducts.sizeDisplay,
           count: sql<number>`coalesce(sum(${tyreProducts.stockNew}), 0)::int`,
+          minPrice: sql<number | null>`min(${tyreProducts.priceNew})::float8`,
+          maxPrice: sql<number | null>`max(${tyreProducts.priceNew})::float8`,
         })
         .from(tyreProducts)
         .where(
@@ -66,6 +68,8 @@ export async function GET(request: NextRequest) {
         .select({
           size: tyreProducts.sizeDisplay,
           count: sql<number>`coalesce(sum(${tyreProducts.stockNew}), 0)::int`,
+          minPrice: sql<number | null>`min(${tyreProducts.priceNew})::float8`,
+          maxPrice: sql<number | null>`max(${tyreProducts.priceNew})::float8`,
         })
         .from(tyreProducts)
         .where(and(availableCondition, eq(tyreProducts.width, widthNum)))
@@ -74,7 +78,12 @@ export async function GET(request: NextRequest) {
         .limit(8);
     }
 
-    return NextResponse.json({ sizes: results });
+    return NextResponse.json({
+      sizes: results.map((result) => ({
+        ...result,
+        price: result.minPrice,
+      })),
+    });
   } catch (error) {
     console.error('Error searching tyre sizes:', error);
     return NextResponse.json({ sizes: [] }, { status: 500 });

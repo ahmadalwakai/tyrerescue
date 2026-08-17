@@ -37,7 +37,7 @@
     },
     "ios": {
       "bundleIdentifier": "uk.tyrerescue.assistedchat",
-      "buildNumber": "29",
+      "buildNumber": "31",
       "supportsTablet": true,
       "icon": "./assets/icon.png",
       "infoPlist": {

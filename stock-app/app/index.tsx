@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -18,11 +18,39 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ApiError, API_BASE_URL, stockApi } from '@/api/client';
 import { useAuth } from '@/auth/context';
 import { colors, radius, spacing } from '@/theme';
-import type { InventoryItem, SaleChannel, SessionRole, StockCity, StockMovement, StockShift } from '@/types';
+import type {
+  InventoryItem,
+  SaleChannel,
+  SessionRole,
+  StockCity,
+  StockMovement,
+  StockSeasonFilter,
+  StockShift,
+  StockSortOption,
+  StockWorker,
+  TyreSeason,
+} from '@/types';
 
 type Tone = 'default' | 'primary' | 'success' | 'danger' | 'warning' | 'info';
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const stockLogo = require('../assets/logo.png');
+const SHARED_STOCK_ADMIN_EMAIL = 'ahmad33wakaa@gmail.com';
+const SEASON_OPTIONS: ReadonlyArray<{ value: TyreSeason; label: string }> = [
+  { value: 'summer', label: 'Summer' },
+  { value: 'winter', label: 'Winter' },
+  { value: 'allseason', label: 'All Season' },
+];
+const SEASON_FILTERS: ReadonlyArray<{ value: StockSeasonFilter; label: string }> = [
+  { value: 'all', label: 'All' },
+  ...SEASON_OPTIONS,
+];
+const SORT_OPTIONS: ReadonlyArray<{ value: StockSortOption; label: string }> = [
+  { value: 'size', label: 'Size' },
+  { value: 'brand', label: 'Brand' },
+  { value: 'stock', label: 'Stock' },
+  { value: 'season', label: 'Type' },
+];
 
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
@@ -42,6 +70,11 @@ function formatDateTime(value: string | null | undefined): string {
   });
 }
 
+function formatTyrePrice(value: number | string | null | undefined): string | null {
+  const price = typeof value === 'number' ? value : typeof value === 'string' ? Number.parseFloat(value) : NaN;
+  return Number.isFinite(price) ? `£${price.toFixed(2)}` : null;
+}
+
 function toneColors(tone: Tone) {
   switch (tone) {
     case 'primary':
@@ -59,8 +92,36 @@ function toneColors(tone: Tone) {
   }
 }
 
+function normalizeSeason(value: string | null | undefined): TyreSeason {
+  const token = value?.toLowerCase().replace(/[\s_-]+/g, '') ?? '';
+  if (token === 'summer') return 'summer';
+  if (token === 'winter') return 'winter';
+  return 'allseason';
+}
+
+function seasonLabel(value: string | null | undefined): string {
+  const season = normalizeSeason(value);
+  if (season === 'summer') return 'Summer';
+  if (season === 'winter') return 'Winter';
+  return 'All Season';
+}
+
+function seasonTone(value: string | null | undefined): Tone {
+  const season = normalizeSeason(value);
+  if (season === 'summer') return 'warning';
+  if (season === 'winter') return 'info';
+  return 'success';
+}
+
+function seasonRank(value: string | null | undefined): number {
+  const season = normalizeSeason(value);
+  if (season === 'summer') return 1;
+  if (season === 'winter') return 2;
+  return 3;
+}
+
 function SpinningTyreIcon({ size, color }: { size: number; color: string }) {
-  const spin = useRef(new Animated.Value(0)).current;
+  const spin = useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -202,6 +263,65 @@ function MetricBadge({
   );
 }
 
+function SeasonBadge({ season }: { season: string | null | undefined }) {
+  const c = toneColors(seasonTone(season));
+  return (
+    <View style={[styles.seasonBadge, { borderColor: c.border, backgroundColor: c.bg }]}>
+      <Text style={[styles.seasonBadgeText, { color: c.text }]} numberOfLines={1}>
+        {seasonLabel(season)}
+      </Text>
+    </View>
+  );
+}
+
+function PriceBadge({ price }: { price: number | string | null | undefined }) {
+  const label = formatTyrePrice(price);
+  if (!label) return null;
+  return (
+    <View style={styles.priceBadge}>
+      <Text style={styles.priceBadgeText} numberOfLines={1}>{label}</Text>
+    </View>
+  );
+}
+
+function SeasonEditor({
+  selected,
+  disabled,
+  onChange,
+}: {
+  selected: string | null | undefined;
+  disabled?: boolean;
+  onChange: (season: TyreSeason) => void;
+}) {
+  const normalized = normalizeSeason(selected);
+  return (
+    <View style={styles.seasonEditor}>
+      {SEASON_OPTIONS.map((option) => {
+        const isSelected = normalized === option.value;
+        return (
+          <Pressable
+            key={option.value}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSelected, disabled }}
+            disabled={disabled || isSelected}
+            onPress={() => onChange(option.value)}
+            style={({ pressed }) => [
+              styles.seasonOption,
+              isSelected && styles.seasonOptionSelected,
+              disabled && styles.seasonOptionDisabled,
+              pressed && { opacity: 0.76 },
+            ]}
+          >
+            <Text style={[styles.seasonOptionText, isSelected && styles.seasonOptionTextSelected]} numberOfLines={1}>
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 function LoginPanel() {
   const { login } = useAuth();
   const [role, setRole] = useState<SessionRole>('driver');
@@ -271,35 +391,69 @@ export default function StockApp() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [search, setSearch] = useState('');
+  const [seasonFilter, setSeasonFilter] = useState<StockSeasonFilter>('all');
+  const [stockSort, setStockSort] = useState<StockSortOption>('size');
   const [tyreSearchFocused, setTyreSearchFocused] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [saleChannel, setSaleChannel] = useState<SaleChannel>('GARAGE');
+  const [workers, setWorkers] = useState<StockWorker[]>([]);
+  const [selectedWorkerUserId, setSelectedWorkerUserId] = useState<string | null>(null);
   const [confirmingEndShift, setConfirmingEndShift] = useState(false);
   const [missingSize, setMissingSize] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loadingCore, setLoadingCore] = useState(false);
   const [loadingInventory, setLoadingInventory] = useState(false);
+  const [loadingWorkers, setLoadingWorkers] = useState(false);
   const [saving, setSaving] = useState(false);
+  const sharedWorkerMode = user?.email.toLowerCase() === SHARED_STOCK_ADMIN_EMAIL;
 
   const selectedCity = useMemo(
     () => cities.find((city) => city.id === selectedCityId) ?? null,
     [cities, selectedCityId],
   );
 
+  const visibleInventory = useMemo(() => {
+    const filtered = seasonFilter === 'all'
+      ? inventory
+      : inventory.filter((item) => normalizeSeason(item.product.season) === seasonFilter);
+
+    return [...filtered].sort((a, b) => {
+      if (stockSort === 'stock') {
+        if (a.availableStock !== b.availableStock) return b.availableStock - a.availableStock;
+      } else if (stockSort === 'season') {
+        const seasonDiff = seasonRank(a.product.season) - seasonRank(b.product.season);
+        if (seasonDiff !== 0) return seasonDiff;
+      } else if (stockSort === 'brand') {
+        const brandDiff = a.product.brand.localeCompare(b.product.brand);
+        if (brandDiff !== 0) return brandDiff;
+      }
+      const sizeDiff = a.product.sizeDisplay.localeCompare(b.product.sizeDisplay);
+      if (sizeDiff !== 0) return sizeDiff;
+      return a.product.brand.localeCompare(b.product.brand);
+    });
+  }, [inventory, seasonFilter, stockSort]);
+
   const selectedItem = useMemo(
     () => inventory.find((item) => item.tyreProductId === selectedProductId) ?? null,
     [inventory, selectedProductId],
   );
 
+  const selectedWorker = useMemo(
+    () => workers.find((worker) => worker.userId === selectedWorkerUserId) ?? null,
+    [selectedWorkerUserId, workers],
+  );
+
+  const movementShiftId = sharedWorkerMode ? selectedWorker?.activeShift?.id ?? null : activeShift?.id ?? null;
+
   const autocompleteItems = useMemo(() => {
     const query = search.trim().toLowerCase();
     const items = query
-      ? inventory.filter((item) => {
+        ? visibleInventory.filter((item) => {
           const label = `${item.product.sizeDisplay} ${item.product.brand} ${item.product.pattern}`.toLowerCase();
           return label.includes(query);
         })
-      : inventory;
+      : visibleInventory;
 
     return [...items]
       .sort((a, b) => {
@@ -309,15 +463,16 @@ export default function StockApp() {
         const bRank = bSize === query ? 0 : bSize.startsWith(query) ? 1 : 2;
         if (aRank !== bRank) return aRank - bRank;
         if (a.availableStock !== b.availableStock) return b.availableStock - a.availableStock;
-        return a.product.sizeDisplay.localeCompare(b.product.sizeDisplay);
+                return a.product.sizeDisplay.localeCompare(b.product.sizeDisplay);
       })
       .slice(0, 6);
-  }, [inventory, search]);
+  }, [search, visibleInventory]);
 
   const canAdjustStock = selectedCity?.roleInCity === 'manager';
+  const canRecordStockMovement = canAdjustStock && (!sharedWorkerMode || Boolean(selectedWorker?.activeShift));
 
   const totals = useMemo(() => {
-    return inventory.reduce(
+    return visibleInventory.reduce(
       (acc, item) => {
         acc.current += item.currentStock;
         acc.available += item.availableStock;
@@ -327,7 +482,7 @@ export default function StockApp() {
       },
       { current: 0, available: 0, reserved: 0, toBuy: 0 },
     );
-  }, [inventory]);
+  }, [visibleInventory]);
 
   const handleApiError = useCallback(async (err: unknown) => {
     if (err instanceof ApiError && err.status === 401) {
@@ -374,7 +529,7 @@ export default function StockApp() {
     setLoadingInventory(true);
     try {
       const [inventoryResponse, movementResponse] = await Promise.all([
-        stockApi.inventory(selectedCityId, search.trim()),
+        stockApi.inventory(selectedCityId, search.trim(), seasonFilter, stockSort),
         stockApi.movements(selectedCityId),
       ]);
       setInventory(inventoryResponse.items);
@@ -390,19 +545,49 @@ export default function StockApp() {
     } finally {
       setLoadingInventory(false);
     }
-  }, [handleApiError, search, selectedCityId, selectedProductId, token, user]);
+  }, [handleApiError, search, seasonFilter, selectedCityId, selectedProductId, stockSort, token, user]);
+
+  const loadWorkers = useCallback(async () => {
+    if (!user || !token || !selectedCityId || !sharedWorkerMode) {
+      setWorkers([]);
+      setSelectedWorkerUserId(null);
+      return;
+    }
+    setLoadingWorkers(true);
+    try {
+      const response = await stockApi.workers(selectedCityId);
+      setWorkers(response.items);
+      setSelectedWorkerUserId((current) => {
+        if (current && response.items.some((worker) => worker.userId === current)) return current;
+        const activeWorker = response.items.find((worker) => worker.activeShift);
+                return activeWorker?.userId ?? response.items[0]?.userId ?? null;
+      });
+    } catch (err) {
+      await handleApiError(err);
+    } finally {
+      setLoadingWorkers(false);
+    }
+  }, [handleApiError, selectedCityId, sharedWorkerMode, token, user]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadCore();
   }, [loadCore]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadInventory();
   }, [loadInventory]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadWorkers();
+  }, [loadWorkers]);
 
   const refreshAll = async () => {
     await loadCore();
     await loadInventory();
+    await loadWorkers();
   };
 
   const startShift = async () => {
@@ -448,6 +633,42 @@ export default function StockApp() {
     }
   };
 
+  const startWorkerShift = async (worker: StockWorker) => {
+    if (!selectedCityId) {
+      setError('Select a stock city first');
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await stockApi.startWorkerShift(selectedCityId, worker.userId);
+      setSelectedWorkerUserId(worker.userId);
+      setNotice(response.alreadyStarted ? `${worker.name} already has an active shift` : `${worker.name} started a shift`);
+      await loadWorkers();
+      await loadInventory();
+    } catch (err) {
+      await handleApiError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const endWorkerShift = async (worker: StockWorker) => {
+    if (!worker.activeShift?.id) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await stockApi.endWorkerShift(worker.activeShift.id);
+      setNotice(response.alreadyEnded ? `${worker.name} shift already ended` : `${worker.name} shift ended`);
+      await loadWorkers();
+      await loadInventory();
+    } catch (err) {
+      await handleApiError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const quickAdjustStock = async (item: InventoryItem, direction: 'add' | 'reduce') => {
     if (!selectedCityId) {
       setError('Select a stock city first');
@@ -461,6 +682,14 @@ export default function StockApp() {
       setError('This tyre has no stock to reduce');
       return;
     }
+    if (sharedWorkerMode && !selectedWorker) {
+      setError('Select the worker who is changing this stock');
+      return;
+    }
+    if (sharedWorkerMode && !selectedWorker?.activeShift) {
+      setError(`Start ${selectedWorker?.name ?? 'the worker'} shift before changing stock`);
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -470,9 +699,41 @@ export default function StockApp() {
         tyreProductId: item.tyreProductId,
         direction,
         quantity: 1,
-        shiftId: activeShift?.id ?? null,
+        shiftId: movementShiftId,
+        workerUserId: sharedWorkerMode ? selectedWorker?.userId ?? null : null,
       });
-      setNotice(`${direction === 'add' ? 'Added' : 'Reduced'} 1 ${item.product.sizeDisplay}`);
+      setNotice(`${direction === 'add' ? 'Added' : 'Reduced'} 1 ${item.product.sizeDisplay}${sharedWorkerMode && selectedWorker ? ` - ${selectedWorker.name}` : ''}`);
+      await loadInventory();
+    } catch (err) {
+      await handleApiError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateTyreSeason = async (item: InventoryItem, season: TyreSeason) => {
+    if (!selectedCityId) {
+      setError('Select a stock city first');
+      return;
+    }
+    if (!canAdjustStock) {
+      setError('Manager city access is needed to edit tyre type');
+      return;
+    }
+    if (normalizeSeason(item.product.season) === season) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      await stockApi.updateSeason(selectedCityId, item.tyreProductId, season);
+      setInventory((current) =>
+        current.map((entry) =>
+          entry.tyreProductId === item.tyreProductId
+            ? { ...entry, product: { ...entry.product, season } }
+            : entry,
+        ),
+      );
+      setNotice(`${item.product.sizeDisplay} type changed to ${seasonLabel(season)}`);
       await loadInventory();
     } catch (err) {
       await handleApiError(err);
@@ -587,10 +848,21 @@ export default function StockApp() {
               <View style={styles.headerShiftText}>
                 <Text style={styles.headerShiftTitle}>Shift</Text>
                 <Text style={styles.headerShiftHint} numberOfLines={1}>
-                  {activeShift ? `${activeShift.cityName ?? selectedCity?.name ?? 'City'} - ${formatDateTime(activeShift.startedAt)}` : 'No active shift'}
+                  {sharedWorkerMode
+                    ? selectedWorker?.activeShift
+                      ? `${selectedWorker.name} - ${formatDateTime(selectedWorker.activeShift.startedAt)}`
+                      : 'Select a worker and start their shift'
+                    : activeShift
+                      ? `${activeShift.cityName ?? selectedCity?.name ?? 'City'} - ${formatDateTime(activeShift.startedAt)}`
+                      : 'No active shift'}
                 </Text>
               </View>
-              {activeShift ? (
+              {sharedWorkerMode ? (
+                <View style={styles.headerShiftActivePill}>
+                  <MaterialCommunityIcons name="account-switch" size={18} color={colors.info} />
+                  <Text style={[styles.headerShiftActiveText, { color: colors.info }]}>Worker</Text>
+                </View>
+              ) : activeShift ? (
                 confirmingEndShift ? (
                   <View style={styles.headerShiftConfirm}>
                     <Text style={styles.headerShiftConfirmText}>End shift?</Text>
@@ -662,6 +934,78 @@ export default function StockApp() {
           </View>
         ) : null}
 
+        {sharedWorkerMode ? (
+          <View style={styles.section}>
+            <View style={styles.workerHeader}>
+              <View style={styles.saleHeaderText}>
+                <Text style={styles.sectionTitle}>Worker shifts</Text>
+                <Text style={styles.sectionHint}>
+                  Select who is using this iPad before adding or reducing stock.
+                </Text>
+              </View>
+              {loadingWorkers ? <ActivityIndicator color={colors.primary} /> : null}
+            </View>
+
+            <View style={styles.workerList}>
+              {workers.length === 0 ? (
+                <Text style={styles.emptyInline}>No drivers available for stock shifts</Text>
+              ) : (
+                workers.map((worker) => {
+                  const selected = selectedWorkerUserId === worker.userId;
+                  const active = Boolean(worker.activeShift);
+                  return (
+                    <Pressable
+                      key={worker.userId}
+                      accessibilityRole="button"
+                      onPress={() => setSelectedWorkerUserId(worker.userId)}
+                      style={({ pressed }) => [
+                        styles.workerRow,
+                        selected && styles.workerRowSelected,
+                        pressed && { opacity: 0.78 },
+                      ]}
+                    >
+                      <View style={styles.workerMain}>
+                        <Text style={styles.workerName} numberOfLines={1}>{worker.name}</Text>
+                        <Text style={styles.workerMeta} numberOfLines={1}>
+                          {active ? `Active since ${formatDateTime(worker.activeShift?.startedAt)}` : `${worker.status}${worker.isOnline ? ' - online' : ''}`}
+                        </Text>
+                      </View>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${active ? 'End' : 'Start'} ${worker.name} shift`}
+                        disabled={saving || !selectedCityId}
+                        onPress={() => active ? endWorkerShift(worker) : startWorkerShift(worker)}
+                        style={({ pressed }) => [
+                          styles.workerShiftButton,
+                          active ? styles.workerShiftButtonEnd : styles.workerShiftButtonStart,
+                          (saving || !selectedCityId) && styles.stockActionButtonDisabled,
+                          pressed && { opacity: 0.72 },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={active ? 'stop-circle' : 'play-circle'}
+                          size={18}
+                          color={active ? colors.danger : colors.success}
+                        />
+                        <Text style={[styles.workerShiftButtonText, { color: active ? colors.danger : colors.success }]}>
+                          {active ? 'End' : 'Start'}
+                        </Text>
+                      </Pressable>
+                    </Pressable>
+                  );
+                })
+              )}
+            </View>
+
+            {selectedWorker && !selectedWorker.activeShift ? (
+              <View style={styles.alertWarning}>
+                <MaterialCommunityIcons name="alert" size={18} color={colors.warning} />
+                <Text style={styles.alertWarningText}>Start {selectedWorker.name} shift before using + or -.</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
         <View style={styles.section}>
           <View style={styles.saleHeader}>
             <View style={styles.saleHeaderText}>
@@ -720,6 +1064,41 @@ export default function StockApp() {
                 returnKeyType="search"
                 style={styles.tyreSearchInput}
               />
+              {selectedItem ? (
+                <PriceBadge price={selectedItem.product.priceNew} />
+              ) : null}
+              {selectedItem ? (
+                <View style={styles.tyreSearchQuickActions}>
+                  <Pressable
+                    accessibilityLabel={`Reduce ${selectedItem.product.sizeDisplay} stock`}
+                    accessibilityRole="button"
+                    disabled={saving || !canRecordStockMovement || selectedItem.currentStock <= 0}
+                    onPress={() => quickAdjustStock(selectedItem, 'reduce')}
+                    style={({ pressed }) => [
+                      styles.stockActionButton,
+                      styles.stockMinusButton,
+                      (saving || !canRecordStockMovement || selectedItem.currentStock <= 0) && styles.stockActionButtonDisabled,
+                      pressed && { opacity: 0.72 },
+                    ]}
+                  >
+                    <MaterialCommunityIcons name="minus" size={20} color={colors.danger} />
+                  </Pressable>
+                  <Pressable
+                    accessibilityLabel={`Add ${selectedItem.product.sizeDisplay} stock`}
+                    accessibilityRole="button"
+                    disabled={saving || !canRecordStockMovement}
+                    onPress={() => quickAdjustStock(selectedItem, 'add')}
+                    style={({ pressed }) => [
+                      styles.stockActionButton,
+                      styles.stockPlusButton,
+                      (saving || !canRecordStockMovement) && styles.stockActionButtonDisabled,
+                      pressed && { opacity: 0.72 },
+                    ]}
+                  >
+                    <MaterialCommunityIcons name="plus" size={20} color={colors.success} />
+                  </Pressable>
+                </View>
+              ) : null}
               {search.trim() ? (
                 <Pressable
                   accessibilityLabel="Clear tyre size"
@@ -738,10 +1117,23 @@ export default function StockApp() {
             {selectedItem ? (
               <View style={styles.tyreSelectedStrip}>
                 <View style={styles.tyreSelectedMain}>
-                  <Text style={styles.tyreSelectedTitle}>{selectedItem.product.sizeDisplay}</Text>
-                  <Text style={styles.tyreSelectedMeta} numberOfLines={1}>
-                    {selectedItem.product.brand} {selectedItem.product.pattern}
-                  </Text>
+                  <View style={styles.tyreSelectedTitleRow}>
+                    <Text style={styles.tyreSelectedTitle} numberOfLines={1}>
+                      {selectedItem.product.sizeDisplay}
+                    </Text>
+                    <PriceBadge price={selectedItem.product.priceNew} />
+                  </View>
+                  <View style={styles.tyreSelectedMetaRow}>
+                    <Text style={styles.tyreSelectedMeta} numberOfLines={1}>
+                      {selectedItem.product.brand} {selectedItem.product.pattern}
+                    </Text>
+                    <SeasonBadge season={selectedItem.product.season} />
+                  </View>
+                  <SeasonEditor
+                    selected={selectedItem.product.season}
+                    disabled={saving || !canAdjustStock}
+                    onChange={(season) => updateTyreSeason(selectedItem, season)}
+                  />
                 </View>
                 <View style={styles.tyreSelectedStock}>
                   <Text style={styles.tyreSelectedQty}>{selectedItem.availableStock}</Text>
@@ -770,9 +1162,14 @@ export default function StockApp() {
                       <SpinningTyreIcon size={18} color={colors.primary} />
                     </View>
                     <View style={styles.autocompleteMain}>
-                      <Text style={styles.autocompleteSize}>{item.product.sizeDisplay}</Text>
+                      <View style={styles.autocompleteTitleRow}>
+                        <Text style={styles.autocompleteSize} numberOfLines={1}>
+                          {item.product.sizeDisplay}
+                        </Text>
+                        <PriceBadge price={item.product.priceNew} />
+                      </View>
                       <Text style={styles.autocompleteMeta} numberOfLines={1}>
-                        {item.product.brand} {item.product.pattern}
+                        {item.product.brand} {item.product.pattern} - {seasonLabel(item.product.season)}
                       </Text>
                     </View>
                     <View style={styles.autocompleteStockPill}>
@@ -805,6 +1202,53 @@ export default function StockApp() {
             {search.trim() ? `Results for ${search.trim()}` : 'Enter a tyre size in Sale to filter stock'}
           </Text>
 
+          <View style={styles.filterPanel}>
+            <View style={styles.filterGroup}>
+              <Text style={styles.filterLabel}>Type</Text>
+              <View style={styles.filterSegments}>
+                {SEASON_FILTERS.map((option) => (
+                  <Pressable
+                    key={option.value}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: seasonFilter === option.value }}
+                    onPress={() => setSeasonFilter(option.value)}
+                    style={({ pressed }) => [
+                      styles.filterChip,
+                      seasonFilter === option.value && styles.filterChipSelected,
+                      pressed && { opacity: 0.76 },
+                    ]}
+                  >
+                    <Text style={[styles.filterChipText, seasonFilter === option.value && styles.filterChipTextSelected]} numberOfLines={1}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+            <View style={styles.filterGroup}>
+              <Text style={styles.filterLabel}>Sort</Text>
+              <View style={styles.filterSegments}>
+                {SORT_OPTIONS.map((option) => (
+                  <Pressable
+                    key={option.value}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: stockSort === option.value }}
+                    onPress={() => setStockSort(option.value)}
+                    style={({ pressed }) => [
+                      styles.filterChip,
+                      stockSort === option.value && styles.filterChipSelected,
+                      pressed && { opacity: 0.76 },
+                    ]}
+                  >
+                    <Text style={[styles.filterChipText, stockSort === option.value && styles.filterChipTextSelected]} numberOfLines={1}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </View>
+
           {loadingInventory ? (
             <View style={styles.loadingRow}>
               <ActivityIndicator color={colors.primary} />
@@ -813,7 +1257,7 @@ export default function StockApp() {
           ) : null}
 
           <View style={styles.list}>
-            {inventory.map((item) => {
+            {visibleInventory.map((item) => {
               const selected = item.tyreProductId === selectedProductId;
               const low = item.availableStock <= item.minStock;
               return (
@@ -830,10 +1274,25 @@ export default function StockApp() {
                     style={({ pressed }) => [styles.stockSelectArea, pressed && { opacity: 0.82 }]}
                   >
                     <View style={styles.stockMain}>
-                      <Text style={styles.stockSize}>{item.product.sizeDisplay}</Text>
+                      <View style={styles.stockTitleRow}>
+                        <Text style={styles.stockSize} numberOfLines={1}>
+                          {item.product.sizeDisplay}
+                        </Text>
+                        <PriceBadge price={item.product.priceNew} />
+                      </View>
                       <Text style={styles.stockName} numberOfLines={1}>
                         {item.product.brand} {item.product.pattern}
                       </Text>
+                      <View style={styles.stockMetaRow}>
+                        <SeasonBadge season={item.product.season} />
+                      </View>
+                      {selected && canAdjustStock ? (
+                        <SeasonEditor
+                          selected={item.product.season}
+                          disabled={saving}
+                          onChange={(season) => updateTyreSeason(item, season)}
+                        />
+                      ) : null}
                     </View>
                   </Pressable>
                   <View style={styles.stockControls}>
@@ -845,12 +1304,12 @@ export default function StockApp() {
                       <Pressable
                         accessibilityLabel={`Reduce ${item.product.sizeDisplay} stock`}
                         accessibilityRole="button"
-                        disabled={saving || !canAdjustStock || item.currentStock <= 0}
+                        disabled={saving || !canRecordStockMovement || item.currentStock <= 0}
                         onPress={() => quickAdjustStock(item, 'reduce')}
                         style={({ pressed }) => [
                           styles.stockActionButton,
                           styles.stockMinusButton,
-                          (saving || !canAdjustStock || item.currentStock <= 0) && styles.stockActionButtonDisabled,
+                          (saving || !canRecordStockMovement || item.currentStock <= 0) && styles.stockActionButtonDisabled,
                           pressed && { opacity: 0.72 },
                         ]}
                       >
@@ -859,12 +1318,12 @@ export default function StockApp() {
                       <Pressable
                         accessibilityLabel={`Add ${item.product.sizeDisplay} stock`}
                         accessibilityRole="button"
-                        disabled={saving || !canAdjustStock}
+                        disabled={saving || !canRecordStockMovement}
                         onPress={() => quickAdjustStock(item, 'add')}
                         style={({ pressed }) => [
                           styles.stockActionButton,
                           styles.stockPlusButton,
-                          (saving || !canAdjustStock) && styles.stockActionButtonDisabled,
+                          (saving || !canRecordStockMovement) && styles.stockActionButtonDisabled,
                           pressed && { opacity: 0.72 },
                         ]}
                       >
@@ -877,7 +1336,7 @@ export default function StockApp() {
             })}
           </View>
 
-          {!loadingInventory && inventory.length === 0 ? (
+          {!loadingInventory && visibleInventory.length === 0 ? (
             <View style={styles.emptyState}>
               <MaterialCommunityIcons name="magnify-close" size={28} color={colors.warning} />
               <Text style={styles.emptyTitle}>No matching tyre found</Text>
@@ -1244,6 +1703,110 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 6,
   },
+  workerHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  workerList: {
+    gap: spacing.sm,
+  },
+  workerRow: {
+    minHeight: 62,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.panelSoft,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  workerRowSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  workerMain: {
+    flex: 1,
+    minWidth: 0,
+  },
+  workerName: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  workerMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  workerShiftButton: {
+    minHeight: 38,
+    minWidth: 84,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    backgroundColor: colors.panel,
+    paddingHorizontal: spacing.sm,
+  },
+  workerShiftButtonStart: {
+    borderColor: colors.success,
+    backgroundColor: colors.successSoft,
+  },
+  workerShiftButtonEnd: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
+  },
+  workerShiftButtonText: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  filterPanel: {
+    gap: spacing.sm,
+  },
+  filterGroup: {
+    gap: spacing.xs,
+  },
+  filterLabel: {
+    color: colors.subtle,
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  filterSegments: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  filterChip: {
+    minHeight: 34,
+    minWidth: 72,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.panelSoft,
+    paddingHorizontal: spacing.sm,
+  },
+  filterChipSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  filterChipText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  filterChipTextSelected: {
+    color: colors.primary,
+  },
   tyreSearchGroup: {
     gap: spacing.sm,
   },
@@ -1308,6 +1871,10 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
   },
+  tyreSearchQuickActions: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
   tyreClearButton: {
     width: 38,
     height: 38,
@@ -1339,11 +1906,26 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 17,
     fontWeight: '900',
+    flexShrink: 1,
+  },
+  tyreSelectedTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
   },
   tyreSelectedMeta: {
     color: colors.muted,
-    marginTop: 2,
+    flex: 1,
+    minWidth: 0,
     fontSize: 12,
+  },
+  tyreSelectedMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: 2,
+    flexWrap: 'wrap',
   },
   tyreSelectedStock: {
     alignItems: 'flex-end',
@@ -1433,6 +2015,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: '900',
+    flexShrink: 1,
+  },
+  autocompleteTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
   },
   autocompleteMeta: {
     color: colors.muted,
@@ -1533,6 +2122,82 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
+  alertWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.warningSoft,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  alertWarningText: {
+    color: colors.warning,
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '700',
+  },
+  seasonBadge: {
+    minHeight: 24,
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  seasonBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  priceBadge: {
+    minHeight: 26,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: radius.sm,
+    justifyContent: 'center',
+    backgroundColor: colors.primarySoft,
+    paddingHorizontal: spacing.sm,
+    flexShrink: 0,
+  },
+  priceBadgeText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  seasonEditor: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  seasonOption: {
+    minHeight: 32,
+    minWidth: 82,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.panelSoft,
+    paddingHorizontal: spacing.sm,
+  },
+  seasonOptionSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  seasonOptionDisabled: {
+    opacity: 0.48,
+  },
+  seasonOptionText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  seasonOptionTextSelected: {
+    color: colors.primary,
+  },
   metricBadge: {
     width: 84,
     height: 42,
@@ -1601,11 +2266,24 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 18,
     fontWeight: '900',
+    flexShrink: 1,
+  },
+  stockTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
   },
   stockName: {
     color: colors.muted,
     marginTop: 2,
     fontSize: 13,
+  },
+  stockMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
   stockNumbers: {
     alignItems: 'flex-end',

@@ -78,6 +78,7 @@ export interface StartStockShiftParams {
   userId: string;
   cityId: string;
   idempotencyKey?: string | null;
+  skipCityAccessCheck?: boolean;
 }
 
 export interface EndStockShiftParams {
@@ -204,6 +205,33 @@ async function getExistingMovementByIdempotencyKey(
   return existing.rows[0] ? movementFromRow(existing.rows[0]) : null;
 }
 
+async function syncTyreProductStockFromCityBalances(
+  client: QueryClient,
+  tyreProductId: string,
+): Promise<void> {
+  await client.query(
+    `UPDATE tyre_products
+        SET stock_new = (
+              SELECT COALESCE(SUM(current_stock), 0)::int
+                FROM stock_inventory_balances
+               WHERE tyre_product_id = $1
+            ),
+            stock_ordered = (
+              SELECT COALESCE(SUM(ordered_stock), 0)::int
+                FROM stock_inventory_balances
+               WHERE tyre_product_id = $1
+            ),
+            is_local_stock = EXISTS (
+              SELECT 1
+                FROM stock_inventory_balances
+               WHERE tyre_product_id = $1
+            ),
+            updated_at = NOW()
+      WHERE id = $1`,
+    [tyreProductId],
+  );
+}
+
 async function verifyShiftForCity(
   client: QueryClient,
   shiftId: string,
@@ -246,7 +274,10 @@ async function applyMovementInTransaction(
   }
 
   const existing = await getExistingMovementByIdempotencyKey(client, params.idempotencyKey);
-  if (existing) return { success: true, movement: existing };
+  if (existing) {
+    await syncTyreProductStockFromCityBalances(client, existing.tyreProductId);
+    return { success: true, movement: existing };
+  }
 
   const balanceResult = await client.query(
     `SELECT id, current_stock
@@ -293,6 +324,7 @@ async function applyMovementInTransaction(
       WHERE id = $2`,
     [resultingBalance, balanceId],
   );
+  await syncTyreProductStockFromCityBalances(client, params.tyreProductId);
 
   const inserted = await client.query(
     `INSERT INTO stock_movements
@@ -354,7 +386,9 @@ export async function startStockShift(params: StartStockShiftParams): Promise<St
       }
     }
 
-    const hasAccess = await ensureCityAccess(client, params.userId, params.cityId);
+    const hasAccess = params.skipCityAccessCheck
+      ? true
+      : await ensureCityAccess(client, params.userId, params.cityId);
     if (!hasAccess) {
       await client.query('ROLLBACK');
       return { success: false, code: 'FORBIDDEN', error: 'User does not have active access to this stock city' };

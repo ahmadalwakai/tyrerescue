@@ -1,7 +1,9 @@
-import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { and, eq, isNull } from 'drizzle-orm';
+import { db, drivers, stockShifts, users } from '@/lib/db';
 import { recordCityStockMovement } from '@/lib/stock/city-stock-service';
 import {
+  canUseSharedStockWorkerMode,
   getStockApiUser,
   getStockCityAccess,
   statusForCityStockError,
@@ -16,6 +18,7 @@ const movementSchema = z.object({
   tyreProductId: z.string().uuid(),
   movementType: z.enum(['RECEIVED', 'SALE', 'RETURN', 'DAMAGED', 'CORRECTION']),
   quantityDelta: z.number().int(),
+  workerUserId: z.string().uuid().nullable().optional(),
   shiftId: z.string().uuid().nullable().optional(),
   bookingId: z.string().uuid().nullable().optional(),
   saleChannel: z.enum(['GARAGE', 'EMERGENCY_CALL_OUT']).nullable().optional(),
@@ -46,20 +49,64 @@ export async function POST(request: Request) {
     return stockJsonResponse(request, { error: 'bookingId is required for emergency call-out sales' }, { status: 400 });
   }
 
+  let actorUserId = user.id;
+  let metadata = data.metadata ?? null;
+  if (data.workerUserId) {
+    if (!canUseSharedStockWorkerMode(user)) {
+      return stockJsonResponse(request, { error: 'Worker selection is not enabled for this account' }, { status: 403 });
+    }
+    if (access.roleInCity !== 'manager') {
+      return stockJsonResponse(request, { error: 'Manager access required to record stock for another worker' }, { status: 403 });
+    }
+    if (!data.shiftId) {
+      return stockJsonResponse(request, { error: 'A worker shift is required before changing stock' }, { status: 400 });
+    }
+
+    const [worker] = await db
+      .select({ userId: users.id })
+      .from(drivers)
+      .innerJoin(users, eq(drivers.userId, users.id))
+      .where(eq(users.id, data.workerUserId))
+      .limit(1);
+    if (!worker) return stockJsonResponse(request, { error: 'Driver not found' }, { status: 404 });
+
+    const [shift] = await db
+      .select({ id: stockShifts.id })
+      .from(stockShifts)
+      .where(
+        and(
+          eq(stockShifts.id, data.shiftId),
+          eq(stockShifts.userId, data.workerUserId),
+          eq(stockShifts.cityId, data.cityId),
+          eq(stockShifts.status, 'active'),
+          isNull(stockShifts.endedAt),
+        ),
+      )
+      .limit(1);
+    if (!shift) return stockJsonResponse(request, { error: 'Worker shift is not active for this city' }, { status: 409 });
+
+    actorUserId = data.workerUserId;
+    metadata = {
+      ...(metadata ?? {}),
+      sharedStockAdminUserId: user.id,
+      sharedStockAdminEmail: user.email,
+    };
+  }
+
   const result = await recordCityStockMovement({
     cityId: data.cityId,
     tyreProductId: data.tyreProductId,
     movementType: data.movementType,
     quantityDelta: data.quantityDelta,
-    actorUserId: user.id,
+    actorUserId,
     shiftId: data.shiftId ?? null,
     bookingId: data.bookingId ?? null,
     saleChannel: data.saleChannel ?? null,
     idempotencyKey: data.idempotencyKey ?? null,
     reason: data.reason ?? null,
     note: data.note ?? null,
-    metadata: data.metadata ?? null,
-    requireActiveShift: data.movementType === 'SALE',
+    metadata,
+    requireActiveShift: data.movementType === 'SALE' || Boolean(data.workerUserId),
   });
 
   if (!result.success) {

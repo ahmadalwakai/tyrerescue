@@ -34,6 +34,11 @@ interface TyreLineCardProps {
   onRemove?: () => void;
 }
 
+interface TyreProductPriceResult {
+  sizeDisplay?: string | null;
+  priceNew?: number | string | null;
+}
+
 const SERVICE_OPTIONS: ReadonlyArray<{
   value: AssistedChatServiceType;
   title: string;
@@ -63,6 +68,69 @@ const SERVICE_OPTIONS: ReadonlyArray<{
 
 function clampQuantity(value: number): number {
   return Math.max(1, Math.min(10, Math.round(value)));
+}
+
+function formatSuggestionPrice(suggestion: TyreSizeSuggestion): string | null {
+  const min = suggestion.minPrice ?? suggestion.price ?? null;
+  const max = suggestion.maxPrice ?? suggestion.price ?? min;
+  if (typeof min !== 'number' || !Number.isFinite(min)) return null;
+  if (typeof max === 'number' && Number.isFinite(max) && max > min) {
+    return `from £${min.toFixed(2)}`;
+  }
+  return `£${min.toFixed(2)}`;
+}
+
+function suggestionHasPrice(suggestion: TyreSizeSuggestion): boolean {
+  return formatSuggestionPrice(suggestion) !== null;
+}
+
+function parseSearchWidth(value: string): number | null {
+  const width = Number.parseInt(value.trim().match(/\d{3}/)?.[0] ?? '', 10);
+  return Number.isFinite(width) && width >= 100 && width <= 400 ? width : null;
+}
+
+function toFinitePrice(value: TyreProductPriceResult['priceNew']): number | null {
+  const price = typeof value === 'number' ? value : typeof value === 'string' ? Number.parseFloat(value) : NaN;
+  return Number.isFinite(price) ? price : null;
+}
+
+async function enrichSuggestionsWithTyrePrices(
+  query: string,
+  suggestions: TyreSizeSuggestion[],
+): Promise<TyreSizeSuggestion[]> {
+  if (suggestions.length === 0 || suggestions.every(suggestionHasPrice)) return suggestions;
+
+  const width = parseSearchWidth(query);
+  if (width === null) return suggestions;
+
+  try {
+    const data = await api.get<{ tyres?: TyreProductPriceResult[] }>(
+      `/api/tyres?width=${encodeURIComponent(String(width))}&limit=100`,
+    );
+    const priceBySize = new Map<string, { minPrice: number; maxPrice: number }>();
+    for (const tyre of data.tyres ?? []) {
+      if (!tyre.sizeDisplay) continue;
+      const price = toFinitePrice(tyre.priceNew);
+      if (price === null) continue;
+
+      const key = compactAssistedChatTyreSize(tyre.sizeDisplay);
+      const existing = priceBySize.get(key);
+      priceBySize.set(key, {
+        minPrice: existing ? Math.min(existing.minPrice, price) : price,
+        maxPrice: existing ? Math.max(existing.maxPrice, price) : price,
+      });
+    }
+
+    return suggestions.map((suggestion) => {
+      if (suggestionHasPrice(suggestion)) return suggestion;
+      const prices = priceBySize.get(compactAssistedChatTyreSize(suggestion.size));
+      return prices
+        ? { ...suggestion, price: prices.minPrice, minPrice: prices.minPrice, maxPrice: prices.maxPrice }
+        : suggestion;
+    });
+  } catch {
+    return suggestions;
+  }
 }
 
 function TyreLineCard({ line, index, required, serviceType, stockSearchEnabled, onChange, onRemove }: TyreLineCardProps) {
@@ -107,8 +175,11 @@ function TyreLineCard({ line, index, required, serviceType, stockSearchEnabled, 
         `/api/tyres/sizes?q=${encodeURIComponent(query)}`,
       );
       if (requestSeq === searchSeq.current) {
-        setSuggestions(data.sizes ?? []);
-        setSearched(true);
+        const enriched = await enrichSuggestionsWithTyrePrices(query, data.sizes ?? []);
+        if (requestSeq === searchSeq.current) {
+          setSuggestions(enriched);
+          setSearched(true);
+        }
       }
     } catch {
       if (requestSeq === searchSeq.current) {
@@ -230,19 +301,25 @@ function TyreLineCard({ line, index, required, serviceType, stockSearchEnabled, 
         {canSearchTyreSizes && showSugs && suggestions.length > 0 ? (
           <View style={styles.suggestionsBox}>
             <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 220 }}>
-              {suggestions.map((s) => (
-                <Pressable
-                  key={`${line.id}-${s.size}`}
-                  onPress={() => select(s.size)}
-                  android_ripple={{ color: colors.ripple }}
-                  style={styles.suggestionItem}
-                >
-                  <Text style={styles.suggestionText}>
-                    {s.size}
-                    <Text style={styles.suggestionCount}>  {s.count} in stock</Text>
-                  </Text>
-                </Pressable>
-              ))}
+              {suggestions.map((s) => {
+                const priceLabel = formatSuggestionPrice(s);
+                return (
+                  <Pressable
+                    key={`${line.id}-${s.size}`}
+                    onPress={() => select(s.size)}
+                    android_ripple={{ color: colors.ripple }}
+                    style={styles.suggestionItem}
+                  >
+                    <View style={styles.suggestionCopy}>
+                      <View style={styles.suggestionTopRow}>
+                        <Text style={styles.suggestionText} numberOfLines={1}>{s.size}</Text>
+                        {priceLabel ? <Text style={styles.suggestionPrice} numberOfLines={1}>{priceLabel}</Text> : null}
+                      </View>
+                      <Text style={styles.suggestionCount}>{s.count} in stock</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
             </ScrollView>
           </View>
         ) : null}
@@ -594,8 +671,16 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     borderBottomWidth: 1,
   },
-  suggestionText: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
-  suggestionCount: { color: colors.subtle, fontWeight: '400' },
+  suggestionTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.sm,
+  },
+  suggestionCopy: { flex: 1, minWidth: 0 },
+  suggestionText: { color: colors.text, flex: 1, minWidth: 0, fontSize: fontSize.sm, fontWeight: '600' },
+  suggestionCount: { color: colors.subtle, fontSize: fontSize.xs, fontWeight: '400', marginTop: 2 },
+  suggestionPrice: { color: colors.accent, flexShrink: 0, fontSize: fontSize.sm, fontWeight: '800' },
   empty: { marginTop: 6, color: colors.muted, fontSize: fontSize.xs },
   inspectNotice: {
     borderWidth: 1,

@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import type {
   InventoryItem,
   LoginResponse,
@@ -6,13 +7,19 @@ import type {
   SessionRole,
   StockCity,
   StockMovement,
+  StockSeasonFilter,
+  StockSortOption,
   StockShift,
   StockUser,
+  StockWorker,
+  TyreSeason,
 } from '@/types';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 let authToken: string | null = null;
+const PRODUCTION_API_BASE_URL = 'https://www.tyrerescue.uk';
+const DEV_API_PORT = process.env.EXPO_PUBLIC_API_PORT?.trim() || '3002';
 
 function localHostName(): string | null {
   if (typeof window !== 'undefined' && window.location.hostname) {
@@ -28,10 +35,12 @@ function inferBaseUrl(): string {
   const envBase = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
   if (envBase) return envBase.replace(/\/$/, '');
 
-  const host = localHostName();
-  if (host) return `http://${host}:3000`;
+  if (Platform.OS === 'web' && __DEV__) {
+    const host = localHostName();
+    if (host) return `http://${host}:${DEV_API_PORT}`;
+  }
 
-  return 'https://www.tyrerescue.uk';
+  return PRODUCTION_API_BASE_URL;
 }
 
 export const API_BASE_URL = inferBaseUrl();
@@ -117,10 +126,58 @@ export const stockApi = {
       shiftId,
     }),
 
-  inventory: (cityId: string, search: string) =>
+  workers: async (cityId: string) => {
+    try {
+      return await request<{ items: StockWorker[] }>(
+        'GET',
+        `/api/stock/workers?cityId=${encodeURIComponent(cityId)}`,
+      );
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.status !== 404) throw error;
+      const fallback = await request<{
+        items: Array<{
+          id: string;
+          userId: string;
+          name: string;
+          email: string;
+          phone?: string | null;
+          isOnline?: boolean | null;
+          status?: string | null;
+        }>;
+      }>('GET', '/api/mobile/admin/drivers?perPage=100&status=all');
+      return {
+        items: fallback.items.map((driver) => ({
+          driverId: driver.id,
+          userId: driver.userId,
+          name: driver.name,
+          email: driver.email,
+          phone: driver.phone ?? null,
+          isOnline: driver.isOnline ?? false,
+          status: driver.status ?? 'offline',
+          activeShift: null,
+        })),
+      };
+    }
+  },
+
+  startWorkerShift: (cityId: string, workerUserId: string) =>
+    request<{ shift: StockShift; alreadyStarted: boolean }>('POST', '/api/stock/workers', {
+      action: 'start',
+      cityId,
+      workerUserId,
+      idempotencyKey: `stock-worker-shift-start:${cityId}:${workerUserId}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
+    }),
+
+  endWorkerShift: (shiftId: string) =>
+    request<{ shift: StockShift; alreadyEnded: boolean }>('POST', '/api/stock/workers', {
+      action: 'end',
+      shiftId,
+    }),
+
+  inventory: (cityId: string, search: string, season: StockSeasonFilter = 'all', sort: StockSortOption = 'size') =>
     request<{ items: InventoryItem[]; totalCount: number }>(
       'GET',
-      `/api/stock/cities/${encodeURIComponent(cityId)}/inventory?perPage=50&search=${encodeURIComponent(search)}`,
+      `/api/stock/cities/${encodeURIComponent(cityId)}/inventory?perPage=50&search=${encodeURIComponent(search)}&season=${encodeURIComponent(season)}&sort=${encodeURIComponent(sort)}`,
     ),
 
   movements: (cityId: string) =>
@@ -156,6 +213,7 @@ export const stockApi = {
     direction: 'add' | 'reduce';
     quantity?: number;
     shiftId?: string | null;
+    workerUserId?: string | null;
   }) => {
     const quantity = Math.max(1, Math.trunc(payload.quantity ?? 1));
     const isAdd = payload.direction === 'add';
@@ -165,6 +223,7 @@ export const stockApi = {
       tyreProductId: payload.tyreProductId,
       movementType: isAdd ? 'RECEIVED' : 'DAMAGED',
       quantityDelta: isAdd ? quantity : -quantity,
+      workerUserId: payload.workerUserId || null,
       shiftId: payload.shiftId || null,
       bookingId: null,
       saleChannel: null,
@@ -172,6 +231,26 @@ export const stockApi = {
       note: isAdd ? 'Quick stock add from Stock app' : 'Quick stock reduction from Stock app',
       idempotencyKey: `stock-adjust:${payload.cityId}:${payload.tyreProductId}:${payload.direction}:${Date.now()}`,
     });
+  },
+
+  updateSeason: async (cityId: string, tyreProductId: string, season: TyreSeason) => {
+    try {
+      return await request<{ product: InventoryItem['product'] }>(
+        'PATCH',
+        `/api/stock/cities/${encodeURIComponent(cityId)}/inventory`,
+        { tyreProductId, season },
+      );
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 404 || error.status === 405)) {
+        await request<{ success: boolean }>(
+          'PATCH',
+          `/api/mobile/admin/stock/${encodeURIComponent(tyreProductId)}`,
+          { season },
+        );
+        return { product: { brand: '', pattern: '', sizeDisplay: '', season, priceNew: null, availableNew: true } };
+      }
+      throw error;
+    }
   },
 
   recordMissingTyre: (payload: {

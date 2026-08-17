@@ -167,10 +167,11 @@ describe('recordCityStockMovement', () => {
       expect(result.movement.alreadyApplied).toBe(false);
     }
     expect(findQuery('UPDATE stock_inventory_balances')).toHaveLength(1);
+    expect(findQuery('UPDATE tyre_products')).toHaveLength(1);
     expect(findQuery('INSERT INTO stock_movements')).toHaveLength(1);
   });
 
-  it('returns an existing movement for an idempotent retry without updating stock', async () => {
+  it('returns an existing movement for an idempotent retry without changing city stock again', async () => {
     mockClient.handlers.push((sql) => {
       if (sql.includes('FROM stock_movements') && sql.includes('idempotency_key = $1')) {
         return {
@@ -202,6 +203,7 @@ describe('recordCityStockMovement', () => {
       expect(result.movement.balanceAfter).toBe(4);
     }
     expect(findQuery('UPDATE stock_inventory_balances')).toHaveLength(0);
+    expect(findQuery('UPDATE tyre_products')).toHaveLength(1);
     expect(findQuery('INSERT INTO stock_movements')).toHaveLength(0);
   });
 
@@ -231,6 +233,7 @@ describe('recordCityStockMovement', () => {
       expect(result.code).toBe('INSUFFICIENT_STOCK');
     }
     expect(findQuery('INSERT INTO stock_movements')).toHaveLength(0);
+    expect(findQuery('UPDATE tyre_products')).toHaveLength(0);
   });
 });
 

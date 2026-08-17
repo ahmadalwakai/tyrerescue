@@ -240,6 +240,9 @@ export interface AssistedChatDraft {
 export interface TyreSizeSuggestion {
   size: string;
   count: number;
+  price?: number | null;
+  minPrice?: number | null;
+  maxPrice?: number | null;
 }
 
 export interface QuickBookCreateResponse {

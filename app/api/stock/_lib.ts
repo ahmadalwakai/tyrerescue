@@ -6,6 +6,7 @@ import { db, stockCities, stockUserCityAccess } from '@/lib/db';
 import type { CityStockErrorCode } from '@/lib/stock/city-stock-service';
 
 export type StockApiRole = 'driver' | 'admin';
+export const SHARED_STOCK_ADMIN_EMAIL = 'ahmad33wakaa@gmail.com';
 
 export interface StockApiUser {
   id: string;
@@ -36,6 +37,10 @@ export async function getStockApiUser(request: Request): Promise<StockApiUser | 
     name: user.name,
     role: user.role,
   };
+}
+
+export function canUseSharedStockWorkerMode(user: StockApiUser): boolean {
+  return user.role === 'admin' && user.email.toLowerCase() === SHARED_STOCK_ADMIN_EMAIL;
 }
 
 export async function getStockCityAccess(

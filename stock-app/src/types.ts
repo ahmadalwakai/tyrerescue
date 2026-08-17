@@ -1,6 +1,9 @@
 export type SessionRole = 'driver' | 'admin';
 export type CityRole = 'viewer' | 'operator' | 'manager';
 export type SaleChannel = 'GARAGE' | 'EMERGENCY_CALL_OUT';
+export type TyreSeason = 'allseason' | 'summer' | 'winter';
+export type StockSeasonFilter = 'all' | TyreSeason;
+export type StockSortOption = 'size' | 'brand' | 'stock' | 'season';
 
 export interface StockUser {
   id: string;
@@ -25,13 +28,24 @@ export interface StockCity {
 
 export interface StockShift {
   id: string;
-  userId: string;
-  cityId: string;
+  userId: string | null;
+  cityId: string | null;
   citySlug?: string;
   cityName?: string;
   startedAt: string | null;
   endedAt: string | null;
   status: 'active' | 'ended';
+}
+
+export interface StockWorker {
+  driverId: string;
+  userId: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  isOnline: boolean;
+  status: string;
+  activeShift: StockShift | null;
 }
 
 export interface InventoryItem {
@@ -42,7 +56,7 @@ export interface InventoryItem {
     brand: string;
     pattern: string;
     sizeDisplay: string;
-    season: string | null;
+    season: TyreSeason | null;
     priceNew: number | null;
     availableNew: boolean;
   };

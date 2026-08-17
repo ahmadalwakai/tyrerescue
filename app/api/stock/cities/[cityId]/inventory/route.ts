@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
-import { and, asc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, stockInventoryBalances, tyreProducts } from '@/lib/db';
+import { isValidSeason, normalizeSeason } from '@/lib/inventory/normalize-season';
 import { computeCityStockSnapshot } from '@/lib/stock/city-stock-domain';
 import {
   getStockApiUser,
@@ -17,6 +17,11 @@ const upsertInventorySettingsSchema = z.object({
   minStock: z.number().int().min(0).optional(),
   targetStock: z.number().int().min(0).optional(),
   orderedStock: z.number().int().min(0).optional(),
+});
+
+const updateInventoryProductSchema = z.object({
+  tyreProductId: z.string().uuid(),
+  season: z.unknown().optional(),
 });
 
 function parsePageParams(url: URL) {
@@ -39,6 +44,11 @@ export async function GET(
 
   const url = new URL(request.url);
   const search = url.searchParams.get('search')?.trim() || '';
+  const season = url.searchParams.get('season')?.trim() || 'all';
+  const sort = url.searchParams.get('sort')?.trim() || 'size';
+  if (season !== 'all' && !isValidSeason(season)) {
+    return stockJsonResponse(request, { error: 'Invalid season filter' }, { status: 400 });
+  }
   const { page, perPage, offset } = parsePageParams(url);
 
   const searchFilter = search
@@ -48,9 +58,21 @@ export async function GET(
         ilike(tyreProducts.sizeDisplay, `%${search}%`),
       )
     : undefined;
-  const where = searchFilter
-    ? and(eq(stockInventoryBalances.cityId, cityId), searchFilter)
-    : eq(stockInventoryBalances.cityId, cityId);
+  const where = and(
+    eq(stockInventoryBalances.cityId, cityId),
+    ...(searchFilter ? [searchFilter] : []),
+    ...(season !== 'all' ? [eq(tyreProducts.season, normalizeSeason(season))] : []),
+  );
+
+  const seasonOrder = sql`CASE ${tyreProducts.season} WHEN 'summer' THEN 1 WHEN 'winter' THEN 2 WHEN 'allseason' THEN 3 ELSE 4 END`;
+  const orderBy =
+    sort === 'stock'
+      ? [desc(stockInventoryBalances.currentStock), asc(tyreProducts.sizeDisplay), asc(tyreProducts.brand)]
+      : sort === 'season'
+        ? [seasonOrder, asc(tyreProducts.sizeDisplay), asc(tyreProducts.brand)]
+        : sort === 'brand'
+          ? [asc(tyreProducts.brand), asc(tyreProducts.pattern), asc(tyreProducts.sizeDisplay)]
+          : [asc(tyreProducts.sizeDisplay), asc(tyreProducts.brand), asc(tyreProducts.pattern)];
 
   const rows = await db
     .select({
@@ -73,7 +95,7 @@ export async function GET(
     .from(stockInventoryBalances)
     .innerJoin(tyreProducts, eq(stockInventoryBalances.tyreProductId, tyreProducts.id))
     .where(where)
-    .orderBy(asc(tyreProducts.sizeDisplay), asc(tyreProducts.brand), asc(tyreProducts.pattern))
+    .orderBy(...orderBy)
     .limit(perPage)
     .offset(offset);
 
@@ -186,6 +208,68 @@ export async function POST(
       },
       ...computeCityStockSnapshot(balance),
       updatedAt: balance.updatedAt?.toISOString() ?? null,
+    },
+  });
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ cityId: string }> },
+) {
+  const user = await getStockApiUser(request);
+  if (!user) return unauthorizedResponse(request);
+
+  const { cityId } = await params;
+  const access = await getStockCityAccess(user, cityId, ['manager']);
+  if (!access) return stockJsonResponse(request, { error: 'Manager access required for this stock city' }, { status: 403 });
+
+  const body = await request.json();
+  const parsed = updateInventoryProductSchema.safeParse(body);
+  if (!parsed.success) return validationErrorResponse(parsed.error.flatten(), request);
+
+  if (parsed.data.season !== undefined && !isValidSeason(parsed.data.season)) {
+    return stockJsonResponse(request, { error: 'Invalid season. Use allseason, summer, or winter.' }, { status: 400 });
+  }
+
+  const [balance] = await db
+    .select({ id: stockInventoryBalances.id })
+    .from(stockInventoryBalances)
+    .where(and(
+      eq(stockInventoryBalances.cityId, cityId),
+      eq(stockInventoryBalances.tyreProductId, parsed.data.tyreProductId),
+    ))
+    .limit(1);
+  if (!balance) return stockJsonResponse(request, { error: 'Tyre product is not in this city stock' }, { status: 404 });
+
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  if (parsed.data.season !== undefined) updates.season = normalizeSeason(parsed.data.season);
+
+  const [product] = await db
+    .update(tyreProducts)
+    .set(updates)
+    .where(eq(tyreProducts.id, parsed.data.tyreProductId))
+    .returning({
+      id: tyreProducts.id,
+      brand: tyreProducts.brand,
+      pattern: tyreProducts.pattern,
+      sizeDisplay: tyreProducts.sizeDisplay,
+      season: tyreProducts.season,
+      priceNew: tyreProducts.priceNew,
+      availableNew: tyreProducts.availableNew,
+    });
+
+  if (!product) return stockJsonResponse(request, { error: 'Tyre product not found' }, { status: 404 });
+
+  return stockJsonResponse(request, {
+    city: access.city,
+    product: {
+      id: product.id,
+      brand: product.brand,
+      pattern: product.pattern,
+      sizeDisplay: product.sizeDisplay,
+      season: product.season,
+      priceNew: product.priceNew ? Number(product.priceNew) : null,
+      availableNew: product.availableNew ?? false,
     },
   });
 }

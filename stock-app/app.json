@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tyre Rescue Stock",
     "slug": "tyre-rescue-stock",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "tyrerescuestock",
     "userInterfaceStyle": "dark",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "uk.tyrerescue.stock",
-      "buildNumber": "1",
+      "buildNumber": "3",
       "config": {
         "usesNonExemptEncryption": false
       }
@@ -40,10 +40,18 @@
           "resizeMode": "contain",
           "backgroundColor": "#0B1117"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "13b7edcf-8575-4e20-940a-86c3bbc2cf86"
+      }
+    },
+    "owner": "ahmadawadalwakai"
   }
 }
