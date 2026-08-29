@@ -105,6 +105,7 @@ function normalizeVehicle(value: unknown): AssistedChatVehicle | null {
     make,
     model: nullableString(value.model),
     yearOfManufacture: finiteNumber(value.yearOfManufacture),
+    monthOfFirstRegistration: nullableString(value.monthOfFirstRegistration),
     fuelType,
     colour: nullableString(value.colour),
   };

@@ -27,6 +27,9 @@ interface DvlaApiResponse {
   // so callers must keep treating model as nullable.
   model?: string;
   yearOfManufacture?: number;
+  /** Format: "YYYY-MM". More reliable than yearOfManufacture for matching
+   *  UK catalog data which is organised by registration year. */
+  monthOfFirstRegistration?: string;
   fuelType?: string;
   colour?: string;
 }
@@ -73,6 +76,7 @@ function mockLookup(vrm: string): VrmLookupResult {
       make: 'FORD',
       model: 'FOCUS',
       yearOfManufacture: 2019,
+      monthOfFirstRegistration: '2019-03',
       fuelType: 'PETROL',
       colour: 'BLUE',
     },
@@ -80,7 +84,8 @@ function mockLookup(vrm: string): VrmLookupResult {
       registrationNumber: 'BD63SMR',
       make: 'VOLKSWAGEN',
       model: 'GOLF',
-      yearOfManufacture: 2014,
+      yearOfManufacture: 2013,
+      monthOfFirstRegistration: '2013-09',
       fuelType: 'DIESEL',
       colour: 'GREY',
     },
@@ -88,7 +93,8 @@ function mockLookup(vrm: string): VrmLookupResult {
       registrationNumber: 'LB19XYZ',
       make: 'TESLA',
       model: 'MODEL 3',
-      yearOfManufacture: 2020,
+      yearOfManufacture: 2019,
+      monthOfFirstRegistration: '2019-03',
       fuelType: 'ELECTRIC',
       colour: 'WHITE',
     },
@@ -107,6 +113,7 @@ function mockLookup(vrm: string): VrmLookupResult {
       make: 'VAUXHALL',
       model: 'CORSA',
       yearOfManufacture: 2018,
+      monthOfFirstRegistration: '2018-03',
       fuelType: 'PETROL',
       colour: 'SILVER',
     },
@@ -216,6 +223,7 @@ export async function lookupVrm(registrationNumber: string): Promise<VrmLookupRe
       make: (payload.make ?? '').toUpperCase() || 'UNKNOWN',
       model: payload.model ? payload.model.toUpperCase() : null,
       yearOfManufacture: payload.yearOfManufacture ?? null,
+      monthOfFirstRegistration: payload.monthOfFirstRegistration ?? null,
       fuelType: coerceFuel(payload.fuelType),
       colour: payload.colour ? payload.colour.toUpperCase() : null,
     },

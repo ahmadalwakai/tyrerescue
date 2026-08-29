@@ -37,6 +37,7 @@ export interface AssistedChatVehicle {
   make: string;
   model: string | null;
   yearOfManufacture: number | null;
+  monthOfFirstRegistration?: string | null;
   fuelType: 'PETROL' | 'DIESEL' | 'ELECTRIC' | 'HYBRID' | 'OTHER';
   colour: string | null;
 }

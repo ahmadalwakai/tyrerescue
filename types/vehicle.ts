@@ -10,6 +10,10 @@ export interface Vehicle {
   make: string;
   model: string | null;
   yearOfManufacture: number | null;
+  /** DVLA-returned first registration month, format "YYYY-MM". More reliable
+   *  than yearOfManufacture for catalog lookups since UK catalog data is
+   *  organised by registration year, not manufacture year. */
+  monthOfFirstRegistration?: string | null;
   fuelType: FuelType;
   colour: string | null;
 }

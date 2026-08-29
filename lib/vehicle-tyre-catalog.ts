@@ -403,6 +403,29 @@ function upperRecordText(record: JsonRecord | null, key: string): string | null 
   return value ? value.toUpperCase() : null;
 }
 
+/**
+ * Returns the best year to use for catalog lookups.
+ *
+ * UK tyre catalog data is organised by model/registration year (e.g. the
+ * "63-plate" generation of a car), NOT by the calendar year the car came off
+ * the production line. The DVLA returns both fields:
+ *
+ *  - `monthOfFirstRegistration` ("YYYY-MM") — the registration year, which
+ *    matches the catalog model year.
+ *  - `yearOfManufacture` (number)            — the factory year, which can
+ *    be 1 year behind for late-year builds first registered in January.
+ *
+ * We prefer the registration year when available to avoid off-by-one misses.
+ */
+function catalogYear(vehicle: Vehicle): number | null {
+  const monthStr = vehicle.monthOfFirstRegistration;
+  if (monthStr) {
+    const year = Number.parseInt(monthStr.slice(0, 4), 10);
+    if (Number.isFinite(year) && year > 1900) return year;
+  }
+  return vehicle.yearOfManufacture;
+}
+
 function numberRecordValue(record: JsonRecord | null, key: string): number | null {
   const value = getCaseInsensitive(record, key);
   if (typeof value === 'number' && Number.isFinite(value)) return Math.trunc(value);
@@ -471,11 +494,12 @@ function lookupReadOnlySeedVrmOptions(
 }
 
 function localCandidateOptions(vehicle: Vehicle): { options: TyreFitmentOption[]; messages: string[] } {
-  const diagnostics = diagnoseTyreCatalogCandidates(vehicle.make, vehicle.model, vehicle.yearOfManufacture);
+  const year = catalogYear(vehicle);
+  const diagnostics = diagnoseTyreCatalogCandidates(vehicle.make, vehicle.model, year);
   const candidates = findTyreSizeCandidatesForVehicle(
     vehicle.make,
     vehicle.model,
-    vehicle.yearOfManufacture,
+    year,
     MAX_OPTIONS,
   ).map((candidate, index) =>
     createOption({
