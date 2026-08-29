@@ -20,6 +20,14 @@ const nextConfig: NextConfig = {
     'http://127.0.0.1:8084',
     'http://127.0.0.1:8095',
     'http://127.0.0.1:8096',
+    // LAN IP for Expo web on device (matches EXPO_PUBLIC_API_BASE_URL host in .env.local).
+    // Update if the dev machine IP changes.
+    'http://192.168.1.161:8081',
+    'http://192.168.1.161:8082',
+    'http://192.168.1.161:8083',
+    'http://192.168.1.161:8084',
+    'http://192.168.1.161:8095',
+    'http://192.168.1.161:8096',
   ],
   images: {
     // Prefer AVIF then WebP — both ~30-50% smaller than the JPEG/PNG fallback.

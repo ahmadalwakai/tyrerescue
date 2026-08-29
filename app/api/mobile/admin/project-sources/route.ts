@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { desc, sql } from 'drizzle-orm';
 import { db, bookings } from '@/lib/db';
 import { getMobileAdminUser, unauthorizedResponse } from '@/app/api/mobile/admin/_lib';
@@ -7,6 +7,7 @@ import {
   getProjectIntegrationLink,
   isProjectIntegrationSecretConfigured,
 } from '@/lib/integrations/project-links';
+import { expoDevCorsPreflight, jsonWithExpoDevCors } from '@/lib/api/dev-cors';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ function isoDate(value: Date | string | null | undefined): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const user = await getMobileAdminUser(request);
   if (!user) return unauthorizedResponse();
 
@@ -82,7 +83,11 @@ export async function GET(request: Request) {
     configured: false,
   }));
 
-  return NextResponse.json({
+  return jsonWithExpoDevCors(request, {
     items: [...configuredItems, ...unknownItems],
   });
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return expoDevCorsPreflight(request);
 }

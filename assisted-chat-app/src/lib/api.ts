@@ -159,6 +159,9 @@ async function request<T>(
       if (typeof r.error === 'string' && r.error.trim()) message = r.error;
       else if (typeof r.message === 'string' && r.message.trim()) message = r.message;
     }
+    if (__DEV__) {
+      console.warn(`[api] ${method} ${resolvedApiBaseUrl}${path} → ${res.status}`, payload);
+    }
     throw new ApiError(message, res.status, payload);
   }
 
