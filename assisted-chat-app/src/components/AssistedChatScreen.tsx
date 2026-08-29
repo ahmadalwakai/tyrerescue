@@ -31,6 +31,7 @@ import { useDuplicateBookingWarning } from '@/hooks/useDuplicateBookingWarning';
 import { useNewCustomerBookingAlert } from '@/hooks/useNewCustomerBookingAlert';
 import { useBookingTracking } from '@/hooks/useBookingTracking';
 import { useActiveJobs, type ActiveJobItem } from '@/hooks/useActiveJobs';
+import { useLiveVisitorCount, type LiveVisitorCountState } from '@/hooks/useLiveVisitorCount';
 import { BookingTrackingCard } from './tracking/BookingTrackingCard';
 import { DriverAssignSection } from './tracking/DriverAssignSection';
 import type {
@@ -54,6 +55,7 @@ import { AdminQuotesModal } from './AdminQuotesModal';
 import { AdminBookingsModal } from './AdminBookingsModal';
 import { AdminVisitorsModal } from './AdminVisitorsModal';
 import { AdminInvoicesModal } from './AdminInvoicesModal';
+import { ProjectSourcesModal } from './ProjectSourcesModal';
 import { AddAdminModal } from './AddAdminModal';
 import { MessageSenderModal } from './MessageSenderModal';
 import type { VirtualLandlineDraftPrefill } from './VirtualLandlineModal';
@@ -151,6 +153,7 @@ interface ParsedCallNotes {
 interface AssistedChatScreenProps {
   user?: { name: string; email: string } | null;
   onLogout?: () => void | Promise<void>;
+  activeProjectId?: string | null;
 }
 
 interface SheetAction {
@@ -680,7 +683,7 @@ function genericWhatsAppUrl(message: string): string {
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
 }
 
-export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
+export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatScreenProps = {}) {
   const { draft, hydrated, update, replace, clear } = useAssistedChatDraft();
   const [noteInput, setNoteInput] = useState('');
   const [noteSynced, setNoteSynced] = useState(false);
@@ -693,12 +696,15 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const [quotesOpen, setQuotesOpen] = useState(false);
   const [bookingsOpen, setBookingsOpen] = useState(false);
   const [bookingInitialRef, setBookingInitialRef] = useState<string | null>(null);
+  const [bookingInitialSource, setBookingInitialSource] = useState<string | null>(null);
+  const [projectSourcesOpen, setProjectSourcesOpen] = useState(false);
   const [visitorsOpen, setVisitorsOpen] = useState(false);
   const [invoicesOpen, setInvoicesOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
   const [garageOpen, setGarageOpen] = useState(false);
   const [addAdminOpen, setAddAdminOpen] = useState(false);
   const [activeJobsOpen, setActiveJobsOpen] = useState(false);
+  const [activeJobsInitialSource, setActiveJobsInitialSource] = useState<string | null>(null);
   const [driverTrackingOpen, setDriverTrackingOpen] = useState(false);
   const [chatHubOpen, setChatHubOpen] = useState(false);
   const [messageSenderOpen, setMessageSenderOpen] = useState(false);
@@ -719,13 +725,24 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
   const [armingCycle, setArmingCycle] = useState(0);
   const notificationsStartupStarted = useRef(false);
   const notificationsStartupCompleted = useRef(false);
-  const openBookingsInApp = useCallback((refNumber: string | null = null) => {
+  const liveVisitors = useLiveVisitorCount(api.hasAdminToken);
+  const openBookingsInApp = useCallback((refNumber: string | null = null, sourceApp: string | null = null) => {
     setBookingInitialRef(refNumber);
+    setBookingInitialSource(sourceApp);
     setBookingsOpen(true);
   }, []);
   const closeBookingsInApp = useCallback(() => {
     setBookingsOpen(false);
     setBookingInitialRef(null);
+    setBookingInitialSource(null);
+  }, []);
+  const openActiveJobsInApp = useCallback((sourceApp: string | null = null) => {
+    setActiveJobsInitialSource(sourceApp);
+    setActiveJobsOpen(true);
+  }, []);
+  const closeActiveJobsInApp = useCallback(() => {
+    setActiveJobsOpen(false);
+    setActiveJobsInitialSource(null);
   }, []);
   const handleNotificationOpenData = useCallback((data: unknown) => {
     const request = getUrgentBookingNotificationOpenRequest(data);
@@ -1232,6 +1249,9 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     if (!ref || !id) return null;
     return {
       bookingRef: ref,
+      sourceApp: 'tyre_rescue',
+      sourceLabel: 'Tyre Rescue',
+      externalReference: null,
       bookingId: id,
       status: 'driver_assigned',
       scheduledAt: null,
@@ -1891,7 +1911,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         label: 'Active jobs',
         description: 'See jobs that are currently in progress.',
         disabledReason: noToken,
-        onPress: () => setActiveJobsOpen(true),
+        onPress: () => openActiveJobsInApp(),
       },
       {
         id: 'virtual-landline',
@@ -2029,6 +2049,16 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
       );
     }
 
+    if (!activeProjectId || activeProjectId === 'tyrerescue') {
+      actions.push({
+        id: 'project-sources',
+        label: 'Projects',
+        description: 'Combined control for all project bookings inside Assisted Chat.',
+        disabledReason: noToken,
+        onPress: () => setProjectSourcesOpen(true),
+      });
+    }
+
     actions.push({
       id: 'admin-bookings',
       label: 'All bookings',
@@ -2138,6 +2168,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
     locationShare,
     handleLogout,
     onLogout,
+    openActiveJobsInApp,
     openBookingsInApp,
     quoteActions,
     todayBookings.count,
@@ -2286,6 +2317,7 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
             onMore={() => setMoreOpen(true)}
             onOpenChatHub={handleOpenHeaderChatHub}
             onOpenNotifications={handleOpenHeaderNotifications}
+            liveVisitors={liveVisitors}
             notificationUnreadCount={headerNotificationUnreadCount}
             notificationState={headerNotificationVisualState}
             onCall={customerDialNumber ? handleCallCustomer : undefined}
@@ -2513,6 +2545,27 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         visible={bookingsOpen}
         onClose={closeBookingsInApp}
         initialRefNumber={bookingInitialRef}
+        initialSourceApp={bookingInitialSource}
+      />
+      <ProjectSourcesModal
+        visible={projectSourcesOpen}
+        onClose={() => setProjectSourcesOpen(false)}
+        onOpenBookings={(sourceApp) => {
+          setProjectSourcesOpen(false);
+          openBookingsInApp(null, sourceApp);
+        }}
+        onOpenActiveJobs={(sourceApp) => {
+          setProjectSourcesOpen(false);
+          openActiveJobsInApp(sourceApp);
+        }}
+        onOpenStock={() => {
+          setProjectSourcesOpen(false);
+          setStockOpen(true);
+        }}
+        onOpenGarage={() => {
+          setProjectSourcesOpen(false);
+          setGarageOpen(true);
+        }}
       />
       <DeferredUrgentBookingPopup
         visible={urgentPopupOpen}
@@ -2530,7 +2583,11 @@ export function AssistedChatScreen({ onLogout }: AssistedChatScreenProps = {}) {
         onCreateDraft={handleCreateVirtualLandlineDraft}
       />
       <AddAdminModal visible={addAdminOpen} onClose={() => setAddAdminOpen(false)} />
-      <DeferredActiveJobsModal visible={activeJobsOpen} onClose={() => setActiveJobsOpen(false)} />
+      <DeferredActiveJobsModal
+        visible={activeJobsOpen}
+        onClose={closeActiveJobsInApp}
+        initialSourceApp={activeJobsInitialSource}
+      />
       <DeferredTrackingModal visible={driverTrackingOpen} onClose={() => setDriverTrackingOpen(false)} />
       <DeferredChatHubModal visible={chatHubOpen} onClose={() => setChatHubOpen(false)} />
       <MessageSenderModal
@@ -3257,6 +3314,7 @@ function PremiumAppHeader({
   onMore,
   onOpenChatHub,
   onOpenNotifications,
+  liveVisitors,
   notificationUnreadCount,
   notificationState,
 }: {
@@ -3267,6 +3325,7 @@ function PremiumAppHeader({
   onMore: () => void;
   onOpenChatHub: () => void;
   onOpenNotifications: () => void;
+  liveVisitors: LiveVisitorCountState;
   notificationUnreadCount: number;
   notificationState: HeaderNotificationVisualState;
   onCall?: () => void;
@@ -3309,6 +3368,7 @@ function PremiumAppHeader({
               </Pressable>
               <Text style={styles.headerTitle} numberOfLines={1} testID="assisted-chat-header-title">Assisted Chat</Text>
             </View>
+            <HeaderLiveVisitorCounter state={liveVisitors} />
             <Text style={styles.headerCustomer} numberOfLines={1} ellipsizeMode="tail" testID="assisted-chat-header-customer">{showCustomerMeta ? customerName : ''}</Text>
             <Text style={styles.headerPhone} numberOfLines={1} ellipsizeMode="tail" testID="assisted-chat-header-phone">{showCustomerMeta ? customerPhone : ''}</Text>
           </View>
@@ -3335,6 +3395,90 @@ function PremiumAppHeader({
         </Text>
         <Text style={styles.heroHelper} numberOfLines={2}>{heroHelper}</Text>
       </View>
+    </View>
+  );
+}
+
+function useAnimatedInteger(target: number | null): number | null {
+  const [animatedValue] = useState(() => new Animated.Value(target ?? 0));
+  const lastTargetRef = useRef<number | null>(target);
+  const [displayValue, setDisplayValue] = useState<number | null>(target);
+
+  useEffect(() => {
+    const listenerId = animatedValue.addListener(({ value }) => {
+      setDisplayValue(Math.max(0, Math.round(value)));
+    });
+    return () => {
+      animatedValue.removeListener(listenerId);
+    };
+  }, [animatedValue]);
+
+  useEffect(() => {
+    if (target === null) {
+      lastTargetRef.current = null;
+      animatedValue.setValue(0);
+      return undefined;
+    }
+
+    const previousTarget = lastTargetRef.current;
+    lastTargetRef.current = target;
+
+    if (previousTarget === null || previousTarget === target) {
+      animatedValue.setValue(target);
+      return undefined;
+    }
+
+    const distance = Math.abs(target - previousTarget);
+    const animation = Animated.timing(animatedValue, {
+      toValue: target,
+      duration: Math.min(950, 420 + distance * 35),
+      useNativeDriver: false,
+    });
+    animation.start();
+    return () => {
+      animation.stop();
+    };
+  }, [animatedValue, target]);
+
+  return displayValue;
+}
+
+function HeaderLiveVisitorCounter({ state }: { state: LiveVisitorCountState }) {
+  const animatedCount = useAnimatedInteger(state.liveCount);
+  const hasCount = state.liveCount !== null && !state.error;
+  const countLabel = hasCount
+    ? (animatedCount ?? state.liveCount ?? 0).toLocaleString('en-GB')
+    : state.loading
+      ? '...'
+      : '--';
+  const suffix = hasCount
+    ? state.liveCount === 1
+      ? ' live visitor'
+      : ' live visitors'
+    : state.loading
+      ? ' loading'
+      : ' unavailable';
+  const accessibilityLabel = hasCount
+    ? `tyrerescue.uk has ${state.liveCount} live ${state.liveCount === 1 ? 'visitor' : 'visitors'}`
+    : state.loading
+      ? 'Loading tyrerescue.uk live visitors'
+      : 'tyrerescue.uk live visitors unavailable';
+
+  return (
+    <View
+      style={styles.headerVisitorRow}
+      accessibilityRole="text"
+      accessibilityLabel={accessibilityLabel}
+      testID="assisted-chat-header-live-visitors"
+    >
+      <View style={styles.headerVisitorDot} />
+      <Text style={styles.headerVisitorText} numberOfLines={1}>
+        <Text>tyrerescue.uk </Text>
+        <Text style={styles.headerVisitorCount} testID="assisted-chat-header-live-visitors-count">
+          {countLabel}
+        </Text>
+        <Text>{suffix}</Text>
+      </Text>
     </View>
   );
 }
@@ -3965,6 +4109,7 @@ const SHEET_ACTION_ICONS: Record<string, AppIconName> = {
   'copy-payment-link': 'link',
   'open-payment-link': 'external-link',
   'whatsapp-payment-link': 'whatsapp',
+  'project-sources': 'sitemap',
   'admin-bookings': 'list-alt',
   'virtual-landline': 'phone',
   'admin-visitors': 'line-chart',
@@ -4388,6 +4533,33 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     flexShrink: 1,
     minWidth: 0,
+  },
+  headerVisitorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    minWidth: 0,
+    marginTop: 3,
+    maxWidth: '100%',
+  },
+  headerVisitorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.accent,
+    flexShrink: 0,
+  },
+  headerVisitorText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0,
+    minWidth: 0,
+    flexShrink: 1,
+  },
+  headerVisitorCount: {
+    color: colors.accent,
+    fontWeight: '900',
   },
   headerCustomer: { color: colors.text, fontSize: fontSize.sm, fontWeight: '900', marginTop: 3, minWidth: 0 },
   headerPhone: { color: colors.muted, fontSize: 11, marginTop: 1, fontWeight: '800', minWidth: 0 },

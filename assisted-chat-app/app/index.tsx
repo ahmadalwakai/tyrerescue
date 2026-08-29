@@ -58,19 +58,30 @@ export default function Index() {
         loggingIn={session.loggingIn}
         loginError={session.loginError}
         expiredMessage={session.expiredMessage}
+        activeProject={session.activeProject}
+        onSelectProject={session.selectProject}
+        onClearProject={session.clearProject}
       />
     );
   }
 
-  return <LoggedInAssistedChat user={session.user} onLogout={session.logout} />;
+  return (
+    <LoggedInAssistedChat
+      user={session.user}
+      onLogout={session.logout}
+      activeProjectId={session.activeProject?.id ?? null}
+    />
+  );
 }
 
 function LoggedInAssistedChat({
   user,
   onLogout,
+  activeProjectId,
 }: {
   user: AdminSession['user'];
   onLogout: AdminSession['logout'];
+  activeProjectId: string | null;
 }) {
   useState(() => {
     logStartupModuleStarted('Protected tree', { route: 'index' });
@@ -87,8 +98,9 @@ function LoggedInAssistedChat({
     getAssistedChatScreen() as ComponentType<{
       user: AdminSession['user'];
       onLogout: AdminSession['logout'];
+      activeProjectId: string | null;
     }>,
-    { user, onLogout },
+    { user, onLogout, activeProjectId },
   );
 }
 
