@@ -371,6 +371,20 @@ export async function PUT(request: Request, { params }: Props) {
 
   await db.update(bookings).set(updates).where(eq(bookings.id, booking.id));
 
+  // Mirror customer/address changes into any linked invoice so the
+  // invoice doesn't show stale booking info after an edit.
+  const invoiceCustomerPatch: Record<string, unknown> = {};
+  if (updates.customerName) invoiceCustomerPatch.customerName = updates.customerName;
+  if (updates.customerEmail) invoiceCustomerPatch.customerEmail = updates.customerEmail;
+  if (updates.customerPhone) invoiceCustomerPatch.customerPhone = updates.customerPhone;
+  if (updates.addressLine) invoiceCustomerPatch.customerAddress = updates.addressLine;
+  if (Object.keys(invoiceCustomerPatch).length > 0) {
+    await db
+      .update(invoices)
+      .set({ ...invoiceCustomerPatch, updatedAt: new Date() })
+      .where(and(eq(invoices.bookingId, booking.id), isNull(invoices.deletedAt)));
+  }
+
   await db.insert(bookingStatusHistory).values({
     bookingId: booking.id,
     fromStatus: booking.status,
