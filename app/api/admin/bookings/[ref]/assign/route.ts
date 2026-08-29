@@ -210,7 +210,7 @@ export async function PATCH(request: Request, { params }: Props) {
     });
 
     // Send notification emails — outbound customer link must always be production URL.
-    const siteUrl = getOutboundUrl();
+    const siteUrl = getOutboundUrl(booking.sourceApp);
     const trackingUrl = `${siteUrl}/tracking/${booking.refNumber}`;
 
     const tyreRows = await db

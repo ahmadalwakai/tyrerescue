@@ -174,7 +174,7 @@ function CheckoutForm({
         <Button
           type="submit"
           size="lg"
-          colorPalette="orange"
+          colorPalette="red"
           disabled={!stripe || !elements || isProcessing}
           width="full"
         >

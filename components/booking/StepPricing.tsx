@@ -578,7 +578,7 @@ export function StepPricing({
             <Button variant="outline" onClick={goToPrev}>
               Back
             </Button>
-            <Button colorPalette="orange" onClick={handleManualRetry}>
+            <Button colorPalette="red" onClick={handleManualRetry}>
               Retry
             </Button>
           </HStack>
@@ -590,7 +590,7 @@ export function StepPricing({
     if (loadingTimedOut) {
       return (
         <VStack py={12} gap={4}>
-          <Box p={4} bg="rgba(249,115,22,0.1)" borderRadius="md" borderWidth="1px" borderColor="rgba(249,115,22,0.3)" textAlign="center">
+          <Box p={4} bg="rgba(225,29,46,0.1)" borderRadius="md" borderWidth="1px" borderColor="rgba(225,29,46,0.3)" textAlign="center">
             <Text fontWeight="600" color={c.accent} mb={2}>
               Quote is taking longer than expected
             </Text>
@@ -611,7 +611,7 @@ export function StepPricing({
             <Button variant="outline" onClick={goToPrev}>
               Back
             </Button>
-            <Button colorPalette="orange" onClick={handleManualRetry}>
+            <Button colorPalette="red" onClick={handleManualRetry}>
               Retry
             </Button>
           </HStack>
@@ -639,10 +639,10 @@ export function StepPricing({
         {!isExpired && timeRemaining !== null && (
           <HStack
             p={3}
-            bg={timeRemaining < 300 ? 'rgba(249,115,22,0.1)' : 'rgba(249,115,22,0.08)'}
+            bg={timeRemaining < 300 ? 'rgba(225,29,46,0.1)' : 'rgba(225,29,46,0.08)'}
             borderRadius="md"
             borderWidth="1px"
-            borderColor={timeRemaining < 300 ? 'rgba(249,115,22,0.3)' : 'rgba(249,115,22,0.2)'}
+            borderColor={timeRemaining < 300 ? 'rgba(225,29,46,0.3)' : 'rgba(225,29,46,0.2)'}
           >
             <Text
               fontWeight="600"
@@ -735,7 +735,7 @@ export function StepPricing({
           Back
         </Button>
         <Button
-          colorPalette="orange"
+          colorPalette="red"
           onClick={goToNext}
           disabled={isExpired || !breakdown || breakdown.total <= 0}
           flex="1"

@@ -287,7 +287,7 @@ export function StepTyreDetails({
           />
           <Button
             size="lg"
-            colorPalette="orange"
+            colorPalette="red"
             variant="outline"
             onClick={handleRegLookup}
             disabled={lookupLoading || vehicleReg.replace(/\s+/g, '').length < 2}
@@ -306,7 +306,7 @@ export function StepTyreDetails({
           </Text>
         )}
         {lookupDone && vehicleMake && (
-          <Box mt={2} p={3} bg="rgba(249,115,22,0.06)" border="1px solid" borderColor={c.accent} borderRadius="md">
+          <Box mt={2} p={3} bg="rgba(225,29,46,0.06)" border="1px solid" borderColor={c.accent} borderRadius="md">
             <Text fontSize="sm" color={c.accent} fontWeight="600">
               {[vehicleYear, vehicleMake].filter(Boolean).join(' ')}
               {(vehicleEngine || vehicleFuel) && (
@@ -512,7 +512,7 @@ export function StepTyreDetails({
             borderWidth="2px"
             borderColor={condition === 'repair' ? c.accent : c.border}
             borderRadius="md"
-            bg={condition === 'repair' ? 'rgba(249,115,22,0.1)' : c.surface}
+            bg={condition === 'repair' ? 'rgba(225,29,46,0.1)' : c.surface}
             textAlign="left"
             onClick={() => setCondition('repair')}
             transition="all 0.2s"
@@ -534,7 +534,7 @@ export function StepTyreDetails({
             borderWidth="2px"
             borderColor={condition === 'replacement' ? c.accent : c.border}
             borderRadius="md"
-            bg={condition === 'replacement' ? 'rgba(249,115,22,0.1)' : c.surface}
+            bg={condition === 'replacement' ? 'rgba(225,29,46,0.1)' : c.surface}
             textAlign="left"
             onClick={() => setCondition('replacement')}
             transition="all 0.2s"
@@ -556,7 +556,7 @@ export function StepTyreDetails({
             borderWidth="2px"
             borderColor={condition === 'not_sure' ? c.accent : c.border}
             borderRadius="md"
-            bg={condition === 'not_sure' ? 'rgba(249,115,22,0.1)' : c.surface}
+            bg={condition === 'not_sure' ? 'rgba(225,29,46,0.1)' : c.surface}
             textAlign="left"
             onClick={() => setCondition('not_sure')}
             transition="all 0.2s"
@@ -594,7 +594,7 @@ export function StepTyreDetails({
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
-                bg={tyreQuantity === n ? 'rgba(249,115,22,0.08)' : c.card}
+                bg={tyreQuantity === n ? 'rgba(225,29,46,0.08)' : c.card}
                 border={tyreQuantity === n ? '2px solid' : '1px solid'}
                 borderColor={tyreQuantity === n ? c.accent : c.border}
                 borderRadius="8px"
@@ -636,7 +636,7 @@ export function StepTyreDetails({
           <Box
             as="button"
             p="20px"
-            bg={lockingNut === 'has_key' ? 'rgba(249,115,22,0.06)' : c.surface}
+            bg={lockingNut === 'has_key' ? 'rgba(225,29,46,0.06)' : c.surface}
             border="1px solid"
             borderColor={lockingNut === 'has_key' ? c.accent : c.border}
             borderRadius="8px"
@@ -805,7 +805,7 @@ export function StepTyreDetails({
           Back
         </Button>
         <Button
-          colorPalette="orange"
+          colorPalette="red"
           onClick={handleContinue}
           disabled={!canContinue}
           flex="1"

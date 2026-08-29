@@ -6,7 +6,7 @@ Internal Android admin app built with Expo Router + TypeScript.
 
 Set API base URL before running:
 
-- `EXPO_PUBLIC_API_BASE_URL=http://<your-lan-ip>:3000`
+- `EXPO_PUBLIC_API_BASE_URL=http://<your-lan-ip>:3002`
 
 ## Commands
 

@@ -21,7 +21,7 @@ Create `.env` from the example:
 cp .env.example .env
 ```
 
-Edit `.env` with your backend URL (e.g. `https://tyrerescue.uk` for production or `http://<your-ip>:3000` for local dev).
+Edit `.env` with your backend URL (e.g. `https://tyrerescue.uk` for production or `http://<your-ip>:3002` for local dev).
 
 ## Development
 

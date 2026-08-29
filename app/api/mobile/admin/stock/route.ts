@@ -43,6 +43,7 @@ export async function GET(request: Request) {
   const width = url.searchParams.get('width');
   const rim = url.searchParams.get('rim');
   const available = url.searchParams.get('available');
+  const season = url.searchParams.get('season');
   const sort = url.searchParams.get('sort') || 'size';
   const { page, perPage, offset } = parsePageParams(url, { page: 1, perPage: 50, maxPerPage: 100 });
 
@@ -67,6 +68,12 @@ export async function GET(request: Request) {
   }
   if (available === 'true') conditions.push(eq(tyreProducts.availableNew, true));
   else if (available === 'false') conditions.push(eq(tyreProducts.availableNew, false));
+  if (season && season !== 'all') {
+    if (!isValidSeason(season)) {
+      return NextResponse.json({ error: 'Invalid season filter' }, { status: 400 });
+    }
+    conditions.push(eq(tyreProducts.season, normalizeSeason(season)));
+  }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -75,10 +82,11 @@ export async function GET(request: Request) {
 
   const orderMap = {
     size: [asc(tyreProducts.width), asc(tyreProducts.aspect), asc(tyreProducts.rim)],
+    brand: [asc(tyreProducts.brand), asc(tyreProducts.pattern), asc(tyreProducts.sizeDisplay)],
     stock: [desc(tyreProducts.stockNew), asc(tyreProducts.sizeDisplay)],
     price: [asc(tyreProducts.priceNew), asc(tyreProducts.sizeDisplay)],
     type: [tierOrder, asc(tyreProducts.brand), asc(tyreProducts.sizeDisplay)],
-    season_type: [seasonOrder, tierOrder, asc(tyreProducts.sizeDisplay)],
+    season_type: [seasonOrder, asc(tyreProducts.brand), asc(tyreProducts.sizeDisplay)],
   } as const;
   const ordering = orderMap[sort as keyof typeof orderMap] ?? orderMap.size;
 
@@ -165,12 +173,14 @@ export async function POST(request: Request) {
 
   const { sizeDisplay, width, aspect, rim, stockNew, priceNew } = parsed.data;
   const brand = parsed.data.brand || 'Budget';
-  const pattern = parsed.data.pattern || 'All-Season';
 
   if (parsed.data.season !== undefined && !isValidSeason(parsed.data.season)) {
     return NextResponse.json({ error: 'Invalid season. Use allseason, summer, or winter.' }, { status: 400 });
   }
-  const season = normalizeSeason(parsed.data.season);
+  const season = parsed.data.season === undefined ? 'summer' : normalizeSeason(parsed.data.season);
+  const pattern =
+    parsed.data.pattern ||
+    (season === 'winter' ? 'Winter' : season === 'allseason' ? 'All-Season' : 'Summer');
 
   const [existing] = await db
     .select({ id: tyreProducts.id })

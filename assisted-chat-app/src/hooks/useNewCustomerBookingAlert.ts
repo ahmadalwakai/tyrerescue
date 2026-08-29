@@ -25,19 +25,27 @@ import { logStartupModuleFailed } from '@/lib/startup-logging';
  *  - createdAt: ISO timestamp of that booking (used to compare).
  *
  * IMPORTANT — booking source detection:
- *   `/api/mobile/admin/bookings` exposes `isCustomerOriginated` so the
- *   popup only interrupts for bookings created outside the assisted-chat
- *   operator flow. Assisted Chat / admin quick bookings are treated as
- *   already-seen operational work and never open the urgent popup.
+ *   `/api/mobile/admin/bookings` exposes both operator-origin metadata and
+ *   project-source metadata. The popup interrupts for:
+ *   - direct customer emergency bookings, and
+ *   - any booking handed off from an integrated external project
+ *     (TyreRepair.uk, FitMyTyre, TyreSOS, etc.).
+ *
+ * Assisted Chat / admin quick bookings from the Tyre Rescue source are
+ * treated as already-seen operational work and never open the urgent popup.
  */
 
 const STORAGE_KEY = 'assistedChat.lastSeenCustomerBooking.v1';
 const POLL_INTERVAL_MS = 20_000;
 const FOREGROUND_REMINDER_INTERVAL_MS = 60_000;
+const TYRE_RESCUE_SOURCE_APP = 'tyre_rescue';
 
 interface BookingsListItem {
   id: string;
   refNumber?: string | null;
+  sourceApp?: string | null;
+  sourceLabel?: string | null;
+  externalReference?: string | null;
   bookingType?: string | null;
   customerName?: string | null;
   customerPhone?: string | null;
@@ -59,6 +67,10 @@ interface LastSeen {
 export interface BookingAlertSummary {
   id: string;
   refNumber: string | null;
+  sourceApp: string | null;
+  sourceLabel: string | null;
+  externalReference: string | null;
+  sourceDisplay: string | null;
   bookingType: string | null;
   customerName: string | null;
   customerPhone: string | null;
@@ -69,9 +81,10 @@ export interface BookingAlertSummary {
   scheduledAt: string | null;
   createdAt: string | null;
   /**
-   * `true` when this booking is treated as an urgent/customer emergency.
-   * Driven by `bookingType === 'emergency'` (the only reliable signal
-   * currently surfaced by the mobile bookings list response).
+   * `true` when this booking should use the urgent popup/sound path.
+   * This includes direct customer emergencies and every integrated project
+   * handoff, because project bookings must interrupt the operator exactly
+   * like the Tyre Rescue urgent alert.
    */
   isUrgent: boolean;
 }
@@ -110,11 +123,36 @@ function isCustomerOriginatedBooking(item: BookingsListItem): boolean {
   return true;
 }
 
+function normalizedSourceApp(value: string | null | undefined): string {
+  return (value ?? '').trim().toLowerCase();
+}
+
+function isIntegratedProjectBooking(item: BookingsListItem): boolean {
+  const sourceApp = normalizedSourceApp(item.sourceApp);
+  return Boolean(sourceApp && sourceApp !== TYRE_RESCUE_SOURCE_APP);
+}
+
+function sourceDisplayFor(item: BookingsListItem): string | null {
+  const label = item.sourceLabel?.trim();
+  const reference = item.externalReference?.trim();
+  if (!label || !reference) return null;
+  return `${label} reference ${reference}`;
+}
+
+function shouldTriggerBookingAlert(item: BookingsListItem): boolean {
+  if (isIntegratedProjectBooking(item)) return true;
+  if (!isCustomerOriginatedBooking(item)) return false;
+  return (item.bookingType ?? '').toLowerCase() === 'emergency';
+}
+
 function toAlertSummary(item: BookingsListItem): BookingAlertSummary {
-  const customerOriginated = isCustomerOriginatedBooking(item);
   return {
     id: item.id,
     refNumber: item.refNumber ?? null,
+    sourceApp: item.sourceApp ?? null,
+    sourceLabel: item.sourceLabel ?? null,
+    externalReference: item.externalReference ?? null,
+    sourceDisplay: sourceDisplayFor(item),
     bookingType: item.bookingType ?? null,
     customerName: item.customerName ?? null,
     customerPhone: item.customerPhone ?? null,
@@ -124,7 +162,7 @@ function toAlertSummary(item: BookingsListItem): BookingAlertSummary {
     tyreSize: null,
     scheduledAt: item.scheduledAt ?? null,
     createdAt: item.createdAt ?? null,
-    isUrgent: customerOriginated && (item.bookingType ?? '').toLowerCase() === 'emergency',
+    isUrgent: shouldTriggerBookingAlert(item),
   };
 }
 
@@ -190,14 +228,18 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
       }
 
       if (isNewerThanSeen(latest, lastSeenRef.current)) {
-        if (!isCustomerOriginatedBooking(latest)) {
+        const alertCandidate = res.items.find((item) => (
+          isNewerThanSeen(item, lastSeenRef.current) && shouldTriggerBookingAlert(item)
+        ));
+        if (!alertCandidate) {
           await persistSeen(latest);
           setHasNewCustomerBooking(false);
           setLatestNewBooking(null);
           return;
         }
+        latestKnownRef.current = alertCandidate;
         setHasNewCustomerBooking(true);
-        setLatestNewBooking(toAlertSummary(latest));
+        setLatestNewBooking(toAlertSummary(alertCandidate));
       }
     } catch (err) {
       // Silent: never surface a false alert on transient network failure.
@@ -301,9 +343,7 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
     if (Platform.OS === 'web') return;
     const booking = latestKnownRef.current;
     if (!booking) return;
-    if (!isCustomerOriginatedBooking(booking)) return;
-    const isUrgent = (booking.bookingType ?? '').toLowerCase() === 'emergency';
-    if (!isUrgent) return;
+    if (!shouldTriggerBookingAlert(booking)) return;
 
     const now = Date.now();
     const sameBooking = lastAlertedBookingIdRef.current === booking.id;
@@ -313,12 +353,15 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
 
     lastAlertedBookingIdRef.current = booking.id;
     lastAlertedAtRef.current = now;
+    const sourceDisplay = sourceDisplayFor(booking);
     await presentLocalUrgentBookingNotification({
       bookingId: booking.id,
-      title: 'Emergency booking received',
-      body: booking.customerName
-        ? `New emergency booking from ${booking.customerName}`
-        : 'Open Assisted Chat now',
+      title: sourceDisplay ? 'New project booking received' : 'Emergency booking received',
+      body: sourceDisplay
+        ? `${sourceDisplay}${booking.customerName ? ` from ${booking.customerName}` : ''}`
+        : booking.customerName
+          ? `New emergency booking from ${booking.customerName}`
+          : 'Open Assisted Chat now',
     });
   }, []);
 

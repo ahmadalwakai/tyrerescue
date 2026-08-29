@@ -5,10 +5,19 @@ import {
   clearInvalidAdminSessionStorage,
 } from '@/lib/admin-session-storage';
 import {
-  API_BASE_URL,
+  getApiBaseUrl,
   setAdminToken,
+  setApiBaseUrl,
   setOnUnauthorized,
 } from '@/lib/api';
+import {
+  clearStoredProjectId,
+  getProjectById,
+  getStoredProjectId,
+  setStoredProjectId,
+  type ProjectConfig,
+  type ProjectId,
+} from '@/lib/project-config';
 import {
   logStartupCheckpoint,
   logStartupModuleCompleted,
@@ -88,8 +97,11 @@ export interface AdminSession {
   loginError: string | null;
   expiredMessage: string | null;
   loggingIn: boolean;
+  activeProject: ProjectConfig | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  selectProject: (id: ProjectId) => Promise<void>;
+  clearProject: () => Promise<void>;
 }
 
 export function useAdminSession(): AdminSession {
@@ -98,15 +110,30 @@ export function useAdminSession(): AdminSession {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [expiredMessage, setExpiredMessage] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [activeProject, setActiveProject] = useState<ProjectConfig | null>(null);
   const cancelled = useRef(false);
   const loginInFlight = useRef(false);
 
-  // Hydrate from AsyncStorage on mount + register 401 handler.
+  // Hydrate project + session from AsyncStorage on mount + register 401 handler.
   useEffect(() => {
     cancelled.current = false;
     logStartupModuleStarted('Session hydration');
     logStartupCheckpoint('Session hydration started');
     (async () => {
+      // Step 1: Restore active project and apply its API URL.
+      const storedProjectId = await getStoredProjectId();
+      let restoredProject: ProjectConfig | null = null;
+      if (storedProjectId) {
+        try {
+          restoredProject = getProjectById(storedProjectId);
+          setApiBaseUrl(restoredProject.apiBaseUrl);
+          setActiveProject(restoredProject);
+        } catch {
+          await clearStoredProjectId();
+        }
+      }
+      if (cancelled.current) return;
+
       const restoreDisabled = isSessionRestoreDisabled();
       let storageSource: 'none' | 'storage' | 'malformed-storage' | 'restore-disabled' =
         restoreDisabled ? 'restore-disabled' : 'none';
@@ -155,7 +182,42 @@ export function useAdminSession(): AdminSession {
     };
   }, []);
 
-  // Logout: clear storage + in-memory token + state.
+  // Select a project: switches the active backend, clears any existing session.
+  const selectProject = useCallback(async (id: ProjectId) => {
+    let project: ProjectConfig;
+    try {
+      project = getProjectById(id);
+    } catch {
+      return;
+    }
+    // Clear existing session — it belongs to the previous backend.
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // best effort
+    }
+    setAdminToken(null);
+    setApiBaseUrl(project.apiBaseUrl);
+    setActiveProject(project);
+    await setStoredProjectId(id);
+    setStatus('logged-out');
+  }, []);
+
+  // Clear project selection and session — returns to workspace picker.
+  const clearProject = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // best effort
+    }
+    await clearStoredProjectId();
+    setAdminToken(null);
+    setUser(null);
+    setActiveProject(null);
+    setStatus('logged-out');
+  }, []);
+
+  // Logout: clear storage + in-memory token + state. Keeps project selection.
   const logout = useCallback(async () => {
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
@@ -188,7 +250,7 @@ export function useAdminSession(): AdminSession {
     try {
       let res: Response;
       try {
-        res = await fetch(`${API_BASE_URL}/api/mobile/admin/auth/login`, {
+        res = await fetch(`${getApiBaseUrl()}/api/mobile/admin/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -199,7 +261,7 @@ export function useAdminSession(): AdminSession {
       } catch (error) {
         logStartupModuleFailed('auth.request.failed', error, { stage });
         // Network error: server not reachable, DNS, CORS, etc.
-        const looksLikeLocalhost = /localhost|127\.0\.0\.1/.test(API_BASE_URL);
+        const looksLikeLocalhost = /localhost|127\.0\.0\.1/.test(getApiBaseUrl());
         throw new Error(
           looksLikeLocalhost
             ? 'Cannot reach the local API server. Make sure the web API is running.'
@@ -316,7 +378,10 @@ export function useAdminSession(): AdminSession {
     loginError,
     expiredMessage,
     loggingIn,
+    activeProject,
     login,
     logout,
+    selectProject,
+    clearProject,
   };
 }

@@ -198,6 +198,11 @@ export async function sendUrgentBookingTopicPush(args: UrgentBookingPushArgs): P
     console.log(
       `[urgent-booking-push] summary bookingId=${args.bookingId} directTokensFound=${directTokensFound} directSendSuccess=${directSuccessCount} directSendFailure=${directFailureCount} topicFallbackAttempted=${topicFallbackAttempted ? 'yes' : 'no'} topicFallback=${topicFallbackSucceeded ? 'success' : 'failure'}`,
     );
+
+    // iOS admin app installs use Expo/APNs tokens, not the Android FCM
+    // direct/topic path above. Always relay to iOS Expo tokens as well so
+    // Assisted Chat iOS receives the same urgent booking alert.
+    await sendExpoFallback(title, body, args.bookingId, ['ios']);
     return;
   }
 
@@ -206,14 +211,20 @@ export async function sendUrgentBookingTopicPush(args: UrgentBookingPushArgs): P
   void sendExpoFallback(title, body, args.bookingId);
 }
 
-async function sendExpoFallback(title: string, body: string, bookingId: string): Promise<void> {
+async function sendExpoFallback(
+  title: string,
+  body: string,
+  bookingId: string,
+  platforms?: Array<'android' | 'ios'>,
+): Promise<void> {
   try {
     await sendAdminExpoPush({
       title,
       body,
       data: { type: 'urgent_booking', bookingId },
-      sound: 'default',
+      sound: 'urgent_booking.mp3',
       channelId: URGENT_CHANNEL_ID,
+      platforms,
     });
   } catch (err) {
     console.error('[urgent-booking-push] Expo fallback failed:', err);

@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { isAuthorizedProjectIntegrationRequest } from '@/lib/integrations/project-auth';
+import { getProjectSource } from '@/lib/integrations/project-sources';
 
 /**
  * Shared secret guard for the inbound tyrerepair.uk integration.
@@ -11,17 +13,8 @@ import { NextResponse } from 'next/server';
  * This is additive: it does not alter any existing tyrerescue behaviour.
  */
 export function isAuthorizedIntegrationRequest(request: Request): boolean {
-  const secret = (process.env.TYREREPAIR_INTEGRATION_SECRET ?? '').trim();
-  if (!secret) return false;
-  const provided = (request.headers.get('x-integration-key') ?? '').trim();
-  if (!provided) return false;
-  // Constant-time-ish comparison to avoid trivial timing leaks.
-  if (provided.length !== secret.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < secret.length; i += 1) {
-    mismatch |= provided.charCodeAt(i) ^ secret.charCodeAt(i);
-  }
-  return mismatch === 0;
+  const source = getProjectSource('tyrerepair_uk');
+  return source ? isAuthorizedProjectIntegrationRequest(request, source) : false;
 }
 
 export function integrationUnauthorized() {

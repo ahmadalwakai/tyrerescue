@@ -8,7 +8,7 @@
  * If a deploy ever ends up with one of those env vars pointing at a
  * localhost URL in production (e.g. an accidentally-pulled dev env or a
  * stale Vercel project setting), real users get redirected to
- * `http://localhost:3000/api/auth/callback/google` and Google rejects /
+ * `http://localhost:3002/api/auth/callback/google` and Google rejects /
  * cannot return them to the site. This module enforces, at module load:
  *
  *   - In production: any AUTH_URL/NEXTAUTH_URL that is missing or points
@@ -17,7 +17,7 @@
  *     throw here so an Auth.js bootstrap problem cannot brick the entire
  *     app, but the misconfiguration is impossible to miss in logs.
  *   - In dev/test: env values are left untouched so local sign-in against
- *     `http://localhost:3000` continues to work.
+ *     `http://localhost:3002` continues to work.
  *
  * Import this module exactly once, before `NextAuth(...)` is invoked.
  */
@@ -48,14 +48,12 @@ function enforceAuthUrl(): void {
 
   if (authBad || nextAuthBad || (!authUrl && !nextAuthUrl)) {
     if (authBad) {
-      // eslint-disable-next-line no-console
       console.error(
         `[auth] Refusing AUTH_URL="${authUrl}" in production; overriding with ${SITE_URL}. ` +
           `Fix the Vercel project env var to avoid this warning.`,
       );
     }
     if (nextAuthBad) {
-      // eslint-disable-next-line no-console
       console.error(
         `[auth] Refusing NEXTAUTH_URL="${nextAuthUrl}" in production; overriding with ${SITE_URL}. ` +
           `Fix the Vercel project env var to avoid this warning.`,

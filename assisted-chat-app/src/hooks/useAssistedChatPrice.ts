@@ -122,6 +122,10 @@ export function useAssistedChatPrice({ draft, update }: UseAssistedChatPriceArgs
       setError(tyreError);
       return;
     }
+    if (!isServiceOnly && !draft.tyreConfirmedFromSidewall) {
+      setError('Confirm the tyre size from the sidewall before pricing.');
+      return;
+    }
     const primaryTyre = primaryBookingTyreLine(draft);
     const tyreLines = isServiceOnly ? [] : buildBookingTyreLinePayload(draft.tyreLines);
     const totalTyreCount = isServiceOnly ? 1 : totalBookingTyreQuantity(draft.tyreLines) || primaryTyre.quantity;

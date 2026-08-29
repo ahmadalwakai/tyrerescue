@@ -1,13 +1,35 @@
 import { Suspense } from 'react';
+import type { Metadata } from 'next';
+import Link from 'next/link';
 import { db } from '@/lib/db';
 import { bookings, bookingTyres, tyreProducts } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { notFound } from 'next/navigation';
-import { formatPrice } from '@/lib/pricing-engine';
 import { SuccessContent } from './SuccessContent';
+import { getBrandBySourceApp } from '@/lib/config/site';
 
 interface PageProps {
   params: Promise<{ ref: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { ref } = await params;
+  const [booking] = await db
+    .select({ sourceApp: bookings.sourceApp })
+    .from(bookings)
+    .where(eq(bookings.refNumber, ref))
+    .limit(1);
+  const brand = getBrandBySourceApp(booking?.sourceApp);
+
+  return {
+    title: {
+      absolute: `Booking ${ref} | ${brand.name}`,
+    },
+    metadataBase: new URL(brand.productionUrl),
+    authors: [{ name: brand.name }],
+    creator: brand.name,
+    publisher: brand.name,
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function SuccessPage({ params }: PageProps) {
@@ -31,12 +53,12 @@ export default async function SuccessPage({ params }: PageProps) {
             We couldn&apos;t find a booking with reference {ref}. Please check the
             reference number and try again.
           </p>
-          <a
+          <Link
             href="/"
             className="inline-block px-6 py-3 bg-[#F97316] text-white font-medium rounded-lg hover:bg-[#EA580C] transition-colors"
           >
             Return to Homepage
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -58,6 +80,8 @@ export default async function SuccessPage({ params }: PageProps) {
   // Transform booking data for client component
   const bookingData = {
     refNumber: booking.refNumber,
+    sourceApp: booking.sourceApp,
+    sourceLabel: booking.sourceLabel,
     status: booking.status,
     bookingType: booking.bookingType as 'emergency' | 'scheduled',
     serviceType: booking.serviceType,

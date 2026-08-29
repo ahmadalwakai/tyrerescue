@@ -1,7 +1,9 @@
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { BookingWizard } from '@/components/booking/BookingWizard';
 import { normalizePostcode, validateUkPostcode } from '@/lib/postcode';
 import { normalizeVrm } from '@/lib/vrm';
+import { resolveBrandFromHeaders } from '@/lib/config/site';
 import type {
   BookingType,
   ServiceType,
@@ -10,11 +12,45 @@ import type {
 } from '@/components/booking/types';
 import type { QuoteServiceKey } from '@/types/vehicle';
 
-export const metadata: Metadata = {
-  title: 'Book Mobile Tyre Fitting Glasgow | Tyre Shop Near Me | Tyre Rescue',
-  description:
-    'Book a mobile tyre fitter in Glasgow and Edinburgh. New tyres near me, fitted at your home or workplace. Tyre shop that comes to you. Budget and premium brands available.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = resolveBrandFromHeaders(await headers());
+  const title =
+    brand.key === 'duke_street_tyres'
+      ? 'Book Mobile Tyre Fitting | Duke Street Tyres'
+      : 'Book Mobile Tyre Fitting Glasgow | Tyre Shop Near Me | Tyre Rescue';
+  return {
+    title: brand.key === 'duke_street_tyres' ? { absolute: title } : title,
+    description:
+      brand.key === 'duke_street_tyres'
+        ? 'Book mobile tyre fitting with Duke Street Tyres. Emergency call-out and scheduled fitting across Glasgow, Edinburgh and Dundee using the live shared booking platform.'
+        : 'Book a mobile tyre fitter in Glasgow and Edinburgh. New tyres near me, fitted at your home or workplace. Tyre shop that comes to you. Budget and premium brands available.',
+    alternates: {
+      canonical: `${brand.productionUrl}/book`,
+    },
+    authors: [{ name: brand.name }],
+    creator: brand.name,
+    publisher: brand.name,
+    metadataBase: new URL(brand.productionUrl),
+    openGraph: {
+      title:
+        brand.key === 'duke_street_tyres'
+          ? 'Book Mobile Tyre Fitting | Duke Street Tyres'
+          : 'Book Mobile Tyre Fitting | Tyre Rescue',
+      url: `${brand.productionUrl}/book`,
+      siteName: brand.name,
+    },
+    twitter:
+      brand.key === 'duke_street_tyres'
+        ? {
+            card: 'summary_large_image',
+            title,
+            description:
+              'Book mobile tyre fitting with Duke Street Tyres through the shared live dispatch platform.',
+            images: ['/images/home/slide-2.webp'],
+          }
+        : undefined,
+  };
+}
 
 interface BookSearchParams {
   postcode?: string;
@@ -63,6 +99,7 @@ export default async function BookPage({
 }: {
   searchParams: Promise<BookSearchParams>;
 }) {
+  const brand = resolveBrandFromHeaders(await headers());
   const params = await searchParams;
   const initialState: Partial<WizardState> = {};
 
@@ -95,6 +132,7 @@ export default async function BookPage({
       initialState={hasInitialState ? initialState : undefined}
       initialStep={initialStep}
       resumeDraft={!hasInitialState}
+      sourceApp={brand.sourceApp}
     />
   );
 }

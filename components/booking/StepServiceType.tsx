@@ -184,7 +184,7 @@ export function StepServiceType({
                 }}
                 className="service-card"
                 position="relative"
-                bg={isSelected ? '#1C1917' : c.surface}
+                bg={isSelected ? '#1A1113' : c.surface}
                 border={isSelected ? '2px solid' : '1px solid'}
                 borderColor={isSelected ? c.accent : c.border}
                 borderRadius="8px"
@@ -195,11 +195,11 @@ export function StepServiceType({
                 justifyContent="space-between"
                 alignItems="flex-start"
                 boxShadow={isSelected
-                  ? '0 0 0 4px rgba(249,115,22,0.15), inset 0 0 40px rgba(249,115,22,0.04)'
+                  ? '0 0 0 4px rgba(225,29,46,0.15), inset 0 0 40px rgba(225,29,46,0.04)'
                   : 'none'}
                 animation={isSelected ? 'neonHeartbeat 2s ease-in-out infinite' : undefined}
                 overflow="hidden"
-                _hover={!isSelected ? { borderColor: c.accent, bg: '#1C1917' } : {}}
+                _hover={!isSelected ? { borderColor: c.accent, bg: '#1A1113' } : {}}
                 w="full"
                 h="full"
                 textAlign="left"
@@ -255,9 +255,9 @@ export function StepServiceType({
                         </Box>
                       ) : (
                         <Text
-                          bg="rgba(249,115,22,0.12)"
+                          bg="rgba(225,29,46,0.12)"
                           border="1px solid"
-                          borderColor="rgba(249,115,22,0.3)"
+                          borderColor="rgba(225,29,46,0.3)"
                           color={c.accent}
                           fontFamily="var(--font-body), sans-serif"
                           fontSize="12px"

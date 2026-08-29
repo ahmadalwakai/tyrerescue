@@ -234,10 +234,10 @@ export async function POST(request: NextRequest) {
 
     // 9b. Send booking confirmation SMS after response (same reasoning as above).
     // Outbound customer link MUST always be the production URL — using
-    // getAppOrigin() here would send `http://localhost:3000/tracking/...`
+    // getAppOrigin() here would send `http://localhost:3002/tracking/...`
     // to a real customer phone number when running locally.
     if (booking.customerPhone) {
-      const siteUrl = getOutboundUrl();
+      const siteUrl = getOutboundUrl(booking.sourceApp);
       after(async () => {
         try {
           await sendVoodooSms({
@@ -351,8 +351,9 @@ async function sendConfirmationEmails(
   tyreDisplay: BookingTyreEmailDisplay,
 ) {
   // Customer-facing email link: must always be the production URL.
-  const siteUrl = getOutboundUrl();
-  const trackingUrl = `${siteUrl}/tracking/${booking.refNumber}`;
+  const customerSiteUrl = getOutboundUrl(booking.sourceApp);
+  const adminSiteUrl = getOutboundUrl();
+  const trackingUrl = `${customerSiteUrl}/tracking/${booking.refNumber}`;
 
   const priceSnapshot = booking.priceSnapshot as {
     subtotal: number;
@@ -441,7 +442,7 @@ async function sendConfirmationEmails(
           total: priceSnapshot.total,
           scheduledAt: booking.scheduledAt || undefined,
         },
-        `${siteUrl}/admin/bookings/${booking.id}`,
+        `${adminSiteUrl}/admin/bookings/${booking.id}`,
       );
       await sendBookingEmailOnce({
         to: adminEmail,

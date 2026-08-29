@@ -53,7 +53,7 @@ export interface EditStockForm {
   isLocalStock: boolean;
 }
 
-export type SortOption = 'size' | 'stock' | 'price' | 'type' | 'season_type';
+export type SortOption = 'size' | 'stock' | 'price' | 'brand' | 'type' | 'season_type';
 
 // ── Hook ──────────────────────────────────────────────────────────────────
 
@@ -67,6 +67,7 @@ export function useAdminStock(enabled: boolean) {
   const [filterWidth, setFilterWidth] = useState('');
   const [filterRim, setFilterRim] = useState('');
   const [filterAvailable, setFilterAvailable] = useState(''); // '' | 'true' | 'false'
+  const [filterSeason, setFilterSeason] = useState(''); // '' | StockSeason
   const [sort, setSort] = useState<SortOption>('size');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,16 +81,19 @@ export function useAdminStock(enabled: boolean) {
       w: string,
       r: string,
       avail: string,
+      season: string,
       s: SortOption,
+      options: { silent?: boolean } = {},
     ) => {
       if (!enabled) return;
-      setLoading(true);
+      if (!options.silent) setLoading(true);
       try {
         const params = new URLSearchParams({ page: String(pg), sort: s });
         if (q) params.set('search', q);
         if (w) params.set('width', w);
         if (r) params.set('rim', r);
         if (avail) params.set('available', avail);
+        if (season) params.set('season', season);
         const data = await api.get<{
           items: StockItem[];
           totalCount: number;
@@ -106,16 +110,28 @@ export function useAdminStock(enabled: boolean) {
       } catch {
         setError('Failed to load stock');
       } finally {
-        setLoading(false);
+        if (!options.silent) setLoading(false);
       }
     },
     [enabled],
   );
 
   useEffect(() => {
-    if (enabled) void doFetch(1, search, filterWidth, filterRim, filterAvailable, sort);
+    if (!enabled) return;
+    const timer = setTimeout(() => {
+      void doFetch(1, search, filterWidth, filterRim, filterAvailable, filterSeason, sort);
+    }, 0);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const interval = setInterval(() => {
+      void doFetch(page, search, filterWidth, filterRim, filterAvailable, filterSeason, sort, { silent: true });
+    }, 15_000);
+    return () => clearInterval(interval);
+  }, [doFetch, enabled, filterAvailable, filterRim, filterSeason, filterWidth, page, search, sort]);
 
   function showToast(text: string, ok: boolean) {
     setToast({ text, ok });
@@ -123,32 +139,33 @@ export function useAdminStock(enabled: boolean) {
   }
 
   function refresh() {
-    void doFetch(page, search, filterWidth, filterRim, filterAvailable, sort);
+    void doFetch(page, search, filterWidth, filterRim, filterAvailable, filterSeason, sort);
   }
 
   function applySearch(q: string) {
     setSearch(q);
     setPage(1);
-    void doFetch(1, q, filterWidth, filterRim, filterAvailable, sort);
+    void doFetch(1, q, filterWidth, filterRim, filterAvailable, filterSeason, sort);
   }
 
-  function applyFilters(w: string, r: string, avail: string) {
+  function applyFilters(w: string, r: string, avail: string, season: string) {
     setFilterWidth(w);
     setFilterRim(r);
     setFilterAvailable(avail);
+    setFilterSeason(season);
     setPage(1);
-    void doFetch(1, search, w, r, avail, sort);
+    void doFetch(1, search, w, r, avail, season, sort);
   }
 
   function applySort(s: SortOption) {
     setSort(s);
     setPage(1);
-    void doFetch(1, search, filterWidth, filterRim, filterAvailable, s);
+    void doFetch(1, search, filterWidth, filterRim, filterAvailable, filterSeason, s);
   }
 
   function goPage(p: number) {
     setPage(p);
-    void doFetch(p, search, filterWidth, filterRim, filterAvailable, sort);
+    void doFetch(p, search, filterWidth, filterRim, filterAvailable, filterSeason, sort);
   }
 
   async function doAdd(form: AddStockForm): Promise<string | null> {
@@ -170,7 +187,7 @@ export function useAdminStock(enabled: boolean) {
         season: form.season,
       });
       showToast(`${form.sizeDisplay} added to stock`, true);
-      void doFetch(1, search, filterWidth, filterRim, filterAvailable, sort);
+      void doFetch(1, search, filterWidth, filterRim, filterAvailable, filterSeason, sort);
       return null;
     } catch (e: unknown) {
       return e instanceof Error ? e.message : 'Failed to add';
@@ -193,7 +210,7 @@ export function useAdminStock(enabled: boolean) {
         isLocalStock: form.isLocalStock,
       });
       showToast('Saved', true);
-      void doFetch(page, search, filterWidth, filterRim, filterAvailable, sort);
+      void doFetch(page, search, filterWidth, filterRim, filterAvailable, filterSeason, sort);
       return null;
     } catch (e: unknown) {
       return e instanceof Error ? e.message : 'Failed to save';
@@ -233,7 +250,7 @@ export function useAdminStock(enabled: boolean) {
 
   return {
     items, stats, totalCount, totalPages, page,
-    search, filterWidth, filterRim, filterAvailable, sort,
+    search, filterWidth, filterRim, filterAvailable, filterSeason, sort,
     loading, error, actionLoading, toast,
     refresh, applySearch, applyFilters, applySort, goPage,
     doAdd, doUpdate, doToggleAvailable, doDelete,

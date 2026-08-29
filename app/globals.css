@@ -68,19 +68,19 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 
 @keyframes flowStepBadge {
   0%, 100% {
-    background-color: rgba(249,115,22,0.12);
-    border-color: rgba(249,115,22,0.35);
-    box-shadow: 0 0 0 0 rgba(249,115,22,0);
+    background-color: rgba(225,29,46,0.12);
+    border-color: rgba(225,29,46,0.35);
+    box-shadow: 0 0 0 0 rgba(225,29,46,0);
   }
   10% {
-    background-color: rgba(249,115,22,0.28);
-    border-color: rgba(249,115,22,0.7);
-    box-shadow: 0 0 0 6px rgba(249,115,22,0.10);
+    background-color: rgba(225,29,46,0.28);
+    border-color: rgba(225,29,46,0.7);
+    box-shadow: 0 0 0 6px rgba(225,29,46,0.10);
   }
   35% {
-    background-color: rgba(249,115,22,0.12);
-    border-color: rgba(249,115,22,0.35);
-    box-shadow: 0 0 0 0 rgba(249,115,22,0);
+    background-color: rgba(225,29,46,0.12);
+    border-color: rgba(225,29,46,0.35);
+    box-shadow: 0 0 0 0 rgba(225,29,46,0);
   }
 }
 
@@ -134,7 +134,7 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 
 /* Three forward-pointing chevrons that flow rightward */
 .speed-arrows {
-  color: #F97316;
+  color: #E11D2E;
   line-height: 1;
 }
 .speed-arrows svg {
@@ -180,9 +180,9 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
   inset: 0;
   background: linear-gradient(
     90deg,
-    rgba(249,115,22,0) 0%,
-    rgba(249,115,22,0.85) 50%,
-    rgba(249,115,22,0) 100%
+    rgba(225,29,46,0) 0%,
+    rgba(225,29,46,0.85) 50%,
+    rgba(225,29,46,0) 100%
   );
   transform: translateX(-100%);
   animation: connectorFlow 4.8s linear infinite;
@@ -232,8 +232,8 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 }
 
 @keyframes neonHeartbeat {
-  0%, 100% { box-shadow: 0 0 0 4px rgba(249,115,22,0.15), inset 0 0 40px rgba(249,115,22,0.04); border-color: rgba(249,115,22,1); }
-  50% { box-shadow: 0 0 18px 6px rgba(249,115,22,0.35), inset 0 0 60px rgba(249,115,22,0.08); border-color: rgba(249,115,22,0.6); }
+  0%, 100% { box-shadow: 0 0 0 4px rgba(225,29,46,0.15), inset 0 0 40px rgba(225,29,46,0.04); border-color: rgba(225,29,46,1); }
+  50% { box-shadow: 0 0 18px 6px rgba(225,29,46,0.35), inset 0 0 60px rgba(225,29,46,0.08); border-color: rgba(225,29,46,0.6); }
 }
 
 @keyframes headingShimmer {
@@ -242,8 +242,8 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 }
 
 @keyframes btnPulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(249,115,22,0.4); }
-  50% { transform: scale(1.015); box-shadow: 0 0 14px 4px rgba(249,115,22,0.25); }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225,29,46,0.4); }
+  50% { transform: scale(1.015); box-shadow: 0 0 14px 4px rgba(225,29,46,0.25); }
 }
 
 @keyframes scaleIn {
@@ -252,9 +252,9 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 }
 
 @keyframes pulseGlow {
-  0% { box-shadow: 0 0 0 0 rgba(249,115,22,0.4); }
-  70% { box-shadow: 0 0 0 12px rgba(249,115,22,0); }
-  100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+  0% { box-shadow: 0 0 0 0 rgba(225,29,46,0.4); }
+  70% { box-shadow: 0 0 0 12px rgba(225,29,46,0); }
+  100% { box-shadow: 0 0 0 0 rgba(225,29,46,0); }
 }
 
 @keyframes pulse {
@@ -263,9 +263,9 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 }
 
 @keyframes ringPulse {
-  0% { box-shadow: 0 0 0 0 rgba(249,115,22,0.5); }
-  50% { box-shadow: 0 0 0 6px rgba(249,115,22,0.2); }
-  100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+  0% { box-shadow: 0 0 0 0 rgba(225,29,46,0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(225,29,46,0.2); }
+  100% { box-shadow: 0 0 0 0 rgba(225,29,46,0); }
 }
 
 @keyframes shimmer {
@@ -293,8 +293,8 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 /* ─── Indicator Pulse ─────────────────────────────────── */
 
 @keyframes indicatorPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
-  50% { box-shadow: 0 0 0 6px rgba(249,115,22,0.2); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(225,29,46,0); }
+  50% { box-shadow: 0 0 0 6px rgba(225,29,46,0.2); }
 }
 
 /* ─── GPS Location Heartbeat ──────────────────────────── */
@@ -316,8 +316,8 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 /* ─── Map Marker Pulse (Mapbox DOM marker) ────────────── */
 
 @keyframes mapMarkerPulse {
-  0%, 100% { box-shadow: 0 0 12px rgba(249,115,22,0.25); }
-  50% { box-shadow: 0 0 20px rgba(249,115,22,0.45); }
+  0%, 100% { box-shadow: 0 0 12px rgba(225,29,46,0.25); }
+  50% { box-shadow: 0 0 20px rgba(225,29,46,0.45); }
 }
 
 @keyframes mapMarkerPing {
@@ -340,7 +340,7 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 
 /* ─── Hero Headline Continuous Shimmer ────────────────── */
 /*
-  A narrow orange band sweeps left-to-right through the h1 text once
+  A narrow red band sweeps left-to-right through the h1 text once
   every 5s. Outside the sweep the text is solid white, so it remains
   fully readable at all times.
 
@@ -348,7 +348,7 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
   - No display:inline (h1 stays block; background-clip needs block context)
   - No animation in this class (would be overridden by the component's
     inline style anyway — both animations live there instead)
-  - .hero-headline-accent class pins accent words to solid orange so they
+  - .hero-headline-accent class pins accent words to solid red so they
     don't inherit transparent fill from the parent gradient
 */
 
@@ -358,15 +358,15 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 }
 
 .hero-headline-shimmer {
-  /* Gradient: solid white either side, narrow orange band at centre.
+  /* Gradient: solid white either side, narrow red band at centre.
      background-size: 300% means the gradient is 3× element width;
      the animation scrolls it from right (+100%) to left (-100%),
-     producing a clear orange sweep across the text. */
+     producing a clear red sweep across the text. */
   background-image: linear-gradient(
     90deg,
     #FAFAFA  0%,
     #FAFAFA 38%,
-    #F97316 50%,
+    #E11D2E 50%,
     #FAFAFA 62%,
     #FAFAFA 100%
   );
@@ -378,11 +378,11 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
   will-change: background-position;
 }
 
-/* Accent words ("You", "— 24/7") stay solid orange regardless of
+/* Accent words ("You", "— 24/7") stay solid red regardless of
    where the shimmer band is. Chakra applies color via a CSS class
    (not inline style), so we use an explicit className to override. */
 .hero-headline-shimmer .hero-headline-accent {
-  -webkit-text-fill-color: #F97316;
+  -webkit-text-fill-color: #E11D2E;
   background: none;
 }
 
@@ -392,7 +392,7 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
     background: none !important;
   }
   .hero-headline-shimmer .hero-headline-accent {
-    -webkit-text-fill-color: #F97316 !important;
+    -webkit-text-fill-color: #E11D2E !important;
   }
 }
 
@@ -410,14 +410,14 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
   98% { box-shadow: 0 0 12px 3px rgba(37,211,102,0.9), inset 0 0 12px rgba(37,211,102,0.2); }
 }
 
-@keyframes orangeNeon {
-  0%, 100% { text-shadow: 0 0 4px rgba(249,115,22,0.4), 0 0 11px rgba(249,115,22,0.2); }
-  50% { text-shadow: 0 0 8px rgba(249,115,22,0.8), 0 0 20px rgba(249,115,22,0.4), 0 0 40px rgba(249,115,22,0.15); }
+@keyframes redNeon {
+  0%, 100% { text-shadow: 0 0 4px rgba(225,29,46,0.4), 0 0 11px rgba(225,29,46,0.2); }
+  50% { text-shadow: 0 0 8px rgba(225,29,46,0.8), 0 0 20px rgba(225,29,46,0.4), 0 0 40px rgba(225,29,46,0.15); }
 }
 
 .neon-char {
   display: inline-block;
-  animation: orangeNeon 3s ease-in-out infinite;
+  animation: redNeon 3s ease-in-out infinite;
 }
 
 @keyframes charWave {
@@ -521,18 +521,18 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
   filter: blur(1px);
 }
 
-/* ── Accent (orange) overrides ── */
+/* ── Accent (red) overrides ── */
 
 .hero-sq.depth-accent.variant-fill {
-  background: rgba(249, 115, 22, 0.08);
-  border-color: rgba(249, 115, 22, 0.18);
-  box-shadow: 0 0 6px rgba(249, 115, 22, 0.06);
+  background: rgba(225, 29, 46, 0.08);
+  border-color: rgba(225, 29, 46, 0.18);
+  box-shadow: 0 0 6px rgba(225, 29, 46, 0.06);
 }
 
 .hero-sq.depth-accent.variant-outline {
   background: transparent;
-  border-color: rgba(249, 115, 22, 0.22);
-  box-shadow: 0 0 5px rgba(249, 115, 22, 0.05);
+  border-color: rgba(225, 29, 46, 0.22);
+  box-shadow: 0 0 5px rgba(225, 29, 46, 0.05);
 }
 
 /* ── Keyframes ── */
@@ -590,11 +590,11 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 
 .service-row:hover .service-arrow {
   transform: translateX(6px);
-  color: #F97316;
+  color: #E11D2E;
 }
 
 .service-row:hover .service-num {
-  color: rgba(249, 115, 22, 0.25);
+  color: rgba(225, 29, 46, 0.25);
 }
 
 /* ─── Testimonial Card ────────────────────────────────── */
@@ -605,8 +605,8 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 
 .testimonial-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(249, 115, 22, 0.3);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(249, 115, 22, 0.1);
+  border-color: rgba(225, 29, 46, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(225, 29, 46, 0.1);
 }
 
 /* ─── Floating Action Stack ───────────────────────────── */
@@ -637,21 +637,21 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 /* ─── Softer Emergency Pulse ──────────────────────────── */
 
 @keyframes pulseGlowSoft {
-  0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.25); }
-  70% { box-shadow: 0 0 0 8px rgba(249, 115, 22, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(225, 29, 46, 0.25); }
+  70% { box-shadow: 0 0 0 8px rgba(225, 29, 46, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(225, 29, 46, 0); }
 }
 
 @keyframes callPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(249,115,22,0.5); transform: scale(1); }
-  50%  { box-shadow: 0 0 0 10px rgba(249,115,22,0); transform: scale(1.03); }
-  100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); transform: scale(1); }
+  0%   { box-shadow: 0 0 0 0 rgba(225,29,46,0.5); transform: scale(1); }
+  50%  { box-shadow: 0 0 0 10px rgba(225,29,46,0); transform: scale(1.03); }
+  100% { box-shadow: 0 0 0 0 rgba(225,29,46,0); transform: scale(1); }
 }
 
 /* ─── Hero CTA Premium Animations ─────────────────────── */
 
 /*
-  Pulse: shadow breathes from resting state to a brighter orange glow,
+  Pulse: shadow breathes from resting state to a brighter red glow,
   with a very slight scale (1 → 1.012) to give a tactile heartbeat feel.
   Transform and box-shadow are both compositor-friendly properties.
   boxShadow is NOT set on the element via props — CSS owns it fully.
@@ -659,35 +659,35 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 
 @keyframes heroCallPulse {
   0%   {
-    box-shadow: 0 10px 36px rgba(249,115,22,0.55), 0 1px 0 rgba(255,255,255,0.10) inset;
+    box-shadow: 0 10px 36px rgba(225,29,46,0.55), 0 1px 0 rgba(255,255,255,0.10) inset;
     transform: scale(1);
   }
   50%  {
-    box-shadow: 0 14px 48px rgba(249,115,22,0.80), 0 0 0 8px rgba(249,115,22,0.10), 0 1px 0 rgba(255,255,255,0.10) inset;
+    box-shadow: 0 14px 48px rgba(225,29,46,0.80), 0 0 0 8px rgba(225,29,46,0.10), 0 1px 0 rgba(255,255,255,0.10) inset;
     transform: scale(1.015);
   }
   100% {
-    box-shadow: 0 10px 36px rgba(249,115,22,0.55), 0 1px 0 rgba(255,255,255,0.10) inset;
+    box-shadow: 0 10px 36px rgba(225,29,46,0.55), 0 1px 0 rgba(255,255,255,0.10) inset;
     transform: scale(1);
   }
 }
 
 .hero-cta-call {
-  box-shadow: 0 10px 36px rgba(249,115,22,0.55), 0 1px 0 rgba(255,255,255,0.10) inset;
+  box-shadow: 0 10px 36px rgba(225,29,46,0.55), 0 1px 0 rgba(255,255,255,0.10) inset;
   animation: heroCallPulse 2.4s ease-in-out infinite;
 }
 
 /* Hover/active must win over the animation */
 .hero-cta-call:hover {
   animation: none;
-  box-shadow: 0 18px 52px rgba(249,115,22,0.75), 0 1px 0 rgba(255,255,255,0.12) inset !important;
+  box-shadow: 0 18px 52px rgba(225,29,46,0.75), 0 1px 0 rgba(255,255,255,0.12) inset !important;
   transform: translateY(-3px) !important;
 }
 
 .hero-cta-call:active {
   animation: none;
   transform: scale(0.97) !important;
-  box-shadow: 0 4px 16px rgba(249,115,22,0.4) !important;
+  box-shadow: 0 4px 16px rgba(225,29,46,0.4) !important;
 }
 
 /* ─── Hero CTA Glass Panel (desktop only) ─────────────── */
@@ -706,7 +706,7 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 @media (prefers-reduced-motion: reduce) {
   .hero-cta-call {
     animation: none !important;
-    box-shadow: 0 10px 36px rgba(249,115,22,0.55), 0 1px 0 rgba(255,255,255,0.10) inset !important;
+    box-shadow: 0 10px 36px rgba(225,29,46,0.55), 0 1px 0 rgba(255,255,255,0.10) inset !important;
     transform: none !important;
   }
 }
@@ -719,18 +719,18 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
   .floating-top-btn { transition: opacity 0.1s !important; transform: none !important; }
 }
 
-/* ─── Floating Call – premium orange aura pulse ────────── */
+/* ─── Floating Call - premium red aura pulse ────────── */
 @keyframes floatingCallPulse {
   0%   {
-    box-shadow: 0 5px 24px rgba(249,115,22,0.42), 0 0 0 0 rgba(249,115,22,0.34), 0 0 0 1px rgba(255,255,255,0.10) inset;
+    box-shadow: 0 5px 24px rgba(225,29,46,0.42), 0 0 0 0 rgba(225,29,46,0.34), 0 0 0 1px rgba(255,255,255,0.10) inset;
     transform: translateZ(0) scale(1);
   }
   50%  {
-    box-shadow: 0 8px 34px rgba(249,115,22,0.62), 0 0 0 9px rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.12) inset;
+    box-shadow: 0 8px 34px rgba(225,29,46,0.62), 0 0 0 9px rgba(225,29,46,0), 0 0 0 1px rgba(255,255,255,0.12) inset;
     transform: translateZ(0) scale(1.018);
   }
   100% {
-    box-shadow: 0 5px 24px rgba(249,115,22,0.42), 0 0 0 0 rgba(249,115,22,0), 0 0 0 1px rgba(255,255,255,0.10) inset;
+    box-shadow: 0 5px 24px rgba(225,29,46,0.42), 0 0 0 0 rgba(225,29,46,0), 0 0 0 1px rgba(255,255,255,0.10) inset;
     transform: translateZ(0) scale(1);
   }
 }
@@ -806,7 +806,7 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.3);
+  box-shadow: 0 4px 16px rgba(225, 29, 46, 0.3);
 }
 
 .btn-primary:active {
@@ -821,7 +821,7 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 }
 
 .wizard-card:hover {
-  border-color: rgba(249, 115, 22, 0.2);
+  border-color: rgba(225, 29, 46, 0.2);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
@@ -832,8 +832,8 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 }
 
 .input-focus-ring:focus {
-  border-color: #F97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
+  border-color: #E11D2E;
+  box-shadow: 0 0 0 3px rgba(225, 29, 46, 0.15);
   outline: none;
 }
 
@@ -880,8 +880,8 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
   left: 16px;
   z-index: 100;
   padding: 12px 24px;
-  background: #F97316;
-  color: #09090B;
+  background: #E11D2E;
+  color: #FFFFFF;
   font-family: var(--font-display);
   font-size: 16px;
   letter-spacing: 0.05em;
@@ -897,15 +897,15 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
 /* ─── Smart Internal Links ────────────────────────────── */
 
 .smart-internal-link {
-  color: #F97316;
+  color: #E11D2E;
   text-decoration: none;
-  border-bottom: 1px solid rgba(249, 115, 22, 0.3);
+  border-bottom: 1px solid rgba(225, 29, 46, 0.3);
   transition: color 0.15s ease, border-color 0.15s ease;
 }
 
 .smart-internal-link:hover {
-  color: #EA580C;
-  border-bottom-color: #EA580C;
+  color: #A30D19;
+  border-bottom-color: #A30D19;
 }
 
 .smart-internal-link[data-relevance^="0.9"],
@@ -973,7 +973,7 @@ body[data-customer-install-prompt-open="true"] .cookie-consent-banner {
   animation: trLiveDot 2.4s ease-out infinite;
 }
 @keyframes trFlash {
-  0%   { background-color: rgba(249, 115, 22, 0.22); }
+  0%   { background-color: rgba(225, 29, 46, 0.22); }
   100% { background-color: transparent; }
 }
 .tr-flash {

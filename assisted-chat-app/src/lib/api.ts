@@ -7,6 +7,7 @@ import {
 } from './startup-logging';
 
 const PRODUCTION_API_URL = 'https://www.tyrerescue.uk';
+const DEV_API_PORT = process.env.EXPO_PUBLIC_API_PORT?.trim() || '3002';
 
 logStartupModuleStarted('API config module');
 
@@ -19,7 +20,7 @@ function buildDevHttpUrl(host: string, port: string): string {
 // 2. Production falls back to the live API so release builds never ship
 //    pointing at Android emulator localhost.
 // 3. Development web uses the browser host, while native development derives
-//    the Metro host and falls back to the Android emulator host.
+//    the Metro host and falls back to the Android emulator host on DEV_API_PORT.
 function inferBaseUrl(): string {
   const envBase = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
   if (envBase) return envBase.replace(/\/$/, '');
@@ -30,15 +31,15 @@ function inferBaseUrl(): string {
 
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     const host = window.location?.hostname || ['local', 'host'].join('');
-    return buildDevHttpUrl(host, '3000');
+    return buildDevHttpUrl(host, DEV_API_PORT);
   }
 
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
     const host = hostUri.split(':')[0];
-    if (host) return buildDevHttpUrl(host, '3000');
+    if (host) return buildDevHttpUrl(host, DEV_API_PORT);
   }
-  return buildDevHttpUrl('10.0.2.2', '3000');
+  return buildDevHttpUrl('10.0.2.2', DEV_API_PORT);
 }
 
 let resolvedApiBaseUrl: string;
@@ -57,7 +58,20 @@ try {
   throw error;
 }
 
+// Kept for backward compat — reflects the initial resolved URL only.
+// Prefer getApiBaseUrl() for runtime reads so project switching is respected.
 export const API_BASE_URL = resolvedApiBaseUrl;
+
+export function getApiBaseUrl(): string {
+  return resolvedApiBaseUrl;
+}
+
+// EXPO_PUBLIC_API_BASE_URL always wins (dev LAN override).
+// In production, calling setApiBaseUrl switches the active project backend.
+export function setApiBaseUrl(url: string): void {
+  if (process.env.EXPO_PUBLIC_API_BASE_URL?.trim()) return;
+  resolvedApiBaseUrl = url.replace(/\/$/, '');
+}
 
 // Dev-only diagnostic so engineers can see exactly which Next.js host the
 // app will hit. Never logs tokens, credentials, or env values besides the
@@ -115,7 +129,7 @@ async function request<T>(
   body?: unknown,
   options: RequestOptions = {},
 ): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await fetch(`${resolvedApiBaseUrl}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -157,7 +171,7 @@ export const api = {
   patch: <T>(p: string, b?: unknown, options?: RequestOptions) => request<T>('PATCH', p, b, options),
   put: <T>(p: string, b?: unknown, options?: RequestOptions) => request<T>('PUT', p, b, options),
   del: <T>(p: string, options?: RequestOptions) => request<T>('DELETE', p, undefined, options),
-  baseUrl: API_BASE_URL,
+  get baseUrl() { return resolvedApiBaseUrl; },
   get hasAdminToken() {
     return currentToken !== null;
   },

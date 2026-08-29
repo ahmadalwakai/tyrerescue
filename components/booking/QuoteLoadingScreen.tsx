@@ -118,16 +118,16 @@ export function QuoteLoadingScreen({
           }}
         >
           {/* Outer circle */}
-          <circle cx="40" cy="40" r="35" stroke="#F97316" strokeWidth="8" fill="none" />
+          <circle cx="40" cy="40" r="35" stroke="#E11D2E" strokeWidth="8" fill="none" />
           {/* Inner rim */}
-          <circle cx="40" cy="40" r="18" stroke="#F97316" strokeWidth="3" fill="none" />
+          <circle cx="40" cy="40" r="18" stroke="#E11D2E" strokeWidth="3" fill="none" />
           {/* Hub */}
-          <circle cx="40" cy="40" r="5" fill="#F97316" />
+          <circle cx="40" cy="40" r="5" fill="#E11D2E" />
           {/* 4 spokes */}
-          <line x1="40" y1="22" x2="40" y2="5" stroke="#F97316" strokeWidth="2" />
-          <line x1="58" y1="40" x2="75" y2="40" stroke="#F97316" strokeWidth="2" />
-          <line x1="40" y1="58" x2="40" y2="75" stroke="#F97316" strokeWidth="2" />
-          <line x1="22" y1="40" x2="5" y2="40" stroke="#F97316" strokeWidth="2" />
+          <line x1="40" y1="22" x2="40" y2="5" stroke="#E11D2E" strokeWidth="2" />
+          <line x1="58" y1="40" x2="75" y2="40" stroke="#E11D2E" strokeWidth="2" />
+          <line x1="40" y1="58" x2="40" y2="75" stroke="#E11D2E" strokeWidth="2" />
+          <line x1="22" y1="40" x2="5" y2="40" stroke="#E11D2E" strokeWidth="2" />
         </svg>
 
         {/* Status message */}

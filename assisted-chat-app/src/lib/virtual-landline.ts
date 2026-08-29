@@ -1,4 +1,4 @@
-import { API_BASE_URL, ApiError, getAdminToken } from './api';
+import { getApiBaseUrl, ApiError, getAdminToken } from './api';
 import type {
   VirtualLandlineImportResponse,
   VirtualLandlinePreviewResponse,
@@ -27,7 +27,7 @@ async function uploadVirtualLandlineCsv<T>(path: string, asset: PickedCsvAsset, 
   appendPickedFile(form, asset);
   Object.entries(extra ?? {}).forEach(([key, value]) => form.append(key, value));
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${getApiBaseUrl()}${path}`, {
     method: 'POST',
     headers: {
       ...(getAdminToken() ? { Authorization: `Bearer ${getAdminToken()}` } : {}),

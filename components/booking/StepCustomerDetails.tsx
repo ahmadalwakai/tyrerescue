@@ -316,7 +316,7 @@ export function StepCustomerDetails({
               <Checkbox.Root
                 checked={createAccount}
                 onCheckedChange={(e) => setCreateAccount(!!e.checked)}
-                colorPalette="orange"
+                colorPalette="red"
               >
                 <Checkbox.HiddenInput />
                 <Checkbox.Control
@@ -363,7 +363,7 @@ export function StepCustomerDetails({
           Back
         </Button>
         <Button
-          colorPalette="orange"
+          colorPalette="red"
           onClick={handleContinue}
           flex="1"
           disabled={isSubmitting}

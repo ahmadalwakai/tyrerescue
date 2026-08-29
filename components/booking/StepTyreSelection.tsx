@@ -261,7 +261,7 @@ export function StepTyreSelection({
             We can still help! Call us and we will source the right tyres for you.
           </Text>
           <a href="tel:01412660690" style={{ textDecoration: 'none' }} onClick={() => trackCallClick('booking_step_tyre_selection_no_tyres')}>
-            <Button colorPalette="orange" size="sm">
+            <Button colorPalette="red" size="sm">
               Call 0141 266 0690
             </Button>
           </a>
@@ -282,8 +282,8 @@ export function StepTyreSelection({
                 const inStock = tyre.availableNew && tyre.priceNew !== null && tyre.stockNew >= 1;
                 const cartItem = cart.find((t) => t.tyreId === tyre.id);
                 const isInCart = !!cartItem;
-                const seasonColor = tyre.season === 'summer' ? 'orange' : tyre.season === 'winter' ? 'blue' : 'gray';
-                const tierColor = tyre.tier === 'premium' ? 'orange' : tyre.tier === 'budget' ? 'gray' : 'cyan';
+                const seasonColor = tyre.season === 'summer' ? 'red' : tyre.season === 'winter' ? 'blue' : 'gray';
+                const tierColor = tyre.tier === 'premium' ? 'red' : tyre.tier === 'budget' ? 'gray' : 'cyan';
                 const canAdd = totalItems < 4 && tyre.priceNew !== null;
 
                 return (
@@ -294,7 +294,7 @@ export function StepTyreSelection({
                     borderWidth="2px"
                     borderColor={isInCart ? c.accent : c.border}
                     borderRadius="lg"
-                    bg={isInCart ? 'rgba(249,115,22,0.1)' : c.card}
+                    bg={isInCart ? 'rgba(225,29,46,0.1)' : c.card}
                     transition="all 0.2s"
                     style={anim.stagger('fadeUp', i, '0.4s', 0.1, 0.05)}
                   >
@@ -318,7 +318,7 @@ export function StepTyreSelection({
 
                       <VStack align="end" gap={2} minW="120px">
                         {tyre.isOrderOnly ? (
-                          <Badge colorPalette="orange" size="sm">
+                          <Badge colorPalette="red" size="sm">
                             Special order {'\u2013'} 2{'\u2013'}3 working days
                           </Badge>
                         ) : inStock && tyre.isLocalStock !== false ? (
@@ -380,7 +380,7 @@ export function StepTyreSelection({
                         ) : (
                           <Button
                             size="sm"
-                            colorPalette="orange"
+                            colorPalette="red"
                             disabled={!canAdd}
                             onClick={() => handleAddToCart(tyre)}
                             minH="36px"
@@ -427,7 +427,7 @@ export function StepTyreSelection({
           Back
         </Button>
         <Button
-          colorPalette="orange"
+          colorPalette="red"
           onClick={handleRequestQuote}
           disabled={cart.length === 0 || isQuoting}
           flex="1"
@@ -467,7 +467,7 @@ export function StepTyreSelection({
               </Text>
             </Box>
             <Button
-              colorPalette="orange"
+              colorPalette="red"
               size="sm"
               onClick={handleRequestQuote}
               disabled={isQuoting}
@@ -527,7 +527,7 @@ export function StepTyreSelection({
               </Text>
               <VStack gap={2}>
                 <Button
-                  colorPalette="orange"
+                  colorPalette="red"
                   w="full"
                   onClick={() => setOrderPrompt({ ...orderPrompt, step: 'fulfillment' })}
                 >
@@ -578,14 +578,14 @@ export function StepTyreSelection({
               </Text>
               <VStack gap={2}>
                 <Button
-                  colorPalette="orange"
+                  colorPalette="red"
                   w="full"
                   onClick={() => handleConfirmSpecialOrder('delivery')}
                 >
                   Delivery only
                 </Button>
                 <Button
-                  colorPalette="orange"
+                  colorPalette="red"
                   variant="outline"
                   w="full"
                   borderColor={c.accent}

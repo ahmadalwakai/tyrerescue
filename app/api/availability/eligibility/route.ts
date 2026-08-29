@@ -2,9 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { drivers, users, pricingRules, bookings } from '@/lib/db/schema';
 import { eq, inArray } from 'drizzle-orm';
-import { resolveDistance } from '@/lib/mapbox';
+import { z } from 'zod';
+import { resolveDistance, resolveDistanceFromOrigin } from '@/lib/mapbox';
 import { parsePricingRules } from '@/lib/pricing-engine';
 import { shouldDriverAppearOnline, isLocationTrustworthy, isLocationFromMobileApp } from '@/lib/driver-presence';
+import {
+  getProjectPricingOrigin,
+  projectPricingOriginRequestSchema,
+} from '@/lib/integrations/project-pricing-origin';
+
+const eligibilityRequestSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  pricingOrigin: projectPricingOriginRequestSchema.optional(),
+});
 
 /**
  * POST /api/availability/eligibility
@@ -17,12 +28,21 @@ import { shouldDriverAppearOnline, isLocationTrustworthy, isLocationFromMobileAp
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { lat, lng } = body;
+    const validation = eligibilityRequestSchema.safeParse(body);
 
-    if (typeof lat !== 'number' || typeof lng !== 'number') {
+    if (!validation.success) {
       return NextResponse.json(
         { error: 'Missing or invalid lat/lng' },
         { status: 400 },
+      );
+    }
+
+    const { lat, lng } = validation.data;
+    const projectPricingOrigin = getProjectPricingOrigin(request, validation.data.pricingOrigin);
+    if (validation.data.pricingOrigin && !projectPricingOrigin) {
+      return NextResponse.json(
+        { error: 'Project pricing origin is not authorized.' },
+        { status: 401 },
       );
     }
 
@@ -59,7 +79,7 @@ export async function POST(request: NextRequest) {
     const parsedRules = parsePricingRules(
       rulesRows.map((r) => ({ key: r.key, value: r.value })),
     );
-    const maxServiceMiles = parsedRules.max_service_miles;
+    const maxServiceMiles = projectPricingOrigin?.origin?.maxServiceMiles ?? parsedRules.max_service_miles;
 
     // Use presence evaluator — includes grace window logic
     const availableDrivers = allDrivers.filter((d) =>
@@ -91,11 +111,17 @@ export async function POST(request: NextRequest) {
         lng: Number(d.lng),
       }));
 
-    // Resolve distance using fallback chain: nearest driver → garage.
-    const result = await resolveDistance(
-      { lat, lng },
-      freshDrivers.map((d) => ({ id: d.id, lat: d.lat, lng: d.lng })),
-    );
+    // Resolve distance using the project origin when an integration has one.
+    const result = projectPricingOrigin?.origin
+      ? await resolveDistanceFromOrigin(
+          { lat, lng },
+          projectPricingOrigin.origin,
+          `Using ${projectPricingOrigin.source.label} pricing origin`,
+        )
+      : await resolveDistance(
+          { lat, lng },
+          freshDrivers.map((d) => ({ id: d.id, lat: d.lat, lng: d.lng })),
+        );
 
     const eligible = result.distanceMiles <= maxServiceMiles;
 
@@ -135,7 +161,9 @@ export async function POST(request: NextRequest) {
       routeDurationMinutes: result.durationMinutes,
       driversOnline: onlineDriverCount,
       message: eligible
-        ? freshDrivers.length > 0
+        ? projectPricingOrigin?.origin
+          ? `Estimated arrival ${etaLabel}`
+          : freshDrivers.length > 0
           ? `Nearest driver approximately ${etaLabel} away`
           : `Estimated arrival ${etaLabel} (from garage)`
         : 'This location is outside our emergency service area',

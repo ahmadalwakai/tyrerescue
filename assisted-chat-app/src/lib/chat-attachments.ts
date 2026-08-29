@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { API_BASE_URL, ApiError, getAdminToken } from './api';
+import { getApiBaseUrl, ApiError, getAdminToken } from './api';
 
 export interface ChatAttachmentUpload {
   url: string;
@@ -55,10 +55,10 @@ export function resolveChatAudioUri(uri: string): string {
     const apiPrefix = '/api/chat/uploads/';
     if (parsed.pathname.startsWith(staticPrefix)) {
       const filename = parsed.pathname.slice(staticPrefix.length);
-      return `${API_BASE_URL}${apiPrefix}${encodeURIComponent(filename)}`;
+      return `${getApiBaseUrl()}${apiPrefix}${encodeURIComponent(filename)}`;
     }
     if (parsed.pathname.startsWith(apiPrefix) && ['localhost', '127.0.0.1', '0.0.0.0'].includes(parsed.hostname)) {
-      return `${API_BASE_URL}${parsed.pathname}`;
+      return `${getApiBaseUrl()}${parsed.pathname}`;
     }
   } catch {
     // Remote blob URLs and unexpected values can still be passed through.
@@ -98,7 +98,7 @@ async function uploadChatAttachment(
   await appendFile(formData, uri, fileName, mimeType, webFile);
 
   const token = getAdminToken();
-  const res = await fetch(`${API_BASE_URL}/api/chat/upload`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/chat/upload`, {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: formData,

@@ -66,6 +66,18 @@ function resolveWebSoundUrl(): string | null {
 // key) that "prime" an Audio element with the urgent sound. After the
 // gesture, subsequent Audio instances are allowed to play without prompt.
 let webAudioUnlocked = false;
+let webAudioUnlockCleanup: (() => void) | null = null;
+let webAudioPendingPlay: (() => void) | null = null;
+
+function markWebAudioUnlocked(): void {
+  webAudioUnlocked = true;
+  webAudioPendingPlay = null;
+  if (webAudioUnlockCleanup) {
+    webAudioUnlockCleanup();
+    webAudioUnlockCleanup = null;
+  }
+}
+
 function ensureWebAudioUnlock(): void {
   if (Platform.OS !== 'web') return;
   if (webAudioUnlocked) return;
@@ -81,8 +93,13 @@ function ensureWebAudioUnlock(): void {
   const documentEventTarget = document;
   const url = resolveWebSoundUrl();
   if (!url) return;
+  if (webAudioUnlockCleanup) return;
   const unlock = () => {
     if (webAudioUnlocked) return;
+    if (webAudioPendingPlay) {
+      webAudioPendingPlay();
+      return;
+    }
     webAudioUnlocked = true;
     try {
       const a = new window.Audio(url);
@@ -97,6 +114,7 @@ function ensureWebAudioUnlock(): void {
           } catch {
             // ignore
           }
+          markWebAudioUnlocked();
         }).catch(() => {
           // unlock failed; we will retry on next gesture
           webAudioUnlocked = false;
@@ -105,13 +123,15 @@ function ensureWebAudioUnlock(): void {
     } catch {
       webAudioUnlocked = false;
     }
-    documentEventTarget.removeEventListener('click', unlock, true);
-    documentEventTarget.removeEventListener('touchstart', unlock, true);
-    documentEventTarget.removeEventListener('keydown', unlock, true);
   };
   documentEventTarget.addEventListener('click', unlock, true);
   documentEventTarget.addEventListener('touchstart', unlock, true);
   documentEventTarget.addEventListener('keydown', unlock, true);
+  webAudioUnlockCleanup = () => {
+    documentEventTarget.removeEventListener('click', unlock, true);
+    documentEventTarget.removeEventListener('touchstart', unlock, true);
+    documentEventTarget.removeEventListener('keydown', unlock, true);
+  };
 }
 
 function formatCreatedAt(value: string | null): string {
@@ -162,6 +182,12 @@ export function UrgentBookingPopup({
   const lastSoundBookingIdRef = useRef<string | null>(null);
   const lastSoundPlayedAtRef = useRef<number>(0);
   const nativeReminderTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sourceDisplay = booking?.sourceDisplay ?? null;
+  const title = sourceDisplay ? 'New booking received' : 'Emergency booking received';
+  const eyebrow = sourceDisplay ? 'Project booking' : 'Urgent';
+  const body = sourceDisplay
+    ? `${sourceDisplay} has been created. Open bookings now.`
+    : 'A customer has created an emergency booking. Open bookings now.';
 
   // Register the autoplay unlock listeners once per popup mount. They
   // remove themselves after the first user gesture.
@@ -279,6 +305,7 @@ export function UrgentBookingPopup({
             const p = audio.play();
             if (p && typeof p.then === 'function') {
               p.then(() => {
+                markWebAudioUnlocked();
                 if (webAudioRetryRef.current) {
                   clearInterval(webAudioRetryRef.current);
                   webAudioRetryRef.current = null;
@@ -288,6 +315,11 @@ export function UrgentBookingPopup({
               });
             }
           };
+          const playFromGesture = () => {
+            tryPlay();
+          };
+          webAudioPendingPlay = playFromGesture;
+          ensureWebAudioUnlock();
           tryPlay();
           webAudioRetryRef.current = setInterval(tryPlay, 1500);
         } catch {
@@ -312,6 +344,7 @@ export function UrgentBookingPopup({
         // Also stop the native MediaPlayer in case it is still playing.
         void stopNativeUrgentSound();
       } else if (webAudioRef.current) {
+        webAudioPendingPlay = null;
         if (webAudioRetryRef.current) {
           clearInterval(webAudioRetryRef.current);
           webAudioRetryRef.current = null;
@@ -347,15 +380,18 @@ export function UrgentBookingPopup({
       <View style={styles.overlay} accessibilityViewIsModal>
         <View style={styles.card}>
           <Animated.View style={[styles.headerBar, { opacity }]} />
-          <Text style={styles.eyebrow}>Urgent</Text>
+          <Text style={styles.eyebrow}>{eyebrow}</Text>
           <Text style={styles.title} accessibilityRole="header">
-            Emergency booking received
+            {title}
           </Text>
           <Text style={styles.body}>
-            A customer has created an emergency booking. Open bookings now.
+            {body}
           </Text>
 
           <View style={styles.detailsBox}>
+            {sourceDisplay ? (
+              <DetailRow label="Source" value={sourceDisplay} />
+            ) : null}
             <DetailRow label="Customer" value={booking?.customerName || 'Unknown'} />
             <DetailRow label="Phone" value={booking?.customerPhone || 'Unknown'} />
             <DetailRow label="Location" value={booking?.addressLine || 'See bookings list'} />

@@ -7,8 +7,9 @@ interface ExpoPushPayload {
   body: string;
   data?: Record<string, unknown>;
   badge?: number;
-  sound?: 'default' | null;
+  sound?: string | null;
   channelId?: string;
+  platforms?: Array<'android' | 'ios'>;
 }
 
 interface ExpoPushMessage {
@@ -17,7 +18,7 @@ interface ExpoPushMessage {
   body: string;
   data?: Record<string, unknown>;
   badge?: number;
-  sound?: 'default' | null;
+  sound?: string | null;
   channelId?: string;
   priority?: 'default' | 'normal' | 'high';
 }
@@ -47,13 +48,20 @@ async function getAdminBadgeCount(): Promise<number> {
  */
 export async function sendAdminExpoPush(payload: ExpoPushPayload): Promise<void> {
   try {
-    const rows = await db.select({ token: adminPushTokens.token }).from(adminPushTokens);
+    const rows = await db
+      .select({ token: adminPushTokens.token, platform: adminPushTokens.platform })
+      .from(adminPushTokens);
     if (rows.length === 0) return;
 
     const badge = payload.badge ?? (await getAdminBadgeCount());
 
     const messages: ExpoPushMessage[] = rows
       .filter((row) => row.token.startsWith('ExponentPushToken['))
+      .filter((row) => (
+        payload.platforms?.length
+          ? payload.platforms.includes(row.platform as 'android' | 'ios')
+          : true
+      ))
       .map((row) => ({
         to: row.token,
         title: payload.title,

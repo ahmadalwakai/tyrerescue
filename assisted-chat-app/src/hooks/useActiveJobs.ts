@@ -41,6 +41,9 @@ export interface DriverSituation {
 
 export interface ActiveJobItem {
   bookingRef: string;
+  sourceApp: string;
+  sourceLabel: string;
+  externalReference: string | null;
   bookingId: string;
   status: 'driver_assigned' | 'en_route' | 'arrived' | 'in_progress' | string;
   scheduledAt: string | null;
@@ -174,6 +177,9 @@ export function normalizeActiveJobItem(value: unknown): ActiveJobItem | null {
 
   return {
     bookingRef,
+    sourceApp: optionalString(raw.sourceApp) ?? 'tyre_rescue',
+    sourceLabel: optionalString(raw.sourceLabel) ?? 'Tyre Rescue',
+    externalReference: optionalString(raw.externalReference),
     bookingId,
     status: optionalString(raw.status) ?? 'driver_assigned',
     scheduledAt: dateStringOrNull(raw.scheduledAt),
@@ -204,7 +210,7 @@ export function normalizeActiveJobItem(value: unknown): ActiveJobItem | null {
   };
 }
 
-export function useActiveJobs(enabled: boolean) {
+export function useActiveJobs(enabled: boolean, sourceApp: string | null = null) {
   const [items, setItems] = useState<ActiveJobItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -215,7 +221,10 @@ export function useActiveJobs(enabled: boolean) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.get<ActiveJobsResponse>('/api/admin/active-jobs');
+      const path = sourceApp
+        ? `/api/admin/active-jobs?sourceApp=${encodeURIComponent(sourceApp)}`
+        : '/api/admin/active-jobs';
+      const data = await api.get<ActiveJobsResponse>(path);
       if (!aliveRef.current) return;
       const rawJobs = Array.isArray(data?.activeJobs) ? data.activeJobs : [];
       setItems(rawJobs.flatMap((job) => {
@@ -231,7 +240,7 @@ export function useActiveJobs(enabled: boolean) {
     } finally {
       if (aliveRef.current) setLoading(false);
     }
-  }, []);
+  }, [sourceApp]);
 
   useEffect(() => {
     aliveRef.current = true;

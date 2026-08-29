@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Box,
@@ -13,6 +13,7 @@ import {
 } from '@chakra-ui/react';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/pricing-engine';
+import { getBrandBySourceApp } from '@/lib/config/site';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 
@@ -26,6 +27,8 @@ interface TyreDetail {
 
 interface BookingData {
   refNumber: string;
+  sourceApp: string;
+  sourceLabel: string;
   status: string;
   bookingType: 'emergency' | 'scheduled';
   serviceType: string;
@@ -46,13 +49,25 @@ interface SuccessContentProps {
 }
 
 export function SuccessContent({ booking }: SuccessContentProps) {
+  const brand = getBrandBySourceApp(booking.sourceApp);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
+  const paymentIntent = searchParams.get('payment_intent');
+  const redirectStatus = searchParams.get('redirect_status');
+  const failedStripeRedirect = Boolean(redirectStatus && redirectStatus !== 'succeeded');
+  const etaMinutes = useMemo(() => {
+    if (booking.bookingType !== 'emergency' || !booking.distanceMiles) return null;
+    const baseTime = 30; // minutes for driver preparation
+    const travelTime = Math.ceil(booking.distanceMiles * 2); // ~30mph average
+    return baseTime + travelTime;
+  }, [booking.bookingType, booking.distanceMiles]);
   const [confirming, setConfirming] = useState(false);
-  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(
+    failedStripeRedirect ? 'Payment was not completed. You have not been charged.' : null,
+  );
   const [confirmedStatus, setConfirmedStatus] = useState<string>(booking.status);
-  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
+  const [redirectCountdown, setRedirectCountdown] = useState(8);
+  const [redirectCancelled, setRedirectCancelled] = useState(false);
 
   // Check if tracking is available
   const trackingStatuses = ['driver_assigned', 'en_route', 'arrived', 'in_progress', 'completed'];
@@ -61,10 +76,7 @@ export function SuccessContent({ booking }: SuccessContentProps) {
 
   // Auto-redirect countdown once payment is confirmed
   useEffect(() => {
-    if (!isPaid || confirming) return;
-
-    // Start countdown at 8 seconds
-    setRedirectCountdown(8);
+    if (!isPaid || confirming || redirectCancelled) return;
 
     const interval = setInterval(() => {
       setRedirectCountdown(prev => {
@@ -79,21 +91,15 @@ export function SuccessContent({ booking }: SuccessContentProps) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isPaid, confirming, router, booking.refNumber]);
+  }, [isPaid, confirming, redirectCancelled, router, booking.refNumber]);
 
   // On mount: if booking is still awaiting_payment AND we have Stripe redirect params, confirm it
   useEffect(() => {
-    const paymentIntent = searchParams.get('payment_intent');
-    const redirectStatus = searchParams.get('redirect_status');
-
     if (confirmedStatus !== 'awaiting_payment') return;
     if (!paymentIntent) return;
 
     // Do not attempt confirmation if Stripe redirect clearly failed
-    if (redirectStatus && redirectStatus !== 'succeeded') {
-      setConfirmError('Payment was not completed. You have not been charged.');
-      return;
-    }
+    if (failedStripeRedirect) return;
 
     async function confirmPayment() {
       setConfirming(true);
@@ -122,16 +128,6 @@ export function SuccessContent({ booking }: SuccessContentProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Calculate ETA for emergency bookings
-  // Rough estimate: 30 minutes base + 2 minutes per mile
-  useEffect(() => {
-    if (booking.bookingType === 'emergency' && booking.distanceMiles) {
-      const baseTime = 30; // minutes for driver preparation
-      const travelTime = Math.ceil(booking.distanceMiles * 2); // ~30mph average
-      setEtaMinutes(baseTime + travelTime);
-    }
-  }, [booking.bookingType, booking.distanceMiles]);
-
   // Generate ICS file for calendar
   const generateICS = () => {
     if (!booking.scheduledAt) return;
@@ -146,13 +142,13 @@ export function SuccessContent({ booking }: SuccessContentProps) {
     const icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Tyre Rescue//Booking//EN',
+      `PRODID:-//${brand.name}//Booking//EN`,
       'BEGIN:VEVENT',
-      `UID:${booking.refNumber}@tyrerescue.uk`,
+      `UID:${booking.refNumber}@${brand.canonicalHost}`,
       `DTSTAMP:${formatICSDate(new Date())}`,
       `DTSTART:${formatICSDate(startDate)}`,
       `DTEND:${formatICSDate(endDate)}`,
-      `SUMMARY:Tyre Rescue - Mobile Tyre Fitting`,
+      `SUMMARY:${brand.name} - Mobile Tyre Fitting`,
       `DESCRIPTION:Booking Reference: ${booking.refNumber}\\nAddress: ${booking.addressLine}\\nService: ${booking.serviceType}`,
       `LOCATION:${booking.addressLine}`,
       'END:VEVENT',
@@ -163,7 +159,7 @@ export function SuccessContent({ booking }: SuccessContentProps) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `tyre-rescue-${booking.refNumber}.ics`;
+    link.download = `${brand.key.replace(/_/g, '-')}-${booking.refNumber}.ics`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -217,7 +213,7 @@ export function SuccessContent({ booking }: SuccessContentProps) {
         </Box>
 
         {/* Auto-redirect countdown */}
-        {isPaid && redirectCountdown !== null && redirectCountdown > 0 && (
+        {isPaid && !redirectCancelled && redirectCountdown > 0 && (
           <Box textAlign="center" p={4} bg={c.surface} borderRadius="lg" style={anim.fadeUp('0.5s')}>
             <Text color={c.muted} fontSize="sm">
               Redirecting to booking details in <Text as="span" fontWeight="700" color={c.accent}>{redirectCountdown}</Text> seconds...
@@ -227,7 +223,7 @@ export function SuccessContent({ booking }: SuccessContentProps) {
               size="sm"
               mt={2}
               color={c.muted}
-              onClick={() => setRedirectCountdown(null)}
+              onClick={() => setRedirectCancelled(true)}
             >
               Cancel redirect
             </Button>
@@ -369,7 +365,7 @@ export function SuccessContent({ booking }: SuccessContentProps) {
         {/* Help Links */}
         <VStack gap={2} fontSize="sm" color={c.muted} textAlign="center">
           <Text>
-            Questions? Call us on 0141 266 0690
+            Questions? Call us on {brand.phoneDisplay}
           </Text>
           <Link href="/" style={{ textDecoration: 'underline' }}>
             Return to Homepage

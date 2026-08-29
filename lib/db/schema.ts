@@ -258,6 +258,9 @@ export const vehicleTyreFitments = pgTable('vehicle_tyre_fitments', {
 export const bookings = pgTable('bookings', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   refNumber: varchar('ref_number', { length: 20 }).unique().notNull(),
+  sourceApp: varchar('source_app', { length: 60 }).notNull().default('tyre_rescue'),
+  sourceLabel: varchar('source_label', { length: 120 }).notNull().default('Tyre Rescue'),
+  externalReference: varchar('external_reference', { length: 120 }),
   userId: uuid('user_id').references(() => users.id),
   driverId: uuid('driver_id').references(() => drivers.id),
   status: text('status').notNull().default('draft'),

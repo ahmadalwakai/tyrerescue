@@ -10,6 +10,7 @@ import {
   estimateUrbanDriveMinutesFromMiles,
 } from '@/lib/admin/driverSituation';
 import { extractCanonicalTyreLines, totalTyreLineQuantity } from '@/lib/bookings/tyre-line-display';
+import { normalizeProjectSourceApp } from '@/lib/integrations/project-sources';
 
 function toNumber(value: string | number | null | undefined): number | null {
   if (value == null) return null;
@@ -34,6 +35,7 @@ export async function GET(request: NextRequest) {
   const offset = (page - 1) * perPage;
   const status = searchParams.get('status') || '';
   const search = searchParams.get('search') || '';
+  const sourceApp = normalizeProjectSourceApp(searchParams.get('sourceApp'));
   const dateFrom = searchParams.get('dateFrom') || '';
   const dateTo = searchParams.get('dateTo') || '';
 
@@ -43,11 +45,17 @@ export async function GET(request: NextRequest) {
     conditions.push(eq(bookings.status, status));
   }
 
+  if (sourceApp && sourceApp !== 'all') {
+    conditions.push(eq(bookings.sourceApp, sourceApp));
+  }
+
   if (search) {
     const searchTerm = `%${search}%`;
     conditions.push(
       or(
         ilike(bookings.refNumber, searchTerm),
+        ilike(bookings.externalReference, searchTerm),
+        ilike(bookings.sourceLabel, searchTerm),
         ilike(bookings.customerName, searchTerm),
         ilike(bookings.customerEmail, searchTerm),
         exists(
@@ -83,6 +91,9 @@ export async function GET(request: NextRequest) {
       .select({
         id: bookings.id,
         refNumber: bookings.refNumber,
+        sourceApp: bookings.sourceApp,
+        sourceLabel: bookings.sourceLabel,
+        externalReference: bookings.externalReference,
         customerName: bookings.customerName,
         serviceType: bookings.serviceType,
         bookingType: bookings.bookingType,
@@ -144,6 +155,9 @@ export async function GET(request: NextRequest) {
     return {
       id: b.id,
       refNumber: b.refNumber,
+      sourceApp: b.sourceApp,
+      sourceLabel: b.sourceLabel,
+      externalReference: b.externalReference,
       customerName: b.customerName,
       serviceType: b.serviceType,
       bookingType: b.bookingType,

@@ -126,9 +126,9 @@ function getWeatherTone(icon: WeatherIconKey): {
     default:
       return {
         text: c.accent,
-        bg: 'rgba(249,115,22,0.12)',
-        border: 'rgba(249,115,22,0.32)',
-        cardBg: 'rgba(249,115,22,0.05)',
+        bg: 'rgba(225,29,46,0.12)',
+        border: 'rgba(225,29,46,0.32)',
+        cardBg: 'rgba(225,29,46,0.05)',
       };
   }
 }
@@ -404,7 +404,7 @@ export function StepSchedule({
                 borderWidth={isSelected ? '2px' : '1px'}
                 borderColor={isSelected ? c.accent : c.border}
                 borderRadius="8px"
-                bg={isSelected ? 'rgba(249,115,22,0.09)' : c.surface}
+                bg={isSelected ? 'rgba(225,29,46,0.09)' : c.surface}
                 color={c.text}
                 onClick={() => {
                   setSelectedFittingLocation(option.value);
@@ -431,7 +431,7 @@ export function StepSchedule({
                     fontSize="xs"
                     fontWeight="700"
                     color={isSelected ? c.bg : c.accent}
-                    bg={isSelected ? c.accent : 'rgba(249,115,22,0.1)'}
+                    bg={isSelected ? c.accent : 'rgba(225,29,46,0.1)'}
                     px={2}
                     py="3px"
                     borderRadius="4px"
@@ -461,7 +461,7 @@ export function StepSchedule({
               <Button
                 key={date.value}
                 variant={isSelected ? 'solid' : 'outline'}
-                colorPalette={isSelected ? 'orange' : 'gray'}
+                colorPalette={isSelected ? 'red' : 'gray'}
                 minW="82px"
                 minH="92px"
                 h="auto"
@@ -555,7 +555,7 @@ export function StepSchedule({
                   key={slot.slotId}
                   style={anim.stagger('fadeUp', i, '0.4s', 0, 0.05)}
                   variant={isSelected ? 'solid' : 'outline'}
-                  colorPalette={isSelected ? 'orange' : 'gray'}
+                  colorPalette={isSelected ? 'red' : 'gray'}
                   disabled={!slot.available}
                   opacity={slot.available ? 1 : 0.5}
                   onClick={() => slot.available && setSelectedTime(slot.time)}
@@ -620,7 +620,7 @@ export function StepSchedule({
           Back
         </Button>
         <Button
-          colorPalette="orange"
+          colorPalette="red"
           onClick={handleContinue}
           disabled={!selectedFittingLocation || !selectedDate || !selectedTime}
           flex="1"

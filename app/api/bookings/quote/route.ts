@@ -23,8 +23,13 @@ import {
 import type { PricingMode } from '@/lib/pricing/weather-modifier';
 import {
   resolveDistance,
+  resolveDistanceFromOrigin,
   type DistanceResult,
 } from '@/lib/mapbox';
+import {
+  getProjectPricingOrigin,
+  projectPricingOriginRequestSchema,
+} from '@/lib/integrations/project-pricing-origin';
 import { loadAvailableDriverDistanceCandidates } from '@/lib/driver-distance-candidates';
 import { v4 as uuidv4 } from 'uuid';
 import { Pool } from '@neondatabase/serverless';
@@ -67,6 +72,7 @@ const quoteRequestSchema = z.object({
   quantity: z.number().int().min(1).max(4).optional().default(1),
   fulfillmentOption: z.enum(['delivery', 'fitting']).optional().nullable(),
   fittingLocation: z.enum(['shop', 'mobile']).optional().nullable(),
+  pricingOrigin: projectPricingOriginRequestSchema.optional(),
 });
 
 type QuoteRequest = z.infer<typeof quoteRequestSchema>;
@@ -141,6 +147,22 @@ function pricingErrorResponse(breakdown: PricingBreakdown): NextResponse<ErrorRe
         : 'PRICING_ERROR',
     },
     { status: 400 },
+  );
+}
+
+function unauthorizedPricingOriginResponse(): NextResponse<ErrorResponse> {
+  const message = 'Project pricing origin is not authorized.';
+  return NextResponse.json(
+    { ok: false, error: message, code: 'PRICING_ORIGIN_UNAUTHORIZED', message },
+    { status: 401 },
+  );
+}
+
+function outsideProjectServiceAreaResponse(maxServiceMiles: number): NextResponse<ErrorResponse> {
+  const message = `This location is outside the ${maxServiceMiles}-mile project service area.`;
+  return NextResponse.json(
+    { ok: false, error: message, code: 'OUTSIDE_SERVICE_AREA', message },
+    { status: 422 },
   );
 }
 
@@ -254,11 +276,33 @@ export async function POST(
     const parsedRules = parsePricingRules(rulesRows.map((r) => ({ key: r.key, value: r.value })));
     const isBankHoliday = holidayResult.length > 0;
 
-    console.log('[DISTANCE CALC]', { driverCount: driverCandidates.length });
+    const projectPricingOrigin = getProjectPricingOrigin(request, data.pricingOrigin);
+    if (data.pricingOrigin && !projectPricingOrigin) {
+      return unauthorizedPricingOriginResponse();
+    }
+
+    console.log('[DISTANCE CALC]', {
+      driverCount: driverCandidates.length,
+      projectPricingSource: projectPricingOrigin?.source.app ?? null,
+      projectPricingOrigin: projectPricingOrigin?.origin?.label ?? null,
+    });
     // Distance is always calculated server-side — never trusted from the client.
-    const distanceResult = await resolveDistance(customerLocation, driverCandidates);
+    const distanceResult = projectPricingOrigin?.origin
+      ? await resolveDistanceFromOrigin(
+          customerLocation,
+          projectPricingOrigin.origin,
+          `Using ${projectPricingOrigin.source.label} pricing origin`,
+        )
+      : await resolveDistance(customerLocation, driverCandidates);
     const serviceDistanceMiles = distanceResult.distanceMiles;
     const distanceMiles = distanceResult.pricingDistanceMiles;
+    if (
+      projectPricingOrigin?.origin &&
+      distanceMiles > projectPricingOrigin.origin.maxServiceMiles
+    ) {
+      return outsideProjectServiceAreaResponse(projectPricingOrigin.origin.maxServiceMiles);
+    }
+
     const pricingDurationMinutes = distanceResult.distanceFloorApplied
       ? distanceResult.garageDurationMinutes ?? distanceResult.durationMinutes
       : distanceResult.durationMinutes;

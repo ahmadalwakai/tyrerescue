@@ -322,6 +322,7 @@ export function totalBookingTyreQuantity(lines: BookingTyreLine[]): number {
 
 export function hasAssistedChatTyre(draft: AssistedChatDraft): boolean {
   if (isAssistedChatServiceOnly(draft.serviceType)) return true;
+  if (!draft.tyreConfirmedFromSidewall) return false;
   return validateBookingTyreLines(draft.tyreLines) === null;
 }
 
@@ -364,6 +365,7 @@ export function getAssistedChatBlockedReason(input: AssistedChatWorkflowInput): 
     if (isAssistedChatServiceOnly(draft.serviceType)) return null;
     const tyreError = validateBookingTyreLines(draft.tyreLines);
     if (tyreError) return tyreError;
+    if (!draft.tyreConfirmedFromSidewall) return 'Confirm the tyre size from the sidewall before pricing.';
     return null;
   }
 
@@ -371,6 +373,9 @@ export function getAssistedChatBlockedReason(input: AssistedChatWorkflowInput): 
     if (!hasLocation(draft)) return 'Confirm the customer location before pricing.';
     if (!isAssistedChatServiceOnly(draft.serviceType) && validateBookingTyreLines(draft.tyreLines)) {
       return 'Add tyre size and quantity before pricing, or choose a service-only job.';
+    }
+    if (!isAssistedChatServiceOnly(draft.serviceType) && !draft.tyreConfirmedFromSidewall) {
+      return 'Confirm the tyre size from the sidewall before pricing.';
     }
     if (input.priceLoading) return 'Price is already being calculated.';
     return null;

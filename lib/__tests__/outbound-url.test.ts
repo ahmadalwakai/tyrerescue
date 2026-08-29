@@ -40,6 +40,50 @@ describe('outbound URL helper — never localhost in customer messages', () => {
     expect(getOutboundUrl()).toBe(SITE_URL);
   });
 
+  it('getOutboundUrl(sourceApp) returns the Duke Street Tyres production domain', async () => {
+    const { getOutboundUrl } = await import('@/lib/config/site');
+    expect(getOutboundUrl('duke_street_tyres')).toBe('https://www.dukestreettyres.com');
+  });
+
+  it('buildCustomerUrl(sourceApp) keeps Duke tracking links on the Duke domain', async () => {
+    const { buildCustomerUrl } = await import('@/lib/config/site');
+    expect(buildCustomerUrl('/tracking/TYR-2026-99999', 'duke_street_tyres')).toBe(
+      'https://www.dukestreettyres.com/tracking/TYR-2026-99999',
+    );
+  });
+
+  it('customer brand host helpers canonicalize supported production hosts', async () => {
+    const { getCanonicalHostForRequestHost, resolveBrandFromHeaders, resolveBrandFromRequest } = await import('@/lib/config/site');
+
+    expect(getCanonicalHostForRequestHost('tyrerescue.uk')).toBe('www.tyrerescue.uk');
+    expect(getCanonicalHostForRequestHost('www.tyrerescue.uk')).toBe('www.tyrerescue.uk');
+    expect(getCanonicalHostForRequestHost('dukestreettyres.com')).toBe('www.dukestreettyres.com');
+    expect(getCanonicalHostForRequestHost('www.dukestreettyres.com')).toBe('www.dukestreettyres.com');
+
+    const request = new Request('https://www.tyrerescue.uk/book', {
+      headers: { host: 'www.dukestreettyres.com' },
+    });
+    expect(resolveBrandFromRequest(request).sourceApp).toBe('duke_street_tyres');
+
+    const localHeaders = new Headers({
+      host: 'localhost:3016',
+      'x-forwarded-host': 'www.dukestreettyres.com',
+    });
+    expect(resolveBrandFromHeaders(localHeaders).sourceApp).toBe('duke_street_tyres');
+  });
+
+  it('does not let x-forwarded-host override a known production Host', async () => {
+    const { resolveBrandFromRequest } = await import('@/lib/config/site');
+
+    const request = new Request('https://www.tyrerescue.uk/book', {
+      headers: {
+        host: 'www.tyrerescue.uk',
+        'x-forwarded-host': 'www.dukestreettyres.com',
+      },
+    });
+    expect(resolveBrandFromRequest(request).sourceApp).toBe('tyre_rescue');
+  });
+
   it('booking confirmation SMS template never embeds localhost', async () => {
     vi.stubEnv('NODE_ENV', 'development');
     process.env.NEXTAUTH_URL = 'http://localhost:3000';

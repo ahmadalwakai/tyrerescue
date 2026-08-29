@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { TrackingMap } from '@/components/tracking/TrackingMap';
 import { StatusTimeline } from '@/components/tracking/StatusTimeline';
 import { colorTokens as c } from '@/lib/design-tokens';
+import { getBrandBySourceApp } from '@/lib/config/site';
 import { anim } from '@/lib/animations';
 import { buildWhatsAppHref } from '@/lib/contact/whatsapp-options';
 import { trackCallClick, trackWhatsAppClick } from '@/lib/analytics/gtag';
@@ -27,6 +28,8 @@ interface StatusHistoryItem {
 }
 
 interface TrackingData {
+  sourceApp: string;
+  sourceLabel: string;
   status: string;
   bookingType: string;
   customerLat: number;
@@ -49,10 +52,9 @@ interface TrackingData {
 interface TrackingContentProps {
   refNumber: string;
   initialStatus: string;
+  initialSourceApp: string;
 }
 
-const SUPPORT_PHONE_DISPLAY = '0141 266 0690';
-const SUPPORT_PHONE_TEL = '01412660690';
 const IOS_APP_URL = 'https://apps.apple.com/gb/app/tyre-rescue/id6782555222';
 const IOS_APP_NAME = 'Tyre Rescue';
 const IOS_APP_SCHEME = 'tyrerescue';
@@ -227,13 +229,18 @@ async function copyToClipboard(value: string): Promise<boolean> {
   }
 }
 
-export function TrackingContent({ refNumber, initialStatus }: TrackingContentProps) {
+export function TrackingContent({
+  refNumber,
+  initialStatus,
+  initialSourceApp,
+}: TrackingContentProps) {
   const [data, setData] = useState<TrackingData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [showIosAppPrompt, setShowIosAppPrompt] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const appFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastStaleRef = useRef<boolean | null>(null);
 
@@ -308,6 +315,13 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
   }, [fetchTrackingData, refNumber]);
 
   useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     const handleVisibility = () => {
       if (document.hidden) return;
       logLegacyTracking('visibility_refetch', { jobId: refNumber });
@@ -349,8 +363,11 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
 
   // Check if driver location is stale (more than 5 minutes old)
   const isLocationStale = data?.driverLocationAt
-    ? Date.now() - new Date(data.driverLocationAt).getTime() > 5 * 60 * 1000
+    ? nowMs - new Date(data.driverLocationAt).getTime() > 5 * 60 * 1000
     : false;
+  const brand = getBrandBySourceApp(data?.sourceApp ?? initialSourceApp);
+  const supportPhoneDisplay = brand.phoneDisplay;
+  const supportPhoneTel = brand.phoneTel;
 
   useEffect(() => {
     if (!data) return;
@@ -390,7 +407,7 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
   const locationHref = data
     ? `https://www.google.com/maps/search/?api=1&query=${data.customerLat},${data.customerLng}`
     : null;
-  const trackingShareText = `Tyre Rescue tracking for booking ${refNumber}`;
+  const trackingShareText = `${brand.name} tracking for booking ${refNumber}`;
 
   const setTemporaryMessage = useCallback((message: string) => {
     setActionMessage(message);
@@ -432,13 +449,13 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
     setTemporaryMessage(ok ? 'Booking reference copied.' : 'Could not copy the reference.');
   }, [refNumber, setTemporaryMessage]);
 
-  const handleOpenWhatsApp = useCallback(() => {
+  function handleOpenWhatsApp() {
     const statusLine = data?.status ? ` Current status: ${data.status}.` : '';
     const etaLine = arrivalTimeLabel ? ` ETA: ${arrivalTimeLabel}${etaLabel ? ` (${etaLabel})` : ''}.` : '';
-    const message = `Hi, I need help with my Tyre Rescue booking ${refNumber}.${statusLine}${etaLine}`;
+    const message = `Hi, I need help with my ${brand.name} booking ${refNumber}.${statusLine}${etaLine}`;
     trackWhatsAppClick('tracking_customer_tools');
     window.open(buildWhatsAppHref(message), '_blank', 'noopener,noreferrer');
-  }, [arrivalTimeLabel, data?.status, etaLabel, refNumber]);
+  }
 
   const handleOpenLocation = useCallback(() => {
     if (!locationHref) return;
@@ -639,7 +656,7 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
               Job Complete
             </Text>
             <Text color="green.300">
-              Thank you for choosing Tyre Rescue. We hope everything went smoothly.
+              Thank you for choosing {brand.name}. We hope everything went smoothly.
             </Text>
             {data.completedAt && (
               <Text fontSize="sm" color="green.300" mt={2}>
@@ -900,14 +917,14 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
 
             <Button {...toolButtonStyles(Boolean(data.driverPhone))} asChild>
               <a
-                href={`tel:${data.driverPhone ?? SUPPORT_PHONE_TEL}`}
+                href={`tel:${data.driverPhone ?? supportPhoneTel}`}
                 onClick={() => trackCallClick(data.driverPhone ? 'tracking_call_driver' : 'tracking_call_support_fallback')}
                 style={{ width: '100%', textDecoration: 'none' }}
               >
                 <Box textAlign="left">
                   <Text>{data.driverPhone ? 'Call driver' : 'Call support'}</Text>
                   <Text fontSize="xs" color={c.muted} fontWeight="700">
-                    {data.driverPhone ?? SUPPORT_PHONE_DISPLAY}
+                    {data.driverPhone ?? supportPhoneDisplay}
                   </Text>
                 </Box>
               </a>
@@ -992,7 +1009,7 @@ export function TrackingContent({ refNumber, initialStatus }: TrackingContentPro
 
         {/* Help */}
         <Box fontSize="sm" color={c.muted} textAlign="center" pt={4}>
-          Need help? Call us on 0141 266 0690
+          Need help? Call us on {supportPhoneDisplay}
         </Box>
       </VStack>
       </Container>

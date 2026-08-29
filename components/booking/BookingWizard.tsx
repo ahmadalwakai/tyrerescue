@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Box,
   Container,
@@ -10,7 +12,6 @@ import {
   VStack,
   HStack,
   Text,
-  Skeleton,
 } from '@chakra-ui/react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
@@ -28,10 +29,16 @@ import { StepTyreSelection } from './StepTyreSelection';
 import { StepSchedule } from './StepSchedule';
 import { StepPricing } from './StepPricing';
 import { StepCustomerDetails } from './StepCustomerDetails';
-import { StepPayment } from './StepPayment';
+import type { StepPaymentProps } from './StepPayment';
 import { QuoteLoadingScreen } from './QuoteLoadingScreen';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { trackBookingStart, trackCallClick } from '@/lib/analytics/gtag';
+import { getBrandBySourceApp, type CustomerBrandConfig } from '@/lib/config/site';
+
+const StepPayment = dynamic<StepPaymentProps>(
+  () => import('./StepPayment').then((mod) => mod.StepPayment),
+  { ssr: false },
+);
 
 // ── Draft persistence ────────────────────────────────────
 // localStorage key for durable cross-session persistence.
@@ -59,7 +66,7 @@ interface DraftEnvelope {
   updatedAt: number; // epoch ms
 }
 
-function saveDraft(state: WizardState, currentStep: WizardStep) {
+function saveDraft(storageKey: string, state: WizardState, currentStep: WizardStep) {
   try {
     const safe = { ...state };
     for (const key of SENSITIVE_KEYS) {
@@ -71,35 +78,35 @@ function saveDraft(state: WizardState, currentStep: WizardStep) {
       currentStep,
       updatedAt: Date.now(),
     };
-    localStorage.setItem(BOOKING_DRAFT_KEY, JSON.stringify(envelope));
+    localStorage.setItem(storageKey, JSON.stringify(envelope));
   } catch {
     // Storage full or unavailable — non-fatal
   }
 }
 
-function loadDraft(): DraftEnvelope | null {
+function loadDraft(storageKey: string): DraftEnvelope | null {
   try {
-    const raw = localStorage.getItem(BOOKING_DRAFT_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as DraftEnvelope;
     if (parsed.version !== DRAFT_VERSION) {
-      localStorage.removeItem(BOOKING_DRAFT_KEY);
+      localStorage.removeItem(storageKey);
       return null;
     }
     // Discard drafts older than 24 hours
     if (Date.now() - parsed.updatedAt > 24 * 60 * 60 * 1000) {
-      localStorage.removeItem(BOOKING_DRAFT_KEY);
+      localStorage.removeItem(storageKey);
       return null;
     }
     return parsed;
   } catch {
-    localStorage.removeItem(BOOKING_DRAFT_KEY);
+    localStorage.removeItem(storageKey);
     return null;
   }
 }
 
-export function clearBookingDraft() {
-  try { localStorage.removeItem(BOOKING_DRAFT_KEY); } catch { /* noop */ }
+export function clearBookingDraft(storageKey = BOOKING_DRAFT_KEY) {
+  try { localStorage.removeItem(storageKey); } catch { /* noop */ }
   try { sessionStorage.removeItem('tyrerescue_booking_wizard'); } catch { /* noop */ }
 }
 
@@ -204,6 +211,7 @@ function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
 
 interface BookingTopBarProps {
   onBack: () => void;
+  brand: CustomerBrandConfig;
 }
 
 function HeaderIcon({ name }: { name: 'back' | 'menu' | 'close' | 'phone' }) {
@@ -230,7 +238,7 @@ function HeaderIcon({ name }: { name: 'back' | 'menu' | 'close' | 'phone' }) {
   );
 }
 
-function BookingTopBar({ onBack }: BookingTopBarProps) {
+function BookingTopBar({ onBack, brand }: BookingTopBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -278,12 +286,29 @@ function BookingTopBar({ onBack }: BookingTopBarProps) {
               <HeaderIcon name="back" />
               <Text as="span">Back</Text>
             </Box>
-            <Link href="/" aria-label="Tyre Rescue home" style={{ display: 'inline-flex', alignItems: 'center' }}>
-              <img
-                src="/logo.svg"
-                alt="Tyre Rescue"
-                style={{ height: 'clamp(28px, 8vw, 42px)', width: 'auto', objectFit: 'contain' }}
-              />
+            <Link href="/" aria-label={`${brand.name} home`} style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+              {brand.key === 'tyre_rescue' ? (
+                <Image
+                  src="/logo.svg"
+                  alt={brand.name}
+                  width={160}
+                  height={42}
+                  priority
+                  style={{ height: 'clamp(28px, 8vw, 42px)', width: 'auto', objectFit: 'contain' }}
+                />
+              ) : (
+                <Text
+                  as="span"
+                  color={c.text}
+                  fontFamily="var(--font-display), sans-serif"
+                  fontSize={{ base: '24px', md: '32px' }}
+                  lineHeight={1}
+                  letterSpacing={0}
+                  whiteSpace="nowrap"
+                >
+                  {brand.name}
+                </Text>
+              )}
             </Link>
           </HStack>
 
@@ -307,7 +332,7 @@ function BookingTopBar({ onBack }: BookingTopBarProps) {
           <HStack gap={2}>
             <Box display={{ base: 'none', lg: 'block' }}>
               <a
-                href="tel:01412660690"
+                href={`tel:${brand.phoneTel}`}
                 onClick={() => trackCallClick('booking_topbar_desktop')}
                 style={{
                   display: 'inline-flex',
@@ -325,7 +350,7 @@ function BookingTopBar({ onBack }: BookingTopBarProps) {
                 }}
               >
                 <HeaderIcon name="phone" />
-                0141 266 0690
+                {brand.phoneDisplay}
               </a>
             </Box>
             <Box
@@ -342,7 +367,7 @@ function BookingTopBar({ onBack }: BookingTopBarProps) {
               borderRadius="6px"
               fontSize="13px"
               fontWeight="700"
-              letterSpacing="0.04em"
+              letterSpacing={0}
               cursor="pointer"
               aria-expanded={menuOpen}
               aria-controls="booking-mobile-menu"
@@ -386,7 +411,7 @@ function BookingTopBar({ onBack }: BookingTopBarProps) {
                     padding: '14px 4px',
                     fontSize: 28,
                     fontWeight: 500,
-                    letterSpacing: '0.04em',
+                    letterSpacing: 0,
                     fontFamily: 'var(--font-display)',
                   }}
                 >
@@ -394,7 +419,7 @@ function BookingTopBar({ onBack }: BookingTopBarProps) {
                 </Link>
               ))}
               <a
-                href="tel:01412660690"
+                href={`tel:${brand.phoneTel}`}
                 onClick={() => trackCallClick('booking_topbar_mobile')}
                 style={{
                   display: 'inline-flex',
@@ -413,7 +438,7 @@ function BookingTopBar({ onBack }: BookingTopBarProps) {
                 }}
               >
                 <HeaderIcon name="phone" />
-                0141 266 0690
+                {brand.phoneDisplay}
               </a>
             </VStack>
           </Container>
@@ -429,16 +454,23 @@ export interface BookingWizardProps {
   initialStep?: WizardStep;
   initialState?: Partial<WizardState>;
   resumeDraft?: boolean;
+  sourceApp?: string;
 }
 
-export function BookingWizard({ initialStep, initialState, resumeDraft = true }: BookingWizardProps) {
+export function BookingWizard({
+  initialStep,
+  initialState,
+  resumeDraft = true,
+  sourceApp,
+}: BookingWizardProps) {
   const router = useRouter();
+  const brand = getBrandBySourceApp(sourceApp);
+  const bookingDraftKey = brand.bookingDraftKey;
   const [state, setState] = useState<WizardState>({ ...initialWizardState, ...initialState });
   const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep || 'service-type');
   const [isHydrated, setIsHydrated] = useState(false);
   const [showQuoteLoader, setShowQuoteLoader] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const quoteLoaderTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Stable ref so the hydration effect runs only on mount
   const initialStateRef = useRef(initialState);
@@ -448,7 +480,7 @@ export function BookingWizard({ initialStep, initialState, resumeDraft = true }:
   useEffect(() => {
     const entry = initialStateRef.current;
     const shouldResumeDraft = resumeDraftRef.current;
-    const draft = shouldResumeDraft ? loadDraft() : null;
+    const draft = shouldResumeDraft ? loadDraft(bookingDraftKey) : null;
     if (draft) {
       // If the caller passed explicit initialState (e.g. bookingType), those
       // fields take priority over the stale draft so that entry intent is
@@ -483,18 +515,17 @@ export function BookingWizard({ initialStep, initialState, resumeDraft = true }:
       } catch { /* ignore */ }
     }
     setIsHydrated(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialStep]);
+  }, [initialStep, bookingDraftKey]);
 
   // Debounced save to localStorage (300ms)
   useEffect(() => {
     if (!isHydrated) return;
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(() => {
-      saveDraft(state, currentStep);
+      saveDraft(bookingDraftKey, state, currentStep);
     }, 300);
     return () => { if (saveTimeout.current) clearTimeout(saveTimeout.current); };
-  }, [state, currentStep, isHydrated]);
+  }, [state, currentStep, isHydrated, bookingDraftKey]);
 
   const updateState = useCallback((updates: Partial<WizardState>) => {
     setState(prev => ({ ...prev, ...updates }));
@@ -546,9 +577,9 @@ export function BookingWizard({ initialStep, initialState, resumeDraft = true }:
   const resetWizard = useCallback(() => {
     setState(initialWizardState);
     setCurrentStep('service-type');
-    clearBookingDraft();
+    clearBookingDraft(bookingDraftKey);
     setShowResetConfirm(false);
-  }, []);
+  }, [bookingDraftKey]);
 
   const handleStartOverClick = useCallback(() => {
     // If the user has progressed past service-type, confirm first
@@ -560,11 +591,11 @@ export function BookingWizard({ initialStep, initialState, resumeDraft = true }:
   }, [currentStep, resetWizard]);
 
   const handlePaymentSuccess = useCallback((refNumber: string) => {
-    clearBookingDraft();
+    clearBookingDraft(bookingDraftKey);
     router.push(`/success/${refNumber}`);
-  }, [router]);
+  }, [bookingDraftKey, router]);
 
-  const handlePaymentError = useCallback((error: string) => {
+  const handlePaymentError = useCallback(() => {
     // Stay on payment step to allow retry
   }, []);
 
@@ -572,19 +603,6 @@ export function BookingWizard({ initialStep, initialState, resumeDraft = true }:
     setShowQuoteLoader(false);
     goToStep('pricing');
   }, [goToStep]);
-
-  // Don't render until hydrated to prevent mismatch
-  if (!isHydrated) {
-    return (
-      <Container maxW="container.md" py={8}>
-        <VStack gap={6} align="stretch">
-          <Skeleton h="60px" borderRadius="md" />
-          <Skeleton h="300px" borderRadius="lg" />
-          <Skeleton h="20px" w="120px" mx="auto" borderRadius="sm" />
-        </VStack>
-      </Container>
-    );
-  }
 
   const steps = getStepsForBookingType(state.bookingType, state.serviceType);
 
@@ -700,7 +718,7 @@ export function BookingWizard({ initialStep, initialState, resumeDraft = true }:
 
   return (
     <ErrorBoundary>
-      <BookingTopBar onBack={handleTopBarBack} />
+      <BookingTopBar onBack={handleTopBarBack} brand={brand} />
 
       {currentStep === 'service-type' ? (
         renderStep()

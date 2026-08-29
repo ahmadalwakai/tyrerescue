@@ -61,10 +61,11 @@ const stockFormCardShadow = (
 
 const SORT_OPTS: { value: SortOption; label: string }[] = [
   { value: 'size', label: 'Size' },
+  { value: 'brand', label: 'Brand' },
   { value: 'stock', label: 'Stock ↓' },
   { value: 'price', label: 'Price ↑' },
-  { value: 'type', label: 'Type' },
-  { value: 'season_type', label: 'Season' },
+  { value: 'type', label: 'Tier' },
+  { value: 'season_type', label: 'Season + Brand' },
 ];
 
 const WIDTH_OPTS = ['', '155', '165', '175', '185', '195', '205', '215', '225', '235', '245', '255', '265', '275', '285'];
@@ -199,8 +200,8 @@ function AddSizeForm({ onSuccess, onCancel, doAdd, loading }: AddFormProps) {
   const [form, setForm] = useState<AddStockForm>({
     sizeDisplay: '',
     brand: 'Budget',
-    pattern: 'All-Season',
-    season: 'allseason',
+    pattern: 'Summer',
+    season: 'summer',
     stockNew: '0',
     priceNew: '',
   });
@@ -496,28 +497,30 @@ interface FilterBarProps {
   filterWidth: string;
   filterRim: string;
   filterAvailable: string;
+  filterSeason: string;
   sort: SortOption;
-  onApplyFilters: (w: string, r: string, avail: string) => void;
+  onApplyFilters: (w: string, r: string, avail: string, season: string) => void;
   onApplySort: (s: SortOption) => void;
 }
 
-function FilterBar({ filterWidth, filterRim, filterAvailable, sort, onApplyFilters, onApplySort }: FilterBarProps) {
+function FilterBar({ filterWidth, filterRim, filterAvailable, filterSeason, sort, onApplyFilters, onApplySort }: FilterBarProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [localWidth, setLocalWidth] = useState(filterWidth);
   const [localRim, setLocalRim] = useState(filterRim);
   const [localAvail, setLocalAvail] = useState(filterAvailable);
+  const [localSeason, setLocalSeason] = useState(filterSeason);
 
   function apply() {
-    onApplyFilters(localWidth, localRim, localAvail);
+    onApplyFilters(localWidth, localRim, localAvail, localSeason);
     setShowFilters(false);
   }
   function clear() {
-    setLocalWidth(''); setLocalRim(''); setLocalAvail('');
-    onApplyFilters('', '', '');
+    setLocalWidth(''); setLocalRim(''); setLocalAvail(''); setLocalSeason('');
+    onApplyFilters('', '', '', '');
     setShowFilters(false);
   }
 
-  const hasFilters = filterWidth || filterRim || filterAvailable;
+  const hasFilters = filterWidth || filterRim || filterAvailable || filterSeason;
 
   return (
     <View>
@@ -579,6 +582,23 @@ function FilterBar({ filterWidth, filterRim, filterAvailable, sort, onApplyFilte
                 <Text style={[s.dimBtnText, localAvail === opt.v && { color: colors.accent }]}>{opt.l}</Text>
               </Pressable>
             ))}
+          </View>
+          {/* Season */}
+          <View style={{ marginTop: space.sm }}>
+            <Text style={s.fieldLabel}>Tyre type</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.xs }}>
+              {[{ value: '', label: 'All' }, ...SEASON_OPTS].map((opt) => (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => setLocalSeason(opt.value)}
+                  style={[s.dimBtn, localSeason === opt.value && s.dimBtnActive]}
+                >
+                  <Text style={[s.dimBtnText, localSeason === opt.value && { color: colors.accent }]}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
           </View>
           {/* Buttons */}
           <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.md }}>
@@ -848,7 +868,7 @@ export function AdminStockModal({ visible, onClose }: Props) {
 
   const {
     items, stats, totalCount, totalPages, page,
-    search, filterWidth, filterRim, filterAvailable, sort,
+    search, filterWidth, filterRim, filterAvailable, filterSeason, sort,
     loading, error, actionLoading, toast,
     refresh, applySearch, applyFilters, applySort, goPage,
     doAdd, doUpdate, doToggleAvailable, doDelete,
@@ -933,6 +953,7 @@ export function AdminStockModal({ visible, onClose }: Props) {
               filterWidth={filterWidth}
               filterRim={filterRim}
               filterAvailable={filterAvailable}
+              filterSeason={filterSeason}
               sort={sort}
               onApplyFilters={applyFilters}
               onApplySort={applySort}

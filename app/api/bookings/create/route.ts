@@ -30,6 +30,12 @@ import {
   rateLimitedResponse,
 } from '@/lib/security';
 import { recordPaymentEvent } from '@/lib/payments/payment-summary';
+import { getSourceAppForRequest } from '@/lib/config/site';
+import {
+  formatProjectReference,
+  getProjectSource,
+  TYRE_RESCUE_SOURCE_APP,
+} from '@/lib/integrations/project-sources';
 
 // Input validation schema
 const createBookingSchema = z.object({
@@ -47,6 +53,9 @@ const createBookingSchema = z.object({
   createAccount: z.boolean().optional(),
   fulfillmentOption: z.enum(['delivery', 'fitting']).optional().nullable(),
   // UTM / attribution
+  sourceApp: z.string().max(60).optional(),
+  externalReference: z.string().max(120).optional(),
+  externalRef: z.string().max(120).optional(),
   utm_source: z.string().max(100).optional(),
   utm_medium: z.string().max(100).optional(),
   utm_campaign: z.string().max(255).optional(),
@@ -57,6 +66,7 @@ const createBookingSchema = z.object({
   wbraid: z.string().max(255).optional(),
   landing_page: z.string().max(500).optional(),
   referrer: z.string().max(500).optional(),
+  paymentFlow: z.enum(['payment_intent', 'external_checkout']).optional().default('payment_intent'),
 });
 
 type CreateBookingRequest = z.infer<typeof createBookingSchema>;
@@ -64,7 +74,7 @@ type CreateBookingRequest = z.infer<typeof createBookingSchema>;
 interface CreateBookingResponse {
   bookingId: string;
   refNumber: string;
-  stripeClientSecret: string;
+  stripeClientSecret: string | null;
   total: number;
 }
 
@@ -127,6 +137,18 @@ export async function POST(
     }
 
     const data: CreateBookingRequest = validation.data;
+    const explicitProjectSource =
+      getProjectSource(data.sourceApp) ?? getProjectSource(data.utm_source);
+    const requestProjectSource = getProjectSource(getSourceAppForRequest(request));
+    const projectSource = explicitProjectSource ?? requestProjectSource;
+    const externalReference =
+      (data.externalReference ?? data.externalRef ?? '').trim() || null;
+    const isProjectBooking =
+      Boolean(projectSource) && projectSource?.app !== TYRE_RESCUE_SOURCE_APP;
+    const sourceDisplay =
+      projectSource && externalReference
+        ? formatProjectReference(projectSource.label, externalReference)
+        : null;
 
     // Retrieve quote from database with FOR UPDATE to prevent double-use
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -336,6 +358,9 @@ export async function POST(
       await db.insert(bookings).values({
         id: bookingId,
         refNumber,
+        sourceApp: projectSource?.app ?? TYRE_RESCUE_SOURCE_APP,
+        sourceLabel: projectSource?.label ?? 'Tyre Rescue',
+        externalReference,
         userId: userId || null,
         status: 'awaiting_payment',
         bookingType: quote.booking_type,
@@ -361,20 +386,20 @@ export async function POST(
         vatAmount: breakdown.vatAmount.toString(),
         totalAmount: breakdown.total.toString(),
         quoteExpiresAt: expiresAt,
-        notes: [data.notes || null, fittingLocation ? `Fitting location: ${fittingLocation}` : null]
+        notes: [sourceDisplay, data.notes || null, fittingLocation ? `Fitting location: ${fittingLocation}` : null]
           .filter(Boolean)
           .join('\n') || null,
         hasPreOrderItems,
         fulfillmentOption: data.fulfillmentOption ?? null,
         // UTM attribution
-        utmSource: data.utm_source || null,
-        utmMedium: data.utm_medium || null,
-        utmCampaign: data.utm_campaign || null,
+        utmSource: data.utm_source || projectSource?.app || null,
+        utmMedium: data.utm_medium || (isProjectBooking ? 'integration' : null),
+        utmCampaign: data.utm_campaign || (isProjectBooking ? projectSource?.campaign : null),
         utmTerm: data.utm_term || null,
         utmContent: data.utm_content || null,
         gclid: data.gclid || null,
-        landingPage: data.landing_page || null,
-        referrer: data.referrer || null,
+        landingPage: data.landing_page || (isProjectBooking ? projectSource?.origin : null),
+        referrer: data.referrer || (isProjectBooking ? projectSource?.origin : null),
       });
 
       // Create booking tyres entries
@@ -430,32 +455,38 @@ export async function POST(
         note: 'Booking created, awaiting payment',
       });
 
-      // Create Stripe Payment Intent
-      const { clientSecret, paymentIntentId, amountInPence } = await createPaymentIntent(
-        breakdown.total,
-        {
-          bookingId,
-          refNumber,
-          customerEmail: data.customerEmail,
-        }
-      );
-      const expectedAmountPence = Math.round(Number(breakdown.total) * 100);
-      if (amountInPence !== expectedAmountPence) {
-        await client.query('ROLLBACK');
-        return NextResponse.json(
-          {
-            error: 'Payment amount mismatch',
-            code: 'PAYMENT_AMOUNT_MISMATCH',
-          },
-          { status: 500 },
-        );
-      }
+      let clientSecret: string | null = null;
+      let amountInPence: number | null = null;
 
-      // Update booking with Stripe Payment Intent ID
-      await db
-        .update(bookings)
-        .set({ stripePiId: paymentIntentId })
-        .where(eq(bookings.id, bookingId));
+      if (data.paymentFlow === 'payment_intent') {
+        const paymentIntent = await createPaymentIntent(
+          breakdown.total,
+          {
+            bookingId,
+            refNumber,
+            customerEmail: data.customerEmail,
+          }
+        );
+        clientSecret = paymentIntent.clientSecret;
+        amountInPence = paymentIntent.amountInPence;
+        const expectedAmountPence = Math.round(Number(breakdown.total) * 100);
+        if (paymentIntent.amountInPence !== expectedAmountPence) {
+          await client.query('ROLLBACK');
+          return NextResponse.json(
+            {
+              error: 'Payment amount mismatch',
+              code: 'PAYMENT_AMOUNT_MISMATCH',
+            },
+            { status: 500 },
+          );
+        }
+
+        // Update booking with Stripe Payment Intent ID.
+        await db
+          .update(bookings)
+          .set({ stripePiId: paymentIntent.paymentIntentId })
+          .where(eq(bookings.id, bookingId));
+      }
 
       // Mark quote as used
       await client.query(
@@ -465,19 +496,20 @@ export async function POST(
 
       await client.query('COMMIT');
 
-      await recordPaymentEvent({
-        bookingId,
-        bookingRef: refNumber,
-        eventType: 'link_created',
-        paymentMethod: 'card_link',
-        linkStatus: 'created',
-        amountPence: amountInPence,
-        currency: 'gbp',
-        stripePaymentIntentId: paymentIntentId,
-        source: 'public_booking',
-        status: 'pending',
-        metadata: { kind: 'public_booking_payment_intent' },
-      });
+      if (data.paymentFlow === 'payment_intent' && amountInPence != null) {
+        await recordPaymentEvent({
+          bookingId,
+          bookingRef: refNumber,
+          eventType: 'link_created',
+          paymentMethod: 'card_link',
+          linkStatus: 'created',
+          amountPence: amountInPence,
+          currency: 'gbp',
+          source: 'public_booking',
+          status: 'pending',
+          metadata: { kind: 'public_booking_payment_intent' },
+        });
+      }
 
       // Send urgent push for customer emergency bookings immediately on creation.
       // Fires before payment so the admin is alerted as soon as the customer
@@ -486,7 +518,17 @@ export async function POST(
       // transaction above, so this code path only runs once per booking.
       // Admin quick-book finalize uses a separate route; this file is always
       // a customer-originated booking.
-      if (quote.booking_type === 'emergency') {
+      if (isProjectBooking) {
+        void sendUrgentBookingTopicPush({
+          bookingId,
+          customerPhone: data.customerPhone,
+          createdAt: new Date().toISOString(),
+          title: 'New project booking received',
+          body: sourceDisplay
+            ? `${sourceDisplay} — ${data.customerName}`
+            : `${projectSource?.label ?? 'Project'} booking — ${data.customerName}`,
+        }).catch((err: unknown) => console.error('[booking:create] project urgent push failed:', err));
+      } else if (quote.booking_type === 'emergency') {
         void sendUrgentBookingTopicPush({
           bookingId,
           customerPhone: data.customerPhone,
@@ -522,7 +564,7 @@ export async function POST(
       return NextResponse.json({
         bookingId,
         refNumber,
-        stripeClientSecret: clientSecret!,
+        stripeClientSecret: clientSecret,
         total: breakdown.total,
       });
     } catch (txError) {

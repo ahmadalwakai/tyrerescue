@@ -1,5 +1,6 @@
 import { auth } from '@/lib/auth';
 import { isAllowedExpoDevOrigin, isLocalNetworkHost } from '@/lib/api/dev-cors';
+import { getCanonicalHostForRequestHost, normalizeHost } from '@/lib/config/site';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -66,6 +67,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/api/admin/drivers/') ||
     pathname.startsWith('/api/admin/vehicle-fitments/') ||
     pathname === '/api/admin/tracking' ||
+    pathname === '/api/admin/active-jobs' ||
     pathname.startsWith('/api/admin/active-jobs/') ||
     pathname === '/api/driver/status/available' ||
     pathname === '/api/bookings/validate-location' ||
@@ -109,8 +111,10 @@ export async function proxy(request: NextRequest) {
 
   /* ─── Canonical host + protocol redirect (production only) ─── */
   const host = request.headers.get('host') ?? '';
+  const normalizedHost = normalizeHost(host);
   const forwardedProto = request.headers.get('x-forwarded-proto');
   const protocol = (forwardedProto ?? request.nextUrl.protocol.replace(':', '')).toLowerCase();
+  const canonicalHost = getCanonicalHostForRequestHost(host);
 
   const isLocal = isLocalNetworkHost(host);
   const isPreview = host.includes('.vercel.app');
@@ -119,11 +123,12 @@ export async function proxy(request: NextRequest) {
     !isLocal &&
     !isPreview &&
     host.length > 0 &&
-    (host !== 'www.tyrerescue.uk' || protocol !== 'https');
+    (!canonicalHost || normalizedHost !== canonicalHost || protocol !== 'https');
 
   if (needsCanonicalRedirect) {
+    const destinationHost = canonicalHost ?? 'www.tyrerescue.uk';
     const destination = new URL(
-      `https://www.tyrerescue.uk${request.nextUrl.pathname}${request.nextUrl.search}`
+      `https://${destinationHost}${request.nextUrl.pathname}${request.nextUrl.search}`
     );
     return NextResponse.redirect(destination, 308);
   }
@@ -219,6 +224,12 @@ export async function proxy(request: NextRequest) {
     pathname.endsWith('.xml') ||
     pathname.endsWith('.txt') ||
     pathname.endsWith('.ico') ||
+    pathname.endsWith('.jpg') ||
+    pathname.endsWith('.jpeg') ||
+    pathname.endsWith('.png') ||
+    pathname.endsWith('.svg') ||
+    pathname.endsWith('.webp') ||
+    pathname.endsWith('.avif') ||
     pathname.endsWith('.json') ||
     pathname.endsWith('.webmanifest');
 
@@ -266,5 +277,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|avif)$).*)'],
 };

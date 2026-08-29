@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { API_BASE_URL, ApiError, api, getAdminToken } from '@/lib/api';
+import { getApiBaseUrl, ApiError, api, getAdminToken } from '@/lib/api';
 import { colors, fontSize, radius, space } from './theme';
 import { AppButton, FieldLabel, Input, StatusBanner } from './ui';
 import { AdminChromeBackdrop, AdminModalHeader } from './layout/AdminModalShell';
@@ -108,7 +108,7 @@ export function AddAdminModal({ visible, onClose }: AddAdminModalProps) {
     if (!token) return;
     unlockTokenRef.current = null;
     const adminToken = getAdminToken();
-    void fetch(`${API_BASE_URL}/api/mobile/admin/add-admin/unlock`, {
+    void fetch(`${getApiBaseUrl()}/api/mobile/admin/add-admin/unlock`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

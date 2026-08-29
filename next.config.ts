@@ -72,8 +72,8 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               // XHR/beacon: GA4 collect, GTM container, Google Ads conversion (googleadservices + doubleclick + td.doubleclick.net for conversion linker), analytics.google.com, Stripe API, Mapbox, Clarity, Facebook, Trustpilot.
               "connect-src 'self' https://api.mapbox.com https://*.mapbox.com https://api.stripe.com https://events.mapbox.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://stats.g.doubleclick.net https://td.doubleclick.net https://www.google.com https://www.google.co.uk https://www.clarity.ms https://www.facebook.com https://pagead2.googlesyndication.com https://widget.trustpilot.com",
-              // Frames: Stripe checkout, Trustpilot widget, Google Ads conversion iframe (td/bid doubleclick).
-              "frame-src https://js.stripe.com https://hooks.stripe.com https://widget.trustpilot.com https://td.doubleclick.net https://bid.g.doubleclick.net",
+              // Frames: Stripe checkout, Trustpilot widget, Google Ads conversion iframe, and Google Maps embeds.
+              "frame-src https://js.stripe.com https://hooks.stripe.com https://widget.trustpilot.com https://td.doubleclick.net https://bid.g.doubleclick.net https://www.google.com https://www.google.co.uk https://maps.google.com",
               "worker-src 'self' blob:",
               "object-src 'none'",
               "base-uri 'self'",

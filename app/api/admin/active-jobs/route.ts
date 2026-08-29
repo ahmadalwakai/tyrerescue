@@ -13,6 +13,7 @@ import {
   type DriverSituation,
 } from '@/lib/admin/driverSituation';
 import { extractCanonicalTyreLines, totalTyreLineQuantity } from '@/lib/bookings/tyre-line-display';
+import { normalizeProjectSourceApp } from '@/lib/integrations/project-sources';
 
 const ACTIVE_STATUSES = [
   'driver_assigned',
@@ -25,6 +26,9 @@ const STALE_AFTER_SECONDS = 180;
 
 export interface ActiveJobItem {
   bookingRef: string;
+  sourceApp: string;
+  sourceLabel: string;
+  externalReference: string | null;
   bookingId: string;
   status: (typeof ACTIVE_STATUSES)[number];
   scheduledAt: string | null;
@@ -72,10 +76,19 @@ export async function GET(request: NextRequest) {
     return jsonWithExpoDevCors(request, { error: 'Unauthorized' }, { status: 401 });
   }
 
+  const sourceApp = normalizeProjectSourceApp(request.nextUrl.searchParams.get('sourceApp'));
+  const conditions = [inArray(bookings.status, [...ACTIVE_STATUSES])];
+  if (sourceApp && sourceApp !== 'all') {
+    conditions.push(eq(bookings.sourceApp, sourceApp));
+  }
+
   const rows = await db
     .select({
       bookingId: bookings.id,
       bookingRef: bookings.refNumber,
+      sourceApp: bookings.sourceApp,
+      sourceLabel: bookings.sourceLabel,
+      externalReference: bookings.externalReference,
       status: bookings.status,
       scheduledAt: bookings.scheduledAt,
       assignedAt: bookings.assignedAt,
@@ -110,11 +123,7 @@ export async function GET(request: NextRequest) {
     .from(bookings)
     .innerJoin(drivers, eq(drivers.id, bookings.driverId))
     .innerJoin(users, eq(users.id, drivers.userId))
-    .where(
-      and(
-        inArray(bookings.status, [...ACTIVE_STATUSES]),
-      ),
-    )
+    .where(and(...conditions))
     .orderBy(desc(bookings.assignedAt));
 
   const now = Date.now();
@@ -184,6 +193,9 @@ export async function GET(request: NextRequest) {
 
     return {
       bookingRef: row.bookingRef,
+      sourceApp: row.sourceApp,
+      sourceLabel: row.sourceLabel,
+      externalReference: row.externalReference,
       bookingId: row.bookingId,
       status: row.status as (typeof ACTIVE_STATUSES)[number],
       scheduledAt: row.scheduledAt ? new Date(row.scheduledAt).toISOString() : null,

@@ -4,14 +4,15 @@ import { Platform } from 'react-native';
 const TOKEN_KEY = 'auth_token';
 const API_URL_KEY = 'api_url';
 const PRODUCTION_API_URL = 'https://www.tyrerescue.uk';
+const DEV_API_PORT = process.env.EXPO_PUBLIC_API_PORT?.trim() || '3002';
 const API_TIMEOUT_MS = 15_000;
 
 function devWebApiUrl(): string {
-  return ['http://', ['local', 'host'].join(''), ':3000'].join('');
+  return ['http://', ['local', 'host'].join(''), ':', DEV_API_PORT].join('');
 }
 
 function legacyDevWebApiUrl(): string {
-  return ['http://', ['local', 'host'].join(''), ':3002'].join('');
+  return ['http://', ['local', 'host'].join(''), ':3000'].join('');
 }
 
 function defaultApiUrl(): string {

@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { TrackingContent } from './TrackingContent';
+import { getBrandBySourceApp } from '@/lib/config/site';
 
 interface PageProps {
   params: Promise<{ ref: string }>;
@@ -13,8 +14,20 @@ const CUSTOMER_APP_SCHEME = 'tyrerescue';
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { ref } = await params;
+  const [booking] = await db
+    .select({ sourceApp: bookings.sourceApp })
+    .from(bookings)
+    .where(eq(bookings.refNumber, ref))
+    .limit(1);
+  const brand = getBrandBySourceApp(booking?.sourceApp);
   return {
-    title: `Tracking ${ref} | Tyre Rescue`,
+    title: {
+      absolute: `Tracking ${ref} | ${brand.name}`,
+    },
+    metadataBase: new URL(brand.productionUrl),
+    authors: [{ name: brand.name }],
+    creator: brand.name,
+    publisher: brand.name,
     robots: { index: false, follow: false },
     other: {
       'apple-itunes-app': `app-id=6782555222, app-argument=${CUSTOMER_APP_SCHEME}://track?ref=${encodeURIComponent(ref)}`,
@@ -29,6 +42,7 @@ export default async function TrackingPage({ params }: PageProps) {
   const [booking] = await db
     .select({
       refNumber: bookings.refNumber,
+      sourceApp: bookings.sourceApp,
       status: bookings.status,
     })
     .from(bookings)
@@ -57,5 +71,11 @@ export default async function TrackingPage({ params }: PageProps) {
     );
   }
 
-  return <TrackingContent refNumber={ref} initialStatus={booking.status} />;
+  return (
+    <TrackingContent
+      refNumber={ref}
+      initialStatus={booking.status}
+      initialSourceApp={booking.sourceApp}
+    />
+  );
 }

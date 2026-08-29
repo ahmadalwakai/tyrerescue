@@ -1,5 +1,5 @@
 import { Linking, Platform } from 'react-native';
-import { API_BASE_URL, getAdminToken } from './api';
+import { getApiBaseUrl, getAdminToken } from './api';
 
 interface DownloadInvoicePdfInput {
   invoiceId: string;
@@ -22,7 +22,7 @@ function safeInvoiceFilename(invoiceNumber: string): string {
 }
 
 function invoicePdfUrl(invoiceId: string): string {
-  return `${API_BASE_URL}/api/mobile/admin/invoices/${encodeURIComponent(invoiceId)}/pdf`;
+  return `${getApiBaseUrl()}/api/mobile/admin/invoices/${encodeURIComponent(invoiceId)}/pdf`;
 }
 
 function authHeaders(): Record<string, string> {

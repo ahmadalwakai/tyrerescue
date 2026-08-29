@@ -53,6 +53,13 @@ export interface DistanceResult {
   durationSeconds: number | null;
   fallbackReason: string | null;
   selectedDriverId: string | null;
+  originLabel?: string;
+}
+
+export interface DistanceOrigin {
+  lat: number;
+  lng: number;
+  label?: string;
 }
 
 /**
@@ -271,7 +278,7 @@ const MAX_MAPBOX_CANDIDATES = 3;
 async function resolveGarageDistanceForPricing(customer: {
   lat: number;
   lng: number;
-}): Promise<{
+}, origin: DistanceOrigin = GARAGE_LOCATION): Promise<{
   distanceMiles: number;
   durationMinutes: number | null;
   provider: 'mapbox' | 'haversine';
@@ -281,7 +288,7 @@ async function resolveGarageDistanceForPricing(customer: {
   let garageDirections: DirectionsResult | null = null;
   try {
     garageDirections = await getDirections(
-      { lng: GARAGE_LOCATION.lng, lat: GARAGE_LOCATION.lat },
+      { lng: origin.lng, lat: origin.lat },
       { lng: customer.lng, lat: customer.lat },
     );
   } catch {
@@ -298,13 +305,42 @@ async function resolveGarageDistanceForPricing(customer: {
     };
   }
 
-  const hvDist = haversineDistanceMiles(GARAGE_LOCATION, customer) * 1.3;
+  const hvDist = haversineDistanceMiles(origin, customer) * 1.3;
   return {
     distanceMiles: Math.round(hvDist * 100) / 100,
     durationMinutes: null,
     provider: 'haversine',
     distanceMeters: null,
     durationSeconds: null,
+  };
+}
+
+export async function resolveDistanceFromOrigin(
+  customer: { lat: number; lng: number },
+  origin: DistanceOrigin,
+  fallbackReason = 'Using configured pricing origin',
+): Promise<DistanceResult> {
+  const originDistance = await resolveGarageDistanceForPricing(customer, origin);
+
+  return {
+    distanceMiles: originDistance.distanceMiles,
+    durationMinutes: originDistance.durationMinutes,
+    distanceProvider: originDistance.provider,
+    distanceSource: 'garage',
+    pricingDistanceMiles: originDistance.distanceMiles,
+    pricingDistanceSource: 'garage',
+    garageDistanceMiles: originDistance.distanceMiles,
+    garageDurationMinutes: originDistance.durationMinutes,
+    distanceFloorApplied: false,
+    originLat: origin.lat,
+    originLng: origin.lng,
+    destLat: customer.lat,
+    destLng: customer.lng,
+    distanceMeters: originDistance.distanceMeters,
+    durationSeconds: originDistance.durationSeconds,
+    fallbackReason,
+    selectedDriverId: null,
+    originLabel: origin.label,
   };
 }
 

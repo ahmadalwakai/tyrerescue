@@ -412,8 +412,9 @@ async function handlePaymentSucceeded(
     vatAmount: number;
     total: number;
   };
-  const siteUrl = getOutboundUrl();
-  const trackingUrl = `${siteUrl}/tracking/${refNumber}`;
+  const customerSiteUrl = getOutboundUrl(booking.sourceApp);
+  const adminSiteUrl = getOutboundUrl();
+  const trackingUrl = `${customerSiteUrl}/tracking/${refNumber}`;
 
   // Send booking confirmation email to customer
   try {
@@ -500,8 +501,8 @@ async function handlePaymentSucceeded(
           total: priceSnapshot.total,
           scheduledAt: booking.scheduledAt || undefined,
         },
-        `${siteUrl}/admin/bookings/${booking.id}`
-      );
+      `${adminSiteUrl}/admin/bookings/${booking.id}`
+    );
 
       await sendBookingEmailOnce({
         to: adminEmail,

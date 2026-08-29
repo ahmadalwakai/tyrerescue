@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { and, desc, eq, gt } from 'drizzle-orm';
+import { and, desc, eq, gt, ne, or } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { bookings } from '@/lib/db/schema';
 import { getMobileAdminUser, unauthorizedResponse } from '../_lib';
@@ -12,8 +12,9 @@ export const dynamic = 'force-dynamic';
  *
  * Fallback path for the native UrgentAlertWatcherService when FCM delivery
  * is delayed or dropped (Samsung One UI aggressive battery management).
- * Returns the most recent emergency booking created after `since` so the
- * native service can raise the full-screen alert if FCM did not fire.
+ * Returns the most recent direct emergency booking OR integrated-project
+ * booking created after `since` so the native service can raise the
+ * full-screen alert if FCM did not fire.
  *
  * Auth: Authorization: Bearer <mobile admin JWT>
  *
@@ -21,7 +22,8 @@ export const dynamic = 'force-dynamic';
  *   { booking: { id, title, body, customerPhone, createdAt } | null }
  *
  * Notes:
- *   - Only emergency bookings are considered (booking_type = 'emergency').
+ *   - Direct Tyre Rescue emergency bookings are considered.
+ *   - Every integrated external project booking is considered.
  *   - Drafts are excluded.
  *   - The native service dedupes against the last alerted id so we always
  *     return the latest match; we do not track acknowledgement here.
@@ -39,16 +41,22 @@ export async function GET(request: NextRequest) {
     const rows = await db
       .select({
         id: bookings.id,
-        status: bookings.status,
         customerPhone: bookings.customerPhone,
         customerName: bookings.customerName,
         addressLine: bookings.addressLine,
+        sourceApp: bookings.sourceApp,
+        sourceLabel: bookings.sourceLabel,
+        externalReference: bookings.externalReference,
         createdAt: bookings.createdAt,
       })
       .from(bookings)
       .where(
         and(
-          eq(bookings.bookingType, 'emergency'),
+          or(
+            eq(bookings.bookingType, 'emergency'),
+            ne(bookings.sourceApp, 'tyre_rescue'),
+          ),
+          ne(bookings.status, 'draft'),
           gt(bookings.createdAt, since),
         ),
       )
@@ -56,16 +64,23 @@ export async function GET(request: NextRequest) {
       .limit(1);
 
     const row = rows[0];
-    if (!row || row.status === 'draft') {
+    if (!row) {
       return NextResponse.json({ booking: null }, { headers: { 'Cache-Control': 'no-store' } });
     }
+
+    const sourceDisplay =
+      row.sourceApp !== 'tyre_rescue' && row.sourceLabel && row.externalReference
+        ? `${row.sourceLabel} reference ${row.externalReference}`
+        : null;
 
     return NextResponse.json(
       {
         booking: {
           id: row.id,
-          title: 'Emergency booking received',
-          body: `${row.customerName ?? 'Customer'} — ${row.addressLine ?? 'unknown location'}`,
+          title: sourceDisplay ? 'New project booking received' : 'Emergency booking received',
+          body: sourceDisplay
+            ? `${sourceDisplay} — ${row.customerName ?? 'Customer'}`
+            : `${row.customerName ?? 'Customer'} — ${row.addressLine ?? 'unknown location'}`,
           customerPhone: row.customerPhone ?? null,
           createdAt: row.createdAt?.toISOString?.() ?? null,
         },

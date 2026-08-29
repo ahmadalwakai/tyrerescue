@@ -1,12 +1,66 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { HomePage } from './HomePage';
+import { DukeHomePage } from '@/components/duke/DukeHomePage';
 import { db, homepageMedia } from '@/lib/db';
 import { eq, asc } from 'drizzle-orm';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getFAQSchema } from '@/lib/seo/schemas';
 import { homepageFAQItems } from '@/lib/content/faq';
+import { resolveBrandFromHeaders } from '@/lib/config/site';
 
 export async function generateMetadata(): Promise<Metadata> {
+  const brand = resolveBrandFromHeaders(await headers());
+
+  if (brand.key === 'duke_street_tyres') {
+    return {
+      title: {
+        absolute: 'Duke Street Tyres | Mobile Tyre Fitting Glasgow, Edinburgh & Dundee',
+      },
+      description:
+        'Book emergency call-out or scheduled mobile tyre fitting with Duke Street Tyres across Glasgow, Edinburgh and Dundee using the shared live dispatch platform.',
+      keywords: [
+        'Duke Street Tyres',
+        'mobile tyre fitting Glasgow',
+        'mobile tyre fitting Edinburgh',
+        'mobile tyre fitting Dundee',
+        'emergency tyre fitting Glasgow',
+        'tyres Glasgow',
+        'puncture repair Glasgow',
+        'roadside tyre fitting Scotland',
+      ].join(', '),
+      alternates: {
+        canonical: brand.productionUrl,
+      },
+      authors: [{ name: brand.name }],
+      creator: brand.name,
+      publisher: brand.name,
+      metadataBase: new URL(brand.productionUrl),
+      openGraph: {
+        title: 'Duke Street Tyres | Mobile Tyre Fitting',
+        description:
+          'Book mobile tyre fitting through the same live dispatch platform used by the Tyre Rescue operations team.',
+        url: brand.productionUrl,
+        siteName: brand.name,
+        images: [
+          {
+            url: '/duke-street-tyres-van.webp',
+            width: 1200,
+            height: 630,
+            alt: 'Duke Street Tyres mobile tyre fitting',
+          },
+        ],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: 'Duke Street Tyres | Mobile Tyre Fitting',
+        description:
+          'Book emergency call-out or scheduled mobile tyre fitting with Duke Street Tyres across Glasgow, Edinburgh and Dundee.',
+        images: ['/duke-street-tyres-van.webp'],
+      },
+    };
+  }
+
   // Fetch first active hero image for OG
   const [firstSlide] = await db
     .select({ src: homepageMedia.src, alt: homepageMedia.alt })
@@ -62,6 +116,12 @@ const MAX_HERO_SLIDES = 5;
 const HERO_BACKGROUND_SRC = '/images/home/slide-2.webp';
 
 export default async function Page() {
+  const brand = resolveBrandFromHeaders(await headers());
+
+  if (brand.key === 'duke_street_tyres') {
+    return <DukeHomePage />;
+  }
+
   // Fetch active hero slides from DB (cap to MAX_HERO_SLIDES)
   const dbSlides = await db
     .select({

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Bebas_Neue } from 'next/font/google';
+import { headers } from 'next/headers';
 import { Providers } from '@/components/providers';
 import { CookieBanner } from '@/components/ui/CookieBanner';
 import { AnalyticsProvider } from '@/components/ui/AnalyticsProvider';
@@ -10,7 +11,7 @@ import { VisitorTracker } from '@/components/VisitorTracker';
 import { PageviewTracker } from '@/components/analytics/PageviewTracker';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getLocalBusinessSchema, getWebSiteSchema, getOrganizationSchema } from '@/lib/seo/schemas';
-import { getSiteUrl } from '@/lib/config/site';
+import { getSiteUrl, resolveBrandFromHeaders } from '@/lib/config/site';
 import { GA_MEASUREMENT_ID, ADS_CONVERSION_IDS } from '@/lib/analytics/gtag';
 import Script from 'next/script';
 import './globals.css';
@@ -121,20 +122,27 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const brand = resolveBrandFromHeaders(await headers());
+  const isDukeStreet = brand.key === 'duke_street_tyres';
+
   return (
     <html lang="en-GB" className={`${inter.variable} ${bebasNeue.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="" />
         <link rel="dns-prefetch" href="https://www.google-analytics.com" />
         <link rel="dns-prefetch" href="https://widget.trustpilot.com" />
-        <JsonLd data={getLocalBusinessSchema()} />
-        <JsonLd data={getWebSiteSchema()} />
-        <JsonLd data={getOrganizationSchema()} />
+        {!isDukeStreet ? (
+          <>
+            <JsonLd data={getLocalBusinessSchema()} />
+            <JsonLd data={getWebSiteSchema()} />
+            <JsonLd data={getOrganizationSchema()} />
+          </>
+        ) : null}
         {/* Consent default must be set before gtag.js loads. Inline & minimal. */}
         <script
           dangerouslySetInnerHTML={{
@@ -159,12 +167,12 @@ export default function RootLayout({
         </a>
         <Providers>
           {children}
-          <CookieBanner />
+          {!isDukeStreet ? <CookieBanner /> : null}
           <AnalyticsProvider />
           <PageviewTracker />
-          <CallMeBack />
-          <BookingReminder />
-          <FloatingContactBar />
+          {!isDukeStreet ? <CallMeBack /> : null}
+          {!isDukeStreet ? <BookingReminder /> : null}
+          {!isDukeStreet ? <FloatingContactBar /> : null}
           <VisitorTracker />
         </Providers>
       </body>

@@ -13,6 +13,10 @@ import {
 import type {
   AssistedChatDraft,
   AssistedChatServiceType,
+  AssistedChatTyreFitmentOption,
+  AssistedChatTyreSize,
+  AssistedChatVehicle,
+  AssistedChatVehicleFitmentLookupResponse,
   BookingTyreLine,
   TyreSizeSuggestion,
 } from '@/types/assisted-chat';
@@ -92,6 +96,89 @@ function parseSearchWidth(value: string): number | null {
 function toFinitePrice(value: TyreProductPriceResult['priceNew']): number | null {
   const price = typeof value === 'number' ? value : typeof value === 'string' ? Number.parseFloat(value) : NaN;
   return Number.isFinite(price) ? price : null;
+}
+
+function formatLookupTyreSize(size: AssistedChatTyreSize): string {
+  const display = size.sizeDisplay?.trim();
+  if (display) return normalizeAssistedChatTyreSize(display) ?? display;
+
+  const width = String(size.width ?? '').trim();
+  const aspect = String(size.aspect ?? '').trim();
+  const rim = String(size.rim ?? '').trim().replace(/^R/i, '');
+  const commercialSuffix = size.commercial ? 'C' : '';
+  const raw = aspect ? `${width}/${aspect}/R${rim}${commercialSuffix}` : `${width}/R${rim}${commercialSuffix}`;
+  return normalizeAssistedChatTyreSize(raw) ?? raw;
+}
+
+function normalizeLineMetadata(line: BookingTyreLine): BookingTyreLine {
+  return {
+    ...line,
+    axle: line.axle ?? null,
+    loadIndex: line.loadIndex ?? null,
+    speedIndex: line.speedIndex ?? null,
+    runFlat: line.runFlat ?? null,
+    xl: line.xl ?? null,
+    commercial: line.commercial ?? null,
+    brand: line.brand ?? null,
+    pattern: line.pattern ?? null,
+    season: line.season ?? null,
+    source: line.source ?? null,
+    price: line.price ?? null,
+  };
+}
+
+function tyreLineFromLookupSize(
+  id: string,
+  size: AssistedChatTyreSize,
+  quantity: number,
+  axle: string | null = null,
+): BookingTyreLine {
+  return normalizeLineMetadata(createBookingTyreLine({
+    id,
+    size: formatLookupTyreSize(size),
+    quantity,
+    axle,
+    loadIndex: size.loadIndex ?? null,
+    speedIndex: size.speedIndex ?? null,
+    runFlat: size.runFlat ?? null,
+    xl: size.xl ?? null,
+    commercial: size.commercial ?? null,
+    source: size.source ?? null,
+  }));
+}
+
+function tyreLinesFromFitmentOption(
+  option: AssistedChatTyreFitmentOption,
+  existingLines: BookingTyreLine[],
+): BookingTyreLine[] {
+  if (option.tyreLines?.length) {
+    return option.tyreLines.map((line, index) =>
+      normalizeLineMetadata(createBookingTyreLine({
+        id: line.id || existingLines[index]?.id || `tyre-${index + 1}`,
+        size: formatLookupTyreSize(line.size),
+        quantity: line.quantity,
+        axle: line.axle ?? null,
+        loadIndex: line.loadIndex ?? line.size.loadIndex ?? null,
+        speedIndex: line.speedIndex ?? line.size.speedIndex ?? null,
+        runFlat: line.runFlat ?? line.size.runFlat ?? null,
+        xl: line.xl ?? line.size.xl ?? null,
+        commercial: line.commercial ?? line.size.commercial ?? null,
+        source: line.size.source ?? option.source ?? null,
+      })),
+    );
+  }
+
+  const lines = [
+    tyreLineFromLookupSize(existingLines[0]?.id || 'tyre-1', option.front, existingLines[0]?.quantity || 1, option.staggered ? 'front' : null),
+  ];
+
+  if (option.staggered) {
+    lines.push(
+      tyreLineFromLookupSize(existingLines[1]?.id || 'tyre-2', option.rear, existingLines[1]?.quantity || 1, 'rear'),
+    );
+  }
+
+  return lines;
 }
 
 async function enrichSuggestionsWithTyrePrices(
@@ -388,6 +475,16 @@ export function TyreSelectionSection({ draft, update }: Props) {
   const isServiceOnly = isAssistedChatServiceOnly(serviceType);
   const tyreLines = ensureBookingTyreLines(draft.tyreLines);
   const summary = isServiceOnly ? [] : summarizeBookingTyreLines(tyreLines);
+  const draftVehicleRegistration = draft.vehicle?.registrationNumber ?? '';
+  const [vehicleRegInput, setVehicleRegInput] = useState(draftVehicleRegistration);
+  const displayedVehicleReg = vehicleRegInput || draftVehicleRegistration;
+  const [vehicleLookupLoading, setVehicleLookupLoading] = useState(false);
+  const [vehicleLookupMessage, setVehicleLookupMessage] = useState<string | null>(null);
+  const [vehicleLookupError, setVehicleLookupError] = useState<string | null>(null);
+  const [fitmentOptions, setFitmentOptions] = useState<AssistedChatTyreFitmentOption[]>([]);
+  const vehicleLookupSeq = useRef(0);
+  const vehicleLookupAbort = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
   const serviceOnlyNotice =
     serviceType === 'locking_nut'
       ? {
@@ -412,12 +509,96 @@ export function TyreSelectionSection({ draft, update }: Props) {
     savedQuoteRef: null,
   };
 
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      vehicleLookupSeq.current += 1;
+      vehicleLookupAbort.current?.abort();
+    };
+  }, []);
+
   const updateLines = (nextLines: BookingTyreLine[], resetSidewall = false) => {
     update({
-      tyreLines: ensureBookingTyreLines(nextLines),
-      ...(resetSidewall ? { tyreConfirmedFromSidewall: true } : {}),
+      tyreLines: ensureBookingTyreLines(nextLines).map(normalizeLineMetadata),
+      ...(resetSidewall ? { tyreConfirmedFromSidewall: false } : {}),
       ...quoteResetPatch,
     });
+  };
+
+  const applyFitmentOption = (option: AssistedChatTyreFitmentOption) => {
+    update({
+      tyreLines: tyreLinesFromFitmentOption(option, tyreLines),
+      tyreConfirmedFromSidewall: false,
+      ...quoteResetPatch,
+    });
+    setVehicleLookupMessage(`Applied ${option.label}. Confirm this size against the tyre sidewall before booking.`);
+  };
+
+  const lookupVehicleFitment = async () => {
+    const registrationNumber = displayedVehicleReg.trim().toUpperCase().replace(/\s+/g, '');
+    if (!registrationNumber) {
+      setVehicleLookupError('Enter the vehicle registration before lookup.');
+      return;
+    }
+
+    vehicleLookupSeq.current += 1;
+    const seq = vehicleLookupSeq.current;
+    vehicleLookupAbort.current?.abort();
+    const controller = new AbortController();
+    vehicleLookupAbort.current = controller;
+    setVehicleLookupLoading(true);
+    setVehicleLookupError(null);
+    setVehicleLookupMessage(null);
+    setFitmentOptions([]);
+
+    try {
+      const result = await api.post<AssistedChatVehicleFitmentLookupResponse>(
+        '/api/admin/vehicle-fitments/lookup',
+        { registrationNumber },
+        { signal: controller.signal },
+      );
+      if (!mountedRef.current || seq !== vehicleLookupSeq.current) return;
+
+      const vehicle: AssistedChatVehicle | null = result.vehicle ?? result.localVehicle ?? null;
+      const options = result.tyreOptions ?? [];
+      setFitmentOptions(options);
+
+      const patch: Partial<AssistedChatDraft> = {
+        ...(vehicle ? { vehicle } : {}),
+        ...quoteResetPatch,
+      };
+
+      if (options.length === 1) {
+        patch.tyreLines = tyreLinesFromFitmentOption(options[0], tyreLines);
+        patch.tyreConfirmedFromSidewall = false;
+      } else if (result.tyreSize) {
+        patch.tyreLines = [
+          tyreLineFromLookupSize(tyreLines[0]?.id || 'tyre-1', result.tyreSize, tyreLines[0]?.quantity || 1),
+        ];
+        patch.tyreConfirmedFromSidewall = false;
+      }
+
+      if (Object.keys(patch).length > Object.keys(quoteResetPatch).length) {
+        update(patch);
+      }
+
+      if (options.length > 1) {
+        setVehicleLookupMessage('Choose the correct fitment, then confirm this size against the tyre sidewall before booking.');
+      } else if (patch.tyreLines) {
+        setVehicleLookupMessage('Confirm this size against the tyre sidewall before booking.');
+      } else {
+        setVehicleLookupMessage(result.messages?.[0] ?? 'Vehicle found. Enter the tyre size from the sidewall before pricing.');
+      }
+    } catch (error) {
+      if (!mountedRef.current || seq !== vehicleLookupSeq.current) return;
+      if ((error as { name?: string }).name === 'AbortError') return;
+      setVehicleLookupError(error instanceof Error ? error.message : 'Vehicle lookup failed.');
+    } finally {
+      if (!mountedRef.current || seq !== vehicleLookupSeq.current) return;
+      setVehicleLookupLoading(false);
+      vehicleLookupAbort.current = null;
+    }
   };
 
   const updateServiceType = (nextServiceType: AssistedChatServiceType) => {
@@ -469,12 +650,93 @@ export function TyreSelectionSection({ draft, update }: Props) {
             {serviceOnlyNotice.text}
           </Text>
         </View>
-      ) : !tyreLines[0]?.size.trim() ? (
+      ) : (
+        <View style={styles.vehicleLookupBox}>
+          <FieldLabel>Vehicle registration</FieldLabel>
+          <View style={styles.lookupRow}>
+            <TextInput
+              value={displayedVehicleReg}
+              onChangeText={(value) => {
+                setVehicleRegInput(value.toUpperCase());
+                setVehicleLookupError(null);
+                setVehicleLookupMessage(null);
+              }}
+              placeholder="e.g. AB12 CDE"
+              placeholderTextColor={colors.subtle}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              style={[styles.input, styles.lookupInput]}
+            />
+            <AppButton
+              label={vehicleLookupLoading ? 'Checking...' : 'Lookup'}
+              variant="secondary"
+              onPress={lookupVehicleFitment}
+              disabled={vehicleLookupLoading}
+              style={styles.lookupButton}
+            />
+          </View>
+          {vehicleLookupError ? (
+            <Text style={styles.lookupError}>{vehicleLookupError}</Text>
+          ) : null}
+          {vehicleLookupMessage ? (
+            <Text style={styles.lookupMessage}>{vehicleLookupMessage}</Text>
+          ) : null}
+          {fitmentOptions.length > 1 ? (
+            <View style={styles.fitmentOptionStack}>
+              {fitmentOptions.map((option) => (
+                <Pressable
+                  key={option.id}
+                  onPress={() => applyFitmentOption(option)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use ${option.label}`}
+                  style={({ pressed }) => [
+                    styles.fitmentOption,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Text style={styles.fitmentOptionTitle}>{option.label}</Text>
+                  <Text style={styles.fitmentOptionMeta}>
+                    {option.sourceLabel} · {option.confidence} confidence
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </View>
+      )}
+
+      {!isServiceOnly && !tyreLines[0]?.size.trim() ? (
         <Text style={styles.empty}>{helperText}</Text>
       ) : null}
 
       {!isServiceOnly ? (
         <>
+          {tyreLines.some((line) => line.size.trim()) ? (
+            <View style={[
+              styles.sidewallNotice,
+              draft.tyreConfirmedFromSidewall && styles.sidewallNoticeConfirmed,
+            ]}>
+              <View style={styles.sidewallCopy}>
+                <Text style={styles.sidewallNoticeTitle}>
+                  {draft.tyreConfirmedFromSidewall ? 'Sidewall confirmed' : 'Sidewall confirmation required'}
+                </Text>
+                <Text style={styles.sidewallNoticeText}>
+                  Confirm this size against the tyre sidewall before booking.
+                </Text>
+              </View>
+              <AppButton
+                label={draft.tyreConfirmedFromSidewall ? 'Confirmed' : 'Confirm'}
+                variant={draft.tyreConfirmedFromSidewall ? 'secondary' : 'primary'}
+                disabled={draft.tyreConfirmedFromSidewall}
+                onPress={() => update({
+                  tyreConfirmedFromSidewall: true,
+                  ...quoteResetPatch,
+                })}
+                style={styles.sidewallButton}
+              />
+            </View>
+          ) : null}
+
           <View style={styles.cardStack}>
             {tyreLines.map((line, index) => (
               <TyreLineCard
@@ -483,7 +745,7 @@ export function TyreSelectionSection({ draft, update }: Props) {
                 index={index}
                 required={index === 0}
                 serviceType={serviceType}
-                stockSearchEnabled
+                stockSearchEnabled={draft.tyreConfirmedFromSidewall}
                 onChange={(patch) => updateLine(index, patch)}
                 onRemove={index === 0 ? undefined : () => removeLine(index)}
               />
@@ -614,6 +876,87 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   cardStack: { gap: space.md },
+  vehicleLookupBox: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    backgroundColor: colors.glassStrong,
+    padding: space.md,
+    gap: space.sm,
+    ...tyreCardShadow,
+  },
+  lookupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  lookupInput: {
+    flex: 1,
+  },
+  lookupButton: {
+    minWidth: 104,
+  },
+  lookupMessage: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    lineHeight: 18,
+  },
+  lookupError: {
+    color: colors.danger,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  fitmentOptionStack: {
+    gap: space.sm,
+  },
+  fitmentOption: {
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceOverlay,
+    padding: space.sm,
+  },
+  fitmentOptionTitle: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: '800',
+  },
+  fitmentOptionMeta: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    marginTop: 2,
+    textTransform: 'capitalize',
+  },
+  sidewallNotice: {
+    borderColor: colors.warningBorder,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    backgroundColor: colors.warningBg,
+    padding: space.md,
+    gap: space.sm,
+  },
+  sidewallNoticeConfirmed: {
+    borderColor: colors.successBorder,
+    backgroundColor: colors.successBg,
+  },
+  sidewallCopy: {
+    gap: 3,
+  },
+  sidewallNoticeTitle: {
+    color: colors.warning,
+    fontSize: fontSize.sm,
+    fontWeight: '900',
+  },
+  sidewallNoticeText: {
+    color: colors.text,
+    fontSize: fontSize.xs,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
+  sidewallButton: {
+    width: '100%',
+  },
   tyreCard: {
     borderColor: colors.border,
     borderWidth: 1,

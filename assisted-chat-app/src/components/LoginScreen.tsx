@@ -17,12 +17,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { InlineNotice, StatusBanner } from './ui';
 import { colors, fontSize, radius } from './theme';
+import {
+  PROJECTS,
+  type ProjectConfig,
+  type ProjectId,
+} from '@/lib/project-config';
 
 interface Props {
   onLogin: (email: string, password: string) => Promise<void>;
   loggingIn: boolean;
   loginError: string | null;
   expiredMessage: string | null;
+  activeProject: ProjectConfig | null;
+  onSelectProject: (id: ProjectId) => Promise<void>;
+  onClearProject: () => Promise<void>;
 }
 
 // Plain RN Animated (no extra dep). Subtle fade + soft vertical entrance +
@@ -32,6 +40,9 @@ export function LoginScreen({
   loggingIn,
   loginError,
   expiredMessage,
+  activeProject,
+  onSelectProject,
+  onClearProject,
 }: Props) {
   // Animated.Value instances are mutable, so a `useState` lazy initializer
   // gives us a stable reference for the lifetime of the component without
@@ -173,6 +184,37 @@ export function LoginScreen({
     </>
   );
 
+  // No project selected: show workspace picker instead of login form.
+  if (!activeProject) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
+        <LoginBackdrop />
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.pickerScroll}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.pickerShell}>
+            <View style={styles.pickerHeader}>
+              <Text style={styles.pickerEyebrow}>Assisted Chat</Text>
+              <Text style={styles.pickerHeadline}>Choose workspace</Text>
+              <Text style={styles.pickerSub}>
+                Select the business you want to manage.
+              </Text>
+            </View>
+            {PROJECTS.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onSelect={onSelectProject}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
       <LoginBackdrop />
@@ -206,8 +248,8 @@ export function LoginScreen({
               <View style={styles.logoRow}>
                 <Image source={require('../../assets/icon.png')} style={styles.logo} />
                 <View style={styles.logoCopy}>
-                  <Text style={styles.brandTop}>TYRE</Text>
-                  <Text style={styles.brandBottom}>RESCUE</Text>
+                  <Text style={styles.brandTop}>{activeProject.brandLine1}</Text>
+                  <Text style={styles.brandBottom}>{activeProject.brandLine2}</Text>
                 </View>
               </View>
 
@@ -215,7 +257,7 @@ export function LoginScreen({
                 <Text style={styles.brandEyebrow}>Assisted Chat</Text>
                 <Text style={styles.brandHeadline}>Operator console</Text>
                 <Text style={styles.brandText}>
-                  Admin access for active bookings, quotes, payments, and dispatch.
+                  {activeProject.tagline}
                 </Text>
               </View>
 
@@ -226,7 +268,7 @@ export function LoginScreen({
                 </View>
                 <View style={styles.statusTile}>
                   <Text style={styles.statusLabel}>Workspace</Text>
-                  <Text style={styles.statusValue}>Live</Text>
+                  <Text style={styles.statusValue}>{activeProject.brandLine1}</Text>
                 </View>
               </View>
             </Animated.View>
@@ -235,7 +277,7 @@ export function LoginScreen({
               <View style={styles.cardHeader}>
                 <Text style={styles.cardKicker}>Secure sign in</Text>
                 <Text style={styles.cardTitle}>Welcome back</Text>
-                <Text style={styles.cardSubtitle}>Use your Tyre Rescue admin credentials.</Text>
+                <Text style={styles.cardSubtitle}>{activeProject.loginSubtitle}</Text>
               </View>
 
               {Platform.OS === 'web' ? (
@@ -245,11 +287,64 @@ export function LoginScreen({
               ) : (
                 <View>{formContent}</View>
               )}
+
+              <Pressable
+                onPress={() => { void onClearProject(); }}
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.switchWorkspaceBtn, pressed && styles.switchWorkspaceBtnPressed]}
+              >
+                <Text style={styles.switchWorkspaceBtnText}>Switch workspace</Text>
+              </Pressable>
             </View>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+function ProjectCard({
+  project,
+  onSelect,
+}: {
+  project: ProjectConfig;
+  onSelect: (id: ProjectId) => void | Promise<void>;
+}) {
+  const [selecting, setSelecting] = useState(false);
+
+  const handlePress = () => {
+    if (selecting) return;
+    setSelecting(true);
+    Promise.resolve(onSelect(project.id)).finally(() => setSelecting(false));
+  };
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      accessibilityRole="button"
+      disabled={selecting}
+      style={({ pressed }) => [
+        styles.projectCard,
+        pressed && styles.projectCardPressed,
+        selecting && styles.projectCardSelecting,
+      ]}
+    >
+      <View style={styles.projectCardInner}>
+        <View style={styles.projectCardBrand}>
+          <Text style={styles.projectCardLine1}>{project.brandLine1}</Text>
+          <Text style={styles.projectCardLine2}>{project.brandLine2}</Text>
+        </View>
+        <View style={styles.projectCardBody}>
+          <Text style={styles.projectCardName}>{project.name}</Text>
+          <Text style={styles.projectCardTagline}>{project.tagline}</Text>
+        </View>
+        {selecting ? (
+          <ActivityIndicator color={colors.accent} style={styles.projectCardLoader} />
+        ) : (
+          <Text style={styles.projectCardArrow}>›</Text>
+        )}
+      </View>
+    </Pressable>
   );
 }
 
@@ -586,5 +681,118 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 14,
     width: '100%',
+  },
+  switchWorkspaceBtn: {
+    marginTop: 16,
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  switchWorkspaceBtnPressed: {
+    opacity: 0.6,
+  },
+  switchWorkspaceBtnText: {
+    color: colors.subtle,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+  // Project picker styles
+  pickerScroll: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerShell: {
+    width: '100%',
+    maxWidth: 480,
+    gap: 14,
+  },
+  pickerHeader: {
+    marginBottom: 6,
+  },
+  pickerEyebrow: {
+    color: colors.accent,
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0,
+  },
+  pickerHeadline: {
+    color: colors.text,
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: 0,
+    marginTop: 8,
+    lineHeight: 32,
+  },
+  pickerSub: {
+    color: colors.muted,
+    fontSize: fontSize.sm,
+    lineHeight: 19,
+    marginTop: 8,
+  },
+  projectCard: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.glassStrong,
+    ...panelShadow,
+  },
+  projectCardPressed: {
+    opacity: 0.82,
+  },
+  projectCardSelecting: {
+    opacity: 0.7,
+  },
+  projectCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 18,
+    gap: 14,
+  },
+  projectCardBrand: {
+    width: 56,
+    alignItems: 'center',
+  },
+  projectCardLine1: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0,
+    lineHeight: 15,
+  },
+  projectCardLine2: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0,
+    lineHeight: 15,
+  },
+  projectCardBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  projectCardName: {
+    color: colors.text,
+    fontSize: fontSize.md,
+    fontWeight: '900',
+    letterSpacing: 0,
+  },
+  projectCardTagline: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    lineHeight: 16,
+    marginTop: 3,
+  },
+  projectCardArrow: {
+    color: colors.subtle,
+    fontSize: 24,
+    fontWeight: '300',
+    lineHeight: 28,
+  },
+  projectCardLoader: {
+    width: 24,
   },
 });

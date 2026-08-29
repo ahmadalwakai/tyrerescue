@@ -25,6 +25,7 @@ import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
 interface Props {
   visible: boolean;
   onClose: () => void;
+  initialSourceApp?: string | null;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -32,6 +33,16 @@ const STATUS_LABEL: Record<string, string> = {
   en_route: 'En route',
   arrived: 'Arrived',
   in_progress: 'In progress',
+};
+
+const SOURCE_LABELS: Record<string, string> = {
+  tyre_rescue: 'Tyre Rescue',
+  tyrerepair_uk: 'TyreRepair UK',
+  fitmytyre: 'FitMyTyre',
+  duke_street_tyres: 'Duke Street Tyres',
+  tyrehawk_mobile: 'TyreHawk Mobile',
+  tyresos: 'TyreSOS',
+  edinburgh_tyre_fitting: 'Edinburgh Tyre Fitting',
 };
 
 const activeJobsPanelShadow = (
@@ -127,6 +138,19 @@ function situationText(item: ActiveJobItem): string {
   return reason ? `${situation.label} · ${reason}` : situation.label;
 }
 
+function activeJobSourceLine(item: ActiveJobItem): string | null {
+  if (!item.externalReference && item.sourceApp === 'tyre_rescue') return null;
+  if (item.externalReference) {
+    return `${item.sourceLabel || 'External app'} reference ${item.externalReference}`;
+  }
+  return item.sourceLabel || null;
+}
+
+function sourceLabelFor(sourceApp: string | null | undefined): string | null {
+  if (!sourceApp) return null;
+  return SOURCE_LABELS[sourceApp] ?? sourceApp;
+}
+
 function ShimmeringJobRef({ bookingRef }: { bookingRef: string }) {
   const [shimmer] = useState(() => new Animated.Value(0));
   const [width, setWidth] = useState(0);
@@ -177,8 +201,9 @@ function ShimmeringJobRef({ bookingRef }: { bookingRef: string }) {
   );
 }
 
-export function ActiveJobsModal({ visible, onClose }: Props) {
-  const { items, loading, error, lastUpdated, refresh } = useActiveJobs(visible);
+export function ActiveJobsModal({ visible, onClose, initialSourceApp = null }: Props) {
+  const projectFilterLabel = useMemo(() => sourceLabelFor(initialSourceApp), [initialSourceApp]);
+  const { items, loading, error, lastUpdated, refresh } = useActiveJobs(visible, initialSourceApp);
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
   const [reassignTarget, setReassignTarget] = useState<ActiveJobItem | null>(null);
   const [copyingRef, setCopyingRef] = useState<string | null>(null);
@@ -223,11 +248,14 @@ export function ActiveJobsModal({ visible, onClose }: Props) {
       onRequestClose={onClose}
     >
       <AdminModalShell>
-        <AdminModalHeader title="Active jobs" onClose={onClose} />
+        <AdminModalHeader
+          title={projectFilterLabel ? `${projectFilterLabel} active jobs` : 'Active jobs'}
+          onClose={onClose}
+        />
 
         <View style={styles.metaRow}>
           <Text style={styles.metaText}>
-            {items.length} active · {loading ? 'updating…' : lastUpdated ? `updated ${formatRelative(new Date(lastUpdated).toISOString())}` : 'idle'}
+            {items.length} active{projectFilterLabel ? ` · ${projectFilterLabel}` : ''} · {loading ? 'updating…' : lastUpdated ? `updated ${formatRelative(new Date(lastUpdated).toISOString())}` : 'idle'}
           </Text>
           <Pressable
             onPress={refresh}
@@ -260,7 +288,9 @@ export function ActiveJobsModal({ visible, onClose }: Props) {
           ListEmptyComponent={
             !loading ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyText}>No active jobs right now.</Text>
+                <Text style={styles.emptyText}>
+                  {projectFilterLabel ? `No active jobs for ${projectFilterLabel} right now.` : 'No active jobs right now.'}
+                </Text>
               </View>
             ) : null
           }
@@ -273,7 +303,14 @@ export function ActiveJobsModal({ visible, onClose }: Props) {
                 style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
               >
                 <View style={styles.rowHeader}>
-                  <Text style={styles.rowRef}>#{item.bookingRef}</Text>
+                  <View style={styles.rowRefBlock}>
+                    <Text style={styles.rowRef}>#{item.bookingRef}</Text>
+                    {activeJobSourceLine(item) ? (
+                      <Text style={styles.rowSourceRef} numberOfLines={1}>
+                        {activeJobSourceLine(item)}
+                      </Text>
+                    ) : null}
+                  </View>
                   <Text style={[styles.rowStatus, item.driver.isStale && styles.rowStatusStale]}>
                     {STATUS_LABEL[item.status] ?? item.status}
                   </Text>
@@ -1662,8 +1699,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: space.sm,
+  },
+  rowRefBlock: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
   rowRef: { color: colors.text, fontSize: fontSize.md, fontWeight: '700' },
+  rowSourceRef: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '800' },
   rowStatus: {
     color: colors.accent,
     fontSize: fontSize.xs,

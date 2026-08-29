@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { api, API_BASE_URL, getAdminToken } from './api';
+import { api, getApiBaseUrl, getAdminToken } from './api';
 import { isNotificationStartupDisabled } from './notification-startup-config';
 import { isOkResponse } from './notification-safety';
 import {
@@ -236,7 +236,7 @@ export async function ensureUrgentAlertsArmed(): Promise<EnsureUrgentAlertsArmed
       // poll has credentials.
       const adminToken = getAdminToken();
       if (adminToken) {
-        await setUrgentWatcherAuth(adminToken, API_BASE_URL);
+        await setUrgentWatcherAuth(adminToken, getApiBaseUrl());
       }
       watcherStarted = await startUrgentWatcher();
     }

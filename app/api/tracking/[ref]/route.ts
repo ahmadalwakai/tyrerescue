@@ -11,6 +11,8 @@ interface StatusHistoryItem {
 }
 
 interface TrackingResponse {
+  sourceApp: string;
+  sourceLabel: string;
   status: string;
   bookingType: string;
   customerLat: number;
@@ -163,6 +165,8 @@ export async function GET(
     );
 
     const response: TrackingResponse = {
+      sourceApp: booking.sourceApp,
+      sourceLabel: booking.sourceLabel,
       status: booking.status,
       bookingType: booking.bookingType,
       customerLat: parseFloat(booking.lat),

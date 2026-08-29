@@ -4,13 +4,17 @@ import { db, bookings, bookingStatusHistory, drivers } from "@/lib/db";
 import { generateRefNumber } from "@/lib/utils";
 import { executeTransition } from "@/lib/state-machine";
 import { notifyDriverNewJob } from "@/lib/notifications/driver-push";
+import { sendUrgentBookingTopicPush } from "@/lib/notifications/urgent-booking-push";
 import { buildPaymentSummary } from "@/lib/payments/payment-summary";
+import { getProjectSource, formatProjectReference } from "@/lib/integrations/project-sources";
 import {
   isAuthorizedIntegrationRequest,
   integrationUnauthorized,
 } from "../_lib";
 
 export const dynamic = "force-dynamic";
+
+const TYREREPAIR_SOURCE = getProjectSource("tyrerepair_uk");
 
 interface InboundJobBody {
   driverId?: string;
@@ -66,6 +70,9 @@ function toCoordString(
  * map and live tracking — no driver-app or behaviour changes required.
  */
 export async function POST(request: Request) {
+  if (!TYREREPAIR_SOURCE) {
+    return NextResponse.json({ error: "TyreRepair source is not configured" }, { status: 500 });
+  }
   if (!isAuthorizedIntegrationRequest(request))
     return integrationUnauthorized();
 
@@ -174,7 +181,7 @@ export async function POST(request: Request) {
   const originNote = "[via tyrerepair.uk]";
   const notes = [
     originNote,
-    body.externalRef ? `ext:${body.externalRef}` : null,
+    body.externalRef ? formatProjectReference(TYREREPAIR_SOURCE.label, body.externalRef) : null,
     body.notes,
   ]
     .filter(Boolean)
@@ -186,6 +193,9 @@ export async function POST(request: Request) {
       .insert(bookings)
       .values({
         refNumber,
+        sourceApp: TYREREPAIR_SOURCE.app,
+        sourceLabel: TYREREPAIR_SOURCE.label,
+        externalReference: body.externalRef ? String(body.externalRef).trim() : null,
         status: "paid",
         bookingType: String(body.bookingType || "mobile_fitting"),
         serviceType,
@@ -223,6 +233,10 @@ export async function POST(request: Request) {
             ? body.remainingBalancePence
             : null,
         referrer: "tyrerepair.uk",
+        utmSource: TYREREPAIR_SOURCE.app,
+        utmMedium: "integration",
+        utmCampaign: TYREREPAIR_SOURCE.campaign,
+        landingPage: TYREREPAIR_SOURCE.origin,
         notes,
         driverId,
         assignedAt: now,
@@ -261,6 +275,19 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  const sourceDisplay = formatProjectReference(TYREREPAIR_SOURCE.label, body.externalRef);
+  void sendUrgentBookingTopicPush({
+    bookingId,
+    customerPhone,
+    createdAt: now.toISOString(),
+    title: "New project booking received",
+    body: sourceDisplay
+      ? `${sourceDisplay} — ${customerName}`
+      : `${TYREREPAIR_SOURCE.label} booking — ${customerName}`,
+  }).catch((pushError) => {
+    console.error("[tyrerepair-integration] admin urgent push failed:", pushError);
+  });
 
   const driverPayment = buildPaymentSummary(
     {

@@ -27,9 +27,9 @@ npm run android
 Create `assisted-chat-app/.env` (or `.env.local`) with:
 
 ```
-# Local Next.js API base. On Android emulator the auto-detected hostUri:3000
+# Local Next.js API base. On Android emulator the auto-detected hostUri:3002
 # usually works. Override here if you run the API on a LAN IP / different port.
-EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:3000
+EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:3002
 
 # Mapbox public token — same value as the web app's NEXT_PUBLIC_MAPBOX_TOKEN.
 EXPO_PUBLIC_MAPBOX_TOKEN=pk.your-public-mapbox-token
@@ -61,7 +61,7 @@ EXPO_PUBLIC_MAPBOX_TOKEN=pk.your-public-mapbox-token
   npm run dev
   ```
 
-- Confirm `EXPO_PUBLIC_API_BASE_URL` is `http://localhost:3000` (or omit it
+- Confirm `EXPO_PUBLIC_API_BASE_URL` is `http://localhost:3002` (or omit it
   on web — the app auto-detects the browser host).
 - Confirm you are using an existing admin email/password (the same
   credentials that work on the `/admin` web login).
@@ -74,9 +74,9 @@ EXPO_PUBLIC_MAPBOX_TOKEN=pk.your-public-mapbox-token
 The API client (`src/lib/api.ts`) resolves the base URL in this order:
 
 1. `EXPO_PUBLIC_API_BASE_URL` if set.
-2. Expo Metro `hostUri` host + `:3000` (works for LAN devices and emulators
+2. Expo Metro `hostUri` host + `:3002` (works for LAN devices and emulators
    when Metro is on the same host).
-3. Fallback `http://10.0.2.2:3000` (Android emulator alias for host
+3. Fallback `http://10.0.2.2:3002` (Android emulator alias for host
    localhost).
 
 ## Customer location-share link origin
@@ -91,7 +91,7 @@ from another and "Location shared!" never reaches the operator.
   `https://www.tyrerescue.uk`. In dev it follows the same env vars used by
   Stripe/email links (`NEXT_PUBLIC_APP_URL` / `APP_URL` /
   `NEXT_PUBLIC_BASE_URL` / `NEXTAUTH_URL`) and falls back to
-  `http://localhost:3000`.
+  `http://localhost:3002`.
 - The Expo client also normalizes any `/locate/<token>` link returned by
   the backend to the current `EXPO_PUBLIC_API_BASE_URL` whenever that base
   is `localhost`, `127.0.0.1`, `10.0.2.2`, or a private LAN IP. This is a
@@ -101,11 +101,11 @@ from another and "Location shared!" never reaches the operator.
 Recommended dev configurations:
 
 - **Desktop browser at `http://localhost:8081` + API at
-  `http://localhost:3000`** — leave `EXPO_PUBLIC_API_BASE_URL` unset; the
+  `http://localhost:3002`** — leave `EXPO_PUBLIC_API_BASE_URL` unset; the
   client auto-detects the browser host. Generated link will be
-  `http://localhost:3000/locate/<token>`.
+  `http://localhost:3002/locate/<token>`.
 - **Real phone over LAN** — set
-  `EXPO_PUBLIC_API_BASE_URL=http://<your-LAN-IP>:3000` and make sure
+  `EXPO_PUBLIC_API_BASE_URL=http://<your-LAN-IP>:3002` and make sure
   `NEXT_PUBLIC_APP_URL` (or `NEXTAUTH_URL`) on the Next.js dev server is
   set to the same LAN URL so the backend emits a phone-reachable link.
 - **Real phone via tunnel** — point both
@@ -114,7 +114,7 @@ Recommended dev configurations:
 If `EXPO_PUBLIC_API_BASE_URL` is local but the backend still returns a
 `https://www.tyrerescue.uk/locate/...` link, the LocationSection now
 shows a compact warning banner — the typical fix is to set
-`NEXT_PUBLIC_APP_URL=http://localhost:3000` in the Next.js `.env.local`
+`NEXT_PUBLIC_APP_URL=http://localhost:3002` in the Next.js `.env.local`
 and restart `npm run dev`.
 
 ## Future EAS build (do not run automatically)

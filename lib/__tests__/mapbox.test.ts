@@ -5,6 +5,7 @@ import {
   metersToMiles,
   secondsToMinutes,
   resolveDistance,
+  resolveDistanceFromOrigin,
 } from '../mapbox';
 import { GARAGE_LOCATION } from '../garage';
 
@@ -248,5 +249,28 @@ describe('resolveDistance', () => {
     expect(result).toHaveProperty('distanceMeters', 8000);
     expect(result).toHaveProperty('durationSeconds', 600);
     expect(result).toHaveProperty('selectedDriverId', 'drv-1');
+  });
+
+  it('uses an authorized project origin for branch pricing', async () => {
+    const edinburghBranch = {
+      lat: 55.873557,
+      lng: -3.16378,
+      label: 'Unit 28, Imex Business Centre, Loanhead, EH20 9LZ',
+    };
+    mockMapboxDirections(6400, 720);
+
+    const result = await resolveDistanceFromOrigin(
+      { lat: 55.9533, lng: -3.1883 },
+      edinburghBranch,
+      'Using Edinburgh Tyre Fitting pricing origin',
+    );
+
+    expect(result.distanceSource).toBe('garage');
+    expect(result.pricingDistanceSource).toBe('garage');
+    expect(result.pricingDistanceMiles).toBeCloseTo(metersToMiles(6400), 1);
+    expect(result.originLat).toBe(edinburghBranch.lat);
+    expect(result.originLng).toBe(edinburghBranch.lng);
+    expect(result.originLabel).toBe(edinburghBranch.label);
+    expect(result.selectedDriverId).toBeNull();
   });
 });

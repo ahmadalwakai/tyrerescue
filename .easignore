@@ -91,6 +91,28 @@
 !assisted-chat-app/README.md
 !assisted-chat-app/tsconfig.json
 
+# Stock Expo app.
+!stock-app
+!stock-app/
+!stock-app/app
+!stock-app/app/
+!stock-app/app/**
+!stock-app/assets
+!stock-app/assets/
+!stock-app/assets/**
+!stock-app/src
+!stock-app/src/
+!stock-app/src/**
+
+!stock-app/.gitignore
+!stock-app/app.json
+!stock-app/babel.config.js
+!stock-app/eas.json
+!stock-app/expo-env.d.ts
+!stock-app/package-lock.json
+!stock-app/package.json
+!stock-app/tsconfig.json
+
 # Admin Expo app.
 !admin-app
 !admin-app/
