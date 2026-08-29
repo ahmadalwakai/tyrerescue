@@ -23,6 +23,9 @@ import { colors, fontSize, radius, space } from './theme';
 interface MobileListItem {
   id: string;
   refNumber: string;
+  sourceApp: string;
+  sourceLabel: string;
+  externalReference: string | null;
   status: string;
   bookingType: string;
   serviceType: string;
@@ -98,6 +101,9 @@ interface MobileAvailableDriver {
 interface MobileBooking {
   id: string;
   refNumber: string;
+  sourceApp: string;
+  sourceLabel: string;
+  externalReference: string | null;
   status: string;
   bookingType: string;
   serviceType: string;
@@ -179,6 +185,7 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   initialRefNumber?: string | null;
+  initialSourceApp?: string | null;
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -274,6 +281,17 @@ const LOCKING_NUT_OPTIONS = [
   { value: 'no_key', label: 'No Key' },
 ];
 
+const SOURCE_OPTIONS = [
+  { value: 'all', label: 'All projects' },
+  { value: 'tyre_rescue', label: 'Tyre Rescue' },
+  { value: 'tyrerepair_uk', label: 'TyreRepair UK' },
+  { value: 'fitmytyre', label: 'FitMyTyre' },
+  { value: 'duke_street_tyres', label: 'Duke Street Tyres' },
+  { value: 'tyrehawk_mobile', label: 'TyreHawk Mobile' },
+  { value: 'tyresos', label: 'TyreSOS' },
+  { value: 'edinburgh_tyre_fitting', label: 'Edinburgh Tyre Fitting' },
+];
+
 const DATE_FMT = new Intl.DateTimeFormat('en-GB', {
   day: '2-digit',
   month: 'short',
@@ -299,9 +317,27 @@ function formatCurrency(amount: string): string {
   return `£${n.toFixed(2)}`;
 }
 
-function buildListPath(page: number, status: string, search: string, dateFrom: string, dateTo: string): string {
+function isExternalSource(sourceApp?: string | null, externalReference?: string | null): boolean {
+  return Boolean(externalReference?.trim()) || Boolean(sourceApp && sourceApp !== 'tyre_rescue');
+}
+
+function formatSourceReference(sourceLabel?: string | null, externalReference?: string | null): string | null {
+  if (!externalReference?.trim()) return null;
+  const label = sourceLabel?.trim() || 'External app';
+  return `${label} reference ${externalReference.trim()}`;
+}
+
+function buildListPath(
+  page: number,
+  status: string,
+  sourceApp: string,
+  search: string,
+  dateFrom: string,
+  dateTo: string,
+): string {
   const params = new URLSearchParams({ page: String(page) });
   if (status && status !== 'all') params.set('status', status);
+  if (sourceApp && sourceApp !== 'all') params.set('sourceApp', sourceApp);
   if (search.trim()) params.set('search', search.trim());
   if (dateFrom) params.set('dateFrom', dateFrom);
   if (dateTo) params.set('dateTo', dateTo);
@@ -1029,6 +1065,15 @@ function BookingDetailView({
               <SectionTitle title="Booking" />
               <View style={styles.card}>
                 <DetailRow label="Reference" value={data.booking.refNumber} />
+                {isExternalSource(data.booking.sourceApp, data.booking.externalReference) ? (
+                  <>
+                    <DetailRow label="Source" value={data.booking.sourceLabel} />
+                    <DetailRow
+                      label={`${data.booking.sourceLabel || 'External'} reference`}
+                      value={data.booking.externalReference}
+                    />
+                  </>
+                ) : null}
                 <DetailRow label="Service" value={SERVICE_LABELS[data.booking.serviceType] ?? data.booking.serviceType} />
                 <DetailRow label="Type" value={data.booking.bookingType} />
                 <DetailRow
@@ -1203,9 +1248,19 @@ function StatusPicker({
   return <OptionPicker value={value} options={STATUS_OPTIONS} onChange={onChange} />;
 }
 
+function SourcePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return <OptionPicker value={value} options={SOURCE_OPTIONS} onChange={onChange} />;
+}
+
 // ── Main modal ─────────────────────────────────────────────────────────────
 
-export function AdminBookingsModal({ visible, onClose, initialRefNumber = null }: Props) {
+export function AdminBookingsModal({ visible, onClose, initialRefNumber = null, initialSourceApp = null }: Props) {
   const [items, setItems] = useState<MobileListItem[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -1215,22 +1270,27 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null }
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState(initialSourceApp ?? 'all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
   const [appliedSearch, setAppliedSearch] = useState('');
   const [appliedStatus, setAppliedStatus] = useState('all');
+  const [appliedSource, setAppliedSource] = useState(initialSourceApp ?? 'all');
   const [appliedDateFrom, setAppliedDateFrom] = useState('');
   const [appliedDateTo, setAppliedDateTo] = useState('');
 
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
 
-  const loadItems = useCallback(async (p: number, s: string, st: string, df: string, dt: string) => {
+  const loadItems = useCallback(async (p: number, s: string, st: string, source: string, df: string, dt: string) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<MobileListResponse>(buildListPath(p, st, s, df, dt));
-      setItems(res.items);
+      const res = await api.get<MobileListResponse>(buildListPath(p, st, source, s, df, dt));
+      const sorted = [...res.items].sort((a, b) =>
+        (a.sourceLabel ?? '').localeCompare(b.sourceLabel ?? '', undefined, { sensitivity: 'base' }),
+      );
+      setItems(sorted);
       setPage(res.page);
       setTotalPages(res.totalPages);
       setTotalCount(res.totalCount);
@@ -1243,37 +1303,43 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null }
 
   useEffect(() => {
     if (visible) {
+      const nextSource = initialSourceApp ?? 'all';
+      setSourceFilter(nextSource);
+      setAppliedSource(nextSource);
       setSelectedRef(initialRefNumber);
-      void loadItems(1, appliedSearch, appliedStatus, appliedDateFrom, appliedDateTo);
+      void loadItems(1, appliedSearch, appliedStatus, nextSource, appliedDateFrom, appliedDateTo);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, initialRefNumber]);
+  }, [visible, initialRefNumber, initialSourceApp]);
 
   const applyFilters = useCallback(() => {
     setAppliedSearch(search);
     setAppliedStatus(statusFilter);
+    setAppliedSource(sourceFilter);
     setAppliedDateFrom(dateFrom);
     setAppliedDateTo(dateTo);
-    void loadItems(1, search, statusFilter, dateFrom, dateTo);
-  }, [search, statusFilter, dateFrom, dateTo, loadItems]);
+    void loadItems(1, search, statusFilter, sourceFilter, dateFrom, dateTo);
+  }, [search, statusFilter, sourceFilter, dateFrom, dateTo, loadItems]);
 
   const clearFilters = useCallback(() => {
     setSearch('');
     setStatusFilter('all');
+    setSourceFilter('all');
     setDateFrom('');
     setDateTo('');
     setAppliedSearch('');
     setAppliedStatus('all');
+    setAppliedSource('all');
     setAppliedDateFrom('');
     setAppliedDateTo('');
-    void loadItems(1, '', 'all', '', '');
+    void loadItems(1, '', 'all', 'all', '', '');
   }, [loadItems]);
 
   const goToPage = useCallback(
     (p: number) => {
-      void loadItems(p, appliedSearch, appliedStatus, appliedDateFrom, appliedDateTo);
+      void loadItems(p, appliedSearch, appliedStatus, appliedSource, appliedDateFrom, appliedDateTo);
     },
-    [loadItems, appliedSearch, appliedStatus, appliedDateFrom, appliedDateTo],
+    [loadItems, appliedSearch, appliedStatus, appliedSource, appliedDateFrom, appliedDateTo],
   );
 
   const handleClose = useCallback(() => {
@@ -1316,7 +1382,7 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null }
             onChangeText={setSearch}
             onSubmitEditing={applyFilters}
             returnKeyType="search"
-            placeholder="Ref, name, or email..."
+            placeholder="Ref, external ref, project, name, or email..."
             placeholderTextColor={colors.subtle}
             style={styles.searchInput}
             autoCapitalize="none"
@@ -1325,6 +1391,9 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null }
           <View style={styles.filterRow}>
             <View style={styles.filterStatusWrap}>
               <StatusPicker value={statusFilter} onChange={setStatusFilter} />
+            </View>
+            <View style={styles.filterStatusWrap}>
+              <SourcePicker value={sourceFilter} onChange={setSourceFilter} />
             </View>
             <TextInput
               value={dateFrom}
@@ -1366,7 +1435,7 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null }
             <AppButton
               label="Retry"
               variant="secondary"
-              onPress={() => loadItems(page, appliedSearch, appliedStatus, appliedDateFrom, appliedDateTo)}
+              onPress={() => loadItems(page, appliedSearch, appliedStatus, appliedSource, appliedDateFrom, appliedDateTo)}
               style={styles.retryBtn}
             />
           </View>
@@ -1382,7 +1451,14 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null }
                   style={({ pressed }) => [styles.bookingCard, pressed && styles.bookingCardPressed]}
                 >
                   <View style={styles.bookingCardTop}>
-                    <Text style={styles.bookingRef}>{item.refNumber}</Text>
+                    <View style={styles.bookingRefBlock}>
+                      <Text style={styles.bookingRef}>{item.refNumber}</Text>
+                      {isExternalSource(item.sourceApp, item.externalReference) ? (
+                        <Text style={styles.bookingSourceRef} numberOfLines={1}>
+                          {formatSourceReference(item.sourceLabel, item.externalReference) ?? item.sourceLabel}
+                        </Text>
+                      ) : null}
+                    </View>
                     <StatusBadge status={item.status} />
                   </View>
                   <Text style={styles.bookingCustomer} numberOfLines={1}>
@@ -1611,9 +1687,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
   },
+  bookingRefBlock: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
   bookingRef: {
     color: colors.accent,
     fontSize: fontSize.md,
+    fontWeight: '800',
+  },
+  bookingSourceRef: {
+    color: colors.warning,
+    fontSize: fontSize.xs,
     fontWeight: '800',
   },
   bookingCustomer: {

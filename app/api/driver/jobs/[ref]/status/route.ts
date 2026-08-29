@@ -9,6 +9,7 @@ import { jobComplete } from '@/lib/email/templates';
 import { createAdminNotification } from '@/lib/notifications';
 import { sendDriverPushNotification } from '@/lib/notifications/driver-push';
 import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
+import { sendAdminStatusUpdatePush } from '@/lib/notifications/admin-status-push';
 import {
   bookingRequiresWheelNutConsent,
   isValidWheelNutConsent,
@@ -151,6 +152,23 @@ export async function PATCH(request: Request, { params }: Props) {
       },
     }).catch(console.error);
 
+    // Push notification to all admin devices about driver progress
+    const ADMIN_STATUS_TITLES: Record<string, string> = {
+      en_route: 'Driver en route',
+      arrived: 'Driver arrived',
+      in_progress: 'Job in progress',
+      completed: 'Job completed',
+    };
+    const sourceTag = booking.sourceLabel ? `[${booking.sourceLabel}] ` : '';
+    sendAdminStatusUpdatePush({
+      bookingId: booking.id,
+      refNumber: booking.refNumber,
+      title: `${sourceTag}${ADMIN_STATUS_TITLES[newStatus] ?? newStatus}`,
+      body: `${booking.refNumber} — ${booking.customerName ?? 'Customer'}`,
+      type: 'booking_update',
+      sourceLabel: booking.sourceLabel ?? null,
+    }).catch(console.error);
+
     // Persist to driver notification inbox
     const STATUS_LABELS: Record<string, string> = {
       en_route: 'You are en route',
@@ -182,7 +200,7 @@ export async function PATCH(request: Request, { params }: Props) {
 
       // Send job complete email to customer
       try {
-        const siteUrl = getOutboundUrl();
+        const siteUrl = getOutboundUrl(booking.sourceApp);
         const reviewUrl = `${siteUrl}/review/${booking.refNumber}`;
 
         const completeEmail = jobComplete({

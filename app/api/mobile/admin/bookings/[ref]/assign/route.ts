@@ -4,6 +4,7 @@ import { db, bookings, drivers, bookingStatusHistory, tyreProducts, bookingTyres
 import { getMobileAdminUser, unauthorizedResponse } from '@/app/api/mobile/admin/_lib';
 import { executeTransition, type BookingStatus } from '@/lib/state-machine';
 import { notifyDriverNewJob, notifyDriverReassignment } from '@/lib/notifications/driver-push';
+import { sendAdminStatusUpdatePush } from '@/lib/notifications/admin-status-push';
 import { notifyCustomerBookingStatus } from '@/lib/notifications/customer-push';
 import { getBookingPaymentSummary } from '@/lib/payments/payment-summary';
 import { getOutboundUrl } from '@/lib/config/site';
@@ -129,7 +130,7 @@ export async function PATCH(request: Request, { params }: Props) {
     }
 
     // Notification emails — outbound customer link must always be production URL.
-    const siteUrl = getOutboundUrl();
+    const siteUrl = getOutboundUrl(booking.sourceApp);
     const trackingUrl = `${siteUrl}/tracking/${booking.refNumber}`;
 
     const tyreRows = await db
@@ -275,6 +276,17 @@ export async function PATCH(request: Request, { params }: Props) {
       body: `Your assigned driver has been updated for booking ${booking.refNumber}.`,
     });
   }
+
+  // Notify other admin devices that a driver was assigned/reassigned
+  const sourceTag = booking.sourceLabel ? `[${booking.sourceLabel}] ` : '';
+  sendAdminStatusUpdatePush({
+    bookingId: booking.id,
+    refNumber: booking.refNumber,
+    title: `${sourceTag}Driver assigned`,
+    body: `${booking.refNumber} → ${driverUser?.name ?? 'Driver'}`,
+    type: 'booking_update',
+    sourceLabel: booking.sourceLabel ?? null,
+  }).catch(console.error);
 
   return NextResponse.json({ success: true });
 }
