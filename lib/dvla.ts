@@ -131,6 +131,14 @@ export async function lookupVrm(registrationNumber: string): Promise<VrmLookupRe
 
   // Mock fallback — no key configured.
   if (!env.DVLA_API_KEY) {
+    if (process.env.NODE_ENV === 'production') {
+      // Never silently return fake data in production — the admin would see
+      // wrong vehicle details. Surface a clear error instead.
+      return {
+        ok: false,
+        error: { code: 'disabled', message: 'DVLA lookup is not configured. Please contact support.' },
+      };
+    }
     return mockLookup(vrm);
   }
 

@@ -47,7 +47,8 @@ export const env = {
   // DVLA Vehicle Enquiry Service (free trade key — apply at
   // dvladigital.blog.gov.uk). Optional: when blank the VRM lookup falls
   // back to a deterministic mock so dev/preview environments still work.
-  DVLA_API_KEY: optional('DVLA_API_KEY', ''),
+  // Supports both DVLA_API_KEY (new) and DVSA_MOT_API_KEY (legacy Vercel name).
+  DVLA_API_KEY: optional('DVLA_API_KEY', '') || optional('DVSA_MOT_API_KEY', ''),
   DVLA_API_URL: optional(
     'DVLA_API_URL',
     'https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles'
