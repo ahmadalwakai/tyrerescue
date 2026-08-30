@@ -102,6 +102,8 @@ describe('Virtual Landline mobile admin routes', () => {
       items: [
         {
           id: 'interaction-1',
+          source: 'csv',
+          aiTranscript: null,
           direction: 'missed',
           callStatus: 'missed',
           callerNumberRaw: '07700 900111',

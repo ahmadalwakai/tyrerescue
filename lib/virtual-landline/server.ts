@@ -166,8 +166,16 @@ function extractCostRaw(rawRow: unknown): string | null {
   return value ? value : null;
 }
 
+function extractAiTranscript(rawRow: unknown): string | null {
+  if (!rawRow || typeof rawRow !== 'object') return null;
+  const record = rawRow as Record<string, unknown>;
+  const transcript = record['transcript'];
+  return typeof transcript === 'string' && transcript ? transcript : null;
+}
+
 function serializeInteraction(row: {
   id: string;
+  source: string;
   direction: string;
   callStatus: string;
   callerNumberRaw: string | null;
@@ -197,6 +205,7 @@ function serializeInteraction(row: {
 }) {
   return {
     id: row.id,
+    source: row.source,
     direction: row.direction,
     callStatus: row.callStatus,
     callerNumberRaw: row.callerNumberRaw,
@@ -208,6 +217,7 @@ function serializeInteraction(row: {
     endedAt: row.endedAt?.toISOString() ?? null,
     durationSeconds: row.durationSeconds,
     costRaw: extractCostRaw(row.rawRow),
+    aiTranscript: extractAiTranscript(row.rawRow),
     recordingUrl: row.recordingUrl,
     sourceFileName: row.sourceFileName,
     sourceRowNumber: row.sourceRowNumber,
@@ -242,6 +252,7 @@ export async function listVirtualLandlineInteractions(input: {
   search: string;
   direction: string;
   reviewed: string;
+  source?: string;
   limit: number;
   offset: number;
 }) {
@@ -255,6 +266,10 @@ export async function listVirtualLandlineInteractions(input: {
     conditions.push(eq(virtualLandlineInteractions.reviewed, true));
   } else if (input.reviewed === 'false') {
     conditions.push(eq(virtualLandlineInteractions.reviewed, false));
+  }
+
+  if (input.source && input.source !== 'all') {
+    conditions.push(eq(virtualLandlineInteractions.source, input.source));
   }
 
   const search = input.search.trim();
@@ -281,6 +296,7 @@ export async function listVirtualLandlineInteractions(input: {
     db
       .select({
         id: virtualLandlineInteractions.id,
+        source: virtualLandlineInteractions.source,
         direction: virtualLandlineInteractions.direction,
         callStatus: virtualLandlineInteractions.callStatus,
         callerNumberRaw: virtualLandlineInteractions.callerNumberRaw,

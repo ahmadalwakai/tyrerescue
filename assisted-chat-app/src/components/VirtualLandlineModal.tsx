@@ -43,7 +43,8 @@ interface VirtualLandlineModalProps {
 type LoadState = 'idle' | 'loading' | 'loaded' | 'error';
 type ImportState = 'idle' | 'previewing' | 'preview' | 'importing' | 'imported' | 'error';
 
-const FILTERS: Array<{ label: string; direction: string; reviewed: string }> = [
+const FILTERS: Array<{ label: string; direction: string; reviewed: string; source?: string }> = [
+  { label: 'AI Calls', direction: 'incoming', reviewed: 'all', source: 'ai_answer' },
   { label: 'Missed queue', direction: 'missed', reviewed: 'false' },
   { label: 'All calls', direction: 'all', reviewed: 'all' },
   { label: 'Incoming', direction: 'incoming', reviewed: 'all' },
@@ -109,6 +110,7 @@ function interactionStateLabel(interaction: VirtualLandlineInteraction): string 
   if (interaction.linkedBooking) return 'Linked';
   if (interaction.linkedQuickBooking) return 'Draft created';
   if (interaction.reviewed) return 'Reviewed';
+  if (interaction.source === 'ai_answer') return 'AI Answered';
   return 'New';
 }
 
@@ -144,6 +146,7 @@ export function VirtualLandlineModal({ visible, onClose, onCreateDraft }: Virtua
         direction: currentFilter.direction,
         reviewed: currentFilter.reviewed,
       });
+      if (currentFilter.source) params.set('source', currentFilter.source);
       if (search.trim()) params.set('search', search.trim());
       const response = await api.get<VirtualLandlineInteractionsResponse>(
         `/api/mobile/admin/virtual-landline/interactions?${params.toString()}`,
@@ -544,6 +547,12 @@ function InteractionCard({
         {formatDuration(interaction.durationSeconds)} · {interaction.callStatus || 'unknown'}
         {costLabel ? ` · Cost ${costLabel}` : ''}
       </Text>
+      {interaction.aiTranscript ? (
+        <View style={styles.transcriptBox}>
+          <Text style={styles.transcriptLabel}>AI Transcript</Text>
+          <Text style={styles.transcriptText} numberOfLines={4}>{interaction.aiTranscript}</Text>
+        </View>
+      ) : null}
       {interaction.matchedCustomer ? (
         <Text style={styles.matchText} numberOfLines={1}>
           Customer: {interaction.matchedCustomer.name || interaction.matchedCustomer.email || 'Matched customer'}
@@ -932,5 +941,23 @@ const styles = StyleSheet.create({
   linkButtonText: {
     color: colors.accent,
     fontWeight: '900',
+  },
+  transcriptBox: {
+    borderWidth: 1,
+    borderColor: colors.glowBorder,
+    backgroundColor: colors.accentSoft,
+    borderRadius: radius.md,
+    padding: space.sm,
+    gap: 4,
+  },
+  transcriptLabel: {
+    color: colors.accent,
+    fontSize: fontSize.xs,
+    fontWeight: '900',
+  },
+  transcriptText: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    lineHeight: 20,
   },
 });

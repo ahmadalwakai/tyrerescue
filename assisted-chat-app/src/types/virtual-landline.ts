@@ -65,8 +65,10 @@ export interface VirtualLandlineImportResponse {
 
 export interface VirtualLandlineInteraction {
   id: string;
+  source: string;
   direction: VirtualLandlineDirection;
   callStatus: string;
+  aiTranscript: string | null;
   callerNumberRaw: string | null;
   destinationNumberRaw: string | null;
   customerPhoneNormalized: string | null;

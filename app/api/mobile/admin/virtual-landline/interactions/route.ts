@@ -13,6 +13,7 @@ export async function GET(request: Request) {
   const search = url.searchParams.get('search') || '';
   const direction = url.searchParams.get('direction') || 'all';
   const reviewed = url.searchParams.get('reviewed') || 'all';
+  const source = url.searchParams.get('source') || 'all';
 
   if (VIRTUAL_LANDLINE_PREVIEW_ONLY) {
     return NextResponse.json({
@@ -32,6 +33,7 @@ export async function GET(request: Request) {
       search,
       direction,
       reviewed,
+      source,
       limit: perPage,
       offset,
     });
