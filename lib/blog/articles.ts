@@ -6533,6 +6533,479 @@ Need run-flat tyre replacement in Scotland? Call **0141 266 0690** and confirm y
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Emergency tyre fitting](/emergency-tyre-fitting-near-me) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide)`,
   },
+  {
+    slug: 'ford-tyre-fitting-scotland',
+    title: 'Ford Tyre Fitting Scotland: Focus, Fiesta, Kuga, Puma & Transit',
+    description:
+      'Mobile Ford tyre fitting across Scotland. Correct tyre sizes for every Ford model — Focus, Fiesta, Kuga, Puma, EcoSport, Mustang Mach-E, Transit and Transit Connect. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'ford tyre fitting scotland',
+      'ford focus tyres scotland',
+      'ford fiesta tyres scotland',
+      'ford kuga tyres scotland',
+      'ford transit tyres scotland',
+      'ford puma tyres scotland',
+      'ford mustang mach-e tyres scotland',
+      'mobile ford tyre fitting glasgow',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'mobile-tyre-fitting-glasgow',
+    ],
+    content: `# Ford Tyre Fitting Scotland: Every Model Covered
+
+Ford is the best-selling car brand in the UK. From the iconic Ford Fiesta to the popular Ford Focus, Kuga, Puma, and Transit vans, there are more Fords on Scottish roads than any other make. Tyre Rescue provides mobile Ford tyre fitting across all of Scotland — with the right tyre size for every model, loaded on the van before we arrive.
+
+## Ford Focus Tyre Sizes
+
+The Ford Focus (2018–present, fourth generation) uses these factory-standard tyre sizes:
+
+| Focus Trim | Tyre Size |
+|---|---|
+| Focus Style / Trend | 205/55R16 |
+| Focus Active | 215/55R17 |
+| Focus ST-Line | 235/40R18 |
+| Focus ST | 235/35R19 |
+
+Older Focus models (2011–2018, Mk3): 195/65R15 on base trims, 205/55R16 on mid-spec, 225/40R18 on Focus ST.
+
+**TPMS**: Fourth-generation Ford Focus has standard TPMS. A reset is included with every tyre replacement.
+
+## Ford Fiesta Tyre Sizes
+
+The Ford Fiesta (discontinued 2023 but still the most common Ford on Scottish roads) uses:
+
+| Fiesta Trim | Tyre Size |
+|---|---|
+| Fiesta Style (1.0 EcoBoost) | 175/65R14 |
+| Fiesta Zetec | 185/60R15 |
+| Fiesta ST-Line | 195/55R15 or 205/40R17 |
+| Fiesta ST | 215/40R17 |
+
+**Note**: The Fiesta was discontinued in July 2023. However, replacement tyres remain widely needed — it was UK car of the year for multiple consecutive years.
+
+## Ford Puma Tyre Sizes
+
+The Ford Puma (2019–present) is now one of Ford's bestsellers:
+
+| Puma Trim | Tyre Size |
+|---|---|
+| Puma Titanium | 195/65R15 |
+| Puma ST-Line | 215/45R17 |
+| Puma ST-Line X | 215/45R17 |
+| Puma ST | 235/40R18 |
+
+## Ford Kuga Tyre Sizes
+
+The Ford Kuga (third generation, 2019–present) — available as PHEV and mild hybrid:
+
+| Kuga Trim | Tyre Size |
+|---|---|
+| Kuga Titanium | 215/65R16 |
+| Kuga ST-Line | 235/50R18 |
+| Kuga ST-Line X / Vignale | 235/45R19 |
+
+**PHEV models**: The Kuga PHEV adds weight (hybrid battery) so load index is important — Tyre Rescue always matches the correct load index for hybrid and plug-in Ford models.
+
+## Ford Mustang Mach-E Tyre Sizes
+
+The fully electric Ford Mustang Mach-E uses high-load-index tyres to handle EV weight:
+
+| Mach-E Trim | Tyre Size |
+|---|---|
+| Standard Range | 225/55R19 (load index 103+) |
+| Extended Range | 235/50R20 |
+| GT | 255/45R20 |
+
+All Mach-E models have TPMS. The Mach-E has no spare wheel — a flat tyre requires immediate mobile fitting. Call us and we'll confirm stock for your exact EV tyre specification.
+
+## Ford EcoSport Tyre Sizes
+
+The Ford EcoSport (discontinued 2022 in UK):
+
+- 195/60R16 (base trims)
+- 215/55R17 (Titanium trim)
+
+## Ford Galaxy & S-MAX Tyre Sizes
+
+Popular family MPVs:
+
+| Model | Tyre Size |
+|---|---|
+| Galaxy / S-MAX (2015+) | 215/55R17 or 235/45R18 |
+| Galaxy / S-MAX (2006–2015) | 215/55R16 or 225/45R18 |
+
+## Ford Transit & Transit Connect Van Tyre Sizes
+
+Ford Transit vans require C-rated commercial tyres capable of carrying heavy loads:
+
+| Transit Model | Common Tyre Size |
+|---|---|
+| Transit Custom PHEV | 215/65R16C |
+| Transit (L2/L3 panel van) | 215/75R16C or 235/65R16C |
+| Transit (heavy duty) | 215/75R16C or LT235/85R16 |
+| Transit Connect | 205/65R15C or 195/70R15C |
+| Transit Courier | 175/65R14C |
+
+**Commercial fit note**: Transit vans require high load index commercial-rated (C-rated) tyres. Fitting a standard passenger tyre on a Transit is unsafe and illegal. Tyre Rescue carries the correct C-rated stock for all Transit variants.
+
+## Ford TPMS Reset
+
+All Ford models from 2013 onward have TPMS (Tyre Pressure Monitoring System). After any tyre replacement or rotation, the Ford TPMS system requires a reset — otherwise the warning light stays on permanently.
+
+**Ford TPMS reset methods vary by model**:
+- **Indirect TPMS (older models)**: Reset via the vehicle information menu in the instrument cluster — press and hold the button while driving over 25mph
+- **Direct TPMS (2018+ Focus, Kuga, Puma, Mach-E)**: Requires a TPMS diagnostic tool to read and reset each sensor
+
+Tyre Rescue carries TPMS reset tools for all Ford models. Reset is included at no additional charge with every tyre fitting.
+
+## Emergency Ford Tyre Fitting in Scotland
+
+If you have a flat Ford tyre anywhere in Scotland:
+
+1. **Move off the road** safely — hard shoulder, car park, layby
+2. **Do not drive on a flat** — it will destroy the tyre and potentially the wheel
+3. **Call 0141 266 0690** — we'll confirm your tyre size from your registration number and give you an ETA
+4. We carry Focus, Fiesta, Kuga, Puma, and Transit tyres on every van
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+
+## Why Use Tyre Rescue for Your Ford?
+
+- **Correct tyre size every time** — we look up your reg and confirm before ordering
+- **TPMS reset included** — no warning light after we've finished
+- **Commercial Ford Transit tyres in stock** — C-rated commercial tyres ready
+- **All of Scotland covered** — from your driveway in Glasgow to a layby in the Highlands
+
+Call **0141 266 0690** or [book online](/book) to arrange mobile Ford tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Van tyre fitting Scotland](/blog/van-tyre-fitting-scotland)`,
+  },
+  {
+    slug: 'volkswagen-tyre-fitting-scotland',
+    title: 'Volkswagen Tyre Fitting Scotland: Golf, Polo, Passat, Tiguan & More',
+    description:
+      'Mobile VW tyre fitting across Scotland. Correct tyre sizes for every Volkswagen model — Golf, Polo, Passat, Tiguan, T-Roc, ID.3, ID.4, Transporter. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'volkswagen tyre fitting scotland',
+      'vw golf tyres scotland',
+      'vw polo tyres scotland',
+      'vw tiguan tyres scotland',
+      'vw passat tyres scotland',
+      'vw id.4 tyres scotland',
+      'volkswagen transporter tyres scotland',
+      'mobile vw tyre fitting glasgow',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'tesla-tyre-fitting-scotland',
+    ],
+    content: `# Volkswagen Tyre Fitting Scotland: Every VW Model Covered
+
+Volkswagen is one of the most popular car brands in Scotland, particularly in Glasgow, Edinburgh, and Aberdeen. From the VW Polo and Golf to the Tiguan SUV and ID.4 electric, Tyre Rescue provides specialist mobile VW tyre fitting across all of Scotland — with the right tyre for your exact model, already on the van when we arrive.
+
+## VW Golf Tyre Sizes
+
+The Golf (Mk8, 2020–present) is one of the most-fitted tyre models in Scotland:
+
+| Golf Trim | Tyre Size |
+|---|---|
+| Golf Life / Style | 205/55R16 or 215/50R17 |
+| Golf R-Line | 225/45R17 or 235/35R19 |
+| Golf GTI | 225/40R18 or 225/35R19 |
+| Golf GTE (PHEV) | 205/55R16 or 225/45R17 |
+| Golf R | 235/35R19 |
+| Golf Alltrack | 215/60R17 |
+
+VW Golf Mk7 (2012–2020): 195/65R15 base, 205/55R16 mid, 225/40R18 GTI/R.
+
+**GTE PHEV note**: The Golf GTE carries extra battery weight — the correct load index is critical. Tyre Rescue confirms load index compatibility before fitting any PHEV model.
+
+## VW Polo Tyre Sizes
+
+The Polo (Mk6, 2017–present):
+
+| Polo Trim | Tyre Size |
+|---|---|
+| Polo Life / Style | 185/65R15 or 195/55R16 |
+| Polo R-Line | 215/40R17 |
+| Polo GTI | 215/40R17 |
+
+Older Polo (2009–2017, Mk5): 175/65R14 base, 185/60R15 mid-spec.
+
+## VW Passat Tyre Sizes
+
+The Passat (B8, 2014–2023; now replaced by Passat Estate):
+
+| Passat Trim | Tyre Size |
+|---|---|
+| Passat SE | 215/55R17 |
+| Passat SEL / Elegance | 225/45R17 or 245/40R18 |
+| Passat Alltrack | 235/55R18 |
+| Passat Estate R-Line | 245/40R18 |
+
+The Passat GTE PHEV uses 235/45R17 with enhanced load rating.
+
+## VW Tiguan Tyre Sizes
+
+The Tiguan (Mk2, 2016–present) is VW's bestselling SUV:
+
+| Tiguan Trim | Tyre Size |
+|---|---|
+| Tiguan Life | 215/65R17 |
+| Tiguan Style / R-Line | 235/50R19 |
+| Tiguan R | 235/45R20 |
+| Tiguan Allspace | 235/55R18 |
+
+**eHybrid note**: The Tiguan eHybrid has additional kerb weight — the correct load index (typically 103+) is mandatory.
+
+## VW T-Roc Tyre Sizes
+
+| T-Roc Trim | Tyre Size |
+|---|---|
+| T-Roc Life / Style | 215/55R17 |
+| T-Roc R-Line | 235/45R18 or 235/40R19 |
+| T-Roc R | 235/40R19 |
+| T-Roc Cabriolet | 235/45R18 |
+
+## VW ID.3 & ID.4 Electric Tyre Sizes
+
+VW electric vehicles have specific tyre requirements due to their weight and instant torque:
+
+**VW ID.3** (2020–present):
+- Standard: 215/50R20 or 215/55R18
+- Plus: 235/40R20
+- All ID.3 tyres have acoustic foam inside the liner to reduce EV road noise
+
+**VW ID.4** (2021–present):
+- Standard / Pro: 235/50R20 or 235/55R19
+- GTX (4Motion): 235/50R20 or 255/45R20
+- All load index 104+
+
+**EV tyre fitting note**: ID.3 and ID.4 do not come with spare wheels. A flat requires immediate mobile tyre fitting. Call us and we'll confirm stock for your exact VW EV tyre specification. We stock acoustic foam-lined VW OE-approved tyres for ID models.
+
+## VW Touareg Tyre Sizes
+
+| Touareg Trim | Tyre Size |
+|---|---|
+| Touareg SEL | 255/55R18 |
+| Touareg R-Line | 275/45R20 or 285/45R20 |
+| Touareg eHybrid | 275/45R20 |
+
+The Touareg eHybrid is one of the heaviest VW models — load index requirements are stringent (typically 109+).
+
+## VW Transporter & Caravelle Van Tyre Sizes
+
+The Transporter T6.1 (2019–present) requires C-rated commercial tyres:
+
+| Model | Common Tyre Size |
+|---|---|
+| Transporter T6.1 (panel van) | 215/65R16C or 235/65R16C |
+| Transporter T6.1 (high roof) | 215/65R16C |
+| Caravelle | 235/55R17 (passenger-rated) |
+| Multivan | 235/55R17 |
+
+**Van note**: Transporter panel vans used commercially require C-rated tyres. Tyre Rescue carries correct C-rated commercial stock for all Transporter variants.
+
+## VW Caddy Tyre Sizes
+
+The Caddy (Mk5, 2020–present):
+- 195/75R16C (cargo van)
+- 215/60R17 (Life people carrier)
+
+## VW TPMS Reset
+
+All VW models from 2015 onward have mandatory TPMS. After any tyre change on a Volkswagen:
+
+- **Indirect TPMS (most models)**: Reset via the infotainment menu — Car → Tyres → Store
+- **Direct TPMS (ID.3, ID.4, Touareg)**: Requires a diagnostic tool to reset each sensor
+
+Tyre Rescue carries VW-compatible TPMS reset tools. Reset is included at no additional charge with every fitting.
+
+## Emergency VW Tyre Fitting in Scotland
+
+If you have a flat tyre on your Volkswagen anywhere in Scotland:
+
+1. **Move off the road safely** — car park, layby, or hard shoulder
+2. **Do not drive on a completely flat tyre** — you will damage the wheel rim
+3. **Call 0141 266 0690** — we confirm tyre size from your VW registration and give you an ETA
+4. We carry Golf, Polo, Tiguan, ID.4, and Transporter tyres across all service areas
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+## Why Use Tyre Rescue for Your Volkswagen?
+
+- **VW-specific tyre expertise** — we know the differences between Golf GTI, GTE, and R tyre specs
+- **EV tyre specialists** — acoustic foam-lined tyres for ID.3 and ID.4 in stock
+- **Commercial Transporter stock** — C-rated van tyres ready to fit
+- **TPMS reset included** — your VW warning light won't stay on after we've finished
+- **All of Scotland covered** — from Glasgow to the Highlands
+
+Call **0141 266 0690** or [book online](/book) for mobile VW tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland)`,
+  },
+  {
+    slug: 'vauxhall-tyre-fitting-scotland',
+    title: 'Vauxhall Tyre Fitting Scotland: Corsa, Astra, Mokka, Insignia & Vivaro',
+    description:
+      'Mobile Vauxhall tyre fitting across Scotland. Correct tyre sizes for every Vauxhall model — Corsa, Astra, Mokka, Crossland, Grandland, Insignia, and Vivaro van. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'vauxhall tyre fitting scotland',
+      'vauxhall corsa tyres scotland',
+      'vauxhall astra tyres scotland',
+      'vauxhall mokka tyres scotland',
+      'vauxhall insignia tyres scotland',
+      'vauxhall vivaro tyres scotland',
+      'vauxhall grandland tyres scotland',
+      'mobile vauxhall tyre fitting glasgow',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'ford-tyre-fitting-scotland',
+    ],
+    content: `# Vauxhall Tyre Fitting Scotland: Every Model Covered
+
+Vauxhall (known as Opel outside the UK) has been one of the UK's most popular car brands for decades. The Vauxhall Corsa, Astra, and Mokka are among the most-driven cars in Scotland, and the Vivaro is a fixture on Scottish worksites and driveways. Tyre Rescue provides mobile Vauxhall tyre fitting across all of Scotland — the right tyre for your model, fitted at your location.
+
+## Vauxhall Corsa Tyre Sizes
+
+The Vauxhall Corsa F (2019–present) — now available as electric (Corsa-e):
+
+| Corsa Trim | Tyre Size |
+|---|---|
+| Corsa SE / Elite | 195/55R16 |
+| Corsa GS / Ultimate | 205/45R17 |
+| Corsa-e (electric) | 195/55R16 or 215/45R17 (load index 91+) |
+
+Corsa E (2014–2019): 175/65R14 base, 185/65R15 mid, 195/55R16 upper trims.
+
+**Corsa-e note**: Electric Corsa-e models have no spare wheel. A flat requires immediate mobile fitting.
+
+## Vauxhall Astra Tyre Sizes
+
+The Vauxhall Astra L (2022–present, sixth generation):
+
+| Astra Trim | Tyre Size |
+|---|---|
+| Astra Design / GS | 225/45R17 or 235/40R18 |
+| Astra GSe PHEV | 235/40R18 (load index 95+) |
+| Astra Sports Tourer | 225/45R17 or 235/40R18 |
+
+Astra K (2015–2022): 195/65R15 base, 205/55R16 mid, 235/40R18 on OPC line.
+
+**PHEV note**: The Astra GSe plug-in hybrid requires tyres with a load index of 95+ to accommodate the battery weight. We always verify load index before fitting PHEV models.
+
+## Vauxhall Mokka Tyre Sizes
+
+The Vauxhall Mokka B (2021–present) and Mokka-e:
+
+| Mokka Trim | Tyre Size |
+|---|---|
+| Mokka SE / GS | 215/65R16 or 215/55R17 |
+| Mokka GS Line | 225/50R17 |
+| Mokka Ultimate | 215/45R18 |
+| Mokka-e (electric) | 215/50R17 (load index 95+) or 215/45R18 |
+
+Older Mokka A (2012–2019): 215/60R17 base, 225/55R17 upper trims.
+
+## Vauxhall Crossland Tyre Sizes
+
+The Crossland (2017–present) — compact crossover:
+
+- 195/65R15 (base trims)
+- 205/60R16 (mid trims)
+- 215/55R17 (upper trims)
+
+## Vauxhall Grandland Tyre Sizes
+
+The Grandland (2021–present, refreshed generation):
+
+| Grandland Trim | Tyre Size |
+|---|---|
+| Grandland GS | 235/55R18 |
+| Grandland GS Line | 235/50R19 |
+| Grandland GSe PHEV | 235/50R19 (load index 103+) |
+| Grandland Ultimate | 235/50R19 |
+
+The Grandland GSe is one of Vauxhall's heaviest models — correct load index is essential.
+
+## Vauxhall Insignia Tyre Sizes
+
+The Insignia Grand Sport and Sports Tourer (2017–2022 and older Mk1):
+
+| Insignia Trim | Tyre Size |
+|---|---|
+| Insignia Design | 215/60R16 |
+| Insignia SRi / Elite | 235/45R17 or 245/40R18 |
+| Insignia GSi | 245/40R18 |
+| Insignia Country Tourer | 235/55R17 |
+
+Older Insignia A (2008–2017): 215/55R16 base, 235/45R18 on upper trims.
+
+## Vauxhall Vivaro & Combo Van Tyre Sizes
+
+The Vauxhall Vivaro C (2019–present) requires C-rated commercial tyres:
+
+| Vivaro / Combo Model | Tyre Size |
+|---|---|
+| Vivaro (L1 standard) | 215/65R16C |
+| Vivaro (L2 long wheelbase) | 215/65R16C or 235/60R17C |
+| Vivaro-e (electric) | 215/65R16C (high load index) |
+| Combo Cargo (small panel van) | 195/70R15C |
+
+**Van fitting note**: Vivaro vans require C-rated tyres — passenger tyres are unsafe on commercial vehicles. The Vivaro-e electric van also requires C-rated tyres with appropriate load index (typically 104+) to handle the additional EV battery weight.
+
+## Vauxhall TPMS Reset
+
+All Vauxhall models from 2016 onward have TPMS. After any tyre replacement:
+
+- **Indirect TPMS (most Vauxhall models)**: Reset via the vehicle information display — navigate to tyre pressure settings and select "Reset"
+- **Direct TPMS (Astra L, Grandland, Mokka-e)**: Requires a TPMS diagnostic tool to communicate with each wheel sensor
+
+Tyre Rescue carries Vauxhall-compatible TPMS reset tools. Reset is included with every fitting — your warning light will be cleared before we leave.
+
+## Emergency Vauxhall Tyre Fitting in Scotland
+
+If you have a flat tyre on your Vauxhall anywhere in Scotland:
+
+1. **Pull off the road safely** — do not drive on a flat rim
+2. **Call 0141 266 0690** — give us your registration number and we'll identify the correct tyre size
+3. We'll confirm an ETA and price before dispatching
+4. We carry Corsa, Astra, Mokka, Grandland, and Vivaro tyres across all areas
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+
+## Why Use Tyre Rescue for Your Vauxhall?
+
+- **Vauxhall PHEV expertise** — correct load index for Astra GSe, Grandland GSe, and Mokka-e
+- **Commercial Vivaro stock** — C-rated van tyres ready to fit across Scotland
+- **TPMS reset included** — dashboard warnings cleared at the time of fitting
+- **All Scottish postcodes covered** — G to ZE
+- **No hidden fees** — we quote the total price before any work begins
+
+Call **0141 266 0690** or [book online](/book) for mobile Vauxhall tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Van tyre fitting Scotland](/blog/van-tyre-fitting-scotland) | [Ford tyre fitting Scotland](/blog/ford-tyre-fitting-scotland)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
