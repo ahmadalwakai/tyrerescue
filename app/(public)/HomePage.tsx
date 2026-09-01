@@ -71,14 +71,14 @@ const services = [
     num: '01',
     title: 'Emergency Callout',
     description:
-      'Flat tyre near me? Our emergency mobile tyre fitters respond across Glasgow and Edinburgh within 45 minutes, 24 hours a day, 7 days a week.',
+      'Flat tyre anywhere in Scotland? Our emergency mobile tyre fitters respond across the whole of Scotland, 24 hours a day, 7 days a week. Glasgow and Edinburgh typically within 45 minutes.',
     price: SERVICE_PRICING.emergency.label,
   },
   {
     num: '02',
     title: 'Mobile Tyre Fitting',
     description:
-      'New tyres fitted at your location. We are the mobile tyre shop that comes to you — at home, at work, or at the roadside across Glasgow.',
+      'New tyres fitted at your location anywhere in Scotland. We are the mobile tyre shop that comes to you — at home, at work, or at the roadside across Glasgow, Edinburgh, Aberdeen, Inverness and beyond.',
     price: SERVICE_PRICING.fitting.label,
   },
   {
@@ -108,10 +108,10 @@ const testimonials = [
 
 const marqueeItems = [
   'EMERGENCY CALLOUT',
-  'GLASGOW & EDINBURGH',
+  'ALL OF SCOTLAND',
   '24 HOURS A DAY',
   'FULLY INSURED',
-  '100 MILE COVERAGE',
+  'GLASGOW TO SHETLAND',
   'MOBILE TYRE FITTING',
   'PUNCTURE REPAIR',
   'QUALITY TYRES',
@@ -1006,7 +1006,7 @@ function ConversionHero() {
               lineHeight="1.45"
               maxW="640px"
             >
-              We come to you at home, work or roadside with emergency mobile fitting across Central Scotland.
+              We come to you at home, work or roadside with emergency mobile fitting across all of Scotland — Glasgow to Shetland.
             </Text>
           </motion.div>
 
@@ -1958,7 +1958,7 @@ export function HomePage() {
           <Container maxW="4xl">
             <AIOptimizedSection
               question="What is Mobile Tyre Fitting and How Does It Work?"
-              directAnswer="Mobile tyre fitting is when a certified technician comes to your location — home, work, or roadside — with all equipment needed to fit new tyres or repair punctures. In Glasgow and Edinburgh, Tyre Rescue typically arrives within 45 minutes of booking, completes the fitting on-site in 30–45 minutes, and you pay only when the job is done."
+              directAnswer="Mobile tyre fitting is when a certified technician comes to your location — home, work, or roadside — with all equipment needed to fit new tyres or repair punctures. Tyre Rescue covers all of Scotland: Glasgow and Edinburgh typically within 45 minutes, Aberdeen and Inverness within 90 minutes, with the Highlands and Islands served by advance booking. Fitting is completed on-site in 30–45 minutes and you pay only when the job is done."
               entityType="process"
               detailedAnswer={
                 <Flex direction="column" gap="30px">

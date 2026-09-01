@@ -163,6 +163,72 @@ export const faqItems: FAQItem[] = [
     category: 'general',
     isHomepageVisible: false,
   },
+
+  // ── City-Specific ─────────────────────────────────────
+  {
+    id: 'aberdeen-coverage',
+    question: 'Do you offer mobile tyre fitting in Aberdeen?',
+    answer:
+      'Yes. We cover Aberdeen and all AB postcodes including the city centre, Bridge of Don, Dyce, Westhill, Portlethen and Stonehaven. Response time to Aberdeen city centre is approximately 90 minutes. We also cover Inverurie, Ellon, Peterhead and Fraserburgh — call 0141 266 0690 for your exact ETA.',
+    category: 'general',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'inverness-coverage',
+    question: 'Do you cover Inverness and the Scottish Highlands?',
+    answer:
+      'Yes. We cover Inverness and all IV postcodes, plus Aviemore, Grantown-on-Spey, Nairn, Dingwall, and Invergordon. For most Inverness city locations, response time is 90–120 minutes. We also serve the NC500 route — if you have a flat tyre in the Highlands, call 0141 266 0690 immediately and we will dispatch the nearest available fitter.',
+    category: 'general',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'dundee-coverage',
+    question: 'Do you offer mobile tyre fitting in Dundee?',
+    answer:
+      'Yes. We cover Dundee and all DD postcodes including the city centre, Broughty Ferry, Monifieth, and the Angus towns of Arbroath and Forfar. Response time to Dundee city centre is approximately 65 minutes from our base.',
+    category: 'general',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'nc500-flat-tyre',
+    question: 'What should I do if I get a flat tyre on the NC500?',
+    answer:
+      'Pull safely off the road, turn on hazard lights, and call 0141 266 0690 immediately. We cover the entire NC500 route. Tell us your exact location — a postcode, road number, nearest village, or what3words address. Response times vary depending on your location on the route, from 90 minutes near Inverness to 3+ hours on the most remote north-west sections. For remote sections of the NC500 we recommend checking all four tyres before setting off.',
+    category: 'emergency',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'rural-scotland-coverage',
+    question: 'Can you reach rural areas and villages in Scotland?',
+    answer:
+      'Yes. We cover rural Scotland including Perthshire, Angus, Aberdeenshire, the Scottish Borders, Argyll, and the Highlands. For most rural locations we can dispatch a fitter the same day. In very remote areas — beyond 30 miles from a major town — we recommend calling in advance so we can confirm a realistic ETA and ensure the right tyres are on the van.',
+    category: 'general',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'scotland-islands',
+    question: 'Do you cover the Scottish Islands?',
+    answer:
+      'We operate mobile tyre fitting on the larger Scottish islands including Lewis and Harris (Stornoway), Shetland (Lerwick), and Orkney (Kirkwall), as well as Skye, Arran, and the Inner Hebrides. Island services require advance booking of at least 24 hours due to ferry logistics. Call 0141 266 0690 to check availability and confirm your booking.',
+    category: 'general',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'winter-tyres-scotland',
+    question: 'Do you fit winter tyres in Scotland?',
+    answer:
+      'Yes. We stock winter tyres for common vehicle sizes and can fit them at your location across Scotland. Winter tyre fitting is recommended from October to March, particularly for drivers in the Highlands, rural areas, or anyone who regularly uses the A9, A82, A93 or other Highland routes in snow conditions. Book early in autumn as demand is high.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'tpms-scotland',
+    question: 'Do you offer TPMS sensor replacement in Scotland?',
+    answer:
+      'Yes. We carry TPMS sensors for most common vehicle makes and models and can replace faulty sensors and reset the system at your location. TPMS sensor issues are common after tyre changes, especially on German-brand vehicles. If your tyre pressure warning light remains on after a fitting, call us on 0141 266 0690 and we will diagnose and resolve it.',
+    category: 'services',
+    isHomepageVisible: false,
+  },
 ];
 
 /**

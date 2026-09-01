@@ -1333,6 +1333,695 @@ Yes. Livingston's industrial estates mean van and commercial tyre callouts are c
 ### Is the service the same from Glasgow as from Edinburgh?
 We dispatch whichever fitter is closer and available. During busy periods, West Lothian may be reached from either Glasgow or Edinburgh — you get the nearest available fitter.`,
   },
+  {
+    slug: 'mobile-tyre-fitting-aberdeen-guide',
+    title: 'Mobile Tyre Fitting in Aberdeen: Emergency & Scheduled Service',
+    description:
+      'Need a tyre fitter in Aberdeen? Complete guide to mobile tyre fitting in Aberdeen — costs, response times, AB postcode coverage and how to get a fitter to you fast. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    keywords: [
+      'mobile tyre fitting aberdeen',
+      'emergency tyre fitting aberdeen',
+      'tyre fitter aberdeen',
+      'flat tyre aberdeen',
+      '24 hour tyre fitting aberdeen',
+      'tyre repair aberdeen',
+      'mobile tyre aberdeen',
+      'ab postcode tyre fitting',
+    ],
+    relatedSlugs: [
+      'emergency-tyre-fitting-glasgow-complete-guide',
+      'tyre-fitting-costs-scotland-pricing-guide',
+    ],
+    featured: true,
+    content: `## Mobile Tyre Fitting in Aberdeen — Fast, Professional, Scotland-Wide
+
+Aberdeen is Scotland's third-largest city and one of our major service hubs in the north-east. Whether you have a flat tyre on the A90, a slow puncture in Westhill, or a blowout on the A96 out of the city, Tyre Rescue dispatches a mobile fitter to your exact location — 24 hours a day, 7 days a week.
+
+**Quick answer:** Call 0141 266 0690. A fitter reaches most Aberdeen city centre locations within 90 minutes. Fitting starts from £20 per tyre (plus tyre cost) with no Aberdeen surcharge.
+
+## Response Times Across Aberdeen
+
+Aberdeen's road network — the A90 dual carriageway, the Western Peripheral Route (AWPR), and the city's busy harbour approach roads — affects arrival times. Here's what to expect:
+
+| Area | Postcode | Avg Response |
+|------|----------|-------------|
+| City Centre / Union Street | AB10–AB11 | 90 min |
+| West End / Rubislaw | AB15 | 90 min |
+| Bridge of Don / Danestone | AB22–AB23 | 95 min |
+| Dyce / Airport area | AB21 | 95 min |
+| Westhill (Aberdeenshire) | AB32 | 100 min |
+| Stonehaven | AB39 | 110 min |
+| Inverurie | AB51 | 110 min |
+| Banchory | AB31 | 115 min |
+| Peterhead | AB42 | 130 min |
+| Fraserburgh | AB43 | 140 min |
+
+Response times may vary during the morning and evening rush hours on the A90 and AWPR.
+
+## Areas We Cover in Aberdeen and Aberdeenshire
+
+We cover all AB postcodes including:
+
+- **AB10–AB16:** City centre, Old Aberdeen, Woodside, Midstocket, Cults, Mannofield, Garthdee
+- **AB21–AB23:** Dyce, Bridge of Don, Danestone, Tillydrone
+- **AB24–AB25:** Seaton, King Street, Pittodrie area, Rosemount
+- **AB31–AB35:** Banchory, Aboyne, Ballater, Braemar (Royal Deeside)
+- **AB39:** Stonehaven and Mearns coast
+- **AB41:** Ellon and surroundings
+- **AB42–AB45:** Peterhead, Fraserburgh, Macduff, Banff
+- **AB51–AB56:** Inverurie, Huntly, Keith, Elgin corridor
+
+We also cover the Aberdeenshire towns of Westhill (AB32), Portlethen (AB12), and Kintore (AB51).
+
+## How Much Does Mobile Tyre Fitting Cost in Aberdeen?
+
+Our Aberdeen pricing is the same as Glasgow — no surcharge for the AB postcode.
+
+| Service | Price |
+|---------|-------|
+| Scheduled tyre fitting (fitting fee) | £20 per tyre |
+| Emergency callout fee | £49 |
+| Puncture repair | £25 |
+| Budget tyre (e.g. 205/55 R16) | From £45 |
+| Mid-range tyre | From £65 |
+| Premium tyre | From £90 |
+
+All prices include professional fitting, tyre pressure set to manufacturer spec, wheel torque to correct specification, and old tyre disposal.
+
+## Common Aberdeen Tyre Emergency Locations
+
+Our Aberdeen fitters attend call-outs regularly at:
+
+- **A90 / AWPR junction areas** — Aberdeen's new bypass generates significant HGV traffic and road debris
+- **Harbour and industrial areas** — nails and screws from construction and port traffic are the most common puncture cause in AB11
+- **Union Street and Broad Street** — city centre cobbles and utility covers cause sidewall scuffs and slow punctures
+- **Dyce industrial estate (AB21)** — oil industry vehicle traffic means commercial van callouts are frequent
+- **A96 Inverurie road** — high-speed commuter route with regular debris damage
+- **A93 Royal Deeside** — scenic but narrow road surfaces cause kerb strikes and debris punctures
+
+## Aberdeen-Specific Tyre Advice
+
+Aberdeen's road conditions create specific tyre problems:
+
+**Granite setts:** Union Street and many city-centre side streets use granite paving. These create vibration that can loosen TPMS sensors and cause unusual wear patterns.
+
+**North Sea weather:** Aberdeen is exposed to some of Scotland's harshest coastal weather. Salt air accelerates rubber degradation on older tyres. If your vehicle is frequently parked near the harbour, check sidewall condition regularly.
+
+**AWPR (Aberdeen Western Peripheral Route):** This new dual carriageway has dramatically changed traffic patterns. High-speed sections mean tyre damage from road debris happens faster — a piece of metal at 70mph causes more damage than at 30mph.
+
+**Oil industry vehicles:** Dyce and the Altens industrial estates see heavy commercial traffic. If you drive in these areas regularly, check your tyres for embedded debris monthly.
+
+## How to Book in Aberdeen
+
+**Emergency:** Call 0141 266 0690 — available 24/7. Give us your location (street, industrial estate, or nearest A road junction), vehicle details, and which tyre is affected.
+
+**Scheduled fitting:** Book online at tyrerescue.uk/book. Choose your tyre size, pick a time slot, and we confirm a 2-hour arrival window. Advance booking recommended for Aberdeen to ensure stock is on the van.
+
+## Frequently Asked Questions
+
+### How long does it take to get a tyre fitter to Aberdeen from Glasgow?
+Our fitters based in or near Aberdeen typically respond within 90 minutes for city centre locations. For outlying AB postcodes like Peterhead or Fraserburgh, response may be 2+ hours — we always give an accurate ETA when you call.
+
+### Do you cover Royal Deeside?
+Yes — Banchory (AB31), Aboyne, Ballater and even Braemar are in our coverage area. Response times for rural Deeside locations are typically 2–2.5 hours. For locations beyond Braemar, we recommend advance scheduling.
+
+### Do you carry run-flat tyres for Aberdeen BMWs?
+Yes. Aberdeen has a high proportion of BMW and Land Rover vehicles (oil industry) — we carry common run-flat sizes and TPMS reset equipment on our vans.
+
+### Can you come to Aberdeen harbour or an offshore base?
+We cover landside addresses at or near the harbour. If you're on a vessel or offshore installation, you'll need to arrange transportation to a land address first.
+
+### What if I'm on the AWPR with a flat tyre?
+Pull onto the hard shoulder or the next emergency refuge and call 0141 266 0690. The AWPR is one of our most frequent emergency call-out routes. Give us the nearest junction number or mile marker.`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-inverness-highlands',
+    title: 'Mobile Tyre Fitting in Inverness & the Highlands: What to Expect',
+    description:
+      'Mobile tyre fitting in Inverness, the Scottish Highlands and beyond. Response times, IV postcode coverage, Highland-specific advice and how to book. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 8,
+    keywords: [
+      'mobile tyre fitting inverness',
+      'tyre fitting inverness',
+      'emergency tyre fitting inverness',
+      'mobile tyre highlands',
+      'tyre fitter highlands scotland',
+      'flat tyre highlands',
+      'iv postcode tyre fitting',
+      'mobile tyre fitting highland',
+    ],
+    relatedSlugs: [
+      'what-to-do-flat-tyre-motorway',
+      'tyre-fitting-costs-scotland-pricing-guide',
+    ],
+    featured: true,
+    content: `## Mobile Tyre Fitting in Inverness and the Scottish Highlands
+
+Inverness is the capital of the Highlands and our northernmost major service hub. From the city itself to the Great Glen, the Black Isle, and the shores of Loch Ness, Tyre Rescue covers the Highlands with professional mobile tyre fitting — available 24 hours a day.
+
+**Quick answer:** Call 0141 266 0690. Inverness city centre locations typically reached within 90–120 minutes. For remote Highland locations, advance booking is recommended. No extra charge for IV postcodes.
+
+## Response Times Across Inverness and the Highlands
+
+The Highlands have long distances and some single-track roads. We're honest about response times for remote areas:
+
+| Area | Postcode | Avg Response |
+|------|----------|-------------|
+| Inverness City Centre | IV1–IV2 | 90 min |
+| Inverness Crown / Dalneigh | IV2–IV3 | 95 min |
+| Culloden / Balloch | IV2 | 95 min |
+| Beauly / Muir of Ord | IV4–IV6 | 105 min |
+| Dingwall | IV15 | 110 min |
+| Nairn | IV12 | 100 min |
+| Forres | IV36 | 105 min |
+| Aviemore / Cairngorms | PH22 | 110 min |
+| Drumnadrochit (Loch Ness) | IV63 | 115 min |
+| Fort Augustus | PH32 | 130 min |
+| Grantown-on-Spey | PH26 | 120 min |
+| Thurso | KW14 | 3+ hours |
+
+For very remote locations such as Thurso, Wick, Cape Wrath or the far north-west, we recommend booking in advance (minimum 24 hours notice).
+
+## Areas We Cover in the Highlands
+
+### Inverness City and Suburbs (IV1–IV3)
+Full coverage across the city including: Crown, Dalneigh, Merkinch, Raigmore, Kinmylies, Lochardil, Drakies, Culloden, Westhill, Balloch, Milton of Leys.
+
+### Black Isle and Easter Ross (IV6–IV18)
+Muir of Ord, Beauly, Strathpeffer, Dingwall, Invergordon, Alness, Tain, Fearn.
+
+### Speyside and Cairngorms (PH21–PH26)
+Aviemore, Kingussie, Newtonmore, Grantown-on-Spey, Carrbridge, Boat of Garten, Nethy Bridge.
+
+### Great Glen and Loch Ness (IV63, PH34–PH35)
+Drumnadrochit, Lewiston, Fort Augustus, Invermoriston.
+
+### Nairn and Moray Coast (IV12, IV36)
+Nairn, Forres, Findhorn, Kinloss.
+
+### Sutherland and Caithness (IV27–IV28, KW14)
+Bonar Bridge, Golspie, Brora, Helmsdale, Wick and Thurso — advance booking required.
+
+## How Much Does Mobile Tyre Fitting Cost in Inverness?
+
+| Service | Price |
+|---------|-------|
+| Scheduled tyre fitting (fitting fee) | £20 per tyre |
+| Emergency callout fee | £49 |
+| Puncture repair | £25 |
+| Budget tyre (e.g. 205/55 R16) | From £45 |
+| Mid-range tyre | From £65 |
+| Premium tyre | From £90 |
+
+No additional charge applies for Inverness or Highland postcodes. For extremely remote locations (more than 30 miles from Inverness), a travel surcharge may apply — we'll always confirm the total price before sending a fitter.
+
+## Highland-Specific Tyre Hazards
+
+Driving in the Highlands presents unique tyre challenges:
+
+**Single-track roads:** The A832, A835, B roads through Torridon, Ardnamurchan, and Wester Ross are narrow with rough edges. Kerb strikes and shoulder drop-offs are a common cause of sidewall damage.
+
+**Highland road surfaces:** Many rural Highland roads have surfaces that wouldn't be out of place in a developing country — particularly after winter. Potholes, loose chippings, and frost heaves all increase tyre puncture risk.
+
+**NC500 (North Coast 500):** This popular tourist route passes through some of the most remote road surfaces in the UK. Visitors in rental cars and campervans frequently experience tyre problems on the route. If you're driving the NC500, we recommend:
+- Checking all four tyres before setting off
+- Carrying a can of tyre sealant as a temporary backup in the most remote sections
+- Having our number saved: 0141 266 0690
+
+**Red deer and livestock:** Highland roads see regular deer and sheep collisions, especially at dawn and dusk. Post-collision tyre and wheel inspections are advisable.
+
+**Winter driving:** The A9 through the Cairngorms, the A82 through the Great Glen, and many B roads can be treacherous in winter. Consider winter tyres if you drive in the Highlands regularly between November and March.
+
+## Driving the NC500? Essential Tyre Prep
+
+The North Coast 500 is spectacular but remote. Some sections of the route are 30+ miles from the nearest petrol station, let alone a tyre fitter. Before setting off:
+
+1. **Check all four tyres** — tread depth minimum 3mm recommended for Highland driving
+2. **Check spare wheel** — some modern cars don't have one; check for run-flat tyres or inflator kit
+3. **Save our number:** 0141 266 0690 — available 24/7 for NC500 emergencies
+4. **Consider your route** — some of the most remote sections (Durness to Thurso) have very limited mobile signal
+
+We have dispatched fitters to NC500 emergencies on the A838 near Durness, the A894 in Assynt, and the A835 through Ullapool. Call us — we'll do our best to get to you wherever you are.
+
+## How to Book in Inverness
+
+**Emergency:** Call 0141 266 0690 — 24/7. Tell us your exact location (postcode, road name, or nearest landmark), vehicle details, and which tyre is affected. For remote Highland locations, a GPS pin is very helpful.
+
+**Scheduled fitting:** Book at tyrerescue.uk/book. For Inverness and nearby areas, same-day booking is often possible. For locations beyond 30 miles from Inverness, please book at least 24 hours in advance to ensure stock availability.
+
+## Frequently Asked Questions
+
+### How do I get a tyre fitted if I'm on a remote Highland road?
+Call 0141 266 0690 immediately. Pull safely off the road, turn on hazard lights, and tell us your exact location as precisely as possible — postcode, road number, nearest village, or what3words address. We'll dispatch the nearest available fitter and give you a realistic ETA.
+
+### Do you cover Aviemore and the Cairngorm National Park?
+Yes — Aviemore, Kingussie, Newtonmore, and the Cairngorm ski resort area are within our coverage. Response times from Inverness are typically 60–90 minutes.
+
+### Can you fit winter tyres in Inverness?
+Yes. We stock winter tyres for common sizes. Winter tyre fitting appointments are recommended for September–October before winter conditions arrive.
+
+### What if my car breaks down on the A82 through Glencoe?
+The A82 is one of our most scenic and most hazardous routes. Pull off the road as far as possible, turn on hazard lights, and call 0141 266 0690. The A82 has limited stopping places in some sections — stay with your vehicle and await assistance.
+
+### Do you cover the Black Isle and Cromarty?
+Yes — Muir of Ord, Fortrose, Rosemarkie, Cromarty, and the Cromarty ferry crossing area are in our coverage. Response time is approximately 105–115 minutes.`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-dundee-guide',
+    title: 'Mobile Tyre Fitting in Dundee: Emergency & Scheduled Service',
+    description:
+      'Mobile tyre fitting in Dundee and Angus. Fast response across all DD postcodes — emergency and scheduled. Call 0141 266 0690 for Dundee tyre fitting 24/7.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    keywords: [
+      'mobile tyre fitting dundee',
+      'emergency tyre fitting dundee',
+      'tyre fitter dundee',
+      'flat tyre dundee',
+      'tyre repair dundee',
+      'dd postcode tyre fitting',
+      'mobile tyre angus',
+    ],
+    relatedSlugs: [
+      'emergency-tyre-fitting-glasgow-complete-guide',
+      'tyre-fitting-costs-scotland-pricing-guide',
+    ],
+    featured: false,
+    content: `## Mobile Tyre Fitting in Dundee and Tayside
+
+Dundee is Scotland's fourth-largest city and a key centre for our east Scotland operations. From the Waterfront and city centre to Broughty Ferry, Monifieth, and the Angus commuter belt, Tyre Rescue dispatches a mobile fitter to your exact location — 24 hours a day, 7 days a week.
+
+**Quick answer:** Call 0141 266 0690. Most Dundee city locations reached within 60–75 minutes. Fitting from £20 per tyre plus tyre cost, no DD postcode surcharge.
+
+## Response Times Across Dundee and Angus
+
+| Area | Postcode | Avg Response |
+|------|----------|-------------|
+| City Centre / Overgate | DD1 | 65 min |
+| West End / Ninewells | DD2 | 65 min |
+| Lochee / Menzieshill | DD2 | 70 min |
+| Stobswell / Craigie | DD3–DD4 | 65 min |
+| Broughty Ferry | DD5 | 70 min |
+| Monifieth | DD5 | 75 min |
+| Arbroath | DD11 | 85 min |
+| Forfar | DD8 | 90 min |
+| Kirriemuir | DD8 | 95 min |
+
+## Areas We Cover in Dundee
+
+**DD1:** City centre, Dundee Waterfront, Dens Road, Hilltown, Stobswell
+**DD2:** Broughty Road, West End, Ninewells, Lochee, Balgay, Menzieshill
+**DD3:** Stobswell, Forfar Road corridor, Craigie, Beechwood
+**DD4:** Douglas and Angus, Craigiebank, Fintry, Whitfield, Linlathen
+**DD5:** Broughty Ferry, Monifieth, Barnhill, Balmossie
+**DD11:** Arbroath and Carnoustie
+**DD8:** Forfar and Kirriemuir
+
+## Dundee Tyre Fitting Prices
+
+| Service | Price |
+|---------|-------|
+| Fitting fee (per tyre) | £20 |
+| Emergency callout | £49 |
+| Puncture repair | £25 |
+| Budget tyre | From £45 |
+| Mid-range tyre | From £65 |
+| Premium tyre | From £90 |
+
+No surcharge for Dundee or Angus postcodes.
+
+## Common Dundee Tyre Hazards
+
+**Kingsway dual carriageway:** Dundee's main arterial road carries high volumes of HGV traffic. Tyre debris is common, particularly near the Kingsway retail parks.
+
+**Riverside Drive:** The A85 along the Tay waterfront is narrow in sections and prone to edge damage where the road surface meets the harbour infrastructure.
+
+**Arbroath Road (A92):** The main Dundee–Arbroath corridor is one of the busiest roads in Angus and generates regular emergency callouts near the Claypotts junction.
+
+**Discovery Quay and Waterfront:** The new Dundee Waterfront development has created complex road surfaces including granite setts similar to those in Edinburgh.
+
+**Ninewells Hospital:** One of Scotland's largest hospitals creates 24-hour traffic. Emergency flat tyre callouts at hospital car parks are among our most common Dundee jobs.
+
+## How to Book in Dundee
+
+**Emergency:** Call 0141 266 0690 — 24/7. Tell us your location, vehicle registration, and which tyre is flat or damaged.
+
+**Scheduled:** Book at tyrerescue.uk/book. Same-day slots often available for Dundee city locations.
+
+## Frequently Asked Questions
+
+### How quickly can you reach Dundee city centre?
+Our average response time for Dundee DD1 is 65 minutes from dispatch. We dispatch via the A90 from our Central Belt base, or from available fitters already working in the Tayside area.
+
+### Do you cover Arbroath and Forfar?
+Yes — Arbroath (DD11) and Forfar (DD8) are in our coverage area. Response times are typically 85–95 minutes.
+
+### Can you fit tyres at Ninewells Hospital car park?
+Yes — we regularly assist patients and hospital staff at Ninewells. The large hospital car parks provide ideal safe working conditions for mobile fitting.
+
+### Do you cover Carnoustie and the Angus coast?
+Yes — Carnoustie, Monifieth and the Angus coastal towns as far as Arbroath are covered. Response from our nearest available fitter is typically 75–90 minutes.
+
+### What about the V&A Dundee area?
+Yes — the Waterfront, Slessor Gardens and the V&A car parks are easily accessible. Parking arrangements in the Waterfront area can be complex; tell us your exact position when booking.`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-ayr-ayrshire',
+    title: 'Mobile Tyre Fitting in Ayr, Kilmarnock & Ayrshire: Fast Local Service',
+    description:
+      'Mobile tyre fitting across Ayrshire — Ayr, Kilmarnock, Irvine, Troon and all KA postcodes. Emergency and scheduled service, 24/7. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    keywords: [
+      'mobile tyre fitting ayr',
+      'tyre fitting ayrshire',
+      'mobile tyre kilmarnock',
+      'emergency tyre ayr',
+      'tyre fitter ka postcode',
+      'mobile tyre fitting irvine',
+      'mobile tyre troon',
+      'flat tyre ayrshire',
+    ],
+    relatedSlugs: [
+      'emergency-tyre-fitting-glasgow-complete-guide',
+      'tyre-fitting-costs-scotland-pricing-guide',
+    ],
+    featured: false,
+    content: `## Mobile Tyre Fitting Across Ayrshire
+
+Ayrshire is one of our busiest service areas south of Glasgow. With quick M77 access from our Parkhead depot, we cover Kilmarnock, Ayr, Irvine, Troon, Prestwick and all KA postcodes — typically within 40–55 minutes.
+
+**Quick answer:** Call 0141 266 0690. Most Ayrshire locations are reached within 40–55 minutes. Prices are the same as Glasgow — no distance surcharge.
+
+## Response Times Across Ayrshire
+
+| Town | Postcode | Avg Response |
+|------|----------|-------------|
+| Kilmarnock | KA1–KA3 | 40 min |
+| Irvine | KA11–KA12 | 45 min |
+| Troon | KA10 | 50 min |
+| Prestwick | KA9 | 50 min |
+| Ayr Town Centre | KA7–KA8 | 55 min |
+| Saltcoats / Ardrossan | KA21–KA22 | 50 min |
+| Largs | KA30 | 60 min |
+| Girvan | KA26 | 75 min |
+
+## Areas Covered in Ayrshire
+
+### Kilmarnock (KA1–KA3)
+Kilmarnock town centre, Crosshouse, Hurlford, Galston, Darvel, Stewarton, Fenwick, Kilmaurs and all East Ayrshire towns.
+
+### Irvine and North Ayrshire (KA11–KA13)
+Irvine new town, Dreghorn, Bourtreehill, Springside, Beith, Dalry, Saltcoats (KA21), Ardrossan (KA22), Stevenston.
+
+### Ayr and South Ayrshire (KA7–KA9)
+Ayr town centre, Prestwick, Alloway, Annbank, Mossblown, Coylton, Dalmellington, Maybole.
+
+### Troon and Coastal Towns (KA10, KA30)
+Troon, Barassie, Largs, Fairlie, West Kilbride.
+
+## Tyre Fitting Prices in Ayrshire
+
+| Service | Price |
+|---------|-------|
+| Fitting fee (per tyre) | £20 |
+| Emergency callout | £49 |
+| Puncture repair | £25 |
+| Budget tyre | From £45 |
+| Mid-range tyre | From £65 |
+| Premium tyre | From £90 |
+
+No surcharge for any Ayrshire postcode.
+
+## Common Ayrshire Tyre Hazards
+
+**A77 / M77 Corridor:** The main Glasgow–Ayr road is heavily used by both commuters and tourists heading to the Ayrshire coast. Tyre debris from HGV traffic is a common cause of emergency callouts near the Kilmarnock interchange.
+
+**Burns Memorial routes:** The A71, A78 and coastal A routes see high tourist traffic in summer. Rental car callouts near Alloway, Culzean Castle and the Ayrshire golf courses (Troon, Turnberry, Prestwick) are frequent.
+
+**Ayr Racecourse approaches:** Race days at Ayr generate exceptional traffic volumes on the A77 and A719. Tyre damage from car park debris and congestion incidents is common.
+
+**Irvine Beach Park:** The A78 coastal route and Irvine beach approaches suffer from salt air corrosion on older vehicles' TPMS sensors.
+
+**Mining heritage roads:** East Ayrshire's former mining communities — Dalmellington, New Cumnock, Muirkirk — have rural road surfaces that can be rough. Regular tyre checks are advisable for drivers in these areas.
+
+## Golf Courses — Ayrshire Coverage
+
+Ayrshire is home to some of the world's finest golf courses, and we regularly assist visiting golfers and club members:
+
+- **Royal Troon** (KA10) — average response 50 minutes
+- **Turnberry / Trump Turnberry** (KA26) — average response 75 minutes
+- **Prestwick Golf Club** (KA9) — average response 50 minutes
+- **Western Gailes** (KA11) — average response 48 minutes
+
+If you're at a golf club with a flat tyre, we can usually meet you at the club car park while you continue your round.
+
+## Frequently Asked Questions
+
+### How quickly can you get to Ayr from Glasgow?
+Most Ayr locations are reached in 55 minutes via the M77 and A77. Our fastest Ayr response times are to Prestwick and Ayr town centre.
+
+### Do you cover Girvan and south Ayrshire?
+Yes — Girvan (KA26) is in our coverage area at approximately 75 minutes. For Ballantrae and south of Girvan, response may be longer. Call us for a realistic ETA.
+
+### Can you come to Ayr Racecourse?
+Yes — race day callouts at Ayr are among our regular Ayrshire jobs. The racecourse car parks are large and flat — ideal for mobile tyre fitting.
+
+### Do you cover the ferry port at Ardrossan?
+Yes — Ardrossan Harbour and the surrounding KA22 postcode are covered. If you have a flat tyre before or after the Arran ferry, call us at 0141 266 0690.
+
+### What about Largs and the Clyde Coast?
+Largs (KA30) and the entire North Ayrshire Clyde coast from Fairlie to Saltcoats are in our coverage. Response times are typically 55–65 minutes from Glasgow.`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-perth-perthshire',
+    title: 'Mobile Tyre Fitting in Perth & Perthshire: Local & Rural Coverage',
+    description:
+      'Mobile tyre fitting in Perth, Pitlochry, Crieff and across Perthshire. Emergency and scheduled service for PH postcodes. Call 0141 266 0690, 24/7.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    keywords: [
+      'mobile tyre fitting perth',
+      'tyre fitting perthshire',
+      'emergency tyre perth scotland',
+      'mobile tyre pitlochry',
+      'tyre fitter ph postcode',
+      'flat tyre perth scotland',
+      'mobile tyre crieff',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-inverness-highlands',
+      'tyre-fitting-costs-scotland-pricing-guide',
+    ],
+    featured: false,
+    content: `## Mobile Tyre Fitting in Perth and Perthshire
+
+Perth is the gateway to the Scottish Highlands, and Tyre Rescue serves the city and the wide county of Perthshire — from the M90 to Pitlochry, from Crieff to the outskirts of the Cairngorms. Whether you're on the A9 northbound, exploring Loch Lomond and The Trossachs, or driving through Strathtay, our mobile fitters reach you with professional tyres and equipment.
+
+**Quick answer:** Call 0141 266 0690. Perth city centre typically reached within 70 minutes. Pitlochry and mid-Perthshire within 100–120 minutes.
+
+## Response Times Across Perthshire
+
+| Area | Postcode | Avg Response |
+|------|----------|-------------|
+| Perth City Centre | PH1–PH2 | 70 min |
+| Scone / Bridgend | PH2 | 72 min |
+| Kinnoull / Cherrybank | PH2 | 72 min |
+| Crieff | PH7 | 85 min |
+| Auchterarder | PH3 | 80 min |
+| Dunkeld | PH8 | 90 min |
+| Pitlochry | PH16 | 105 min |
+| Aberfeldy | PH15 | 110 min |
+| Kenmore / Loch Tay | PH15 | 115 min |
+| Killin | FK21 | 95 min |
+| Blairgowrie | PH10 | 85 min |
+| Coupar Angus | PH13 | 80 min |
+
+## Areas We Cover in Perthshire
+
+### Perth City (PH1–PH2)
+Full coverage across Tulloch, Letham, Kinnoull, Cherrybank, Scone, Bridgend, Huntingtower, Almondbank, Luncarty.
+
+### Strathearn (PH3, PH7)
+Auchterarder, Crieff, Comrie, St Fillans, Muthill, Braco.
+
+### Strathmore (PH10, PH13)
+Blairgowrie, Rattray, Coupar Angus, Meigle, Alyth.
+
+### Highland Perthshire (PH15–PH16)
+Pitlochry, Aberfeldy, Kenmore, Killin, Fortingall — advance booking recommended for remote locations.
+
+### Trossachs Edge (FK21)
+Killin, Lix Toll, Lochearnhead — we're among the only mobile tyre services covering these remote areas.
+
+## Tyre Fitting Prices in Perth and Perthshire
+
+| Service | Price |
+|---------|-------|
+| Fitting fee (per tyre) | £20 |
+| Emergency callout | £49 |
+| Puncture repair | £25 |
+| Budget tyre | From £45 |
+| Mid-range tyre | From £65 |
+| Premium tyre | From £90 |
+
+No surcharge for Perth or central Perthshire postcodes. A travel supplement may apply for the most remote Highland Perthshire locations — always confirmed before dispatch.
+
+## Perthshire-Specific Tyre Hazards
+
+**A9 Perthshire section:** The A9 between Perth and Inverness is one of Scotland's most notorious roads for tyre incidents. HGV traffic deposits debris regularly, and the high-speed sections mean damage happens quickly. New average speed cameras have changed driving patterns — but tyre incidents remain frequent.
+
+**Glenshee ski road (A93):** The route to the Glenshee ski centre climbs to nearly 700m. Winter driving on this road can result in sidewall damage from roadside ice ridges and pothole impacts from frost heave.
+
+**Single-track roads in Highland Perthshire:** The road to Kenmore around Loch Tay, the B846 to Tummel Bridge, and many other scenic routes are narrow with rough edges. Kerb strike and shoulder drop damage are common.
+
+**Auchterarder and Gleneagles approach:** The local roads around Gleneagles Hotel carry luxury vehicles from around the world. We provide a discreet, professional service for golfers and hotel guests.
+
+## Gleneagles and Golf — Perth Coverage
+
+Perthshire is home to Gleneagles, one of the world's finest golf and resort destinations:
+
+- **Gleneagles Hotel and Golf Courses** (PH3) — average response 80 minutes
+- **Blairgowrie Golf Club** (PH10) — average response 85 minutes
+- **Dunkeld & Birnam Golf Club** (PH8) — average response 90 minutes
+
+## How to Book in Perth
+
+**Emergency:** Call 0141 266 0690 — 24/7. Tell us your location, vehicle, and which tyre needs attention.
+
+**Scheduled:** Book at tyrerescue.uk/book. Same-day appointments often available for Perth city. For Highland Perthshire, 24 hours' advance notice is preferred.
+
+## Frequently Asked Questions
+
+### How long does it take to reach Perth from Glasgow?
+Perth city centre is typically 70 minutes from our Glasgow depot via the M9/M90. In peak traffic (particularly on the M90 south of Perth), allow 90 minutes.
+
+### Do you cover Gleneagles Hotel?
+Yes — Gleneagles and the surrounding PH3 area are in our regular coverage. We provide a professional, discreet service appropriate for the setting.
+
+### Can you reach Pitlochry on the same day?
+Usually yes for Pitlochry (PH16) — response time is approximately 105 minutes. For locations beyond Pitlochry (Blair Atholl, Killiecrankie, Calvine), please allow additional time or book in advance.
+
+### What about the route to Glenshee ski centre?
+The A93 Glenshee road is in our coverage area. In winter, please be aware that road conditions may affect our fitters' travel time and ability to work safely at altitude. We'll always give you a realistic assessment when you call.`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-stirling-falkirk',
+    title: 'Mobile Tyre Fitting in Stirling & Falkirk: Central Scotland Service',
+    description:
+      'Mobile tyre fitting in Stirling, Falkirk, Alloa and across Central Scotland. Fast emergency response — 35 to 50 minutes. Call 0141 266 0690, available 24/7.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 5,
+    keywords: [
+      'mobile tyre fitting stirling',
+      'tyre fitting falkirk',
+      'emergency tyre stirling',
+      'mobile tyre fk postcode',
+      'tyre fitter central scotland',
+      'flat tyre stirling',
+      'mobile tyre alloa',
+    ],
+    relatedSlugs: [
+      'emergency-tyre-fitting-glasgow-complete-guide',
+      'mobile-tyre-fitting-edinburgh-guide',
+    ],
+    featured: false,
+    content: `## Mobile Tyre Fitting in Stirling and Falkirk
+
+Stirling and Falkirk sit at the heart of Scotland's motorway network — the M9, M80, M876 and A9 all meet near Stirling, making it one of our fastest dispatch points in Central Scotland. Whether you're on the M80 near Bonnybridge, driving through Stirling's historic centre, or stuck on the Kincardine Bridge road, we reach you quickly.
+
+**Quick answer:** Call 0141 266 0690. Falkirk is typically 35 minutes from our base. Stirling city centre 40–45 minutes. Alloa 50 minutes. No surcharge for FK or Central Scotland postcodes.
+
+## Response Times Across Central Scotland
+
+| Area | Postcode | Avg Response |
+|------|----------|-------------|
+| Falkirk Town Centre | FK1–FK2 | 35 min |
+| Grangemouth | FK3 | 35 min |
+| Bo'ness | FK4 | 40 min |
+| Stenhousemuir / Larbert | FK5 | 35 min |
+| Denny | FK6 | 38 min |
+| Stirling City Centre | FK7–FK8 | 42 min |
+| Bridge of Allan | FK9 | 45 min |
+| Alloa | FK10 | 50 min |
+| Tillicoultry / Clackmannan | FK13–FK14 | 52 min |
+| Callander | FK17 | 65 min |
+| Trossachs | FK17–FK21 | 75 min |
+
+## Areas Covered
+
+### Falkirk District (FK1–FK6)
+Falkirk town centre, Grangemouth, Bo'ness, Stenhousemuir, Larbert, Bonnybridge, Denny, Dunipace, Carronshore, Bainsford, Grahamston.
+
+### Stirling City and Surroundings (FK7–FK9)
+Stirling castle area, St Ninians, Bannockburn, Cambusbarron, Bridge of Allan, Dunblane, Kippen, Gartmore.
+
+### Clackmannanshire (FK10–FK14)
+Alloa, Tillicoultry, Dollar, Menstrie, Sauchie, Clackmannan, Tullibody.
+
+### Trossachs and Loch Lomond Edge (FK17–FK21)
+Callander, Aberfoyle, Strathyre, Lochearnhead, Killin. These locations are in a beautiful but more remote area — response times are longer.
+
+## Tyre Fitting Prices
+
+| Service | Price |
+|---------|-------|
+| Fitting fee (per tyre) | £20 |
+| Emergency callout | £49 |
+| Puncture repair | £25 |
+| Budget tyre | From £45 |
+| Mid-range tyre | From £65 |
+| Premium tyre | From £90 |
+
+## Central Scotland Motorway Coverage
+
+This area has Scotland's densest motorway network outside Glasgow. We cover emergency callouts on:
+
+| Road | Route | Coverage |
+|------|-------|----------|
+| M9 | Dunblane–Edinburgh | Full |
+| M80 | Glasgow–Stirling | Full |
+| M876 | Kincardine–Falkirk | Full |
+| A9 | Stirling–Perth | Full to Perth |
+| A80 | Glasgow–Stirling (non-motorway) | Full |
+| A811 | Stirling–Dumbarton | Full |
+
+**Grangemouth Refinery:** The industrial area around Grangemouth Petrochemical Complex generates significant HGV and tanker traffic. Debris punctures on the A904 and Grangemouth road network are common — and we cover them all.
+
+**Kincardine Bridge:** The crossing between Kincardine (FK10) and Falkirk/Grangemouth is a pinch point where tyre damage from road joints and debris is frequent.
+
+## Frequently Asked Questions
+
+### How quickly can you reach Falkirk?
+Falkirk town centre is typically 35 minutes from our Glasgow base via the M80. Grangemouth is similar — 35 minutes.
+
+### Do you cover the Falkirk Wheel?
+Yes — the Falkirk Wheel and the Helix (with the Kelpies) are popular visitor destinations. Tyre incidents in the car parks and approach roads are covered. Tell us your exact parking location when calling.
+
+### Can you reach Stirling Castle area?
+Yes — Stirling historic centre and the castle esplanade car parks are covered. The old town area has some narrow streets; our fitters know how to navigate to you efficiently.
+
+### Do you cover Callander and the Trossachs?
+Yes — Callander (FK17) is in our coverage at approximately 65 minutes. For locations deeper in the Trossachs (Brig o'Turk, Glen Finglas), call us and we'll advise on realistic response times.
+
+### What about Dunblane?
+Dunblane (FK15) is 45 minutes from our base — we cover the town and surrounding areas. The A9 Dunblane junction is one of our most frequent Central Scotland emergency locations.`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {

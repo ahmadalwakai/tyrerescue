@@ -257,9 +257,9 @@ export function getEmergencyServiceSchema(baseUrl: string = DEFAULT_BASE_URL) {
   return {
     '@context': 'https://schema.org',
     '@type': 'EmergencyService',
-    name: 'Tyre Rescue — 24/7 Emergency Tyre Fitting',
+    name: 'Tyre Rescue — 24/7 Emergency Tyre Fitting Scotland',
     description:
-      'Emergency mobile tyre fitting service covering Glasgow, Edinburgh and Central Scotland. Average 45 minute response time.',
+      'Emergency mobile tyre fitting service covering all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Perth, Highlands, Islands and every postcode from G to ZE. Average 45-minute response in Central Scotland.',
     serviceType: 'Emergency Tyre Fitting',
     provider: {
       '@type': 'AutoRepair',
@@ -267,11 +267,15 @@ export function getEmergencyServiceSchema(baseUrl: string = DEFAULT_BASE_URL) {
       url: baseUrl,
     },
     areaServed: [
+      { '@type': 'AdministrativeArea', name: 'Scotland' },
       { '@type': 'City', name: 'Glasgow' },
       { '@type': 'City', name: 'Edinburgh' },
+      { '@type': 'City', name: 'Aberdeen' },
+      { '@type': 'City', name: 'Inverness' },
       { '@type': 'City', name: 'Dundee' },
       { '@type': 'City', name: 'Stirling' },
-      { '@type': 'AdministrativeArea', name: 'Central Scotland' },
+      { '@type': 'City', name: 'Perth' },
+      { '@type': 'City', name: 'Fort William' },
     ],
     availableChannel: {
       '@type': 'ServiceChannel',
