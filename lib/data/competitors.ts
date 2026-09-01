@@ -295,6 +295,92 @@ export const competitors: CompetitorComparison[] = [
     ],
     lastModified: '2025-08-01',
   },
+  {
+    slug: 'tyre-rescue-vs-tyres-on-the-drive',
+    competitorName: 'Tyres on the Drive',
+    competitorShortName: 'Tyres on the Drive',
+    title: 'Tyre Rescue vs Tyres on the Drive: Mobile Tyre Fitting Scotland Compared',
+    metaTitle: 'Tyre Rescue vs Tyres on the Drive | Scotland Mobile Tyres 2025',
+    metaDescription:
+      'Compare Tyre Rescue vs Tyres on the Drive for mobile tyre fitting in Scotland. Response times, emergency callout, Highland and island coverage, and Trustpilot ratings compared.',
+    description:
+      'Both Tyre Rescue and Tyres on the Drive offer mobile tyre fitting in Scotland. This comparison covers emergency availability, geographic coverage (especially outside the Central Belt), pricing, and customer reviews — so you can choose the right mobile tyre fitter for your location.',
+    features: [
+      { feature: 'Mobile Service', tyreRescue: 'Yes — we come to your exact location across all of Scotland', competitor: 'Yes — mobile fitting at your home or work', winner: 'tie' },
+      { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — genuine 24/7 emergency response, 365 days a year', competitor: 'Daytime and evening hours only', winner: 'tyrerescue' },
+      { feature: 'Average Response Time', tyreRescue: '45 minutes average across Scotland', competitor: 'Next available slot — often same day but not emergency', winner: 'tyrerescue' },
+      { feature: 'Starting Price', tyreRescue: 'Fitting from £20 per tyre; emergency callout from £49', competitor: 'Fitting included in tyre price — typically from £50+', winner: 'tie' },
+      { feature: 'Coverage Area', tyreRescue: 'All of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands', competitor: 'Central Belt and major Scottish cities — remote Highlands limited', winner: 'tyrerescue' },
+      { feature: 'Highlands and Islands', tyreRescue: 'Yes — Skye, Lewis, Shetland, NC500 and remote Highland roads covered', competitor: 'Central Scotland and city areas only', winner: 'tyrerescue' },
+      { feature: 'Tyre Brands', tyreRescue: 'Budget to premium — Michelin, Continental, Bridgestone, Goodyear', competitor: 'Wide brand range including premium manufacturers', winner: 'tie' },
+      { feature: 'Roadside Callout', tyreRescue: 'Yes — motorway, layby, and remote road callouts', competitor: 'Home and work primarily — roadside limited', winner: 'tyrerescue' },
+      { feature: 'Online Booking', tyreRescue: 'Yes — instant online booking with live pricing', competitor: 'Yes — online booking with price confirmation', winner: 'tie' },
+      { feature: 'Puncture Repair', tyreRescue: 'Mobile puncture repair where legally repairable — from £25', competitor: 'Tyre replacement focused — puncture repair limited', winner: 'tyrerescue' },
+    ],
+    faq: [
+      {
+        question: 'Does Tyres on the Drive cover the Highlands and Islands of Scotland?',
+        answer: 'Tyres on the Drive primarily covers Central Scotland and major cities. For the Highlands, NC500 route, Isle of Skye, Lewis, Shetland, and other remote Scottish areas, Tyre Rescue is the recommended mobile fitter. We cover all Scottish postcodes from G to ZE.',
+      },
+      {
+        question: 'Can Tyres on the Drive respond to roadside emergencies?',
+        answer: 'Tyres on the Drive is designed primarily for scheduled home and workplace fittings. For roadside emergencies — flat tyres on motorways, remote roads, or late at night — Tyre Rescue operates 24/7 and responds to callouts anywhere in Scotland.',
+      },
+      {
+        question: 'Which is better value — Tyre Rescue or Tyres on the Drive?',
+        answer: 'Both services price tyres similarly — the tyre cost is the main factor. Tyre Rescue adds a fitting fee from £20 and an emergency callout from £49. For a non-emergency home fitting, prices are comparable. The key difference is emergency availability and coverage across all of Scotland.',
+      },
+    ],
+    summary: 'Tyres on the Drive is a capable mobile fitting service for planned home and work appointments in Central Scotland. Tyre Rescue has the advantage for emergency callouts, 24/7 availability, roadside response, and coverage across all of Scotland including the Highlands and Islands.',
+    keywords: [
+      'tyre rescue vs tyres on the drive', 'tyres on the drive scotland', 'tyres on the drive alternative',
+      'mobile tyre fitting scotland comparison', 'best mobile tyre fitter scotland',
+    ],
+    lastModified: '2025-09-01',
+  },
+  {
+    slug: 'tyre-rescue-vs-black-circles',
+    competitorName: 'Black Circles',
+    competitorShortName: 'Black Circles',
+    title: 'Tyre Rescue vs Black Circles: Mobile vs Garage Tyre Fitting in Scotland',
+    metaTitle: 'Tyre Rescue vs Black Circles | Scotland Tyre Fitting 2025',
+    metaDescription:
+      'Compare Tyre Rescue (mobile fitting) vs Black Circles (garage booking platform) for tyre fitting in Scotland. Coverage, emergency response, pricing and reviews.',
+    description:
+      'Black Circles is Scotland\'s largest online tyre booking platform, connecting drivers with local garages. Tyre Rescue is Scotland\'s leading mobile tyre fitting service. This comparison helps you understand the key difference — mobile vs garage — and choose the right option for your situation.',
+    features: [
+      { feature: 'Service Type', tyreRescue: 'Mobile — we come to your location', competitor: 'Garage booking platform — you drive to a partner garage', winner: 'tyrerescue' },
+      { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — emergency response any time of day or night', competitor: 'No — garages operate during business hours only', winner: 'tyrerescue' },
+      { feature: 'Location Flexibility', tyreRescue: 'Any location — home, work, car park, or roadside', competitor: 'You must drive to a partner garage', winner: 'tyrerescue' },
+      { feature: 'Starting Price', tyreRescue: 'Fitting from £20 + tyre price; emergency from £49', competitor: 'Tyre price + fitting fee varies by garage (from £10–£25)', winner: 'competitor' },
+      { feature: 'Tyre Range', tyreRescue: 'Budget, mid-range, and premium — selected range on each van', competitor: 'Extensive catalogue from many manufacturers and brands', winner: 'competitor' },
+      { feature: 'Coverage Area', tyreRescue: 'All of Scotland — Glasgow to Shetland, including islands', competitor: 'Depends on local garage partner locations', winner: 'tyrerescue' },
+      { feature: 'Roadside Emergency', tyreRescue: 'Yes — motorway hard shoulder, remote Highland roads', competitor: 'No — not an emergency service', winner: 'tyrerescue' },
+      { feature: 'Online Booking', tyreRescue: 'Yes — direct booking with Tyre Rescue', competitor: 'Yes — large tyre marketplace with many garage options', winner: 'tie' },
+      { feature: 'Trustpilot Rating', tyreRescue: '4.8/5 (Tyre Rescue direct)', competitor: '4.6/5 (Black Circles platform)', winner: 'tie' },
+      { feature: 'Scotland Founded', tyreRescue: 'Yes — Glasgow-based, Scotland-specialist', competitor: 'Yes — Edinburgh-founded Scottish company', winner: 'tie' },
+    ],
+    faq: [
+      {
+        question: 'What is the difference between Black Circles and Tyre Rescue?',
+        answer: 'Black Circles is an online marketplace where you buy tyres and book fitting at a local partner garage — you drive to the garage for the appointment. Tyre Rescue is a mobile service where we drive to your location and fit your tyre wherever you are. For emergency situations or if you cannot drive to a garage, Tyre Rescue is the better choice. For a wide tyre catalogue with competitive pricing for a non-urgent garage visit, Black Circles is a good option.',
+      },
+      {
+        question: 'Is Black Circles available for emergency tyre fitting?',
+        answer: 'No — Black Circles is a booking platform for garage appointments during normal business hours. For emergency tyre fitting in Scotland — including late nights, weekends, and remote locations — Tyre Rescue is the appropriate service. Call 0141 266 0690 for immediate emergency response.',
+      },
+      {
+        question: 'Are Black Circles cheaper than Tyre Rescue?',
+        answer: 'Black Circles can offer lower per-tyre fitting fees (from around £10–£20) because the garage does not travel to you. Tyre Rescue adds a fitting fee from £20 and an emergency callout from £49 because our fitters come to your location. For a non-emergency home or work fitting where convenience matters, total prices are comparable.',
+      },
+    ],
+    summary: 'Black Circles is an excellent option for planned, non-urgent tyre replacements where you can drive to a local garage and want access to a wide tyre catalogue. Tyre Rescue is the right choice when you need a mobile fitter who comes to your location — especially for emergencies, roadside callouts, or locations in rural Scotland where garage access is limited.',
+    keywords: [
+      'tyre rescue vs black circles', 'black circles scotland', 'black circles alternative',
+      'mobile tyre fitting vs garage scotland', 'black circles mobile tyres',
+    ],
+    lastModified: '2025-09-01',
+  },
 ];
 
 export function getCompetitorBySlug(slug: string): CompetitorComparison | undefined {

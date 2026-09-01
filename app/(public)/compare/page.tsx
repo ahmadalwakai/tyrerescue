@@ -3,16 +3,18 @@ import { CompareIndexContent } from './CompareIndexContent';
 import { JsonLd } from '@/components/seo/JsonLd';
 
 export const metadata: Metadata = {
-  title: 'Compare Tyre Rescue vs Kwik Fit, Arnold Clark, Halfords & More | Scotland',
+  title: 'Compare Tyre Rescue vs Kwik Fit, Black Circles, Arnold Clark & More | Scotland',
   description:
-    'See how Tyre Rescue compares to Kwik Fit, National Tyres, ATS Euromaster, Halfords, Arnold Clark & Protyre for mobile tyre fitting across Scotland. 24/7 emergency service.',
+    'How does Tyre Rescue compare to Kwik Fit, Black Circles, Tyres on the Drive, National Tyres, Arnold Clark & Protyre for mobile tyre fitting across Scotland? Emergency availability, coverage, and pricing compared.',
   alternates: { canonical: 'https://www.tyrerescue.uk/compare' },
   keywords: [
     'tyre fitting comparison scotland',
-    'best mobile tyre fitting',
-    'kwik fit alternative',
-    'national tyres alternative',
-    'tyre rescue reviews',
+    'best mobile tyre fitting scotland',
+    'kwik fit alternative scotland',
+    'black circles alternative',
+    'tyres on the drive alternative',
+    'mobile tyre fitter vs garage scotland',
+    'tyre rescue reviews scotland',
   ],
 };
 
@@ -32,6 +34,8 @@ export default function ComparePage() {
         { '@type': 'ListItem', position: 4, name: 'Tyre Rescue vs Halfords', url: 'https://www.tyrerescue.uk/compare/tyre-rescue-vs-halfords' },
         { '@type': 'ListItem', position: 5, name: 'Tyre Rescue vs Arnold Clark Tyres', url: 'https://www.tyrerescue.uk/compare/tyre-rescue-vs-arnold-clark-tyres' },
         { '@type': 'ListItem', position: 6, name: 'Tyre Rescue vs Protyre', url: 'https://www.tyrerescue.uk/compare/tyre-rescue-vs-protyre' },
+        { '@type': 'ListItem', position: 7, name: 'Tyre Rescue vs Tyres on the Drive', url: 'https://www.tyrerescue.uk/compare/tyre-rescue-vs-tyres-on-the-drive' },
+        { '@type': 'ListItem', position: 8, name: 'Tyre Rescue vs Black Circles', url: 'https://www.tyrerescue.uk/compare/tyre-rescue-vs-black-circles' },
       ],
     },
   };
