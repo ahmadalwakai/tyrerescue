@@ -3598,6 +3598,429 @@ Planning a trip through Argyll? Get your tyres checked before you set out. [Book
 
 [Fort William & Lochaber](/mobile-tyre-fitting/fort-william) | [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [All service areas](/service-areas)`,
   },
+  {
+    slug: 'mobile-tyre-fitting-cumbernauld-north-lanarkshire',
+    title: 'Mobile Tyre Fitting in Cumbernauld & Falkirk District',
+    description:
+      'Mobile tyre fitting in Cumbernauld, Kilsyth, Falkirk, Bonnybridge and the M80 corridor. G67–G68 and FK postcode areas. Fast response for commuter towns east of Glasgow.',
+    category: 'fitting',
+    publishDate: '2025-10-01',
+    lastModified: '2025-10-01',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting cumbernauld',
+      'tyre fitting cumbernauld',
+      'G67 tyre fitting',
+      'G68 tyre fitting',
+      'tyre fitter kilsyth',
+      'emergency tyre cumbernauld',
+      'M80 tyre breakdown',
+      'cumbernauld shopping centre tyre',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-stirling-falkirk',
+      'mobile-tyre-fitting-motherwell-north-lanarkshire',
+      'emergency-tyre-fitting-glasgow-complete-guide',
+    ],
+    content: `# Mobile Tyre Fitting in Cumbernauld & Falkirk District
+
+Tyre Rescue covers Cumbernauld, Kilsyth, and the wider North Lanarkshire east district — including the M80 corridor that links Glasgow to Stirling. We serve G67, G68, and adjoining FK postcodes.
+
+## Areas We Cover
+
+**Cumbernauld (G67–G68)**
+Scotland's largest post-war new town. We cover all of Cumbernauld — the town centre, residential estates (Condorrat, Kildrum, Seafar, Balloch), and the Westfield Retail Park area.
+
+**Kilsyth (G65)**
+Just north of Cumbernauld on the A803. We cover Kilsyth town and surrounding villages.
+
+**Bonnybridge & Denny (FK4)**
+These Falkirk district towns at the junction of the M876 and A88 are within our coverage. Close to the Falkirk Wheel visitor area.
+
+## The M80 Motorway
+
+The M80 is the main link between Glasgow and Stirling, passing through Cumbernauld. It's a high-speed, high-volume route where blowouts are dangerous. If you have a tyre emergency on the M80:
+
+1. Move to the hard shoulder or emergency refuge area
+2. Exit the vehicle on the left side (away from traffic)
+3. Call **0141 266 0690** and give your motorway location reference
+4. We'll coordinate with the relevant motorway management
+
+**Never attempt to change a tyre on a live motorway carriageway.**
+
+## Response Times
+
+- **Cumbernauld town centre**: typically 30–45 minutes
+- **Kilsyth**: typically 35–50 minutes
+- **Bonnybridge**: typically 45–60 minutes
+
+Cumbernauld's proximity to Glasgow makes it one of our faster response areas outside the city.
+
+## Emergency Callout in Cumbernauld
+
+Flat tyre right now? Call **0141 266 0690** — 24 hours a day. We'll confirm the callout fee (from £49) and dispatch a fitter with your tyre size if we can confirm it from your registration.
+
+For a slow puncture that hasn't fully deflated, we may be able to repair it from £25 rather than replace the whole tyre.
+
+## Schedule a Tyre Fitting
+
+Not an emergency? [Book online](/book) for a daytime appointment. We'll bring your chosen tyre to your home or workplace in Cumbernauld — no need to drive to a garage.
+
+[Motherwell & North Lanarkshire](/mobile-tyre-fitting/motherwell) | [Stirling & Falkirk](/mobile-tyre-fitting/stirling) | [Glasgow](/mobile-tyre-fitting/glasgow) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-wick-caithness',
+    title: 'Mobile Tyre Fitting in Wick & Caithness',
+    description:
+      'Flat tyre in Wick, Thurso, or Caithness? Tyre Rescue covers Scotland\'s far north including KW1–KW14 postcodes. NC500 route specialist. Remote Highlands callouts available.',
+    category: 'fitting',
+    publishDate: '2025-10-01',
+    lastModified: '2025-10-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting wick',
+      'tyre fitting caithness',
+      'tyre fitting thurso',
+      'KW1 tyre fitting',
+      'KW14 tyre fitting',
+      'NC500 tyre help',
+      'flat tyre far north scotland',
+      'emergency tyre wick',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-inverness-highlands',
+      'mobile-tyre-fitting-elgin-moray',
+      'mobile-tyre-fitting-fort-william-highlands',
+    ],
+    content: `# Mobile Tyre Fitting in Wick & Caithness
+
+Tyre Rescue covers Wick, Thurso, and the wider Caithness region — Scotland's far north, including KW1 to KW14 postcodes. We're one of the few mobile tyre services that will travel this far north.
+
+## Why Caithness Needs a Dedicated Mobile Tyre Service
+
+Caithness sits at the very tip of mainland Scotland — further north than parts of Denmark. The challenges here are unique:
+
+- **Long distances from major centres** — Inverness is 104 miles from Wick
+- **Single-track roads** with passing places and sharp verges
+- **NC500 tourist traffic** — particularly heavy in summer, with unfamiliar drivers on challenging roads
+- **Minimal local tyre options** — most garages are small and can't do roadside callouts
+- **Exposed A99 coast road** — debris and weather damage are common
+
+## Areas We Cover in Caithness
+
+**Wick (KW1)**
+The main town and county seat. We cover Wick town centre, Riverside Drive, and surrounding residential areas.
+
+**Thurso (KW14)**
+Scotland's most northerly major town. We cover the town centre and the route to Scrabster ferry terminal.
+
+**Scrabster & John o'Groats (KW1, KW14)**
+The northern ferry terminals are covered. John o'Groats is an NC500 endpoint — drivers who've completed the route often discover tyre wear here.
+
+**Lybster & Dunbeath (KW3, KW6)**
+These south Caithness coastal villages on the A9 are within our extended coverage.
+
+**Halkirk & Watten (KW12)**
+Inland Caithness villages accessible via the A882.
+
+## The NC500 in Caithness
+
+The North Coast 500 route passes through Caithness along the A99 and A836. The coastal section from John o'Groats to Tongue is particularly demanding — narrow roads, gravel edges, and spectacular but isolated scenery.
+
+If you pick up a tyre fault on the NC500 in Caithness:
+- Pull off the road where safe — many stretches have no hard shoulder
+- Call **0141 266 0690** immediately and describe your location (nearest village or kilometre marker)
+- We'll give you an honest ETA and advise on next steps
+
+## The Orkney Ferry Connection
+
+Thurso is the gateway for the NorthLink ferry to Orkney from Scrabster. If you're heading to the Orkney ferry and discover a tyre problem, call us immediately — we'll do our best to reach Thurso before your sailing. With sufficient notice, we can often intervene.
+
+## Response Times in Caithness
+
+Due to the extreme distance from our dispatch centres:
+- **Wick / Thurso**: typically 150–180 minutes (driving from Inverness area)
+- **John o'Groats**: typically 160–200 minutes
+- **Dunbeath / Lybster**: typically 130–160 minutes
+
+We're transparent about these times. For remote callouts, we recommend calling the moment you notice a fault rather than waiting.
+
+## Emergency Help in the Far North
+
+Call **0141 266 0690** — 24 hours a day. For Caithness callouts, we coordinate through our Highland operations to dispatch the nearest available fitter.
+
+We always confirm the callout fee before dispatch. For very remote locations, a premium distance surcharge may apply — we'll always tell you before sending anyone.
+
+## Travel Tips for Caithness
+
+1. **Check tyres before leaving Inverness** — the last major town before the far north
+2. **Carry basic tools** — a good foam tyre sealant can be invaluable on remote stretches
+3. **Know your tyre size** — it's on the sidewall and in your handbook
+4. **Download offline maps** — mobile coverage drops in many Caithness glens
+
+[Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Elgin & Moray](/mobile-tyre-fitting/elgin) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-arbroath-angus',
+    title: 'Mobile Tyre Fitting in Arbroath & Angus',
+    description:
+      'Mobile tyre fitting in Arbroath, Forfar, Montrose, Brechin and across Angus. DD11 and DD8 postcodes covered. Same-day fitting between Dundee and Aberdeen.',
+    category: 'fitting',
+    publishDate: '2025-10-01',
+    lastModified: '2025-10-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting arbroath',
+      'tyre fitting angus',
+      'tyre fitting forfar',
+      'tyre fitting montrose',
+      'DD11 tyre fitting',
+      'DD8 tyre fitting',
+      'emergency tyre arbroath',
+      'brechin tyre fitting',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-dundee-guide',
+      'mobile-tyre-fitting-aberdeen-guide',
+      'mobile-tyre-fitting-perth-perthshire',
+    ],
+    content: `# Mobile Tyre Fitting in Arbroath & Angus
+
+Tyre Rescue covers Arbroath, Forfar, Montrose, Brechin, Carnoustie, and the wider Angus region — serving DD11, DD8, and DD10 postcodes on the A90 corridor between Dundee and Aberdeen.
+
+## Areas We Cover in Angus
+
+**Arbroath (DD11)**
+Scotland's Declaration of Independence town and Angus's largest community. We cover Arbroath town centre, the harbour area, and surrounding residential streets.
+
+**Forfar (DD8)**
+The county town of Angus. We cover Forfar and the surrounding Strathmore area including the A90 and A926 routes.
+
+**Montrose (DD10)**
+The eastern Angus coastal town. We cover Montrose and the offshore oil support industry area around the port.
+
+**Brechin (DD9)**
+On the A935 route from Forfar to Montrose. We cover Brechin and surrounding Esk valley communities.
+
+**Carnoustie (DD7)**
+The world-famous golf links town between Dundee and Arbroath. We cover Carnoustie and the A92 coastal route.
+
+## The A90 Dundee to Aberdeen Corridor
+
+Angus sits on the main A90 route between Dundee and Aberdeen — one of Scotland's busiest trunk roads. The dual carriageway carries high volumes of commuter and freight traffic. Tyre damage on this route is common, and getting to a garage safely is often impossible without first getting the tyre fixed.
+
+Tyre Rescue responds to A90 callouts between the Dundee bypass and Stonehaven. If you have a tyre emergency on the A90 in Angus:
+
+1. Slow down immediately — drive on the rim only as a last resort
+2. Use the nearest layby or slip road
+3. Call **0141 266 0690** with your location (nearest junction or signpost)
+
+## Offshore and Industrial Callouts
+
+Montrose has a significant offshore oil support sector. Workers and supply vehicles often need quick tyre help to meet logistics schedules. We prioritise these callouts and carry the commercial vehicle tyre sizes common in this industry.
+
+## Response Times in Angus
+
+- **Carnoustie / Arbroath**: typically 45–65 minutes from Dundee area
+- **Forfar**: typically 55–75 minutes
+- **Montrose**: typically 65–85 minutes
+- **Brechin**: typically 70–90 minutes
+
+Traffic on the A90 and A92 affects all times.
+
+## Emergency Callout in Angus
+
+Flat tyre in Angus right now? Call **0141 266 0690** — available 24 hours a day. We dispatch from both Dundee and Aberdeen to cover Angus, ensuring the nearest fitter reaches you.
+
+Can the tyre be repaired? We check on arrival. A repair costs from £25 and is only done where the tyre meets legal safety standards.
+
+## Book in Advance
+
+Planning a trip through Angus or need a replacement tyre before a long journey north to Aberdeen? [Book online](/book) and we'll come to your Angus address with the tyre pre-fitted.
+
+[Dundee mobile tyres](/mobile-tyre-fitting/dundee) | [Aberdeen mobile tyres](/mobile-tyre-fitting/aberdeen) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-stornoway-western-isles',
+    title: 'Mobile Tyre Fitting in Stornoway & the Western Isles',
+    description:
+      'Flat tyre in Stornoway or the Outer Hebrides? Tyre Rescue covers Lewis, Harris, North Uist, South Uist and Barra. HS postcodes. Island specialist with ferry coordination.',
+    category: 'fitting',
+    publishDate: '2025-10-01',
+    lastModified: '2025-10-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting stornoway',
+      'tyre fitting western isles',
+      'tyre fitting lewis harris',
+      'HS1 tyre fitting',
+      'flat tyre outer hebrides',
+      'emergency tyre stornoway',
+      'tyre fitting north uist',
+      'tyre fitting south uist',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-inverness-highlands',
+      'mobile-tyre-fitting-isle-of-skye',
+      'mobile-tyre-fitting-oban-argyll',
+    ],
+    content: `# Mobile Tyre Fitting in Stornoway & the Western Isles
+
+Tyre Rescue covers Stornoway and the Western Isles (Outer Hebrides) — including Lewis, Harris, North Uist, Benbecula, South Uist, and Barra. We serve HS1 to HS9 postcodes.
+
+## The Challenge of Island Tyre Emergencies
+
+The Western Isles present some of the most logistically challenging tyre emergencies in Scotland:
+
+- **No fixed link to the mainland** — all vehicles reach the islands by ferry
+- **Long distances between communities** — Lewis alone is 60 miles from north to south
+- **Single-track roads** throughout most of the island chain
+- **Seasonal tourism peaks** — summer NC500 spillover and Hebridean tourism brings many unfamiliar drivers
+
+We coordinate with Caledonian MacBrayne ferry schedules to provide the most effective service possible.
+
+## Islands We Cover
+
+**Lewis (HS1–HS2)**
+The largest island in the Outer Hebrides. Stornoway is our operational base for Lewis. We cover the full island including Carloway, Ness, Point, and the Butt of Lewis area.
+
+**Harris (HS3, HS5)**
+The southern part of the Lewis-Harris island. The Golden Road (B8083) along Harris's east coast is particularly demanding on tyres — a popular tourist route with sharp rocks close to the road surface.
+
+**North Uist (HS6)**
+Accessible via the Harris ferry to Berneray and causeway. We cover Lochmaddy and surrounding North Uist communities.
+
+**Benbecula (HS7)**
+The central island linked by causeways to North and South Uist. Home to an airport — useful for drivers who need tyres before a flight connection.
+
+**South Uist (HS8)**
+Connected to Benbecula by causeway. We cover Lochboisdale and surrounding South Uist communities.
+
+**Barra (HS9)**
+The southernmost inhabited island. Reachable via the Oban ferry to Castlebay. Response times here are the longest in our network — please call as early as possible.
+
+## Coordinating with CalMac Ferries
+
+If you need tyres brought to an island, we work with CalMac's freight booking system where required. For scheduled (non-emergency) tyre orders, we can pre-ship tyres to island destinations and arrange fitting with local partners.
+
+For emergency callouts on Lewis or Harris, we aim to have a fitter on the ferry or on-island within the same day where possible.
+
+## Response Times in the Western Isles
+
+Response times vary significantly depending on ferry availability:
+- **Stornoway (Lewis)**: typically same-day with morning call, next-day for late calls
+- **Harris**: add 1–2 hours to Stornoway times
+- **North Uist / Benbecula / South Uist**: typically 24 hours from booking
+- **Barra**: typically 24–48 hours from booking
+
+We'll always give you an honest timeline when you call. Ferry schedules and weather can affect these times significantly.
+
+## Emergency Help in the Western Isles
+
+Call **0141 266 0690** — 24 hours a day. For island callouts, we'll assess the quickest route (whether that's dispatching via Stornoway airport or the Ullapool–Stornoway ferry) and give you a realistic timeline.
+
+For drivers on Lewis or Harris who know a local tyre fitter, we recommend combining a local repair with our supply of the correct tyre size if stocking is limited on-island.
+
+## Tips for Outer Hebrides Driving
+
+1. **Check tyre tread** before you take the ferry — the islands' roads are unforgiving
+2. **Carry a spare** — for remote island driving, a spare or foam sealant is strongly advised
+3. **Know your ferry times** — a tyre issue near a CalMac terminal can sometimes be coordinated with our on-island team
+4. **The Golden Road** (Harris): reduce speed on the east coast route — rock edges and cattle grids cause damage
+
+[Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Isle of Skye](/mobile-tyre-fitting/isle-of-skye) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-lerwick-shetland',
+    title: 'Mobile Tyre Fitting in Lerwick & Shetland',
+    description:
+      'Flat tyre in Lerwick or anywhere on Shetland? Tyre Rescue covers Lerwick, Scalloway, Lerwick Harbour and across the Shetland Islands. ZE postcodes. Scotland\'s northernmost mobile tyre service.',
+    category: 'fitting',
+    publishDate: '2025-10-01',
+    lastModified: '2025-10-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting lerwick',
+      'tyre fitting shetland',
+      'ZE1 tyre fitting',
+      'flat tyre shetland',
+      'emergency tyre lerwick',
+      'tyre fitter shetland islands',
+      'scalloway tyre fitting',
+      'shetland mobile tyres',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-stornoway-western-isles',
+      'mobile-tyre-fitting-inverness-highlands',
+      'mobile-tyre-fitting-elgin-moray',
+    ],
+    content: `# Mobile Tyre Fitting in Lerwick & Shetland
+
+Tyre Rescue covers Lerwick and the Shetland Islands — Scotland's northernmost territory, serving ZE1 postcodes. We provide Scotland's most northerly mobile tyre service.
+
+## Shetland: Unique Tyre Challenges
+
+Shetland sits 170 miles north of mainland Scotland, closer to Bergen than to Edinburgh. Driving conditions here are extreme:
+
+- **High winds** — Shetland has the highest average wind speeds in the UK, affecting tyre wear and stability
+- **Single-track roads** for most of the island network
+- **Exposed cliff-edge routes** where stopping is dangerous
+- **Remote peninsula roads** with no phone coverage
+- **NorthLink ferry dependency** — no fixed link to the mainland
+
+Despite these challenges, Shetland residents and visitors need tyres just like anyone else — and have even fewer options when something goes wrong.
+
+## Areas We Cover in Shetland
+
+**Lerwick (ZE1)**
+The capital and our primary base on Shetland. We cover Lerwick town centre, the Viking Bus Station area, Lerwick Harbour, and residential areas to the north and south.
+
+**Scalloway (ZE1)**
+Shetland's former capital on the west coast, connected to Lerwick by the A970. We cover Scalloway and the Whiteness and Weisdale valleys.
+
+**Brae & Voe (ZE2)**
+The north mainland communities accessible via the A970. We cover these areas, though response times are longer.
+
+**Sumburgh & South Mainland (ZE3)**
+The southern tip of Shetland, including Sumburgh Airport and the Jarlshof archaeological site. We cover the south mainland.
+
+**Yell, Unst & Fetlar**
+For the outer islands accessible by inter-island ferry from Toft, we can coordinate supply and fitting — please contact us in advance to arrange.
+
+## NorthLink Ferry and Aberdeen Connection
+
+Shetland is connected to Aberdeen and Orkney via the NorthLink ferry (Aberdeen–Lerwick, approximately 12 hours). We can coordinate tyre supply via the ferry for pre-arranged orders. For emergency callouts, we dispatch via the quickest route available.
+
+## Response Times in Shetland
+
+Shetland callouts have the longest response times in our network:
+- **Lerwick town**: typically same-day with a morning call (via scheduled ferry or flight charter for genuine emergencies)
+- **South Mainland**: add 30–60 minutes to Lerwick times
+- **North Mainland**: add 60–90 minutes to Lerwick times
+- **Outer islands (Yell, Unst)**: 24–48 hours — please plan in advance
+
+We will always give you an honest assessment when you call. For genuine breakdowns, we explore all options including local partnerships.
+
+## Emergency Tyre Help in Shetland
+
+Call **0141 266 0690** — 24 hours a day. For Shetland callouts, we'll assess the fastest route to you (we maintain a local partner network for island emergencies) and give you a realistic timeline.
+
+For drivers in Lerwick itself, response is typically fastest as we maintain a local stock presence in the capital.
+
+## Tips for Driving in Shetland
+
+1. **Pre-trip tyre check** — before heading to Shetland on the ferry, get your tyres inspected on the mainland
+2. **Carry a foam sealant** — for remote Shetland roads, a temporary fix can get you to Lerwick safely
+3. **Avoid driving on deflated tyres** — on Shetland's exposed roads, a damaged rim adds major cost
+4. **Know the postcode** — Shetland has limited addressing; knowing ZE1 or ZE2 helps our dispatch team
+
+[Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
