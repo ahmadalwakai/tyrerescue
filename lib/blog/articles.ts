@@ -9893,6 +9893,286 @@ Call **0141 266 0690** or [book online](/book) for mobile Fiat or Alfa Romeo tyr
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Peugeot tyre fitting Scotland](/blog/peugeot-tyre-fitting-scotland) | [Van tyre fitting Scotland](/blog/van-tyre-fitting-scotland)`,
   },
+  {
+    slug: 'porsche-tyre-fitting-scotland',
+    title: 'Porsche Tyre Fitting Scotland: Cayenne, Macan, 911, Taycan & Panamera',
+    description:
+      'Mobile Porsche tyre fitting across Scotland. Correct tyre sizes for every Porsche model — Cayenne, Macan Electric, 911 (staggered), Taycan, Panamera, Boxster, Cayman. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'porsche tyre fitting scotland',
+      'porsche cayenne tyres scotland',
+      'porsche macan tyres scotland',
+      'porsche 911 tyres scotland',
+      'porsche taycan tyres scotland',
+      'porsche panamera tyres scotland',
+      'mobile porsche tyre fitting glasgow',
+      'porsche macan electric tyres scotland',
+    ],
+    relatedSlugs: [
+      'run-flat-tyres-scotland-guide',
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+    ],
+    content: `# Porsche Tyre Fitting Scotland: Every Model Covered
+
+Porsche is one of the most popular premium car brands in Scottish cities — the Cayenne and Macan are common in Glasgow's West End, Edinburgh's Morningside, and Aberdeen. Porsche vehicles require specific tyre expertise: staggered fitments on 911 and Taycan, run-flat N-rated tyres on many models, and precision tyre specification matching for optimal handling and safety. Tyre Rescue provides specialist mobile Porsche tyre fitting across all of Scotland.
+
+## Porsche Cayenne Tyre Sizes
+
+The Porsche Cayenne (E3, 2018–present):
+
+| Cayenne Trim | Tyre Size |
+|---|---|
+| Cayenne S | 265/45R20 |
+| Cayenne GTS | 285/40R21 or 295/35R22 |
+| Cayenne Turbo | 285/40R21 or 295/35R22 |
+| Cayenne Turbo GT | 285/35R22 (front), 305/30R22 (rear) |
+| Cayenne Coupé | 265/45R20 or 295/35R22 |
+| Cayenne E-Hybrid | 265/45R20 (load index 112+) |
+| Cayenne Turbo E-Hybrid | 285/40R21 (load index 113+) |
+
+**E-Hybrid note**: The Cayenne E-Hybrid is a very heavy vehicle — load index requirements are high (112+). Never substitute a standard-load tyre on a Cayenne E-Hybrid.
+
+**Cayenne Turbo GT note**: The Turbo GT uses staggered fitments with very large, low-profile rear tyres. Call ahead to confirm stock — this specification is not carried on every van. We will source and deliver for your fitting.
+
+## Porsche Macan Tyre Sizes
+
+The Porsche Macan (95B, 2014–2023):
+
+| Macan Trim | Tyre Size |
+|---|---|
+| Macan S | 235/55R19 |
+| Macan GTS / Turbo | 265/45R20 or 265/40R21 |
+
+**New Porsche Macan Electric (J1, 2024–present)**:
+- 235/55R20 (standard)
+- 265/40R21 (Turbo / Performance)
+
+**Macan Electric note**: No spare wheel on the Macan Electric. A flat requires immediate mobile fitting. The Macan EV is significantly heavier than the petrol version — load index must be appropriate.
+
+## Porsche 911 Tyre Sizes
+
+The Porsche 911 uses staggered fitments — different front and rear sizes — across almost all variants:
+
+| 911 Variant | Front Tyre | Rear Tyre |
+|---|---|---|
+| 911 Carrera (992) | 235/40R19 | 295/35R19 |
+| 911 Carrera S | 245/35R20 | 305/30R20 |
+| 911 Carrera 4S | 245/35R20 | 305/30R20 |
+| 911 Turbo S | 255/35R20 | 315/30R21 |
+| 911 GT3 | 245/35R21 | 305/30R21 |
+
+**911 staggered fitment note**: Due to the staggered setup, 911 tyres cannot be rotated. When you replace, you order and fit front and rear separately. Always specify which axle when calling us.
+
+The 911 uses N-rated tyres (Pirelli N0, Michelin *, Goodyear F) — tyres specifically tested and approved for Porsche applications. We stock N-rated 911 tyres. Call ahead to confirm stock for your exact specification.
+
+## Porsche Taycan Tyre Sizes
+
+The Porsche Taycan (J1, 2019–present) — fully electric performance saloon:
+
+| Taycan Variant | Front | Rear |
+|---|---|---|
+| Taycan (base) | 225/55R19 | 275/45R19 |
+| Taycan 4S | 245/45R20 | 285/40R20 |
+| Taycan Turbo | 255/35R21 | 305/30R21 |
+| Taycan Turbo S | 265/35R21 | 305/30R21 |
+| Taycan Sport Turismo | Same as saloon equivalents | |
+| Taycan Cross Turismo | 265/45R20 (all-terrain option) | |
+
+**Taycan note**: The Taycan has no spare wheel. A flat on a Taycan requires immediate mobile fitting. The Turbo S staggered specification (265/35R21 front, 305/30R21 rear) is a specialist size — call ahead to confirm availability.
+
+## Porsche Panamera Tyre Sizes
+
+The Porsche Panamera (971, 2016–present):
+
+| Panamera Variant | Front | Rear |
+|---|---|---|
+| Panamera | 245/50R18 or 245/45R19 | 275/40R19 |
+| Panamera 4S | 275/35R19 | 305/30R20 |
+| Panamera Turbo S | 275/30R21 | 325/25R21 |
+| Panamera E-Hybrid | 275/35R19 (load index 100+) | 305/30R20 |
+
+**Panamera Turbo S note**: The 325/25R21 rear tyre is extremely wide and low-profile — stock availability is limited. Call ahead.
+
+## Porsche Boxster & Cayman Tyre Sizes
+
+The Porsche Boxster (982) and Cayman (982):
+
+| Boxster/Cayman Trim | Front | Rear |
+|---|---|---|
+| 718 Boxster / Cayman | 235/40R19 | 265/40R19 |
+| 718 GTS / GT4 | 235/35R20 | 265/35R20 |
+| 718 GT4 RS | 235/35R21 | 265/35R21 |
+
+## Porsche TPMS Reset
+
+All Porsche models have direct TPMS — a full diagnostic tool is always required to reset after any tyre change. TPMS resets cannot be done via a button or menu on Porsche models.
+
+Tyre Rescue carries Porsche-compatible TPMS reset tools. Reset is included at no additional charge with every fitting.
+
+## Emergency Porsche Tyre Fitting in Scotland
+
+1. **Taycan, Macan Electric**: No spare wheel — call us immediately
+2. **Cayenne, Panamera**: May have a space-saver spare — check the boot
+3. **911, Boxster, Cayman**: Typically no spare — run-flat N-rated tyres on some models, otherwise call us
+4. **Call 0141 266 0690** — give your registration number; we identify Porsche tyre specifications immediately
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+## Why Use Tyre Rescue for Your Porsche?
+
+- **N-rated tyre stock** — we carry N0, N1, N2-rated Pirelli, Michelin, and Goodyear tyres for Porsche models
+- **Staggered fitment expertise** — we understand 911, Taycan, Panamera front/rear split specs
+- **TPMS reset included** — Porsche TPMS requires diagnostic tool; we carry it for every fitting
+- **EV tyre specialists** — correct load index and acoustic tyres for Taycan and Macan Electric
+- **All of Scotland** — from your Edinburgh driveway to a Highland hotel car park
+
+Call **0141 266 0690** or [book online](/book) for mobile Porsche tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Audi tyre fitting Scotland](/blog/audi-tyre-fitting-scotland) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland)`,
+  },
+  {
+    slug: 'lexus-tyre-fitting-scotland',
+    title: 'Lexus Tyre Fitting Scotland: RX, NX, UX, IS, LC & UX 300e Electric',
+    description:
+      'Mobile Lexus tyre fitting across Scotland. Correct tyre sizes for every Lexus model — RX 450h+, NX 350h, UX 300e electric, IS, LC, GS. TPMS reset included. All cities covered.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'lexus tyre fitting scotland',
+      'lexus rx tyres scotland',
+      'lexus nx tyres scotland',
+      'lexus ux tyres scotland',
+      'lexus is tyres scotland',
+      'lexus ux 300e tyres scotland',
+      'mobile lexus tyre fitting glasgow',
+      'lexus rx 450h tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'toyota-tyre-fitting-scotland',
+    ],
+    content: `# Lexus Tyre Fitting Scotland: Every Model Covered
+
+Lexus is a premium brand from Toyota with a loyal following in Scotland, particularly among older professional drivers and those who value quiet, refined motoring. The RX and NX hybrid SUVs are the most common Lexus models on Scottish roads, while the UX 300e electric is growing in popularity in Glasgow and Edinburgh. Tyre Rescue provides specialist mobile Lexus tyre fitting across all of Scotland.
+
+## Lexus RX Tyre Sizes
+
+The Lexus RX (AL30, 2022–present):
+
+| RX Variant | Tyre Size |
+|---|---|
+| RX 350h | 235/55R20 or 235/50R21 |
+| RX 450h+ (PHEV) | 235/55R20 (load index 105+) |
+| RX 500h | 235/55R20 |
+
+Older Lexus RX (AL20, 2016–2022): 235/55R20 base, 235/50R20 upper trims.
+
+**RX 450h+ PHEV note**: The RX 450h+ plug-in hybrid is significantly heavier than the self-charging hybrid — minimum load index 105 is required.
+
+## Lexus NX Tyre Sizes
+
+The Lexus NX (AZ20, 2021–present):
+
+| NX Variant | Tyre Size |
+|---|---|
+| NX 250 / 350h | 225/65R17 |
+| NX 450h+ (PHEV) | 235/50R18 (load index 97+) or 235/45R20 |
+
+Older NX (AZ10, 2014–2021): 225/65R17 base, 235/50R18 F Sport.
+
+## Lexus UX Tyre Sizes
+
+The Lexus UX (ZA10, 2019–present):
+
+| UX Variant | Tyre Size |
+|---|---|
+| UX 250h | 215/55R17 |
+| UX 250h F Sport | 225/50R18 |
+
+## Lexus UX 300e Electric Tyre Sizes
+
+The Lexus UX 300e (2021–present) — fully electric:
+
+- 215/55R17 (standard — load index 94+)
+
+**UX 300e note**: The electric UX has no spare wheel. A flat requires immediate mobile fitting. The 215/55R17 is a common size — we carry this on every van.
+
+## Lexus IS Tyre Sizes
+
+The Lexus IS (XE30, 2013–present) — sport saloon:
+
+| IS Variant | Tyre Size |
+|---|---|
+| IS 300h | 215/55R17 |
+| IS 300h F Sport | 225/45R18 |
+| IS 500 F Sport Performance | 225/40R19 (front), 255/35R19 (rear) |
+
+**IS 500 staggered note**: The IS 500 uses a staggered fitment. Specify front or rear when ordering.
+
+## Lexus ES Tyre Sizes
+
+The Lexus ES (XZ10, 2018–present) — executive saloon:
+
+- 225/55R17 (ES 300h)
+- 235/45R18 (F Sport)
+
+## Lexus GS Tyre Sizes
+
+The Lexus GS (L10, 2012–2020 — discontinued but still common):
+
+- 225/45R18 (GS 450h)
+- 245/40R18 (F Sport)
+
+## Lexus LC Tyre Sizes
+
+The Lexus LC 500 (Z100, 2017–present) — performance grand tourer:
+
+| LC Variant | Front | Rear |
+|---|---|---|
+| LC 500 / 500h | 245/40R21 | 275/35R21 |
+
+The LC 500 uses a staggered fitment. Front and rear tyres must be ordered and fitted separately.
+
+## Lexus TPMS Reset
+
+All Lexus models have TPMS. After any tyre change:
+
+- **Indirect TPMS (UX 250h, NX 250, IS base)**: Reset via the multi-information display — Settings → Tyre Pressure Warning → Set Pressure
+- **Direct TPMS (RX, NX PHEV, LC, IS F Sport Performance)**: Requires a TPMS diagnostic tool
+
+Tyre Rescue carries Lexus-compatible TPMS reset tools. Reset is included at no additional charge with every fitting.
+
+## Emergency Lexus Tyre Fitting in Scotland
+
+1. **UX 300e Electric**: No spare wheel — call us immediately
+2. **RX, NX, ES**: May have a space-saver spare in the boot — check before calling
+3. **IS, LC**: Check boot for space-saver spare
+4. **Call 0141 266 0690** — give your registration number; we identify your Lexus tyre specification immediately
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+## Why Use Tyre Rescue for Your Lexus?
+
+- **Lexus hybrid expertise** — we understand load index requirements for RX 450h+ and NX 450h+ PHEV
+- **Premium tyre stock** — Michelin Primacy 4+, Continental PremiumContact 7 for refined Lexus driving
+- **TPMS reset included** — Lexus TPMS warnings cleared before we leave
+- **Quiet fitting** — our mobile service is ideal for Lexus drivers who appreciate low disruption
+- **All of Scotland** — Glasgow, Edinburgh, Aberdeen, Inverness, and beyond
+
+Call **0141 266 0690** or [book online](/book) for mobile Lexus tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Toyota tyre fitting Scotland](/blog/toyota-tyre-fitting-scotland) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
