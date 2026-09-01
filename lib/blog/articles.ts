@@ -10880,6 +10880,115 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'isuzu-dmax-tyre-fitting-scotland',
+    title: 'Isuzu D-Max Tyre Fitting Scotland: Sizes, Load Ratings & All-Terrain Guide',
+    description:
+      'Mobile tyre fitting for Isuzu D-Max in Scotland. Factory sizes 265/65R17 and 245/65R17, LT/C-rated requirements, all-terrain tyre advice for Highland use, and TPMS reset guide.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'Isuzu D-Max tyres scotland',
+      'D-Max tyre size scotland',
+      'Isuzu D-Max tyre fitting scotland',
+      'D-Max all terrain tyres scotland',
+      'Isuzu D-Max tyre replacement scotland',
+      'D-Max 265/65R17 tyre',
+      'pickup truck tyres scotland',
+      'LT rated tyres scotland',
+    ],
+    relatedSlugs: [
+      '4x4-suv-tyres-scotland-highlands',
+      'van-tyre-fitting-scotland',
+      'all-season-tyres-scotland-guide',
+    ],
+    content: `# Isuzu D-Max Tyre Fitting Scotland
+
+The Isuzu D-Max is one of Scotland's most practical working vehicles — found on farms in Aberdeenshire, Highland estates, construction sites across the Central Belt, and with outdoor businesses throughout rural Scotland. As a light commercial pickup, the D-Max has specific tyre requirements that standard car tyre centres often do not stock.
+
+Tyre Rescue fits tyres for all D-Max generations across Scotland, including C-rated and LT-rated commercial tyres.
+
+## Isuzu D-Max Tyre Sizes by Generation
+
+| D-Max Generation | Tyre Size | Load Rating |
+|---|---|---|
+| D-Max Gen 1 (2004–2012) | 245/70R16 | 111S (LT requirement) |
+| D-Max Gen 2 (2012–2020) | 245/65R17 | 111H or 111S |
+| D-Max Gen 3 / Blade / XTR (2021+) | 265/65R17 | 112H |
+| D-Max V-Cross (2021+) | 265/65R17 | 112H |
+| D-Max AT35 (Arctic Trucks) | 285/70R17 | Arctic Trucks OE |
+
+**Load index requirement**: the D-Max is a light commercial vehicle with a payload of up to 1,000 kg. The tyre's load index must match the vehicle's maximum axle loading. **Never fit a standard passenger tyre (LI 94–99) on a D-Max** — the vehicle requires commercial-grade tyres.
+
+**LT vs C rating**: in the UK market, D-Max tyres are typically specified as standard load or XL rating at high LI numbers (109+). "LT" designation (Light Truck) is the US system; European equivalents are the commercial load ratings. Confirm the load index matches the vehicle placard before fitting.
+
+## Best Tyres for Isuzu D-Max in Scotland
+
+### For On-Road / Motorway Use
+
+If the D-Max is primarily a commuter or road vehicle with occasional light off-road:
+
+- **BFGoodrich All-Terrain KO2 265/65R17** — the most popular choice for Scottish D-Max owners; excellent on mud and snow, 3PMSF rated, acceptable road noise
+- **Toyo Open Country AT3 265/65R17** — quieter on road than KO2, still strong off-road
+- **Falken Wildpeak AT3W 265/65R17** — outstanding in wet and mud, competitive pricing
+
+### For Off-Road / Farm / Highland Estate Use
+
+If the D-Max is used regularly on mud tracks, farm access roads, or Highland estate ground:
+
+- **BFGoodrich Mud-Terrain KM3** — aggressive mud tyre; significant road noise but outstanding grip in deep mud
+- **Nitto Trail Grappler MT** — popular Highland estate choice; good balance of mud and rock performance
+- **Toyo Open Country MT** — strong performance in Scottish peat and mud terrain
+
+**Scottish Highland note**: the D-Max AT35 (Arctic Trucks edition) comes with specialist 35" Nokian Hakkapeliitta tyres from factory. Replacements for the AT35 are non-standard and must be sourced specifically — call us to confirm availability.
+
+### For All-Season (Mixed Road / Light Off-Road)
+
+- **Michelin CrossClimate 2 Van** (where available in size) — 3PMSF rated, acceptable for light off-road
+- **Nokian Seasonproof C** — designed specifically for light commercial vehicles in Scandinavian and Scottish conditions
+
+## D-Max Tyre Pressure Guide
+
+The D-Max is rear-wheel-drive with a separate rear axle (ladder-frame chassis). Correct tyre pressure varies significantly depending on load:
+
+| Load Condition | Front | Rear |
+|---|---|---|
+| Empty/light load | 35 psi (2.4 bar) | 35 psi (2.4 bar) |
+| Half load | 38 psi (2.6 bar) | 42 psi (2.9 bar) |
+| Full payload | 40 psi (2.8 bar) | 50 psi (3.4 bar) |
+
+Confirm exact pressures on the vehicle door pillar sticker — the above are approximate typical values for the Gen 3. Running at low pressure under full payload causes rapid sidewall wear and increases blowout risk.
+
+## TPMS on Isuzu D-Max
+
+Isuzu D-Max (Gen 3, 2021+) uses direct TPMS sensors. After tyre fitting:
+
+1. Set tyre pressures to recommended values
+2. Start the engine and let idle for 2–3 minutes
+3. Drive at 30+ mph for 5–10 minutes
+4. TPMS light should extinguish automatically
+
+If it persists, the sensor may need programming using an Isuzu-compatible TPMS tool. Our technicians carry the necessary equipment for common TPMS reset procedures.
+
+Gen 2 D-Max (2012–2020): standard models often do not carry TPMS — verify your specific vehicle using the instrument cluster.
+
+## Spare Wheel on D-Max
+
+The Isuzu D-Max carries a full-size spare wheel mounted under the rear of the load bed. This is one of the advantages of the D-Max for rural and Highland use — you can continue driving after a single puncture. We recommend the spare tyre matches the other four tyres in brand, size, and load rating.
+
+## Mobile D-Max Tyre Fitting Across Scotland
+
+We stock 265/65R17 and 245/65R17 AT/HT tyres across our Scotland vans as standard stock. For specialist sizes (285/70R17, 35" fitments, mud-terrain variants), call ahead to confirm same-day availability.
+
+Our vans carry commercial-grade tyre mounting equipment capable of handling D-Max wheel weight and load.
+
+Call **0141 266 0690** or [book online](/book) for mobile D-Max tyre fitting anywhere in Scotland.
+
+[Van and commercial tyre guide Scotland](/blog/van-tyre-fitting-scotland) | [4x4 and SUV tyre guide Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [All-season tyres Scotland](/blog/all-season-tyres-scotland-guide)`,
+  },
+  {
     slug: 'jeep-tyre-fitting-scotland',
     title: 'Jeep Tyre Fitting Scotland: Wrangler, Renegade, Compass & Avenger Guide',
     description:
