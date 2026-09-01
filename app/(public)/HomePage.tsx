@@ -1720,7 +1720,11 @@ export function HomePage() {
             >
               AREAS WE COVER
             </Text>
-            <Box h="2px" w="60px" bg={colors.accent} mb={8} />
+            <Box h="2px" w="60px" bg={colors.accent} mb={4} />
+            <Text fontSize="15px" color={colors.textSecondary} mb={6} style={{ fontFamily: 'var(--font-body)' }}>
+              We operate across all of Scotland — from Glasgow to Shetland. Select your city or{' '}
+              <Link href="/service-areas" style={{ color: '#F97316', textDecoration: 'underline' }}>view full coverage map</Link>.
+            </Text>
             <Flex wrap="wrap" gap={3}>
               {cities.map((city) => (
                 <ChakraLink
