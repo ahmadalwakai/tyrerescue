@@ -381,6 +381,88 @@ export const competitors: CompetitorComparison[] = [
     ],
     lastModified: '2025-09-01',
   },
+  {
+    slug: 'tyre-rescue-vs-rac-breakdown',
+    competitorName: 'RAC Breakdown',
+    competitorShortName: 'RAC',
+    title: 'Tyre Rescue vs RAC Breakdown: Which Is Better for Flat Tyres in Scotland?',
+    metaTitle: 'Tyre Rescue vs RAC for Flat Tyres Scotland | Which Is Better?',
+    metaDescription:
+      'RAC membership vs Tyre Rescue for flat tyres in Scotland. Cost comparison, what RAC actually does at a flat tyre, and why mobile tyre fitting is often faster and cheaper.',
+    description:
+      'Many Scottish drivers have RAC breakdown cover but still end up calling a mobile tyre fitter. This comparison explains what RAC does when you have a flat tyre in Scotland, how it compares to Tyre Rescue, and when each service is the better choice.',
+    features: [
+      { feature: 'Service Type', tyreRescue: 'Mobile tyre fitting — replacement tyre supplied and fitted at your location', competitor: 'Breakdown assistance — will attempt temporary fix or tow to a garage; does not supply replacement tyres', winner: 'tyrerescue' },
+      { feature: 'Tyre Supply', tyreRescue: 'Yes — we bring the tyre to you', competitor: 'No — RAC patrol does not carry tyres; arranges onward transport to a tyre garage if needed', winner: 'tyrerescue' },
+      { feature: 'Cost', tyreRescue: 'Pay per callout: from £49 + tyre price', competitor: 'Annual membership from £50–£160/year; tyre supply still costs extra', winner: 'tie' },
+      { feature: '24/7 Response', tyreRescue: 'Yes — 24 hours, 7 days', competitor: 'Yes — RAC covers 24/7 breakdowns', winner: 'tie' },
+      { feature: 'Remote Scotland Coverage', tyreRescue: 'Yes — Highlands, NC500, Islands', competitor: 'Coverage varies; remote areas may involve long waits or tow to nearest town', winner: 'tyrerescue' },
+      { feature: 'Flat Tyre Resolution', tyreRescue: 'Complete — new tyre fitted, back on road at your location', competitor: 'Partial — may inflate, apply sealant, or arrange tow; tyre still needs to be sourced elsewhere', winner: 'tyrerescue' },
+      { feature: 'Response Time', tyreRescue: 'Tyres: 45–90 min; varies by location', competitor: 'Target 30 min for serious breakdowns; flat tyres may be lower priority', winner: 'tie' },
+      { feature: 'Run-Flat Tyres', tyreRescue: 'Yes — we carry run-flat replacements', competitor: 'RAC patrol advises but does not supply run-flat replacements', winner: 'tyrerescue' },
+    ],
+    faq: [
+      {
+        question: 'Will the RAC fix a flat tyre in Scotland?',
+        answer: 'The RAC can attempt to inflate a tyre, apply sealant if a repair kit is appropriate, or fit your spare wheel if you have one. What they cannot do is supply a replacement tyre on the spot. If your tyre needs replacing, the RAC patrol will either tow you to the nearest tyre garage or arrange for recovery. This means your flat tyre is not resolved at the roadside — you still need a tyre garage or mobile tyre fitter.',
+      },
+      {
+        question: 'Is RAC membership worth it if I also use Tyre Rescue?',
+        answer: 'RAC membership covers a wide range of breakdown scenarios beyond flat tyres — engine failure, electrical faults, fuel mislayment. If you want cover for non-tyre breakdowns, RAC membership has value. For flat tyres specifically, a mobile tyre fitter like Tyre Rescue typically resolves the issue faster and more completely than RAC can. Many Scottish drivers keep basic RAC cover for mechanical breakdowns and use Tyre Rescue for tyre-specific emergencies.',
+      },
+      {
+        question: 'Is Tyre Rescue cheaper than RAC breakdown cover?',
+        answer: 'RAC basic cover is approximately £50–£80 per year. Tyre Rescue charges per callout (from £49 + tyre price). If you have fewer than one flat tyre per year — which most drivers do — Tyre Rescue on a pay-per-use basis may be cheaper overall for tyre emergencies. However, RAC also covers non-tyre breakdowns that Tyre Rescue does not.',
+      },
+    ],
+    summary: 'The RAC is a breakdown service — it does not supply replacement tyres. When you have a flat tyre in Scotland, calling Tyre Rescue means a mobile fitter arrives with a replacement tyre and fits it at your location. Calling the RAC means a patrol who can attempt inflation or sealant, but will likely arrange a tow if the tyre needs replacing. For flat tyres, Tyre Rescue is the more complete solution. For non-tyre breakdowns, RAC membership has value that Tyre Rescue does not replace.',
+    keywords: [
+      'tyre rescue vs rac', 'rac flat tyre scotland', 'rac vs mobile tyre fitter', 'does rac fix flat tyres',
+      'rac breakdown flat tyre scotland', 'mobile tyre fitting vs breakdown cover',
+    ],
+    lastModified: '2025-09-01',
+  },
+  {
+    slug: 'tyre-rescue-vs-aa-breakdown',
+    competitorName: 'AA Breakdown',
+    competitorShortName: 'AA',
+    title: 'Tyre Rescue vs AA Breakdown: Flat Tyre Cover in Scotland Compared',
+    metaTitle: 'Tyre Rescue vs AA for Flat Tyres Scotland | Mobile Fitter vs Breakdown Cover',
+    metaDescription:
+      'Does the AA fix flat tyres in Scotland? Compare AA breakdown cover vs Tyre Rescue mobile tyre fitting — cost, what happens at a flat tyre, and remote Scotland coverage.',
+    description:
+      'Millions of UK drivers have AA membership, but many are surprised by what actually happens when they have a flat tyre. This guide compares AA breakdown cover with Tyre Rescue mobile tyre fitting specifically for flat tyre scenarios in Scotland.',
+    features: [
+      { feature: 'Service Type', tyreRescue: 'Mobile tyre fitting — replacement tyre supplied and fitted on-site', competitor: 'Breakdown assistance — does not carry or supply replacement tyres', winner: 'tyrerescue' },
+      { feature: 'Tyre Supply', tyreRescue: 'Yes — we carry tyres on every van', competitor: 'No — AA patrols do not carry replacement tyres', winner: 'tyrerescue' },
+      { feature: 'Flat Tyre Resolution', tyreRescue: 'Complete — new tyre fitted, you drive away from same location', competitor: 'Partial — may inflate, apply sealant, fit spare; tyre replacement requires a garage', winner: 'tyrerescue' },
+      { feature: '24/7 Service', tyreRescue: 'Yes — 24 hours, 7 days', competitor: 'Yes — AA covers 24/7', winner: 'tie' },
+      { feature: 'Cost Model', tyreRescue: 'Pay per callout — from £49 + tyre', competitor: 'Annual membership from £49–£165/year; tyre cost still extra', winner: 'tie' },
+      { feature: 'Scotland Coverage', tyreRescue: 'All of Scotland including Highlands, NC500, Islands', competitor: 'UK-wide but very remote areas may have longer response times', winner: 'tyrerescue' },
+      { feature: 'Run-Flat Tyres', tyreRescue: 'Yes — run-flat replacement supplied and fitted', competitor: 'Patrol can advise but cannot supply run-flat replacement tyres', winner: 'tyrerescue' },
+      { feature: 'TPMS Reset', tyreRescue: 'Yes — included with tyre change', competitor: 'Not typically offered by patrol', winner: 'tyrerescue' },
+    ],
+    faq: [
+      {
+        question: 'What does the AA do when I have a flat tyre?',
+        answer: 'An AA patrol will assess the tyre and, if possible, inflate it or apply sealant. If you have a spare wheel, they will fit it. If the tyre needs replacement, they cannot supply one on the spot — they will arrange for you to be towed to the nearest garage. In a remote Highland location, the nearest tyre garage may be 30–50 miles away. Calling Tyre Rescue means a fitter arrives with the replacement tyre already on the van.',
+      },
+      {
+        question: 'Should I have both AA membership and Tyre Rescue?',
+        answer: 'Many Scottish drivers do. AA membership covers breakdowns that Tyre Rescue does not — engine failures, battery problems, fuel mislayment. Tyre Rescue specialises in tyre-specific emergencies. Some drivers cancel their AA upgraded tyre cover (which AA offers as an add-on) and instead call Tyre Rescue when they have a flat, saving money while getting a faster complete resolution.',
+      },
+      {
+        question: 'Is Tyre Rescue faster than the AA for flat tyres in Scotland?',
+        answer: 'In most cases, yes — for the complete resolution. AA patrol arrives within approximately 45 minutes, but then needs to arrange a tow and tyre garage visit. Tyre Rescue arrives with the tyre already on board and fits it at your location. Total time from breakdown to back on the road is typically shorter with Tyre Rescue for tyre-specific emergencies.',
+      },
+    ],
+    summary: 'The AA does not carry replacement tyres. When a Scottish driver has a flat tyre and calls the AA, they will be assisted toward the nearest garage but the tyre itself must be sourced and fitted elsewhere. Tyre Rescue eliminates this step by bringing the tyre directly to your breakdown location and fitting it on-site. For non-tyre mechanical breakdowns, AA membership remains valuable. For flat tyre emergencies, Tyre Rescue provides a more complete resolution.',
+    keywords: [
+      'tyre rescue vs aa', 'aa flat tyre scotland', 'does aa fix flat tyres', 'aa breakdown flat tyre',
+      'mobile tyre fitting vs aa membership scotland', 'aa tyre service scotland',
+    ],
+    lastModified: '2025-09-01',
+  },
 ];
 
 export function getCompetitorBySlug(slug: string): CompetitorComparison | undefined {
