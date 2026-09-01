@@ -839,6 +839,57 @@ export const lerwickAreas: Area[] = [
   { slug: 'mid-yell', name: 'Mid Yell', postcode: 'ZE2', lat: 60.5946, lng: -1.0790, distanceFromCentre: 40.0, nearestLandmark: 'Mid Yell Village' },
 ];
 
+export const fortwilliamAreas: Area[] = [
+  { slug: 'fort-william-town-centre', name: 'Town Centre', postcode: 'PH33', lat: 56.8198, lng: -5.1052, distanceFromCentre: 0.3, nearestLandmark: 'High Street' },
+  { slug: 'glencoe', name: 'Glencoe', postcode: 'PH49', lat: 56.6816, lng: -5.1048, distanceFromCentre: 14.0, nearestLandmark: 'Glencoe Visitor Centre' },
+  { slug: 'spean-bridge', name: 'Spean Bridge', postcode: 'PH34', lat: 56.8921, lng: -4.9226, distanceFromCentre: 10.0, nearestLandmark: 'Commando Memorial' },
+  { slug: 'mallaig', name: 'Mallaig', postcode: 'PH41', lat: 57.0055, lng: -5.8273, distanceFromCentre: 45.0, nearestLandmark: 'Mallaig Harbour' },
+  { slug: 'ballachulish', name: 'Ballachulish', postcode: 'PH49', lat: 56.6869, lng: -5.1776, distanceFromCentre: 15.0, nearestLandmark: 'Ballachulish Bridge' },
+  { slug: 'kinlochleven', name: 'Kinlochleven', postcode: 'PH50', lat: 56.7177, lng: -4.9599, distanceFromCentre: 18.0, nearestLandmark: 'Ice Factor Climbing Centre' },
+  { slug: 'glenfinnan', name: 'Glenfinnan', postcode: 'PH37', lat: 56.8713, lng: -5.4497, distanceFromCentre: 18.0, nearestLandmark: 'Glenfinnan Viaduct' },
+  { slug: 'roy-bridge', name: 'Roy Bridge', postcode: 'PH31', lat: 56.8986, lng: -4.8315, distanceFromCentre: 13.0, nearestLandmark: 'Parallel Roads of Glen Roy' },
+  { slug: 'corpach', name: 'Corpach', postcode: 'PH33', lat: 56.8390, lng: -5.1273, distanceFromCentre: 3.5, nearestLandmark: 'Caledonian Canal Sea Lock' },
+];
+
+export const standrewsAreas: Area[] = [
+  { slug: 'st-andrews-town-centre', name: 'Town Centre', postcode: 'KY16', lat: 56.3398, lng: -2.7967, distanceFromCentre: 0.3, nearestLandmark: 'St Andrews Cathedral' },
+  { slug: 'anstruther', name: 'Anstruther', postcode: 'KY10', lat: 56.2219, lng: -2.7005, distanceFromCentre: 8.0, nearestLandmark: 'Anstruther Harbour' },
+  { slug: 'cupar', name: 'Cupar', postcode: 'KY15', lat: 56.3197, lng: -3.0108, distanceFromCentre: 11.0, nearestLandmark: 'Cupar Town Centre' },
+  { slug: 'crail', name: 'Crail', postcode: 'KY10', lat: 56.2560, lng: -2.6290, distanceFromCentre: 10.0, nearestLandmark: 'Crail Harbour' },
+  { slug: 'elie', name: 'Elie', postcode: 'KY9', lat: 56.1889, lng: -2.8229, distanceFromCentre: 13.0, nearestLandmark: 'Elie Harbour' },
+  { slug: 'leuchars', name: 'Leuchars', postcode: 'KY16', lat: 56.3720, lng: -2.8919, distanceFromCentre: 6.0, nearestLandmark: 'RAF Leuchars' },
+  { slug: 'newport-on-tay', name: 'Newport-on-Tay', postcode: 'DD6', lat: 56.4303, lng: -2.9440, distanceFromCentre: 9.0, nearestLandmark: 'Tay Road Bridge' },
+];
+
+export const pitlochryAreas: Area[] = [
+  { slug: 'pitlochry-town-centre', name: 'Town Centre', postcode: 'PH16', lat: 56.7078, lng: -3.7340, distanceFromCentre: 0.3, nearestLandmark: 'Pitlochry Festival Theatre' },
+  { slug: 'aberfeldy', name: 'Aberfeldy', postcode: 'PH15', lat: 56.6210, lng: -3.8666, distanceFromCentre: 14.0, nearestLandmark: 'Wade\'s Bridge' },
+  { slug: 'dunkeld', name: 'Dunkeld', postcode: 'PH8', lat: 56.5662, lng: -3.5866, distanceFromCentre: 12.0, nearestLandmark: 'Dunkeld Cathedral' },
+  { slug: 'blair-atholl', name: 'Blair Atholl', postcode: 'PH18', lat: 56.7672, lng: -3.8471, distanceFromCentre: 8.0, nearestLandmark: 'Blair Castle' },
+  { slug: 'kenmore', name: 'Kenmore', postcode: 'PH15', lat: 56.5898, lng: -3.9918, distanceFromCentre: 18.0, nearestLandmark: 'Loch Tay' },
+  { slug: 'killiecrankie', name: 'Killiecrankie', postcode: 'PH16', lat: 56.7395, lng: -3.7828, distanceFromCentre: 4.0, nearestLandmark: 'Pass of Killiecrankie' },
+  { slug: 'killin', name: 'Killin', postcode: 'FK21', lat: 56.4680, lng: -4.3162, distanceFromCentre: 28.0, nearestLandmark: 'Falls of Dochart' },
+];
+
+export const eastlothianAreas: Area[] = [
+  { slug: 'musselburgh', name: 'Musselburgh', postcode: 'EH21', lat: 55.9426, lng: -3.0555, distanceFromCentre: 6.0, nearestLandmark: 'Musselburgh Racecourse' },
+  { slug: 'north-berwick', name: 'North Berwick', postcode: 'EH39', lat: 56.0579, lng: -2.7212, distanceFromCentre: 23.0, nearestLandmark: 'North Berwick Law' },
+  { slug: 'haddington', name: 'Haddington', postcode: 'EH41', lat: 55.9570, lng: -2.7791, distanceFromCentre: 17.0, nearestLandmark: 'St Mary\'s Church' },
+  { slug: 'dunbar', name: 'Dunbar', postcode: 'EH42', lat: 56.0028, lng: -2.5153, distanceFromCentre: 29.0, nearestLandmark: 'Dunbar Harbour' },
+  { slug: 'prestonpans', name: 'Prestonpans', postcode: 'EH32', lat: 55.9526, lng: -2.9968, distanceFromCentre: 9.0, nearestLandmark: 'Battle of Prestonpans Site' },
+  { slug: 'tranent', name: 'Tranent', postcode: 'EH33', lat: 55.9440, lng: -2.9533, distanceFromCentre: 11.0, nearestLandmark: 'Tranent Town Centre' },
+  { slug: 'gullane', name: 'Gullane', postcode: 'EH31', lat: 56.0339, lng: -2.8303, distanceFromCentre: 18.0, nearestLandmark: 'Muirfield Golf Course' },
+];
+
+export const arbroathAreas: Area[] = [
+  { slug: 'arbroath-town-centre', name: 'Town Centre', postcode: 'DD11', lat: 56.5611, lng: -2.5868, distanceFromCentre: 0.3, nearestLandmark: 'Arbroath Abbey' },
+  { slug: 'montrose', name: 'Montrose', postcode: 'DD10', lat: 56.7093, lng: -2.4667, distanceFromCentre: 13.0, nearestLandmark: 'Montrose Basin' },
+  { slug: 'forfar', name: 'Forfar', postcode: 'DD8', lat: 56.6468, lng: -2.8899, distanceFromCentre: 16.0, nearestLandmark: 'Forfar Town House' },
+  { slug: 'kirriemuir', name: 'Kirriemuir', postcode: 'DD8', lat: 56.6718, lng: -3.0046, distanceFromCentre: 18.0, nearestLandmark: 'J.M. Barrie Birthplace' },
+  { slug: 'brechin', name: 'Brechin', postcode: 'DD9', lat: 56.7247, lng: -2.6622, distanceFromCentre: 18.0, nearestLandmark: 'Brechin Round Tower' },
+  { slug: 'carnoustie', name: 'Carnoustie', postcode: 'DD7', lat: 56.5014, lng: -2.7080, distanceFromCentre: 12.0, nearestLandmark: 'Carnoustie Golf Links' },
+];
+
 export function getAreasForCity(citySlug: string): Area[] {
   switch (citySlug) {
     case 'glasgow': return glasgowAreas;
@@ -870,6 +921,11 @@ export function getAreasForCity(citySlug: string): Area[] {
     case 'wick': return wickAreas;
     case 'stornoway': return stornowayAreas;
     case 'lerwick': return lerwickAreas;
+    case 'fort-william': return fortwilliamAreas;
+    case 'st-andrews': return standrewsAreas;
+    case 'pitlochry': return pitlochryAreas;
+    case 'east-lothian': return eastlothianAreas;
+    case 'arbroath': return arbroathAreas;
     default: return [];
   }
 }
@@ -893,4 +949,5 @@ export const serviceCities = [
   'inverness', 'dingwall', 'elgin', 'isle-of-skye',
   'aberdeen', 'galashiels',
   'oban', 'wick', 'stornoway', 'lerwick',
+  'fort-william', 'st-andrews', 'pitlochry', 'east-lothian', 'arbroath',
 ] as const;

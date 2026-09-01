@@ -302,6 +302,71 @@ export const cityContent: Record<string, CityContent> = {
       'Elgin sits at the heart of the whisky-distillery belt and the Moray Coast tourist trail, meaning summer traffic spikes on the B9013 coast road and on narrow single-track routes through the forest roads west of Forres. We stock sizes suited to the campervan and touring caravan market as well as standard passenger car tyres. Lossiemouth (IV31), Fochabers (IV32), Forres (IV36) and the Findhorn Bay area are all covered from the same dispatch, with Burghead and Hopeman served as local villages.',
     neighborCities: ['inverness', 'dingwall'],
   },
+  'fort-william': {
+    name: 'Fort William',
+    slug: 'fort-william',
+    postcodes: 'PH33–PH50',
+    nearbyRoads: ['A82', 'A830', 'A86', 'A87', 'B8004'],
+    avgResponseMin: 95,
+    workshopDistance: 'Scheduled service — advance booking recommended for Lochaber and Road to the Isles areas',
+    uniqueIntro:
+      'Fort William is the Outdoor Capital of the UK — the gateway to Ben Nevis, the Great Glen, Glencoe and the Road to the Isles. Tyre Rescue covers the full PH33–PH50 Lochaber postcode area including Glencoe (PH49), Spean Bridge (PH34), Mallaig (PH41) and Kinlochleven (PH50). Our average response time in Fort William is 95 minutes. The A82 Great Glen road and the A830 Road to the Isles are our primary routes, carrying some of the highest tourist volumes in Scotland.',
+    uniqueBody:
+      'Lochaber draws millions of visitors annually for Ben Nevis climbs, the West Highland Way, Glencoe and the Glenfinnan Viaduct — made famous by the Jacobite Steam Train. The combination of narrow single-track roads, cattle grids on the B8004 and the A830, steep mountain passes through Glencoe and the sheer volume of campervans, motorhomes and hire cars means tyre damage is a daily occurrence in season. We stock all-terrain and all-season tyres suited to mountain driving, run-flats for hire vehicles and heavy-duty sizes for motorhomes. Mallaig (PH41) at the end of the Road to the Isles is covered with advance notice, as are the Ardnamurchan peninsula (PH36) and Glenelg (IV40) on the approach to the Skye ferry.',
+    neighborCities: ['inverness', 'oban', 'isle-of-skye'],
+  },
+  'st-andrews': {
+    name: 'St Andrews',
+    slug: 'st-andrews',
+    postcodes: 'KY9–KY16',
+    nearbyRoads: ['A91', 'A917', 'A915', 'A92', 'B939'],
+    avgResponseMin: 75,
+    workshopDistance: 'Scheduled service — advance booking recommended for East Fife and East Neuk areas',
+    uniqueIntro:
+      'St Andrews is the home of golf and one of Scotland\'s most visited towns, with the University of St Andrews, the Old Course and the cathedral ruins attracting visitors year-round. Tyre Rescue covers the KY9–KY16 East Fife postcode area including the East Neuk fishing villages of Anstruther, Crail and Elie, as well as Cupar (KY15) and Leuchars (KY16). Our average response time in St Andrews is 75 minutes.',
+    uniqueBody:
+      'St Andrews and the East Neuk of Fife sit on a peninsula with limited road access — the A91 from Cupar, the A917 coastal road and the A915 from Leven are the main approaches. Summer golf-week traffic and the Old Course hotel visitors bring high-end vehicles including BMW, Mercedes and Porsche to roads that include narrow coastal B-roads prone to punctures from gravel and kerb strikes. Leuchars has an RAF station that generates military and civilian vehicle traffic on the B945. The East Neuk villages — Anstruther, Crail, Pittenweem — are popular tourist destinations with narrow cobbled streets where slow punctures from kerb damage are common.',
+    neighborCities: ['dundee', 'kirkcaldy', 'perth'],
+  },
+  pitlochry: {
+    name: 'Pitlochry',
+    slug: 'pitlochry',
+    postcodes: 'PH8–PH18, FK21',
+    nearbyRoads: ['A9', 'A924', 'A827', 'A826', 'B8019'],
+    avgResponseMin: 80,
+    workshopDistance: 'Scheduled service — advance booking recommended for Highland Perthshire areas',
+    uniqueIntro:
+      'Pitlochry is the gateway to Highland Perthshire — a major tourist town on the A9 surrounded by lochs, glens and whisky distilleries. Tyre Rescue covers the PH8–PH18 postcode area including Dunkeld (PH8), Aberfeldy (PH15), Blair Atholl (PH18) and Killin (FK21) at the head of Loch Tay. Our average response time in Pitlochry is 80 minutes. The A9 through Pitlochry is one of Scotland\'s busiest trunk roads, with the Pass of Killiecrankie immediately to the north.',
+    uniqueBody:
+      'Highland Perthshire is a major touring destination — Dunkeld Cathedral, Blair Castle, the Falls of Dochart at Killin and the Birks of Aberfeldy draw visitors on A-roads and single-track B-roads throughout the season. The B8019 Loch Tummel road and the B846 to Kinloch Rannoch are both scenic but remote, with limited roadside assistance available. We carry tyre sizes suited to campervan, caravan and motorhome fitments as well as standard passenger cars. Dunkeld (PH8) at the Highland Boundary Fault is the southern edge of our Pitlochry coverage, and Blair Atholl (PH18) at the entrance to the Cairngorms marks the northern boundary.',
+    neighborCities: ['perth', 'inverness', 'aberdeen'],
+  },
+  'east-lothian': {
+    name: 'East Lothian',
+    slug: 'east-lothian',
+    postcodes: 'EH21, EH31–EH42',
+    nearbyRoads: ['A1', 'A198', 'A199', 'A6093', 'B1377'],
+    avgResponseMin: 55,
+    workshopDistance: 'Covered from Edinburgh — competitive response times across East Lothian',
+    uniqueIntro:
+      'East Lothian is Edinburgh\'s coastal commuter belt — a string of market towns and seaside villages from Musselburgh (EH21) in the west to Dunbar (EH42) in the east, linked by the A1 and the scenic A198 coastal road. Tyre Rescue covers the full East Lothian postcode area: Musselburgh, Prestonpans, Tranent, Haddington, North Berwick, Gullane and Dunbar. Our average response time across East Lothian is 55 minutes.',
+    uniqueBody:
+      'East Lothian has one of the highest concentrations of golf courses in the world — Muirfield, North Berwick, Gullane and Dunbar are all Open Championship or qualifying venues, attracting premium vehicle traffic from around the world. The A1 Edinburgh–London road carries heavy lorry traffic through the county, and the B-roads connecting coastal villages to the A1 are narrow with grass verges that conceal kerb edges. Haddington (EH41) is the county town, and the A6093 through the Tyne valley carries agricultural vehicle traffic that deposits debris on the road surface. Musselburgh Racecourse and the East Lothian golf tourism economy keep vehicle numbers high throughout the year.',
+    neighborCities: ['edinburgh', 'galashiels'],
+  },
+  arbroath: {
+    name: 'Arbroath',
+    slug: 'arbroath',
+    postcodes: 'DD7–DD11',
+    nearbyRoads: ['A92', 'A933', 'A94', 'A90', 'A935'],
+    avgResponseMin: 70,
+    workshopDistance: 'Scheduled service — advance booking recommended for Angus towns',
+    uniqueIntro:
+      'Arbroath is the Angus coast\'s main town, famous for the Declaration of Arbroath and its smokies. Tyre Rescue covers the DD7–DD11 Angus postcode area: Arbroath, Montrose (DD10), Forfar (DD8), Kirriemuir (DD8), Brechin (DD9) and Carnoustie (DD7). Our average response time in Arbroath is 70 minutes. The A92 Dundee–Arbroath coastal road and the A90 Dundee–Aberdeen trunk road are our primary routes through Angus.',
+    uniqueBody:
+      'Angus combines a productive agricultural hinterland with a scenic coastline — the cliff roads between Arbroath and Montrose are tourist routes where gravel from farm vehicles causes regular tyre damage. Carnoustie (DD7) hosts The Open Championship and attracts premium vehicle traffic from golf visitors worldwide. Montrose Basin is a nature reserve with narrow approach roads. Forfar (DD8) and Kirriemuir (DD8) — birthplace of J.M. Barrie, the creator of Peter Pan — are market towns connected by the A926 through the Strathmore valley. Brechin (DD9) with its unique round tower is one of Scotland\'s oldest cathedral cities, on the A935 between Forfar and Montrose.',
+    neighborCities: ['dundee', 'perth', 'aberdeen'],
+  },
   oban: {
     name: 'Oban',
     slug: 'oban',

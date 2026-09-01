@@ -76,6 +76,46 @@ export const cityData: Record<string, CityPriceData> = {
     coordinates: { lat: 57.6528, lng: -3.3140 },
     postcodeHint: 'IV30',
   },
+  'fort-william': {
+    name: 'Fort William',
+    description:
+      'Fort William and the Lochaber PH33–PH50 postcode area — Glencoe, Spean Bridge, Mallaig, Ballachulish and Kinlochleven. The A82 Great Glen road and the A830 Road to the Isles are our main routes. We carry all-terrain, all-season and run-flat tyres suited to mountain roads and hire vehicles. Advance booking recommended for remote Lochaber and Ardnamurchan areas.',
+    depotDistance: 105,
+    coordinates: { lat: 56.8198, lng: -5.1052 },
+    postcodeHint: 'PH33',
+  },
+  'st-andrews': {
+    name: 'St Andrews',
+    description:
+      'St Andrews and the East Fife KY9–KY16 postcode area — Anstruther, Crail, Elie, Cupar and Leuchars. We cover golf week, graduation and year-round tourist traffic on the A91 and A917 coast road. Run-flat tyres for premium vehicles are carried as standard. Advance booking recommended for East Neuk villages.',
+    depotDistance: 51,
+    coordinates: { lat: 56.3398, lng: -2.7967 },
+    postcodeHint: 'KY16',
+  },
+  pitlochry: {
+    name: 'Pitlochry',
+    description:
+      'Pitlochry and the Highland Perthshire PH8–PH18 area — Dunkeld, Aberfeldy, Blair Atholl, Kenmore and Killin. We cover the full A9 corridor and the remote B-roads of Breadalbane and Rannoch. Motorhome, campervan and caravan tyre sizes carried as standard. Advance booking recommended for Rannoch and remote areas.',
+    depotDistance: 72,
+    coordinates: { lat: 56.7078, lng: -3.7340 },
+    postcodeHint: 'PH16',
+  },
+  'east-lothian': {
+    name: 'East Lothian',
+    description:
+      'East Lothian covering EH21 (Musselburgh) and EH31–EH42 — Prestonpans, Tranent, Haddington, Gullane, North Berwick and Dunbar. We reach most of East Lothian within 55 minutes from Edinburgh. Run-flat tyres for premium golf-tourism vehicles carried as standard. No hidden distance surcharges across the EH postcode area.',
+    depotDistance: 50,
+    coordinates: { lat: 55.9570, lng: -2.7791 },
+    postcodeHint: 'EH41',
+  },
+  arbroath: {
+    name: 'Arbroath',
+    description:
+      'Arbroath and the Angus coast DD7–DD11 postcode area — Montrose, Forfar, Kirriemuir, Brechin and Carnoustie. The A92 coast road and A90 Aberdeen trunk are our primary routes. We carry premium vehicle fitments for Carnoustie Open Championship golf visitors and commercial sizes for the Montrose offshore supply industry.',
+    depotDistance: 75,
+    coordinates: { lat: 56.5611, lng: -2.5868 },
+    postcodeHint: 'DD11',
+  },
   oban: {
     name: 'Oban',
     description:
