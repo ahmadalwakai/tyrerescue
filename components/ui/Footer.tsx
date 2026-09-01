@@ -212,7 +212,7 @@ export function Footer() {
             </Text>
             <Flex direction="column" gap={2}>
               {[
-                { label: 'Mobile Tyre Fitting', href: '/mobile-tyre-fitting/glasgow' },
+                { label: 'Mobile Tyre Fitting Scotland', href: '/mobile-tyre-fitting' },
                 { label: 'Emergency Tyre Fitting', href: '/emergency-tyre-fitting/glasgow' },
                 { label: 'Tyre Repair', href: '/tyre-repair/glasgow' },
                 { label: 'Puncture Repair', href: '/puncture-repair/glasgow' },
