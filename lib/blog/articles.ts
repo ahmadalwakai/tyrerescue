@@ -4049,6 +4049,215 @@ For drivers in Lerwick itself, response is typically fastest as we maintain a lo
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
   },
   {
+    slug: 'best-budget-tyres-scotland-2026',
+    title: 'Best Budget Tyres for Scottish Roads: Value Picks for 2026',
+    description:
+      'Which budget tyres perform best on Scotland\'s wet roads? We compare Nexen, Hankook, Falken, Toyo and more — honest recommendations for drivers who want safety without overspending.',
+    category: 'maintenance',
+    publishDate: '2026-01-01',
+    lastModified: '2026-01-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'best budget tyres scotland',
+      'cheap tyres scotland',
+      'budget tyres glasgow',
+      'affordable tyres edinburgh',
+      'nexen tyres scotland',
+      'hankook tyres scotland',
+      'falken tyres scotland',
+      'cheap tyres good quality scotland',
+    ],
+    relatedSlugs: [
+      'best-tyres-scottish-roads-guide',
+      'tyre-fitting-costs-scotland-pricing-guide',
+      'part-worn-tyres-scotland-are-they-safe',
+    ],
+    content: `# Best Budget Tyres for Scottish Roads: Value Picks for 2026
+
+Not every driver needs premium tyres — but every driver needs tyres that are safe on Scotland's wet roads. This guide cuts through the marketing and gives honest recommendations for budget-conscious Scottish drivers who still want tyres that perform when it rains.
+
+## What 'Budget' Actually Means
+
+Budget tyres typically cost 40–60% less than premium equivalents. The trade-offs are real: shorter tread life, slightly longer wet braking distances, and less refined road noise. But the best budget brands have improved dramatically over the past decade, and many now score adequately — if not excellently — in independent tests.
+
+For Scottish conditions, the key test for any tyre is **wet grip performance**. Check the EU tyre label wet grip rating (A is best, G is worst). A budget tyre with a B or C wet grip rating is acceptable. A budget tyre with a D or E rating on Scotland's wet roads is a false economy.
+
+## Top Budget Tyre Brands for Scotland
+
+### Nexen (Recommended)
+Nexen is a South Korean manufacturer that consistently scores well in independent tests relative to price. Their **N'Blue HD Plus** (summer) and **N'Blue 4Season** (all-season) regularly outperform similarly priced competitors in wet braking tests.
+
+- **Wet grip**: B to C rating on most common sizes
+- **Typical cost**: £45–£75 for common passenger car sizes
+- **Best for**: Central Belt drivers wanting reliable year-round performance on a budget
+- **All-season option**: N'Blue 4Season with 3PMSF symbol
+
+### Hankook
+Another South Korean brand with a strong mid-budget reputation. The **Ventus Prime 4** (summer) and **Kinergy 4S2** (all-season) are frequently recommended by independent tyre reviewers.
+
+- **Wet grip**: B to C rating
+- **Typical cost**: £48–£80
+- **Best for**: Good balance of longevity and wet performance; tread life is above average for the price
+- **All-season option**: Kinergy 4S2 with 3PMSF symbol
+
+### Falken
+Japanese-owned, Falken has a solid reputation particularly for SUV and 4x4 applications. The **Sincera SN110** (summer) and **Euroall Season AS210** (all-season) are reliable choices.
+
+- **Wet grip**: B to C rating
+- **Typical cost**: £45–£70
+- **Best for**: 4x4 and SUV drivers on a budget; also a strong choice for performance-oriented budget options
+
+### Toyo
+Another Japanese manufacturer with better-than-average build quality for the price. The **Proxes CF2** and **Nanoenergy 3** are competitive budget summer tyres.
+
+- **Wet grip**: B to C rating
+- **Typical cost**: £45–£75
+- **Best for**: Drivers who prioritise longevity — Toyo tyres tend to last longer per pound spent
+
+### Kumho
+Korean brand occupying the true budget end of the market. Adequate for low-mileage and city drivers.
+
+- **Wet grip**: C rating typical
+- **Typical cost**: £38–£60
+- **Best for**: Very low-mileage vehicles or as a budget secondary car tyre
+
+## Budget Tyres to Avoid
+
+Not all budget brands are equal. Some tyre brands from Eastern European and Chinese manufacturers have limited test data, inconsistent quality control, or very poor wet grip ratings. As a rule, avoid unfamiliar brands with no independent test history, any tyre with a D or lower EU wet grip rating, and tyres that cannot be traced to a major named manufacturer.
+
+When in doubt, stick to the brands above. They are all from established manufacturers with consistent quality standards.
+
+## Do Budget Tyres Pass MOT?
+
+Yes — any tyre that is legally manufactured and properly fitted can pass MOT. The MOT checks tread depth, condition, and fitment (correct size and load rating) — not the brand. A new budget tyre from Nexen or Hankook at 8mm tread passes MOT just as easily as a premium Michelin.
+
+## Budget Tyres and Wet Braking: The Real Numbers
+
+Independent tyre tests (ADAC, Auto Bild, Tyre Reviews) consistently show that budget tyres stop approximately 3–6 metres further than premium brands from 80km/h on wet roads. For a Scottish city driver stopping at a pedestrian crossing, this is the difference between stopping in time and not.
+
+This is why we recommend:
+- Budget tyres: acceptable for city and urban use at normal speeds
+- Premium tyres: recommended for motorway use, Highland routes, and anyone covering high annual mileage in Scotland
+- All-season budget tyres: a good compromise for most Scottish drivers who do not want seasonal swaps
+
+## Tyre Prices at Tyre Rescue
+
+When you call **0141 266 0690** or [book online](/book), we will quote options across all three price tiers:
+- **Budget**: from approximately £40–£60 per tyre fitted
+- **Mid-range**: from approximately £65–£90 per tyre fitted
+- **Premium**: from approximately £90–£150+ per tyre fitted
+
+We do not push you toward premium if budget fits your needs and usage. We give you the options and you decide.
+
+[Tyre fitting costs Scotland](/blog/tyre-fitting-costs-scotland-pricing-guide) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
+  },
+  {
+    slug: 'tyre-rotation-guide-scotland',
+    title: 'Tyre Rotation Scotland: How Often, Why It Matters, and How to Do It',
+    description:
+      'Should you rotate your tyres in Scotland? How often, which pattern, and does it matter for FWD vs AWD? Complete guide for Scottish drivers.',
+    category: 'maintenance',
+    publishDate: '2026-01-01',
+    lastModified: '2026-01-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'tyre rotation scotland',
+      'how often rotate tyres uk',
+      'tyre rotation fwd scotland',
+      'tyre rotation pattern uk',
+      'rotating tyres scotland',
+      'mobile tyre rotation scotland',
+      'tyre rotation cost scotland',
+      'when to rotate tyres',
+    ],
+    relatedSlugs: [
+      'tyre-tread-depth-guide-scotland',
+      'tyre-maintenance-checklist-scotland',
+      'wheel-balancing-vs-alignment-scotland',
+    ],
+    content: `# Tyre Rotation Scotland: How Often, Why It Matters, and How to Do It
+
+Tyre rotation is one of the simplest and most cost-effective ways to extend tyre life — yet many Scottish drivers have never done it. This guide explains exactly what it is, why it matters on Scottish roads, and how often you should do it.
+
+## What Is Tyre Rotation?
+
+Tyre rotation means moving each tyre to a different position on the vehicle on a regular schedule. For example, the front-left tyre moves to the rear-left, the rear-right moves to the front-right, and so on. This ensures all four tyres wear at a more even rate.
+
+## Why Tyres Wear Unevenly
+
+Different positions on a vehicle experience very different stresses:
+
+### Front-Wheel Drive (FWD) — Most Common in Scotland
+Front tyres on FWD cars (Ford Focus, VW Golf, Vauxhall Astra, most Hyundais and Kias) wear significantly faster than rear tyres. The front tyres handle:
+- Driving force (propulsion)
+- Steering
+- The majority of braking load (front tyres take 60–70% of braking force)
+
+Result: Front tyres often wear 2–3 times faster than rear tyres on FWD vehicles. Without rotation, you may find front tyres at 2mm while rears are still at 5mm.
+
+### Rear-Wheel Drive (RWD) — Sports, Performance, Larger Saloons
+The opposite problem: rear tyres take the driving load and wear faster, while front tyres wear from steering and braking.
+
+### All-Wheel Drive (AWD) and Four-Wheel Drive (4WD)
+More even wear overall, but imbalances still occur. Many AWD systems send more torque to one axle, creating uneven wear over time. Without rotation, tyre diameter differences between axles can stress the AWD drivetrain.
+
+## Benefits of Tyre Rotation for Scottish Drivers
+
+**Longer tyre life**: Even wear across all four tyres typically extends total tyre set life by 15–25%.
+
+**Better wet performance**: All four tyres maintain adequate tread depth simultaneously. Without rotation, you may be running two worn front tyres and two nearly-new rears — a dangerous combination on Scotland's wet roads.
+
+**Cost savings**: Replacing one worn axle's worth of tyres at a time (because the other two are still good) sounds economical but is actually more expensive than running all four through their lifecycle together.
+
+**AWD protection**: For Subarus, Audi Quattros, Range Rovers, and other AWD/4WD vehicles, keeping all four tyres at similar tread depths protects the drivetrain from strain caused by diameter differences.
+
+## How Often to Rotate Tyres
+
+The standard recommendation is every **6,000–8,000 miles**, or every 6 months — whichever comes first.
+
+For Scottish drivers:
+- **City drivers** (stop-start, frequent cornering): every 5,000–6,000 miles due to higher front tyre stress
+- **Motorway commuters**: every 8,000 miles
+- **FWD cars**: err toward the more frequent end — front tyre wear is rapid
+- **AWD/4WD**: at every tyre check or at least once a year
+
+A good rule: rotate at every other oil change, or whenever you have your tyres inspected.
+
+## Rotation Patterns
+
+The correct pattern depends on your tyre specification:
+
+### Standard Cross Rotation (FWD — most common)
+- Front-left → Rear-right
+- Front-right → Rear-left
+- Rear-left → Front-right
+- Rear-right → Front-left
+
+### Rearward Cross Rotation (RWD)
+- Rear-left → Front-left (straight back to front)
+- Rear-right → Front-right
+- Front-left → Rear-right
+- Front-right → Rear-left
+
+### Forward Cross Rotation (AWD/4WD)
+- Front-left → Rear-right
+- Front-right → Rear-left
+- (Opposite to FWD pattern)
+
+### Directional Tyres
+If your tyres are directional (they have a specific rotation direction marked on the sidewall — an arrow or "rotation" marking), they can only move front-to-rear on the same side. They cannot be crossed. Some performance cars have asymmetric directional tyres that cannot be rotated at all — check your handbook.
+
+## Can Tyre Rescue Rotate Tyres?
+
+Yes — rotation is included when we visit for any tyre change. If you want rotation only (no new tyres), this requires removing and remounting existing tyres on different positions. Call **0141 266 0690** and we will advise whether a mobile rotation visit is practical for your vehicle and tyres.
+
+**Cost of tyre rotation at Tyre Rescue**: from approximately £30–£40 for a full set (four wheels), included in any tyre fitting visit.
+
+[Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland) | [Tyre maintenance checklist](/blog/tyre-maintenance-checklist-scotland) | [Wheel balancing vs alignment](/blog/wheel-balancing-vs-alignment-scotland)`,
+  },
+  {
     slug: 'aquaplaning-prevention-scotland',
     title: 'Aquaplaning in Scotland: What It Is, How to Prevent It, What to Do',
     description:
