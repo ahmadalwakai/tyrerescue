@@ -4049,6 +4049,210 @@ For drivers in Lerwick itself, response is typically fastest as we maintain a lo
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
   },
   {
+    slug: 'winter-tyres-when-to-switch-scotland',
+    title: 'Winter Tyres in Scotland: When to Switch and Is It Worth It?',
+    description:
+      'Should you fit winter tyres in Scotland? When to switch, which areas benefit most, cost comparison, and whether all-season tyres are a better option for most Scottish drivers.',
+    category: 'safety',
+    publishDate: '2025-10-01',
+    lastModified: '2025-10-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'winter tyres scotland',
+      'when to switch winter tyres scotland',
+      'winter tyres worth it scotland',
+      'winter tyres glasgow',
+      'winter tyres highlands scotland',
+      'all season vs winter tyres scotland',
+      'winter tyres vs summer tyres',
+      'mobile winter tyre fitting scotland',
+    ],
+    relatedSlugs: [
+      'winter-tyres-scotland-guide',
+      'best-tyres-scottish-roads-guide',
+      'tyre-pressure-guide-scotland',
+    ],
+    content: `# Winter Tyres in Scotland: When to Switch and Is It Worth It?
+
+Scotland's climate makes this a more relevant question than in most of England. The Highlands can see significant snow and ice from October; even the Central Belt experiences dozens of sub-zero mornings per winter. This guide helps you decide whether winter tyres are worth the investment and, if so, when to make the switch.
+
+## The Seven Degree Rule
+
+The switch to winter tyres is not primarily about snow — it is about temperature. Winter tyres use a softer rubber compound that remains pliable and grippy in cold temperatures. That threshold is **7°C (44°F)**.
+
+Below 7°C:
+- Summer tyre compound hardens, reducing wet grip and increasing braking distance
+- Winter tyre compound stays flexible, maintaining grip levels similar to summer tyres at higher temperatures
+
+In Scotland, average daily temperatures regularly fall below 7°C from **late October**, with some Highland and northern areas seeing sub-7°C temperatures from mid-September. The switch should be made before you regularly experience temperatures at or below this threshold — not after the first frost.
+
+## When to Switch: Scotland by Region
+
+| Region | Typical Switch Date | Typical Switch Back |
+|--------|---------------------|---------------------|
+| Shetland, Orkney | Mid-September | Mid-May |
+| Caithness, Sutherland | Late September | Early May |
+| Inverness, Highlands | Early October | Late April |
+| Aberdeen, Dundee | Mid-October | Mid-April |
+| Perth, Stirling | Late October | Early April |
+| Glasgow, Edinburgh | Late October | Late March |
+| Ayrshire, Borders | Early November | Late March |
+
+These are approximate guidelines. In any year, early autumn cold snaps or mild winters may shift these dates by 2–3 weeks.
+
+## The Case for Winter Tyres in Scotland
+
+### Highlands and Remote Areas
+For drivers in the Highlands, Argyll, Caithness, or the Scottish islands, winter tyres are strongly advisable. The combination of:
+- More sub-zero days
+- More snowfall (A9 over Drumochter, A82 through Glencoe)
+- Longer distances from help
+
+...makes the safety case clear. A tyre blowout or loss of control on a remote Highland road in January has much more serious consequences than the same incident on a suburban road.
+
+### NC500 and Touring Routes
+If you drive the NC500 between October and April, winter tyres (or at minimum, good all-season tyres with the Three Peak Mountain Snowflake symbol) are strongly recommended. The route covers some of Scotland's highest and most exposed roads.
+
+### Central Belt Commuters
+For city drivers in Glasgow and Edinburgh, winter tyres offer measurable safety benefits on wet winter roads — even without snow. The question is cost versus benefit.
+
+**With winter tyres**: 10–30% shorter wet braking distances; better grip in cold, damp conditions; confidence in sub-zero temperatures.
+
+**Without winter tyres**: Manageable in most years with good quality summer or all-season tyres; but significant risk in the event of a sudden cold snap, early snow, or icy morning commute.
+
+## The Case Against: All-Season Tyres as a Compromise
+
+For many Scottish drivers — particularly those in the Central Belt who do not want to manage two sets of tyres — **all-season tyres** offer a compelling middle ground.
+
+Premium all-season tyres from Michelin (CrossClimate 2), Continental (AllSeasonContact 2), or Goodyear (Vector 4Seasons Gen 3) carry the Three Peak Mountain Snowflake symbol, meaning they meet genuine winter performance standards. They are:
+- Usable year-round
+- No storage or seasonal swap required
+- Typically 30–50% cheaper over 3 years than running two full sets
+- Approved by insurers as acceptable year-round tyres
+
+The compromise: they do not perform quite as well as dedicated winter tyres in extreme cold (-10°C and below) or deep snow. For most Central Belt drivers who rarely encounter extreme conditions, this compromise is acceptable.
+
+**Our recommendation for Scotland:**
+- **Central Belt drivers**: Premium all-season tyres (CrossClimate 2 / AllSeasonContact 2)
+- **Highland drivers**: Dedicated winter tyres October to April; summer tyres the rest of the year
+- **NC500 / remote rural drivers**: Same as Highland recommendation
+
+## Cost of Winter Tyre Fitting in Scotland
+
+A set of four winter tyres fitted by Tyre Rescue, including mounting and balancing:
+
+- **Budget winter tyres** (Nexen, Falken): from approximately £280–£360 per set fitted
+- **Mid-range** (Hankook, Kumho): from approximately £360–£460 per set fitted
+- **Premium** (Michelin, Continental, Bridgestone): from approximately £500–£700 per set fitted
+
+If you already own a set of steel winter wheels, switching between summer and winter rubber costs approximately **£60–£80** (dismount, mount, balance, four wheels) each time — about £120–£160 per year.
+
+## Insurance and Winter Tyres in Scotland
+
+Winter tyres are legal in the UK. Fitting them does not invalidate your insurance. However, you should inform your insurer that you are using winter tyres, as some policies note this. No reputable UK insurer charges a premium for winter tyres — if anything, you may be able to negotiate a small discount as a safety improvement.
+
+## Book Winter Tyre Fitting
+
+Tyre Rescue fits winter tyres across all of Scotland — at your home, work, or roadside. We carry a range of winter tyres and can supply and fit at short notice.
+
+**Call 0141 266 0690** or [book online](/book) to arrange winter tyre fitting before the cold weather arrives.
+
+[Winter tyres Scotland guide](/blog/winter-tyres-scotland-guide) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
+  },
+  {
+    slug: 'van-tyre-fitting-scotland',
+    title: 'Van Tyre Fitting Scotland: Commercial Vehicles & Fleets',
+    description:
+      'Mobile van tyre fitting across Scotland for tradespeople, delivery drivers, and fleets. Load-rated tyres for Transit, Sprinter, Vivaro and more. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2025-11-01',
+    lastModified: '2025-11-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'van tyre fitting scotland',
+      'commercial tyre fitting scotland',
+      'transit van tyres scotland',
+      'sprinter tyres scotland',
+      'fleet tyre fitting scotland',
+      'mobile van tyre fitting glasgow',
+      'commercial vehicle tyres scotland',
+      'van tyre replacement near me scotland',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-vs-garage',
+      '24-hour-emergency-tyre-fitting-scotland',
+      'best-tyres-scottish-roads-guide',
+    ],
+    content: `# Van Tyre Fitting Scotland: Commercial Vehicles & Fleets
+
+A flat tyre on a van is not just an inconvenience — it is a lost job, a missed delivery, and a day's revenue gone. Tyre Rescue operates across all of Scotland with vans equipped to fit commercial vehicle tyres, including load-rated tyres for Ford Transit, Mercedes Sprinter, Vauxhall Vivaro, VW Crafter, Renault Trafic, Citroën Dispatch, and similar vehicles.
+
+## Why Commercial Tyres Are Different
+
+Vans and light commercial vehicles require tyres with higher load ratings than equivalent passenger cars. A fully loaded Transit Custom can weigh over 3,500kg — and each tyre must support a quarter of that weight, plus cornering and braking forces.
+
+Commercial tyres carry a **C-rating** designation (e.g., 195/70R15C) and are designed for:
+- Higher load indices (typically 104/102 load rating for twin rear fitment)
+- Reinforced sidewalls to resist damage from kerbing and loading dock impacts
+- Higher inflation pressures to support maximum payload
+- Stiffer carcass construction to resist deformation under heavy loads
+
+Fitting a standard passenger car tyre on a van — even one with a similar size — is dangerous and potentially illegal if the load index is insufficient.
+
+## Common Commercial Tyre Sizes We Stock
+
+Tyre Rescue carries common commercial tyre sizes for the most popular vans in Scotland:
+
+- **Ford Transit Custom**: 215/65R16C, 205/75R16C
+- **Ford Transit (large)**: 235/65R16C, 215/75R16C
+- **Mercedes Sprinter**: 215/65R16C, 225/65R16C, 235/65R16C
+- **Vauxhall Vivaro / Renault Trafic**: 195/65R16C, 215/60R17C
+- **VW Crafter / MAN TGE**: 235/65R16C, 225/75R16C
+- **Citroën Dispatch / Peugeot Expert**: 215/60R17C, 235/60R17C
+- **Nissan NV200**: 185R14C, 195R14C
+
+For less common sizes, call **0141 266 0690** with your registration number. We can check your exact size and source it within a few hours if not on our vans.
+
+## Emergency Van Tyre Fitting Scotland
+
+For tradespeople, delivery drivers, and anyone whose income depends on their van being on the road, waiting until the next day for a tyre is not an option. Tyre Rescue provides 24/7 emergency van tyre fitting across Scotland.
+
+**Typical response times:**
+- Glasgow and Central Belt: 30–50 minutes
+- Edinburgh: 55–70 minutes
+- Aberdeen: 90 minutes
+- Inverness: 90–120 minutes
+- Highlands and rural Scotland: 2–3 hours (call ahead)
+
+We come to your van — whether you are at a job site, a delivery stop, a motorway lay-by, or your home depot.
+
+## Fleet Tyre Management Scotland
+
+For businesses running multiple vans or commercial vehicles, Tyre Rescue can provide:
+
+- **Scheduled fleet tyre checks**: We attend your depot and inspect, rotate, or replace tyres on a planned schedule
+- **Priority response for fleet vehicles**: Faster dispatch and priority parts sourcing for contract customers
+- **Fleet billing**: Monthly invoicing available for businesses with multiple vehicles
+
+Contact us on **0141 266 0690** to discuss fleet tyre management arrangements for your Scotland operation.
+
+## Tyre Quality Options for Commercial Vehicles
+
+### Budget Commercial Tyres
+Brands including Nexen, Hankook, Falken, and Toyo offer commercial-rated tyres at significantly lower prices than premium brands. Suitable for lower-mileage van operators and secondary vehicles. Load ratings match the spec; longevity and rolling resistance are lower than premium.
+
+### Premium Commercial Tyres
+Michelin Agilis, Continental VanContact, and Bridgestone Duravis offer superior mileage (often 40,000+ miles in controlled conditions), lower rolling resistance (better fuel economy on long Scottish routes), and better wet braking performance. For high-mileage Scottish delivery fleets and tradespeople who do significant motorway mileage, the higher upfront cost is typically recovered in tyre longevity and fuel savings.
+
+## Van Tyre Fitting at Your Location
+
+Whether you are a sole trader in Glasgow, a courier operation running vans from Edinburgh to Aberdeen, or a Highland trade contractor — call **0141 266 0690** and we will dispatch the right van with the right tyres for your vehicle.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Tyre fitting costs Scotland](/blog/tyre-fitting-costs-scotland-pricing-guide)`,
+  },
+  {
     slug: 'electric-vehicle-tyres-scotland',
     title: 'Electric Vehicle Tyres in Scotland: What You Need to Know',
     description:
