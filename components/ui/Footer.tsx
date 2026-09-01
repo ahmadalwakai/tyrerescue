@@ -17,6 +17,7 @@ const colors = {
 const footerLinks = {
   about: [
     { label: 'Home', href: '/' },
+    { label: 'Service Areas', href: '/service-areas' },
     { label: 'Blog', href: '/blog' },
     { label: 'Compare', href: '/compare' },
     { label: 'Help', href: '/help' },
@@ -31,11 +32,12 @@ const footerLinks = {
     { label: 'Track Booking', href: '/tracking' },
   ],
   services: [
-    { label: 'Emergency Callout', href: '/emergency' },
-    { label: 'Tyre Fitting', href: '/book' },
-    { label: 'Puncture Repair', href: '/book' },
+    { label: 'Emergency Callout', href: '/emergency-tyre-fitting-near-me' },
+    { label: 'Tyre Fitting Glasgow', href: '/mobile-tyre-fitting/glasgow' },
+    { label: 'Tyre Fitting Edinburgh', href: '/mobile-tyre-fitting/edinburgh' },
+    { label: 'Tyre Fitting Aberdeen', href: '/mobile-tyre-fitting/aberdeen' },
+    { label: 'Tyre Fitting Inverness', href: '/mobile-tyre-fitting/inverness' },
     { label: 'Pricing FAQ', href: '/pricing-faq' },
-    { label: 'Tyre Sales', href: '/tyres' },
   ],
   legal: [
     { label: 'Privacy Policy', href: '/privacy-policy' },
