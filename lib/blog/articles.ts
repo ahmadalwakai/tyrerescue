@@ -10880,6 +10880,130 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'tyre-sidewall-damage-scotland',
+    title: 'Tyre Sidewall Damage: Can It Be Repaired? Scotland Guide',
+    description:
+      'Is your tyre sidewall damaged? Bubbles, cuts, scrapes — what can be repaired and what requires immediate replacement. Scotland mobile tyre fitting guide for sidewall damage.',
+    category: 'safety',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'tyre sidewall damage scotland',
+      'sidewall bulge tyre scotland',
+      'can tyre sidewall be repaired',
+      'tyre bubble on sidewall scotland',
+      'tyre sidewall cut scotland',
+      'kerb damage tyre scotland',
+      'tyre sidewall scuff scotland',
+      'is my tyre safe scotland',
+      'sidewall damage repair scotland',
+    ],
+    relatedSlugs: [
+      'pothole-damage-tyres-scotland',
+      'signs-you-need-new-tyres',
+      'tyre-tread-depth-guide-scotland',
+    ],
+    content: `# Tyre Sidewall Damage: Can It Be Repaired?
+
+The sidewall of your tyre is the curved section between the tread and the wheel rim. Unlike the tread area, tyre sidewalls cannot be repaired under any circumstances — and driving on a damaged sidewall is genuinely dangerous.
+
+This guide explains every type of sidewall damage you might encounter, what it means, and what to do about it.
+
+## Can a Tyre Sidewall Be Repaired?
+
+**No. Sidewall damage cannot be repaired — ever.**
+
+British Standard BSAU159 (the repair standard for tyres in the UK) only permits repairs to the central three-quarters of the tread area. Repairs to the sidewall are prohibited because:
+
+1. The sidewall flexes constantly as the tyre rotates. A repair would not withstand this flex and would fail.
+2. The sidewall contains reinforcing cords (often steel or aramid fibre) that carry the load. Any damage to these cords compromises structural integrity.
+3. A sidewall failure at speed causes an instantaneous blowout — there is no warning.
+
+If a tyre fitter tells you they can repair your sidewall, do not trust them. This is not a matter of opinion; it is a legal and safety standard.
+
+## Types of Sidewall Damage
+
+### 1. Tyre Bubble / Bulge
+
+**What it looks like**: a visible lump or bubble protruding from the sidewall. May appear suddenly or develop over days.
+
+**Cause**: impact damage — usually from a pothole, kerb strike, or speed bump at excessive speed. The impact breaks internal cords in the sidewall. Trapped air pushes through the damaged area, creating the bubble.
+
+**Is it dangerous?**: yes. A tyre bubble can fail (blowout) at any time, including at motorway speed. This is a condition that requires immediate action.
+
+**What to do**: do not drive on the tyre. If you notice a bubble while stationary, call Tyre Rescue for mobile fitting. If you are already driving and notice vibration or a bulge, reduce speed immediately, find a safe place to stop, and call us.
+
+**Scotland note**: Scottish roads have a very high pothole density. The A75 Dumfries & Galloway, the A96 in Aberdeenshire, and many Highland single-track roads are frequent causes of sidewall bubble damage. Tyre Rescue attends pothole-related sidewall damage callouts daily across Scotland.
+
+---
+
+### 2. Sidewall Cut or Gash
+
+**What it looks like**: a visible cut, slash, or gash in the sidewall rubber — sometimes with visible internal cord material.
+
+**Cause**: sharp road debris (broken glass, metal fragments, sharp stone edges), or contact with a sharp kerb edge.
+
+**Can it be repaired?**: no. Any cut that penetrates the rubber to the cord is unsafe to drive on. Even a cut that has not penetrated the full depth weakens the sidewall and may progress to failure.
+
+**What to do**: if you can see cord material (fabric-like or metal fibres), stop driving immediately and call for a replacement tyre. If the cut appears to be only in the outer rubber and has not penetrated through, drive carefully to a safe location and have it inspected — do not use the motorway or drive at high speed.
+
+---
+
+### 3. Sidewall Scuff or Scrape (Shallow Kerbing)
+
+**What it looks like**: a surface abrasion or rubber scraped away, but no cut or bubble visible. The sidewall looks scuffed.
+
+**Cause**: light kerb contact — parallel parking too close to the kerb, or scraping a kerb at slow speed.
+
+**Can it be repaired?**: this is the only borderline case. If the damage is purely cosmetic (outer rubber scraped but no cut through the rubber, no cord visible, no deformation), it may be safe to continue using the tyre. However, you cannot tell from visual inspection alone whether the cords have been stressed.
+
+**What to do**: have the tyre inspected by a tyre professional. We will deflate the tyre, inspect the inside of the sidewall for cord damage, and give you a definitive answer. If in doubt, replace it — a tyre costs £60–£150; a blowout at speed can cost lives.
+
+---
+
+### 4. Cracking or Crazing of the Sidewall
+
+**What it looks like**: fine cracks in the sidewall rubber — like a dried mud pattern. May be visible around the bead area (where the tyre meets the wheel) or across the sidewall surface.
+
+**Cause**: tyre age, UV exposure, ozone degradation, or long periods of under-inflation. The rubber compounds harden and crack over time.
+
+**Is it dangerous?**: fine surface crazing may be cosmetic, but cracking that extends into the sidewall structure is dangerous. Tyres over 5–6 years old with visible cracking should be replaced even if tread depth is adequate.
+
+**What to do**: check the tyre manufacture date (the four-digit DOT code on the sidewall — e.g., "2819" means week 28, year 2019). If the tyre is over 6 years old, replace it. Our [tyre age guide](/blog/tyre-age-when-to-replace-scotland) covers this in full.
+
+---
+
+## What About Run-Flat Tyres?
+
+Run-flat tyres (BMW RSC, Mercedes EMT/MOExtended, Bridgestone RFT) have reinforced sidewalls that can support the vehicle for a limited distance even when deflated. However, a run-flat tyre with a bubble, cut, or structural damage to the sidewall must still be replaced immediately — the run-flat capability only applies to punctures in the tread area, not sidewall damage.
+
+---
+
+## Driving on a Damaged Sidewall: The Legal Position
+
+In Scotland (and across the UK), driving on a tyre with a dangerous defect (which includes any structural sidewall damage) is an offence under the Road Vehicles (Construction and Use) Regulations 1986. Penalties include:
+
+- A fine of up to £2,500 per tyre
+- 3 points on your licence per tyre
+- Vehicle being declared unfit for road use (prohibition notice)
+
+A vehicle involved in a collision where a defective tyre is found may also affect insurance liability.
+
+---
+
+## Getting a Replacement Tyre in Scotland
+
+If you are stranded with sidewall damage, Tyre Rescue can attend your location across all of Scotland — usually within 30–55 minutes in cities, longer in rural areas.
+
+- **Stranded on the roadside**: switch on hazard lights, move away from the vehicle if it is on a live road, and call **0141 266 0690**.
+- **Stranded in a car park or at home**: call or [book online](/book) and we will come to you at a scheduled time.
+- **On a motorway**: call 0141 266 0690 and also inform Highways Scotland/Traffic Scotland — they will manage the lane closure while we attend.
+
+[Pothole tyre damage guide](/blog/pothole-damage-tyres-scotland) | [Signs you need new tyres](/blog/signs-you-need-new-tyres) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me)`,
+  },
+  {
     slug: 'uneven-tyre-wear-guide-scotland',
     title: 'Uneven Tyre Wear: Causes, Diagnosis & What to Do in Scotland',
     description:
