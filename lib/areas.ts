@@ -703,6 +703,66 @@ export const irvineAreas: Area[] = [
   { slug: 'barrmill', name: 'Barrmill', postcode: 'KA15', lat: 55.7340, lng: -4.6310, distanceFromCentre: 7.4, nearestLandmark: 'Barrmill Village' },
 ];
 
+export const invernessAreas: Area[] = [
+  { slug: 'inverness-city-centre', name: 'City Centre', postcode: 'IV1', lat: 57.4778, lng: -4.2247, distanceFromCentre: 0.3, nearestLandmark: 'Inverness Castle' },
+  { slug: 'crown-inverness', name: 'Crown', postcode: 'IV2', lat: 57.4721, lng: -4.2099, distanceFromCentre: 0.8, nearestLandmark: 'Crown Primary School' },
+  { slug: 'raigmore', name: 'Raigmore', postcode: 'IV2', lat: 57.4698, lng: -4.1937, distanceFromCentre: 1.5, nearestLandmark: 'Raigmore Hospital' },
+  { slug: 'inshes', name: 'Inshes', postcode: 'IV2', lat: 55.4545, lng: -4.1755, distanceFromCentre: 2.2, nearestLandmark: 'Inshes Retail Park' },
+  { slug: 'merkinch', name: 'Merkinch', postcode: 'IV3', lat: 57.4834, lng: -4.2401, distanceFromCentre: 1.2, nearestLandmark: 'Caledonian Canal' },
+  { slug: 'dalneigh', name: 'Dalneigh', postcode: 'IV3', lat: 57.4712, lng: -4.2478, distanceFromCentre: 1.5, nearestLandmark: 'Dalneigh Community Centre' },
+  { slug: 'hilton-inverness', name: 'Hilton', postcode: 'IV2', lat: 57.4634, lng: -4.2178, distanceFromCentre: 1.8, nearestLandmark: 'Millburn Academy' },
+  { slug: 'culduthel', name: 'Culduthel', postcode: 'IV2', lat: 57.4502, lng: -4.2256, distanceFromCentre: 2.5, nearestLandmark: 'Culduthel Mains Road' },
+  { slug: 'scorguie', name: 'Scorguie', postcode: 'IV3', lat: 57.4823, lng: -4.2612, distanceFromCentre: 2.0, nearestLandmark: 'Leachkin Road' },
+  { slug: 'balloch-inverness', name: 'Balloch', postcode: 'IV2', lat: 57.4412, lng: -4.1934, distanceFromCentre: 3.5, nearestLandmark: 'Balloch Industrial Estate' },
+  { slug: 'beauly', name: 'Beauly', postcode: 'IV4', lat: 57.4786, lng: -4.4642, distanceFromCentre: 12.0, nearestLandmark: 'Beauly Priory' },
+  { slug: 'muir-of-ord', name: 'Muir of Ord', postcode: 'IV6', lat: 57.5145, lng: -4.4561, distanceFromCentre: 13.0, nearestLandmark: 'Muir of Ord Station' },
+  { slug: 'black-isle', name: 'Black Isle', postcode: 'IV8', lat: 57.5790, lng: -4.2820, distanceFromCentre: 12.5, nearestLandmark: 'Munlochy Bay' },
+  { slug: 'fortrose', name: 'Fortrose', postcode: 'IV10', lat: 57.5805, lng: -4.1357, distanceFromCentre: 14.5, nearestLandmark: 'Fortrose Cathedral' },
+  { slug: 'avoch', name: 'Avoch', postcode: 'IV9', lat: 57.5789, lng: -4.1612, distanceFromCentre: 13.2, nearestLandmark: 'Avoch Harbour' },
+  { slug: 'nairn', name: 'Nairn', postcode: 'IV12', lat: 57.5854, lng: -3.8798, distanceFromCentre: 17.0, nearestLandmark: 'Nairn Town Centre' },
+];
+
+export const dingwallAreas: Area[] = [
+  { slug: 'dingwall-town-centre', name: 'Town Centre', postcode: 'IV15', lat: 57.5959, lng: -4.4259, distanceFromCentre: 0.3, nearestLandmark: 'Dingwall Town Hall' },
+  { slug: 'strathpeffer', name: 'Strathpeffer', postcode: 'IV14', lat: 57.5845, lng: -4.5345, distanceFromCentre: 6.0, nearestLandmark: 'Strathpeffer Spa Pavilion' },
+  { slug: 'evanton', name: 'Evanton', postcode: 'IV16', lat: 57.6423, lng: -4.3521, distanceFromCentre: 5.0, nearestLandmark: 'Evanton Village' },
+  { slug: 'alness', name: 'Alness', postcode: 'IV17', lat: 57.6876, lng: -4.2578, distanceFromCentre: 8.0, nearestLandmark: 'Alness Town Centre' },
+  { slug: 'invergordon', name: 'Invergordon', postcode: 'IV18', lat: 57.6882, lng: -4.1712, distanceFromCentre: 9.0, nearestLandmark: 'Invergordon Port' },
+  { slug: 'tain', name: 'Tain', postcode: 'IV19', lat: 57.8128, lng: -4.0548, distanceFromCentre: 16.0, nearestLandmark: 'Tain Through Time Museum' },
+  { slug: 'cromarty', name: 'Cromarty', postcode: 'IV11', lat: 57.6789, lng: -4.0345, distanceFromCentre: 12.5, nearestLandmark: 'Cromarty Courthouse' },
+  { slug: 'dornoch', name: 'Dornoch', postcode: 'IV25', lat: 57.8784, lng: -4.0270, distanceFromCentre: 20.0, nearestLandmark: 'Dornoch Cathedral' },
+  { slug: 'ullapool', name: 'Ullapool', postcode: 'IV26', lat: 57.8992, lng: -5.1618, distanceFromCentre: 28.0, nearestLandmark: 'Ullapool Harbour' },
+  { slug: 'lairg', name: 'Lairg', postcode: 'IV27', lat: 58.0178, lng: -4.4068, distanceFromCentre: 30.0, nearestLandmark: 'Lairg Town Centre' },
+  { slug: 'portmahomack', name: 'Portmahomack', postcode: 'IV20', lat: 57.8340, lng: -3.8390, distanceFromCentre: 18.5, nearestLandmark: 'Portmahomack Harbour' },
+  { slug: 'ardgay', name: 'Ardgay', postcode: 'IV24', lat: 57.8712, lng: -4.3590, distanceFromCentre: 22.0, nearestLandmark: 'Ardgay Station' },
+];
+
+export const elginAreas: Area[] = [
+  { slug: 'elgin-city-centre', name: 'City Centre', postcode: 'IV30', lat: 57.6528, lng: -3.3140, distanceFromCentre: 0.3, nearestLandmark: 'Elgin Cathedral' },
+  { slug: 'bishopmill', name: 'Bishopmill', postcode: 'IV30', lat: 57.6612, lng: -3.3278, distanceFromCentre: 1.2, nearestLandmark: 'Bishopmill Primary School' },
+  { slug: 'new-elgin', name: 'New Elgin', postcode: 'IV30', lat: 57.6423, lng: -3.3045, distanceFromCentre: 1.5, nearestLandmark: 'Elgin Retail Park' },
+  { slug: 'lossiemouth', name: 'Lossiemouth', postcode: 'IV31', lat: 57.7180, lng: -3.2950, distanceFromCentre: 5.5, nearestLandmark: 'Lossiemouth Harbour' },
+  { slug: 'fochabers', name: 'Fochabers', postcode: 'IV32', lat: 57.6245, lng: -3.1012, distanceFromCentre: 8.0, nearestLandmark: 'Fochabers Town Square' },
+  { slug: 'forres', name: 'Forres', postcode: 'IV36', lat: 57.6094, lng: -3.6233, distanceFromCentre: 11.0, nearestLandmark: 'Forres High Street' },
+  { slug: 'kinloss', name: 'Kinloss', postcode: 'IV36', lat: 57.6464, lng: -3.5654, distanceFromCentre: 9.5, nearestLandmark: 'Kinloss Abbey' },
+  { slug: 'burghead', name: 'Burghead', postcode: 'IV30', lat: 57.7098, lng: -3.4887, distanceFromCentre: 6.0, nearestLandmark: 'Burghead Harbour' },
+  { slug: 'hopeman', name: 'Hopeman', postcode: 'IV30', lat: 57.7029, lng: -3.4421, distanceFromCentre: 7.0, nearestLandmark: 'Hopeman Harbour' },
+  { slug: 'findhorn', name: 'Findhorn', postcode: 'IV36', lat: 57.6590, lng: -3.6070, distanceFromCentre: 8.5, nearestLandmark: 'Findhorn Bay' },
+];
+
+export const isleofskyeAreas: Area[] = [
+  { slug: 'portree', name: 'Portree', postcode: 'IV51', lat: 57.4134, lng: -6.1969, distanceFromCentre: 0.3, nearestLandmark: 'Portree Harbour' },
+  { slug: 'dunvegan', name: 'Dunvegan', postcode: 'IV55', lat: 57.4480, lng: -6.5869, distanceFromCentre: 23.0, nearestLandmark: 'Dunvegan Castle' },
+  { slug: 'broadford', name: 'Broadford', postcode: 'IV49', lat: 57.2490, lng: -5.9101, distanceFromCentre: 26.0, nearestLandmark: 'Broadford Bay' },
+  { slug: 'kyleakin', name: 'Kyleakin', postcode: 'IV41', lat: 57.2726, lng: -5.7393, distanceFromCentre: 30.0, nearestLandmark: 'Skye Bridge' },
+  { slug: 'staffin', name: 'Staffin', postcode: 'IV51', lat: 57.6417, lng: -6.2012, distanceFromCentre: 20.0, nearestLandmark: 'Staffin Bay' },
+  { slug: 'uig-skye', name: 'Uig', postcode: 'IV51', lat: 57.5855, lng: -6.3641, distanceFromCentre: 16.0, nearestLandmark: 'Uig Ferry Terminal' },
+  { slug: 'carbost', name: 'Carbost', postcode: 'IV47', lat: 57.3009, lng: -6.3587, distanceFromCentre: 20.0, nearestLandmark: 'Talisker Distillery' },
+  { slug: 'armadale-skye', name: 'Armadale', postcode: 'IV45', lat: 57.0660, lng: -5.8921, distanceFromCentre: 35.0, nearestLandmark: 'Armadale Castle' },
+  { slug: 'kyle-of-lochalsh', name: 'Kyle of Lochalsh', postcode: 'IV40', lat: 57.2726, lng: -5.7180, distanceFromCentre: 32.0, nearestLandmark: 'Kyle of Lochalsh Station' },
+  { slug: 'sligachan', name: 'Sligachan', postcode: 'IV47', lat: 57.2937, lng: -6.1699, distanceFromCentre: 18.0, nearestLandmark: 'Sligachan Hotel' },
+];
+
 export function getAreasForCity(citySlug: string): Area[] {
   switch (citySlug) {
     case 'glasgow': return glasgowAreas;
@@ -724,6 +784,10 @@ export function getAreasForCity(citySlug: string): Area[] {
     case 'kilmarnock': return kilmarnockAreas;
     case 'ayr': return ayrAreas;
     case 'irvine': return irvineAreas;
+    case 'inverness': return invernessAreas;
+    case 'dingwall': return dingwallAreas;
+    case 'elgin': return elginAreas;
+    case 'isle-of-skye': return isleofskyeAreas;
     default: return [];
   }
 }
@@ -744,4 +808,5 @@ export const serviceCities = [
   'cumbernauld', 'dumfries',
   'greenock', 'dunfermline',
   'kilmarnock', 'ayr', 'irvine',
+  'inverness', 'dingwall', 'elgin', 'isle-of-skye',
 ] as const;

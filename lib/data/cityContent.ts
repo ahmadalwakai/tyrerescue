@@ -263,4 +263,56 @@ export const cityContent: Record<string, CityContent> = {
       'The Irvine Development Corporation road network centres on the A71 and A78 expressways, and the town\'s many roundabouts generate regular kerb-strike callouts. The Rivergate Shopping Centre, Harbourside and the ICI Irvine industrial estate are frequent service locations. Ardrossan Harbour — a busy ferry terminal for Arran — means we regularly assist travellers with tyre emergencies before catching sailings. We carry sizes suited to ferry-route traffic including large SUVs, people carriers and light commercials.',
     neighborCities: ['kilmarnock', 'ayr', 'paisley', 'greenock'],
   },
+  inverness: {
+    name: 'Inverness',
+    slug: 'inverness',
+    postcodes: 'IV1–IV12',
+    nearbyRoads: ['A9', 'A82', 'A96', 'A862'],
+    avgResponseMin: 90,
+    workshopDistance: 'Scheduled service — advance booking recommended for Highland areas',
+    uniqueIntro:
+      'Inverness is the capital of the Scottish Highlands, and Tyre Rescue covers the full IV1–IV12 postcode area including the city itself, the Black Isle, Nairn and the Beauly corridor. As Scotland\'s northernmost large city, Inverness is a hub for Highland motorists — and tyre damage on the A9 approach, the A96 coastal road and the rural B-roads around the Black Isle is a common occurrence. Our average response time in Inverness city is 90 minutes; we recommend calling ahead for outlying areas.',
+    uniqueBody:
+      'Inverness drivers face Highland-specific tyre hazards: potholed single-track roads, gravel verges, and seasonal damage from frost and standing water. We carry a broad range of sizes suited to the mix of SUVs, 4x4s, campervans and commercial vehicles that dominate Highland traffic. Raigmore Hospital, the Retail Park on Eastfield Way, and the A9 Kessock Bridge approaches are frequent service locations. We also cover Nairn (IV12), the Black Isle villages of Fortrose and Avoch (IV9–IV10), Beauly (IV4) and Muir of Ord (IV6) from the same dispatch.',
+    neighborCities: ['dingwall', 'elgin'],
+  },
+  dingwall: {
+    name: 'Dingwall',
+    slug: 'dingwall',
+    postcodes: 'IV14–IV27',
+    nearbyRoads: ['A9', 'A835', 'A836', 'A862'],
+    avgResponseMin: 95,
+    workshopDistance: 'Scheduled service — advance booking recommended for Ross-shire and Sutherland',
+    uniqueIntro:
+      'Dingwall is the county town of Ross-shire and our service hub for the IV14–IV27 postcode corridor, covering the Cromarty Firth industrial towns and the west Highland coast all the way to Ullapool. Our average response time in Dingwall is 95 minutes. The A9 north through Alness, Invergordon and Tain is a major haulage route where tyre failures are common, and we serve these communities with the same pricing as our central-belt coverage.',
+    uniqueBody:
+      'Ross-shire presents unique tyre challenges: the A835 Ullapool road crosses open moorland where help can be 30 minutes or more away; the A9 through Invergordon serves heavy port traffic from the Cromarty Firth refineries; and seasonal tourist traffic on routes to the North Coast 500 keeps demand high. We carry heavy-load tyre sizes for vans and commercials as well as all-season options popular in this climate. Dornoch (IV25), Ullapool (IV26) and Lairg (IV27) are covered on an advance-booking basis.',
+    neighborCities: ['inverness', 'elgin'],
+  },
+  elgin: {
+    name: 'Elgin',
+    slug: 'elgin',
+    postcodes: 'IV30–IV36',
+    nearbyRoads: ['A96', 'A941', 'A98', 'B9013'],
+    avgResponseMin: 90,
+    workshopDistance: 'Scheduled service — advance booking recommended for Moray areas',
+    uniqueIntro:
+      'Elgin is the largest town in Moray and our coverage hub for the IV30–IV36 postcode band, taking in Lossiemouth, Fochabers, Forres and the Findhorn Bay coastal stretch. Our average response time in Elgin is 90 minutes. The A96 Aberdeen–Inverness trunk road runs through the town and generates regular callouts from lorry and car drivers alike. RAF Lossiemouth and the distilleries around Rothes and Craigellachie also bring steady commercial tyre demand to this part of Moray.',
+    uniqueBody:
+      'Elgin sits at the heart of the whisky-distillery belt and the Moray Coast tourist trail, meaning summer traffic spikes on the B9013 coast road and on narrow single-track routes through the forest roads west of Forres. We stock sizes suited to the campervan and touring caravan market as well as standard passenger car tyres. Lossiemouth (IV31), Fochabers (IV32), Forres (IV36) and the Findhorn Bay area are all covered from the same dispatch, with Burghead and Hopeman served as local villages.',
+    neighborCities: ['inverness', 'dingwall'],
+  },
+  'isle-of-skye': {
+    name: 'Isle of Skye',
+    slug: 'isle-of-skye',
+    postcodes: 'IV40–IV56',
+    nearbyRoads: ['A87', 'A850', 'A863', 'A855'],
+    avgResponseMin: 120,
+    workshopDistance: 'Scheduled service — advance booking essential for Skye and Lochalsh',
+    uniqueIntro:
+      'The Isle of Skye is Scotland\'s most visited island, and Tyre Rescue covers the full IV40–IV56 postcode area including Portree, Broadford, Dunvegan and the Kyle of Lochalsh gateway on the mainland. Our average response time in Portree is 120 minutes — advance booking is essential for island callouts. The Skye Bridge (A87) and the single-track roads across the Trotternish Peninsula and the Cuillins are challenging terrain where tyre damage from gravel edges and cattle grids is a regular occurrence.',
+    uniqueBody:
+      'Skye\'s road network is heavily tourist-dependent, with millions of visitors arriving each summer in vehicles of all sizes — from motorhomes to hire cars. Tyre sizes common on the island include run-flat fitments on BMW and Mercedes hire cars, plus all-season tyres on campervans. Dunvegan Castle, the Old Man of Storr layby, Kilt Rock and the Fairy Pools car parks are frequent service locations during the season. We carry stock for Skye callouts from our Highland network and prioritise island bookings to avoid customers being stranded on remote single-track roads.',
+    neighborCities: ['inverness', 'dingwall'],
+  },
 };

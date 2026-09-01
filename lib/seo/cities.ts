@@ -60,6 +60,22 @@ export const cityData: Record<string, CityPriceData> = {
     coordinates: { lat: 56.0019, lng: -3.7839 },
     postcodeHint: 'FK1',
   },
+  inverness: {
+    name: 'Inverness',
+    description:
+      'Tyre Rescue covers the full Inverness IV1–IV12 postcode area including the city, Nairn, the Black Isle and the Beauly corridor. Highland tyre callouts are booked in advance — our fitters carry a full range of sizes suited to SUVs, 4x4s and campervans common in the Highlands. No hidden distance surcharge for IV postcodes.',
+    depotDistance: 170,
+    coordinates: { lat: 57.4778, lng: -4.2247 },
+    postcodeHint: 'IV1',
+  },
+  elgin: {
+    name: 'Elgin',
+    description:
+      'Elgin and the Moray IV30–IV36 postcode band including Lossiemouth, Fochabers and Forres. The A96 Aberdeen–Inverness corridor is one of Scotland\'s busiest trunk roads, and our Moray callouts are booked in advance with no hidden distance fees. We carry stock for campervan, SUV and commercial tyre sizes common in rural Moray.',
+    depotDistance: 160,
+    coordinates: { lat: 57.6528, lng: -3.3140 },
+    postcodeHint: 'IV30',
+  },
 };
 
 export const priceCitySlugs = Object.keys(cityData);
