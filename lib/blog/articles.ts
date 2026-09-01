@@ -10880,6 +10880,145 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'slow-puncture-causes-scotland',
+    title: 'Slow Puncture: Causes, Diagnosis & What to Do in Scotland',
+    description:
+      'Tyre slowly losing pressure? A slow puncture can be caused by a nail, valve leak, corroded wheel, or bead seal failure. Scotland guide to diagnosing and fixing a slow puncture.',
+    category: 'emergency',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'slow puncture scotland',
+      'tyre losing pressure scotland',
+      'tyre keeps going flat scotland',
+      'slow puncture causes',
+      'tyre slow leak scotland',
+      'why does my tyre keep losing air',
+      'nail in tyre scotland',
+      'slow puncture repair scotland',
+    ],
+    relatedSlugs: [
+      'tyre-sidewall-damage-scotland',
+      'tpms-warning-light-scotland-guide',
+      'tyre-pressure-guide-scotland',
+    ],
+    content: `# Slow Puncture: Causes, Diagnosis, and What to Do
+
+A slow puncture is a tyre that loses air pressure gradually over hours or days, rather than suddenly. It is one of the most common tyre problems in Scotland — and also one of the most misdiagnosed, because several different causes produce the same symptom.
+
+## How to Tell If You Have a Slow Puncture
+
+**Signs**:
+- TPMS warning light appearing regularly, especially in the morning when tyres are cold
+- Tyre noticeably lower than the others after being parked overnight or for several hours
+- Needing to top up one tyre repeatedly while others hold pressure
+- Car pulling slightly to one side, suggesting one tyre is lower than the other three
+
+**Confirming the diagnosis**:
+1. Check all four tyre pressures when cold (after 3+ hours of standing)
+2. Note which tyre(s) are lower than the recommended pressure
+3. Inflate all to the correct pressure and check again after 24 hours
+
+A loss of more than 3–4 psi per day is a slow puncture requiring attention. A loss of 1–2 psi over a week is within normal seasonal variation (especially in Scotland's temperature changes) and may not be a fault.
+
+## Causes of Slow Punctures
+
+### 1. Nail, Screw, or Road Debris Embedded in Tread
+
+**How it happens**: you drive over a nail, screw, or sharp stone fragment. The object penetrates the tyre but remains embedded — creating a slow air leak around the object rather than an immediate flat.
+
+**How to find it**: look carefully at the tread surface of the affected tyre. You may see the head of a nail, a screw, or a fragment of metal. Sometimes the object is small enough to be hard to spot — in this case, inflate the tyre and listen for a faint hiss, or apply soapy water to the tread and watch for bubbles.
+
+**Can it be repaired?**: yes, if the penetration is in the central three-quarters of the tread and not through the sidewall. A British Standard BSAU159-compliant repair involves removing the object, inserting a mushroom plug-patch from the inside, and vulcanising the repair. This is a permanent fix that should last the life of the tyre.
+
+**Cost**: puncture repairs cost approximately £20–£25 per tyre at Tyre Rescue.
+
+**Scotland note**: nails and screws from construction sites and agricultural vehicles are a very common cause of slow punctures on Scottish roads — particularly on roads near building developments, farms, and industrial areas.
+
+---
+
+### 2. Valve Stem Leak
+
+**How it happens**: the rubber or metal valve stem — the short nozzle you use to inflate the tyre — can develop a slow leak. Rubber valve stems perish over time, especially with UV exposure and Scottish winter frost. Metal valve stems develop leaks at the threaded insert point.
+
+**How to find it**: remove the valve cap and listen for a faint hiss. Apply soapy water to the valve stem and look for bubbles. The leak may be at the body of the valve, the valve core (Schrader valve), or where the valve meets the wheel rim.
+
+**Can it be fixed?**: often yes. A Schrader valve core can be replaced for £1–£2. A faulty valve stem may require the tyre to be removed and a new valve fitted — Tyre Rescue includes this as part of our fitting service when we attend.
+
+---
+
+### 3. Corroded or Damaged Wheel Rim (Bead Seal Failure)
+
+**How it happens**: on alloy wheels, particularly older ones with surface corrosion, the tyre bead (the inner edge of the tyre that seals against the wheel rim) can lose its seal against a corroded rim surface. Air escapes along the bead.
+
+**How to find it**: inflate the tyre and apply soapy water around the entire inner circumference where the tyre meets the wheel. Bubbles at the bead area indicate a bead seal leak.
+
+**Fix**: requires the tyre to be dismounted, the corrosion wire-brushed and sealed, and the tyre remounted and re-inflated. This cannot be done without removing the wheel. Tyre Rescue handles bead seal repairs as part of our fitting service.
+
+**Scotland note**: Scottish winters with road salt significantly accelerate alloy wheel corrosion. This is a particularly common cause of slow punctures in Scotland on vehicles over 4–5 years old.
+
+---
+
+### 4. TPMS Sensor Leak
+
+**How it happens**: direct TPMS sensors are mounted inside the wheel, either on a separate valve or band-mounted. The seal between the TPMS sensor and the wheel or valve can fail, causing a leak.
+
+**How to find it**: similar to valve stem leak detection — soapy water applied to the TPMS valve and sensor body will show bubbles if the seal is leaking.
+
+**Fix**: TPMS sensor replacement or re-sealing. If the sensor battery has also died (they typically last 7–10 years), the sensor should be replaced entirely. Tyre Rescue carries common TPMS sensors for most vehicle brands.
+
+---
+
+### 5. Porous Alloy Wheel
+
+**How it happens**: a rare but real phenomenon in older or damaged alloy wheels. The wheel material itself can develop tiny porosity — microscopic air paths through the metal structure. Air migrates through the wheel itself.
+
+**How to find it**: if bead seal, valve, and tyre penetration are all ruled out, porous alloy is the remaining suspect. A specialist wheel reconditioner can test for porosity.
+
+**Fix**: wheel reconditioning with porosity sealant, or wheel replacement.
+
+---
+
+## What to Do with a Slow Puncture in Scotland
+
+**If the tyre is still safely inflated (losing less than 5 psi per day)**:
+- Keep the tyre inflated to the correct pressure
+- Do not drive at motorway speed on a tyre with a known slow puncture
+- Book a repair or inspection within 48 hours
+- Call Tyre Rescue on **0141 266 0690** for a convenient appointment at your home or work
+
+**If the tyre is significantly underinflated (more than 10 psi below recommended)**:
+- Inflate before driving if possible (petrol station air or portable compressor)
+- Drive slowly and carefully to the nearest safe location
+- Call for mobile fitting — do not drive at speed on a significantly underinflated tyre
+
+**If the tyre is flat or near-flat**:
+- Do not drive on it
+- Call Tyre Rescue for roadside mobile fitting
+
+## TPMS Light and Slow Punctures
+
+Many Scottish drivers first notice a slow puncture via the TPMS warning light. The light illuminates when tyre pressure drops approximately 25% below the recommended level. If TPMS triggers:
+
+1. Stop safely
+2. Check all four tyre pressures
+3. Identify which tyre(s) are low
+4. Inflate and monitor
+5. If the same tyre repeatedly triggers TPMS, book a repair
+
+For more on TPMS, see our [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide).
+
+## Book Slow Puncture Repair in Scotland
+
+Tyre Rescue can attend your location across all of Scotland to assess and repair slow punctures. We carry puncture repair equipment and can assess on-site whether a repair is possible or a replacement is required.
+
+Call **0141 266 0690** or [book online](/book).
+
+[TPMS warning light guide](/blog/tpms-warning-light-scotland-guide) | [Tyre sidewall damage guide](/blog/tyre-sidewall-damage-scotland) | [Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland)`,
+  },
+  {
     slug: 'winter-tyres-scotland-buyers-guide-2026',
     title: 'Best Winter Tyres for Scotland 2026–27: Buyer\'s Guide & Recommendations',
     description:
