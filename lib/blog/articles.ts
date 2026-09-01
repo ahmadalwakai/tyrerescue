@@ -1036,7 +1036,11 @@ Yes. Our fitters are experienced with the Old Town's restricted access zones and
 Yes. EH postcodes have a high proportion of German premium cars. We carry common run-flat sizes and TPMS reset equipment on every van.
 
 ### What if I'm at Edinburgh Airport?
-We cover the airport approach roads and the rental car areas. If you're at the terminal building, give us your precise location and we'll advise on the best meeting point.`,
+We cover the airport approach roads and the rental car areas. If you're at the terminal building, give us your precise location and we'll advise on the best meeting point.
+
+## Book Mobile Tyre Fitting in Edinburgh
+
+Visit our [Edinburgh mobile tyre fitting](/mobile-tyre-fitting/edinburgh) page for EH postcode coverage and local booking, or call **0141 266 0690** for immediate emergency service.`,
   },
   {
     slug: 'puncture-repair-glasgow-when-replace',
@@ -1456,7 +1460,11 @@ Yes. Aberdeen has a high proportion of BMW and Land Rover vehicles (oil industry
 We cover landside addresses at or near the harbour. If you're on a vessel or offshore installation, you'll need to arrange transportation to a land address first.
 
 ### What if I'm on the AWPR with a flat tyre?
-Pull onto the hard shoulder or the next emergency refuge and call 0141 266 0690. The AWPR is one of our most frequent emergency call-out routes. Give us the nearest junction number or mile marker.`,
+Pull onto the hard shoulder or the next emergency refuge and call 0141 266 0690. The AWPR is one of our most frequent emergency call-out routes. Give us the nearest junction number or mile marker.
+
+## Book Mobile Tyre Fitting in Aberdeen
+
+Ready to book? Visit our [Aberdeen mobile tyre fitting](/mobile-tyre-fitting/aberdeen) page for local pricing, area coverage and same-day booking, or call **0141 266 0690** for immediate emergency service.`,
   },
   {
     slug: 'mobile-tyre-fitting-inverness-highlands',
@@ -1591,7 +1599,11 @@ Yes. We stock winter tyres for common sizes. Winter tyre fitting appointments ar
 The A82 is one of our most scenic and most hazardous routes. Pull off the road as far as possible, turn on hazard lights, and call 0141 266 0690. The A82 has limited stopping places in some sections — stay with your vehicle and await assistance.
 
 ### Do you cover the Black Isle and Cromarty?
-Yes — Muir of Ord, Fortrose, Rosemarkie, Cromarty, and the Cromarty ferry crossing area are in our coverage. Response time is approximately 105–115 minutes.`,
+Yes — Muir of Ord, Fortrose, Rosemarkie, Cromarty, and the Cromarty ferry crossing area are in our coverage. Response time is approximately 105–115 minutes.
+
+## Book Mobile Tyre Fitting in Inverness
+
+Visit our [Inverness mobile tyre fitting](/mobile-tyre-fitting/inverness) page for local response times, Highland coverage details and advance booking, or call **0141 266 0690** for immediate emergency assistance.`,
   },
   {
     slug: 'mobile-tyre-fitting-dundee-guide',
@@ -1692,7 +1704,11 @@ Yes — we regularly assist patients and hospital staff at Ninewells. The large 
 Yes — Carnoustie, Monifieth and the Angus coastal towns as far as Arbroath are covered. Response from our nearest available fitter is typically 75–90 minutes.
 
 ### What about the V&A Dundee area?
-Yes — the Waterfront, Slessor Gardens and the V&A car parks are easily accessible. Parking arrangements in the Waterfront area can be complex; tell us your exact position when booking.`,
+Yes — the Waterfront, Slessor Gardens and the V&A car parks are easily accessible. Parking arrangements in the Waterfront area can be complex; tell us your exact position when booking.
+
+## Book Mobile Tyre Fitting in Dundee
+
+Visit our [Dundee mobile tyre fitting](/mobile-tyre-fitting/dundee) page for local pricing, DD postcode coverage and same-day booking, or call **0141 266 0690** for immediate help.`,
   },
   {
     slug: 'mobile-tyre-fitting-ayr-ayrshire',

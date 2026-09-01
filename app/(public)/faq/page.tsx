@@ -4,9 +4,9 @@ import { faqItems, buildFAQPageJsonLd } from '@/lib/content/faq';
 import { JsonLd } from '@/components/seo/JsonLd';
 
 export const metadata: Metadata = {
-  title: 'FAQ | Mobile Tyre Fitting Near Me | Tyre Repair Glasgow | Tyre Rescue',
+  title: 'FAQ | Mobile Tyre Fitting Scotland | Tyre Rescue',
   description:
-    'Common questions about mobile tyre fitting in Glasgow. How does tyre repair near me work? Pricing, response times, coverage areas and booking information.',
+    'Common questions about mobile tyre fitting across Scotland. Coverage areas, response times for Glasgow, Edinburgh, Aberdeen, Inverness and the Highlands, pricing and booking information.',
   alternates: { canonical: 'https://www.tyrerescue.uk/faq' },
 };
 
