@@ -19,20 +19,20 @@ export function EmergencyAISection() {
     <Box bg={colors.bg} py={{ base: '40px', md: '60px' }} px={{ base: 4, md: 8 }}>
       <Container maxW="4xl">
         <AIOptimizedSection
-          question="How Fast is Emergency Tyre Fitting Response in Glasgow?"
-          directAnswer="Tyre Rescue's average emergency response time in Glasgow city centre is 45 minutes. For Edinburgh city centre, it's 50 minutes. Surrounding areas take 60–90 minutes depending on distance. We operate 24/7 every day of the year including Christmas and New Year, with certified fitters on standby across Central Scotland."
+          question="How Fast is Emergency Tyre Fitting Response Across Scotland?"
+          directAnswer="Tyre Rescue covers all of Scotland — Glasgow city centre 45 minutes, Edinburgh 50 minutes, surrounding Central Belt areas 60–90 minutes, Aberdeen and Inverness approximately 90 minutes, and Highlands/Islands by advance booking. We operate 24/7 every day of the year including Christmas and New Year."
           entityType="service"
           detailedAnswer={
             <Flex direction="column" gap="30px">
               <Box>
                 <Text as="h3" fontSize={{ base: '20px', md: '24px' }} fontWeight="700" color={colors.textPrimary} mb="16px" style={{ fontFamily: 'var(--font-body)' }}>
-                  Response Times by Area
+                  Response Times Across Scotland
                 </Text>
                 <SimpleGrid columns={{ base: 1, md: 3 }} gap="16px">
                   {[
                     { time: '30–45min', area: 'Glasgow City Centre', postcodes: 'G1, G2, G3, G4 postcodes' },
                     { time: '45–60min', area: 'Greater Glasgow', postcodes: 'Paisley, East Kilbride, Hamilton' },
-                    { time: '60–90min', area: 'Central Scotland', postcodes: 'Stirling, Falkirk, Dundee' },
+                    { time: '60–90min', area: 'Edinburgh, Dundee, Perth, Stirling', postcodes: 'EH, DD, PH, FK postcodes' },
                   ].map((item) => (
                     <Box key={item.area} bg={colors.surface} p="24px" borderRadius="8px" textAlign="center" border="1px solid" borderColor={colors.border}>
                       <Text fontSize={{ base: '36px', md: '42px' }} fontWeight="700" color={colors.accent} mb="8px" style={{ fontFamily: 'var(--font-display)' }}>

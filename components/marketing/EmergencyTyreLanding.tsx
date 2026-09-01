@@ -34,16 +34,17 @@ function CheckIcon() {
 }
 
 const TRUST_BULLETS = [
-  'Mobile tyre fitting at your exact location',
+  'Mobile tyre fitting at your exact location anywhere in Scotland',
   'Help for flat tyres and roadside tyre issues',
-  'Coverage across Glasgow, Edinburgh and Central Scotland',
+  'Coverage across all of Scotland — Glasgow to Shetland',
   '24/7 — every day of the year including bank holidays',
 ];
 
 const RESPONSE_TIMES = [
   { time: '30–45 min', area: 'Glasgow City Centre', sub: 'G1–G4 postcodes' },
   { time: '45–60 min', area: 'Greater Glasgow', sub: 'Paisley, East Kilbride, Hamilton' },
-  { time: '60–90 min', area: 'Central Scotland', sub: 'Stirling, Falkirk, Dundee' },
+  { time: '60–90 min', area: 'Edinburgh, Dundee, Perth, Stirling', sub: 'EH, DD, PH, FK postcodes' },
+  { time: '90–120 min', area: 'Aberdeen & Inverness', sub: 'AB, IV postcodes' },
 ];
 
 const HOW_IT_WORKS = [
@@ -140,7 +141,7 @@ export function EmergencyTyreLanding({
           >
             Flat tyre? Stranded roadside? Our mobile fitters come to your exact location
             with the right tyres — no tow truck needed. Fast, professional help for flat
-            tyres, punctures, and emergency tyre replacement across Central Scotland.
+            tyres, punctures, and emergency tyre replacement across all of Scotland.
           </Text>
 
           {/* CTA buttons */}
@@ -333,8 +334,7 @@ export function EmergencyTyreLanding({
             mb="24px"
             style={{ ...anim.fadeUp('0.4s', '0.05s'), fontFamily: 'var(--font-body)' }}
           >
-            Emergency tyre fitting available across Central Scotland. Contact us to confirm
-            coverage for your specific location.
+            Emergency tyre fitting available across all of Scotland — from Glasgow to Shetland. Contact us to confirm your exact ETA.
           </Text>
           <EmergencyServiceAreas areas={serviceAreas} />
         </Container>

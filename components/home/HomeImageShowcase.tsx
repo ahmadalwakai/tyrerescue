@@ -44,7 +44,7 @@ function getSlideTransform(animStyle: string | undefined, isActive: boolean) {
 const badges = [
   { label: '24/7 Callout', top: '16px', left: '16px' },
   { label: 'Mobile Fitting', top: '16px', right: '16px' },
-  { label: 'Glasgow & Edinburgh', bottom: '72px', left: '16px' },
+  { label: 'All of Scotland', bottom: '72px', left: '16px' },
 ] as const;
 
 /* ── Component ───────────────────────────────────────────── */

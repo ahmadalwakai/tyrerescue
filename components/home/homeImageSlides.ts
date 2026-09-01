@@ -26,7 +26,7 @@ export const homeSlides: HomeSlide[] = [
     alt: 'Tyre technician fitting a new tyre on a customer vehicle at their driveway',
     eyebrow: 'MOBILE FITTING',
     title: 'We Come to You',
-    caption: 'Glasgow & Edinburgh — 24/7',
+    caption: 'All of Scotland — 24/7',
     objectPosition: 'center center',
     priority: true,
   },

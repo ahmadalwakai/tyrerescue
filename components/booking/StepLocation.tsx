@@ -539,7 +539,7 @@ export function StepLocation({
               borderRadius="8px"
             >
               <Text fontSize="14px" color="red.400" style={{ fontFamily: 'var(--font-body)' }}>
-                This address is outside our service area. We cover Glasgow, Edinburgh and surrounding areas across Central Scotland.
+                This address may be outside our current online booking area. We cover all of Scotland — call us to confirm availability for your location.
               </Text>
               <Text fontSize="13px" color="red.400" mt={1} style={{ fontFamily: 'var(--font-body)' }}>
                 Call us:{' '}

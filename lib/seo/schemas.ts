@@ -86,7 +86,7 @@ export function getLocalBusinessSchema(baseUrl: string = DEFAULT_BASE_URL) {
           '@type': 'Service',
           name: 'Emergency Mobile Tyre Fitting',
           description:
-            '24/7 emergency tyre replacement at your location across Glasgow and Edinburgh. Callout fee from £49 + tyre price.',
+            '24/7 emergency tyre replacement at your location across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness and beyond. Callout fee from £49 + tyre price.',
         },
         priceCurrency: 'GBP',
         priceSpecification: {

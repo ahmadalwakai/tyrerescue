@@ -1928,7 +1928,7 @@ export function HomePage() {
               </Flex>
               <Flex direction="column" gap={3}>
                 {[
-                  { title: 'Established 2014', sub: 'Over a decade serving Glasgow drivers' },
+                  { title: 'Established 2014', sub: 'Over a decade serving Scotland' },
                   { title: 'Glasgow Based, Scotland Wide', sub: 'Workshop in Parkhead, coverage across Scotland' },
                   { title: 'Fully Insured and Licensed', sub: '£2 million public liability insurance' },
                 ].map((card) => (
