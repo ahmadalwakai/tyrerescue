@@ -795,6 +795,50 @@ export const isleofskyeAreas: Area[] = [
   { slug: 'sligachan', name: 'Sligachan', postcode: 'IV47', lat: 57.2937, lng: -6.1699, distanceFromCentre: 18.0, nearestLandmark: 'Sligachan Hotel' },
 ];
 
+export const obanAreas: Area[] = [
+  { slug: 'oban-town-centre', name: 'Town Centre', postcode: 'PA34', lat: 56.4154, lng: -5.4714, distanceFromCentre: 0.3, nearestLandmark: 'Oban Bay' },
+  { slug: 'dunoon', name: 'Dunoon', postcode: 'PA23', lat: 55.9495, lng: -4.9239, distanceFromCentre: 40.0, nearestLandmark: 'Dunoon Pier' },
+  { slug: 'rothesay', name: 'Rothesay', postcode: 'PA20', lat: 55.8359, lng: -5.0524, distanceFromCentre: 50.0, nearestLandmark: 'Rothesay Castle' },
+  { slug: 'campbeltown', name: 'Campbeltown', postcode: 'PA28', lat: 55.4263, lng: -5.6052, distanceFromCentre: 90.0, nearestLandmark: 'Campbeltown Loch' },
+  { slug: 'lochgilphead', name: 'Lochgilphead', postcode: 'PA31', lat: 56.0360, lng: -5.4340, distanceFromCentre: 35.0, nearestLandmark: 'Crinan Canal' },
+  { slug: 'inveraray', name: 'Inveraray', postcode: 'PA32', lat: 56.2302, lng: -5.0776, distanceFromCentre: 38.0, nearestLandmark: 'Inveraray Castle' },
+  { slug: 'tarbert-argyll', name: 'Tarbert', postcode: 'PA29', lat: 55.8659, lng: -5.4033, distanceFromCentre: 65.0, nearestLandmark: 'Tarbert Harbour' },
+  { slug: 'tobermory', name: 'Tobermory', postcode: 'PA75', lat: 56.6228, lng: -6.0680, distanceFromCentre: 50.0, nearestLandmark: 'Tobermory Harbour' },
+  { slug: 'bowmore', name: 'Bowmore', postcode: 'PA43', lat: 55.7565, lng: -6.2905, distanceFromCentre: 75.0, nearestLandmark: 'Bowmore Distillery' },
+  { slug: 'connel', name: 'Connel', postcode: 'PA37', lat: 56.4554, lng: -5.3911, distanceFromCentre: 6.0, nearestLandmark: 'Connel Bridge' },
+];
+
+export const wickAreas: Area[] = [
+  { slug: 'wick-town-centre', name: 'Town Centre', postcode: 'KW1', lat: 58.4381, lng: -3.0886, distanceFromCentre: 0.3, nearestLandmark: 'Wick Harbour' },
+  { slug: 'thurso', name: 'Thurso', postcode: 'KW14', lat: 58.5936, lng: -3.5223, distanceFromCentre: 18.0, nearestLandmark: 'Thurso Town Centre' },
+  { slug: 'john-o-groats', name: "John o' Groats", postcode: 'KW1', lat: 58.6415, lng: -3.0694, distanceFromCentre: 15.0, nearestLandmark: "John o' Groats Signpost" },
+  { slug: 'helmsdale', name: 'Helmsdale', postcode: 'KW8', lat: 58.1152, lng: -3.6534, distanceFromCentre: 30.0, nearestLandmark: 'Helmsdale Harbour' },
+  { slug: 'golspie', name: 'Golspie', postcode: 'KW10', lat: 57.9742, lng: -3.9857, distanceFromCentre: 43.0, nearestLandmark: 'Dunrobin Castle' },
+  { slug: 'brora', name: 'Brora', postcode: 'KW9', lat: 57.9973, lng: -3.8551, distanceFromCentre: 37.0, nearestLandmark: 'Brora Beach' },
+  { slug: 'halkirk', name: 'Halkirk', postcode: 'KW12', lat: 58.5144, lng: -3.4889, distanceFromCentre: 12.0, nearestLandmark: 'Halkirk Village' },
+  { slug: 'lybster', name: 'Lybster', postcode: 'KW3', lat: 58.2984, lng: -3.2849, distanceFromCentre: 15.0, nearestLandmark: 'Lybster Harbour' },
+  { slug: 'kirkwall', name: 'Kirkwall', postcode: 'KW15', lat: 58.9830, lng: -2.9601, distanceFromCentre: 65.0, nearestLandmark: 'St Magnus Cathedral' },
+  { slug: 'stromness', name: 'Stromness', postcode: 'KW16', lat: 58.9634, lng: -3.2991, distanceFromCentre: 70.0, nearestLandmark: 'Stromness Harbour' },
+];
+
+export const stornowayAreas: Area[] = [
+  { slug: 'stornoway-town-centre', name: 'Town Centre', postcode: 'HS1', lat: 58.2093, lng: -6.3890, distanceFromCentre: 0.3, nearestLandmark: 'Stornoway Harbour' },
+  { slug: 'tarbert-harris', name: 'Tarbert', postcode: 'HS3', lat: 57.9003, lng: -6.7976, distanceFromCentre: 35.0, nearestLandmark: 'Tarbert Ferry Terminal' },
+  { slug: 'lochmaddy', name: 'Lochmaddy', postcode: 'HS6', lat: 57.5939, lng: -7.1596, distanceFromCentre: 60.0, nearestLandmark: 'Lochmaddy Ferry Terminal' },
+  { slug: 'lochboisdale', name: 'Lochboisdale', postcode: 'HS8', lat: 57.1441, lng: -7.2974, distanceFromCentre: 85.0, nearestLandmark: 'Lochboisdale Ferry Terminal' },
+  { slug: 'benbecula', name: 'Benbecula', postcode: 'HS7', lat: 57.4366, lng: -7.3553, distanceFromCentre: 70.0, nearestLandmark: 'Benbecula Airport' },
+  { slug: 'castlebay', name: 'Castlebay', postcode: 'HS9', lat: 56.9504, lng: -7.4875, distanceFromCentre: 110.0, nearestLandmark: 'Kisimul Castle' },
+  { slug: 'leverburgh', name: 'Leverburgh', postcode: 'HS5', lat: 57.7726, lng: -7.0215, distanceFromCentre: 50.0, nearestLandmark: 'Leverburgh Ferry Terminal' },
+];
+
+export const lerwickAreas: Area[] = [
+  { slug: 'lerwick-town-centre', name: 'Town Centre', postcode: 'ZE1', lat: 60.1547, lng: -1.1490, distanceFromCentre: 0.3, nearestLandmark: 'Lerwick Harbour' },
+  { slug: 'scalloway', name: 'Scalloway', postcode: 'ZE1', lat: 60.1334, lng: -1.2780, distanceFromCentre: 6.0, nearestLandmark: 'Scalloway Castle' },
+  { slug: 'brae-shetland', name: 'Brae', postcode: 'ZE2', lat: 60.3942, lng: -1.3516, distanceFromCentre: 25.0, nearestLandmark: 'Brae Village' },
+  { slug: 'symbister', name: 'Symbister', postcode: 'ZE2', lat: 60.3425, lng: -1.0298, distanceFromCentre: 22.0, nearestLandmark: 'Whalsay Ferry Terminal' },
+  { slug: 'mid-yell', name: 'Mid Yell', postcode: 'ZE2', lat: 60.5946, lng: -1.0790, distanceFromCentre: 40.0, nearestLandmark: 'Mid Yell Village' },
+];
+
 export function getAreasForCity(citySlug: string): Area[] {
   switch (citySlug) {
     case 'glasgow': return glasgowAreas;
@@ -822,6 +866,10 @@ export function getAreasForCity(citySlug: string): Area[] {
     case 'isle-of-skye': return isleofskyeAreas;
     case 'aberdeen': return aberdeenAreas;
     case 'galashiels': return galashielsAreas;
+    case 'oban': return obanAreas;
+    case 'wick': return wickAreas;
+    case 'stornoway': return stornowayAreas;
+    case 'lerwick': return lerwickAreas;
     default: return [];
   }
 }
@@ -844,4 +892,5 @@ export const serviceCities = [
   'kilmarnock', 'ayr', 'irvine',
   'inverness', 'dingwall', 'elgin', 'isle-of-skye',
   'aberdeen', 'galashiels',
+  'oban', 'wick', 'stornoway', 'lerwick',
 ] as const;

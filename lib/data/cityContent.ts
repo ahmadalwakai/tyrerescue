@@ -302,6 +302,58 @@ export const cityContent: Record<string, CityContent> = {
       'Elgin sits at the heart of the whisky-distillery belt and the Moray Coast tourist trail, meaning summer traffic spikes on the B9013 coast road and on narrow single-track routes through the forest roads west of Forres. We stock sizes suited to the campervan and touring caravan market as well as standard passenger car tyres. Lossiemouth (IV31), Fochabers (IV32), Forres (IV36) and the Findhorn Bay area are all covered from the same dispatch, with Burghead and Hopeman served as local villages.',
     neighborCities: ['inverness', 'dingwall'],
   },
+  oban: {
+    name: 'Oban',
+    slug: 'oban',
+    postcodes: 'PA20–PA80',
+    nearbyRoads: ['A85', 'A816', 'A83', 'A819', 'A82'],
+    avgResponseMin: 100,
+    workshopDistance: 'Scheduled service — advance booking required for Argyll & Bute and island areas',
+    uniqueIntro:
+      'Oban is the Gateway to the Isles and our coverage hub for the PA20–PA80 postcode area, covering all of Argyll and Bute: Dunoon, Rothesay on the Isle of Bute, Lochgilphead, Inveraray, Campbeltown at the tip of the Kintyre peninsula, and island communities on Mull, Islay and Jura. Our average response time in Oban town is 100 minutes. The A85 from Crianlarich, the A83 Kintyre road and the A816 south from Oban to Lochgilphead are our primary routes.',
+    uniqueBody:
+      'Argyll and Bute is one of Scotland\'s most scenically varied regions, stretching from the Cowal Peninsula facing the Clyde Estuary to the remote shores of Kintyre and the Hebridean islands. The single-track roads across the Kintyre Peninsula, the forest roads around Lochgilphead and the seasonal tourist influx on the A83 and A816 all generate tyre damage from gravel surfaces, cattle grids and roadside debris. Island coverage for Mull (PA64–PA75), Islay (PA42–PA49) and Bute (PA20) requires ferry travel and is booked on a scheduled basis with minimum 48 hours\' notice. We stock tyres for motorhomes, campervans, 4x4s and the full range of passenger vehicles common in the touring market.',
+    neighborCities: ['glasgow', 'inverurie', 'stirling'],
+  },
+  wick: {
+    name: 'Wick',
+    slug: 'wick',
+    postcodes: 'KW1–KW17',
+    nearbyRoads: ['A9', 'A99', 'A836', 'A882'],
+    avgResponseMin: 120,
+    workshopDistance: 'Scheduled service — advance booking essential for Caithness and Orkney',
+    uniqueIntro:
+      'Wick is Scotland\'s most northerly mainland town and our coverage hub for the KW postcode area — covering all of Caithness, northern Sutherland and Orkney. Our average response time in Wick is 120 minutes. We cover Thurso (KW14), John o\' Groats (KW1), Helmsdale (KW8), Golspie (KW10) and the entire Caithness coastal road. Orkney (KW15–KW17) is covered on a scheduled basis via the Pentland Firth ferry connection.',
+    uniqueBody:
+      'Caithness is characterised by open, windswept roads — the A9 north from Helmsdale, the A99 to John o\' Groats and the A836 across the Flow Country are all exposed routes where tyre damage from debris and road surface deterioration is more common than in sheltered central Scotland. The Dounreay nuclear site near Thurso generates steady commercial vehicle traffic, and tourist numbers on the North Coast 500 bring motorhomes, campervans and touring cars to these roads in volume. Orkney coverage for Kirkwall (KW15) and Stromness (KW16) requires advance booking with minimum 48 hours\' notice and is arranged via the NorthLink ferry or Pentland Ferries from Gills Bay.',
+    neighborCities: ['inverness', 'dingwall'],
+  },
+  stornoway: {
+    name: 'Stornoway',
+    slug: 'stornoway',
+    postcodes: 'HS1–HS9',
+    nearbyRoads: ['A857', 'A858', 'A859', 'A865', 'A867'],
+    avgResponseMin: 150,
+    workshopDistance: 'Island service — minimum 48 hours advance booking required for all HS postcode areas',
+    uniqueIntro:
+      'Stornoway is the capital of the Western Isles (Na h-Eileanan Siar) and our service hub for the HS1–HS9 postcode area covering Lewis, Harris, North Uist, Benbecula, South Uist and Barra. Island service requires a minimum of 48 hours\' advance notice. Tyres are transported via CalMac ferry from Ullapool or Uig. Our response covers all Western Isles communities — from Stornoway (HS1) and the Harris township of Tarbert (HS3) to the remote Uist chain and Barra (HS9).',
+    uniqueBody:
+      'The Western Isles road network is characterised by single-track roads with passing places, cattle grids and exposed moorland routes where tyre damage from sharp-edged stones and road surface deterioration is common. Lewis and Harris carry the highest traffic volumes on the A857 and A859; the Uist spine road A865 connects the causeway islands and has limited tyre services locally. Benbecula Airport (HS7) provides an alternative logistics route for urgent tyre supplies in some cases. We stock sizes for the 4x4 and SUV vehicles common on island roads, as well as standard passenger car fitments. All island callouts are booked in advance — we do not offer same-day emergency service to HS postcodes.',
+    neighborCities: ['inverness', 'dingwall'],
+  },
+  lerwick: {
+    name: 'Lerwick',
+    slug: 'lerwick',
+    postcodes: 'ZE1–ZE3',
+    nearbyRoads: ['A970', 'A971', 'A968', 'A969'],
+    avgResponseMin: 180,
+    workshopDistance: 'Island service — minimum 48 hours advance booking required for all ZE postcode areas',
+    uniqueIntro:
+      'Lerwick is the capital of Shetland and our northernmost service point, covering the ZE1–ZE3 postcode area across Shetland Mainland, Yell, Whalsay and the smaller islands. Island service requires a minimum of 48 hours\' advance notice. Tyres are transported via NorthLink ferry from Aberdeen to Lerwick. We cover Lerwick (ZE1), Scalloway (ZE1), Brae (ZE2) and the inter-island ferry routes to Yell and Whalsay.',
+    uniqueBody:
+      'Shetland\'s road network is compact and well-maintained for its remoteness, but the weather conditions — with winds regularly exceeding 60mph — and the concentration of heavy vehicles serving the oil and gas terminal at Sullom Voe (ZE2) mean tyre damage is a genuine and regular issue for residents and commercial operators. The oil terminal at Sullom Voe is one of Europe\'s largest crude oil handling facilities and generates significant lorry and tanker traffic on the A970 north road. We stock sizes suited to heavy commercial vehicles as well as passenger cars. All Shetland callouts are booked in advance and we recommend ordering replacement tyres at the same time as booking, to avoid waiting on the next ferry.',
+    neighborCities: ['aberdeen'],
+  },
   aberdeen: {
     name: 'Aberdeen',
     slug: 'aberdeen',

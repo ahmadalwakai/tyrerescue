@@ -76,6 +76,38 @@ export const cityData: Record<string, CityPriceData> = {
     coordinates: { lat: 57.6528, lng: -3.3140 },
     postcodeHint: 'IV30',
   },
+  oban: {
+    name: 'Oban',
+    description:
+      'Oban and the full PA postcode area — covering Dunoon (PA23), Rothesay/Bute (PA20), Lochgilphead (PA31), Inveraray (PA32), Campbeltown (PA28), and island communities on Mull (PA64–PA75) and Islay (PA42–PA49). The A83 and A85 are our primary routes through Argyll. Island callouts require advance booking of minimum 48 hours. No hidden distance surcharges across mainland PA postcodes.',
+    depotDistance: 95,
+    coordinates: { lat: 56.4154, lng: -5.4714 },
+    postcodeHint: 'PA34',
+  },
+  wick: {
+    name: 'Wick',
+    description:
+      'Wick and the full KW postcode area — Caithness, northern Sutherland, and Orkney. We cover Thurso (KW14), John o\' Groats (KW1), Helmsdale (KW8), Golspie (KW10), and Kirkwall in Orkney (KW15–KW17). Orkney callouts require advance booking via the Pentland Firth ferry. We carry sizes for campervans, 4x4s and commercial vehicles common on NC500 and Caithness roads.',
+    depotDistance: 280,
+    coordinates: { lat: 58.4381, lng: -3.0886 },
+    postcodeHint: 'KW1',
+  },
+  stornoway: {
+    name: 'Stornoway',
+    description:
+      'Stornoway and the Western Isles HS1–HS9 postcode area — covering Lewis, Harris, North Uist, Benbecula, South Uist and Barra. Island service requires a minimum 48 hours\' advance booking. Tyres are transported via CalMac ferry from Ullapool or Uig. We stock sizes suited to 4x4s and SUVs common on Western Isles single-track roads.',
+    depotDistance: 220,
+    coordinates: { lat: 58.2093, lng: -6.3890 },
+    postcodeHint: 'HS1',
+  },
+  lerwick: {
+    name: 'Lerwick',
+    description:
+      'Lerwick and the Shetland ZE1–ZE3 postcode area. Island service requires a minimum 48 hours\' advance booking — tyres are transported via NorthLink ferry from Aberdeen. We cover Lerwick (ZE1), Scalloway, Brae near Sullom Voe oil terminal, and inter-island routes to Yell and Whalsay. We stock commercial vehicle sizes for the oil industry as well as passenger car fitments.',
+    depotDistance: 400,
+    coordinates: { lat: 60.1547, lng: -1.1490 },
+    postcodeHint: 'ZE1',
+  },
   aberdeen: {
     name: 'Aberdeen',
     description:
