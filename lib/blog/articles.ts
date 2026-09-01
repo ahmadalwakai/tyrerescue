@@ -10173,6 +10173,264 @@ Call **0141 266 0690** or [book online](/book) for mobile Lexus tyre fitting at 
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Toyota tyre fitting Scotland](/blog/toyota-tyre-fitting-scotland) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland)`,
   },
+  {
+    slug: 'jaguar-tyre-fitting-scotland',
+    title: 'Jaguar Tyre Fitting Scotland: F-Pace, E-Pace, I-Pace, XE & XF',
+    description:
+      'Mobile Jaguar tyre fitting across Scotland. Correct tyre sizes for every Jaguar model — F-Pace, E-Pace, I-Pace electric, XE, XF, F-Type. TPMS reset included. All cities covered.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'jaguar tyre fitting scotland',
+      'jaguar f-pace tyres scotland',
+      'jaguar i-pace tyres scotland',
+      'jaguar e-pace tyres scotland',
+      'jaguar xf tyres scotland',
+      'jaguar xe tyres scotland',
+      'mobile jaguar tyre fitting glasgow',
+      'jaguar f-type tyres scotland',
+    ],
+    relatedSlugs: [
+      'run-flat-tyres-scotland-guide',
+      'tpms-warning-light-scotland-guide',
+      'land-rover-range-rover-tyres-scotland',
+    ],
+    content: `# Jaguar Tyre Fitting Scotland: Every Model Covered
+
+Jaguar is one of the UK's premium car brands with a significant presence in Scottish cities — the F-Pace is a common sight in Edinburgh's New Town and Glasgow's West End, while the XE and XF appeal to Scottish professionals. Jaguar and Land Rover share the same ownership group (JLR) and many technical similarities. Tyre Rescue provides specialist mobile Jaguar tyre fitting across all of Scotland.
+
+## Jaguar F-Pace Tyre Sizes
+
+The Jaguar F-Pace (X761, 2016–present) — Jaguar's bestselling model:
+
+| F-Pace Trim | Tyre Size |
+|---|---|
+| F-Pace R-Dynamic S | 235/55R19 |
+| F-Pace R-Dynamic SE | 255/50R19 or 265/45R20 |
+| F-Pace R-Dynamic HSE | 265/45R20 or 275/40R21 |
+| F-Pace SVR | 255/40R21 (front), 285/35R21 (rear) |
+| F-Pace P400e PHEV | 255/50R19 (load index 107+) |
+
+**F-Pace SVR note**: Staggered fitment — wider rears. Specify front or rear when ordering.
+
+**PHEV note**: The F-Pace P400e plug-in hybrid requires minimum load index 107 on most configurations.
+
+## Jaguar E-Pace Tyre Sizes
+
+The Jaguar E-Pace (X540, 2018–present):
+
+| E-Pace Trim | Tyre Size |
+|---|---|
+| E-Pace S / SE | 235/55R18 or 235/50R19 |
+| E-Pace HSE | 235/50R20 |
+| E-Pace R-Dynamic S | 235/55R18 |
+| E-Pace P300e PHEV | 235/55R18 (load index 100+) |
+
+## Jaguar I-Pace Electric Tyre Sizes
+
+The Jaguar I-Pace (X590, 2018–present) — fully electric performance SUV:
+
+| I-Pace Variant | Front | Rear |
+|---|---|---|
+| I-Pace EV400 SE | 245/45R20 | 245/45R20 (square fitment) |
+| I-Pace EV400 HSE | 255/40R20 | 285/40R20 (staggered) |
+| I-Pace EV400 S | 245/45R20 | 245/45R20 |
+
+**I-Pace note**: The HSE variant uses a staggered fitment. The base/SE uses a square fitment (same size front and rear, which can be rotated). Confirm your trim before ordering.
+
+The I-Pace has no spare wheel. A flat requires immediate mobile fitting. The I-Pace weighs approximately 2.2 tonnes — load index requirements are high.
+
+## Jaguar XE Tyre Sizes
+
+The Jaguar XE (X760, 2015–present) — compact executive saloon:
+
+| XE Trim | Tyre Size |
+|---|---|
+| XE SE | 225/55R17 |
+| XE R-Dynamic SE | 225/45R18 |
+| XE R-Dynamic HSE | 245/40R19 |
+| XE P300 AWD | 245/40R18 |
+| XE SV Project 8 | 265/35R19 (front), 305/30R20 (rear) |
+
+## Jaguar XF Tyre Sizes
+
+The Jaguar XF (X260, 2015–present) — executive saloon and Sportbrake estate:
+
+| XF Trim | Tyre Size |
+|---|---|
+| XF SE | 235/50R18 |
+| XF R-Dynamic SE | 245/40R19 or 255/35R20 |
+| XF R-Dynamic HSE | 255/35R20 |
+| XF Sportbrake | 235/55R18 or 245/40R19 |
+
+## Jaguar F-Type Tyre Sizes
+
+The Jaguar F-Type (X152, 2013–present) — rear-wheel and all-wheel drive sports car:
+
+| F-Type Variant | Front | Rear |
+|---|---|---|
+| F-Type P300 | 245/40R18 | 275/35R18 |
+| F-Type P450 R | 265/35R19 | 305/30R20 |
+| F-Type P575 R | 265/35R19 | 305/30R20 |
+
+**F-Type note**: The F-Type uses staggered fitments across all variants. Specify front or rear. High-performance summer tyres — Pirelli P Zero or Michelin Pilot Sport 4S as OE. For year-round Scottish use, we can advise on winter/all-season alternatives in the correct specification.
+
+## Jaguar TPMS Reset
+
+All Jaguar models have direct TPMS — a diagnostic tool is always required. Unlike some brands, Jaguar TPMS cannot be reset via a button or infotainment menu.
+
+Tyre Rescue carries JLR-compatible TPMS reset tools. Reset is included at no additional charge with every fitting.
+
+## Emergency Jaguar Tyre Fitting in Scotland
+
+1. **I-Pace Electric**: No spare wheel — call us immediately
+2. **F-Pace, E-Pace**: May have a space-saver spare or inflation kit — check the boot
+3. **XE, XF, F-Type**: May have a run-flat (check for Jaguar run-flat marking on tyre sidewall) or a space-saver spare
+4. **Call 0141 266 0690** — give your registration number; we identify your Jaguar's tyre specification immediately
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile Jaguar tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Land Rover and Range Rover tyres Scotland](/blog/land-rover-range-rover-tyres-scotland) | [Audi tyre fitting Scotland](/blog/audi-tyre-fitting-scotland)`,
+  },
+  {
+    slug: 'fleet-tyre-management-scotland',
+    title: 'Fleet Tyre Management Scotland: Mobile Fitting for Business Fleets',
+    description:
+      'Tyre Rescue provides fleet tyre management for Scottish businesses — mobile fitting for vans, company cars, and commercial vehicles. Account management, priority response, and all Scotland covered.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'fleet tyre management scotland',
+      'fleet tyre fitting scotland',
+      'business tyre fitting scotland',
+      'company fleet tyres glasgow',
+      'mobile fleet tyre fitting scotland',
+      'van fleet tyres scotland',
+      'commercial fleet tyre management scotland',
+      'tyre account scotland business',
+    ],
+    relatedSlugs: [
+      'van-tyre-fitting-scotland',
+      'mobile-tyre-fitting-glasgow',
+      '24-hour-tyre-fitting',
+    ],
+    content: `# Fleet Tyre Management Scotland: Mobile Fitting for Business Fleets
+
+Managing tyres across a Scottish business fleet — whether you run five delivery vans or fifty company cars — is a significant operational challenge. A tyre failure can strand a driver, delay deliveries, and cost far more in lost productivity than the price of the tyre itself. Tyre Rescue provides mobile fleet tyre management across all of Scotland, keeping your vehicles on the road.
+
+## What Fleet Tyre Management Means for Scottish Businesses
+
+Fleet tyre management with Tyre Rescue covers:
+
+- **Emergency callout** — flat tyre anywhere in Scotland, day or night, prioritised for account customers
+- **Scheduled tyre replacement** — planned tyre changes at your depot, driver's home, or any company location
+- **Tyre inspections** — we can carry out tyre condition checks as part of scheduled visits
+- **TPMS reset on every fitting** — no warning lights left on in your fleet vehicles
+- **Tyre disposal** — old tyres taken away with every fitting, WEEE-compliant disposal
+- **Driver liaison** — we deal directly with drivers, so your fleet manager is not tied up coordinating calls
+
+## Why Mobile Tyre Fitting Makes Sense for Scottish Fleets
+
+Traditional garage-based fleet tyre management has a key flaw: it takes vehicles off the road for several hours. Mobile fitting eliminates this.
+
+**Benefits for Scottish fleet operators**:
+- Tyres fitted at your depot overnight or between shifts — vehicles ready for the next day
+- Driver-side fitting — van drivers do not lose hours driving to a garage and waiting
+- No vehicle downtime at a garage — fitting happens wherever the vehicle is parked
+- 24/7 emergency cover — a van with a flat at 11pm is not waiting until 8am
+- All of Scotland covered — including remote depot locations, rural areas, and island-based vehicles
+
+## Fleet Tyre Fitting for Common Scottish Business Vehicles
+
+We cover all types of fleet vehicles used by Scottish businesses:
+
+**Delivery vans**:
+- Ford Transit, Transit Custom, Transit Connect
+- Mercedes Sprinter, Vito
+- Volkswagen Transporter, Crafter
+- Vauxhall Vivaro, Movano
+- Peugeot Expert, Boxer
+- Renault Trafic, Master
+- Citroen Dispatch, Relay
+
+All common commercial sizes in stock: 215/65R16C, 235/65R16C, 215/75R16C, LT225/75R16C.
+
+**Company cars** (the most common Scottish fleet cars):
+- Ford Focus, Kuga — 205/55R16 through 235/40R18
+- Vauxhall Astra, Mokka — 205/55R16 through 235/40R18
+- Kia Sportage, Niro — 225/65R17 through 255/45R19
+- Volkswagen Golf, Tiguan — 205/55R16 through 235/50R19
+- BMW 3 Series, X3 — 225/50R17 through 255/35R19
+- Skoda Octavia — 205/55R16 through 225/40R18
+
+**Pickup trucks** (common on Scottish construction sites and farms):
+- Ford Ranger — 255/70R16 or 255/60R18
+- Toyota Hilux — 265/65R17
+- Mitsubishi L200 — 265/65R17
+- Isuzu D-Max — 245/70R16 or 265/65R17
+
+## Fleet Accounts and Billing
+
+Tyre Rescue offers account management for fleet customers:
+
+- **Monthly consolidated invoicing** — one invoice for all fleet activity, simplifying administration
+- **Per-vehicle billing records** — full history by registration number for each vehicle in your fleet
+- **Approved pricing** — agreed per-tyre prices for your fleet's most common tyre sizes
+- **Purchase order reference** — add your PO number to bookings for seamless accounting
+
+To enquire about a fleet account, call **0141 266 0690** and ask to speak to our fleet team, or email us directly.
+
+## Response Times for Scottish Fleet Emergencies
+
+When a fleet vehicle has a flat tyre and needs to return to service quickly, our response times are:
+
+- Greater Glasgow: 25–40 minutes
+- Central Belt (Edinburgh, Falkirk, Stirling): 50–70 minutes
+- Dundee, Perth, Kirkcaldy: 65–85 minutes
+- Aberdeen, Inverness: approximately 90–100 minutes
+- Rural Highland locations: honest ETA given based on exact postcode
+
+Fleet account customers are prioritised in dispatch — if your driver calls and quotes the account reference, they get faster access to the nearest available fitter.
+
+## Tyre Choice for Business Fleets
+
+**Budget vs premium for fleet vehicles?**
+
+For high-mileage fleet vehicles (vans doing 30,000+ miles/year), mid-range tyres from brands like Goodyear, Continental, or Bridgestone often represent better value than budget tyres. The additional tread life can mean fewer tyre changes per vehicle per year — reducing both the cost per mile and the downtime of scheduling changes.
+
+For lower-mileage company cars, budget and mid-range tyres are often sufficient and reduce the per-vehicle tyre budget.
+
+We discuss tyre choice with each fleet customer based on their vehicles, mileage, and operating conditions. Scottish routes — the A9, A82, A96, and rural B-roads — are hard on tyres, and we can advise accordingly.
+
+## Fleet Tyre Compliance: What Scottish Fleet Managers Need to Know
+
+- **Legal minimum tread depth**: 1.6mm — but we recommend replacing at 2–3mm for safety, especially in Scottish winter conditions
+- **C-rated tyres on vans**: Required by law. Fitting passenger-rated tyres on a commercial van is illegal and could invalidate insurance
+- **TPMS reset after every fitting**: A legal requirement on vehicles over 3.5 tonnes where TPMS is fitted; good practice on all vehicles
+- **Tyre age**: Most manufacturers recommend replacing tyres over 10 years old regardless of tread depth. For fleet vehicles, we flag any tyres approaching this age
+
+## Getting Started with Fleet Tyre Management
+
+Call **0141 266 0690** to speak to our team about fleet tyre management for your business. We'll discuss:
+
+- Your fleet size and vehicle types
+- Your most common tyre sizes
+- Your coverage area across Scotland
+- Emergency callout requirements
+- Account billing preferences
+
+We cover all of Scotland — G to ZE postcodes — and operate 24 hours a day, 7 days a week.
+
+[Van tyre fitting Scotland](/blog/van-tyre-fitting-scotland) | [24 hour tyre fitting Scotland](/24-hour-tyre-fitting) | [All service areas](/service-areas)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
