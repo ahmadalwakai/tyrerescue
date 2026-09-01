@@ -32,6 +32,7 @@ const footerLinks = {
     { label: 'Track Booking', href: '/tracking' },
   ],
   services: [
+    { label: 'Mobile Tyre Fitting Scotland', href: '/mobile-tyre-fitting' },
     { label: 'Emergency Callout', href: '/emergency-tyre-fitting-near-me' },
     { label: 'Tyre Fitting Glasgow', href: '/mobile-tyre-fitting/glasgow' },
     { label: 'Tyre Fitting Edinburgh', href: '/mobile-tyre-fitting/edinburgh' },

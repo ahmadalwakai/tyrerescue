@@ -45,6 +45,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/refund-policy', priority: 0.3, freq: 'monthly' },
     { path: '/cookie-policy', priority: 0.3, freq: 'monthly' },
     { path: '/service-areas', priority: 0.9, freq: 'weekly' },
+    { path: '/mobile-tyre-fitting', priority: 0.95, freq: 'weekly' },
   ];
 
   for (const page of staticPages) {
