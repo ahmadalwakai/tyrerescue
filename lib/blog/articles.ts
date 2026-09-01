@@ -812,7 +812,7 @@ Standard passenger cars are cheapest to fit. SUVs, 4x4s, and vans cost more due 
 | Single tyre (garage) | £65–£90 | £90–£130 | £130–£200 |
 | Single tyre (mobile) | £75–£100 | £100–£140 | £140–£210 |
 
-*All prices include fitting. VAT is not added separately. Prices are estimates for Central Scotland.*
+*All prices include fitting. VAT is not added separately. Prices are estimates for Scotland.*
 
 ## Mobile Tyre Fitting vs Garage: Cost Comparison
 
@@ -2037,6 +2037,476 @@ Yes — Callander (FK17) is in our coverage at approximately 65 minutes. For loc
 
 ### What about Dunblane?
 Dunblane (FK15) is 45 minutes from our base — we cover the town and surrounding areas. The A9 Dunblane junction is one of our most frequent Central Scotland emergency locations.`,
+  },
+  {
+    slug: '24-hour-emergency-tyre-fitting-scotland',
+    title: '24-Hour Emergency Tyre Fitting in Scotland: What to Expect & How to Book',
+    description: 'Emergency tyre fitting available 24 hours a day across all of Scotland. Average 45-minute response in Glasgow and Edinburgh. Call 0141 266 0690 anytime — day or night.',
+    category: 'emergency',
+    publishDate: '2025-08-01',
+    lastModified: '2025-08-01',
+    readingTime: 7,
+    featured: true,
+    relatedSlugs: ['emergency-tyre-fitting-glasgow-complete-guide', 'what-to-do-flat-tyre-motorway', 'mobile-tyre-fitting-aberdeen-guide'],
+    keywords: ['24 hour tyre fitting scotland', 'emergency tyre fitting near me', 'mobile tyre fitting 24 7', 'emergency tyre change scotland', '24 hour puncture repair', 'night time tyre fitting', 'out of hours tyre service'],
+    content: `# 24-Hour Emergency Tyre Fitting in Scotland: What to Expect
+
+Getting a flat tyre is stressful enough. Getting one at 3am on the M8, or on a dark Highland road, adds another layer of anxiety. The good news: Tyre Rescue operates a genuine 24/7 emergency mobile tyre fitting service across all of Scotland — no after-hours surcharge, no answerphone, just a real fitter dispatched to your location.
+
+**Quick answer:** Call **0141 266 0690**. We answer 24 hours a day, 7 days a week, 365 days a year. Give your location, tyre size (or vehicle registration), and we'll dispatch a fitter immediately.
+
+## What Does "24-Hour Tyre Fitting" Actually Mean?
+
+Many companies advertise "24-hour service" but rely on a callback system, an answerphone, or a third-party call centre. With Tyre Rescue, 24-hour means:
+
+- **Live call answering** — a real person picks up, not a machine
+- **Immediate dispatch** — your fitter is sent while you're still on the phone
+- **Same pricing** — no emergency or out-of-hours surcharge (unlike some competitors who charge 50–100% more after 10pm)
+- **Fully stocked vans** — our vans carry a comprehensive range of tyre sizes so we rarely need to order in
+
+## Response Times Across Scotland
+
+Response times vary by location. Here are realistic averages at different times of day:
+
+| Location | Peak hours (7am–9am, 4pm–7pm) | Off-peak / night |
+|---|---|---|
+| Glasgow city centre | 40–55 min | 35–45 min |
+| Edinburgh city centre | 45–60 min | 40–50 min |
+| Dundee | 55–70 min | 50–65 min |
+| Perth | 60–75 min | 55–70 min |
+| Stirling | 40–55 min | 35–45 min |
+| Aberdeen | 85–110 min | 75–95 min |
+| Inverness | 90–120 min | 90–110 min |
+| Fort William | 100–130 min | 95–120 min |
+| Isle of Skye | 120–180 min | 120–180 min |
+
+*Night-time response is often faster than peak hours because there is less traffic. A 3am callout in Glasgow often reaches you in 35–40 minutes.*
+
+## What Happens When You Call
+
+1. **Call 0141 266 0690** — lines open 24/7/365
+2. Give your **exact location** — a postcode, Google Maps share, or a road number and direction
+3. Give your **vehicle registration** — we'll look up the tyre size (or you can read it from the sidewall: e.g. 205/55R16)
+4. We **confirm availability** and give you an accurate ETA
+5. The nearest fitter is **dispatched immediately**
+6. You'll receive a **text with the fitter's name and a live tracking link** (where available)
+7. The fitter arrives, confirms the job, fits the tyre, and you pay by card or Apple/Google Pay at the van
+
+## What Does 24-Hour Emergency Tyre Fitting Cost?
+
+Pricing is the same day or night:
+
+- **Standard callout fee:** £49 (covers the visit; tyre cost is additional)
+- **Tyre cost:** from £55 (budget) to £200+ (premium) depending on size and brand
+- **Puncture repair:** from £35 (if the tyre can be repaired — many punctures can be)
+- **TPMS sensor reset:** included when fitting
+- **Wheel balancing:** included in the fitting price
+
+*No hidden out-of-hours charges. No fuel surcharge. What we quote is what you pay.*
+
+## Do You Cover My Location?
+
+We cover all of Scotland, including:
+
+- All Greater Glasgow postcodes (G1–G78)
+- Edinburgh and the Lothians (EH postcodes)
+- Dundee and Tayside (DD postcodes)
+- Aberdeen and Aberdeenshire (AB postcodes)
+- Inverness and the Highlands (IV, PH, KW postcodes)
+- Fife (KY postcodes)
+- Ayrshire (KA postcodes)
+- Scottish Borders (TD, DG postcodes)
+- Western Isles, Orkney, Shetland (HS, KW, ZE postcodes — advance booking recommended)
+
+For very remote locations, we'll always tell you honestly whether we can reach you and what the realistic ETA is. We never take a booking we can't fulfil.
+
+## Common Scenarios We Handle at Night
+
+**Motorway breakdown:** If you're on the M8, M74, M77, M80, M9 or A9, call us immediately. Use your hazard lights and move to the hard shoulder if possible. We carry full safety equipment including traffic warning cones.
+
+**Driveway or car park:** A flat discovered in the morning before work is one of the most common callouts. We'll come to your home or workplace — even at 6am.
+
+**Airport flat tyre:** Glasgow Airport (PA3) and Edinburgh Airport (EH12) are two of our most frequent after-hours locations. Business travellers returning from late flights often find a flat tyre waiting for them.
+
+**Festival and event venues:** T in the Park (historically), TRNSMT, Edinburgh Fringe — we cover major venues and respond even during late-night crowd dispersal periods.
+
+**Holiday cottage / Airbnb:** Stranded in a rural cottage in Perthshire or Argyll? We'll come to you. Give the exact postcode of the property.
+
+## Tips for a Faster Callout
+
+1. **Share your location via Google Maps** — open Maps, tap your location dot, tap "Share," and send us the link via WhatsApp (0141 266 0690)
+2. **Note your tyre size** — it's on the sidewall of your current tyre and in your owner's manual
+3. **Stay with your vehicle** if it's safe to do so — but move well away from traffic if you're on a motorway or A-road
+4. **Switch on your hazard lights** and if you have a warning triangle, place it 45 metres behind the car
+5. **Check your locking wheel nut key** is accessible — tell us if you don't have one and we can advise
+
+## Frequently Asked Questions
+
+### Is there an extra charge for night-time callouts?
+No. We charge the same price whether you call at noon or 3am. The £49 callout fee and tyre prices are fixed regardless of time of day or day of week.
+
+### How do I pay?
+By card (Visa, Mastercard, AmEx) or contactless / Apple Pay / Google Pay at the van. We do not accept cash. A receipt is emailed automatically.
+
+### What if you don't carry my tyre size?
+Our vans carry hundreds of tyre sizes. The vast majority of cars have common sizes (195/65R15, 205/55R16, 225/45R17 etc.) which we always carry. For unusual sizes — very large SUV tyres, run-flats, or specialist performance fitments — we'll advise honestly when you call.
+
+### Do you replace run-flat tyres at night?
+Yes, but run-flat tyres have more limited size availability. We recommend calling ahead so we can confirm stock before dispatching.
+
+### Can you come to a multi-storey car park?
+Yes — we regularly attend indoor car parks. Height clearance is sometimes an issue for our larger vans. Just tell us the location and floor when you call.
+
+## Book 24-Hour Emergency Tyre Fitting Now
+
+Call **0141 266 0690** — we answer 24 hours a day, every day of the year. For non-urgent bookings, you can also book online at [tyrerescue.uk/book](/book).
+
+Covering all of Scotland — from Glasgow to Shetland.`,
+  },
+  {
+    slug: 'winter-tyres-scotland-guide',
+    title: 'Winter Tyres in Scotland: When to Fit, Best Brands & Where to Buy',
+    description: 'Complete guide to winter tyres in Scotland. When to switch, best brands for Scottish conditions, cost comparison, and mobile winter tyre fitting across all of Scotland.',
+    category: 'maintenance',
+    publishDate: '2025-08-10',
+    lastModified: '2025-08-10',
+    readingTime: 9,
+    featured: true,
+    relatedSlugs: ['tyre-maintenance-checklist-scotland', 'mobile-tyre-fitting-inverness-highlands', 'mobile-tyre-fitting-aberdeen-guide'],
+    keywords: ['winter tyres scotland', 'when to fit winter tyres scotland', 'best winter tyres scotland', 'winter tyre fitting scotland', 'do i need winter tyres scotland', 'winter tyres vs all season tyres scotland', 'winter tyre cost scotland'],
+    content: `# Winter Tyres in Scotland: Complete 2025 Guide
+
+Scotland has some of the most challenging driving conditions in the UK. The A9 through Drumochter Pass closes under heavy snow several times each winter. The roads around Inverness and Aberdeen can be treacherous from October onwards. Even in Glasgow and Edinburgh, black ice, heavy rain, and near-freezing temperatures make winter driving genuinely hazardous.
+
+This guide answers the key questions Scottish drivers ask about winter tyres — when to switch, which tyres suit Scottish conditions, how much it costs, and how to get them fitted without driving to a garage in icy conditions.
+
+## Do I Need Winter Tyres in Scotland?
+
+The honest answer: **it depends where you drive**.
+
+If you live in:
+- **Glasgow, Edinburgh, or Dundee** — all-season tyres or high-quality summer tyres are often sufficient for city driving. You'll see snow on the roads occasionally, but gritting is generally effective.
+- **Aberdeen, Inverness, Perth, or Stirling** — winter tyres are strongly recommended. These cities see significant snowfall and ice, often earlier than the Central Belt.
+- **Highland, Aberdeenshire, or Perthshire (rural)** — winter tyres are practically essential. Roads may not be gritted for days after snowfall. Temperatures regularly drop below -10°C in Glen areas.
+- **Working on the NC500 or driving remotely** — winter tyres and snow chains may both be advisable.
+
+Even if you only drive in the city, winter tyres improve braking in the wet and cold. They're engineered for temperatures below 7°C — not just for snow.
+
+## When to Fit Winter Tyres in Scotland
+
+The standard rule: **fit when temperatures regularly fall below 7°C**. In Scotland, that means:
+
+| Region | Fit winter tyres by | Remove winter tyres after |
+|---|---|---|
+| Highland, Aberdeenshire | Late September/early October | Late April |
+| Edinburgh, Dundee | Late October | Late March/early April |
+| Glasgow, Central Belt | November | March |
+
+Don't wait for the first snowfall — winter tyres work on cold, wet roads too, not just snow.
+
+## Winter Tyres vs All-Season Tyres: Which Is Right for Scotland?
+
+**Winter tyres** offer the best cold-weather performance. They have more sipes (tiny grooves) in the tread, a softer rubber compound that remains flexible below 7°C, and a deeper tread depth designed to disperse water and grip snow.
+
+**All-season tyres** (also called all-weather tyres) offer a middle ground. They're marked with the Three Peak Mountain Snowflake (3PMSF) symbol, meaning they meet minimum winter performance standards. They're a good option if you can't or don't want to store a second set of tyres.
+
+**Summer tyres** should not be used for year-round driving in Scotland. Their rubber compound hardens in cold temperatures, significantly increasing stopping distances.
+
+### Comparison for Scottish Conditions
+
+| Tyre Type | Dry grip (warm) | Wet grip (cold) | Snow/ice | Storage needed |
+|---|---|---|---|---|
+| Summer | Excellent | Adequate | Poor | No |
+| All-season | Good | Good | Adequate | No |
+| Winter (seasonal) | Adequate | Excellent | Excellent | Yes (summer set) |
+
+For most Scottish drivers, especially those in Aberdeen, Inverness or Highland areas, **dedicated winter tyres fitted on a second set of steel wheels** offer the best combination of performance and cost-effectiveness over several seasons.
+
+## Best Winter Tyre Brands for Scotland
+
+These brands consistently rank top in independent Scottish and UK winter tyre tests:
+
+**Premium (best performance, highest cost):**
+- **Michelin Pilot Alpin 5 / CrossClimate 2** — superb wet and snow grip, long-lasting
+- **Continental WinterContact TS 870** — excellent braking on ice and snow
+- **Bridgestone Blizzak LM005** — outstanding ice performance; popular in Nordic countries
+- **Goodyear UltraGrip Performance+** — strong all-round winter performer
+
+**Mid-range (good performance, lower cost):**
+- **Hankook Winter i*cept RS3** — strong value, especially for smaller city cars
+- **Falken Eurowinter HS02** — good snow grip, popular in Scotland
+- **Nokian Wetproof / Snowproof** — Finnish brand; excellent for Scottish conditions
+
+**Budget (adequate for urban Scotland):**
+- **Tyfoon Wintersport** — acceptable for Central Belt cities
+- **Barum Polaris 5** — entry-level winter option
+
+*Tyre Rescue stocks a wide range of winter tyres across budget, mid-range and premium brands. Call 0141 266 0690 for a quote on your specific size.*
+
+## How Much Do Winter Tyres Cost in Scotland?
+
+Typical prices per tyre (supply and mobile fitting included):
+
+| Size | Budget | Mid-range | Premium |
+|---|---|---|---|
+| 185/60R15 | £80–95 | £100–130 | £130–165 |
+| 195/65R15 | £85–100 | £105–135 | £135–170 |
+| 205/55R16 | £90–110 | £115–145 | £145–185 |
+| 225/45R17 | £100–125 | £130–165 | £165–220 |
+| 235/55R18 | £120–145 | £155–195 | £195–260 |
+
+**A full set of four winter tyres (fitted mobile):** typically £320–£750 depending on size and brand.
+
+**Storing your summer tyres:** Tyre Rescue does not offer tyre storage, but many local garages in Glasgow and Edinburgh offer seasonal storage from £30–£80 for a set.
+
+## Why Mobile Winter Tyre Fitting Makes Sense in Scotland
+
+The irony of winter tyre fitting: you need them most when the roads are worst. Driving to a garage on icy roads on your summer tyres is exactly the situation you're trying to avoid.
+
+With Tyre Rescue's mobile winter tyre fitting:
+- We come to your **home, work, or driveway** — no driving on summer tyres to a garage
+- We can **swap from your summer set to your winter set** if you've stored them on a spare set of wheels
+- We work **in all weathers** — our fitters are fully equipped for outdoor fitting year-round
+- Available **throughout Scotland** — including Aberdeen, Inverness and the Highlands where winter tyres are most critical
+
+Book your winter tyre swap before the first frost — our diary fills up fast in October and November.
+
+## Frequently Asked Questions
+
+### Are winter tyres compulsory in Scotland?
+No, they are not legally required. However, in some Highland Perthshire and Aberdeenshire areas, roads may be impassable without them. Check your travel insurance and breakdown cover — some policies require "appropriate tyres for conditions."
+
+### Can I fit just two winter tyres on the drive wheels?
+This is not recommended and can be dangerous. Fitting winter tyres only on the front creates understeer in rear-wheel-drive vehicles; fitting only on the rear creates oversteer in front-wheel-drive vehicles. Always fit a full set of four.
+
+### Do winter tyres affect fuel economy?
+Yes, slightly. Winter tyres have higher rolling resistance than summer tyres, which can reduce fuel economy by 1–3%. For most drivers, the safety benefit far outweighs this cost — especially in Scotland.
+
+### Will winter tyres damage my alloy wheels?
+No, but many drivers choose to keep winter tyres on steel wheels (often cheaper than alloys) to protect their alloys from road salt and winter grit. Ask us about winter-ready steel wheels when you book.
+
+### Can I use winter tyres year-round in Scotland?
+Technically, but not advisable. Winter tyres wear faster in warmer weather (above 7°C) and their softer compound reduces handling precision in summer. For year-round use, consider all-season tyres instead.
+
+## Book Winter Tyre Fitting Across Scotland
+
+Don't wait until the first snowfall. Book your winter tyre fitting now:
+
+- **Call:** 0141 266 0690 (24/7)
+- **Online:** [tyrerescue.uk/book](/book)
+
+We cover all of Scotland — [Glasgow](/mobile-tyre-fitting/glasgow), [Edinburgh](/mobile-tyre-fitting/edinburgh), [Aberdeen](/mobile-tyre-fitting/aberdeen), [Inverness](/mobile-tyre-fitting/inverness), [Dundee](/mobile-tyre-fitting/dundee), [Perth](/mobile-tyre-fitting/perth) and everywhere in between.`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-paisley-renfrewshire',
+    title: 'Mobile Tyre Fitting in Paisley & Renfrewshire: Same-Day Service, PA Postcodes',
+    description: 'Mobile tyre fitting in Paisley, Renfrew, Johnstone, Linwood and all Renfrewshire PA postcodes. Same-day fitting, 24/7 emergency callout. Typically 30 minutes from Glasgow base. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2025-08-15',
+    lastModified: '2025-08-15',
+    readingTime: 5,
+    featured: false,
+    relatedSlugs: ['emergency-tyre-fitting-glasgow-complete-guide', 'mobile-tyre-fitting-vs-garage', 'puncture-repair-glasgow-when-replace'],
+    keywords: ['mobile tyre fitting paisley', 'tyre fitting renfrewshire', 'emergency tyre paisley', 'mobile tyre renfrew', 'puncture repair paisley', '24 hour tyre paisley', 'mobile tyre fitting johnstone', 'mobile tyre fitting linwood'],
+    content: `# Mobile Tyre Fitting in Paisley & Renfrewshire
+
+Paisley is one of our busiest service areas — just 7 miles from Glasgow, it's a fast dispatch from our base. We cover all of Renfrewshire including Paisley town centre, Renfrew, Johnstone, Linwood, Erskine, Bridge of Weir and Bishopton.
+
+**Call 0141 266 0690** for immediate emergency response, or [book online](/book) for same-day or scheduled fitting.
+
+## Response Times in Renfrewshire
+
+We dispatch from our Glasgow base and reach most of Renfrewshire quickly:
+
+| Location | Average Response |
+|---|---|
+| Paisley town centre (PA1) | 25–35 minutes |
+| Renfrew (PA4) | 20–30 minutes |
+| Johnstone (PA5) | 30–40 minutes |
+| Linwood (PA3) | 25–35 minutes |
+| Erskine (PA8) | 30–40 minutes |
+| Glasgow Airport / PA3 | 25–35 minutes |
+| Bridge of Weir (PA11) | 40–50 minutes |
+| Bishopton (PA7) | 35–45 minutes |
+
+*Response times are approximate. Traffic on the M8/M77 can add 10–15 minutes during peak hours (7–9am, 4–7pm).*
+
+## Glasgow Airport Tyre Emergencies
+
+Glasgow Airport sits in the PA3 postcode area — one of our most frequent callout locations. Whether you're:
+- Returning from a flight to find a flat tyre in long-stay parking
+- Heading to the airport with a warning light on
+- Picking up a hire car with a tyre problem
+
+We cover the airport car parks, pickup areas, and surrounding roads. For terminal car parks, meet us at the barrier or in a bay — our fitters can squeeze through most multi-storey height restrictions.
+
+## Areas We Cover in Renfrewshire
+
+**PA1 — Paisley East:** Town centre, Castlehead, Ferguslie Park, Blackhall
+**PA2 — Paisley South:** Foxbar, Lochfield, Potterhill, Glenburn
+**PA3 — Paisley / Glasgow Airport:** Linwood, Ferguslie, Shortroods, Airport area
+**PA4 — Renfrew:** Town centre, Yoker area, Braehead Shopping Centre
+**PA5 — Johnstone:** Town centre, Cartside, Johnstone Castle
+**PA6 — Howwood**
+**PA7 — Bishopton:** Including Dargavel Village
+**PA8 — Erskine:** All of the Erskine peninsula
+**PA10 — Linwood**
+**PA11 — Bridge of Weir**
+**PA12 — Lochwinnoch**
+**PA13 — Kilmacolm**
+**PA14 — Port Glasgow:** (see also our [Greenock](/mobile-tyre-fitting/greenock) coverage)
+
+## Why Use Mobile Tyre Fitting in Paisley?
+
+Paisley's road network — the M8, M77, A737 and A726 — means high tyre puncture frequency. Common callout locations include:
+
+- **Braehead Shopping Centre** car parks (PA4) — one of our most frequent retail park callouts
+- **Paisley High Street and Gilmour Street** area — town centre parking
+- **A737 Johnstone bypass** — fast A-road punctures
+- **Erskine Bridge approaches** — busy commuter route
+- **M8 hard shoulder** — between Glasgow and Paisley (Junction 28–30)
+
+## What We Fit
+
+All standard car tyre sizes for hatchbacks, saloons, SUVs, MPVs and light vans. We stock:
+- Budget tyres from £55 (supply + mobile fit)
+- Mid-range tyres from £75
+- Premium (Michelin, Continental, Bridgestone) from £100
+- All-season tyres available year-round
+- Winter tyres (October–April)
+
+We also carry TPMS sensors and can reset your tyre pressure monitoring system after fitting.
+
+## Frequently Asked Questions
+
+### Do you cover Braehead Shopping Centre?
+Yes — we regularly attend Braehead's outdoor and covered car parks. Give the bay number or meet us at the entrance.
+
+### Can you come to Glasgow Airport at night?
+Yes. We operate 24/7 including overnight. Airport callouts are common from 10pm onwards when late flights arrive.
+
+### Do you cover the A737 and M77?
+Yes — for motorway and fast A-road breakdowns, call us immediately, move to the hard shoulder if safe, and switch on hazards. Give us your road number and direction (northbound/southbound).
+
+### Is there a surcharge for Renfrewshire vs Glasgow?
+No. Paisley and Renfrewshire are within our standard callout area. The £49 callout fee is the same as for Glasgow.
+
+## Book Mobile Tyre Fitting in Paisley
+
+Call **0141 266 0690** — 24 hours a day, every day.
+Or [book online](/book) for same-day or next-day scheduled fitting.
+
+[Mobile tyre fitting in Glasgow](/mobile-tyre-fitting/glasgow) | [Greenock & Inverclyde](/mobile-tyre-fitting/greenock) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'tyre-blowout-emergency-guide-scotland',
+    title: 'Tyre Blowout: What to Do, How to Stay Safe & When to Call for Help',
+    description: 'What to do if a tyre blows out on a Scottish road or motorway. Step-by-step safety guide plus how to get emergency mobile tyre fitting across Scotland in under 90 minutes. Call 0141 266 0690.',
+    category: 'safety',
+    publishDate: '2025-08-20',
+    lastModified: '2025-08-20',
+    readingTime: 6,
+    featured: false,
+    relatedSlugs: ['what-to-do-flat-tyre-motorway', 'emergency-tyre-fitting-glasgow-complete-guide', '24-hour-emergency-tyre-fitting-scotland'],
+    keywords: ['tyre blowout what to do', 'tyre blowout scotland', 'blown tyre motorway', 'tyre burst emergency', 'tyre blowout driving', 'emergency tyre help scotland', 'motorway tyre blowout', 'tyre blowout A9'],
+    content: `# Tyre Blowout Emergency Guide: What to Do
+
+A tyre blowout at motorway speeds can feel catastrophic. The car pulls violently to one side, the steering wheel judders, and there's a loud bang followed by a rhythmic thumping noise. Your instinct may be to slam the brakes — **don't**. That's the single most dangerous thing you can do.
+
+This guide explains exactly what to do if a tyre blows out on a Scottish road, how to stay safe on the hard shoulder, and how to get help fast.
+
+## Step-by-Step: What to Do in a Blowout
+
+### 1. Do NOT brake sharply
+Grip the steering wheel firmly with both hands. Resist the urge to brake hard. The car will decelerate on its own due to increased rolling resistance from the flat tyre.
+
+### 2. Hold your course
+Keep the steering wheel straight. If a front tyre blew, the car will try to pull toward that side — hold firm against it. If a rear tyre blew, the rear of the car may fishtail — again, hold the wheel straight and don't counter-steer aggressively.
+
+### 3. Accelerate briefly (counter-intuitive but effective)
+Especially at motorway speeds: a brief, gentle acceleration can help stabilise the vehicle while you slow down gradually. This is the professional driving advice — it feels wrong, but it works.
+
+### 4. Slow down gradually
+Once the car is stable, ease off the accelerator and let the car slow down naturally. Only apply gentle braking once you are below 50mph.
+
+### 5. Signal and move to safety
+Put on your hazard lights immediately. Signal left and move to the hard shoulder (on a motorway) or the nearest safe stopping point. Don't attempt to drive far on a blown tyre — the rim will be damaged.
+
+### 6. Get away from the car
+On a motorway, exit via the left-side door (never the right — traffic side), climb the embankment or stand behind the barrier. On a standard road, move well away from traffic. **Stationary vehicles on hard shoulders are at high risk of being struck from behind.**
+
+### 7. Call for help
+From a motorway: use an emergency SOS phone (every 1 mile) or call 999 if unsafe, then call Tyre Rescue on **0141 266 0690**. From a standard road, call Tyre Rescue directly.
+
+## Blowout vs. Slow Puncture: How to Tell
+
+| Symptom | Blowout | Slow puncture |
+|---|---|---|
+| Onset | Sudden, violent | Gradual over minutes |
+| Sound | Loud bang or pop | Hissing (if audible at all) |
+| Steering | Sudden pull | Gradual drift |
+| Warning light | Immediate | May appear after miles |
+| Safe to drive? | No — stop immediately | Low speed, short distance only |
+
+A tyre pressure warning light that appears while driving at normal speed is almost always a slow puncture. **Do not ignore it.** Pull over when safe, check the tyre visually, and call us.
+
+## Common Causes of Tyre Blowouts in Scotland
+
+- **Potholes:** Scotland's roads have a persistent pothole problem, especially on A-roads in Highland and Aberdeenshire. The A9, A82, and A87 are frequent culprits.
+- **Under-inflation:** A tyre running at low pressure generates excess heat. At motorway speeds, this can cause catastrophic failure.
+- **Overloading:** SUVs and MPVs with maximum loads on long journeys (e.g., holiday routes north) put extra strain on tyres.
+- **Age:** Tyres older than 6 years become brittle even if they appear to have tread. The rubber degrades internally.
+- **Kerb damage:** A sharp impact with a kerb (common in city centre parking) can cause internal damage that's invisible externally — but leads to a blowout days or weeks later.
+- **Road debris:** Broken glass, metal fragments, and loose gravel are all common on Scottish roads after storms.
+
+## High-Risk Blowout Locations in Scotland
+
+Based on our callout data, these routes generate the most blowout emergencies:
+
+- **M8 (Glasgow–Edinburgh)** — high traffic volume, deteriorating surface near M8/M73 interchange
+- **A9 (Perth–Inverness)** — long straights at high speed, pothole risk after winter
+- **A82 (Glasgow–Fort William)** — narrow, poorly maintained surface in places, especially Glen Coe
+- **A77 (Glasgow–Stranraer)** — heavy HGV traffic causes surface damage
+- **M74 (Glasgow southbound)** — high speed, heavy goods traffic
+- **A90 (Dundee–Aberdeen)** — long-distance carriageway, frequent debris after wind storms
+
+## After a Blowout: Do I Need a New Tyre?
+
+Almost always, yes. Unlike a puncture (which may be repairable), a blowout causes structural damage to the tyre sidewall. The tyre must be replaced. If you drove even a short distance on the rim, the rim may also need assessment.
+
+Tyre Rescue can assess both the tyre and the rim at the roadside. In most cases, we carry a suitable replacement and will have you back on the road within 30–60 minutes of arriving.
+
+## Emergency Tyre Fitting After a Blowout
+
+Call **0141 266 0690** — we operate 24/7 across all of Scotland:
+- Average 45-minute response in Glasgow and Edinburgh
+- Average 60–70 minutes in Dundee, Perth, and Stirling
+- Average 90 minutes in Aberdeen and Inverness
+- Coverage on all Scottish motorways and major A-roads
+
+We carry full roadside safety equipment, warning cones, and a comprehensive range of tyre sizes. No appointment needed — just call.
+
+For motorway emergencies, you may also be assisted by the Motorway Incident Detection and Automatic Signalling (MIDAS) system and Traffic Scotland. Call **0800 028 1414** for Traffic Scotland updates on motorway conditions.
+
+## Frequently Asked Questions
+
+### Can I drive on a run-flat tyre after a blowout?
+Run-flat tyres (marked RFT or SSR on the sidewall) can be driven at up to 50mph for up to 50 miles after a puncture. However, a true blowout — where the tyre delaminated or the sidewall failed — may still require immediate stopping. Check the tyre visually if safe to do so.
+
+### How do I know if my rim is damaged?
+A bent or cracked rim may be visible, or you may notice vibration after the tyre is replaced. Tyre Rescue fitters will inspect your rim when fitting the new tyre and advise if you need a replacement.
+
+### Is blowout damage covered by insurance?
+Many comprehensive policies cover tyre damage as part of accidental damage. Check your policy or call your insurer after the immediate emergency is resolved.
+
+### Can I prevent a blowout?
+Yes — check tyre pressures monthly (including the spare), inspect for cracks or bulges regularly, replace tyres older than 6 years regardless of tread depth, and avoid potholes where possible.
+
+## Emergency Tyre Help Across Scotland
+
+[Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Glasgow emergency](/emergency-tyre-fitting/glasgow/city-centre) | [Edinburgh emergency](/emergency-tyre-fitting/edinburgh/city-centre) | [Aberdeen emergency](/emergency-tyre-fitting/aberdeen/city-centre) | [All service areas](/service-areas)
+
+**Call now: 0141 266 0690 — 24 hours a day, 7 days a week.**`,
   },
 ];
 

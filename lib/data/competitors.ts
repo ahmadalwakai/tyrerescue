@@ -33,7 +33,7 @@ export const competitors: CompetitorComparison[] = [
     title: 'Tyre Rescue vs Kwik Fit: Which Is Better for Mobile Tyre Fitting in Scotland?',
     metaTitle: 'Tyre Rescue vs Kwik Fit: Mobile Tyre Fitting Comparison 2025',
     metaDescription:
-      'Compare Tyre Rescue vs Kwik Fit for mobile tyre fitting in Glasgow & Edinburgh. 24/7 emergency callout, pricing, response times & customer reviews compared.',
+      'Compare Tyre Rescue vs Kwik Fit for mobile tyre fitting across Scotland. 24/7 emergency callout, pricing, response times & customer reviews compared.',
     description:
       'A detailed comparison of Tyre Rescue and Kwik Fit for tyre fitting services in Scotland. We compare mobile service availability, pricing, response times, and customer satisfaction to help you choose the right provider.',
     features: [
@@ -41,7 +41,7 @@ export const competitors: CompetitorComparison[] = [
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — 24 hours, 7 days a week', competitor: 'No — standard business hours only', winner: 'tyrerescue' },
       { feature: 'Average Response Time', tyreRescue: '45 minutes average', competitor: 'Appointment-based, next available slot', winner: 'tyrerescue' },
       { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £45 (garage visit, tyre extra)', winner: 'tie' },
-      { feature: 'Coverage Area', tyreRescue: 'Glasgow, Edinburgh, Dundee, Stirling, Falkirk, Paisley + surrounding areas', competitor: 'Nationwide chain with local branches', winner: 'tie' },
+      { feature: 'Coverage Area', tyreRescue: 'All of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands', competitor: 'Nationwide chain with local branches', winner: 'tyrerescue' },
       { feature: 'Tyre Brands', tyreRescue: 'Budget to premium — Michelin, Continental, Bridgestone', competitor: 'Wide range — budget to premium', winner: 'tie' },
       { feature: 'Puncture Repair', tyreRescue: 'Mobile puncture repair — we come to you', competitor: 'In-store puncture repair', winner: 'tyrerescue' },
       { feature: 'Online Booking', tyreRescue: 'Yes — instant online booking with live pricing', competitor: 'Yes — online booking available', winner: 'tie' },
@@ -55,7 +55,7 @@ export const competitors: CompetitorComparison[] = [
       },
       {
         question: 'Does Kwik Fit offer 24/7 mobile tyre fitting?',
-        answer: 'Kwik Fit operates primarily from garage locations during standard business hours. Tyre Rescue provides genuine 24/7 emergency mobile tyre fitting across Glasgow, Edinburgh, and Central Scotland.',
+        answer: 'Kwik Fit operates primarily from garage locations during standard business hours. Tyre Rescue provides genuine 24/7 emergency mobile tyre fitting across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands.',
       },
       {
         question: 'Which has better customer reviews — Tyre Rescue or Kwik Fit?',
@@ -77,7 +77,7 @@ export const competitors: CompetitorComparison[] = [
     title: 'Tyre Rescue vs National Tyres: Mobile Tyre Fitting Comparison',
     metaTitle: 'Tyre Rescue vs National Tyres: Which Is Better in Scotland? (2025)',
     metaDescription:
-      'Compare Tyre Rescue vs National Tyres for tyre fitting in Glasgow & Edinburgh. Emergency callout, mobile service, pricing & reviews side by side.',
+      'Compare Tyre Rescue vs National Tyres for tyre fitting across Scotland. Emergency callout, mobile service, pricing & reviews side by side.',
     description:
       'National Tyres and Autocare operates a network of garage locations across the UK. Here we compare their service with Tyre Rescue\'s mobile-first approach to help you decide which is right for your tyre needs in Scotland.',
     features: [
@@ -85,7 +85,7 @@ export const competitors: CompetitorComparison[] = [
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — round the clock, every day', competitor: 'No — limited mobile hours', winner: 'tyrerescue' },
       { feature: 'Average Response Time', tyreRescue: '45 minutes average', competitor: 'Pre-booked appointments, typically next day', winner: 'tyrerescue' },
       { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £50 (mobile fitting surcharge, tyre extra)', winner: 'tyrerescue' },
-      { feature: 'Coverage Area', tyreRescue: 'Central Scotland — Glasgow, Edinburgh, Dundee, Stirling and more', competitor: 'Select UK areas with mobile service', winner: 'tie' },
+      { feature: 'Coverage Area', tyreRescue: 'All of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Highlands and more', competitor: 'Select UK areas with mobile service', winner: 'tyrerescue' },
       { feature: 'Tyre Brands', tyreRescue: 'Budget to premium — competitive pricing', competitor: 'Wide range of brands available', winner: 'tie' },
       { feature: 'Puncture Repair', tyreRescue: 'Yes — mobile puncture repair included', competitor: 'Garage-based repairs, some locations offer mobile', winner: 'tyrerescue' },
       { feature: 'Online Booking', tyreRescue: 'Yes — live pricing, instant confirmation', competitor: 'Yes — online booking', winner: 'tie' },
@@ -95,7 +95,7 @@ export const competitors: CompetitorComparison[] = [
     faq: [
       {
         question: 'Does National Tyres offer mobile tyre fitting in Glasgow?',
-        answer: 'National Tyres has some mobile fitting coverage, but availability varies by location. Tyre Rescue guarantees mobile fitting coverage across all of Glasgow, Edinburgh, and Central Scotland — 24 hours a day, 7 days a week.',
+        answer: 'National Tyres has some mobile fitting coverage, but availability varies by location. Tyre Rescue guarantees mobile fitting coverage across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Highlands and Islands — 24 hours a day, 7 days a week.',
       },
       {
         question: 'Is Tyre Rescue better value than National Tyres?',
@@ -103,7 +103,7 @@ export const competitors: CompetitorComparison[] = [
       },
       {
         question: 'Can I get an emergency tyre change from National Tyres?',
-        answer: 'National Tyres operates during standard business hours and requires pre-booking. Tyre Rescue provides genuine emergency callout 24/7, with an average 45-minute response time in the Glasgow and Edinburgh areas.',
+        answer: 'National Tyres operates during standard business hours and requires pre-booking. Tyre Rescue provides genuine emergency callout 24/7 across all of Scotland — average 45 minutes in Glasgow and Edinburgh, 60–90 minutes in Aberdeen and Inverness.',
       },
     ],
     summary:
@@ -129,7 +129,7 @@ export const competitors: CompetitorComparison[] = [
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — 24/7 in Glasgow, Edinburgh and beyond', competitor: 'Roadside assistance via fleet contract', winner: 'tyrerescue' },
       { feature: 'Average Response Time', tyreRescue: '45 minutes average', competitor: 'Varies — appointment-based for consumers', winner: 'tyrerescue' },
       { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £45 (in-centre, tyre extra)', winner: 'tie' },
-      { feature: 'Coverage Area', tyreRescue: 'Central Scotland focus — deep local knowledge', competitor: 'Nationwide chain, limited Scottish centres', winner: 'tyrerescue' },
+      { feature: 'Coverage Area', tyreRescue: 'All of Scotland — deep local knowledge from Glasgow to Shetland', competitor: 'Nationwide chain, limited Scottish centres', winner: 'tyrerescue' },
       { feature: 'Tyre Brands', tyreRescue: 'Budget to premium selection', competitor: 'Wide brand range, strong fleet partnerships', winner: 'tie' },
       { feature: 'Puncture Repair', tyreRescue: 'Mobile puncture repair — at your location', competitor: 'In-centre repair', winner: 'tyrerescue' },
       { feature: 'Online Booking', tyreRescue: 'Yes — instant, transparent pricing', competitor: 'Yes — online booking', winner: 'tie' },
@@ -147,7 +147,7 @@ export const competitors: CompetitorComparison[] = [
       },
       {
         question: 'Does ATS Euromaster have centres in Scotland?',
-        answer: 'ATS Euromaster has a limited number of centres in Scotland. Tyre Rescue covers Glasgow, Edinburgh, Dundee, Stirling, Falkirk, and Paisley with genuine mobile service — we come to you wherever you are.',
+        answer: 'ATS Euromaster has a limited number of centres in Scotland. Tyre Rescue covers all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Stirling, Falkirk, Paisley, Highlands and Islands — with genuine mobile service. We come to you wherever you are.',
       },
     ],
     summary:
@@ -173,7 +173,7 @@ export const competitors: CompetitorComparison[] = [
       { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — always available', competitor: 'No — garage hours only', winner: 'tyrerescue' },
       { feature: 'Average Response Time', tyreRescue: '45 minutes average', competitor: 'Pre-booked only', winner: 'tyrerescue' },
       { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £40 (in-store tyre only)', winner: 'tie' },
-      { feature: 'Coverage Area', tyreRescue: 'Glasgow, Edinburgh, Dundee, Stirling, Falkirk, Paisley', competitor: 'Nationwide garage network', winner: 'tie' },
+      { feature: 'Coverage Area', tyreRescue: 'All of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and more', competitor: 'Nationwide garage network', winner: 'tyrerescue' },
       { feature: 'Tyre Brands', tyreRescue: 'Full range — budget to premium', competitor: 'Wide retail range', winner: 'tie' },
       { feature: 'Puncture Repair', tyreRescue: 'Mobile puncture repair', competitor: 'In-store puncture repair', winner: 'tyrerescue' },
       { feature: 'Online Booking', tyreRescue: 'Yes — instant pricing', competitor: 'Yes — tyre search and booking', winner: 'tie' },
@@ -187,7 +187,7 @@ export const competitors: CompetitorComparison[] = [
       },
       {
         question: 'Does Halfords offer mobile tyre fitting in Glasgow?',
-        answer: 'Halfords Mobile Expert has limited mobile coverage in select UK cities. Tyre Rescue provides comprehensive mobile tyre fitting across Glasgow and all of Central Scotland, available 24/7.',
+        answer: 'Halfords Mobile Expert has limited mobile coverage in select UK cities. Tyre Rescue provides comprehensive mobile tyre fitting across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Highlands and Islands — available 24/7.',
       },
       {
         question: 'Which is more affordable — Halfords or Tyre Rescue?',
