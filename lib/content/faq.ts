@@ -391,6 +391,62 @@ export const faqItems: FAQItem[] = [
     category: 'services',
     isHomepageVisible: false,
   },
+  {
+    id: 'all-season-tyres-scotland',
+    question: 'Are all-season tyres worth it in Scotland?',
+    answer:
+      'For most Scottish city and Central Belt drivers, yes — all-season tyres are a practical choice that eliminates seasonal tyre changes while maintaining year-round safety. Look for the Three Peak Mountain Snowflake (3PMSF) symbol on the tyre sidewall, which confirms genuine winter performance. Top picks for Scotland: Michelin CrossClimate 2 and Continental AllSeasonContact 2. For Highland drivers who regularly encounter heavy snow and ice from October to April, dedicated winter tyres will outperform any all-season tyre. We supply and fit all-season tyres at your location across all of Scotland.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'staggered-tyre-fitment',
+    question: 'What is a staggered tyre fitment, and can you fit them?',
+    answer:
+      'A staggered tyre fitment means the front and rear tyres are different sizes — typically wider tyres at the rear. This is common on performance vehicles like Porsche 911, BMW M models, Audi RS models, Mercedes AMG, and some Tesla variants. Staggered tyres cannot be rotated front-to-rear. When ordering, always specify whether you need front or rear tyres. Tyre Rescue carries and fits staggered specifications for all common performance vehicles across Scotland — call 0141 266 0690 and give us your registration and which axle needs fitting.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'phev-tyre-load-index',
+    question: 'Does my hybrid or plug-in hybrid (PHEV) need a special tyre?',
+    answer:
+      'Yes. Plug-in hybrid (PHEV) vehicles carry a large battery pack that adds significant weight compared to equivalent petrol or standard hybrid models. This means PHEV tyres must have a higher load index rating than standard versions of the same car. For example, a Kia Sportage PHEV requires load index 104+ versus 99+ on the standard hybrid. Tyre Rescue always checks and confirms the correct load index before fitting any PHEV model — incorrectly rated tyres on a PHEV are unsafe and can cause rapid tyre failure.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'fleet-tyre-management',
+    question: 'Do you offer fleet tyre management for businesses in Scotland?',
+    answer:
+      'Yes — Tyre Rescue provides fleet tyre management for Scottish businesses. This includes emergency 24/7 callout for fleet vehicles (cars, vans, pickup trucks), scheduled tyre replacements at your depot or drivers\' locations, monthly consolidated invoicing, and per-vehicle tyre history records. We cover all Scottish postcodes (G to ZE). Fleet account customers are prioritised in dispatch. To enquire about a fleet account, call 0141 266 0690 and ask to speak to our fleet team.',
+    category: 'services',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'premium-car-tyre-fitting',
+    question: 'Can you fit tyres on premium cars like BMW, Mercedes, Audi, and Porsche?',
+    answer:
+      'Yes — Tyre Rescue specialises in premium vehicle tyre fitting across Scotland. We carry N-rated tyres for Porsche (N0, N1, N2), run-flat tyres (BMW RSC, Mercedes MOExtended/EMT, Audi DSST), and EV-specification tyres for all German electric vehicles. Our TPMS reset tools cover all BMW, Mercedes, Audi, and Porsche models. Staggered fitments (911, AMG, M models) are our regular work. Call 0141 266 0690 with your registration and we will confirm tyre availability and give you an accurate quote.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: '24-hour-tyre-fitting-scotland',
+    question: 'Is your tyre fitting service available 24 hours a day?',
+    answer:
+      'Yes. Tyre Rescue operates 24 hours a day, 7 days a week, 365 days a year including bank holidays and Christmas Day. Our dispatch team answers the phone immediately — no answering service or voicemail. Emergency callout fee starts from £49 (same rate day and night — no night premium). For a 2am flat tyre in Glasgow, our typical response is 25–40 minutes. Call 0141 266 0690 any time.',
+    category: 'emergency',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'what-is-load-index',
+    question: 'What is tyre load index, and does it matter?',
+    answer:
+      'The load index is a number on your tyre sidewall (e.g., 91, 99, 105) that indicates the maximum weight each tyre can safely carry. It is critically important for SUVs, PHEVs, EVs, and vans — all heavier than equivalent petrol cars. Fitting a tyre with a load index below your vehicle\'s requirement is unsafe and may invalidate your insurance. Tyre Rescue always confirms the correct load index before fitting any replacement tyre. If you are unsure, give us your registration number and we will identify the correct specification.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
 ];
 
 /**
