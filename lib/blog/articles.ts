@@ -10602,6 +10602,166 @@ Call **0141 266 0690** or [book online](/book) for mobile tyre fitting anywhere 
 [All Glasgow service areas](/mobile-tyre-fitting/glasgow) | [Emergency tyre fitting Glasgow](/emergency-tyre-fitting-near-me) | [24 hour tyre fitting](/24-hour-tyre-fitting)`,
   },
   {
+    slug: 'tyre-buying-guide-scotland',
+    title: 'How to Choose the Right Tyres for Your Car in Scotland: Complete Guide',
+    description:
+      'How to choose the right tyres for your car in Scotland. Speed ratings, load index, size markings, brand comparison, seasonal tyre advice — everything you need to make the right choice.',
+    category: 'maintenance',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 12,
+    featured: false,
+    keywords: [
+      'how to choose tyres scotland',
+      'tyre buying guide scotland',
+      'choosing the right tyre scotland',
+      'what tyres do i need scotland',
+      'tyre size explained scotland',
+      'speed rating tyre scotland',
+      'load index tyre scotland',
+      'best tyre for my car scotland',
+    ],
+    relatedSlugs: [
+      'how-to-read-tyre-size-markings',
+      'best-tyres-scottish-roads-guide',
+      'all-season-tyres-scotland-guide',
+    ],
+    content: `# How to Choose the Right Tyres for Your Car in Scotland
+
+Choosing tyres can feel overwhelming — there are hundreds of options, confusing size markings, and strong opinions about brands. This guide cuts through the noise and helps you choose the right tyres for your car, your budget, and Scottish driving conditions.
+
+## Step 1: Find Your Correct Tyre Size
+
+Before you buy anything, you need the right size. There are three ways to find it:
+
+**1. Look at your current tyre sidewall** — the size is printed there, like: **205/55 R16 91V**
+
+**2. Check the sticker inside your driver's door** — most cars have this, listing recommended tyre sizes and pressures.
+
+**3. Check your vehicle handbook** — specifies exact tyre requirements for your trim level.
+
+**Understanding the tyre size code** (using 205/55 R16 91V as example):
+- **205** — tyre width in mm
+- **55** — aspect ratio (tyre height as % of width) — lower number = lower-profile tyre
+- **R** — radial construction (all modern tyres)
+- **16** — wheel rim diameter in inches
+- **91** — load index (see below)
+- **V** — speed rating (see below)
+
+## Step 2: Confirm the Load Index
+
+The load index (the number before the speed rating letter) tells you the maximum weight each tyre can carry. It must meet or exceed your vehicle manufacturer's requirement.
+
+**Never fit a lower load index than specified** — this is illegal and dangerous.
+
+| Load Index | Max Load per Tyre |
+|---|---|
+| 87 | 545 kg |
+| 91 | 615 kg |
+| 95 | 690 kg |
+| 99 | 775 kg |
+| 103 | 875 kg |
+| 107 | 975 kg |
+| 113 | 1150 kg |
+
+**When load index matters most**: PHEVs (plug-in hybrids), EVs, large SUVs, and vans all require higher load indices than equivalent petrol cars due to battery or payload weight. Tyre Rescue always confirms load index before fitting any replacement.
+
+## Step 3: Confirm the Speed Rating
+
+The speed rating letter indicates the maximum sustained speed. Must match or exceed your vehicle's maximum capability.
+
+| Rating | Max Speed |
+|---|---|
+| H | 210 km/h (130 mph) |
+| V | 240 km/h (149 mph) |
+| W | 270 km/h (168 mph) |
+| Y | 300 km/h (186 mph) |
+| ZR | Above 240 km/h (vehicles must use W or Y) |
+
+**In practice**: Most Scottish cars need H or V rated tyres. For performance cars (BMW M, Audi RS, Mercedes AMG), W or Y may be specified. Never go lower than your vehicle requires.
+
+## Step 4: Choose Your Tyre Season Type
+
+Scotland's climate means this decision is important.
+
+### Option A: Summer Tyres + Winter Tyre Change
+
+Two sets of tyres, stored seasonally. Best performance year-round. More hassle and cost up-front but often the best choice for:
+- Highland drivers
+- Performance car owners
+- Anyone who prioritises maximum safety in each season
+
+### Option B: All-Season Tyres (Year-Round)
+
+One set of tyres that works acceptably in all conditions. Best for:
+- Glasgow, Edinburgh, and Central Belt city drivers
+- Low-to-medium mileage drivers
+- Anyone who wants simplicity without compromising safety
+
+**Look for the Three Peak Mountain Snowflake (3PMSF) symbol** — mandatory for a genuine all-season tyre.
+
+### Option C: Summer Tyres Only
+
+Acceptable for:
+- Very low mileage (under 5,000 miles/year)
+- Drivers who genuinely never drive in cold/wet conditions
+- NOT recommended for most Scottish drivers
+
+## Step 5: Choose Your Brand Tier
+
+### Budget Tyres (£35–£100 per tyre)
+Good for: Low mileage, older vehicles, extreme budget constraints.
+Reputable brands: Falken, Hankook, Nexen, Toyo.
+Avoid on: Performance cars, EVs, large SUVs, vehicles where load index is critical.
+
+### Mid-Range Tyres (£55–£160 per tyre)
+Best value for most Scottish drivers. Strong safety margins, good wear.
+Brands: Goodyear, Bridgestone, Dunlop, Firestone, Nokian.
+
+### Premium Tyres (£80–£300+ per tyre)
+Best safety, longest life, best wet grip.
+Brands: Michelin, Continental, Pirelli, Bridgestone Potenza.
+Worth choosing for: Performance cars, EVs/PHEVs, high-mileage drivers, safety-conscious drivers.
+
+## Step 6: Consider Scottish-Specific Factors
+
+**Wet performance matters most** — Scotland has some of the UK's highest rainfall. On Glasgow's streets, wet braking is more important than dry handling. Continental PremiumContact 7 and Michelin Pilot Sport 5 consistently lead wet braking tests.
+
+**Tread life** — Scottish roads are rougher than English motorways, particularly north of Perth. Michelin tends to outlast other brands in tread life tests — worth the price premium if you drive 10,000+ miles/year.
+
+**Winter vs all-season** — see our [detailed all-season vs winter tyre guide](/blog/all-season-tyres-scotland-guide).
+
+**Run-flat tyres** — many premium cars (BMW, Mercedes, some Audi) are fitted with run-flat tyres from the factory. If your car uses run-flats, replacements must also be run-flat tyres (with the correct RSC, EMT, or SSR marking).
+
+**EV and PHEV tyres** — higher load index required, often acoustic foam-lined for noise reduction. Our [EV tyre guide](/blog/electric-vehicle-tyres-scotland) covers this in detail.
+
+## Step 7: Know the Rules on Mixing Tyres
+
+**You can mix brands** across axles — perfectly legal. However:
+
+- **Never mix radial and cross-ply** tyres on the same vehicle (this hasn't been an issue since the 1980s, but worth knowing)
+- **Never fit different speed ratings** below the manufacturer's requirement
+- **Never fit different load indices** below the manufacturer's requirement
+- **On AWD vehicles** (Subaru, Audi Quattro, BMW xDrive), matching tyres or near-identical tread depth on all four wheels is strongly recommended to avoid AWD system stress
+- **Best practice**: Replace in pairs (both tyres on an axle) — never just one, unless it's a puncture repair
+
+## Step 8: Buy at the Right Time
+
+**Best time to buy tyres in Scotland**:
+- **August–September**: Before winter demand spikes; good availability of winter and all-season stock
+- **March–April**: After winter; summer tyre availability is excellent, good deals on remaining winter stock
+
+**Worst time**: October–November — winter tyre demand is high, stock runs low on popular sizes.
+
+## Getting the Right Tyres Fitted in Scotland
+
+Tyre Rescue can source and fit any of the tyres described in this guide, at your home, workplace, or roadside across all of Scotland. We confirm the correct specification — size, load index, speed rating, and season type — before fitting any tyre.
+
+Call **0141 266 0690** or [book online](/book). Give us your vehicle registration and tell us what you need — we will quote the full price and arrange fitting at your convenience.
+
+[Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [All-season tyres guide](/blog/all-season-tyres-scotland-guide) | [Michelin vs Continental vs Pirelli](/blog/michelin-vs-continental-vs-pirelli-scotland)`,
+  },
+  {
     slug: 'fleet-tyre-management-scotland',
     title: 'Fleet Tyre Management Scotland: Mobile Fitting for Business Fleets',
     description:
