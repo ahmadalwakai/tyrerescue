@@ -4049,6 +4049,218 @@ For drivers in Lerwick itself, response is typically fastest as we maintain a lo
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
   },
   {
+    slug: 'electric-vehicle-tyres-scotland',
+    title: 'Electric Vehicle Tyres in Scotland: What You Need to Know',
+    description:
+      'EV tyres are different from standard tyres — heavier cars, instant torque, regenerative braking. Here\'s what to know about EV tyre replacement and mobile fitting in Scotland.',
+    category: 'maintenance',
+    publishDate: '2025-11-01',
+    lastModified: '2025-11-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'electric vehicle tyres scotland',
+      'ev tyres scotland',
+      'tesla tyres scotland',
+      'electric car tyres uk',
+      'ev tyre replacement scotland',
+      'mobile tyre fitting ev scotland',
+      'electric car tyre wear',
+      'ev tyre cost scotland',
+    ],
+    relatedSlugs: [
+      'best-tyres-scottish-roads-guide',
+      'run-flat-tyres-scotland-guide',
+      'tyre-tread-depth-guide-scotland',
+    ],
+    content: `# Electric Vehicle Tyres in Scotland: What You Need to Know
+
+Electric vehicles are increasingly common on Scottish roads. If you drive an EV or are planning to switch, there are important things to know about tyres specifically — EV tyres are not identical to standard tyres, and the wrong choice can affect range, handling, and safety.
+
+## Why EV Tyres Are Different
+
+### Heavier Vehicles
+Electric vehicles are significantly heavier than equivalent petrol cars. A Tesla Model 3 weighs approximately 1,850kg; a comparable BMW 3 Series petrol weighs 1,500kg. The extra weight — almost entirely from the battery pack — demands tyres with higher load ratings. Fitting a tyre with an inadequate load index on an EV is a safety risk.
+
+### Instant Torque
+Electric motors deliver maximum torque immediately — no build-up through gear changes. This places greater stress on the rear (or all-wheel drive) tyres during acceleration. Tyre wear rates can be higher than petrol equivalents if the driver uses full torque frequently.
+
+### Regenerative Braking
+EVs use regenerative braking to recover energy. This means the mechanical brakes are used less frequently, which can change wear patterns. Front tyres may wear faster than rear tyres compared to petrol cars in some EV configurations.
+
+### Noise Sensitivity
+Petrol engine noise masks road noise from conventional tyres. In the near-silent cabin of an EV, tyre noise becomes very noticeable. Many EV-specific tyres include foam or resonator technology inside the tyre to reduce this cabin noise.
+
+## EV-Specific Tyre Markings
+
+Look for these markings on tyres suitable for electric vehicles:
+
+- **Michelin**: 'EL' (Electric) or 'Acoustic' — includes foam noise-absorbing layer
+- **Continental**: 'ContiSilent' — acoustic foam technology; 'ContiRe.Tex' — sustainable compound
+- **Bridgestone**: 'Enliten' — low rolling resistance; 'Ologic' — narrower profile for reduced drag
+- **Goodyear**: 'EfficientGrip Performance 2 EV' — reinforced for EV load and torque
+- **Pirelli**: 'Elect' — specifically engineered for EVs
+
+Tyres not specifically designed for EVs can still be fitted — the key is matching the correct load index and speed rating. However, EV-specific tyres optimise for the three key EV factors: low rolling resistance (to maximise range), high load capacity, and acoustic comfort.
+
+## Tyre Choice and Range
+
+Rolling resistance directly affects battery range. A low rolling resistance tyre can improve EV range by 5–10% compared to a high rolling resistance equivalent. Over a year of Scottish driving, this can represent a meaningful reduction in charging costs.
+
+On Scotland's longer routes — the A9 to Inverness, the A82 through Glencoe, or inter-island ferry connections — maximising range is particularly valuable. Choose tyres with an A or B EU label fuel efficiency rating.
+
+## EV Tyre Wear in Scotland
+
+EVs tend to wear tyres faster than petrol cars of similar size, due to weight and torque. Scottish roads add to this: the frequent urban stop-start of Glasgow and Edinburgh, combined with the twisting demands of rural Highland roads, create a more demanding environment than motorway-focused driving in England.
+
+Typical EV tyre life on Scottish roads: 20,000–35,000 miles, depending on driving style and tyre specification. This is broadly similar to petrol equivalents — the EV weight and torque disadvantage is partially offset by less aggressive use of mechanical brakes, which would otherwise cause front tyre wear.
+
+## Run-Flat Tyres on EVs
+
+Many EVs — particularly BMWs — do not include a spare wheel, and are supplied with run-flat tyres. This is more common on EVs than petrol cars because run-flat tyres eliminate the weight penalty of a spare wheel (valuable for range).
+
+If your EV has run-flat tyres:
+- The rules are the same: drive at maximum 50mph for maximum 50 miles when deflated
+- In remote Scottish locations, this range may not be enough — call for help early
+- Run-flat tyres on EVs can be harder to source than standard run-flats due to the specific load index requirements
+
+## Mobile Tyre Fitting for EVs in Scotland
+
+Tyre Rescue can fit tyres on all EV makes and models across Scotland, including:
+- Tesla Model 3, Model Y, Model S, Model X
+- BMW i3, i4, iX
+- Nissan Leaf, Nissan Ariya
+- Volkswagen ID.3, ID.4
+- Hyundai Ioniq 5 and 6
+- Kia EV6
+- Polestar 2
+- Renault Zoe
+
+When calling **0141 266 0690**, mention that you drive an EV and your vehicle model. We will confirm the correct load index and speed rating for your specific car and let you know which EV-optimised tyres we have in stock.
+
+Note: EV tyres are generally 10–30% more expensive than standard equivalent tyres due to their specialised construction. We stock budget, mid-range, and premium EV-compatible options.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Run-flat tyres Scotland guide](/blog/run-flat-tyres-scotland-guide) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide)`,
+  },
+  {
+    slug: 'tyre-pressure-guide-scotland',
+    title: 'Tyre Pressure Guide for Scotland: Correct PSI, Checking & Inflation',
+    description:
+      'What is the correct tyre pressure for your car? How to check and inflate tyres, why pressure matters more on Scottish roads, and what to do if you have a slow puncture.',
+    category: 'maintenance',
+    publishDate: '2025-11-01',
+    lastModified: '2025-11-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'tyre pressure guide scotland',
+      'correct tyre pressure uk',
+      'how to check tyre pressure',
+      'tyre pressure psi scotland',
+      'low tyre pressure warning',
+      'tyre pressure cold weather scotland',
+      'slow puncture scotland',
+      'where to inflate tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'tyre-maintenance-checklist-scotland',
+      'tyre-tread-depth-guide-scotland',
+    ],
+    content: `# Tyre Pressure Guide for Scotland: Correct PSI, Checking & Inflation
+
+Correct tyre pressure is one of the simplest and most impactful things you can do for vehicle safety, tyre longevity, and fuel economy. Yet UK government data consistently shows that around one in four cars has at least one significantly under-inflated tyre.
+
+## Why Correct Tyre Pressure Matters in Scotland
+
+### Safety
+Under-inflated tyres flex more, generate more heat, and are more prone to blowout — particularly at motorway speeds. Over-inflated tyres have a smaller contact patch with the road, reducing grip. Both extremes increase wet braking distance.
+
+On Scotland's wet roads, this is especially significant. Aquaplaning — where a tyre loses contact with the road on a thin film of water — is more likely on an under-inflated tyre.
+
+### Tyre Life
+A tyre 20% under its recommended pressure wears approximately 25% faster, primarily on the outer edges. A tyre 20% over-pressure wears faster in the centre of the tread. Correct pressure means even wear and maximum tyre lifespan.
+
+### Fuel Economy
+Rolling resistance increases significantly when tyres are under-inflated. UK government testing shows that driving on tyres 10 PSI below the correct pressure increases fuel consumption by approximately 2–3%. Over a year of driving, this is a meaningful cost.
+
+## Finding Your Recommended Tyre Pressure
+
+The recommended tyre pressure for your specific vehicle is found in three places:
+
+1. **Driver's door placard**: A sticker on the inside of the driver's door (or sometimes the B-pillar). This is the most reliable source.
+2. **Fuel cap sticker**: Some vehicles have the pressure information on the inside of the fuel cap.
+3. **Vehicle handbook**: The specification or maintenance section.
+
+**Important**: Pressures are typically given for cold tyres — tyres that have not been driven on for at least three hours. Driving warms the air inside the tyre, temporarily increasing pressure. Do not reduce the pressure to match a "cold" reading if the tyres are warm.
+
+### Common Recommended Pressures by Vehicle Type
+
+| Vehicle Type | Typical Front | Typical Rear | Note |
+|--------------|---------------|--------------|------|
+| Small hatchback (Fiesta, Polo) | 30–33 PSI | 28–32 PSI | Check door placard |
+| Medium saloon/estate | 32–36 PSI | 30–35 PSI | Often different front/rear |
+| Large SUV (RAV4, Tiguan) | 35–38 PSI | 35–38 PSI | Higher loads need higher pressure |
+| EV (Tesla Model 3, BMW i4) | 42–45 PSI | 42–45 PSI | Higher than petrol equivalents |
+
+These are indicative only — always use your vehicle's specific recommendation.
+
+### Loaded vs Unloaded Pressure
+
+Many door placards give two sets of pressures: normal load (one or two occupants, no luggage) and full load (maximum passengers and/or towing). If you regularly carry heavy loads — common in Scotland when camping, driving to the islands with luggage, or towing a caravan or boat — use the higher loaded pressure.
+
+## How to Check Tyre Pressure
+
+### Equipment
+- **Tyre pressure gauge**: A basic digital or dial gauge costs from £5 and gives reliable readings. Available at any motorist's shop.
+- **Petrol station air pump**: Most petrol stations have a combined pressure gauge and air pump. Some charge a small fee (typically 20–50p); most are free or included in fuel purchase.
+
+### Procedure
+1. Check the recommended pressure on your door placard
+2. Remove the valve cap from the tyre (keep it safe)
+3. Press the gauge firmly onto the valve — you will hear a brief hiss as it seals
+4. Read the pressure (PSI or bar)
+5. Compare to the recommended figure
+6. Add air to increase pressure; press the pin inside the valve to release air if over-inflated
+7. Recheck the pressure after adjusting
+8. Replace the valve cap
+
+Check all four tyres and the spare (if your vehicle has one).
+
+## Tyre Pressure in Cold Scottish Weather
+
+Temperature directly affects tyre pressure. For every 10°C drop in temperature, tyre pressure decreases by approximately 1 PSI. Scotland experiences significant temperature swings — it is not uncommon for temperatures to drop 15–20°C between a warm autumn afternoon and a cold winter morning.
+
+This means:
+- In October, pressures that were correct in August may be 2 PSI low
+- Check pressures when the temperature changes significantly
+- Do not rely on summer pressure checks carrying through to winter
+
+If your TPMS warning light comes on in winter, cold weather pressure drop is often the cause — check pressures and inflate to the correct level before assuming a puncture.
+
+## Slow Punctures: How to Tell
+
+A slow puncture is a gradual air loss from a tyre — not immediately flat, but losing pressure over days or weeks. Signs include:
+- One tyre consistently lower than the others when you check pressure
+- TPMS warning light appearing repeatedly after you inflate the tyre
+- Handling feeling slightly different (slight pull to one side, especially on corners)
+
+A slow puncture is usually caused by a nail or screw embedded in the tread area (which does not cause instant deflation) or a faulty valve. Check the tyre surface for foreign objects and the valve for a leaking core.
+
+**Do not ignore a slow puncture** — the object causing the leak will work deeper into the tyre with continued use, eventually causing rapid deflation or making the tyre unrepairable.
+
+Tyre Rescue can diagnose and repair a slow puncture at your location across all of Scotland. Call **0141 266 0690**.
+
+## Key Numbers to Remember
+
+- Check pressure: monthly and before long journeys
+- Pressure drops: approximately 1 PSI per 10°C temperature fall
+- Under-inflation threshold: TPMS warns at 25% below recommended pressure
+- Tyre life penalty: 25% faster wear for 20% under-inflation
+
+[TPMS warning light guide](/blog/tpms-warning-light-scotland-guide) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Tyre maintenance checklist](/blog/tyre-maintenance-checklist-scotland)`,
+  },
+  {
     slug: 'how-to-read-tyre-size-markings',
     title: 'How to Read Tyre Size Markings: 205/55R16 Explained',
     description:
