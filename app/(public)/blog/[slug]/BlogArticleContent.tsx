@@ -361,6 +361,49 @@ export function BlogArticleContent({
               </Flex>
             </Box>
           )}
+          {/* Service links */}
+          <Box
+            mt={16}
+            p={6}
+            bg={colors.surface}
+            borderRadius="12px"
+            border="1px solid"
+            borderColor={colors.border}
+          >
+            <Heading as="h2" fontSize="20px" fontWeight="800" color={colors.textPrimary} mb={3}>
+              Need a tyre fitter in Scotland?
+            </Heading>
+            <Text color={colors.textSecondary} fontSize="15px" mb={5}>
+              Tyre Rescue covers all of Scotland — Glasgow to Shetland. Call 0141 266 0690 or book
+              online for mobile tyre fitting at your location.
+            </Text>
+            <Flex gap={3} flexWrap="wrap">
+              {[
+                { label: 'Mobile Tyre Fitting Scotland', href: '/mobile-tyre-fitting' },
+                { label: 'Puncture Repair Scotland', href: '/puncture-repair' },
+                { label: 'Emergency Callout', href: '/emergency-tyre-fitting-near-me' },
+                { label: 'All Service Areas', href: '/service-areas' },
+                { label: 'Get a Quote', href: '/book' },
+              ].map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  style={{
+                    display: 'inline-block',
+                    padding: '8px 14px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(249,115,22,0.4)',
+                    color: '#F97316',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </Flex>
+          </Box>
         </Container>
       </Box>
       <Footer />
