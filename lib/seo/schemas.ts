@@ -28,7 +28,7 @@ export function getLocalBusinessSchema(baseUrl: string = DEFAULT_BASE_URL) {
     name: 'Tyre Rescue',
     alternateName: 'Duke Street Tyres',
     description:
-      '24/7 mobile tyre fitting, emergency tyre replacement, and puncture repair across Scotland. Fast coverage in Glasgow and Edinburgh.',
+      '24/7 mobile tyre fitting, emergency tyre replacement, and puncture repair across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands, Islands and every postcode in between.',
     url: baseUrl,
     telephone: PHONE,
     email: EMAIL,
@@ -44,8 +44,14 @@ export function getLocalBusinessSchema(baseUrl: string = DEFAULT_BASE_URL) {
       { '@type': 'AdministrativeArea', name: 'Scotland' },
       { '@type': 'City', name: 'Glasgow' },
       { '@type': 'City', name: 'Edinburgh' },
+      { '@type': 'City', name: 'Aberdeen' },
+      { '@type': 'City', name: 'Inverness' },
       { '@type': 'City', name: 'Dundee' },
       { '@type': 'City', name: 'Stirling' },
+      { '@type': 'City', name: 'Perth' },
+      { '@type': 'City', name: 'Fort William' },
+      { '@type': 'City', name: 'Oban' },
+      { '@type': 'City', name: 'Stornoway' },
     ],
     sameAs: [
       'https://www.facebook.com/share/1Bt1ZFNkXN/',
@@ -64,7 +70,7 @@ export function getLocalBusinessSchema(baseUrl: string = DEFAULT_BASE_URL) {
       '@type': 'ContactPoint',
       telephone: PHONE,
       contactType: 'emergency',
-      areaServed: ['Glasgow', 'Edinburgh', 'Central Scotland'],
+      areaServed: ['Scotland'],
       availableLanguage: 'English',
       hoursAvailable: {
         '@type': 'OpeningHoursSpecification',

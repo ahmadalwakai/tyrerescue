@@ -17,7 +17,7 @@ export const faqItems: FAQItem[] = [
     id: 'emergency-response-time',
     question: 'How quickly can you get to me in an emergency?',
     answer:
-      'For emergency callouts in Glasgow and Edinburgh city centres, we typically arrive within 45 minutes. For surrounding areas across Central Scotland, arrival times vary based on distance but we always provide an accurate ETA when you book.',
+      'For emergency callouts in Glasgow and Edinburgh city centres, we typically arrive within 45 minutes. For other cities across Scotland — Aberdeen, Inverness, Dundee, Perth and beyond — response times vary by distance and we always provide an accurate ETA when you book.',
     category: 'emergency',
     isHomepageVisible: true,
   },
@@ -33,7 +33,7 @@ export const faqItems: FAQItem[] = [
     id: 'roadside-assistance',
     question: 'Can you come to me if I am stuck at the roadside?',
     answer:
-      'Yes. Our mobile fitters attend roadside callouts across Glasgow, Edinburgh, and surrounding areas. Whether you are on a main road, motorway hard shoulder, or a side street, we come to your exact location. Simply share your position when booking and we will dispatch a fitter.',
+      'Yes. Our mobile fitters attend roadside callouts across all of Scotland — from Glasgow and Edinburgh to Aberdeen, Inverness, Fort William and the Highlands. Whether you are on a main road, motorway hard shoulder, or a rural B-road, we come to your exact location. Simply share your position when booking and we will dispatch the nearest available fitter.',
     category: 'emergency',
     isHomepageVisible: false,
   },
@@ -43,7 +43,7 @@ export const faqItems: FAQItem[] = [
     id: 'coverage-areas',
     question: 'What areas do you cover?',
     answer:
-      'We cover Glasgow, Edinburgh, and all surrounding areas across Central Scotland. This includes Paisley, East Kilbride, Hamilton, Livingston, Falkirk, Stirling, Perth, Dundee, and many more locations. Enter your postcode when booking and our system confirms whether we can reach you.',
+      'We cover the whole of Scotland — from Glasgow, Edinburgh, Aberdeen and Inverness to the Highlands, Argyll, the Scottish Borders, Orkney, the Western Isles and Shetland. Every Scottish postcode from G to ZE is in our coverage area. Enter your postcode when booking and our system confirms your exact availability and response time.',
     category: 'general',
     isHomepageVisible: true,
   },
