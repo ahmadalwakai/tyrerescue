@@ -4049,6 +4049,117 @@ For drivers in Lerwick itself, response is typically fastest as we maintain a lo
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
   },
   {
+    slug: 'caravan-motorhome-tyres-scotland',
+    title: 'Caravan & Motorhome Tyres Scotland: What You Need to Know',
+    description:
+      'Caravan and motorhome tyre guide for Scottish touring. When to replace, age limits, motorhome tyre sizes, and what to do if you get a flat on a Scottish touring route.',
+    category: 'safety',
+    publishDate: '2026-04-01',
+    lastModified: '2026-04-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'caravan tyres scotland',
+      'motorhome tyres scotland',
+      'caravan tyre replacement scotland',
+      'caravan tyre age limit scotland',
+      'motorhome flat tyre scotland',
+      'nc500 caravan tyres',
+      'touring caravan tyres uk',
+      'caravan tyre fitting scotland mobile',
+    ],
+    relatedSlugs: [
+      'tyre-age-when-to-replace-scotland',
+      'spare-tyre-uk-law-scotland',
+      '24-hour-emergency-tyre-fitting-scotland',
+    ],
+    content: `# Caravan & Motorhome Tyres Scotland: What You Need to Know
+
+Scotland is one of the UK's premier caravan and motorhome touring destinations. The NC500, the Hebridean Way, the Scottish Borders, and Galloway attract hundreds of thousands of touring vehicles each year. Caravan and motorhome tyres have specific requirements and failure modes that differ from car tyres — and the consequences of a blowout while towing on a Highland route are more serious.
+
+## The Most Important Fact About Caravan Tyres
+
+**Caravans are parked for months at a time, often outdoors.** During this storage period, the tyres:
+- Are exposed to UV radiation (even in Scottish overcast conditions, UV degrades rubber)
+- Experience temperature cycling (freeze-thaw)
+- Carry the static weight of the caravan
+- May have flat spots develop if not moved
+
+The industry standard recommendation is to replace caravan tyres at **5 years**, regardless of tread depth. This is more conservative than car tyres (10 years) specifically because of the storage degradation factor. Many caravan insurers and the Caravan and Motorhome Club recommend this same 5-year threshold.
+
+## Motorhome Tyres: Different Rules
+
+Motorhome tyres are more like commercial vehicle tyres. Motorhomes are heavier than caravans (a large motorhome can exceed 7,500kg MTPLM), are driven more frequently, and their tyres need to handle both driving loads and the continuous weight of a heavy vehicle in storage.
+
+Motorhome tyres should be:
+- Rated for the vehicle's maximum permissible mass (check the plate on the vehicle)
+- Replaced at 7 years maximum (more frequent for high-mileage motorhomes)
+- Checked for age via the DOT date code on every pre-season inspection
+
+## How to Check Caravan and Motorhome Tyre Age
+
+The DOT date code on the tyre sidewall gives the week and year of manufacture. The last four digits: first two = week, last two = year.
+
+**Example**: DOT ... 1819 = manufactured in week 18 of 2019 = approximately May 2019.
+
+If your caravan's tyres were made in 2019 or earlier, they should be replaced now.
+
+## Pre-Season Tyre Inspection for Scotland Touring
+
+Before your Scottish touring season (typically Easter to October), inspect all caravan or motorhome tyres:
+
+1. **Check the DOT age code** on every tyre — replace if over 5 years (caravan) or 7 years (motorhome)
+2. **Check tread depth** — minimum 1.6mm, but we recommend 3mm for touring routes that include wet Highland roads
+3. **Check sidewall condition** — any cracking, bubbling, or discolouration warrants replacement
+4. **Check inflation pressure** — inflate to the recommended cold pressure (caravan: typically 45–55 PSI; check your handbook)
+5. **Look for flat spots** — roll the caravan forward 2–3 feet and re-inspect the contact patch
+
+## Common Caravan and Motorhome Tyre Sizes in Scotland
+
+Caravan tyres are typically narrower than car tyres and use a different aspect ratio:
+
+### Common Caravan Sizes
+- 185R14C — most common UK touring caravan size
+- 195/70R14C — widespread on mid-size caravans
+- 195/70R15C — used on larger caravans
+- 225/75R16C — some large twin-axle caravans
+
+The **C** designation indicates commercial rating — these are caravan-specific tyres designed for static loads and intermittent use.
+
+### Common Motorhome Sizes
+- 225/75R16C (smaller motorhomes — Fiat Ducato, Peugeot Boxer based)
+- 235/65R16C (Volkswagen Crafter, Mercedes Sprinter based)
+- 225/70R15C (older motorhomes)
+- 235/75R15 (some American and large European motorhomes)
+
+## What to Do If You Have a Caravan Flat Tyre in Scotland
+
+### If you have a spare wheel on the caravan
+Many older caravans have a spare wheel. If you have one and know how to use it safely (without destabilising the caravan during jacking), this is the quickest solution. Always use proper caravan-rated axle stands, not just a scissor jack.
+
+### If you do not have a spare (many modern caravans do not)
+Call **0141 266 0690** immediately. We carry common caravan tyre sizes and can attend to the site of the breakdown. Give your location as precisely as possible — a postcode, the nearest village, or a what3words address on remote routes.
+
+### On the NC500 or remote Highland roads
+Caravanning the NC500 with a flat is one of the most challenging rural breakdown scenarios in the UK. Very few local businesses carry caravan tyre sizes. Call us as soon as you notice the problem — the earlier you call, the better the ETA we can give.
+
+## Towing Vehicle Tyres
+
+The tyres on the car towing your caravan are at least as important as the caravan tyres. Towing places significant additional load on the rear axle of the tow car, accelerates rear tyre wear, and demands tyres rated for the towball weight. Check:
+
+- Your tow car tyres are at correct pressure for laden/towing use (typically higher than unladen pressure — check your car's door placard for the loaded pressure)
+- The rear tyres are in good condition (tyre wear is faster on the rear when towing)
+- Load index is adequate for the car's maximum gross weight
+
+## Book Mobile Caravan Tyre Fitting in Scotland
+
+Tyre Rescue can attend to caravan breakdowns across Scotland including remote Highland and island routes. We carry common caravan sizes and can source less common ones with advance notice.
+
+**Call 0141 266 0690** to confirm stock of your specific caravan tyre size, especially for the NC500 or island routes where advance planning is important.
+
+[Tyre age guide](/blog/tyre-age-when-to-replace-scotland) | [Spare tyre law Scotland](/blog/spare-tyre-uk-law-scotland) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
+  },
+  {
     slug: 'land-rover-range-rover-tyres-scotland',
     title: 'Land Rover & Range Rover Tyre Fitting Scotland: All Models',
     description:
