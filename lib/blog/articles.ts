@@ -4049,6 +4049,203 @@ For drivers in Lerwick itself, response is typically fastest as we maintain a lo
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
   },
   {
+    slug: 'spare-tyre-uk-law-scotland',
+    title: 'Spare Tyres: UK Law, Your Rights & What to Do Without One',
+    description:
+      'Is it illegal to drive without a spare tyre in the UK? What are your options — space-saver, run-flat, tyre repair kit? And what to do when you get a flat with no spare in Scotland.',
+    category: 'safety',
+    publishDate: '2025-11-15',
+    lastModified: '2025-11-15',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'spare tyre law uk',
+      'is it illegal to drive without spare tyre uk',
+      'no spare tyre what to do',
+      'space saver spare tyre scotland',
+      'tyre repair kit vs spare tyre',
+      'flat tyre no spare scotland',
+      'run flat spare tyre',
+      'breakdown without spare tyre scotland',
+    ],
+    relatedSlugs: [
+      'what-to-do-flat-tyre-motorway',
+      'run-flat-tyres-scotland-guide',
+      '24-hour-emergency-tyre-fitting-scotland',
+    ],
+    content: `# Spare Tyres: UK Law, Your Rights & What to Do Without One
+
+Many modern cars no longer include a full-size spare tyre. If you are not sure what your car has — or does not have — read this guide before you get a flat tyre in rural Scotland.
+
+## Is It Illegal to Drive Without a Spare Tyre in the UK?
+
+**No. There is no legal requirement to carry a spare tyre in the UK.**
+
+Unlike some European countries (Germany, for example, requires a spare or run-flat system), UK law does not mandate that vehicles carry a spare. You can legally drive without one.
+
+However, if your vehicle is designed for run-flat tyres and you have fitted conventional tyres without run-flat capability, and you then get a flat in a remote location, you are responsible for the consequences — there is no legal cover for that.
+
+## What Modern Cars Have Instead of a Spare Tyre
+
+### Option 1: Run-Flat Tyres
+Many BMWs, MINIs, and Mercedes models come fitted with run-flat tyres. These reinforced tyres allow limited driving (50mph, 50 miles) on zero pressure. There is no spare wheel at all.
+
+Advantage: no space or weight penalty from a spare.
+Disadvantage: run-flat tyres cost more to replace, cannot typically be repaired, and the 50-mile range is insufficient for remote Scottish locations.
+
+### Option 2: Space-Saver Spare (Temporary Use Spare)
+A smaller, lighter spare wheel designed for short-term use. Usually stored in the boot well. Identified by its narrower profile and typically yellow or orange markings.
+
+Rules for space-saver use:
+- Maximum speed: 50mph (80km/h)
+- Maximum distance: 50 miles recommended (though not legally enforced)
+- Do not use for long journeys or at motorway speed
+- Replace with a full-size tyre as soon as possible
+
+A space-saver is suitable for reaching the nearest tyre fitter after a flat, which in the Central Belt of Scotland is rarely more than 10–15 miles. For Highland and remote routes, be aware that the nearest fitter could be further.
+
+### Option 3: Tyre Inflation / Repair Kit
+Many modern cars include only a can of tyre sealant and a portable compressor. This is the manufacturer's compromise to save weight.
+
+The inflation kit works for:
+- Small punctures in the tread area (not sidewall damage)
+- Slow leaks where the tyre is not fully flat
+
+The kit does NOT work for:
+- Blowouts
+- Sidewall damage
+- Punctures larger than approximately 4mm
+- Tyres that have been driven flat
+
+**If you use sealant, tell the tyre fitter** — sealant inside the tyre must be cleaned out before a new tyre is fitted. It also makes the puncture non-repairable.
+
+### Option 4: Full-Size Spare (Matching Spare)
+The traditional solution. Some vehicles — particularly large SUVs and pickup trucks — still include a full-size spare identical to the fitted tyres. This allows normal driving speed and distance without restriction.
+
+## What to Do When You Have a Flat and No Spare in Scotland
+
+1. **Assess the tyre**: Is it slowly losing air (puncture) or rapidly flat (blowout/sidewall)?
+2. **Check for a repair kit**: If your car has one and the puncture is in the tread, attempt inflation and sealant
+3. **Do not drive on a flat tyre**: Driving even 100 metres on a completely flat tyre can destroy the tyre, the rim, and potentially the brake caliper
+4. **Call Tyre Rescue**: 0141 266 0690 — we come to you anywhere in Scotland, 24 hours a day
+
+If you are on a remote Highland road, Argyll coast, or island route, call immediately. Do not wait to see if the sealant works on a serious puncture — losing pressure on a remote road is the more dangerous outcome.
+
+## Should You Buy a Spare Tyre for Your Car?
+
+If your vehicle does not include a space-saver or full-size spare, you can purchase one. Options:
+
+- **Space-saver spare + correct jack and wrench**: Typically £80–£150. Requires checking that the space-saver is the correct bolt pattern for your vehicle.
+- **Full-size spare**: £150–£350 for tyre + matching steel wheel. Requires boot space for storage.
+- **Continue with run-flat/sealant and rely on mobile tyre fitting**: The correct choice for most Central Belt drivers where response times are 30–50 minutes.
+
+For **Highland and remote Scottish drivers**, carrying a space-saver spare is strongly recommended if your vehicle does not include one. 50 miles from help is a very different situation from 5 miles.
+
+## Emergency Tyre Help Anywhere in Scotland
+
+Whether you have a spare tyre or not, Tyre Rescue can reach you with a replacement tyre anywhere in Scotland. Call **0141 266 0690** — 24 hours a day, 7 days a week.
+
+[Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Run-flat tyres guide](/blog/run-flat-tyres-scotland-guide) | [What to do flat tyre motorway](/blog/what-to-do-flat-tyre-motorway)`,
+  },
+  {
+    slug: 'tyre-age-when-to-replace-scotland',
+    title: 'Tyre Age: When Should You Replace Old Tyres in Scotland?',
+    description:
+      'How old is too old for a tyre? The DOT date code explained, why age matters even with good tread, and the recommended replacement timeline for Scottish conditions.',
+    category: 'safety',
+    publishDate: '2025-11-15',
+    lastModified: '2025-11-15',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'how old are my tyres',
+      'tyre age scotland',
+      'when to replace old tyres',
+      'dot date code tyre',
+      'tyre expiry date uk',
+      'old tyres dangerous scotland',
+      'tyre age limit uk',
+      'tyre condition check scotland',
+    ],
+    relatedSlugs: [
+      'tyre-tread-depth-guide-scotland',
+      'tyre-maintenance-checklist-scotland',
+      'signs-you-need-new-tyres',
+    ],
+    content: `# Tyre Age: When Should You Replace Old Tyres in Scotland?
+
+A tyre with plenty of tread can still be dangerous. As rubber ages, it degrades — becoming brittle, losing elasticity, and developing microscopic cracks that are not always visible to the naked eye. This is particularly relevant in Scotland's climate, where temperature extremes and UV exposure accelerate ageing.
+
+## The DOT Date Code: How to Find Your Tyre's Age
+
+Every tyre manufactured for sale in the EU and UK has a DOT (Department of Transportation) code moulded into one of its sidewalls. The date of manufacture is the last four digits of this code.
+
+**Example**: If you see **DOT ... 3218**, the tyre was manufactured in **week 32 of 2018** — that is approximately August 2018.
+
+To read the code:
+1. Look for the letters 'DOT' on the tyre sidewall
+2. Find the sequence of numbers that follows
+3. The last four digits are the week (first two) and year (last two) of manufacture
+
+Some tyres show the DOT code on the inner sidewall — check both sides if you cannot find it on the outer face.
+
+## How Old Is Too Old?
+
+There is no single legal limit on tyre age in the UK for private cars (HGVs and coaches have stricter rules — tyres over 10 years old on front axles are prohibited).
+
+However, the industry consensus and the recommendations of major tyre manufacturers are:
+
+| Tyre Age | Recommendation |
+|----------|----------------|
+| Under 5 years | Normal use — monitor condition |
+| 5–10 years | Annual inspection by a qualified fitter recommended |
+| Over 10 years | Replace regardless of visual condition or tread depth |
+
+**In Scotland's conditions** — temperature extremes from -15°C in the Highlands to 25°C+ in summer, significant rainfall, UV exposure on highland routes — the timeline shifts slightly:
+
+- Annual inspection from **5 years**
+- Replacement at **7–8 years** if the vehicle is driven frequently or on demanding routes
+
+## Why Does Tyre Age Matter?
+
+Rubber compounds contain anti-oxidants and anti-ozonants that slow degradation. As these compounds are depleted over time, the rubber becomes less elastic. The effects include:
+
+- **Micro-cracking**: Tiny cracks develop in the tread and sidewall, often not visible without close inspection
+- **Hardening**: The tyre loses its ability to conform to road surface irregularities, reducing grip
+- **Reduced wet performance**: A hardened tyre sheds water less effectively, increasing aquaplaning risk
+- **Increased blowout risk**: Aged rubber is less able to withstand sudden pressure changes, particularly at motorway speeds
+
+On Scotland's roads — where rain is frequent and motorway sections of the A9, M8, and M74 see high speeds — these risks are more acute than for low-speed urban driving.
+
+## Visible Signs of Tyre Ageing
+
+In addition to the date code, inspect for:
+
+- **Surface cracking**: Fine cracks in the tread groove walls or sidewall, often described as 'crazing' or 'checking'
+- **Sidewall cracking**: Cracks that run parallel to the tyre's circumference on the sidewall
+- **Bulging**: Any bulge or deformation, regardless of age
+- **Discolouration**: Excessive yellowing or greying of the rubber
+
+Any visible cracking beyond superficial surface marks warrants immediate replacement, regardless of tread depth.
+
+## Caravan and Trailer Tyres
+
+Caravan and trailer tyres age faster than vehicle tyres because they are typically stored for months each year, often in exposed conditions. The industry recommendation for caravan tyres is **replacement at 5 years**, regardless of condition or tread. Scotland's camping and touring season means many caravans are stored from October to March — the UV and temperature cycles during storage accelerate ageing even when the caravan is not moving.
+
+## How to Check Your Tyres' Age
+
+1. Locate the DOT code on each tyre sidewall
+2. Calculate the age from the four-digit date code
+3. If any tyre is over 10 years old, book replacement immediately
+4. If 5–10 years, arrange a professional inspection
+
+Tyre Rescue will assess tyre age and condition at the time of any callout. If we identify aged tyres during a fitting visit, we will advise — and can fit replacements at the same visit.
+
+**Call 0141 266 0690** to arrange a tyre age check and replacement across Scotland.
+
+[Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland) | [Signs you need new tyres](/blog/signs-you-need-new-tyres) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
+  },
+  {
     slug: 'winter-tyres-when-to-switch-scotland',
     title: 'Winter Tyres in Scotland: When to Switch and Is It Worth It?',
     description:
