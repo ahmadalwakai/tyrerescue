@@ -4049,6 +4049,238 @@ For drivers in Lerwick itself, response is typically fastest as we maintain a lo
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
   },
   {
+    slug: 'how-to-read-tyre-size-markings',
+    title: 'How to Read Tyre Size Markings: 205/55R16 Explained',
+    description:
+      'What do the numbers on a tyre mean? This guide explains every marking on your tyre sidewall — width, profile, rim size, load rating, speed rating — so you can buy the right tyre.',
+    category: 'maintenance',
+    publishDate: '2025-10-15',
+    lastModified: '2025-10-15',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'how to read tyre size',
+      'tyre size explained',
+      'what do tyre numbers mean',
+      '205 55 r16 meaning',
+      'tyre width profile rim size',
+      'tyre load rating speed rating',
+      'tyre markings explained uk',
+      'what size tyres do i need',
+    ],
+    relatedSlugs: [
+      'tyre-maintenance-checklist-scotland',
+      'best-tyres-scottish-roads-guide',
+      'tyre-tread-depth-guide-scotland',
+    ],
+    content: `# How to Read Tyre Size Markings: 205/55R16 Explained
+
+Every tyre has a code printed on its sidewall — a sequence of numbers, letters, and symbols that defines its exact specification. Understanding these markings is essential when you need to replace a tyre, buy spares, or simply check whether the tyre on your vehicle is correct.
+
+## The Main Size Code: 205/55R16
+
+Using the example 205/55R16:
+
+### 205 — Tyre Width (in millimetres)
+This is the width of the tyre across its widest point, measured in millimetres. A wider tyre provides more road contact and can improve grip, but it also increases rolling resistance and fuel consumption. Common widths range from 135mm (small city cars) to 315mm (performance SUVs).
+
+### 55 — Aspect Ratio (Profile)
+This is the height of the tyre sidewall expressed as a percentage of the width. So for a 205/55 tyre, the sidewall height is 55% of 205mm = 112.75mm.
+
+- A **lower profile** (e.g., 35 or 40) looks sportier and improves handling precision but gives a harsher ride and is more vulnerable to pothole damage — a significant consideration on Scottish Highland roads.
+- A **higher profile** (e.g., 65 or 70) gives a more comfortable ride and better cushioning on rough surfaces.
+
+### R — Radial Construction
+The 'R' indicates radial tyre construction — the standard for all modern passenger car tyres. (The alternative, 'D' for diagonal/bias-ply, is now rare and used mainly on older vehicles and some motorcycles.)
+
+### 16 — Rim Diameter (in inches)
+This is the diameter of the wheel rim the tyre fits onto, measured in inches. This must match your wheel exactly — a 16-inch tyre will only fit a 16-inch rim.
+
+## Additional Markings: Speed Rating and Load Index
+
+After the main size code, you will typically see two more characters, e.g., **91V** or **88H**.
+
+### Load Index (the number)
+The load index tells you the maximum weight each tyre can carry. Common values:
+
+| Load Index | Max Load per Tyre |
+|------------|-------------------|
+| 80         | 450 kg            |
+| 88         | 560 kg            |
+| 91         | 615 kg            |
+| 95         | 690 kg            |
+| 101        | 825 kg            |
+
+Never fit a tyre with a lower load index than specified for your vehicle. The recommended load index is in your vehicle handbook and on the tyre placard (inside the driver's door or fuel cap).
+
+### Speed Rating (the letter)
+The speed rating indicates the maximum sustained speed the tyre is designed for. Common ratings:
+
+| Letter | Max Speed |
+|--------|-----------|
+| S      | 180 km/h (112 mph) |
+| T      | 190 km/h (118 mph) |
+| H      | 210 km/h (130 mph) |
+| V      | 240 km/h (149 mph) |
+| W      | 270 km/h (168 mph) |
+| Y      | 300 km/h (186 mph) |
+
+In Scotland, national speed limit roads top out at 70mph (113 km/h), so any common speed rating is technically sufficient for legal road use. However, always match or exceed the speed rating specified for your vehicle.
+
+## Other Tyre Sidewall Markings
+
+### M+S or M&S
+Mud and Snow. A tyre with this marking is designed for light winter conditions. Note: M+S alone does NOT mean it meets the Three Peak Mountain Snowflake (3PMSF) standard for severe winter performance.
+
+### Three Peak Mountain Snowflake (3PMSF)
+A mountain symbol with a snowflake inside indicates the tyre has passed tests for severe snow performance. This is the true winter tyre certification. For Scottish Highland drivers, look for this symbol.
+
+### Run Flat Markings
+Different manufacturers use different codes:
+- BMW / MINI: **RSC** (Run-flat System Component)
+- Bridgestone: **RFT** or **RUN FLAT**
+- Continental: **SSR** (Self Supporting Runflat)
+- Dunlop: **DSST** (Dunlop Self-Supporting Technology)
+- Goodyear: **ROF** (Run On Flat)
+- Michelin: **ZP** (Zero Pressure)
+- Pirelli: **RF** or **RUN FLAT**
+
+### XL or Extra Load
+Indicates a reinforced tyre that can carry more weight than a standard tyre of the same size. Often found on SUVs and larger estate cars. If your vehicle spec requires XL tyres, only fit XL-rated replacements.
+
+### EU Tyre Label Ratings
+Look for a QR code or text indicating:
+- **Fuel efficiency** (A–G): A is most efficient
+- **Wet grip** (A–G): A is best braking performance in wet conditions
+- **Noise** (dB): lower is quieter
+
+## Where to Find Your Tyre Size
+
+If you are unsure what size you need:
+
+1. **On the tyre itself**: Look at the sidewall of any of your existing tyres
+2. **Driver's door placard**: Sticker inside the driver's door frame
+3. **Fuel cap sticker**: On some vehicles
+4. **Vehicle handbook**: In the specification section
+5. **Online lookup**: Your vehicle registration number can be used to check recommended tyre sizes
+
+## Ordering Tyres Through Tyre Rescue
+
+When you call **0141 266 0690** or [book online](/book), have your tyre size ready. We will confirm availability, quote a price for your chosen brand tier (budget, mid-range, or premium), and dispatch a fitter to your location across Scotland.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide) | [Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland)`,
+  },
+  {
+    slug: 'mot-tyre-requirements-scotland',
+    title: 'MOT Tyre Requirements in Scotland: What Will Fail Your MOT',
+    description:
+      'Everything you need to know about MOT tyre checks in Scotland — what inspectors check, what causes a fail, how to prepare, and how to get tyres fitted before your MOT.',
+    category: 'safety',
+    publishDate: '2025-10-15',
+    lastModified: '2025-10-15',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'MOT tyre requirements scotland',
+      'MOT tyre check',
+      'do tyres fail MOT',
+      'MOT tyre tread depth',
+      'MOT fail tyres',
+      'tyre sidewall MOT fail',
+      'prepare tyres for MOT',
+      'mobile tyre fitting before MOT',
+    ],
+    relatedSlugs: [
+      'tyre-tread-depth-guide-scotland',
+      'signs-you-need-new-tyres',
+      'tyre-maintenance-checklist-scotland',
+    ],
+    content: `# MOT Tyre Requirements in Scotland: What Will Fail Your MOT
+
+Your MOT test includes a comprehensive tyre inspection. Tyre-related failures are among the most common reasons for MOT failures in Scotland — and most of them are easily avoidable with a pre-MOT check. Here is exactly what inspectors look for.
+
+## What MOT Inspectors Check on Tyres
+
+MOT testers check each tyre against the standards set in the DVSA (Driver and Vehicle Standards Agency) MOT inspection manual. The main checks are:
+
+### 1. Tread Depth
+The legal minimum is 1.6mm across the central three-quarters of the tyre, around the full circumference. Inspectors measure tread depth using calibrated gauges, typically at multiple points. Even one measurement below 1.6mm in the checked area results in an immediate fail.
+
+### 2. Tread Pattern
+The tread must be clearly visible and not excessively or unevenly worn. A tyre with tread worn smooth in places — even if the depth at other points exceeds 1.6mm — can fail.
+
+### 3. Sidewall Condition
+Inspectors check for:
+- **Cuts or gashes**: Any cut exposing the ply or cord beneath the rubber is an automatic fail
+- **Bulges or lumps**: Indicate internal structural failure — automatic fail
+- **Cracks**: Deep cracking or crazing in the sidewall, particularly if cords are visible
+- **Deformation**: Any area of the sidewall that appears misshapen under load
+
+### 4. Mixing Tyres
+Mixing radial and cross-ply tyres on the same axle is an automatic fail. On vehicles with more than two wheels on an axle, all tyres on that axle must be the same type.
+
+### 5. Type Suitability
+The tyre must be appropriate for the vehicle — correct size, sufficient load index and speed rating for the vehicle specification. Non-standard or incorrectly sized tyres can result in a fail.
+
+### 6. Condition of Bead Area
+The bead (where the tyre seats on the rim) is inspected for damage or separation. A damaged bead cannot form an airtight seal.
+
+### 7. Tyre Security
+Tyres must be properly seated on the rim with no signs of slippage or separation.
+
+## What Causes an Automatic MOT Tyre Fail?
+
+The following result in an immediate fail with no advisory — the vehicle cannot legally be driven from the test centre on that tyre:
+
+- Tread depth below 1.6mm at any measured point in the checked zone
+- Bulge, lump, or deformation in the tyre
+- Cut exposing plies or cords
+- Tyre that is clearly not in contact with the road (separated bead)
+- Mixing radial and cross-ply tyres on the same axle
+
+## What Gets an Advisory Note?
+
+Advisory notes do not cause a fail but indicate that attention will be needed before the next MOT:
+
+- Tread depth between 1.6mm and approximately 2–3mm (not an automatic fail, but inspector will note it)
+- Minor surface cracking in the sidewall without cord exposure
+- Slight but not severe uneven wear
+
+## How to Check Your Tyres Before MOT
+
+1. **Tread depth**: Use a gauge or the 20p coin test. Check across the full tread width and around the circumference. Replace anything approaching 2mm or below.
+2. **Visual inspection**: Walk around the car and inspect each tyre for bulges, cuts, or obvious cracks. Check both the outer and inner sidewalls if you can see them.
+3. **Age**: Tyres over 10 years old can fail — check the DOT date code on the sidewall (last four digits: week and year of manufacture). A tyre marked 3218 was made in week 32 of 2018.
+4. **Inflation**: Properly inflated tyres are less likely to show deformation and show wear patterns more clearly. Check pressures against the vehicle placard.
+
+## Getting Tyres Fitted Before Your MOT in Scotland
+
+If your tyres are borderline or failing, the most cost-effective approach is to get them replaced before you attend the MOT — a tyre fail means you will pay for the test again plus the tyre fitting.
+
+Tyre Rescue can fit new tyres at your home, workplace, or even at the MOT centre before your appointment:
+
+- **Call 0141 266 0690** with your tyre size
+- **Same-day or emergency fitting** available if your MOT is imminent
+- **Budget options from approximately £55–£70 fitted** for common sizes
+
+It is often quicker and cheaper to have tyres fitted at home before the MOT than to deal with a fail and re-test fee (typically £30–£60) plus rushed fitting on the day.
+
+## MOT Tyre Checklist
+
+Before presenting your vehicle for MOT, verify:
+
+- [ ] Tread depth above 2mm (ideally 3mm) across all four tyres
+- [ ] No visible bulges, cuts, or sidewall damage
+- [ ] All four tyres are the same type (all radial, or all cross-ply)
+- [ ] Tyre sizes match the vehicle specification
+- [ ] No visible tread wear indicators exposed
+- [ ] Tyre age under 10 years (check DOT date code)
+
+**Call 0141 266 0690** to book pre-MOT tyre fitting anywhere in Scotland. We will bring the right tyres to you and have you ready for your appointment.
+
+[Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland) | [Signs you need new tyres](/blog/signs-you-need-new-tyres) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
+  },
+  {
     slug: 'tyre-tread-depth-guide-scotland',
     title: 'Tyre Tread Depth: Legal Limit, Checking Guide & When to Replace',
     description:
