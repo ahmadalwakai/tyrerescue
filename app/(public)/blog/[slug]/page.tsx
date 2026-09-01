@@ -30,6 +30,42 @@ const HOW_TO_SCHEMAS: Record<string, Parameters<typeof getHowToSchema>[0]> = {
       { name: 'Call Tyre Rescue on 0141 266 0690', text: 'Call 0141 266 0690 and describe your location. We cover all of Scotland including Highland roads and the NC500. A fitter will be dispatched with your replacement tyre.' },
     ],
   },
+  'tyre-tread-depth-guide-scotland': {
+    name: 'How to check tyre tread depth',
+    description: 'Step-by-step guide to checking your tyre tread depth using a coin, indicator bars, or a gauge.',
+    steps: [
+      { name: 'Find a 20p coin', text: 'A 20p coin has an outer rim of approximately 2mm — perfect for a quick tread depth check.' },
+      { name: 'Insert the coin into the main tread groove', text: 'Press the 20p coin edge-first into the deepest tread groove across the central three-quarters of the tyre.' },
+      { name: 'Check whether the outer rim is visible', text: 'If you can see the outer rim of the coin above the tread, your depth is below 3mm and approaching the limit. If the rim is hidden, you have good tread remaining.' },
+      { name: 'Check the tread wear indicators', text: 'Look for small raised bars in the tread grooves — they sit at exactly 1.6mm. If the tread surface is flush with these bars, replace the tyre immediately.' },
+      { name: 'Check across the full tyre width', text: 'Uneven wear can mean one edge is legal while another is not. Check the tread depth at the inner edge, centre, and outer edge of each tyre.' },
+      { name: 'Check all four tyres', text: 'Walk around the car and check each tyre. If any tyre is at or below 3mm on Scottish roads, book a replacement — call 0141 266 0690 for mobile fitting at your location.' },
+    ],
+  },
+  'tyre-pressure-guide-scotland': {
+    name: 'How to check and adjust tyre pressure',
+    description: 'Step-by-step guide to finding the correct pressure, checking your tyres, and inflating to the right level.',
+    steps: [
+      { name: 'Find your recommended tyre pressure', text: 'Check the sticker inside your driver\'s door frame, the fuel cap, or your vehicle handbook. The pressure is shown in PSI or bar — for cold tyres.' },
+      { name: 'Check tyres when cold', text: 'Pressure readings are only accurate when tyres are cold (not driven on for 3+ hours). Warm tyres give a higher reading that does not accurately reflect the state of inflation.' },
+      { name: 'Remove the valve cap', text: 'Remove the valve cap from the tyre you are checking and keep it somewhere safe — you will need to replace it.' },
+      { name: 'Press a gauge firmly onto the valve', text: 'Press the gauge nozzle firmly onto the valve stem. You will hear a brief hiss as it seals. Read the pressure on the gauge.' },
+      { name: 'Compare to recommended pressure and adjust', text: 'If pressure is low, use the air pump to inflate until the gauge reads the correct level. If over-inflated, press the pin inside the valve briefly to release air, then recheck.' },
+      { name: 'Replace the valve cap and repeat for all four tyres', text: 'Always check all four tyres, as pressures can vary between wheels. Replace each valve cap after checking.' },
+    ],
+  },
+  'mot-tyre-requirements-scotland': {
+    name: 'How to prepare your tyres for MOT',
+    description: 'Pre-MOT tyre inspection checklist to avoid a tyre-related fail at your next MOT test.',
+    steps: [
+      { name: 'Check tread depth across all four tyres', text: 'Use a tread depth gauge or the 20p coin test. Tread must be above 1.6mm across the central three-quarters of the tyre. For Scotland, aim for at least 2mm to pass comfortably — ideally 3mm.' },
+      { name: 'Inspect sidewalls for bulges or cuts', text: 'Examine both the outer and inner sidewalls (if visible) for any bulge, lump, or cut that exposes the white cord beneath the rubber. Any of these is an automatic MOT fail.' },
+      { name: 'Check for cracking or crazing', text: 'Fine cracks in the tread groove walls or sidewall are common on older tyres. Deep cracks or any crack with visible cord beneath is a fail.' },
+      { name: 'Verify all tyres are the same type', text: 'Mixing radial and cross-ply (bias-ply) tyres on the same axle is an MOT fail. All your tyres should be the same construction type (radial for all modern passenger cars).' },
+      { name: 'Check the tyre DOT age code', text: 'Find the four-digit date code on the sidewall (week + year of manufacture). Tyres over 10 years old may fail — some testers now note this even on advisory.' },
+      { name: 'Book mobile tyre fitting if replacements are needed', text: 'If any tyre needs replacing before MOT, call Tyre Rescue on 0141 266 0690 to fit replacements at your home or work — often faster and cheaper than dealing with a MOT fail and re-test fee.' },
+    ],
+  },
 };
 
 // Daily ISR so admin-published edits land within 24h without redeploy.

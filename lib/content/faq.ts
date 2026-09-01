@@ -317,6 +317,80 @@ export const faqItems: FAQItem[] = [
     category: 'general',
     isHomepageVisible: false,
   },
+
+  // ── Tyres & Technical ────────────────────────────────
+  {
+    id: 'tyre-tread-depth-legal',
+    question: 'What is the legal minimum tyre tread depth in Scotland?',
+    answer:
+      'The UK legal minimum tyre tread depth is 1.6mm across the central three-quarters of the tyre, around the full circumference. Driving below this is a criminal offence — up to £2,500 fine and 3 penalty points per tyre. On Scotland\'s wet roads, we recommend replacing tyres when tread reaches 3mm, as braking performance degrades significantly below this level. Use the 20p coin test: if you can see the outer rim of the coin in the tread groove, you are approaching the limit.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'tyre-pressure-check',
+    question: 'What tyre pressure should I use and where do I check?',
+    answer:
+      'Your recommended tyre pressure is on a sticker inside the driver\'s door, on the fuel cap, or in the vehicle handbook. Pressures are typically 30–36 PSI for standard cars and 42–45 PSI for electric vehicles. Check pressures monthly and before long journeys using a gauge at a petrol station air pump. In Scotland\'s cold winters, tyre pressure drops approximately 1 PSI per 10°C temperature fall — pressures that were correct in summer may be 2–3 PSI low by January.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'tpms-light-meaning',
+    question: 'My TPMS (tyre pressure) warning light has come on — what should I do?',
+    answer:
+      'A solid TPMS warning light means at least one tyre is 25% or more below its recommended pressure. Do not ignore it — check all four tyres as soon as possible. If the light flashes for 60–90 seconds then stays on, this indicates a sensor fault rather than a pressure problem, often after a tyre change. Tyre Rescue resets TPMS sensors as standard when fitting tyres. If you are in a remote location and the tyre looks visibly flat, do not drive on it — call 0141 266 0690 immediately.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'mot-tyre-check',
+    question: 'What do MOT inspectors check on tyres, and what causes a fail?',
+    answer:
+      'MOT tyre checks cover: tread depth (must be above 1.6mm across the central three-quarters), sidewall condition (no bulges, cuts, or cracks exposing cords), correct fitment (no mixing of radial and cross-ply on the same axle), and load/speed rating suitability. An automatic fail is triggered by tread below 1.6mm, any bulge or structural damage, or cuts exposing the tyre cords. We recommend checking your tyres before your MOT and fitting replacements beforehand if needed — a tyre fail means paying for a re-test. We offer pre-MOT tyre fitting across Scotland.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'tyre-age-replacement',
+    question: 'How old is too old for a tyre, and how do I check my tyre\'s age?',
+    answer:
+      'Tyres over 10 years old should be replaced regardless of tread depth — aged rubber becomes brittle and can crack internally even when tread looks fine. Tyres between 5 and 10 years old should be inspected annually by a qualified fitter. To check age, find the DOT code on the tyre sidewall — the last four digits give the week and year of manufacture (e.g., 3218 = week 32 of 2018). Scottish temperature extremes and UV on Highland routes accelerate tyre ageing slightly compared to urban driving.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'spare-tyre-uk-law',
+    question: 'Is it illegal to drive without a spare tyre in the UK?',
+    answer:
+      'No — there is no legal requirement to carry a spare tyre in the UK. Many modern cars do not include one, instead providing run-flat tyres, a space-saver spare, or a tyre inflation kit. For Highland and remote Scottish routes, we strongly recommend either a space-saver spare or run-flat tyres, as a flat tyre 50+ miles from the nearest garage can leave you stranded well beyond the 50-mile run-flat range. If you have a flat with no spare in Scotland, call 0141 266 0690 and we will come to you.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'ev-tyre-replacement',
+    question: 'Do you fit electric vehicle (EV) tyres in Scotland?',
+    answer:
+      'Yes — we fit EV-specific and EV-compatible tyres for all major electric vehicle brands including Tesla, BMW i-Series, Volkswagen ID, Hyundai Ioniq, Kia EV6, Polestar, and others. EV tyres require a higher load index than equivalent petrol car tyres due to battery weight, and many EVs need acoustic (noise-reducing) tyres. When booking, mention your vehicle model and we will confirm the correct specification and EV-appropriate tyre options.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'winter-tyre-switch-timing',
+    question: 'When should I switch to winter tyres in Scotland?',
+    answer:
+      'The threshold for winter tyres is 7°C — below this temperature, standard summer tyre compound hardens and wet grip reduces significantly. In Scotland, this means: Central Belt (Glasgow, Edinburgh) switch from late October; Dundee, Perth and Aberdeen from mid-October; Highlands, Caithness, and northern Scotland from early to mid-October. For Central Belt drivers who do not want seasonal swaps, premium all-season tyres with the Three Peak Mountain Snowflake symbol (Michelin CrossClimate 2, Continental AllSeasonContact) offer year-round performance. We fit both winter and all-season tyres across Scotland.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'van-commercial-tyre-fitting',
+    question: 'Do you fit tyres on vans and commercial vehicles?',
+    answer:
+      'Yes — we carry and fit commercial (C-rated) tyres for Ford Transit, Mercedes Sprinter, Vauxhall Vivaro, VW Crafter, Renault Trafic, and other vans across Scotland. Commercial tyres require higher load ratings than passenger car tyres and must be correctly specified for the vehicle\'s payload. We offer emergency van tyre fitting 24/7 across Scotland, plus scheduled fleet tyre management for businesses running multiple vehicles. Call 0141 266 0690 with your van registration for a quote.',
+    category: 'services',
+    isHomepageVisible: false,
+  },
 ];
 
 /**
