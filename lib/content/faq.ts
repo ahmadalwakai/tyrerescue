@@ -261,6 +261,62 @@ export const faqItems: FAQItem[] = [
     category: 'emergency',
     isHomepageVisible: false,
   },
+  {
+    id: 'shetland-western-isles-coverage',
+    question: 'Do you cover Shetland and the Western Isles (Outer Hebrides)?',
+    answer:
+      'Yes — we cover both Shetland (Lerwick, ZE postcodes) and the Western Isles (Stornoway, Lewis, Harris, Uists, Barra — HS postcodes). Island services require a minimum 24 hours advance booking due to ferry and logistics scheduling. Call 0141 266 0690 as early as possible to arrange island cover. For genuine emergencies, we will explore all available options including local partner fitters.',
+    category: 'general',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'isle-of-skye-coverage',
+    question: 'Do you cover the Isle of Skye?',
+    answer:
+      'Yes — the Isle of Skye is accessible via the Skye Bridge and is within our coverage area. We serve Portree (IV51), Broadford (IV49), Kyle of Lochalsh (IV40), Uig, Dunvegan, and the Sleat Peninsula. Response times on Skye are typically 90–140 minutes depending on your location on the island. Call 0141 266 0690 as soon as you notice a tyre fault — the earlier you call, the faster we can reach you.',
+    category: 'general',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'scottish-borders-coverage',
+    question: 'Do you cover the Scottish Borders — Galashiels, Hawick, Peebles?',
+    answer:
+      'Yes — we cover all Scottish Borders towns including Galashiels (TD1), Hawick (TD9), Peebles (EH45), Melrose (TD6), Jedburgh (TD8), Kelso (TD5), and Duns (TD11). Response times from Glasgow and Edinburgh bases are typically 60–100 minutes. We cover the full A68 (Edinburgh to Jedburgh) and A7 (Edinburgh to Hawick) corridors.',
+    category: 'general',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'nc500-wick-thurso',
+    question: 'Do you cover Wick, Thurso and the far north of Scotland?',
+    answer:
+      'Yes — we cover Wick (KW1), Thurso (KW14), and Caithness (KW postcodes). These are among our most remote mainland locations, so response times are typically 150–180 minutes from our nearest Highland base. For NC500 breakdowns in Caithness, call 0141 266 0690 immediately rather than waiting — the sooner you call, the faster we can reach you. We cover the full NC500 route including the north coast.',
+    category: 'general',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'argyll-oban-coverage',
+    question: 'Do you cover Oban, Argyll and the Rest and Be Thankful area?',
+    answer:
+      'Yes — we cover Oban (PA34), Inveraray, Lochgilphead, Campbeltown, and the wider Argyll region (PA postcodes). We also attend callouts on the A83 through the Rest and Be Thankful mountain pass. Response times to Oban are typically 90–120 minutes from Glasgow. For Campbeltown at the tip of Kintyre, response times are 150–180 minutes — please call as soon as you notice a problem.',
+    category: 'general',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'cumbernauld-motherwell-coverage',
+    question: 'Do you cover Cumbernauld, Motherwell and North Lanarkshire?',
+    answer:
+      'Yes — North Lanarkshire is fully covered. This includes Motherwell (ML1–ML2), Wishaw, Coatbridge (ML5), Airdrie (ML6), Cumbernauld (G67–G68), Kilsyth, and Bellshill. Response times are typically 30–60 minutes from our Glasgow base. We also cover the M74 and M80 motorway corridors that run through North Lanarkshire.',
+    category: 'general',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'dunfermline-fife-coverage',
+    question: 'Do you cover Dunfermline and West Fife?',
+    answer:
+      'Yes — we cover Dunfermline (KY11–KY12), Rosyth, Inverkeithing, Cowdenbeath, and surrounding West Fife communities. Response times are typically 45–65 minutes. We also cover drivers who notice problems after crossing the Forth Road Bridge or Queensferry Crossing — common callout locations near the north end of the bridge.',
+    category: 'general',
+    isHomepageVisible: false,
+  },
 ];
 
 /**
