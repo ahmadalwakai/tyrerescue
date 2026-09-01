@@ -7006,6 +7006,308 @@ Call **0141 266 0690** or [book online](/book) for mobile Vauxhall tyre fitting 
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Van tyre fitting Scotland](/blog/van-tyre-fitting-scotland) | [Ford tyre fitting Scotland](/blog/ford-tyre-fitting-scotland)`,
   },
+  {
+    slug: 'nissan-tyre-fitting-scotland',
+    title: 'Nissan Tyre Fitting Scotland: Qashqai, Juke, Leaf & X-Trail',
+    description:
+      'Mobile Nissan tyre fitting across Scotland. Correct tyre sizes for every Nissan model — Qashqai, Juke, X-Trail, Leaf, Micra, Navara. TPMS reset included. All cities covered.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'nissan tyre fitting scotland',
+      'nissan qashqai tyres scotland',
+      'nissan juke tyres scotland',
+      'nissan leaf tyres scotland',
+      'nissan x-trail tyres scotland',
+      'nissan micra tyres scotland',
+      'mobile nissan tyre fitting glasgow',
+      'nissan navara tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'volkswagen-tyre-fitting-scotland',
+    ],
+    content: `# Nissan Tyre Fitting Scotland: Every Model Covered
+
+The Nissan Qashqai is the second best-selling car in the UK — and across Scotland, the Qashqai, Juke, and X-Trail are fixtures in every city, town, and village. Tyre Rescue provides specialist mobile Nissan tyre fitting across all of Scotland, with the right tyre size for every model loaded on the van before we arrive.
+
+## Nissan Qashqai Tyre Sizes
+
+The Nissan Qashqai J12 (2021–present, third generation):
+
+| Qashqai Trim | Tyre Size |
+|---|---|
+| Qashqai Visia / Acenta | 215/65R17 |
+| Qashqai N-Connecta | 225/55R18 |
+| Qashqai Tekna | 225/50R19 |
+| Qashqai e-Power | 225/55R18 or 225/50R19 |
+
+Qashqai J11 (2013–2021, second generation): 205/60R16 base, 215/55R17 mid, 225/45R19 on top trims.
+
+**e-Power note**: The Qashqai e-Power self-charges its battery from the petrol engine but drives on electricity only — it weighs more than the standard petrol Qashqai. Correct load index (typically 99+) is important.
+
+## Nissan Juke Tyre Sizes
+
+The Nissan Juke (2019–present, second generation):
+
+| Juke Trim | Tyre Size |
+|---|---|
+| Juke Visia / Acenta | 205/60R16 |
+| Juke N-Connecta | 215/55R17 |
+| Juke Tekna | 225/45R18 |
+| Juke Hybrid | 215/55R17 or 225/45R18 |
+
+Nissan Juke (2010–2019, first generation): 195/60R16 base, 215/55R17 upper trims.
+
+## Nissan X-Trail Tyre Sizes
+
+The Nissan X-Trail T33 (2022–present):
+
+| X-Trail Trim | Tyre Size |
+|---|---|
+| X-Trail Visia / Acenta | 225/65R17 |
+| X-Trail N-Connecta | 235/55R18 |
+| X-Trail Tekna | 255/45R20 |
+| X-Trail e-Power / e-4ORCE | 235/55R18 or 255/45R20 |
+
+X-Trail T32 (2013–2022): 215/65R17 base, 235/55R18 upper trims.
+
+**e-4ORCE AWD note**: The X-Trail e-4ORCE all-wheel drive has significant extra weight. The correct load index is critical — Tyre Rescue checks this before every fitting.
+
+## Nissan Leaf Tyre Sizes
+
+The Nissan Leaf is the UK's bestselling fully electric car:
+
+| Leaf Generation | Tyre Size |
+|---|---|
+| Leaf (Mk2, 2018–present) | 205/55R16 (SV) or 215/50R17 (Tekna) |
+| Leaf e+ (62kWh) | 215/50R17 (load index 95+) |
+| Leaf (Mk1, 2010–2017) | 195/65R15 |
+
+**Leaf fitting note**: The Mk2 Leaf has no spare wheel. A flat tyre means calling for mobile fitting immediately. The heavier e+ 62kWh battery pack requires a higher load index — we always verify this before fitting.
+
+## Nissan Micra Tyre Sizes
+
+The Micra K14 (2017–2022, fifth generation — discontinued UK):
+
+- 185/65R15 (base trims)
+- 195/55R16 (Tekna)
+
+Older Micra K13 (2010–2016): 175/65R14 base, 185/60R15 upper trims.
+
+## Nissan Navara Tyre Sizes
+
+The Nissan Navara (D40/D23 pick-up) is popular on Scottish farms and estates:
+
+| Navara Model | Tyre Size |
+|---|---|
+| Navara NP300 (2016–present) | 255/65R17 |
+| Navara NP300 (some trims) | 265/60R18 |
+| Navara D40 (older) | 265/65R17 |
+
+**Navara fitting note**: The Navara is a one-tonne rated pick-up. Its tyres are light-truck rated (LT designation or reinforced) — not standard passenger tyres. We carry correct Navara-spec tyres.
+
+## Nissan Ariya (Electric SUV) Tyre Sizes
+
+The Nissan Ariya (2022–present):
+
+- 235/55R19 (standard)
+- 255/45R20 (Advance / e-4ORCE trims)
+
+All Ariya models have no spare wheel and require acoustic foam-lined or similarly quiet EV-specification tyres where possible. The e-4ORCE AWD Ariya carries additional weight — load index 104+ required.
+
+## Nissan TPMS Reset
+
+All Nissan models from 2014 onward have TPMS. After any tyre change:
+
+- **Indirect TPMS (Qashqai, Juke, Micra)**: Reset via the vehicle info menu — press and hold the TPMS reset button (usually located in the glovebox or under the dash) with the ignition on
+- **Direct TPMS (Leaf, Ariya, X-Trail e-4ORCE)**: Requires a TPMS diagnostic tool to communicate with each wheel sensor
+
+Tyre Rescue carries Nissan-compatible TPMS reset tools. Reset is included at no additional charge.
+
+## Emergency Nissan Tyre Fitting in Scotland
+
+If you have a flat tyre on your Nissan anywhere in Scotland:
+
+1. **Stop safely** — hard shoulder, layby, or car park
+2. **Do not drive on the rim** — it will destroy the wheel
+3. **Call 0141 266 0690** — give your registration number; we will identify the tyre spec instantly
+4. **Nissan Leaf / Ariya owners**: No spare wheel in the car — mobile fitting is your only option
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+
+## Why Use Tyre Rescue for Your Nissan?
+
+- **Qashqai specialists** — we carry the most common Qashqai sizes (215/65R17 and 225/55R18) on every van
+- **EV expertise** — correct load index and acoustic tyres for Leaf and Ariya
+- **TPMS reset included** — dashboard warnings cleared before we leave
+- **Commercial Navara stock** — light-truck rated tyres for the Navara pick-up
+- **All of Scotland** — 34 cities and areas covered
+
+Call **0141 266 0690** or [book online](/book) for mobile Nissan tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland) | [VW tyre fitting Scotland](/blog/volkswagen-tyre-fitting-scotland)`,
+  },
+  {
+    slug: 'toyota-tyre-fitting-scotland',
+    title: 'Toyota Tyre Fitting Scotland: Yaris, Corolla, RAV4, Hilux & More',
+    description:
+      'Mobile Toyota tyre fitting across Scotland. Correct tyre sizes for every Toyota model — Yaris, Corolla, RAV4, C-HR, Yaris Cross, GR Yaris, Hilux. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'toyota tyre fitting scotland',
+      'toyota yaris tyres scotland',
+      'toyota corolla tyres scotland',
+      'toyota rav4 tyres scotland',
+      'toyota c-hr tyres scotland',
+      'toyota hilux tyres scotland',
+      'toyota gr yaris tyres scotland',
+      'mobile toyota tyre fitting glasgow',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'nissan-tyre-fitting-scotland',
+    ],
+    content: `# Toyota Tyre Fitting Scotland: Every Model Covered
+
+Toyota is the world's largest car manufacturer and consistently one of the UK's top five best-selling brands. In Scotland, the Toyota Yaris, Corolla, RAV4, and Hilux are common sights from Glasgow to the Highlands. Tyre Rescue provides specialist mobile Toyota tyre fitting across all of Scotland — the right tyre for your exact model, loaded before we arrive.
+
+## Toyota Yaris Tyre Sizes
+
+The Toyota Yaris (Mk4, 2020–present) — available as petrol hybrid only:
+
+| Yaris Trim | Tyre Size |
+|---|---|
+| Yaris Active / Icon | 185/65R15 |
+| Yaris Design / Excel | 195/50R16 or 215/40R17 |
+| Yaris GR Sport | 215/40R17 |
+| Yaris Cross (2021–present) | 215/60R17 (standard) or 225/50R18 (Adventure) |
+
+**Hybrid note**: All Mk4 Yaris are hybrid. The load index is slightly higher than a comparable non-hybrid supermini — always confirmed before fitting.
+
+## Toyota GR Yaris Tyre Sizes
+
+The GR Yaris (2020–present) — performance hot hatch, 4WD:
+
+- 225/40R18 (standard)
+- 225/35R19 (Circuit Pack)
+
+**GR Yaris note**: The GR Yaris uses staggered or fitment-critical performance tyres. If you need emergency tyre replacement on a GR Yaris, call us and we will check stock for your specific spec before dispatching.
+
+## Toyota Corolla Tyre Sizes
+
+The Toyota Corolla (E210, 2018–present) — all hybrid in UK:
+
+| Corolla Body Style | Tyre Size |
+|---|---|
+| Corolla Hatchback (Icon) | 205/55R16 |
+| Corolla Hatchback (Design) | 225/45R17 |
+| Corolla Touring Sports | 215/45R17 or 225/40R18 |
+| Corolla GR Sport | 225/40R18 |
+
+**Hybrid load index**: The Corolla hybrid adds weight compared to an equivalent petrol — we check the manufacturer's load index specification before fitting.
+
+## Toyota RAV4 Tyre Sizes
+
+The Toyota RAV4 (Mk5, 2019–present) — UK's bestselling Toyota:
+
+| RAV4 Trim | Tyre Size |
+|---|---|
+| RAV4 Icon / Business | 225/65R17 |
+| RAV4 Design | 235/55R18 |
+| RAV4 Excel | 235/55R18 or 235/45R19 |
+| RAV4 PHEV | 235/55R18 (load index 104+) |
+| RAV4 Adventure | 225/60R18 |
+
+**RAV4 PHEV note**: The plug-in hybrid RAV4 is significantly heavier than the self-charging hybrid or petrol version. A minimum load index of 104 is typically required. Tyre Rescue always verifies this before fitting a PHEV.
+
+## Toyota C-HR Tyre Sizes
+
+The Toyota C-HR (Mk2, 2023–present):
+
+| C-HR Trim | Tyre Size |
+|---|---|
+| C-HR Design | 225/50R18 |
+| C-HR GR Sport | 235/45R19 |
+| C-HR Plug-in Hybrid | 225/50R18 (load index 99+) |
+
+C-HR (Mk1, 2016–2022): 215/60R17 base, 225/50R18 upper trims.
+
+## Toyota Prius Tyre Sizes
+
+The Toyota Prius (Mk5, 2023–present):
+
+- 195/60R17 (standard — unusual narrow rim for aerodynamic efficiency)
+- 215/45R19 (larger wheels option)
+
+Older Prius (Mk4, 2015–2022): 195/65R15 base, 215/45R17 upper.
+
+**Prius note**: The Prius 195/60R17 is an unusual size — we check stock for this specifically before dispatching. Call ahead on 0141 266 0690.
+
+## Toyota Land Cruiser Tyre Sizes
+
+The Land Cruiser is popular on Scottish farms, estates, and for towing:
+
+| Land Cruiser Model | Tyre Size |
+|---|---|
+| Land Cruiser 300 (2021–present) | 285/60R18 or 265/65R17 |
+| Land Cruiser 200 (older) | 285/60R18 or 275/55R19 |
+| Land Cruiser 90/120 (older) | 265/70R16 or 265/65R17 |
+
+## Toyota Hilux Tyre Sizes
+
+The Toyota Hilux is the UK's bestselling pick-up truck — particularly popular on Scottish farms and estates:
+
+| Hilux Generation | Tyre Size |
+|---|---|
+| Hilux Revo (2016–present) | 265/65R17 |
+| Hilux (some trim levels) | 255/70R16 |
+
+**Hilux note**: The Hilux uses light-truck rated tyres (LT265/65R17 or similar). Standard passenger tyres are unsuitable. Tyre Rescue carries Hilux-spec tyres.
+
+## Toyota TPMS Reset
+
+All Toyota models from 2015 onward have TPMS. After any tyre change:
+
+- **Indirect TPMS (Yaris, Corolla, C-HR)**: Reset via the multi-information display — navigate to Vehicle Settings → Tyre Pressure → Reset
+- **Direct TPMS (RAV4 PHEV, Land Cruiser, Hilux)**: Requires a TPMS diagnostic tool
+
+Tyre Rescue carries Toyota-compatible TPMS reset tools. Reset is included with every fitting.
+
+## Emergency Toyota Tyre Fitting in Scotland
+
+If you have a flat tyre on your Toyota anywhere in Scotland:
+
+1. **Yaris, Corolla, C-HR**: These may have a space-saver spare — check your boot first. If no spare, call us.
+2. **RAV4, Prius**: Check for a spare tyre kit or space-saver in the boot before calling.
+3. **GR Yaris**: No conventional spare — call us immediately.
+4. **Hilux, Land Cruiser**: These often carry a full-size spare mounted underneath — attempt the change only if it's safe to do so and you're off a busy road.
+
+Call **0141 266 0690** — give us your registration number and we will identify your tyre specification and confirm an ETA.
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+
+## Why Use Tyre Rescue for Your Toyota?
+
+- **Hybrid specialists** — we understand load index requirements for hybrid and PHEV Toyota models
+- **Hilux and Land Cruiser stock** — light-truck and all-terrain tyres for Scotland's working vehicles
+- **TPMS reset included** — dashboard warnings cleared at the time of fitting
+- **GR Yaris performance tyres** — we stock and fit performance spec where available
+- **All of Scotland covered** — from your driveway in Glasgow to a layby on the NC500
+
+Call **0141 266 0690** or [book online](/book) for mobile Toyota tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland) | [Nissan tyre fitting Scotland](/blog/nissan-tyre-fitting-scotland)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
