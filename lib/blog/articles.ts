@@ -587,8 +587,8 @@ We don't recommend part-worn tyres. You don't know their history — they may ha
       'Looking for the best mobile tyre fitting in Scotland? We compare services, pricing, response times and coverage areas to help you choose the right provider in Glasgow, Edinburgh & beyond.',
     category: 'fitting',
     publishDate: '2025-06-20',
-    lastModified: '2026-08-01',
-    readingTime: 12,
+    lastModified: '2026-09-01',
+    readingTime: 14,
     keywords: [
       'best mobile tyre fitting scotland',
       'mobile tyre fitting near me',
@@ -597,6 +597,8 @@ We don't recommend part-worn tyres. You don't know their history — they may ha
       'cheapest mobile tyre fitting',
       'tyre fitting comparison',
       'mobile tyre fitting reviews',
+      'tyres on the drive alternative',
+      'black circles alternative scotland',
     ],
     relatedSlugs: ['mobile-tyre-fitting-vs-garage', 'emergency-tyre-fitting-glasgow-complete-guide'],
     featured: false,
@@ -703,17 +705,42 @@ Arnold Clark is Scotland's largest car dealer and also offers tyre services at m
 
 Protyre operates autocare centres across the UK with some Scottish locations. Good for planned work if you're near a centre; not suitable for emergencies.
 
+### Tyres on the Drive
+- **Coverage:** England-focused; limited Scottish coverage
+- **Hours:** Daytime and some evenings
+- **Response Time:** Pre-booked only (24–72 hours notice typical)
+- **Starting Price:** From £70 including fitting
+- **Trustpilot:** 4.5/5 stars
+- **Best For:** Planned tyre replacements at home or work (England)
+
+Tyres on the Drive is a mobile tyre fitting service that sends a fitter to your home or workplace. Their service is well-regarded in England, but Scottish coverage is limited. They do not offer emergency 24/7 callout — all bookings are pre-arranged. For planned fitting in Scotland, they may not have a local fitter available. For emergency or same-day service anywhere in Scotland, a Scotland-specific provider like Tyre Rescue is the better choice.
+
+[Full comparison: Tyre Rescue vs Tyres on the Drive](/compare/tyre-rescue-vs-tyres-on-the-drive)
+
+### Black Circles
+- **Coverage:** UK-wide (online platform)
+- **Hours:** Garage partners — business hours
+- **Response Time:** Appointment-based (book online, attend garage)
+- **Starting Price:** From £25 fitting fee
+- **Trustpilot:** 4.5/5 stars
+- **Best For:** Buying tyres online at competitive prices; price-conscious drivers with time to plan
+
+Black Circles is an online tyre marketplace — you buy the tyre at a competitive price, then book a fitting appointment at a local partner garage. It is not a mobile service: you drive to the garage. This makes it unsuitable for emergencies or if your tyre is flat. Black Circles is a strong choice if you have time to plan, want to compare tyre prices, and can drive to a garage. For emergencies, 24/7 callout, or mobile fitting at your location, Tyre Rescue is the right call.
+
+[Full comparison: Tyre Rescue vs Black Circles](/compare/tyre-rescue-vs-black-circles)
+
 ## Comparison Summary
 
-| Feature | Tyre Rescue | Kwik Fit | Arnold Clark | National Tyres | Halfords |
-|---------|------------|----------|-------------|---------------|----------|
+| Feature | Tyre Rescue | Kwik Fit | Tyres on the Drive | Black Circles | Arnold Clark |
+|---------|------------|----------|--------------------|---------------|--------------|
 | 24/7 Service | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Mobile-First | ✅ | ❌ | ❌ | Partial | Limited |
-| Scotland-Wide | ✅ | Nationwide | Scottish branches | UK only | Nationwide |
-| Avg Response | 45 min | N/A | N/A | Next day | N/A |
+| Mobile-First | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Scotland-Wide | ✅ | Nationwide | Limited | UK partner garages | Scottish branches |
+| Emergency Callout | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Avg Response | 45 min | N/A | 24–72 hrs | Next day+ | Appointment |
 | GPS Tracking | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Trustpilot | 4.8★ | 3.7★ | Varies | 4.3★ | 3.5★ |
-| From Price | £49 | £45 | In-branch | £50 | £40 |
+| Trustpilot | 4.8★ | 3.7★ | 4.5★ | 4.5★ | Varies |
+| From Price | £49 callout | £45 | £70 all-in | £25 fit only | In-branch |
 
 ## When to Use Mobile Tyre Fitting vs a Garage
 
@@ -4020,6 +4047,308 @@ For drivers in Lerwick itself, response is typically fastest as we maintain a lo
 4. **Know the postcode** — Shetland has limited addressing; knowing ZE1 or ZE2 helps our dispatch team
 
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'tpms-warning-light-scotland-guide',
+    title: 'TPMS Warning Light: What It Means & What to Do in Scotland',
+    description:
+      'Your TPMS (Tyre Pressure Monitoring System) warning light has come on. Here\'s what it means, when it\'s safe to keep driving, and what to do if you\'re in rural Scotland or the Highlands.',
+    category: 'safety',
+    publishDate: '2025-10-01',
+    lastModified: '2025-10-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'tpms warning light scotland',
+      'tyre pressure warning light',
+      'tpms light on what to do',
+      'tyre pressure monitoring system scotland',
+      'tpms sensor replacement scotland',
+      'tpms reset scotland',
+      'low tyre pressure scotland',
+      'tpms light after tyre change',
+    ],
+    relatedSlugs: [
+      'run-flat-tyres-scotland-guide',
+      'tyre-maintenance-checklist-scotland',
+      '24-hour-emergency-tyre-fitting-scotland',
+    ],
+    content: `# TPMS Warning Light: What It Means & What to Do in Scotland
+
+Your TPMS warning light — the horseshoe-shaped symbol with an exclamation mark — has appeared on your dashboard. Here is exactly what it means and what you should do, especially if you are driving in Scotland.
+
+## What Is TPMS?
+
+The Tyre Pressure Monitoring System (TPMS) is a mandatory safety system on all new cars sold in the UK since 2014. It monitors tyre pressure in real time and alerts you when pressure drops significantly below the recommended level.
+
+There are two types:
+- **Direct TPMS**: Each wheel has a sensor inside the tyre that transmits pressure data wirelessly to the dashboard. Accurate and immediate.
+- **Indirect TPMS**: Uses wheel speed sensors (the ABS sensors) to detect when one wheel rotates faster than others — indicating lower pressure and smaller circumference. Less precise but no sensors to replace.
+
+## What Does the Warning Light Mean?
+
+When the TPMS light comes on, it means at least one tyre is 25% or more below its recommended pressure.
+
+**If the light is solid (stays on)**: One or more tyres are significantly under-inflated.
+
+**If the light flashes for 60–90 seconds then stays on**: This indicates a fault with the TPMS sensor itself — not necessarily a pressure problem. This often happens after a tyre has been changed without resetting the system, or when a sensor battery has died.
+
+## What to Do When the TPMS Light Comes On
+
+### Step 1: Do not ignore it
+Low tyre pressure increases the risk of blowout, reduces fuel efficiency, and causes uneven tyre wear. A 25% pressure drop (what triggers the light) is significant.
+
+### Step 2: Check your speed and handling
+If you notice any unusual vibration, pulling to one side, or sluggish steering, reduce speed immediately. You may have a flat or rapidly deflating tyre.
+
+### Step 3: Find a safe location to stop
+In Scotland, roadside lay-bys are common on most trunk roads. On the motorway, use the hard shoulder or emergency refuge area. On single-track Highland roads, use a passing place.
+
+### Step 4: Visually inspect the tyres
+Check all four tyres for obvious flat spots. Even if a tyre looks inflated, it may be 25% low without appearing visibly flat.
+
+### Step 5: Check pressure if you have a gauge
+Many petrol stations have air pumps with built-in pressure gauges. Your recommended pressure is on a sticker inside the driver's door, in the handbook, or on the fuel cap. Inflate the low tyre to the correct pressure.
+
+### Step 6: If you cannot inflate or the tyre is flat, call for help
+In Scotland, this is where remote location matters. Whether you are on the A9 north of Inverness, the NC500 near Tongue, or on the road to Applecross — Tyre Rescue can reach you. Call **0141 266 0690** and give your location.
+
+## TPMS and Tyre Changes in Scotland
+
+One of the most common reasons the TPMS light stays on after a tyre change is that the sensor was not reset properly. When a new tyre is fitted, the TPMS system must be recalibrated to the new sensor (on direct systems) or the wheel speed reference must be reset (on indirect systems).
+
+If your TPMS light came on after a recent tyre change, it is almost certainly a reset issue rather than a pressure problem. Tyre Rescue carries TPMS reset tools for all common vehicles and will reset your TPMS at the time of fitting at no additional charge.
+
+## TPMS Sensor Replacement in Scotland
+
+Direct TPMS sensors have a battery life of approximately 7–10 years. When a sensor battery dies, the light will flash continuously before remaining on. The sensor must be replaced — they cannot be recharged.
+
+Replacement TPMS sensors cost from approximately £25–£70 per wheel depending on the vehicle make. For premium vehicles (BMW, Mercedes, Audi), OEM sensors cost more. Aftermarket sensors are available and work with most vehicles.
+
+Tyre Rescue carries and can fit TPMS sensors across Scotland. If you are unsure whether your TPMS light indicates a pressure problem or a sensor fault, call **0141 266 0690** and we will help you diagnose it.
+
+## Driving with the TPMS Light On: Is It Safe?
+
+**If the tyre pressure is just slightly low**: You can drive slowly and carefully to the nearest petrol station to inflate the tyre. Do not drive long distances.
+
+**If one tyre is visibly flat or very low**: Do not drive on it. Driving on a flat tyre damages the tyre, the wheel rim, and potentially the brake caliper. Stop and call for assistance.
+
+**If you have run-flat tyres**: You can drive at a maximum of 50mph for up to 50 miles. But in Scotland's remote areas, 50 miles may not be enough to reach a tyre fitter — call ahead to Tyre Rescue so we can meet you en route.
+
+**If the light is flashing**: This indicates a sensor fault, not a pressure problem. Your tyres may be fine. Check the pressures manually, and if they are correct, the sensor needs diagnosis or replacement.
+
+## Key Facts
+
+- TPMS warning threshold: 25% below recommended pressure
+- Legal minimum tyre pressure: check your vehicle handbook — typically 32–36 PSI for standard cars
+- Sensor battery life: 7–10 years
+- Sensor replacement cost: from £25 per corner
+- TPMS reset after tyre change: included free with all Tyre Rescue fittings
+
+Need help with a TPMS warning, flat tyre, or tyre pressure issue in Scotland? Call **0141 266 0690** — 24/7, all of Scotland.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Run-flat tyres guide](/blog/run-flat-tyres-scotland-guide) | [Emergency tyre fitting](/emergency-tyre-fitting-near-me)`,
+  },
+  {
+    slug: 'best-tyres-scottish-roads-guide',
+    title: 'Best Tyres for Scottish Roads: A Complete Guide',
+    description:
+      'Which tyres perform best on Scotland\'s wet roads, Highland passes, and island routes? Our guide to choosing the right tyre for Scottish conditions — all-season vs summer vs winter.',
+    category: 'maintenance',
+    publishDate: '2025-10-01',
+    lastModified: '2025-10-01',
+    readingTime: 8,
+    featured: false,
+    keywords: [
+      'best tyres scottish roads',
+      'tyres for scotland',
+      'all season tyres scotland',
+      'winter tyres scotland',
+      'tyres for wet roads',
+      'highland roads tyres',
+      'best tyre brands scotland',
+      'michelin vs continental scotland',
+    ],
+    relatedSlugs: [
+      'winter-tyres-scotland-guide',
+      'tyre-maintenance-checklist-scotland',
+      'signs-you-need-new-tyres',
+    ],
+    content: `# Best Tyres for Scottish Roads: A Complete Guide
+
+Scotland's roads are among the most challenging in the UK. From rain-soaked motorways to single-track Highland passes, from the frost-prone A9 to the salt-air coastal routes of the NC500 — choosing the right tyre for Scottish conditions matters more here than almost anywhere else in Britain.
+
+## What Makes Scottish Roads Different
+
+**Rain**: Scotland is one of the wettest parts of the UK. Glasgow averages 1,100mm of rain per year; the west Highlands can reach 3,000mm. Wet grip rating is the most important tyre performance factor for Scottish drivers.
+
+**Temperature**: Scotland experiences more sub-zero mornings than most of England. Even at sea level, freezing overnight temperatures occur regularly from October to March.
+
+**Road surfaces**: Many Scottish roads — particularly in the Highlands and islands — have rougher surfaces, sharper edges from frost damage, and loose chippings after resurfacing. Tyre sidewall strength matters more here.
+
+**Distance**: Journeys on Highland and island routes can be long with limited fuel stops. Tyres with low rolling resistance reduce fuel consumption on these long, open stretches.
+
+## The Three Tyre Options for Scotland
+
+### Summer Tyres
+Standard summer tyres are designed for temperatures above 7°C. Their compound hardens in cold weather, reducing grip and braking performance significantly. In Glasgow and Edinburgh, where temperatures rarely fall below -5°C, good-quality summer tyres are acceptable for year-round use — provided you are careful in the winter months. For the Highlands and islands, summer tyres are a risk from October to April.
+
+**Verdict**: Acceptable in Central Belt cities; not recommended for Highland and rural Scotland from late autumn to spring.
+
+### Winter Tyres
+Winter tyres use a softer compound that remains flexible below 7°C, with a more aggressive tread pattern that evacuates water and soft snow more effectively. Braking distances on a wet Scottish road in November can be 10–30% shorter on winter tyres compared to summer tyres.
+
+Winter tyres are not a legal requirement in Scotland, but they are strongly advisable for:
+- Highland drivers
+- NC500 and remote route users
+- Drivers in Caithness, Sutherland, or elevated areas above 300m
+- Anyone who regularly drives on rural roads from October to March
+
+**Verdict**: Highly recommended for rural Scotland and the Highlands. Optional but valuable for city drivers.
+
+### All-Season Tyres
+All-season (or all-weather) tyres are a genuine compromise that works well for Scottish conditions. They carry the Three Peak Mountain Snowflake (3PMSF) symbol, meaning they meet winter performance standards, but they are usable year-round without the seasonal swap.
+
+For most Scottish drivers who do not want the hassle and cost of keeping two sets of tyres, high-quality all-season tyres from brands like Michelin (CrossClimate), Continental (AllSeasonContact), or Goodyear (Vector 4Seasons) represent excellent value.
+
+**Verdict**: The recommended option for most Scottish drivers — especially those who drive both city and rural routes.
+
+## Best Tyre Brands for Scottish Conditions
+
+### Michelin
+Consistently top-rated for wet grip and longevity. The CrossClimate 2 (all-season) and Pilot Sport 4S (summer) are benchmark products. Michelin tyres tend to last longer, making the higher upfront cost worthwhile over 40,000+ miles.
+
+### Continental
+Continental's PremiumContact 7 (summer) and AllSeasonContact (all-season) score highly in independent tests for wet braking. Made in Europe and well-suited to the UK's wet climate. A strong choice for Scottish drivers.
+
+### Bridgestone
+Bridgestone's Weather Control (all-season) and Turanza (summer) are solid performers. Generally slightly cheaper than Michelin and Continental while maintaining high wet grip scores.
+
+### Goodyear
+The EfficientGrip Performance 2 (summer) and Vector 4Seasons Gen 3 (all-season) are frequently recommended by independent testers. Goodyear's EV-specific tyres are also worth considering for electric vehicle drivers.
+
+### Budget Alternatives
+Budget tyre brands such as Nexen, Hankook, Falken, and Toyo offer significantly lower prices while still passing EU tyre labelling standards. For lower-mileage drivers or secondary vehicles, these can represent good value. They typically score lower on wet braking and longevity tests than premium brands.
+
+## Tyre Ratings to Check for Scotland
+
+When buying any tyre, check the EU tyre label ratings:
+
+- **Wet Grip (A–G)**: For Scotland, aim for A or B. This is the most important rating.
+- **Fuel Efficiency (A–G)**: A or B reduces fuel cost on long Highland drives.
+- **Noise (dB)**: Less important in Scotland, but lower is more comfortable on long journeys.
+
+## When to Replace Your Tyres
+
+The legal minimum tread depth in the UK is 1.6mm across the central three-quarters of the tyre. For Scottish roads, especially in wet and cold conditions, consider replacing when tread reaches 3mm — wet braking performance degrades sharply below this level.
+
+Signs to replace sooner:
+- Cracks or bulges in the sidewall
+- Uneven tread wear (check across the full width)
+- Persistent slow punctures
+- Age over 5 years regardless of tread depth
+
+## Mobile Tyre Supply and Fitting in Scotland
+
+Need new tyres fitted without going to a garage? Tyre Rescue brings the tyre to you — home, work, or roadside — across all of Scotland.
+
+**Call 0141 266 0690** to check which brands and sizes we carry for your vehicle, or [book online](/book) for a scheduled fitting.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Tyre fitting costs guide](/blog/tyre-fitting-costs-scotland-pricing-guide) | [Winter tyres guide](/blog/winter-tyres-scotland-guide)`,
+  },
+  {
+    slug: 'run-flat-tyres-scotland-guide',
+    title: 'Run-Flat Tyres in Scotland: What You Need to Know',
+    description:
+      'Everything about run-flat tyres for Scottish drivers — can they be repaired, what distance can you drive, what\'s the cost of replacement, and which mobile tyre fitters carry run-flats?',
+    category: 'safety',
+    publishDate: '2025-10-01',
+    lastModified: '2025-10-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'run flat tyres scotland',
+      'run flat tyre replacement scotland',
+      'run flat tyre repair',
+      'bmw run flat tyres scotland',
+      'mini run flat tyres',
+      'can run flat tyres be repaired',
+      'mobile tyre fitting run flat',
+      'run flat tyre cost scotland',
+    ],
+    relatedSlugs: [
+      'best-tyres-scottish-roads-guide',
+      '24-hour-emergency-tyre-fitting-scotland',
+      'tyre-maintenance-checklist-scotland',
+    ],
+    content: `# Run-Flat Tyres in Scotland: What You Need to Know
+
+Run-flat tyres are now standard on many vehicles — particularly BMWs, MINIs, Mercedes, and some Volkswagen models. If you drive one of these vehicles and get a flat in Scotland, the rules are different from conventional tyres.
+
+## What Are Run-Flat Tyres?
+
+Run-flat tyres have reinforced sidewalls that support the weight of the vehicle even when the tyre has zero air pressure. This allows you to continue driving at reduced speed (typically 50mph maximum) for a limited distance (typically 50 miles) to reach a safe location.
+
+The benefit is clear: no need to change a tyre at the roadside, no spare wheel required. The downside becomes apparent in Scotland: the nearest tyre fitter may be more than 50 miles away if you are in the Highlands, on Skye, or in rural Galloway.
+
+## How Far Can You Drive on a Run-Flat Tyre?
+
+The general guidance is:
+- **Maximum speed**: 50mph (80km/h)
+- **Maximum distance**: 50 miles (80km)
+
+However, this assumes:
+- The tyre is not damaged structurally (no blowout, no sidewall cut)
+- You are driving on normal roads (not demanding terrain)
+- You do not exceed the 50mph limit
+
+**For Scottish Highland drivers**: 50 miles may not be enough to reach a tyre fitter, particularly if you are on the NC500 north of Thurso, in the Outer Hebrides, or on a remote Argyll road. Call Tyre Rescue (0141 266 0690) as soon as you notice the fault.
+
+## Can Run-Flat Tyres Be Repaired?
+
+This is one of the most common questions about run-flat tyres, and the answer is:
+
+**Usually no.**
+
+The British Standard (BSAU159f) guidance on tyre repair explicitly states that a run-flat tyre that has been driven while deflated should not be repaired. The reason is that the sidewall reinforcement may have been damaged internally — and this damage is not always visible externally.
+
+Exceptions are rare: a run-flat tyre that was noticed immediately (before being driven deflated) and has a clean puncture in the central tread area may sometimes be assessed for repair. A qualified fitter will inspect the tyre and advise honestly.
+
+**In Scotland, if you have driven any distance on a deflated run-flat, assume it needs replacement.**
+
+## Run-Flat Tyre Replacement in Scotland
+
+Replacing a run-flat tyre requires stocking the correct size — and run-flat sizes (indicated by BMW's 'RSC', Bridgestone's 'RFT', Continental's 'SSR' etc.) are not always carried in standard stock.
+
+Tyre Rescue carries common run-flat sizes for popular Scottish vehicles including BMW 1, 3, 4, 5 Series, MINI Hatch, Countryman, and others. If your size is less common, call **0141 266 0690** before we dispatch and we will confirm availability.
+
+## Cost of Run-Flat Tyre Replacement in Scotland
+
+Run-flat tyres cost more than equivalent conventional tyres — typically 30–60% more. For a common size (e.g., 225/45R18 for a BMW 3 Series):
+
+- **Budget run-flat**: from approximately £80–£100
+- **Mid-range (Hankook, Nexen, Falken)**: from approximately £110–£140
+- **Premium (Bridgestone, Continental, Michelin)**: from approximately £150–£220
+
+These prices are for the tyre only. Add our fitting fee from £20 and our emergency callout from £49 if it is an emergency.
+
+## TPMS and Run-Flat Tyres
+
+All vehicles fitted with run-flat tyres from the factory also have a TPMS (Tyre Pressure Monitoring System). The TPMS warning light is how you know the tyre has lost pressure — since the reinforced sidewall means you may not feel it in the handling.
+
+After fitting a replacement run-flat tyre, the TPMS sensor must be reset or replaced. Tyre Rescue carries TPMS reset tools for all common vehicles. If your TPMS light remains on after a tyre change, we can reset it at the time of fitting at no additional charge.
+
+## Key Advice for Scottish Drivers with Run-Flat Tyres
+
+1. **Act immediately** when the TPMS warning light comes on — call us before driving further than necessary
+2. **Do not exceed 50mph** on a flat run-flat — ever
+3. **Call ahead** to check run-flat stock availability for your exact size
+4. **Consider keeping a spare** if you regularly drive very remote routes — a space-saver spare or even a full-size conventional spare can be a lifesaver beyond the 50-mile run-flat range
+5. **Don't assume it's repairable** — have it assessed before insisting on repair
+
+Need run-flat tyre replacement in Scotland? Call **0141 266 0690** and confirm your tyre size. We'll tell you what we have in stock and give you an accurate ETA to your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Emergency tyre fitting](/emergency-tyre-fitting-near-me) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide)`,
   },
 ];
 
