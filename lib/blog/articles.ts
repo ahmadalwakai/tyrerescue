@@ -10880,6 +10880,158 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'uneven-tyre-wear-guide-scotland',
+    title: 'Uneven Tyre Wear: Causes, Diagnosis & What to Do in Scotland',
+    description:
+      'Why are your tyres wearing unevenly? Inner edge, outer edge, centre, or patchy wear — each pattern points to a specific cause. Complete guide to uneven tyre wear diagnosis and fixes in Scotland.',
+    category: 'maintenance',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 9,
+    featured: false,
+    keywords: [
+      'uneven tyre wear scotland',
+      'tyre wearing on inside edge',
+      'tyre wearing on outside edge',
+      'patchy tyre wear',
+      'centre tyre wear',
+      'tyre wear diagnostic scotland',
+      'why are my tyres wearing unevenly',
+      'tyre wear causes scotland',
+      'inner shoulder tyre wear',
+      'outer shoulder tyre wear',
+    ],
+    relatedSlugs: [
+      'wheel-balancing-vs-alignment-scotland',
+      'tyre-tread-depth-guide-scotland',
+      'tyre-rotation-guide-scotland',
+    ],
+    content: `# Uneven Tyre Wear: Causes, Diagnosis, and What to Do
+
+Uneven tyre wear is one of the most common signs that something is wrong with your vehicle — and it's one of the first things a knowledgeable tyre fitter will flag. Rather than just fitting new tyres, the underlying cause must be identified and corrected, or the new tyres will wear out in the same way.
+
+This guide explains every uneven wear pattern and what causes it.
+
+## How to Read Your Tyre Wear
+
+Before diagnosing uneven wear, you need to inspect your tyres correctly. Run your hand across the tyre tread from the inner edge (closest to the vehicle) to the outer edge. Use a tyre tread depth gauge (£3–£5 from any motor factor) to measure tread depth at several points across the width and around the circumference.
+
+**Normal wear**: even depth across the full tread width, wearing uniformly around the circumference. Replace when depth reaches 3mm (for safety margin above the 1.6mm legal minimum in Scotland).
+
+**Abnormal wear**: significant depth difference between the inner edge and outer edge, or between any points around the circumference.
+
+---
+
+## Inner Edge Wear (Excessive Wear on the Inside of the Tyre)
+
+**What it looks like**: the inner shoulder of the tyre (closest to the vehicle centreline) is worn significantly more than the outer shoulder.
+
+**Causes**:
+1. **Negative camber** — the wheel leans inward at the top. A small amount of negative camber is normal on most cars, but excessive negative camber accelerates inner edge wear. Common after suspension wear or accident damage.
+2. **Worn or bent suspension components** — a worn lower control arm bushing, bent MacPherson strut, or worn ball joint can pull the wheel into excessive negative camber.
+3. **Lowered suspension** — aftermarket lowering springs increase negative camber beyond the adjustment range of most vehicles.
+
+**Fix**: wheel alignment (specifically camber and toe adjustment) and inspection/replacement of worn suspension components.
+
+**Scotland note**: Scottish roads have a high rate of pothole-related suspension damage. A single large pothole impact can knock wheel alignment out and cause immediate inner-edge wear on the affected wheel.
+
+---
+
+## Outer Edge Wear (Excessive Wear on the Outside of the Tyre)
+
+**What it looks like**: the outer shoulder (furthest from the vehicle centreline) is worn more than the inner.
+
+**Causes**:
+1. **Positive camber** — wheel leans outward at the top. Less common than negative camber; usually caused by worn or damaged suspension.
+2. **Underinflation** — when tyre pressure is too low, the centre of the tread lifts away from the road and the shoulders carry all the load. This causes both inner and outer shoulder wear simultaneously (see Two-Shoulder Wear below).
+3. **Aggressive cornering** — lateral G-forces push the vehicle weight onto the outer edge of the tyre during cornering. Drivers who corner very hard wear outer edges faster.
+
+**Fix**: wheel alignment check, suspension inspection, and maintaining correct tyre pressure.
+
+---
+
+## Two-Shoulder Wear (Both Edges Worn, Centre Still Has Tread)
+
+**What it looks like**: both inner and outer shoulders are worn, but the centre of the tread still has reasonable depth.
+
+**Cause**: **chronic underinflation**. When a tyre runs at too low a pressure, it flexes excessively — the centre of the tread bows upward away from the road surface while the shoulders contact the road. This is the classic underinflation wear pattern.
+
+**Fix**: check and correct tyre pressure immediately. Check for slow leak (valve, bead, or puncture). Scotland's cold winters lower tyre pressure — for every 10°C drop in temperature, tyre pressure drops approximately 0.1 bar. Check pressure monthly.
+
+---
+
+## Centre Wear (Middle of Tread Worn, Shoulders Still Have Depth)
+
+**What it looks like**: the centre of the tread is worn significantly more than the inner or outer edges.
+
+**Cause**: **overinflation**. When tyre pressure is too high, the tyre inflates in a rounded profile — only the centre contacts the road, while the shoulders are lifted clear. This concentrates all wear in the centre strip.
+
+**Fix**: reduce tyre pressure to the manufacturer's specification (found on the sticker inside the driver's door or in the handbook). Do not rely on the maximum pressure stamped on the sidewall — that is the maximum, not the recommended pressure.
+
+---
+
+## Diagonal Patchy Wear (Cupping or Scalloping)
+
+**What it looks like**: the tread has irregular dips or scallops at diagonal intervals around the circumference — it feels like the tyre has bumps or flat spots.
+
+**Causes**:
+1. **Wheel imbalance** — an unbalanced wheel bounces rather than rolling smoothly. The tyre makes contact with the road intermittently, wearing in patches where it lands. This is the most common cause.
+2. **Worn shock absorbers or dampers** — worn shocks allow the wheel to bounce excessively on the road. If replacing tyres and balancing wheels doesn't solve cupping, the dampers need testing.
+3. **Stiff or seized suspension components** — can cause uneven contact.
+
+**Fix**: wheel balancing (should be done with every tyre change), shock absorber/damper inspection and replacement if worn.
+
+**Scotland note**: Scottish roads — particularly in rural areas — have significant surface irregularities. This puts greater stress on dampers and accelerates cupping wear.
+
+---
+
+## One-Sided Wear (Opposite to Inner/Outer Edge Wear)
+
+**What it looks like**: one specific corner of the tyre (e.g., outer front left) is worn significantly more than other areas.
+
+**Causes**:
+1. **Toe misalignment** — toe-in or toe-out pulls the tyre in a direction it is not rolling, scrubbing the inner or outer edge.
+2. **Camber misalignment** — as above, but camber affects which shoulder wears.
+3. **Asymmetric load** — consistent heavy loading on one side of the vehicle.
+
+**Fix**: wheel alignment. A full four-wheel alignment will diagnose toe and camber on all four corners.
+
+---
+
+## Flat Spot Wear
+
+**What it looks like**: a flat area on the tyre at one point around the circumference.
+
+**Causes**:
+1. **Emergency braking** — locking up the brakes (on vehicles without ABS, or in ABS failure) drags the tyre along the road surface, grinding a flat spot in seconds.
+2. **Vehicle standing stationary for long periods** — particularly on hard compounds in cold weather; the contact patch develops a temporary flat spot. Usually rounds out after a few miles of driving.
+3. **ABS failure** — a failed ABS sensor can allow wheel lockup under heavy braking.
+
+**Fix**: if the flat spot is deep enough to affect tread depth below 1.6mm at that point, the tyre must be replaced — it is illegal and will cause severe vibration. If mild, monitor on the next drive.
+
+---
+
+## What to Do If You Notice Uneven Wear
+
+1. **Do not ignore it** — uneven wear gets worse rapidly once started
+2. **Check tyre pressure** — rule out underinflation/overinflation first
+3. **Book a wheel alignment check** — a four-wheel alignment check costs £40–£60 and identifies camber and toe problems. Tyre Rescue can refer you to trusted alignment specialists across Scotland.
+4. **Inspect the tyres for legal tread depth** — if any part of the tyre has worn below 1.6mm across 75% of the tread width, it must be replaced immediately. Driving on it is illegal and dangerous.
+5. **Replace in pairs** — if one tyre is worn, the opposite tyre on the same axle is likely to be in a similar condition. Fit both axle tyres together.
+
+---
+
+## Tyre Fitting After Resolving the Cause
+
+It is pointless to fit new tyres without correcting the underlying cause. If your alignment is out and you fit new tyres, the same wear pattern will repeat within 5,000–10,000 miles. Fix the cause first, then replace the tyres.
+
+Tyre Rescue fits replacement tyres across all of Scotland. We also inspect wear patterns during every callout and can advise on the likely cause and what to get checked.
+
+Call **0141 266 0690** or [book online](/book).
+
+[Wheel alignment and balancing guide](/blog/wheel-balancing-vs-alignment-scotland) | [Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland) | [Tyre rotation guide Scotland](/blog/tyre-rotation-guide-scotland)`,
+  },
+  {
     slug: 'fleet-tyre-management-scotland',
     title: 'Fleet Tyre Management Scotland: Mobile Fitting for Business Fleets',
     description:
