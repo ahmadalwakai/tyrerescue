@@ -5,6 +5,7 @@ import { tyreProducts, tyreCatalogue } from '@/lib/db/schema';
 import { eq, and, ne, or } from 'drizzle-orm';
 import { TyreDetailClient } from './TyreDetailClient';
 import { classifyTyre } from '@/lib/budget-inventory';
+import { JsonLd } from '@/components/seo/JsonLd';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -104,6 +105,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
     },
+    alternates: {
+      canonical: `https://www.tyrerescue.uk/tyres/${slug}`,
+    },
   };
 }
 
@@ -174,14 +178,7 @@ export default async function TyreDetailPage({ params }: Props) {
       ...(tyre.noiseDb ? [{ '@type': 'PropertyValue', name: 'Noise Level', value: `${tyre.noiseDb} dB` }] : []),
       { '@type': 'PropertyValue', name: 'Run Flat', value: tyre.runFlat ? 'Yes' : 'No' },
     ],
-    offers: offersArray.length === 1 ? offersArray[0] : {
-      '@type': 'AggregateOffer',
-      lowPrice: priceNew,
-      highPrice: priceNew,
-      priceCurrency: 'GBP',
-      offerCount: offersArray.length,
-      offers: offersArray,
-    },
+    ...(offersArray.length === 1 ? { offers: offersArray[0] } : {}),
   };
 
   const tyreData = {
@@ -218,10 +215,7 @@ export default async function TyreDetailPage({ params }: Props) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <TyreDetailClient tyre={tyreData} relatedTyres={relatedData} />
     </>
   );

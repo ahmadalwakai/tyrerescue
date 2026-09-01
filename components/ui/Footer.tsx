@@ -25,6 +25,7 @@ const footerLinks = {
   ],
   navigation: [
     { label: 'Book a Fitting', href: '/book' },
+    { label: 'Pricing Guide', href: '/pricing' },
     { label: 'Emergency', href: '/emergency' },
     { label: 'Browse Tyres', href: '/tyres' },
     { label: 'Track Booking', href: '/tracking' },
@@ -33,6 +34,7 @@ const footerLinks = {
     { label: 'Emergency Callout', href: '/emergency' },
     { label: 'Tyre Fitting', href: '/book' },
     { label: 'Puncture Repair', href: '/book' },
+    { label: 'Pricing FAQ', href: '/pricing-faq' },
     { label: 'Tyre Sales', href: '/tyres' },
   ],
   legal: [
@@ -102,11 +104,12 @@ export function Footer() {
   const [year, setYear] = useState(2026); // static default avoids hydration mismatch
 
   useEffect(() => {
-    setYear(new Date().getFullYear());
+    const yearTimer = window.setTimeout(() => setYear(new Date().getFullYear()), 0);
     fetch('/api/public/settings')
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data) setVatInfo(data); })
       .catch(() => {});
+    return () => window.clearTimeout(yearTimer);
   }, []);
 
   return (

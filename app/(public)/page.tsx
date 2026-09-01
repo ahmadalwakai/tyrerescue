@@ -152,22 +152,19 @@ export default async function Page() {
       <HomePage />
       <JsonLd data={getFAQSchema(homepageFAQItems)} />
       {dbSlides.length > 0 && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'ImageGallery',
-              name: 'Tyre Rescue Mobile Tyre Fitting Gallery',
-              description: 'Professional mobile tyre fitting service images showcasing our team, equipment, and service quality.',
-              image: dbSlides.map((s) => ({
-                '@type': 'ImageObject',
-                url: s.src,
-                name: s.title,
-                description: s.alt,
-                caption: s.caption ?? s.alt,
-              })),
-            }),
+        <JsonLd
+          data={{
+            '@context': 'https://schema.org',
+            '@type': 'ImageGallery',
+            name: 'Tyre Rescue Mobile Tyre Fitting Gallery',
+            description: 'Professional mobile tyre fitting service images showcasing our team, equipment, and service quality.',
+            image: dbSlides.map((s) => ({
+              '@type': 'ImageObject',
+              url: s.src,
+              name: s.title,
+              description: s.alt,
+              caption: s.caption ?? s.alt,
+            })),
           }}
         />
       )}

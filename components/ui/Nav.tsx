@@ -19,6 +19,7 @@ const colors = {
 const navLinks = [
   { label: 'Home', href: '/' },
   { label: 'Get Quote', href: '/quote' },
+  { label: 'Pricing', href: '/pricing' },
   { label: 'Emergency', href: '/emergency' },
   { label: 'Book', href: '/book' },
   { label: 'Track', href: '/tracking' },
@@ -56,9 +57,12 @@ export function Nav() {
   }, []);
 
   useEffect(() => {
-    setMounted(true);
+    const mountedTimer = window.setTimeout(() => setMounted(true), 0);
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.clearTimeout(mountedTimer);
+      window.removeEventListener('scroll', onScroll);
+    };
   }, [onScroll]);
 
   // Focus trap for mobile menu
