@@ -35,6 +35,13 @@ export async function generateMetadata({
       type: 'article',
       publishedTime: article.publishDate,
       modifiedTime: article.lastModified,
+      images: [{ url: 'https://www.tyrerescue.uk/images/home/slide-1.webp', width: 1200, height: 630, alt: article.title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description: article.description,
+      images: ['https://www.tyrerescue.uk/images/home/slide-1.webp'],
     },
   };
 }

@@ -229,6 +229,38 @@ export const faqItems: FAQItem[] = [
     category: 'services',
     isHomepageVisible: false,
   },
+  {
+    id: 'tyre-blowout-motorway',
+    question: 'What should I do if a tyre blows out on the motorway?',
+    answer:
+      'Do not brake sharply. Grip the steering wheel firmly with both hands and let the car slow gradually. Once below 50mph, signal left and move to the hard shoulder. Switch on hazard lights, exit via the left-side door only, and stand well away from the vehicle behind the barrier. Then call Tyre Rescue on 0141 266 0690. We cover all Scottish motorways including the M8, M74, M77, M80 and M9. For further safety guidance, see our full tyre blowout emergency guide.',
+    category: 'emergency',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'run-flat-tyre-replacement',
+    question: 'Can you replace run-flat tyres at the roadside?',
+    answer:
+      'Yes. We carry a range of run-flat tyre sizes and can replace them at your location across Scotland. Run-flat tyres (marked RFT, SSR, or ROF on the sidewall) can be driven at reduced speed for up to 50 miles after a puncture, but must be replaced promptly — driving beyond this can damage the rim. When calling, let us know your vehicle make and tyre size so we can confirm stock.',
+    category: 'tyres',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'glasgow-airport-flat-tyre',
+    question: 'Can you come to Glasgow Airport if I have a flat tyre?',
+    answer:
+      'Yes. Glasgow Airport (PA3) is one of our most frequent callout locations. We cover all car parks including long-stay, short-stay and multi-storey. If you return from a flight to find a flat tyre, call 0141 266 0690 and we typically reach the airport in 25–35 minutes. For the multi-storey, meet us at the ground-floor barrier or give the bay number.',
+    category: 'emergency',
+    isHomepageVisible: false,
+  },
+  {
+    id: 'motorway-hard-shoulder-safety',
+    question: 'Is it safe to wait for you on a motorway hard shoulder?',
+    answer:
+      'No — do not stay in or near your vehicle on the hard shoulder. Statistics show stationary vehicles on Scottish motorway hard shoulders are at high risk of being struck from behind. Exit via the LEFT-side door only, move well away from the carriageway, and stand behind the barrier or on the embankment. Keep away from the side of the vehicle facing traffic. When you call us, we will keep you updated on the fitter\'s ETA so you know when it is safe to return.',
+    category: 'emergency',
+    isHomepageVisible: false,
+  },
 ];
 
 /**

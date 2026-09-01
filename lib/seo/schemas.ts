@@ -341,6 +341,12 @@ export function getArticleSchema(opts: {
     datePublished: opts.publishDate,
     dateModified: opts.lastModified,
     keywords: opts.keywords.join(', '),
+    image: {
+      '@type': 'ImageObject',
+      url: `${url}/images/home/slide-1.webp`,
+      width: 1200,
+      height: 630,
+    },
     author: {
       '@type': 'Organization',
       name: 'Tyre Rescue',
@@ -353,6 +359,8 @@ export function getArticleSchema(opts: {
       logo: {
         '@type': 'ImageObject',
         url: `${url}/logo.svg`,
+        width: 600,
+        height: 60,
       },
     },
     mainEntityOfPage: {
