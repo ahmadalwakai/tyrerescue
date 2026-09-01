@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description:
       brand.key === 'duke_street_tyres'
         ? 'Book mobile tyre fitting with Duke Street Tyres. Emergency call-out and scheduled fitting across Glasgow, Edinburgh and Dundee using the live shared booking platform.'
-        : 'Book a mobile tyre fitter in Glasgow and Edinburgh. New tyres near me, fitted at your home or workplace. Tyre shop that comes to you. Budget and premium brands available.',
+        : 'Book a mobile tyre fitter anywhere in Scotland. New tyres fitted at your home, workplace or roadside — Glasgow, Edinburgh, Aberdeen, Inverness and beyond. Budget to premium brands. Tyre Rescue comes to you.',
     alternates: {
       canonical: `${brand.productionUrl}/book`,
     },

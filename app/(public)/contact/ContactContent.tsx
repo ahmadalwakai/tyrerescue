@@ -203,7 +203,7 @@ export function ContactContent() {
                 </Box>
                 <Box>
                   <Text fontSize="13px" color={colors.textSecondary} mb={1}>Service areas</Text>
-                  <Text fontSize="16px" color={colors.textPrimary}>Glasgow, Edinburgh and covered areas across Central Scotland</Text>
+                  <Text fontSize="16px" color={colors.textPrimary}>All of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands</Text>
                 </Box>
               </Flex>
             </Box>

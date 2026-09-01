@@ -172,7 +172,7 @@ export function CompareIndexContent() {
               mx="auto"
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              24/7 emergency mobile tyre fitting across Glasgow, Edinburgh, and Central Scotland. We come to you — no garage visit needed.
+              24/7 emergency mobile tyre fitting across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands. We come to you — no garage visit needed.
             </Text>
             <SimpleGrid columns={{ base: 2, md: 4 }} gap={4} maxW="700px" mx="auto">
               {[

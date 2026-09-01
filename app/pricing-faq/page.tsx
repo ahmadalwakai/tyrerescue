@@ -25,8 +25,7 @@ export default function PricingFAQPage() {
       <main style={{ maxWidth: 760, margin: '0 auto', padding: '2rem 1rem' }}>
         <h1>Tyre Fitting Pricing FAQ</h1>
         <p style={{ fontSize: '1.125rem', lineHeight: 1.7, marginBottom: '2rem' }}>
-          Straightforward answers about how we price mobile tyre fitting across
-          Glasgow, Edinburgh and Central Scotland.
+          Straightforward answers about how we price mobile tyre fitting across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands.
         </p>
 
         <dl>

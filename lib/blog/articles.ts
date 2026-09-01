@@ -635,15 +635,15 @@ Trustpilot, Google Reviews, and word of mouth are your best guides. Look for rec
 ## Top Mobile Tyre Fitting Services in Scotland
 
 ### Tyre Rescue
-- **Coverage:** Glasgow, Edinburgh, Dundee, Stirling, Falkirk, Paisley and surrounding areas
+- **Coverage:** All of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Stirling, Perth, Falkirk, Paisley, Highlands, Islands and every postcode from G to ZE
 - **Hours:** 24/7, 365 days a year
-- **Response Time:** 45 minutes average
+- **Response Time:** 45 minutes average (Central Belt), 90 minutes (Aberdeen/Inverness)
 - **Starting Price:** Callout from £49 + tyre price (emergency)
 - **Trustpilot:** 4.8/5 stars
 - **Key Features:** Live GPS tracking of your fitter, instant online booking, budget to premium tyre range
 - **Best For:** Emergency callouts, out-of-hours fitting, anyone who values convenience
 
-Tyre Rescue is Scotland's dedicated mobile tyre fitting service. Unlike national chains that bolt on mobile service as an afterthought, Tyre Rescue was built from the ground up for mobile fitting. Their 24/7 availability and real-time fitter tracking set them apart.
+Tyre Rescue is Scotland's dedicated mobile tyre fitting service. Unlike national chains that bolt on mobile service as an afterthought, Tyre Rescue was built from the ground up for mobile fitting. Their Scotland-wide coverage, 24/7 availability and real-time fitter tracking set them apart.
 
 ### Kwik Fit
 - **Coverage:** Nationwide garage network
@@ -742,7 +742,7 @@ Yes, if the puncture is in the repairable area of the tyre (the central tread). 
 
 For mobile tyre fitting in Scotland, the choice depends on your priorities. If you need 24/7 emergency service, fast response times, and the convenience of a mobile-first provider, Tyre Rescue is the standout option. For planned, in-store fitting during business hours, national chains like Kwik Fit or Halfords offer a familiar experience.
 
-**Need a tyre fitted now?** Call Tyre Rescue on **0141 266 0690** or book online at **tyrerescue.uk/book**. We're available 24/7 and average 45-minute response times across Glasgow, Edinburgh, and Central Scotland.`,
+**Need a tyre fitted now?** Call Tyre Rescue on **0141 266 0690** or book online at **tyrerescue.uk/book**. We're available 24/7 and cover all of Scotland — 45-minute response times in the Central Belt, 90 minutes to Aberdeen and Inverness.`,
   },
   {
     slug: 'tyre-fitting-costs-scotland-pricing-guide',

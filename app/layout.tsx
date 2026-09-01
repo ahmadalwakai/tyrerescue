@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     template: '%s | Tyre Rescue',
   },
   description:
-    '24/7 mobile tyre fitting, emergency tyre replacement, puncture repair, battery replacement, and roadside assistance across Scotland. Fast coverage in Glasgow and Edinburgh. Call 0141 266 0690.',
+    '24/7 mobile tyre fitting, emergency tyre replacement, puncture repair, battery replacement, and roadside assistance across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands. Call 0141 266 0690.',
   alternates: {
     canonical: 'https://www.tyrerescue.uk',
   },
@@ -76,7 +76,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Tyre Rescue — 24/7 Mobile Tyre Fitting Across Scotland',
     description:
-      '24/7 mobile tyre fitting across Scotland. Emergency tyre replacement, puncture repair, roadside assistance. Fast coverage in Glasgow and Edinburgh.',
+      '24/7 mobile tyre fitting across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands. Emergency tyre replacement, puncture repair, roadside assistance.',
     url: getSiteUrl(),
     siteName: 'Tyre Rescue',
     locale: 'en_GB',
@@ -94,7 +94,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Tyre Rescue — 24/7 Mobile Tyre Fitting Across Scotland',
     description:
-      '24/7 mobile tyre fitting across Scotland. Emergency tyre replacement, puncture repair, roadside assistance. Fast coverage in Glasgow and Edinburgh.',
+      '24/7 mobile tyre fitting across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands. Emergency tyre replacement, puncture repair, roadside assistance.',
     images: ['/images/home/slide-1.webp'],
   },
   icons: {

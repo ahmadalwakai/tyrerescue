@@ -16,22 +16,25 @@ const PHONE_HREF = `tel:${PHONE_DISPLAY.replace(/\s/g, '')}`;
 const SERVICE_AREAS: ServiceArea[] = [
   { name: 'Glasgow', href: '/services/glasgow' },
   { name: 'Edinburgh', href: '/services/edinburgh' },
+  { name: 'Aberdeen', href: '/services/aberdeen' },
+  { name: 'Inverness', href: '/services/inverness' },
+  { name: 'Dundee', href: '/services/dundee' },
   { name: 'Stirling', href: '/services/stirling' },
   { name: 'Falkirk', href: '/services/falkirk' },
-  { name: 'Dundee', href: '/services/dundee' },
+  { name: 'Perth', href: '/services/perth' },
 ];
 
 export const metadata: Metadata = {
   title: 'Emergency Mobile Tyre Fitting Near Me | Tyre Rescue',
   description:
-    'Need urgent tyre help? Our mobile fitters come to your location for flat tyres, roadside tyre emergencies and tyre replacement across Glasgow, Edinburgh and Central Scotland. Call 0141 266 0690.',
+    'Need urgent tyre help? Our mobile fitters come to your exact location for flat tyres, roadside emergencies and tyre replacement across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands. Call 0141 266 0690.',
   alternates: {
     canonical: '/emergency-tyre-fitting-near-me',
   },
   openGraph: {
     title: 'Emergency Mobile Tyre Fitting Near Me | Tyre Rescue',
     description:
-      'Flat tyre or roadside emergency? Tyre Rescue mobile fitters come to you across Glasgow, Edinburgh and Central Scotland. 24/7 emergency tyre fitting.',
+      'Flat tyre or roadside emergency? Tyre Rescue mobile fitters cover all of Scotland 24/7 — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands.',
   },
 };
 
