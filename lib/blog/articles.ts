@@ -7308,6 +7308,352 @@ Call **0141 266 0690** or [book online](/book) for mobile Toyota tyre fitting at
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland) | [Nissan tyre fitting Scotland](/blog/nissan-tyre-fitting-scotland)`,
   },
+  {
+    slug: 'audi-tyre-fitting-scotland',
+    title: 'Audi Tyre Fitting Scotland: A3, A4, Q3, Q5, Q7 & e-tron',
+    description:
+      'Mobile Audi tyre fitting across Scotland. Correct tyre sizes for every Audi model — A1, A3, A4, A6, Q3, Q5, Q7, e-tron, RS models. TPMS reset included. Glasgow, Edinburgh, Aberdeen covered.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'audi tyre fitting scotland',
+      'audi a3 tyres scotland',
+      'audi q5 tyres scotland',
+      'audi q7 tyres scotland',
+      'audi e-tron tyres scotland',
+      'audi rs tyres scotland',
+      'mobile audi tyre fitting glasgow',
+      'audi a4 tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'bmw-tyre-fitting-scotland',
+    ],
+    content: `# Audi Tyre Fitting Scotland: Every Model Covered
+
+Audi is one of the most popular premium car brands in Scotland, particularly in Glasgow, Edinburgh, and Aberdeen. Audi vehicles often use staggered fitments, run-flat tyres, and high-load-index specifications that differ from mainstream cars. Tyre Rescue provides specialist mobile Audi tyre fitting across all of Scotland — correct spec, first time, every time.
+
+## Audi A1 Tyre Sizes
+
+The Audi A1 (GB8, 2019–present):
+
+| A1 Trim | Tyre Size |
+|---|---|
+| A1 Sport | 195/60R15 or 205/55R16 |
+| A1 S Line | 215/45R17 or 225/35R18 |
+| A1 Citycarver | 205/60R16 |
+
+Older A1 (2010–2018): 195/65R15 base, 205/55R16 mid, 225/35R18 on S Line sport.
+
+## Audi A3 Tyre Sizes
+
+The Audi A3 (8Y, 2020–present) — includes A3 Sportback, Saloon, and 45 TFSI e PHEV:
+
+| A3 Trim | Tyre Size |
+|---|---|
+| A3 Sport / Technik | 225/50R17 |
+| A3 S Line | 225/40R18 or 245/35R19 |
+| A3 S3 | 245/35R19 |
+| A3 RS3 | 255/35R19 (front), 255/35R19 (rear) |
+| A3 45 TFSI e (PHEV) | 225/40R18 (load index 92+) |
+
+Audi A3 (8V, 2012–2020): 205/55R16 base, 225/45R17 mid, 235/35R19 S3/RS3.
+
+**PHEV note**: The A3 45 TFSI e plug-in hybrid adds significant weight. Load index must be verified before fitting.
+
+## Audi A4 & A5 Tyre Sizes
+
+The Audi A4 B9 (2015–present):
+
+| A4 Trim | Tyre Size |
+|---|---|
+| A4 Sport | 225/55R16 or 235/45R17 |
+| A4 S Line | 245/40R18 |
+| A4 S4 | 255/35R19 |
+| A4 Allroad | 235/55R17 or 245/45R18 |
+| A4 45 TFSI e PHEV | 245/40R18 (load index 97+) |
+
+Audi A5 (F5, 2016–present): Similar sizes to A4 — 245/40R18 base, 265/30R20 on RS5.
+
+## Audi Q3 Tyre Sizes
+
+The Audi Q3 (F3, 2019–present):
+
+| Q3 Trim | Tyre Size |
+|---|---|
+| Q3 Sport | 215/65R16 or 235/50R18 |
+| Q3 S Line | 235/45R19 or 255/40R19 |
+| Q3 45 TFSI e PHEV | 235/45R19 (load index 95+) |
+| Q3 RS Q3 | 255/40R20 |
+
+## Audi Q5 Tyre Sizes
+
+The Audi Q5 (FY, 2017–present) — UK's bestselling Audi model:
+
+| Q5 Trim | Tyre Size |
+|---|---|
+| Q5 Sport | 235/65R17 or 255/50R19 |
+| Q5 S Line | 255/45R20 |
+| Q5 SQ5 | 255/45R20 or 265/40R21 |
+| Q5 55 TFSI e PHEV | 255/45R20 (load index 105+) |
+| Q5 Sportback | 255/45R20 |
+
+**Q5 PHEV**: The Q5 55 TFSI e is a heavier vehicle — load index requirements are stringent. Never fit a standard-load-index tyre on a Q5 PHEV.
+
+## Audi Q7 & Q8 Tyre Sizes
+
+| Model | Tyre Size |
+|---|---|
+| Q7 Sport | 235/65R19 |
+| Q7 S Line | 255/50R20 or 285/45R20 |
+| Q7 SQ7 | 285/40R21 or 285/45R20 |
+| Q8 / SQ8 | 285/45R20 or 295/40R21 |
+| Q8 e-tron | 255/50R20 (front) / 255/45R21 |
+
+## Audi e-tron, Q4 e-tron & e-tron GT
+
+Audi's electric vehicle range has specific tyre requirements:
+
+**Audi Q4 e-tron (2021–present)**:
+- 215/55R19 (standard) or 235/50R20 or 255/45R21
+- High load index required (98+ for AWD)
+- Acoustic foam-lined tyres recommended to reduce EV road noise
+
+**Audi e-tron (now Q8 e-tron, 2019–present)**:
+- 265/45R20 (standard) or 265/40R21
+- Minimum load index 108 (the vehicle weighs ~2.6 tonnes)
+- OE-approved Pirelli, Michelin, or Continental EV tyres recommended
+
+**Audi e-tron GT & RS e-tron GT**:
+- 265/35R20 (front), 305/30R20 (rear) — staggered fitment
+- **Important**: Staggered fitments cannot be rotated. Call us to confirm front and rear specs separately.
+
+**EV tyre fitting note**: Audi electric models do not carry spare tyres. Mobile fitting is the only solution for a flat EV tyre. We carry EV-specification stock for all Audi electric models.
+
+## Audi RS Models — Performance Tyre Sizes
+
+| RS Model | Tyre Size |
+|---|---|
+| RS3 | 255/35R19 |
+| RS4 Avant | 265/35R19 or 275/30R20 |
+| RS6 Avant | 275/30R21 or 285/25R22 |
+| RS Q3 | 255/40R20 |
+| RS Q8 | 285/40R22 or 295/35R22 |
+
+**RS performance note**: RS models use Michelin Pilot Sport 4S, Continental SportContact 6, or Pirelli P Zero as OE tyres. We carry performance-grade equivalents for RS models — call ahead on 0141 266 0690 to confirm stock for your specific size.
+
+## Audi TPMS Reset
+
+All Audi models have TPMS (Tyre Pressure Monitoring System), typically:
+
+- **Indirect TPMS (A1, A3, Q3)**: Reset via MMI — Car → Servicing & Checks → Tyres → Store Current Settings
+- **Direct TPMS (Q7, Q8, e-tron, RS models)**: Requires a TPMS diagnostic tool to relearn each sensor position
+
+Tyre Rescue carries Audi-compatible TPMS reset tools for all models. Reset is included at no additional charge with every fitting.
+
+## Emergency Audi Tyre Fitting in Scotland
+
+If you have a flat tyre on your Audi anywhere in Scotland:
+
+1. **A3, A4, Q3, Q5**: Check if your Audi has a run-flat tyre (marked DSST or ROF on the sidewall) — if so, you can drive carefully to a safe location at no more than 50mph
+2. **e-tron, Q4 e-tron**: No spare wheel — call immediately
+3. **RS models**: Performance tyres are not run-flats; stop safely and call us
+4. **Call 0141 266 0690** — give your registration number for instant tyre identification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+## Why Use Tyre Rescue for Your Audi?
+
+- **Premium brand expertise** — we understand staggered fitments, RS performance specs, and PHEV load index requirements
+- **Audi EV specialists** — OE-approved and EV-optimised tyres for Q4 e-tron, e-tron GT, and Q8 e-tron
+- **TPMS reset included** — your Audi's MMI warning cleared before we leave
+- **All of Scotland covered** — from your garage in Edinburgh's New Town to the A9 in Perthshire
+- **No surprise fees** — full itemised quote before any work begins
+
+Call **0141 266 0690** or [book online](/book) for mobile Audi tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Tesla tyre fitting Scotland](/blog/tesla-tyre-fitting-scotland)`,
+  },
+  {
+    slug: 'mercedes-tyre-fitting-scotland',
+    title: 'Mercedes Tyre Fitting Scotland: A-Class, C-Class, E-Class, GLE & EQS',
+    description:
+      'Mobile Mercedes tyre fitting across Scotland. Correct tyre sizes for every Mercedes model — A-Class, C-Class, E-Class, GLC, GLE, EQA, EQC, EQS, AMG. Run-flat and TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'mercedes tyre fitting scotland',
+      'mercedes c class tyres scotland',
+      'mercedes glc tyres scotland',
+      'mercedes eqs tyres scotland',
+      'mercedes amg tyres scotland',
+      'mercedes e class tyres scotland',
+      'mobile mercedes tyre fitting glasgow',
+      'mercedes a class tyres scotland',
+    ],
+    relatedSlugs: [
+      'run-flat-tyres-scotland-guide',
+      'tpms-warning-light-scotland-guide',
+      'bmw-tyre-fitting-scotland',
+    ],
+    content: `# Mercedes Tyre Fitting Scotland: Every Model Covered
+
+Mercedes-Benz is one of the most popular premium car brands in Scotland, and Mercedes tyres often carry specific requirements — run-flat extended mobility tyres (MOExtended / EMT), staggered fitments on AMG models, and high-load-index EV specifications. Tyre Rescue provides specialist mobile Mercedes tyre fitting across all of Scotland.
+
+## Mercedes A-Class & B-Class Tyre Sizes
+
+The Mercedes A-Class (W177, 2018–present) and B-Class (W247, 2018–present):
+
+| Model / Trim | Tyre Size |
+|---|---|
+| A-Class Sport | 205/55R16 or 225/45R17 |
+| A-Class AMG Line | 225/40R18 |
+| A 35 AMG | 235/35R19 (front), 255/35R19 (rear) |
+| A 45 AMG | 235/35R19 (front), 255/35R19 (rear) |
+| B-Class Sport | 205/55R16 |
+| B-Class AMG Line | 225/45R17 or 235/40R18 |
+
+**A 35/45 AMG staggered note**: The AMG A-Class uses different front and rear tyre sizes. These cannot be rotated. When calling, specify whether you need front or rear tyres.
+
+## Mercedes C-Class Tyre Sizes
+
+The Mercedes C-Class (W206, 2022–present):
+
+| C-Class Trim | Tyre Size |
+|---|---|
+| C 180 / C 200 Sport | 225/55R17 or 225/45R18 |
+| C-Class AMG Line | 245/40R18 or 245/35R19 |
+| C 300 e PHEV | 245/40R18 (load index 93+) |
+| C 63 AMG | 255/35R19 (front), 275/35R19 (rear) |
+
+C-Class (W205, 2014–2022): 205/55R16 base, 225/45R17 mid, 255/35R19 AMG.
+
+**C 300 e PHEV note**: The plug-in hybrid C-Class carries additional battery weight — load index is higher than the standard C-Class.
+
+## Mercedes E-Class Tyre Sizes
+
+The Mercedes E-Class (W214, 2023–present) and W213 (2016–2023):
+
+| E-Class Trim | Tyre Size |
+|---|---|
+| E 200 / E 220 Sport | 235/55R17 or 245/45R18 |
+| E-Class AMG Line | 245/40R19 or 265/35R19 |
+| E 53 AMG | 265/35R19 (front), 285/30R20 (rear) |
+| E 63 AMG | 265/35R19 (front), 295/30R20 (rear) |
+| E All-Terrain | 245/50R18 |
+
+## Mercedes GLC Tyre Sizes
+
+The Mercedes GLC (X254, 2022–present) — UK's bestselling Mercedes model:
+
+| GLC Trim | Tyre Size |
+|---|---|
+| GLC 200 / 300 Sport | 235/60R18 or 255/50R19 |
+| GLC AMG Line | 255/45R20 |
+| GLC 300 e PHEV | 255/45R20 (load index 105+) |
+| AMG GLC 43 / 63 | 265/40R21 (front), 295/35R21 (rear) |
+
+**GLC PHEV**: The GLC 300 e plug-in hybrid requires load index 105+ minimum. We verify this before every fitting.
+
+## Mercedes GLE Tyre Sizes
+
+The Mercedes GLE (V167, 2019–present):
+
+| GLE Trim | Tyre Size |
+|---|---|
+| GLE 300d / 350 Sport | 265/50R19 |
+| GLE AMG Line | 265/45R20 or 285/40R21 |
+| GLE 350 de PHEV | 265/45R20 (load index 108+) |
+| AMG GLE 53 / 63 | 285/40R21 (front), 325/35R21 (rear) |
+
+## Mercedes EQA, EQB & EQC Electric Tyre Sizes
+
+**Mercedes EQA (2021–present)**:
+- 235/50R19 or 235/45R20
+- Load index 99+ required
+
+**Mercedes EQB (2021–present)**:
+- 235/50R18 (SWB) or 235/45R19
+- Load index 99+
+
+**Mercedes EQC (2019–present)**:
+- 235/50R19 (standard) or 235/45R20
+- Minimum load index 103 — the EQC weighs 2.4 tonnes
+
+All Mercedes EVs have no spare wheel. Mobile tyre fitting is the only solution for a flat. Call us immediately.
+
+## Mercedes EQS & EQE Electric Tyre Sizes
+
+**Mercedes EQS (V297, 2021–present)** — full-size electric flagship:
+- 265/40R21 (standard)
+- 265/35R22 or 285/35R22 (larger wheels)
+- Acoustic foam-lined tyres — mandatory for EQS to maintain the vehicle's near-silent interior
+
+**Mercedes EQE (V295, 2022–present)**:
+- 235/50R19 (standard) or 265/40R21
+
+**EQS fitting note**: The EQS uses special low-rolling-resistance, acoustic foam-lined tyres. Fitting a standard non-OE-type tyre will increase cabin noise significantly. We carry EQS-specification tyres or OE-equivalent alternatives.
+
+## Mercedes AMG & AMG GT Tyre Sizes
+
+| AMG Model | Front | Rear |
+|---|---|---|
+| AMG A 45 | 235/35R19 | 255/35R19 |
+| AMG C 63 | 255/35R19 | 275/35R19 |
+| AMG GT (C190) | 265/35R19 | 295/30R20 |
+| AMG GT 4-Door | 255/35R20 | 285/30R21 |
+
+All AMG staggered fitments require separate front and rear tyre orders. Call us to specify front or rear when ordering.
+
+## Mercedes Run-Flat Tyres (MOExtended / EMT)
+
+Many Mercedes models — particularly C-Class, E-Class, and S-Class — come factory-fitted with run-flat tyres marked **MOExtended** or **EMT** (Extended Mobility Technology). These allow driving at up to 50mph for up to 50 miles when flat.
+
+**Important**: Like BMW RSC run-flats, Mercedes EMT run-flat tyres must be replaced with run-flats. Fitting a conventional tyre on a Mercedes designed for run-flats affects TPMS calibration and handling.
+
+Tyre Rescue stocks MOExtended and EMT run-flat tyres for all Mercedes models.
+
+## Mercedes TPMS Reset
+
+All Mercedes models have TPMS. After any tyre change:
+
+- **Indirect TPMS (A-Class, B-Class, GLA)**: Reset via MBUX — Settings → Service → Tyre Pressure Monitor → Confirm New Tyre Pressures
+- **Direct TPMS (E-Class, GLC, GLE, EQ models, AMG)**: Requires a TPMS diagnostic tool
+
+Tyre Rescue carries Mercedes-compatible TPMS reset tools. Reset is included at no additional charge with every fitting.
+
+## Emergency Mercedes Tyre Fitting in Scotland
+
+If you have a flat tyre on your Mercedes anywhere in Scotland:
+
+1. **Check for run-flat (MOExtended/EMT) markings on the tyre sidewall** — if present, you can drive carefully at no more than 50mph for up to 50 miles
+2. **C-Class, E-Class, S-Class run-flats**: Move to a safe location then call us
+3. **EQC, EQS, EQE**: No spare wheel — call us immediately
+4. **AMG staggered fitments**: Confirm whether you need front or rear when you call
+5. **Call 0141 266 0690** — give your registration number for instant tyre identification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+## Why Use Tyre Rescue for Your Mercedes?
+
+- **Run-flat specialists** — we stock and fit MOExtended/EMT run-flat tyres for all Mercedes models
+- **EV tyre specialists** — acoustic foam-lined tyres for EQS, EQE, and EQA
+- **AMG staggered fitment expertise** — we understand front/rear split specs
+- **TPMS reset included** — MBUX tyre warnings cleared before we leave
+- **PHEV load index compliance** — we always check and confirm load index for PHEV models
+- **All of Scotland** — from Glasgow's West End to Highland estates
+
+Call **0141 266 0690** or [book online](/book) for mobile Mercedes tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Audi tyre fitting Scotland](/blog/audi-tyre-fitting-scotland)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
