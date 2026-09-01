@@ -4049,6 +4049,205 @@ For drivers in Lerwick itself, response is typically fastest as we maintain a lo
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
   },
   {
+    slug: 'tyre-tread-depth-guide-scotland',
+    title: 'Tyre Tread Depth: Legal Limit, Checking Guide & When to Replace',
+    description:
+      'What is the legal tyre tread depth in Scotland? How to check it, why the 1.6mm limit is not safe enough for Scottish roads, and when to replace your tyres.',
+    category: 'safety',
+    publishDate: '2025-10-15',
+    lastModified: '2025-10-15',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'tyre tread depth scotland',
+      'legal tyre tread depth uk',
+      'how to check tyre tread',
+      'tyre tread depth checker',
+      'when to replace tyres scotland',
+      'minimum tyre tread uk',
+      'tyre tread depth test',
+      'tyre tread depth 1.6mm',
+    ],
+    relatedSlugs: [
+      'signs-you-need-new-tyres',
+      'tyre-maintenance-checklist-scotland',
+      'best-tyres-scottish-roads-guide',
+    ],
+    content: `# Tyre Tread Depth: Legal Limit, Checking Guide & When to Replace
+
+Tyre tread depth is one of the most safety-critical factors on your vehicle — and one of the most commonly neglected. For Scottish drivers dealing with wet roads for much of the year, understanding tread depth matters more than almost anywhere else in the UK.
+
+## What Is the Legal Minimum Tyre Tread Depth in the UK?
+
+The UK legal minimum tyre tread depth is **1.6mm** across the central three-quarters of the tyre, around the full circumference.
+
+Driving on tyres below 1.6mm tread depth is a criminal offence. The penalty is up to a £2,500 fine and 3 penalty points **per tyre**. Four bald tyres can cost you up to £10,000 in fines and 12 points — an automatic driving ban.
+
+## Is 1.6mm Safe Enough for Scotland?
+
+The legal minimum is not a safety recommendation — it is a legal floor. Independent testing by TyreSafe and the MIRA research institute consistently shows that tyre performance degrades significantly before you reach 1.6mm.
+
+**Wet stopping distance comparison (at 50mph):**
+
+| Tread Depth | Wet Stopping Distance |
+|-------------|----------------------|
+| 8mm (new)   | Baseline             |
+| 3mm         | +27% longer          |
+| 1.6mm       | +44% longer          |
+
+On Scotland's wet roads, a tyre at 1.6mm takes nearly half as long again to stop as a new tyre. At 50mph on a wet Glasgow road, that difference is approximately 12 metres — enough to hit a pedestrian or the vehicle in front.
+
+**Tyre Rescue recommendation**: Replace tyres when tread reaches **3mm** on Scottish roads. This is the threshold used by many professional fleet operators and endorsed by road safety charities.
+
+## How to Check Your Tyre Tread Depth
+
+### Method 1: The 20p Coin Test
+Insert a 20p coin into the tread groove. If you can see the outer rim of the coin (the raised band), your tread is below 3mm and approaching replacement territory. If the entire outer rim is hidden, you have more than 3mm of tread.
+
+### Method 2: Tread Wear Indicators (TWI)
+All tyres have small rubber bars moulded into the tread grooves. These bars sit at exactly 1.6mm. If the tread surface is level with these bars, the tyre is at the legal minimum and must be replaced immediately. Look for a small triangle or 'TWI' marking on the tyre shoulder to locate where these bars are in each tread groove.
+
+### Method 3: Tread Depth Gauge
+A simple tread depth gauge costs from £3 at a garage or online. Insert the probe into the tread groove and read the depth in millimetres. Check at least three points across the tyre width in each of four positions around the circumference (12, 3, 6, and 9 o'clock positions).
+
+### What to Check For
+
+Beyond depth, inspect tyres for:
+- **Uneven wear** across the width (may indicate alignment or inflation problems)
+- **Feathering** — tread blocks worn on one edge only (alignment issue)
+- **Centre wear** — excessive wear in the middle (over-inflation)
+- **Edge wear** — worn on both outer edges (under-inflation)
+- **Cracks or bulges** in the sidewall (tyre must be replaced immediately)
+
+## How Often Should You Check Tread Depth?
+
+Check tyre tread depth at least once a month and before any long journey. In Scotland, check after periods of particularly bad weather, after driving on gravel roads or farm tracks, and after any kerbing incident.
+
+## When to Replace Tyres in Scotland
+
+Replace immediately if:
+- Tread depth is at or below 1.6mm (legal minimum)
+- Sidewall cracks, cuts, or bulges are visible
+- Tyre age exceeds 10 years (tyres degrade regardless of tread)
+- The tyre has been run flat (even briefly)
+
+Replace soon if:
+- Tread depth is at or below 3mm (Scottish road safety threshold)
+- Tyre age is 5–7 years (rubber compound begins to harden)
+- Uneven wear indicates alignment or suspension issues
+
+## Tyre Replacement in Scotland
+
+Need new tyres fitted? Tyre Rescue brings the tyres and fitting equipment to your location — home, work, or roadside — across all of Scotland.
+
+- **Call 0141 266 0690** to check tyre availability and get a quote
+- **[Book online](/book)** to schedule a fitting at your convenience
+- **[Emergency callout](/emergency-tyre-fitting-near-me)** if you need immediate assistance
+
+[Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Signs you need new tyres](/blog/signs-you-need-new-tyres)`,
+  },
+  {
+    slug: 'wheel-balancing-vs-alignment-scotland',
+    title: 'Wheel Balancing vs Wheel Alignment: What\'s the Difference?',
+    description:
+      'Confused about wheel balancing and wheel alignment? This guide explains what each service does, the symptoms of each problem, costs in Scotland, and when you need each one.',
+    category: 'maintenance',
+    publishDate: '2025-10-15',
+    lastModified: '2025-10-15',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'wheel balancing vs alignment scotland',
+      'wheel alignment scotland',
+      'wheel balancing scotland',
+      'tyre balancing near me scotland',
+      'wheel tracking scotland',
+      'steering wheel vibration cause',
+      'car pulling to one side scotland',
+      'wheel alignment cost scotland',
+    ],
+    relatedSlugs: [
+      'tyre-maintenance-checklist-scotland',
+      'signs-you-need-new-tyres',
+      'tyre-tread-depth-guide-scotland',
+    ],
+    content: `# Wheel Balancing vs Wheel Alignment: What's the Difference?
+
+Two of the most commonly confused car maintenance services are wheel balancing and wheel alignment. Both affect tyre wear and vehicle handling, but they address completely different problems. This guide explains both, the symptoms of each, and when you need them.
+
+## Wheel Balancing
+
+### What Is It?
+Wheel balancing corrects for uneven weight distribution around the tyre and wheel assembly. Even tiny weight variations — a few grams — cause the wheel to vibrate at speed as it spins.
+
+### What Is Done?
+A technician mounts the tyre and wheel on a balancing machine that spins the assembly and measures vibration. Small lead or zinc weights are clipped or stuck to the inside of the rim to counterbalance any heavy spots.
+
+### Symptoms of an Out-of-Balance Tyre
+- **Vibration through the steering wheel** at certain speeds (typically 50–70mph)
+- **Vibration felt through the seat or floor** (rear wheel balance issue)
+- **Uneven or patchy tread wear** — often a cupped or scalloped pattern
+- **Increased road noise** at motorway speeds
+
+### When Should You Balance?
+- Any time a new tyre is fitted
+- After a puncture repair
+- If you notice vibration at speed
+- Every 12,000–15,000 miles as a precaution
+- After hitting a significant pothole (potholes are common on Scottish roads, especially in rural areas)
+
+### Cost in Scotland
+Wheel balancing: approximately **£8–£15 per wheel**. Tyre Rescue includes wheel balancing as standard when fitting new tyres — it is part of the fitting process, not an extra charge.
+
+## Wheel Alignment
+
+### What Is It?
+Wheel alignment (also called tracking or geometry) adjusts the angles of your tyres relative to each other and to the road. When wheels are misaligned, tyres do not point in the correct direction — causing wear, poor handling, and increased fuel consumption.
+
+### The Three Alignment Angles
+- **Toe**: Whether the front of the tyres point inward (toe-in) or outward (toe-out) relative to each other. This is the most common adjustment needed.
+- **Camber**: The angle of the tyre when viewed from the front — whether it tilts inward or outward at the top.
+- **Caster**: The angle of the steering axis when viewed from the side — affects straight-line stability.
+
+### What Is Done?
+Alignment requires a four-wheel alignment machine that uses laser or camera sensors to measure all four tyre angles simultaneously. Adjustments are made to suspension components to bring angles back within the manufacturer's specified range.
+
+### Symptoms of Misaligned Wheels
+- **Car pulling to one side** when you release the steering wheel on a straight, flat road
+- **Steering wheel sits at an angle** even when driving straight
+- **Excessive or uneven tread wear** — particularly on the inner or outer edge of the tyre
+- **Increased fuel consumption** — misaligned tyres create more rolling resistance
+
+### When Should You Align?
+- After hitting a significant kerb or pothole
+- After suspension work or steering component replacement
+- When fitting new tyres (worth checking alignment at the same time)
+- If you notice any of the symptoms above
+- Annually as a precaution for high-mileage drivers
+
+### Cost in Scotland
+Two-wheel (front axle) alignment: approximately **£40–£60**. Four-wheel alignment: approximately **£60–£90**. These prices are for specialist garage alignment — alignment requires a fixed alignment rack and cannot be done at the roadside by a mobile fitter.
+
+## Key Differences at a Glance
+
+| | Wheel Balancing | Wheel Alignment |
+|---|---|---|
+| Problem | Uneven weight distribution | Incorrect tyre angles |
+| Symptom | Vibration at speed | Pulling; uneven tread wear |
+| Equipment | Balancing machine | Four-wheel alignment rack |
+| Can be mobile? | ✅ Yes | ❌ No (needs fixed rack) |
+| Cost per axle | £16–£30 | £40–£90 |
+| When needed | Every tyre fit | After impacts, annually |
+
+## Can Tyre Rescue Help?
+
+Tyre Rescue carries balancing equipment on every van. When we fit a new tyre, balancing is included. If you need balancing only (no new tyre), call **0141 266 0690** and we can come to you.
+
+For wheel alignment, you will need a specialist garage with a four-wheel alignment rig. If you are unsure whether your issue is balancing or alignment, call us — the symptoms usually make it clear, and we will advise honestly even if it means sending you to a garage.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Tyre maintenance checklist](/blog/tyre-maintenance-checklist-scotland) | [Signs you need new tyres](/blog/signs-you-need-new-tyres)`,
+  },
+  {
     slug: 'tpms-warning-light-scotland-guide',
     title: 'TPMS Warning Light: What It Means & What to Do in Scotland',
     description:
