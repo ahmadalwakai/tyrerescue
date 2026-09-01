@@ -4049,6 +4049,258 @@ For drivers in Lerwick itself, response is typically fastest as we maintain a lo
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
   },
   {
+    slug: 'bmw-tyre-fitting-scotland',
+    title: 'BMW Tyre Fitting Scotland: Run-Flats, TPMS & All Models',
+    description:
+      'Specialist mobile BMW tyre fitting across Scotland. Run-flat tyres, TPMS reset, load-rated tyres for all BMW models — 1 Series, 3 Series, 5 Series, X5, iX and more. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2026-03-01',
+    lastModified: '2026-03-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'bmw tyre fitting scotland',
+      'bmw tyre replacement scotland',
+      'bmw run flat tyres scotland',
+      'bmw tpms reset scotland',
+      'mobile bmw tyre fitting glasgow',
+      'bmw 3 series tyres scotland',
+      'bmw x5 tyres scotland',
+      'bmw i4 tyres scotland',
+    ],
+    relatedSlugs: [
+      'run-flat-tyres-scotland-guide',
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+    ],
+    content: `# BMW Tyre Fitting Scotland: Run-Flats, TPMS & All Models
+
+BMW is one of the most popular premium car brands in Scotland — particularly in Glasgow, Edinburgh, and Aberdeen. BMW vehicles have specific tyre requirements that differ from most other cars, and getting the right tyres matters for both safety and preserving your vehicle's performance.
+
+Tyre Rescue provides specialist mobile BMW tyre fitting across all of Scotland, covering all current and recent BMW models.
+
+## What Makes BMW Tyres Different
+
+### Run-Flat Tyres (RSC)
+Most modern BMW models — 1 Series, 2 Series, 3 Series, 4 Series, 5 Series — come factory-fitted with run-flat tyres marked **RSC** (Run-flat System Component). These allow driving at up to 50mph for up to 50 miles when deflated.
+
+**Critical**: BMW run-flat tyres must be replaced with run-flat tyres. Fitting a conventional tyre on a BMW designed for run-flats affects TPMS calibration and handling. Always use RSC-marked replacements.
+
+### TPMS Reset
+All modern BMWs have direct TPMS. After any tyre change, the TPMS must be reset using a BMW-compatible diagnostic tool. Without a reset, the TPMS warning light stays on permanently. Tyre Rescue carries TPMS reset tools compatible with all BMW models. Reset is included at no extra charge with every fitting.
+
+### Load Index Requirements
+BMW SUV models (X3, X5, X7) require tyres with high load indices. Check your current tyre sidewall and ensure any replacement matches or exceeds the load index.
+
+## Common BMW Models We Serve in Scotland
+
+| Model | Common Tyre Size | Type |
+|-------|-----------------|------|
+| BMW 3 Series (G20) | 225/45R17, 245/40R18 | RSC run-flat |
+| BMW 5 Series (G30) | 225/55R17, 245/40R19 | RSC run-flat |
+| BMW X3 (G01) | 225/55R18, 245/45R19 | Standard or run-flat |
+| BMW X5 (G05) | 275/40R20, 275/35R21 | Standard or run-flat |
+| BMW i4 (EV) | 245/45R18, 255/40R19 | EV-specific load index |
+| BMW iX (EV) | 245/55R19, 285/40R22 | EV acoustic recommended |
+| MINI Hatch (F56) | 205/45R17, 225/45R17 | RSC run-flat |
+
+## TPMS Warning Light After BMW Tyre Change
+
+If your BMW TPMS light came on after a tyre change, the sensor was not reset — the most common BMW-specific call we receive. Call **0141 266 0690** and we will come to reset the TPMS at your location.
+
+## Emergency BMW Tyre Fitting in Scotland
+
+Flat BMW tyre on the M8, M74, A9, or anywhere else in Scotland? Call **0141 266 0690** — we carry RSC run-flat tyres for all major BMW models, 24 hours a day.
+
+[Run-flat tyres Scotland guide](/blog/run-flat-tyres-scotland-guide) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me)`,
+  },
+  {
+    slug: 'tesla-tyre-fitting-scotland',
+    title: 'Tesla Tyre Fitting Scotland: Model 3, Y, S & X',
+    description:
+      'Mobile Tesla tyre replacement across Scotland. EV load-rated tyres for all Tesla models. TPMS guide, no-spare-wheel advice, emergency callout. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2026-03-01',
+    lastModified: '2026-03-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'tesla tyre fitting scotland',
+      'tesla tyre replacement scotland',
+      'mobile tesla tyre fitting glasgow',
+      'tesla model 3 tyres scotland',
+      'tesla model y tyres scotland',
+      'tesla flat tyre scotland',
+      'tesla ev tyre scotland',
+      'tesla no spare wheel scotland',
+    ],
+    relatedSlugs: [
+      'electric-vehicle-tyres-scotland',
+      'tpms-warning-light-scotland-guide',
+      '24-hour-emergency-tyre-fitting-scotland',
+    ],
+    content: `# Tesla Tyre Fitting Scotland: Model 3, Y, S & X
+
+Tesla is Scotland's most popular electric vehicle, with high adoption particularly in Edinburgh, Glasgow, and Aberdeen. Teslas have specific tyre requirements that differ from conventional cars — higher load ratings, acoustic foam, and no spare wheel. Getting the wrong tyre on a Tesla is a safety risk.
+
+Tyre Rescue fits tyres on all Tesla models across Scotland, 24 hours a day.
+
+## Why Tesla Tyres Are Different
+
+### High Load Requirements
+Teslas are significantly heavier than petrol equivalents due to battery packs. A Tesla Model Y weighs approximately 2,000kg. Each tyre must carry more weight, requiring a higher load index — typically 97–107 depending on model. Fitting an under-rated tyre is dangerous and voids the tyre warranty.
+
+### No Spare Wheel
+Teslas do not include a spare wheel. If you have a flat, you cannot change it yourself. Mobile tyre fitting is the only resolution — there is no run-flat contingency and no on-board spare.
+
+### Acoustic Foam
+Many Tesla-spec tyres include acoustic foam on the inner surface to reduce tyre noise in the near-silent cabin. Common options: Michelin 'Acoustic', Continental 'ContiSilent', Pirelli 'Seal Inside'. You can fit a standard tyre — the correct load index is mandatory, the foam is recommended.
+
+## Common Tesla Tyre Sizes
+
+| Model | Common UK Tyre Size |
+|-------|---------------------|
+| Model 3 Standard Range | 235/45R18 |
+| Model 3 Long Range | 235/45R18 or 235/40R19 |
+| Model 3 Performance | 235/35R20 (front), 255/35R20 (rear) |
+| Model Y (most common in Scotland) | 255/45R19 |
+| Model Y Performance | 255/40R20 (front), 275/35R20 (rear) |
+| Model S | 245/45R19 or 265/35R20 |
+| Model X | 265/45R20 or 275/35R21 |
+
+## Tesla Flat Tyre: What to Do in Scotland
+
+1. Do not drive on a flat — Teslas have no run-flat capability
+2. Pull to a safe location as soon as it is safe to do so
+3. Call **0141 266 0690** — state you have a Tesla and your model
+4. We will confirm stock of your specific size and give an accurate ETA
+5. After fitting, reset TPMS via Tesla touchscreen: Controls > Service > Tyre Pressure Reset
+
+Tyre Rescue covers all of Scotland — from Edinburgh and Glasgow where Tesla ownership is highest, to the A9, A82, and Highland routes where Teslas are increasingly common.
+
+[Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-falkirk-central-scotland',
+    title: 'Mobile Tyre Fitting in Falkirk & Central Scotland | Tyre Rescue',
+    description:
+      'Mobile tyre fitting across Falkirk, Grangemouth, Bo\'ness, Larbert and Central Scotland. Fast response via M9 and M80. Emergency 24/7 cover. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2026-02-01',
+    lastModified: '2026-02-01',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting falkirk',
+      'tyre fitting falkirk',
+      'emergency tyre fitting falkirk',
+      'mobile tyre fitter grangemouth',
+      'flat tyre falkirk',
+      'tyre fitting larbert',
+      'mobile tyre fitting central scotland',
+      'tyre rescue falkirk',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-stirling-central-scotland',
+      'mobile-tyre-fitting-glasgow',
+      '24-hour-emergency-tyre-fitting-scotland',
+    ],
+    content: `# Mobile Tyre Fitting in Falkirk & Central Scotland
+
+Falkirk sits at the exact centre of Scotland's motorway network — the M9, M80, and A9 all converge within a few miles of the town centre. Every vehicle travelling between Glasgow and Edinburgh via the M80 passes through or near Falkirk, making it one of our busiest callout areas.
+
+## Coverage: Falkirk and Surrounding Area
+
+**Falkirk town** (FK1, FK2): Town centre, Camelon, Grahamston, Tamfourhill, Stenhousemuir, Larbert.
+
+**Grangemouth** (FK3): Scotland's major petrochemical port and industrial area — high commercial vehicle volume.
+
+**Bo'ness** (EH51): South Forth bank, 5 miles east of Falkirk.
+
+**Denny and Dunipace** (FK6): North of Falkirk via A872.
+
+**Polmont** (FK2): East Falkirk, adjacent to M9 junction.
+
+## M9 and M80 Motorway Coverage
+
+The M9 (Edinburgh–Stirling) and M80 (Glasgow–Stirling) both pass through the Falkirk area. We attend motorway breakdowns across the full Falkirk section of both routes.
+
+For M9 or M80 callouts: move to the hard shoulder at the first safe opportunity, exit left, stand behind the barrier, then call **0141 266 0690**. Response to M9/M80 Falkirk sections is typically 35–55 minutes.
+
+## Response Times
+
+| Location | Typical Response |
+|----------|-----------------|
+| Falkirk town centre (FK1) | 35–45 min |
+| Grangemouth (FK3) | 35–50 min |
+| Larbert, Stenhousemuir | 35–45 min |
+| Bo'ness (EH51) | 40–55 min |
+| Denny (FK6) | 40–50 min |
+| Polmont (FK2) | 40–50 min |
+
+**Call 0141 266 0690** for immediate tyre fitting in Falkirk and Central Scotland, or [book online](/book).
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Stirling coverage](/blog/mobile-tyre-fitting-stirling-central-scotland)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-hamilton-south-lanarkshire',
+    title: 'Mobile Tyre Fitting in Hamilton & South Lanarkshire | Tyre Rescue',
+    description:
+      'Mobile tyre fitting across Hamilton, East Kilbride, Rutherglen and South Lanarkshire. Response from 25 minutes via M74. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2026-02-01',
+    lastModified: '2026-02-01',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting hamilton',
+      'tyre fitting hamilton south lanarkshire',
+      'emergency tyre fitting hamilton',
+      'mobile tyre fitter east kilbride',
+      'flat tyre hamilton scotland',
+      'tyre fitting motherwell',
+      'mobile tyre fitting rutherglen',
+      'tyre rescue south lanarkshire',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-motherwell-north-lanarkshire',
+      'mobile-tyre-fitting-glasgow',
+      '24-hour-emergency-tyre-fitting-scotland',
+    ],
+    content: `# Mobile Tyre Fitting in Hamilton & South Lanarkshire
+
+Hamilton sits just 12 miles south-east of Glasgow via the M74 — one of Scotland's most heavily used motorway sections. Tyre Rescue covers all of South Lanarkshire, from Rutherglen and Cambuslang to Hamilton, East Kilbride, Wishaw, and Lanark.
+
+## Coverage: Hamilton and South Lanarkshire
+
+**Hamilton** (ML3): Town centre, Ferniegair, Burnbank, Blantyre, Uddingston.
+
+**East Kilbride** (G74–G75): Scotland's largest new town — extensive retail and residential coverage.
+
+**Rutherglen** (G73) and **Cambuslang** (G72): Just south of Glasgow, fast access via M74.
+
+**Motherwell** (ML1), **Wishaw** (ML2): See also [Motherwell & North Lanarkshire guide](/blog/mobile-tyre-fitting-motherwell-north-lanarkshire).
+
+**Carluke** (ML8), **Larkhall** (ML9), **Lanark** (ML11), **Strathaven** (ML10): All covered.
+
+## M74 Motorway Coverage
+
+The M74 between Glasgow and Hamilton (Junction 5) is among the busiest sections of Scottish motorway. Smart motorway sections have dynamic hard shoulders — if breaking down, look for the nearest Emergency Refuge Area (blue sign with orange SOS phone).
+
+| Location | Typical Response |
+|----------|-----------------|
+| Hamilton town centre (ML3) | 25–35 min |
+| East Kilbride (G74–G75) | 25–40 min |
+| Rutherglen (G73) | 20–30 min |
+| Motherwell (ML1) | 30–40 min |
+| Wishaw (ML2) | 30–45 min |
+| Lanark (ML11) | 45–55 min |
+
+**Call 0141 266 0690** for immediate emergency tyre fitting in Hamilton and South Lanarkshire. [Book online](/book) for scheduled appointments.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Motherwell & North Lanarkshire](/blog/mobile-tyre-fitting-motherwell-north-lanarkshire) | [Emergency tyre fitting](/emergency-tyre-fitting-near-me)`,
+  },
+  {
     slug: 'mobile-tyre-fitting-kilmarnock-ayrshire',
     title: 'Mobile Tyre Fitting in Kilmarnock & Ayrshire | Tyre Rescue',
     description:
