@@ -5,9 +5,9 @@ import { getBreadcrumbSchema } from '@/lib/seo/schemas';
 import { BlogIndexContent } from './BlogIndexContent';
 
 export const metadata: Metadata = {
-  title: 'Tyre Advice & Guides | Expert Tips from Glasgow Mobile Fitters',
+  title: 'Tyre Advice & City Guides | Scotland Mobile Tyre Fitting | Tyre Rescue',
   description:
-    'Flat tyre? Call 0141 266 0690. Expert tyre guides from Glasgow\'s 24/7 mobile fitters — emergency tips, maintenance checklists, and cost breakdowns.',
+    'Expert tyre guides for Scotland — emergency tips, city-by-city coverage guides for Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Ayrshire and beyond. Call 0141 266 0690.',
   alternates: { canonical: 'https://www.tyrerescue.uk/blog' },
 };
 

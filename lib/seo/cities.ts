@@ -164,6 +164,126 @@ export const cityData: Record<string, CityPriceData> = {
     coordinates: { lat: 55.6185, lng: -2.8097 },
     postcodeHint: 'TD1',
   },
+  dundee: {
+    name: 'Dundee',
+    description:
+      'Dundee and the full DD postcode area — covering the city centre, Broughty Ferry, Monifieth, Lochee, Barnhill, Carnoustie and the Angus coast. The Kingsway dual carriageway and Riverside Drive are our main approach routes. We carry a full range of tyres for commuter cars, SUVs and commercial vehicles. No hidden surcharges for any DD postcode.',
+    depotDistance: 59,
+    coordinates: { lat: 56.4620, lng: -2.9707 },
+    postcodeHint: 'DD1',
+  },
+  stirling: {
+    name: 'Stirling',
+    description:
+      'Stirling and the surrounding FK postcode area — covering Bridge of Allan, Dunblane, Bannockburn, St Ninians, Cambusbarron and the Trossachs gateway. We arrive via M9 or M80, typically within 40–45 minutes. We carry a full tyre range for the mix of commuter vehicles, tourist cars and commercial traffic on the A9 and M9 corridors.',
+    depotDistance: 26,
+    coordinates: { lat: 56.1165, lng: -3.9369 },
+    postcodeHint: 'FK8',
+  },
+  perth: {
+    name: 'Perth',
+    description:
+      'Perth and the surrounding PH1–PH2 area — covering Scone, Kinnoull, Bridgend, Huntingtower, Almondbank, Luncarty and the Strathearn villages. The A9, M90 and A93 are our main routes into the city. We carry a wide range including premium fitments for vehicles visiting Gleneagles and the Perthshire golf trail.',
+    depotDistance: 62,
+    coordinates: { lat: 56.3958, lng: -3.4342 },
+    postcodeHint: 'PH1',
+  },
+  hamilton: {
+    name: 'Hamilton',
+    description:
+      'Hamilton and the surrounding ML3 postcode area — covering Blantyre, Bothwell, Larkhall, Stonehouse and the Clyde Valley towns. Just 11 miles from our Glasgow base via the M74, Hamilton is one of our fastest Lanarkshire response areas. We carry van tyres as well as passenger car fitments for this busy commuter and retail hub.',
+    depotDistance: 11,
+    coordinates: { lat: 55.7774, lng: -4.0375 },
+    postcodeHint: 'ML3',
+  },
+  motherwell: {
+    name: 'Motherwell',
+    description:
+      'Motherwell and the ML1 postcode area — covering Wishaw, Bellshill, Uddingston, Viewpark and the Caledonian Road corridor. Just 12 miles from our Glasgow base via the M74/M8. We regularly cover the retail parks on Hamilton Road and emergency callouts on the M74 near the Motherwell interchange.',
+    depotDistance: 12,
+    coordinates: { lat: 55.7919, lng: -3.9965 },
+    postcodeHint: 'ML1',
+  },
+  kirkcaldy: {
+    name: 'Kirkcaldy',
+    description:
+      'Kirkcaldy and the full KY1–KY2 Fife postcode area — covering Glenrothes, Leven, Methil, Kennoway and the Fife coastal towns. The M90 and A92 Fife coastal route are our primary access roads. We carry a full tyre range for commuter and industrial vehicles in this busy Fife hub.',
+    depotDistance: 43,
+    coordinates: { lat: 56.1132, lng: -3.1615 },
+    postcodeHint: 'KY1',
+  },
+  cumbernauld: {
+    name: 'Cumbernauld',
+    description:
+      'Cumbernauld and the G67–G68 postcode area — covering Condorrat, Carbrain, Abronhill, Kildrum, Greenfaulds and the Cumbernauld Village area. Just 12 miles from Glasgow via the A80/M80, Cumbernauld is one of our fastest Central Belt response areas. We cover the town centre, the retail park and the Wardpark industrial estate.',
+    depotDistance: 12,
+    coordinates: { lat: 55.9452, lng: -3.9941 },
+    postcodeHint: 'G67',
+  },
+  dumfries: {
+    name: 'Dumfries',
+    description:
+      'Dumfries and the DG1–DG2 postcode area — covering Annan, Lockerbie, Moffat, Sanquhar and the Nithsdale towns. The A74(M) is our main route south. We carry tyres suited to rural DG postcode roads as well as the mix of commuter, agricultural and touring vehicles common across Dumfries and Galloway.',
+    depotDistance: 72,
+    coordinates: { lat: 55.0709, lng: -3.6052 },
+    postcodeHint: 'DG1',
+  },
+  greenock: {
+    name: 'Greenock',
+    description:
+      'Greenock and the PA15–PA16 postcode area — covering Port Glasgow, Gourock, Inverkip and the Inverclyde coast. The A8 and M8 extension bring us from Glasgow in 30 minutes. We carry a full range of fitments for this Clyde coastal community and serve the commercial vehicle operators at Greenock Ocean Terminal.',
+    depotDistance: 22,
+    coordinates: { lat: 55.9459, lng: -4.7658 },
+    postcodeHint: 'PA15',
+  },
+  dunfermline: {
+    name: 'Dunfermline',
+    description:
+      'Dunfermline and the KY11–KY12 postcode area — covering Rosyth, Inverkeithing, Charlestown, Crossford and the Dunfermline Business Park. We reach Dunfermline in 45–50 minutes via the M9/M90 Forth crossing. We carry a full range of passenger and van tyres for this busy commuter town and the nearby Rosyth dockyard.',
+    depotDistance: 40,
+    coordinates: { lat: 56.0718, lng: -3.4530 },
+    postcodeHint: 'KY11',
+  },
+  kilmarnock: {
+    name: 'Kilmarnock',
+    description:
+      'Kilmarnock and the KA1–KA3 postcode area — covering Crosshouse, Hurlford, Galston, Darvel, Stewarton, Fenwick and Kilmaurs. Just 20 miles via M77, we are one of Ayrshire\'s fastest response services. We cover the Galleon Retail Park, the Asda distribution centre and residential driveways across East Ayrshire.',
+    depotDistance: 21,
+    coordinates: { lat: 55.6107, lng: -4.4955 },
+    postcodeHint: 'KA1',
+  },
+  ayr: {
+    name: 'Ayr',
+    description:
+      'Ayr and the KA7–KA8 postcode area — covering Prestwick, Alloway, Annbank, Mossblown and the Ayr racecourse corridor. We reach Ayr in 55 minutes via the M77 and A77. Race day and festival season sees high demand for tyre services near the racecourse and Prestwick Airport. We carry run-flat tyres for premium golf resort vehicles.',
+    depotDistance: 32,
+    coordinates: { lat: 55.4590, lng: -4.6292 },
+    postcodeHint: 'KA7',
+  },
+  irvine: {
+    name: 'Irvine',
+    description:
+      'Irvine and the KA11–KA12 postcode area — covering Dreghorn, Bourtreehill, Springside, Girdle Toll and the Irvine Beach Park area. Just 26 miles via M77 and A77/A71, we are one of North Ayrshire\'s primary tyre services. We cover the Rivergate Shopping Centre, the Harbour Arts Centre and Irvine\'s large residential areas.',
+    depotDistance: 26,
+    coordinates: { lat: 55.6105, lng: -4.6659 },
+    postcodeHint: 'KA11',
+  },
+  dingwall: {
+    name: 'Dingwall',
+    description:
+      'Dingwall and the IV15–IV18 postcode area — covering Invergordon, Alness, Tain, Evanton and the Easter Ross peninsula. We dispatch via the A9 from Inverness, typically arriving in 110–120 minutes. We carry fitments for SUVs and commercial vehicles common on the Easter Ross oil industry roads and the A9 north corridor.',
+    depotDistance: 174,
+    coordinates: { lat: 57.5952, lng: -4.4255 },
+    postcodeHint: 'IV15',
+  },
+  'isle-of-skye': {
+    name: 'Isle of Skye',
+    description:
+      'Isle of Skye and the IV41–IV56 postcode area — covering Portree, Broadford, Dunvegan, Uig and the Sleat peninsula. Skye is accessible via the Skye Bridge from Kyle of Lochalsh. Advance booking of minimum 24 hours is required. We carry 4x4 and SUV fitments suited to the single-track roads of Skye\'s remote peninsulas and the high tourist vehicle volumes in season.',
+    depotDistance: 200,
+    coordinates: { lat: 57.3000, lng: -6.2000 },
+    postcodeHint: 'IV51',
+  },
 };
 
 export const priceCitySlugs = Object.keys(cityData);
