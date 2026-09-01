@@ -10880,6 +10880,130 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'how-long-do-tyres-last-scotland',
+    title: 'How Long Do Tyres Last in Scotland? Mileage, Age & When to Replace',
+    description:
+      'How long should tyres last in Scotland? Expected mileage by tyre brand and type, the 6-year age rule, signs of worn tyres, and what accelerates tyre wear on Scottish roads.',
+    category: 'maintenance',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 8,
+    featured: false,
+    keywords: [
+      'how long do tyres last scotland',
+      'tyre lifespan scotland',
+      'how many miles do tyres last',
+      'when to replace tyres scotland',
+      'tyre mileage scotland',
+      'how often replace tyres uk',
+      'tyre wear rate scotland',
+      'do tyres last longer in scotland',
+    ],
+    relatedSlugs: [
+      'tyre-tread-depth-guide-scotland',
+      'tyre-age-when-to-replace-scotland',
+      'uneven-tyre-wear-guide-scotland',
+    ],
+    content: `# How Long Do Tyres Last in Scotland?
+
+Tyre lifespan is one of the most common questions we hear from Scottish drivers — and the honest answer is: it depends. Budget tyres on a town car can last 15,000 miles. Premium tyres on a high-mileage SUV can last 40,000 miles. Age matters as much as mileage. And Scottish roads are harder on tyres than most of England.
+
+Here is a practical guide to tyre lifespan on Scottish roads.
+
+## Expected Tyre Mileage by Type
+
+These are typical ranges for Scottish driving conditions. Your actual mileage will vary based on driving style, road type, and maintenance.
+
+| Tyre Type | Expected Life (Scotland) |
+|---|---|
+| Budget (Nexen, Nankang, Triangle) | 15,000–20,000 miles |
+| Mid-range (Goodyear, Dunlop, Firestone) | 20,000–30,000 miles |
+| Premium summer (Michelin, Continental, Pirelli) | 25,000–40,000 miles |
+| Premium all-season (Michelin CrossClimate, Continental AllSeasonContact) | 20,000–35,000 miles |
+| Winter tyre (used seasonally) | 4–6 seasons (approx 30,000 winter miles) |
+
+**Why Scotland is harder on tyres**:
+- Scottish A-roads (A82, A9, A75, A96) have rougher surface texture than English motorways
+- Higher rainfall means more hydroplaning risk and wet-road wear
+- Pothole density is high, causing impact stress and misalignment wear
+- Temperature swings between summer and winter cause more rubber compound cycling
+
+## The 6-Year Rule: Why Age Matters More Than Mileage
+
+Rubber compounds degrade over time regardless of use. UV exposure, ozone, heat cycling, and oxidation all cause tyre rubber to harden, crack, and lose flexibility — even on a tyre with 8mm of tread remaining.
+
+**Industry guidance**:
+- **6 years from manufacture**: tyre should be inspected by a professional for signs of age-related degradation
+- **10 years from manufacture**: tyre should be replaced regardless of tread depth
+- **Spare tyres**: apply the same age rules — a 10-year-old full-size spare is unsafe
+
+**How to check your tyre's age**: look at the DOT code on the sidewall. The last four digits are the manufacture date — week and year. For example: **DOT ... 2419** = week 24 of year 2019 (manufactured June 2019). At September 2026, that tyre is over 7 years old and should be inspected.
+
+See our full [tyre age guide](/blog/tyre-age-when-to-replace-scotland) for more detail.
+
+## What Tyre Mileage to Expect From Common Scottish Cars
+
+| Vehicle | Common Tyre Size | Expected Life (Premium) |
+|---|---|---|
+| Ford Focus / Vauxhall Astra | 205/55R16 | 28,000–35,000 miles |
+| Nissan Qashqai | 225/55R18 | 22,000–30,000 miles |
+| Toyota RAV4 | 225/60R18 | 22,000–28,000 miles |
+| BMW 3 Series | 225/45R17 | 20,000–30,000 miles |
+| VW Golf | 225/45R17 | 22,000–32,000 miles |
+| Tesla Model 3 (performance) | 235/45R18 | 15,000–22,000 miles (EV torque accelerates wear) |
+| MG4 EV | 215/55R17 | 15,000–20,000 miles |
+| Isuzu D-Max | 265/65R17 | 25,000–40,000 miles (LT-rated tyres last longer) |
+
+**EVs wear tyres faster** — instant torque delivery and heavier kerb weight mean EVs typically consume tyres 20–30% faster than equivalent petrol cars. Budget EV owners are often surprised by this.
+
+## Factors That Shorten Tyre Life in Scotland
+
+**1. Driving style** — the single biggest factor. Aggressive acceleration, late braking, and fast cornering all dramatically increase wear. Spirited driving can halve tyre life compared to smooth driving of the same distance.
+
+**2. Road surface quality** — Scottish B-roads, Highland single tracks, and pothole-heavy urban roads all accelerate tyre wear vs smooth motorway driving.
+
+**3. Wheel alignment** — misaligned wheels (especially toe) cause rapid one-sided wear. A wheel knocked out of alignment by a pothole can wear a tyre to legal limit in 5,000 miles rather than 20,000. Check alignment after any significant impact.
+
+**4. Tyre pressure** — under-inflation causes shoulder wear and increases wear rate significantly. Over-inflation causes centre wear. Pressure should be checked monthly — especially in winter when cold temperatures reduce pressure.
+
+**5. Braking distance** — driving that requires heavy, repeated braking wears tyres faster. Urban stop-start driving is harder on tyres than motorway cruising.
+
+**6. Weight** — EVs and PHEVs have shorter tyre life than equivalent petrol cars due to battery weight. Loading a pickup truck to capacity consistently will also shorten rear tyre life.
+
+## Warning Signs Your Tyres Need Replacing
+
+**Tread depth below 3mm** — legal minimum is 1.6mm, but grip degrades significantly below 3mm on wet roads. Plan to replace at 3mm in Scotland given our rainfall.
+
+**Visible sidewall bulge or bubble** — replace immediately; do not drive at speed.
+
+**Cracking or crazing** — surface cracks in older rubber indicate age degradation.
+
+**Vibration at speed** — may indicate internal cord damage or structural failure.
+
+**Pulling to one side** — can indicate uneven wear or tyre damage.
+
+**TPMS warning light** — indicates a tyre is at or below the low-pressure threshold.
+
+## How to Make Tyres Last Longer in Scotland
+
+1. **Maintain correct tyre pressure** — check monthly. This is the single most effective thing you can do.
+2. **Rotate tyres** (if using a square fitment) — front-to-rear rotation every 6,000–8,000 miles equalises wear.
+3. **Get alignment checked** after any significant pothole impact or kerb strike.
+4. **Drive smoothly** — gradual acceleration and early braking extend tyre life significantly.
+5. **Choose the right tyre** — premium tyres with higher tread life ratings will outlast budget tyres, often making them better value over the tyre's lifetime.
+6. **Inspect tyres seasonally** — quick visual check for cracking, bulges, and abnormal wear before Scotland's winter sets in.
+
+## Getting New Tyres in Scotland
+
+When your tyres need replacing, Tyre Rescue can come to your home, office, or roadside across all of Scotland. We fit and balance your new tyres on-site in around 30 minutes per tyre.
+
+For an accurate quote, give us your registration number and we will confirm the correct size, load index, and speed rating for your vehicle before fitting anything.
+
+Call **0141 266 0690** or [book online](/book).
+
+[Tyre tread depth guide Scotland](/blog/tyre-tread-depth-guide-scotland) | [Tyre age guide Scotland](/blog/tyre-age-when-to-replace-scotland) | [Uneven tyre wear guide](/blog/uneven-tyre-wear-guide-scotland)`,
+  },
+  {
     slug: 'genesis-tyre-fitting-scotland',
     title: 'Genesis Tyre Fitting Scotland: GV60, GV70, GV80, G70 & G80 Tyre Guide',
     description:
