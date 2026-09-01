@@ -10880,6 +10880,111 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'ineos-grenadier-tyre-fitting-scotland',
+    title: 'Ineos Grenadier Tyre Fitting Scotland: Quartermaster, Trialmaster & Fieldmaster Guide',
+    description:
+      'Mobile tyre fitting for the Ineos Grenadier in Scotland. Factory 265/70R18 size, all-terrain vs mud-terrain tyre choice for Highland use, load index for Quartermaster pickup, and TPMS guide.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'Ineos Grenadier tyres scotland',
+      'Grenadier tyre fitting scotland',
+      'Ineos Grenadier tyre size',
+      'Grenadier 265/70R18 tyre',
+      'Ineos Grenadier all terrain tyres scotland',
+      'Grenadier Quartermaster tyre scotland',
+      'Ineos Grenadier tyre replacement scotland',
+      'mobile tyre fitting ineos grenadier',
+    ],
+    relatedSlugs: [
+      '4x4-suv-tyres-scotland-highlands',
+      'jeep-tyre-fitting-scotland',
+      'isuzu-dmax-tyre-fitting-scotland',
+    ],
+    content: `# Ineos Grenadier Tyre Fitting Scotland
+
+The Ineos Grenadier is arguably the most capable purpose-built 4x4 to launch in Scotland's lifetime — designed from scratch to replace the original Land Rover Defender concept, and built to handle genuine off-road demands. Scotland's Highland estates, grouse moors, forestry tracks, and rough coastal roads are exactly the conditions the Grenadier was engineered for.
+
+Tyre Rescue provides mobile tyre fitting for Grenadier across Scotland. Whether you are on a Highland estate, a forestry road, or a city car park in Glasgow, we come to you.
+
+## Ineos Grenadier Tyre Size
+
+All Grenadier variants — Trialmaster, Fieldmaster, and Quartermaster — use the same factory tyre size:
+
+**265/70R18** — this is the only factory fitment across the Grenadier range as of 2024.
+
+The Grenadier uses 18-inch beadlock-compatible steel wheels (standard) or alloy wheels (optional). The 265/70R18 size gives a substantial sidewall height (70 aspect ratio) — critical for off-road use and protection against pothole and rock damage.
+
+**Load index**: 116 required on all Grenadier variants. The Grenadier weighs approximately 2,800 kg unladen, with a payload of up to 1,000 kg. Do not fit a tyre with a lower load index than 116.
+
+**Quartermaster pickup**: the Grenadier Quartermaster (4-door pickup) has a higher payload rating and may require LT-rated 116/113R dual-load-rated tyres if used at maximum payload regularly.
+
+## Choosing the Right Tyres for Your Grenadier in Scotland
+
+The Grenadier comes from factory with BFGoodrich All-Terrain KO2 tyres — one of the most capable all-terrain tyres available in 265/70R18. For most Scottish owners, the KO2 is the right answer.
+
+However, depending on your specific use, you may want to consider alternatives:
+
+### All-Terrain (For Mixed Road and Off-Road)
+
+**BFGoodrich All-Terrain KO2 265/70R18** — OE fitment; 3PMSF rated; outstanding performance in mud, snow, and loose terrain. The natural like-for-like replacement.
+
+**Falken Wildpeak AT3W 265/70R18** — excellent performance in deep mud and snow at lower cost than KO2. 3PMSF rated. Popular with Scottish Grenadier owners wanting to save on replacements.
+
+**Toyo Open Country AT3 265/70R18** — quieter on-road than KO2, comparable off-road performance. A good choice if you spend significant time on A-roads.
+
+### Mud-Terrain (For Highland Estate / Forestry / Very Deep Mud)
+
+**BFGoodrich Mud-Terrain KM3 265/70R18** — extreme mud performance; significant road noise, not suitable for regular motorway use. Ideal for estates, forestry contractors, and gamekeepers.
+
+**Nitto Trail Grappler MT 265/70R18** — popular Highland estate choice; good off-road without the extreme road noise of a dedicated MT.
+
+### Highway Terrain (For Primarily Road Use)
+
+If the Grenadier is used as a road vehicle with occasional light off-road, highway terrain tyres reduce noise and improve fuel efficiency. However, the Grenadier's kerb weight means it needs a robust highway terrain tyre — lightweight SUV HT tyres are not appropriate.
+
+**Michelin LTX MS2** (if available in 265/70R18) — premium HT tyre with good wet grip.
+
+**Goodyear Wrangler DuraTrac** — a hybrid between HT and AT; good road manners with better off-road than standard HT.
+
+## Grenadier TPMS
+
+The Ineos Grenadier uses direct TPMS sensors. After fitting replacement tyres:
+
+1. Set tyre pressures to the correct level:
+   - **Road pressure**: 35 psi (2.4 bar) — all four tyres
+   - **Off-road pressure (reduced for traction)**: 20–25 psi (1.4–1.7 bar)
+   - Re-inflate to road pressure before driving at highway speed
+2. Start the vehicle
+3. Navigate to the TPMS reset option in the central display
+4. Drive at 30+ mph for 5–10 minutes
+
+**Note**: many Grenadier owners run reduced tyre pressures for off-road traction. Always reinflate to road pressures before driving at speed — the Grenadier's weight at reduced pressure on road is a handling and heat build-up risk.
+
+## Grenadier Tyre Pressure for Scotland
+
+The Grenadier's factory-recommended road pressures:
+- **Front**: 35 psi / 2.4 bar
+- **Rear**: 44 psi / 3.0 bar (loaded) or 35 psi / 2.4 bar (unloaded)
+
+Running the correct rear pressure is particularly important when the Grenadier is used as a working vehicle with load — underinflation at load causes rapid rear tyre wear and blowout risk.
+
+## Mobile Fitting for Grenadier in Remote Scotland
+
+The Grenadier is often used in remote areas — Highland estates, forestry access roads, Scottish islands. Tyre Rescue can attend remote locations across Scotland, but response times increase significantly for areas north of Inverness, and the Western and Northern Isles require specific planning.
+
+For remote Highland callouts, call us on **0141 266 0690** and give us your grid reference or postcode. We will give you an honest ETA and confirm whether same-day fitting is possible from our nearest technician.
+
+We stock BFGoodrich KO2 and Falken Wildpeak AT3W in 265/70R18 as standard Highlands-area stock for the Grenadier.
+
+Call **0141 266 0690** or [book online](/book).
+
+[4x4 and Highland tyre guide Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [Jeep tyre guide Scotland](/blog/jeep-tyre-fitting-scotland) | [Isuzu D-Max tyre guide Scotland](/blog/isuzu-dmax-tyre-fitting-scotland)`,
+  },
+  {
     slug: 'how-long-do-tyres-last-scotland',
     title: 'How Long Do Tyres Last in Scotland? Mileage, Age & When to Replace',
     description:
