@@ -4049,6 +4049,171 @@ For drivers in Lerwick itself, response is typically fastest as we maintain a lo
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
   },
   {
+    slug: 'mobile-tyre-fitting-perth-perthshire',
+    title: 'Mobile Tyre Fitting in Perth & Perthshire | Tyre Rescue',
+    description:
+      'Emergency and scheduled mobile tyre fitting in Perth, Perthshire and surrounding areas. Response from 65 minutes. Covers PH1-PH2, Scone, Crieff, Pitlochry, Blairgowrie and Aberfeldy. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2026-02-01',
+    lastModified: '2026-02-01',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting perth',
+      'tyre fitting perth scotland',
+      'emergency tyre fitting perth',
+      'mobile tyre fitter perthshire',
+      'flat tyre perth scotland',
+      'tyre fitting crieff',
+      'tyre fitting pitlochry',
+      'mobile tyre fitting blairgowrie',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-dundee-angus',
+      'mobile-tyre-fitting-stirling-central-scotland',
+      '24-hour-emergency-tyre-fitting-scotland',
+    ],
+    content: `# Mobile Tyre Fitting in Perth & Perthshire
+
+Perth sits at the geographic centre of Scotland — the intersection of the A9 (Glasgow to Inverness), the M90 (Edinburgh to Perth), and the A85 (Perth to Crieff and Oban). It is one of Scotland's most important road hubs, and a flat tyre here affects traffic on multiple major routes.
+
+Tyre Rescue provides mobile tyre fitting across Perth city and all of Perthshire — emergency callouts from 65 minutes, scheduled fittings available same day.
+
+## Coverage in Perth and Perthshire
+
+**Perth City**: PH1 and PH2 postcodes — city centre, Muirton, Tulloch, Cherrybank, North Muirton, Friarton, South Inch.
+
+**North Perthshire**: Pitlochry (PH16), Aberfeldy (PH15), Dunkeld (PH8), Blairgowrie (PH10, PH11), Coupar Angus (PH13).
+
+**West Perthshire**: Crieff (PH7), Comrie (PH6), Auchterarder (PH3, PH4), Dunblane (FK15).
+
+**East Perthshire**: Scone, Bridge of Earn (PH2), Kinross (KY13), Milnathort.
+
+**The A9 Corridor**: Bankfoot, Stanley, Birnam, Ballinluig — all accessible on our Highland dispatch route.
+
+## Perth's Road Challenges
+
+Perth's position at the A9/M90 junction makes it one of Scotland's highest-volume road intersections. The A9 north of Perth — through Birnam, Ballinluig, and Pitlochry — is a dual carriageway with long sections of challenging overtaking and frost-prone winter sections. The A85 west toward Crieff runs through the Sma' Glen — scenic but remote.
+
+Perthshire also includes Glenshee (A93) and the Lecht (A939), two of Scotland's most frequently snow-affected routes in winter. If you are driving either of these in winter conditions and experience a tyre problem, call 0141 266 0690 immediately.
+
+## A9 Roadside Assistance Near Perth
+
+The A9 north of Perth has limited lay-bys in some sections. If you have a flat tyre on the A9:
+1. Reduce speed carefully and indicate left
+2. Use the next available lay-by — do not stop on the hard shoulder of the dual carriageway main lanes
+3. Switch on hazard lights
+4. Call 0141 266 0690 and give your direction (northbound or southbound) and the nearest junction or village
+
+We cover the full A9 from Perth to Inverness. Response times vary: Pitlochry is approximately 90 minutes from our central dispatch; Dalwhinnie and south is approximately 90–120 minutes.
+
+## What We Carry for Perth and Perthshire
+
+Our van serving the Perth area stocks common sizes for the vehicles most frequently seen on Highland and Perthshire routes:
+- Standard passenger car sizes (185–225 width, 15"–18" rim)
+- SUV and 4x4 sizes (larger widths, 17"–20" rim)
+- All-terrain options for rural Perthshire
+- Winter tyres from October to April
+
+## Response Times from Perth
+
+| Location | Typical Response |
+|----------|-----------------|
+| Perth city centre | 65–75 min |
+| Scone, Bridge of Earn | 70–80 min |
+| Crieff | 85–95 min |
+| Pitlochry | 90–105 min |
+| Blairgowrie | 75–90 min |
+| Aberfeldy | 100–120 min |
+
+For very remote Perthshire locations (Glen Lyon, Rannoch, the far north), call in advance so we can confirm an accurate ETA.
+
+**Call 0141 266 0690** for immediate assistance anywhere in Perth or Perthshire, or [book online](/book) for a scheduled fitting.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Tyre fitting costs Scotland](/blog/tyre-fitting-costs-scotland-pricing-guide)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-kilmarnock-ayrshire',
+    title: 'Mobile Tyre Fitting in Kilmarnock & Ayrshire | Tyre Rescue',
+    description:
+      'Mobile tyre fitting across Kilmarnock, Ayr, Irvine, Troon and all of Ayrshire. Response from 40 minutes via M77. Emergency 24/7 cover. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2026-02-01',
+    lastModified: '2026-02-01',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting kilmarnock',
+      'tyre fitting ayrshire',
+      'emergency tyre fitting kilmarnock',
+      'mobile tyre fitter ayr',
+      'flat tyre ayrshire',
+      'tyre fitting troon',
+      'mobile tyre fitting irvine',
+      'tyre rescue kilmarnock',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-irvine-north-ayrshire',
+      'mobile-tyre-fitting-glasgow',
+      '24-hour-emergency-tyre-fitting-scotland',
+    ],
+    content: `# Mobile Tyre Fitting in Kilmarnock & Ayrshire
+
+Kilmarnock is East Ayrshire's largest town and the commercial centre for a region that stretches from the M77 motorway to the Ayrshire coast. Tyre Rescue covers all of Ayrshire — Kilmarnock, Ayr, Irvine, Troon, Prestwick, Stewarton, Galston and beyond — dispatching via the M77.
+
+## Response Times from Glasgow to Ayrshire
+
+The M77 gives direct motorway access from Glasgow to the Ayrshire towns. Our typical response times:
+
+| Location | Typical Response |
+|----------|-----------------|
+| Kilmarnock (KA1–KA3) | 40–55 min |
+| Ayr (KA7–KA8) | 45–60 min |
+| Troon (KA10) | 45–55 min |
+| Prestwick (KA9) | 45–55 min |
+| Irvine (KA11–KA12) | 40–55 min |
+| Stewarton (KA3) | 45–55 min |
+| Galston (KA4) | 50–60 min |
+| Maybole (KA19) | 55–65 min |
+| Girvan (KA26) | 65–80 min |
+| Largs (KA30) | 55–65 min |
+
+## Ayrshire Road Coverage
+
+### A77 and M77 Corridor
+The main Ayrshire artery runs from Glasgow through Kilmarnock to Ayr and down to Stranraer. We cover the full length — including the M77 smart motorway sections near Glasgow and the A77 through Ayr, Maybole, and Girvan.
+
+### A71 and East Ayrshire
+The A71 connects Kilmarnock with Irvine and the coast, and runs east through Hurlford, Galston, and Darvel to the Strathaven corridor. Fully covered.
+
+### Ayrshire Coast
+Largs, Fairlie, Ardrossan, Saltcoats (KA22), Stevenston, Irvine, Troon, Prestwick, Ayr — the entire Ayrshire coast is within our response area. Many coastal locations require vehicle ferry travel (Arran island service from Ardrossan) — we cover the mainland Ardrossan side.
+
+## Common Ayrshire Callout Locations
+
+Our Ayrshire callouts frequently include:
+- **Kilmarnock town centre and retail parks**: King Street, Bellfield Retail Park
+- **Ayr town centre and racecourse**: particularly on race days when parking is at full capacity
+- **Prestwick Airport** (KA9): common callout location for returning travellers
+- **Irvine Beach and Harbourside**: seasonal footfall location
+- **Motorway service areas**: Kilmarnock services on the M77
+
+## Tyre Stock for Ayrshire Vehicles
+
+Ayrshire vehicle types include a high proportion of:
+- Family hatchbacks and crossovers (Ford Focus, Kia Sportage, Hyundai Tucson)
+- Vans for tradespeople (Ayrshire has significant construction and agricultural trade)
+- Coastal driving vehicles (frequently road-salted in winter)
+
+We carry common sizes for all these vehicles and can source less common sizes within a few hours.
+
+## Book Ayrshire Mobile Tyre Fitting
+
+Call **0141 266 0690** for immediate emergency fitting anywhere in Kilmarnock and Ayrshire. [Book online](/book) for a scheduled appointment at your home or workplace.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Tyre fitting Irvine North Ayrshire](/blog/mobile-tyre-fitting-irvine-north-ayrshire)`,
+  },
+  {
     slug: 'best-budget-tyres-scotland-2026',
     title: 'Best Budget Tyres for Scottish Roads: Value Picks for 2026',
     description:
