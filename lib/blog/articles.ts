@@ -2508,6 +2508,251 @@ Yes — check tyre pressures monthly (including the spare), inspect for cracks o
 
 **Call now: 0141 266 0690 — 24 hours a day, 7 days a week.**`,
   },
+  {
+    slug: 'mobile-tyre-fitting-east-kilbride',
+    title: 'Mobile Tyre Fitting in East Kilbride: Fast Response, G74 & G75 Coverage',
+    description: 'Mobile tyre fitting in East Kilbride, Nerston, Hairmyres and all G74/G75 postcodes. Fast dispatch from Glasgow — typically 35–45 minutes. 24/7 emergency callout. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2025-08-25',
+    lastModified: '2025-08-25',
+    readingTime: 5,
+    featured: false,
+    relatedSlugs: ['emergency-tyre-fitting-glasgow-complete-guide', 'mobile-tyre-fitting-hamilton-lanarkshire', 'mobile-tyre-fitting-paisley-renfrewshire'],
+    keywords: ['mobile tyre fitting east kilbride', 'tyre fitting east kilbride', 'emergency tyre east kilbride', 'mobile tyre G74', 'puncture repair east kilbride', '24 hour tyre east kilbride', 'mobile tyre fitting south lanarkshire'],
+    content: `# Mobile Tyre Fitting in East Kilbride
+
+East Kilbride is Scotland's largest new town with a population of around 75,000 — and one of our busiest service areas south of Glasgow. We cover the full G74 and G75 postcode area including the town centre, Nerston, Hairmyres, Westwood, Calderwood and St Leonards.
+
+**Call 0141 266 0690** for immediate emergency response, or [book online](/book) for same-day or scheduled fitting.
+
+## Response Times in East Kilbride
+
+| Location | Average Response |
+|---|---|
+| East Kilbride town centre (G74 1) | 35–45 minutes |
+| Hairmyres / Kingsgate (G75 8) | 35–45 minutes |
+| Nerston / Stewartfield (G74 4) | 40–50 minutes |
+| Calderwood / St Leonards (G74 3) | 40–50 minutes |
+| Westwood (G75 9) | 40–50 minutes |
+
+*East Kilbride bypasses (A726, A749) can add 10 minutes during peak hours (7–9am, 4–7pm).*
+
+## Areas We Cover
+
+**G74 1 — Town Centre:** Kingsgate Retail Park, Bus Station area, Town Centre
+**G74 2 — Peel Park / Murray / The Village**
+**G74 3 — Calderwood / St Leonards / Whitehills**
+**G74 4 — Nerston / Stewartfield / Whitehills industrial**
+**G74 5 — East Kilbride Business Park area**
+**G75 8 — Hairmyres / Jackton / Thorntonhall**
+**G75 9 — Westwood / Busby approach**
+
+## Common Callout Locations in East Kilbride
+
+East Kilbride's road layout — a combination of ring roads, dual carriageways and residential cul-de-sacs — means specific locations generate regular callouts:
+
+- **Kingsgate Retail Park** (G74) — large multi-storey and surface car parks
+- **The Village shopping area** — town centre parking
+- **A726 East Kilbride Expressway** — fast road connecting to M74/M77
+- **Hairmyres Hospital** (G75) — we cover the hospital car parks and staff areas
+- **East Kilbride Business Parks** (Kelvin Industrial, Peel Park) — fleet vehicle callouts
+
+## Tyre Fitting for South Lanarkshire
+
+East Kilbride is our primary dispatch point for South Lanarkshire. From here we also cover:
+- **Strathaven** (ML10): +20 minutes
+- **Lesmahagow** (ML11): +30 minutes
+- **Biggar** (ML12): +45 minutes
+- **Lanark** (ML11): +40 minutes
+
+For [Hamilton and Lanarkshire](/blog/mobile-tyre-fitting-hamilton-lanarkshire) callouts, see our dedicated Hamilton coverage page.
+
+## Frequently Asked Questions
+
+### Is there a callout surcharge for East Kilbride compared to Glasgow?
+No. East Kilbride is within our standard Glasgow callout area. The £49 callout fee applies the same as for central Glasgow.
+
+### Do you cover Hairmyres Hospital car park?
+Yes. Hospital car parks are a frequent callout. Let us know the car park section or meeting point when you call.
+
+### Can you come to Kingsgate Retail Park?
+Yes — surface car parks and multi-storey (check height clearance for our larger vans). Give the bay or section when you call.
+
+### What if my tyre warning light came on driving on the A726?
+If safe, pull off the A726 expressway at the nearest junction or layby. Call us with your location. If you're on the carriageway with a flat, switch on hazards and we'll advise.
+
+## Book Mobile Tyre Fitting in East Kilbride
+
+Call **0141 266 0690** — 24 hours a day, every day.
+Or [book online](/book) for same-day or next-day scheduled fitting.
+
+[Mobile tyre fitting in Glasgow](/mobile-tyre-fitting/glasgow) | [Hamilton & Lanarkshire](/mobile-tyre-fitting/hamilton) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-greenock-inverclyde',
+    title: 'Mobile Tyre Fitting in Greenock & Inverclyde: PA15–PA19 Coverage',
+    description: 'Mobile tyre fitting in Greenock, Port Glasgow, Gourock, Inverkip and all Inverclyde PA15–PA19 postcodes. Fast dispatch, 24/7 emergency callout. Typically 40–55 minutes from Glasgow. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2025-08-28',
+    lastModified: '2025-08-28',
+    readingTime: 5,
+    featured: false,
+    relatedSlugs: ['mobile-tyre-fitting-paisley-renfrewshire', 'emergency-tyre-fitting-glasgow-complete-guide', 'what-to-do-flat-tyre-motorway'],
+    keywords: ['mobile tyre fitting greenock', 'tyre fitting inverclyde', 'emergency tyre greenock', 'mobile tyre port glasgow', 'puncture repair greenock', '24 hour tyre greenock', 'mobile tyre fitting gourock'],
+    content: `# Mobile Tyre Fitting in Greenock & Inverclyde
+
+Tyre Rescue covers all of Inverclyde — Greenock, Port Glasgow, Gourock, Inverkip and Wemyss Bay. Dispatching from Glasgow via the A8/M8 and the A78 coastal road, we typically reach Greenock town centre in 40–50 minutes.
+
+**Call 0141 266 0690** for immediate emergency response, or [book online](/book) for same-day fitting.
+
+## Response Times in Inverclyde
+
+| Location | Average Response |
+|---|---|
+| Greenock town centre (PA15/PA16) | 40–50 minutes |
+| Port Glasgow (PA14) | 35–45 minutes |
+| Gourock (PA19) | 50–60 minutes |
+| Inverkip (PA16) | 55–65 minutes |
+| Wemyss Bay (PA18) | 55–65 minutes |
+| Kilmacolm (PA13) | 40–50 minutes |
+
+## Postcode Coverage
+
+**PA14 — Port Glasgow:** Town centre, Devol, Woodhall
+**PA15 — Greenock East:** Larkfield, Fancy Farm
+**PA16 — Greenock West / Inverkip:** Town centre, Cartsdyke, Inverkip village
+**PA17 — Skelmorlie / Wemyss Bay approaches**
+**PA18 — Wemyss Bay / Skelmorlie**
+**PA19 — Gourock:** Town, pier area, Ashton
+
+## The A78 Coastal Route
+
+The A78 between Greenock and Largs is a popular commuter and tourist route. It runs along the Firth of Clyde through Gourock, Inverkip and Wemyss Bay. We cover callouts on this road regularly — debris from the seafront and the heavily worn surface between Gourock and Inverkip cause frequent punctures.
+
+If you break down on the A78, pull off at a layby (there are several between Gourock and Inverkip). Call us with your exact location — use What3Words or share your Google Maps pin.
+
+## Common Callout Locations in Greenock
+
+- **Greenock town centre** and Oak Mall shopping area
+- **Greenock Central and West stations** (car parks)
+- **James Watt Dock** marina and development area
+- **Custom House Quay** area
+- **A8 Port Glasgow road** — frequent commercial vehicle callouts
+- **Battery Park, Gourock** — popular seafront parking
+
+## What We Carry for Inverclyde Callouts
+
+Standard tyre range for hatchbacks, saloons, SUVs and light vans. Popular sizes for the Inverclyde area include 195/65R15, 205/55R16 and 225/45R17 — common on family cars and SUVs driven in the area. We also carry run-flat replacements.
+
+## Frequently Asked Questions
+
+### Do you cover Wemyss Bay and the Rothesay ferry area?
+Yes — we reach Wemyss Bay (PA18) in approximately 55–65 minutes. We cover the ferry terminal car park and the surrounding roads. If you're catching the Rothesay ferry and have a tyre problem, call us as soon as possible.
+
+### Can you come to James Watt Dock?
+Yes — the development and marina area are accessible and a regular callout location.
+
+### Is Kilmacolm covered?
+Yes. Kilmacolm (PA13) is approximately 40–50 minutes. The A761 approach can add time in morning traffic.
+
+### Is there a surcharge for Inverclyde vs Glasgow?
+No surcharge. The standard £49 callout fee applies throughout Inverclyde.
+
+## Book Mobile Tyre Fitting in Greenock
+
+Call **0141 266 0690** — 24 hours a day, every day.
+Or [book online](/book) for same-day or next-day scheduled fitting.
+
+[Paisley & Renfrewshire](/mobile-tyre-fitting/greenock) | [Glasgow](/mobile-tyre-fitting/glasgow) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-kirkcaldy-fife',
+    title: 'Mobile Tyre Fitting in Kirkcaldy & Fife: KY Postcodes, Fast Response',
+    description: 'Mobile tyre fitting in Kirkcaldy, Glenrothes, Dunfermline, St Andrews and all Fife KY postcodes. Fast dispatch — typically 55–70 minutes. 24/7 emergency callout. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2025-09-01',
+    lastModified: '2025-09-01',
+    readingTime: 5,
+    featured: false,
+    relatedSlugs: ['mobile-tyre-fitting-edinburgh-guide', 'mobile-tyre-fitting-dundee-guide', 'what-to-do-flat-tyre-motorway'],
+    keywords: ['mobile tyre fitting kirkcaldy', 'tyre fitting fife', 'emergency tyre kirkcaldy', 'mobile tyre glenrothes', 'puncture repair fife', '24 hour tyre kirkcaldy', 'mobile tyre fitting st andrews', 'mobile tyre fitting dunfermline'],
+    content: `# Mobile Tyre Fitting in Kirkcaldy & Fife
+
+Tyre Rescue covers the whole of Fife — all KY postcodes from KY1 (Kirkcaldy) to KY16 (St Andrews). We dispatch from Glasgow via the Kincardine Bridge or from Edinburgh via the Queensferry Crossing, making Fife one of our most flexible coverage zones.
+
+**Call 0141 266 0690** for immediate emergency response, or [book online](/book) for same-day fitting.
+
+## Response Times Across Fife
+
+| Location | Average Response |
+|---|---|
+| Kirkcaldy town centre (KY1) | 55–70 minutes |
+| Glenrothes (KY6–KY7) | 60–75 minutes |
+| Dunfermline (KY11–KY12) | 50–65 minutes |
+| St Andrews (KY16) | 75–90 minutes |
+| Cupar (KY15) | 70–85 minutes |
+| Burntisland (KY3) | 55–70 minutes |
+| Leven / Methil (KY8) | 65–80 minutes |
+| Anstruther / Pittenweem (KY10) | 80–95 minutes |
+
+## Fife Postcode Coverage
+
+**KY1 — Kirkcaldy:** Town centre, Dysart, Linktown, Templehall
+**KY2 — Kirkcaldy North:** Kinghorn, Kinghorn Road, Abbotshall
+**KY3 — Burntisland / Aberdour / Inchcolm**
+**KY4 — Cowdenbeath / Kelty / Lochgelly**
+**KY5 — Lochgelly / Cardenden / Bowhill**
+**KY6 — Glenrothes South:** Thornton, Markinch
+**KY7 — Glenrothes town / Kinglassie**
+**KY8 — Leven / Methil / Buckhaven / Lundin Links**
+**KY9 — Largo / Elie / Earlsferry**
+**KY10 — Anstruther / Pittenweem / Crail / St Monans**
+**KY11 — Dunfermline / Rosyth / Inverkeithing / Dalgety Bay**
+**KY12 — Dunfermline West / Crossford / Saline**
+**KY13 — Kinross / Milnathort**
+**KY14 — Ladybank / Auchtermuchty / Strathmiglo**
+**KY15 — Cupar / Springfield / Ceres**
+**KY16 — St Andrews / Guardbridge / Leuchars**
+
+## Kirkcaldy Coverage
+
+Kirkcaldy is the Fife county town and our primary Fife dispatch. The A92 Kirkcaldy bypass and the A915 coastal road are the main routes generating callouts. Kirkcaldy town centre, The Postings shopping area, and the Esplanade seafront are frequent locations.
+
+## St Andrews Coverage
+
+St Andrews (KY16) is in our coverage at approximately 80–90 minutes. The historic town attracts significant tourist traffic and golf visitors, many in hire cars. We're a frequent callout for visitors who have driven from Edinburgh or Glasgow and encountered a puncture on Fife's rural roads.
+
+The A91 between St Andrews and Cupar, and the A917 coastal road through Crail and Anstruther, are common puncture locations due to the road surface condition and rural debris.
+
+## Dunfermline — Fastest Fife Response
+
+Dunfermline (KY11/KY12) is our quickest Fife dispatch — accessible in 50–65 minutes via the M90/Queensferry Crossing from Glasgow, or 30–35 minutes from Edinburgh. Carnegie Shopping Centre, the town centre, and the Dunfermline Industrial Estate are regular callout locations.
+
+## The Kincardine Bridge Route
+
+The Kincardine Bridge (A876) connects Stirling to Fife and is an alternative to the Queensferry Crossing during congestion. We use this route for Central Fife callouts (Cowdenbeath, Lochgelly, Kelty area). If you're broken down between Kincardine and Glenrothes, call us — response times from this direction are typically 60–75 minutes.
+
+## Frequently Asked Questions
+
+### Do you cover the East Neuk of Fife?
+Yes — Anstruther (KY10), Pittenweem, St Monans, Crail and Elie are all covered. Response times are 80–95 minutes from Glasgow. Advance booking is recommended if you know you'll be in the East Neuk.
+
+### Can you come to St Andrews Golf Course hotels?
+Yes — we cover all St Andrews hotels, B&Bs and the Old Course Hotel car park area. Golf visitors with hire car tyre problems are a regular callout.
+
+### Is there a surcharge for Fife?
+No. Fife is within our standard coverage. The £49 callout fee applies throughout the KY postcode area.
+
+### Do you cover Kinross (KY13)?
+Yes. Kinross is at the junction of the M90 and sits between Glasgow and Perth. Response time is approximately 60–75 minutes.
+
+## Book Mobile Tyre Fitting in Kirkcaldy & Fife
+
+Call **0141 266 0690** — 24 hours a day, every day.
+Or [book online](/book) for same-day or next-day scheduled fitting.
+
+[Mobile tyre fitting in Dunfermline](/mobile-tyre-fitting/dunfermline) | [Edinburgh](/mobile-tyre-fitting/edinburgh) | [Dundee](/mobile-tyre-fitting/dundee) | [All service areas](/service-areas)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
