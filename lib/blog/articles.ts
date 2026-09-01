@@ -8233,6 +8233,377 @@ Call **0141 266 0690** or [book online](/book) for mobile Renault or Dacia tyre 
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Peugeot tyre fitting Scotland](/blog/peugeot-tyre-fitting-scotland) | [Vauxhall tyre fitting Scotland](/blog/vauxhall-tyre-fitting-scotland)`,
   },
+  {
+    slug: 'volvo-tyre-fitting-scotland',
+    title: 'Volvo Tyre Fitting Scotland: XC40, XC60, XC90, C40 Recharge & EX30',
+    description:
+      'Mobile Volvo tyre fitting across Scotland. Correct tyre sizes for every Volvo model — XC40, XC60, XC90, V60, V90, C40 Recharge, EX30, EX40. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'volvo tyre fitting scotland',
+      'volvo xc40 tyres scotland',
+      'volvo xc60 tyres scotland',
+      'volvo xc90 tyres scotland',
+      'volvo c40 tyres scotland',
+      'volvo ex30 tyres scotland',
+      'mobile volvo tyre fitting glasgow',
+      'volvo v60 tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'audi-tyre-fitting-scotland',
+    ],
+    content: `# Volvo Tyre Fitting Scotland: Every Model Covered
+
+Volvo is one of the most popular premium car brands in Scotland, valued for safety, quality, and practicality in Scottish conditions. The XC40, XC60, and XC90 are common in Scottish cities and on Highland roads alike. Tyre Rescue provides specialist mobile Volvo tyre fitting across all of Scotland.
+
+## Volvo XC40 Tyre Sizes
+
+The Volvo XC40 (2018–present) — Volvo's bestselling model:
+
+| XC40 Trim | Tyre Size |
+|---|---|
+| XC40 Core / Plus | 235/50R18 |
+| XC40 Ultimate | 235/45R19 or 245/40R20 |
+| XC40 R-Design | 235/40R20 |
+| XC40 Recharge (EV) | 235/50R18 (load index 101+) or 235/45R19 |
+
+The **XC40 Recharge** (electric) has no spare wheel. A flat tyre requires immediate mobile fitting.
+
+## Volvo C40 Recharge Tyre Sizes
+
+The Volvo C40 Recharge (2021–present) — electric coupe SUV:
+
+- 235/50R19 (standard)
+- 255/40R20 (longer range / performance)
+
+Load index 99+ required on all C40 Recharge variants.
+
+## Volvo EX30 Tyre Sizes
+
+The Volvo EX30 (2023–present) — compact electric SUV:
+
+- 215/55R18 (Twin Motor — standard)
+- 235/45R19 (Twin Motor Performance)
+
+The EX30 is Volvo's smallest and lightest EV — tyre load index requirements are lower than XC40/C40 Recharge.
+
+## Volvo EX40 & EC40 Tyre Sizes
+
+The Volvo EX40 (rebadged XC40 Recharge, 2023–present):
+- Identical tyre sizes to XC40 Recharge: 235/50R18 or 235/45R19
+
+## Volvo XC60 Tyre Sizes
+
+The Volvo XC60 (2017–present) — Volvo's bestselling SUV globally:
+
+| XC60 Trim | Tyre Size |
+|---|---|
+| XC60 Core / Plus | 235/60R18 |
+| XC60 Plus Dark / Ultimate | 245/50R19 or 255/40R20 |
+| XC60 R-Design | 255/40R20 |
+| XC60 T8 PHEV | 235/60R18 or 245/50R19 (load index 102+) |
+
+**PHEV note**: The XC60 T8 plug-in hybrid requires a minimum load index of 102 on most trims. We always verify this before fitting.
+
+## Volvo XC90 Tyre Sizes
+
+The Volvo XC90 (2015–present) — 7-seat flagship SUV:
+
+| XC90 Trim | Tyre Size |
+|---|---|
+| XC90 Core | 235/60R19 |
+| XC90 Plus / Ultimate | 265/45R20 or 275/35R21 |
+| XC90 R-Design | 275/35R21 |
+| XC90 T8 PHEV | 265/45R20 (load index 108+) |
+
+The XC90 is one of the heaviest non-commercial vehicles on the road. Correct load index is critical — especially on PHEV variants.
+
+## Volvo V60 & V90 Estate Tyre Sizes
+
+**V60 (Z59, 2018–present)**:
+- 235/50R18 (R-Design base)
+- 235/45R19 (R-Design Plus)
+- 235/40R20 (Polestar Engineered)
+
+**V90 (2016–present)**:
+- 245/45R19 (Cross Country)
+- 255/40R20 (R-Design)
+
+## Volvo TPMS Reset
+
+All Volvo models have direct or indirect TPMS. After any tyre change:
+
+- **Older XC40, XC60, XC90**: Reset via the car menu on the center screen — Settings → My Car → Tyres → Calibrate
+- **New EX30, EX40, C40**: Digital TPMS via Volvo app — requires TPMS diagnostic tool for full reset
+
+Tyre Rescue carries Volvo-compatible TPMS reset tools. Reset is included at no additional charge with every fitting.
+
+## Emergency Volvo Tyre Fitting in Scotland
+
+1. **XC40 Recharge, C40, EX30, EX40**: No spare wheel — call us immediately
+2. **XC60, XC90, V60, V90**: May have a space-saver spare or puncture kit — check your boot
+3. **Call 0141 266 0690** — give your registration number for instant tyre identification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile Volvo tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland) | [Audi tyre fitting Scotland](/blog/audi-tyre-fitting-scotland)`,
+  },
+  {
+    slug: 'skoda-tyre-fitting-scotland',
+    title: 'Skoda Tyre Fitting Scotland: Octavia, Fabia, Karoq, Kodiaq & Enyaq',
+    description:
+      'Mobile Skoda tyre fitting across Scotland. Correct tyre sizes for every Skoda model — Octavia, Fabia, Karoq, Kodiaq, Scala, Enyaq iV. TPMS reset included. All cities covered.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'skoda tyre fitting scotland',
+      'skoda octavia tyres scotland',
+      'skoda karoq tyres scotland',
+      'skoda kodiaq tyres scotland',
+      'skoda enyaq tyres scotland',
+      'skoda fabia tyres scotland',
+      'mobile skoda tyre fitting glasgow',
+      'skoda octavia vrs tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'volkswagen-tyre-fitting-scotland',
+    ],
+    content: `# Skoda Tyre Fitting Scotland: Every Model Covered
+
+Skoda is one of the most popular car brands in Scotland. Part of the Volkswagen Group, Skoda offers the quality of a VW platform at a more affordable price — which is why the Skoda Octavia is one of the most common cars on Scottish roads. Tyre Rescue provides specialist mobile Skoda tyre fitting across all of Scotland.
+
+## Skoda Octavia Tyre Sizes
+
+The Skoda Octavia (NX, 2020–present) — the UK's most practical family car:
+
+| Octavia Trim | Tyre Size |
+|---|---|
+| Octavia SE | 205/55R16 |
+| Octavia SE Technology | 215/50R17 |
+| Octavia SE L | 225/45R17 |
+| Octavia vRS | 225/40R18 or 245/40R18 |
+| Octavia vRS iV (PHEV) | 225/40R18 (load index 92+) |
+| Octavia Scout | 215/60R17 |
+
+Skoda Octavia (5E, 2013–2020): 195/65R15 base, 205/55R16 mid, 225/45R17 vRS.
+
+**vRS iV note**: The PHEV Octavia requires load index 92+ — heavier than the standard Octavia.
+
+## Skoda Fabia Tyre Sizes
+
+The Skoda Fabia (PJ, 2021–present):
+
+| Fabia Trim | Tyre Size |
+|---|---|
+| Fabia Colour Edition | 185/65R15 |
+| Fabia SE | 195/65R15 |
+| Fabia Monte Carlo | 205/45R17 |
+| Fabia Sportline | 215/40R18 |
+
+Older Fabia (NJ, 2014–2021): 185/65R15 base, 205/45R17 Monte Carlo.
+
+## Skoda Karoq Tyre Sizes
+
+The Skoda Karoq (NU7, 2017–present):
+
+| Karoq Trim | Tyre Size |
+|---|---|
+| Karoq SE | 215/65R17 |
+| Karoq SE L | 235/50R18 |
+| Karoq Sportline | 235/45R19 |
+| Karoq Scout | 225/55R17 |
+
+## Skoda Kodiaq Tyre Sizes
+
+The Skoda Kodiaq (NS7, 2024–present) and older Kodiaq (NS, 2016–2023):
+
+| Kodiaq Trim | Tyre Size |
+|---|---|
+| Kodiaq SE (2024+) | 225/60R18 |
+| Kodiaq SE L | 235/50R19 |
+| Kodiaq Sportline | 255/40R20 or 255/45R20 |
+| Kodiaq vRS | 255/45R20 |
+| Older Kodiaq SE | 215/65R17 |
+| Older Kodiaq vRS | 235/45R20 |
+
+## Skoda Scala Tyre Sizes
+
+The Skoda Scala (NW, 2019–present):
+
+- 205/55R16 (SE)
+- 225/45R17 (Monte Carlo)
+
+## Skoda Enyaq iV Tyre Sizes
+
+The Skoda Enyaq iV (AC8, 2021–present) — Skoda's first purpose-built EV:
+
+| Enyaq Variant | Tyre Size |
+|---|---|
+| Enyaq 60 | 235/55R19 |
+| Enyaq 80 / 85 | 255/45R20 |
+| Enyaq 85x (AWD) | 255/45R20 (load index 105+) |
+| Enyaq vRS | 235/45R21 |
+| Enyaq Coupé RS | 235/45R21 |
+
+**Enyaq note**: The Enyaq iV has no spare wheel. A flat requires immediate mobile fitting. We carry Enyaq tyre specifications in stock — call ahead to confirm.
+
+## Skoda Superb Tyre Sizes
+
+The Skoda Superb (B8/2B, 2015–present):
+
+- 215/55R16 (SE)
+- 235/45R17 (SE L)
+- 245/40R18 (Laurin & Klement, Sportline)
+
+## Skoda TPMS Reset
+
+All Skoda models share TPMS technology with the Volkswagen Group:
+
+- **Indirect TPMS (Fabia, Scala, older Karoq)**: Reset via the driver information display — press and hold the TPMS reset button
+- **Direct TPMS (Octavia vRS, Kodiaq, Enyaq, Superb)**: Requires a TPMS diagnostic tool
+
+Tyre Rescue carries Skoda-compatible (VW Group) TPMS reset tools. Reset is included at no additional charge.
+
+## Emergency Skoda Tyre Fitting in Scotland
+
+1. **Enyaq iV, Enyaq Coupé**: No spare wheel — call us immediately
+2. **Octavia, Karoq, Kodiaq**: May have a space-saver spare — check your boot
+3. **Call 0141 266 0690** — give your registration number for instant tyre identification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile Skoda tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Volkswagen tyre fitting Scotland](/blog/volkswagen-tyre-fitting-scotland) | [Audi tyre fitting Scotland](/blog/audi-tyre-fitting-scotland)`,
+  },
+  {
+    slug: 'mini-tyre-fitting-scotland',
+    title: 'MINI Tyre Fitting Scotland: MINI Hatchback, Countryman, Convertible & Electric',
+    description:
+      'Mobile MINI tyre fitting across Scotland. Correct tyre sizes for every MINI model — MINI Hatchback, Countryman, Convertible, Clubman, Electric. JCW performance tyres. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'mini tyre fitting scotland',
+      'mini countryman tyres scotland',
+      'mini hatchback tyres scotland',
+      'mini electric tyres scotland',
+      'mini jcw tyres scotland',
+      'mini convertible tyres scotland',
+      'mobile mini tyre fitting glasgow',
+      'mini cooper tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'bmw-tyre-fitting-scotland',
+    ],
+    content: `# MINI Tyre Fitting Scotland: Every Model Covered
+
+MINI is a popular premium small car in Scotland, particularly in Glasgow and Edinburgh. MINIs use a variety of tyre sizes across the range, with JCW performance models requiring specific performance tyre specifications. Tyre Rescue provides mobile MINI tyre fitting across all of Scotland — MINI Cooper, JCW, Countryman, Convertible, Clubman, and Electric.
+
+## MINI Hatchback (3-Door & 5-Door) Tyre Sizes
+
+The MINI Hatchback F56 (2014–2023) and J01 (2024–present):
+
+| MINI Trim | Tyre Size |
+|---|---|
+| MINI One / Cooper (base) | 175/65R15 or 195/55R16 |
+| MINI Cooper S | 205/45R17 or 225/40R18 |
+| MINI Cooper SE (Electric, F56) | 175/65R15 or 195/55R16 |
+| MINI John Cooper Works (JCW) | 205/40R18 or 205/35R18 |
+
+New MINI Hatchback J01 (2024+):
+- 195/55R16 (Cooper)
+- 215/40R18 (John Cooper Works)
+- 195/60R17 (Electric)
+
+**JCW note**: John Cooper Works uses performance summer tyres. For year-round use in Scotland, consider all-season alternatives — call us to discuss compatible specs.
+
+## MINI Countryman Tyre Sizes
+
+The MINI Countryman F60 (2017–2023):
+
+| Countryman Trim | Tyre Size |
+|---|---|
+| Countryman Cooper | 205/60R16 |
+| Countryman Cooper S | 225/50R17 |
+| Countryman Cooper SE All4 (PHEV) | 205/55R17 (load index 95+) |
+| Countryman JCW All4 | 225/40R18 |
+
+New MINI Countryman U25 (2024–present):
+- 225/55R17 (Cooper)
+- 235/50R18 (Cooper S, JCW)
+- 235/45R19 (JCW)
+- 235/50R18 (Electric — load index 101+)
+
+**Countryman PHEV/Electric note**: The Countryman Electric is heavier than the petrol — correct load index is required. No spare wheel on Electric variant.
+
+## MINI Convertible Tyre Sizes
+
+The MINI Convertible F57 (2016–present):
+
+- 195/55R16 (Cooper base)
+- 205/45R17 (Cooper S)
+- 225/35R18 (JCW)
+
+## MINI Clubman Tyre Sizes
+
+The MINI Clubman F54 (2015–2024):
+
+- 205/55R16 (Cooper)
+- 225/45R17 (Cooper S)
+- 225/35R19 (JCW All4)
+
+## MINI Electric (Cooper SE) Tyre Sizes
+
+**F56 Cooper SE Electric (2020–2023)**:
+- 175/65R15 or 195/55R16
+- Load index 87+ required
+
+**J01 Electric (2024–present)**:
+- 195/60R17
+
+The MINI Electric has no spare wheel. A flat requires immediate mobile fitting.
+
+## MINI TPMS Reset
+
+All MINI models share BMW Group TPMS technology. After any tyre change:
+
+- **Older MINI (2014–2022)**: Reset via the on-board computer — Settings → Tyre Pressure → Reset
+- **New MINI (2023+, J01)**: Direct TPMS requires a compatible diagnostic tool
+
+Tyre Rescue carries MINI/BMW-compatible TPMS reset tools. Reset is included at no additional charge with every fitting.
+
+## Emergency MINI Tyre Fitting in Scotland
+
+1. **MINI Electric, Countryman Electric**: No spare wheel — call us immediately
+2. **MINI Hatchback, Convertible, Clubman**: Most have a space-saver spare or inflation kit — check your boot
+3. **JCW models**: Performance tyres are not run-flat — stop safely and call us
+4. **Call 0141 266 0690** — give your registration for instant identification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile MINI tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
