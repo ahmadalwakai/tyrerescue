@@ -202,6 +202,99 @@ export const competitors: CompetitorComparison[] = [
     ],
     lastModified: '2025-06-20',
   },
+  {
+    slug: 'tyre-rescue-vs-arnold-clark-tyres',
+    competitorName: 'Arnold Clark Tyres',
+    competitorShortName: 'Arnold Clark',
+    title: 'Tyre Rescue vs Arnold Clark Tyres: Mobile Fitting or Garage Visit in Scotland?',
+    metaTitle: 'Tyre Rescue vs Arnold Clark Tyres: Scotland Tyre Fitting Compared 2025',
+    metaDescription:
+      'Tyre Rescue vs Arnold Clark Tyres — compare mobile tyre fitting vs garage service across Scotland. 24/7 emergency callout, pricing, response times & reviews side by side.',
+    description:
+      'Arnold Clark is one of Scotland\'s most recognisable automotive brands, operating dozens of service centres across the country. Here we compare their tyre fitting service with Tyre Rescue\'s mobile-first 24/7 approach to help Scottish drivers choose the right option.',
+    features: [
+      { feature: 'Mobile Service', tyreRescue: 'Yes — fully mobile, we come to your location', competitor: 'Garage-based only — you must bring your vehicle in', winner: 'tyrerescue' },
+      { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — 24 hours, 7 days a week', competitor: 'No — standard business hours only', winner: 'tyrerescue' },
+      { feature: 'Average Response Time', tyreRescue: '45 minutes average (Glasgow/Edinburgh)', competitor: 'Appointment-based — earliest available slot', winner: 'tyrerescue' },
+      { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £45 (garage visit, tyre extra)', winner: 'tie' },
+      { feature: 'Coverage Area', tyreRescue: 'All of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands', competitor: 'Multiple Scottish branches — must be near a centre', winner: 'tyrerescue' },
+      { feature: 'Tyre Brands', tyreRescue: 'Budget to premium — Michelin, Continental, Bridgestone', competitor: 'Wide range including manufacturer-approved fitments', winner: 'tie' },
+      { feature: 'Puncture Repair', tyreRescue: 'Mobile puncture repair — at your location', competitor: 'In-garage puncture repair only', winner: 'tyrerescue' },
+      { feature: 'Online Booking', tyreRescue: 'Yes — instant online booking with live pricing', competitor: 'Yes — online appointment booking', winner: 'tie' },
+      { feature: 'Trustpilot Rating', tyreRescue: '4.8/5 stars', competitor: 'Varies by branch', winner: 'tyrerescue' },
+      { feature: 'Real-Time Tracking', tyreRescue: 'Yes — live GPS tracking of your fitter', competitor: 'No customer tracking', winner: 'tyrerescue' },
+    ],
+    faq: [
+      {
+        question: 'Is Arnold Clark cheaper than Tyre Rescue for tyre fitting?',
+        answer: 'Arnold Clark\'s garage-based tyre prices are broadly competitive with Tyre Rescue\'s supply prices. The key difference is the callout fee: Tyre Rescue charges £49 for mobile fitting, but you save the time and fuel cost of driving to a centre. For emergency situations or when you cannot drive the vehicle, Tyre Rescue is the only option.',
+      },
+      {
+        question: 'Does Arnold Clark offer 24-hour tyre fitting?',
+        answer: 'No. Arnold Clark service centres operate during standard business hours. Tyre Rescue provides genuine 24/7 emergency mobile tyre fitting across all of Scotland — available immediately, any time of day or night.',
+      },
+      {
+        question: 'Can I use Tyre Rescue if I have an Arnold Clark warranty?',
+        answer: 'In most cases, yes. Standard vehicle warranties are not voided by having tyres fitted by a reputable independent mobile fitter. Tyre-specific manufacturer warranties (on the tyre itself) are transferred to whoever fitted the tyre. Contact your warranty provider to confirm specific terms.',
+      },
+      {
+        question: 'Which is better for a flat tyre emergency in Scotland?',
+        answer: 'For any emergency — flat tyre, blowout, or a tyre warning light — Tyre Rescue is the clear choice. We dispatch immediately and reach you at your exact location. Arnold Clark centres require you to bring the vehicle in and may not have same-day availability.',
+      },
+    ],
+    summary:
+      'Arnold Clark is a trusted Scotland-wide brand for car sales and servicing. For tyre fitting, their garage-based model is fine if you can drive to a centre during business hours. For emergencies, 24/7 availability, or the convenience of mobile fitting at home or work, Tyre Rescue provides a fundamentally superior service.',
+    keywords: [
+      'tyre rescue vs arnold clark', 'arnold clark tyres scotland', 'arnold clark tyre fitting glasgow',
+      'arnold clark tyre fitting edinburgh', 'arnold clark mobile tyres', 'arnold clark tyre prices',
+      'better than arnold clark tyres', 'mobile tyre fitting vs arnold clark',
+    ],
+    lastModified: '2025-08-01',
+  },
+  {
+    slug: 'tyre-rescue-vs-protyre',
+    competitorName: 'Protyre',
+    competitorShortName: 'Protyre',
+    title: 'Tyre Rescue vs Protyre: Mobile Tyre Fitting Compared in Scotland',
+    metaTitle: 'Tyre Rescue vs Protyre: Scotland Tyre Fitting Comparison 2025',
+    metaDescription:
+      'Tyre Rescue vs Protyre — compare mobile tyre fitting vs garage service in Scotland. 24/7 emergency callout, pricing, reviews & coverage across Glasgow, Edinburgh and beyond.',
+    description:
+      'Protyre operates a network of tyre and autocare centres across the UK, including locations in Scotland. We compare their service with Tyre Rescue\'s mobile-first approach to help you decide which works best for your situation.',
+    features: [
+      { feature: 'Mobile Service', tyreRescue: 'Yes — fully mobile across all of Scotland', competitor: 'Limited mobile options — primarily garage-based', winner: 'tyrerescue' },
+      { feature: '24/7 Emergency Callout', tyreRescue: 'Yes — around the clock, every day', competitor: 'No — standard operating hours only', winner: 'tyrerescue' },
+      { feature: 'Average Response Time', tyreRescue: '45 minutes average in Central Scotland', competitor: 'Pre-booked appointments required', winner: 'tyrerescue' },
+      { feature: 'Starting Price', tyreRescue: 'Callout from £49 + tyre price', competitor: 'From £45 in-centre (tyre extra)', winner: 'tie' },
+      { feature: 'Coverage Area', tyreRescue: 'All of Scotland — Glasgow to Shetland', competitor: 'Selected UK locations with some Scottish branches', winner: 'tyrerescue' },
+      { feature: 'Tyre Brands', tyreRescue: 'Budget to premium — competitive pricing', competitor: 'Wide range, strong brand partnerships', winner: 'tie' },
+      { feature: 'Puncture Repair', tyreRescue: 'Mobile puncture repair at your location', competitor: 'In-centre repair — must attend a branch', winner: 'tyrerescue' },
+      { feature: 'Online Booking', tyreRescue: 'Yes — live pricing, instant confirmation', competitor: 'Yes — online appointment booking', winner: 'tie' },
+      { feature: 'Trustpilot Rating', tyreRescue: '4.8/5 stars', competitor: '4.2/5 stars', winner: 'tyrerescue' },
+      { feature: 'Real-Time Tracking', tyreRescue: 'Yes — live GPS tracking of fitter', competitor: 'No consumer tracking available', winner: 'tyrerescue' },
+    ],
+    faq: [
+      {
+        question: 'Does Protyre operate in Scotland?',
+        answer: 'Protyre has a limited number of centres in Scotland. Coverage varies by location and they do not offer a comprehensive Scotland-wide mobile service. Tyre Rescue covers all of Scotland — from Glasgow and Edinburgh to Aberdeen, Inverness, and the Highlands — with mobile fitting available 24/7.',
+      },
+      {
+        question: 'Is Protyre good for emergency tyre fitting?',
+        answer: 'Protyre operates during standard business hours from fixed locations. For emergency tyre fitting — flat tyres, blowouts, or roadside assistance — Tyre Rescue is the better choice, with genuine 24/7 mobile service and an average 45-minute response time in Central Scotland.',
+      },
+      {
+        question: 'How do Protyre prices compare to Tyre Rescue?',
+        answer: 'Protyre in-centre fitting is broadly competitive on tyre prices. Tyre Rescue adds a £49 mobile callout fee, but you save the time and fuel cost of visiting a centre. For emergency situations where you cannot drive the car, only Tyre Rescue provides an immediate mobile solution.',
+      },
+    ],
+    summary:
+      'Protyre is a solid choice for planned tyre work at a nearby centre. For mobile fitting, 24/7 emergency service, or coverage across all of Scotland including rural and Highland areas, Tyre Rescue offers a significantly better service proposition for Scottish drivers.',
+    keywords: [
+      'tyre rescue vs protyre', 'protyre scotland', 'protyre glasgow', 'protyre edinburgh',
+      'protyre mobile tyres', 'protyre alternative', 'mobile tyre fitting vs protyre',
+    ],
+    lastModified: '2025-08-01',
+  },
 ];
 
 export function getCompetitorBySlug(slug: string): CompetitorComparison | undefined {

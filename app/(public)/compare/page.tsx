@@ -5,7 +5,7 @@ import { JsonLd } from '@/components/seo/JsonLd';
 export const metadata: Metadata = {
   title: 'Compare Tyre Rescue vs Competitors | Mobile Tyre Fitting Scotland',
   description:
-    'See how Tyre Rescue compares to Kwik Fit, National Tyres, ATS Euromaster & Halfords for mobile tyre fitting in Glasgow, Edinburgh & Scotland. 24/7 emergency service.',
+    'See how Tyre Rescue compares to Kwik Fit, National Tyres, ATS Euromaster, Halfords, Arnold Clark & Protyre for mobile tyre fitting across Scotland. 24/7 emergency service.',
   alternates: { canonical: 'https://www.tyrerescue.uk/compare' },
   keywords: [
     'tyre fitting comparison scotland',
@@ -30,6 +30,8 @@ export default function ComparePage() {
         { '@type': 'ListItem', position: 2, name: 'Tyre Rescue vs National Tyres', url: 'https://www.tyrerescue.uk/compare/tyre-rescue-vs-national-tyres' },
         { '@type': 'ListItem', position: 3, name: 'Tyre Rescue vs ATS Euromaster', url: 'https://www.tyrerescue.uk/compare/tyre-rescue-vs-ats-euromaster' },
         { '@type': 'ListItem', position: 4, name: 'Tyre Rescue vs Halfords', url: 'https://www.tyrerescue.uk/compare/tyre-rescue-vs-halfords' },
+        { '@type': 'ListItem', position: 5, name: 'Tyre Rescue vs Arnold Clark Tyres', url: 'https://www.tyrerescue.uk/compare/tyre-rescue-vs-arnold-clark-tyres' },
+        { '@type': 'ListItem', position: 6, name: 'Tyre Rescue vs Protyre', url: 'https://www.tyrerescue.uk/compare/tyre-rescue-vs-protyre' },
       ],
     },
   };
