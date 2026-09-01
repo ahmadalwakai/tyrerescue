@@ -3092,6 +3092,512 @@ Or [book in advance](/book) for scheduled Moray fitting.
 
 [Aberdeen coverage](/mobile-tyre-fitting/aberdeen) | [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [All service areas](/service-areas)`,
   },
+  {
+    slug: 'mobile-tyre-fitting-motherwell-north-lanarkshire',
+    title: 'Mobile Tyre Fitting in Motherwell & North Lanarkshire',
+    description:
+      'Mobile tyre fitting in Motherwell, Wishaw, Coatbridge, Airdrie and across North Lanarkshire. ML1–ML6 postcodes covered. Emergency callout or advance booking available.',
+    category: 'fitting',
+    publishDate: '2025-09-01',
+    lastModified: '2025-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting motherwell',
+      'mobile tyre fitter wishaw',
+      'tyre fitting coatbridge',
+      'tyre fitting airdrie',
+      'north lanarkshire mobile tyres',
+      'ML1 tyre fitting',
+      'ML2 tyre fitting',
+      'emergency tyre motherwell',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-east-kilbride',
+      'emergency-tyre-fitting-glasgow-complete-guide',
+      'mobile-tyre-fitting-hamilton-lanarkshire',
+    ],
+    content: `# Mobile Tyre Fitting in Motherwell & North Lanarkshire
+
+Tyre Rescue provides mobile tyre fitting across Motherwell, Wishaw, Coatbridge, Airdrie, Bellshill, and the wider North Lanarkshire area — covering all ML1 to ML6 postcodes.
+
+## Areas We Cover in North Lanarkshire
+
+**Motherwell & Wishaw (ML1–ML2)**
+Both towns and surrounding residential areas are within our core coverage zone. Whether you're on Motherwell town centre or the Ravenscraig development, we'll come to you.
+
+**Coatbridge & Airdrie (ML5–ML6)**
+We cover both towns fully — including industrial estates and retail parks where flat tyres are common.
+
+**Bellshill & Uddingston (ML4)**
+Just off the M74 corridor — ideal for drivers who pick up a puncture on the motorway and need roadside help quickly.
+
+**Shotts & Carluke (ML7–ML8)**
+More rural parts of North Lanarkshire are covered too. We serve these areas with the same tyres and service as central Motherwell.
+
+## Why North Lanarkshire Drivers Choose Tyre Rescue
+
+North Lanarkshire sits at the junction of the M8 and M74 — two of Scotland's busiest motorways. A blowout or slow puncture on these routes is stressful. Tyre Rescue responds faster than a traditional garage because we come to you — no towing, no waiting room.
+
+### Response Times in North Lanarkshire
+- **Motherwell/Wishaw**: typically 40–55 minutes
+- **Coatbridge/Airdrie**: typically 45–60 minutes
+- **Bellshill**: typically 35–50 minutes (close to M74 junction)
+- **Shotts/Carluke**: typically 60–75 minutes
+
+All times are indicative and depend on traffic conditions on the M74, M8, and A723.
+
+## What We Bring to You
+
+Every callout includes:
+- Full tyre stock — budget, mid-range, and premium brands
+- Torque wrench for correct wheel nut tightening
+- TPMS reset tool if your car has a tyre pressure monitoring system
+- Proper disposal of your old tyre
+
+We work on cars, SUVs, vans, and 4x4s. If you're not sure we stock your tyre size, call before we dispatch and we'll confirm availability.
+
+## Emergency Callout in Motherwell
+
+If you have a flat or blowout right now, call **0141 266 0690** — available 24 hours a day. We'll confirm the callout fee upfront (from £49) before dispatch.
+
+For a slow puncture or minor damage, we can often repair the tyre from £25, saving you the cost of a full replacement.
+
+## Common Locations We're Called To
+
+- Motherwell town centre (Motherwell Shopping Centre, Brandon Street)
+- Ravenscraig Sports Facility / Dalziel Park area
+- Coatbridge Retail Park (ML5)
+- Airdrie town centre (ML6)
+- Eurocentral Business Park (M8/M74 junction)
+- Strathclyde Country Park
+
+## Book a Tyre Fitting in North Lanarkshire
+
+For a scheduled appointment, [book online](/book) or call **0141 266 0690**. We'll confirm your tyre size, quote a price including tyre and fitting, and come to your home, workplace, or any safe location.
+
+[Hamilton & Lanarkshire](/mobile-tyre-fitting/hamilton) | [East Kilbride](/mobile-tyre-fitting/east-kilbride) | [Glasgow](/mobile-tyre-fitting/glasgow) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-dunfermline-fife',
+    title: 'Mobile Tyre Fitting in Dunfermline & West Fife',
+    description:
+      'Mobile tyre fitting in Dunfermline, Inverkeithing, Rosyth, Cowdenbeath and across West Fife. KY11 and KY12 postcodes covered. Same-day and emergency fitting available.',
+    category: 'fitting',
+    publishDate: '2025-09-01',
+    lastModified: '2025-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting dunfermline',
+      'tyre fitting rosyth',
+      'mobile tyre fitter fife',
+      'KY11 tyre fitting',
+      'KY12 tyre fitting',
+      'emergency tyre dunfermline',
+      'tyre fitting inverkeithing',
+      'cowdenbeath tyre fitting',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-kirkcaldy-fife',
+      'mobile-tyre-fitting-edinburgh-guide',
+      'mobile-tyre-fitting-perth-perthshire',
+    ],
+    content: `# Mobile Tyre Fitting in Dunfermline & West Fife
+
+Tyre Rescue covers Dunfermline, Rosyth, Inverkeithing, Cowdenbeath, and the surrounding West Fife area — including KY11 and KY12 postcodes.
+
+## Areas We Cover in West Fife
+
+**Dunfermline (KY11–KY12)**
+Scotland's former capital is our main base for West Fife coverage. From the town centre to the Pitreavie Business Park and Carnegie Shopping Centre, we come to wherever you are.
+
+**Rosyth (KY11)**
+The naval dockyard town and its surrounding residential streets are all covered. Many drivers in Rosyth find us when returning from cross-Forth commuting.
+
+**Inverkeithing (KY11)**
+Close to the Forth Road Bridge — we regularly attend callouts from drivers who noticed a problem shortly after crossing.
+
+**Cowdenbeath (KY4)**
+The former mining town and its surrounding communities are within our West Fife service area.
+
+**Lochgelly & Kelty (KY5–KY4)**
+Both communities are covered as part of our Fife-wide operations.
+
+## The Forth Crossing Problem
+
+Dunfermline drivers face a specific challenge: if you notice a slow puncture while crossing the Forth Road Bridge or Queensferry Crossing, you need help fast. Tyre Rescue can meet you:
+
+- At the Inverkeithing slip roads (A90)
+- At the north end of the Queensferry Crossing (A90)
+- At any safe layby on the A823 through Dunfermline
+- At your home or workplace once you've reached it safely
+
+## Why Choose Mobile Over a Garage?
+
+Dunfermline has several tyre garages — but mobile fitting offers:
+- **No appointment needed** for emergency callouts
+- **You don't move the car** — we come to the flat tyre
+- **Price transparency** — we quote before we arrive
+- **Faster turnaround** — typically 30–45 minutes on site
+
+## Response Times in West Fife
+
+- **Dunfermline town centre**: typically 45–60 minutes
+- **Rosyth / Inverkeithing**: typically 50–65 minutes
+- **Cowdenbeath / Lochgelly**: typically 60–75 minutes
+
+Times depend on traffic through the Forth crossing and on the M90.
+
+## Emergency Tyre Fitting Dunfermline
+
+For immediate help, call **0141 266 0690** — available 24 hours a day. We'll confirm a callout fee from £49 before sending our fitter.
+
+Slow puncture that hasn't fully deflated? We can often repair it from £25 if the damage is in the legal repair zone.
+
+## Book in Advance
+
+Planning ahead is always better than an emergency. [Book online](/book) for a scheduled fitting at your Dunfermline address — we'll bring the tyre to you, fit it, and be gone in under an hour.
+
+[Kirkcaldy & East Fife](/mobile-tyre-fitting/kirkcaldy) | [Edinburgh](/mobile-tyre-fitting/edinburgh) | [Perth & Perthshire](/mobile-tyre-fitting/perth) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-irvine-north-ayrshire',
+    title: 'Mobile Tyre Fitting in Irvine & North Ayrshire',
+    description:
+      'Mobile tyre fitting in Irvine, Kilwinning, Saltcoats, Ardrossan, Largs and across North Ayrshire. KA11–KA30 postcodes covered. Emergency callout or scheduled fitting.',
+    category: 'fitting',
+    publishDate: '2025-09-01',
+    lastModified: '2025-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting irvine',
+      'mobile tyre fitter north ayrshire',
+      'tyre fitting kilwinning',
+      'tyre fitting saltcoats',
+      'tyre fitting largs',
+      'KA11 tyre fitting',
+      'emergency tyre irvine',
+      'ardrossan tyre fitting',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-ayr-ayrshire',
+      'emergency-tyre-fitting-glasgow-complete-guide',
+      'mobile-tyre-fitting-greenock-inverclyde',
+    ],
+    content: `# Mobile Tyre Fitting in Irvine & North Ayrshire
+
+Tyre Rescue serves Irvine, Kilwinning, Saltcoats, Ardrossan, Stevenston, Largs, and the wider North Ayrshire coast — covering KA11 to KA30 postcodes.
+
+## Areas We Cover in North Ayrshire
+
+**Irvine (KA11–KA12)**
+Irvine New Town and the Irvine harbourside area are fully covered. Whether you're at the Rivergate Shopping Centre or on a residential estate, we'll come to you.
+
+**Kilwinning (KA13)**
+Just north of Irvine, Kilwinning is covered as part of our Ayrshire operations.
+
+**Saltcoats & Stevenston (KA21–KA20)**
+These coastal towns are within our coverage zone. Useful for drivers returning from Arran ferry crossings who need a tyre before the journey home.
+
+**Ardrossan (KA22)**
+The ferry port town is covered — flat tyres in car parks near the Arran ferry terminal are a common callout.
+
+**Largs (KA30)**
+Largs and the Cumbraes ferry area are covered as part of our Clyde coast service.
+
+## Arran Ferry & Island Connections
+
+Ardrossan is the mainland terminal for the Arran ferry. If you discover a flat tyre at the ferry terminal or while waiting in the queue, we can come to you — don't miss your crossing because of a puncture. Call as early as possible and we'll do our best to get there before your sailing.
+
+## A78 Coastal Road Coverage
+
+The A78 runs from Greenock to Ayr along the Firth of Clyde coast. It's a busy commuter and tourist route where tyre damage from debris and potholes is common. We cover the full A78 corridor through North Ayrshire.
+
+## Response Times in North Ayrshire
+
+- **Irvine**: typically 40–55 minutes
+- **Kilwinning**: typically 45–60 minutes
+- **Saltcoats / Ardrossan**: typically 50–65 minutes
+- **Largs**: typically 60–75 minutes
+
+Traffic on the A737 and A78 affects response times.
+
+## Emergency Callout in North Ayrshire
+
+For immediate help with a flat or blowout, call **0141 266 0690** — 24 hours a day. We confirm the callout fee (from £49) before dispatch and arrive with your tyre on board.
+
+Can't identify the exact fault? We'll check the tyre on arrival and advise whether a repair (from £25) or replacement is the right option.
+
+## Book a Scheduled Fitting
+
+Not an emergency? [Book in advance](/book) to get a fixed price for your tyre size and a time slot that suits you — we'll arrive at your home, workplace, or any safe location across North Ayrshire.
+
+[Kilmarnock & Ayr](/mobile-tyre-fitting/kilmarnock) | [Greenock & Inverclyde](/mobile-tyre-fitting/greenock) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-isle-of-skye',
+    title: 'Mobile Tyre Fitting on the Isle of Skye',
+    description:
+      'Flat tyre on Skye? Tyre Rescue covers the Isle of Skye including Portree, Broadford, Dunvegan and the A87 tourist route. IV41–IV55 postcodes. Remote island specialist.',
+    category: 'fitting',
+    publishDate: '2025-09-01',
+    lastModified: '2025-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting isle of skye',
+      'tyre fitting portree',
+      'flat tyre skye',
+      'emergency tyre skye',
+      'IV41 tyre fitting',
+      'IV49 tyre fitting',
+      'tyre fitter broadford skye',
+      'skye bridge tyre',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-inverness-highlands',
+      'mobile-tyre-fitting-fort-william-highlands',
+      'mobile-tyre-fitting-elgin-moray',
+    ],
+    content: `# Mobile Tyre Fitting on the Isle of Skye
+
+Tyre Rescue covers the Isle of Skye — including Portree, Broadford, Kyle of Lochalsh, Uig, Dunvegan, and the full A87 and A850 tourist route. We serve IV41 to IV55 postcodes.
+
+## Why Skye Needs a Specialist Mobile Tyre Fitter
+
+The Isle of Skye presents unique challenges for drivers:
+- **Single-track roads** with passing places — easy to clip a kerb or pothole
+- **High tourist volumes** in summer — hire cars are particularly prone to damage on unfamiliar roads
+- **Remote locations** — you may be far from any help when a tyre fails
+- **Limited local options** — there are few garages on the island and most can't do roadside callouts
+
+Tyre Rescue bridges this gap. We stock the common tyre sizes used by hire cars and tourists visiting Skye and can reach most parts of the island.
+
+## Areas We Cover on Skye
+
+**Portree (IV51)**
+The island's capital and most populous town. We respond to callouts in Portree and surrounding villages.
+
+**Broadford (IV49)**
+The second-largest village, at the junction of the A87 and A851. A common stopping point where tyre issues are diagnosed.
+
+**Kyle of Lochalsh (IV40)**
+The mainland gateway to Skye via the Skye Bridge. Callouts near the bridge are common for drivers who notice damage just as they cross.
+
+**Uig (IV51)**
+The ferry terminal for the Outer Hebrides. If you have a flat before catching the ferry to Harris or Uist, call us first.
+
+**Dunvegan (IV55)**
+The northwest of the island near Dunvegan Castle. We cover this area, though response times are longer.
+
+**Sleat Peninsula (IV43–IV44)**
+The southern tip of Skye is covered. Home to Armadale and the Mallaig ferry terminal.
+
+## Response Times on Skye
+
+Due to the island's geography, response times are longer than on the mainland:
+- **Portree**: typically 90–120 minutes from dispatch
+- **Broadford**: typically 75–100 minutes
+- **Kyle of Lochalsh**: typically 60–90 minutes
+- **Dunvegan / Uig**: typically 110–140 minutes
+
+We'll always give you an honest estimate when you call. Response times depend on traffic on the A87 and ferry availability.
+
+## Emergency Tyre Help on Skye
+
+If you have a flat on Skye right now, call **0141 266 0690**. We're available 24 hours a day. Given the distances involved, please call as soon as you notice a problem rather than waiting to see if the tyre deflates further.
+
+We'll confirm the callout fee before dispatch and aim to reach you with a replacement tyre.
+
+## Tips for Driving on Skye
+
+1. **Check tyre pressures before you cross the Skye Bridge** — the island's roads are harder on tyres
+2. **Carry a good-quality spare or foam sealant** as a backup while you wait for us
+3. **Note your exact location** — many Skye locations are named in Gaelic and grid references help
+4. **Book a scheduled check** if you're doing a multi-day road trip on Skye
+
+## Pre-Journey Tyre Check
+
+Heading to Skye for a holiday? Book a tyre safety check before you leave the mainland. We can come to your home in Glasgow, Edinburgh, or anywhere else and inspect tread depth, pressure, and sidewall condition.
+
+[Fort William & Lochaber](/mobile-tyre-fitting/fort-william) | [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-galashiels-scottish-borders',
+    title: 'Mobile Tyre Fitting in Galashiels & the Scottish Borders',
+    description:
+      'Mobile tyre fitting in Galashiels, Hawick, Peebles, Melrose, Jedburgh and across the Scottish Borders. TD1–TD15 postcodes covered. Fast response to remote border towns.',
+    category: 'fitting',
+    publishDate: '2025-09-01',
+    lastModified: '2025-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting galashiels',
+      'mobile tyre fitter scottish borders',
+      'tyre fitting hawick',
+      'tyre fitting peebles',
+      'TD1 tyre fitting',
+      'emergency tyre borders scotland',
+      'tyre fitter melrose',
+      'jedburgh tyre fitting',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-edinburgh-guide',
+      'mobile-tyre-fitting-dumfries-galloway',
+      'tyre-maintenance-checklist-scotland',
+    ],
+    content: `# Mobile Tyre Fitting in Galashiels & the Scottish Borders
+
+Tyre Rescue covers Galashiels, Hawick, Peebles, Melrose, Jedburgh, Kelso, Duns, and the wider Scottish Borders region — serving all TD postcodes from TD1 to TD15.
+
+## Why Border Drivers Need a Mobile Tyre Service
+
+The Scottish Borders is a large, thinly-populated region. Traditional tyre garages are scarce outside Galashiels and Hawick, and most can't come to you roadside. When you get a flat on the A68, A7, or A72, your options are limited — unless you call Tyre Rescue.
+
+## Areas We Cover in the Scottish Borders
+
+**Galashiels (TD1)**
+The Borders' largest town and our primary base for the region. We cover Galashiels town centre, the retail park, and surrounding areas.
+
+**Hawick (TD9)**
+The knitwear capital of Scotland. We cover Hawick and the surrounding Teviotdale area, including the A7 corridor south towards Carlisle.
+
+**Peebles (EH45)**
+The upper Tweed Valley market town is within our coverage zone, accessible via the A703 or A72.
+
+**Melrose (TD6)**
+Home to Melrose Abbey and the famous rugby sevens. We cover Melrose and the Eildon Hills area.
+
+**Jedburgh (TD8)**
+The historic border town on the A68 Edinburgh to Newcastle route — a common transit road where tyre damage occurs.
+
+**Kelso (TD5)**
+The Tweed Junction town, including its racecourse and surrounding farmland.
+
+**Duns & Berwickshire (TD11–TD15)**
+The eastern Borders and Berwickshire coast, including Eyemouth, are within our extended coverage.
+
+## A68 and A7 Route Coverage
+
+These two routes are the main arteries of the Scottish Borders:
+
+- **A68**: Edinburgh → Jedburgh → Darlington (English border). We cover the Scottish section fully.
+- **A7**: Carlisle → Hawick → Galashiels → Edinburgh. The full Scottish section is covered.
+
+Tyre damage from road debris and agricultural vehicles is common on these routes, especially in autumn and winter.
+
+## Response Times in the Scottish Borders
+
+- **Galashiels**: typically 60–80 minutes from Glasgow/Edinburgh dispatch
+- **Peebles**: typically 50–65 minutes
+- **Hawick**: typically 75–95 minutes
+- **Jedburgh / Kelso**: typically 80–100 minutes
+- **Duns / Eyemouth**: typically 90–110 minutes
+
+The A68 and A7 are generally clear roads, but winter conditions and agricultural vehicles can slow progress.
+
+## Emergency Help in the Borders
+
+Call **0141 266 0690** any time — 24 hours a day. We serve the Borders from both our Glasgow and Edinburgh-area operations, whichever is closer to your location.
+
+If you're broken down on a rural road with no reception, try to drive slowly to the nearest town or layby before calling. Many single-track roads in the Borders have no mobile coverage.
+
+## Scheduled Tyre Fitting Across the Borders
+
+For non-emergency fitting, [book online](/book) and we'll come to your home or workplace in any Borders town. This is especially useful for residents of smaller villages where garage access is difficult.
+
+[Edinburgh mobile tyres](/mobile-tyre-fitting/edinburgh) | [Dumfries & Galloway](/mobile-tyre-fitting/dumfries) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-oban-argyll',
+    title: 'Mobile Tyre Fitting in Oban & Argyll',
+    description:
+      'Mobile tyre fitting in Oban, Lochgilphead, Inveraray, Campbeltown and across Argyll & Bute. PA21–PA38 postcodes covered. Gateway to the Western Isles ferry routes.',
+    category: 'fitting',
+    publishDate: '2025-09-01',
+    lastModified: '2025-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting oban',
+      'tyre fitting argyll',
+      'flat tyre oban',
+      'emergency tyre argyll',
+      'PA21 tyre fitting',
+      'tyre fitter lochgilphead',
+      'campbeltown tyre fitting',
+      'inveraray tyre fitting',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-fort-william-highlands',
+      'mobile-tyre-fitting-inverness-highlands',
+      'mobile-tyre-fitting-isle-of-skye',
+    ],
+    content: `# Mobile Tyre Fitting in Oban & Argyll
+
+Tyre Rescue covers Oban, Lochgilphead, Inveraray, Campbeltown, Ardrishaig, and the wider Argyll & Bute region — serving PA21 to PA38 postcodes.
+
+## Oban: Scotland's Seafood Capital and Ferry Gateway
+
+Oban sits at the heart of Argyll, connecting the mainland to multiple island ferry routes including Mull, Islay, Colonsay, Coll, Tiree, and Barra. Drivers arriving for ferry connections often discover tyre damage after long A-road journeys — and need help fast.
+
+## Areas We Cover in Argyll
+
+**Oban (PA34)**
+The main town, ferry terminal area, and surrounding roads. We cover the full PA34 postcode including the ring road and seafront.
+
+**Inveraray (PA32)**
+The historic royal burgh on Loch Fyne, on the A83 route from Glasgow. Popular with tourists, especially visitors to Inveraray Castle.
+
+**Lochgilphead (PA31)**
+The administrative centre of Argyll. We cover the town and surrounding Mid Argyll communities.
+
+**Ardrishaig & Tarbert (PA29–PA30)**
+These Kintyre gateway towns are within our coverage. Tarbert connects the A83 to the Kintyre Peninsula.
+
+**Campbeltown (PA28)**
+The southernmost major town in Argyll, at the tip of the Kintyre Peninsula. Response times are longer but we do cover Campbeltown.
+
+**Dunoon & Cowal (PA23)**
+The Cowal Peninsula town, accessible via the Gourock–Dunoon ferry or the A815/A83 route. We cover Dunoon and surrounding Cowal communities.
+
+## The A83 and A85 Routes
+
+These are the main roads through Argyll:
+- **A83**: Glasgow → Inveraray → Lochgilphead → Tarbert → Campbeltown. The "Rest and Be Thankful" mountain pass on the A83 is known for debris and winter road damage.
+- **A85**: Glasgow → Tyndrum → Crianlarich → Oban. This route through the Southern Highlands is scenic but exposed.
+
+We cover both routes and respond to roadside callouts along them.
+
+## Response Times in Argyll
+
+- **Oban**: typically 90–120 minutes from Glasgow
+- **Inveraray**: typically 60–80 minutes
+- **Lochgilphead**: typically 90–110 minutes
+- **Campbeltown**: typically 150–180 minutes (very remote — please call ahead)
+- **Dunoon**: typically 70–90 minutes
+
+We always give an honest ETA when you call. For Campbeltown, we recommend calling as soon as a fault is noticed.
+
+## Ferry Terminal Callouts
+
+If you're heading to an Oban ferry and discover a problem, call immediately. We'll do our best to reach you before your sailing, but please don't delay calling. The Oban ferry terminal car park is a known callout location for us.
+
+## Emergency Help in Argyll
+
+Call **0141 266 0690** — 24 hours a day. We cover Argyll from our Glasgow operations and can coordinate with our Highland team for northern Argyll areas.
+
+For slow leaks on long Argyll journeys, foam tyre sealant can buy you extra miles to reach a safer location — but always call us to arrange a proper repair or replacement.
+
+## Book in Advance
+
+Planning a trip through Argyll? Get your tyres checked before you set out. [Book online](/book) and we'll come to your Glasgow or Central Scotland address for a pre-journey inspection.
+
+[Fort William & Lochaber](/mobile-tyre-fitting/fort-william) | [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [All service areas](/service-areas)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
