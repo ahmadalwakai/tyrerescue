@@ -9612,6 +9612,287 @@ Call **0141 266 0690** or [book online](/book) to arrange fitting. Tell us your 
 
 [Winter tyres Scotland guide](/blog/winter-tyres-when-to-switch-scotland) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
   },
+  {
+    slug: 'michelin-vs-continental-vs-pirelli-scotland',
+    title: 'Michelin vs Continental vs Pirelli: Which Tyre Brand Is Best for Scotland?',
+    description:
+      'Honest comparison of Michelin, Continental, and Pirelli for Scottish roads. Wet braking, tread life, value for money, and which brand suits each type of Scottish driver. By Tyre Rescue Scotland.',
+    category: 'maintenance',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 9,
+    featured: false,
+    keywords: [
+      'michelin vs continental tyres scotland',
+      'best tyre brand scotland',
+      'michelin pilot sport 5 scotland',
+      'continental premium contact 7 scotland',
+      'pirelli p zero scotland',
+      'michelin crossclimate vs continental allseasoncontact',
+      'premium tyre comparison scotland',
+      'which tyres are best for scotland',
+    ],
+    relatedSlugs: [
+      'best-tyres-scottish-roads-guide',
+      'all-season-tyres-scotland-guide',
+      'best-budget-tyres-scotland-2026',
+    ],
+    content: `# Michelin vs Continental vs Pirelli: Which Is Best for Scottish Roads?
+
+If you're about to spend £120–£200+ per tyre, you want to be confident it's the right choice. This guide compares the three dominant premium tyre brands — Michelin, Continental, and Pirelli — specifically in the context of Scottish roads, weather, and driving conditions.
+
+## The Summary (If You're in a Hurry)
+
+- **For wet performance**: Continental or Michelin — both exceptional, Continental sometimes wins on wet braking
+- **For tread life**: Michelin — consistently outlasts competitors, especially the Michelin CrossClimate and Pilot Sport 5
+- **For high-performance cars**: Pirelli — particularly for AMG, M Sport, and RS models where feel and handling precision matters
+- **For all-round Scottish conditions**: Michelin CrossClimate 2 or Continental AllSeasonContact 2 — both are outstanding choices for year-round use
+- **For value over time**: Michelin — higher upfront cost but often cheaper per mile
+
+## Michelin — The Long Life, Wet Weather Specialist
+
+### Who Michelin Is Best For
+Michelin is the right choice if you prioritise:
+- Long tyre life (Michelin consistently leads in tread life tests)
+- Wet road performance (particularly in persistent Scottish rainfall)
+- All-season use (CrossClimate range)
+- Efficient hybrid and EV driving (Michelin e.Primacy, Pilot Sport EV)
+
+### Key Michelin Tyres for Scotland
+
+**Michelin CrossClimate 2**: The best all-season tyre on the market. Strong wet braking, 3PMSF winter rating, and remarkable longevity. This is the tyre we recommend most often to Central Belt drivers who want year-round safety.
+
+**Michelin Pilot Sport 5**: The successor to the legendary PS4. Exceptional wet braking and precise handling — the go-to choice for GTI, ST, N, and RS performance cars. Tread life is impressive for a performance tyre.
+
+**Michelin Pilot Sport 4 SUV**: Designed for large SUVs and crossovers. Available in the large sizes needed for Porsche Cayenne, BMW X5, Range Rover Sport.
+
+**Michelin Primacy 4+**: High-quality touring tyre for executive saloons and estates — smooth, quiet, and safe in wet conditions. Popular on Volvo, Mercedes, and Audi.
+
+### Michelin Weaknesses
+- **Cost**: Typically 10–20% more expensive upfront than Continental
+- **Dry handling feel**: Some drivers prefer Continental or Pirelli for dry road feel and steering response
+
+## Continental — The Wet Braking King
+
+### Who Continental Is Best For
+Continental is the right choice if you prioritise:
+- Stopping distance in the wet — Continental frequently wins or ties Michelin in wet braking tests
+- Dry road feel and steering response
+- Value versus Michelin (typically slightly cheaper for comparable performance)
+- OEM fitments (Continental is the OE choice for many premium cars including BMW, Mercedes, and VW)
+
+### Key Continental Tyres for Scotland
+
+**Continental PremiumContact 7**: Continental's flagship summer tyre. Exceptional wet braking, strong dry handling. If you drive a BMW, Mercedes, or Audi with Continental as OE, the PremiumContact 7 is the ideal replacement.
+
+**Continental AllSeasonContact 2**: Outstanding all-season tyre. Slightly edges the Michelin CrossClimate 2 on wet braking in some independent tests. One of our top recommendations for Scottish year-round driving.
+
+**Continental SportContact 7**: High-performance summer tyre for AMG, M Power, and RS models. Pirelli P Zero's main competitor. Where Pirelli offers more feel, Continental offers more stability.
+
+**Continental WinterContact TS870 P**: Premium winter tyre for Scottish Highland drivers who want dedicated seasonal tyres. Excellent on snow and ice.
+
+### Continental Weaknesses
+- **Tread life**: Slightly shorter tread life than Michelin on some compounds — more noticeable on performance tyres
+- **Less innovative all-season range** than Michelin (though AllSeasonContact 2 is excellent)
+
+## Pirelli — The Performance and OEM Specialist
+
+### Who Pirelli Is Best For
+Pirelli is the right choice if you prioritise:
+- High-performance driving feel — Pirelli's compounds provide the most steering feedback of the three brands
+- OEM replacement on performance cars — Pirelli supplies OE tyres to Ferrari, Lamborghini, McLaren, AMG, M Sport, and RS models
+- Style — Pirelli P Zero and Cinturato are prestige choices
+- Supercars and performance vehicles — the only real choice for Porsche, Ferrari, and high-end AMG
+
+### Key Pirelli Tyres for Scotland
+
+**Pirelli P Zero**: The benchmark for ultra-high-performance tyres. On a 911 GT3, M3, or AMG C63, there is no better tyre. However, P Zero tyres can be significantly more expensive than equivalent Michelin or Continental tyres.
+
+**Pirelli P Zero All Season SF2**: Pirelli's all-season offering. Not as highly rated as Michelin CrossClimate 2 or Continental AllSeasonContact 2 in independent tests — but has 3PMSF certification and is the OE choice on many performance cars.
+
+**Pirelli Cinturato All Season SF2**: More budget-focused all-season tyre, suitable for mainstream vehicles.
+
+**Pirelli Scorpion Verde All Season SF**: For large SUVs — Range Rover, Porsche Cayenne, BMW X5. High load index and reliable in Scottish conditions.
+
+### Pirelli Weaknesses
+- **Tread life**: Pirelli performance tyres typically wear faster than Michelin or Continental equivalents
+- **Wet performance**: Pirelli lags behind Michelin and Continental in wet braking tests on standard tyres
+- **Price**: P Zero can be significantly more expensive
+
+## Michelin vs Continental vs Pirelli: Side-by-Side Comparison
+
+| Criterion | Michelin | Continental | Pirelli |
+|---|---|---|---|
+| Wet braking | ★★★★★ | ★★★★★ | ★★★★ |
+| Dry handling | ★★★★ | ★★★★★ | ★★★★★ |
+| Tread life | ★★★★★ | ★★★★ | ★★★ |
+| All-season range | ★★★★★ | ★★★★★ | ★★★★ |
+| Performance feel | ★★★★ | ★★★★ | ★★★★★ |
+| Value per mile | ★★★★★ | ★★★★ | ★★★ |
+| OEM fitment (premium) | ★★★★★ | ★★★★★ | ★★★★★ |
+
+## Scotland-Specific Advice
+
+**Glasgow, Edinburgh, Central Belt**: The rain-heavy west and the milder east both demand excellent wet performance. Michelin CrossClimate 2 or Continental AllSeasonContact 2 are the top choices for year-round driving. For summer-only tyres, Continental PremiumContact 7 or Michelin Pilot Sport 5.
+
+**Highlands and rural areas**: Wet performance and all-season capability matter more than maximum dry handling. Michelin CrossClimate 2 is excellent. For drivers who also need winter capability, Continental WinterContact TS870 P (winter) combined with a summer tyre (changed seasonally) is the premium choice.
+
+**Performance car drivers**: Pirelli P Zero (if this is your car's OE fitment and you want the optimal compound), or Michelin Pilot Sport 5 for better wet performance. Continental SportContact 7 if you want stability over feel.
+
+**High-mileage drivers (15,000+ miles/year)**: Michelin. The tread life advantage becomes financially significant at high mileage.
+
+## Getting the Right Tyre Fitted in Scotland
+
+Tyre Rescue can supply and fit Michelin, Continental, and Pirelli tyres across all of Scotland. We source genuine product — not counterfeit or grey-market tyres — and carry the most popular sizes on our vans.
+
+Call **0141 266 0690** or [book online](/book). Give us your registration number and we will confirm availability and quote the total price — tyre plus fitting — before any work begins.
+
+[All-season tyres Scotland](/blog/all-season-tyres-scotland-guide) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide) | [Budget tyres Scotland](/blog/best-budget-tyres-scotland-2026)`,
+  },
+  {
+    slug: 'fiat-alfa-romeo-tyre-fitting-scotland',
+    title: 'Fiat & Alfa Romeo Tyre Fitting Scotland: 500, Panda, Giulia & Stelvio',
+    description:
+      'Mobile Fiat and Alfa Romeo tyre fitting across Scotland. Correct tyre sizes for Fiat 500, 500e, Panda, Tipo, Doblo van; Alfa Romeo Giulia, Stelvio, Tonale. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'fiat tyre fitting scotland',
+      'alfa romeo tyre fitting scotland',
+      'fiat 500 tyres scotland',
+      'alfa romeo giulia tyres scotland',
+      'alfa romeo stelvio tyres scotland',
+      'fiat 500e tyres scotland',
+      'mobile fiat tyre fitting glasgow',
+      'alfa romeo tonale tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'peugeot-tyre-fitting-scotland',
+    ],
+    content: `# Fiat & Alfa Romeo Tyre Fitting Scotland: Every Model Covered
+
+Fiat and Alfa Romeo — both part of the Stellantis group — have a combined presence on Scottish roads that is easy to overlook. The Fiat 500 and Panda are city staples in Glasgow and Edinburgh, while Alfa Romeo's Giulia and Stelvio attract buyers who want Italian style with premium performance. Tyre Rescue provides mobile tyre fitting for all Fiat and Alfa Romeo models across Scotland.
+
+## Fiat 500 Tyre Sizes
+
+The Fiat 500 (312, 2007–2023) and 500 Hatchback (332, 2020–present):
+
+| 500 Variant | Tyre Size |
+|---|---|
+| 500 Pop / Lounge | 185/65R14 or 185/55R15 |
+| 500 Sport | 195/45R16 |
+| 500 Abarth | 195/45R17 |
+| 500 Abarth 595 | 195/45R17 |
+| 500C Convertible | 185/55R15 or 195/45R16 |
+
+## Fiat 500e Electric Tyre Sizes
+
+The new Fiat 500e (332, 2020–present) — electric only in new 500 body:
+
+| 500e Variant | Tyre Size |
+|---|---|
+| 500e Action (24kWh) | 185/65R15 |
+| 500e Passion / Icon (42kWh) | 195/55R16 |
+| 500e La Prima | 195/55R16 |
+| 500e Cabriolet | 195/55R16 |
+
+**500e note**: The electric 500 has no spare wheel. A flat requires immediate mobile fitting. The 500e is a popular city EV in Glasgow and Edinburgh — we carry this tyre size on our Glasgow vans.
+
+## Fiat Panda Tyre Sizes
+
+The Fiat Panda (319, 2011–present) — including Cross and 4x4 variants:
+
+- 175/65R14 (standard)
+- 185/65R15 (Cross and 4x4)
+- 195/60R16 (some higher trims)
+
+**Panda 4x4 note**: The Panda 4x4 uses 185/65R15 — larger than the standard Panda to accommodate the all-wheel-drive system. Verify the exact size before ordering.
+
+## Fiat Tipo Tyre Sizes
+
+The Fiat Tipo (356, 2015–present) — hatchback, saloon, and estate:
+
+- 195/65R15 (base)
+- 205/55R16 (Street / City Cross)
+- 215/45R18 (S-Design)
+
+## Fiat Doblo Van Tyre Sizes
+
+The Fiat Doblo (S10, 2022–present) and older Doblo van:
+
+| Doblo Model | Tyre Size |
+|---|---|
+| Doblo Van (short wheelbase) | 195/75R16C |
+| Doblo Van (long wheelbase) | 215/65R16C |
+| Doblo Electric Van | 215/65R16C (load index 99+) |
+
+**Doblo van note**: Commercial Doblo vans require C-rated tyres. We carry correct commercial sizes.
+
+## Alfa Romeo Giulia Tyre Sizes
+
+The Alfa Romeo Giulia (952, 2016–present):
+
+| Giulia Trim | Tyre Size |
+|---|---|
+| Giulia Lusso | 225/55R17 |
+| Giulia Sprint | 225/45R18 |
+| Giulia Veloce | 225/40R19 |
+| Giulia Quadrifoglio | 245/35R19 (front), 285/30R19 (rear) |
+
+**Giulia Quadrifoglio note**: The Quadrifoglio uses a staggered fitment — wider rears. Front and rear tyres must be ordered and fitted separately. Specify whether you need front or rear when calling.
+
+## Alfa Romeo Stelvio Tyre Sizes
+
+The Alfa Romeo Stelvio (949, 2017–present):
+
+| Stelvio Trim | Tyre Size |
+|---|---|
+| Stelvio Sprint | 235/55R18 |
+| Stelvio Veloce | 255/45R19 or 265/40R20 |
+| Stelvio Quadrifoglio | 255/35R21 (front), 285/30R21 (rear) |
+
+**Stelvio Quadrifoglio note**: The 255/35R21 and 285/30R21 are very large, low-profile tyres — extremely limited stock availability. Call 0141 266 0690 well before you need them to confirm availability.
+
+## Alfa Romeo Tonale Tyre Sizes
+
+The Alfa Romeo Tonale (965, 2022–present) — PHEV and MHEV:
+
+| Tonale Trim | Tyre Size |
+|---|---|
+| Tonale Sprint | 225/55R18 |
+| Tonale Veloce | 235/50R19 |
+| Tonale Quadrifoglio Line | 245/40R20 |
+| Tonale PHEV | 235/50R19 (load index 99+) |
+
+**Tonale PHEV note**: The PHEV Tonale requires correct load index — we verify this before every fitting.
+
+## Fiat & Alfa Romeo TPMS Reset
+
+Both brands use Stellantis group TPMS systems:
+
+- **Indirect TPMS (Fiat 500, Panda, Tipo, Doblo)**: Reset via the settings menu — Settings → Safety → Tyre Pressure → Reinitialise
+- **Direct TPMS (500e, Alfa Giulia, Stelvio, Tonale)**: Requires a TPMS diagnostic tool
+
+Tyre Rescue carries Stellantis-compatible TPMS reset tools. Reset is included at no additional charge.
+
+## Emergency Fiat & Alfa Romeo Tyre Fitting in Scotland
+
+1. **Fiat 500e**: No spare — call us immediately
+2. **Alfa Giulia/Stelvio Quadrifoglio**: No spare on most variants; staggered fitments require care
+3. **Fiat 500, Panda**: Often have a space-saver spare or inflation kit
+4. **Call 0141 266 0690** — give your registration for instant identification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile Fiat or Alfa Romeo tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Peugeot tyre fitting Scotland](/blog/peugeot-tyre-fitting-scotland) | [Van tyre fitting Scotland](/blog/van-tyre-fitting-scotland)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
