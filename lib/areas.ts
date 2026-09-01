@@ -750,6 +750,38 @@ export const elginAreas: Area[] = [
   { slug: 'findhorn', name: 'Findhorn', postcode: 'IV36', lat: 57.6590, lng: -3.6070, distanceFromCentre: 8.5, nearestLandmark: 'Findhorn Bay' },
 ];
 
+export const aberdeenAreas: Area[] = [
+  { slug: 'aberdeen-city-centre', name: 'City Centre', postcode: 'AB10', lat: 57.1497, lng: -2.0943, distanceFromCentre: 0.3, nearestLandmark: 'Union Street' },
+  { slug: 'old-aberdeen', name: 'Old Aberdeen', postcode: 'AB24', lat: 57.1672, lng: -2.0967, distanceFromCentre: 1.8, nearestLandmark: 'University of Aberdeen' },
+  { slug: 'bridge-of-don', name: 'Bridge of Don', postcode: 'AB22', lat: 57.1889, lng: -2.0834, distanceFromCentre: 3.5, nearestLandmark: 'Bridge of Don Retail Park' },
+  { slug: 'dyce', name: 'Dyce', postcode: 'AB21', lat: 57.2057, lng: -2.1959, distanceFromCentre: 5.5, nearestLandmark: 'Aberdeen Airport' },
+  { slug: 'westhill', name: 'Westhill', postcode: 'AB32', lat: 57.1544, lng: -2.2786, distanceFromCentre: 7.0, nearestLandmark: 'Westhill Retail Park' },
+  { slug: 'portlethen', name: 'Portlethen', postcode: 'AB12', lat: 57.0623, lng: -2.1192, distanceFromCentre: 6.5, nearestLandmark: 'Portlethen Academy' },
+  { slug: 'stonehaven', name: 'Stonehaven', postcode: 'AB39', lat: 56.9640, lng: -2.2097, distanceFromCentre: 15.0, nearestLandmark: 'Stonehaven Harbour' },
+  { slug: 'inverurie', name: 'Inverurie', postcode: 'AB51', lat: 57.2830, lng: -2.3789, distanceFromCentre: 17.0, nearestLandmark: 'Inverurie Town Square' },
+  { slug: 'ellon', name: 'Ellon', postcode: 'AB41', lat: 57.3660, lng: -2.0762, distanceFromCentre: 15.5, nearestLandmark: 'Ellon Town Centre' },
+  { slug: 'peterhead', name: 'Peterhead', postcode: 'AB42', lat: 57.5086, lng: -1.7822, distanceFromCentre: 33.0, nearestLandmark: 'Peterhead Harbour' },
+  { slug: 'fraserburgh', name: 'Fraserburgh', postcode: 'AB43', lat: 57.6929, lng: -2.0047, distanceFromCentre: 40.0, nearestLandmark: 'Fraserburgh Harbour' },
+  { slug: 'banchory', name: 'Banchory', postcode: 'AB31', lat: 57.0535, lng: -2.4898, distanceFromCentre: 18.0, nearestLandmark: 'Banchory High Street' },
+  { slug: 'ballater', name: 'Ballater', postcode: 'AB35', lat: 57.0462, lng: -3.0475, distanceFromCentre: 42.0, nearestLandmark: 'Balmoral Castle' },
+  { slug: 'huntly', name: 'Huntly', postcode: 'AB54', lat: 57.4467, lng: -2.7819, distanceFromCentre: 40.0, nearestLandmark: 'Huntly Castle' },
+  { slug: 'kintore', name: 'Kintore', postcode: 'AB51', lat: 57.2363, lng: -2.3449, distanceFromCentre: 13.5, nearestLandmark: 'Kintore Town House' },
+];
+
+export const galashielsAreas: Area[] = [
+  { slug: 'galashiels-town-centre', name: 'Town Centre', postcode: 'TD1', lat: 55.6185, lng: -2.8097, distanceFromCentre: 0.3, nearestLandmark: 'Galashiels Town Hall' },
+  { slug: 'melrose', name: 'Melrose', postcode: 'TD6', lat: 55.5969, lng: -2.7223, distanceFromCentre: 3.5, nearestLandmark: 'Melrose Abbey' },
+  { slug: 'selkirk', name: 'Selkirk', postcode: 'TD7', lat: 55.5491, lng: -2.8396, distanceFromCentre: 5.5, nearestLandmark: 'Selkirk Town Hall' },
+  { slug: 'hawick', name: 'Hawick', postcode: 'TD9', lat: 55.4236, lng: -2.7872, distanceFromCentre: 13.0, nearestLandmark: 'Hawick Horse Monument' },
+  { slug: 'jedburgh', name: 'Jedburgh', postcode: 'TD8', lat: 55.4779, lng: -2.5541, distanceFromCentre: 11.5, nearestLandmark: 'Jedburgh Abbey' },
+  { slug: 'kelso', name: 'Kelso', postcode: 'TD5', lat: 55.5989, lng: -2.4327, distanceFromCentre: 9.5, nearestLandmark: 'Kelso Abbey' },
+  { slug: 'peebles', name: 'Peebles', postcode: 'EH45', lat: 55.6535, lng: -3.1895, distanceFromCentre: 18.0, nearestLandmark: 'Peebles High Street' },
+  { slug: 'duns', name: 'Duns', postcode: 'TD11', lat: 55.7782, lng: -2.3476, distanceFromCentre: 20.0, nearestLandmark: 'Duns Castle' },
+  { slug: 'eyemouth', name: 'Eyemouth', postcode: 'TD14', lat: 55.8726, lng: -2.0873, distanceFromCentre: 25.0, nearestLandmark: 'Eyemouth Harbour' },
+  { slug: 'coldstream', name: 'Coldstream', postcode: 'TD12', lat: 55.6529, lng: -2.2497, distanceFromCentre: 14.0, nearestLandmark: 'Coldstream Bridge' },
+  { slug: 'innerleithen', name: 'Innerleithen', postcode: 'EH44', lat: 55.6196, lng: -3.0688, distanceFromCentre: 12.0, nearestLandmark: 'Innerleithen High Street' },
+];
+
 export const isleofskyeAreas: Area[] = [
   { slug: 'portree', name: 'Portree', postcode: 'IV51', lat: 57.4134, lng: -6.1969, distanceFromCentre: 0.3, nearestLandmark: 'Portree Harbour' },
   { slug: 'dunvegan', name: 'Dunvegan', postcode: 'IV55', lat: 57.4480, lng: -6.5869, distanceFromCentre: 23.0, nearestLandmark: 'Dunvegan Castle' },
@@ -788,6 +820,8 @@ export function getAreasForCity(citySlug: string): Area[] {
     case 'dingwall': return dingwallAreas;
     case 'elgin': return elginAreas;
     case 'isle-of-skye': return isleofskyeAreas;
+    case 'aberdeen': return aberdeenAreas;
+    case 'galashiels': return galashielsAreas;
     default: return [];
   }
 }
@@ -809,4 +843,5 @@ export const serviceCities = [
   'greenock', 'dunfermline',
   'kilmarnock', 'ayr', 'irvine',
   'inverness', 'dingwall', 'elgin', 'isle-of-skye',
+  'aberdeen', 'galashiels',
 ] as const;

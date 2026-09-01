@@ -302,6 +302,32 @@ export const cityContent: Record<string, CityContent> = {
       'Elgin sits at the heart of the whisky-distillery belt and the Moray Coast tourist trail, meaning summer traffic spikes on the B9013 coast road and on narrow single-track routes through the forest roads west of Forres. We stock sizes suited to the campervan and touring caravan market as well as standard passenger car tyres. Lossiemouth (IV31), Fochabers (IV32), Forres (IV36) and the Findhorn Bay area are all covered from the same dispatch, with Burghead and Hopeman served as local villages.',
     neighborCities: ['inverness', 'dingwall'],
   },
+  aberdeen: {
+    name: 'Aberdeen',
+    slug: 'aberdeen',
+    postcodes: 'AB10–AB56',
+    nearbyRoads: ['A90', 'A96', 'A92', 'A944', 'A93', 'A947'],
+    avgResponseMin: 75,
+    workshopDistance: 'Scheduled service — advance booking recommended for Aberdeen and Aberdeenshire',
+    uniqueIntro:
+      'Aberdeen is Scotland\'s third largest city and the energy capital of Europe. Tyre Rescue covers the full AB postcode area — from Union Street in the city centre (AB10) to Peterhead (AB42), Fraserburgh (AB43), Inverurie (AB51) and Royal Deeside (AB35). Our average response time in Aberdeen city is 75 minutes. The A90 north and south, the A96 Inverness road and the A93 Deeside road are the main arteries we cover daily.',
+    uniqueBody:
+      'Aberdeen\'s oil and gas industry means a high concentration of premium vehicles, 4x4s and heavy commercial traffic — and a tyre market that values fast, professional service. The city\'s granite-sett roads in Old Aberdeen and the A90 dual carriageway both generate very different tyre stress patterns. We carry run-flat tyres common on BMW and Mercedes fleet vehicles used by the energy sector, as well as all-season fitments popular in the northeast\'s climate. Aberdeen Airport at Dyce (AB21), the Westhill technology park (AB32), the Bridge of Don industrial estate (AB22) and Portlethen (AB12) to the south are all covered. Royal Deeside including Banchory (AB31) and Ballater (AB35) near Balmoral are served on an advance-booking basis.',
+    neighborCities: ['elgin', 'inverness'],
+  },
+  galashiels: {
+    name: 'Galashiels',
+    slug: 'galashiels',
+    postcodes: 'TD1–TD15',
+    nearbyRoads: ['A7', 'A68', 'A72', 'A698', 'A6105'],
+    avgResponseMin: 80,
+    workshopDistance: 'Scheduled service — advance booking recommended for Borders areas',
+    uniqueIntro:
+      'Galashiels is the commercial hub of the Scottish Borders and our coverage base for the TD postcode area — taking in Melrose, Selkirk, Hawick, Jedburgh, Kelso and the Berwickshire coast at Eyemouth. Our average response time in Galashiels is 80 minutes. The A7 Edinburgh–Carlisle road and the A68 are the main trunk routes through the Borders, with the Borders Railway connecting Galashiels to Edinburgh.',
+    uniqueBody:
+      'The Scottish Borders has a mix of quiet market towns and exposed rural roads where tyre damage from gravel verges, potholes on farm routes and the occasional kerb strike in narrow town centres is common. The A68 over Carter Bar and the A7 through Teviotdale are known for debris on the carriageway following agricultural activity. We cover all Borders towns: Hawick (TD9), the knitwear capital of Scotland; Kelso (TD5), with its racecourse and abbey; Jedburgh (TD8) on the A68 tourist route; and Eyemouth (TD14) on the Berwickshire coast. Peebles (EH45), although technically an EH postcode, sits in the Borders and is covered from the same Galashiels dispatch.',
+    neighborCities: ['edinburgh', 'dumfries'],
+  },
   'isle-of-skye': {
     name: 'Isle of Skye',
     slug: 'isle-of-skye',

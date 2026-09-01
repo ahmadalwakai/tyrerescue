@@ -264,6 +264,28 @@ export const cities: City[] = [
     nearbyAreas: ['Broadford', 'Dunvegan', 'Staffin', 'Uig', 'Kyleakin'],
     postcodePrefix: 'IV51',
   },
+  {
+    slug: 'aberdeen',
+    name: 'Aberdeen',
+    county: 'Aberdeen City',
+    distanceMilesFromGlasgow: 143,
+    lat: 57.1497,
+    lng: -2.0943,
+    landmarks: ['Union Street', 'Marischal College', 'Aberdeen Harbour'],
+    nearbyAreas: ['Westhill', 'Inverurie', 'Stonehaven', 'Portlethen', 'Ellon'],
+    postcodePrefix: 'AB',
+  },
+  {
+    slug: 'galashiels',
+    name: 'Galashiels',
+    county: 'Scottish Borders',
+    distanceMilesFromGlasgow: 73,
+    lat: 55.6185,
+    lng: -2.8097,
+    landmarks: ['Galashiels Town Hall', 'Gala Fairydean Rovers FC', 'Galashiels Transport Interchange'],
+    nearbyAreas: ['Melrose', 'Selkirk', 'Hawick', 'Jedburgh', 'Kelso'],
+    postcodePrefix: 'TD',
+  },
 ];
 
 export function getCityBySlug(slug: string): City | undefined {

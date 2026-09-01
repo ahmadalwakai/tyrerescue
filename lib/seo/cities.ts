@@ -76,6 +76,22 @@ export const cityData: Record<string, CityPriceData> = {
     coordinates: { lat: 57.6528, lng: -3.3140 },
     postcodeHint: 'IV30',
   },
+  aberdeen: {
+    name: 'Aberdeen',
+    description:
+      'Aberdeen and the full AB postcode area — from Union Street in the city (AB10) to Westhill (AB32), Inverurie (AB51), Peterhead (AB42) and Royal Deeside (AB35). As Scotland\'s energy capital, Aberdeen has a high concentration of premium and fleet vehicles. We carry run-flat tyres for BMW and Mercedes, all-season fitments for northeast conditions, and heavy-load sizes for commercial vehicles. Advance booking recommended for Aberdeenshire areas beyond 15 miles.',
+    depotDistance: 143,
+    coordinates: { lat: 57.1497, lng: -2.0943 },
+    postcodeHint: 'AB10',
+  },
+  galashiels: {
+    name: 'Galashiels',
+    description:
+      'Galashiels and the Scottish Borders TD postcode area — covering Melrose, Selkirk, Hawick, Jedburgh, Kelso, Peebles and the Berwickshire coast. The A7 and A68 are our main trunk routes through the Borders. Rural Borders roads are exposed and can be harsh on tyres, especially in winter on the Carter Bar approach and the Teviotdale hill roads. No hidden distance surcharges across the TD postcode area.',
+    depotDistance: 73,
+    coordinates: { lat: 55.6185, lng: -2.8097 },
+    postcodeHint: 'TD1',
+  },
 };
 
 export const priceCitySlugs = Object.keys(cityData);
