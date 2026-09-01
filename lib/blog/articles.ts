@@ -8859,6 +8859,392 @@ Call **0141 266 0690** or [book online](/book) for mobile SEAT or CUPRA tyre fit
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Volkswagen tyre fitting Scotland](/blog/volkswagen-tyre-fitting-scotland) | [Skoda tyre fitting Scotland](/blog/skoda-tyre-fitting-scotland)`,
   },
+  {
+    slug: 'citroen-tyre-fitting-scotland',
+    title: 'Citroen Tyre Fitting Scotland: C3, C5 Aircross, Berlingo & ë-C3',
+    description:
+      'Mobile Citroen tyre fitting across Scotland. Correct tyre sizes for every Citroen model — C3, C3 Aircross, C5 Aircross, C5 X, ë-C3 electric, Berlingo, SpaceTourer van. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'citroen tyre fitting scotland',
+      'citroen c3 tyres scotland',
+      'citroen c5 aircross tyres scotland',
+      'citroen berlingo tyres scotland',
+      'citroen e-c3 tyres scotland',
+      'citroen dispatch tyres scotland',
+      'mobile citroen tyre fitting glasgow',
+      'citroen c5 x tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'peugeot-tyre-fitting-scotland',
+    ],
+    content: `# Citroen Tyre Fitting Scotland: Every Model Covered
+
+Citroen is a popular brand in Scotland, particularly for its affordable small cars and highly practical vans. The Berlingo van is a fixture on Scottish building sites and small businesses, while the C3 and C5 Aircross offer strong value for family drivers. Tyre Rescue provides mobile Citroen tyre fitting across all of Scotland.
+
+## Citroen C3 Tyre Sizes
+
+The Citroen C3 (B618, 2016–present):
+
+| C3 Trim | Tyre Size |
+|---|---|
+| C3 Plus | 185/65R15 |
+| C3 Shine | 205/45R17 |
+
+New Citroen C3 (D51D, 2024–present):
+- 195/65R15 (standard)
+
+The new C3 is one of Europe's most affordable new cars — its 195/65R15 tyre is a common size we stock on every van.
+
+## Citroen ë-C3 Electric Tyre Sizes
+
+The Citroen ë-C3 (2024–present) — affordable electric hatchback:
+
+- 195/65R15 (standard load index 91+)
+
+**ë-C3 note**: No spare wheel. A flat requires mobile fitting. The ë-C3's 195/65R15 is one of the most common tyre sizes — we carry this on every van.
+
+## Citroen C3 Aircross Tyre Sizes
+
+The Citroen C3 Aircross (B96, 2017–2023 and successor, 2024+):
+
+- 205/60R16 (standard)
+- 215/55R17 (Flair trim)
+
+New C3 Aircross (2024+):
+- 205/55R17
+
+## Citroen C5 Aircross Tyre Sizes
+
+The Citroen C5 Aircross (A88, 2018–present):
+
+| C5 Aircross Trim | Tyre Size |
+|---|---|
+| C5 Aircross Plus | 215/55R18 |
+| C5 Aircross Flair | 235/45R18 or 235/50R18 |
+| C5 Aircross PHEV | 235/45R18 (load index 98+) |
+
+**PHEV note**: The C5 Aircross plug-in hybrid is heavier — correct load index is critical.
+
+## Citroen C5 X Tyre Sizes
+
+The Citroen C5 X (E43AHN, 2022–present) — fastback estate:
+
+- 235/45R19 (standard)
+- 255/40R20 (Shine Plus)
+- PHEV: 235/45R19 (load index 99+)
+
+## Citroen Berlingo Van Tyre Sizes
+
+The Berlingo (K9 Mk3, 2018–present) — Scotland's most common small van:
+
+| Berlingo Model | Tyre Size |
+|---|---|
+| Berlingo M (short) | 195/65R15C |
+| Berlingo XL (long) | 205/60R16C or 215/60R16C |
+| Berlingo Electric | 215/60R16C (load index 99+) |
+
+**Berlingo van note**: The cargo Berlingo requires C-rated commercial tyres. Passenger-rated tyres are unsafe and illegal on a commercial Berlingo van. We carry the correct C-rated sizes.
+
+## Citroen SpaceTourer & Dispatch Van Tyre Sizes
+
+The SpaceTourer (passenger) and Dispatch (cargo) share a platform:
+
+| Model | Tyre Size |
+|---|---|
+| Dispatch M panel van | 215/65R16C |
+| Dispatch XL panel van | 215/65R16C or 225/65R16C |
+| SpaceTourer (people carrier) | 215/60R17 (passenger-rated) |
+
+## Citroen TPMS Reset
+
+All Citroen models from 2017 onward have TPMS. Reset via the touchscreen:
+- Settings → Vehicle → Tyre Pressure → Reinitialise
+
+This is shared with the Peugeot/Stellantis group procedure. Tyre Rescue carries the compatible reset tool — included at no additional charge.
+
+## Emergency Citroen Tyre Fitting in Scotland
+
+1. **ë-C3 Electric**: No spare — call us immediately
+2. **C3, C3 Aircross**: May have an inflation kit only — call us for a proper fitting
+3. **Berlingo van**: Check if it has a spare under the floor panel
+4. **Call 0141 266 0690** — give your registration for instant identification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile Citroen tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Peugeot tyre fitting Scotland](/blog/peugeot-tyre-fitting-scotland) | [Van tyre fitting Scotland](/blog/van-tyre-fitting-scotland)`,
+  },
+  {
+    slug: 'mazda-tyre-fitting-scotland',
+    title: 'Mazda Tyre Fitting Scotland: CX-5, CX-30, Mazda3, MX-5 & CX-60',
+    description:
+      'Mobile Mazda tyre fitting across Scotland. Correct tyre sizes for every Mazda model — CX-5, CX-30, CX-60, Mazda3, MX-5, MX-30 electric. TPMS reset included. All cities covered.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'mazda tyre fitting scotland',
+      'mazda cx-5 tyres scotland',
+      'mazda cx-30 tyres scotland',
+      'mazda3 tyres scotland',
+      'mazda mx-5 tyres scotland',
+      'mazda cx-60 tyres scotland',
+      'mobile mazda tyre fitting glasgow',
+      'mazda mx-30 tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'toyota-tyre-fitting-scotland',
+    ],
+    content: `# Mazda Tyre Fitting Scotland: Every Model Covered
+
+Mazda is a premium-positioned Japanese brand popular among Scottish drivers who value driving enjoyment and reliability. The Mazda CX-5 is one of the UK's most liked SUVs, and the MX-5 has a dedicated following in Scotland's scenic driving routes. Tyre Rescue provides specialist mobile Mazda tyre fitting across all of Scotland.
+
+## Mazda CX-5 Tyre Sizes
+
+The Mazda CX-5 (KF, 2017–present) — Mazda's bestselling model:
+
+| CX-5 Trim | Tyre Size |
+|---|---|
+| CX-5 SE-L | 225/65R17 |
+| CX-5 Sport | 225/55R19 |
+| CX-5 GT Sport | 225/55R19 |
+| CX-5 Exclusive-Line | 225/55R19 |
+| CX-5 AWD trims | 225/55R19 (load index 99+) |
+
+**AWD note**: All-wheel-drive CX-5 variants require correct load index — at minimum 99. We always verify before fitting.
+
+## Mazda CX-30 Tyre Sizes
+
+The Mazda CX-30 (DM, 2019–present):
+
+| CX-30 Trim | Tyre Size |
+|---|---|
+| CX-30 SE-L | 215/55R18 |
+| CX-30 Sport | 215/55R18 |
+| CX-30 GT Sport | 215/55R18 or 225/45R19 |
+| CX-30 GT Sport Tech | 225/45R19 |
+| CX-30 e-SKYACTIV X MHEV | 215/55R18 |
+
+## Mazda CX-60 Tyre Sizes
+
+The Mazda CX-60 (KH, 2022–present) — flagship PHEV SUV:
+
+| CX-60 Trim | Tyre Size |
+|---|---|
+| CX-60 Exclusive-Line | 235/55R19 |
+| CX-60 Homura | 235/50R20 or 255/45R20 |
+| CX-60 Takumi | 255/45R20 |
+| CX-60 PHEV AWD | 235/55R19 or 255/45R20 (load index 105+) |
+
+**CX-60 PHEV note**: The CX-60 plug-in hybrid is Mazda's heaviest passenger car. Load index 105+ is required on AWD variants.
+
+## Mazda3 Tyre Sizes
+
+The Mazda3 (BP, 2019–present) — hatchback and saloon:
+
+| Mazda3 Trim | Tyre Size |
+|---|---|
+| Mazda3 SE-L | 205/55R16 |
+| Mazda3 Sport | 215/45R18 |
+| Mazda3 GT Sport | 215/45R18 |
+| Mazda3 Exclusive-Line | 215/45R18 |
+
+## Mazda2 Tyre Sizes
+
+The Mazda2 (DJ, 2015–present):
+
+- 185/60R15 (base)
+- 185/55R15 (Sport)
+- 195/50R16 (GT Sport)
+
+The new Mazda2 Hybrid (rebadged Toyota Yaris Cross): 195/60R17.
+
+## Mazda MX-5 Tyre Sizes
+
+The Mazda MX-5 (ND, 2015–present) — Roadster and RF targa:
+
+| MX-5 Trim | Tyre Size |
+|---|---|
+| MX-5 Sport | 195/50R16 |
+| MX-5 Sport Tech / GT Sport | 205/45R17 |
+| MX-5 GT Sport Tech | 205/45R17 |
+
+**MX-5 note**: The MX-5 uses summer performance tyres as OE. For Scottish roads, all-season alternatives in 205/45R17 are available — call us to discuss options.
+
+## Mazda MX-30 Electric Tyre Sizes
+
+The Mazda MX-30 (DR, 2021–present):
+
+- 215/55R18 (standard)
+- Range Extender: 215/55R18
+
+**MX-30 note**: No spare wheel. A flat requires immediate mobile fitting.
+
+## Mazda TPMS Reset
+
+All Mazda models from 2016 onward have TPMS. After any tyre change:
+
+- **Indirect TPMS (Mazda2, Mazda3, CX-30)**: Reset via the MZD Connect screen — Settings → Vehicle Settings → Tyre Pressure Monitor → Set Pressure
+- **Direct TPMS (CX-5, CX-60, MX-30)**: Requires a TPMS diagnostic tool
+
+Tyre Rescue carries Mazda-compatible TPMS reset tools. Reset is included at no additional charge.
+
+## Emergency Mazda Tyre Fitting in Scotland
+
+1. **MX-30 Electric**: No spare — call us immediately
+2. **CX-5, CX-30, Mazda3**: May have a space-saver spare or inflation kit — check your boot
+3. **MX-5**: Typically has no spare due to the small boot — check for an inflation kit
+4. **Call 0141 266 0690** — give your registration for instant tyre identification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile Mazda tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Toyota tyre fitting Scotland](/blog/toyota-tyre-fitting-scotland) | [Honda tyre fitting Scotland](/blog/honda-tyre-fitting-scotland)`,
+  },
+  {
+    slug: 'suzuki-tyre-fitting-scotland',
+    title: 'Suzuki Tyre Fitting Scotland: Jimny, Vitara, Swift, S-Cross & Ignis',
+    description:
+      'Mobile Suzuki tyre fitting across Scotland. Correct tyre sizes for every Suzuki model — Jimny, Vitara, Swift, S-Cross, Ignis, Across PHEV. TPMS reset included. Highlands coverage.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'suzuki tyre fitting scotland',
+      'suzuki jimny tyres scotland',
+      'suzuki vitara tyres scotland',
+      'suzuki swift tyres scotland',
+      'suzuki s-cross tyres scotland',
+      'mobile suzuki tyre fitting glasgow',
+      'suzuki jimny tyres highlands',
+      'suzuki ignis tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      '4x4-suv-tyres-scotland-highlands',
+      'toyota-tyre-fitting-scotland',
+    ],
+    content: `# Suzuki Tyre Fitting Scotland: Every Model Covered
+
+Suzuki has a loyal following in Scotland, particularly among drivers who value compact practicality and genuine off-road capability. The Suzuki Jimny is iconic in the Scottish Highlands and on farms across Perthshire, Argyll, and Galloway — and the Swift is a popular first car in every Scottish city. Tyre Rescue provides mobile Suzuki tyre fitting across all of Scotland.
+
+## Suzuki Jimny Tyre Sizes
+
+The Suzuki Jimny (JB74, 2018–present) — iconic compact 4x4:
+
+| Jimny Variant | Tyre Size |
+|---|---|
+| Jimny SZ3 / SZ5 | 195/80R15 |
+| Jimny Professional (commercial) | 195/80R15 |
+
+**Jimny tyre note**: The Jimny's 195/80R15 is an unusual size — tall-profile and narrow, designed for off-road grip and clearance. This size is specific to the Jimny and not common in all tyre ranges. We stock this size — call ahead on 0141 266 0690 to confirm availability before arriving.
+
+**Highland & rural note**: The Jimny is Suzuki's genuine off-roader. For Scottish terrain — farm tracks, forest roads, Highland estates — consider all-terrain (A/T) tyres in 195/80R15 for better grip and durability on rough surfaces. We can advise on A/T options for your Jimny.
+
+## Suzuki Vitara Tyre Sizes
+
+The Suzuki Vitara (LY, 2015–present):
+
+| Vitara Trim | Tyre Size |
+|---|---|
+| Vitara SZ3 | 215/65R16 |
+| Vitara SZ-T | 225/55R17 |
+| Vitara S (Sport) | 225/55R17 |
+| Vitara SZ5 | 225/55R17 |
+| Vitara AllGrip 4x4 | 225/55R17 (load index 97+) |
+| Vitara Boosterjet Hybrid | 225/55R17 |
+
+## Suzuki Swift Tyre Sizes
+
+The Suzuki Swift (AZ, 2017–present) — hybrid and Sport versions:
+
+| Swift Trim | Tyre Size |
+|---|---|
+| Swift SZ3 / SZ-T | 185/60R15 |
+| Swift SZ5 | 195/55R16 |
+| Swift Sport | 195/45R17 |
+| Swift Hybrid | 185/60R15 |
+
+**Swift Sport note**: The 195/45R17 is a less common size. We stock it but call ahead to confirm availability for your exact specification.
+
+## Suzuki S-Cross Tyre Sizes
+
+The Suzuki S-Cross (JY, 2022–present):
+
+| S-Cross Trim | Tyre Size |
+|---|---|
+| S-Cross SZ-T | 215/60R17 |
+| S-Cross SZ5 | 225/45R19 |
+| S-Cross Hybrid | 215/60R17 |
+
+Older S-Cross (JX6, 2013–2021): 215/55R17 standard.
+
+## Suzuki Ignis Tyre Sizes
+
+The Suzuki Ignis (FF21S, 2016–present) — small urban crossover:
+
+- 185/60R15 (SZ3)
+- 175/65R15 (SZ-T — some variants)
+
+The Ignis AllGrip: 185/60R15 (same size, but with 4WD capability).
+
+## Suzuki Across PHEV Tyre Sizes
+
+The Suzuki Across (2020–present) — rebadged Toyota RAV4 PHEV:
+
+- 235/55R18 (standard)
+- 235/50R19 (higher trim)
+
+**Across PHEV note**: The Across is based on the Toyota RAV4 PHEV platform. It requires a minimum load index of 104 on AWD variants — the same as the RAV4 PHEV.
+
+## Suzuki Baleno Tyre Sizes
+
+The Suzuki Baleno (2022–present):
+
+- 185/65R15 (standard)
+
+## Suzuki TPMS Reset
+
+Suzuki models from 2015 onward have TPMS. After any tyre change:
+
+- **Indirect TPMS (Swift, Ignis, Baleno)**: Press and hold the TPMS SET button (usually located in the glovebox) until the indicator flashes — then drive above 25mph for the calibration to complete
+- **Direct TPMS (Vitara AllGrip, S-Cross, Across)**: Requires a TPMS diagnostic tool
+
+Tyre Rescue carries Suzuki-compatible TPMS reset tools. Reset is included at no additional charge with every fitting.
+
+## Emergency Suzuki Tyre Fitting in Scotland
+
+If you have a flat tyre on your Suzuki anywhere in Scotland:
+
+1. **Jimny**: The Jimny often has a full-size spare mounted on the rear or underneath — check first before calling
+2. **Vitara, S-Cross**: May have a space-saver spare in the boot
+3. **Swift, Ignis**: Likely has an inflation kit only — call us for a proper replacement
+4. **Across PHEV**: No spare wheel — call us immediately
+5. **Call 0141 266 0690** — give your registration for instant identification
+
+**Highlands note**: If you're in a remote Highland location with a flat Jimny, call us. We cover all of Scotland including rural areas. If you have a full-size spare, fit it safely off the road and then call us when you reach your destination for a replacement.
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile Suzuki tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [4x4 and SUV tyres Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [Tyre fitting Inverness & Highlands](/mobile-tyre-fitting/inverness)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
