@@ -66,6 +66,54 @@ const HOW_TO_SCHEMAS: Record<string, Parameters<typeof getHowToSchema>[0]> = {
       { name: 'Book mobile tyre fitting if replacements are needed', text: 'If any tyre needs replacing before MOT, call Tyre Rescue on 0141 266 0690 to fit replacements at your home or work — often faster and cheaper than dealing with a MOT fail and re-test fee.' },
     ],
   },
+  'tyre-sidewall-damage-scotland': {
+    name: 'How to assess tyre sidewall damage',
+    description: 'Step-by-step guide to checking your tyre sidewall for bubbles, cuts, scrapes, and deciding whether the tyre must be replaced immediately.',
+    steps: [
+      { name: 'Park safely and switch off the engine', text: 'If you suspect sidewall damage while driving, do not ignore it. Find the nearest safe place to stop — a car park, layby, or quiet side road. Apply the handbrake and switch off the engine.' },
+      { name: 'Inspect the outer sidewall in good light', text: 'Crouch down beside the wheel and examine the outer sidewall (the side you can see). Look for any bulge or bubble protruding from the flat surface, any cut or gash in the rubber, or any scuff where rubber has been abraded away.' },
+      { name: 'Check for internal cord damage', text: 'A tyre bubble means the internal cords have broken and air is pushing through. If you can see white or metallic cord material through a cut, the tyre is structurally compromised. Either of these means do not drive on the tyre.' },
+      { name: 'Check the inner sidewall if accessible', text: 'Angle a torch between the tyre and the wheel arch and inspect the inner sidewall for the same signs. Kerb strikes often damage the inner sidewall while leaving the outer looking normal.' },
+      { name: 'Make your decision', text: 'If you see a bubble, bulge, or any cut showing cord: do not drive on the tyre. Call Tyre Rescue on 0141 266 0690 for mobile fitting. If the sidewall is only superficially scuffed with no cut or deformation, drive carefully to have it professionally inspected — do not use the motorway.' },
+      { name: 'Call for a replacement tyre if needed', text: 'Tyre Rescue attends locations across all of Scotland. Give us your postcode or location description. We carry replacement tyres in our vans and can fit them at the roadside, in a car park, or at your home.' },
+    ],
+  },
+  'uneven-tyre-wear-guide-scotland': {
+    name: 'How to diagnose uneven tyre wear on your car',
+    description: 'Step-by-step guide to inspecting your tyres for uneven wear patterns and identifying the likely cause.',
+    steps: [
+      { name: 'Check tyre pressure first', text: 'Before any other inspection, check tyre pressure with a gauge. Many wear patterns are caused by simple overinflation or underinflation. Inflate to the manufacturer\'s recommended pressure (driver\'s door sticker) and monitor wear going forward.' },
+      { name: 'Run your hand across the tread width', text: 'With the vehicle stationary, run your palm firmly across the tyre tread from the inner edge to the outer edge. Feel for any significant step or ridge where one part of the tread is significantly higher or lower than another.' },
+      { name: 'Measure tread depth at inner, centre, and outer positions', text: 'Use a tread depth gauge to measure at three points across the tyre width — inner shoulder, centre tread, and outer shoulder. Note any difference greater than 1–2mm, which indicates abnormal wear.' },
+      { name: 'Identify the wear pattern', text: 'Inner edge wear = likely negative camber or suspension wear. Outer edge wear = positive camber or overinflation. Both shoulders worn = underinflation. Centre worn = overinflation. Patchy diagonal wear = wheel imbalance or worn shock absorbers.' },
+      { name: 'Inspect suspension visually', text: 'Look under the front corners of the car for any obviously bent, cracked, or displaced suspension component. A recent pothole impact can knock the wheel out of alignment — look for fresh scrapes on the lower suspension arms.' },
+      { name: 'Book a wheel alignment check', text: 'Most uneven wear causes require a four-wheel alignment check (£40–£60 at most specialist tyre centres or garages). Do this before fitting new tyres — fitting new tyres on a misaligned axle will repeat the same wear pattern. Call Tyre Rescue for tyre replacement once the cause is corrected.' },
+    ],
+  },
+  'pothole-damage-tyres-scotland': {
+    name: 'How to check your car for tyre and wheel damage after a pothole',
+    description: 'Step-by-step inspection guide for checking tyres, wheels, and suspension after hitting a pothole on Scottish roads.',
+    steps: [
+      { name: 'Stop safely and switch on hazard lights', text: 'If you have hit a pothole at speed and heard a loud bang or felt a sharp impact, pull over as soon as it is safe to do so. Switch on hazard lights. Do not continue driving if the car is pulling to one side or making unusual sounds.' },
+      { name: 'Visually inspect all four tyres', text: 'Walk around the car and examine each tyre carefully, paying particular attention to the affected wheel. Look for: any bubble or bulge on the sidewall, a visible cut or split in the tyre, the tyre appearing noticeably lower or flat.' },
+      { name: 'Check the wheel for visible damage', text: 'Look at the alloy or steel wheel rim for cracks, deep gouges, or a bent lip where the tyre bead seats. A damaged rim may cause slow air loss even if the tyre looks intact.' },
+      { name: 'Check tyre pressure on all four tyres', text: 'Use a tyre pressure gauge to check all four tyres. A tyre that has lost significant pressure from the impact needs immediate attention — do not reinflate a damaged tyre and drive on it.' },
+      { name: 'Drive slowly and monitor carefully if tyres appear undamaged', text: 'If visual inspection finds no damage and pressures are normal, drive slowly for the first mile and monitor for vibration, pulling, or pressure loss. Return home or to a safe destination and recheck before any long journey.' },
+      { name: 'Arrange professional inspection or mobile tyre fitting', text: 'Any sidewall damage, bubble, or significant pressure loss means you need a replacement tyre. Call Tyre Rescue on 0141 266 0690 — we attend pothole-related callouts across all of Scotland and carry common replacement tyre sizes in our vans.' },
+    ],
+  },
+  'aquaplaning-prevention-scotland': {
+    name: 'How to recover from aquaplaning on a wet Scottish road',
+    description: 'Step-by-step guide to what to do when your car begins to aquaplane on a wet road.',
+    steps: [
+      { name: 'Do not panic and do not brake sharply', text: 'The instinct to stamp on the brakes is the most dangerous reaction to aquaplaning. Sudden braking with no tyre grip will cause the car to spin or veer sharply. Stay calm.' },
+      { name: 'Ease off the accelerator gently', text: 'Lift your foot from the accelerator smoothly. Do not jerk it off. Reducing throttle gradually allows the car to slow naturally, which helps tyres regain contact with the road surface.' },
+      { name: 'Hold the steering wheel straight and steady', text: 'Keep the wheel pointing straight ahead — the direction you want to go. Turning the wheel while aquaplaning achieves nothing until grip is restored, and can cause a sudden swerve when it does recover.' },
+      { name: 'Wait for grip to return before steering', text: 'You will feel when the tyres reconnect with the road — the steering will feel more solid and responsive. Only at this point should you make any steering corrections.' },
+      { name: 'Brake gently if needed, once grip is restored', text: 'Once you have grip, you can apply gentle braking to reduce speed. Modern ABS will help — allow it to function by pressing the pedal firmly rather than pumping it.' },
+      { name: 'After the incident — check tyre tread depth', text: 'Aquaplaning becomes far more likely below 3mm of tread depth. After experiencing aquaplaning, check your tyre tread depth as soon as possible. If any tyre is below 3mm, book a replacement — call Tyre Rescue on 0141 266 0690 for same-day mobile fitting.' },
+    ],
+  },
 };
 
 // Daily ISR so admin-published edits land within 24h without redeploy.
