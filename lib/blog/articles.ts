@@ -685,16 +685,35 @@ ATS Euromaster excels in commercial and fleet tyre management. For individual co
 
 Halfords offers competitive in-store pricing and the convenience of a high street location. Their mobile service (Halfords Mobile Expert) has limited coverage in Scotland.
 
+### Arnold Clark Tyres
+- **Coverage:** Multiple Scottish branches — must drive to a centre
+- **Hours:** Standard business hours
+- **Response Time:** Appointment-based
+- **Starting Price:** Competitive in-branch
+- **Best For:** Customers already at an Arnold Clark dealership
+
+Arnold Clark is Scotland's largest car dealer and also offers tyre services at many branches. For mobile fitting or emergencies, you would need to use a specialist mobile provider like Tyre Rescue.
+
+### Protyre
+- **Coverage:** UK-wide, limited Scottish branches
+- **Hours:** Business hours
+- **Response Time:** Appointment-based
+- **Trustpilot:** 4.2/5 stars
+- **Best For:** Planned tyre replacements at a nearby centre
+
+Protyre operates autocare centres across the UK with some Scottish locations. Good for planned work if you're near a centre; not suitable for emergencies.
+
 ## Comparison Summary
 
-| Feature | Tyre Rescue | Kwik Fit | National Tyres | ATS | Halfords |
-|---------|------------|----------|---------------|-----|----------|
+| Feature | Tyre Rescue | Kwik Fit | Arnold Clark | National Tyres | Halfords |
+|---------|------------|----------|-------------|---------------|----------|
 | 24/7 Service | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Mobile-First | ✅ | ❌ | Partial | Fleet | Limited |
-| Avg Response | 45 min | N/A | Next day | N/A | N/A |
+| Mobile-First | ✅ | ❌ | ❌ | Partial | Limited |
+| Scotland-Wide | ✅ | Nationwide | Scottish branches | UK only | Nationwide |
+| Avg Response | 45 min | N/A | N/A | Next day | N/A |
 | GPS Tracking | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Trustpilot | 4.8★ | 3.7★ | 4.3★ | 4.1★ | 3.5★ |
-| From Price | £49 | £45 | £50 | £45 | £40 |
+| Trustpilot | 4.8★ | 3.7★ | Varies | 4.3★ | 3.5★ |
+| From Price | £49 | £45 | In-branch | £50 | £40 |
 
 ## When to Use Mobile Tyre Fitting vs a Garage
 
