@@ -494,11 +494,7 @@ function ContactSection() {
             mb="60px"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            {'CONTACT US'.split('').map((ch, i) => (
-              <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                {ch === ' ' ? '\u00A0' : ch}
-              </span>
-            ))}
+            CONTACT US
           </Text>
         </AnimatedSection>
 
@@ -1472,11 +1468,7 @@ export function HomePage() {
                     lineHeight="1"
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
-                    {'Complete Mobile Tyre Service'.split('').map((ch, i) => (
-                      <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                        {ch === ' ' ? '\u00A0' : ch}
-                      </span>
-                    ))}
+                    Complete Mobile Tyre Service
                   </Text>
                   <Box h="2px" w="60px" bg={colors.accent} mt={3} />
                 </Box>
@@ -1582,11 +1574,7 @@ export function HomePage() {
               <Flex direction="column" gap={4} align="flex-start">
                 <Text fontSize="11px" color={colors.accent} letterSpacing="0.15em" style={{ fontFamily: 'var(--font-body)' }}>OUR GUARANTEE</Text>
                 <Text as="h2" fontSize={{ base: '40px', md: '56px' }} color={colors.textPrimary} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>
-                  {'WE STAND BEHIND EVERY JOB.'.split('').map((ch, i) => (
-                    <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                      {ch === ' ' ? '\u00A0' : ch}
-                    </span>
-                  ))}
+                  WE STAND BEHIND EVERY JOB.
                 </Text>
                 <Text fontSize="15px" color={colors.textSecondary} lineHeight="1.7" style={{ fontFamily: 'var(--font-body)' }}>
                   If you are not completely satisfied with our work, we will return and put it right at no extra charge. No arguments, no hassle.
@@ -1645,11 +1633,7 @@ export function HomePage() {
                 mb="80px"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
-                {'Booked. Dispatched. Fixed.'.split('').map((ch, i) => (
-                  <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                    {ch === ' ' ? '\u00A0' : ch}
-                  </span>
-                ))}
+                Booked. Dispatched. Fixed.
               </Text>
             </AnimatedSection>
 
@@ -1695,11 +1679,7 @@ export function HomePage() {
                         transition="color 0.3s"
                         style={{ fontFamily: 'var(--font-display)' }}
                       >
-                        {step.number.split('').map((ch: string, i: number) => (
-                          <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                            {ch === ' ' ? '\u00A0' : ch}
-                          </span>
-                        ))}
+                        {step.number}
                       </Text>
                       <Text
                         fontSize={{ base: '22px', md: '28px' }}
@@ -1707,11 +1687,7 @@ export function HomePage() {
                         mb={2}
                         style={{ fontFamily: 'var(--font-display)' }}
                       >
-                        {step.title.split('').map((ch: string, i: number) => (
-                          <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                            {ch === ' ' ? '\u00A0' : ch}
-                          </span>
-                        ))}
+                        {step.title}
                       </Text>
                       <Text
                         fontSize="13px"
@@ -1719,11 +1695,7 @@ export function HomePage() {
                         lineHeight="1.6"
                         style={{ fontFamily: 'var(--font-body)' }}
                       >
-                        {step.description.split('').map((ch: string, i: number) => (
-                          <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                            {ch === ' ' ? '\u00A0' : ch}
-                          </span>
-                        ))}
+                        {step.description}
                       </Text>
                     </Box>
                   </AnimatedSection>
@@ -1746,11 +1718,7 @@ export function HomePage() {
               mb={2}
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              {'AREAS WE COVER'.split('').map((ch, i) => (
-                <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                  {ch === ' ' ? '\u00A0' : ch}
-                </span>
-              ))}
+              AREAS WE COVER
             </Text>
             <Box h="2px" w="60px" bg={colors.accent} mb={8} />
             <Flex wrap="wrap" gap={3}>
@@ -1941,11 +1909,7 @@ export function HomePage() {
               <Flex direction="column" gap={5} align="flex-start">
                 <Text fontSize="11px" color={colors.accent} letterSpacing="0.15em" style={{ fontFamily: 'var(--font-body)' }}>ABOUT US</Text>
                 <Text as="h2" fontSize={{ base: '40px', md: '56px' }} color={colors.textPrimary} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>
-                  {'DUKE STREET TYRES.'.split('').map((ch, i) => (
-                    <span key={i} className={ch === ' ' ? undefined : 'wave-char'} style={{ display: 'inline-block', animationDelay: `${i * 0.06}s` }}>
-                      {ch === ' ' ? '\u00A0' : ch}
-                    </span>
-                  ))}
+                  DUKE STREET TYRES.
                 </Text>
                 <Text fontSize="15px" color={colors.textSecondary} lineHeight="1.7" style={{ fontFamily: 'var(--font-body)' }}>
                   Based in Glasgow&apos;s East End, Duke Street Tyres has been providing mobile tyre fitting in Glasgow since 2014. Whether you need tyres near me, emergency tyre repair, or a scheduled mobile tyre fitter, our service brings the expertise of a full tyre shop to your exact location.

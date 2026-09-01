@@ -271,6 +271,14 @@ export const neighborhoodEnrichments: EnrichmentMap = {
     },
   },
   stirling: {
+    'stirling-city-centre': {
+      description: 'Stirling city centre sits below the historic Castle Rock, with the Thistles Shopping Centre and Wallace Monument nearby. Our fitters cover Stirling in around 45 minutes via the M80.',
+      characterDescription: 'Historic Central Scotland city with castle on a volcanic rock. Tourist traffic and commuters using M9/M80 interchange.',
+      landmarks: ['Stirling Castle', 'The Thistles Shopping Centre', 'Wallace Monument', 'Stirling Bridge', 'King\'s Park'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'tyre-fitting'],
+      parkingNotes: 'Multi-storey car parks in town centre. Castle Esplanade and tourist car parks on the Rock.',
+      keyRoads: ['M80', 'M9', 'A9', 'A84', 'Murray Place'],
+    },
     'bridge-of-allan': {
       description: 'Bridge of Allan is a charming spa town just north of Stirling, home to the University of Stirling campus. The tree-lined Henderson Street serves as the main thoroughfare, and our fitters regularly attend to vehicles near the university and in the town\'s quiet residential streets.',
       characterDescription: 'Pretty spa town with a university campus. Wide residential streets with good access.',
@@ -289,6 +297,14 @@ export const neighborhoodEnrichments: EnrichmentMap = {
     },
   },
   falkirk: {
+    'falkirk-town-centre': {
+      description: 'Falkirk town centre sits at the junction of Scotland\'s central motorway network, with the Callendar Square shopping centre and the historic Steeple at its heart. Our fitters cover Falkirk in around 40 minutes via the M80.',
+      characterDescription: 'Central Scotland\'s motorway hub town. Callendar Square and busy market streets generate regular call-outs.',
+      landmarks: ['Callendar Square', 'Falkirk Steeple', 'Falkirk Stadium', 'Callendar Park', 'Falkirk Wheel (nearby)'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'tyre-fitting'],
+      parkingNotes: 'Town centre multi-storey and surface car parks. Good residential access throughout.',
+      keyRoads: ['M80', 'M9', 'M876', 'A803', 'Newmarket Street'],
+    },
     'grangemouth': {
       description: 'Grangemouth is Scotland\'s petrochemical hub and one of Falkirk\'s largest towns. The industrial area and busy port generate constant commercial vehicle traffic, while the residential areas have good, wide streets. Our fitters are well-versed in both domestic and commercial tyre work here.',
       characterDescription: 'Industrial port town with both commercial and residential areas. Steady demand for commercial vehicle tyres.',
@@ -306,6 +322,144 @@ export const neighborhoodEnrichments: EnrichmentMap = {
       popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'tyre-fitting'],
       parkingNotes: 'Airport car park call-outs common. Good residential street access throughout.',
       keyRoads: ['Renfrew Road', 'King\'s Inch Road', 'Inchinnan Road', 'Paisley Road', 'Ferry Road'],
+    },
+  },
+  hamilton: {
+    'hamilton-town-centre': {
+      description: 'Hamilton town centre is the commercial heart of South Lanarkshire, with busy retail streets, the Palace Grounds, and Hamilton Racecourse nearby. Our fitters reach the town centre in around 30 minutes via the M74.',
+      characterDescription: 'South Lanarkshire\'s main town with busy retail core and racecourse nearby. Good street parking throughout.',
+      landmarks: ['Hamilton Racecourse', 'Palace Grounds Retail Park', 'Hamilton Bus Station', 'Cadzow Street', 'Quarry Street'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'puncture-repair'],
+      parkingNotes: 'Town centre car parks and on-street parking. Racecourse approach roads are common call-out locations.',
+      keyRoads: ['M74', 'A723', 'A725', 'Cadzow Street', 'Almada Street'],
+    },
+    'blantyre': {
+      description: 'Blantyre is a residential town between Hamilton and Cambuslang, known for the David Livingstone birthplace and easy M74 access. Our fitters cover Blantyre and High Blantyre in around 25 minutes.',
+      characterDescription: 'Residential Lanarkshire town with straightforward street access and good M74 proximity.',
+      landmarks: ['David Livingstone Birthplace', 'Blantyre Priory', 'Blantyre Leisure Centre', 'High Blantyre'],
+      popularServices: ['mobile-tyre-fitting', 'tyre-fitting', 'puncture-repair'],
+      parkingNotes: 'Mostly residential streets with good driveway and kerbside access.',
+      keyRoads: ['Glasgow Road', 'Stonefield Road', 'Calder Street', 'High Blantyre Road'],
+    },
+  },
+  'east-kilbride': {
+    'east-kilbride-town-centre': {
+      description: 'East Kilbride town centre is Scotland\'s largest new town centre, built around Peel Park and the town\'s distinctive covered shopping malls. Our fitters cover the centre and surrounding residential neighbourhoods in around 28 minutes via the M77 and A725.',
+      characterDescription: 'Modern planned town centre with covered malls and a distinctive ring-road layout. Multi-storey car park call-outs are frequent.',
+      landmarks: ['Peel Park', 'Kingsgate Retail Park', 'East Kilbride Shopping Centre', 'Dollan Aqua Centre', 'Village Theatre'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'puncture-repair'],
+      parkingNotes: 'Multi-storey car parks throughout the centre. Residential areas have good driveway and street access.',
+      keyRoads: ['A725 Expressway', 'A726', 'A749', 'Eaglesham Road', 'Maxwell Drive'],
+    },
+  },
+  motherwell: {
+    'motherwell-town-centre': {
+      description: 'Motherwell town centre is North Lanarkshire\'s commercial hub, built around Motherwell shopping and Fir Park stadium. Our fitters reach the town in around 30 minutes via M74.',
+      characterDescription: 'North Lanarkshire industrial and retail hub. Good road access from M74 junction nearby.',
+      landmarks: ['Fir Park (Motherwell FC)', 'Motherwell Shopping', 'Civic Centre', 'Ravenscraig Sports Complex', 'Motherwell Station'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'tyre-fitting'],
+      parkingNotes: 'Town centre car parks and residential streets. Good access throughout.',
+      keyRoads: ['M74', 'A723', 'A721', 'Brandon Street', 'Windmillhill Street'],
+    },
+  },
+  livingston: {
+    'almondvale': {
+      description: 'Almondvale is Livingston\'s main commercial district, home to the Livingston Designer Outlet and Centre shopping complex. Our fitters cover Almondvale and the surrounding EH54 postcodes in around 45 minutes via the M8.',
+      characterDescription: 'Major retail and commercial district midway on the M8 between Glasgow and Edinburgh. High footfall car parks.',
+      landmarks: ['Livingston Designer Outlet', 'Almondvale Centre', 'West Lothian College', 'Almond Valley Heritage Centre'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'puncture-repair'],
+      parkingNotes: 'Large retail car parks with good access. Flat tyre incidents in the Designer Outlet car park are common.',
+      keyRoads: ['M8 Junction 3', 'A899', 'Almondvale Boulevard', 'Livingston South Road'],
+    },
+  },
+  cumbernauld: {
+    'cumbernauld-town-centre': {
+      description: 'Cumbernauld town centre is built on an elevated platform above the A8011 road and is one of Scotland\'s most distinctive planned town centres. Our fitters cover Cumbernauld in around 25 minutes via the M80.',
+      characterDescription: 'Elevated 1960s planned town with a distinctive multi-level centre. Condorrat, Kildrum and Seafar are surrounding residential areas.',
+      landmarks: ['Antonine Centre', 'Cumbernauld Airport', 'Cumbernauld Theatre', 'Community Sports Hub'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'tyre-fitting'],
+      parkingNotes: 'Multi-storey car park below the town centre. Ground-level parking in residential areas throughout.',
+      keyRoads: ['M80', 'M73', 'A80', 'A8011', 'Wardpark Road'],
+    },
+  },
+  kilmarnock: {
+    'kilmarnock-town-centre': {
+      description: 'Kilmarnock town centre is the commercial heart of East Ayrshire, with the Kilmarnock Centre shopping mall and Rugby Park (Kilmarnock FC) nearby. Our fitters reach Kilmarnock in around 35 minutes via the M77.',
+      characterDescription: 'East Ayrshire\'s main town with a compact town centre and strong football heritage. Good parking access.',
+      landmarks: ['Rugby Park (Kilmarnock FC)', 'Kilmarnock Centre', 'Burns Monument', 'Dick Institute', 'Grand Hall'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'puncture-repair'],
+      parkingNotes: 'Town centre multi-storey and surface car parks. Matchday call-outs near Rugby Park are common.',
+      keyRoads: ['M77', 'A71', 'A77', 'A76', 'Titchfield Street'],
+    },
+  },
+  ayr: {
+    'ayr-town-centre': {
+      description: 'Ayr town centre sits on the Firth of Clyde coast, with the historic High Street, Ayr Racecourse, and Prestwick Airport nearby. Our fitters cover Ayr in around 50 minutes via M77 and A77.',
+      characterDescription: 'Ayrshire coast town with a lively High Street and seafront. Racecourse and airport proximity means high traffic volumes.',
+      landmarks: ['Ayr Racecourse', 'Ayr Beach', 'Burns Statue Square', 'Tam o\' Shanter pub', 'Riverside Retail Park'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'tyre-fitting'],
+      parkingNotes: 'Town centre car parks and seafront parking. Racecourse call-outs during meetings are common.',
+      keyRoads: ['A77', 'A70', 'A719', 'Burns Statue Square', 'Holmston Road'],
+    },
+  },
+  irvine: {
+    'irvine-town-centre': {
+      description: 'Irvine is North Ayrshire\'s new town, with the Rivergate Shopping Centre at its core and Ardrossan Harbour nearby for Arran ferry connections. Our fitters reach Irvine in around 40 minutes via M77 and A71.',
+      characterDescription: 'North Ayrshire new town with a strong retail core and ferry harbour nearby. Mix of new builds and older estates.',
+      landmarks: ['Rivergate Shopping Centre', 'Irvine Beach Park', 'Scottish Maritime Museum', 'Ardrossan Harbour (Arran Ferry)'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'tyre-fitting'],
+      parkingNotes: 'Good car park access throughout the town centre. Harbour approach roads are a frequent call-out location.',
+      keyRoads: ['A78', 'A71', 'A737', 'Bank Street', 'Harbour Street'],
+    },
+  },
+  greenock: {
+    'greenock-town-centre': {
+      description: 'Greenock\'s town centre sits above the Clyde waterfront, with the Oak Mall shopping centre and Greenock Port at its heart. Our fitters cover Greenock in around 40 minutes via M8 and A8.',
+      characterDescription: 'Clyde waterfront town with a hilly road network. Container port and town centre generate regular tyre call-outs.',
+      landmarks: ['Oak Mall', 'Greenock Port', 'Custom House', 'Inverclyde Royal Hospital', 'Gourock Pier'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'puncture-repair'],
+      parkingNotes: 'Town centre car parks and hillside residential streets. Port road call-outs common.',
+      keyRoads: ['A8', 'A78', 'A770', 'Inverkip Road', 'Patrick Street'],
+    },
+  },
+  perth: {
+    'perth-city-centre': {
+      description: 'Perth city centre straddles the River Tay, with St John\'s Shopping Centre at its heart and the A9 gateway to the Highlands passing through. Our fitters cover Perth in around 65 minutes via M80 and A9.',
+      characterDescription: 'Gateway to the Highlands with a compact but busy city centre. High summer tourist traffic from Inverness-bound travellers.',
+      landmarks: ['St John\'s Shopping Centre', 'Perth Concert Hall', 'Scone Palace', 'Perth Racecourse', 'Tay Street waterfront'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'tyre-fitting'],
+      parkingNotes: 'City centre car parks near St John\'s. Good residential access throughout.',
+      keyRoads: ['M90', 'A9', 'A85', 'A93', 'King Street'],
+    },
+  },
+  dunfermline: {
+    'dunfermline-town-centre': {
+      description: 'Dunfermline town centre is Fife\'s largest urban area, with the Kingsgate Shopping Centre and the historic Abbey at its heart. Our fitters cover Dunfermline in around 55 minutes via M8 and M90.',
+      characterDescription: 'Fife\'s largest town and a major Edinburgh commuter hub. Queensferry Crossing access makes this a key transit point.',
+      landmarks: ['Dunfermline Abbey', 'Kingsgate Shopping Centre', 'Carnegie Library', 'Pittencrieff Park', 'Rosyth Dockyard'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'tyre-fitting'],
+      parkingNotes: 'Town centre multi-storey car parks. Duloch Park retail area has large surface car parks.',
+      keyRoads: ['M90', 'A985', 'A907', 'A823', 'Carnegie Drive'],
+    },
+  },
+  kirkcaldy: {
+    'kirkcaldy-town-centre': {
+      description: 'Kirkcaldy is Fife\'s most populous town, with the Mercat Shopping Centre along its famous Lang Toun High Street. Our fitters cover Kirkcaldy in around 65 minutes via M8 and A92.',
+      characterDescription: 'Fife\'s main town with Scotland\'s longest High Street. Coastal A92 route and busy town centre retail.',
+      landmarks: ['Mercat Shopping Centre', 'Kirkcaldy Waterfront', 'Ravenscraig Hospital', 'Adam Smith Theatre', 'The Lang Toun'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'tyre-fitting'],
+      parkingNotes: 'Multi-storey car parks off the High Street. Good residential access throughout.',
+      keyRoads: ['A92', 'A910', 'A921', 'High Street', 'Esplanade'],
+    },
+  },
+  dumfries: {
+    'dumfries-town-centre': {
+      description: 'Dumfries town centre is the main commercial hub of south-west Scotland, with the Loreburne Centre and the historic Burns Connection at its heart. Our fitters cover Dumfries in around 90 minutes via M74 and A76.',
+      characterDescription: 'South-west Scotland\'s main town. A75 Euroroute traffic and town centre retail drive tyre call-outs.',
+      landmarks: ['Loreburne Shopping Centre', 'Robert Burns Mausoleum', 'Dumfries and Galloway Royal Infirmary', 'Crichton Royal', 'Dock Park'],
+      popularServices: ['emergency-tyre-fitting', 'mobile-tyre-fitting', 'tyre-repair'],
+      parkingNotes: 'Town centre car parks near Loreburne Centre. Good residential street access.',
+      keyRoads: ['A75', 'A76', 'A701', 'Irish Street', 'King Street'],
     },
   },
 };

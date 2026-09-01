@@ -379,6 +379,71 @@ export function getHowToSchema(
 }
 
 /* ------------------------------------------------------------------ */
+/*  City-specific LocalBusiness — for /[service]/[city] pages         */
+/* ------------------------------------------------------------------ */
+export function getCityLocalBusinessSchema(opts: {
+  cityName: string;
+  serviceSlug: string;
+  serviceName: string;
+  pageUrl: string;
+  avgResponseMin: number;
+  priceFrom: string;
+  baseUrl?: string;
+}) {
+  const url = opts.baseUrl ?? DEFAULT_BASE_URL;
+  return {
+    '@context': 'https://schema.org',
+    '@type': ['LocalBusiness', 'AutoRepair'],
+    name: `Tyre Rescue — ${opts.serviceName} ${opts.cityName}`,
+    url: opts.pageUrl,
+    telephone: PHONE,
+    email: EMAIL,
+    address: ADDRESS,
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: 55.8547,
+      longitude: -4.2206,
+    },
+    openingHours: 'Mo-Su 00:00-23:59',
+    priceRange: PRICE_RANGE_DISPLAY,
+    areaServed: { '@type': 'City', name: opts.cityName },
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: `${opts.serviceName} in ${opts.cityName}`,
+      itemListElement: [
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: `${opts.serviceName} in ${opts.cityName}`,
+            description: `Professional ${opts.serviceName.toLowerCase()} in ${opts.cityName}. Average ${opts.avgResponseMin} minute response. Call 0141 266 0690.`,
+          },
+          priceCurrency: 'GBP',
+          price: opts.priceFrom,
+          availability: 'https://schema.org/InStock',
+          seller: {
+            '@type': 'Organization',
+            name: 'Tyre Rescue',
+            url,
+          },
+        },
+      ],
+    },
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.8',
+      reviewCount: '97',
+      bestRating: '5',
+      worstRating: '1',
+    },
+    sameAs: [
+      'https://www.facebook.com/share/1Bt1ZFNkXN/',
+      'https://uk.trustpilot.com/review/tyrerescue.uk',
+    ],
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /*  Aliases matching generate* naming convention                       */
 /* ------------------------------------------------------------------ */
 export const generateLocalBusinessSchema = getLocalBusinessSchema;

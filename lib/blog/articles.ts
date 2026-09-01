@@ -582,12 +582,12 @@ We don't recommend part-worn tyres. You don't know their history — they may ha
   },
   {
     slug: 'best-mobile-tyre-fitting-services-scotland',
-    title: 'Best Mobile Tyre Fitting Services in Scotland (2025 Guide)',
+    title: 'Best Mobile Tyre Fitting Services in Scotland (2026 Guide)',
     description:
       'Looking for the best mobile tyre fitting in Scotland? We compare services, pricing, response times and coverage areas to help you choose the right provider in Glasgow, Edinburgh & beyond.',
     category: 'fitting',
     publishDate: '2025-06-20',
-    lastModified: '2025-06-20',
+    lastModified: '2026-08-01',
     readingTime: 12,
     keywords: [
       'best mobile tyre fitting scotland',
@@ -746,12 +746,12 @@ For mobile tyre fitting in Scotland, the choice depends on your priorities. If y
   },
   {
     slug: 'tyre-fitting-costs-scotland-pricing-guide',
-    title: 'Tyre Fitting Costs in Scotland: Complete Pricing Guide (2025)',
+    title: 'Tyre Fitting Costs in Scotland: Complete Pricing Guide (2026)',
     description:
-      'How much does tyre fitting cost in Scotland? Full breakdown of mobile tyre fitting prices, garage costs, emergency callout fees & ways to save. Updated for 2025.',
+      'How much does tyre fitting cost in Scotland? Full breakdown of mobile tyre fitting prices, garage costs, emergency callout fees & ways to save. Updated for 2026.',
     category: 'fitting',
     publishDate: '2025-06-20',
-    lastModified: '2025-06-20',
+    lastModified: '2026-08-01',
     readingTime: 10,
     keywords: [
       'tyre fitting cost scotland',
@@ -918,6 +918,420 @@ Run-flat tyres typically add £5–£10 to the fitting cost per tyre because the
 ## Get a Quote Now
 
 For an instant, transparent quote on mobile tyre fitting in Scotland, visit **tyrerescue.uk/book** or call **0141 266 0690**. No hidden fees, no surprises — just honest pricing and 24/7 availability.`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-edinburgh-guide',
+    title: 'Mobile Tyre Fitting in Edinburgh: Prices, Response Times & How to Book',
+    description:
+      'Need a tyre fitter in Edinburgh? Complete guide to mobile tyre fitting in Edinburgh — costs, response times, areas covered, and how to get a fitter to you fast. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2026-07-10',
+    lastModified: '2026-08-15',
+    readingTime: 7,
+    keywords: [
+      'mobile tyre fitting edinburgh',
+      'emergency tyre fitting edinburgh',
+      'tyre fitter edinburgh',
+      'flat tyre edinburgh',
+      '24 hour tyre fitting edinburgh',
+      'tyre repair edinburgh',
+    ],
+    relatedSlugs: [
+      'emergency-tyre-fitting-glasgow-complete-guide',
+      'tyre-fitting-costs-scotland-pricing-guide',
+    ],
+    featured: true,
+    content: `## Mobile Tyre Fitting in Edinburgh — What You Need to Know
+
+Edinburgh is Scotland's capital and our second-busiest service city. Whether you have a flat tyre on Princes Street, a slow puncture in Leith, or a blowout on the A720 City Bypass, Tyre Rescue dispatches a mobile fitter to your exact location — 24 hours a day, 7 days a week.
+
+**Quick answer:** Call 0141 266 0690. A fitter reaches most Edinburgh locations within 55 minutes. Fitting starts from £20 per tyre (plus tyre cost) and there's no hidden M8 surcharge.
+
+## Response Times Across Edinburgh
+
+Edinburgh's road network — the A720 ring road, the A8 corridor, and the Old Town's narrower streets — affects arrival times. Here's what to expect:
+
+| Area | Postcode | Avg Response |
+|------|----------|-------------|
+| City Centre / Princes Street | EH1–EH2 | 55 min |
+| Leith / Portobello | EH6–EH7 | 55 min |
+| Morningside / Bruntsfield | EH10 | 60 min |
+| Corstorphine / Murrayfield | EH12 | 60 min |
+| Newington / Southside | EH9 | 55 min |
+| A720 City Bypass | EH10–EH17 | 50 min |
+| Musselburgh | EH21 | 60 min |
+| Dalkeith | EH22 | 65 min |
+
+We dispatch from our Glasgow base via the M8, and our fitters know the Edinburgh road network well.
+
+## Areas We Cover in Edinburgh
+
+We cover all EH postcodes including:
+
+- **EH1–EH4:** City centre, New Town, Dean Village, Stockbridge
+- **EH5–EH7:** Newhaven, Leith, Easter Road, Broughton
+- **EH8–EH9:** Holyrood, Newington, Sciennes, Marchmont
+- **EH10:** Morningside, Bruntsfield, Greenbank, Fairmilehead
+- **EH11–EH12:** Gorgie, Dalry, Corstorphine, Murrayfield
+- **EH13–EH14:** Colinton, Juniper Green, Currie, Balerno
+- **EH15–EH16:** Portobello, Duddingston, Craigmillar
+- **EH17:** Liberton, Gilmerton, Gracemount
+
+We also cover Musselburgh (EH21), Dalkeith (EH22), Loanhead (EH20), and Penicuik (EH26).
+
+## How Much Does Mobile Tyre Fitting Cost in Edinburgh?
+
+Our Edinburgh pricing is identical to Glasgow — no extra charge for crossing the M8.
+
+| Service | Price |
+|---------|-------|
+| Scheduled tyre fitting (fitting fee) | £20 per tyre |
+| Emergency callout fee | £49 |
+| Puncture repair | £25 |
+| Budget tyre (e.g. 205/55 R16) | From £45 |
+| Mid-range tyre | From £65 |
+| Premium tyre | From £90 |
+
+All prices include professional fitting, wheel torqueing to manufacturer spec, and old tyre disposal.
+
+## Common Edinburgh Tyre Emergency Locations
+
+Our Edinburgh fitters attend call-outs regularly at:
+
+- **A720 City Bypass** — one of Edinburgh's busiest and most pothole-affected roads
+- **Princes Street / The Mound** — high tourist footfall and complex parking
+- **Royal Mile / Old Town** — cobbled surfaces create sidewall damage
+- **Leith Walk** — regular punctures from road debris and tramlines
+- **Meadows car parks** — flat tyres found after events and concerts
+- **Edinburgh Airport approach (A8)** — travellers and hire cars frequently need assistance
+- **Newbridge Industrial Estate (EH28)** — commercial van callouts
+
+## Edinburgh-Specific Tyre Advice
+
+Edinburgh's road surfaces create specific tyre problems:
+
+**Cobblestones:** The Royal Mile, Cockburn Street, and Victoria Street put unusual stress on tyre sidewalls. Check your sidewalls for bulges after driving on cobbled routes regularly.
+
+**Tram tracks:** Leith Walk, Princes Street, and St Andrew Square have tram infrastructure that can catch tyres, especially on motorcycles and narrow-tyred vehicles.
+
+**The A720:** Edinburgh's ring road is heavily used by HGVs and often has road debris. Tyre damage is common, particularly near Hermiston Gait and the Sheriffhall junction.
+
+**Winter potholes:** Edinburgh's freeze-thaw cycle creates potholes every spring. Check your tyres for bulges and impact damage after any hard winter.
+
+## How to Book
+
+**Emergency:** Call 0141 266 0690 — available 24/7. Give us your location, vehicle details, and which tyre is affected.
+
+**Scheduled fitting:** Book online at tyrerescue.uk/book. Choose your tyre size, pick a time slot, and we confirm a 2-hour arrival window.
+
+## Frequently Asked Questions
+
+### Do you charge extra for Edinburgh compared to Glasgow?
+No. Our Edinburgh prices are identical — no M8 surcharge or distance fee.
+
+### Can you reach the Edinburgh Old Town?
+Yes. Our fitters are experienced with the Old Town's restricted access zones and can advise on where best to meet us if your street is a controlled zone.
+
+### Do you carry run-flat tyres for Edinburgh BMWs and Mercedes?
+Yes. EH postcodes have a high proportion of German premium cars. We carry common run-flat sizes and TPMS reset equipment on every van.
+
+### What if I'm at Edinburgh Airport?
+We cover the airport approach roads and the rental car areas. If you're at the terminal building, give us your precise location and we'll advise on the best meeting point.`,
+  },
+  {
+    slug: 'puncture-repair-glasgow-when-replace',
+    title: 'Puncture Repair in Glasgow: When Can It Be Fixed & When Do You Need a New Tyre?',
+    description:
+      'Got a puncture in Glasgow? Find out whether your tyre can be repaired or needs replacing. Expert mobile puncture repair from £25. Call 0141 266 0690 — 24/7.',
+    category: 'emergency',
+    publishDate: '2026-07-15',
+    lastModified: '2026-08-15',
+    readingTime: 6,
+    keywords: [
+      'puncture repair glasgow',
+      'mobile puncture repair glasgow',
+      'tyre repair vs replace',
+      'can puncture be repaired',
+      'puncture repair near me',
+      'flat tyre repair glasgow',
+    ],
+    relatedSlugs: [
+      'emergency-tyre-fitting-glasgow-complete-guide',
+      'signs-you-need-new-tyres',
+    ],
+    featured: false,
+    content: `## Can Your Puncture Be Repaired?
+
+Not every flat tyre needs a new tyre. A proper puncture repair costs £25 — significantly less than a new tyre at £45–£150. But not every puncture is repairable. Here's how to know.
+
+**Quick answer:** If the puncture is in the central tread area and caused by an object under 6mm in diameter, it can usually be repaired. Sidewall punctures, large cuts, and run-flat damage require a new tyre.
+
+## The Rules: What Can and Cannot Be Repaired
+
+British Standard BS AU 159 defines what is and isn't a safe tyre repair. Our fitters follow these rules on every job.
+
+### Repairable
+
+- Punctures in the **central tread zone** (the middle three-quarters of the tread width)
+- Objects up to **6mm diameter** (nails, screws, small bolts)
+- Single puncture — no previous repairs in the same area
+- Tyre that **has not been run flat** (running flat even briefly destroys the internal structure)
+- Damage that does not extend to the sidewall
+
+### Not Repairable
+
+| Issue | Why It Can't Be Repaired |
+|-------|--------------------------|
+| Sidewall puncture | Sidewalls flex too much — a patch would fail |
+| Tread/sidewall junction | High-stress area — repair won't hold |
+| Run flat damage | Internal structure is broken, even if tyre looks ok |
+| Object over 6mm | Too large for a safe plug-and-patch |
+| Multiple punctures close together | Weakens the tyre beyond repair |
+| Bulge or blister | Internal structural damage — replace immediately |
+| Tread below 2mm | Not worth repairing a nearly worn tyre |
+
+## How a Proper Puncture Repair Works
+
+There's a right way and a wrong way to repair a puncture. The wrong way — using a tyre plug kit from a petrol station — is a temporary roadside fix only. A proper repair involves:
+
+1. **Tyre removed from the wheel** — the fitter cannot assess internal damage without taking the tyre off
+2. **Internal inspection** — checks for run-flat damage, internal cracks, and lining separation
+3. **Repair from inside** — a mushroom plug-patch is inserted through the hole and bonded to the inner liner
+4. **Buffing and sealing** — the inner surface around the repair is buffed, the patch is cemented and vulcanised
+5. **Reinflation and check** — tyre inflated and leak-tested before going back on the vehicle
+
+This is the only method endorsed by tyre manufacturers. Tyre Rescue fitters carry full puncture repair kits on every van.
+
+## Common Glasgow Puncture Causes
+
+Glasgow's road network creates specific puncture hazards:
+
+**The M8 corridor:** Road debris from lorry loads, metal fragments, and blown truck tyres are common on Glasgow's main motorway.
+
+**Byres Road / Sauchiehall Street:** Broken glass from the night-time economy is a frequent cause of slow punctures in the West End.
+
+**East End industrial routes:** Duke Street, Gallowgate, and London Road carry heavy commercial traffic, depositing screws, nails, and metal fragments.
+
+**Pothole damage:** Unlike nail punctures, pothole impacts can cause instant sidewall blowouts that are not repairable. Glasgow City Council's road maintenance backlog means pothole-related tyre damage is common.
+
+**Roadworks:** Temporary surfaces and construction debris around Glasgow's ongoing infrastructure projects (M8 improvements, Clyde Waterfront, various utility works) cause regular punctures.
+
+## How Much Does Puncture Repair Cost in Glasgow?
+
+| Type | Tyre Rescue | Typical Garage |
+|------|------------|----------------|
+| Standard puncture repair | £25 | £20–£35 |
+| Emergency roadside repair | £49 callout + £25 repair | N/A |
+| Repair kit (temporary, petrol station) | £5–£15 | N/A |
+
+If the puncture is not repairable, we'll tell you before doing any work and quote for a replacement tyre. You're never committed to a new tyre until you've agreed the price.
+
+## What to Do When You Get a Puncture
+
+1. **Don't panic** — if the tyre deflates gradually, you have time to pull over safely
+2. **Hazard lights on** and move to a safe location
+3. **Do not drive on a flat** — even a short distance can destroy the tyre and damage the wheel
+4. **Call 0141 266 0690** — we'll dispatch a fitter to your location
+5. **Wait safely** away from traffic while we're on the way
+
+## Frequently Asked Questions
+
+### Can I use a tyre inflator (fix-a-flat) instead of repair?
+Temporary inflators are for genuine emergencies when you cannot safely stop. They seal punctures temporarily but contaminate the tyre internally, making proper repair impossible. Use them as a last resort only.
+
+### How long does a puncture repair take?
+Typically 20–30 minutes including removing and refitting the tyre. Our fitters are fast — most puncture jobs are done and dusted in under 30 minutes from arrival.
+
+### Will a repaired tyre be as strong as before?
+A correctly performed puncture repair to BS AU 159 standard is as strong as the original tyre in the repaired area. The mushroom plug-patch bonds permanently to the inner liner. We don't offer temporary or partial repairs.
+
+### My TPMS warning light is on — do I need a puncture repair or new sensor?
+A TPMS warning can mean a slow puncture, low pressure, or a faulty sensor. Our fitters check the tyre pressure and inspect for punctures first. If the light is on and the tyre looks normal, it may be a sensor fault rather than a puncture.`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-hamilton-lanarkshire',
+    title: 'Mobile Tyre Fitting in Hamilton & Lanarkshire: Fast Local Service',
+    description:
+      'Mobile tyre fitting in Hamilton, Motherwell, East Kilbride and all ML postcodes. Emergency and scheduled service — 30 min average response. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2026-08-01',
+    lastModified: '2026-08-15',
+    readingTime: 6,
+    keywords: [
+      'mobile tyre fitting hamilton',
+      'tyre fitting lanarkshire',
+      'mobile tyre fitting motherwell',
+      'tyre fitter ml postcodes',
+      'emergency tyre hamilton',
+      'mobile tyre fitting east kilbride',
+    ],
+    relatedSlugs: [
+      'emergency-tyre-fitting-glasgow-complete-guide',
+      'tyre-fitting-costs-scotland-pricing-guide',
+    ],
+    featured: false,
+    content: `## Mobile Tyre Fitting Across Lanarkshire
+
+Lanarkshire is one of our busiest service areas outside Glasgow. With easy M74 and M8 access from our Parkhead depot, we cover Hamilton, Motherwell, East Kilbride, Wishaw, Bellshill, and all surrounding ML and G74 postcodes.
+
+**Quick answer:** Call 0141 266 0690. Most Lanarkshire locations are reached within 30 minutes. Prices are the same as Glasgow — no distance surcharge.
+
+## Areas Covered in Lanarkshire
+
+### Hamilton (ML3)
+Hamilton is 25 minutes from our base via the M74. We cover the town centre, Motherwell Road, Blantyre, Bothwell, Stonehouse and all ML3 postcodes. The M74/A725 junction near Hamilton is one of our most frequent emergency call-out locations.
+
+### Motherwell (ML1)
+Motherwell is 25 minutes via M74/M8. We cover the town centre, Wishaw (ML2), Bellshill (ML4), Uddingston, Viewpark and surrounding areas.
+
+### East Kilbride (G74–G75)
+East Kilbride is 25 minutes via M77 and A725. We cover the town centre, Hairmyres, Calderwood, Westwood, Nerston, Jackton and Chapelton.
+
+### Other Lanarkshire Areas
+- **Carluke (ML8):** 35 minutes via M74
+- **Larkhall (ML9):** 35 minutes via M74/A72
+- **Rutherglen (G73):** 20 minutes via M74
+- **Cambuslang (G72):** 20 minutes via M74
+
+## Response Times by Lanarkshire Area
+
+| Town | Distance from Base | Avg Response |
+|------|------------------|--------------|
+| Rutherglen | 4 miles | 20 min |
+| Cambuslang | 6 miles | 20 min |
+| Hamilton | 11 miles | 30 min |
+| Motherwell | 12 miles | 30 min |
+| Bellshill | 10 miles | 28 min |
+| East Kilbride | 10 miles | 28 min |
+| Wishaw | 15 miles | 35 min |
+| Carluke | 18 miles | 35 min |
+| Larkhall | 17 miles | 35 min |
+
+## Tyre Fitting Prices in Lanarkshire
+
+No distance surcharge applies across Lanarkshire. Our prices are:
+
+| Service | Price |
+|---------|-------|
+| Fitting fee (per tyre) | £20 |
+| Emergency callout | £49 |
+| Puncture repair | £25 |
+| Budget tyre (205/55 R16) | From £45 |
+| Mid-range tyre | From £65 |
+| Premium tyre | From £90 |
+
+## Common Lanarkshire Tyre Hazards
+
+**M74 Corridor:** The M74 between Glasgow and Hamilton is one of Scotland's busiest motorway sections. Tyre debris from lorries is common, particularly near the Bothwell services and the Hamilton Interchange.
+
+**Hamilton Racecourse Approach:** The A725 near Hamilton Park Racecourse generates high traffic volumes on race days. Flat tyres in car parks and access roads are common.
+
+**East Kilbride Ring Road:** The A725 expressway and the town's roundabout-heavy road system create regular kerb-strike damage.
+
+**Wishaw / Newmains:** The A71 through Wishaw is used heavily by commuters and has rough patches that cause slow punctures.
+
+## Frequently Asked Questions
+
+### How quickly can you reach Hamilton from Glasgow?
+Our average response time in Hamilton is 30 minutes. We dispatch the nearest available fitter from our Parkhead base via the M74.
+
+### Do you cover Lanarkshire villages?
+Yes — we cover Stonehouse, Quarter, Larkhall, Strathaven, Forth, Lanark and Carstairs on request. Response times for outlying areas are typically 40–50 minutes.
+
+### Can you fit tyres at the Strathclyde Country Park?
+Yes — we regularly assist drivers at Strathclyde Park and the Hamilton Water Palace. Just give us your exact parking location.
+
+### Do you cover commercial vans in Lanarkshire?
+Yes. We carry van tyres for Transit, Sprinter, Vivaro, Transporter, and other common commercial vehicles across all Lanarkshire postcodes.`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-livingston-west-lothian',
+    title: 'Mobile Tyre Fitting in Livingston & West Lothian: Same-Day Service',
+    description:
+      'Mobile tyre fitting in Livingston, Bathgate, Broxburn and all EH54 postcodes. 45 min average response. Emergency and scheduled. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2026-08-05',
+    lastModified: '2026-08-15',
+    readingTime: 5,
+    keywords: [
+      'mobile tyre fitting livingston',
+      'tyre fitting west lothian',
+      'tyre fitter eh54',
+      'emergency tyre livingston',
+      'mobile tyre bathgate',
+      'flat tyre livingston',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-edinburgh-guide',
+      'tyre-fitting-costs-scotland-pricing-guide',
+    ],
+    featured: false,
+    content: `## Mobile Tyre Fitting in Livingston and West Lothian
+
+Livingston sits midway along the M8 between Glasgow and Edinburgh, making it one of the easiest Tyre Rescue dispatch points in central Scotland. We typically reach Livingston in 45 minutes from our Glasgow base — and the same fitters who cover Edinburgh can reach West Lothian from the east.
+
+**Quick answer:** Call 0141 266 0690. We cover all of Livingston and West Lothian with no distance surcharge.
+
+## Areas Covered in West Lothian
+
+### Livingston (EH54)
+Full coverage of Livingston town centre, Almondvale, Deans, Craigshill, Howden, Knightsridge and Murieston.
+
+### Bathgate (EH47–EH48)
+20 minutes from Livingston. We cover the town centre, Boghall and Whitburn.
+
+### Broxburn (EH52)
+15 minutes from Livingston via the M8. We cover Broxburn, Uphall and East Calder.
+
+### Other West Lothian Areas
+- **Linlithgow (EH49):** 35 minutes from Glasgow via M9
+- **Armadale (EH48):** 50 minutes from Glasgow
+- **Fauldhouse (EH47):** 55 minutes from Glasgow
+- **Winchburgh (EH52):** 45 minutes from Glasgow
+
+## Why Livingston Drivers Call Us
+
+Livingston's road network generates frequent tyre call-outs:
+
+**The M8 slip roads:** The fast on/off ramps at Livingston (Junction 3) regularly produce tyre blowouts from road debris.
+
+**Almondvale Retail Park:** One of Scotland's busiest retail parks — flat tyres from car park kerbs and trolley damage are common.
+
+**Livingston Designer Outlet:** Tourist traffic and large car park volumes mean tyre incidents are frequent year-round.
+
+**A899 Dual Carriageway:** The main spine road through Livingston town has sections prone to debris and pothole damage.
+
+**Seafield Law Industrial Estate:** Van and lorry traffic creates nail and screw punctures for other road users.
+
+## Prices in Livingston and West Lothian
+
+| Service | Price |
+|---------|-------|
+| Fitting fee (per tyre) | £20 |
+| Emergency callout | £49 |
+| Puncture repair | £25 |
+| Budget tyre | From £45 |
+| Mid-range tyre | From £65 |
+| Premium tyre | From £90 |
+
+No additional charge for West Lothian — same pricing as Glasgow.
+
+## How to Book
+
+**Emergency:** Call 0141 266 0690 — 24/7. Tell us your location (street address or nearest junction), vehicle details, and which tyre is flat.
+
+**Scheduled:** Book at tyrerescue.uk/book. Choose your tyre size, time, and we confirm a 2-hour arrival window.
+
+## Frequently Asked Questions
+
+### Can you reach Linlithgow?
+Yes — Linlithgow is 35 minutes from our Glasgow depot via the M9. We cover the town and the surrounding villages including Bo'ness (reached via the M9/A904).
+
+### Do you service commercial vehicles in Livingston?
+Yes. Livingston's industrial estates mean van and commercial tyre callouts are common. We carry tyres for Transit, Sprinter, Vivaro, Transporter and other commercial vehicles.
+
+### Is the service the same from Glasgow as from Edinburgh?
+We dispatch whichever fitter is closer and available. During busy periods, West Lothian may be reached from either Glasgow or Edinburgh — you get the nearest available fitter.`,
   },
 ];
 

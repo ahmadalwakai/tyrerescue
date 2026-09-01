@@ -19,6 +19,7 @@ import type { City } from '@/lib/cities';
 import { services } from '@/lib/areas';
 import { cityContent } from '@/lib/data/cityContent';
 import { neighborhoodEnrichments } from '@/lib/data/neighborhoodEnrichment';
+import type { FaqItem } from '@/lib/content/serviceCityFaq';
 
 const c = colorTokens;
 
@@ -39,7 +40,7 @@ function capitalize(slug: string) {
   return slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
-export function ServiceCityContent({ service, city, areas }: { service: ServiceSEO; city: City; areas: Area[] }) {
+export function ServiceCityContent({ service, city, areas, faqs = [] }: { service: ServiceSEO; city: City; areas: Area[]; faqs?: FaqItem[] }) {
   const otherServices = services.filter((s) => s.slug !== service.slug);
   const cityData = cityContent[city.slug];
   const hasUniqueContent = cityData && !cityData.uniqueIntro.startsWith('TODO');
@@ -532,6 +533,54 @@ export function ServiceCityContent({ service, city, areas }: { service: ServiceS
             </Flex>
           </Container>
         </Box>
+
+        {/* ── FAQ ── */}
+        {faqs.length > 0 && (
+          <Box bg={c.bg} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
+            <Container maxW="1200px">
+              <Text
+                as="h2"
+                fontSize={{ base: '36px', md: '48px' }}
+                color={c.text}
+                mb={8}
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                FREQUENTLY ASKED QUESTIONS
+              </Text>
+              <Flex direction="column" gap={4} maxW="760px">
+                {faqs.map((faq, i) => (
+                  <Box
+                    key={i}
+                    bg={c.surface}
+                    borderWidth="1px"
+                    borderColor={c.border}
+                    borderRadius="8px"
+                    p={6}
+                  >
+                    <Text
+                      as="h3"
+                      fontSize={{ base: '16px', md: '18px' }}
+                      color={c.text}
+                      fontWeight="700"
+                      mb={3}
+                      style={{ fontFamily: 'var(--font-body)' }}
+                    >
+                      {faq.question}
+                    </Text>
+                    <Text
+                      fontSize="15px"
+                      color={c.muted}
+                      lineHeight="1.7"
+                      style={{ fontFamily: 'var(--font-body)' }}
+                    >
+                      {faq.answer}
+                    </Text>
+                  </Box>
+                ))}
+              </Flex>
+            </Container>
+          </Box>
+        )}
 
         {/* ── CTA ── */}
         <Box bg={c.accent} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>

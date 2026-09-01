@@ -4,8 +4,10 @@ import { getAreasForCity, getServiceBySlug } from '@/lib/areas';
 import { getCityBySlug } from '@/lib/cities';
 import { ServiceCityContent } from '@/components/seo/ServiceCityContent';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { getServiceSchema, getBreadcrumbSchema } from '@/lib/seo/schemas';
+import { getServiceSchema, getBreadcrumbSchema, getFAQSchema, getCityLocalBusinessSchema } from '@/lib/seo/schemas';
 import { getPriorityServiceCityParams } from '@/lib/seo/priority';
+import { cityContent } from '@/lib/data/cityContent';
+import { getServiceCityFaqs } from '@/lib/content/serviceCityFaq';
 
 // All 95 service-city combinations are prebuilt; ISR refresh weekly so the
 // pricing/landmark copy stays in sync with config changes without rebuilds.
@@ -23,8 +25,10 @@ export async function generateMetadata({ params }: { params: Promise<{ service: 
   if (!service || !city) return {};
 
   const location = city.name;
+  const cityData = cityContent[citySlug];
+  const avgResponseMin = cityData?.avgResponseMin ?? 45;
   const title = `${service.name} ${location} | 24/7 | ${service.priceFrom} | Tyre Rescue`;
-  const description = `${service.metaDescTemplate.replace(/{location}/g, location)} ${service.priceFrom}. Average 45 min response. Fully insured.`;
+  const description = `${service.metaDescTemplate.replace(/{location}/g, location)} ${service.priceFrom}. Average ${avgResponseMin} min response. Fully insured. Call 0141 266 0690.`;
   return {
     title,
     description,
@@ -35,6 +39,8 @@ export async function generateMetadata({ params }: { params: Promise<{ service: 
       `emergency tyre ${city.name.toLowerCase()}`,
       `tyre repair ${city.name.toLowerCase()}`,
       `puncture repair ${city.name.toLowerCase()}`,
+      `24 hour tyre fitting ${city.name.toLowerCase()}`,
+      `tyre fitting near me ${city.name.toLowerCase()}`,
     ].join(', '),
     openGraph: {
       title: `${service.name} in ${location} — Tyre Rescue`,
@@ -55,6 +61,9 @@ export default async function ServiceCityPage({ params }: { params: Promise<{ se
   if (!service || !city) notFound();
 
   const areas = getAreasForCity(citySlug);
+  const cityData = cityContent[citySlug];
+  const avgResponseMin = cityData?.avgResponseMin ?? 45;
+  const faqs = getServiceCityFaqs(serviceSlug, city.name, avgResponseMin, service.priceFrom);
 
   return (
     <>
@@ -67,7 +76,16 @@ export default async function ServiceCityPage({ params }: { params: Promise<{ se
         { name: 'Home', path: '/' },
         { name: `${service.name} ${city.name}`, path: `/${service.slug}/${city.slug}` },
       ])} />
-      <ServiceCityContent service={service} city={city} areas={areas} />
+      <JsonLd data={getFAQSchema(faqs)} />
+      <JsonLd data={getCityLocalBusinessSchema({
+        cityName: city.name,
+        serviceSlug: serviceSlug,
+        serviceName: service.name,
+        pageUrl: `https://www.tyrerescue.uk/${serviceSlug}/${citySlug}`,
+        avgResponseMin,
+        priceFrom: service.priceFrom,
+      })} />
+      <ServiceCityContent service={service} city={city} areas={areas} faqs={faqs} />
     </>
   );
 }

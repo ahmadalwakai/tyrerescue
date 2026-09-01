@@ -1,5 +1,4 @@
 import type { MetadataRoute } from 'next';
-import { cities } from '@/lib/cities';
 import { db } from '@/lib/db';
 import { tyreProducts } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -10,180 +9,116 @@ import { getSiteUrl } from '@/lib/config/site';
 import { priceCitySlugs } from '@/lib/seo/cities';
 import { EMERGENCY_LANDING_PAGES } from '@/lib/ads/emergencyCampaign';
 
-/**
- * Sitemap is split via `generateSitemaps()` so no single file exceeds
- * Google's 50,000-URL limit and so route groups can be regenerated
- * independently. Next.js automatically exposes:
- *   - /sitemap.xml          — the auto-generated sitemap index
- *   - /sitemap/[id].xml     — each individual group below
- */
-
-type SitemapId = 'main' | 'cities' | 'areas' | 'blog' | 'tyres';
-
-export function generateSitemaps(): { id: SitemapId }[] {
-  return [
-    { id: 'main' },
-    { id: 'cities' },
-    { id: 'areas' },
-    { id: 'blog' },
-    { id: 'tyres' },
-  ];
-}
-
-export default async function sitemap({
-  id,
-}: {
-  id: Promise<string>;
-}): Promise<MetadataRoute.Sitemap> {
-  const sectionId = (await id) as SitemapId;
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getSiteUrl();
   const now = new Date();
+  const out: MetadataRoute.Sitemap = [];
+  const emittedUrls = new Set<string>();
+  const excludedPathPattern = /^\/(?:admin|api|auth|login|dashboard|tracking|checkout)(?:\/|$)/;
 
-  if (sectionId === 'main') {
-    const staticPages: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
-      { path: '', priority: 1, freq: 'daily' },
-      { path: '/emergency', priority: 0.9, freq: 'weekly' },
-      { path: '/book', priority: 0.9, freq: 'weekly' },
-      { path: '/tyres', priority: 0.8, freq: 'weekly' },
-      { path: '/pricing', priority: 0.9, freq: 'weekly' },
-      { path: '/pricing-faq', priority: 0.7, freq: 'monthly' },
-      { path: '/help', priority: 0.7, freq: 'monthly' },
-      { path: '/faq', priority: 0.7, freq: 'monthly' },
-      { path: '/contact', priority: 0.7, freq: 'monthly' },
-      { path: '/privacy-policy', priority: 0.3, freq: 'monthly' },
-      { path: '/terms-of-service', priority: 0.3, freq: 'monthly' },
-      { path: '/refund-policy', priority: 0.3, freq: 'monthly' },
-      { path: '/cookie-policy', priority: 0.3, freq: 'monthly' },
-    ];
-    return staticPages.map(({ path, priority, freq }) => ({
+  function addUrl(path: string, priority: number, freq: 'daily' | 'weekly' | 'monthly') {
+    if (excludedPathPattern.test(path)) return;
+    const url = `${baseUrl}${path}`;
+    if (emittedUrls.has(url)) return;
+    emittedUrls.add(url);
+    out.push({
       url: `${baseUrl}${path}`,
       lastModified: now,
       changeFrequency: freq,
       priority,
-    }));
+    });
   }
 
-  if (sectionId === 'cities') {
-    const out: MetadataRoute.Sitemap = [];
+  const staticPages: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
+    { path: '', priority: 1, freq: 'daily' },
+    { path: '/emergency', priority: 0.9, freq: 'weekly' },
+    { path: '/emergency-tyre-fitting-near-me', priority: 0.9, freq: 'weekly' },
+    { path: '/book', priority: 0.9, freq: 'weekly' },
+    { path: '/tyres', priority: 0.8, freq: 'weekly' },
+    { path: '/pricing', priority: 0.9, freq: 'weekly' },
+    { path: '/pricing-faq', priority: 0.7, freq: 'monthly' },
+    { path: '/help', priority: 0.7, freq: 'monthly' },
+    { path: '/faq', priority: 0.7, freq: 'monthly' },
+    { path: '/contact', priority: 0.7, freq: 'monthly' },
+    { path: '/privacy-policy', priority: 0.3, freq: 'monthly' },
+    { path: '/terms-of-service', priority: 0.3, freq: 'monthly' },
+    { path: '/refund-policy', priority: 0.3, freq: 'monthly' },
+    { path: '/cookie-policy', priority: 0.3, freq: 'monthly' },
+  ];
 
-    // /[service]/[city] — 5 services × 19 cities = 95 URLs
-    for (const service of services) {
-      for (const citySlug of serviceCities) {
-        out.push({
-          url: `${baseUrl}/${service.slug}/${citySlug}`,
-          lastModified: now,
-          changeFrequency: 'weekly',
-          priority: 0.85,
-        });
-      }
-    }
-
-    // Legacy /services/[city] (canonical points to /mobile-tyre-fitting/[city])
-    for (const city of cities) {
-      out.push({
-        url: `${baseUrl}/services/${city.slug}`,
-        lastModified: now,
-        changeFrequency: 'monthly',
-        priority: 0.6,
-      });
-    }
-
-    // /mobile-tyre-fitting-[city]-price
-    for (const slug of priceCitySlugs) {
-      out.push({
-        url: `${baseUrl}/mobile-tyre-fitting-${slug}-price`,
-        lastModified: now,
-        changeFrequency: 'weekly',
-        priority: 0.8,
-      });
-    }
-
-    return out;
+  for (const page of staticPages) {
+    addUrl(page.path, page.priority, page.freq);
   }
 
-  if (sectionId === 'areas') {
-    const out: MetadataRoute.Sitemap = [];
-    const emittedUrls = new Set<string>();
+  // /[service]/[city] — 5 services × 19 cities = 95 URLs
+  for (const service of services) {
+    for (const citySlug of serviceCities) {
+      addUrl(`/${service.slug}/${citySlug}`, 0.85, 'weekly');
+    }
+  }
 
-    for (const service of services) {
-      for (const citySlug of serviceCities) {
-        for (const area of getAreasForCity(citySlug)) {
-          const url = `${baseUrl}/${service.slug}/${citySlug}/${area.slug}`;
-          out.push({
-            url,
-            lastModified: now,
-            changeFrequency: 'monthly',
-            priority: 0.5,
-          });
-          emittedUrls.add(url);
-        }
+  // /mobile-tyre-fitting-[city]-price, served by a rewrite to a valid internal route.
+  for (const slug of priceCitySlugs) {
+    addUrl(`/mobile-tyre-fitting-${slug}-price`, 0.8, 'weekly');
+  }
+
+  for (const service of services) {
+    for (const citySlug of serviceCities) {
+      for (const area of getAreasForCity(citySlug)) {
+        addUrl(`/${service.slug}/${citySlug}/${area.slug}`, 0.5, 'monthly');
       }
     }
+  }
 
-    for (const page of EMERGENCY_LANDING_PAGES) {
-      if (!('citySlug' in page) || !('areaSlug' in page)) continue;
+  for (const page of EMERGENCY_LANDING_PAGES) {
+    addUrl(page.path, 0.8, 'weekly');
+  }
 
-      const url = `${baseUrl}${page.path}`;
+  addUrl('/blog', 0.8, 'weekly');
+  for (const article of articles) {
+    const url = `${baseUrl}/blog/${article.slug}`;
+    if (emittedUrls.has(url)) continue;
+    emittedUrls.add(url);
+    out.push({
+      url,
+      lastModified: new Date(article.lastModified),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    });
+  }
+
+  addUrl('/compare', 0.7, 'monthly');
+  for (const comp of competitors) {
+    const url = `${baseUrl}/compare/${comp.slug}`;
+    if (emittedUrls.has(url)) continue;
+    emittedUrls.add(url);
+    out.push({
+      url,
+      lastModified: new Date(comp.lastModified),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    });
+  }
+
+  try {
+    const tyres = await db
+      .select({ slug: tyreProducts.slug })
+      .from(tyreProducts)
+      .where(eq(tyreProducts.availableNew, true));
+    for (const tyre of tyres) {
+      const url = `${baseUrl}/tyres/${tyre.slug}`;
       if (emittedUrls.has(url)) continue;
-
-      out.push({
-        url,
-        lastModified: now,
-        changeFrequency: 'weekly',
-        priority: 0.8,
-      });
       emittedUrls.add(url);
-    }
-
-    return out;
-  }
-
-  if (sectionId === 'blog') {
-    return [
-      {
-        url: `${baseUrl}/blog`,
-        lastModified: now,
-        changeFrequency: 'weekly',
-        priority: 0.8,
-      },
-      ...articles.map((article) => ({
-        url: `${baseUrl}/blog/${article.slug}`,
-        lastModified: new Date(article.lastModified),
-        changeFrequency: 'monthly' as const,
-        priority: 0.7,
-      })),
-      {
-        url: `${baseUrl}/compare`,
-        lastModified: now,
-        changeFrequency: 'monthly',
-        priority: 0.7,
-      },
-      ...competitors.map((comp) => ({
-        url: `${baseUrl}/compare/${comp.slug}`,
-        lastModified: new Date(comp.lastModified),
-        changeFrequency: 'monthly' as const,
-        priority: 0.7,
-      })),
-    ];
-  }
-
-  if (sectionId === 'tyres') {
-    try {
-      const tyres = await db
-        .select({ slug: tyreProducts.slug })
-        .from(tyreProducts)
-        .where(eq(tyreProducts.availableNew, true));
-      return tyres.map((tyre) => ({
+      out.push({
         url: `${baseUrl}/tyres/${tyre.slug}`,
         lastModified: now,
         changeFrequency: 'weekly' as const,
         priority: 0.6,
-      }));
-    } catch {
-      // DB unavailable at build time — emit empty sitemap rather than failing build.
-      return [];
+      });
     }
+  } catch {
+    // DB unavailable at build time: still emit the core crawlable pages.
   }
 
-  return [];
+  return out;
 }

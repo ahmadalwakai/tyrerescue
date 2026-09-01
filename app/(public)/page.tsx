@@ -72,40 +72,42 @@ export async function generateMetadata(): Promise<Metadata> {
   const ogImage = firstSlide?.src || '/og-image.svg';
 
   return {
+    title: {
+      absolute: 'Mobile Tyre Fitting Glasgow & Scotland | 24/7 | From £20 | Tyre Rescue',
+    },
     description:
-      '24/7 mobile tyre fitting, emergency tyre replacement, puncture repair, battery replacement, and roadside assistance across Scotland. Fast coverage in Glasgow and Edinburgh. Call 0141 266 0690.',
+      'Mobile tyre fitting across Glasgow, Edinburgh and Central Scotland — 24/7. Flat tyre? We come to you in 45 minutes. New tyres fitted at your home, work or roadside. Call 0141 266 0690 now.',
     keywords: [
       'mobile tyre fitting glasgow',
       'mobile tyre fitting near me',
       'emergency tyre fitting glasgow',
       'tyre repair near me',
       'tyres near me',
-      'tyre shop near me',
-      'tyres glasgow',
-      'mobile tyres near me',
-      'mobile tyre repair near me',
+      'mobile tyres glasgow',
       'mobile tyre fitters glasgow',
       'tyre repair glasgow',
       'puncture repair near me',
       'mobile tyre fitter glasgow',
-      'mobile tyres glasgow',
-      'mobile tyre repair',
-      'glasgow mobile tyres',
       'tyre fitting near me',
-      'tyre shop glasgow',
-      'duke street tyres',
       '24 hour tyre fitting glasgow',
       'emergency tyre fitting edinburgh',
       'roadside tyre fitting scotland',
-      'ai tyre dispatch',
-      'smart tyre fitting',
-      'intelligent mobile tyre service',
+      'mobile tyre fitting scotland',
+      'flat tyre glasgow',
+      'tyre fitting at home glasgow',
     ].join(', '),
     alternates: {
       canonical: 'https://www.tyrerescue.uk',
     },
     openGraph: {
-      images: [{ url: ogImage, width: 1200, height: 630, alt: firstSlide?.alt || 'Tyre Rescue — Mobile Tyre Fitting' }],
+      title: 'Mobile Tyre Fitting Glasgow & Scotland | 24/7 | Tyre Rescue',
+      description: 'Flat tyre in Glasgow or Edinburgh? We come to you in 45 minutes, 24/7. Mobile tyre fitting from £20. Call 0141 266 0690.',
+      images: [{ url: ogImage, width: 1200, height: 630, alt: firstSlide?.alt || 'Tyre Rescue — Mobile Tyre Fitting Glasgow' }],
+    },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: 'Mobile Tyre Fitting Glasgow & Scotland | 24/7 | Tyre Rescue',
+      description: 'Flat tyre? We come to you in 45 minutes across Glasgow, Edinburgh and Scotland. Call 0141 266 0690.',
     },
   };
 }
