@@ -2753,6 +2753,326 @@ Or [book online](/book) for same-day or next-day scheduled fitting.
 
 [Mobile tyre fitting in Dunfermline](/mobile-tyre-fitting/dunfermline) | [Edinburgh](/mobile-tyre-fitting/edinburgh) | [Dundee](/mobile-tyre-fitting/dundee) | [All service areas](/service-areas)`,
   },
+  {
+    slug: 'mobile-tyre-fitting-dumfries-galloway',
+    title: 'Mobile Tyre Fitting in Dumfries & Galloway: DG Postcodes, SW Scotland',
+    description: 'Mobile tyre fitting in Dumfries, Stranraer, Castle Douglas, Newton Stewart and all DG postcodes across Dumfries & Galloway. Advance booking recommended. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2025-09-01',
+    lastModified: '2025-09-01',
+    readingTime: 5,
+    featured: false,
+    relatedSlugs: ['mobile-tyre-fitting-ayr-ayrshire', '24-hour-emergency-tyre-fitting-scotland', 'tyre-maintenance-checklist-scotland'],
+    keywords: ['mobile tyre fitting dumfries', 'tyre fitting galloway', 'emergency tyre dumfries', 'mobile tyre stranraer', 'puncture repair dumfries', 'mobile tyre DG postcodes', 'tyre fitting south scotland'],
+    content: `# Mobile Tyre Fitting in Dumfries & Galloway
+
+Tyre Rescue covers the whole of Dumfries & Galloway — all DG postcodes from DG1 (Dumfries town) to DG16 (Gretna area). Dispatching from our Glasgow base via the A74(M), we reach Dumfries town in approximately 80 minutes. For more remote areas of the region — Stranraer, Newton Stewart, Kirkudbright — advance booking is strongly recommended.
+
+**Call 0141 266 0690** for emergency response or [book online](/book) for scheduled fitting.
+
+## Response Times Across Dumfries & Galloway
+
+| Location | Average Response |
+|---|---|
+| Dumfries town centre (DG1) | 80–95 minutes |
+| Annan (DG12) | 75–90 minutes |
+| Lockerbie (DG11) | 70–85 minutes |
+| Gretna / Gretna Green (DG16) | 70–80 minutes |
+| Castle Douglas (DG7) | 90–110 minutes |
+| Kirkcudbright (DG6) | 95–115 minutes |
+| Newton Stewart (DG8) | 100–120 minutes |
+| Stranraer (DG9) | 110–130 minutes |
+
+*For Stranraer and the Rhins of Galloway, advance booking is essential. Same-day emergency service may not always be possible in very remote areas.*
+
+## Postcode Coverage in Dumfries & Galloway
+
+**DG1 — Dumfries town:** Centre, Lochside, Heathhall, Maxwelltown
+**DG2 — Dumfries rural west:** Dumfries Castle area, Troqueer
+**DG3 — Thornhill / Sanquhar:** A76 corridor
+**DG4 — Sanquhar / Upper Nithsdale**
+**DG5 — Dalbeattie**
+**DG6 — Kirkcudbright / Gatehouse of Fleet**
+**DG7 — Castle Douglas / New Galloway**
+**DG8 — Newton Stewart / Wigtown / Whithorn**
+**DG9 — Stranraer / Port Patrick / Drummore**
+**DG10 — Moffat**
+**DG11 — Lockerbie / Ecclefechan**
+**DG12 — Annan / Eastriggs**
+**DG13 — Langholm / Canonbie**
+**DG14 — Canonbie / Longtown border area**
+**DG16 — Gretna / Gretna Green / Springfield**
+
+## The A74(M) and M74
+
+The A74(M) / M74 is Scotland's main southbound motorway, running from Glasgow through Lockerbie to the English border at Gretna. It's one of Scotland's busiest freight routes and generates a significant number of tyre callouts, especially from HGVs and motorhomes.
+
+If you break down on the A74(M), use a motorway emergency phone or call 999 first if in immediate danger. Then call us on 0141 266 0690. Response from Glasgow to the Lockerbie area is typically 70–85 minutes.
+
+## Stranraer and the Cairnryan Ferry
+
+The P&O and Stena Line ferries from Cairnryan (DG9) to Belfast serve thousands of passengers each week. We cover the ferry terminal and Stranraer town, though response times here are 110–130 minutes. If you're heading for an early ferry, we recommend booking the night before to ensure your vehicle is road-ready.
+
+## Gretna Green — A Special Location
+
+Gretna Green (DG16) is just over the Scottish border and one of Scotland's most visited tourist destinations. Located right on the A74(M)/M6 junction, response time is approximately 70–80 minutes. Hire car and motorhome callouts are particularly common here.
+
+## Frequently Asked Questions
+
+### Can you come to Stranraer for a ferry connection?
+We can, but with a 110–130 minute response time. If you have a ferry booking, call us as soon as you discover the problem and we will do our best to get to you in time. If there's a risk of missing the ferry, we'll tell you honestly.
+
+### Do you cover the A75 Euroroute?
+Yes. The A75 from Dumfries to Stranraer passes through Castle Douglas, Newton Stewart and Glenluce. This road — Scotland's main ferry route to Northern Ireland — is covered. Callouts on the A75 are common, particularly near Castle Douglas and Newton Stewart.
+
+### Is there a surcharge for Dumfries & Galloway?
+For standard callouts to Dumfries and Annan, the £49 callout fee applies. For more remote locations — Stranraer, Kirkcudbright, Whithorn — there may be an additional distance charge. We always confirm the full price before dispatching.
+
+## Book Mobile Tyre Fitting in Dumfries & Galloway
+
+Call **0141 266 0690** — 24 hours a day, every day.
+Or [book online](/book) for same-day or next-day scheduled fitting.
+
+[Ayrshire coverage](/mobile-tyre-fitting/ayr) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-fort-william-highlands',
+    title: 'Mobile Tyre Fitting in Fort William & Lochaber: PH33 & Highland Coverage',
+    description: 'Mobile tyre fitting in Fort William, Spean Bridge, Glencoe, Ballachulish and Lochaber. Fast response for Ben Nevis visitors, NC500 travellers and Highland residents. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2025-09-01',
+    lastModified: '2025-09-01',
+    readingTime: 5,
+    featured: false,
+    relatedSlugs: ['mobile-tyre-fitting-inverness-highlands', 'mobile-tyre-fitting-perth-perthshire', '24-hour-emergency-tyre-fitting-scotland'],
+    keywords: ['mobile tyre fitting fort william', 'tyre fitting lochaber', 'emergency tyre fort william', 'mobile tyre PH33', 'puncture repair fort william', 'tyre fitting glencoe', 'tyre fitting ben nevis', 'mobile tyre NC500 start'],
+    content: `# Mobile Tyre Fitting in Fort William & Lochaber
+
+Fort William is the gateway to the Scottish Highlands — Ben Nevis, Glencoe, the Great Glen, and the start of the North Coast 500 tourist route. It's also one of Scotland's most important outdoor recreation centres, drawing hundreds of thousands of visitors each year in campervans, motorhomes, and hire cars on narrow Highland roads.
+
+Tyre Rescue covers Fort William and the full Lochaber area. Our response time to Fort William town centre is approximately 100–120 minutes from our Glasgow base.
+
+**Call 0141 266 0690** or [book in advance](/book) — advance booking is recommended for this area.
+
+## Response Times in Lochaber
+
+| Location | Average Response |
+|---|---|
+| Fort William town centre (PH33 6) | 100–120 minutes |
+| Spean Bridge (PH34) | 110–130 minutes |
+| Roy Bridge / Tulloch (PH31) | 115–135 minutes |
+| Glencoe village (PH49) | 90–110 minutes |
+| Ballachulish (PH49) | 90–115 minutes |
+| Kinlochleven (PH50) | 105–125 minutes |
+| Mallaig (PH41) | 130–160 minutes |
+| Acharacle (PH36) | 120–150 minutes |
+
+*For Mallaig, Acharacle and the more remote parts of Ardnamurchan and Morvern, advance booking is essential and same-day emergency service may not always be achievable.*
+
+## The A82 — Scotland's Most Challenging Road
+
+The A82 from Glasgow to Inverness via Glencoe and Fort William is one of Scotland's most scenic — and most challenging — roads for tyres. Narrow sections, loose gravel edges, and the notorious Glencoe Pass road surface make tyre damage common. We cover the full A82 length:
+
+- Glasgow → Balloch → Loch Lomond (A82)
+- Tarbet → Crianlarich → Tyndrum (A82)
+- Glencoe Pass and the A82 Devil's Staircase section
+- Ballachulish Bridge → Fort William (A82)
+
+If you break down on the A82 in Glencoe, pull into one of the layby areas, switch on hazards, and call us. Response from Glasgow to Glencoe is approximately 90–110 minutes.
+
+## Ben Nevis Visitor Area
+
+The Ben Nevis visitor car park and the Glen Nevis approach road are frequent callout locations, especially during summer. Rough car park surfaces and the volume of heavy campervans and motorhomes mean tyre incidents are common. We cover the Glen Nevis road (PH33) and the surrounding area.
+
+## Fort William as NC500 Gateway
+
+While the NC500 officially starts and ends in Inverness, many drivers begin their NC500 adventure from Fort William via the A82 north. We cover this approach route through Invergarry, Fort Augustus, and on to Inverness. See our [Inverness and Highlands guide](/blog/mobile-tyre-fitting-inverness-highlands) for full NC500 coverage.
+
+## The Road to the Isles (A830)
+
+The A830 from Fort William to Mallaig serves the Jacobite Steam Train route and the Skye and Outer Hebrides ferry connections at Mallaig. It's a single-track road for much of its length and a frequent location for tyre incidents with hire cars unaccustomed to passing places.
+
+We cover the A830 corridor. For Mallaig callouts, response time is 130–160 minutes — advance booking is strongly recommended.
+
+## Frequently Asked Questions
+
+### Do you cover Glencoe Pass?
+Yes. We cover the full A82 through Glencoe including the National Trust for Scotland ranger station area. If broken down in Glencoe, use a safe layby and switch on hazards. Response is approximately 90–110 minutes from Glasgow.
+
+### Can you come to the Ben Nevis car park?
+Yes. The Glen Nevis car parks and Ben Nevis visitor area are accessible for our vans. Response time is approximately 100–120 minutes.
+
+### What about Ardnamurchan and Morvern?
+These very remote peninsulas are covered but with longer response times (140–180 minutes). Advance booking is strongly recommended. We'll always give you an honest assessment of what's achievable.
+
+### Is there a surcharge for Fort William?
+Yes — for the Fort William area and beyond, there is a distance supplement of approximately £20–40 on top of the standard £49 callout fee. We confirm all costs before dispatching.
+
+## Book Mobile Tyre Fitting in Fort William
+
+Call **0141 266 0690** — 24 hours a day, every day.
+Or [book in advance](/book) for scheduled Highland fitting.
+
+[Inverness & Highlands](/mobile-tyre-fitting/inverness) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-east-lothian',
+    title: 'Mobile Tyre Fitting in East Lothian: EH39–EH42 Postcodes, Fast Edinburgh Dispatch',
+    description: 'Mobile tyre fitting in Haddington, North Berwick, Dunbar, Musselburgh and all East Lothian EH postcodes. Fast 40–60 minute response from Edinburgh. 24/7 emergency callout. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2025-09-01',
+    lastModified: '2025-09-01',
+    readingTime: 4,
+    featured: false,
+    relatedSlugs: ['mobile-tyre-fitting-edinburgh-guide', 'mobile-tyre-fitting-kirkcaldy-fife', 'what-to-do-flat-tyre-motorway'],
+    keywords: ['mobile tyre fitting east lothian', 'tyre fitting haddington', 'emergency tyre north berwick', 'mobile tyre dunbar', 'puncture repair east lothian', 'mobile tyre EH postcodes', 'tyre fitting musselburgh'],
+    content: `# Mobile Tyre Fitting in East Lothian
+
+East Lothian is Edinburgh's eastern commuter belt — a mix of affluent coastal towns, golf resorts, retail parks and busy main roads. Tyre Rescue covers all of East Lothian dispatching from Edinburgh, typically reaching Haddington in 40–50 minutes and North Berwick in 50–65 minutes.
+
+**Call 0141 266 0690** for immediate emergency response, or [book online](/book) for same-day fitting.
+
+## Response Times in East Lothian
+
+| Location | Average Response |
+|---|---|
+| Musselburgh (EH21) | 35–45 minutes |
+| Tranent (EH33) | 40–50 minutes |
+| Prestonpans (EH32) | 40–50 minutes |
+| Haddington (EH41) | 45–55 minutes |
+| North Berwick (EH39) | 50–65 minutes |
+| Dunbar (EH42) | 55–70 minutes |
+| East Linton (EH40) | 50–60 minutes |
+| Gullane / Aberlady (EH31/EH32) | 50–65 minutes |
+
+## Postcode Coverage
+
+**EH21 — Musselburgh:** Town centre, Wallyford, Whitecraig, Whitecraig, Stoneyhill
+**EH22 — Dalkeith / Mayfield / Newtongrange** (South Midlothian, also covered)
+**EH31 — Gullane / Aberlady / Longniddry**
+**EH32 — Prestonpans / Cockenzie / Port Seton / Longniddry**
+**EH33 — Tranent / Ormiston / Pencaitland**
+**EH34 — Tranent East / Humbie / Gifford**
+**EH35 — Pencaitland / East Saltoun**
+**EH36 — Gifford / Yester / Garvald**
+**EH37 — Pathhead / Fala / Soutra Hill**
+**EH38 — Heriot / Stow**
+**EH39 — North Berwick / Dirleton / Gullane East**
+**EH40 — East Linton / Whittingehame / Tyninghame**
+**EH41 — Haddington / Athelstaneford / Bolton**
+**EH42 — Dunbar / Belhaven / Innerwick**
+
+## The A1 East Lothian Corridor
+
+The A1 between Edinburgh and the English border runs through East Lothian via Musselburgh, Haddington and Dunbar. It's a busy dual carriageway and a frequent source of tyre emergencies. If you break down on the A1, move to the hard shoulder or nearest layby, switch on hazards, and call us. We cover the full A1 East Lothian section.
+
+## North Berwick Golf Clubs
+
+North Berwick is home to some of Scotland's finest golf courses — North Berwick Golf Club, Renaissance Club, and Muirfield at Gullane. Regular visitors arrive in hire cars and prestige vehicles. We cover all North Berwick postcodes (EH39) and the golf club approaches.
+
+## Musselburgh — Eastern Edinburgh Gateway
+
+Musselburgh (EH21) is East Lothian's largest town and sits on Edinburgh's eastern boundary. The A1 flyover, the Newcraighall Retail Park, and Musselburgh Racecourse are common callout locations. Response from Edinburgh to Musselburgh is 35–45 minutes — among our fastest East Lothian responses.
+
+## Frequently Asked Questions
+
+### Do you cover Musselburgh from Edinburgh or from Glasgow?
+Primarily from Edinburgh — response is 35–45 minutes. From Glasgow it would be longer (75–90 minutes). We dispatch from the nearest available fitter.
+
+### Can you come to Dunbar for A1 motorway breakdowns?
+Yes. Dunbar (EH42) is typically 55–70 minutes. The A1 dual carriageway section near Dunbar is a common callout location.
+
+### Do you cover Gifford and Humbie in the Lammermuirs?
+Yes — Gifford (EH41) and Humbie (EH36) are in our coverage area. Response is 60–75 minutes. Advance booking is recommended for very rural East Lothian locations.
+
+### Is there a surcharge for East Lothian compared to Edinburgh?
+No. East Lothian is within our standard Edinburgh service area. The £49 callout fee applies throughout.
+
+## Book Mobile Tyre Fitting in East Lothian
+
+Call **0141 266 0690** — 24 hours a day, every day.
+Or [book online](/book) for same-day or next-day scheduled fitting.
+
+[Mobile tyre fitting in Edinburgh](/mobile-tyre-fitting/edinburgh) | [Fife coverage](/mobile-tyre-fitting/kirkcaldy) | [All service areas](/service-areas)`,
+  },
+  {
+    slug: 'mobile-tyre-fitting-elgin-moray',
+    title: 'Mobile Tyre Fitting in Elgin & Moray: IV30 and AB Postcode Coverage',
+    description: 'Mobile tyre fitting in Elgin, Forres, Keith, Buckie and all Moray IV30-IV36 postcodes. Advance booking recommended. Emergency response 80–100 minutes from Aberdeen. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2025-09-01',
+    lastModified: '2025-09-01',
+    readingTime: 5,
+    featured: false,
+    relatedSlugs: ['mobile-tyre-fitting-aberdeen-guide', 'mobile-tyre-fitting-inverness-highlands', '24-hour-emergency-tyre-fitting-scotland'],
+    keywords: ['mobile tyre fitting elgin', 'tyre fitting moray', 'emergency tyre elgin', 'mobile tyre IV30', 'puncture repair elgin', 'mobile tyre fitting forres', 'tyre fitting keith', 'mobile tyre moray'],
+    content: `# Mobile Tyre Fitting in Elgin & Moray
+
+Elgin is the principal town of Moray — an area of outstanding natural beauty and some of Scotland's finest whisky country. Tyre Rescue covers the Moray region including Elgin, Forres, Keith, Buckie, Lossiemouth and the full IV30–IV36 postcode area.
+
+Dispatch is from both our Aberdeen base (A96 route, ~80 minutes to Elgin) and our Inverness network (A96 westbound, ~55 minutes to Elgin). We always dispatch from whichever is faster for your location.
+
+**Call 0141 266 0690** or [book in advance](/book) — advance booking is recommended for the Moray area.
+
+## Response Times Across Moray
+
+| Location | Approx. Response (Aberdeen route) |
+|---|---|
+| Elgin town centre (IV30) | 80–100 minutes |
+| Forres (IV36) | 75–95 minutes |
+| Keith (AB55) | 70–90 minutes |
+| Buckie (AB56) | 80–100 minutes |
+| Lossiemouth (IV31) | 85–105 minutes |
+| Burghead / Hopeman (IV30) | 85–105 minutes |
+| Aberlour / Craigellachie (AB38) | 80–95 minutes |
+| Rothes (AB38) | 85–100 minutes |
+
+## Postcode Coverage
+
+**IV30 — Elgin:** Town centre, Lossiemouth road, Linkwood area
+**IV31 — Lossiemouth:** Town, RAF Lossiemouth surrounds
+**IV32 — Fochabers**
+**IV33 — Urquhart / Alves**
+**IV34 — Forres East / Kinloss**
+**IV35 — Forres West**
+**IV36 — Forres / Findhorn / Kinloss / Brodie**
+**AB38 — Craigellachie / Aberlour / Rothes** (Speyside)
+**AB55 — Keith / Dufftown / Huntly approaches**
+**AB56 — Buckie / Cullen / Findochty / Portknockie**
+
+## The A96 Aberdeen–Inverness Corridor
+
+The A96 is Moray's main artery, connecting Aberdeen to Inverness via Keith, Elgin, Forres and Nairn. It's a busy two-lane A-road with a high proportion of lorry traffic. Regular improvements and patchy road surfaces make tyre incidents more common than on motorways. We cover the full A96 through Moray.
+
+## Moray's Whisky Distilleries
+
+Moray is home to over 50 single malt whisky distilleries including Glenfiddich (Dufftown), Glen Grant (Rothes), and Cardhu (Knockando). Many are off narrow B-roads. Tourism traffic to the Speyside Way and distillery trails is year-round, and punctures on gravel access roads are not uncommon. We cover distillery areas including Dufftown (AB55), Rothes (AB38) and Craigellachie.
+
+## RAF Lossiemouth Area
+
+RAF Lossiemouth (IV31) is one of Scotland's busiest military airbases. Civilian callouts in the Lossiemouth and Covesea area are covered. For callouts near the base perimeter, meet us at a public road — do not ask us to attend restricted areas.
+
+## Frequently Asked Questions
+
+### Can you come to the Speyside distillery trail?
+Yes — we cover the Dufftown (AB55), Rothes (AB38) and Craigellachie areas. For very remote distillery access roads (single-track, no passing places), meet us at the nearest public road.
+
+### Do you cover Burghead and Findhorn?
+Yes. Burghead (IV30) and Findhorn (IV36) are in our coverage. Findhorn Bay and the Findhorn Village area are covered — response approximately 90–105 minutes.
+
+### Is there a surcharge for Moray?
+For Elgin and Forres, the standard £49 callout fee applies. For more remote Moray locations — Dufftown, Tomintoul — there may be a small distance supplement. We always confirm before dispatching.
+
+### Do you cover Keith and the AB55 area?
+Yes. Keith sits between Aberdeen and Elgin and is accessible from both directions. Response time is approximately 70–90 minutes.
+
+## Book Mobile Tyre Fitting in Elgin & Moray
+
+Call **0141 266 0690** — 24 hours a day, every day.
+Or [book in advance](/book) for scheduled Moray fitting.
+
+[Aberdeen coverage](/mobile-tyre-fitting/aberdeen) | [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [All service areas](/service-areas)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
