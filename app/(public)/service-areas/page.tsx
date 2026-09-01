@@ -12,6 +12,15 @@ export const metadata: Metadata = {
   title: 'Mobile Tyre Fitting Service Areas Scotland | Tyre Rescue',
   description:
     'Mobile tyre fitting across all of Scotland. We cover Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Perth, Stirling, the Highlands, Islands and every postcode in between. Find your area.',
+  keywords: [
+    'mobile tyre fitting scotland',
+    'tyre fitting service areas scotland',
+    'mobile tyre fitter near me scotland',
+    'tyre rescue coverage scotland',
+    'mobile tyre fitting glasgow edinburgh aberdeen inverness',
+    'tyre fitting highlands islands scotland',
+    'emergency tyre scotland postcode',
+  ],
   alternates: { canonical: `${SITE_URL}/service-areas` },
   openGraph: {
     title: 'Mobile Tyre Fitting Service Areas — All of Scotland | Tyre Rescue',
@@ -108,10 +117,10 @@ const regions = [
 ];
 
 const services = [
-  { name: 'Mobile Tyre Fitting', slug: 'mobile-tyre-fitting' },
-  { name: 'Emergency Tyre Fitting', slug: 'emergency-tyre-fitting' },
-  { name: 'Puncture Repair', slug: 'puncture-repair' },
-  { name: 'Tyre Supply & Fit', slug: 'tyre-supply-and-fit' },
+  { name: 'Mobile Tyre Fitting', href: '/mobile-tyre-fitting' },
+  { name: 'Emergency Tyre Fitting', href: '/emergency-tyre-fitting-near-me' },
+  { name: 'Puncture Repair', href: '/puncture-repair' },
+  { name: 'Tyre Supply & Fit', href: '/tyres' },
 ];
 
 const coverageFaqs = [
@@ -237,8 +246,8 @@ export default function ServiceAreasPage() {
             </p>
             <div style={s.serviceGrid}>
               {services.map((svc) => (
-                <div key={svc.slug} style={s.serviceCard}>
-                  <Link href={`/${svc.slug}/glasgow`} style={s.serviceLink}>
+                <div key={svc.href} style={s.serviceCard}>
+                  <Link href={svc.href} style={s.serviceLink}>
                     {svc.name}
                   </Link>
                   <p style={{ color: '#A1A1AA', fontSize: '13px', marginTop: '6px', marginBottom: '0' }}>
