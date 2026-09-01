@@ -7654,6 +7654,313 @@ Call **0141 266 0690** or [book online](/book) for mobile Mercedes tyre fitting 
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Audi tyre fitting Scotland](/blog/audi-tyre-fitting-scotland)`,
   },
+  {
+    slug: 'kia-tyre-fitting-scotland',
+    title: 'Kia Tyre Fitting Scotland: Sportage, EV6, Niro, Sorento & Ceed',
+    description:
+      'Mobile Kia tyre fitting across Scotland. Correct tyre sizes for every Kia model — Sportage, EV6, Niro EV, Sorento, Ceed, Rio, Picanto, Stinger. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'kia tyre fitting scotland',
+      'kia sportage tyres scotland',
+      'kia ev6 tyres scotland',
+      'kia niro tyres scotland',
+      'kia sorento tyres scotland',
+      'kia ceed tyres scotland',
+      'mobile kia tyre fitting glasgow',
+      'kia stinger tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'hyundai-tyre-fitting-scotland',
+    ],
+    content: `# Kia Tyre Fitting Scotland: Every Model Covered
+
+The Kia Sportage was the third best-selling car in the UK in 2023, and Kia's range of SUVs, EVs, and family cars has grown enormously in Scotland over the last five years. Tyre Rescue provides specialist mobile Kia tyre fitting across all of Scotland — the right tyre for your exact model, every time.
+
+## Kia Sportage Tyre Sizes
+
+The Kia Sportage (NQ5, 2021–present) — UK's most popular Korean car:
+
+| Sportage Trim | Tyre Size |
+|---|---|
+| Sportage 2 / GT-Line | 225/65R17 |
+| Sportage 3 / 4 | 235/55R18 |
+| Sportage GT-Line S | 255/45R19 |
+| Sportage Plug-in Hybrid | 235/55R18 (load index 104+) |
+| Sportage HEV | 235/55R18 |
+
+Sportage (QL, 2016–2021): 215/65R16 base, 235/55R18 upper trims.
+
+**PHEV note**: The Sportage plug-in hybrid carries a large battery — load index 104+ is required. We always verify this before fitting.
+
+## Kia EV6 Tyre Sizes
+
+The Kia EV6 (2021–present) is Kia's flagship electric crossover and one of the best-reviewed EVs in the UK:
+
+| EV6 Variant | Tyre Size |
+|---|---|
+| EV6 Standard Range | 235/55R19 |
+| EV6 Long Range AWD | 235/55R19 or 255/45R20 |
+| EV6 GT-Line | 255/45R20 |
+| EV6 GT | 265/40R21 (front) / 275/40R21 (rear) |
+
+**EV6 GT staggered**: The EV6 GT uses different front and rear sizes. When ordering, specify whether you need front or rear.
+
+**EV tyre fitting note**: The EV6 has no spare wheel. A flat requires immediate mobile fitting. We carry EV6 tyre sizes in stock — call ahead to confirm your exact specification.
+
+## Kia Niro Tyre Sizes
+
+The Kia Niro (SG2, 2022–present) — available as HEV, PHEV, and full EV:
+
+| Niro Variant | Tyre Size |
+|---|---|
+| Niro HEV (2 / 3) | 205/60R16 |
+| Niro HEV (4 / GT-Line) | 215/55R17 |
+| Niro PHEV | 215/55R17 (load index 98+) |
+| Niro EV | 215/55R17 or 215/45R18 |
+
+Niro (DE, 2016–2022): 205/60R16 base, 215/55R17 upper.
+
+## Kia Sorento Tyre Sizes
+
+The Kia Sorento (MQ4, 2020–present) — 7-seat family SUV:
+
+| Sorento Trim | Tyre Size |
+|---|---|
+| Sorento 2 / GT-Line | 235/65R17 |
+| Sorento 3 / 4 | 255/45R20 |
+| Sorento GT-Line S | 255/45R20 |
+| Sorento Plug-in Hybrid | 255/45R20 (load index 105+) |
+
+## Kia Ceed Tyre Sizes
+
+The Kia Ceed (CD, 2018–present) — hatchback, Sportswagon, and ProCeed shooting brake:
+
+| Ceed Trim | Tyre Size |
+|---|---|
+| Ceed 2 / 3 | 195/65R15 |
+| Ceed GT-Line | 205/55R16 or 225/45R17 |
+| Ceed GT | 225/40R18 |
+| ProCeed GT-Line | 225/45R17 or 245/40R18 |
+
+## Kia Rio Tyre Sizes
+
+The Kia Rio (YB, 2017–present):
+
+- 175/65R15 (1 / 2 trim)
+- 195/55R16 (3 / GT-Line)
+
+## Kia Picanto Tyre Sizes
+
+The Kia Picanto (JA, 2017–present):
+
+- 175/65R14 (X-Line: 175/60R15)
+- 185/55R15 (GT-Line)
+
+## Kia Stinger Tyre Sizes
+
+The Kia Stinger (CK, discontinued 2023 but still on Scottish roads):
+
+- 225/45R18 (2.0T RWD)
+- 255/35R19 (3.3T V6)
+
+The Stinger V6 uses summer performance tyres — Scottish climate advice: consider all-season tyres for year-round use.
+
+## Kia TPMS Reset
+
+All Kia models from 2016 onward have TPMS. After any tyre change:
+
+- **Indirect TPMS (Rio, Picanto, Ceed, Niro HEV)**: Reset via the instrument cluster — Vehicle Info → Tyre → Reset
+- **Direct TPMS (EV6, Sorento, Sportage PHEV)**: Requires a TPMS diagnostic tool to relearn each sensor
+
+Tyre Rescue carries Kia-compatible TPMS reset tools. Reset is included at no additional charge with every fitting.
+
+## Emergency Kia Tyre Fitting in Scotland
+
+If you have a flat tyre on your Kia anywhere in Scotland:
+
+1. **EV6, Niro EV**: No spare wheel — call us immediately
+2. **Sportage, Sorento, Ceed**: May have a space-saver spare — check your boot
+3. **Call 0141 266 0690** — give your registration number and we will identify your tyre specification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+
+## Why Use Tyre Rescue for Your Kia?
+
+- **Sportage specialists** — we carry the most popular Sportage sizes on every van
+- **EV6 staggered fitments** — we understand front/rear split specs for the EV6 GT
+- **PHEV load index compliance** — correct load index for Sportage PHEV and Niro PHEV
+- **TPMS reset included** — dashboard warnings cleared before we leave
+- **All of Scotland** — from Glasgow to the Highlands
+
+Call **0141 266 0690** or [book online](/book) for mobile Kia tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Hyundai tyre fitting Scotland](/blog/hyundai-tyre-fitting-scotland) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland)`,
+  },
+  {
+    slug: 'hyundai-tyre-fitting-scotland',
+    title: 'Hyundai Tyre Fitting Scotland: Tucson, Ioniq 5, Ioniq 6, i30 & Kona',
+    description:
+      'Mobile Hyundai tyre fitting across Scotland. Correct tyre sizes for every Hyundai model — Tucson, Ioniq 5, Ioniq 6, i30, Kona, Santa Fe, i10, i20. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'hyundai tyre fitting scotland',
+      'hyundai tucson tyres scotland',
+      'hyundai ioniq 5 tyres scotland',
+      'hyundai ioniq 6 tyres scotland',
+      'hyundai i30 tyres scotland',
+      'hyundai kona tyres scotland',
+      'hyundai santa fe tyres scotland',
+      'mobile hyundai tyre fitting glasgow',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'kia-tyre-fitting-scotland',
+    ],
+    content: `# Hyundai Tyre Fitting Scotland: Every Model Covered
+
+Hyundai has transformed from a budget brand into one of Scotland's most popular car choices. The Hyundai Tucson, i30, and Ioniq 5 are now common on Scottish roads from Glasgow to the Highlands. Tyre Rescue provides mobile Hyundai tyre fitting across all of Scotland — the right tyre specification for every model.
+
+## Hyundai Tucson Tyre Sizes
+
+The Hyundai Tucson (NX4, 2021–present) — Hyundai's bestselling model in Scotland:
+
+| Tucson Trim | Tyre Size |
+|---|---|
+| Tucson SE Connect | 225/60R17 |
+| Tucson Premium | 235/55R18 |
+| Tucson Ultimate | 235/45R19 |
+| Tucson PHEV | 235/55R18 or 235/45R19 (load index 104+) |
+| Tucson HEV | 235/55R18 |
+
+Tucson (TL, 2015–2021): 215/65R16 base, 235/55R18 upper trims.
+
+**PHEV note**: The Tucson PHEV is significantly heavier than the HEV — load index 104+ is required. We verify this before every fitting.
+
+## Hyundai Ioniq 5 Tyre Sizes
+
+The Hyundai Ioniq 5 (NE1, 2021–present) — one of the most popular EVs in Scotland:
+
+| Ioniq 5 Variant | Tyre Size |
+|---|---|
+| Ioniq 5 Standard Range | 235/55R19 |
+| Ioniq 5 Long Range RWD | 235/55R19 |
+| Ioniq 5 Long Range AWD | 255/45R20 |
+| Ioniq 5 N | 275/35R21 |
+
+**Ioniq 5 N note**: The Ioniq 5 N uses a high-performance summer tyre (Pirelli P Zero PZ4 or similar). For year-round Scottish use, consider all-season tyres — but consult us first for load index and speed rating compatibility.
+
+**EV tyre note**: The Ioniq 5 has no spare wheel. A flat requires immediate mobile fitting. We carry Ioniq 5 sizes in stock.
+
+## Hyundai Ioniq 6 Tyre Sizes
+
+The Hyundai Ioniq 6 (CE1, 2023–present) — electric saloon:
+
+| Ioniq 6 Variant | Tyre Size |
+|---|---|
+| Ioniq 6 Standard Range | 245/45R18 |
+| Ioniq 6 Long Range RWD | 245/45R18 or 245/40R19 |
+| Ioniq 6 Long Range AWD | 245/40R19 |
+| Ioniq 6 SE Connect | 245/45R18 |
+
+**Ioniq 6 note**: The Ioniq 6 uses a distinctive wide-but-short-profile tyre. The unusual combination of high load index and low profile means not all retailers carry these in stock — call ahead on 0141 266 0690 to confirm stock.
+
+## Hyundai i30 Tyre Sizes
+
+The Hyundai i30 (PD facelift, 2020–present):
+
+| i30 Trim | Tyre Size |
+|---|---|
+| i30 SE Connect | 195/65R15 |
+| i30 Premium | 205/55R16 |
+| i30 N Line | 225/45R17 |
+| i30 N (Performance) | 235/40R18 or 245/35R19 |
+| i30 Fastback | 205/55R16 or 225/40R18 |
+
+**i30 N note**: The Hyundai i30 N uses summer performance tyres. Scottish climate advice: all-season tyres for year-round driving are worth considering — we can advise on compatible specs.
+
+## Hyundai Kona Tyre Sizes
+
+The Hyundai Kona (SX2, 2023–present):
+
+| Kona Trim | Tyre Size |
+|---|---|
+| Kona SE Connect | 205/65R16 |
+| Kona Premium / Ultimate | 225/45R18 |
+| Kona Electric | 215/55R17 or 225/45R18 (load index 95+) |
+
+Kona (OS, 2017–2023): 205/60R16 base, 215/55R17 upper, 215/50R18 on Electric.
+
+## Hyundai Santa Fe Tyre Sizes
+
+The Hyundai Santa Fe (MX5, 2024–present) — 7-seat family SUV:
+
+| Santa Fe Trim | Tyre Size |
+|---|---|
+| Santa Fe Premium | 235/60R18 |
+| Santa Fe Ultimate | 255/45R20 |
+| Santa Fe PHEV | 255/45R20 (load index 105+) |
+
+Santa Fe (TM, 2018–2023): 225/65R17 base, 235/60R18 upper, 235/55R19 top.
+
+## Hyundai i10 Tyre Sizes
+
+The Hyundai i10 (AC3, 2019–present):
+
+- 175/65R14 (SE Connect / Premium)
+- 195/45R16 (N Line)
+
+## Hyundai i20 Tyre Sizes
+
+The Hyundai i20 (BC3, 2020–present):
+
+- 185/65R15 (SE Connect)
+- 205/45R17 (N Line)
+- 215/40R18 (i20 N)
+
+## Hyundai TPMS Reset
+
+All Hyundai models from 2016 onward have TPMS. After any tyre change:
+
+- **Indirect TPMS (i10, i20, i30, Kona, Tucson HEV)**: Reset via the cluster menu or reset button — usually located in the glovebox or under the dashboard
+- **Direct TPMS (Ioniq 5, Ioniq 6, Tucson PHEV, Santa Fe PHEV)**: Requires a TPMS diagnostic tool
+
+Tyre Rescue carries Hyundai-compatible TPMS reset tools. Reset is included at no additional charge with every fitting.
+
+## Emergency Hyundai Tyre Fitting in Scotland
+
+If you have a flat tyre on your Hyundai anywhere in Scotland:
+
+1. **Ioniq 5, Ioniq 6**: No spare wheel — call us immediately
+2. **Tucson, Santa Fe, Kona**: Check your boot for a space-saver spare
+3. **i30, i10, i20**: Likely has a space-saver spare — check before calling
+4. **Call 0141 266 0690** — give your registration for instant tyre identification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+
+## Why Use Tyre Rescue for Your Hyundai?
+
+- **Ioniq 5 and Ioniq 6 specialists** — we carry and fit Hyundai EV tyre specifications
+- **PHEV load index compliance** — correct load index for Tucson, Santa Fe, and Kona PHEV
+- **TPMS reset included** — dashboard warnings cleared before we leave
+- **All of Scotland** — 34 cities and service areas covered
+- **No surprises** — full itemised quote before we start
+
+Call **0141 266 0690** or [book online](/book) for mobile Hyundai tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Kia tyre fitting Scotland](/blog/kia-tyre-fitting-scotland) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
