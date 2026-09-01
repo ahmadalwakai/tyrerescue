@@ -8604,6 +8604,261 @@ Call **0141 266 0690** or [book online](/book) for mobile MINI tyre fitting at y
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland)`,
   },
+  {
+    slug: 'honda-tyre-fitting-scotland',
+    title: 'Honda Tyre Fitting Scotland: Civic, CR-V, Jazz, HR-V & ZR-V',
+    description:
+      'Mobile Honda tyre fitting across Scotland. Correct tyre sizes for every Honda model — Civic, CR-V e:HEV, Jazz, HR-V, ZR-V, Honda e. TPMS reset included. All cities covered.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'honda tyre fitting scotland',
+      'honda civic tyres scotland',
+      'honda cr-v tyres scotland',
+      'honda jazz tyres scotland',
+      'honda hr-v tyres scotland',
+      'honda zr-v tyres scotland',
+      'mobile honda tyre fitting glasgow',
+      'honda e tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'toyota-tyre-fitting-scotland',
+    ],
+    content: `# Honda Tyre Fitting Scotland: Every Model Covered
+
+Honda cars are popular in Scotland for their reliability, practicality, and strong resale values. The Honda Jazz and CR-V are particularly common on Scottish roads, and the Honda Civic Type R has a dedicated following in Scottish cities. Tyre Rescue provides mobile Honda tyre fitting across all of Scotland.
+
+## Honda Civic Tyre Sizes
+
+The Honda Civic Mk11 (FL, 2022–present) — hatchback and estate:
+
+| Civic Trim | Tyre Size |
+|---|---|
+| Civic i-VTEC (petrol) | 215/50R17 |
+| Civic i-MMD Hybrid | 215/50R17 |
+| Civic Advance / Sport | 235/40R18 |
+| Civic Type R FL5 | 265/35R19 (front) / 265/35R19 (rear) — square fitment |
+
+Civic Mk10 (FC/FK, 2017–2022): 215/50R17 standard, 235/40R18 Sport Line, 235/35R19 Type R.
+
+**Type R note**: The Civic Type R uses a square fitment (same size front and rear) — tyres can be rotated. Call us to confirm stock for this performance specification.
+
+## Honda CR-V Tyre Sizes
+
+The Honda CR-V (RS, 2023–present) — available as e:HEV full hybrid:
+
+| CR-V Trim | Tyre Size |
+|---|---|
+| CR-V e:HEV Standard | 235/60R18 |
+| CR-V e:HEV Advance | 235/55R18 or 235/50R19 |
+| CR-V e:HEV AWD | 235/60R18 (load index 107+) |
+
+Older CR-V (RW2, 2018–2023): 225/60R18 (standard), 235/55R18 (EX / Black Edition).
+
+**CR-V e:HEV AWD note**: The all-wheel-drive full hybrid CR-V requires a load index of 107+ to handle its weight. We always verify this before fitting.
+
+## Honda Jazz Tyre Sizes
+
+The Honda Jazz (GR, 2020–present) — always hybrid in UK:
+
+| Jazz Trim | Tyre Size |
+|---|---|
+| Jazz i-MMD Standard | 185/60R15 |
+| Jazz i-MMD Advance | 185/60R15 or 195/55R16 |
+| Jazz Crosstar | 195/60R16 |
+
+Jazz is one of the most popular cars among older Scottish drivers for its practicality and high seating position.
+
+## Honda HR-V Tyre Sizes
+
+The Honda HR-V (RS, 2022–present) — e:HEV hybrid:
+
+- 215/60R16 (standard)
+- 215/55R17 (Advance)
+
+Older HR-V (RU, 2015–2021): 215/60R16 base, 215/55R17 EX/EX Navi.
+
+## Honda ZR-V Tyre Sizes
+
+The Honda ZR-V (2023–present) — coupe SUV, e:HEV:
+
+- 225/55R17 (standard)
+- 235/50R18 (Advance)
+
+## Honda e Electric Tyre Sizes
+
+The Honda e (ZC7, 2020–2024, discontinued):
+
+- 195/65R15 (standard)
+- 205/50R17 (Advance)
+
+The Honda e has no conventional spare wheel. If you own a Honda e in Scotland and have a flat tyre, call us immediately.
+
+## Honda TPMS Reset
+
+All Honda models from 2017 onward have TPMS. After any tyre change:
+
+- **Indirect TPMS (Jazz, HR-V, Civic base)**: Reset via the info button — Home → Settings → TYRE MONITOR → CALIBRATE
+- **Direct TPMS (CR-V AWD, Civic Type R, ZR-V)**: Requires a TPMS diagnostic tool
+
+Tyre Rescue carries Honda-compatible TPMS reset tools. Reset is included at no additional charge.
+
+## Emergency Honda Tyre Fitting in Scotland
+
+1. **Honda e**: No spare — call us immediately
+2. **Jazz, HR-V, Civic**: Check for a space-saver spare or inflation kit in the boot
+3. **CR-V**: Likely has a space-saver spare in the boot beneath the floor
+4. **Call 0141 266 0690** — give your registration for instant tyre identification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile Honda tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Toyota tyre fitting Scotland](/blog/toyota-tyre-fitting-scotland) | [Nissan tyre fitting Scotland](/blog/nissan-tyre-fitting-scotland)`,
+  },
+  {
+    slug: 'seat-cupra-tyre-fitting-scotland',
+    title: 'SEAT & CUPRA Tyre Fitting Scotland: Ibiza, Leon, Ateca, Formentor & Born',
+    description:
+      'Mobile SEAT and CUPRA tyre fitting across Scotland. Correct tyre sizes for every model — SEAT Ibiza, Leon, Arona, Ateca, Tarraco; CUPRA Leon, Formentor, Born EV. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'seat tyre fitting scotland',
+      'cupra tyres scotland',
+      'seat ibiza tyres scotland',
+      'seat leon tyres scotland',
+      'cupra formentor tyres scotland',
+      'cupra born tyres scotland',
+      'mobile seat tyre fitting glasgow',
+      'seat ateca tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'volkswagen-tyre-fitting-scotland',
+    ],
+    content: `# SEAT & CUPRA Tyre Fitting Scotland: Every Model Covered
+
+SEAT and its performance sub-brand CUPRA are popular across Scotland, particularly among younger drivers. Both brands are part of the Volkswagen Group and share platforms with the VW Polo, Golf, and Tiguan — which means similar tyre specifications and TPMS reset procedures. Tyre Rescue provides mobile SEAT and CUPRA tyre fitting across all of Scotland.
+
+## SEAT Ibiza Tyre Sizes
+
+The SEAT Ibiza (KJ1, 2017–present):
+
+| Ibiza Trim | Tyre Size |
+|---|---|
+| Ibiza Reference / Style | 185/65R15 |
+| Ibiza FR | 205/45R17 |
+| Ibiza FR Sport | 215/40R18 |
+
+## SEAT Leon Tyre Sizes
+
+The SEAT Leon (KL1, 2020–present) — hatchback, estate (Sportstourer), and estate:
+
+| Leon Trim | Tyre Size |
+|---|---|
+| Leon Reference / Style | 215/55R16 or 205/55R16 |
+| Leon FR | 225/45R17 |
+| Leon e-HYBRID PHEV | 225/45R17 (load index 91+) |
+| SEAT Leon Sportstourer | 215/55R16 or 225/45R17 |
+
+Older Leon (5F, 2012–2020): 195/65R15 base, 205/55R16 mid, 235/35R19 Cupra.
+
+**PHEV note**: The Leon e-HYBRID is heavier than the petrol Leon — load index 91+ required.
+
+## SEAT Arona Tyre Sizes
+
+The SEAT Arona (J1, 2021–present):
+
+- 195/65R15 (Reference)
+- 215/55R17 (FR, Xperience)
+
+## SEAT Ateca Tyre Sizes
+
+The SEAT Ateca (KHP, 2016–present):
+
+| Ateca Trim | Tyre Size |
+|---|---|
+| Ateca Reference / Style | 215/65R17 |
+| Ateca FR | 235/50R18 |
+| Ateca Xperience | 235/50R18 or 245/45R19 |
+
+## SEAT Tarraco Tyre Sizes
+
+The SEAT Tarraco (KN2, 2018–present):
+
+- 215/60R18 (Style)
+- 235/50R19 (Xcellence / FR)
+- 235/50R19 (Tarraco 4Drive, load index 103+)
+
+**Tarraco 4Drive note**: The all-wheel-drive Tarraco is heavier and requires minimum load index 103.
+
+## CUPRA Leon Tyre Sizes
+
+The CUPRA Leon (KL8, 2020–present):
+
+| CUPRA Leon Variant | Tyre Size |
+|---|---|
+| CUPRA Leon 2.0 TSI | 245/35R19 |
+| CUPRA Leon VZ | 245/35R19 |
+| CUPRA Leon e-HYBRID | 235/35R19 (load index 91+) |
+
+## CUPRA Formentor Tyre Sizes
+
+The CUPRA Formentor (KM7, 2021–present) — CUPRA's bestselling model:
+
+| Formentor Trim | Tyre Size |
+|---|---|
+| Formentor 1.5 TSI | 215/55R17 or 235/45R18 |
+| Formentor 2.0 TSI | 235/40R19 |
+| Formentor VZ 4Drive | 255/40R19 or 255/35R20 |
+| Formentor e-HYBRID | 235/40R19 (load index 96+) |
+
+**VZ 4Drive note**: The high-performance Formentor VZ uses wide 255mm tyres — call ahead to confirm stock for your specific size.
+
+## CUPRA Born Electric Tyre Sizes
+
+The CUPRA Born (K11, 2022–present) — electric performance hatchback:
+
+| Born Variant | Tyre Size |
+|---|---|
+| Born 58kWh | 235/45R19 |
+| Born 77kWh (e-Boost) | 235/45R20 |
+| Born VZ | 235/40R20 |
+
+**Born note**: No spare wheel. A flat requires immediate mobile fitting. The Born is based on the VW ID.3 platform — we carry Born tyre specifications in stock.
+
+## SEAT & CUPRA TPMS Reset
+
+SEAT and CUPRA use VW Group TPMS systems:
+
+- **Indirect TPMS (Ibiza, Leon, Arona)**: Reset via the infotainment — Car → Tyres → Store
+- **Direct TPMS (CUPRA Formentor VZ, Born, Tarraco 4Drive)**: Requires a TPMS diagnostic tool
+
+Tyre Rescue carries VW Group-compatible TPMS reset tools for all SEAT and CUPRA models. Reset is included at no additional charge.
+
+## Emergency SEAT & CUPRA Tyre Fitting in Scotland
+
+1. **CUPRA Born**: No spare wheel — call us immediately
+2. **CUPRA Formentor, Leon**: May have a space-saver spare or inflation kit
+3. **SEAT Ibiza, Arona, Leon**: Check boot for space-saver spare
+4. **Call 0141 266 0690** — give your registration for instant identification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile SEAT or CUPRA tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Volkswagen tyre fitting Scotland](/blog/volkswagen-tyre-fitting-scotland) | [Skoda tyre fitting Scotland](/blog/skoda-tyre-fitting-scotland)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
