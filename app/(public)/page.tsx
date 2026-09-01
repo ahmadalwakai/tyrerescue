@@ -151,22 +151,6 @@ export default async function Page() {
       />
       <HomePage />
       <JsonLd data={getFAQSchema(homepageFAQItems)} />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'SoftwareApplication',
-          name: 'Tyre Rescue AI Dispatch',
-          applicationCategory: 'BusinessApplication',
-          operatingSystem: 'Web',
-          description: 'AI-powered mobile tyre fitting dispatch system for Glasgow and Scotland. Smart driver assignment, demand-based pricing, and intelligent inventory management.',
-          offers: {
-            '@type': 'Offer',
-            price: '0',
-            priceCurrency: 'GBP',
-          },
-        }) }}
-      />
       {dbSlides.length > 0 && (
         <script
           type="application/ld+json"
