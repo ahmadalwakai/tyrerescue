@@ -10880,6 +10880,166 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'winter-tyres-scotland-buyers-guide-2026',
+    title: 'Best Winter Tyres for Scotland 2026–27: Buyer\'s Guide & Recommendations',
+    description:
+      'Best winter tyres for Scotland in 2026-27. Top-rated winter tyres by size, price comparison, when to fit them, and where to get them fitted across Glasgow, Edinburgh, and Scotland.',
+    category: 'safety',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 10,
+    featured: true,
+    keywords: [
+      'best winter tyres scotland 2026',
+      'winter tyres scotland 2026',
+      'winter tyre recommendations scotland',
+      'buy winter tyres scotland',
+      'winter tyre fitting scotland',
+      'top rated winter tyres 2026',
+      'winter tyres glasgow edinburgh',
+      'should i get winter tyres scotland 2026',
+    ],
+    relatedSlugs: [
+      'winter-tyres-when-to-switch-scotland',
+      'all-season-tyres-scotland-guide',
+      'tyre-prices-scotland-guide-2026',
+    ],
+    content: `# Best Winter Tyres for Scotland 2026–27
+
+With September here, now is the time to plan your winter tyres for the coming season. Scotland's roads from October to April present conditions that summer tyres are not designed for — not just snow, but cold tarmac below 7°C where summer tyre compounds harden and lose grip.
+
+This guide covers the best winter tyres for Scotland in 2026–27, by size and use case, with pricing and fitting information.
+
+## Do You Need Winter Tyres in Scotland?
+
+**If you drive in the Highlands, Aberdeenshire, or rural Scotland**: yes. The risk of snow, ice, and frost is high enough that winter tyres or properly-rated all-season tyres are strongly recommended from October.
+
+**If you drive in Glasgow, Edinburgh, or Central Belt cities**: it depends on your risk tolerance. Winter tyres will give you significantly better grip below 7°C even on dry tarmac. In mild city winters they are not essential — all-season tyres with 3PMSF rating are a good compromise.
+
+**If you drive rural Perthshire, Angus, Stirlingshire**: a strong case for winter tyres or 3PMSF all-season tyres. These areas regularly see significant snow and extended frost.
+
+**The threshold**: once temperatures are consistently below 7°C, summer tyres lose grip on dry tarmac — not just on ice or snow. In Scotland, this typically means fitting winter or all-season tyres from mid-October.
+
+## Top Winter Tyres for Scotland 2026–27
+
+### 1. Michelin Alpin 6 / Pilot Alpin PA4 (Premium)
+
+**Best for**: saloons, hatchbacks, executive cars, performance vehicles.
+
+Michelin's Alpin 6 is a consistent leader in independent winter tyre tests. Outstanding in wet/slushy conditions that are more common in the Central Belt than deep snow. The Pilot Alpin PA4 is the high-performance variant for low-profile, high-speed-rated fitments (BMW M, Audi RS, Mercedes AMG).
+
+**Key sizes**: 205/55R16, 225/45R17, 225/40R18, 245/45R18.
+**Price guide**: £85–£180 per tyre depending on size.
+**Scottish conditions**: exceptional in wet cold conditions — the dominant condition from Glasgow to Aberdeen Oct–April.
+
+---
+
+### 2. Continental WinterContact TS870 / TS870P (Premium)
+
+**Best for**: SUVs, family hatchbacks, performance (870P variant).
+
+Continental's WinterContact TS870 has been the benchmark test winner across multiple 2023–2025 independent comparisons. Outstanding dry braking and wet grip. The P variant adds low-rolling-resistance compounds for EV/PHEV compatibility.
+
+**Key sizes**: 205/55R16, 225/55R17, 225/45R18, 255/45R18 (P variant available in most popular EV sizes).
+**Price guide**: £80–£175 per tyre depending on size.
+**Scottish conditions**: class-leading dry and wet braking — superb for Central Belt use. Also very strong in light snow and slush.
+
+---
+
+### 3. Bridgestone Blizzak LM005 / LM005D (Premium)
+
+**Best for**: SUVs, 4x4, crossovers, city cars.
+
+Bridgestone's LM005 has consistently ranked at or near the top in SUV winter tyre tests. The LM005D is the directional variant with enhanced wet performance. Excellent in snow and ice — among the best available.
+
+**Key sizes**: 215/55R17, 225/60R17, 235/55R17, 235/55R18 (many SUV sizes).
+**Price guide**: £90–£200 per tyre.
+**Scottish conditions**: particularly good in Highlands and Aberdeenshire where genuine snow and ice exposure is highest.
+
+---
+
+### 4. Nokian WR D4 / Hakkapeliitta R5 (Premium)
+
+**Best for**: all Scotland, particularly Highland and Aberdeenshire.
+
+Nokian is a Finnish brand that develops tyres specifically for Scandinavian conditions — which are very similar to Scottish winter conditions. The WR D4 is the road-legal studded option (studded tyres are legal in Scotland from November 1 to March 31). The Hakkapeliitta R5 is the non-studded premium option.
+
+**Key sizes**: 205/55R16, 225/50R17, 225/45R18 and more.
+**Price guide**: £90–£200 per tyre.
+**Scottish conditions**: Nokian's expertise in ice and packed snow conditions is unmatched. For Highland and Aberdeenshire drivers, these are the top recommendation.
+
+---
+
+### 5. Falken EuroWinter HS01 (Mid-Range)
+
+**Best for**: budget-conscious drivers in Central Belt.
+
+The Falken EuroWinter is a respected mid-range winter tyre at a significantly lower price than the premium tier. Strong performance in wet and cold conditions. Not as class-leading as Michelin or Continental but significantly better than no change at all.
+
+**Key sizes**: 205/55R16, 225/45R17, 225/40R18.
+**Price guide**: £55–£110 per tyre.
+**Scottish conditions**: good choice for Glasgow and Edinburgh city driving where snow is rare but cold wet conditions dominate.
+
+---
+
+### 6. Goodyear UltraGrip Performance 3 (Mid-Range to Premium)
+
+**Best for**: family hatchbacks and SUVs.
+
+Goodyear's UltraGrip Performance 3 launched in 2024 and has achieved strong early results in independent tests. Good wet and dry braking, solid snow performance. Competitive pricing against Continental and Michelin.
+
+**Key sizes**: 205/55R16, 225/45R17, 225/55R17, 235/55R17.
+**Price guide**: £75–£155 per tyre.
+
+---
+
+## Winter Tyre vs All-Season: Which for Scotland?
+
+| Scenario | Recommendation |
+|---|---|
+| Highland estate / farm / Deeside driver | Winter tyres (Oct–Apr) |
+| Aberdeenshire rural commuter | Winter tyres or 3PMSF all-season |
+| Central Belt city driver (Glasgow/Edinburgh) | 3PMSF all-season is sufficient |
+| M8/M90 motorway commuter | All-season 3PMSF with good wet rating |
+| Renfrewshire / Stirlingshire commuter | All-season 3PMSF or winter tyres |
+| Shetland / Orkney / Western Isles | Winter tyres (conditions are severe) |
+
+See our full [all-season vs winter tyre guide for Scotland](/blog/all-season-tyres-scotland-guide) for more detail.
+
+## When to Fit Winter Tyres in Scotland 2026
+
+**Recommended fitting window**: **October 1–15, 2026**
+
+This gives you several weeks before the first serious cold snaps typically arrive in Scotland. It also means you can get an appointment without waiting — October is peak demand for winter tyre fitting and slots fill up fast.
+
+**Removing winter tyres**: typically April after the last frost risk has passed. For Highland and Aberdeenshire, May is safer.
+
+**Storage**: if you have the second set of wheels (recommended), both sets of tyres are stored on wheels, which makes fitting fast and cheap (£20 per wheel minimum for remounting). If you only have one set of wheels, you swap tyres onto the same wheels — this takes longer and costs more.
+
+## Pricing for Winter Tyre Fitting in Scotland 2026
+
+At Tyre Rescue, winter tyre fitting is priced at:
+- **Mobile tyre fitting**: £20 per tyre (fitted and balanced at your home or work)
+- **Set of four**: approximately £80 fitting labour
+
+**Example total cost — Ford Kuga 225/55R17 winter tyres**:
+- Continental WinterContact TS870 × 4: approx £480
+- Fitting × 4: £80
+- **Total fitted at your door**: approximately £560
+
+For detailed pricing on your specific vehicle, call **0141 266 0690** or [book online](/book).
+
+## Book Winter Tyres Across Scotland
+
+Tyre Rescue stocks winter tyres in popular Scottish sizes (205/55R16, 225/45R17, 225/55R17, 225/45R18 and more). For specialist sizes (19"+, run-flat winter tyres, van winter tyres), call ahead to confirm availability.
+
+We fit across all of Scotland — Glasgow, Edinburgh, Aberdeen, Dundee, Inverness, and everywhere in between. Book now for October to guarantee your preferred date.
+
+Call **0141 266 0690** or [book online](/book).
+
+[When to switch to winter tyres Scotland](/blog/winter-tyres-when-to-switch-scotland) | [All-season tyres Scotland guide](/blog/all-season-tyres-scotland-guide) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026)`,
+  },
+  {
     slug: 'noisy-tyres-causes-scotland',
     title: 'Why Are My Tyres So Loud? Tyre Noise Causes and Fixes in Scotland',
     description:
