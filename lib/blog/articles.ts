@@ -10880,6 +10880,116 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'polestar-tyre-fitting-scotland',
+    title: 'Polestar Tyre Fitting Scotland: Polestar 2, 3 & 4 Complete Tyre Guide',
+    description:
+      'Mobile tyre fitting for Polestar 2, 3, and 4 in Scotland. Tyre sizes, load index requirements, run-flat vs standard, no-spare-wheel guidance, and TPMS reset for all Polestar models.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'Polestar 2 tyre size scotland',
+      'Polestar tyre fitting scotland',
+      'Polestar 2 tyres scotland',
+      'Polestar 3 tyres scotland',
+      'Polestar 4 tyres scotland',
+      'mobile tyre fitting polestar scotland',
+      'Polestar 2 flat tyre scotland',
+      'Polestar EV tyre scotland',
+    ],
+    relatedSlugs: [
+      'electric-vehicle-tyres-scotland',
+      'tyre-prices-scotland-guide-2026',
+      'tpms-warning-light-scotland-guide',
+    ],
+    content: `# Polestar Tyre Fitting Scotland
+
+Polestar is Volvo's performance EV sub-brand, and the Polestar 2 has become one of Scotland's most popular premium EVs. With the Polestar 3 (SUV) and Polestar 4 (fastback) now joining the range, more Scottish drivers are finding that EV-specific tyre knowledge is essential. Tyre Rescue fits tyres for the full Polestar range across Scotland.
+
+## Polestar 2 Tyre Guide (2020–present)
+
+The Polestar 2 is available in Standard Range, Long Range Single Motor, and Long Range Dual Motor variants. Tyre size varies by trim and wheel choice:
+
+| Polestar 2 Variant | Factory Tyre Size | Wheel |
+|---|---|---|
+| Standard Range (RWD) | 235/45R19 | 19" alloy |
+| Long Range Single Motor | 235/45R19 | 19" alloy |
+| Long Range Dual Motor | 245/40R20 or 245/45R19 | 20" alloy (option) |
+| BST Edition 270 Performance | 245/40R20 | 20" forged alloy |
+
+**Load index**: 99+ required on all Polestar 2 variants due to battery weight (1,800–2,000 kg kerb weight depending on variant).
+
+**No spare wheel** — the Polestar 2 does not carry a spare. Volvo/Polestar supply an inflation kit for minor tread area punctures. Sidewall damage or large punctures require a replacement tyre — call Tyre Rescue immediately.
+
+**OE tyre choice**: from factory, most Polestar 2s use Michelin Pilot Sport 4 EV or Pirelli P Zero in the EV variant. Both are acoustic foam-lined to reduce road noise transmitted by EV drivetrains. When replacing, maintain an EV-rated tyre if noise performance matters to you.
+
+## Polestar 3 Tyre Guide (2024–present)
+
+The Polestar 3 is a large SUV platform shared with the Volvo EX90.
+
+| Polestar 3 Variant | Tyre Size | Load Index |
+|---|---|---|
+| Polestar 3 Standard | 265/40R22 | 106+ |
+| Polestar 3 Performance Pack | 265/35R22 | 102+ |
+
+**22-inch wheels**: the Polestar 3 uses large 22-inch wheels on most configurations. This limits tyre sourcing — not all mobile tyre vans carry 22-inch stock as standard. Call ahead to confirm stock for your specific size.
+
+**No spare wheel** — inflation kit only. Call Tyre Rescue for any non-repairable puncture.
+
+**Load index**: 106+ required. Do not fit a lower load index on a Polestar 3.
+
+## Polestar 4 Tyre Guide (2024–present)
+
+The Polestar 4 is a coupe-SUV with staggered fitment.
+
+| Polestar 4 Variant | Front | Rear |
+|---|---|---|
+| Polestar 4 Standard | 245/45R20 | 265/40R20 |
+| Polestar 4 Performance Pack | 245/40R21 | 265/35R21 |
+
+**Staggered fitment** — the Polestar 4 has different front and rear tyre sizes. This means front and rear tyres **cannot be rotated**. When calling Tyre Rescue, specify which axle needs replacement.
+
+**No spare wheel** — inflation kit only. The Polestar 4 is a performance fastback with no spare wheel provision.
+
+## Polestar TPMS Reset
+
+All Polestar models (2, 3, 4) use direct TPMS sensors. The Polestar connected app often displays live tyre pressure from TPMS sensors.
+
+After tyre fitting:
+1. Inflate all tyres to the correct pressure (sticker inside driver's door, or Polestar app)
+2. Sit in the vehicle, start the car
+3. Navigate to: **Car Status > Tyre Pressure** in the Polestar touchscreen
+4. Select **Calibrate** and confirm
+5. Drive at 30+ mph for 5–10 minutes
+
+If the TPMS warning persists after the above, a sensor may need replacement. Our technicians carry Volvo/Polestar-compatible TPMS equipment.
+
+## Why Polestar Tyres Are Different
+
+Polestar models share Volvo's commitment to EV acoustic comfort — which means several Polestar-recommended tyres use acoustic foam lining on the inner surface to reduce road noise.
+
+Polestar EVs are also notably heavy (the Polestar 2 weighs around 2,000 kg in Long Range Dual Motor form — more than many SUVs). This puts additional demands on tyres:
+
+- **Higher load index** — do not compromise on this
+- **Faster wear** — expect 15,000–20,000 miles from most tyres vs 25,000+ on equivalent petrol cars
+- **Better wet grip needed** — greater mass requires more grip to stop safely on Scotland's wet roads
+
+**Recommended tyres for Polestar 2 in Scotland**:
+- **Michelin Pilot Sport EV** (available in 235/45R19) — OE on many Polestar 2s; outstanding wet grip and EV-tuned compound
+- **Continental SportContact 7** — excellent dry and wet performance
+- **Pirelli P Zero PZ4 Elect** — acoustic variant; best for noise-sensitive drivers
+
+## Book Mobile Tyre Fitting for Your Polestar in Scotland
+
+We carry common Polestar 2 tyre sizes (235/45R19) in our Scotland vans. For 22-inch and performance sizes, call ahead to confirm same-day availability.
+
+Call **0141 266 0690** or [book online](/book) for mobile Polestar tyre fitting anywhere in Scotland.
+
+[EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
+  },
+  {
     slug: 'isuzu-dmax-tyre-fitting-scotland',
     title: 'Isuzu D-Max Tyre Fitting Scotland: Sizes, Load Ratings & All-Terrain Guide',
     description:
