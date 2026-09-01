@@ -10762,109 +10762,122 @@ Call **0141 266 0690** or [book online](/book). Give us your vehicle registratio
 [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [All-season tyres guide](/blog/all-season-tyres-scotland-guide) | [Michelin vs Continental vs Pirelli](/blog/michelin-vs-continental-vs-pirelli-scotland)`,
   },
   {
-    slug: 'mobile-tyre-fitting-aberdeen-guide',
-    title: 'Mobile Tyre Fitting Aberdeen: City Guide, Response Times & AB Postcode Coverage',
+    slug: 'mg-motor-tyre-fitting-scotland',
+    title: 'MG Motor Tyre Fitting Scotland: MG4, MG ZS, MG5, MG HS Guide',
     description:
-      'Mobile tyre fitting across Aberdeen and Aberdeenshire — AB10 to AB56, city centre, Westhill, Dyce, Portlethen, AWPR, A90/A96/A93 coverage. 24-hour emergency service for oil industry and business fleets.',
+      'Mobile tyre fitting for MG Motor vehicles in Scotland. MG4 EV tyre sizes, MG ZS EV, MG5 EV, MG HS PHEV load index requirements, TPMS reset, and no-spare-wheel guidance.',
     category: 'fitting',
     publishDate: '2026-09-01',
     lastModified: '2026-09-01',
-    readingTime: 7,
+    readingTime: 6,
     featured: false,
     keywords: [
-      'mobile tyre fitting aberdeen',
-      'mobile tyre fitter aberdeen',
-      'emergency tyre fitting aberdeen',
-      'flat tyre aberdeen',
-      '24 hour tyre fitting aberdeen',
-      'tyre fitting aberdeen city centre',
-      'tyre fitting westhill',
-      'tyre fitting dyce',
-      'tyre fitting portlethen',
-      'tyre rescue aberdeen',
-      'mobile tyre fitting aberdeenshire',
+      'MG4 tyre size scotland',
+      'MG ZS EV tyre fitting scotland',
+      'MG motor tyres scotland',
+      'MG4 tyre replacement scotland',
+      'MG5 tyre fitting scotland',
+      'MG HS tyre fitting scotland',
+      'mobile tyre fitting MG scotland',
+      'MG4 EV flat tyre scotland',
     ],
     relatedSlugs: [
-      'mobile-tyre-fitting-glasgow-guide',
-      'all-season-tyres-scotland-guide',
+      'electric-vehicle-tyres-scotland',
       'tyre-prices-scotland-guide-2026',
+      'tpms-warning-light-scotland-guide',
     ],
-    content: `# Mobile Tyre Fitting Aberdeen and Aberdeenshire
+    content: `# MG Motor Tyre Fitting Scotland
 
-Aberdeen and Aberdeenshire have some of Scotland's most demanding driving conditions — harsh winters, exposed A-roads, and the North Sea climate that accelerates tyre wear. Tyre Rescue covers the full AB postcode area, from the city centre out to Stonehaven, Inverurie, Huntly, and Banchory.
+MG Motor's electric and plug-in hybrid range has rapidly become one of Scotland's most popular EV choices, with the MG4 EV consistently ranking among the UK's best-selling electric cars. As Scotland's mobile tyre fitting specialists, we stock and fit tyres for the full MG range across Glasgow, Edinburgh, Aberdeen, and all of Scotland.
 
-## Aberdeen Coverage: AB Postcodes
+## MG4 EV Tyre Guide (2022–present)
 
-| Area | Postcodes | Response Time |
+The MG4 EV is available in Standard Range, Long Range, and Trophy/Xpower variants. All share broadly similar tyre specifications but differ in wheel size:
+
+| MG4 Variant | Tyre Size | Wheel |
 |---|---|---|
-| Aberdeen City Centre / Granite Mile | AB10, AB11 | 25–40 minutes |
-| West End / Rosemount / Mannofield | AB13, AB15 | 30–45 minutes |
-| Dyce / Aberdeen Airport | AB21 | 35–50 minutes |
-| Bridge of Don / Danestone | AB22, AB23 | 35–50 minutes |
-| Portlethen / Cove Bay | AB12 | 35–50 minutes |
-| Westhill / Kingswells | AB32 | 40–55 minutes |
-| Inverurie / Kintore | AB51 | 50–70 minutes |
-| Stonehaven / Laurencekirk | AB39 | 50–65 minutes |
-| Banchory / Aboyne / Ballater | AB31, AB34, AB35 | 65–90 minutes |
-| Huntly / Keith | AB54, AB55 | 70–100 minutes |
-| Fraserburgh / Peterhead | AB41, AB42, AB43 | 75–100 minutes |
+| Standard Range 51kWh | 215/55R17 | 17" |
+| Long Range 64kWh | 235/45R18 | 18" |
+| Trophy Long Range | 235/45R18 | 18" |
+| Xpower Dual Motor | 235/45R18 | 18" |
 
-For remote Aberdeenshire locations, call us first to confirm availability and ETA before committing to wait. We cover all of the above but response times to outlying areas are longer.
+**Load index**: 98+ required on most MG4 variants due to battery weight. Do not fit 94 or lower.
 
-## Key Aberdeen Roads We Cover
+**No spare wheel** — the MG4 EV does not carry a spare tyre. SAIC/MG supply a tyre inflation kit for minor punctures, but this cannot repair sidewall damage or large punctures. If your MG4 has a flat tyre that cannot be inflated, call Tyre Rescue immediately — do not drive on the damaged tyre.
 
-**AWPR (Aberdeen Western Peripheral Route / A90)** — the bypass opened in 2018 and is now one of our most frequent callout routes. The AWPR connects Stonehaven to Blackburn and Balmedie. If you have a flat on the AWPR, pull onto the hard shoulder or emergency refuge area and call us.
+**TPMS** — the MG4 uses an indirect TPMS (it calculates pressure from wheel speed differences). After fitting new tyres, TPMS is reset via: Settings > Vehicle > TPMS Reset (with the vehicle stationary). If the warning light persists after reset, drive at 20–30 mph for a few minutes and it should clear.
 
-**A96 Aberdeen to Inverness** — a major single-carriageway A-road with high HGV and agricultural vehicle traffic. We cover the Aberdeen end through to Inverurie and beyond.
+## MG ZS EV Tyre Guide (2019–present)
 
-**A90 Aberdeen to Dundee (south)** — south Aberdeen through Portlethen and Stonehaven, continuing towards Montrose and Dundee.
+| MG ZS EV Variant | Tyre Size | Wheel |
+|---|---|---|
+| ZS EV Standard (pre-2022) | 215/55R17 | 17" |
+| ZS EV Long Range (2022+) | 215/55R17 or 215/50R18 | 17" or 18" |
+| ZS EV Trophy (2022+) | 215/50R18 | 18" |
 
-**A93 Royal Deeside** — west from Aberdeen through Banchory and Ballater towards Braemar. A scenic but often frost-affected route in winter. Winter tyre advice for Deeside: keep to all-season rated 3PMSF or swap to dedicated winter tyres from October.
+**No spare wheel** — same as MG4. Inflation kit only. Call us for any non-repairable puncture.
 
-## Aberdeen-Specific Tyre Considerations
+**Load index**: 98+ recommended for all ZS EV variants.
 
-**Oil industry and offshore workers** — Aberdeen's economy means many drivers use company vehicles (SUVs, pickups, vans) that are larger and heavier than average. Van and pickup tyres (C-rated or LT-rated) are a significant proportion of our Aberdeen callouts. We carry C-rated tyres in Transit, Sprinter, and Hilux sizes as standard stock.
+## MG5 EV Tyre Guide (2021–present)
 
-**All-season tyres for Aberdeenshire** — Aberdeen and Aberdeenshire regularly see snow from November to March. West Aberdeenshire (Braemar, Ballater, Banchory) is one of the coldest inland areas in the UK. All-season tyres rated 3PMSF are strongly recommended for anyone driving west of Aberdeen in winter. Our [all-season tyre guide](/blog/all-season-tyres-scotland-guide) covers regional recommendations.
+The MG5 is a battery-electric estate car — unique in its segment.
 
-**Granite road surfaces** — Aberdeen's characteristic granite road surface can be abrasive, particularly on older town roads. Budget tyres wear faster here than on southern English motorways. Mid-range or premium tyres give better value over full tyre life.
+| MG5 EV Variant | Tyre Size |
+|---|---|
+| MG5 EV Standard Range | 215/55R16 |
+| MG5 EV Long Range | 215/55R17 |
+| MG5 EV Trophy Long Range | 215/55R17 |
 
-**Aberdeen Airport (AB21)** — Dyce-based drivers and airport callouts are common. We attend ABZ Aberdeen International Airport car parks (short stay and long stay). Allow 35–50 minutes from call.
+**Load index**: 98+ required. **No spare wheel** — inflation kit supplied.
 
-## Aberdeen Fleet Tyre Service
+## MG HS Tyre Guide (Including PHEV)
 
-Aberdeen has a high density of business fleets — oil and gas sector, agricultural contractors, fishing industry vehicles, construction companies, and offshore logistics operators. Tyre Rescue offers fleet accounts for Aberdeen-based businesses:
+| MG HS Variant | Tyre Size | Load Index Note |
+|---|---|---|
+| HS 1.5T petrol (2019–2022) | 215/55R18 | 95+ |
+| HS 1.5T petrol (2022+) | 235/45R19 | 99+ |
+| HS PHEV (plug-in hybrid) | 235/45R19 | 101+ required |
+| HS Trophy PHEV | 235/45R19 | 101+ |
 
-- **Priority response** — fleet account holders receive priority dispatch
-- **Monthly consolidated invoicing** — no per-job payment friction
-- **C-rated and LT-rated stock** — maintained for Aberdeen's commercial vehicle profile
-- **Compliance records** — TPMS, tread depth, and tyre age records per vehicle on request
+**PHEV load index**: the MG HS PHEV carries a significantly heavier battery pack than the standard petrol HS. Always use a minimum load index of 101 on the HS PHEV — do not fit standard-rated 95 or 99 tyres.
 
-For fleet enquiries, call **0141 266 0690** and ask for our fleet team.
+**HS does carry a spare** — a full-size spare or space-saver depending on trim level and year. Confirm with your handbook.
 
-## Winter Driving in Aberdeenshire
+## MG Cyberster Tyre Guide (2024–present)
 
-Aberdeen City itself rarely sees extreme conditions but temperatures regularly drop below 4°C from October to April — the threshold at which summer tyres begin to lose grip significantly.
+The MG Cyberster is MG's electric roadster, using staggered fitment:
 
-**Our Aberdeen tyre recommendations by area**:
-- **City drivers (AB10–AB23)**: All-season tyres with 3PMSF rating are sufficient for most winters. Recommended: Michelin CrossClimate 2, Continental AllSeasonContact 2.
-- **West Aberdeenshire drivers (Banchory, Ballater, Aboyne, Braemar)**: Dedicated winter tyres strongly recommended from October. The A93 Braemar road regularly closes in heavy snow. Continental WinterContact TS870 P or Michelin Alpin 6 for saloon/SUV fitment.
-- **Fraserburgh / Peterhead coast**: All-season tyres are typically adequate — coast temperatures are milder than inland, but wind and rain intensity is higher, making good wet-grip ratings important.
+- **Front**: 245/45R20
+- **Rear**: 275/40R20
 
-## Aberdeen Pricing
+Staggered fitment means front and rear tyres are different sizes and **cannot be rotated**. Specify which axle needs replacement when calling. The Cyberster also uses direct TPMS sensors — replacement of a sensor requires a diagnostic reset.
 
-All prices are standard Scotland rates:
+## MG TPMS Reset Procedure
 
-- **Mobile tyre fitting**: £20 per tyre (fitted and balanced)
-- **Emergency callout**: additional £49 (response under 60 minutes in AB10–AB23)
-- **Puncture repair**: £25 per tyre (BSAU159 compliant)
-- **Mileage supplement**: may apply for callouts to AB31–AB56 rural areas — confirmed at booking
+For most MG models (MG4, ZS EV, MG5, HS):
+1. Inflate all tyres to the correct pressure (sticker inside driver's door)
+2. Sit in the vehicle with ignition on
+3. Navigate to: **Settings > Vehicle > TPMS Reset**
+4. Confirm reset
+5. Drive at 20+ mph for 5–10 minutes for the system to calibrate
 
-## Book Mobile Tyre Fitting in Aberdeen
+If TPMS warning persists after the above, the sensor may need physical inspection. Call us — we carry replacement TPMS sensors for common MG sizes.
 
-Call **0141 266 0690** or [book online](/book) for mobile tyre fitting anywhere in Aberdeen and Aberdeenshire.
+## Why MG Tyres Are Different
 
-[Aberdeen service area](/mobile-tyre-fitting/aberdeen) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [All-season tyres guide](/blog/all-season-tyres-scotland-guide)`,
+MG EVs are heavier than equivalent petrol cars (the MG4 Long Range weighs approximately 1,750 kg vs 1,200 kg for a comparable petrol hatchback). This heavier kerb weight:
+- Requires higher load-index tyres
+- Increases wear rate — expect 20–30% shorter tyre life than an equivalent petrol car
+- Demands better wet-grip performance to stop the heavier mass
+
+Our tyre recommendation for MG4 and MG ZS EV owners: **Michelin Pilot Sport EV** (specifically designed for EVs, OE fitment on many MG models), or **Continental EcoContact 6** (excellent efficiency and wet grip for Scottish rain).
+
+## Book Mobile Tyre Fitting for Your MG in Scotland
+
+Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call **0141 266 0690** or [book online](/book) — we cover all of Scotland 24 hours a day.
+
+[EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
     slug: 'fleet-tyre-management-scotland',
