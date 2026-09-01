@@ -10880,6 +10880,127 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'jeep-tyre-fitting-scotland',
+    title: 'Jeep Tyre Fitting Scotland: Wrangler, Renegade, Compass & Avenger Guide',
+    description:
+      'Mobile tyre fitting for all Jeep models in Scotland. Wrangler all-terrain tyre advice, Renegade 4xe PHEV load index, Compass, Avenger EV no-spare wheel guidance, and TPMS reset.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'Jeep Wrangler tyres scotland',
+      'Jeep Renegade tyre fitting scotland',
+      'Jeep Compass tyres scotland',
+      'Jeep tyre replacement scotland',
+      'mobile tyre fitting Jeep scotland',
+      'Jeep 4xe PHEV tyres scotland',
+      'Jeep Avenger EV tyres scotland',
+      'Jeep Wrangler all terrain tyres scotland',
+    ],
+    relatedSlugs: [
+      '4x4-suv-tyres-scotland-highlands',
+      'all-season-tyres-scotland-guide',
+      'tyre-prices-scotland-guide-2026',
+    ],
+    content: `# Jeep Tyre Fitting Scotland
+
+Jeep is one of Scotland's most capable 4x4 brands — the Wrangler in particular is a Highland staple, used by hill walkers, farmers, and off-road enthusiasts. Tyre Rescue fits tyres for the full Jeep range across Scotland, from city-spec Avengers to full Rubicon 4x4 builds.
+
+## Jeep Wrangler Tyre Guide
+
+The Wrangler is available in a huge range of configurations and tyre sizes. The right tyre depends on your trim level and whether you have factory or aftermarket wheels.
+
+| Wrangler Variant | Factory Tyre Size | Wheel |
+|---|---|---|
+| Sport (UK base trim) | 255/70R18 | 18" |
+| Sahara | 255/70R18 | 18" steel or alloy |
+| Rubicon | 285/70R17 | 17" (BFGoodrich KO2 OE) |
+| Rubicon 4xe PHEV | 255/70R18 | 18" |
+
+**Off-road vs road tyres**: the Wrangler is designed to accept a wide range of tyre types. Factory Highway Terrain (HT) tyres — such as the Nexen Roadian — are adequate for road use but offer limited off-road performance. Many Scottish Wrangler owners upgrade to All-Terrain (AT) tyres for Highland use.
+
+**Best all-terrain tyres for Scotland Wranglers**:
+- **BFGoodrich All-Terrain KO2** — the OE choice on Rubicons; excellent on mud, snow, and rock
+- **Falken Wildpeak AT3W** — strong performer in Scottish mud and wet conditions at lower cost
+- **Nitto Ridge Grappler** — popular hybrid AT/MT for drivers who want off-road capability without road noise penalty
+
+**Load index for Wrangler 4xe PHEV**: the 4xe plug-in hybrid Wrangler is significantly heavier than the standard petrol. Minimum load index 107+. Do not fit standard highway terrain tyres rated at 104 or below.
+
+**Note on lifted Wranglers**: many Scottish Wrangler owners run 2–4 inch lifts with 35" tyres (315/70R17 equivalent). We can fit 35" tyres subject to vehicle height; call ahead to confirm your tyre size is in stock.
+
+## Jeep Renegade Tyre Guide
+
+| Renegade Variant | Tyre Size | Note |
+|---|---|---|
+| Renegade 1.0T / 1.3T FWD | 215/65R16 or 225/55R17 | Standard |
+| Renegade 1.3T 4xe PHEV | 215/55R18 | Load index 99+ |
+| Renegade Trailhawk 4x4 | 215/65R17 | All-terrain pattern from factory |
+
+**Renegade 4xe PHEV**: the plug-in hybrid Renegade weighs approximately 1,850 kg — significantly heavier than the petrol variant. Minimum load index 99. Do not fit a lower rating.
+
+**Renegade Trailhawk**: often fitted with Falken Wildpeak A/T tyres from factory. If replacing, maintain an all-terrain specification for the Trailhawk's raised suspension and off-road capability — fitting pure road tyres negates the Trailhawk purpose.
+
+## Jeep Compass Tyre Guide
+
+| Compass Variant | Tyre Size |
+|---|---|
+| Compass 1.3T FWD | 215/65R16 or 225/55R17 |
+| Compass 4xe PHEV (Trailhawk) | 215/55R18, load index 99+ |
+| Compass S (2023+) | 215/55R18 |
+
+**Compass 4xe PHEV**: same PHEV load index requirement as Renegade 4xe. Minimum 99 — confirm before fitting.
+
+## Jeep Avenger Tyre Guide (EV)
+
+The Avenger is Jeep's first battery electric vehicle, launched in 2023.
+
+| Avenger Variant | Tyre Size | Notes |
+|---|---|---|
+| Avenger Electric (FWD) | 215/55R17 | No spare wheel |
+| Avenger 4xe Electric AWD | 215/55R17 | No spare wheel; AWD model |
+
+**No spare wheel** — the Avenger EV does not carry a spare. Stellantis/Jeep supply an inflation kit. Sidewall damage or large punctures require a new tyre — call Tyre Rescue immediately and do not drive on the damaged tyre.
+
+**Load index**: 99+ required on the Avenger EV due to battery weight.
+
+**TPMS on Avenger**: direct TPMS sensors. After fitting new tyres, sensors must be reset using the Jeep vehicle menu or a diagnostic tool. Our technicians carry the relevant reset capability for Stellantis TPMS.
+
+## Jeep TPMS Reset Procedure
+
+For Renegade, Compass, and Grand Cherokee models:
+1. Check and set tyre pressure to the recommended level (driver's door sticker)
+2. Turn ignition to ON (engine off)
+3. Press and hold the TPMS reset button (varies by model — dashboard button or steering wheel menu)
+4. Hold until TPMS light blinks three times
+5. Drive at 15+ mph for 5 minutes to complete calibration
+
+If TPMS warning persists, a sensor may require replacement (battery-powered sensors typically last 7–10 years).
+
+## Best Tyres for Scottish Jeep Owners
+
+**For Highland / off-road use (Wrangler, Renegade Trailhawk)**:
+- BFGoodrich KO2 All-Terrain — most popular choice
+- Falken Wildpeak AT3W — excellent snow/mud, 3PMSF rated
+
+**For city/commuter use (Compass, Avenger, standard Renegade)**:
+- Michelin CrossClimate 2 — best all-round for Scottish weather (3PMSF rated)
+- Continental AllSeasonContact 2 — very good wet grip, 3PMSF rated
+
+**For mixed road/light off-road (Wrangler Sahara, Renegade 4xe)**:
+- Michelin CrossClimate 2 (if mostly road use)
+- Falken Wildpeak AT3W (if regular light off-road)
+
+## Book Mobile Tyre Fitting for Your Jeep in Scotland
+
+Tyre Rescue carries common Jeep tyre sizes across our Scotland vans. For specialist sizes (285/70R17, 255/70R18, 35" AT tyres), call ahead to confirm same-day stock.
+
+Call **0141 266 0690** or [book online](/book).
+
+[4x4 and SUV tyre guide Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [All-season tyres Scotland](/blog/all-season-tyres-scotland-guide) | [Tyre prices 2026](/blog/tyre-prices-scotland-guide-2026)`,
+  },
+  {
     slug: 'tyre-sidewall-damage-scotland',
     title: 'Tyre Sidewall Damage: Can It Be Repaired? Scotland Guide',
     description:
