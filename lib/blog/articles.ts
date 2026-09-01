@@ -4049,6 +4049,100 @@ For drivers in Lerwick itself, response is typically fastest as we maintain a lo
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
   },
   {
+    slug: 'land-rover-range-rover-tyres-scotland',
+    title: 'Land Rover & Range Rover Tyre Fitting Scotland: All Models',
+    description:
+      'Mobile Land Rover and Range Rover tyre fitting across Scotland. Large-size tyres for Defender, Discovery, Range Rover Sport and Velar. All-terrain options. Call 0141 266 0690.',
+    category: 'fitting',
+    publishDate: '2026-03-01',
+    lastModified: '2026-03-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'land rover tyres scotland',
+      'range rover tyres scotland',
+      'land rover defender tyres scotland',
+      'range rover sport tyres scotland',
+      'discovery tyres scotland',
+      'mobile land rover tyre fitting glasgow',
+      'all terrain tyres land rover scotland',
+      'freelander tyres scotland',
+    ],
+    relatedSlugs: [
+      '4x4-suv-tyres-scotland-highlands',
+      'electric-vehicle-tyres-scotland',
+      'mobile-tyre-fitting-glasgow',
+    ],
+    content: `# Land Rover & Range Rover Tyre Fitting Scotland: All Models
+
+Land Rover and Range Rover vehicles are more common in Scotland than anywhere else in the UK — particularly in rural Perthshire, the Highlands, Argyll, and Galloway, where 4x4 capability is genuinely needed year-round. Scotland's agricultural estates, forestry roads, and Highland terrain are Land Rover country.
+
+Tyre Rescue fits tyres on all Land Rover and Range Rover models across Scotland, from common urban Range Rover Sports to Defenders working on Highland estates.
+
+## What Makes Land Rover/Range Rover Tyre Fitting Different
+
+### Large and Specialist Sizes
+Land Rover models use some of the largest tyres fitted to civilian vehicles in the UK. A Range Rover L460 on 22-inch wheels takes 285/35R22 tyres — a size not carried by most local garages. Defender 110 variants range from 255/60R18 to 285/40R22 depending on specification.
+
+Tyre Rescue carries common Land Rover and Range Rover sizes on our larger service vans. For very large or unusual sizes (21" or 22" rims), call ahead to confirm stock.
+
+### High Load Index
+Range Rovers and Defenders are heavy vehicles. A Range Rover L460 can weigh over 2,600kg. The load index required per tyre is correspondingly high — typically 108–113 for large Range Rover variants. Using a tyre with insufficient load index on a heavy Land Rover is a safety risk.
+
+### All-Terrain vs Road Tyre Choice
+Land Rover vehicles can typically accept either road tyres (for urban and motorway use) or all-terrain tyres (for off-road and rough track use). See our [4x4 and SUV tyres Scotland guide](/blog/4x4-suv-tyres-scotland-highlands) for a full comparison.
+
+### TPMS
+Modern Land Rover and Range Rover models (from approximately 2010 onwards) have direct TPMS. After a tyre change, the TPMS must be reset. Tyre Rescue carries Land Rover compatible TPMS reset tools. Reset is included with every fitting.
+
+## Models We Service in Scotland
+
+### Defender (L663 — current model)
+The current Defender has become Scotland's most popular agricultural and adventure 4x4. Common tyre sizes:
+- 255/60R18 (standard 18-inch spec)
+- 255/55R19 (optional 19-inch)
+- 265/45R20 (optional 20-inch)
+- 285/40R22 (optional 22-inch)
+
+All-terrain tyre fitment is common for Defenders used on estate roads, forestry, or the NC500.
+
+### Range Rover (L460 — current model)
+Scotland's premium large SUV. Common sizes:
+- 255/55R20 (standard)
+- 285/45R21 (optional 21-inch)
+- 285/35R22 (optional 22-inch)
+
+### Range Rover Sport (L461)
+Common sizes: 255/50R20, 275/45R21, 285/40R22.
+
+### Range Rover Velar
+Common sizes: 235/55R19, 255/50R19, 265/45R20.
+
+### Discovery (L462)
+Common sizes: 235/65R17, 255/55R18, 255/50R20.
+
+### Discovery Sport (L550)
+Common sizes: 215/65R17, 235/60R18, 255/50R20.
+
+### Freelander 2 / Discovery Sport (older)
+Common sizes: 215/65R17, 235/60R18 — widely stocked.
+
+### Defender 90/110 (classic — pre-2020)
+Classic Defenders often use 235/85R16 (mud terrain) or 265/75R16 — less common sizes. Call ahead to confirm stock.
+
+## Emergency Land Rover Tyre Fitting in Scotland
+
+Highland breakdown? Estate road flat? We cover all of Scotland — from the M8 to the NC500. Land Rover and Range Rover breakdowns on remote routes are a common callout for our team.
+
+- **Glasgow and Edinburgh**: 25–40 minutes
+- **Aberdeen and Inverness**: 90 minutes
+- **Highland and remote routes**: Call immediately and we will confirm an accurate ETA
+
+Call **0141 266 0690** — 24 hours a day, all of Scotland.
+
+[4x4 and SUV tyres Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me)`,
+  },
+  {
     slug: 'bmw-tyre-fitting-scotland',
     title: 'BMW Tyre Fitting Scotland: Run-Flats, TPMS & All Models',
     description:
