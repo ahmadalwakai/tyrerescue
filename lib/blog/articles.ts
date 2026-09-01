@@ -10880,6 +10880,150 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'noisy-tyres-causes-scotland',
+    title: 'Why Are My Tyres So Loud? Tyre Noise Causes and Fixes in Scotland',
+    description:
+      'Humming, droning, roaring, or screeching tyre noise — what causes it and what to do. Scotland road conditions, tyre wear patterns, and when tyre noise means you need immediate attention.',
+    category: 'maintenance',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 8,
+    featured: false,
+    keywords: [
+      'noisy tyres scotland',
+      'tyre humming noise scotland',
+      'why are my tyres so loud',
+      'tyre noise at speed scotland',
+      'tyre droning noise scotland',
+      'tyre roaring noise scotland',
+      'tyre noise causes scotland',
+      'loud tyres scotland',
+      'tyre noise when driving',
+    ],
+    relatedSlugs: [
+      'uneven-tyre-wear-guide-scotland',
+      'wheel-balancing-vs-alignment-scotland',
+      'tyre-tread-depth-guide-scotland',
+    ],
+    content: `# Why Are My Tyres So Loud? Causes of Tyre Noise in Scotland
+
+Tyre noise is one of the most common concerns drivers raise — and also one of the most often misdiagnosed. Noise that sounds like it is coming from the tyres may actually be caused by the tyres themselves, by uneven tyre wear, by wheel bearings, or by the road surface. Getting the diagnosis right matters because some causes are safety-critical and require immediate action.
+
+## Types of Tyre Noise and What They Mean
+
+### 1. Humming or Droning That Gets Louder at Speed
+
+**Sound**: a low-frequency hum or drone that increases in pitch and volume as speed increases. May be constant or may vary.
+
+**Most likely causes**:
+
+**Uneven tyre wear (cupping or scalloping)** — the most common cause of tyre humming. When a tyre wears in an uneven diagonal pattern (cupping), the irregular tread surface creates a rhythmic sound as it contacts the road. The noise gets worse as the wear progresses.
+
+To check: run your hand across the tyre tread. If it feels bumpy or wavy rather than smooth and even, the tyre has developed cupping wear. This is caused by wheel imbalance or worn shock absorbers and will not get better — replacement is necessary.
+
+**Wheel bearing failure** — a failed or failing wheel bearing creates a similar hum or droning sound that increases with speed. Unlike tyre noise, wheel bearing noise may change when you swerve gently left or right (because lateral G-forces load or unload the bearing). If the noise changes when you swerve, suspect the wheel bearing on the side that gets quieter when you load it.
+
+**How to distinguish**: cupping tyre noise is typically related to the tread frequency (sounds rhythmic, tied to wheel rotation speed). Wheel bearing noise is smoother and higher-frequency. Both get louder with speed.
+
+**Scotland note**: Scottish roads — particularly B-roads and rural routes — have more surface irregularities than English motorways. This makes wheel imbalance-related cupping significantly more common in Scotland.
+
+---
+
+### 2. Rumbling or Roaring at Constant Speed
+
+**Sound**: a deep rumble or roar, most noticeable at motorway or A-road cruising speeds (50–70 mph). May feel like vibration through the seat or steering wheel.
+
+**Most likely causes**:
+
+**Aggressive tread pattern (all-terrain or mud tyres)** — if you have fitted all-terrain or mud-terrain tyres (BFGoodrich KO2, Falken Wildpeak, etc.), the open tread blocks create significant road noise on smooth tarmac. This is normal for these tyre types and is not a fault. It can be reduced by fitting a quieter all-terrain variant or returning to highway terrain tyres.
+
+**Worn tread with standing wave** — very worn tyres (below 2mm) can generate increased road noise as the thin tread loses its ability to absorb road surface irregularities. If the roaring correlates with lower-than-expected tread depth, replacement is necessary.
+
+**Large diameter tyres on low-profile vehicles** — fitting tyres larger than the manufacturer's recommendation (a common modification) can create resonant frequencies with the vehicle's wheel arches.
+
+---
+
+### 3. Thumping or Vibration at Low Speed
+
+**Sound**: a rhythmic thump, bump, or vibration, especially noticeable at speeds below 30 mph. May disappear at higher speeds.
+
+**Most likely causes**:
+
+**Flat spot on tyre** — a flat area that has developed on the contact patch. Most commonly caused by:
+- Emergency braking that locked a wheel (pre-ABS vehicles, or ABS failure)
+- Vehicle standing stationary for a long time in cold weather (temporary flat spot, usually rounds out after a few miles)
+- Impact damage that has caused internal deformation
+
+A flat spot creates a characteristic thump-thump-thump sound at low speed that may smooth out above 40–50 mph as the tyre warms and the rubber becomes more flexible.
+
+**Out-of-round tyre** — a tyre that is no longer perfectly circular (can occur after severe impact damage). This creates rhythmic vibration that is most felt at lower speeds.
+
+**Wheel imbalance** — an unbalanced wheel creates rhythmic vibration, typically most noticeable at a specific speed band (often 50–70 mph for typical imbalance weights).
+
+---
+
+### 4. Squealing on Corners
+
+**Sound**: high-pitched squeal when turning, particularly in car parks or at low speed.
+
+**Most likely causes**:
+
+**Driving too fast for the corner** — lateral forces cause the tyre to slip on the road surface, creating the squeal. Most common in performance driving, but also on very slippery road surfaces or worn tyres.
+
+**Very worn tyres** — below 2mm of tread, tyres have significantly less lateral grip. They squeal at lower cornering forces than a new tyre.
+
+**Understeer** — front tyres breaking traction before the rears in a corner. This creates a squeal from the front axle.
+
+**Low tyre pressure** — underinflated tyres are more prone to squeal on corners.
+
+If your tyres are squealing under normal driving at normal speeds, have the tread depth checked immediately.
+
+---
+
+### 5. Screeching or Screeching at High Speed
+
+**Sound**: loud, harsh screeching at highway speed. Very unpleasant and abnormal.
+
+**Most likely causes**:
+
+**Tyre failure imminent** — unusual loud screeching from a tyre at speed can indicate internal failure before a blowout. Pull over safely and immediately if you hear this.
+
+**Severely worn tyre** — a tyre worn completely through the tread to the cord will make a harsh, abrasive sound.
+
+**Sidewall rubbing** — overly large tyres fitted without appropriate offsets can rub against the wheel arch at speed, creating a screeching noise.
+
+---
+
+## When Tyre Noise Requires Immediate Action
+
+**Stop driving immediately if**:
+- You hear loud screeching or banging that was not present before
+- You hear a sound immediately after a pothole impact
+- You hear thumping combined with the vehicle pulling to one side
+- The noise is accompanied by visible vibration in the steering wheel or dashboard
+
+**Attend to within a week if**:
+- A gradual increase in humming noise over the past few weeks (likely cupping wear — safe to drive but deteriorating)
+- Increased noise after fitting new all-terrain tyres (normal; monitor)
+
+## Fixing Tyre Noise in Scotland
+
+The fix depends entirely on the cause:
+
+| Cause | Fix |
+|---|---|
+| Cupping/uneven wear | Replace affected tyre(s) + wheel balance check + shock absorber inspection |
+| Wheel bearing failure | Replace wheel bearing (mechanical repair) |
+| Aggressive tread pattern | Accept the noise, or switch to a quieter tyre type |
+| Flat spot | Replace tyre if not resolving after 20 miles of driving |
+| Very worn tyre | Replace immediately |
+| Low tyre pressure | Inflate to correct pressure (may reduce noise if wear has not occurred) |
+
+For tyre replacement, Tyre Rescue can come to your home, workplace, or roadside across all of Scotland. Call **0141 266 0690** or [book online](/book).
+
+[Wheel balancing and alignment Scotland](/blog/wheel-balancing-vs-alignment-scotland) | [Uneven tyre wear guide](/blog/uneven-tyre-wear-guide-scotland) | [Signs you need new tyres](/blog/signs-you-need-new-tyres)`,
+  },
+  {
     slug: 'ineos-grenadier-tyre-fitting-scotland',
     title: 'Ineos Grenadier Tyre Fitting Scotland: Quartermaster, Trialmaster & Fieldmaster Guide',
     description:
