@@ -10880,6 +10880,123 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'genesis-tyre-fitting-scotland',
+    title: 'Genesis Tyre Fitting Scotland: GV60, GV70, GV80, G70 & G80 Tyre Guide',
+    description:
+      'Mobile tyre fitting for Genesis vehicles in Scotland. GV60 EV staggered fitment, GV70 electrified PHEV load index, GV80 tyre sizes, G70 staggered sports saloon — complete guide.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'Genesis GV60 tyre size scotland',
+      'Genesis tyre fitting scotland',
+      'Genesis GV70 tyres scotland',
+      'Genesis GV80 tyres scotland',
+      'Genesis G70 tyres scotland',
+      'mobile tyre fitting genesis scotland',
+      'Genesis GV60 flat tyre scotland',
+      'Genesis electrified tyre scotland',
+    ],
+    relatedSlugs: [
+      'electric-vehicle-tyres-scotland',
+      'hyundai-tyre-fitting-scotland',
+      'tyre-prices-scotland-guide-2026',
+    ],
+    content: `# Genesis Tyre Fitting Scotland
+
+Genesis is Hyundai's luxury brand, and the GV60 EV, GV70 Electrified, and GV80 SUV are increasingly common on Scottish roads — particularly in Edinburgh, Glasgow, and Aberdeen. Like all premium EVs and PHEVs, Genesis vehicles have specific tyre requirements that standard tyre fitters may not be aware of.
+
+## Genesis GV60 Tyre Guide (2022–present)
+
+The GV60 is Genesis's dedicated electric sports crossover, sharing the Hyundai E-GMP platform with the Ioniq 5 and Kia EV6.
+
+| GV60 Variant | Front | Rear | Wheel |
+|---|---|---|---|
+| GV60 Standard AWD | 235/55R19 (front) | 255/45R19 (rear) | 19" |
+| GV60 Performance AWD | 245/45R20 (front) | 275/35R20 (rear) | 20" |
+| GV60 Magma Performance | 245/40R21 (front) | 275/35R21 (rear) | 21" |
+
+**Staggered fitment** — the GV60 uses different front and rear tyre sizes on all-wheel-drive variants. This means the tyres **cannot be rotated**. When calling Tyre Rescue, specify which axle needs replacement.
+
+**No spare wheel** — the GV60 does not carry a spare tyre. An inflation kit is standard. For any non-repairable puncture (sidewall damage, large penetration), call immediately and do not drive on the tyre.
+
+**Load index**: 99+ required on all GV60 variants due to battery weight (approximately 2,100 kg kerb weight).
+
+**OE fitment**: the GV60 Performance typically comes with Michelin Pilot Sport 4S or Pirelli P Zero Elect acoustic tyres.
+
+## Genesis GV70 Tyre Guide (Including Electrified)
+
+| GV70 Variant | Tyre Size | Load Index Note |
+|---|---|---|
+| GV70 2.5T petrol (2WD) | 235/55R19 | 105+ |
+| GV70 2.5T petrol (AWD) | 235/55R19 | 107+ |
+| GV70 3.5T V6 (AWD) | 265/40R21 | 105+ |
+| GV70 Electrified AWD | 245/45R20 | 103+ (PHEV/EV weight) |
+
+**GV70 Electrified load index**: the electrified GV70 is significantly heavier than the petrol equivalent. Minimum load index 103 — do not fit a lower rating.
+
+**GV70 3.5T 21-inch wheels**: specialist stock size. Call ahead to confirm same-day availability for 265/40R21.
+
+## Genesis GV80 Tyre Guide
+
+| GV80 Variant | Tyre Size |
+|---|---|
+| GV80 2.5T (2WD) | 265/50R20 |
+| GV80 2.5T / 3.5T (AWD) | 265/50R20 or 275/40R21 |
+| GV80 Coupe (2024+) | 275/40R21 |
+
+**Load index**: GV80 with full seven-seat loading requires 110+ on 20-inch wheels. Confirm load rating before fitting.
+
+## Genesis G70 Tyre Guide (Sports Saloon)
+
+| G70 Variant | Front | Rear | Note |
+|---|---|---|---|
+| G70 2.0T (2WD/AWD) | 225/40R19 | 225/40R19 | Square fitment |
+| G70 3.3T V6 AWD | 225/40R19 (F) | 255/35R19 (R) | Staggered |
+| G70 Shooting Brake | 225/40R19 | 225/40R19 | Square fitment |
+
+**G70 3.3T staggered**: the V6 G70 Sport uses slightly wider rear tyres. Confirm front or rear when ordering.
+
+## Genesis G80 and Electrified G80
+
+| G80 Variant | Tyre Size | Note |
+|---|---|---|
+| G80 2.5T petrol (AWD) | 245/45R19 or 245/40R20 | Size varies by trim |
+| G80 Electrified EV | 245/45R19 | Load index 102+; no spare |
+| G80 3.5T V6 | 245/40R20 | LI 99+ |
+
+**G80 Electrified**: no spare wheel. Inflation kit only. Sidewall or unrepairable puncture requires immediate mobile fitting.
+
+## Genesis TPMS Reset
+
+Genesis uses direct TPMS sensors across all models. After tyre fitting:
+
+1. Inflate to correct pressures (driver's door sticker or Genesis Connect app)
+2. Start the vehicle
+3. Navigate to: **Settings > Vehicle > Tyre Pressure Monitor > Reset TPMS**
+4. Confirm and drive at 25+ mph for 10 minutes
+
+If the warning persists, the sensor may need reprogramming. Genesis shares Hyundai/Kia diagnostic architecture — Tyre Rescue technicians carry compatible TPMS reset tools.
+
+## Recommended Tyres for Genesis in Scotland
+
+Genesis targets a premium driving experience. Scotland's wet roads make wet-grip performance the most critical attribute.
+
+**GV60 / G70 performance variants**: Michelin Pilot Sport EV (for EVs) or Pirelli P Zero Elect — both outstanding in wet conditions.
+
+**GV70 / GV80 SUV**: Continental PremiumContact 7 or Michelin Pilot Sport 4 SUV — excellent wet grip ratings in SUV sizes.
+
+**All Genesis models for Scottish winter**: all-season tyres (3PMSF rated) recommended for Central Belt city driving from October to April. Michelin CrossClimate 2 or Continental AllSeasonContact 2 available in most Genesis sizes.
+
+## Book Mobile Tyre Fitting for Your Genesis in Scotland
+
+Call **0141 266 0690** or [book online](/book) for mobile Genesis tyre fitting across Glasgow, Edinburgh, Aberdeen, and all of Scotland.
+
+[EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Hyundai tyre fitting Scotland](/blog/hyundai-tyre-fitting-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026)`,
+  },
+  {
     slug: 'polestar-tyre-fitting-scotland',
     title: 'Polestar Tyre Fitting Scotland: Polestar 2, 3 & 4 Complete Tyre Guide',
     description:
