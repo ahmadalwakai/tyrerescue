@@ -4049,6 +4049,209 @@ For drivers in Lerwick itself, response is typically fastest as we maintain a lo
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
   },
   {
+    slug: 'pothole-damage-tyres-scotland',
+    title: 'Pothole Damage to Tyres in Scotland: What to Do & Can You Claim?',
+    description:
+      'Hit a Scottish pothole? Here\'s how to check for tyre damage, whether to claim compensation from the council, and how to get emergency tyre replacement quickly.',
+    category: 'emergency',
+    publishDate: '2025-12-01',
+    lastModified: '2025-12-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'pothole damage tyres scotland',
+      'hit pothole tyre damage scotland',
+      'pothole claim scotland council',
+      'pothole tyre bulge',
+      'pothole flat tyre scotland',
+      'council pothole claim uk',
+      'pothole damage car scotland',
+      'emergency tyre fitting pothole scotland',
+    ],
+    relatedSlugs: [
+      'what-to-do-flat-tyre-motorway',
+      'tyre-tread-depth-guide-scotland',
+      '24-hour-emergency-tyre-fitting-scotland',
+    ],
+    content: `# Pothole Damage to Tyres in Scotland: What to Do & Can You Claim?
+
+Scotland's roads contain some of the worst potholes in the UK. Transport Scotland and local councils receive thousands of pothole reports annually, and the combination of freeze-thaw cycles, heavy rainfall, and Highland frost damage means Scottish potholes are often deeper and more damaging than their English equivalents.
+
+If you have just hit a pothole — or suspect your tyres were damaged by one — here is exactly what to do.
+
+## Immediate Steps After Hitting a Pothole
+
+### 1. Find a safe place to stop
+If you feel a sudden change in handling, steering, or a thumping noise, reduce speed and find a safe place to stop. Do not continue driving on a damaged tyre — a slowly deflating tyre can fail completely without warning.
+
+### 2. Inspect all four tyres
+Look for:
+- **Bulges or lumps**: A bulge in the sidewall is a sign of internal structural failure — the tyre must be replaced immediately. Do not drive on it.
+- **Flat or rapidly deflating tyre**: Check whether any tyre is visibly lower than the others.
+- **Cuts or tears**: Any cut in the sidewall exposing white cord beneath the rubber.
+- **Wheel rim damage**: Buckled or cracked rims can also occur after pothole impacts and may cause slow air loss even with an intact tyre.
+
+### 3. Check for handling changes
+Even if the tyres look visually undamaged, a severe pothole impact can knock your wheel alignment out — causing the car to pull to one side, a vibration at speed, or uneven tyre wear. Get a four-wheel alignment check after any significant pothole impact.
+
+## Types of Pothole Tyre Damage
+
+### Tyre Bulge (Bubble)
+The most common pothole injury. The impact breaks cords inside the tyre wall, causing a bubble or lump on the sidewall. A bulging tyre is structurally compromised and cannot be repaired — it must be replaced immediately. Driving on a bulging tyre risks a blowout.
+
+### Sidewall Cut
+A sharp pothole edge can slice the sidewall. Even a small sidewall cut that exposes cord material requires immediate replacement — sidewall damage cannot be repaired.
+
+### Flat Tyre
+Pothole impacts can drive the tyre onto the rim hard enough to cause an immediate flat, or create a slow puncture in the tread area.
+
+### Wheel Damage
+Alloy wheels are particularly vulnerable to pothole impacts. A buckled wheel causes air loss around the bead (where the tyre seats) and cannot be properly sealed even with a new tyre until the wheel is straightened or replaced.
+
+## Can You Claim for Pothole Damage in Scotland?
+
+Yes — local authorities have a legal duty to maintain roads in a safe condition. If a pothole caused tyre or wheel damage and the authority was aware of it (or should have been), you may have a valid claim.
+
+### How to Make a Pothole Claim in Scotland
+
+**Step 1: Document everything at the scene**
+- Photograph the pothole, showing its size and depth (use a coin or your hand for scale)
+- Photograph your tyre damage
+- Note the exact road name, direction of travel, and nearest landmark or road number
+- Record the date and time
+
+**Step 2: Report the pothole**
+- Glasgow and Central Belt: [mygov.scot](https://www.mygov.scot/report-a-pothole) or the relevant local council website
+- Rural Scotland: your regional council (Highland Council, Dumfries & Galloway Council, etc.)
+- Trunk roads (A9, A74, A82 etc.): Transport Scotland via the trunk road operator
+
+**Step 3: Gather evidence of costs**
+Keep receipts for tyre replacement and any other damage (wheel straightening, alignment check). Get a written assessment from a tyre fitter.
+
+**Step 4: Submit your claim to the council**
+Contact the roads department of the relevant local authority in writing. Include your photographs, the pothole report reference number, and your cost receipts. Most councils have a compensation claim form.
+
+**Important**: Councils can reject claims if they can show the pothole was reported and they had not yet had a reasonable time to repair it, or if their road inspection interval was within policy. Claims success rates vary — the RAC estimates around 30–40% of pothole claims succeed in Scotland. Small claims court (up to £5,000) is an option if a legitimate claim is rejected.
+
+### Scottish Trunk Road Pothole Claims
+For damage on trunk roads (A9, A82, M8, M74 etc.), the claim goes to Transport Scotland's trunk road operating company — Amey, Bear Scotland, or Ringway Jacobs depending on the area. Report and claim via Transport Scotland's website.
+
+## Emergency Tyre Replacement After a Pothole
+
+If your tyre is damaged beyond use and you cannot drive, call **0141 266 0690**. Tyre Rescue attends pothole-related tyre emergencies across all of Scotland — from city streets to remote Highland roads. We carry replacement tyres and will assess whether the wheel itself needs attention before fitting.
+
+**Typical response times after a pothole emergency:**
+- Glasgow and Central Belt: 30–50 minutes
+- Edinburgh: 55–70 minutes
+- Dundee and Perth: 65–85 minutes
+- Aberdeen and Inverness: 90 minutes
+
+[Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland)`,
+  },
+  {
+    slug: 'part-worn-tyres-scotland-are-they-safe',
+    title: 'Part-Worn Tyres in Scotland: Are They Safe? The Honest Answer',
+    description:
+      'Are part-worn tyres a safe choice in Scotland? We look at the evidence, the risks, the legal requirements, and when — if ever — a part-worn tyre is acceptable.',
+    category: 'safety',
+    publishDate: '2025-12-01',
+    lastModified: '2025-12-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'part worn tyres scotland',
+      'part worn tyres safe scotland',
+      'part worn tyres legal uk',
+      'are part worn tyres worth it scotland',
+      'second hand tyres glasgow',
+      'part worn vs new tyres scotland',
+      'cheap tyres glasgow scotland',
+      'part worn tyre risks uk',
+    ],
+    relatedSlugs: [
+      'tyre-tread-depth-guide-scotland',
+      'tyre-age-when-to-replace-scotland',
+      'best-tyres-scottish-roads-guide',
+    ],
+    content: `# Part-Worn Tyres in Scotland: Are They Safe? The Honest Answer
+
+With the cost of living increasing, part-worn tyres are an appealing option for budget-conscious Scottish drivers. But are they safe? This guide gives an honest, evidence-based answer — not a sales pitch.
+
+## What Are Part-Worn Tyres?
+
+Part-worn tyres are used tyres removed from other vehicles and sold on. They can come from:
+- Vehicles written off in accidents
+- Fleet vehicle replacements (often replaced at 3–4mm tread rather than the legal minimum)
+- Continental imports (where minimum tread requirements differ)
+- Tyre wholesalers who buy in bulk from European markets
+
+## The Legal Requirements for Part-Worn Tyres in the UK
+
+Part-worn tyres are legal to sell in the UK, but they must meet specific requirements under the Motor Vehicle Tyres (Safety) Regulations 1994:
+
+- Tread depth: minimum **2mm** across the full tread width (not the 1.6mm legal minimum for cars)
+- No bulges, lumps, or exposed cords
+- No deep cuts on the sidewall (over 25mm or 10% of section width)
+- Must be marked **'PART WORN'** in letters at least 4mm high
+
+## The Problem: Most Part-Worn Tyres on Sale Do Not Meet Legal Requirements
+
+This is the most important fact in this guide.
+
+**Two major undercover investigations — by TyreSafe in 2014 and Which? in 2020 — found that over 50% of part-worn tyres tested failed to meet legal requirements.** Common failures:
+- Tread below 2mm or unevenly worn
+- Bulges or internal damage not visible externally
+- Missing 'PART WORN' marking
+- Tyres that had been run flat and were structurally compromised
+- Regrooved treads (illegal on UK passenger cars)
+
+When buying a part-worn tyre, you cannot know its history. It may have been:
+- Run flat (internal damage invisible from the outside)
+- Repaired improperly
+- Past the age at which rubber degrades
+- Previously on an overloaded vehicle
+
+## The Performance Reality
+
+Even a legal, well-selected part-worn tyre starts life with less tread than a new tyre. A part-worn tyre sold at 3mm tread will need replacing after far fewer miles than a new tyre at 8mm. The total cost of ownership over the tyre's remaining usable life is often worse than buying new.
+
+**Wet braking performance** also correlates directly with tread depth. A part-worn at 3mm on Scotland's wet roads offers significantly worse braking than a new tyre. For context:
+- New tyre at 8mm: baseline stopping distance
+- 3mm tread: 27% longer stopping distance in wet conditions
+- 1.6mm (legal limit): 44% longer
+
+## When Part-Worn Tyres Are and Are Not Acceptable
+
+### Never acceptable:
+- Sidewall damage or any internal unknown history
+- Tyres from unmarked or informal sellers with no provenance
+- Tyres where the seller cannot provide the original tyre size, age, or vehicle history
+- Tyres for regular use on Highland roads, the NC500, or remote routes where a blowout could be life-threatening
+
+### Potentially acceptable (with serious caveats):
+- A quality fleet removal from a reputable seller, at 4mm+ tread, where age is confirmed under 5 years
+- Temporary use while waiting for a new tyre order
+- Secondary vehicle with low mileage and urban-only use
+
+Even in these cases, a budget new tyre from a reputable brand (Nexen, Hankook, Falken) costs only marginally more and comes with known history, full tread depth, and manufacturer guarantee.
+
+## Tyre Rescue's Position on Part-Worn Tyres
+
+We stock and can supply part-worn tyres as a service option, and we follow all legal requirements when selling them. However, our honest recommendation to most Scottish drivers is:
+
+**Buy the cheapest new tyre you can afford before considering a part-worn.**
+
+Budget new tyres from Nexen, Hankook, Falken, or Toyo start from approximately £40–£55 for common sizes. This is not dramatically more than a quality part-worn, and it buys you: full tread depth, known age and history, a manufacturer guarantee, and EU tyre label ratings.
+
+For Scottish roads — particularly in wet conditions, on the NC500, or in winter — we believe the additional cost is worth it.
+
+## Get an Honest Quote for New Tyres
+
+Call **0141 266 0690** or [book online](/book) and tell us your tyre size. We will quote both new tyre options (budget, mid-range, premium) and let you make an informed decision.
+
+[Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide) | [Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
+  },
+  {
     slug: 'spare-tyre-uk-law-scotland',
     title: 'Spare Tyres: UK Law, Your Rights & What to Do Without One',
     description:
