@@ -28,10 +28,10 @@ export function EmergencyCoverageSection({
               mb="14px"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              Scotland mainland emergency coverage
+              All of Scotland — Emergency Coverage
             </Text>
             <Text fontSize={{ base: '15px', md: '17px' }} color={colorTokens.muted} lineHeight="1.75" style={{ fontFamily: 'var(--font-body)' }}>
-              Tyre Rescue covers mainland Scotland only. We help drivers in Glasgow, Edinburgh, Dundee, Stirling, Paisley, Hamilton, Kilmarnock, Ayr, Kirkcaldy, Perth, and nearby mainland routes. Scottish islands are excluded.
+              Tyre Rescue covers all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Dundee, Perth, Stirling, Highlands and Islands. Enter your postcode when booking to confirm availability and your local response time.
             </Text>
             {currentArea && (
               <Box mt="18px" bg={colorTokens.card} borderWidth="1px" borderColor={colorTokens.border} borderRadius="8px" p="18px">

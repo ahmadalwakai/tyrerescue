@@ -457,8 +457,8 @@ export const emergencyCampaign = {
     href: EMERGENCY_PHONE_HREF,
   },
   coverage: {
-    label: 'Scotland mainland only',
-    excluded: ['Scottish islands'],
+    label: 'All of Scotland — Glasgow to Shetland',
+    excluded: [],
   },
   responsePromiseMinutes: EMERGENCY_RESPONSE_MINUTES,
   service: '24/7 emergency mobile tyre fitting',

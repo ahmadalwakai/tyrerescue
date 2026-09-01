@@ -88,7 +88,7 @@ export default async function PunctureRepairLocalPage({ params }: PunctureRepair
           area={serviceArea}
           serviceLabel="Mobile puncture repair"
           headline={`Puncture repair in ${location}`}
-          copy={`Puncture in ${location}? Tyre Rescue can repair safe punctures from \u00a325 or fit a replacement tyre if the damage is not legally repairable. 24/7 mobile help across mainland Scotland.`}
+          copy={`Puncture in ${location}? Tyre Rescue can repair safe punctures from \u00a325 or fit a replacement tyre if the damage is not legally repairable. 24/7 mobile help across all of Scotland.`}
         />
         <EmergencyTrustBar />
         <EmergencyServiceCards />

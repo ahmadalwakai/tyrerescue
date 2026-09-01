@@ -65,12 +65,12 @@ export function EmergencyHero({
     headline ??
     (area
       ? `${serviceLabel} in ${area.areaName}, ${area.cityName}`
-      : 'Emergency tyre fitting across mainland Scotland');
+      : 'Emergency tyre fitting across all of Scotland');
   const body =
     copy ??
     (area
       ? `Flat tyre near ${area.landmark}? Tyre Rescue sends a 24/7 mobile tyre fitter to ${area.areaName} with a ${area.responseMinutes}-minute emergency response, subject to live dispatch and tyre availability.`
-      : 'Flat tyre, puncture, or roadside tyre failure? Tyre Rescue sends a mobile tyre fitter to your location 24/7, with a 45-minute emergency response across mainland Scotland.');
+      : 'Flat tyre, puncture, or roadside tyre failure? Tyre Rescue sends a mobile tyre fitter to your location 24/7, with a 45-minute emergency response across all of Scotland.');
 
   const stats = [
     {
@@ -78,7 +78,7 @@ export function EmergencyHero({
       label: 'Emergency response',
     },
     { value: '24/7', label: 'Day and night' },
-    { value: 'Mainland', label: 'Scotland only' },
+    { value: 'All Scotland', label: 'Glasgow to Shetland' },
   ] as const;
 
   return (
@@ -112,7 +112,7 @@ export function EmergencyHero({
               style={{ fontFamily: 'var(--font-body)' }}
             >
               <LocationIcon />
-              Scotland mainland only - no islands
+              All of Scotland — Glasgow to Shetland
             </Flex>
 
             <Text

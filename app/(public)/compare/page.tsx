@@ -3,7 +3,7 @@ import { CompareIndexContent } from './CompareIndexContent';
 import { JsonLd } from '@/components/seo/JsonLd';
 
 export const metadata: Metadata = {
-  title: 'Compare Tyre Rescue vs Competitors | Mobile Tyre Fitting Scotland',
+  title: 'Compare Tyre Rescue vs Kwik Fit, Arnold Clark, Halfords & More | Scotland',
   description:
     'See how Tyre Rescue compares to Kwik Fit, National Tyres, ATS Euromaster, Halfords, Arnold Clark & Protyre for mobile tyre fitting across Scotland. 24/7 emergency service.',
   alternates: { canonical: 'https://www.tyrerescue.uk/compare' },

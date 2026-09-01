@@ -30,7 +30,7 @@ function servicePath(area: ServiceArea, kind: EmergencyLocalKind): string {
 export function buildEmergencyMetadata(): Metadata {
   const title = 'Emergency Tyre Fitting Scotland | 24/7';
   const description =
-    'Flat tyre or puncture? Call Tyre Rescue for 24/7 emergency mobile tyre fitting across mainland Scotland, 45-minute response, and callout from \u00a349.';
+    'Flat tyre or puncture? Call Tyre Rescue for 24/7 emergency mobile tyre fitting across all of Scotland \u2014 Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands. 45-minute response, callout from \u00a349.';
 
   return {
     title,
@@ -74,8 +74,8 @@ export function buildEmergencyLocalMetadata(
       : `${name} ${area.cityName} ${area.areaName} | 24/7`;
   const description =
     kind === 'puncture'
-      ? `Mobile puncture repair in ${area.areaName}, ${area.cityName}. Repair from \u00a325 where safe, 24/7 help, and mainland Scotland coverage. Call ${EMERGENCY_PHONE_DISPLAY}.`
-      : `Emergency tyre fitting in ${area.areaName}, ${area.cityName}. 24/7 mobile tyre fitter, 45-minute response, callout from \u00a349, mainland Scotland only.`;
+      ? `Mobile puncture repair in ${area.areaName}, ${area.cityName}. Repair from \u00a325 where safe, 24/7 help, all of Scotland covered. Call ${EMERGENCY_PHONE_DISPLAY}.`
+      : `Emergency tyre fitting in ${area.areaName}, ${area.cityName}. 24/7 mobile tyre fitter, 45-minute response, callout from \u00a349. All of Scotland covered.`;
 
   return {
     title,
@@ -129,8 +129,8 @@ export function buildEmergencyServiceJsonLd(
     url: absoluteUrl(path),
     telephone: '+441412660690',
     description: area
-      ? `${serviceName(kind)} covering ${area.areaName}, ${area.cityName} and mainland Scotland. Scottish islands are excluded.`
-      : '24/7 emergency mobile tyre fitting across mainland Scotland. Scottish islands are excluded.',
+      ? `${serviceName(kind)} covering ${area.areaName}, ${area.cityName} and all of Scotland — Glasgow to Shetland.`
+      : '24/7 emergency mobile tyre fitting across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness, Highlands and Islands.',
     openingHours: 'Mo-Su 00:00-23:59',
     priceRange: '\u00a320-\u00a3220',
     areaServed: area

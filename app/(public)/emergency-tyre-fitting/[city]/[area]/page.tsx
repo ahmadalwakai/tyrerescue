@@ -87,7 +87,7 @@ export default async function EmergencyTyreFittingLocalPage({ params }: Emergenc
         <EmergencyHero
           area={serviceArea}
           headline={`Emergency tyre fitting in ${location}`}
-          copy={`Flat tyre in ${location}? Tyre Rescue dispatches 24/7 mobile tyre fitters across mainland Scotland, with a ${serviceArea.responseMinutes}-minute response target and emergency callout from \u00a349.`}
+          copy={`Flat tyre in ${location}? Tyre Rescue dispatches 24/7 mobile tyre fitters across all of Scotland, with a ${serviceArea.responseMinutes}-minute response target and emergency callout from \u00a349.`}
         />
         <EmergencyTrustBar />
         <EmergencyServiceCards />

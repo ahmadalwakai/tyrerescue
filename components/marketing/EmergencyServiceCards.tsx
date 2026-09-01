@@ -18,7 +18,7 @@ const serviceCards = [
   },
   {
     title: '24/7 roadside tyre help',
-    copy: 'Night, weekend, and bank-holiday emergency assistance across mainland Scotland.',
+    copy: 'Night, weekend, and bank-holiday emergency assistance across all of Scotland — Glasgow to Shetland.',
   },
   {
     title: 'Puncture repair',
