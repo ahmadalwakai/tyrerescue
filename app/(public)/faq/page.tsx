@@ -6,7 +6,7 @@ import { JsonLd } from '@/components/seo/JsonLd';
 export const metadata: Metadata = {
   title: 'FAQ | Mobile Tyre Fitting Scotland | Tyre Rescue',
   description:
-    'Common questions about mobile tyre fitting across Scotland. Coverage areas, response times for Glasgow, Edinburgh, Aberdeen, Inverness and the Highlands, pricing and booking information.',
+    'Common questions about mobile tyre fitting across Scotland — coverage for Glasgow, Edinburgh, Aberdeen, Inverness, Highlands, Borders, Islands; response times, pricing from £20, emergency callout, puncture repair, tyre brands and booking.',
   alternates: { canonical: 'https://www.tyrerescue.uk/faq' },
 };
 
