@@ -10762,141 +10762,109 @@ Call **0141 266 0690** or [book online](/book). Give us your vehicle registratio
 [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [All-season tyres guide](/blog/all-season-tyres-scotland-guide) | [Michelin vs Continental vs Pirelli](/blog/michelin-vs-continental-vs-pirelli-scotland)`,
   },
   {
-    slug: 'mobile-tyre-fitting-edinburgh-guide',
-    title: 'Mobile Tyre Fitting Edinburgh: City Guide, Response Times & Coverage',
+    slug: 'mobile-tyre-fitting-aberdeen-guide',
+    title: 'Mobile Tyre Fitting Aberdeen: City Guide, Response Times & AB Postcode Coverage',
     description:
-      'Mobile tyre fitting across all of Edinburgh — EH1 to EH55, city centre, Leith, Morningside, Corstorphine, Edinburgh Airport, A1/M8/A720 coverage. Response times, pricing, and what to expect.',
+      'Mobile tyre fitting across Aberdeen and Aberdeenshire — AB10 to AB56, city centre, Westhill, Dyce, Portlethen, AWPR, A90/A96/A93 coverage. 24-hour emergency service for oil industry and business fleets.',
     category: 'fitting',
     publishDate: '2026-09-01',
     lastModified: '2026-09-01',
-    readingTime: 8,
-    featured: true,
+    readingTime: 7,
+    featured: false,
     keywords: [
-      'mobile tyre fitting edinburgh',
-      'mobile tyre fitter edinburgh',
-      'emergency tyre fitting edinburgh',
-      'tyre fitting edinburgh city centre',
-      'flat tyre edinburgh',
-      'tyre rescue edinburgh',
-      '24 hour tyre fitting edinburgh',
-      'tyre fitting leith',
-      'tyre fitting morningside',
-      'tyre fitting corstorphine',
-      'tyre fitting portobello',
-      'tyre fitting edinburgh airport',
+      'mobile tyre fitting aberdeen',
+      'mobile tyre fitter aberdeen',
+      'emergency tyre fitting aberdeen',
+      'flat tyre aberdeen',
+      '24 hour tyre fitting aberdeen',
+      'tyre fitting aberdeen city centre',
+      'tyre fitting westhill',
+      'tyre fitting dyce',
+      'tyre fitting portlethen',
+      'tyre rescue aberdeen',
+      'mobile tyre fitting aberdeenshire',
     ],
     relatedSlugs: [
       'mobile-tyre-fitting-glasgow-guide',
-      'emergency-tyre-fitting-process',
+      'all-season-tyres-scotland-guide',
       'tyre-prices-scotland-guide-2026',
     ],
-    content: `# Mobile Tyre Fitting Edinburgh: Everything You Need to Know
+    content: `# Mobile Tyre Fitting Aberdeen and Aberdeenshire
 
-Edinburgh is Tyre Rescue's second most active city. Whether you have a puncture on the Royal Mile, a slow leak near Murrayfield, or a blowout on the A720 City Bypass, we cover every part of Edinburgh — 24 hours a day.
+Aberdeen and Aberdeenshire have some of Scotland's most demanding driving conditions — harsh winters, exposed A-roads, and the North Sea climate that accelerates tyre wear. Tyre Rescue covers the full AB postcode area, from the city centre out to Stonehaven, Inverurie, Huntly, and Banchory.
 
-## Edinburgh Coverage: EH1 to EH55
-
-We cover all Edinburgh postcodes including:
+## Aberdeen Coverage: AB Postcodes
 
 | Area | Postcodes | Response Time |
 |---|---|---|
-| City Centre / Old Town / New Town | EH1, EH2, EH3 | 20–30 minutes |
-| Leith / Newhaven / Portobello | EH6, EH7, EH15 | 25–40 minutes |
-| Southside / Marchmont / Morningside | EH9, EH10, EH11 | 25–35 minutes |
-| Corstorphine / Murrayfield | EH12, EH14 | 25–35 minutes |
-| Edinburgh Airport / Newbridge | EH28, EH29 | 30–45 minutes |
-| West Edinburgh (Queensferry) | EH30 | 35–50 minutes |
-| East Lothian (Musselburgh, Tranent, Haddington) | EH21, EH33, EH41 | 35–55 minutes |
-| Midlothian (Penicuik, Dalkeith, Bonnyrigg) | EH19, EH22, EH25, EH26 | 35–55 minutes |
-| West Lothian (Livingston, Bathgate, Linlithgow) | EH47, EH48, EH54 | 40–60 minutes |
+| Aberdeen City Centre / Granite Mile | AB10, AB11 | 25–40 minutes |
+| West End / Rosemount / Mannofield | AB13, AB15 | 30–45 minutes |
+| Dyce / Aberdeen Airport | AB21 | 35–50 minutes |
+| Bridge of Don / Danestone | AB22, AB23 | 35–50 minutes |
+| Portlethen / Cove Bay | AB12 | 35–50 minutes |
+| Westhill / Kingswells | AB32 | 40–55 minutes |
+| Inverurie / Kintore | AB51 | 50–70 minutes |
+| Stonehaven / Laurencekirk | AB39 | 50–65 minutes |
+| Banchory / Aboyne / Ballater | AB31, AB34, AB35 | 65–90 minutes |
+| Huntly / Keith | AB54, AB55 | 70–100 minutes |
+| Fraserburgh / Peterhead | AB41, AB42, AB43 | 75–100 minutes |
 
-Response times are estimates and vary by traffic, time of day, and technician proximity. For confirmed ETAs, call us on **0141 266 0690** after booking.
+For remote Aberdeenshire locations, call us first to confirm availability and ETA before committing to wait. We cover all of the above but response times to outlying areas are longer.
 
-## Major Edinburgh Roads We Cover
+## Key Aberdeen Roads We Cover
 
-**A720 City Bypass** — Edinburgh's ring road is one of our most frequent callout routes. If you have a blowout or flat on the bypass, pull safely onto the hard shoulder, switch on hazard lights, and call us immediately. We attend the full A720 circuit.
+**AWPR (Aberdeen Western Peripheral Route / A90)** — the bypass opened in 2018 and is now one of our most frequent callout routes. The AWPR connects Stonehaven to Blackburn and Balmedie. If you have a flat on the AWPR, pull onto the hard shoulder or emergency refuge area and call us.
 
-**M8 Edinburgh–Glasgow** — we cover the Edinburgh end of the M8 from the city centre through to Newbridge (junction 2). For incidents further west, we coordinate with our Glasgow team.
+**A96 Aberdeen to Inverness** — a major single-carriageway A-road with high HGV and agricultural vehicle traffic. We cover the Aberdeen end through to Inverurie and beyond.
 
-**A1 / A1(M)** — the main east coast route from the city centre out through Musselburgh, Tranent, and Haddington into East Lothian.
+**A90 Aberdeen to Dundee (south)** — south Aberdeen through Portlethen and Stonehaven, continuing towards Montrose and Dundee.
 
-**A71 / A8** — westbound routes towards Livingston (A71) and Edinburgh Airport/Newbridge (A8).
+**A93 Royal Deeside** — west from Aberdeen through Banchory and Ballater towards Braemar. A scenic but often frost-affected route in winter. Winter tyre advice for Deeside: keep to all-season rated 3PMSF or swap to dedicated winter tyres from October.
 
-**A702 / A701** — the Morningside Road and routes south towards Penicuik and Midlothian.
+## Aberdeen-Specific Tyre Considerations
 
-## Common Callout Locations in Edinburgh
+**Oil industry and offshore workers** — Aberdeen's economy means many drivers use company vehicles (SUVs, pickups, vans) that are larger and heavier than average. Van and pickup tyres (C-rated or LT-rated) are a significant proportion of our Aberdeen callouts. We carry C-rated tyres in Transit, Sprinter, and Hilux sizes as standard stock.
 
-**City Centre Parking** — EH1/EH2 NCP car parks, Waverley station car parks, and on-street parking on the Royal Mile are frequent callout locations. We can attend multi-storey car parks; ensure you can direct us to the correct floor and bay.
+**All-season tyres for Aberdeenshire** — Aberdeen and Aberdeenshire regularly see snow from November to March. West Aberdeenshire (Braemar, Ballater, Banchory) is one of the coldest inland areas in the UK. All-season tyres rated 3PMSF are strongly recommended for anyone driving west of Aberdeen in winter. Our [all-season tyre guide](/blog/all-season-tyres-scotland-guide) covers regional recommendations.
 
-**Edinburgh Airport** — arriving or departing passengers who discover a flat tyre at Edinburgh Airport (EH12 9DN) can book us directly. We attend the short stay and long stay car parks. Allow 35–50 minutes from call to arrival.
+**Granite road surfaces** — Aberdeen's characteristic granite road surface can be abrasive, particularly on older town roads. Budget tyres wear faster here than on southern English motorways. Mid-range or premium tyres give better value over full tyre life.
 
-**Edinburgh Park / Quartermile / Fountainbridge** — business park and office district callouts are common on weekday mornings.
+**Aberdeen Airport (AB21)** — Dyce-based drivers and airport callouts are common. We attend ABZ Aberdeen International Airport car parks (short stay and long stay). Allow 35–50 minutes from call.
 
-**IKEA / Fort Kinnaird Retail Park** — high-volume retail areas in the east of the city; quick access via the A1.
+## Aberdeen Fleet Tyre Service
 
-**Gyle Shopping Centre / Hermiston Gait Retail Park** — west Edinburgh retail parks; easy access, no barrier issues.
+Aberdeen has a high density of business fleets — oil and gas sector, agricultural contractors, fishing industry vehicles, construction companies, and offshore logistics operators. Tyre Rescue offers fleet accounts for Aberdeen-based businesses:
 
-**Meadowbank / Holyrood / Dynamic Earth** — east city locations; EH8/EH15 postcodes covered.
+- **Priority response** — fleet account holders receive priority dispatch
+- **Monthly consolidated invoicing** — no per-job payment friction
+- **C-rated and LT-rated stock** — maintained for Aberdeen's commercial vehicle profile
+- **Compliance records** — TPMS, tread depth, and tyre age records per vehicle on request
 
-## Edinburgh-Specific Tyre Problems
+For fleet enquiries, call **0141 266 0690** and ask for our fleet team.
 
-**Arthur's Seat Road and Holyrood Park** — the winding roads around Holyrood Park cause more sidewall damage and pinch punctures than almost any Edinburgh road. Drivers clip kerbs on the sharp corners around Queens Drive.
+## Winter Driving in Aberdeenshire
 
-**Leith Walk** — high traffic, tram construction legacy damage, and road surface breaks make Leith Walk a frequent slow puncture route.
+Aberdeen City itself rarely sees extreme conditions but temperatures regularly drop below 4°C from October to April — the threshold at which summer tyres begin to lose grip significantly.
 
-**A720 City Bypass** — high-speed road means blowouts rather than slow leaks. Debris from construction zones around Sheriffhall and Gilmerton is a recurring problem.
+**Our Aberdeen tyre recommendations by area**:
+- **City drivers (AB10–AB23)**: All-season tyres with 3PMSF rating are sufficient for most winters. Recommended: Michelin CrossClimate 2, Continental AllSeasonContact 2.
+- **West Aberdeenshire drivers (Banchory, Ballater, Aboyne, Braemar)**: Dedicated winter tyres strongly recommended from October. The A93 Braemar road regularly closes in heavy snow. Continental WinterContact TS870 P or Michelin Alpin 6 for saloon/SUV fitment.
+- **Fraserburgh / Peterhead coast**: All-season tyres are typically adequate — coast temperatures are milder than inland, but wind and rain intensity is higher, making good wet-grip ratings important.
 
-**Cobbled streets** — the Old Town and parts of the New Town still have cobbled surfaces that cause TPMS pressure warnings and can contribute to sidewall stress at low tyre pressures.
+## Aberdeen Pricing
 
-**Edinburgh trams** — the network from Edinburgh Airport to Newhaven crosses several roads with embedded rail tracks. Tyre trapping in tram grooves, while rare, does occur on Princes Street and Leith Walk.
+All prices are standard Scotland rates:
 
-## Edinburgh Pricing
+- **Mobile tyre fitting**: £20 per tyre (fitted and balanced)
+- **Emergency callout**: additional £49 (response under 60 minutes in AB10–AB23)
+- **Puncture repair**: £25 per tyre (BSAU159 compliant)
+- **Mileage supplement**: may apply for callouts to AB31–AB56 rural areas — confirmed at booking
 
-All pricing is consistent with our Scotland-wide standard rates:
+## Book Mobile Tyre Fitting in Aberdeen
 
-- **Standard mobile tyre fitting**: £20 per tyre (fitted and balanced)
-- **Emergency callout (under 60 minutes)**: additional £49 callout fee
-- **Puncture repair**: £25 per tyre (if repairable to BSAU159 standard)
-- **TPMS sensor replacement**: from £45 per sensor
-- **Wheel balancing only**: £12 per wheel
+Call **0141 266 0690** or [book online](/book) for mobile tyre fitting anywhere in Aberdeen and Aberdeenshire.
 
-**Tyre supply**: we carry a broad stock of popular Edinburgh sizes (205/55R16, 225/45R17, 225/40R18, 245/45R18 are the most common). For specialist sizes (run-flats, 20"+ wheels, van C-rated tyres), call ahead to confirm same-day stock availability.
-
-For a full price breakdown, see our [2026 tyre prices guide](/blog/tyre-prices-scotland-guide-2026).
-
-## What to Do with a Flat Tyre in Edinburgh
-
-**If you are moving**: find the nearest safe place to pull over completely off the road. On the A720, use the hard shoulder. On city streets, a side street or wide pavement area is safer than stopping on a main road.
-
-**If you are stationary** (car park, driveway, office): you are already in the safest possible position — simply call and wait.
-
-1. **Put hazard lights on** immediately
-2. **Call 0141 266 0690** or book online at tyrerescue.uk/book
-3. Give us your precise location — postcode is best, plus any landmark or car park level number
-4. Wait safely away from your vehicle if you are on a road
-5. We will call you when we are close so you can return to the car for the fitting
-
-**Edinburgh-specific tip**: if you break down on the A720 or A1(M), you can also contact Police Scotland on 101 to notify them — this is especially useful at night or in poor visibility.
-
-## Edinburgh Tyre FAQ
-
-**Do you cover the Lothians?**
-Yes — East Lothian (Musselburgh, Haddington, North Berwick), Midlothian (Dalkeith, Penicuik, Bonnyrigg), and West Lothian (Livingston, Bathgate, Bo'ness) are all within our service area.
-
-**Can you fit tyres at Edinburgh Airport?**
-Yes. We attend the short stay car park, long stay car park, and the hotel/business areas around EH12. Allow 35–50 minutes from your call.
-
-**Can you fit run-flat tyres?**
-Yes. We stock BMW RSC, Mercedes EMT/MOExtended, and Pirelli run-flat tyres in most common Edinburgh sizes. Call ahead to confirm stock for your specific size.
-
-**Can I get a tyre in Edinburgh on a Sunday?**
-Yes — we operate 7 days a week. Weekend emergency callouts are subject to our emergency callout fee.
-
-## Book Mobile Tyre Fitting in Edinburgh
-
-Call **0141 266 0690** or [book online](/book) for mobile tyre fitting anywhere in Edinburgh and the Lothians.
-
-[Edinburgh service areas](/mobile-tyre-fitting/edinburgh) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [24 hour tyre fitting](/24-hour-tyre-fitting)`,
+[Aberdeen service area](/mobile-tyre-fitting/aberdeen) | [Emergency tyre fitting near me](/emergency-tyre-fitting-near-me) | [All-season tyres guide](/blog/all-season-tyres-scotland-guide)`,
   },
   {
     slug: 'fleet-tyre-management-scotland',
