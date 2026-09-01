@@ -4049,6 +4049,195 @@ For drivers in Lerwick itself, response is typically fastest as we maintain a lo
 [Inverness & Highlands](/mobile-tyre-fitting/inverness) | [Stornoway & Western Isles](/blog/mobile-tyre-fitting-stornoway-western-isles) | [All service areas](/service-areas)`,
   },
   {
+    slug: 'aquaplaning-prevention-scotland',
+    title: 'Aquaplaning in Scotland: What It Is, How to Prevent It, What to Do',
+    description:
+      'Aquaplaning is a real risk on Scotland\'s wet roads. Learn what causes it, how proper tyres and tread depth reduce the risk, and what to do if your car aquaplanes.',
+    category: 'safety',
+    publishDate: '2025-12-01',
+    lastModified: '2025-12-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'aquaplaning scotland',
+      'aquaplaning prevention uk',
+      'hydroplaning car scotland',
+      'aquaplaning what to do',
+      'wet road safety scotland',
+      'aquaplaning tyres scotland',
+      'motorway flooding scotland',
+      'tyre aquaplaning risk',
+    ],
+    relatedSlugs: [
+      'tyre-tread-depth-guide-scotland',
+      'tyre-pressure-guide-scotland',
+      'best-tyres-scottish-roads-guide',
+    ],
+    content: `# Aquaplaning in Scotland: What It Is, How to Prevent It, What to Do
+
+Scotland's high rainfall makes aquaplaning one of the most important driving hazards to understand. The country experiences over 1,000mm of rain annually in many areas — some western Highland locations exceed 3,000mm. On motorways and fast A-roads, standing water can form rapidly, making aquaplaning a real risk throughout the year.
+
+## What Is Aquaplaning?
+
+Aquaplaning (also called hydroplaning) occurs when a tyre cannot displace water fast enough to maintain contact with the road surface. A thin layer of water builds between the tyre and the road, and the tyre effectively floats on this film. When this happens:
+
+- The tyre loses traction almost completely
+- Steering input has little effect
+- Braking is severely compromised
+- The car continues in whatever direction it was heading
+
+It can happen without warning. One moment you are driving normally; the next, the steering feels light and unresponsive — a sensation experienced drivers recognise immediately.
+
+## What Causes Aquaplaning?
+
+### 1. Speed
+The faster you drive through standing water, the less time a tyre has to displace water through its tread grooves. The risk increases dramatically above 50mph.
+
+### 2. Water depth
+Deeper standing water is harder to displace. Scotland's roads — particularly rural roads with poor drainage — can develop significant standing water quickly during heavy rain.
+
+### 3. Tread depth
+This is the single most important preventable factor. Tyre tread grooves exist specifically to channel water away from the contact patch. A new tyre at 8mm can displace approximately 8 litres of water per second at 50mph. A tyre at 1.6mm (the legal limit) displaces far less — making aquaplaning far more likely.
+
+### 4. Tyre pressure
+Under-inflated tyres have a smaller contact patch and less rigid carcass, making aquaplaning more likely. Over-inflated tyres have a smaller contact patch for a different reason — both extremes are worse than correct pressure.
+
+### 5. Road surface and drainage
+Motorway surfaces (typically smooth tarmac) are more prone to aquaplaning than textured road surfaces with better drainage.
+
+## Aquaplaning Risk on Scottish Roads
+
+### Motorways (M8, M74, M77, M80, M9)
+Scottish motorways, like English ones, can develop lanes of standing water in heavy rain. The M8 between Glasgow and Edinburgh is particularly prone to standing water in its lower sections during heavy rain events. Reduce speed in heavy rain even if the road looks clear.
+
+### Highland A-roads (A9, A82, A87, NC500)
+Highland roads often lack central reservations and have poor drainage camber in places. Standing water can appear rapidly during rain. The A9 through Drumochter has a history of flooding in autumn.
+
+### Urban roads
+Glasgow and Edinburgh experience flash flooding during heavy downpours. Low-lying roads near rivers (Clyde, Forth, Tay tributaries) are most vulnerable.
+
+## How to Prevent Aquaplaning
+
+### 1. Maintain tyre tread above 3mm
+On Scotland's wet roads, 3mm is the practical safety minimum, not 1.6mm. The difference in water displacement between 3mm and 1.6mm tread is significant. Check your tread monthly.
+
+### 2. Maintain correct tyre pressure
+Check pressures monthly and before long journeys. See your door placard for the correct figure. Correct pressure maximises the tyre's ability to channel water.
+
+### 3. Reduce speed in heavy rain
+The Highway Code recommends doubling your stopping distance in wet conditions. At 50mph with good tyres on a wet Scottish motorway, this is sound advice. At 70mph in standing water with worn tyres, it is essential.
+
+### 4. Avoid sudden steering or braking in standing water
+Approach standing water gradually, reducing speed smoothly before you enter it. Sudden steering or braking in water dramatically increases aquaplaning risk.
+
+### 5. Avoid driving through unknown depths of standing water
+Water as shallow as 15cm can cause control loss. If you cannot see the road surface through flood water, do not drive through it.
+
+## What to Do If Your Car Aquaplanes
+
+1. **Do not panic**: Aquaplaning is temporary — as speed reduces, the tyres regain contact with the road.
+2. **Do not brake sharply**: This can make the vehicle unstable and extend the aquaplaning period.
+3. **Ease off the accelerator gently**: Allow the car to slow through engine braking.
+4. **Hold the steering wheel straight**: Keep it pointing in your intended direction of travel. Do not attempt to steer while the tyres have no grip.
+5. **Wait for grip to return**: You will feel the steering firm up as the tyres regain road contact. Only then gently steer if correction is needed.
+6. **Check your tyres**: After a severe aquaplaning incident, stop and check for tyre damage. The sustained sliding can cause unusual wear.
+
+## After an Aquaplaning Incident
+
+If the aquaplaning was severe, or your tyres are worn (below 3mm), call Tyre Rescue on **0141 266 0690**. We can assess your tyres and fit replacements at your location across Scotland.
+
+[Tyre tread depth guide](/blog/tyre-tread-depth-guide-scotland) | [Tyre pressure guide](/blog/tyre-pressure-guide-scotland) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide)`,
+  },
+  {
+    slug: '4x4-suv-tyres-scotland-highlands',
+    title: '4x4 and SUV Tyres in Scotland: Highland Routes & Off-Road Guide',
+    description:
+      'Driving a 4x4 or SUV in Scotland? Here\'s what to know about tyre choice for Highland routes, NC500, farm tracks, and winter conditions — all-terrain vs all-season vs road tyres.',
+    category: 'maintenance',
+    publishDate: '2025-12-01',
+    lastModified: '2025-12-01',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      '4x4 tyres scotland',
+      'suv tyres scotland',
+      'all terrain tyres scotland highlands',
+      '4x4 tyre fitting scotland',
+      'land rover tyres scotland',
+      'range rover tyres scotland',
+      'off road tyres scotland nc500',
+      'highland 4x4 tyre guide',
+    ],
+    relatedSlugs: [
+      'best-tyres-scottish-roads-guide',
+      'winter-tyres-when-to-switch-scotland',
+      'tyre-tread-depth-guide-scotland',
+    ],
+    content: `# 4x4 and SUV Tyres in Scotland: Highland Routes & Off-Road Guide
+
+Scotland is arguably the best country in the UK for 4x4 owners. From the NC500 to the Knoydart peninsula, from the Galloway Forest to the single-track roads of Argyll, Scotland's terrain rewards genuine off-road capability — but only with the right tyres.
+
+## The Three Tyre Categories for Scottish 4x4s
+
+### Road Tyres (HT — Highway Terrain)
+Standard road tyres designed for tarmac. These come fitted to most new SUVs — Range Rover Sport, BMW X5, Porsche Cayenne, Mercedes GLE — because manufacturers prioritise comfort, fuel economy, and noise on roads. They offer good performance on wet tarmac and motorways, but limited traction on soft ground, mud, or deep snow.
+
+**Best for**: SUVs used primarily on roads — urban and motorway driving with occasional rural tarmac.
+**Not suitable for**: Anything beyond sealed roads.
+
+### All-Season Tyres (AS)
+All-season SUV tyres balance road comfort with winter capability. Premium options (Michelin CrossClimate SUV, Continental AllSeasonContact SUV) carry the Three Peak Mountain Snowflake symbol, meaning they meet winter traction standards.
+
+**Best for**: Central Belt SUV owners who want year-round performance without seasonal tyre swaps. Good for the NC500 when driven on sealed roads year-round.
+**Limitations**: Significantly less capable than all-terrain tyres on unpaved surfaces; not suitable for agricultural tracks, muddy forest roads, or genuine off-road.
+
+### All-Terrain Tyres (AT)
+The hybrid — a more aggressive tread pattern that performs well on both tarmac and unpaved surfaces. Brands include BF Goodrich All-Terrain T/A KO2, Toyo Open Country A/T, Falken Wildpeak AT, Cooper Discoverer AT3.
+
+All-terrain tyres have:
+- Larger tread blocks with more spacing for self-cleaning in mud and loose surfaces
+- Reinforced sidewalls for resistance to rock cuts and kerbing damage
+- Adequate wet road performance (though not as good as road tyres)
+- Acceptable road noise (modern AT tyres are significantly quieter than older designs)
+
+**Best for**: Regular use on Highland forestry roads, farm tracks, unpaved access roads; NC500 drivers who go off the main road; any 4x4 used in agricultural or estate work.
+**Trade-offs**: Slightly higher fuel consumption, more road noise, slightly longer wet braking distance than road tyres.
+
+### Mud-Terrain Tyres (MT)
+The most aggressive option — designed for deep mud, rock crawling, and serious off-road use. Very large, widely spaced tread blocks.
+
+**Best for**: Land Rover Defenders, agricultural use, green-laning, dedicated off-road driving.
+**Not suitable for**: Primary road use — loud, shorter lifespan on tarmac, significantly worse wet braking.
+
+## What Scottish Terrain Requires
+
+### NC500 Sealed Tarmac
+The NC500 is entirely on sealed (though often narrow) roads. Standard road tyres or all-season tyres are perfectly adequate for the NC500. The roads are tarmac throughout. All-terrain tyres are not necessary — though they cause no harm.
+
+### Highland Single-Track Roads
+Scotland's network of single-track roads with passing places is tarmac (often patched and repaired) with soft verges. Standard road tyres handle these fine, but if you regularly pull onto verges for passing places in wet conditions, all-terrain tyres provide more confidence.
+
+### Forestry Roads and Estate Tracks
+Scotland has thousands of miles of unsealed forestry roads and estate tracks — the domain of all-terrain tyres. If you access any of these regularly, all-terrain tyres are worth the investment.
+
+### Winter Highland Driving
+Any 4x4 driven on Highland roads from October to April benefits from winter or all-season tyres. The A9 Drumochter, A82 Glencoe, A939 through the Lecht, and the A93 through Glenshee all see significant snowfall in winter. Four-wheel drive with summer road tyres is not the same as two-wheel drive with winter tyres on snow — both matter.
+
+## Load and Speed Ratings for SUVs
+
+Many SUVs carry significant weight — passengers, luggage, roof boxes, tow bars. Check that any tyre you fit has adequate load index. A Range Rover Defender 110 can weigh over 2,500kg fully loaded, requiring tyres with very high load ratings (102–107 or above per tyre).
+
+When calling **0141 266 0690** about 4x4 or SUV tyres, give your vehicle make, model, and trim. We will confirm the correct load index and speed rating before supplying.
+
+## Mobile 4x4 Tyre Fitting in Scotland
+
+Tyre Rescue fits all tyre types for 4x4s and SUVs across Scotland, including all-terrain tyres. We carry common 4x4 sizes (16", 17", 18", 20" rims) and can source specialist sizes within a few hours.
+
+For Highland breakdowns — including Land Rovers and Defenders on estate roads — call **0141 266 0690**. We cover all of Scotland including Argyll, the far Highlands, and island routes accessible by road.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Winter tyres Scotland](/blog/winter-tyres-when-to-switch-scotland) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide)`,
+  },
+  {
     slug: 'pothole-damage-tyres-scotland',
     title: 'Pothole Damage to Tyres in Scotland: What to Do & Can You Claim?',
     description:
