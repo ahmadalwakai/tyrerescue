@@ -7961,6 +7961,278 @@ Call **0141 266 0690** or [book online](/book) for mobile Hyundai tyre fitting a
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Kia tyre fitting Scotland](/blog/kia-tyre-fitting-scotland) | [Electric vehicle tyres Scotland](/blog/electric-vehicle-tyres-scotland)`,
   },
+  {
+    slug: 'peugeot-tyre-fitting-scotland',
+    title: 'Peugeot Tyre Fitting Scotland: 208, 2008, 3008, 308 & e-208',
+    description:
+      'Mobile Peugeot tyre fitting across Scotland. Correct tyre sizes for every Peugeot model — 208, e-208, 2008, e-2008, 3008, 308, 508, Rifter, Partner. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'peugeot tyre fitting scotland',
+      'peugeot 208 tyres scotland',
+      'peugeot 3008 tyres scotland',
+      'peugeot 2008 tyres scotland',
+      'peugeot 308 tyres scotland',
+      'peugeot e-208 tyres scotland',
+      'mobile peugeot tyre fitting glasgow',
+      'peugeot 508 tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'vauxhall-tyre-fitting-scotland',
+    ],
+    content: `# Peugeot Tyre Fitting Scotland: Every Model Covered
+
+Peugeot is one of the most popular car brands in Scotland. The Peugeot 208, 2008, and 3008 are found in every city, and the Peugeot Partner and Rifter are common working vans across Scottish trades. Tyre Rescue provides specialist mobile Peugeot tyre fitting across all of Scotland.
+
+## Peugeot 208 Tyre Sizes
+
+The Peugeot 208 (P21, 2019–present) and e-208 electric:
+
+| 208 Trim | Tyre Size |
+|---|---|
+| 208 Active Premium | 185/65R15 |
+| 208 Allure | 205/55R16 |
+| 208 GT | 205/45R17 or 215/40R18 |
+| e-208 (Electric) | 205/55R16 or 215/45R17 (load index 91+) |
+
+Older 208 (A9, 2012–2019): 185/65R15 base, 205/50R17 on GTi.
+
+**e-208 note**: The electric 208 has no spare wheel. A flat requires immediate mobile fitting.
+
+## Peugeot 2008 Tyre Sizes
+
+The Peugeot 2008 (P24, 2019–present) and e-2008 electric:
+
+| 2008 Trim | Tyre Size |
+|---|---|
+| 2008 Active Premium | 205/60R16 |
+| 2008 Allure | 215/55R17 |
+| 2008 GT | 215/50R18 or 225/45R18 |
+| e-2008 (Electric) | 215/55R17 or 215/50R18 (load index 95+) |
+
+## Peugeot 3008 Tyre Sizes
+
+The Peugeot 3008 (P84, 2016–2024) — Peugeot's bestselling SUV in Scotland:
+
+| 3008 Trim | Tyre Size |
+|---|---|
+| 3008 Active Premium | 215/65R16 |
+| 3008 Allure | 225/55R17 |
+| 3008 GT / GT Premium | 235/50R18 or 235/45R19 |
+| 3008 Hybrid / Hybrid4 | 235/50R18 (load index 99+) |
+
+The new 3008 (E3008, 2024–present, electric):
+- 235/50R19 (standard)
+- 255/45R20 (long range / AWD)
+
+## Peugeot 308 Tyre Sizes
+
+The Peugeot 308 (P51, 2021–present) — hatchback and SW estate:
+
+| 308 Trim | Tyre Size |
+|---|---|
+| 308 Active Premium | 205/55R16 |
+| 308 Allure | 225/45R17 |
+| 308 GT | 235/40R18 |
+| 308 GT e-PHEV | 235/40R18 (load index 95+) |
+
+Older 308 (T9, 2013–2021): 205/55R16 base, 225/45R17 GT, 245/35R19 GTi.
+
+## Peugeot 508 Tyre Sizes
+
+The Peugeot 508 (R8, 2018–present) — fastback and SW:
+
+- 225/50R17 (Allure)
+- 235/40R19 (GT)
+- 245/35R20 (508 SW GT Premium)
+
+The 508 Hybrid: 235/40R19 (load index 96+).
+
+## Peugeot Rifter & Partner Van Tyre Sizes
+
+| Model | Tyre Size |
+|---|---|
+| Rifter (passenger) | 205/65R15 or 215/60R16 |
+| Partner Van (cargo) | 195/65R15C or 205/60R16C |
+| Partner Electric | 215/60R16C (load index 99+) |
+
+**Van fitting note**: Peugeot Partner cargo vans require C-rated commercial tyres. We carry correct C-rated commercial stock.
+
+## Peugeot TPMS Reset
+
+All Peugeot models from 2017 onward have TPMS. After any tyre change:
+
+- **Indirect TPMS (208, 2008, older 3008/308)**: Reset via the touchscreen — Settings → Vehicle → Tyre Pressure → Reinitialise
+- **Direct TPMS (E3008, 508, newer models)**: Requires a TPMS diagnostic tool
+
+Tyre Rescue carries Peugeot-compatible TPMS reset tools. Reset is included at no additional charge.
+
+## Emergency Peugeot Tyre Fitting in Scotland
+
+1. **e-208, e-2008, E3008**: No spare wheel — call us immediately
+2. **208, 2008, 3008, 308**: May have a space-saver spare or tyre inflation kit — check your boot
+3. **Call 0141 266 0690** — we identify your tyre specification from your registration number
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile Peugeot tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Vauxhall tyre fitting Scotland](/blog/vauxhall-tyre-fitting-scotland) | [Ford tyre fitting Scotland](/blog/ford-tyre-fitting-scotland)`,
+  },
+  {
+    slug: 'renault-dacia-tyre-fitting-scotland',
+    title: 'Renault & Dacia Tyre Fitting Scotland: Clio, Captur, Duster & Sandero',
+    description:
+      'Mobile Renault and Dacia tyre fitting across Scotland. Correct tyre sizes for Renault Clio, Captur, Megane E-TECH, Zoe, Kadjar, and Dacia Duster, Sandero, Jogger. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'renault tyre fitting scotland',
+      'dacia duster tyres scotland',
+      'renault clio tyres scotland',
+      'renault captur tyres scotland',
+      'renault megane tyres scotland',
+      'dacia sandero tyres scotland',
+      'mobile renault tyre fitting glasgow',
+      'renault zoe tyres scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      'electric-vehicle-tyres-scotland',
+      'peugeot-tyre-fitting-scotland',
+    ],
+    content: `# Renault & Dacia Tyre Fitting Scotland: Every Model Covered
+
+Renault and its budget subsidiary Dacia are both popular in Scotland. The Renault Clio and Captur are city favourites, while the Dacia Duster has become the go-to choice for rural Scotland — affordable, practical, and capable on rough Highland terrain. Tyre Rescue provides mobile tyre fitting for all Renault and Dacia models across Scotland.
+
+## Renault Clio Tyre Sizes
+
+The Renault Clio V (BH, 2019–present) — with E-TECH full hybrid option:
+
+| Clio Trim | Tyre Size |
+|---|---|
+| Clio Evolution | 185/65R15 |
+| Clio Techno | 195/60R16 |
+| Clio RS Line | 195/55R16 or 205/45R17 |
+| Clio E-TECH Hybrid | 185/65R15 or 195/60R16 (load index 88+) |
+
+Older Clio IV (2012–2019): 185/65R15 base, 205/45R17 on RS Line.
+
+## Renault Captur Tyre Sizes
+
+The Renault Captur II (HJB, 2019–present):
+
+| Captur Trim | Tyre Size |
+|---|---|
+| Captur Evolution / Techno | 205/60R16 |
+| Captur RS Line | 215/55R17 or 225/45R18 |
+| Captur E-TECH PHEV | 215/55R17 (load index 94+) |
+| Captur E-TECH Hybrid | 215/55R17 |
+
+**PHEV note**: The Captur E-TECH plug-in hybrid carries a heavier battery — we verify load index before fitting.
+
+## Renault Megane E-TECH Electric
+
+The Renault Megane E-TECH Electric (2022–present):
+
+| Megane E-TECH Trim | Tyre Size |
+|---|---|
+| Megane E-TECH Techno | 215/50R18 |
+| Megane E-TECH RS Line | 235/45R19 |
+| Megane E-TECH EV60 | 235/45R19 (load index 95+) |
+
+**Megane EV note**: No spare wheel. A flat requires immediate mobile fitting.
+
+## Renault Zoe Tyre Sizes
+
+The Renault Zoe (ZE50, 2019–present) — one of Europe's bestselling EVs:
+
+- 205/55R16 (standard)
+- 185/60R15 (some variants)
+
+The Zoe has no spare wheel. Call us immediately for mobile fitting.
+
+## Renault Kadjar Tyre Sizes
+
+The Renault Kadjar (HFE, discontinued 2022 but still common on Scottish roads):
+
+- 215/65R16 base
+- 225/55R17 mid
+- 235/50R18 top trim
+
+## Renault Arkana Tyre Sizes
+
+The Renault Arkana (2021–present) — coupe SUV:
+
+- 215/55R17 (base)
+- 225/45R18 (RS Line)
+
+## Dacia Duster Tyre Sizes
+
+The Dacia Duster (D4F, 2024–present) and Duster (HM, 2017–2024) — hugely popular in rural Scotland for its low cost and 4x4 capability:
+
+| Duster Version | Tyre Size |
+|---|---|
+| Duster Essential / Expression (2WD) | 215/65R16 |
+| Duster Extreme (4x4) | 215/65R16 |
+| Duster Journey (2024+) | 215/60R17 |
+| New Duster TCe (2024+) | 215/60R17 |
+
+**Duster 4x4 note**: The Duster 4x4 uses the same tyre size as the 2WD version — 215/65R16. However, the 4x4 drivetrain means even tyre wear is more critical. Always replace in pairs on the same axle.
+
+## Dacia Sandero & Stepway Tyre Sizes
+
+The Dacia Sandero III (BMA, 2020–present):
+
+- 185/65R15 (Sandero Essential)
+- 195/60R16 (Sandero Stepway, Sandero Extreme)
+- 215/55R17 (Stepway Extreme — winter/all-terrain optional)
+
+## Dacia Jogger Tyre Sizes
+
+The Dacia Jogger (2021–present) — 7-seat estate, also available as Hybrid:
+
+- 205/60R16 (standard)
+- 215/55R17 (Extreme / Hybrid)
+
+## Dacia Spring Electric Tyre Sizes
+
+The Dacia Spring (2021–present) — Europe's most affordable EV:
+
+- 165/70R14 (standard)
+
+**Spring note**: The Spring uses a very small tyre size unusual in modern EVs. We carry this in stock — call ahead to confirm availability.
+
+## TPMS Reset for Renault & Dacia
+
+**Renault**: All models from 2018 onward have TPMS. Reset via EASY LINK touchscreen → Settings → Vehicle → Tyre Pressure → Initialise.
+
+**Dacia**: Duster and Sandero use indirect TPMS — reset button usually located in the glovebox. Dacia Spring EV has direct TPMS requiring a diagnostic tool.
+
+Tyre Rescue carries compatible TPMS reset tools for all Renault and Dacia models. Reset is included with every fitting.
+
+## Emergency Renault/Dacia Tyre Fitting in Scotland
+
+1. **Zoe, Megane E-TECH**: No spare wheel — call us immediately
+2. **Duster 4x4**: Check beneath the vehicle for the spare (mounted underneath on some models)
+3. **Clio, Captur, Sandero**: Likely has a tyre inflation kit only — call us for a proper fitting
+4. **Call 0141 266 0690** — give your registration number for instant identification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile Renault or Dacia tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Peugeot tyre fitting Scotland](/blog/peugeot-tyre-fitting-scotland) | [Vauxhall tyre fitting Scotland](/blog/vauxhall-tyre-fitting-scotland)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
