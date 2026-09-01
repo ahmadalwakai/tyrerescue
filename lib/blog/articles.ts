@@ -10298,6 +10298,158 @@ Call **0141 266 0690** or [book online](/book) for mobile Jaguar tyre fitting at
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [Land Rover and Range Rover tyres Scotland](/blog/land-rover-range-rover-tyres-scotland) | [Audi tyre fitting Scotland](/blog/audi-tyre-fitting-scotland)`,
   },
   {
+    slug: 'tyre-prices-scotland-guide-2026',
+    title: 'Tyre Prices Scotland 2026: How Much Do Tyres Cost?',
+    description:
+      'How much do tyres cost in Scotland in 2026? Complete price guide — budget, mid-range, and premium brands. Mobile fitting costs, emergency callout fees, puncture repair prices. Updated September 2026.',
+    category: 'maintenance',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 8,
+    featured: false,
+    keywords: [
+      'tyre prices scotland',
+      'how much do tyres cost scotland',
+      'tyre fitting cost glasgow',
+      'cheap tyres glasgow',
+      'tyre prices 2026 scotland',
+      'average tyre cost scotland',
+      'mobile tyre fitting cost scotland',
+      'budget tyre prices scotland',
+    ],
+    relatedSlugs: [
+      'best-budget-tyres-scotland-2026',
+      'best-tyres-scottish-roads-guide',
+      'michelin-vs-continental-vs-pirelli-scotland',
+    ],
+    content: `# Tyre Prices Scotland 2026: Complete Price Guide
+
+Wondering how much you should pay for new tyres in Scotland? Tyre costs vary enormously depending on the size, brand tier, and type of service you need. This guide gives honest price ranges for Scottish drivers, updated for September 2026.
+
+## Summary: Typical Tyre Costs in Scotland (2026)
+
+| Size Category | Budget | Mid-Range | Premium |
+|---|---|---|---|
+| Small car (175/65R14, 185/65R15) | £35–£55 | £55–£85 | £80–£120 |
+| Medium car (205/55R16) | £45–£70 | £70–£100 | £95–£150 |
+| Large car / SUV (225/45R17) | £60–£90 | £90–£130 | £120–£180 |
+| Large SUV (235/55R18) | £75–£110 | £110–£160 | £150–£220 |
+| Premium SUV (255/45R20+) | £100–£150 | £150–£200 | £200–£300+ |
+| Performance tyre (245/35R19+) | £90–£130 | £130–£200 | £200–£350+ |
+| Van tyre (215/65R16C) | £70–£100 | £100–£140 | £140–£200 |
+
+*Prices are per tyre, supply only. Fitting fees are additional (see below).*
+
+## Fitting Fees in Scotland
+
+**Mobile tyre fitting fee**: from £20 per tyre
+- This covers the fitting, balancing, and TPMS reset
+- No garage overheads means our fitting fees are competitive with fixed garages
+- Both tyres on an axle are fitted for the price of two individual fees
+
+**Emergency callout**: from £49
+- Confirmed before dispatch — you know the full cost before we arrive
+- Applies on top of the per-tyre fitting fee
+- Same rate day and night — no night-time premium with Tyre Rescue
+
+**Puncture repair**: from £25
+- Only where the tyre is legally repairable (no damage within 25mm of the shoulder, hole diameter below 6mm)
+- Includes pressure check and rebalance after repair
+
+## Why Mobile Tyre Fitting Costs More Than a Garage — And Why It's Worth It
+
+A fixed garage typically charges a fitting fee of £8–£15 per tyre. Our mobile fitting fee starts from £20. The difference buys you:
+
+- **Your time** — no drive to a garage, no wait, no drive back. If an hour of your time is worth £20+, mobile fitting already pays for itself.
+- **Vehicle downtime** — for a flat tyre, mobile fitting gets you back on the road without a tow truck (£150–£300 for roadside recovery in Scotland).
+- **Convenience** — fitting happens at your home, office, or roadside. No disruption to your day.
+- **Emergency premium** — we dispatch to your location within 25–100 minutes depending on where in Scotland you are.
+
+## Budget Tyre Brands in Scotland
+
+Budget tyres (£35–£100 per tyre depending on size) offer acceptable safety for everyday driving. Reputable budget brands available in Scotland:
+
+- **Falken** — Japanese brand, strong value
+- **Hankook** — Korean brand, very popular in Scotland
+- **Nexen** — Korean brand, particularly good for wet performance at budget price
+- **Toyo** — Japanese brand, solid all-rounder
+- **Landsail / Linglong** — Chinese brands, use only if budget is extremely tight; premium brands are safer
+
+**When budget tyres are appropriate**:
+- Very low annual mileage (under 5,000 miles/year)
+- Older vehicles where the car's value is low
+- Rental properties with communal vehicles
+
+**When budget tyres are NOT appropriate**:
+- High-performance cars (GTI, N, ST, AMG, M Sport, RS models) — handling is noticeably affected
+- PHEVs and EVs where load index is critical
+- Highland and rural driving where wet performance matters most
+
+## Mid-Range Tyre Brands in Scotland
+
+Mid-range tyres (£55–£160 per tyre) offer the best value for most Scottish drivers:
+
+- **Goodyear EfficientGrip / Vector**: Reliable all-season performer
+- **Bridgestone Turanza / Ecopia**: Solid choice for family cars
+- **Dunlop Sport BluResponse**: Good wet performance
+- **Firestone Roadhawk**: Budget from the Bridgestone stable — often excellent value
+
+## Premium Tyre Brands in Scotland
+
+Premium tyres (£80–£300+ per tyre) offer the best wet braking, tread life, and handling:
+
+- **Michelin Pilot Sport 5 / CrossClimate 2 / Primacy 4+**: Best all-round choice
+- **Continental PremiumContact 7 / AllSeasonContact 2**: Exceptional wet braking
+- **Pirelli P Zero / Cinturato P7**: OEM choice for sports and premium cars
+- **Bridgestone Potenza Sport**: Performance cars
+
+## Price Examples: Common Cars in Scotland (September 2026)
+
+| Vehicle | Tyre Size | Budget Price | Premium Price |
+|---|---|---|---|
+| Ford Fiesta (popular size) | 185/60R15 | £40 | £85 |
+| VW Golf Mk8 | 205/55R16 | £45 | £100 |
+| Nissan Qashqai | 225/55R18 | £75 | £155 |
+| BMW 3 Series | 225/45R17 | £65 | £140 |
+| Kia Sportage | 235/55R18 | £80 | £160 |
+| Tesla Model 3 | 235/45R18 | £75 | £150 |
+| Land Rover Discovery Sport | 235/55R19 | £95 | £195 |
+| BMW X5 | 255/50R19 | £110 | £220 |
+
+*All prices are approximate and subject to confirmation. Call 0141 266 0690 for your exact quote.*
+
+## Getting the Total Cost Right
+
+When budgeting for tyre replacement in Scotland, the total cost is:
+
+**Tyre price + fitting fee [+ emergency callout if applicable]**
+
+Example: Replacing both rear tyres on a Qashqai (225/55R18):
+- 2 × mid-range tyres (e.g., Goodyear): 2 × £115 = £230
+- 2 × mobile fitting fee: 2 × £20 = £40
+- **Total: £270** — fitted at your home, including balancing and TPMS reset
+
+Compare this to a fixed garage:
+- Same tyres: £230
+- 2 × fitting fee (at garage prices): 2 × £12 = £24
+- Total: £254
+- **But**: you need to drive to the garage and wait (time cost), plus arrange transport if the tyre is flat (recovery van £150–£300)
+
+## When to Get a Quote
+
+Tyre Rescue gives you a full itemised quote over the phone before we dispatch. We confirm:
+- Tyre brand, size, and price
+- Fitting fee
+- Any emergency callout charge
+- ETA to your location
+
+No surprises when we arrive.
+
+Call **0141 266 0690** or [book online](/book) to get your tyre price and fitting quote for anywhere in Scotland.
+
+[Pricing guide](/pricing) | [Best budget tyres Scotland](/blog/best-budget-tyres-scotland-2026) | [Michelin vs Continental vs Pirelli](/blog/michelin-vs-continental-vs-pirelli-scotland)`,
+  },
+  {
     slug: 'fleet-tyre-management-scotland',
     title: 'Fleet Tyre Management Scotland: Mobile Fitting for Business Fleets',
     description:
