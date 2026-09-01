@@ -9245,6 +9245,373 @@ Call **0141 266 0690** or [book online](/book) for mobile Suzuki tyre fitting at
 
 [Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [4x4 and SUV tyres Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [Tyre fitting Inverness & Highlands](/mobile-tyre-fitting/inverness)`,
   },
+  {
+    slug: 'mitsubishi-tyre-fitting-scotland',
+    title: 'Mitsubishi Tyre Fitting Scotland: Outlander PHEV, Eclipse Cross & L200',
+    description:
+      'Mobile Mitsubishi tyre fitting across Scotland. Correct tyre sizes for Mitsubishi Outlander PHEV, Eclipse Cross, ASX, Shogun, L200 Warrior pickup. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'mitsubishi tyre fitting scotland',
+      'mitsubishi outlander tyres scotland',
+      'mitsubishi eclipse cross tyres scotland',
+      'mitsubishi l200 tyres scotland',
+      'mitsubishi asx tyres scotland',
+      'mitsubishi outlander phev tyres glasgow',
+      'mobile mitsubishi tyre fitting scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      '4x4-suv-tyres-scotland-highlands',
+      'electric-vehicle-tyres-scotland',
+    ],
+    content: `# Mitsubishi Tyre Fitting Scotland: Every Model Covered
+
+Mitsubishi has a strong following in Scotland, particularly for the Outlander PHEV — which was the UK's bestselling plug-in hybrid vehicle for several consecutive years — and the L200 pickup truck, popular across Scottish farms and worksites. Tyre Rescue provides mobile Mitsubishi tyre fitting across all of Scotland.
+
+## Mitsubishi Outlander PHEV Tyre Sizes
+
+The Mitsubishi Outlander PHEV (2012–2023) and newer generation (2022+):
+
+| Outlander Generation | Tyre Size |
+|---|---|
+| Outlander PHEV Mk3 (2020–2023) | 225/55R18 (load index 98+) |
+| Outlander PHEV Mk2 (2015–2020) | 225/55R18 or 215/60R17 |
+| Outlander PHEV Mk1 (2012–2015) | 225/55R18 |
+| New Outlander PHEV (2022+) | 225/55R18 or 235/55R18 |
+
+**PHEV load index note**: The Outlander PHEV is significantly heavier than a standard Outlander due to its battery pack. Minimum load index 98 on all PHEV variants — we always verify before fitting.
+
+**TPMS note**: The Outlander PHEV has direct TPMS — a diagnostic tool is required to reset after tyre changes. This is included with every Tyre Rescue fitting.
+
+## Mitsubishi Eclipse Cross Tyre Sizes
+
+The Mitsubishi Eclipse Cross (GK1, 2018–present) and Eclipse Cross PHEV:
+
+| Eclipse Cross Variant | Tyre Size |
+|---|---|
+| Eclipse Cross 2WD | 215/55R18 |
+| Eclipse Cross 4WD | 215/55R18 (load index 99+) |
+| Eclipse Cross PHEV | 215/55R18 (load index 99+) |
+
+## Mitsubishi ASX Tyre Sizes
+
+The Mitsubishi ASX (GA3W, 2022–present — now based on Renault Captur):
+- 215/55R17 (standard)
+- 225/45R18 (Diamond / Exceed)
+
+Older ASX (GA2W, 2010–2022): 215/60R17 base, 225/55R17 upper.
+
+## Mitsubishi Shogun Tyre Sizes
+
+The Mitsubishi Shogun (V80/V90, discontinued 2021 — but still common on Scottish estates and farms):
+
+| Shogun Variant | Tyre Size |
+|---|---|
+| Shogun Sport (2019–2021) | 265/60R18 |
+| Shogun Warrior | 265/65R17 |
+| Older Shogun | 245/65R17 |
+
+The Shogun Sport uses highway terrain (H/T) or all-terrain (A/T) tyres depending on usage. For farm and estate use in Scotland, A/T tyres in 265/60R18 are a practical upgrade.
+
+## Mitsubishi L200 Pickup Tyre Sizes
+
+The Mitsubishi L200 (KK/KL, 2015–present) — popular Scottish farm/site vehicle:
+
+| L200 Variant | Tyre Size |
+|---|---|
+| L200 Warrior | 265/65R17 |
+| L200 Barbarian / Leader | 265/65R17 |
+| L200 Animal (older) | 265/65R17 |
+
+**L200 tyre note**: The L200 uses light-truck rated tyres (LT designation or reinforced construction). Standard passenger tyres are unsafe on a pick-up truck. We carry correct L200-specification tyres.
+
+For Scottish farm use, consider all-terrain (A/T) rated tyres in 265/65R17 — they provide significantly better grip on mud, gravel, and farm tracks compared to factory highway terrain tyres.
+
+## Mitsubishi TPMS Reset
+
+Mitsubishi models with direct TPMS (Outlander PHEV, Eclipse Cross PHEV) require a diagnostic tool to reset. Indirect TPMS models (ASX) reset via the driver information display.
+
+Tyre Rescue carries Mitsubishi-compatible TPMS reset tools. Reset is included at no additional charge.
+
+## Emergency Mitsubishi Tyre Fitting in Scotland
+
+1. **Outlander PHEV**: May have a space-saver spare — check the boot floor. No spare on some variants.
+2. **L200**: Usually has a full-size spare mounted under the truck bed
+3. **ASX, Eclipse Cross**: Check boot for a space-saver spare
+4. **Call 0141 266 0690** — give your registration for instant tyre identification
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile Mitsubishi tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [4x4 and SUV tyres Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [Land Rover tyre fitting Scotland](/blog/land-rover-range-rover-tyres-scotland)`,
+  },
+  {
+    slug: 'subaru-tyre-fitting-scotland',
+    title: 'Subaru Tyre Fitting Scotland: Outback, Forester, XV, Impreza & WRX',
+    description:
+      'Mobile Subaru tyre fitting across Scotland. Correct tyre sizes for every Subaru model — Outback, Forester, XV/Crosstrek, Impreza, WRX STI, BRZ. Symmetrical AWD tyre advice. TPMS reset included.',
+    category: 'fitting',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'subaru tyre fitting scotland',
+      'subaru outback tyres scotland',
+      'subaru forester tyres scotland',
+      'subaru xv tyres scotland',
+      'subaru impreza tyres scotland',
+      'subaru wrx sti tyres scotland',
+      'mobile subaru tyre fitting glasgow',
+      'subaru tyre replacement scotland',
+    ],
+    relatedSlugs: [
+      'tpms-warning-light-scotland-guide',
+      '4x4-suv-tyres-scotland-highlands',
+      'toyota-tyre-fitting-scotland',
+    ],
+    content: `# Subaru Tyre Fitting Scotland: Every Model Covered
+
+Subaru has a loyal following in Scotland, valued for its symmetrical all-wheel drive system that performs well in Scottish winter conditions, on rural roads, and in Highland terrain. The Outback and Forester are popular estate and SUV choices, while the WRX STI has a dedicated performance following. Tyre Rescue provides mobile Subaru tyre fitting across all of Scotland.
+
+## Subaru Outback Tyre Sizes
+
+The Subaru Outback (BS/BT, 2014–present):
+
+| Outback Generation | Tyre Size |
+|---|---|
+| Outback 2.5i (2021+) | 225/60R18 |
+| Outback Touring (2021+) | 225/60R18 |
+| Outback 3.6R (older) | 225/60R17 |
+| Outback 2.5i (2015–2020) | 225/60R17 |
+
+**AWD tyre matching note**: Subaru's symmetrical AWD system is sensitive to tyre size differences between axles. If replacing fewer than all four tyres, the replacement must match the existing tyre's overall diameter within 5mm. Mixing brands or sizes risks damaging the AWD transfer case. Tyre Rescue always advises on this before fitting a single tyre on a Subaru AWD.
+
+## Subaru Forester Tyre Sizes
+
+The Subaru Forester (SK, 2018–present):
+
+| Forester Variant | Tyre Size |
+|---|---|
+| Forester 2.0i / XE | 225/55R17 |
+| Forester 2.0i SE / Sport | 225/55R17 |
+| Forester e-Boxer | 225/55R17 |
+
+Forester (SJ, 2012–2018): 225/55R17 base, 225/55R18 XT.
+
+## Subaru XV / Crosstrek Tyre Sizes
+
+The Subaru XV (GT, 2017–present) — also sold as Crosstrek:
+
+- 225/60R17 (standard)
+- 225/55R18 (some trims)
+
+## Subaru Impreza Tyre Sizes
+
+The Subaru Impreza (GK/GT, 2017–present):
+
+- 205/50R17 (hatchback base)
+- 225/45R18 (Sport trim)
+
+Older Impreza: 205/55R16 (GD/GG generation).
+
+## Subaru WRX & WRX STI Tyre Sizes
+
+| WRX Model | Tyre Size |
+|---|---|
+| WRX (VA, 2014–2021) | 245/40R18 |
+| WRX STI (VA) | 245/40R18 (Michelin Pilot Sport 4S OE) |
+| WRX (VB, 2022+) | 245/40R18 |
+
+**WRX STI tyre note**: The STI is fitted with Michelin Pilot Sport 4S as OE. We carry OE-equivalent performance replacements — call ahead to confirm stock for 245/40R18 in your required load rating.
+
+**AWD matching**: The WRX STI's AWD system is particularly sensitive to tyre size differences. Always replace in sets of four or confirm that replacement tyres have an identical overall diameter to the remaining three.
+
+## Subaru BRZ Tyre Sizes
+
+The Subaru BRZ (ZD8, 2022–present) — rear-wheel-drive sports coupe:
+
+- 215/45R18 (standard — Michelin Pilot Sport 4 OE)
+
+**BRZ note**: The BRZ is rear-wheel drive — unusual for Subaru. Standard tyre-fitting advice applies without the AWD matching concern.
+
+## Subaru TPMS Reset
+
+All Subaru models from 2015 onward have TPMS:
+
+- **Indirect TPMS (Forester, Outback, XV)**: Reset via the multi-information display — Settings → Tyre Pressure
+- **Direct TPMS (WRX, WRX STI, BRZ)**: Requires a TPMS diagnostic tool to communicate with each wheel sensor
+
+Tyre Rescue carries Subaru-compatible TPMS reset tools. Reset is included at no additional charge.
+
+## Subaru AWD Tyre Replacement — Important Advice
+
+Subaru's symmetrical AWD is one of the best systems in the market but requires careful tyre management:
+
+1. **Ideally replace all four tyres at once** on any Subaru AWD model
+2. **If replacing in pairs**: Only replace both tyres on the same axle (both fronts or both rears) — never just one tyre
+3. **The new pair must match the remaining tyres exactly in overall diameter** — same brand, size, and ideally model is safest
+4. **Tread depth difference should be less than 2/32"** between front and rear axles
+5. **Mixing brands**: We advise against it on Subaru AWD — consult us before ordering
+
+This applies to: Outback, Forester, XV, Legacy, Impreza AWD, Levorg, and WRX (not BRZ which is RWD).
+
+## Emergency Subaru Tyre Fitting in Scotland
+
+1. **Do not drive on a flat tyre** on any Subaru AWD — even briefly — as it will force different wheel speeds and stress the AWD system
+2. **Check for a spare** — most Subaru models have a full-size or space-saver spare in the boot
+3. **Call 0141 266 0690** — explain it's a Subaru AWD and we will advise on matching before ordering
+
+Response times: Glasgow 25–40 min, Edinburgh 50–65 min, Aberdeen ~90 min, Inverness ~100 min.
+
+Call **0141 266 0690** or [book online](/book) for mobile Subaru tyre fitting at your location.
+
+[Mobile tyre fitting Scotland](/mobile-tyre-fitting) | [4x4 and SUV tyres Scotland](/blog/4x4-suv-tyres-scotland-highlands) | [Tyre rotation guide Scotland](/blog/tyre-rotation-guide-scotland)`,
+  },
+  {
+    slug: 'all-season-tyres-scotland-guide',
+    title: 'All-Season Tyres Scotland: Are They Worth It? Best Brands & When to Use',
+    description:
+      'Are all-season tyres worth it in Scotland? Honest guide to Michelin CrossClimate 2, Continental AllSeasonContact 2, Goodyear Vector 4Seasons. When to choose all-season vs dedicated winter tyres for Scottish roads.',
+    category: 'maintenance',
+    publishDate: '2026-09-01',
+    lastModified: '2026-09-01',
+    readingTime: 9,
+    featured: false,
+    keywords: [
+      'all season tyres scotland',
+      'all season tyres vs winter tyres scotland',
+      'best all season tyres scotland',
+      'michelin crossclimate 2 scotland',
+      'continental allseasoncontact scotland',
+      'goodyear vector 4seasons scotland',
+      'are all season tyres good for scotland',
+      'all weather tyres scotland',
+    ],
+    relatedSlugs: [
+      'winter-tyres-when-to-switch-scotland',
+      'best-tyres-scottish-roads-guide',
+      'tyre-tread-depth-guide-scotland',
+    ],
+    content: `# All-Season Tyres Scotland: Are They Worth It?
+
+All-season tyres — also called all-weather tyres — have become increasingly popular in Scotland over the last five years. They promise to eliminate the faff of seasonal tyre changes while still offering winter safety. But are they actually good enough for Scottish roads? This guide gives you an honest answer.
+
+## What Are All-Season Tyres?
+
+All-season tyres are a compromise tyre designed to work year-round. They use a tread compound that stays reasonably flexible in cold temperatures (unlike summer tyres, which harden below 7°C), and a tread pattern that can channel away both summer rain and light snow.
+
+The critical marker to look for is the **Three Peak Mountain Snowflake (3PMSF)** symbol — a snowflake in a mountain outline on the tyre sidewall. This indicates the tyre has passed minimum winter performance standards. Without this, an "all-season" tyre is just a summer tyre with marketing.
+
+**Most reputable all-season tyres carry the 3PMSF symbol** — if your all-season doesn't have it, treat it as a summer tyre.
+
+## All-Season Tyres vs Winter Tyres: Which Is Better for Scotland?
+
+| Factor | All-Season | Dedicated Winter |
+|---|---|---|
+| Snow grip | Good (3PMSF certified) | Excellent |
+| Ice grip | Moderate | Excellent |
+| Wet summer grip | Good | Poor — compound too soft |
+| Dry summer grip | Good | Poor — wears faster |
+| Cost per year | Lower (one set) | Similar (two sets, amortised) |
+| Best for | Central Belt, cities | Highlands, frequent winter driving |
+
+**Our verdict**: For most Scottish city and Central Belt drivers, all-season tyres are a very sensible choice. For Highland drivers, those on the NC500, or anyone who regularly encounters ice and heavy snow, dedicated winter tyres fitted from October to April will outperform any all-season tyre.
+
+## The Best All-Season Tyres for Scotland
+
+### Michelin CrossClimate 2
+
+**Best all-round all-season tyre for Scotland.**
+
+The CrossClimate 2 (2021–present) consistently leads independent tests for a reason: its summer performance on wet roads is close to a premium summer tyre, while its 3PMSF winter rating means it handles snow effectively. Tread life is excellent — many Scottish owners report 40,000+ miles per set.
+
+Available from approximately £80–£180 per tyre depending on size.
+
+**Good for**: Glasgow, Edinburgh, Central Belt, most Scottish cities. Summer holiday driving to the Highlands. Year-round commuting.
+
+**Not ideal for**: Regular driving on uncleared Highland roads in heavy snow — a dedicated winter tyre is better here.
+
+### Continental AllSeasonContact 2
+
+**Best for wet-road performance.**
+
+The AllSeasonContact 2 (2023–present) edges the Michelin on wet braking in some tests. It also has excellent aquaplaning resistance — particularly valuable in Scotland's rainy west coast weather. If you drive in heavy rain frequently (Glasgow, Greenock, Argyll), this tyre is an excellent choice.
+
+Available from approximately £75–£170 per tyre.
+
+### Goodyear Vector 4Seasons Gen-3
+
+**Best balance of summer and winter performance.**
+
+The Vector 4Seasons Gen-3 is notable for maintaining strong dry handling in summer — sometimes a weak point on all-season tyres — while also performing very well in snow and wet conditions. Goodyear's asymmetric tread design gives it a more car-like feel than some competitors.
+
+Available from approximately £70–£160 per tyre.
+
+### Bridgestone Weather Control A005 EVO
+
+**Strong all-round performer, good value.**
+
+The Weather Control A005 EVO performs particularly well in ice conditions for an all-season tyre — usually a weakness of the category. Scottish drivers in Perthshire, Stirlingshire, and Aberdeenshire who encounter occasional ice may prefer this to the Michelin on pure ice performance.
+
+### Hankook Kinergy 4S2
+
+**Best value all-season for Scotland.**
+
+For drivers who want all-season protection without spending £150+ per tyre, the Kinergy 4S2 is consistently the top-rated budget all-season tyre. Performance is below the Michelin CrossClimate 2 but significantly better than no all-season protection at all.
+
+Available from approximately £50–£100 per tyre.
+
+## All-Season Tyres and Scottish Weather: The Reality
+
+Scotland has more nuanced weather than a simple "summer/winter" split:
+
+**Western Scotland (Glasgow, Argyll, Dumbarton, Ayrshire)**: Rarely sees severe snow but has heavy rainfall and mild but damp winters. All-season tyres are excellent here.
+
+**Central Belt (Edinburgh, Falkirk, Stirling, Perth)**: Occasional snow, significant winter rainfall. All-season tyres are well-suited for most drivers.
+
+**Aberdeenshire and Angus**: More frequent snow and harder frosts than the west. All-season tyres are adequate for town driving but winter tyres are better for rural routes.
+
+**Highlands (Inverness, Fort William, Aviemore, NC500)**: Can experience severe snow, ice, and black ice from October to April. All-season tyres are a minimum — dedicated winter tyres are strongly recommended for anyone commuting on A-roads above 500m altitude.
+
+**Shetland and Orkney**: Surprisingly mild due to Gulf Stream influence, rarely severe snow. All-season tyres are excellent here.
+
+## When All-Season Tyres Are NOT Enough
+
+All-season tyres have clear limits in Scotland:
+
+1. **Heavy snow on uncleared roads** — dedicated winter tyres with deeper, more aggressive sipes will outperform any all-season tyre
+2. **Ice** — even the best all-season tyres struggle on genuine ice compared to winter-rated tyres with high silica compound
+3. **Performance driving** — if you have a sporty car (GR Yaris, Focus ST, Golf GTI), an all-season tyre will blunt handling noticeably versus summer tyres
+4. **Very high mileage in summer** — all-season tyres wear faster in warm conditions than summer tyres; if you drive 20,000+ miles/year mostly in summer, summer tyres may be more economical
+
+## Fitting All-Season Tyres in Scotland
+
+Tyre Rescue can supply and fit all-season tyres at your home, workplace, or roadside across all of Scotland. We carry:
+
+- Michelin CrossClimate 2
+- Continental AllSeasonContact / AllSeasonContact 2
+- Goodyear Vector 4Seasons
+- Hankook Kinergy 4S2
+- Bridgestone Weather Control
+
+Call **0141 266 0690** or [book online](/book) to arrange fitting. Tell us your vehicle registration and we will quote the full price — tyre and fitting — before any work begins.
+
+## All-Season Tyres: Summary for Scottish Drivers
+
+- **Get all-season tyres if**: You're a city/Central Belt driver who wants year-round safety without seasonal tyre changes
+- **Get winter tyres instead if**: You regularly drive in the Highlands, on rural A-roads, or encounter snow more than a few times a year
+- **Look for 3PMSF marking** — without it, a tyre marketed as "all-season" won't perform in snow
+- **Best choice for most Scottish drivers**: Michelin CrossClimate 2 or Continental AllSeasonContact 2
+
+[Winter tyres Scotland guide](/blog/winter-tyres-when-to-switch-scotland) | [Best tyres for Scottish roads](/blog/best-tyres-scottish-roads-guide) | [Mobile tyre fitting Scotland](/mobile-tyre-fitting)`,
+  },
 ];
 
 export function getArticle(slug: string): BlogArticle | undefined {
