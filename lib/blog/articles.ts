@@ -10880,6 +10880,115 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'same-day-tyre-fitting-scotland',
+    title: 'Same Day Tyre Fitting in Scotland: How to Get Tyres Fitted Today',
+    description:
+      'Need tyres fitted today? Tyre Rescue provides same-day mobile tyre fitting across Scotland. This guide covers how to book urgently, what sizes we carry, and when to call versus book online.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 4,
+    featured: false,
+    keywords: [
+      'same day tyre fitting scotland',
+      'tyre fitting today scotland',
+      'urgent tyre fitting scotland',
+      'emergency tyre change scotland',
+      'tyre fitting same day glasgow',
+      'tyre fitting same day edinburgh',
+      'same day mobile tyre fitting scotland',
+      'tyre fitted today scotland',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-process-scotland',
+      'emergency-tyre-fitting-scotland',
+      'mobile-tyre-fitting-vs-garage',
+    ],
+    content: `# Same Day Tyre Fitting in Scotland: How to Get Tyres Fitted Today
+
+If you need tyres fitted today — whether it is an emergency flat, a TPMS warning light, or you are heading away for the weekend — Tyre Rescue operates across Scotland with same-day availability in most areas.
+
+---
+
+## Call First for Same-Day Fitting
+
+For same-day appointments, **calling is faster than booking online**. Our team can check real-time availability and dispatch a fitter much more quickly by phone.
+
+**Call: 0141 266 0690**
+
+When you call, have ready:
+- Your postcode or location
+- Your vehicle registration (so we can confirm the tyre size)
+- Ideally, the tyre size if you know it (printed on the tyre sidewall)
+- Whether the tyre needs replacing or just checking/repairing
+
+---
+
+## How Quickly Can a Fitter Arrive?
+
+Arrival time depends on your location and current fitter availability:
+
+| Location | Typical same-day response |
+|---|---|
+| Glasgow city / M8 corridor | Often within 60–90 minutes |
+| Edinburgh city | Often within 90–120 minutes |
+| Aberdeen city | Typically 2–3 hours or same-day appointment |
+| Dundee / Perth | Typically 2–3 hours same-day |
+| Inverness and Highland areas | Same-day where possible, next-morning for remote areas |
+| Islands (Skye, Mull, Islay) | Ferry logistics — typically next-day |
+
+These are estimates. Call us and we will confirm the actual availability for your specific location.
+
+---
+
+## What Sizes Do We Carry?
+
+Tyre Rescue mobile units carry the most common tyre sizes for the Scottish market. Our primary stock includes:
+
+- 195/65R15, 205/55R16, 215/55R17 (most common UK sizes for hatchbacks and saloons)
+- 235/45R17, 245/45R18, 255/45R18 (performance and premium car sizes)
+- 235/60R18, 255/60R18, 265/60R18 (SUV and pickup sizes)
+- Common van sizes: 195/65R16C, 215/60R17C
+- Run-flat sizes: 225/45R17, 225/50R17, 245/45R18 (BMW common sizes)
+
+**For less common or specialist sizes**: we may need to source from our distributor network. Same-day is sometimes possible for sourced sizes; next-morning is more typical.
+
+If you tell us your tyre size when you call, we can confirm immediately whether we have it in stock.
+
+---
+
+## Emergency vs Scheduled Same-Day Fitting
+
+**Emergency callout (flat tyre, blowout, damage)**: we prioritise emergency callouts above standard appointments. If you are stranded with a flat tyre or sidewall damage, call and we will dispatch to you as fast as possible.
+
+**Scheduled same-day fitting**: if you need new tyres today but are not stranded — you noticed a warning light or a very low tread depth — we can often fit you in between existing appointments. Call to check availability.
+
+---
+
+## Can I Get Same-Day Fitting at My Work?
+
+Yes — many Scottish drivers have tyres fitted during the working day at their office or workplace car park. This is one of the most popular uses of mobile fitting.
+
+Just give us the workplace address, confirm there is safe access for the vehicle, and let us know your preferred time window. We call or text when we are 15–20 minutes away.
+
+---
+
+## Preparing for a Same-Day Visit
+
+When the fitter arrives, they will need:
+- Access to the vehicle with a key or fob (or you can unlock it for them)
+- Clear access to all four tyres (avoid very tight parking on a kerb if possible)
+- Ideally, park on level ground for safety during jacking
+
+The fitting takes 20–30 minutes for one tyre and 45–60 minutes for two. TPMS reset is included.
+
+---
+
+Call now for same-day availability across Scotland: **0141 266 0690**
+
+[How mobile tyre fitting works](/blog/mobile-tyre-fitting-process-scotland) | [Mobile tyre fitting vs garage](/blog/mobile-tyre-fitting-vs-garage) | [All emergency tyre fitting services](/emergency-tyre-fitting-near-me)`,
+  },
+  {
     slug: 'overinflated-tyres-scotland',
     title: 'Overinflated Tyres in Scotland: Risks, Signs, and What to Do',
     description:
