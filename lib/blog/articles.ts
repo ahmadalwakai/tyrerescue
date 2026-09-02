@@ -10880,6 +10880,127 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'byd-tyre-fitting-scotland',
+    title: 'BYD Tyre Fitting Scotland: Atto 3, Seal, Dolphin & Sealion 6 Guide',
+    description:
+      'Mobile tyre fitting for BYD electric vehicles in Scotland. BYD Atto 3, Seal, Dolphin, and Sealion 6 tyre sizes, load index requirements, no-spare guidance, and TPMS reset.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'BYD Atto 3 tyre size scotland',
+      'BYD tyre fitting scotland',
+      'BYD Seal tyres scotland',
+      'BYD Dolphin tyre fitting scotland',
+      'BYD EV tyre scotland',
+      'BYD Atto 3 flat tyre scotland',
+      'mobile tyre fitting BYD scotland',
+      'BYD Sealion 6 tyres scotland',
+    ],
+    relatedSlugs: [
+      'electric-vehicle-tyres-scotland',
+      'mg-motor-tyre-fitting-scotland',
+      'tyre-prices-scotland-guide-2026',
+    ],
+    content: `# BYD Tyre Fitting Scotland
+
+BYD (Build Your Dreams) is China's largest EV manufacturer and one of the world's biggest electric vehicle producers. The BYD Atto 3, Seal, Dolphin, and Sealion range have launched in the UK market and are rapidly gaining registrations in Scotland. As EV-only vehicles, BYD cars have specific tyre requirements that differ from petrol equivalents.
+
+Tyre Rescue fits tyres for all BYD models across Scotland, 24 hours a day.
+
+## BYD Atto 3 Tyre Guide (2022–present)
+
+The Atto 3 is BYD's mid-size crossover SUV — the most popular BYD model in Scotland.
+
+| Atto 3 Variant | Tyre Size | Load Index |
+|---|---|---|
+| Atto 3 Standard Range | 215/55R18 | 99+ |
+| Atto 3 Extended Range | 215/55R18 | 99+ |
+| Atto 3 (some markets) | 235/50R18 | 101+ |
+
+**No spare wheel** — the Atto 3 does not carry a spare tyre. BYD supply an inflation kit for minor tread punctures. Sidewall damage or large penetrations require a replacement tyre — call Tyre Rescue immediately.
+
+**Load index**: the Atto 3 weighs approximately 1,750 kg. Minimum load index 99. Do not fit standard-rated 94 or 95 index tyres.
+
+**OE fitment**: the Atto 3 is typically fitted with Hankook iON evo or Bridgestone Turanza T005 A EV tyres from factory. Both are EV-specific compounds optimised for the heavier load and regenerative braking patterns of electric vehicles.
+
+## BYD Seal Tyre Guide (2023–present)
+
+The Seal is BYD's electric fastback saloon, comparable to Tesla Model 3.
+
+| Seal Variant | Front | Rear | Note |
+|---|---|---|---|
+| Seal Standard RWD | 235/45R18 | 235/45R18 | Square fitment |
+| Seal Performance AWD | 235/40R19 (F) | 265/35R19 (R) | Staggered |
+
+**Staggered fitment (Performance AWD)**: the Seal Performance uses wider rear tyres for enhanced traction. Tyres cannot be rotated. Specify front or rear when booking.
+
+**No spare wheel** on either variant. Inflation kit only.
+
+**Load index**: 103+ required on the Performance AWD due to dual motor weight.
+
+## BYD Dolphin Tyre Guide (2023–present)
+
+The Dolphin is BYD's smaller, more affordable EV hatchback.
+
+| Dolphin Variant | Tyre Size | Load Index |
+|---|---|---|
+| Dolphin Standard | 195/55R16 | 91+ |
+| Dolphin Dynamic | 205/50R17 | 93+ |
+
+**No spare wheel** — inflation kit only. The Dolphin is a compact EV with no spare provision.
+
+**Note**: the Dolphin uses smaller wheel sizes than most Chinese EVs, making tyre availability easier and costs lower than larger models. 195/55R16 and 205/50R17 are common sizes stocked by most tyre suppliers.
+
+## BYD Sealion 6 / Sealion 7 Tyre Guide (2024–present)
+
+| Sealion Model | Tyre Size | Load Index Note |
+|---|---|---|
+| Sealion 6 DM-i PHEV | 235/55R18 | 104+ (PHEV weight) |
+| Sealion 6 EV | 235/55R18 | 101+ |
+| Sealion 7 (SUV EV) | 235/50R19 | 103+ |
+| Sealion 7 Performance AWD | 235/45R20 | 100+ |
+
+**Sealion 6 DM-i PHEV load index**: the plug-in hybrid Sealion 6 is heavier than the pure EV version due to its dual powertrain. Minimum load index 104. Do not fit a lower rating.
+
+**No spare wheel** on EV variants. The DM-i PHEV may carry a space-saver spare — check your specific vehicle handbook.
+
+## BYD TPMS Reset
+
+BYD models use direct TPMS sensors. After fitting new tyres:
+
+1. Inflate all tyres to the correct pressure (driver's door sticker)
+2. Start the vehicle
+3. Navigate to: **Car Settings > Tyre Pressure > Reset TPMS** in the central touchscreen
+4. Select the option to recalibrate and confirm
+5. Drive at 25+ mph for 5–10 minutes
+
+If the TPMS warning light persists, the sensor may require replacement. BYD uses standard TPMS sensor formats compatible with most diagnostic equipment — our technicians can reset and replace TPMS sensors for all BYD models.
+
+## Why EV Tyres Matter More on a BYD
+
+All BYD EVs deliver instant, full torque from a standstill. This is excellent for acceleration but significantly harder on tyres than a petrol car with progressive power delivery. Key implications:
+
+- **Faster rear tyre wear** on RWD models — expect 20–25% shorter life vs petrol equivalent
+- **Higher load index requirement** — heavier battery pack
+- **Better wet grip needed** — heavier car requires more grip to stop safely on Scotland's wet roads
+
+**Recommended tyres for BYD Atto 3 and Seal in Scotland**:
+- **Hankook iON evo SUV** — OE on many Atto 3s; EV-optimised compound, good wet performance
+- **Michelin Pilot Sport EV** — outstanding wet grip, premium option
+- **Bridgestone Turanza T005 A** (Elect variant) — excellent efficiency and noise
+
+## Book Mobile Tyre Fitting for Your BYD in Scotland
+
+Tyre Rescue carries common BYD tyre sizes (215/55R18, 235/45R18) in our Scotland vans. For larger or performance sizes, call ahead to confirm same-day stock.
+
+Call **0141 266 0690** or [book online](/book) for BYD tyre fitting across Scotland.
+
+[EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [MG Motor tyre guide Scotland](/blog/mg-motor-tyre-fitting-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026)`,
+  },
+  {
     slug: 'slow-puncture-causes-scotland',
     title: 'Slow Puncture: Causes, Diagnosis & What to Do in Scotland',
     description:
