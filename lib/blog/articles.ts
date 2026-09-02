@@ -10880,6 +10880,139 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'autumn-tyre-preparation-scotland-2026',
+    title: 'Autumn Tyre Preparation for Scottish Drivers: October 2026 Guide',
+    description:
+      'September and October is the critical window for Scottish tyre preparation. This guide covers autumn tyre checks, when to fit winter tyres, tread depth requirements, and booking advice before the rush.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'autumn tyre preparation scotland 2026',
+      'tyre check autumn scotland',
+      'winter tyre fitting scotland october 2026',
+      'when to fit winter tyres scotland 2026',
+      'tyre check before winter scotland',
+      'autumn car tyre scotland',
+      'prepare tyres winter scotland 2026',
+      'october tyre fitting scotland',
+    ],
+    relatedSlugs: [
+      'winter-tyres-scotland-buyers-guide-2026',
+      'tyre-pressure-guide-scotland',
+      'driving-snow-ice-tyre-advice-scotland',
+    ],
+    content: `# Autumn Tyre Preparation for Scottish Drivers: October 2026 Guide
+
+September and October is the window to prepare your tyres for the Scottish winter. Roads begin to carry morning frost in late September in Highland areas, and Central Belt roads become significantly more challenging from mid-October onward.
+
+This guide covers everything you need to do now — before the first hard frost catches you unprepared.
+
+---
+
+## Why Autumn is the Critical Window
+
+**Summer tyres lose grip below 7°C.** Summer tyre compounds are designed to work at temperatures above 7°C. Below this threshold, the rubber begins to harden, increasing stopping distances and reducing cornering grip. Scotland regularly sees temperatures below 7°C from mid-October onward — even without ice or snow.
+
+**October/November tyre appointments book up quickly.** The weeks from late October to mid-November see the highest demand for winter tyre fitting across Scotland. If you wait until the first heavy frost, you will often face appointment delays.
+
+**The best time to book is September or early October.** You beat the rush, and if you are fitting winter tyres, the car is ready before conditions deteriorate.
+
+---
+
+## Autumn Tyre Checklist — Do This Now
+
+### 1. Check All Four Tyre Tread Depths
+
+The minimum for winter driving on Scottish roads is 3mm — preferably 4mm on Highland routes. Check with the 20p test or a gauge.
+
+If any tyre is below 4mm:
+- Below 4mm but above 3mm: book a replacement within 4–6 weeks (before the worst winter weather)
+- Below 3mm: book now — you are already in the safety danger zone for Scottish conditions
+
+### 2. Check Tyre Age (DOT Code)
+
+Find the manufacture date (last four digits on the sidewall). Any tyre over 6 years old should be replaced as a priority before the winter driving season. Aged rubber has reduced grip in cold conditions regardless of tread depth.
+
+### 3. Check All Tyre Pressures — Cold
+
+Pressures drop approximately 1 PSI per 10°F (5.5°C) of temperature decrease. A tyre correctly inflated at 33 PSI in August may read 30 PSI by October without any air loss. Check and correct all four tyres.
+
+Also check your spare.
+
+### 4. Inspect Sidewalls for Summer Damage
+
+A summer of driving on sun-softened roads and hot tarmac can expose sidewall damage that was borderline in warmer months. Inspect all four sidewalls for bubbles, cuts, or cracks. Cold weather makes damaged rubber more likely to fail.
+
+### 5. Decide: Winter Tyres, All-Season, or Continue with Summer Tyres?
+
+This is the key autumn decision. See the section below.
+
+---
+
+## Winter Tyres vs All-Season Tyres vs Summer Tyres for 2026–27
+
+### Summer Tyres — If You Are Keeping Them
+
+Summer tyres are safe to continue with if:
+- You drive primarily in the Central Belt, Edinburgh, or Glasgow
+- You do not regularly travel to Highland or elevated areas
+- You are comfortable not driving if conditions are extreme
+
+**If your summer tread is 4mm or above**: you can manage a Central Belt winter, but increase caution in cold conditions.
+
+**If your summer tread is below 4mm**: replace now. Winter driving on worn summer tyres is genuinely dangerous.
+
+### All-Season Tyres — The Central Belt Compromise
+
+An all-season tyre with the 3PMSF (Three Peak Mountain Snowflake) symbol provides winter-capable grip while eliminating the cost and hassle of seasonal changeover.
+
+Recommended for: Central Belt commuters, Edinburgh, Glasgow, and similar urban areas where severe winter conditions are occasional rather than regular.
+
+Book fitting now — see our [all-season tyre guide](/blog/all-season-tyres-scotland-guide).
+
+### Winter Tyres — Recommended for Highland and Rural Scotland
+
+Dedicated winter tyres give the best cold-weather performance. They are designed to remain flexible below 7°C, where summer and all-season tyres begin to lose effectiveness.
+
+**When to book**: September or early October for a mid-October fitment is ideal. This gets you ahead of the November rush.
+
+**Storage**: if you have a second set of wheels, you can store your summer tyres at home. If not, many tyre fitters (including Tyre Rescue) can provide tyre hotel storage.
+
+See our [winter tyres Scotland buyers guide](/blog/winter-tyres-scotland-buyers-guide-2026).
+
+---
+
+## Scotland-Specific Autumn Timings
+
+| Location | First typical sub-7°C mornings | First typical frost | Winter tyre recommendation |
+|---|---|---|---|
+| Cairngorms / Grampian hills | Mid-September | Late September | September fitment |
+| Highlands (Inverness, A9 corridor) | Late September | Mid-October | October 1–15 |
+| Perthshire / Stirlingshire | Early October | Late October | October 1–20 |
+| Central Belt (Glasgow, Edinburgh) | Mid-October | November | October–November |
+| Ayrshire / Borders coast | Late October | November–December | October–November as needed |
+
+---
+
+## Booking Tyre Fitting This Autumn
+
+Tyre Rescue operates mobile tyre fitting across all of Scotland with appointments available 7 days a week.
+
+**For autumn winter tyre fitment, we recommend booking at least 1 week in advance** — October slots typically fill within days.
+
+For Central Belt drivers wanting to inspect and replace worn summer tyres before winter: same-week appointments are often available.
+
+Call **0141 266 0690** or [book online](/book). When booking, let us know:
+- Whether you want an inspection only, replacement tyres, or seasonal changeover
+- Whether you are returning to stored winter wheels or need tyres sourced
+- Your preferred appointment time and whether home, work, or roadside is your preference
+
+[Winter tyres buyers guide Scotland](/blog/winter-tyres-scotland-buyers-guide-2026) | [All-season tyres Scotland](/blog/all-season-tyres-scotland-guide) | [Driving on snow and ice](/blog/driving-snow-ice-tyre-advice-scotland)`,
+  },
+  {
     slug: 'tyre-safety-older-drivers-scotland',
     title: 'Tyre Safety for Older Drivers in Scotland: Why Your Tyres Matter More as You Age',
     description:
