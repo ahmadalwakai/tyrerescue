@@ -10880,6 +10880,128 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'volkswagen-amarok-tyre-fitting-scotland',
+    title: 'Volkswagen Amarok Tyre Fitting Scotland: V6 TDI and 3.0 TSI Sizes and Options',
+    description:
+      'VW Amarok tyre guide for Scotland: first-gen and current-gen V6 sizes, all-terrain upgrade options, 255/60R18 and 265/60R18 specifications, commercial load rating requirements.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'volkswagen amarok tyres scotland',
+      'vw amarok tyre fitting scotland',
+      'amarok v6 tyres scotland',
+      'amarok all terrain tyres scotland',
+      'amarok tyre size scotland',
+      'amarok 255 60 r18 scotland',
+      'amarok tyre change scotland',
+      'vw amarok tdi tyre scotland',
+    ],
+    relatedSlugs: [
+      'ford-ranger-tyre-fitting-scotland',
+      'isuzu-dmax-tyre-fitting-scotland',
+      'tyre-pressure-loaded-car-scotland',
+    ],
+    content: `# Volkswagen Amarok Tyre Fitting Scotland: V6 TDI and 3.0 TSI Sizes and Options
+
+The Volkswagen Amarok has always been popular with Scottish professionals and businesses wanting a pickup with more refinement than the typical workhorse alternative. The Amarok is especially common in the Highlands and Aberdeenshire oil sector, where premium pickup trucks are the norm.
+
+---
+
+## Amarok Generations: Tyre Sizes
+
+### First-Generation Amarok (2010–2022)
+
+The original Amarok was produced for over a decade with incremental changes. The V6 TDI (introduced 2016) became the definitive version.
+
+**Trendline / Comfortline (2.0 TDI)**:
+- 215/65R16 — base 16" steel wheels
+- 235/65R17 — optional 17" alloys
+
+**Highline / Aventura / V6 TDI**:
+- 255/60R18 — the most common V6 size on 18" Talca alloys
+- 255/55R19 — optional 19" wheels
+
+### Second-Generation Amarok (2023–present)
+
+The NF-generation Amarok is a shared platform with the Ford Ranger, though the body and interior are distinctly VW. It is more premium than the original, with a wider range of engines including the 3.0 TSI petrol.
+
+**Style / Life / Style 4Motion**:
+- 255/60R18 — standard on Style trim
+- 265/60R18 — upgraded fitment
+
+**Aventura / PanAmericana**:
+- 265/60R18 — standard
+- Some PanAmericana variants shipped with 255/60R18 with AT tread pattern from factory
+
+---
+
+## Load Index Requirements
+
+Like all commercially-rated pickups, the Amarok requires adequate load index tyres for its payload capacity.
+
+**Minimum load index for Amarok use**: **112** (1,120kg per tyre). This applies to all commercial uses.
+
+Some premium tyres in 255/60R18 are available in load index 107 (passenger car rating). These are technically the correct size but do not carry enough load for a fully-laden Amarok. Always confirm the load index when ordering:
+- Look for **112** or **114** suffix in the tyre specification
+- Or a **C** designation (e.g., 255/60R18C) for van/commercial variants (rare in this size)
+
+---
+
+## All-Terrain Tyre Upgrades for the Amarok in Scotland
+
+The Amarok handles Scotland's varied terrain very well on standard road tyres, but many Scottish Amarok owners upgrade to all-terrain tyres for better traction on:
+- Rural Scottish estate and agricultural tracks
+- Forestry roads
+- Gravel drives and remote property access
+- Seasonal muddy routes
+
+### Recommended AT Tyres for Amarok in Scotland
+
+**BF Goodrich All-Terrain T/A KO2 (255/60R18)**
+The benchmark AT tyre in this size. Aggressive tread, 3PMSF-rated for winter performance, excellent sidewall protection against the sharp rock edges common on Highland tracks. LI 112 available.
+
+**Falken Wildpeak AT3W (255/60R18)**
+Very strong value compared to BFG KO2. Excellent wet road performance and 3PMSF-rated — important for Scotland's long wet season. LI 112 available.
+
+**General Grabber AT3**
+Budget-priced AT option with 3PMSF rating. Good for moderate off-road use and improvement over highway tyres on rural tracks.
+
+### Will AT Tyres Affect Fuel Economy?
+
+Yes — AT tyres have higher rolling resistance than highway tyres. Expect a 10–15% reduction in fuel economy compared to the original road tyres. The tradeoff is better traction and significantly more capability off tarmac.
+
+---
+
+## Tyre Pressure for Amarok by Load State
+
+| Load state | Front | Rear |
+|---|---|---|
+| Light (driver only) | 35 PSI / 2.4 bar | 35 PSI / 2.4 bar |
+| Part-load | 38 PSI / 2.6 bar | 41 PSI / 2.8 bar |
+| Full payload / towing | 38 PSI / 2.6 bar | 44 PSI / 3.0 bar |
+
+Always check your specific vehicle's door sticker for the exact recommended pressures, as these vary between models and generations.
+
+---
+
+## TPMS on VW Amarok
+
+The Amarok is fitted with TPMS. After any tyre change, the TPMS must be reset using a scan tool or the dashboard TPMS menu (depending on generation).
+
+When upgrading to AT tyres, the TPMS system will continue to function normally provided the new tyres carry the same size as the originals. If the size changes (e.g., moving to 265/60R18 from 255/60R18), the TPMS needs recalibration.
+
+Tyre Rescue performs TPMS reset as standard with every tyre change.
+
+---
+
+Call **0141 266 0690** for Amarok tyre fitting across Scotland. We stock 255/60R18 in both road and AT patterns, and can source 265/60R18 options. Mobile fitting to your location — farm, business address, or home.
+
+[Ford Ranger tyre fitting Scotland](/blog/ford-ranger-tyre-fitting-scotland) | [Isuzu D-Max tyre fitting Scotland](/blog/isuzu-dmax-tyre-fitting-scotland) | [Tyre pressure for loaded vehicles](/blog/tyre-pressure-loaded-car-scotland)`,
+  },
+  {
     slug: 'ford-ranger-tyre-fitting-scotland',
     title: 'Ford Ranger Tyre Fitting Scotland: Sizes, AT vs MT Options, and Load Ratings',
     description:
