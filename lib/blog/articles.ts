@@ -10880,6 +10880,136 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'alfa-romeo-tyre-fitting-scotland',
+    title: 'Alfa Romeo Tyre Fitting Scotland: Giulia, Stelvio, Tonale and Junior',
+    description:
+      'Mobile Alfa Romeo tyre fitting across Scotland. Correct tyre sizes for Giulia, Giulia Quadrifoglio, Stelvio, Tonale PHEV, and the new Junior EV. TPMS reset and Alfa-specific fitment notes included.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'alfa romeo tyre fitting scotland',
+      'alfa romeo giulia tyres scotland',
+      'alfa romeo stelvio tyres scotland',
+      'alfa romeo tonale tyres scotland',
+      'alfa romeo junior tyres scotland',
+      'giulia quadrifoglio tyres scotland',
+      'alfa romeo 225 45 r18 scotland',
+      'alfa romeo mobile tyre fitting scotland',
+    ],
+    relatedSlugs: [
+      'bmw-tyre-fitting-scotland',
+      'staggered-tyre-fitment-scotland',
+      'run-flat-tyres-scotland-guide',
+    ],
+    content: `# Alfa Romeo Tyre Fitting Scotland: Giulia, Stelvio, Tonale and Junior
+
+Alfa Romeo has had a remarkable revival in Scotland with the Giulia, Stelvio, and now the Tonale and Junior. These vehicles have specific tyre requirements — particularly the performance variants — that deserve attention when it comes to replacement.
+
+---
+
+## Alfa Romeo Giulia (2016–present)
+
+The Giulia is a rear-wheel-drive (or AWD Q4) compact executive saloon.
+
+### Giulia Base / Sprint / Veloce (2.0 Petrol, Diesel)
+- **225/45R18** on 18" alloys — the most common fitment
+- **245/35R19** on 19" alloys (Veloce and Sport trims)
+- Load index: 91–95 depending on size
+- Speed rating: Y (186mph) or W (168mph)
+- **No run-flat**: Giulia does not typically use run-flat tyres, but check your handbook
+
+### Giulia Quadrifoglio (2.9 V6 Bi-Turbo)
+The Quadrifoglio is staggered:
+- **Front**: 225/35R19 on 19" wheels
+- **Rear**: 255/35R19 on 19" wheels (wider)
+
+The Q's rear is 30mm wider than the front. These cannot be rotated front-to-rear.
+
+Recommended tyre brands for Quadrifoglio: Pirelli P Zero (OE fitment), Michelin Pilot Sport 4S, Continental SportContact 7. Performance-grade compound required for the 510bhp output.
+
+---
+
+## Alfa Romeo Stelvio (2017–present)
+
+The Stelvio SUV shares its platform with the Giulia and also comes in multiple variants.
+
+### Stelvio Base / Sprint / Veloce (2.0 Petrol)
+- **225/55R18** or **235/55R18** on 18" alloys
+- **235/50R19** or **255/45R19** on 19" alloys (Sprint, Veloce)
+- AWD Q4 system standard on most UK Stelvio models
+
+### Stelvio Quadrifoglio (2.9 V6 Bi-Turbo)
+Similar staggered fitment to the Giulia Quadrifoglio:
+- **Front**: 245/35R21 on 21" wheels
+- **Rear**: 285/30R21 on 21" wheels
+
+The Stelvio Q's 21" staggered fitment is expensive to replace — 21" performance tyres in the 285/30R21 rear size are premium-only and typically £180–£250+ per tyre.
+
+---
+
+## Alfa Romeo Tonale (2022–present)
+
+The Tonale is Alfa's first crossover SUV and first PHEV offering.
+
+### Tonale Sprint / Veloce (1.5 Mild Hybrid)
+- **215/55R18** on 18" wheels
+
+### Tonale PHEV (1.3 Turbo)
+- **235/45R19** on 19" wheels
+- Load index must account for PHEV battery weight — confirm load index 99+ when replacing
+- **No spare tyre** on most PHEV variants — tyre inflation kit fitted
+
+The Tonale PHEV is 200+kg heavier than the mild hybrid variant due to the battery and second electric motor. Ensure load index is adequate for the full PHEV weight.
+
+---
+
+## Alfa Romeo Junior (2024–present)
+
+The Junior is Alfa's new compact electric vehicle, available as:
+- Junior as a mild hybrid (1.2 petrol)
+- Junior Elettrica (fully electric — BEV)
+
+### Junior (Mild Hybrid)
+- **215/50R18** on 18" wheels
+
+### Junior Elettrica (Q4)
+- **235/45R18** on 18" wheels standard
+- **235/40R20** on 20" optional wheels
+- EV-spec tyres required — low rolling resistance, correct load index for battery weight
+
+---
+
+## Alfa Romeo TPMS
+
+All current Alfa Romeo vehicles are equipped with TPMS. After any tyre replacement:
+- TPMS must be reset using an OBD-II scanner or the Alfa Connect system
+- Sensor batteries typically last 5–10 years before requiring replacement
+- Corrosion on older Alfa alloys can affect sensor integrity — we check this on every visit
+
+---
+
+## Performance Tyres for Scottish Conditions
+
+Alfa Romeo performance models (Giulia Q, Stelvio Q) are typically fitted with summer performance tyres that harden significantly below 7°C. In Scotland, where temperatures drop below 7°C from October to April, performance summer tyres on these models need careful management:
+
+**Option 1**: fit all-season performance tyres for year-round use (Michelin CrossClimate 2 performance versions, Continental AllSeasonContact — though summer performance tyres remain more capable in the dry and warm)
+
+**Option 2**: maintain separate winter and summer wheels — summer performance tyres for May–September, winter tyres for October–April
+
+**Option 3**: drive with appropriate caution on summer performance tyres in cold conditions — a realistic option for Central Belt Alfa owners who do not drive in severe conditions
+
+---
+
+Tyre Rescue provides mobile Alfa Romeo tyre fitting across Scotland. We carry 225/45R18 and 235/50R19 in performance-spec options and can source Quadrifoglio staggered sizes.
+
+Call **0141 266 0690** or [book online](/book).
+
+[BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Staggered tyre fitment explained](/blog/staggered-tyre-fitment-scotland) | [Run-flat tyres Scotland](/blog/run-flat-tyres-scotland-guide)`,
+  },
+  {
     slug: 'staggered-tyre-fitment-scotland',
     title: 'Staggered Tyre Fitment Explained: Why Your Front and Rear Tyres Are Different Sizes',
     description:
