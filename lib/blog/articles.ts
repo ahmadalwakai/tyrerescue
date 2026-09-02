@@ -10880,6 +10880,147 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'tyre-wheel-damage-after-accident-scotland',
+    title: 'Tyre and Wheel Damage After an Accident in Scotland: What to Check',
+    description:
+      'After a collision, kerb strike, or pothole impact, your tyres and wheels may be damaged even if they look fine. This guide covers what to check, when the car is unsafe to drive, and insurance implications in Scotland.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'tyre damage after accident scotland',
+      'wheel damage after accident scotland',
+      'kerb strike tyre damage scotland',
+      'pothole tyre damage scotland',
+      'car crash tyre check scotland',
+      'accident tyre inspection scotland',
+      'tyre damage insurance claim scotland',
+      'wheel damage after crash scotland',
+    ],
+    relatedSlugs: [
+      'pothole-damage-claim-scotland',
+      'tyre-sidewall-damage-scotland',
+      'low-profile-tyres-scotland-guide',
+    ],
+    content: `# Tyre and Wheel Damage After an Accident in Scotland: What to Check
+
+After any significant impact — a collision, kerb strike, or hard pothole hit — your tyres and wheels may be damaged in ways that are not immediately visible. Driving on undetected damage can cause a sudden blowout or loss of control.
+
+This guide explains what to check after an accident and when it is unsafe to drive.
+
+---
+
+## What Types of Accidents Cause Tyre and Wheel Damage?
+
+Any impact that transmits force to the tyre or wheel can cause damage:
+
+- **Pothole impact at speed**: can cause rim damage, inner sidewall bruising, or tyre bead damage
+- **Kerb strike**: often damages the inner sidewall (hidden from view) and can bend the rim's inner flange
+- **Rear-end collision**: typically transmits force forward — check front tyres for suspension-related displacement
+- **Side-swipe or fender contact**: can directly impact the wheel and tyre with enough force to cause structural damage
+- **Reversing into a kerb or post**: rear tyre sidewall and rim damage
+- **Off-road or grass verge impact**: stones can damage sidewalls; ruts can stress wheels
+
+---
+
+## Immediate Post-Accident Tyre Check
+
+After any significant impact, perform this inspection before driving further:
+
+### Step 1: Visual Check — All Four Tyres
+
+Walk around the car and look at each tyre. Look for:
+- Any bulge or bubble on the sidewall (indicates internal cord failure — do not drive)
+- Any visible crack or gash in the sidewall rubber
+- A tyre that appears visibly lower or flatter than the others
+- Any tyre that appears to be sitting at an unusual angle
+
+### Step 2: Feel the Sidewalls
+
+Place your hand on each sidewall and run it around the circumference. Feel for:
+- Any raised bump or soft spot (bubble beginning to form)
+- Any abnormal stiffness or yielding area
+
+### Step 3: Check the Rim
+
+Look at the outer face of each alloy or steel wheel. Look for:
+- Any crack in the wheel — particularly radial cracks spreading from the centre
+- Any deformation of the outer rim lip where the tyre bead seats
+- Any gouge deep enough to have penetrated the wheel material
+- Any area of fresh bright metal (indicating where the wheel has been scraped against something)
+
+**A cracked wheel must not be driven on.** A crack may be hairline and not immediately visible — if you have any doubt, have the wheel inspected by a specialist.
+
+### Step 4: Check Tyre Pressures
+
+Use a tyre pressure gauge on all four tyres. A tyre losing pressure that looks otherwise normal may have an undetectable inner sidewall tear or bead seal failure.
+
+If a tyre is losing pressure, do not reinflate it and drive. Call Tyre Rescue for a replacement.
+
+---
+
+## The Hidden Problem: Inner Sidewall Damage
+
+The most dangerous form of post-accident tyre damage is inner sidewall damage — damage to the side of the tyre that faces the car, not the road.
+
+A kerb strike at speed often causes a classic inner sidewall impact: the wheel is driven forcefully into the kerb, compressing the inner sidewall between the rim and the kerb edge. This can:
+- Tear internal cords without any visible outer damage
+- Create an internal bubble that only becomes visible days or weeks later
+- Damage the bead area, causing progressive slow pressure loss
+
+You will need to look through the wheel arch with a torch — or better, have the wheel removed and inspected — to see the inner sidewall. If you have had a significant kerb strike and cannot see the inner sidewall, have it professionally inspected before driving any distance.
+
+---
+
+## Alignment After an Accident
+
+Any impact sufficient to cause tyre or wheel damage likely also affected your wheel alignment.
+
+Symptoms of misalignment after an accident:
+- Car pulls to one side on a straight road
+- Steering wheel is not centred when driving straight
+- Vibration at speed
+- Uneven tyre wear appearing in the weeks after the accident
+
+If any of these symptoms appear after an impact, book a four-wheel alignment check before replacing any damaged tyres — fitting new tyres on misaligned axles will simply repeat the same uneven wear pattern.
+
+---
+
+## Insurance Implications
+
+If your tyre or wheel damage was caused by someone else's negligence (e.g., a collision where they were at fault), the cost of replacement should be covered by their insurance.
+
+**Keep evidence**: photograph the damage, the other vehicle if involved, and the accident scene.
+
+**Pothole damage**: if caused by a pothole on a public road, you can claim against the relevant roads authority. See our [pothole damage claim guide](/blog/pothole-damage-claim-scotland).
+
+**Your own comprehensive cover**: many comprehensive policies cover tyre damage caused by an accident. Check your policy excess and whether it is worth claiming (claiming can affect your no-claims discount).
+
+---
+
+## When to Not Drive
+
+Do not drive if any of the following are present:
+
+| Condition | Action |
+|---|---|
+| Visible sidewall bubble or bulge | Call Tyre Rescue — do not drive |
+| Cracked wheel rim | Do not drive — tow or trailer |
+| Tyre significantly deflated after impact | Do not drive — call for replacement |
+| Steering pulling severely to one side | Drive only slowly to a safe stop |
+| Grinding or scraping sound when driving | Stop immediately — check for contact |
+
+If you are unsure, err on the side of caution. Call Tyre Rescue and describe what you have found — we will advise on whether the car is safe to drive or needs on-site assistance.
+
+---
+
+Call **0141 266 0690** for post-accident tyre inspection and replacement across Scotland. We carry common tyre sizes and come to your location.
+
+[Pothole damage claim Scotland](/blog/pothole-damage-claim-scotland) | [Tyre sidewall damage Scotland](/blog/tyre-sidewall-damage-scotland) | [Low profile tyre guide Scotland](/blog/low-profile-tyres-scotland-guide)`,
+  },
+  {
     slug: 'argyll-islands-tyre-guide-scotland',
     title: 'Argyll and the Isles Tyre Guide: Driving the A83, Kintyre, Islay and Mull',
     description:
