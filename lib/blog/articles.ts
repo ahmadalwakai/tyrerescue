@@ -10880,6 +10880,120 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'argyll-islands-tyre-guide-scotland',
+    title: 'Argyll and the Isles Tyre Guide: Driving the A83, Kintyre, Islay and Mull',
+    description:
+      'Argyll and its islands have some of Scotland\'s most challenging roads for tyres. Complete guide to the Rest and Be Thankful, single-track island roads, ferry landings, and tyre preparation for Argyll\'s routes.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'argyll tyre guide scotland',
+      'rest and be thankful tyre advice',
+      'islay tyre fitting scotland',
+      'mull tyre advice scotland',
+      'kintyre driving tyres scotland',
+      'argyll roads tyres scotland',
+      'a83 tyre advice scotland',
+      'argyll islands driving scotland',
+    ],
+    relatedSlugs: [
+      'nc500-tyre-guide-scotland',
+      'tyre-pressure-guide-scotland',
+      'slow-puncture-causes-scotland',
+    ],
+    content: `# Argyll and the Isles Tyre Guide: Driving the A83, Kintyre, Islay and Mull
+
+Argyll and its islands attract hundreds of thousands of visitors each year — from the Cowal peninsula and Loch Fyne to Kintyre, the Knapdale coast, and the Inner Hebrides. The scenery is spectacular. The roads, however, are among Scotland's most demanding.
+
+This guide covers what Scottish and visiting drivers need to know about tyre preparation and risk for Argyll's most challenging routes.
+
+---
+
+## The A83: Glasgow to Inveraray and Kintyre
+
+The A83 from Tarbet (Loch Lomond) to Campbeltown is the main artery for Argyll. It passes through spectacular scenery and some demanding terrain.
+
+### Rest and Be Thankful (A83 summit section)
+
+The Rest and Be Thankful — the A83 summit at 245 metres — is Argyll's most notorious road section. It is prone to landslides: the hillside above has experienced numerous debris flows, blocking the road multiple times each year. When the main road closes, traffic diverts via the military road above — an extremely narrow, steep single-track route.
+
+**Tyre implications**:
+- The diversion route (B828 via Butterbridge) is narrow, rough-surfaced in sections, and punishing on low-profile tyres
+- The main A83 itself has patched surfaces in sections — uneven joins that can cause vibration warning signs of alignment concerns on worn tyres
+- In autumn and winter, the road surface becomes slippery with fallen leaves and standing water from drainage flows
+
+**Recommendation**: ensure a minimum 4mm tread depth and no sidewall damage before attempting the A83, particularly if the diversion route is in use.
+
+### The A815 — Dunoon to Strachur
+
+The A815 follows the east shore of Loch Eck and is a narrower, rougher alternative route through Cowal. Road surface quality varies significantly.
+
+### A83 to Campbeltown and Kintyre
+
+South of Inveraray, the A83 narrows through Lochgilphead and Tarbert before continuing down Kintyre. The road to Campbeltown (75 miles from Lochgilphead) is single-lane with passing places in several sections. Watch for:
+- Livestock on the road (particularly sheep, which have no road sense)
+- Tractors and agricultural machinery in summer farming season
+- Surface damage from agricultural heavy vehicle use
+
+---
+
+## Islay: Tyres on Island Roads
+
+Islay is reached by CalMac ferry from Kennacraig — approximately 2 hours to Port Askaig or Port Ellen. The island has a road network primarily based around two main routes (A846, A847) with numerous smaller single-track roads serving the whisky distilleries and farm properties.
+
+**What Islay roads do to tyres**:
+- The main A-roads are generally well surfaced, maintained by Argyll and Bute Council
+- The C and unclassified roads to distilleries (Bunnahabhain, Bruichladdich via the north shore) are narrow with grass centres and rough verges
+- The Oa peninsula road (south of Port Ellen) is particularly rough in sections — good tread and intact sidewalls are essential
+- Gravel and loose stone is common on verges — take care not to spin wheels on verge stops as stones can impact neighbouring vehicles
+
+**Tyre emergency on Islay**: there is no dedicated tyre fitter based on Islay. The nearest mainland service is via the ferry. Tyre Rescue can coordinate with CalMac to get tyres to Islay on the next ferry service, or in extreme cases, arrangements can sometimes be made for mainland fitters to travel via ferry for urgent situations. Always call us — we will find a solution.
+
+The practical advice: carry a fully functional tyre inflation kit or compressor on Islay. Slow punctures from gravel can often be managed until you reach the mainland.
+
+---
+
+## Mull: From Craignure to Tobermory
+
+Mull is reached by CalMac from Oban (45 minutes to Craignure). The single main road (A849) runs from Craignure to Fionnphort (Iona ferry). The road to Tobermory (A848) runs north from Salen.
+
+**Mull road characteristics**:
+- Almost entirely single-track with passing places
+- Some of the most picturesque but also most varied surfaces of any Scottish island — maintained tarmac interrupted by sections with surface cracking and temporary repairs
+- The road to Calgary Bay is notoriously narrow
+- CalMac ferries do not carry tyre fitting equipment — the nearest mainland service is at Oban
+
+**CalMac and tyre emergencies**: Tyre Rescue can coordinate sending tyres on a CalMac ferry (CalMac carry goods for island communities). This takes time — expect a minimum 24-hour turnaround for sourcing and ferrying. Carry the correct tyre size, pressure gauge, and inflation kit on any island visit.
+
+---
+
+## General Argyll Tyre Preparation
+
+For any significant Argyll journey:
+
+**Tread depth**: minimum 3mm, ideally 4mm+ for island roads and unpredictable surfaces.
+
+**Sidewall inspection**: check all four sidewalls and the spare before departure. Argyll's rough verges and tight passing places can damage sidewalls on even brief stops.
+
+**Pressure check**: cold, before departure. Carry a gauge. On islands where service stations may be limited in hours, you may not find easily accessible air.
+
+**Spare tyre**: if your car has a spare, make sure it is inflated to the correct pressure and has adequate tread. Many drivers discover the spare is flat or cracked when they actually need it.
+
+**If your car has no spare (only foam kit)**: understand its limitations — it only works on small tread punctures. On islands, a sidewall failure is a serious situation.
+
+---
+
+**Emergency contacts for Argyll**:
+- Tyre Rescue Scotland: **0141 266 0690** (covers Argyll mainland, coordinates island deliveries)
+- CalMac ferry information: 0800 066 5000
+- Police Scotland non-emergency: 101
+
+[NC500 tyre guide](/blog/nc500-tyre-guide-scotland) | [Tyre pressure guide](/blog/tyre-pressure-guide-scotland) | [Slow puncture causes](/blog/slow-puncture-causes-scotland)`,
+  },
+  {
     slug: 'winter-driving-emergency-kit-scotland',
     title: 'Winter Driving Emergency Kit for Scottish Roads: What to Carry',
     description:
