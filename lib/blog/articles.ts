@@ -10880,6 +10880,111 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'mixing-tyre-brands-scotland',
+    title: 'Can You Mix Tyre Brands in Scotland? Rules, Risks, and Best Practice',
+    description:
+      'Is it legal to have different tyre brands on your car? The rules on mixing brands, why matching axle pairs matters, and the one situation where mixing is always wrong — for Scottish drivers.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 4,
+    featured: false,
+    keywords: [
+      'mixing tyre brands scotland',
+      'can you mix tyre brands scotland',
+      'different tyre brands same car scotland',
+      'mix tyre makes scotland',
+      'different brands on same axle scotland',
+      'is it ok to mix tyre brands scotland',
+      'tyre brand mix rules uk',
+      'different makes of tyres uk',
+    ],
+    relatedSlugs: [
+      'do-i-need-to-change-all-4-tyres-scotland',
+      'tyre-buying-guide-scotland',
+      'budget-tyres-scotland-guide',
+    ],
+    content: `# Can You Mix Tyre Brands in Scotland? Rules, Risks, and Best Practice
+
+This question comes up regularly when one tyre is damaged and needs immediate replacement. Can you fit a Continental where there is currently a Michelin? Is it illegal to have four different brands on one car?
+
+Here is a clear answer.
+
+---
+
+## Is It Legal to Mix Tyre Brands?
+
+**Yes, mixing brands is legal in the UK**, with one important exception:
+
+**You must never mix radial and crossply (bias-ply) tyres on the same axle.** This is illegal and an MOT fail.
+
+All modern cars use radial tyres. As long as all your tyres are radial (which they almost certainly are), you can legally have different brands on different wheels.
+
+---
+
+## The Best Practice Rule: Match by Axle
+
+While mixing brands across the car is legal, the widely accepted best practice is to **match tyres within the same axle** (front two identical, rear two identical).
+
+**Why matching by axle matters**:
+
+When both tyres on an axle are identical brand, model, and age, they behave identically in braking and cornering. This is particularly important in:
+
+- **Emergency braking**: if both front tyres have the same wet grip rating and tread depth, they provide equal braking force. A significant mismatch between axle partners can cause the car to pull sideways under hard braking.
+
+- **Stability under cornering**: both tyres on an axle should reach their grip limit at approximately the same time and point. Mismatched tyres can make the handling feel inconsistent.
+
+This is a best practice recommendation, not a legal requirement. Many cars successfully run with different brands on the front and rear axle with no issues.
+
+---
+
+## The Exception: AWD Vehicles
+
+If you have an all-wheel-drive vehicle — particularly Subaru symmetrical AWD — matching across all four wheels is important, not just within axles.
+
+Subaru AWD and similar systems can be damaged if the tread depth differs significantly across all four tyres (the system interprets differing tyre circumferences as wheel slip). See our [AWD tyre replacement guide](/blog/do-i-need-to-change-all-4-tyres-scotland).
+
+---
+
+## When One Tyre Needs Emergency Replacement
+
+This is the most common scenario. You have had a puncture or sidewall damage. You need one tyre replaced today.
+
+**Best case**: we have the same brand and model as your other three. We fit it and everything is matched.
+
+**If the same brand/model is unavailable**: we fit the closest match in terms of performance characteristics (wet grip, fuel efficiency rating, tread pattern type). We would prioritise matching the tyre on the same axle over the other axle.
+
+**If you have run-flat tyres (BMW, Mercedes)**: the replacement must also be run-flat specification (RSC, MOE, or equivalent). A standard tyre cannot replace a run-flat on a car designed without a spare wheel — you would lose the run-flat safety margin.
+
+---
+
+## Should the Better or Worse Tyre Go on the Rear?
+
+If you must run one new and one older tyre, and cannot replace both on the axle simultaneously, the newer tyre should go to the **rear axle** regardless of drive layout.
+
+**Why**: rear tyre loss of grip (oversteer) is harder to control than front tyre loss of grip (understeer). A newer, higher-grip tyre at the rear provides better vehicle stability in emergency situations.
+
+This recommendation applies to all drive layouts — FWD, RWD, and AWD.
+
+---
+
+## Summary
+
+| Situation | Is it OK? |
+|---|---|
+| Different brands on front vs rear axle | Legal and generally acceptable |
+| Different brands on the same axle | Legal but not recommended — try to match |
+| Radial and crossply on same axle | Illegal — do not do this |
+| AWD with mismatched tread depths across all 4 | Damaging to drivetrain — replace in matched pairs |
+| Run-flat replaced with non-run-flat on BMW/Mercedes | Not recommended — loses safety margin |
+
+---
+
+Call **0141 266 0690** for mobile tyre fitting across Scotland. We stock a wide range of brands and can usually match your existing tyres for same-axle consistency.
+
+[Do I need to change all 4 tyres?](/blog/do-i-need-to-change-all-4-tyres-scotland) | [Tyre buying guide Scotland](/blog/tyre-buying-guide-scotland) | [Run-flat tyres Scotland](/blog/run-flat-tyres-scotland-guide)`,
+  },
+  {
     slug: 'delivery-driver-tyre-guide-scotland',
     title: 'Tyre Guide for Delivery Drivers in Scotland: Amazon, Deliveroo, Royal Mail and Couriers',
     description:
