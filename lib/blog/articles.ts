@@ -10880,6 +10880,144 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'budget-tyres-scotland-guide',
+    title: 'Budget Tyres in Scotland: What to Buy, What to Avoid, and Real Costs',
+    description:
+      'Are budget tyres safe for Scottish roads? This guide explains the real difference between budget, mid-range, and premium tyres, which budget brands pass wet weather tests, and how to save without compromising safety.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'budget tyres scotland',
+      'cheap tyres scotland',
+      'budget tyre brands scotland',
+      'are budget tyres safe scotland',
+      'cheap tyres glasgow',
+      'affordable tyres scotland',
+      'best budget tyres scotland',
+      'cheap tyre fitting scotland',
+    ],
+    relatedSlugs: [
+      'tyre-buying-guide-scotland',
+      'michelin-vs-continental-vs-pirelli-scotland',
+      'tyre-prices-scotland-guide-2026',
+    ],
+    content: `# Budget Tyres in Scotland: What to Buy, What to Avoid, and Real Costs
+
+With tyre prices rising, many Scottish drivers ask whether budget tyres are safe — or whether they're compromising their safety to save money.
+
+The honest answer: **it depends on which budget brand you choose.** Some budget tyres perform surprisingly well in independent tests. Others are dangerously poor in wet conditions. This guide shows you how to tell the difference.
+
+---
+
+## The Three Tyre Tiers
+
+### Premium Tyres (£80–£160+ per tyre)
+Brands: Michelin, Continental, Pirelli, Bridgestone, Goodyear
+
+These manufacturers invest heavily in R&D. Independent testing organisations (ADAC, Auto Express, TÜV) consistently show premium tyres stopping 3–6 metres shorter in wet braking tests than budget alternatives at the same speed. At 60mph, 4 metres is the difference between stopping in time and a collision.
+
+Premium tyres also wear more evenly, maintain performance longer, and resist aquaplaning better on Scotland's frequently wet roads.
+
+### Mid-Range Tyres (£50–£90 per tyre)
+Brands: Falken, Hankook, Nexen, Kumho, Cooper, Toyo, Uniroyal
+
+Mid-range tyres often come from the same manufacturers or parent companies as premium brands. Falken is Sumitomo (a major Japanese manufacturer). Uniroyal is owned by Continental. Hankook supplies as OE to major German manufacturers.
+
+Mid-range tyres offer 85–95% of premium tyre wet performance at 60–75% of the price. This is often the best value point for most Scottish drivers.
+
+### Budget Tyres (£25–£55 per tyre)
+Brands: Zeetex, Nankang, Landsail, Rotalla, Linglong, Austone, Maxxis (budget lines), Roadhog, Warrior
+
+Budget tyres vary enormously. Some are manufactured in modern Chinese factories with recent technology and perform acceptably. Others are years-old designs with poor wet grip and high stopping distances.
+
+**The key question is not price — it's test results.**
+
+---
+
+## Budget Tyre Testing Results: What the Data Shows
+
+Independent tyre tests (Auto Express UK, TÜV SÜD, ADAC Germany) regularly include budget tyres alongside premium brands. Key findings relevant to Scottish drivers:
+
+### Wet Braking
+This is the most critical safety metric for Scotland's roads.
+
+- **Premium average (80km/h to standstill)**: ~25–27 metres
+- **Good budget (same test)**: ~28–31 metres (10–15% longer)
+- **Poor budget (same test)**: ~34–40 metres (25–50% longer)
+
+The worst-performing budget tyres in wet braking tests stop **13 metres longer** than the best premium tyres at 80km/h. On a wet Scottish road, 13 metres is the length of a large lorry.
+
+### Aquaplaning Resistance
+Scotland's rainfall makes this significant. Budget tyres with shallower initial tread depth and less sophisticated tread patterns aquaplane at lower speeds than premium equivalents.
+
+### Tyre Life
+Budget tyres typically last **20–30% fewer kilometres** than premium tyres of the same size. A budget tyre saving you £40 at purchase may cost more per kilometre driven.
+
+---
+
+## Which Budget Brands Are Acceptable?
+
+These budget/mid-range brands have performed reasonably well in independent tests and are acceptable for normal Scottish driving:
+
+**Acceptable budget/value brands:**
+- **Nankang** — Taiwanese manufacturer, consistent test results, particularly their NS-2 and NS-20 lines
+- **Maxxis** — Taiwanese, supplies OE to motorcycle and specialist vehicle manufacturers; passenger range is solid
+- **Hankook** (mid-range) — South Korean, OE supplier to BMW, Mercedes, Audi; excellent value
+- **Nexen** — South Korean, OE supplier to Audi and VW for some models
+- **Falken** — Japanese/Sumitomo, technically mid-range but often priced in budget territory
+
+**Brands to approach with caution:**
+- Unknown Chinese brands with no independent test data
+- Tyres significantly cheaper than the market average for the size
+- Tyres with no visible EU/UK tyre label ratings (wet grip, fuel efficiency, noise)
+
+---
+
+## The EU/UK Tyre Label
+
+All new tyres sold in the UK must carry a label showing:
+- **Wet grip**: A (best) to E (worst) — never buy below C for Scottish driving
+- **Fuel efficiency**: A to G
+- **External noise**: shown in decibels
+
+A budget tyre with **wet grip A or B** is safer than a budget tyre with **wet grip D or E**, regardless of price. Always check the label.
+
+---
+
+## Real Cost Comparison: Scotland
+
+For a popular size like 205/55R16:
+
+| Tier | Typical cost per tyre | Est. life | Cost per 1,000 miles |
+|---|---|---|---|
+| Premium (Michelin, Continental) | £95–£120 | 25,000–35,000 miles | £3.60–£4.80 |
+| Mid-range (Hankook, Nexen) | £55–£75 | 20,000–28,000 miles | £2.70–£3.75 |
+| Budget (Nankang, Maxxis) | £35–£55 | 15,000–22,000 miles | £2.30–£3.60 |
+
+At typical Scottish mileage (8,000–10,000 miles/year), the cost-per-mile difference between premium and good budget tyres is often less than £50 per year. That is much less than most drivers assume.
+
+---
+
+## Our Recommendation for Scottish Drivers
+
+**For regular urban and commuter driving**: mid-range tyres (Hankook, Nexen, Falken) offer the best value. You get 85–90% of premium performance at 60–70% of the cost.
+
+**For Highland or rural driving**: go premium on the front axle at minimum. Scotland's rural roads are unforgiving in wet conditions, and the wet braking advantage of premium front tyres is real.
+
+**For genuinely budget-constrained drivers**: choose budget tyres with wet grip A or B on the EU label. Avoid anything rated C or below for wet grip.
+
+**Never do this**: buy tyres purely on price with no knowledge of the brand or test results.
+
+---
+
+Tyre Rescue supplies and fits tyres across all tiers — budget, mid-range, and premium — across all of Scotland. Call **0141 266 0690** or [get a quote online](/book) to find the best tyre for your budget and driving profile.
+
+[Full tyre buying guide Scotland](/blog/tyre-buying-guide-scotland) | [Michelin vs Continental vs Pirelli Scotland](/blog/michelin-vs-continental-vs-pirelli-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026)`,
+  },
+  {
     slug: 'caravan-motorhome-tyre-fitting-scotland',
     title: 'Caravan and Motorhome Tyre Fitting Scotland: Complete Guide',
     description:
