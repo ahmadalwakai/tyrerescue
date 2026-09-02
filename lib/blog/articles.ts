@@ -10880,6 +10880,149 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'caravan-motorhome-tyre-fitting-scotland',
+    title: 'Caravan and Motorhome Tyre Fitting Scotland: Complete Guide',
+    description:
+      'Caravan and motorhome tyres have specific requirements around age, load rating, and CP marking. Scotland-specific guide covering tyre age limits, caravan CP tyres, and mobile fitting across the Highlands.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 8,
+    featured: false,
+    keywords: [
+      'caravan tyre fitting scotland',
+      'motorhome tyre fitting scotland',
+      'caravan tyre age limit scotland',
+      'CP tyres caravan scotland',
+      'caravan tyre replacement scotland',
+      'motorhome tyre change scotland',
+      'caravan tyre scotland highlands',
+      'motorhome mobile tyre fitting scotland',
+    ],
+    relatedSlugs: [
+      'tyre-age-limit-scotland',
+      'tyre-pressure-guide-scotland',
+      'nc500-tyre-guide-scotland',
+    ],
+    content: `# Caravan and Motorhome Tyre Fitting Scotland: Complete Guide
+
+Scotland is one of the UK's most popular caravan and motorhome destinations — from Loch Lomond to the NC500, Skye to the Cairngorms. But caravan and motorhome tyres have very different requirements from car tyres, and getting them wrong is dangerous.
+
+This guide covers everything Scottish caravan and motorhome owners need to know about tyre fitting, age limits, load ratings, and mobile fitting services.
+
+---
+
+## Caravan Tyres: Different from Car Tyres
+
+Caravans are towed, not driven, which creates unique tyre requirements:
+
+**CP (Caravan/Camping/Passenger) tyres**: some manufacturers specify CP-rated tyres, which have stiffer sidewalls designed for the unique dynamics of a towed vehicle. A towed caravan experiences different lateral forces than a driven car. Standard car tyres can be used on many caravans, but check your handbook.
+
+**High load index**: a caravan concentrated on two wheels (or four on twin-axle) carries significant weight. A 1,500kg caravan on single axle puts up to 750kg per tyre. Most caravans require load index 91 (615kg) or higher. Check your Caravan and Motorhome Club or manufacturer data for the minimum required load index.
+
+**High speed rating**: even though caravans are limited to 60mph on UK single carriageways and 70mph on motorways, tyres rated for those speeds must be specified. Most caravan tyres are R (170km/h) rated — sufficient.
+
+---
+
+## The 5-Year Caravan Tyre Rule
+
+**This is the most important rule Scottish caravan owners often don't know.**
+
+The Caravan and Motorhome Club and major caravan manufacturers recommend replacing caravan tyres at 5 years regardless of tread depth and visual condition.
+
+**Why caravans are different from cars**:
+- Caravans spend months in storage each year, often outdoors in Scotland's damp climate
+- UV degradation, ozone cracking, and surface hardening happen whether the tyre is used or not
+- A caravan tyre used for 1,000 miles per year over 7 years may have excellent tread but be structurally compromised
+- When a caravan tyre fails at 60mph on a motorway, the resulting swerve and jackknife can be fatal
+
+The National Caravan Council recommends:
+- Replace caravan tyres at **5 years** regardless of tread depth
+- **Maximum 7 years** even if storage conditions were perfect and tyres appear excellent
+- **Never use caravan tyres older than 7 years** under any circumstances
+
+### Finding Your Tyre Age
+
+The DOT code on the tyre sidewall ends with a 4-digit code — the week and year of manufacture. Example: **2619** = 26th week of 2019. A tyre manufactured in 2019 should be replaced by 2024 (5-year rule) or no later than 2026 (7-year maximum).
+
+Check all four tyres on a twin-axle caravan — they can have different manufacture dates even if fitted at the same time.
+
+---
+
+## Motorhome Tyres: Weight is the Priority
+
+Motorhomes are larger, heavier, and carry passengers and belongings — creating much higher load requirements than caravans.
+
+### Common Motorhome Sizes and Tyre Requirements
+
+| Motorhome class | Typical GVW | Required load index |
+|---|---|---|
+| VW-based (Transporter, Crafter) | 3,500–4,250kg | 104–107+ per tyre |
+| Fiat Ducato-based (Swift, Autotrail, Autoquest) | 3,500–4,250kg | 104–107+ |
+| Coach-built (5–7m, Trigano, Adria) | 4,000–5,000kg | 108–112+ |
+| A-class (6–9m, large motorhomes) | 5,000kg+ | 112–118+ |
+
+**Important**: the standard tyre fitted to a Fiat Ducato van may be insufficient for the same van converted to a motorhome at its maximum payload. Always check the motorhome manufacturer's tyre specification, not the base vehicle specification.
+
+### Motorhome Single Rear Wheels vs Dual Rear Wheels
+
+Most motorhomes up to 7m have single rear wheels. Larger A-class motorhomes may have dual rear wheels (dually). If you have dual rear wheels, tyre replacement must maintain matching tread depths — different tread depths between inner and outer rear tyres causes uneven wear and handling issues.
+
+---
+
+## Scottish Climate Considerations
+
+### Storage in Damp Conditions
+Scotland's climate is significantly more humid than southern England. Caravans stored outdoors over winter in Scotland are exposed to:
+- Higher average humidity (accelerates ozone cracking)
+- Longer periods of darkness (reduces UV but increases damp)
+- Temperature cycling (freeze-thaw stresses tyre compounds)
+
+**Recommendation**: if your caravan is stored outdoors in Scotland, apply tyre covers (opaque, UV-blocking) to reduce ozone and UV exposure. Still follow the 5-year replacement rule.
+
+### A-Roads and Rural Tracks
+The NC500 and many Highland routes include stretches with:
+- Deep potholes near verges
+- Passing places with rough gravel edges
+- Cattle grids causing repeated impact
+
+Inspect caravan and motorhome tyres carefully before and after any Highland tour, checking sidewalls for impact damage.
+
+### Pre-Season Inspection Checklist
+
+Before the Scottish touring season (typically April onward):
+1. Check tyre age (DOT code) — replace if over 5 years
+2. Check tread depth — minimum 2mm for caravans, aim for 3mm+
+3. Check tyre pressure (caravans are often stored partially deflated — always inflate to correct cold pressure before touring)
+4. Check sidewalls for cracking, bulging, or flat-spotting from storage
+5. Check spare tyre (if fitted) — same age and condition rules apply
+
+---
+
+## Mobile Tyre Fitting for Caravans and Motorhomes in Scotland
+
+Tyre Rescue provides mobile tyre fitting for caravans and motorhomes across Scotland.
+
+**Why mobile fitting makes sense for motorhomes**: a 7m motorhome cannot simply be driven to a tyre centre. Our mobile units come to your campsite, storage facility, or home address — which is the safest and most convenient option.
+
+**Caravans without a tow vehicle**: if your caravan is in storage and you cannot easily bring it anywhere, we can attend the storage site directly to replace tyres.
+
+**What to tell us when you call**:
+- Tyre size (printed on the tyre sidewall — e.g., 195/70R15C)
+- Number of axles and tyres needing replacement
+- Whether caravan or motorhome
+- Location (campsite, home, storage facility)
+- Any access restrictions at the location
+
+**The C designation**: caravan and light commercial tyres are often marked with C at the end — e.g., 195/70R15**C**. This indicates a reinforced construction for load carrying. Do not replace a C-rated caravan tyre with a standard passenger tyre of the same size.
+
+---
+
+Call **0141 266 0690** for mobile caravan and motorhome tyre fitting across Scotland. We serve locations from Glasgow and Edinburgh north to Inverness, Aviemore, and the Highland routes.
+
+[NC500 tyre guide Scotland](/blog/nc500-tyre-guide-scotland) | [Tyre pressure guide](/blog/tyre-pressure-guide-scotland) | [How long do tyres last](/blog/how-long-do-tyres-last-scotland)`,
+  },
+  {
     slug: 'wheel-alignment-vs-balancing-scotland',
     title: 'Wheel Alignment vs Wheel Balancing: What\'s the Difference in Scotland?',
     description:
