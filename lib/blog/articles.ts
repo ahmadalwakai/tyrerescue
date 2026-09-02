@@ -10880,6 +10880,114 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'hybrid-car-tyres-scotland',
+    title: 'Hybrid Car Tyres Scotland: What You Need to Know for HEV, MHEV & PHEV',
+    description:
+      'Do hybrid cars need special tyres in Scotland? Guide to mild hybrid (MHEV), full hybrid (HEV), and plug-in hybrid (PHEV) tyre requirements, load index, and fitting advice.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'hybrid car tyres scotland',
+      'PHEV tyre load index scotland',
+      'hybrid tyre requirements scotland',
+      'plug in hybrid tyres scotland',
+      'MHEV tyre scotland',
+      'full hybrid tyres scotland',
+      'do hybrids need special tyres scotland',
+      'Toyota hybrid tyre scotland',
+    ],
+    relatedSlugs: [
+      'electric-vehicle-tyres-scotland',
+      'tyre-buying-guide-scotland',
+      'toyota-tyre-fitting-scotland',
+    ],
+    content: `# Hybrid Car Tyres Scotland: HEV, MHEV, and PHEV
+
+Hybrid vehicles now make up a significant proportion of new car sales in Scotland — and they come in three distinct types with different tyre implications. Many Scottish drivers are unsure whether their hybrid needs special tyres, or whether a standard tyre will do. This guide explains the differences.
+
+## The Three Types of Hybrid: What They Mean for Tyres
+
+### MHEV — Mild Hybrid Electric Vehicle
+
+**Examples**: Ford Puma MHEV, Suzuki Swift MHEV, Vauxhall Corsa, VW Golf eTSI, Mercedes A-Class EQ Boost, Hyundai i30 MHEV.
+
+**How it works**: a small 48V battery and motor-generator assist the engine briefly during acceleration. The battery recovers energy under braking but cannot power the car alone at any speed.
+
+**Tyre implication**: **no special tyre needed**. MHEVs are only marginally heavier than their petrol equivalents. The standard tyres recommended for the petrol version of the same car are identical to those needed for the MHEV. No load index uplift is required.
+
+**Bottom line**: treat your MHEV tyre the same as any petrol car of the same model.
+
+---
+
+### HEV — Full Hybrid (Self-Charging Hybrid)
+
+**Examples**: Toyota Yaris Hybrid, Toyota Corolla Hybrid, Toyota RAV4 Hybrid, Honda Jazz e:HEV, Honda CR-V e:HEV, Lexus UX 300h, Kia Niro HEV.
+
+**How it works**: a larger battery that can power the car at low speeds alone. Automatically switches between petrol and electric power. Cannot be plugged in.
+
+**Tyre implication**: **load index is slightly higher than petrol equivalent**. The HEV carries a larger battery than the MHEV (though smaller than the PHEV), adding 80–150 kg. In most cases, the vehicle manufacturer has accounted for this in the standard tyre specification — but verify the load index on your specific model before fitting tyres.
+
+**Toyota Yaris example**: the Yaris 1.0 petrol uses 195/55R16 tyre with load index 87. The Yaris Hybrid uses 195/55R16 with load index **91** (a 4-point increase). Same tyre size, different load index. Fitting the 87 LI tyre to a Yaris Hybrid is incorrect.
+
+**Bottom line**: confirm your HEV's required load index before fitting — do not assume it is the same as the petrol version. Tyre Rescue checks this for every vehicle before fitting.
+
+---
+
+### PHEV — Plug-In Hybrid Electric Vehicle
+
+**Examples**: Toyota RAV4 PHEV, Mitsubishi Outlander PHEV, Kia Sportage PHEV, Vauxhall Astra GSe PHEV, Ford Kuga PHEV, BMW 3 Series 330e, Volvo XC60 T8 PHEV, Audi Q5 TFSI e.
+
+**How it works**: a large battery (8–20+ kWh) that can be plugged in and powers the car for 20–50 miles electrically before the petrol engine takes over.
+
+**Tyre implication**: **significantly higher load index required**. PHEVs are substantially heavier than petrol or HEV equivalents — typically 200–400 kg heavier. This has a direct impact on tyre load index requirements.
+
+**Specific examples**:
+
+| Model | Petrol LI | PHEV LI Required |
+|---|---|---|
+| Kia Sportage petrol | 98 | 104 (PHEV) |
+| Toyota RAV4 HEV | 100 | 104 (PHEV) |
+| Volvo XC60 petrol | 99 | 102 (T8 PHEV) |
+| Volvo XC90 petrol | 103 | 108 (T8 PHEV) |
+| Audi Q5 petrol | 99 | 105 (55 TFSI e) |
+| BMW 330e | 99 | 103 |
+| Vauxhall Grandland GSe PHEV | 98 | 103 |
+
+**Fitting a tyre with the petrol load index on a PHEV is illegal and dangerous.** The tyre cannot safely carry the vehicle's weight at maximum load.
+
+**Bottom line**: always specify that your vehicle is a PHEV when ordering tyres or calling a tyre fitter. The load index must match the PHEV specification, not the petrol equivalent.
+
+---
+
+## How to Find the Correct Load Index for Your Hybrid
+
+1. **Check your vehicle handbook** — lists the exact tyre specification including load index for your model
+2. **Check the tyre pressure sticker** — usually inside the driver's door frame; shows the tyre size and sometimes load index
+3. **Ask your tyre fitter** — Tyre Rescue confirms load index from the vehicle registration before fitting any tyre
+4. **Do not rely on the existing tyre** — if a previous owner fitted the wrong load index, you would be copying that error
+
+---
+
+## Other Hybrid Tyre Considerations
+
+**Tyre wear rate**: PHEVs and HEVs are heavier than petrol equivalents, so tyre wear is modestly higher. However, the regenerative braking used by most hybrids (which slows the car without applying the brake pads) actually reduces brake heat transfer to the tyres, which can partially offset the wear from extra weight.
+
+**EV mode and tyre noise**: when a PHEV or HEV is running in electric mode (no petrol engine running), road and tyre noise become much more audible. If you notice your tyres sound loud in electric mode but quiet with the engine running — this is normal. The engine was masking the tyre noise. Acoustic foam-lined tyres reduce this.
+
+**Tyre pressure for PHEV**: PHEV tyre pressures are often different from the petrol version due to the additional weight. The door sticker or handbook will specify PHEV pressures — confirm these after fitting.
+
+## Book Mobile Tyre Fitting for Your Hybrid in Scotland
+
+Tyre Rescue fits tyres for all hybrid types across Scotland. We confirm the correct load index before any fitting and carry a broad range of common hybrid sizes in our mobile vans.
+
+Call **0141 266 0690** or [book online](/book) — cover all of Scotland 24 hours.
+
+[EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre buying guide Scotland](/blog/tyre-buying-guide-scotland) | [Kia tyre fitting Scotland](/blog/kia-tyre-fitting-scotland)`,
+  },
+  {
     slug: 'tyre-repair-standards-scotland-bsau159',
     title: 'Legal Tyre Repair Standards in Scotland: BSAU159 Explained',
     description:
