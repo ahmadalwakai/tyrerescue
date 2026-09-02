@@ -10880,6 +10880,155 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'run-flat-tyres-scotland-guide',
+    title: 'Run-Flat Tyres Scotland: Can They Be Repaired and What Do They Cost?',
+    description:
+      'Everything Scottish drivers need to know about run-flat tyres — how far you can drive after deflation, whether they can be repaired, what they cost to replace, and which cars use them.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'run flat tyres scotland',
+      'run flat tyre repair scotland',
+      'run flat tyre cost scotland',
+      'can run flat tyres be repaired scotland',
+      'run flat tyre replacement scotland',
+      'BMW run flat tyres scotland',
+      'Mercedes run flat tyre scotland',
+      'run on flat tyres scotland',
+    ],
+    relatedSlugs: [
+      'bmw-tyre-fitting-scotland',
+      'mercedes-tyre-fitting-scotland',
+      'can-i-drive-on-flat-tyre-scotland',
+    ],
+    content: `# Run-Flat Tyres Scotland: Can They Be Repaired and What Do They Cost?
+
+Run-flat tyres are one of the most misunderstood products in the tyre industry. Scottish drivers with BMW, Mercedes, MINI, Lexus, and many other vehicles are often confused about what to do after a puncture — and whether the tyre can be saved or must be replaced.
+
+This guide covers everything you need to know.
+
+---
+
+## What Is a Run-Flat Tyre?
+
+A run-flat tyre (RFT) is designed to continue supporting your vehicle for a limited distance after losing air pressure. There are two main types:
+
+**Self-supporting run-flats (SSR, RSC, EMT, MOExtended)**: the most common type. These have reinforced sidewalls (typically 3–5mm thick versus 1–2mm on standard tyres) that can bear the vehicle's weight without air pressure.
+
+**Support ring systems (PAX, ContiSupportRing)**: a rigid ring inside the wheel supports the vehicle if the tyre deflates. Used on some Renault, Rolls-Royce, and older Michelin PAX applications. Rare in current production.
+
+---
+
+## Which Cars Use Run-Flat Tyres in Scotland?
+
+Run-flat tyres are standard fitment on:
+
+**BMW**: almost all current BMW models use run-flats (BMW RSC — Runflat System Component). This includes 1, 2, 3, 4, 5, 6, 7 Series, X1-X7, Z4, M models. BMW deleted the spare wheel on most models from around 2003.
+
+**MINI**: all current MINI models use run-flats (also BMW RSC specification).
+
+**Mercedes-Benz**: most current A, B, C, E, S Class, GLA, GLB, GLC, GLE, GLS use Mercedes Extended Tyres (MOExtended or EMT). Some older models use Bridgestone DriveGuard.
+
+**Lexus**: IS, ES, UX, NX, RX models often use run-flats.
+
+**Porsche**: many Porsche models specify run-flats for certain size combinations.
+
+**If your car has no spare wheel**: check whether your tyres are marked with a sidewall code — BMW RSC, Mercedes MOExtended, EMT, or similar — indicating run-flat specification.
+
+---
+
+## How Far Can You Drive on a Run-Flat Tyre After Deflation?
+
+The industry standard is **80km (50 miles) at a maximum of 80km/h (50mph)** after complete deflation.
+
+**This is the maximum, not a target.** The actual achievable distance depends on:
+- Vehicle weight (heavier = less distance)
+- Speed (higher speed = more heat generation = faster deterioration)
+- Road surface and conditions
+
+**Important**: the run-flat distance guarantee is void if:
+- You drove above 80km/h (50mph) after deflation
+- You drove more than 80km after the TPMS warned of pressure loss
+- You exceeded the run-flat range on a previous occasion (even if the tyre was then reinflated)
+
+---
+
+## Can a Run-Flat Tyre Be Repaired?
+
+**In most cases, no.** This is the critical difference from standard tyres.
+
+### Why Run-Flat Tyres Usually Cannot Be Repaired
+
+1. **Internal damage is not visible**: when a run-flat tyre is driven on with zero pressure, the weight of the vehicle is transferred to the reinforced sidewall. This causes internal tearing and delamination that is invisible from outside. Even a tyre with no external damage may be internally compromised.
+
+2. **Industry guidelines**: the UK NTDA (National Tyre Distributors Association), BSAU159, and most run-flat tyre manufacturers state that tyres driven at or near zero pressure should not be repaired.
+
+3. **Insurance and liability**: repairing a run-flat that has been driven flat exposes the fitter to liability. Reputable fitters will refuse.
+
+### The One Exception
+
+A run-flat tyre that has suffered a small nail puncture, where:
+- The vehicle TPMS alerted immediately and you stopped within a short distance (2–3 miles maximum)
+- The tyre has not been driven with zero pressure for any meaningful distance
+- The damage is in the repairable zone (central three-quarters of the tread, away from sidewall)
+
+In this specific scenario, a BSAU159-compliant repair may be possible after careful internal inspection. However, most fitters will still recommend replacement for certainty.
+
+**Always tell the fitter exactly what happened**: how far you drove after the TPMS alert, at what speed, and whether the car showed any handling changes.
+
+---
+
+## What Does Run-Flat Tyre Replacement Cost in Scotland?
+
+Run-flat tyres cost more than standard tyres of the same size — typically **30–50% more**.
+
+Common Scottish fitments and typical replacement costs:
+
+| Vehicle | Size | Est. cost per tyre |
+|---|---|---|
+| BMW 3 Series (F30/G20) | 225/45R17 or 225/50R17 RFT | £100–£145 |
+| BMW 5 Series (G30) | 245/45R18 or 275/35R19 RFT | £120–£180 |
+| BMW X3 | 245/50R19 or 255/45R20 RFT | £130–£200 |
+| MINI Hatch | 205/45R17 or 225/40R18 RFT | £90–£135 |
+| Mercedes C Class (W206) | 225/45R18 or 245/40R19 MOExt | £110–£160 |
+| Mercedes GLC | 235/60R18 or 255/45R20 MOExt | £130–£195 |
+
+Brands available in run-flat specification: Bridgestone, Continental, Goodyear, Michelin, Pirelli, Falken, Hankook.
+
+---
+
+## Can You Switch from Run-Flat to Standard Tyres?
+
+Yes, but with important caveats.
+
+**You need to acquire a spare**: if you switch to standard tyres, you no longer have the run-flat as a backup. You must carry a spare tyre, a space-saver spare, or a tyre inflation kit.
+
+**The car must have a TPMS**: run-flat vehicles rely entirely on TPMS to tell you the tyre has lost pressure (you cannot feel the pressure loss in a run-flat as you would with a standard deflating tyre). If you switch to standard tyres, the TPMS must be fully functional.
+
+**Ride quality**: run-flat tyres have stiffer sidewalls that give a firmer ride. Switching to standard tyres on the same wheels often gives a noticeably softer, more comfortable ride — many BMW owners prefer this.
+
+**Cost**: standard tyres in the same size are typically 30–50% less expensive than run-flat equivalents.
+
+---
+
+## Tyre Rescue and Run-Flat Tyres in Scotland
+
+Tyre Rescue carries run-flat tyres in the most common BMW, MINI, and Mercedes sizes in our mobile units. We serve all of Scotland — from Glasgow and Edinburgh to Inverness, Dundee, and rural Perthshire and Aberdeenshire.
+
+When you call, tell us:
+- Your vehicle make, model, and year
+- The tyre size (on the tyre sidewall)
+- Whether you need run-flat or would consider switching to standard
+- How far you drove after the TPMS warned (we will advise on repairability)
+
+Call **0141 266 0690** or [book online](/book).
+
+[BMW tyre fitting Scotland](/blog/bmw-tyre-fitting-scotland) | [Mercedes tyre fitting Scotland](/blog/mercedes-tyre-fitting-scotland) | [Can I drive on a flat tyre?](/blog/can-i-drive-on-flat-tyre-scotland)`,
+  },
+  {
     slug: 'budget-tyres-scotland-guide',
     title: 'Budget Tyres in Scotland: What to Buy, What to Avoid, and Real Costs',
     description:
