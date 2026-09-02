@@ -10880,6 +10880,164 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'mobile-tyre-fitting-process-scotland',
+    title: 'What Happens During Mobile Tyre Fitting in Scotland: Step by Step',
+    description:
+      'Not sure what to expect when you book mobile tyre fitting in Scotland? Complete guide to the booking process, what the technician does, how long it takes, and what you need to have ready.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting process scotland',
+      'what happens during mobile tyre fitting',
+      'how does mobile tyre fitting work scotland',
+      'mobile tyre fitting what to expect scotland',
+      'tyre fitting how long does it take scotland',
+      'book mobile tyre fitting scotland',
+      'mobile tyre fitting steps scotland',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-glasgow-guide',
+      'tyre-prices-scotland-guide-2026',
+      'tyre-buying-guide-scotland',
+    ],
+    content: `# What Happens During Mobile Tyre Fitting in Scotland
+
+Mobile tyre fitting can seem mysterious if you have never used the service before — you may wonder what equipment turns up, how long it takes, whether you need to be present, and what condition your car needs to be in. This guide walks you through the entire process.
+
+## Step 1: Booking
+
+**Online or phone**: you can book via tyrerescue.uk/book or call **0141 266 0690**.
+
+**What we need at booking**:
+- Your vehicle registration (so we can confirm the correct tyre size and load index)
+- Your location — home address, work postcode, or where your car is stranded
+- Contact number so we can call when close
+- Whether you want a specific brand or just the best available at your budget
+- For emergency callouts: your exact location as a postcode + landmark description
+
+**Response time**: emergency callouts (stranded) typically 30–60 minutes to most Scottish cities. Scheduled appointments can be booked same-day or in advance for a convenient time.
+
+## Step 2: Technician Arrives
+
+The Tyre Rescue technician arrives in a dedicated mobile fitting van carrying:
+
+- A broad selection of tyres in common sizes
+- A pneumatic impact wrench (to remove and fit wheel nuts quickly and accurately)
+- A tyre mounting machine (to demount old tyres and mount new ones onto the wheel)
+- A dynamic wheel balancing machine (to balance the wheel and tyre combination)
+- Tyre levers and bead-seating equipment
+- A torque wrench (calibrated to your vehicle's specification)
+- TPMS reset tools (for vehicles with tyre pressure monitoring)
+- Valve stems and TPMS sensors (common sizes)
+- A compressor and gauges
+
+**The van is self-contained**: unlike a garage, there is no fixed workshop. Everything needed to fit, balance, and check tyres is in the van.
+
+## Step 3: Vehicle Assessment
+
+Before removing any tyre, the technician will:
+
+1. **Confirm your vehicle registration and verify the tyre size** — what is currently fitted will be confirmed against the manufacturer's specification
+2. **Check the existing tyre** — assess the damage, confirm whether repair is possible or replacement is needed, and note any uneven wear patterns that might indicate an alignment issue
+3. **Check the other three tyres** — a quick visual check for any safety concerns (sidewall bulges, very low tread)
+
+**If you asked for a puncture repair**: the technician will assess whether the puncture location is in the repairable zone (central 75% of tread) and whether the hole is within the repairable diameter (up to 6mm). If it is not repairable, you will be told before any work begins.
+
+## Step 4: Removing the Wheel
+
+1. **Loosen wheel nuts** (slightly) before raising the vehicle — this prevents the wheel spinning
+2. **Jack up the vehicle** on the correct jacking point (the technician knows where this is for your vehicle)
+3. **Remove the wheel** and place it on a clean surface
+
+**You do not need to help or touch anything** — just confirm the technician is ready and step back.
+
+**If you have locking wheel nuts**: you will need to provide the locking wheel nut key. Most drivers keep it in the car boot or glovebox. If you cannot find it, some locksmiths offer locking nut removal — but this adds time.
+
+## Step 5: Tyre Demounting and Inspection
+
+The wheel is placed on the tyre mounting machine in the van:
+
+1. **Deflate the tyre** completely
+2. **Break the bead** (separate the tyre from the rim on both sides)
+3. **Demount the tyre** from the rim using the mounting machine
+4. **Inspect the inside of the tyre** — for puncture repair, or to confirm the old tyre can be disposed of
+
+**For a puncture repair**: the inner liner is inspected, the penetration is marked and assessed for repairability. A BSAU159-compliant mushroom plug-patch is fitted (see our [repair standards guide](/blog/tyre-repair-standards-scotland-bsau159)).
+
+**For a replacement**: the old tyre is set aside for disposal. New tyre is prepared.
+
+## Step 6: Mounting the New Tyre
+
+1. **Lubricate the bead** — tyre lubricant is applied to both bead edges of the new tyre and the rim, ensuring smooth seating without damage
+2. **Mount the tyre** — the mounting machine presses the tyre onto the rim
+3. **Seat the bead** — the tyre is inflated rapidly to seat the bead on both sides with an audible pop
+4. **Inflate to the correct pressure** — the pressure is set to the manufacturer's specification for your vehicle and loading condition
+
+**Correct pressure**: the technician inflates to the correct cold pressure listed on the door sticker. You do not need to do anything — this is handled.
+
+## Step 7: Wheel Balancing
+
+The wheel is placed on the balancing machine, which spins it at speed and measures imbalance.
+
+1. **Spin test** — the machine identifies where imbalance exists and how severe
+2. **Weight placement** — small counter-weights are clipped or attached to the rim at the precise position identified by the machine
+3. **Re-spin** — the wheel is spun again to confirm balance is within tolerance
+
+**Good balance is critical for smooth driving and tyre longevity.** Balancing is included in Tyre Rescue's standard fitting fee.
+
+## Step 8: Fitting the Wheel Back on the Car
+
+1. **Clean the hub face** — the technician wipes the hub face (where the wheel mates to the car) clean. Grit on the hub face can cause vibration.
+2. **Fit and tighten the wheel** — wheel nuts are tightened in a star pattern by hand first, then with the impact wrench
+3. **Torque to specification** — the torque wrench is set to the manufacturer's wheel nut torque (typically 100–140 Nm) and each nut is confirmed to specification
+4. **Lower the vehicle** from the jack
+5. **Final torque check** — some fitters re-torque after lowering, which is correct practice
+
+## Step 9: TPMS Reset (If Applicable)
+
+If your vehicle has TPMS (tyre pressure monitoring system), the system may need resetting after a tyre or sensor change. The technician will:
+
+- Check whether TPMS reset is needed (most vehicles with indirect TPMS reset automatically when you drive)
+- Use a TPMS reset tool or vehicle menu for vehicles with direct sensors
+- Inform you of any additional steps needed while driving (some vehicles require driving 15+ mph for the system to calibrate)
+
+## How Long Does Mobile Tyre Fitting Take?
+
+| Work | Time |
+|---|---|
+| Single tyre replacement | 20–35 minutes |
+| Two tyres (same axle) | 35–55 minutes |
+| Four tyres (full set) | 60–90 minutes |
+| Puncture repair | 20–30 minutes |
+
+Add 5–10 minutes for arrival setup and an initial assessment on the first visit.
+
+## Do You Need to Be Present?
+
+For a scheduled appointment at your home or work: **ideally yes, but not always necessary.**
+
+You do need to:
+- Have confirmed the tyre to be fitted before the appointment
+- Ensure the vehicle is accessible and on level ground
+- Provide locking wheel nut keys if fitted
+- Be available to confirm the work is complete and pay
+
+For emergency roadside callouts: **yes, you should remain with the vehicle.**
+
+## What You Need to Have Ready
+
+- **Locking wheel nut key** (if your car has locking nuts)
+- **Confirmation of your vehicle's correct tyre spec** (the technician will confirm this, but knowing your size helps)
+- **Payment method** — card, Apple Pay, or bank transfer
+
+Call **0141 266 0690** or [book online](/book) for mobile tyre fitting anywhere in Scotland.
+
+[Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [BSAU159 repair standards](/blog/tyre-repair-standards-scotland-bsau159) | [Mobile tyre fitting Glasgow guide](/blog/mobile-tyre-fitting-glasgow-guide)`,
+  },
+  {
     slug: 'hybrid-car-tyres-scotland',
     title: 'Hybrid Car Tyres Scotland: What You Need to Know for HEV, MHEV & PHEV',
     description:
