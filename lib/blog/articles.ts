@@ -10880,6 +10880,127 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'winter-tyre-storage-scotland',
+    title: 'How to Store Winter Tyres in Scotland: Complete Guide',
+    description:
+      'How to store winter tyres and summer tyres when not in use. Cleaning, stacking vs hanging, temperature, UV protection, and tyre hotel services in Scotland.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'winter tyre storage scotland',
+      'how to store winter tyres',
+      'tyre storage scotland',
+      'summer tyre storage scotland',
+      'tyre hotel scotland',
+      'storing tyres at home scotland',
+      'seasonal tyre swap scotland',
+      'tyre storage tips scotland',
+    ],
+    relatedSlugs: [
+      'winter-tyres-scotland-buyers-guide-2026',
+      'winter-tyres-when-to-switch-scotland',
+      'tyre-age-when-to-replace-scotland',
+    ],
+    content: `# How to Store Winter Tyres in Scotland
+
+Running seasonal tyres — summer tyres from April to October, winter tyres from October to April — is the most effective way to maximise grip and tyre life in Scotland. But when one set is not in use, correct storage is critical. Badly stored tyres age faster, develop flat spots, and crack.
+
+This guide covers everything you need to know about storing your seasonal tyres in Scotland.
+
+## Why Tyre Storage Matters
+
+Rubber degrades through:
+- **UV exposure** — direct sunlight accelerates oxidation of rubber compounds
+- **Ozone** — naturally occurring in air but higher in areas near electrical equipment; causes surface cracking
+- **Temperature extremes** — very high and very low temperatures accelerate compound hardening
+- **Incorrect loading** — stacking tyres incorrectly causes sidewall distortion
+
+A well-stored tyre can last 10 years. A poorly stored tyre in a sunny garage on concrete near an electrical motor can show visible cracking within 2–3 years.
+
+## Before You Store: Cleaning and Inspection
+
+**Clean the tyres before storage**:
+1. Wash with mild soap and water — remove road grime, brake dust, and tar
+2. Rinse thoroughly and dry completely — moisture under storage can cause adhesion and mould
+3. Do not apply tyre dressings (silicone-based shine products) before storage — these can soften rubber compounds over long periods
+
+**Inspect before storing**:
+- Check tread depth — record it so you know the starting depth for the next season
+- Look for sidewall cracks, cuts, or bulges
+- Check tyre age (DOT code) — if either set is over 6 years old, budget for replacement before next season
+- Note any uneven wear patterns that will need a wheel alignment check before refitting
+
+## On Wheels vs Off Wheels
+
+**Mounted on wheels (most convenient)**:
+If you have a second set of wheels (alloys or steels), your winter and summer tyres will be stored already mounted. This makes seasonal swaps fast, cheap (£20 per wheel remounting), and means no tyre demounting/remounting stress.
+
+**Off wheels (tyre-only storage)**:
+If you only have one set of wheels, you must have tyres dismounted from the wheels and store the tyres alone. This costs more at each season swap because mounting and balancing takes longer.
+
+## Storage Position: Stacking vs Hanging
+
+**Mounted on wheels**:
+- **Stacked horizontally** — the most common approach. Stack wheels flat, one on top of another, with cardboard or wheel bags between to prevent scratching. Rotate the stack quarterly.
+- **Hanging individually** — using tyre hooks, hang wheels vertically through the centre hole. This avoids any distortion from stacking.
+- **Standing upright** — lean against a wall or hang in a wheel rack. Rotate 90° every few weeks.
+
+**Unmounted tyres (tyre only)**:
+- **Standing upright in a rack** is the best approach. Standing tyres upright reduces distortion to the bead.
+- **Do not stack unmounted tyres flat** — this deforms the sidewall over time.
+- Rotate slightly every few weeks if standing long-term.
+
+## Ideal Storage Conditions in Scotland
+
+**Temperature**: 15–25°C is ideal but rarely practical in a Scottish garage. A cool, stable environment (5–20°C) is adequate. Avoid locations where temperatures drop below -10°C regularly — garages in Highland areas may need insulation for tyre storage.
+
+**Humidity**: dry storage is essential. Excessive moisture promotes mould on tyre surfaces and can accelerate rubber degradation. A dehumidifier in a damp Scottish garage is worth considering.
+
+**UV protection**: store out of direct sunlight. A garage or shed is ideal. If storing outdoors, use opaque tyre bags or a cover.
+
+**Ozone sources**: keep stored tyres away from electric motors, generators, or compressors — these generate ozone which attacks rubber. This is a common mistake in garages where a chest freezer or compressor sits next to the stored tyres.
+
+**Chemicals**: petrol, oil, grease, and solvents all damage rubber. Do not store tyres near fuel storage or where chemicals are used.
+
+## Tyre Bags
+
+Airtight or near-airtight tyre bags (typically black polythene, sold specifically for tyre storage) provide UV protection and limit ozone exposure. They are inexpensive (£3–£8 per tyre) and make a significant difference in storage quality for outdoor or semi-outdoor storage.
+
+## Tyre Hotel Services in Scotland
+
+Several tyre centres and garages offer tyre hotel services — they store your seasonal tyres at their premises in climate-controlled conditions between seasons.
+
+**Advantages**: professional storage environment, tyres inspected before each season, convenient collection when swapping. **Cost**: typically £40–£80 for a set of four per season.
+
+If storage space at home is limited — a flat with no garage, or a small urban property — tyre hotel is a practical alternative.
+
+## Preparing Tyres for Refitting
+
+Before fitting seasonal tyres at the start of their season:
+
+1. **Visual inspection** — recheck for any cracking, deformation, or damage that occurred during storage
+2. **Inflate to road pressure** — tyres lose some pressure during storage; re-inflate before fitting
+3. **Check tread depth** — confirm the stored tread depth matches what you recorded when storing
+4. **Clean** — remove any storage residue or marking
+
+If you notice cracking, deformation, or the tyre has been stored for over 7 years, have it inspected by a tyre professional before fitting.
+
+## Book Seasonal Tyre Swaps in Scotland
+
+Tyre Rescue can attend your home or work for seasonal tyre swaps. If you have a second set of wheels, we can remount and balance at your location.
+
+**Recommended timing for 2026–27**:
+- **Fit winter tyres**: October 1–15
+- **Swap back to summer tyres**: April (post-frost risk)
+
+Call **0141 266 0690** or [book online](/book) to arrange your seasonal swap.
+
+[Winter tyres Scotland buyers guide 2026](/blog/winter-tyres-scotland-buyers-guide-2026) | [When to switch to winter tyres](/blog/winter-tyres-when-to-switch-scotland) | [Tyre age guide Scotland](/blog/tyre-age-when-to-replace-scotland)`,
+  },
+  {
     slug: 'tyre-sealant-spray-vs-repair-scotland',
     title: 'Tyre Sealant Spray vs Puncture Repair: Which to Use in Scotland',
     description:
