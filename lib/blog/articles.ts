@@ -10880,6 +10880,185 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'summer-vs-winter-vs-all-season-tyres-scotland',
+    title: 'Summer vs Winter vs All-Season Tyres: Which is Best for Scotland?',
+    description:
+      'Summer, winter, or all-season tyres for Scotland? Head-to-head comparison by region, season, driver type, and budget. Make the right choice for Glasgow, Edinburgh, Highlands, and Islands.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 9,
+    featured: false,
+    keywords: [
+      'summer vs winter tyres scotland',
+      'all season tyres vs winter tyres scotland',
+      'best tyre type for scotland',
+      'should i get winter tyres scotland',
+      'summer tyres vs all season scotland',
+      'year round tyres scotland',
+      'which tyres for scottish weather',
+      'all weather tyres vs winter tyres scotland',
+    ],
+    relatedSlugs: [
+      'all-season-tyres-scotland-guide',
+      'winter-tyres-scotland-buyers-guide-2026',
+      'winter-tyres-when-to-switch-scotland',
+    ],
+    content: `# Summer vs Winter vs All-Season Tyres for Scotland
+
+The three-way tyre type choice is confusing because there is no single right answer — it depends where in Scotland you drive, how far, and how much you are willing to spend. This guide gives you a clear, Scotland-specific comparison.
+
+## What the Three Tyre Types Are
+
+### Summer Tyres
+
+Designed for temperatures above 7°C. The compound is optimised for warm-road grip, low rolling resistance, and handling precision.
+
+**Strengths**: best dry and wet performance in warm conditions, longest tyre life in summer use, lowest rolling resistance (best fuel economy), sharpest handling.
+
+**Weaknesses**: compound hardens below 7°C — grip degrades significantly even on dry cold tarmac. In snow or ice, they are essentially useless.
+
+**Season**: April to October in most of Scotland.
+
+---
+
+### Winter Tyres
+
+Designed for temperatures below 7°C. Use a silica-rich compound that remains pliable in the cold, plus a deeper tread pattern with sipes (tiny cuts that create thousands of grip edges in snow and ice).
+
+**Strengths**: best cold-weather grip of all three types — both on dry cold tarmac and in snow/ice. The 7°C temperature threshold matters even on dry roads.
+
+**Weaknesses**: wear faster in warm weather. Higher rolling resistance reduces fuel economy in warm conditions. More expensive if buying a second set of wheels.
+
+**Season**: October to April in Scotland.
+
+---
+
+### All-Season (All-Weather) Tyres
+
+A compromise design with a compound and tread pattern that works acceptably in both warm and cold conditions. The best ones carry the Three Peak Mountain Snowflake (3PMSF) symbol, indicating they meet minimum winter performance standards.
+
+**Strengths**: one tyre set for the whole year — no seasonal swap. Good performance across a wide temperature range. 3PMSF-rated ones perform adequately in mild winter conditions.
+
+**Weaknesses**: not as good as summer tyres in summer. Not as good as winter tyres in severe winter conditions. Not suitable for ice or heavy snow.
+
+**Season**: year-round, Scotland.
+
+---
+
+## Head-to-Head Comparison for Scottish Conditions
+
+| Condition | Summer Tyre | Winter Tyre | All-Season (3PMSF) |
+|---|---|---|---|
+| Dry road in summer (20°C+) | ★★★★★ | ★★★ | ★★★★ |
+| Wet road in summer | ★★★★★ | ★★★ | ★★★★ |
+| Dry road in cold (below 7°C) | ★★ | ★★★★★ | ★★★★ |
+| Wet road in cold | ★★ | ★★★★★ | ★★★★ |
+| Light snow / slush | ★ | ★★★★★ | ★★★★ |
+| Heavy snow / ice | ★ | ★★★★★ | ★★★ |
+| Fuel economy | ★★★★★ | ★★★ | ★★★★ |
+| Tread life | ★★★★★ | ★★★★ (if seasonal) | ★★★ |
+
+---
+
+## What's Right for Different Scottish Drivers
+
+### Highland / Aberdeenshire / Rural Perthshire Drivers
+
+**Recommendation: Winter tyres + summer tyres (two sets)**
+
+If you regularly drive rural roads north of Perth from October to April, winter tyres are the safest choice. The Braemar corridor, Rannoch Moor, Glencoe, and the Cairngorms regularly see conditions that all-season tyres handle poorly.
+
+The cost of two sets of tyres (one summer, one winter) is offset by the fact that each set lasts longer — you only wear each set for six months.
+
+---
+
+### Glasgow and Edinburgh City Drivers (Low Mileage)
+
+**Recommendation: All-season tyres (3PMSF rated)**
+
+For city drivers who stay within the Central Belt, rarely venture onto A-roads in winter, and cover under 10,000 miles per year, all-season tyres are the most practical choice.
+
+The Central Belt has mild winters compared to the rest of Scotland. Snow is infrequent in Glasgow city centre. Cold wet conditions — the dominant Scottish winter condition — are handled well by 3PMSF all-season tyres.
+
+Best choices: Michelin CrossClimate 2, Continental AllSeasonContact 2, Goodyear Vector 4Seasons Gen-3.
+
+---
+
+### Edinburgh to Aberdeen or Perth Commuter (High Mileage)
+
+**Recommendation: Winter tyres + summer tyres if budget allows; all-season tyres as minimum**
+
+The A90 Edinburgh–Aberdeen route regularly sees fog, ice, and snow between November and March. A high-mileage commuter on this route has maximum benefit from winter tyres. Two sets also makes financial sense at high mileage since each set lasts longer.
+
+If one set only: choose a premium all-season (Michelin CrossClimate 2 or Continental AllSeasonContact 2) rather than budget all-season.
+
+---
+
+### Motorway / M8 / M74 / M9 Commuter (Short Distances)
+
+**Recommendation: All-season or summer tyres**
+
+Major Scottish motorways are gritted and treated in winter. Snow rarely persists on motorways. For drivers who exclusively use motorways and dual carriageways, all-season tyres are appropriate and summer tyres are acceptable.
+
+---
+
+### EV and PHEV Owners
+
+**Recommendation: All-season or winter tyres depending on location**
+
+EV and PHEV owners should lean toward winter tyres or high-quality all-season tyres because:
+- Heavier vehicles need more braking distance in cold conditions
+- Instant torque on EVs means more opportunity for wheelspin in cold conditions
+- Most EVs have no spare wheel — a blowout in a remote snowy area is a worse situation
+
+Winter tyre recommendation for EVs: Continental WinterContact TS870 P (designed for EVs), Pirelli Sottozero 3, or Michelin Pilot Alpin PA4.
+
+---
+
+### Sports Car / Performance Car Drivers (BMW M, Audi RS, Porsche)
+
+**Recommendation: Summer tyres + dedicated winter tyres (two sets)**
+
+Performance cars with summer-optimised ultra-high performance (UHP) tyres need dedicated winter tyres in Scotland. A BMW M3 on summer Michelin Pilot Sport 5 tyres in January in Edinburgh is a significantly less safe vehicle than the same car on Continental WinterContact TS870 P.
+
+High-performance all-season tyres exist (Michelin CrossClimate 2 in performance sizes) but do not match the winter performance of a dedicated winter tyre on a powerful car.
+
+---
+
+## The Cost Comparison
+
+**Option 1: Summer tyres only**
+- 1 set of tyres: £300–£600 for a typical hatchback
+- Annual replacement: every 3–5 years
+- Risk: inadequate grip in Scottish winter conditions
+
+**Option 2: Two sets (summer + winter)**
+- 2 sets of tyres: £600–£1,200
+- Plus: second set of wheels recommended: £300–£600 (steel wheels)
+- Plus: fitting × 2/year: £80–£120
+- Each set lasts significantly longer as it is only used for half the year
+- Total cost over 10 years: broadly comparable to or lower than summer-only due to tyre longevity
+
+**Option 3: All-season tyres**
+- 1 set: £350–£800
+- Annual fitting: zero (no swap)
+- Wear faster than summer-only in summer and winter-only in winter
+- Total cost over 10 years: similar to or slightly higher than two-set approach
+
+---
+
+## Our Scotland-Wide Recommendation
+
+For most Scottish drivers outside the Highlands: **all-season tyres with 3PMSF rating**. They remove the swap hassle, provide adequate safety year-round in most Scottish conditions, and cost less than two-set management.
+
+For Highland, Aberdeenshire, and rural drivers: **two sets — summer and winter**. The safety benefit in the worst months justifies the cost.
+
+Call **0141 266 0690** or [book online](/book) — we fit all three tyre types across Scotland.
+
+[All-season tyres Scotland guide](/blog/all-season-tyres-scotland-guide) | [Winter tyres Scotland 2026–27 guide](/blog/winter-tyres-scotland-buyers-guide-2026) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026)`,
+  },
+  {
     slug: 'nc500-tyre-guide-scotland',
     title: 'Tyre Guide for the North Coast 500 (NC500): What You Need to Know',
     description:
