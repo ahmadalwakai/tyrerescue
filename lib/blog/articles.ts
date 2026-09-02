@@ -10880,6 +10880,145 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'wheel-alignment-vs-balancing-scotland',
+    title: 'Wheel Alignment vs Wheel Balancing: What\'s the Difference in Scotland?',
+    description:
+      'Wheel alignment and wheel balancing fix completely different problems. Learn what each does, how to tell which one you need, and how much each costs in Scotland.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'wheel alignment vs balancing scotland',
+      'wheel alignment scotland',
+      'wheel balancing scotland',
+      'what is wheel alignment scotland',
+      'what is wheel balancing scotland',
+      'do i need alignment or balancing scotland',
+      'four wheel alignment cost scotland',
+      'tyre balancing scotland',
+    ],
+    relatedSlugs: [
+      'uneven-tyre-wear-guide-scotland',
+      'car-vibrating-after-new-tyres-scotland',
+      'tyre-rotation-guide-scotland',
+    ],
+    content: `# Wheel Alignment vs Wheel Balancing: What's the Difference in Scotland?
+
+Wheel alignment and wheel balancing are two completely different procedures that fix completely different problems. Confusing them — or assuming you need one when you need the other — leads to wasted money and persistent issues.
+
+Here is a plain explanation of each, how to tell which one you need, and what each costs in Scotland.
+
+---
+
+## Wheel Alignment
+
+**What it is**: adjusting the angles at which your tyres meet the road.
+
+When your wheels are correctly aligned, each tyre is pointing in exactly the right direction relative to the car and to each other. The three main alignment angles are:
+
+- **Camber**: the tilt of the tyre when viewed from the front — how far the top of the tyre leans in or out
+- **Toe**: whether the tyres point slightly inward (toe-in) or outward (toe-out) when viewed from above
+- **Caster** (on steered axles): the angle of the steering axis when viewed from the side
+
+### Signs You Need Wheel Alignment
+
+- **Car pulls to one side** while driving straight, even on a level road
+- **Uneven tyre wear** — inner or outer edge wearing faster than the centre
+- **Steering wheel is off-centre** when driving straight (rotated left or right while the car goes straight)
+- **Steering feels loose or wanders** at motorway speeds
+- **Vehicle recently hit a pothole** or kerb at speed
+
+### What Causes Misalignment in Scotland?
+
+- Potholes (very common on rural and B-roads in Scotland)
+- Kerb strikes
+- Suspension wear over time
+- Accident or significant impact
+
+### Wheel Alignment Cost Scotland
+
+A four-wheel alignment (the full check and adjustment of all four wheels) typically costs **£40–£80** at a specialist tyre or alignment centre. This is an investment that pays for itself in tyre life — even 2° of misalignment can halve tyre life on the affected corner.
+
+---
+
+## Wheel Balancing
+
+**What it is**: adding small weights to the wheel rim to equalise the weight distribution around the tyre and wheel assembly.
+
+When a tyre is mounted on a wheel, tiny variations in weight across the tyre and wheel mean that when it spins, there are heavy spots that cause vibration. Balancing corrects this.
+
+A balancing machine spins the wheel and identifies where and how much weight needs to be added. Stick-on or clip-on weights are placed precisely on the rim.
+
+### Signs You Need Wheel Balancing
+
+- **Steering wheel vibrates** at a specific speed (commonly 50–70 mph) then smooths out at higher speeds
+- **Vibration through the floor or seat** at certain speeds
+- **Vibration appeared after fitting new tyres** — this is the most common scenario
+- **Flat spot feel** after the car has sat unused for a period (this often resolves after a few miles of driving)
+
+### What Causes Imbalance?
+
+- Normal tyre fitting — new tyres are always balanced when fitted but can develop slight imbalance over time
+- A lost balance weight (common after driving on rough Scottish roads — weights can be knocked off kerbs or potholes)
+- A tyre repair that changes the weight distribution
+- Significant tyre wear or flat-spotting
+
+### Wheel Balancing Cost Scotland
+
+Individual wheel balancing (when not part of a fitting) typically costs **£8–£15 per wheel** at a tyre specialist. Tyre Rescue includes balancing as standard with every tyre fitted.
+
+---
+
+## Which One Do I Need?
+
+Use this table to identify which service you need:
+
+| Symptom | Likely cause |
+|---|---|
+| Car pulls to one side | Wheel alignment |
+| Steering wheel off-centre | Wheel alignment |
+| Uneven tyre wear (inner/outer edge) | Wheel alignment |
+| Vibration in steering wheel at 50–70mph | Wheel balancing |
+| Vibration in seat/floor at motorway speed | Wheel balancing |
+| Vibration appeared after new tyres | Wheel balancing |
+| Both pulling AND vibration | Possibly both needed |
+
+### Can Both Be Needed at the Same Time?
+
+Yes. It is common after a pothole impact or accident for both alignment to be knocked and for a balance weight to be lost. In this case, both procedures are needed.
+
+When you have new tyres fitted, Tyre Rescue balances as part of the service. If you also notice pulling or uneven wear, we recommend booking an alignment check separately with a four-wheel alignment specialist — we can advise on recommended local alignment centres if required.
+
+---
+
+## Does Wheel Alignment Include Balancing?
+
+No. They are completely separate procedures using different equipment:
+- Alignment uses a wheel alignment rack with sensors on each wheel
+- Balancing uses a balancing machine that spins the individual wheel
+
+A four-wheel alignment check will not tell you anything about balance, and vice versa.
+
+---
+
+## Scotland-Specific Note: Pothole Damage
+
+Scotland's roads — particularly rural A and B roads — are among the most pothole-prone in the UK. A hard pothole impact can:
+- Knock wheel alignment out of specification in a single hit
+- Knock off a balance weight
+- Cause sidewall damage requiring tyre replacement
+
+After any significant pothole impact, check your tyres for sidewall damage first, then arrange both an alignment and balance check if the car is pulling or vibrating.
+
+---
+
+Tyre Rescue provides mobile tyre fitting with balancing included across all of Scotland. Call **0141 266 0690** or [book online](/book).
+
+[Uneven tyre wear guide](/blog/uneven-tyre-wear-guide-scotland) | [Vibration after new tyres](/blog/car-vibrating-after-new-tyres-scotland) | [Tyre rotation guide](/blog/tyre-rotation-guide-scotland)`,
+  },
+  {
     slug: 'tpms-warning-light-scotland',
     title: 'TPMS Warning Light On? What It Means and What to Do in Scotland',
     description:
