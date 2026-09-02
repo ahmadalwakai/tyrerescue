@@ -10880,6 +10880,136 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'tyre-age-limit-scotland',
+    title: 'Tyre Age Limits in Scotland: How Old Is Too Old?',
+    description:
+      'How old can your tyres legally be in Scotland? The 10-year rule, caravan 5-year rule, how to read the DOT age code, and MOT implications of old tyres explained.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'tyre age limit scotland',
+      'how old can tyres be scotland',
+      'tyre age limit uk',
+      'old tyres safe scotland',
+      'tyre dot code age scotland',
+      'tyre age law scotland',
+      '10 year tyre rule scotland',
+      'when to replace old tyres scotland',
+    ],
+    relatedSlugs: [
+      'how-long-do-tyres-last-scotland',
+      'mot-tyre-requirements-scotland',
+      'caravan-motorhome-tyre-fitting-scotland',
+    ],
+    content: `# Tyre Age Limits in Scotland: How Old Is Too Old?
+
+Rubber degrades over time regardless of how much a tyre is used. A tyre stored in a garage for 10 years may have excellent tread depth but be structurally compromised — cracked, hardened, and dangerous.
+
+This guide explains the rules on tyre age in Scotland and the UK, how to find out how old your tyres are, and what the MOT consequences are.
+
+---
+
+## How to Find Your Tyre's Age: The DOT Code
+
+Every tyre manufactured since 2000 has a DOT code on the sidewall. The last four digits of this code indicate the week and year of manufacture.
+
+**Example: DOT XXXX XX 2619**
+- **26** = 26th week of the year
+- **19** = 2019
+- This tyre was manufactured in late June/early July 2019
+
+The DOT code is usually found on the inner sidewall (the side facing the vehicle). You may need to look between the tyre and wheel arch or turn the wheel to see it fully.
+
+**Tyres manufactured before 2000** have a three-digit code (week + single-digit year), which makes exact identification difficult — assume they are very old and replace immediately.
+
+---
+
+## Tyre Age Rules: Cars and Vans
+
+**There is currently no specific UK law** stating a maximum age for passenger car or van tyres. However:
+
+1. **MOT guidance**: DVSA guidance does not specify a maximum age but testers are instructed to note cracking and deterioration. A tyre showing significant age-related cracking can fail an MOT.
+
+2. **Industry recommendation**: the British Tyre Manufacturers' Association (BTMA), the RAC, and most tyre manufacturers recommend replacing tyres **over 10 years old** regardless of condition or tread depth. Some manufacturers (including Michelin and Continental) recommend replacing any tyre over 5–6 years old on vehicles used as daily transport.
+
+3. **Insurance implications**: if you are involved in an accident and your tyres are found to be over 10 years old, your insurer may dispute your claim. Old tyres can be considered evidence of vehicle neglect.
+
+### What Actually Happens to Old Tyres?
+
+Over time, tyre rubber oxidises and the plasticisers that keep rubber flexible migrate out of the compound. The result is:
+- **Tread hardening**: hardened rubber loses grip, particularly in cold and wet conditions — critical on Scottish roads
+- **Sidewall cracking**: fine cracks develop in the sidewall, indicating rubber degradation
+- **Ply separation risk**: internal steel and fabric reinforcement can delaminate from degraded rubber, causing sudden blowout
+
+These changes happen from the outside in — a tyre can look surface-fine while being internally compromised.
+
+---
+
+## Tyre Age Rules: Caravans and Trailers
+
+**Caravans and trailers have much stricter industry-recommended age limits** because:
+- They spend long periods in storage (often outside)
+- Caravans are towed at speed, placing unique lateral stress on tyres
+- A caravan tyre failure at speed causes jackknifing, which can be fatal
+
+**Caravan and Motorhome Club recommendation**:
+- Replace caravan tyres at **5 years** regardless of tread depth
+- **Maximum 7 years** under the best conditions
+- Never use tyres over 7 years old on any caravan or trailer
+
+This is stricter than the car recommendation because of the storage and structural reasons above.
+
+---
+
+## Tyre Age Rules: Goods Vehicles and PSV
+
+For vehicles over 3.5 tonnes GVW and public service vehicles (buses, coaches), UK legislation explicitly bans the use of retreaded tyres over 10 years old. While this applies to commercial vehicles specifically, the principle informs the industry-wide guidance for all vehicle types.
+
+---
+
+## Visual Signs of an Ageing Tyre
+
+Look for these warning signs:
+
+- **Sidewall cracking**: fine lines or cracks in the sidewall rubber, particularly in the tread groove walls
+- **Surface crazing**: a network of fine surface cracks across the tread face
+- **Tread hardening**: the tread feels brittle rather than slightly yielding when pressed firmly
+- **Flat spots**: distortion in the tyre shape from prolonged static storage (often in garages in Scotland)
+- **Bead area cracking**: cracks near where the tyre mounts on the rim
+
+Any of these signs, or any tyre over 10 years old, should be replaced immediately regardless of tread depth.
+
+---
+
+## Scotland-Specific Factors
+
+Scotland's climate accelerates tyre ageing in several ways:
+
+- **UV exposure**: even Scotland's limited sun causes UV degradation of rubber compounds
+- **Ozone**: Scottish coastal areas and areas near heavy traffic have elevated ozone levels; ozone attacks rubber and causes cracking
+- **Temperature cycling**: Scotland's frequent freeze-thaw cycles stress tyre compounds differently from warmer climates
+- **Road salt**: while salt does not directly affect tyres, it corrodes wheel rims, potentially affecting the tyre bead seal area
+
+Classic car owners and caravan owners in Scotland should be particularly vigilant about tyre age given the extended storage periods typical of Scottish recreational vehicle ownership.
+
+---
+
+## What to Do
+
+If you are unsure of your tyre age:
+1. Locate the DOT code on each tyre (inner sidewall, may require a torch)
+2. Decode the last four digits: first two = week, last two = year
+3. If any tyre is over 6 years old, have it inspected
+4. If any tyre is over 10 years old, replace it — regardless of tread depth or visual condition
+
+Call **0141 266 0690** for mobile tyre replacement across Scotland. We will check the age codes on your existing tyres free of charge as part of any service visit.
+
+[How long do tyres last Scotland](/blog/how-long-do-tyres-last-scotland) | [MOT tyre requirements Scotland](/blog/mot-tyre-requirements-scotland) | [Caravan motorhome tyres Scotland](/blog/caravan-motorhome-tyre-fitting-scotland)`,
+  },
+  {
     slug: 'classic-car-tyres-scotland',
     title: 'Classic Car Tyres Scotland: Finding the Right Fit for Vintage Vehicles',
     description:
