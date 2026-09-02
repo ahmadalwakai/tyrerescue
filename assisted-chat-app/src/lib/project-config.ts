@@ -33,7 +33,7 @@ export const PROJECTS: readonly ProjectConfig[] = [
   {
     id: '247mtg',
     name: '247 Mobile Tyres Glasgow',
-    apiBaseUrl: 'https://www.247mobiletyresglasgow.com',
+    apiBaseUrl: 'https://247mobiletyresglasgow.com',
     brandLine1: '247',
     brandLine2: 'TYRES',
     loginSubtitle: 'Use your 247 Mobile Tyres Glasgow admin credentials.',

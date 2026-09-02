@@ -15,6 +15,77 @@ function buildDevHttpUrl(host: string, port: string): string {
   return ['http://', host, ':', port].join('');
 }
 
+function isPrivateLanHost(hostname: string): boolean {
+  const parts = hostname.split('.').map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return false;
+  }
+  const [first, second] = parts;
+  return (
+    first === 10 ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168)
+  );
+}
+
+function isLoopbackHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+}
+
+function isLocalDevHost(hostname: string): boolean {
+  return isLoopbackHost(hostname) || isPrivateLanHost(hostname);
+}
+
+function getDevWebPageHostname(): string | null {
+  if (!__DEV__ || Platform.OS !== 'web' || typeof window === 'undefined') return null;
+  const hostname = window.location?.hostname?.trim();
+  return hostname && isLocalDevHost(hostname) ? hostname : null;
+}
+
+function buildUrlLikeCurrentWithHost(current: URL, hostname: string): string {
+  return buildDevHttpUrl(hostname, current.port || DEV_API_PORT);
+}
+
+function normalizeDevWebApiBaseUrl(): void {
+  if (!__DEV__ || Platform.OS !== 'web') return;
+  try {
+    const current = new URL(resolvedApiBaseUrl);
+    if (current.protocol !== 'http:' || !isLocalDevHost(current.hostname)) return;
+
+    const pageHostname = getDevWebPageHostname();
+    if (!pageHostname || current.hostname === pageHostname) return;
+
+    const nextBaseUrl = buildUrlLikeCurrentWithHost(current, pageHostname);
+    if (__DEV__) {
+      console.log(`[api] normalized dev web base URL: ${resolvedApiBaseUrl} → ${nextBaseUrl}`);
+    }
+    resolvedApiBaseUrl = nextBaseUrl;
+  } catch {
+    // Keep the original URL if parsing fails; request handling will surface it.
+  }
+}
+
+function getDevWebFallbackBaseUrls(): string[] {
+  if (!__DEV__ || Platform.OS !== 'web') return [];
+  try {
+    const current = new URL(resolvedApiBaseUrl);
+    if (current.protocol !== 'http:' || !isLocalDevHost(current.hostname)) return [];
+
+    const candidates = [
+      getDevWebPageHostname(),
+      'localhost',
+      '127.0.0.1',
+    ].filter((hostname): hostname is string => Boolean(hostname));
+
+    return Array.from(new Set(candidates))
+      .map((hostname) => buildUrlLikeCurrentWithHost(current, hostname))
+      .filter((url) => url !== resolvedApiBaseUrl);
+  } catch {
+    return [];
+  }
+}
+
 // Resolves the base URL for the Next.js API:
 // 1. EXPO_PUBLIC_API_BASE_URL if set (recommended for device on LAN).
 // 2. Production falls back to the live API so release builds never ship
@@ -25,7 +96,7 @@ function inferBaseUrl(): string {
   const envBase = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
   if (envBase) return envBase.replace(/\/$/, '');
 
-  if (process.env.NODE_ENV === 'production') {
+  if ((process.env.NODE_ENV ?? 'development') === 'production') {
     return PRODUCTION_API_URL;
   }
 
@@ -129,7 +200,7 @@ async function request<T>(
   body?: unknown,
   options: RequestOptions = {},
 ): Promise<T> {
-  const res = await fetch(`${resolvedApiBaseUrl}${path}`, {
+  const requestInit: RequestInit = {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -137,7 +208,36 @@ async function request<T>(
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
     signal: options.signal,
-  });
+  };
+
+  normalizeDevWebApiBaseUrl();
+
+  let res: Response | null = null;
+  const baseUrls = [resolvedApiBaseUrl, ...getDevWebFallbackBaseUrls()];
+  let lastNetworkError: unknown = null;
+
+  for (let index = 0; index < baseUrls.length; index += 1) {
+    const baseUrl = baseUrls[index];
+    try {
+      res = await fetch(`${baseUrl}${path}`, requestInit);
+      resolvedApiBaseUrl = baseUrl;
+      break;
+    } catch (error) {
+      if (options.signal?.aborted) throw error;
+      lastNetworkError = error;
+      const nextBaseUrl = baseUrls[index + 1];
+      if (__DEV__ && nextBaseUrl) {
+        console.warn(
+          `[api] ${method} ${baseUrl}${path} failed; retrying ${nextBaseUrl}${path}`,
+          error,
+        );
+      }
+    }
+  }
+
+  if (!res) {
+    throw lastNetworkError ?? new TypeError('Failed to fetch');
+  }
 
   const ct = res.headers.get('content-type') || '';
   const payload: unknown = ct.includes('application/json') ? await res.json() : await res.text();
@@ -154,7 +254,7 @@ async function request<T>(
           // ignore notifier errors
         }
       }
-    } else if (payload && typeof payload === 'object') {
+    } else if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
       const r = payload as Record<string, unknown>;
       if (typeof r.error === 'string' && r.error.trim()) message = r.error;
       else if (typeof r.message === 'string' && r.message.trim()) message = r.message;

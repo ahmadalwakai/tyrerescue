@@ -61,7 +61,7 @@ import { MessageSenderModal } from './MessageSenderModal';
 import type { VirtualLandlineDraftPrefill } from './VirtualLandlineModal';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
-import { usePressScale } from './motion';
+import { usePressScale, useOnChangeFadeSlide } from './motion';
 import { AppIcon, type AppIconName } from './icons/AppIcon';
 import { api } from '@/lib/api';
 import { downloadInvoicePdfToDevice } from '@/lib/invoice-download';
@@ -187,7 +187,6 @@ function requireStartupModule<T>(label: string, load: () => T): T {
   }
 }
 
-const GBP = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
 const DEPOSIT_PERCENT = 20;
 const DRIVER_NEARBY_ALERT_MINUTES = 5;
 
@@ -474,8 +473,8 @@ function parseCallNotes(text: string): ParsedCallNotes {
 }
 
 function formatPence(pence: number): string {
-  if (!Number.isFinite(pence)) return GBP.format(0);
-  return GBP.format(pence / 100);
+  if (!Number.isFinite(pence)) return formatGbp(0);
+  return formatGbp(pence / 100);
 }
 
 function getQuotePricingDistanceMiles(
@@ -681,6 +680,11 @@ function buildPaymentMessage(paymentLink: StripePaymentLinkState, draft: Assiste
 
 function genericWhatsAppUrl(message: string): string {
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
+function StageContainer({ stageKey, children }: { stageKey: string; children: import('react').ReactNode }) {
+  const style = useOnChangeFadeSlide(stageKey, { distance: 14, duration: 230 });
+  return <Animated.View style={style}>{children}</Animated.View>;
 }
 
 export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatScreenProps = {}) {
@@ -2353,6 +2357,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
             onStepPress={handleSelectOperatorStep}
           />
 
+          <StageContainer stageKey={activeStage}>
           <ActiveWorkflowPanel
             icon={activePanelCopy.icon}
             title={activePanelCopy.title}
@@ -2491,6 +2496,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
               </View>
             ) : null}
           </ActiveWorkflowPanel>
+          </StageContainer>
 
           <View style={styles.bottomSpacer} />
         </ScrollView>
@@ -3443,26 +3449,42 @@ function useAnimatedInteger(target: number | null): number | null {
   return displayValue;
 }
 
+function formatLiveVisitorProjectName(project: LiveVisitorCountState['activeProject']): string {
+  if (!project) return 'project';
+  if (project.origin) {
+    try {
+      const host = new URL(project.origin).hostname.replace(/^www\./, '');
+      if (host) return host;
+    } catch {
+      // Fall through to the project label.
+    }
+  }
+  return project.sourceLabel || project.sourceApp;
+}
+
 function HeaderLiveVisitorCounter({ state }: { state: LiveVisitorCountState }) {
-  const animatedCount = useAnimatedInteger(state.liveCount);
-  const hasCount = state.liveCount !== null && !state.error;
+  const activeProject = state.activeProject;
+  const projectName = formatLiveVisitorProjectName(activeProject);
+  const displayCount = activeProject ? activeProject.liveCount : state.liveCount;
+  const animatedCount = useAnimatedInteger(displayCount);
+  const hasCount = displayCount !== null && !state.error;
   const countLabel = hasCount
-    ? (animatedCount ?? state.liveCount ?? 0).toLocaleString('en-GB')
+    ? (animatedCount ?? displayCount ?? 0).toLocaleString('en-GB')
     : state.loading
       ? '...'
       : '--';
   const suffix = hasCount
-    ? state.liveCount === 1
+    ? displayCount === 1
       ? ' live visitor'
       : ' live visitors'
     : state.loading
       ? ' loading'
       : ' unavailable';
   const accessibilityLabel = hasCount
-    ? `tyrerescue.uk has ${state.liveCount} live ${state.liveCount === 1 ? 'visitor' : 'visitors'}`
+    ? `${projectName} has ${displayCount} live ${displayCount === 1 ? 'visitor' : 'visitors'}`
     : state.loading
-      ? 'Loading tyrerescue.uk live visitors'
-      : 'tyrerescue.uk live visitors unavailable';
+      ? `Loading ${projectName} live visitors`
+      : `${projectName} live visitors unavailable`;
 
   return (
     <View
@@ -3473,7 +3495,7 @@ function HeaderLiveVisitorCounter({ state }: { state: LiveVisitorCountState }) {
     >
       <View style={styles.headerVisitorDot} />
       <Text style={styles.headerVisitorText} numberOfLines={1}>
-        <Text>tyrerescue.uk </Text>
+        <Text>{projectName} </Text>
         <Text style={styles.headerVisitorCount} testID="assisted-chat-header-live-visitors-count">
           {countLabel}
         </Text>

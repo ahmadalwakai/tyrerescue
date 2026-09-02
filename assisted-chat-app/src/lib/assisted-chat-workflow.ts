@@ -1,7 +1,9 @@
 import type {
   AssistedChatDraft,
+  AssistedChatQuoteBreakdown,
   AssistedChatServiceType,
   BookingTyreLine,
+  QuickBookPatchResponse,
 } from '@/types/assisted-chat';
 import type { AdminQuotePaymentOption, AdminQuoteStatus } from '@/types/admin-quotes';
 
@@ -502,5 +504,43 @@ export function getAssistedChatWorkflow(input: AssistedChatWorkflowInput): Assis
     primaryActionDisabled: primary.disabled,
     primaryActionDisabledReason: primary.disabledReason,
     secondaryActions,
+  };
+}
+
+export function quoteFromQuickBookPatch(
+  breakdown: QuickBookPatchResponse['booking']['priceBreakdown'],
+  distanceKm: string | null,
+): AssistedChatQuoteBreakdown {
+  if (!breakdown) {
+    throw new Error('Pricing engine returned no breakdown.');
+  }
+
+  const pricingDistanceMiles = breakdown.distanceMiles ?? breakdown.pricingDistanceMiles ?? null;
+  const pricingDistanceKm =
+    pricingDistanceMiles != null
+      ? pricingDistanceMiles * 1.60934
+      : distanceKm
+      ? Number(distanceKm)
+      : null;
+  return {
+    subtotal: breakdown.subtotal,
+    vatAmount: breakdown.vatAmount,
+    total: breakdown.total,
+    lineItems: breakdown.lineItems,
+    distanceKm: pricingDistanceKm,
+    distanceMiles: pricingDistanceMiles,
+    serviceDistanceMiles: breakdown.serviceDistanceMiles ?? null,
+    pricingDistanceMiles,
+    pricingDurationMinutes: breakdown.pricingDurationMinutes ?? null,
+    garageDistanceMiles: breakdown.garageDistanceMiles ?? null,
+    pricingDistanceSource: breakdown.pricingDistanceSource ?? null,
+    distanceFloorApplied: breakdown.distanceFloorApplied ?? null,
+    fittingPrice: breakdown.fittingPrice ?? null,
+    tyrePrice: breakdown.tyrePrice ?? null,
+    totalPrice: breakdown.totalPrice ?? null,
+    tyreLines: breakdown.tyreLines ?? undefined,
+    adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
+    adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
+    serviceOrigin: breakdown.serviceOrigin ?? null,
   };
 }

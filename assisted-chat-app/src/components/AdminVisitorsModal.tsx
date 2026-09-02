@@ -83,6 +83,10 @@ function shortRef(str: string | null | undefined): string {
   return str.slice(0, 8);
 }
 
+function visitorProjectName(visitor: { sourceLabel?: string | null; sourceApp?: string | null }): string {
+  return visitor.sourceLabel || visitor.sourceApp || 'Tyre Rescue';
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────
 
 interface StatCardProps {
@@ -128,7 +132,9 @@ function ArrivalToast({ visitor, onDismiss }: { visitor: LiveVisitorItem; onDism
     <Pressable style={s.toast} onPress={onDismiss}>
       <View style={s.toastDot} />
       <View style={{ flex: 1 }}>
-        <Text style={s.toastTitle}>NEW VISITOR · {fmt(visitor.createdAt)}</Text>
+        <Text style={s.toastTitle} numberOfLines={1}>
+          NEW VISITOR · {visitorProjectName(visitor)} · {fmt(visitor.createdAt)}
+        </Text>
         <Text style={s.toastBody} numberOfLines={1}>
           {[visitor.city, visitor.device, visitor.browser].filter(Boolean).join(' · ') || 'Unknown'}
         </Text>
@@ -155,7 +161,7 @@ function VisitorRow({ visitor }: { visitor: VisitorItem }) {
         <View style={[s.onlineDot, { backgroundColor: isOnline ? A.emerald : colors.border }]} />
         <View style={{ flex: 1 }}>
           <Text style={s.visitorCity} numberOfLines={1}>
-            {visitor.city || 'Unknown'}{visitor.country ? `, ${visitor.country}` : ''}
+            {visitorProjectName(visitor)} · {visitor.city || 'Unknown'}{visitor.country ? `, ${visitor.country}` : ''}
             {(visitor.visitCount ?? 0) > 1
               ? <Text style={{ color: A.orange }}> ×{visitor.visitCount}</Text>
               : null}

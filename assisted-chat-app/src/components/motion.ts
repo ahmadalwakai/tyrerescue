@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, Platform } from 'react-native';
 
 export const USE_NATIVE_DRIVER = Platform.OS !== 'web';
@@ -92,6 +92,55 @@ export function usePressScale(disabled: boolean, pressedScale = 0.97) {
       animateTo(1);
     },
   };
+}
+
+/**
+ * Re-runs the fade+slide entrance animation whenever `changeKey` changes.
+ * Useful for animating stage/step content transitions.
+ */
+export function useOnChangeFadeSlide(
+  changeKey: string,
+  { distance = 12, duration = 220 }: { distance?: number; duration?: number } = {},
+) {
+  const [opacity] = useState(() => new Animated.Value(0));
+  const [translateY] = useState(() => new Animated.Value(distance));
+  const reducedMotion = useReducedMotion();
+  const isMount = useRef(true);
+
+  useEffect(() => {
+    if (isMount.current) {
+      isMount.current = false;
+    } else {
+      opacity.setValue(0);
+      translateY.setValue(distance);
+    }
+
+    if (reducedMotion) {
+      opacity.setValue(1);
+      translateY.setValue(0);
+      return;
+    }
+
+    const anim = Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }),
+    ]);
+    anim.start();
+    return () => anim.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [changeKey, reducedMotion]);
+
+  return { opacity, transform: [{ translateY }] };
 }
 
 export function useLoopingPulse({

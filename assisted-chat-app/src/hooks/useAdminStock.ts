@@ -177,10 +177,10 @@ export function useAdminStock(enabled: boolean) {
     try {
       await api.post('/api/mobile/admin/stock', {
         sizeDisplay: form.sizeDisplay.trim().toUpperCase().replace(/r/i, 'R'),
-        width: parseInt(w),
-        aspect: parseInt(a),
-        rim: parseInt(r),
-        stockNew: parseInt(form.stockNew) || 0,
+        width: parseInt(w, 10),
+        aspect: parseInt(a, 10),
+        rim: parseInt(r, 10),
+        stockNew: parseInt(form.stockNew, 10) || 0,
         priceNew: form.priceNew ? parseFloat(form.priceNew) : null,
         brand: form.brand || 'Budget',
         pattern: form.pattern || 'All-Season',
@@ -189,8 +189,8 @@ export function useAdminStock(enabled: boolean) {
       showToast(`${form.sizeDisplay} added to stock`, true);
       void doFetch(1, search, filterWidth, filterRim, filterAvailable, filterSeason, sort);
       return null;
-    } catch (e: unknown) {
-      return e instanceof Error ? e.message : 'Failed to add';
+    } catch (error: unknown) {
+      return error instanceof Error ? error.message : 'Failed to add';
     } finally {
       setActionLoading(null);
     }
@@ -204,16 +204,16 @@ export function useAdminStock(enabled: boolean) {
         sizeDisplay: form.sizeDisplay,
         season: form.season,
         priceNew: form.priceNew ? parseFloat(form.priceNew) : null,
-        stockNew: parseInt(form.stockNew) || 0,
-        stockOrdered: parseInt(form.stockOrdered) || 0,
+        stockNew: parseInt(form.stockNew, 10) || 0,
+        stockOrdered: parseInt(form.stockOrdered, 10) || 0,
         availableNew: form.availableNew,
         isLocalStock: form.isLocalStock,
       });
       showToast('Saved', true);
       void doFetch(page, search, filterWidth, filterRim, filterAvailable, filterSeason, sort);
       return null;
-    } catch (e: unknown) {
-      return e instanceof Error ? e.message : 'Failed to save';
+    } catch (error: unknown) {
+      return error instanceof Error ? error.message : 'Failed to save';
     } finally {
       setActionLoading(null);
     }
@@ -227,8 +227,8 @@ export function useAdminStock(enabled: boolean) {
       setItems((prev) =>
         prev.map((it) => (it.id === item.id ? { ...it, availableNew: !it.availableNew } : it)),
       );
-    } catch (e: unknown) {
-      showToast(e instanceof Error ? e.message : 'Action failed', false);
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Action failed', false);
     } finally {
       setActionLoading(null);
     }
@@ -241,8 +241,8 @@ export function useAdminStock(enabled: boolean) {
       showToast('Removed', true);
       setItems((prev) => prev.filter((it) => it.id !== id));
       setStats((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }));
-    } catch (e: unknown) {
-      showToast(e instanceof Error ? e.message : 'Failed to remove', false);
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to remove', false);
     } finally {
       setActionLoading(null);
     }

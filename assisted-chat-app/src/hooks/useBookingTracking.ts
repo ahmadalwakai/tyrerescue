@@ -145,7 +145,6 @@ export function useBookingTracking({ bookingId, autoEnsure = true }: Args) {
 
   // Track mount lifecycle.
   useEffect(() => {
-    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
     };

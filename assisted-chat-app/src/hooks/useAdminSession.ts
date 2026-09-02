@@ -191,12 +191,14 @@ export function useAdminSession(): AdminSession {
       return;
     }
     // Clear existing session — it belongs to the previous backend.
+    // Clear token in-memory first so any in-flight request with the old token
+    // does not race against the new backend even if storage removal fails.
+    setAdminToken(null);
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // best effort
+    } catch (error) {
+      logStartupModuleFailed('session.project-switch.storage.clear.failed', error, { toProject: id });
     }
-    setAdminToken(null);
     setApiBaseUrl(project.apiBaseUrl);
     setActiveProject(project);
     await setStoredProjectId(id);

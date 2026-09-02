@@ -26,6 +26,8 @@ export interface VisitorStats {
 
 export interface VisitorItem {
   id: string;
+  sourceApp: string | null;
+  sourceLabel: string | null;
   city: string | null;
   country: string | null;
   ipHash: string | null;
@@ -49,6 +51,8 @@ export interface VisitorItem {
 
 export interface LiveVisitorItem {
   id: string;
+  sourceApp: string | null;
+  sourceLabel: string | null;
   city: string | null;
   device: string | null;
   browser: string | null;

@@ -26,8 +26,12 @@ export async function searchMapboxAddress(query: string): Promise<MapboxFeature[
   );
 
   if (!response.ok) return [];
-  const data = (await response.json()) as MapboxResponse;
-  return data.features ?? [];
+  try {
+    const data = (await response.json()) as MapboxResponse;
+    return data.features ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export function extractPostcode(feature: MapboxFeature): string | null {

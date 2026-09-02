@@ -9,12 +9,12 @@ import {
   buildBookingTyreLinePayload,
   isAssistedChatServiceOnly,
   primaryBookingTyreLine,
+  quoteFromQuickBookPatch,
   totalBookingTyreQuantity,
 } from '@/lib/assisted-chat-workflow';
 import type {
   AssistedChatDraft,
   AssistedChatPaymentChoice,
-  AssistedChatQuoteBreakdown,
   DepositCheckoutResponse,
   FinalizeResponse,
   QuickBookPatchResponse,
@@ -30,43 +30,6 @@ function finiteAmount(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
-function quoteFromQuickBookPatch(
-  breakdown: QuickBookPatchResponse['booking']['priceBreakdown'],
-  distanceKm: string | null,
-): AssistedChatQuoteBreakdown {
-  if (!breakdown) {
-    throw new Error('Pricing engine returned no breakdown.');
-  }
-
-  const pricingDistanceMiles = breakdown.distanceMiles ?? breakdown.pricingDistanceMiles ?? null;
-  const pricingDistanceKm =
-    pricingDistanceMiles != null
-      ? pricingDistanceMiles * 1.60934
-      : distanceKm
-      ? Number(distanceKm)
-      : null;
-  return {
-    subtotal: breakdown.subtotal,
-    vatAmount: breakdown.vatAmount,
-    total: breakdown.total,
-    lineItems: breakdown.lineItems,
-    distanceKm: pricingDistanceKm,
-    distanceMiles: pricingDistanceMiles,
-    serviceDistanceMiles: breakdown.serviceDistanceMiles ?? null,
-    pricingDistanceMiles,
-    pricingDurationMinutes: breakdown.pricingDurationMinutes ?? null,
-    garageDistanceMiles: breakdown.garageDistanceMiles ?? null,
-    pricingDistanceSource: breakdown.pricingDistanceSource ?? null,
-    distanceFloorApplied: breakdown.distanceFloorApplied ?? null,
-    fittingPrice: breakdown.fittingPrice ?? null,
-    tyrePrice: breakdown.tyrePrice ?? null,
-    totalPrice: breakdown.totalPrice ?? null,
-    tyreLines: breakdown.tyreLines ?? undefined,
-    adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
-    adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
-    serviceOrigin: breakdown.serviceOrigin ?? null,
-  };
-}
 
 export interface UseAssistedChatDispatchArgs {
   draft: AssistedChatDraft;

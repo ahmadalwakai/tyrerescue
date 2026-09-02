@@ -681,8 +681,8 @@ function BulkImportScreen({ onBack, onRefresh }: { onBack: () => void; onRefresh
       });
       setRows(mapped);
       setStep('preview');
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Failed to read file.');
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : 'Failed to read file.');
     }
   }
 
@@ -705,8 +705,8 @@ function BulkImportScreen({ onBack, onRefresh }: { onBack: () => void; onRefresh
       setResult(data);
       setStep('done');
       onRefresh();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Import failed');
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : 'Import failed');
       setStep('preview');
     }
   }
