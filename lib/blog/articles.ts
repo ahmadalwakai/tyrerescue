@@ -10880,6 +10880,132 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'winter-driving-emergency-kit-scotland',
+    title: 'Winter Driving Emergency Kit for Scottish Roads: What to Carry',
+    description:
+      'What to carry in your car for Scottish winter driving — from tyre inflation kit and snow chains to high-visibility kit and emergency contacts. The complete Highland and Central Belt winter car kit.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'winter driving kit scotland',
+      'winter car kit scotland',
+      'what to carry in car winter scotland',
+      'highland winter driving kit scotland',
+      'emergency kit car scotland',
+      'winter car essentials scotland',
+      'what to pack in car for winter scotland',
+      'scotland winter driving tips',
+    ],
+    relatedSlugs: [
+      'driving-snow-ice-tyre-advice-scotland',
+      'nc500-tyre-guide-scotland',
+      'winter-tyres-scotland-buyers-guide-2026',
+    ],
+    content: `# Winter Driving Emergency Kit for Scottish Roads: What to Carry
+
+Scotland's winter driving conditions can change rapidly — clear motorway to blizzard in 30 minutes on the A9. Having the right items in your car means the difference between a minor inconvenience and a dangerous situation.
+
+This is a practical checklist, not a theoretical one. These are the items that matter on Scottish winter roads.
+
+---
+
+## Tyre and Vehicle Items
+
+### Tyre Inflation Kit or Portable Compressor
+Many modern cars have no spare tyre — only a tyre sealant kit. Know how to use yours before you need it.
+
+If your car has no inflation kit, a portable 12V compressor (£20–£40) is one of the most useful items you can carry. It connects to your car's 12V socket and can inflate a tyre with a slow puncture enough to get you to a safe location.
+
+**Important**: sealant kits only work on small tread punctures. They will not help with sidewall damage or large holes — in those cases, call Tyre Rescue on 0141 266 0690.
+
+### Tyre Pressure Gauge
+Check your pressures before every winter journey. Cold temperatures reduce tyre pressure — a tyre that was at 33 PSI in summer may read 30 PSI after a hard frost.
+
+### Warning Triangle
+Place 45 metres behind your car if you break down on an ordinary road. **Do not use on motorways** — stand behind the barrier.
+
+Some modern cars include these. If yours does not, a folding warning triangle is inexpensive and takes up almost no space.
+
+### High-Visibility Vest
+Keep one per occupant. Scottish law does not currently require them (unlike some European countries), but visibility in poor weather or darkness on a rural road is critical. Put it on before exiting the car.
+
+### Jump Leads or Battery Pack
+Cold weather is hardest on car batteries. A quality jump pack (portable battery) means you can restart a flat battery without needing another vehicle.
+
+---
+
+## Snow and Ice Items
+
+### Snow Shovel (collapsible)
+A collapsible snow shovel weighing less than 1kg is invaluable if you get stuck. Clearing snow from under the wheels and around the exhaust pipe can be the difference between getting moving and calling a recovery truck.
+
+### Traction Boards / Sand
+Traction boards (plastic or metal, placed under driven wheels) can free a car stuck in snow or mud in seconds. Two traction boards weigh about 3–4kg.
+
+Alternatively, a bag of grit or sand (5–10kg) provides traction when poured under spinning wheels. Less reusable but cheaper.
+
+### Snow Chains (for Highland travel)
+If you regularly drive Highland routes in winter — the A82, A87, A835, Cairnpass, Glenshee — carry snow chains or AutoSocks. Some of these routes have depth restrictions or closures, but chain-equipped vehicles can sometimes continue when others cannot.
+
+AutoSocks are easier to fit than traditional chains and compact enough to store easily. Practice fitting them before you need them in the dark.
+
+### Ice Scraper and De-Icer
+Essential for every Scottish car. Keep a long-handled scraper plus a can of de-icer. You are legally required to clear all windows and mirrors before driving — not just a small porthole through the frost.
+
+---
+
+## Personal and Safety Items
+
+### Warm Clothing and Blankets
+If your car breaks down on a remote Highland road in January, help may be 30–60 minutes away. A warm jacket and a blanket for each occupant are not excessive.
+
+### Water and Food
+A bottle of water and snacks can be important if you are stranded for several hours. In very severe conditions (Cairngorms snow events, A82 blockages near Glencoe), waits of 2–4 hours are not uncommon.
+
+### Fully Charged Phone
+Before any winter journey, charge your phone fully. If you break down in a remote area, you may not have a charger available. A portable battery pack is also worth having.
+
+### Emergency Contacts List
+Save these in your phone:
+- Tyre Rescue: **0141 266 0690** (tyre emergencies across Scotland)
+- Police Scotland: **101** (non-emergency) / **999** (emergency)
+- Traffic Scotland road condition updates: 0800 028 1414
+- Your breakdown cover provider
+
+---
+
+## Pre-Journey Checks
+
+Before any significant winter journey on Scottish roads:
+
+1. **Tyre tread**: at least 3mm for winter driving (ideally 4mm+ on Highland routes)
+2. **Tyre pressure**: check cold, inflate to full-load pressure if carrying passengers
+3. **Washer fluid**: use winter fluid (rated to at least -15°C) — summer fluid freezes solid in the jets
+4. **Lights**: check all lights are working, including fog lights
+5. **Fuel**: fill up before heading into remote areas — petrol stations are sparse on many Highland routes
+6. **Check road conditions**: Traffic Scotland's website and Travel Scotland app show live road conditions and closures
+
+### Scotland Road Condition Resources
+
+- **Traffic Scotland**: trafficscotland.org
+- **Scotways (mountain road conditions)**: scottishhill.co.uk
+- **SEPA weather warnings**: sepa.org.uk (for flood risk on A9, A90 riverside sections)
+- **Met Office**: weather.metoffice.gov.uk (reliable Scottish mountain forecasts)
+
+---
+
+## When the Kit Is Not Enough
+
+A tyre emergency in a remote location — sidewall damage, flat tyre with no sealant option, blowout — requires professional help.
+
+Tyre Rescue covers all of Scotland, including Highland areas. We carry common tyre sizes in our vans. If you break down on the A9, A82, A87, or any Scottish road, call **0141 266 0690** and tell us your exact location — the nearest junction, road sign, or landmark — and we will dispatch a fitter.
+
+[Winter tyres Scotland guide](/blog/winter-tyres-scotland-buyers-guide-2026) | [Driving on snow and ice Scotland](/blog/driving-snow-ice-tyre-advice-scotland) | [NC500 tyre guide](/blog/nc500-tyre-guide-scotland)`,
+  },
+  {
     slug: 'taxi-private-hire-tyre-requirements-scotland',
     title: 'Taxi and Private Hire Vehicle Tyre Requirements in Scotland',
     description:
