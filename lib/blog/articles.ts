@@ -10880,6 +10880,119 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'tyre-pressure-loaded-car-scotland',
+    title: 'Tyre Pressure When Carrying Heavy Loads in Scotland: Full Car, Towing, Roof Box',
+    description:
+      'Should you increase tyre pressure when carrying heavy loads, a full car, or towing a caravan? This guide explains correct tyre pressure for loaded vehicles and roof boxes in Scotland.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'tyre pressure loaded car scotland',
+      'tyre pressure full car scotland',
+      'tyre pressure towing caravan scotland',
+      'tyre pressure roof box scotland',
+      'tyre pressure heavy load scotland',
+      'car tyre pressure passengers scotland',
+      'towing tyre pressure scotland',
+      'correct tyre pressure scotland',
+    ],
+    relatedSlugs: [
+      'tyre-pressure-guide-scotland',
+      'caravan-motorhome-tyre-fitting-scotland',
+      'nc500-tyre-guide-scotland',
+    ],
+    content: `# Tyre Pressure When Carrying Heavy Loads in Scotland: Full Car, Towing, Roof Box
+
+Most drivers set tyre pressures once and rarely revisit them. But when you significantly increase your vehicle's load — a full family car, heavy roof box, or towed caravan — the correct tyre pressure changes.
+
+Getting this right matters particularly for Scottish journeys: a loaded holiday car heading up the A9 to the Highlands or towing a caravan on the A82 to Loch Lomond is carrying much more weight than its usual solo commuting configuration.
+
+---
+
+## Why Load Affects Correct Tyre Pressure
+
+Tyres support weight. The sidewall and air pressure inside work together to carry the vehicle's load and maintain the correct contact patch with the road.
+
+When you add weight — passengers, luggage, a tow bar load — the same tyre pressure must now support more weight. Under-inflation relative to the load causes the tyre to flex excessively, generating heat, increasing rolling resistance, and ultimately shortening tyre life and handling quality.
+
+The manufacturer has determined the correct pressure for different load scenarios and documented these in your vehicle handbook and on the door sticker.
+
+---
+
+## Where to Find Your Load-Dependent Pressures
+
+Nearly all modern vehicles have two different recommended tyre pressures:
+- **Normal load** (driver only, or driver + one passenger, light luggage)
+- **Full load** (all seats occupied, full boot, or maximum payload)
+
+These are printed on the **driver's door pillar sticker** — usually a small label when you open the driver's door. They may also be on the inside of the fuel flap.
+
+**Example** (typical medium family car):
+| Load | Front | Rear |
+|---|---|---|
+| Normal (1–2 occupants, light load) | 32 PSI / 2.2 bar | 30 PSI / 2.1 bar |
+| Full load (4–5 passengers, full boot) | 35 PSI / 2.4 bar | 38 PSI / 2.6 bar |
+
+Note that the rear pressure increase is often more significant than the front, reflecting the weight of passengers and luggage in the rear.
+
+---
+
+## Roof Box and Roof-Mounted Loads
+
+A roof box, roof bars, or bikes on a roof rack add weight and change the vehicle's aerodynamics. This increases the load on the front axle particularly.
+
+For roof-mounted loads, increase to the full-load pressures. If your vehicle handbook specifically mentions roof-rack loading, follow that guidance.
+
+**Also note**: roof boxes have maximum weight limits (typically 50–100kg). Exceeding this affects handling as well as tyre loading.
+
+---
+
+## Towing a Caravan or Trailer
+
+When towing, your vehicle's rear wheels experience increased downward load from the tow bar coupling. Increase to full-load rear pressures minimum.
+
+**For long towing journeys**: some manufacturers specify a specific towing pressure in the handbook, which may be slightly higher than the standard full-load pressure. Check your vehicle handbook under towing.
+
+On the caravan itself — the caravan tyre pressures should be checked and set to the caravan manufacturer's specification, which is printed in the caravan handbook or on the caravan's tyre placard (often inside a locker or on the A-frame).
+
+---
+
+## High-Altitude and Long Scottish Journeys
+
+Scotland's higher roads (Cairnpass, Glenshee, Devil's Staircase on the A82) involve significant altitude changes. Pressure is measured at sea level; at altitude, true internal pressure is slightly different due to the reduced atmospheric reference. In practice, the differences on UK altitude roads are small — you do not need to specifically adjust for altitude.
+
+More relevant: on long motorway journeys (M8, M74, A9), tyre pressure rises as tyres warm up. **Never release air from a warm tyre to reach the recommended cold pressure** — the cold pressure will then be significantly low after the tyre cools.
+
+Check pressures cold, before setting off, every time.
+
+---
+
+## Motorhome Tyre Pressures
+
+Motorhomes require specific attention because they are heavy vehicles that may be operated at or near maximum weight. The motorhome handbook specifies pressures for different loading configurations.
+
+Many motorhome owners underestimate their actual payload. A 7.5m motorhome with a 750kg payload limit can quickly be exceeded with two people, full water tank, clothing for two weeks, bikes, and a drone. Weighing your motorhome on a public weighbridge before a tour is good practice.
+
+Under-inflated motorhome tyres are a significant safety risk at motorway speeds.
+
+---
+
+## Key Summary
+
+1. Check your door sticker for normal vs. full-load pressures
+2. Use full-load pressures whenever carrying 3+ passengers, full luggage, a roof box, or towing
+3. Check pressures cold — before setting off
+4. Rear pressures typically increase more than front in full-load configuration
+5. Check the caravan handbook for caravan tyre pressures separately
+
+Call **0141 266 0690** if you need tyres checked, inflated, or replaced before a Scottish tour. We operate mobile tyre fitting across all of Scotland.
+
+[Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland) | [NC500 tyre guide Scotland](/blog/nc500-tyre-guide-scotland) | [Caravan motorhome tyres Scotland](/blog/caravan-motorhome-tyre-fitting-scotland)`,
+  },
+  {
     slug: 'low-profile-tyres-scotland-guide',
     title: 'Low Profile Tyres on Scottish Roads: Pothole Risks and What to Do',
     description:
