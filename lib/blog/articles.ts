@@ -10880,6 +10880,128 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'mobile-tyre-fitting-cost-vs-garage-scotland',
+    title: 'Is Mobile Tyre Fitting More Expensive Than a Garage in Scotland?',
+    description:
+      'Many Scottish drivers assume mobile tyre fitting costs more than going to Kwik Fit or ATS. This guide compares the real total cost — including hidden costs of garage visits — and shows when mobile fitting is actually cheaper.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'mobile tyre fitting cost scotland',
+      'is mobile tyre fitting expensive scotland',
+      'mobile tyre fitting price comparison scotland',
+      'mobile tyre fitting vs kwik fit cost scotland',
+      'tyre fitting cost at home scotland',
+      'how much is mobile tyre fitting scotland',
+      'tyre fitting price mobile scotland',
+      'cheapest tyre fitting scotland',
+    ],
+    relatedSlugs: [
+      'mobile-tyre-fitting-vs-garage',
+      'tyre-prices-scotland-guide-2026',
+      'budget-tyres-scotland-guide',
+    ],
+    content: `# Is Mobile Tyre Fitting More Expensive Than a Garage in Scotland?
+
+The short answer: **for most Scottish drivers, mobile tyre fitting from Tyre Rescue is the same price or cheaper than a visit to a tyre centre once you account for all costs.**
+
+Here is a complete comparison.
+
+---
+
+## What Mobile Tyre Fitting Costs at Tyre Rescue
+
+Our standard pricing:
+- **Fitting and balancing**: £20 per tyre (no callout fee)
+- **Tyres**: priced at market rate, similar to or better than Kwik Fit and ATS for equivalent brands
+- **TPMS reset**: included
+
+For a typical mid-range job — two budget tyres (205/55R16) fitted and balanced at home:
+
+| Item | Tyre Rescue |
+|---|---|
+| 2x Hankook Kinergy budget tyres | ~£90 |
+| 2x fitting and balancing | £40 |
+| TPMS reset | Included |
+| **Total** | **~£130** |
+
+---
+
+## What a Garage Actually Costs — The Full Picture
+
+Kwik Fit, ATS, or a local tyre centre will quote similar tyre prices. Fitting fees are comparable. But the total cost of a garage visit includes more than the invoice:
+
+### Time Cost
+
+- Driving to the nearest tyre centre: 15–30 minutes each way
+- Waiting time during fitting: 30–90 minutes (longer during busy periods)
+- **Total time**: 1–2.5 hours
+
+For someone on an hourly salary or running a business: 1.5 hours equals real lost income.
+
+### Transport Cost
+
+Driving to the tyre centre and back: 5–20 miles for most Scottish drivers.
+
+At 35p per mile (HMRC rate), a 20-mile round trip costs **£7**.
+
+### Inconvenience Cost
+
+- Arranging for someone to collect you if the car must be left
+- Rescheduling work, school pick-ups, or commitments around the appointment
+- Difficulty accessing a tyre centre if you live in a rural area or have limited mobility
+
+### Mobile Fitting: True All-In Cost
+
+Our fitter comes to your door. You remain at home or work. Total time cost: 45–60 minutes of your time, during which you can work, continue family activities, or simply relax.
+
+No transport cost to the garage. No waiting room.
+
+**Effective saving of 1–2 hours plus transport cost for most Scottish drivers.**
+
+---
+
+## When Is Mobile Fitting Specifically Cheaper?
+
+**1. Emergency situations**: if a tyre fails at night or on a Sunday, traditional garages are closed. Tyre Rescue operates across Scotland when garages are closed — avoiding the premium pricing of roadside assistance companies (some of which charge £150–£250+ for emergency call-out tyre fitting).
+
+**2. Rural Scotland**: the nearest Kwik Fit or ATS to drivers in rural Perthshire, Aberdeenshire, or the Highlands may be 30–60 minutes away. Mobile fitting eliminates this entirely.
+
+**3. Fleets and businesses**: if your company has multiple vehicles needing tyres, we can come to your depot and fit multiple vehicles on site, eliminating the logistics of driving each vehicle to a tyre centre.
+
+**4. Disability or mobility limitations**: for drivers who find it difficult to sit in a tyre centre waiting room or cannot easily arrange alternative transport, mobile fitting provides access without additional support.
+
+---
+
+## When Is a Garage Cheaper?
+
+Some scenarios where a traditional garage may be cheaper or more appropriate:
+
+**Very unusual or rare tyre sizes**: if you drive a vehicle with an uncommon size, a large tyre centre may have it in stock when we need to special-order it.
+
+**Wheel damage requiring specialist equipment**: bent rims needing rolling or alloy repair requires fixed equipment not available in a mobile unit.
+
+**If you enjoy the garage experience**: some people prefer to talk to the technician in person and watch the work being done. There is nothing wrong with this.
+
+---
+
+## Transparent Pricing: What You Won't Find With Tyre Rescue
+
+- No callout fees (we do not charge a separate fee to come to your location)
+- No upsell pressure — we tell you what you need, not what generates the most commission
+- No admin fees or disposal fees added at checkout
+- TPMS reset included, not an add-on
+
+---
+
+Call **0141 266 0690** or [book online](/book) for a quote. Give us your registration number and we can quote tyre prices immediately.
+
+[Mobile tyre fitting vs garage](/blog/mobile-tyre-fitting-vs-garage) | [Tyre prices Scotland](/blog/tyre-prices-scotland-guide-2026) | [Budget tyres Scotland](/blog/budget-tyres-scotland-guide)`,
+  },
+  {
     slug: 'same-day-tyre-fitting-scotland',
     title: 'Same Day Tyre Fitting in Scotland: How to Get Tyres Fitted Today',
     description:
