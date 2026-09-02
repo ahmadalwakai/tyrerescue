@@ -10880,6 +10880,148 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'fuel-efficient-tyres-scotland',
+    title: 'Best Fuel-Efficient Tyres for Scottish Drivers: Save on Running Costs',
+    description:
+      'Tyres have a measurable impact on fuel economy — the right tyre choice can save Scottish drivers £30–£100 per year in fuel. This guide covers tyre rolling resistance, EU labels, and the best low-rolling-resistance tyres for Scottish roads.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'fuel efficient tyres scotland',
+      'low rolling resistance tyres scotland',
+      'eco tyres scotland',
+      'tyres that save fuel scotland',
+      'best economy tyres scotland',
+      'tyre fuel efficiency scotland',
+      'green tyres scotland',
+      'tyres affect mpg scotland',
+    ],
+    relatedSlugs: [
+      'tyre-buying-guide-scotland',
+      'tyre-pressure-guide-scotland',
+      'budget-tyres-scotland-guide',
+    ],
+    content: `# Best Fuel-Efficient Tyres for Scottish Drivers: Save on Running Costs
+
+Tyres are responsible for approximately **20–30% of a vehicle's total fuel consumption** through rolling resistance — the energy lost as a tyre deforms under load. Choosing a low-rolling-resistance tyre can meaningfully reduce your fuel bill.
+
+For Scottish drivers covering average distances (8,000–10,000 miles per year), the difference between a high-rolling-resistance tyre and a top-rated eco tyre can be **£30–£100 per year in fuel savings** depending on vehicle type and driving mix.
+
+---
+
+## What Is Rolling Resistance?
+
+Rolling resistance is the energy required to keep a tyre moving. As a tyre rotates, it constantly deforms where it contacts the road surface and then reforms — this deformation generates heat, which represents energy lost from the engine/battery.
+
+A tyre with low rolling resistance requires less energy to maintain speed. The fuel (or battery charge) saved by reduced rolling resistance is real and measurable.
+
+**Rough rule**: every 10% reduction in rolling resistance improves fuel economy by approximately 1–2% for a typical car.
+
+---
+
+## The EU Tyre Fuel Efficiency Label
+
+All tyres sold in the UK must display a fuel efficiency rating on the EU/UK tyre label:
+
+- **A**: lowest rolling resistance (best for fuel economy)
+- **B**: second best
+- **C**: moderate — the minimum acceptable standard for most drivers
+- **D/E**: higher rolling resistance — avoid for economy-focused driving
+
+The label also shows:
+- **Wet grip rating** (A–E, where A is shortest stopping distance)
+- **External noise level** (dB)
+
+The best eco tyres have **A rating for fuel efficiency** while maintaining **A or B rating for wet grip** — you do not have to sacrifice safety for economy.
+
+---
+
+## How Much Can You Save?
+
+Example: a petrol car averaging 40 mpg, covering 9,000 miles per year at 140p per litre:
+
+| Label rating | Typical rolling resistance | Estimated annual fuel saving vs E-rated |
+|---|---|---|
+| A-rated tyre | Very low | Save ~£80–£100/year |
+| B-rated tyre | Low | Save ~£50–£70/year |
+| C-rated tyre | Moderate | Save ~£20–£30/year |
+| E-rated tyre | High | Baseline |
+
+These savings compound across the life of the tyres — a set of A-rated tyres lasting 30,000 miles may save £300–£500 in fuel versus E-rated alternatives over their lifespan.
+
+---
+
+## Top Fuel-Efficient Tyre Choices for Scotland
+
+### Premium — Best for Economy + Safety
+
+**Michelin Energy Saver+ / Primacy 4+**
+- Fuel efficiency: A | Wet grip: A or B
+- Michelin's compound technology leads the market in combining low rolling resistance with excellent wet performance. A consistent top performer in ADAC and Auto Express tests.
+- Particularly good for Scottish mixed-road driving (city + rural motorway)
+
+**Continental EcoContact 7 / PremiumContact 7**
+- Fuel efficiency: A | Wet grip: A
+- Continental's latest generation eco compound. Outstanding wet braking alongside A-rated fuel efficiency.
+
+**Bridgestone Turanza 6**
+- Fuel efficiency: A | Wet grip: A
+- Designed specifically for EVs and modern efficient petrol/diesel vehicles. Excellent noise isolation.
+
+### Mid-Range — Good Economy Value
+
+**Hankook Kinergy Eco2 / Ventus Prime 4**
+- Fuel efficiency: A or B | Wet grip: B
+- Very good economy performance at mid-range price. Popular choice for Scottish fleet operators.
+
+**Falken Ziex ZE914 Ecorun**
+- Fuel efficiency: A | Wet grip: B
+- Falken's eco line performs well in independent tests at a significantly lower price than premium alternatives.
+
+**Nexen N'Blue HD Plus**
+- Fuel efficiency: A | Wet grip: B
+- Good economy rating with competitive pricing.
+
+---
+
+## Important: Tyre Pressure and Fuel Economy
+
+Even the best A-rated tyre will underperform if it is under-inflated.
+
+A tyre inflated 6 PSI (0.4 bar) below the recommended pressure increases rolling resistance by approximately 3–5%, adding measurable fuel consumption.
+
+**Check tyre pressures every four weeks.** This is the single easiest fuel-saving action any Scottish driver can take, and it costs nothing.
+
+---
+
+## EVs and Low Rolling Resistance Tyres
+
+For electric vehicles, rolling resistance is even more important — the energy the tyre wastes directly reduces range.
+
+Most EVs are fitted as standard with low-rolling-resistance tyres designed for EV use. When replacing EV tyres, always maintain A-rated or EV-specific tyres. Fitting a standard (non-EV-spec) tyre with B or C rolling resistance rating will measurably reduce your EV range.
+
+Scottish EV drivers covering long Highland routes where charging stops are less frequent benefit particularly from low rolling resistance tyres.
+
+---
+
+## Scotland-Specific Note: Winter Driving and Rolling Resistance
+
+Winter tyres and all-season tyres inherently have higher rolling resistance than summer tyres due to their softer, more flexible compounds. This is a necessary trade-off for cold-weather grip.
+
+If you run winter tyres in Scotland (strongly recommended for Highland areas), expect a 5–8% fuel economy reduction during winter months regardless of tyre brand. This is normal and expected.
+
+For Central Belt drivers who do not regularly encounter snow/ice, a high-quality all-season tyre with B-rated fuel efficiency is often the best balance.
+
+---
+
+Call **0141 266 0690** or [book online](/book) to order and fit eco tyres across Scotland. Our fitters can advise on the best economy option for your vehicle, driving profile, and budget.
+
+[Tyre buying guide Scotland](/blog/tyre-buying-guide-scotland) | [Tyre pressure guide](/blog/tyre-pressure-guide-scotland) | [Summer vs winter vs all-season tyres Scotland](/blog/summer-vs-winter-vs-all-season-tyres-scotland)`,
+  },
+  {
     slug: 'nitrogen-vs-air-tyres-scotland',
     title: 'Nitrogen vs Air in Tyres: Is It Worth It for Scottish Drivers?',
     description:
