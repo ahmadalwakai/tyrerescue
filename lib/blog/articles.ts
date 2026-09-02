@@ -10880,6 +10880,123 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'overinflated-tyres-scotland',
+    title: 'Overinflated Tyres in Scotland: Risks, Signs, and What to Do',
+    description:
+      'Overinflating tyres is just as dangerous as under-inflation — causing reduced grip, faster centre tyre wear, and increased impact vulnerability. This guide covers the risks of overinflated tyres on Scottish roads.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'overinflated tyres scotland',
+      'over inflated tyres risks scotland',
+      'too much air in tyres scotland',
+      'tyre pressure too high scotland',
+      'overinflation tyre damage scotland',
+      'consequences overinflated tyres scotland',
+      'tyre over pressure scotland',
+      'excess tyre pressure scotland',
+    ],
+    relatedSlugs: [
+      'tyre-pressure-guide-scotland',
+      'uneven-tyre-wear-guide-scotland',
+      'tyre-pressure-loaded-car-scotland',
+    ],
+    content: `# Overinflated Tyres in Scotland: Risks, Signs, and What to Do
+
+Most tyre safety advice focuses on under-inflation — and rightly so, as it is far more common. But over-inflation creates its own serious risks that Scottish drivers should understand.
+
+Over-inflation is most likely to occur after:
+- Inflating to "full load" pressure when the car is actually lightly loaded
+- Inflating when tyres are warm (pressure reads higher on a warm tyre)
+- A garage or petrol station error
+- Following incorrect advice to inflate to the maximum pressure printed on the tyre sidewall
+
+---
+
+## What Happens When Tyres Are Overinflated?
+
+### Reduced Contact Patch
+
+A tyre's correct pressure creates the ideal contact area between tyre and road. Overinflation causes the tyre to balloon slightly — the sidewalls stiffen and the centre of the tread area bulges down, reducing the contact patch to a narrower strip down the middle.
+
+This smaller contact patch means:
+- Less grip in braking and cornering (fewer tyre molecules in contact with the road)
+- Reduced water dispersal capability — aquaplaning risk increases on wet Scottish roads
+- Loss of ride comfort — the tyre cannot flex to absorb road surface irregularities
+
+### Centre Tyre Wear
+
+With an overinflated tyre, the centre of the tread wears faster than the edges. If you check your tyre and find the centre is significantly more worn than both edges, overinflation is the most likely cause.
+
+This is the diagnostic opposite of under-inflation, where both edge shoulders wear faster.
+
+### Increased Pothole Vulnerability
+
+An overinflated tyre has very little ability to flex when it hits a pothole edge or similar sharp impact. The full impact energy passes directly to:
+- The tyre bead and sidewall (risk of sudden failure)
+- The wheel rim (risk of rim cracking or deformation)
+
+Scotland's roads have significant pothole density. A heavily overinflated tyre on the A9, A82, or urban Glasgow is much more vulnerable to sudden impact failure.
+
+### Harsher Ride
+
+Overinflated tyres make the ride noticeably firmer. While this is a comfort issue rather than a direct safety issue, it reduces the driver's ability to accurately sense grip levels and road surface changes — important feedback for safe driving.
+
+---
+
+## What Counts as Overinflation?
+
+Overinflation means inflating above the manufacturer's recommended maximum for your loading condition.
+
+**What is NOT overinflation**:
+- Inflating to full-load pressure (as shown on your door sticker) when lightly loaded is technically overinflation relative to the ideal for that load — but it is within normal operating range and not dangerous in practice
+
+- Inflating to the maximum pressure printed on the tyre sidewall (e.g., "Max 51 PSI") when the door sticker says 33 PSI IS overinflation — this can cause the problems described above
+
+**The common mistake**: some drivers think they should inflate to the maximum printed on the tyre rather than the vehicle-specific pressure on the door sticker. Always use the door sticker figure.
+
+---
+
+## How to Check If Your Tyres Are Overinflated
+
+1. **Use a gauge**: check all four tyre pressures and compare to the door sticker
+2. **Check for centre wear**: if the centre of the tread is noticeably more worn than the edges, overinflation has occurred
+3. **Feel for firmness**: gently pressing on the tyre sidewall when cold — a very hard tyre that does not yield at all may indicate high pressure
+
+---
+
+## What to Do If Your Tyres Are Overinflated
+
+Simply release air. Press the pin inside the valve stem with a small key or pen end, or use the bleed valve on your tyre pressure gauge. Release air in short bursts and check with the gauge between releases.
+
+**Check cold**: this is important. Check pressure when the car has not been driven for 3+ hours. Warm tyres give a higher reading — if you measure and deflate a warm tyre to the correct cold pressure, it will be under-inflated when cold.
+
+If you have released air from tyres that have already shown centre wear, the wear pattern will not reverse — but you can prevent further progression.
+
+---
+
+## Scotland-Specific Context: Winter and Cold Weather
+
+Scotland's cold winters cause tyre pressure to drop. If you inflate to correct pressure in a warm garage in October, the pressure may drop 3–4 PSI by the time the car is parked outside in December.
+
+This leads some drivers to over-inflate as a buffer against winter pressure loss. This is not recommended. Instead:
+- Check pressures monthly throughout winter
+- Inflate to the correct cold pressure each time
+
+Cold also makes overinflated tyre problems worse — the compound is already stiffer in cold conditions, and additional pressure reduces flex further, increasing pothole damage risk.
+
+---
+
+Tyre Rescue provides pressure checks as part of every service visit. We always inflate to the correct vehicle-specific pressure, not the tyre maximum.
+
+Call **0141 266 0690** or [book online](/book) for tyre fitting and inspection across Scotland.
+
+[Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland) | [Uneven tyre wear guide](/blog/uneven-tyre-wear-guide-scotland) | [Tyre pressure for loaded vehicles](/blog/tyre-pressure-loaded-car-scotland)`,
+  },
+  {
     slug: 'new-tyres-noisy-scotland',
     title: 'Why Are My New Tyres So Noisy? Common Causes Explained for Scottish Drivers',
     description:
