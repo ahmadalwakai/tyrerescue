@@ -10880,6 +10880,172 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'tyre-sidewall-markings-explained-scotland',
+    title: 'Tyre Sidewall Markings Explained: What Every Number and Letter Means',
+    description:
+      'Decode the numbers and letters on your tyre sidewall — width, profile, rim size, load index, speed rating, DOT code, and special markings like RFT, MOE, and XL — explained for Scottish drivers.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'tyre sidewall markings explained scotland',
+      'what do tyre numbers mean scotland',
+      'tyre markings explained uk',
+      'tyre size markings scotland',
+      'tyre load index explained scotland',
+      'tyre speed rating explained scotland',
+      'what does 205 55 r16 mean',
+      'tyre sidewall numbers uk',
+    ],
+    relatedSlugs: [
+      'tyre-buying-guide-scotland',
+      'tyre-age-limit-scotland',
+      'run-flat-tyres-scotland-guide',
+    ],
+    content: `# Tyre Sidewall Markings Explained: What Every Number and Letter Means
+
+The sidewall of a tyre is packed with numbers, letters, and codes. Understanding them helps you buy the right replacement tyre and understand your vehicle's requirements.
+
+Here is a complete guide to everything written on the sidewall of a modern tyre.
+
+---
+
+## The Main Size Code
+
+Example: **205/55R16 91W**
+
+### Width: 205
+
+The first number is the tyre width in millimetres, measured across the widest point of the tyre when correctly inflated and fitted (not across the tread). In our example, the tyre is 205mm wide.
+
+### Aspect Ratio / Profile: 55
+
+The second number is the aspect ratio — the sidewall height as a percentage of the width. In our example, the sidewall height is 55% of 205mm = 112.75mm.
+
+Lower numbers (30, 35, 40) = lower profile, shorter sidewall, sportier feel but less cushioning. Higher numbers (60, 65, 70) = taller sidewall, more comfortable, better for rural roads.
+
+### Construction: R
+
+The **R** stands for Radial construction — how the internal fabric cords run (perpendicular to the direction of travel). Virtually all modern passenger car tyres are radial. If you see a **B**, that indicates Bias-ply (crossply), found on older or specialist vehicles.
+
+### Rim Diameter: 16
+
+The number after R is the wheel rim diameter in inches. This tyre fits a 16" wheel. Common sizes: 14", 15", 16", 17", 18", 19", 20", 21", 22".
+
+### Load Index: 91
+
+The load index number indicates the maximum weight each tyre can carry at its rated maximum speed. In our example:
+
+| Load Index | Max load (kg) | Load Index | Max load (kg) |
+|---|---|---|---|
+| 87 | 545 | 103 | 875 |
+| 91 | 615 | 107 | 975 |
+| 94 | 670 | 112 | 1,120 |
+| 99 | 775 | 116 | 1,250 |
+| 101 | 825 | 120 | 1,400 |
+
+**Never fit a tyre with a lower load index than specified by the manufacturer.** This is illegal and dangerous. Fitting higher is always acceptable.
+
+EVs and PHEVs often require a higher load index than the equivalent petrol car because of battery weight.
+
+### Speed Rating: W
+
+The speed rating is the final letter. It indicates the maximum sustained speed the tyre is designed for:
+
+| Rating | Max speed |
+|---|---|
+| Q | 100mph (160km/h) |
+| R | 106mph (170km/h) — common on vans/caravans |
+| S | 112mph (180km/h) |
+| T | 118mph (190km/h) |
+| H | 130mph (210km/h) |
+| V | 149mph (240km/h) |
+| W | 168mph (270km/h) |
+| Y | 186mph (300km/h) |
+| Z | 150mph+ (240km/h+) |
+
+You must fit a tyre with at least the speed rating specified by the manufacturer. Fitting a higher speed rating is fine (and common with performance upgrades).
+
+---
+
+## Special Markings
+
+### XL or EXL — Extra Load
+Indicates a tyre with reinforced construction and higher load capacity than a standard tyre of the same size. XL tyres are often required by EVs and heavier cars to compensate for vehicle weight. They are run at slightly higher pressures than standard.
+
+**If your vehicle specifies XL tyres, always replace with XL.** Fitting a standard (non-XL) tyre of the same size could result in inadequate load carrying.
+
+### RFT, ROF, RSC — Run-Flat Tyre
+Indicates a run-flat tyre. These can support the vehicle for approximately 80km at 80km/h after losing air pressure. Required on vehicles without spare tyres (most BMWs, MINIs, and Mercedes).
+
+### MOE or MOExtended — Mercedes-Benz Run-Flat
+Mercedes-specific run-flat designation. MOE tyres are approved and specification-compliant for Mercedes-Benz vehicles.
+
+### EMT — Extended Mobility Tyre
+Bridgestone's run-flat designation. Used as original equipment on various vehicles.
+
+### FR — Flange Ridge
+Indicates a raised protective rib on the lower sidewall that protects the wheel rim from kerbing damage.
+
+### MFS — Maximum Flange Shield
+Similar rim protection feature to FR.
+
+### (*)  — BMW Star Marking
+A small star or asterisk indicates the tyre has been approved and optimised for BMW vehicles. BMW-star tyres may have specific noise, rolling resistance, or handling properties tuned for BMW models.
+
+### AO — Audi Original
+Tyre approved as original equipment for Audi vehicles.
+
+### MO — Mercedes Original
+Mercedes-approved original equipment tyre (different from MOE/MOExtended).
+
+### NO — Nissan Original
+
+### VOL — Volvo Original
+
+### XL FR MFS combinations
+You may see multiple codes: e.g., **225/40R18 92Y XL FR**. This means extra load construction with flange protection — a common specification for performance cars.
+
+---
+
+## The DOT Code
+
+**DOT** followed by a series of letters and numbers is the US Department of Transportation code indicating the tyre was manufactured to US safety standards. This is required for all tyres sold in the UK.
+
+The last four digits indicate manufacture date:
+- Example: **DOT XXXXXX 2619** = 26th week, 2019
+
+See our [tyre age limit guide](/blog/tyre-age-limit-scotland) for what these dates mean for your safety.
+
+---
+
+## EU Tyre Label Ratings
+
+Since 2012, all new tyres in Europe and the UK carry a label showing:
+- **Fuel efficiency**: A (lowest rolling resistance) to G
+- **Wet grip**: A (shortest stopping distance) to E
+- **External noise**: measured in dB
+
+These ratings are also typically printed on the tyre sidewall or packaging. Look for:
+- **A/A** = excellent on both metrics (buy these)
+- Never buy wet grip rating below **C** for normal Scottish road use
+
+---
+
+## Reading Your Current Tyres
+
+If you are not sure what size or specification your vehicle needs:
+1. Look on the driver's door sticker (inside the door frame)
+2. Check the fuel cap sticker on some vehicles
+3. Read the current tyre sidewall — if they were originally fitted, they are likely the correct size
+
+Call **0141 266 0690** or [book online](/book) for expert advice on tyre specification and mobile fitting across Scotland.
+
+[Tyre buying guide Scotland](/blog/tyre-buying-guide-scotland) | [Run-flat tyres Scotland](/blog/run-flat-tyres-scotland-guide) | [Tyre age limit Scotland](/blog/tyre-age-limit-scotland)`,
+  },
+  {
     slug: 'volkswagen-amarok-tyre-fitting-scotland',
     title: 'Volkswagen Amarok Tyre Fitting Scotland: V6 TDI and 3.0 TSI Sizes and Options',
     description:
