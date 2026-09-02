@@ -10880,6 +10880,97 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'nitrogen-vs-air-tyres-scotland',
+    title: 'Nitrogen vs Air in Tyres: Is It Worth It for Scottish Drivers?',
+    description:
+      'Nitrogen inflation is offered as a premium upgrade at many tyre centres. This guide explains what nitrogen actually does, when it genuinely helps, and whether it is worth paying for in Scotland.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 4,
+    featured: false,
+    keywords: [
+      'nitrogen tyres scotland',
+      'nitrogen vs air tyres scotland',
+      'should I use nitrogen in tyres scotland',
+      'nitrogen tyre inflation scotland',
+      'is nitrogen better than air for tyres scotland',
+      'nitrogen tyre filling scotland',
+      'nitrogen car tyres scotland',
+    ],
+    relatedSlugs: [
+      'tyre-pressure-guide-scotland',
+      'tyre-buying-guide-scotland',
+      'budget-tyres-scotland-guide',
+    ],
+    content: `# Nitrogen vs Air in Tyres: Is It Worth It for Scottish Drivers?
+
+Many tyre centres offer nitrogen inflation as an upgrade — sometimes free, sometimes £5–£10 per tyre. The marketing claims are impressive: more stable pressures, better fuel economy, longer tyre life.
+
+Here is an honest answer on whether nitrogen makes a real difference for most Scottish drivers.
+
+---
+
+## What Is the Difference?
+
+Air is approximately 78% nitrogen, 21% oxygen, and 1% other gases. Dry nitrogen is 95–99% pure nitrogen.
+
+When you inflate a tyre with nitrogen instead of air, you are primarily removing the oxygen fraction.
+
+---
+
+## What Does Nitrogen Actually Do?
+
+### Pressure Stability
+Oxygen is a slightly smaller molecule than nitrogen, and it diffuses through tyre rubber at a slightly faster rate. Nitrogen also expands and contracts less with temperature changes than oxygen does.
+
+The result: nitrogen-inflated tyres lose pressure slightly more slowly over time (over months, not hours), and pressure changes less dramatically with temperature.
+
+**Real-world impact for Scottish drivers**: a tyre inflated to 34 PSI with air might be at 32–33 PSI after 4–6 weeks. A nitrogen-filled tyre might retain 33–34 PSI over the same period. The difference is measurable but small.
+
+### No Moisture
+Air contains moisture. Moisture inside a tyre can cause minor corrosion of alloy rims and slightly larger pressure swings with temperature. Dry nitrogen has no moisture.
+
+**Real-world impact**: on older or corrosion-prone alloy wheels (common in Scotland's wet, salted-road environment), nitrogen may slightly reduce internal rim corrosion over many years.
+
+---
+
+## Where Nitrogen Genuinely Helps
+
+Nitrogen is genuinely beneficial in two situations:
+
+1. **Aircraft**: aircraft tyres run at extremely high temperatures and loads. Nitrogen's non-flammability and minimal moisture content matter here.
+
+2. **Motorsport and track use**: racing tyres experience very large temperature swings. Consistent pressure under heat is critical for handling predictability. All serious motorsport uses nitrogen.
+
+---
+
+## For Most Scottish Drivers: The Honest Assessment
+
+**The benefit is real but small.** You will probably not notice any handling or economy difference in normal driving.
+
+**The practical issue** with nitrogen for everyday drivers: when you need to top up your tyre at a petrol station, the pump uses compressed air — which partially undoes the nitrogen advantage. Unless you have access to nitrogen refills, you will inevitably end up with a mix.
+
+**Our recommendation**:
+- If a tyre centre offers nitrogen free as standard — fine, take it.
+- If it costs £15–£30 extra to inflate all four tyres with nitrogen — the money is better spent on premium-brand tyres or an alignment check.
+- Check your tyre pressures every four weeks regardless of what is in them. Regular pressure maintenance eliminates the main advantage nitrogen offers.
+
+---
+
+## One Scotland-Specific Point: Winter Tyres and Nitrogen
+
+If you run separate winter wheels, nitrogen can be beneficial because winter wheels are often stored for 5–6 months. Nitrogen-filled winter tyres will lose less pressure during storage than air-filled alternatives, meaning fewer top-up adjustments at the start of the season.
+
+This is the one scenario where nitrogen provides a practical, tangible benefit for Scottish drivers.
+
+---
+
+Tyre Rescue focuses on what actually makes a difference to tyre safety and longevity: correct pressure, correct tyre specification, BSAU159 repairs, and proper balancing. Call **0141 266 0690** or [book online](/book).
+
+[Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland) | [Winter tyre storage Scotland](/blog/winter-tyre-storage-scotland) | [Budget tyres Scotland](/blog/budget-tyres-scotland-guide)`,
+  },
+  {
     slug: 'run-flat-tyres-scotland-guide',
     title: 'Run-Flat Tyres Scotland: Can They Be Repaired and What Do They Cost?',
     description:
