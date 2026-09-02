@@ -10880,6 +10880,119 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'smart-ev-tyre-fitting-scotland',
+    title: 'Smart #1 and Smart #3 Tyre Fitting Scotland: EV Tyre Guide',
+    description:
+      'Smart #1 and Smart #3 EV tyre guide for Scotland: 235/45R19 and 245/45R19 sizes, no spare tyre policy, load index requirements, and mobile tyre fitting for Smart EVs across Scotland.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'smart #1 tyre fitting scotland',
+      'smart #3 tyre fitting scotland',
+      'smart ev tyres scotland',
+      'smart 1 tyre size scotland',
+      'smart 3 tyre size scotland',
+      'smart hash 1 tyres scotland',
+      'smart hash 3 tyres scotland',
+      'smart ev tyre replacement scotland',
+    ],
+    relatedSlugs: [
+      'ev-tyre-fitting-scotland',
+      'mg-motor-tyre-fitting-scotland',
+      'byd-tyre-fitting-scotland',
+    ],
+    content: `# Smart #1 and Smart #3 Tyre Fitting Scotland: EV Tyre Guide
+
+Smart is no longer the micro-city-car brand of the ForTwo. The modern Smart brand — a joint venture between Mercedes-Benz and Geely — now produces premium-sized electric SUVs with a very different tyre profile from their predecessors.
+
+If you own a Smart #1 or Smart #3, here is what you need to know about tyres in Scotland.
+
+---
+
+## Smart #1 Tyre Sizes
+
+The Smart #1 (launched 2023) is a compact electric SUV on 19" wheels.
+
+**Standard Smart #1 (Pure / Pro / Pro+)**:
+- **235/45R19** on 19" alloy wheels
+- Load index: **99** or **95** depending on version — confirm on the tyre sidewall
+- Speed rating: Y (186mph rated)
+
+**Smart #1 Brabus** (high-performance variant):
+- **235/45R19** front and rear (same size for both axles, despite AWD performance)
+- Higher load index (99+) due to additional torque and weight
+- **No spare tyre** — Smart #1 carries a tyre inflation/sealant kit instead
+
+---
+
+## Smart #3 Tyre Sizes
+
+The Smart #3 (launched 2023) is a fastback-bodied electric SUV, slightly longer than the #1.
+
+**Standard Smart #3 (Pro / Pro+)**:
+- **235/45R19** — same size as Smart #1 in most variants
+
+**Smart #3 Brabus** (performance AWD):
+- **245/45R19** rear (wider) — may be the same front and rear depending on market variant
+- Confirm the exact size on your tyre sidewall before ordering
+
+---
+
+## EV-Specific Tyre Requirements
+
+Like other modern EVs, Smart #1 and #3 require tyres with:
+
+**Adequate load index**: EVs are heavier than equivalent petrol cars due to the battery. Smart #1 weighs approximately 1,800–1,900kg. Each tyre must carry roughly 475kg at maximum (LI 99 = 775kg capacity, giving adequate headroom).
+
+**Low rolling resistance**: Smart EVs are fitted with tyres optimised for EV use, reducing energy consumption and maximising range. When replacing, choose tyres with A or B rolling resistance rating on the EU label.
+
+**No spare tyre**: Smart #1 and #3 do not include a spare wheel. They carry a tyre inflation kit (aerosol sealant + compressor). This foam sealant has important limitations:
+- Only works on small punctures in the tread area (nail/screw)
+- Does not work on sidewall damage or large holes
+- Ruins the tyre for future proper repair — if foam has been used, the tyre cannot be BSAU159 repaired and must be replaced
+- Does not work if the tyre is a run-flat (Smart models are not run-flat, but worth knowing)
+
+After using the foam kit, call Tyre Rescue for a replacement — do not continue driving on the foam-repaired tyre indefinitely.
+
+---
+
+## Which Tyre Brands for Smart #1 / #3?
+
+The Smart #1 and #3 are fitted from the factory with various brand options. Compatible replacements in 235/45R19 include:
+
+- **Continental PremiumContact 6 / 7** (OE on some variants) — excellent wet grip, A-rated fuel efficiency
+- **Michelin Primacy 4+ / Pilot Sport EV** — low rolling resistance, strong in wet Scottish conditions
+- **Hankook Ventus Prime 4** — good mid-range option at lower cost than premium alternatives
+- **Bridgestone Turanza 6** — EV-focused, designed for smooth ride and low rolling resistance
+
+Always verify the load index and speed rating match or exceed your current tyres before fitting.
+
+---
+
+## TPMS on Smart #1 and #3
+
+Smart EVs are equipped with TPMS. After any tyre replacement, TPMS sensors must be reset via the Smart app or dashboard menu.
+
+If a sensor needs replacing (battery failure after 5–7 years, or damage from a pothole), we carry standard 433MHz TPMS sensors compatible with Smart vehicles.
+
+---
+
+## Scotland-Specific Notes
+
+**Range in Scottish winter**: cold weather reduces EV battery performance and increases tyre rolling resistance. In January/February, Scottish Smart #1 and #3 owners can expect 15–25% range reduction versus summer. Winter or all-season tyres (3PMSF-rated) add further rolling resistance but improve traction significantly in the Highlands.
+
+**19" wheels and Scottish roads**: 235/45R19 is a low-profile fitment that is vulnerable to pothole damage. After any hard impact on Scottish roads, inspect the sidewall and have the wheel checked for rim damage.
+
+---
+
+Call **0141 266 0690** for Smart #1 and Smart #3 tyre fitting across Scotland. We stock 235/45R19 in compatible brands and can source 245/45R19 for Brabus models.
+
+[EV tyre guide Scotland](/blog/ev-tyre-fitting-scotland) | [MG EV tyre fitting Scotland](/blog/mg-motor-tyre-fitting-scotland) | [BYD tyre fitting Scotland](/blog/byd-tyre-fitting-scotland)`,
+  },
+  {
     slug: 'tyre-sidewall-markings-explained-scotland',
     title: 'Tyre Sidewall Markings Explained: What Every Number and Letter Means',
     description:
