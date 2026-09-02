@@ -10880,6 +10880,129 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'tyre-safety-older-drivers-scotland',
+    title: 'Tyre Safety for Older Drivers in Scotland: Why Your Tyres Matter More as You Age',
+    description:
+      'As reaction time changes with age, tyre quality becomes more important, not less. This guide covers tyre safety specifically for older Scottish drivers — grip, inspection, mobile fitting at home, and what to look out for.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'tyre safety older drivers scotland',
+      'elderly driver tyres scotland',
+      'tyre fitting older driver scotland',
+      'senior driver tyre safety scotland',
+      'older driver car safety scotland',
+      'over 70 driving safety tyres scotland',
+      'tyre inspection elderly scotland',
+      'mobile tyre fitting elderly scotland',
+    ],
+    relatedSlugs: [
+      'tyre-pressure-guide-scotland',
+      'signs-you-need-new-tyres-scotland',
+      'how-long-do-tyres-last-scotland',
+    ],
+    content: `# Tyre Safety for Older Drivers in Scotland: Why Your Tyres Matter More as You Age
+
+Tyres are important for every driver, but as reaction times change with age, the contribution of tyre condition to road safety becomes more significant. A 20-year-old may react and brake within 0.7 seconds. A 70-year-old may take 1.2–1.5 seconds. In that extra 0.5 seconds at 60mph, the car travels an additional 13 metres.
+
+Good tyres do not make up for reaction time — but they significantly reduce stopping distances once braking begins. Poor tyres make every driving situation more dangerous.
+
+---
+
+## Why Tyre Condition Matters More With Age
+
+### Stopping Distance is Critical
+
+Older drivers who braking reacts slightly slower depend on the car's mechanical grip to take up the difference. A new premium tyre with 7mm of tread stops from 60mph in approximately 25–27 metres in wet conditions. A worn tyre at 2mm stops in 35–40 metres.
+
+That 10–15 metre difference is exactly the margin that prevents or causes collisions on everyday driving situations — junction exits, zebra crossings, vehicles braking ahead.
+
+### Rural and Highland Routes
+
+Many older Scottish drivers use rural routes regularly — country properties, visiting grandchildren in small towns, church, clubs. Rural roads have more hazards (animals, unexpected bends, poor surfaces) that require good grip. Premium tyres with adequate tread are particularly important on these routes.
+
+---
+
+## Common Tyre Problems in Older Drivers' Vehicles
+
+### Tyres Aged in Storage
+
+Retired drivers often do not cover high mileage. A car driven 3,000–5,000 miles per year may retain substantial tread depth while the tyre rubber ages and hardens. A tyre that looks practically new but is 9 years old provides significantly less grip than it did when new.
+
+Check the DOT code (last four digits on the sidewall — week and year). Any tyre over 6 years old should be inspected. Any tyre over 10 years old should be replaced regardless of tread depth.
+
+### Tyres That Have Not Been Checked
+
+Regular garage visits for servicing do not always include a thorough tyre inspection. Some drivers have not had their tyre tread depth or pressure formally checked for years.
+
+**Simple self-check**: press a 20p coin into the tread groove. If the outer rim is visible, you are below 3mm and replacement is advisable. Do this on all four tyres.
+
+### Underinflated Tyres
+
+Underinflation is the most common tyre problem for all driver groups, and it is particularly common in cars that are not regularly maintained. A tyre loses 1–2 PSI per month naturally, more in cold weather.
+
+Symptoms of underinflation:
+- Car feels slightly sluggish to steer
+- Fuel economy reduced
+- Tyre feels slightly soft to the touch
+- Car pulls slightly to one side
+
+Check tyre pressure monthly — most modern petrol stations have free or coin-operated air.
+
+---
+
+## How Mobile Tyre Fitting Helps Older Drivers
+
+Visiting a tyre centre involves:
+- Arranging transport while the car is being serviced
+- Sitting in a waiting area (often noisy, not always comfortable)
+- Navigating an unfamiliar commercial environment
+- Ensuring the car is in a suitable state to drive after fitting
+
+**Mobile tyre fitting from Tyre Rescue removes all of these barriers.** We come to you:
+- At your home address — the most popular option
+- While you are at a club, church, or social event
+- At a family member's home if you need support
+
+The fitting takes 30–45 minutes for two tyres, and you remain in your own home throughout. We explain what we are doing and why, check all four tyres as part of the visit, and only charge for what is needed.
+
+---
+
+## What to Ask When Booking
+
+When calling Tyre Rescue, mention:
+- That you would like a full tyre inspection as well as fitting
+- Whether you have any difficulty accessing the car or being outside
+- If you have an unusual tyre size (particularly common on older or classic vehicles)
+- Your preferred appointment time — we offer daytime, evening, and weekend slots
+
+---
+
+## Practical Checklist for Older Drivers
+
+**Monthly**:
+- Check all four tyre pressures (including spare if fitted)
+- Look at all four tyres for visible damage
+
+**Every 6 months**:
+- Check tread depth with 20p test
+- Check DOT codes — note if any tyres are over 5 years old
+
+**Before any long journey**:
+- Full pressure check including spare
+- Sidewall inspection
+- Confirm you have the Tyre Rescue number: **0141 266 0690**
+
+---
+
+Call Tyre Rescue for mobile tyre fitting at your home across all of Scotland. Appointments available 7 days a week, including evenings. Call **0141 266 0690** or [book online](/book).
+
+[Signs you need new tyres Scotland](/blog/signs-you-need-new-tyres-scotland) | [Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland) | [How long do tyres last Scotland](/blog/how-long-do-tyres-last-scotland)`,
+  },
+  {
     slug: 'spare-tyre-check-scotland',
     title: 'How to Check Your Spare Tyre Before a Scottish Journey',
     description:
