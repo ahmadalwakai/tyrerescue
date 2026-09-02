@@ -10880,6 +10880,107 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'ds-automobiles-tyre-fitting-scotland',
+    title: 'DS Automobiles Tyre Fitting Scotland: DS3, DS4, DS7, DS9 Guide',
+    description:
+      'Mobile tyre fitting for DS Automobiles in Scotland. DS3 E-Tense EV, DS4 PHEV load index, DS7 and DS9 sizes, run-flat options, TPMS reset for all DS models.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'DS Automobiles tyre fitting scotland',
+      'DS3 tyre size scotland',
+      'DS7 tyre fitting scotland',
+      'DS4 PHEV tyres scotland',
+      'DS9 tyre fitting scotland',
+      'DS Automobiles tyres scotland',
+      'mobile tyre fitting DS scotland',
+      'DS3 E-Tense EV tyres scotland',
+    ],
+    relatedSlugs: [
+      'citroen-tyre-fitting-scotland',
+      'peugeot-tyre-fitting-scotland',
+      'electric-vehicle-tyres-scotland',
+    ],
+    content: `# DS Automobiles Tyre Fitting Scotland
+
+DS Automobiles is Stellantis's premium French brand, sitting above Citroën and Peugeot in terms of specification and price. The DS3, DS4, DS7, and DS9 are increasingly popular in Scotland, particularly in Edinburgh and Glasgow. Like other Stellantis PHEV models, DS vehicles have specific load index requirements that must be met.
+
+## DS3 / DS3 E-Tense Tyre Guide
+
+| DS3 Variant | Tyre Size | Load Index Note |
+|---|---|---|
+| DS3 1.2 PureTech (petrol) | 205/50R17 or 215/45R18 | 88+ |
+| DS3 E-Tense EV (2023+) | 205/50R17 or 215/45R18 | 95+ (EV weight) |
+
+**DS3 E-Tense no spare wheel**: the battery-electric DS3 does not carry a spare. Inflation kit only. For any non-repairable puncture, call Tyre Rescue.
+
+**DS3 E-Tense load index**: the electric DS3 weighs approximately 1,550 kg — heavier than the petrol variant. Minimum load index 95. Do not fit standard 88-rated tyres.
+
+## DS4 Tyre Guide (Including PHEV)
+
+| DS4 Variant | Tyre Size | Load Index Note |
+|---|---|---|
+| DS4 1.2 PureTech 130 | 225/45R18 | 95+ |
+| DS4 1.6 PureTech 225 | 235/40R19 | 96+ |
+| DS4 E-Tense PHEV 225 | 225/45R18 | 99+ |
+| DS4 E-Tense PHEV 300 | 235/40R19 | 99+ |
+
+**DS4 PHEV load index**: both DS4 E-Tense PHEV variants carry a larger battery pack than the petrol DS4, adding significant kerb weight. Minimum load index 99 on PHEV models.
+
+## DS7 Tyre Guide (Including PHEV)
+
+| DS7 Variant | Tyre Size | Load Index Note |
+|---|---|---|
+| DS7 1.5 BlueHDi Diesel | 225/55R18 or 235/50R18 | 98+ |
+| DS7 1.6 PureTech Petrol | 225/55R18 | 98+ |
+| DS7 E-Tense PHEV 225 (AWD) | 235/50R18 or 235/45R19 | 101+ |
+| DS7 E-Tense PHEV 300 (AWD) | 235/45R19 | 103+ |
+
+**DS7 PHEV load index**: the dual-motor E-Tense 300 is significantly heavier than the diesel or petrol DS7. Minimum load index 103. Do not fit 98 or lower.
+
+## DS9 Tyre Guide
+
+| DS9 Variant | Tyre Size |
+|---|---|
+| DS9 PureTech petrol | 245/45R18 |
+| DS9 E-Tense 4x4 PHEV 360 | 245/45R18, load index 100+ |
+| DS9 E-Tense PHEV 225 | 245/45R18, load index 100+ |
+
+**DS9 PHEV load index**: 100+ required on all DS9 PHEV variants.
+
+## DS TPMS Reset
+
+DS Automobiles shares the Stellantis TPMS architecture with Citroën, Peugeot, and Vauxhall. Most DS models use an indirect TPMS (pressure calculated from wheel speed sensors rather than in-wheel sensors).
+
+After fitting new tyres:
+1. Set all tyre pressures to the recommended values
+2. Start the vehicle
+3. Navigate to the tyre pressure reset in the DS Connected Touch (central touchscreen)
+4. Select **Tyre Pressure: Reset** and confirm
+5. Drive for 5+ minutes above 25 mph for calibration
+
+If a warning persists after reset, a sensor inspection or replacement may be needed.
+
+## Best Tyres for DS Automobiles in Scotland
+
+DS Automobiles targets a premium driving experience with Peugeot Citroën Group's focus on comfort and refinement. Scotland's wet roads make wet-grip performance the most important attribute.
+
+**DS3 E-Tense and DS4 PHEV**: Michelin Pilot Sport 4 or Continental PremiumContact 7 — both offer outstanding wet braking performance.
+
+**DS7 and DS9 SUV/executive**: Michelin CrossClimate 2 for year-round Scottish use (3PMSF rated), or Pirelli P Zero for summer-focused performance.
+
+**For Scottish winter (Oct–Apr)**: Continental WinterContact TS870 is available in most DS sizes and is strongly recommended for any DS owner who drives regularly on Scottish A-roads or rural routes.
+
+## Book Mobile Tyre Fitting for Your DS in Scotland
+
+Call **0141 266 0690** or [book online](/book). We cover Glasgow, Edinburgh, Aberdeen, and all of Scotland.
+
+[Citroën tyre guide Scotland](/blog/citroen-tyre-fitting-scotland) | [Peugeot tyre guide Scotland](/blog/peugeot-tyre-fitting-scotland) | [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland)`,
+  },
+  {
     slug: 'byd-tyre-fitting-scotland',
     title: 'BYD Tyre Fitting Scotland: Atto 3, Seal, Dolphin & Sealion 6 Guide',
     description:
