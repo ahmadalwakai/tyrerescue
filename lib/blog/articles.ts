@@ -10880,6 +10880,119 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'taxi-private-hire-tyre-requirements-scotland',
+    title: 'Taxi and Private Hire Vehicle Tyre Requirements in Scotland',
+    description:
+      'Tyre requirements for taxis and private hire vehicles in Scotland: load index, tread depth standards, council licensing inspections, and how mobile tyre fitting reduces driver downtime.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'taxi tyre requirements scotland',
+      'private hire tyre scotland',
+      'hackney carriage tyre scotland',
+      'uber tyre requirements scotland',
+      'taxi tyre fitting scotland',
+      'phv tyre scotland',
+      'private hire vehicle tyres scotland',
+      'taxi driver tyres glasgow scotland',
+    ],
+    relatedSlugs: [
+      'fleet-tyre-management-scotland',
+      'do-i-need-to-change-all-4-tyres-scotland',
+      'tyre-pressure-loaded-car-scotland',
+    ],
+    content: `# Taxi and Private Hire Vehicle Tyre Requirements in Scotland
+
+Taxi and private hire vehicle (PHV) drivers in Scotland face more intensive tyre wear than private motorists and carry specific legal obligations around vehicle condition. Getting tyres right matters both for safety and for keeping your licence.
+
+---
+
+## Tyre Legal Requirements for Taxis and PHVs
+
+The minimum legal tyre requirements for taxis and PHVs are the same as for private vehicles:
+- **Tread depth**: minimum 1.6mm across the central three-quarters of each tyre
+- **Sidewall**: no bulges, cuts exposing cord, or damage compromising structural integrity
+- **Construction**: no mixing of radial and crossply on the same axle
+
+However, licensing authorities across Scotland — Glasgow, Edinburgh, Aberdeenshire, and others — often apply stricter standards during vehicle inspections:
+
+- **Glasgow City Council** hackney carriage and PHV inspections require tyres in "satisfactory condition." While not specifying a minimum above the legal 1.6mm, inspectors can fail a vehicle on advisory grounds if tyres appear worn or aged.
+
+- **Edinburgh City Council** (City of Edinburgh licensing) also uses MOT-standard criteria but drivers report that vehicles with tyres at 2–2.5mm are sometimes subject to additional scrutiny.
+
+**Recommendation**: maintain tyre tread at a minimum of 3mm on any licensed vehicle. This provides a safety margin and protects your vehicle from failing an unexpected spot inspection.
+
+---
+
+## Load Index for Taxis and PHVs
+
+This is the most commonly overlooked area. A taxi carrying 4 passengers plus luggage regularly operates near the maximum load capacity of the vehicle.
+
+**Standard saloon car (Toyota Prius, Skoda Octavia, Vauxhall Insignia)**: check the passenger + luggage load and compare to the vehicle's tyre load index at full load.
+
+A Prius, for example, typically requires load index **91** (615kg per tyre) at standard specification. With 4 large passengers and airport luggage, the vehicle may approach or exceed 90kg per seat — important if you are also carrying additional equipment.
+
+**Large MPVs and minibuses (Volkswagen Caravelle, Ford Tourneo, Toyota Alphard)**: these have higher passenger counts and correspondingly higher load requirements. Always use load index tyres at or above the manufacturer's specification for full payload.
+
+**EV taxis (Tesla Model 3, Model S, BYD Atto 3, Hyundai Ioniq 6)**: EVs require higher load index tyres than equivalent petrol models due to battery weight. Verify the EV-specific load index requirement — do not assume the petrol-model specification is correct.
+
+---
+
+## Tyre Wear Patterns for High-Mileage Taxi Use
+
+Licensed taxi and PHV drivers in Scotland commonly cover 50,000–80,000+ miles per year. This means:
+
+**Front tyre wear**: front tyres wear faster than rear on front-wheel-drive vehicles (Prius, Octavia, most common taxi models). You will typically replace front tyres twice for every rear set on a standard FWD vehicle.
+
+**Rotation**: rotating tyres at 10,000–12,000 mile intervals extends their life significantly. Many taxi drivers neglect rotation — a commercial decision, but an expensive one over time.
+
+**Premium tyres are more cost-effective per mile**: a premium Continental or Michelin tyre costing £90 may last 25,000–30,000 miles on a Prius. A budget tyre at £40 may last 12,000–16,000 miles. At 60,000 miles per year, the premium tyre is the cheaper option per mile driven.
+
+---
+
+## How Mobile Tyre Fitting Reduces Taxi Downtime
+
+For drivers earning by the hour or trip, time off the road is direct revenue loss. Traditional tyre fitting requires:
+- Driving to a tyre centre (potentially 20–45 minutes each way)
+- Waiting for the fitting (30–60 minutes)
+- Total time: 1.5–2.5 hours off the road
+
+Mobile tyre fitting from Tyre Rescue takes the work to you:
+- Fitting at your home (overnight — no lost earnings)
+- Fitting at a rank or taxi bay during downtime
+- Emergency fitting at your current location
+
+For Glasgow Airport or Edinburgh Airport-based drivers, we can fit tyres at the taxi holding areas.
+
+**Call or book in advance** for overnight fitting — the most popular option for taxi drivers who want no earning-hours lost.
+
+---
+
+## Common Tyre Choices for Scottish Taxis
+
+**Saloon cars (Prius, Octavia, etc.)**:
+- Premium: Continental PremiumContact 6, Michelin Primacy 4+, Bridgestone Turanza T005
+- Mid-range: Hankook Kinergy Prime 2, Nexen N'Blue HD Plus
+- Avoid budget tyres for high-mileage commercial use — the per-mile cost advantage disappears
+
+**Large MPVs (Caravelle, Tourneo)**:
+- Michelin Agilis, Continental VanContact Ultra — van-rated versions for commercial loading
+- Avoid passenger car tyres if the load index is insufficient for full-passenger payload
+
+**EV taxis (Tesla, Ioniq, Prius PHEV)**:
+- Michelin Pilot Sport EV, Continental EcoContact 6, Bridgestone Turanza 6
+- Ensure load index matches EV specification (not petrol equivalent)
+
+---
+
+Call **0141 266 0690** for taxi and PHV tyre fitting across Scotland. We operate across Glasgow, Edinburgh, Aberdeen, Dundee, and surrounding areas. Evening and weekend appointments available.
+
+[Fleet tyre management Scotland](/blog/fleet-tyre-management-scotland) | [Do I need to change all 4 tyres?](/blog/do-i-need-to-change-all-4-tyres-scotland) | [Tyre pressure for loaded vehicles](/blog/tyre-pressure-loaded-car-scotland)`,
+  },
+  {
     slug: 'signs-you-need-new-tyres-scotland',
     title: '7 Signs You Need New Tyres in Scotland (And When to Call Immediately)',
     description:
