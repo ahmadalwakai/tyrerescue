@@ -10880,6 +10880,130 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'signs-you-need-new-tyres-scotland',
+    title: '7 Signs You Need New Tyres in Scotland (And When to Call Immediately)',
+    description:
+      'How to tell if your car needs new tyres — the 7 key warning signs Scottish drivers should look for, from tread depth and sidewall damage to vibration and pulling. Know when to stop and when to call.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'signs you need new tyres scotland',
+      'when to replace tyres scotland',
+      'do i need new tyres scotland',
+      'how to know when tyres need replacing scotland',
+      'tyre replacement signs scotland',
+      'new tyres scotland when',
+      'tyres need changing scotland',
+      'signs of worn tyres scotland',
+    ],
+    relatedSlugs: [
+      'tyre-tread-depth-guide-scotland',
+      'how-long-do-tyres-last-scotland',
+      'uneven-tyre-wear-guide-scotland',
+    ],
+    content: `# 7 Signs You Need New Tyres in Scotland (And When to Call Immediately)
+
+Most Scottish drivers wait until something goes wrong before thinking about tyres. But there are clear warning signs that you need to replace your tyres — recognising them early is cheaper and safer than waiting for a blowout.
+
+---
+
+## Sign 1: Tread Depth at or Below 3mm
+
+The UK legal minimum is **1.6mm** across the central three-quarters of each tyre. But on Scotland's frequently wet roads, 1.6mm is not a safe working limit — it is a legal floor.
+
+**The safe working limit for Scotland is 3mm.** Below 3mm, wet braking distances increase significantly on rain-soaked surfaces. Below 2mm, you are operating in genuinely dangerous territory.
+
+**The 20p test**: insert a 20p coin edge-first into the tread groove. If the outer rim of the coin is visible, your tread is below 3mm. Replace now.
+
+**Tread wear indicators**: small raised bars in the tread grooves sit at exactly 1.6mm. If your tread surface is flush with these bars, you are at the legal minimum.
+
+---
+
+## Sign 2: Visible Sidewall Damage
+
+Any visible damage to the tyre sidewall is a serious warning sign:
+
+- **Bubble or bulge**: the internal cords have broken and air is pushing through. This is a blowout waiting to happen. Stop driving and call for a replacement immediately.
+- **Cut or gash**: if the cut has exposed white cord or metal belt below the rubber, the tyre is structurally compromised. Do not drive on it.
+- **Crack running along the sidewall**: age-related cracking is a sign of tyre deterioration. Deep cracks (you can see into them) mean replacement.
+- **Scuffed sidewall**: shallow abrasion from kerbing without cutting into the cords is usually not structural — but have it inspected.
+
+If you can see a bubble or cord, pull over immediately and call Tyre Rescue on 0141 266 0690.
+
+---
+
+## Sign 3: Car Pulls to One Side While Driving Straight
+
+If your car drifts to one side when you release the steering wheel on a straight, level road, the cause could be:
+- A tyre with significantly different pressure (check and inflate)
+- A tyre that is significantly more worn on one side than others
+- Wheel alignment issue — the alignment problem has caused uneven wear and now the tyre is failing
+- A tyre losing pressure slowly (slow puncture)
+
+Check pressures first. If all are correct, book an inspection.
+
+---
+
+## Sign 4: Vibration Through the Steering Wheel or Floor
+
+**At specific speeds (often 50–70mph)**: wheel imbalance is the most likely cause — a tyre that needs balancing. This is not a reason to replace the tyre, but the imbalance causes faster and uneven wear.
+
+**Constant vibration at all speeds**: this can indicate a tyre with internal damage (belt separation), a significantly flat-spotted tyre, or a cracked wheel rim. Have it checked immediately.
+
+**Vibration that appeared suddenly**: if you just fitted new tyres and there is vibration, balancing is the issue. If vibration appeared during normal driving with no recent tyre change, stop and check — internal tyre damage or a lost balance weight.
+
+---
+
+## Sign 5: Age Over 6 Years
+
+Tyre rubber degrades with age regardless of use. A tyre sitting in your garage loses plasticisers and becomes hard and brittle — reducing grip even if the tread depth looks good.
+
+**Industry recommendation**: replace any tyre over 6 years old as a priority, regardless of tread depth or visual condition. Replace any tyre over 10 years old immediately.
+
+Find the age using the DOT code (last four digits on the sidewall — week and year of manufacture). See our [tyre age limit guide](/blog/tyre-age-limit-scotland).
+
+---
+
+## Sign 6: Visible Tread Wear Indicators (TWIs)
+
+Tread wear indicators are small raised bars moulded into the base of the tread grooves at exactly 1.6mm height. Look into the grooves — you will see these bar shapes.
+
+If any indicator is flush with the tread surface, the tyre is at or below the legal minimum. Replace immediately.
+
+---
+
+## Sign 7: Recurring Pressure Loss
+
+If you are regularly adding air to a tyre, something is wrong:
+- A slow puncture from a nail or screw — the most common cause
+- A leaking valve stem
+- A porous alloy wheel rim (corrosion allows air to seep through)
+- A bead seal failure
+
+Do not keep inflating a tyre that keeps losing pressure. Identify and fix the cause — or replace the tyre.
+
+---
+
+## When to Stop Immediately and Call
+
+Some situations require you to stop and call Tyre Rescue rather than continuing to drive:
+
+| Situation | Action |
+|---|---|
+| Visible sidewall bubble or bulge | Stop immediately — do not drive further |
+| Flat tyre (not run-flat) | Pull over, call Tyre Rescue |
+| Tyre feels soft / car is low | Stop and check pressure before driving further |
+| Loud bang while driving | Pull over and inspect all four tyres |
+| Car pulling sharply to one side | Stop safely and inspect — possible sudden deflation |
+
+Call **0141 266 0690** for mobile tyre replacement across Scotland — we come to you, at your home, workplace, or roadside.
+
+[Tread depth guide Scotland](/blog/tyre-tread-depth-guide-scotland) | [How long do tyres last](/blog/how-long-do-tyres-last-scotland) | [Uneven tyre wear guide](/blog/uneven-tyre-wear-guide-scotland)`,
+  },
+  {
     slug: 'smart-ev-tyre-fitting-scotland',
     title: 'Smart #1 and Smart #3 Tyre Fitting Scotland: EV Tyre Guide',
     description:
