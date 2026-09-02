@@ -10880,6 +10880,135 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'ev-range-anxiety-tyres-scotland',
+    title: 'How Tyres Affect Your EV Range in Scotland: The Guide No One Told You About',
+    description:
+      'EV owners in Scotland often focus on charging infrastructure, but tyres have a measurable impact on range. This guide explains how tyre choice, pressure, and condition affect how far your electric car goes on a charge.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'ev range tyres scotland',
+      'electric car range tyres scotland',
+      'ev tyre rolling resistance scotland',
+      'best tyres for ev range scotland',
+      'electric car tyre pressure range scotland',
+      'ev tyre choice scotland',
+      'how tyres affect ev range scotland',
+      'electric vehicle tyre efficiency scotland',
+    ],
+    relatedSlugs: [
+      'ev-tyre-fitting-scotland',
+      'fuel-efficient-tyres-scotland',
+      'tyre-pressure-guide-scotland',
+    ],
+    content: `# How Tyres Affect Your EV Range in Scotland: The Guide No One Told You About
+
+EV owners in Scotland spend significant energy thinking about charging infrastructure — the location of rapid chargers on the A9, the public charger situation in remote Perthshire, the overnight charging routine at home. But one of the most impactful things an EV owner can do for range is often overlooked: managing their tyres correctly.
+
+Tyres affect EV range in two distinct ways: rolling resistance and tyre pressure. Both are significant. Both are within your control.
+
+---
+
+## Rolling Resistance and Range: How Much Does It Matter?
+
+Rolling resistance is the energy lost as a tyre deforms and reforms under the vehicle's weight during rotation. In a petrol or diesel car, this is one of many energy losses and represents approximately 20–25% of total fuel consumption.
+
+In an EV, rolling resistance is proportionally more significant because there are fewer other energy losses — no combustion, less heat rejection, regenerative braking recovers some braking energy. The total drivetrain is more efficient, so rolling resistance takes a larger share.
+
+**Estimated impact of tyre rolling resistance on EV range**:
+- Switching from EU label **A-rated** to **C-rated** tyres: approximately 3–5% range reduction
+- Switching from EV-spec tyres to standard passenger tyres of same size: approximately 3–7% range reduction
+- Using winter tyres vs summer tyres in warm temperatures: approximately 5–10% range reduction
+
+For a Tesla Model 3 Long Range with 350-mile WLTP range:
+- Switching to C-rated tyres could cost approximately 10–18 miles of range
+- Running winter tyres in summer conditions could cost 17–35 miles of range
+
+On Scottish Highland routes where the next rapid charger may be 40–80 miles away, these margins matter.
+
+---
+
+## Tyre Pressure and EV Range
+
+Tyre pressure affects rolling resistance directly. An underinflated tyre has a larger contact patch and flexes more — increasing rolling resistance.
+
+**Pressure impact on EV range**:
+- 6 PSI underinflation: approximately 3% range reduction
+- 3 PSI underinflation: approximately 1.5% range reduction
+
+For an EV driver travelling the full length of the A9 from Perth to Inverness (109 miles), a 3% range reduction equals approximately 3–5 miles fewer on a full charge. This may not sound dramatic, but combined with cold weather (a separate 15–25% reduction) and a motorway speed cruise (another 15% vs WLTP), under-inflation compounds a situation where range margins are already tight.
+
+**EV-specific pressure note**: some EVs specify higher tyre pressures than an equivalent petrol car to compensate for the additional battery weight and to optimise rolling resistance. Always check the EV-specific tyre pressure label (inside the driver's door) rather than using the tyre's maximum printed pressure.
+
+---
+
+## Best Tyre Choices for EV Range in Scotland
+
+### OE Replacement Tyre Recommendations
+
+When your original tyres need replacing, choose tyres designed for EV use:
+
+**Michelin Pilot Sport EV**
+- Developed specifically for high-torque EVs
+- Low rolling resistance compound
+- Acoustic foam inside to absorb road noise (EVs reveal tyre noise otherwise masked by engine noise)
+- Available in Model 3/Y, BMW iX, Porsche Taycan sizes
+
+**Bridgestone Turanza 6 EV**
+- 3PMSF rated (all-season capable)
+- Very low rolling resistance
+- Excellent wet performance — important for Scottish rain-heavy climate
+- Acoustic layer for noise reduction
+
+**Continental EcoContact 6**
+- Optimised for low rolling resistance
+- OE fitment on many EVs and PHEVs
+- Available in EV-specific sizes with acoustic foam versions
+
+**Hankook iON**
+- Purpose-built EV tyre range
+- Good value for EV drivers wanting OEM-compatible performance without premium pricing
+
+### What to Avoid
+
+- Non-EV-spec tyres with C-rating rolling resistance — these are not optimised for EV weight distribution or torque delivery
+- Budget tyres without acoustic treatment — EVs are quiet enough that road noise from tyres is very noticeable (and tiring on long journeys)
+- Winter tyres used outside cold weather season — the soft compound increases rolling resistance significantly when temperatures are above 7°C
+
+---
+
+## Scotland-Specific EV Range Considerations
+
+### Cold Weather and Battery Chemistry
+
+Scottish winters reduce EV range independently of tyres. Lithium-ion batteries lose efficiency below approximately 5°C — common across most of Scotland from November through March.
+
+A Tesla Model 3 running at 0°C in Scotland may have effective range 20–30% below its WLTP figure before any tyre factor. Adding an underinflated tyre or non-EV-spec tyre compounds this further.
+
+**Recommendation**: check tyre pressure monthly in winter, not quarterly. Cold weather reduces pressure — a tyre at 35 PSI in September may read 32 PSI by December without any leak.
+
+### The A9 and Highland Charging Gap
+
+The A9 between Pitlochry and Inverness has rapid charging at Dalwhinnie, Kingussie, and Aviemore — but gaps of 25–40 miles between chargers. On a cold January morning in a loaded car with worn tyres, the buffer between comfortable arrival and range anxiety can be small.
+
+Maintaining tyres at correct specification and pressure specifically helps Highland EV drivers manage charging gap anxiety.
+
+---
+
+## Tyre Rescue for EV Tyre Replacement in Scotland
+
+Tyre Rescue stocks EV-specific tyres in the most common Tesla, BMW, Mercedes, Hyundai, Kia, Audi, and Polestar sizes across our Scottish service area.
+
+We fit EV tyres with TPMS reset as standard, and we always use correct EV jack points (EV chassis points are different from petrol/diesel vehicles — wrong jacking point placement can damage the battery).
+
+Call **0141 266 0690** or [book online](/book).
+
+[EV tyre fitting Scotland](/blog/ev-tyre-fitting-scotland) | [Fuel efficient tyres Scotland](/blog/fuel-efficient-tyres-scotland) | [Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland)`,
+  },
+  {
     slug: 'mixing-tyre-brands-scotland',
     title: 'Can You Mix Tyre Brands in Scotland? Rules, Risks, and Best Practice',
     description:
