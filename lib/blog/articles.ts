@@ -10880,6 +10880,148 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'driving-snow-ice-tyre-advice-scotland',
+    title: 'Driving in Snow and Ice in Scotland: Tyre Advice and Safety Guide',
+    description:
+      'Preparing your tyres for snow and ice in Scotland. What tyre tread depth you need, snow driving technique, when to stay home, and what to do if you get stuck or have a flat in winter.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 8,
+    featured: false,
+    keywords: [
+      'driving in snow scotland tyres',
+      'winter driving scotland tyre advice',
+      'driving on ice scotland',
+      'tyre advice driving snow scotland',
+      'scotland snow driving tips',
+      'when not to drive in snow scotland',
+      'safe driving winter tyres scotland',
+      'tyres snow ice scotland guide',
+    ],
+    relatedSlugs: [
+      'winter-tyres-scotland-buyers-guide-2026',
+      'all-season-tyres-scotland-guide',
+      'aquaplaning-prevention-scotland',
+    ],
+    content: `# Driving in Snow and Ice in Scotland: Tyre Advice
+
+Scotland gets genuine winter conditions most years — not just in the Highlands, but in the Central Belt, Aberdeenshire, and coastal areas too. Snow in Glasgow is rare but real; snow on the A9, A82, and A702 is common from November to March.
+
+Your tyres are the single most important factor in winter traction. This guide covers what your tyres need to handle Scottish winter conditions — and how to drive when they are not perfect.
+
+## The Critical Threshold: 7°C and Below
+
+The most important thing to understand about winter tyre safety is the **7°C temperature threshold**.
+
+At 7°C and below, summer tyre compounds begin to harden significantly. The rubber loses flexibility, which means:
+- Braking distance increases substantially — even on dry cold tarmac
+- Wet grip deteriorates
+- Any grip on snow or ice becomes minimal
+
+This is why countries with cold winters mandate winter tyres from November: it is not just about snow. It is about what happens to summer compound rubber at cold temperatures.
+
+In Glasgow and Edinburgh, you may see nights of -3°C to -5°C from November through March. On these mornings, summer tyres on cold dry tarmac have significantly less grip than they did in September.
+
+**All-season 3PMSF tyres** maintain adequate grip below 7°C. **Dedicated winter tyres** have the greatest grip at low temperatures.
+
+## Tyre Requirements for Scottish Winter Driving
+
+### Minimum Tread Depth for Safe Winter Driving
+
+The legal minimum in Scotland is 1.6mm — but this is insufficient for winter driving.
+
+| Tread Depth | Safety Assessment |
+|---|---|
+| 6mm+ | Excellent. Full winter capability. |
+| 4–6mm | Good. Adequate for all Scottish winter conditions. |
+| 3–4mm | Acceptable. Reduced capability in deep snow. |
+| 2–3mm | Limited. Consider replacing before winter. |
+| Below 2mm | Poor. Do not drive in snowy/icy conditions. |
+| 1.6mm (legal limit) | Minimum legal — replace immediately. |
+
+If your tyres are below 4mm and winter is approaching, book a replacement. Call Tyre Rescue on **0141 266 0690** for mobile fitting at your home or work before the first snow arrives.
+
+### Tyre Type in Snow
+
+**Summer tyres** — inadequate in snow. Even with 8mm tread, summer compound does not grip snow. Dangerous.
+
+**All-season 3PMSF** — adequate in moderate snow (slush, light covering). Not suitable for deep snow or sustained ice.
+
+**Winter tyres** — best performance in all snow and ice conditions.
+
+**General rule**: in Scotland, all-season 3PMSF tyres are the minimum for safe winter driving on most routes. Drivers who regularly use Highland roads in winter should fit dedicated winter tyres.
+
+## Driving Technique in Snow and Ice
+
+Good tyres reduce the challenge of winter driving, but technique still matters.
+
+### Speed and Stopping Distance
+
+In snow, stopping distances increase enormously:
+- At 30 mph on snow: stopping distance 6–10× longer than dry road
+- At 50 mph: you may need 200–400 metres to stop safely
+
+**Drive at a speed where you can stop within the distance you can see to be clear.** On fog-covered winter roads in Scotland, this may mean 20–30 mph.
+
+### Acceleration
+
+**Pull away gently in second gear** (on a manual) to reduce wheelspin. Many modern automatics have a winter or snow mode that limits torque and may also pull away in second.
+
+If you start to wheelspin, ease off the accelerator. Do not increase throttle — this makes wheelspin worse.
+
+### Braking
+
+**Brake early and progressively**. Begin braking much earlier than normal — give the ABS time to work.
+
+**On ice**: ABS helps but does not eliminate the extended stopping distance. The ABS pulsing feel is normal — keep pressure on the pedal.
+
+**On compacted snow**: braking distances are very long. ABS helps prevent lockup but cannot reduce the fundamental low grip.
+
+### Steering
+
+**Steer smoothly and progressively**. Sudden steering inputs on slippery surfaces cause slides.
+
+**If you begin to slide (oversteer)**: steer into the slide (turn the wheel in the direction the rear is moving). Release or reduce accelerator. Do not brake sharply.
+
+**If the front is ploughing straight (understeer)**: reduce speed. Do not try to force the car to turn by increasing steering angle — this makes understeer worse. Back off the throttle or apply gentle braking.
+
+## When to Stay Home
+
+Not all Scottish winter conditions are driveable — even with the right tyres.
+
+**Consider not driving if**:
+- Heavy snowfall is actively occurring and roads are not yet treated
+- Ice has formed overnight and there are reports of accidents in your area
+- The A9, A82, M74, or other key roads are closed or restricted by Traffic Scotland
+- Your planned route includes Highland single-track roads in icy conditions
+- Your tyres are summer-only with low tread depth
+
+Traffic Scotland provides live updates on road conditions: **traffic.gov.scot** or **0800 028 1414**.
+
+## If You Get Stuck in Snow in Scotland
+
+1. **Do not spin the wheels** — this buries you deeper. Try rocking the car: reverse slightly, drive forward slightly, building momentum.
+2. **Reduce tyre pressure slightly** (5–10 psi) — this widens the contact patch. Re-inflate at the earliest opportunity.
+3. **Use traction boards, sand, or a mat under the drive wheels** — some Scottish drivers carry a bag of road grit in winter.
+4. **Call for help if stuck on a road** — Police Scotland (101), rescue services, or a recovery truck.
+
+## Flat Tyre in Winter Scotland
+
+Getting a flat tyre in Scottish winter conditions is a more serious emergency than in summer:
+
+1. Pull over safely — snow-covered hard shoulders can hide debris and drops. Use hazard lights.
+2. Do not change a tyre on a live road in winter without appropriate warning equipment.
+3. Call Tyre Rescue on **0141 266 0690** — we attend winter callouts across Scotland.
+4. If you have a spare and feel safe to change it, be cautious of slippery conditions around the vehicle.
+
+**Keep Tyre Rescue's number in your phone before you drive in winter conditions.** A few seconds of preparation is worth hours of waiting for help.
+
+Call **0141 266 0690** or [book online](/book) for winter tyre fitting across Scotland before the season begins.
+
+[Winter tyres Scotland 2026 guide](/blog/winter-tyres-scotland-buyers-guide-2026) | [All-season tyres Scotland](/blog/all-season-tyres-scotland-guide) | [What to do in a tyre blowout](/blog/tyre-blowout-emergency-guide-scotland)`,
+  },
+  {
     slug: 'summer-vs-winter-vs-all-season-tyres-scotland',
     title: 'Summer vs Winter vs All-Season Tyres: Which is Best for Scotland?',
     description:
