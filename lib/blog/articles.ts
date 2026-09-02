@@ -10880,6 +10880,135 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'low-profile-tyres-scotland-guide',
+    title: 'Low Profile Tyres on Scottish Roads: Pothole Risks and What to Do',
+    description:
+      'Low profile tyres look great but are more vulnerable to Scotland\'s potholes and road damage. This guide explains the risks, how to protect your wheels, and what to do when a low-profile tyre is damaged.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'low profile tyres scotland',
+      'low profile tyre pothole damage scotland',
+      'low profile tyre repair scotland',
+      'low profile tyre problems scotland',
+      'low profile tyre sidewall damage scotland',
+      'low profile tyres bad roads scotland',
+      '35 profile tyre scotland',
+      '30 profile tyre scotland',
+    ],
+    relatedSlugs: [
+      'pothole-damage-claim-scotland',
+      'tyre-sidewall-damage-scotland',
+      'tyre-pressure-guide-scotland',
+    ],
+    content: `# Low Profile Tyres on Scottish Roads: Pothole Risks and What to Do
+
+Low profile tyres — typically 35 to 50 series (aspect ratio) — are fitted to a huge range of modern cars, from standard family hatchbacks to performance and luxury vehicles. They look sharp and generally improve handling through reduced sidewall flex.
+
+On Scotland's roads, however, they create specific vulnerabilities that drivers should understand.
+
+---
+
+## What Is Tyre Profile?
+
+Tyre profile (or aspect ratio) is the second number in your tyre size, expressed as a percentage:
+
+**225/40R18** — the aspect ratio is **40**, meaning the sidewall height is 40% of the tread width (225mm × 40% = 90mm sidewall height).
+
+**205/55R16** — aspect ratio 55, sidewall height approximately 113mm.
+
+A tyre with a 40-series profile has a much shorter, stiffer sidewall than a 55-series tyre. Low profile is typically defined as 45-series or below.
+
+---
+
+## Why Low Profile Tyres Are More Vulnerable on Scottish Roads
+
+### Less Cushioning from Impacts
+
+The sidewall of a tyre acts as a cushion between the wheel and road surface. A taller sidewall flexes more, absorbing impact energy. A shorter, stiffer sidewall on a low-profile tyre transfers more energy directly to:
+- The wheel rim (damage risk)
+- The tyre bead area (damage risk)
+- The vehicle suspension (long-term wear)
+
+On a sharp pothole edge, a low-profile tyre receives less cushioning. The rim can directly impact the pothole edge, causing rim damage while simultaneously pinching the inner tyre wall between the rim and the road — the "pinch flat" mechanism.
+
+### Scotland's Road Condition Reality
+
+Scotland has some of the UK's worst pothole density per road kilometre. The freeze-thaw cycle through winter — water entering cracks, freezing and expanding, then thawing and leaving a void — is particularly destructive. Highland and rural B-roads are especially affected.
+
+The A9, A90, A77, and various urban routes in Glasgow and Edinburgh have significantly worse surface quality in many sections than typical English roads.
+
+### Rim Damage at Speed
+
+A pothole impact at 60mph on a 40-series tyre may result in:
+- **Buckled or cracked alloy rim**: the direct rim-pothole contact at speed is often enough to crack even a quality alloy wheel
+- **Tyre bead damage**: the bead area where the tyre seats on the rim can be torn by a severe pinch impact
+- **Sidewall bubble**: the tyre sidewall can separate internally, creating a bubble that is visible and means immediate replacement
+
+---
+
+## How to Reduce Low Profile Tyre Damage Risk in Scotland
+
+### Check Tyre Pressure Regularly
+A slightly under-inflated low-profile tyre has even less cushioning from impacts. Keep pressures exactly at the recommended level, especially before long rural drives or Highland routes.
+
+Overinflation is similarly problematic — an overinflated tyre cannot flex at all, meaning all impact energy goes directly to the rim.
+
+### Scan the Road Ahead
+At motorway and A-road speeds, you often cannot avoid a pothole. On slower roads, actively scanning for surface defects gives you time to reduce speed before impact.
+
+**Slow down for potholes**: even reducing from 60 to 40mph halves the impact energy. If you see a pothole ahead on a rural road, braking before (not over) it significantly reduces damage risk.
+
+### Reduce Tyre Pressure Slightly for Known Bad Roads (Short Term)
+For a specific route on a very bad surface — some rural Aberdeenshire or Highland B-roads — temporarily reducing tyre pressure by 3–4 PSI can help cushion impacts. Return to normal pressure as soon as you reach better roads.
+
+---
+
+## What to Do After Pothole Impact with Low Profile Tyres
+
+1. **Stop safely as soon as practical** — do not continue at speed
+2. **Check all four tyres** for visible damage: sidewall bubbles, cuts, or visible distortion
+3. **Check all four rims** for visible cracks, bends, or deformation at the bead area
+4. **Check pressures** — a tyre losing pressure after a pothole impact needs immediate replacement
+5. **Do not reinflate a visibly damaged tyre** — call for replacement
+
+Even if the tyre appears visually undamaged, a hard pothole impact may have caused invisible internal damage. If the car pulls, vibrates, or the steering feels different after an impact, stop and check.
+
+---
+
+## Common Vehicles with Low Profile Tyres
+
+Many modern cars are fitted from the factory with 40 or 45-series tyres:
+- BMW 3/4/5 Series (often 225/40R18 or 225/45R17)
+- Mercedes C Class (225/45R17 or 225/40R18)
+- Audi A4/A5 (225/45R17)
+- Volkswagen Golf GTI (225/40R18)
+- Ford Focus ST (235/35R19 on optional wheels)
+- Vauxhall Astra GTC (225/40R18)
+- Hyundai i30 N Performance (235/35R19)
+
+Many of these are also run-flat specification, adding another layer of replacement complexity.
+
+---
+
+## Pothole Damage Claims and Low Profile Tyres
+
+If a pothole on a public road causes rim or tyre damage, you may be able to claim the cost from the relevant roads authority (Transport Scotland on trunk roads, local councils on local roads).
+
+The claim requires evidence: photograph the pothole before it is repaired, photograph your damage, and note the date, time, and exact location. Submit within 3 months.
+
+Tyre Rescue can provide a written assessment of the damage on request, which can support a pothole claim.
+
+---
+
+Call **0141 266 0690** for emergency or scheduled low-profile tyre replacement across Scotland. We carry 40 and 45-series tyres for the most common BMW, Mercedes, Audi, and VW fitments in our mobile units.
+
+[Pothole damage claim Scotland](/blog/pothole-damage-claim-scotland) | [Tyre sidewall damage Scotland](/blog/tyre-sidewall-damage-scotland) | [Tyre pressure guide](/blog/tyre-pressure-guide-scotland)`,
+  },
+  {
     slug: 'used-tyres-scotland-are-they-safe',
     title: 'Used Tyres in Scotland: Are They Safe? What You Need to Know',
     description:
