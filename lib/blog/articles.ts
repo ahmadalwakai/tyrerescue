@@ -10880,6 +10880,128 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'car-vibrating-after-new-tyres-scotland',
+    title: 'Car Vibrating After New Tyres? Causes and Fixes in Scotland',
+    description:
+      'Car shaking or vibrating after getting new tyres fitted? Here are the most common causes — wheel imbalance, incorrect fitting, tyre defect — and how to get it resolved in Scotland.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'car vibrating after new tyres scotland',
+      'steering wheel shaking after tyre change',
+      'car shaking after tyres fitted scotland',
+      'vibration after tyre fitting scotland',
+      'new tyres causing vibration',
+      'wheel imbalance scotland',
+      'tyre fitting vibration scotland',
+      'car pulling to one side new tyres scotland',
+    ],
+    relatedSlugs: [
+      'wheel-balancing-vs-alignment-scotland',
+      'uneven-tyre-wear-guide-scotland',
+      'noisy-tyres-causes-scotland',
+    ],
+    content: `# Car Vibrating After New Tyres: Causes and Fixes
+
+Getting new tyres fitted should result in a smoother, more confident drive. If your car is now vibrating, shaking, or pulling to one side after a tyre change, something has gone wrong — and it needs to be fixed before the new tyres are damaged.
+
+This guide covers every possible cause of post-fitting vibration and what to do about it.
+
+## Most Common Causes
+
+### 1. Wheel Not Balanced After Fitting (Most Likely)
+
+**What happened**: the new tyre was fitted but not properly balanced, or the balancing weights were applied incorrectly.
+
+Every tyre and wheel combination has minor weight imbalances — manufacturing tolerances mean no tyre or wheel is perfectly uniform. Dynamic balancing using a balancing machine adds small counter-weights to cancel these imbalances out.
+
+If this step was skipped or done incorrectly, the wheel will rotate with a rhythmic imbalance that creates vibration. Typically felt:
+- As a vibration through the steering wheel (front tyres) or seat (rear tyres)
+- At a specific speed band — often 50–70 mph
+- Getting worse as speed increases up to the resonant speed, then sometimes improving above it
+
+**Fix**: return to the tyre fitter for a rebalance. This should be done at no cost if the original fitting included balancing. Any reputable tyre fitter will correct this immediately.
+
+---
+
+### 2. Tyre Seated Incorrectly on the Rim
+
+**What happened**: the tyre bead (the inner edge of the tyre that seals against the wheel rim) has not fully seated around the entire circumference of the rim.
+
+When a tyre is mounted, the bead must seat uniformly all the way around. Partial or uneven seating creates a runout — the tyre is not perfectly round as it rotates. This causes vibration, and is most commonly due to:
+- Not lubricating the bead during fitting
+- Inflating too quickly so one side seats before the other
+- A small stone or debris trapped between the bead and rim
+
+**Symptoms**: vibration at lower speeds than wheel imbalance; may also cause a slow puncture.
+
+**Fix**: the tyre must be demounted and remounted correctly. Do not attempt to re-seat by over-inflating — this is dangerous. Return to the tyre fitter.
+
+---
+
+### 3. Incorrect Wheel Torque (Wheel Not Properly Tightened)
+
+**What happened**: the wheel nuts were not tightened to the correct torque, or were not tightened in the correct star pattern.
+
+An undertorqued or overtorqued wheel causes vibration, can damage the hub, and in extreme cases can cause wheel loss. Symptoms include a vibration or knocking sound that may change at different speeds.
+
+**What to do**: if you suspect undertorqued wheels, do not drive at speed. Have the torque checked at a garage or by the tyre fitter. Most mobile tyre fitters carry torque wrenches set to manufacturer specification.
+
+**Note on retorquing**: many manufacturers recommend re-torquing wheels after 30–50 miles of driving following a wheel removal. If your tyre fitter offered this service, take them up on it.
+
+---
+
+### 4. Tyre Defect (Manufacturing Fault)
+
+**What happened**: the new tyre itself has a manufacturing defect — a flat spot, imbalanced weight distribution, or ply splice that cannot be corrected by balancing.
+
+Modern tyre manufacturing is very reliable, but defects do occur. A defective tyre typically:
+- Cannot be balanced to an acceptable level (the machine shows a constantly shifting imbalance)
+- Shows vibration even after multiple rebalancing attempts
+- Has a visible deformation in the tyre profile when rotated by hand
+
+**Fix**: the tyre should be replaced under warranty by the tyre supplier. Reputable tyre brands (Michelin, Continental, Pirelli, Goodyear) have straightforward warranty processes for manufacturing defects.
+
+---
+
+### 5. Alloy Wheel Damage (Pre-Existing)
+
+**What happened**: the alloy wheel itself is bent, cracked, or out of round — likely from a pothole impact before or during the tyre change. The new tyre is not causing the vibration; the bent rim is.
+
+If vibration existed before the tyre change (but was masked by the old tyres), or if a pothole was hit just before the change, this is a possibility.
+
+**How to identify**: ask the tyre fitter to place the wheel on the balancing machine and observe the rim runout reading. Most machines can measure rim runout separately from tyre imbalance. A bent rim will show an out-of-round reading.
+
+**Fix**: wheel refurbishment (a specialist can straighten minor bends) or wheel replacement.
+
+---
+
+### 6. Wheel Alignment Now Exposed
+
+**What happened**: the old worn tyres masked a pre-existing wheel alignment problem. New tyres with full tread make the misalignment feel worse — the car now pulls noticeably to one side, or the steering vibrates.
+
+This is not the tyre fitter's fault — the alignment problem existed before the tyre change. New tyres with consistent grip simply make it more obvious.
+
+**Fix**: a four-wheel wheel alignment check (£40–£60 at most garages). The alignment issue must be corrected — fitting new tyres without sorting alignment will cause the same premature wear pattern that wore out the previous tyres.
+
+---
+
+## What to Do
+
+1. **Call the tyre fitter who fitted the tyres** — describe the symptoms (vibration at what speed, steering wheel or seat, pulling or not pulling). A good tyre fitter will ask you back in and investigate at no charge.
+
+2. **Don't drive far** — vibration after tyre fitting is usually a fitting issue. Driving on it long-distance can damage the new tyres or the balancing weights.
+
+3. **If the fitter cannot resolve it** — get a second opinion. A vibration diagnostic at a garage or tyre specialist will typically cost £20–£40.
+
+If your tyres were fitted by Tyre Rescue and you are experiencing post-fitting vibration, call **0141 266 0690** — we will attend and resolve the issue.
+
+[Wheel balancing and alignment guide Scotland](/blog/wheel-balancing-vs-alignment-scotland) | [Noisy tyres guide Scotland](/blog/noisy-tyres-causes-scotland) | [Uneven tyre wear guide Scotland](/blog/uneven-tyre-wear-guide-scotland)`,
+  },
+  {
     slug: 'winter-tyre-storage-scotland',
     title: 'How to Store Winter Tyres in Scotland: Complete Guide',
     description:
