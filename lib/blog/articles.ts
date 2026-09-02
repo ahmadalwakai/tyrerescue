@@ -10880,6 +10880,138 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'learner-driver-tyre-safety-scotland',
+    title: 'Tyre Safety for Learner Drivers in Scotland: What New Drivers Need to Know',
+    description:
+      'New and learner drivers in Scotland need to understand tyre safety from day one. This guide covers the checks every new driver should make, what to do in a tyre emergency, and tyre requirements for driving instructor vehicles.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'learner driver tyre safety scotland',
+      'new driver tyres scotland',
+      'first car tyres scotland',
+      'learner driver tyre check scotland',
+      'driving lesson tyre safety scotland',
+      'new driver tyre guide scotland',
+      'first time driver tyres scotland',
+      'parents new driver tyres scotland',
+    ],
+    relatedSlugs: [
+      'tyre-tread-depth-guide-scotland',
+      'tyre-pressure-guide-scotland',
+      'signs-you-need-new-tyres-scotland',
+    ],
+    content: `# Tyre Safety for Learner Drivers in Scotland: What New Drivers Need to Know
+
+Learning to drive focuses on hazard perception, manoeuvre technique, and highway code rules. Tyre safety rarely features in this curriculum — yet poor tyre condition causes thousands of accidents every year and is one of the most easily preventable vehicle safety failures.
+
+This guide is written for:
+- Learner drivers preparing to take on tyre maintenance responsibility
+- Parents setting up a first car for a new driver
+- Driving instructors who want to include tyre safety in lessons
+
+---
+
+## Why Tyre Condition Particularly Matters for New Drivers
+
+New drivers are statistically more likely to be involved in accidents — partly because of inexperience, partly because they are more likely to be driving older vehicles with lower-quality maintenance histories.
+
+An experienced driver who has a tyre failure at 60mph has instinctive reactions — gradually release accelerator, steer gently, signal, pull over. A new driver without that instinct is more likely to panic-brake or over-steer, amplifying the danger.
+
+**Better tyre condition reduces the chance of a failure occurring in the first place.** This is the best safety measure available.
+
+---
+
+## The Minimum Monthly Tyre Check for New Drivers
+
+Every driver should check their tyres once a month. Here is a simple routine that takes less than 10 minutes.
+
+### Step 1: Visual Inspection (All Four Tyres)
+
+Walk around the car and look at each tyre:
+- Any obvious damage, cut, or bulge on the sidewall?
+- Any tyre that looks lower than the others?
+- Any nails, screws, or debris embedded in the tread?
+
+### Step 2: Tread Depth Check
+
+Use the 20p test:
+- Insert a 20p coin edge-first into the main tread groove
+- If the outer rim of the coin is visible, the tread is below 3mm — replace soon
+- If you can see the raised text around the outer rim, you are approaching the legal minimum
+
+**Scotland's recommendation**: replace at 3mm minimum, not the legal 1.6mm. Scottish weather demands better tread depth.
+
+### Step 3: Check Tyre Pressure
+
+The correct pressure is printed inside the driver's door. Use a gauge at a petrol station or home compressor:
+- Check all four tyres
+- Inflate to the correct pressure (not the maximum printed on the tyre)
+
+Under-inflated tyres significantly increase stopping distances — critical for a new driver with longer reaction times.
+
+---
+
+## What to Do in a Tyre Emergency While Driving
+
+Learning this before it happens is essential. An unexpected tyre failure is frightening, but the correct actions are simple.
+
+**Sudden deflation while driving**:
+1. Grip the steering wheel firmly with both hands
+2. Do not brake sharply — release the accelerator instead
+3. Allow the car to slow naturally
+4. Signal and steer progressively to the left
+5. Pull onto the hard shoulder, lay-by, or road edge safely
+6. Apply the handbrake, switch on hazard lights
+7. Get out of the car on the left (passenger) side, away from traffic
+8. Call for help — Tyre Rescue: 0141 266 0690
+
+**Important**: new drivers should practice saying "I'll steer gently left and pull over safely" in their minds before the situation occurs. In a sudden emergency, having this response rehearsed helps prevent panic reactions.
+
+---
+
+## First Car Tyre Checks — For Parents
+
+When setting up a first car for a new driver, tyres are one of the most important checks:
+
+### What to Check on a First Car
+
+1. **Tyre age**: check the DOT code on all four tyres. Any tyre over 6 years old should be replaced before giving the car to a new driver.
+
+2. **Tread depth**: measure all four tyres with a gauge. New drivers should start with at least 4mm on all four — this gives them one year of typical use before replacement.
+
+3. **Matching tyres**: ideally, all four tyres should be the same brand and model. Different tyre specifications on the same axle give inconsistent handling that new drivers may struggle to manage.
+
+4. **Tyre pressure**: inflate to the correct cold pressure before the car is first driven by the new driver.
+
+### Budget for Tyre Replacement
+
+A modest first car (Ford Fiesta, Vauxhall Corsa, Volkswagen Polo) needs tyres replaced approximately every 15,000–20,000 miles. Budget tyre brands suitable for a first car include Hankook, Nexen, and Falken. Avoid the cheapest unknown brands — wet grip B+ minimum.
+
+---
+
+## Driving Instructor Vehicles
+
+Driving instructor vehicles are dual-controlled and used intensively. Typical annual mileage for a driving instructor in Scotland: 25,000–40,000 miles.
+
+Instructors should:
+- Inspect tyre tread depth monthly
+- Replace when tread reaches 4mm (not 3mm) — the instructor carries responsibility for the learner
+- Ensure tyres are matched by axle for predictable handling under dual-control intervention
+- Consider premium tyres for the front axle — instructor cars primarily fail on front tyre wear
+
+If you are a driving instructor in Scotland needing tyre replacement with minimum downtime, Tyre Rescue can fit tyres at your home or a suitable location between lessons.
+
+---
+
+Call **0141 266 0690** for mobile tyre fitting for new drivers, first cars, and driving instructor vehicles across Scotland. Appointments 7 days a week.
+
+[Tread depth guide Scotland](/blog/tyre-tread-depth-guide-scotland) | [Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland) | [7 signs you need new tyres](/blog/signs-you-need-new-tyres-scotland)`,
+  },
+  {
     slug: 'ev-range-anxiety-tyres-scotland',
     title: 'How Tyres Affect Your EV Range in Scotland: The Guide No One Told You About',
     description:
