@@ -10880,6 +10880,136 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'classic-car-tyres-scotland',
+    title: 'Classic Car Tyres Scotland: Finding the Right Fit for Vintage Vehicles',
+    description:
+      'Classic and vintage cars in Scotland need tyres that match original specifications, handling characteristics, and often obsolete sizes. This guide covers classic tyre sizes, crossply vs radial, and sourcing options in Scotland.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'classic car tyres scotland',
+      'vintage car tyres scotland',
+      'classic tyre fitting scotland',
+      'crossply tyres scotland',
+      'radial tyres classic car scotland',
+      'morgan car tyres scotland',
+      'series land rover tyres scotland',
+      'triumph tyres scotland',
+    ],
+    relatedSlugs: [
+      'tyre-buying-guide-scotland',
+      'tyre-age-limit-scotland',
+      'ineos-grenadier-tyre-fitting-scotland',
+    ],
+    content: `# Classic Car Tyres Scotland: Finding the Right Fit for Vintage Vehicles
+
+Scotland has a thriving classic car community — from Highland tours to the many concours events across Central Scotland, Perthshire, and the Borders. But classic car tyres are one of the most specialist areas in the tyre industry, with sizing, construction, and performance characteristics that differ significantly from modern vehicles.
+
+---
+
+## Why Classic Car Tyres Are Different
+
+### Crossply (Bias-Ply) vs Radial Construction
+
+Modern tyres are radial construction — the ply cords run radially from bead to bead across the tyre. Most vehicles since the 1970s–80s use radial tyres.
+
+Older vehicles were originally fitted with crossply (bias-ply) tyres, where the cords run diagonally. Crossply tyres:
+- Have stiffer sidewalls that give a different, firmer feel
+- Handle differently, particularly in cornering
+- Are legally required on some older vehicles where mixing constructions on the same axle is not permitted
+
+**Critical rule**: you must never mix radial and crossply tyres on the same axle. This is an MOT fail and is illegal. If you switch a classic to radials, all four must be radials.
+
+### Unusual Sizes
+
+Classic cars often use tyre sizes that are no longer standard in the modern market. Common examples:
+
+- **5.20-13** or **155-13**: common on pre-1975 small cars (early Minis, Triumph Herald, Fiat 500)
+- **165-14** or **175-14**: early Ford Cortinas, Vauxhall Victor
+- **185-15**: early Range Rover, classic Land Rovers
+- **600-16** or **700-16**: Series Land Rover, older commercial vehicles
+- **185VR15** or **205VR15**: classic sports cars, older Porsches, MGB GT
+
+These are still manufactured by specialist brands but availability is more limited than modern sizes.
+
+---
+
+## Classic Car Tyres by Vehicle Type
+
+### Series Land Rover (Series I, II, IIA, III)
+Series Land Rovers typically run **6.00-16** or **7.50-16** crossply tyres. Radial conversions are possible and many owners prefer them for improved road comfort and wet grip.
+
+Recommended brands: Avon Ranger, Michelin XZX (for radial conversions), Blockley, or vintage-style tyres from Coker Tyre (for concours-correct appearance).
+
+Modern 245/70R16 or 255/70R16 radials can be fitted on later Series III with wider wheel rims.
+
+### Morgan
+Morgans span several decades, with tyre requirements varying significantly:
+- **3-Wheeler**: motorcycle tyres on the front, car tyre on the rear
+- **Plus 4, Plus 8 (pre-2004)**: typically 185/70R15 or 195/65R15
+- **Modern Morgan Plus Four/Plus Six**: 215/45R17 or larger
+
+The Plus 8 with wire wheels requires special care — correct offset and tyre width is essential to avoid rubbing.
+
+### MGB and MGB GT
+- **Standard**: 165HR14
+- **Later cars**: 175/70HR14 or 185/70HR14
+- **V8 models**: wider fitments possible
+
+Wire-wheeled MGBs require careful attention to offset. Overly wide modern tyres can foul the wheel arches on a standard-bodied MGB.
+
+### Triumph (Herald, Vitesse, Spitfire, TR series)
+- **Herald/Vitesse**: 155-13 or 155SR13
+- **Spitfire 1-4**: 155/80R13 or 165/80R13
+- **TR4/TR5**: 175SR15
+- **TR6**: 185/70VR15
+- **Stag**: 185/70VR15
+
+### Classic Mini (pre-2001)
+Original Mini sizing was **5.20-10** (crossply) or **145-10** radial. Wheel and tyre upgrades are extremely common — 12" or 13" wheel conversions to modern size tyres are popular and give significantly improved performance.
+
+### Classic Porsche
+- **356**: 165HR15 or 185HR15
+- **911 (early)**: 165HR15 (front), 185/70VR15 (rear) — staggered
+- **911 SC/Carrera (3.0/3.2)**: 185/70VR15 front, 215/60VR15 rear
+
+Early 911 staggered fitments cannot be rotated. Front and rear tyres are different sizes and asymmetric across the axle on some variants.
+
+---
+
+## Tyre Age on Classic Cars: An Important Consideration
+
+There is a tension with classic cars: many owners value period-correct tyre appearances (some even want to preserve original tyres for concours events). However, **tyre rubber degrades regardless of use**.
+
+A tyre manufactured in 1995 is 30 years old and is structurally unsafe regardless of how little it has been driven or how good it looks. Classic tyres more than 10 years old should be replaced before road use.
+
+This is particularly relevant for classic cars purchased at auction or from private sales — the previous owner may not have replaced tyres, and they can appear visually excellent while being dangerously compromised internally.
+
+---
+
+## What Tyre Rescue Can Do for Classic Car Owners in Scotland
+
+Tyre Rescue can source and fit many classic and specialist tyre sizes across Scotland:
+- We have access to specialist tyre distributors handling vintage and classic sizes
+- We can advise on crossply vs radial crossover points for your specific vehicle
+- We handle vintage steel wheel and wire wheel fitments (these require care to avoid damaging the wheel)
+
+When you call, tell us:
+- The year of your vehicle and original engine size
+- The size currently on the vehicle (or the original factory size from the handbook)
+- Whether you want crossply (original spec), radial (improved performance), or a period-look modern radial
+- Your location in Scotland
+
+Some very rare sizes may require ordering — allow 5–7 working days for sourcing.
+
+Call **0141 266 0690** for classic car tyre sourcing and fitting across all of Scotland.
+
+[Tyre buying guide Scotland](/blog/tyre-buying-guide-scotland) | [INEOS Grenadier tyre guide](/blog/ineos-grenadier-tyre-fitting-scotland) | [How long do tyres last](/blog/how-long-do-tyres-last-scotland)`,
+  },
+  {
     slug: 'fuel-efficient-tyres-scotland',
     title: 'Best Fuel-Efficient Tyres for Scottish Drivers: Save on Running Costs',
     description:
