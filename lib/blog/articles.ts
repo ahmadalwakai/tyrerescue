@@ -10880,6 +10880,111 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'can-i-drive-on-flat-tyre-scotland',
+    title: 'Can I Drive on a Flat Tyre? What to Do in Scotland',
+    description:
+      'Can you drive on a flat tyre to a garage in Scotland? How far, how fast, and what damage it causes. What to do instead — plus when it is safer to drive slowly vs call for help.',
+    category: 'emergency',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'can i drive on a flat tyre scotland',
+      'driving on flat tyre scotland',
+      'how far can you drive on a flat tyre',
+      'flat tyre driving to garage scotland',
+      'can you drive on a puncture scotland',
+      'what to do flat tyre scotland',
+      'flat tyre can i keep driving',
+      'driving on deflated tyre scotland',
+    ],
+    relatedSlugs: [
+      'tyre-sidewall-damage-scotland',
+      'slow-puncture-causes-scotland',
+      'what-to-do-flat-tyre-motorway',
+    ],
+    content: `# Can I Drive on a Flat Tyre in Scotland?
+
+Getting a flat tyre is stressful, and the immediate instinct is often to keep moving — especially if you are on a busy road, late for something, or far from a garage. The short answer is: **driving on a completely flat tyre causes rapid, serious damage and should only be done for a very short distance in an emergency.**
+
+Here is the complete picture.
+
+## What Happens When You Drive on a Flat Tyre
+
+A pneumatic tyre works because the air pressure inside supports the vehicle's weight. When a tyre is completely flat:
+
+1. **The weight transfers to the tyre sidewall** — instead of distributing weight across the inflated tyre profile, the rim sits directly on the tyre's sidewall. The sidewall is not designed for this.
+
+2. **The sidewall folds and creases with every rotation** — this rapidly destroys the internal cords and the rubber compound. A tyre driven flat for 200 metres often has significant internal damage.
+
+3. **The rim contacts the road** — once the tyre is destroyed, the bare metal rim starts grinding against the tarmac. This permanently damages the rim and creates sparks.
+
+4. **Braking and steering become severely impaired** — a flat tyre means dramatically longer stopping distances and imprecise steering. At speed, this is a serious safety risk.
+
+5. **Risk of rim damage** — alloy wheels bent or cracked by driving flat are a significant additional cost (£150–£800+ to repair or replace).
+
+## How Far Can You Drive on a Flat Tyre?
+
+**The honest answer: almost no distance at all, at very low speed.**
+
+| Speed | Distance | Outcome |
+|---|---|---|
+| Walking speed (5 mph) | 50–100 metres | Tyre possibly survivable |
+| Slow road speed (10–15 mph) | 100–300 metres | Tyre likely destroyed |
+| Normal road speed (30+ mph) | Even 50 metres | Tyre destroyed, rim at risk |
+| Motorway speed (70 mph) | Do not attempt | Immediate loss of control risk |
+
+If you are asking "can I drive to the next petrol station half a mile away" — the honest answer is: you can physically try, but by the time you get there, the tyre will be destroyed and you may have damaged the wheel too. A destroyed tyre costs more to replace than a repairable one would have.
+
+## Exception: Run-Flat Tyres
+
+**If your vehicle is fitted with run-flat tyres** (BMW RSC, Mercedes EMT/MOExtended, Pirelli Run-Flat), the situation is different. Run-flat tyres are specifically designed to continue operating after a puncture.
+
+A run-flat tyre that has lost pressure can typically be driven at:
+- **Maximum 50 mph (80 km/h)**
+- **Maximum 50 miles (80 km)**
+
+after which it must be replaced (run-flat tyres cannot be repaired after operating flat).
+
+**How to know if you have run-flat tyres**: look for the marking on the sidewall — RSC (BMW), EMT or MOExtended (Mercedes-Benz), SSR (Goodyear), RF (Pirelli). Also, vehicles with run-flat tyres typically have no spare wheel.
+
+If you are not sure whether your car has run-flat tyres, assume it does not — and treat the flat as requiring immediate stopping.
+
+## What to Do Instead
+
+**Option 1: If you have a spare tyre** — use it. A full-size spare can be fitted at the roadside. A space-saver spare is for temporary use only — maximum 50 mph, up to 50 miles. Replace with a proper tyre as soon as possible.
+
+**Option 2: Call for mobile tyre fitting** — Tyre Rescue attends locations across all of Scotland. Response times in cities: 25–45 minutes. If you are on a safe verge, in a car park, or in a layby — calling for fitting is the right choice. You will have a fully functional tyre fitted at your location in under an hour.
+
+**Option 3: Use an inflation kit** (if you have one and the puncture is in the tread area, not the sidewall) — inflate enough to reach a safe location. Maximum 50 mph after inflation. Get to a tyre centre or call Tyre Rescue as soon as possible.
+
+## The Specific Scenarios
+
+### Flat tyre on a live road or motorway
+**Do not drive**. Put hazard lights on. Move to the hard shoulder (motorway) or as far left as possible. Call **0141 266 0690** or 999 if unsafe. Wait for help.
+
+### Flat tyre in a car park or on your driveway
+You are in the safest possible situation. Call for mobile fitting — Tyre Rescue will come to you. There is no need to drive anywhere.
+
+### Slow puncture (tyre going flat gradually)
+You have time to react. Inflate at a petrol station air pump and drive carefully to a tyre centre or call Tyre Rescue. Do not drive at motorway speed on a significantly underinflated tyre.
+
+### Flat tyre on a single-track Highland road
+Find the nearest passing place and stop safely. Call **0141 266 0690** and give us your location. We will advise on response time. Do not drive on a single-track road with a flat tyre — the uneven surface will destroy the tyre and rim within metres.
+
+## The Bottom Line
+
+Driving on a completely flat tyre causes expensive tyre and potentially wheel damage within a very short distance. The right call is almost always:
+
+1. Stop safely
+2. Call Tyre Rescue on **0141 266 0690** for mobile fitting
+
+We come to you anywhere in Scotland — no need to risk the tyre, the wheel, or your safety by driving on flat.
+
+[What to do with a flat tyre on a motorway](/blog/what-to-do-flat-tyre-motorway) | [Slow puncture guide Scotland](/blog/slow-puncture-causes-scotland) | [Run-flat tyres guide Scotland](/blog/run-flat-tyres-scotland-guide)`,
+  },
+  {
     slug: 'mobile-tyre-fitting-process-scotland',
     title: 'What Happens During Mobile Tyre Fitting in Scotland: Step by Step',
     description:
