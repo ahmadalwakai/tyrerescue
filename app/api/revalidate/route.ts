@@ -28,7 +28,6 @@ const ALLOWED_LITERAL_PATHS = new Set<string>([
   '/emergency',
   '/book',
   '/tyres',
-  '/pricing',
   '/pricing-faq',
   '/faq',
   '/contact',

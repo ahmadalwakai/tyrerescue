@@ -200,8 +200,8 @@ export default async function CityPricePage({
           <Link href={`/mobile-tyre-fitting/${slug}`} style={{ fontWeight: 600, color: '#333', textDecoration: 'none' }}>
             {city.name} Service Page →
           </Link>
-          <Link href="/pricing" style={{ fontWeight: 600, color: '#333', textDecoration: 'none' }}>
-            Full Pricing Guide →
+          <Link href="/pricing-faq" style={{ fontWeight: 600, color: '#333', textDecoration: 'none' }}>
+            Pricing FAQ →
           </Link>
         </nav>
 

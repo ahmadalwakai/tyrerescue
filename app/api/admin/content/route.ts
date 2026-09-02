@@ -53,7 +53,6 @@ export async function PUT(request: Request) {
   // invalidate the static pricing surfaces. Per-city price pages are
   // included because they render copy derived from these rules.
   revalidateSeoPaths([
-    '/pricing',
     '/pricing-faq',
     '/book',
     ...serviceCities.map((city) => `/mobile-tyre-fitting-${city}-price`),

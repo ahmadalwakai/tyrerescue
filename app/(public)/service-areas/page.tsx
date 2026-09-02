@@ -271,7 +271,7 @@ export default function ServiceAreasPage() {
               ))}
             </div>
             <div style={{ ...s.ctaRow, marginTop: '32px' }}>
-              <Link href="/pricing" style={s.ctaSecondary}>View Pricing</Link>
+              <Link href="/pricing-faq" style={s.ctaSecondary}>Pricing FAQ</Link>
               <Link href="/blog" style={s.ctaSecondary}>City Guides</Link>
               <Link href="/contact" style={s.ctaSecondary}>Contact Us</Link>
             </div>

@@ -35,7 +35,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/emergency-tyre-fitting-near-me', priority: 0.9, freq: 'weekly' },
     { path: '/book', priority: 0.9, freq: 'weekly' },
     { path: '/tyres', priority: 0.8, freq: 'weekly' },
-    { path: '/pricing', priority: 0.9, freq: 'weekly' },
     { path: '/pricing-faq', priority: 0.7, freq: 'monthly' },
     { path: '/help', priority: 0.7, freq: 'monthly' },
     { path: '/faq', priority: 0.7, freq: 'monthly' },

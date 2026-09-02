@@ -67,7 +67,7 @@ export const PRICING_DISCLAIMER =
   'Tyre prices vary by size and brand — see full pricing breakdown';
 
 /** Where the disclaimer link should point. */
-export const PRICING_DISCLAIMER_HREF = '/pricing';
+export const PRICING_DISCLAIMER_HREF = '/pricing-faq';
 
 /**
  * Returns the display string for a service. Pass `withDisclaimer: true` to

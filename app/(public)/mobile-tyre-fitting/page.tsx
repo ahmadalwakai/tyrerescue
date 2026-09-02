@@ -210,7 +210,7 @@ export default function MobileTyreFittingPage() {
               ))}
             </div>
             <p style={{ color: '#71717A', fontSize: '13px', marginTop: '16px' }}>
-              <Link href="/pricing" style={{ color: '#F97316' }}>Full pricing guide →</Link>{' '}
+              <Link href="/pricing-faq" style={{ color: '#F97316' }}>Pricing FAQ →</Link>{' '}
               including tyre supply, TPMS reset, and city-specific response times.
             </p>
           </div>
@@ -271,7 +271,7 @@ export default function MobileTyreFittingPage() {
             </div>
             <div style={{ ...s.ctaRow, marginTop: '32px' }}>
               <Link href="/faq" style={s.ctaSecondary}>Full FAQ →</Link>
-              <Link href="/pricing" style={s.ctaSecondary}>Pricing Guide →</Link>
+              <Link href="/pricing-faq" style={s.ctaSecondary}>Pricing FAQ →</Link>
               <Link href="/service-areas" style={s.ctaSecondary}>All Service Areas →</Link>
               <Link href="/blog" style={s.ctaSecondary}>City Guides →</Link>
             </div>

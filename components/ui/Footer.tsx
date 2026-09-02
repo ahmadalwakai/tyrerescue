@@ -26,7 +26,6 @@ const footerLinks = {
   ],
   navigation: [
     { label: 'Book a Fitting', href: '/book' },
-    { label: 'Pricing Guide', href: '/pricing' },
     { label: 'Emergency', href: '/emergency' },
     { label: 'Browse Tyres', href: '/tyres' },
     { label: 'Track Booking', href: '/tracking' },
@@ -38,7 +37,6 @@ const footerLinks = {
     { label: 'Tyre Fitting Edinburgh', href: '/mobile-tyre-fitting/edinburgh' },
     { label: 'Tyre Fitting Aberdeen', href: '/mobile-tyre-fitting/aberdeen' },
     { label: 'Tyre Fitting Inverness', href: '/mobile-tyre-fitting/inverness' },
-    { label: 'Pricing FAQ', href: '/pricing-faq' },
   ],
   legal: [
     { label: 'Privacy Policy', href: '/privacy-policy' },

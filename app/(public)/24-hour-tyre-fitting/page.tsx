@@ -224,7 +224,7 @@ export default function TwentyFourHourTyreFittingPage() {
               ))}
             </div>
             <p style={{ color: '#71717A', fontSize: '13px', marginTop: '20px' }}>
-              <Link href="/pricing" style={{ color: '#F97316' }}>Full pricing breakdown →</Link>
+              <Link href="/pricing-faq" style={{ color: '#F97316' }}>Pricing FAQ →</Link>
             </p>
           </div>
         </section>

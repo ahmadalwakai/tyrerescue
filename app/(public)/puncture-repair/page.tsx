@@ -212,7 +212,7 @@ export default function PunctureRepairPage() {
             <div style={{ ...s.ctaRow, marginTop: '28px' }}>
               <Link href="/mobile-tyre-fitting" style={s.ctaSecondary}>Mobile Tyre Fitting →</Link>
               <Link href="/emergency" style={s.ctaSecondary}>Emergency Callout →</Link>
-              <Link href="/pricing" style={s.ctaSecondary}>Full Pricing →</Link>
+              <Link href="/pricing-faq" style={s.ctaSecondary}>Pricing FAQ →</Link>
             </div>
           </div>
         </section>
