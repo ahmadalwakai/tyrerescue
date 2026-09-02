@@ -10880,6 +10880,136 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'spare-tyre-check-scotland',
+    title: 'How to Check Your Spare Tyre Before a Scottish Journey',
+    description:
+      'Many Scottish drivers discover their spare tyre is flat or damaged when they actually need it. This guide covers how to check your spare — and what to do if your car has no spare tyre at all.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'spare tyre check scotland',
+      'check spare tyre scotland',
+      'how to check spare tyre uk',
+      'spare tyre flat scotland',
+      'no spare tyre scotland',
+      'what to do no spare tyre scotland',
+      'space saver spare tyre scotland',
+      'spare tyre before journey scotland',
+    ],
+    relatedSlugs: [
+      'winter-driving-emergency-kit-scotland',
+      'nc500-tyre-guide-scotland',
+      'can-i-drive-on-flat-tyre-scotland',
+    ],
+    content: `# How to Check Your Spare Tyre Before a Scottish Journey
+
+According to research by tyre safety charities, more than 1 in 4 spare tyres in UK cars are unfit for use — flat, cracked, or beyond age limits. Scottish drivers heading into remote areas without a usable spare are one puncture away from a serious problem.
+
+This guide shows you how to check your spare, what type of spare you have, and what to do if your car has no spare at all.
+
+---
+
+## Step 1: Find Your Spare
+
+The location varies by vehicle:
+
+- **Under the boot floor**: lift the boot carpet and pull out the floor panel. The spare is in the well beneath.
+- **Underneath the vehicle**: many SUVs, pickups, and MPVs store the spare under the vehicle body. Look for a metal bracket under the rear of the car. You typically need the wheel wrench from your car's toolkit to lower it.
+- **On the rear door (external)**: common on older Land Rovers, 4x4s, and some commercial vehicles.
+- **No spare**: some vehicles (particularly EVs and many premium cars since 2010) have no spare, only a tyre inflation kit.
+
+If you are not sure where your spare is: check your vehicle handbook.
+
+---
+
+## Step 2: Check the Pressure
+
+A spare tyre that has been stored for years will almost certainly have lost pressure. Check it with a tyre pressure gauge.
+
+**What pressure should the spare be at?**
+- Check the label inside the spare's wheel rim, or
+- Check your vehicle handbook under spare tyre pressure
+- Space-saver (temporary) spares are typically inflated to 60 PSI — much higher than regular tyres
+- Full-size spares use the same pressure as your regular tyres
+
+Inflate to the correct pressure using a portable compressor or petrol station air pump.
+
+**If the spare is flat**: it may have a slow leak from the valve or tyre bead. Inflate it and monitor whether it holds pressure over 24 hours. If not, have the spare professionally inspected.
+
+---
+
+## Step 3: Check the Tread Depth
+
+A spare tyre that has never been used may still have poor tread depth if it has dried out or is very old. Check the tread with the 20p test or a tread depth gauge.
+
+**A spare with less than 2mm tread should not be used as an emergency spare on motorways or dual carriageways.** On rural roads it can get you to safety.
+
+---
+
+## Step 4: Check the Sidewall for Age and Damage
+
+Inspect the sidewall for:
+- **Age cracks**: fine lines or crazing in the rubber — significant if you can see into the cracks
+- **Flat spotting**: if stored flat against metal or plastic, the side contacting the surface may have a permanent deformation
+- **DOT code age**: find the last four digits of the DOT code and check the manufacture year. Replace any spare over 10 years old.
+
+A spare tyre that looks fine but is 15 years old is structurally unreliable.
+
+---
+
+## Types of Spare Tyre
+
+### Full-Size Matching Spare
+The same size as your regular tyres. You can drive on it at normal speeds for normal distances. Increasingly rare in modern cars to save weight and space.
+
+### Full-Size Non-Matching Spare
+Same diameter as your regular tyres but possibly different width. Drive carefully — particularly on AWD vehicles where mismatched sizes can stress the drivetrain (see our [AWD tyre guide](/blog/do-i-need-to-change-all-4-tyres-scotland)).
+
+### Space-Saver (Temporary) Spare
+The slim yellow-painted spare common in many hatchbacks. These are marked with a maximum speed (typically 50mph / 80km/h) and must be replaced with a proper tyre as soon as possible. They are not suitable for extended driving.
+
+**Important for Highland driving**: a space-saver spare limits you to 50mph. The A9 has a 60mph speed limit — driving a space-saver on it is technically legal but uncomfortable and reduces your ability to keep pace with traffic safely. Get the proper tyre replaced as a priority.
+
+### Foam Inflation Kit Only (No Spare)
+Common in EVs, premium cars (BMW, Mercedes), and many modern hatchbacks. The kit includes:
+- A can of aerosol sealant
+- A 12V compressor
+- Instructions
+
+**Limitations**:
+- Only works on small tread punctures (nail/screw, less than 4mm diameter)
+- Does not work on sidewall damage, run-flat damage, or large holes
+- Ruins the tyre for professional repair — once foam is used, the tyre must be replaced
+- The repaired tyre should not exceed 50mph / 80km/h and should be professionally assessed within 100km
+
+**For Scotland's remote roads**: foam-only is the biggest limitation. If you have a severe tyre failure on a remote Highland road, foam will not help. Carry the Tyre Rescue number — we can get to most Scottish locations.
+
+---
+
+## Pre-Journey Spare Tyre Checklist
+
+Before any long Scottish journey:
+1. Locate the spare (know exactly where it is)
+2. Check spare pressure — inflate to specified level if low
+3. Check spare tread depth — at least 2mm
+4. Check sidewall for cracks or damage
+5. Check age (DOT code) — replace if over 10 years
+6. Ensure you have the wheel brace and jack to fit it
+
+If you cannot check the spare, at minimum ensure you have the Tyre Rescue number in your phone: **0141 266 0690**
+
+---
+
+## If You Have No Spare and Need Help
+
+Call Tyre Rescue. We carry the most common tyre sizes in our mobile units across Scotland. If we do not have your exact size, we can source and deliver it. For very remote Highland and island locations, this may take time — which is why carrying a foam kit and knowing our number is important.
+
+[Winter driving emergency kit](/blog/winter-driving-emergency-kit-scotland) | [NC500 tyre guide](/blog/nc500-tyre-guide-scotland) | [Can I drive on a flat tyre?](/blog/can-i-drive-on-flat-tyre-scotland)`,
+  },
+  {
     slug: 'tyre-wheel-damage-after-accident-scotland',
     title: 'Tyre and Wheel Damage After an Accident in Scotland: What to Check',
     description:
