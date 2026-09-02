@@ -10880,6 +10880,125 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'staggered-tyre-fitment-scotland',
+    title: 'Staggered Tyre Fitment Explained: Why Your Front and Rear Tyres Are Different Sizes',
+    description:
+      'Many performance, electric, and sports cars have different tyre sizes front and rear — called staggered fitment. This guide explains why, what it means for replacement, and which Scottish drivers have staggered tyres.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'staggered tyre fitment scotland',
+      'staggered tyres explained scotland',
+      'different size tyres front rear scotland',
+      'why different tyre sizes front rear scotland',
+      'staggered fitment car scotland',
+      'front rear different tyre size scotland',
+      'can you rotate staggered tyres scotland',
+      'staggered setup tyre replacement scotland',
+    ],
+    relatedSlugs: [
+      'polestar-tyre-fitting-scotland',
+      'genesis-tyre-fitting-scotland',
+      'do-i-need-to-change-all-4-tyres-scotland',
+    ],
+    content: `# Staggered Tyre Fitment Explained: Why Your Front and Rear Tyres Are Different Sizes
+
+If you own a modern performance car, a high-performance EV, or a sports car, you may have noticed that the front tyres are a different size from the rear. This is called a staggered fitment, and it is an intentional engineering choice — not a mistake.
+
+---
+
+## What Is Staggered Fitment?
+
+A staggered fitment means the rear tyres are wider than the front tyres. Both are on the same car, but the rear axle has a larger contact patch with the road.
+
+**Example**: a Polestar 4 Performance AWD has:
+- Front: **245/45R20** (245mm wide)
+- Rear: **265/40R20** (265mm wide)
+
+The rear tyres are 20mm wider than the fronts.
+
+---
+
+## Why Do Some Cars Have Staggered Fitments?
+
+### Performance and Handling
+
+**For rear-wheel-drive performance cars**: the rear wheels transmit engine power to the road. Wider rear tyres provide more grip during acceleration, reducing wheelspin and allowing the engine's power to be put down more effectively. This is why the BMW M3, Porsche 911, and most rear-wheel-drive sports cars use staggered fitments.
+
+**For high-torque rear-biased AWD performance EVs**: electric motors can deliver maximum torque from zero RPM — far more torque than a petrol engine at low speed. Wide rear tyres help manage this torque without wheelspin.
+
+**For cornering balance**: a wider rear tyre gives more lateral grip at the rear of the car, which helps balance the handling. Engineers tune the front/rear grip balance by adjusting tyre width, among other factors.
+
+### Weight Distribution
+
+Some cars (including rear-engined vehicles like the Porsche 911) are heavier at the rear. Wider rear tyres better support this load distribution.
+
+---
+
+## Vehicles in Scotland with Staggered Fitments
+
+**Performance cars**:
+- BMW M3 / M4: 255/35R19 front, 275/35R19 rear (approx)
+- BMW M5: often wider rear
+- Porsche 911 (rear-engined): wider rear required by design
+- Audi RS4 / RS6: some trims
+
+**Performance/high-spec EVs**:
+- Polestar 4 Performance: 245/45R20 front, 265/40R20 rear
+- Genesis GV60 Sport Plus: front and rear staggered
+- BMW iX M60: front and rear staggered
+- Porsche Taycan: staggered rear
+
+**Classic and older performance cars**:
+- Early Porsche 911 (rear-engine design): always staggered
+- Ferrari, Lamborghini: always staggered
+
+---
+
+## The Critical Limitation of Staggered Fitments
+
+**Staggered tyres cannot be rotated front-to-rear.**
+
+Tyre rotation — moving tyres between axles — is a standard maintenance procedure for extending tyre life. On a square fitment (same size front and rear), you can move front tyres to the rear and vice versa.
+
+On a staggered fitment, this is not possible because the front tyres are too narrow to fill the rear wheel arch correctly, and the rear tyres are too wide for the front.
+
+**Consequence**: front tyres and rear tyres wear at different rates and are replaced separately. Rear tyres typically wear faster on rear-wheel-drive performance cars.
+
+---
+
+## Tyre Replacement for Staggered Fitments
+
+When replacing tyres on a staggered car, you generally replace by axle:
+- Both fronts together (when they wear out)
+- Both rears together (when they wear out)
+
+It is uncommon (but possible) to replace individual tyres if one is damaged while the other still has good tread.
+
+**Important**: the front and rear tyres are often different tyre models (not just sizes) on some vehicles. Check your handbook or the sidewall markings to confirm the exact specification for each axle.
+
+**Also important**: some performance cars use directional tyres — the tread pattern is designed to roll in one direction. If a directional tyre needs to move from one side to the other, it must be demounted from the rim and remounted in the correct orientation. You cannot simply move a directional tyre from the left front to the left rear.
+
+---
+
+## Cost of Replacing Staggered Tyres in Scotland
+
+Staggered fitments often use wider, performance-spec tyres that cost more than standard sizes. A set of four on a staggered BMW M3 or Polestar 4 may cost £600–£1,200 depending on brand and size.
+
+The key is matching the specification exactly — both the size and the performance requirements. Fitting an undersized or lower-spec tyre to fill a performance car's staggered application changes the handling balance the engineers designed.
+
+Tyre Rescue carries common performance staggered sizes in our Scottish mobile units and can source less common sizes via our supplier network.
+
+---
+
+Call **0141 266 0690** for staggered fitment tyre replacement across Scotland. We carry front and rear separately as your vehicle requires.
+
+[Polestar tyre fitting Scotland](/blog/polestar-tyre-fitting-scotland) | [Genesis tyre fitting Scotland](/blog/genesis-tyre-fitting-scotland) | [Do I need to change all 4 tyres?](/blog/do-i-need-to-change-all-4-tyres-scotland)`,
+  },
+  {
     slug: 'learner-driver-tyre-safety-scotland',
     title: 'Tyre Safety for Learner Drivers in Scotland: What New Drivers Need to Know',
     description:
