@@ -10880,6 +10880,130 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'tpms-warning-light-scotland',
+    title: 'TPMS Warning Light On? What It Means and What to Do in Scotland',
+    description:
+      'Your TPMS warning light is on — should you stop immediately or can you keep driving? What causes the light, how to reset it, and when to call for tyre fitting in Scotland.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'tpms warning light scotland',
+      'tyre pressure warning light scotland',
+      'tpms light on scotland',
+      'tyre pressure monitor system scotland',
+      'what does tpms light mean',
+      'tpms reset scotland',
+      'tyre pressure light on scotland',
+      'low tyre pressure warning light scotland',
+    ],
+    relatedSlugs: [
+      'tyre-pressure-guide-scotland',
+      'slow-puncture-causes-scotland',
+      'can-i-drive-on-flat-tyre-scotland',
+    ],
+    content: `# TPMS Warning Light On? What It Means and What to Do in Scotland
+
+The Tyre Pressure Monitoring System (TPMS) warning light — a horseshoe-shaped symbol with an exclamation mark — is one of the most commonly misunderstood dashboard lights. Here is exactly what to do when it comes on.
+
+## What Does the TPMS Light Look Like?
+
+The TPMS icon is a cross-section of a tyre with an exclamation point (!). Some vehicles show a light that:
+- **Stays on solid**: one or more tyres is 25% or more below the recommended pressure
+- **Flashes for 60–90 seconds then stays solid**: TPMS sensor malfunction, not a tyre pressure issue
+
+## Can I Keep Driving?
+
+**If the light comes on while driving**: do not panic. You do not need to stop immediately on the carriageway. Signal, find the nearest safe exit, and check your tyre pressures at a petrol station.
+
+**If the light comes on and the car feels normal**: you likely have a slow puncture or gradual pressure loss. You can typically drive a short distance to safety or to check pressures.
+
+**If the light comes on and the car feels different** — pulling to one side, steering feels heavy, ride feels strange — pull over safely and check immediately. Do not continue driving.
+
+## Immediate Steps
+
+1. **Stay calm** and do not brake sharply
+2. **Find a safe place to stop** — a petrol station forecourt, car park, or layby
+3. **Check all four tyre pressures** with a gauge (most petrol stations have one)
+4. **Compare to your vehicle's recommended pressures** (driver's door sticker or fuel cap label)
+5. **Inflate any low tyres** to the correct pressure
+6. **Drive carefully** and monitor whether the light goes out
+
+## What Causes the TPMS Light to Come On?
+
+### 1. Gradual Pressure Loss — Most Common
+Tyres naturally lose 1–2 PSI per month. In Scotland's variable temperatures, seasonal pressure drops are common. A tyre inflated to 32 PSI in summer may drop to 28–29 PSI in winter, enough to trigger the light.
+
+**Fix**: inflate all four tyres to the recommended pressure. The light should go out automatically within a few miles on most vehicles.
+
+### 2. Slow Puncture
+A nail or screw in the tread causes gradual air loss — sometimes over hours or days. The TPMS will eventually trigger.
+
+**Signs**: the affected tyre looks slightly lower than the others; pressure loss keeps recurring after inflation; you can sometimes hear a faint hissing.
+
+**Fix**: call Tyre Rescue — we will identify the puncture and either repair (if BSAU159-compliant) or replace the tyre. Do not repeatedly reinflate a tyre that keeps losing pressure.
+
+### 3. Temperature Drop
+Cold weather causes air to contract, reducing tyre pressure. In Scotland, temperatures can drop 10–15°C overnight in autumn and winter, which lowers pressure by approximately 1 PSI per 10°F (5.5°C) drop.
+
+**Fix**: inflate tyres to the manufacturer's recommended cold pressure. Scottish drivers should check pressures more frequently from October onward.
+
+### 4. TPMS Sensor Battery Failure
+Each wheel has a battery-powered sensor with a typical lifespan of 5–10 years. When the sensor battery fails, the system cannot report pressure and triggers the warning.
+
+**Signs**: the light flashes for 60–90 seconds on startup before staying solid. The light is not going off after you inflate the tyres.
+
+**Fix**: the sensor needs replacing. This is a job for a tyre fitter — the sensor is inside the wheel and requires dismounting the tyre.
+
+### 5. TPMS Sensor Damage
+Sensors can be damaged by:
+- Aggressive tyre changes (non-specialist fitters)
+- Pothole impacts
+- Corrosion on older alloy wheels (common in Scotland due to salted winter roads)
+
+**Fix**: sensor replacement. A new OEM-equivalent TPMS sensor typically costs £25–£50 plus fitting. We carry common TPMS sensors in our vans.
+
+### 6. Wheel Change Without TPMS Reset
+After changing winter or summer tyres, the TPMS must be recalibrated to the new sensor set. If this is not done, the light will remain on even though pressures are correct.
+
+**Fix**: TPMS reset/relearn. Tyre Rescue performs this as standard after every seasonal changeover and new tyre fitment.
+
+## TPMS Warning Light After New Tyres
+
+If your TPMS light comes on after having new tyres fitted, the most likely cause is:
+- The sensors were not reset after fitting (fix: TPMS relearn procedure)
+- A sensor was damaged during the tyre change (fix: sensor replacement)
+- The new tyre size is different from what the sensor is calibrated for (fix: TPMS recalibration)
+
+This is why it matters who fits your tyres. Tyre Rescue always performs a TPMS check and reset after every fitting.
+
+## TPMS and MOT
+
+A faulty TPMS light that cannot be resolved will result in an MOT advisory or fail depending on when the vehicle was first registered:
+- Vehicles first registered after **November 2012**: TPMS failure = MOT fail
+- Vehicles registered before this date: advisory only
+
+Scotland's MOT testers will check that the TPMS light illuminates during the bulb check and goes out when the engine is running with correct pressures.
+
+## Quick Reference
+
+| Light behaviour | Most likely cause | Action |
+|---|---|---|
+| Steady on, car feels normal | Low pressure / seasonal drop | Check and inflate all 4 tyres |
+| Steady on, car pulls to one side | Significant loss / puncture | Stop safely, call Tyre Rescue |
+| Flashing 60–90s then steady | Sensor battery / malfunction | Book sensor inspection |
+| On after new tyre fitting | TPMS not reset | Call fitter for reset |
+| On and off intermittently | Sensor fault or borderline pressure | Check pressures, book inspection |
+
+---
+
+Call **0141 266 0690** for mobile tyre fitting across Scotland — we handle TPMS sensor replacement, tyre fitting, and reset as a complete service.
+
+[Tyre pressure guide Scotland](/blog/tyre-pressure-guide-scotland) | [Slow puncture causes](/blog/slow-puncture-causes-scotland) | [Can I drive on a flat tyre?](/blog/can-i-drive-on-flat-tyre-scotland)`,
+  },
+  {
     slug: 'do-i-need-to-change-all-4-tyres-scotland',
     title: 'Do I Need to Change All 4 Tyres at Once in Scotland?',
     description:
