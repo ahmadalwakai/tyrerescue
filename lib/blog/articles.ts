@@ -10880,6 +10880,133 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'kia-ev9-tyre-fitting-scotland',
+    title: 'Kia EV9 Tyre Fitting Scotland: 255/45R21 and 285/40R21 Size Guide',
+    description:
+      'Kia EV9 tyre guide for Scotland: 255/45R21 standard and 285/40R21 GT-Line sizes, load index 106+ requirements for the 2,590kg EV, no spare tyre policy, and Scottish charging route tips.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'kia ev9 tyres scotland',
+      'kia ev9 tyre fitting scotland',
+      'kia ev9 255 45r21 scotland',
+      'kia ev9 285 40r21 scotland',
+      'kia ev9 tyre replacement scotland',
+      'kia ev9 tyre size scotland',
+      'kia ev9 mobile tyre fitting scotland',
+      'kia ev9 ev tyre scotland',
+    ],
+    relatedSlugs: [
+      'kia-tyre-fitting-scotland',
+      'ev-tyre-fitting-scotland',
+      'ev-range-anxiety-tyres-scotland',
+    ],
+    content: `# Kia EV9 Tyre Fitting Scotland: 255/45R21 and 285/40R21 Size Guide
+
+The Kia EV9 is a three-row, seven-seat electric SUV and one of the largest EVs currently available in the UK market. In Scotland, where large SUVs are common for families and rural use, the EV9 has found a strong audience.
+
+The EV9 is a genuinely heavy vehicle — the AWD GT-Line at approximately 2,590kg — and its tyres must be rated to match.
+
+---
+
+## Kia EV9 Tyre Sizes
+
+### EV9 Air (RWD) — Standard Trim
+- **255/45R21** on 21" alloy wheels
+- Load index: minimum **106** (950kg per tyre)
+- Speed rating: **H** (130mph) — appropriate for this SUV-class speed limiter configuration
+
+### EV9 GT-Line (AWD)
+- **285/40R21** on 21" alloys — wider rear fitment
+- Load index: minimum **109** (1,030kg per tyre) for the heavier AWD model
+- Speed rating: **H** or **V** depending on the specific tyre fitted
+
+### EV9 GT (AWD Sport)
+- **285/40R21** front and rear — same size both axles on this variant
+- Higher load index specification — verify on door sticker
+
+---
+
+## Why Load Index Is Critical for the EV9
+
+The EV9 is significantly heavier than any equivalent petrol 7-seat SUV. A comparably sized Land Rover Discovery or Volkswagen Atlas weighs approximately 1,900–2,200kg. The EV9 at 2,400–2,590kg is 200–600kg heavier.
+
+This weight is carried across four tyres. With the EV9 GT-Line at 2,590kg fully laden with 7 passengers:
+- Maximum load per tyre: approximately 650kg
+- LI 106 (950kg per tyre) provides comfortable headroom
+
+**Never fit EV9 tyres with a load index below 106 (RWD) or 109 (AWD).** An undersized tyre can fail under the EV9's weight at speed.
+
+---
+
+## EV-Specific Requirements for the EV9
+
+### Low Rolling Resistance
+
+The EV9's 99.8kWh battery provides up to 350 miles WLTP range. Scottish Highland route range anxiety is a real concern, particularly on routes where charging infrastructure is sparse (Cairngorms, A82, A87, Torridon peninsula).
+
+Tyres designed for EVs — with A-rated rolling resistance — maximise that range margin. Do not fit standard passenger tyres with C-rated rolling resistance to an EV9.
+
+### Acoustic Foam Lining
+
+The EV9 is a quiet vehicle. EV-spec tyres often include acoustic foam on the inner surface to absorb road noise — because road noise is significantly more noticeable in an EV than in a petrol equivalent.
+
+When replacing EV9 tyres, choose foam-lined options where possible in 255/45R21 and 285/40R21.
+
+### No Spare Tyre
+
+The EV9 has no spare wheel — it carries a tyre inflation kit (sealant + compressor). The same limitations apply as all modern EVs:
+- Only works on small tread punctures
+- Does not work on sidewall damage
+- Ruins the tyre for future repair
+
+If your EV9 tyre fails on a remote Scottish route, call Tyre Rescue — we can source and deliver 255/45R21 tyres across Scotland.
+
+---
+
+## Recommended Replacement Tyres for Kia EV9
+
+**Premium options (255/45R21)**:
+- **Michelin Pilot Sport EV**: designed specifically for heavy performance EVs, acoustic foam lined
+- **Continental SportContact 7**: excellent wet grip, EV-optimised compound available
+- **Goodyear Eagle F1 Asymmetric 6**: high performance, acoustic version available
+
+**Premium options (285/40R21 AWD)**:
+- **Michelin Pilot Sport 4S**: performance spec, available in this size
+- **Continental SportContact 7**
+
+Note: 285/40R21 is a large, premium-only tyre size. Budget options are not typically available in this fitment — expect £180–£280+ per tyre.
+
+---
+
+## TPMS on Kia EV9
+
+The EV9 uses 433MHz TPMS sensors. After any tyre replacement, the TPMS must be reset via the Kia Connect app or the vehicle's infotainment system.
+
+We carry compatible TPMS sensor replacements for Kia EV9.
+
+---
+
+## Scottish Winter and the EV9
+
+In Highland Scotland, the EV9 performs well as a large EV in winter conditions. However:
+
+- **Summer tyres in cold temperatures**: the 255/45R21 summer tyres lose significant grip below 7°C. In the Cairngorms or Grampian areas from October, this is a real concern.
+
+- **Winter tyres for EV9**: 255/45R21 is available in winter spec from Nokian, Continental, and Michelin. The added cost and complexity of carrying a second wheel set is significant for this size.
+
+- **All-season option**: Continental AllSeasonContact 2 or Michelin CrossClimate 2 in 255/45R21 — a practical compromise for Scottish EV9 owners
+
+---
+
+Call **0141 266 0690** for Kia EV9 tyre fitting across Scotland. We source 255/45R21 and 285/40R21 with delivery to your location.
+
+[Kia tyre fitting guide Scotland](/blog/kia-tyre-fitting-scotland) | [EV tyre fitting Scotland](/blog/ev-tyre-fitting-scotland) | [EV range and tyres Scotland](/blog/ev-range-anxiety-tyres-scotland)`,
+  },
+  {
     slug: 'mobile-tyre-fitting-cost-vs-garage-scotland',
     title: 'Is Mobile Tyre Fitting More Expensive Than a Garage in Scotland?',
     description:
