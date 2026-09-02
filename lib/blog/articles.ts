@@ -10880,6 +10880,121 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'new-tyres-noisy-scotland',
+    title: 'Why Are My New Tyres So Noisy? Common Causes Explained for Scottish Drivers',
+    description:
+      'New tyres can sometimes be noisier than old ones. This guide explains why new tyres make road noise, when the noise is normal, and when it indicates a problem that needs attention.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'new tyres noisy scotland',
+      'new tyres louder than old ones scotland',
+      'why are new tyres loud scotland',
+      'road noise new tyres scotland',
+      'new tyres making noise scotland',
+      'tyre noise after replacement scotland',
+      'why new tyre noisy scotland',
+      'new tyre hum scotland',
+    ],
+    relatedSlugs: [
+      'noisy-tyres-causes-scotland',
+      'car-vibrating-after-new-tyres-scotland',
+      'wheel-alignment-vs-balancing-scotland',
+    ],
+    content: `# Why Are My New Tyres So Noisy? Common Causes Explained for Scottish Drivers
+
+After fitting new tyres, some drivers notice the car seems louder than before. This is one of the most common questions we receive — and the answer depends on which specific noise is being described.
+
+---
+
+## Normal: New Tyre Break-In Period
+
+New tyres sometimes make a slight hum or higher-pitched note for the first 200–500 miles. This is normal.
+
+New tyre rubber is slightly harder and has a more defined tread block structure than a worn tyre. The sharp tread block edges that are present on a brand-new tyre create more noise than a tyre that has been used for a few thousand miles and has had its block edges rounded off.
+
+Additionally, the tread pattern of your new tyre may be different from your old tyre — even if it is the same "size." Different tread designs create different sound frequencies.
+
+**What this sounds like**: a slight increase in road noise hum, usually constant and even, without vibration. It typically reduces noticeably after 500–1,000 miles.
+
+---
+
+## Normal: Different Tread Pattern
+
+If you changed tyre brand or model, the new tyres may simply be inherently louder than your previous tyres. Different tread patterns generate different noise levels:
+
+- **Symmetrical tread patterns**: generally the quietest
+- **Asymmetric patterns**: moderate noise, trade-off for better wet grip
+- **Directional V-shaped patterns**: often louder, particularly the aggressive V-groove designs used for wet weather
+- **All-terrain (AT) patterns**: significantly louder than road tyres — large tread blocks create noise at highway speeds
+
+If you switched from a quiet summer tyre to a more aggressive all-season or AT tyre, the noise increase may be a permanent characteristic of the new tyre choice.
+
+---
+
+## Not Normal: Vibration Plus Noise
+
+If the new tyres are making noise accompanied by steering wheel vibration or a vibration felt through the floor, the most likely cause is **wheel imbalance**.
+
+Wheel balancing is performed after every tyre fitting. However:
+- A balance weight may have been placed incorrectly
+- A balance weight may have come off immediately after fitting (happens occasionally on rough first miles)
+- The imbalance may have been missed if the balancing machine was slightly miscalibrated
+
+**Solution**: return to Tyre Rescue and report the vibration. We will rebalance free of charge — this is a warranty issue on the fitting service.
+
+---
+
+## Not Normal: Thumping or Flat-Spot Noise
+
+A rhythmic thump — thump-thump-thump-thump — that corresponds to the speed of wheel rotation usually means one of:
+
+1. **Tyre flat-spot**: if a tyre has been stored flat against a surface (leaning against a wall), the stored tyre may have a temporary or permanent deformation. For a new tyre, this is rare but possible if the tyre was stored incorrectly before fitting.
+
+2. **Incorrect bead seating**: if the tyre bead did not seat correctly on the rim during fitting, a small section of the tyre may not be fully seated. This causes a rhythmic irregularity.
+
+3. **Tyre defect**: extremely rare, but a manufacturing defect in the tyre can cause a lump or variation in the tread structure.
+
+**Solution**: if the thumping doesn't resolve within 100 miles, contact Tyre Rescue. We will inspect the tyre and rim seating, and if there is a defect, liaise with the manufacturer for warranty replacement.
+
+---
+
+## Not Normal: New Noise Only on One Side
+
+If the noise is clearly coming from one side only (most easily detected by driving in a wide arc — left arc vs right arc), the noise may indicate:
+
+- Wheel bearing starting to fail (coincidental with tyre fitting — the new tyre didn't cause it, but the old tyre's noise may have been masking it)
+- A TPMS sensor loose inside the tyre (should not happen if fitting was done correctly)
+- A stone or debris caught between the tyre and wheel arch
+
+---
+
+## Scotland-Specific Note: Road Surface Noise
+
+Many of Scotland's roads — particularly urban roads in Glasgow and Edinburgh — have variable surface quality. A noisier new tyre makes the road surface noise more apparent, rather than the tyre itself being faulty.
+
+The original tyres may have been worn smooth and therefore quieter. New tyres with full tread interact with the road differently and may seem louder simply because the road surface itself is uneven.
+
+---
+
+## When to Contact Tyre Rescue
+
+Contact us if:
+- Vibration accompanies the noise (balancing issue)
+- Rhythmic thumping at slow speeds (bead seating issue)
+- Noise is clearly one-sided (bearing or debris issue)
+- The noise increases over time rather than decreasing
+
+Normal new tyre noise should decrease over the first 500 miles. If it gets worse, that is a sign of a problem.
+
+Call **0141 266 0690** — fitting issues are always addressed free of charge.
+
+[Why are my tyres noisy?](/blog/noisy-tyres-causes-scotland) | [Car vibrating after new tyres?](/blog/car-vibrating-after-new-tyres-scotland) | [Wheel balancing vs alignment](/blog/wheel-alignment-vs-balancing-scotland)`,
+  },
+  {
     slug: 'alfa-romeo-tyre-fitting-scotland',
     title: 'Alfa Romeo Tyre Fitting Scotland: Giulia, Stelvio, Tonale and Junior',
     description:
