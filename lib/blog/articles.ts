@@ -10880,6 +10880,153 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'pothole-damage-claim-scotland',
+    title: 'How to Claim for Pothole Tyre Damage from Scottish Councils',
+    description:
+      'Can you claim compensation for tyre damage caused by a pothole in Scotland? Step-by-step guide to claiming from local councils, what evidence you need, and how much you can recover.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 8,
+    featured: false,
+    keywords: [
+      'pothole damage claim scotland',
+      'claim for tyre damage pothole scotland',
+      'pothole compensation scotland',
+      'report pothole scotland',
+      'claim from council pothole damage scotland',
+      'pothole tyre damage compensation',
+      'how to claim pothole damage scotland council',
+      'pothole burst tyre claim scotland',
+    ],
+    relatedSlugs: [
+      'pothole-damage-tyres-scotland',
+      'tyre-sidewall-damage-scotland',
+      'tyre-prices-scotland-guide-2026',
+    ],
+    content: `# How to Claim for Pothole Tyre Damage from Scottish Councils
+
+Scotland's roads have a significant pothole problem. Transport Scotland and local councils acknowledge thousands of pothole complaints annually, and Scottish drivers suffer millions of pounds in tyre, wheel, and suspension damage each year.
+
+What many drivers don't know: you may be entitled to claim compensation from the responsible council for the cost of repairs — including new tyres and wheel damage. This guide explains how.
+
+## Can You Claim for Pothole Tyre Damage in Scotland?
+
+**Yes — in some circumstances.**
+
+Under the Roads (Scotland) Act 1984, local authorities have a duty to maintain roads in a safe condition. If a pothole damaged your vehicle and the council was aware of the pothole (or should have been), you may have a valid negligence claim.
+
+**However, councils have a defence** — if they can show they have a reasonable inspection and repair programme in place, they may not be liable even if the pothole existed. This is called the "Section 58 defence" (equivalent in Scotland) — it acknowledges that councils cannot fix every pothole immediately, only that they must have a reasonable system in place.
+
+**Success rates**: pothole claims in Scotland have mixed success rates. Well-documented claims on busy roads with large potholes that had been reported previously are more likely to succeed. Rural road claims on minor roads are harder.
+
+## Who is Responsible for Your Road?
+
+Before claiming, identify which authority is responsible for the road where the damage occurred.
+
+**Type A roads (trunk roads)**: managed by Transport Scotland on behalf of the Scottish Government. Examples: A9, A82, M8/M74, A90.
+
+**Local roads (including most B roads, residential streets, and unclassified roads)**: managed by your regional council:
+- Glasgow: Glasgow City Council
+- Edinburgh: City of Edinburgh Council
+- Aberdeen: Aberdeen City Council
+- Dundee: Dundee City Council
+- Highland, Argyll, Borders etc.: respective regional council
+
+**How to find responsibility**: use the government's Reporting Roads website (Transport Scotland) for trunk roads, or your regional council's online portal for local roads.
+
+## Step-by-Step: How to Make a Pothole Claim in Scotland
+
+### Step 1: Document Everything Immediately
+
+On the day of the incident:
+
+- **Photograph the pothole**: take multiple photos showing the pothole depth and width. Include a coin or ruler for scale. Take a wide shot showing road context and a close-up.
+- **Record exact location**: note the road name, direction of travel, nearest junction, street number, or landmark. Postcode is ideal. Google Maps pin screenshot is useful.
+- **Record the date and time**: exact timestamp.
+- **Photograph your tyre**: sidewall damage, flat tyre, broken wheel — photograph all damage immediately after stopping safely.
+- **Get a witness statement**: if a passenger was present, get their name and contact details.
+
+### Step 2: Get the Damage Assessed and Repaired
+
+Before your claim will be successful, you need documented evidence of the repair cost:
+
+- **Mobile tyre fitting**: get a receipt from Tyre Rescue or whichever tyre fitter attended, specifying the tyre size, the reason for replacement (impact/pothole damage), and the cost.
+- **Wheel damage**: if the wheel is bent or cracked, get a repair or replacement quote from a garage in writing.
+- **Suspension damage**: if the impact damaged suspension components, get a garage inspection report and repair quote.
+
+Keep all receipts and invoices — you cannot claim without them.
+
+### Step 3: Report the Pothole
+
+Report the pothole to the responsible authority as soon as possible:
+
+**For trunk roads (A9, A82, M8, M74, A90, etc.)**:
+- Online: Transport Scotland's reporting portal (search "Transport Scotland report pothole")
+- Phone: Traffic Scotland on 0800 028 1414
+
+**For local roads**:
+- Glasgow: glasgow.gov.uk → My Glasgow → Report a road problem
+- Edinburgh: edinburgh.gov.uk → Report a pothole
+- Aberdeen: aberdeencity.gov.uk → Report a road defect
+- Other councils: use FixMyStreet (fixmystreet.com) which routes reports to the correct council
+
+**Note your report reference number** — you will need this when making your claim.
+
+### Step 4: Make a Formal Claim
+
+**For trunk roads**: write to Transport Scotland Claims Department. Include:
+- Description of the incident
+- Pothole location details and photographs
+- Evidence that the pothole existed (your report, any prior reports by others)
+- Evidence of damage (photographs)
+- Evidence of repair costs (invoices)
+
+**For local councils**: each council has a claims department (sometimes called Roads Claims or Liability Claims). Most can be contacted online or by letter.
+
+**Time limit**: claims should be made within three years of the incident under the Prescription and Limitation (Scotland) Act 1984, but submit as soon as possible — evidence degrades and witness memories fade.
+
+### Step 5: What Happens Next
+
+The authority will investigate your claim, which typically involves:
+1. Checking their road inspection records to see when the pothole was last assessed
+2. Checking whether the pothole had been previously reported
+3. Assessing whether their maintenance system meets the Section 58 defence standard
+
+**If successful**: you will receive compensation for the verified repair costs (tyre, wheel, sometimes suspension).
+**If rejected**: you can escalate to the Scottish Public Services Ombudsman (SPSO) or pursue the claim through the Small Claims Court (up to £5,000 in Scotland's Summary Cause procedure) if you believe the rejection is unjust.
+
+## How Much Can You Claim?
+
+You can claim the documented repair cost:
+- **Tyre replacement**: typically £60–£300 depending on vehicle and tyre brand
+- **Wheel repair/replacement**: £150–£800
+- **Suspension repair**: if proven caused by the same impact, potentially £200–£2,000+
+
+Most pothole claims are in the £100–£500 range for tyre and wheel damage.
+
+**Claim filing tip**: include a receipt for any call-out or emergency fee paid (e.g., Tyre Rescue's £49 emergency callout) — this is a legitimate additional cost caused by the pothole.
+
+## If Your Claim is Rejected
+
+Common reasons for rejection:
+- The pothole did not meet the authority's minimum defect threshold (some councils only repair potholes over 40mm deep)
+- The authority had no prior knowledge of the pothole
+- The maintenance inspection records show a recent inspection
+
+If rejected, consider:
+- Checking whether the pothole had been reported before your incident via FixMyStreet
+- Submitting a Subject Access Request for their inspection records
+- Seeking legal advice for higher-value claims (suspension damage over £1,000)
+- Small Claims Court if you have strong evidence
+
+## Bottom Line
+
+Getting your tyres replaced quickly is the first priority — call Tyre Rescue on **0141 266 0690** and we will attend your location across Scotland with a replacement tyre. Keep your receipt as it is a key document in any subsequent pothole claim.
+
+[Pothole tyre damage guide Scotland](/blog/pothole-damage-tyres-scotland) | [Tyre sidewall damage guide](/blog/tyre-sidewall-damage-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026)`,
+  },
+  {
     slug: 'car-vibrating-after-new-tyres-scotland',
     title: 'Car Vibrating After New Tyres? Causes and Fixes in Scotland',
     description:
