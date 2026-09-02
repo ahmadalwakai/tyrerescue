@@ -10880,6 +10880,128 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'nc500-tyre-guide-scotland',
+    title: 'Tyre Guide for the North Coast 500 (NC500): What You Need to Know',
+    description:
+      'Planning the NC500? Essential tyre advice before you go — road conditions, remote area tyre risks, spare tyre advice, nearest mobile tyre fitters, and what to do if you get a flat on the NC500.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 8,
+    featured: true,
+    keywords: [
+      'NC500 tyre advice',
+      'north coast 500 tyres',
+      'nc500 flat tyre',
+      'nc500 tyre guide',
+      'driving nc500 tyre tips',
+      'north coast 500 tyre emergency',
+      'nc500 remote area breakdown',
+      'tyre check before nc500',
+    ],
+    relatedSlugs: [
+      '4x4-suv-tyres-scotland-highlands',
+      'all-season-tyres-scotland-guide',
+      'spare-tyre-uk-law-scotland',
+    ],
+    content: `# Tyre Guide for the NC500
+
+The North Coast 500 (NC500) is Scotland's most famous driving route — 500 miles of spectacular Highland roads connecting Inverness around the north and west coast. It's a bucket-list route for motorcyclists and car drivers from across the world.
+
+It is also one of the most challenging routes in Britain for tyres.
+
+## Why the NC500 is Hard on Tyres
+
+**Single-track roads**: much of the NC500 passes through single-track roads with passing places. Driving on the edge of the tarmac — often on loose gravel and grass edges — at normal speeds introduces significant sidewall scrape risk. The edge of tarmac on Highland roads often has sharp stone edges that cause pinch cuts to tyres.
+
+**Road surface quality**: the NC500 varies enormously in surface quality. The main A838, A836, and A9 sections are well-maintained. But sections through Coigach (near Lochinver), the Bealach na Bà pass, and parts of Sutherland have surfaces that would not be out of place in a rally stage. Expect sharp stones, exposed aggregate, and sudden dips.
+
+**Bealach na Bà**: the road through the Bealach na Bà (Pass of the Cattle) near Applecross is one of the steepest roads in Britain. It has a maximum gradient of 20%, multiple tight hairpin bends, and a rough, narrow surface. It is signposted as unsuitable for caravans and large vehicles. For cars, it is manageable but hard on tyres — particularly low-profile tyres on modern sports cars.
+
+**Remote location**: this is the key tyre risk on the NC500. If you get a flat tyre in a remote area — say, between Tongue and Durness, or on the Bealach na Bà — professional help may be hours away. The nearest mobile tyre fitter may be in Inverness, 100+ miles distant.
+
+## Essential Pre-NC500 Tyre Checks
+
+Do not start the NC500 without completing these checks:
+
+### 1. Tread Depth — All Four Tyres
+
+Measure tread depth on all four tyres before departure. The legal minimum is 1.6mm, but for Highland road conditions, we strongly recommend a minimum of 4mm before starting the NC500. On single-track roads with loose stone edges, a tyre at 2mm tread is a puncture waiting to happen.
+
+If any tyre is below 4mm, replace it before departure. Mobile tyre fitting is straightforward in Inverness (the start of the NC500) — this is by far the most convenient place to sort tyre problems.
+
+### 2. Tyre Age
+
+Check the DOT manufacture date on each tyre. If any tyre is over 6 years old, it should be replaced before the NC500 regardless of tread depth. Sidewall cracking on older tyres is much more likely to lead to a puncture on rough Highland roads.
+
+### 3. Tyre Condition — Sidewalls
+
+Examine all sidewalls carefully for existing cracks, cuts, or bulges. A tyre that has a small sidewall crack in Edinburgh will develop a larger one on the Bealach na Bà.
+
+### 4. Tyre Pressure
+
+Check pressure for the loaded condition if you are carrying luggage and passengers. Underinflated tyres are far more vulnerable to sidewall impact damage on Highland roads.
+
+### 5. Spare Tyre or Emergency Kit
+
+**This is critical for the NC500**.
+
+If your vehicle carries a spare tyre: check it. Verify the spare is inflated to the correct pressure, check its tread depth and age, and make sure the jack and wheel brace are in the vehicle. A spare tyre with 1mm tread stored at 20 psi is not useful in an emergency.
+
+If your vehicle has only an inflation kit (no spare): understand its limitations. On the NC500, where sidewall damage from sharp single-track road edges is the most common puncture type, a sealant kit will not help. Sidewall damage cannot be inflated or sealed.
+
+**Recommendation**: if your vehicle normally carries no spare, consider renting a set of wheels for the NC500 trip or purchasing a compact spare. The cost of a tow truck from Durness or Kinlochbervie to Inverness is substantial.
+
+## If You Get a Flat Tyre on the NC500
+
+**Stay calm and pull over safely.** On single-track roads, pull into the nearest passing place.
+
+**Assess the damage**: is it a slow puncture (valve, nail, slow deflation) or a sudden blowout/sidewall failure?
+
+**If a slow puncture and you have tread-area penetration**: use your inflation kit or spare tyre and drive slowly to the nearest settlement.
+
+**NC500 emergency tyre resources**:
+
+| Area | Nearest Tyre Centre | Approximate Distance |
+|---|---|---|
+| Inverness | Multiple tyre centres | Start of NC500 |
+| Dingwall | Local garages | 15 miles from Inverness |
+| Tain / Dornoch | Local garages | 40 miles north |
+| Golspie / Brora | Limited garages | 60 miles north |
+| Wick / Thurso | Halfords/local garages | 120 miles north |
+| Tongue / Durness | No tyre centres | Remote — allow 1–2 hours for response |
+| Ullapool | Local garages | 57 miles from Inverness |
+| Lochinver area | Very limited | Remote |
+| Applecross / Torridon | No tyre centres | Remote — full recovery may be needed |
+| Kyle of Lochalsh | Local garage | 80 miles from Inverness |
+
+**Tyre Rescue NC500 coverage**: we cover all of Scotland, including the NC500 route. Response times for remote areas (Tongue, Durness, Lochinver, Bealach na Bà) are significant — plan for 90–150 minutes minimum. Call **0141 266 0690** and we will dispatch the nearest available technician.
+
+**Practical tip**: if you are on the NC500 with a tyre problem in a remote area, call us and then continue driving slowly to the nearest settlement (5–15 mph on a damaged tyre will cause less damage than a 2-hour wait in place). Most tyre damage that cannot be repaired will not worsen significantly at very low speed.
+
+## Tyre Recommendations for the NC500
+
+**Standard cars (not modified)**:
+
+All-season tyres with high sidewall height (aspect ratio 50 or above) are more resilient on single-track road edges. If you drive a very low-profile car (35 or 40 profile tyres), be extra careful on the Bealach na Bà and Coigach sections.
+
+**SUVs and 4x4s**:
+
+All-terrain or robust highway terrain tyres are ideal. The NC500 is one of Scotland's strongest arguments for the right all-terrain tyre on a capable vehicle.
+
+**Motorcycles**:
+
+If you are touring the NC500 on a motorcycle, carry a plug repair kit and CO2 inflators. Tubeless tyre plugs can be fitted roadside and enable limping to a garage. This is the most practical emergency solution for motorcyclists.
+
+## Enjoying the NC500
+
+Most NC500 drivers complete the route without any tyre problems. Prepared, correctly-maintained tyres at good tread depth are safe on the NC500.
+
+Check your tyres before departure, carry a working spare or understand your inflation kit's limitations, and keep Tyre Rescue's number saved: **0141 266 0690**.
+
+[4x4 and Highland tyre guide](/blog/4x4-suv-tyres-scotland-highlands) | [All-season tyres Scotland](/blog/all-season-tyres-scotland-guide) | [Spare tyre guide Scotland](/blog/spare-tyre-uk-law-scotland)`,
+  },
+  {
     slug: 'pothole-damage-claim-scotland',
     title: 'How to Claim for Pothole Tyre Damage from Scottish Councils',
     description:
