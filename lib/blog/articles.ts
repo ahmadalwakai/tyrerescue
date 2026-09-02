@@ -10447,7 +10447,7 @@ No surprises when we arrive.
 
 Call **0141 266 0690** or [book online](/book) to get your tyre price and fitting quote for anywhere in Scotland.
 
-[Pricing guide](/pricing) | [Best budget tyres Scotland](/blog/best-budget-tyres-scotland-2026) | [Michelin vs Continental vs Pirelli](/blog/michelin-vs-continental-vs-pirelli-scotland)`,
+[Pricing FAQ](/pricing-faq) | [Best budget tyres Scotland](/blog/best-budget-tyres-scotland-2026) | [Michelin vs Continental vs Pirelli](/blog/michelin-vs-continental-vs-pirelli-scotland)`,
   },
   {
     slug: 'mobile-tyre-fitting-glasgow-guide',
@@ -10878,6 +10878,144 @@ Our tyre recommendation for MG4 and MG ZS EV owners: **Michelin Pilot Sport EV**
 Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call **0141 266 0690** or [book online](/book) — we cover all of Scotland 24 hours a day.
 
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
+  },
+  {
+    slug: 'ford-ranger-tyre-fitting-scotland',
+    title: 'Ford Ranger Tyre Fitting Scotland: Sizes, AT vs MT Options, and Load Ratings',
+    description:
+      'Ford Ranger tyre guide for Scotland: correct sizes for Wildtrak, XLT, Sport, and Raptor, all-terrain vs highway options, load index requirements, and TPMS reset for Scotland\'s working and leisure pickup drivers.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'ford ranger tyres scotland',
+      'ford ranger tyre fitting scotland',
+      'ford ranger wildtrak tyres scotland',
+      'ford ranger raptor tyres scotland',
+      'ford ranger all terrain tyres scotland',
+      'ford ranger tyre size scotland',
+      'ford ranger 255 60 r18 scotland',
+      'ford ranger tyre change scotland',
+    ],
+    relatedSlugs: [
+      'isuzu-dmax-tyre-fitting-scotland',
+      'toyota-tyre-fitting-scotland',
+      'tyre-pressure-loaded-car-scotland',
+    ],
+    content: `# Ford Ranger Tyre Fitting Scotland: Sizes, AT vs MT Options, and Load Ratings
+
+The Ford Ranger is the UK's best-selling pickup truck, and Scotland is one of its strongest markets — farmers, rural contractors, outdoor sports enthusiasts, and tradespeople all rely on the Ranger's payload capacity and go-anywhere capability.
+
+Getting the tyre specification right on a Ranger is more important than on a typical passenger car. The Ranger is a commercial-grade vehicle that can carry up to 1,000kg in its bed and tow up to 3,500kg. Its tyres must be rated accordingly.
+
+---
+
+## Ford Ranger Generations and Tyre Sizes
+
+### Current Ranger (2023–present, T6.2)
+The current-generation Ranger launched for the 2023 model year with significantly upgraded powertrain and chassis options.
+
+**Standard variants (XL, XLT)**:
+- **255/65R17** — the base tyre, fitted to 17" steel or alloy wheels
+- Load index: **114** (1,180kg per tyre) — minimum for full payload Ranger use
+
+**Wildtrak**:
+- **255/60R18** on 18" alloy wheels
+- Load index: **112** or **114** depending on the tyre specified
+
+**Sport**:
+- **265/60R18** or **255/60R18** depending on variant
+
+**Ranger Raptor**:
+- **285/60R18** — a significantly wider, more aggressive footprint
+- The Raptor requires tyres rated for its specific suspension and off-road calibration. Do not fit a standard Ranger tyre to a Raptor.
+
+### Previous Ranger (2016–2022, T6.1)
+- **255/70R16** — base fitment on 16" wheels
+- **255/65R17** — mid-spec Wildtrak and XLT
+- **255/60R18** — top-spec Wildtrak and Wildtrak X
+
+---
+
+## Load Index Requirements: Critical for Commercial Use
+
+The Ford Ranger is a commercial vehicle (N1 category) when used for business purposes. The tyre load index must be sufficient to support the vehicle's maximum axle load.
+
+**Minimum load index recommendations**:
+- Standard Ranger (all variants): minimum LI **112** (1,120kg per tyre, 2,240kg per axle)
+- Ranger with full 1,000kg payload: minimum LI **114** (1,180kg per tyre)
+- Ranger Raptor (heavier chassis): verify against Raptor-specific documentation
+
+**Never fit passenger car (non-LT/C-rated) tyres** to a Ford Ranger used for commercial loads. Even if the physical size fits, the tyre may not be rated for the axle loads.
+
+---
+
+## All-Season Highway vs All-Terrain vs Mud-Terrain: Which Is Right for Scotland?
+
+### Highway Terrain (HT) / Road Tyres
+Standard road-biased tyres that come as original equipment on many Rangers. Best for motorway and urban use, quietest and most fuel-efficient, but poor off-road capability.
+
+Suitable for: Rangers used primarily on tarmac, commuters, light rural use.
+
+### All-Terrain (AT) Tyres
+The most popular upgrade for Scottish Ranger owners. AT tyres have more aggressive tread blocks than standard road tyres, giving significantly improved traction on mud, gravel, and wet tracks, while retaining reasonable on-road manners.
+
+Best choices for Scotland:
+- **BF Goodrich All-Terrain T/A KO2**: the benchmark AT tyre. Excellent Highland and muddy track performance, reasonable on-road comfort. Popular with farmers and Ranger owners who venture to remote locations.
+- **Falken Wildpeak AT3W**: strong winter performance (3PMSF rated), good Highland performance, lower cost than BFG KO2.
+- **General Grabber AT3**: good value AT option, 3PMSF rated.
+- **Goodyear Wrangler All-Terrain**: solid mid-range AT choice.
+
+### Mud-Terrain (MT) Tyres
+Highly aggressive tread with large voids for deep mud clearance. Very poor on tarmac — noisy, prone to aquaplaning, and significantly worse fuel economy. Only appropriate for Rangers used heavily off-road.
+
+Not recommended for Scottish daily driving conditions — an AT tyre performs better in Scotland's specific mix of muddy tracks, wet tarmac, and motorway use.
+
+---
+
+## Tyre Pressure by Load State
+
+Correct tyre pressure varies with load on a Ranger. Check your door sticker for the specific pressures:
+
+| Load state | Typical front | Typical rear |
+|---|---|---|
+| Light (driver only) | 34 PSI / 2.3 bar | 34 PSI / 2.3 bar |
+| Part-loaded | 36 PSI / 2.5 bar | 38 PSI / 2.6 bar |
+| Full payload (1,000kg bed) | 36 PSI / 2.5 bar | 44 PSI / 3.0 bar |
+| Towing (max 3,500kg) | Follow handbook specific guidance |
+
+Underinflating a Ranger carrying a full payload is a serious risk — the overloaded tyre will overheat and potentially fail.
+
+---
+
+## TPMS on Ford Ranger
+
+Current-generation Rangers (2023+) are fitted with TPMS. When fitting new tyres:
+- TPMS sensors must be reset after every tyre change
+- If the sensor battery has failed, replacement sensors are needed before fitting
+- Ranger TPMS sensors are standard 433MHz type — available from Tyre Rescue stock
+
+The previous-generation Ranger (2016–2022) was also fitted with TPMS.
+
+---
+
+## Pre-Winter / Pre-Highland Tour Tyre Check
+
+Before any Scottish Highland route — especially if you are working on rural properties, using forest roads, or going deep into the hills — check:
+1. Tyre tread depth: minimum 3mm for Highland use, 4mm+ strongly recommended
+2. Sidewalls for damage from previous off-road use
+3. All four pressures (adjust for anticipated load)
+4. Spare tyre (Ranger should have a full-size spare under the bed — check its pressure and condition)
+
+---
+
+Tyre Rescue provides mobile tyre fitting for Ford Rangers across all of Scotland — from urban Glasgow and Edinburgh to rural Aberdeenshire, Perthshire, and the Highlands. We stock 255/65R17, 255/60R18, and common AT tyre sizes.
+
+Call **0141 266 0690** or [book online](/book).
+
+[Isuzu D-Max tyre fitting Scotland](/blog/isuzu-dmax-tyre-fitting-scotland) | [Tyre pressure for loaded vehicles](/blog/tyre-pressure-loaded-car-scotland) | [Toyota tyre fitting Scotland](/blog/toyota-tyre-fitting-scotland)`,
   },
   {
     slug: 'tyre-pressure-loaded-car-scotland',
