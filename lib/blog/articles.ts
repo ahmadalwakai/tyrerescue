@@ -10880,6 +10880,125 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'tyre-repair-standards-scotland-bsau159',
+    title: 'Legal Tyre Repair Standards in Scotland: BSAU159 Explained',
+    description:
+      'Is your tyre puncture repair legal? BSAU159 defines the only legal repair standard in the UK. Plug-only repairs are illegal. What a compliant repair looks like and what to do if you have an illegal repair.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 7,
+    featured: false,
+    keywords: [
+      'BSAU159 tyre repair scotland',
+      'legal tyre repair scotland',
+      'plug and patch tyre repair scotland',
+      'is plug only repair legal scotland',
+      'tyre repair standards uk',
+      'permanent tyre repair scotland',
+      'illegal tyre repair scotland',
+      'mushroom plug tyre repair',
+    ],
+    relatedSlugs: [
+      'slow-puncture-causes-scotland',
+      'tyre-sealant-spray-vs-repair-scotland',
+      'part-worn-tyres-scotland-are-they-safe',
+    ],
+    content: `# Legal Tyre Repair Standards in Scotland: BSAU159
+
+When a tyre has a puncture, the only legal method of permanent repair in the UK is defined by British Standard **BSAU159** — the standard for the repair of pneumatic tyres used on motor vehicles. Understanding this matters because non-compliant repairs are common, and a tyre repaired incorrectly can fail catastrophically.
+
+## What BSAU159 Requires
+
+A compliant BSAU159 tyre repair must:
+
+1. **Involve removing the tyre from the rim** — the tyre must be completely demounted so the inside can be inspected
+2. **Inspect the interior** — the inner liner must be examined for damage. Many penetrations that look minor from the outside have caused internal cord damage that makes the tyre unrepairable
+3. **Use a proper repair unit** — a combined plug-and-patch, also called a mushroom or combination repair. This consists of:
+   - A **stem** (the plug) that fills the penetration hole from inside outward
+   - A **cap** (the patch) that bonds to the inner liner, sealing the repair from the inside
+4. **Be vulcanised** — the repair is bonded using heat or chemical vulcanisation, creating a permanent bond between the repair unit and the tyre liner
+5. **Only be applied in the repairable zone** — the central 75% of the tread width
+
+A repair that meets all these criteria is permanent, safe, and legal.
+
+## The Illegal Repair: Plug-Only
+
+The most common illegal repair in the UK is the **plug-only or string-plug repair**.
+
+This involves inserting a rope or rubber string into the puncture hole from the outside of the tyre, without removing the tyre from the rim. It is:
+
+- Quick (takes 2–5 minutes)
+- Cheap (sometimes offered for £5–£10)
+- Commonly offered at petrol stations, car washes, and some small garages
+- **Illegal under BSAU159**
+- **Dangerous**
+
+Why is a plug-only repair dangerous?
+
+1. **The interior cannot be inspected** — you cannot see whether the penetration has caused internal cord damage. A tyre with cord damage that looks externally repairable may fail.
+2. **The stem seals the penetration but the inner liner is not patched** — air can migrate through the cord material inside the tyre body and escape around the plug stem over time.
+3. **Plugs can pull out** — if the penetrating object caused a slightly irregular hole, the plug may not seal completely and can pull through at high speed.
+4. **No record or traceability** — unlike a proper repair at a tyre centre, there is no documentation and no accountability if the repair fails.
+
+**BSAU159 explicitly states that plug-only repairs do not meet the standard.** Any reputable tyre fitter in Scotland using the full mushroom plug-patch and vulcanisation method is BSAU159 compliant. Plug-only is not.
+
+## What a BSAU159-Compliant Repair Looks Like
+
+You will not see most of the repair from outside the vehicle — the stem fills the puncture hole and may be visible only as a small protrusion inside the tyre. What you should see from the tyre fitter:
+
+1. **The tyre is removed from the rim** — you should see it taken off the wheel
+2. **The inside is inspected** — the fitter looks inside with a torch and feels the liner
+3. **The repair unit is fitted from inside** — not externally with a string
+4. **The tyre is remounted and balanced**
+
+If a "repair" is offered without removing the tyre from the rim, it is a plug-only repair and does not comply with BSAU159.
+
+## When a Tyre Cannot Be Repaired
+
+BSAU159 also defines when a tyre **cannot** be repaired:
+
+**Location**: the penetration must be in the central three-quarters of the tread width. Penetrations in the shoulder or sidewall cannot be repaired.
+
+**Size**: the penetration must be no more than 6mm in diameter for car tyres (up to 4mm for some high-speed-rated tyres).
+
+**Depth**: the penetration must not have damaged the main structural cords of the tyre.
+
+**Multiple repairs**: there are limits on the number of repairs permissible per tyre and minimum distances between repairs.
+
+**Previous improper repair**: a tyre that has been previously plug-only repaired should be inspected carefully — the plug-only repair has damaged the inner liner and may have compromised the area. Many fitters will not repair a tyre with a previous string plug.
+
+**Driven while flat**: if the tyre was driven on while flat (even briefly), internal damage from rim contact is likely, making repair unsafe.
+
+## What to Do If You Have an Illegal Repair
+
+If you received a plug-only repair and are concerned:
+
+1. **Have the tyre inspected** — a BSAU159-compliant tyre fitter can remove the tyre and assess whether the internal damage is repairable or whether replacement is necessary.
+
+2. **If the tyre shows no internal cord damage**: it is possible to do a proper repair on top of a plug — the plug is removed, the area cleaned, and a mushroom plug-patch installed properly.
+
+3. **If the tyre shows cord damage**: the tyre must be replaced.
+
+Do not drive at motorway speed or for extended distances on a plug-only repair if you are uncertain about its safety.
+
+## Tyre Rescue Repair Standards
+
+Every puncture repair carried out by Tyre Rescue follows BSAU159:
+
+- Tyre removed from rim
+- Full interior inspection
+- Combination mushroom plug-patch repair unit
+- Vulcanised bond
+- Tyre remounted and balanced
+
+**Cost**: £25 per tyre for a BSAU159-compliant puncture repair at your location across Scotland.
+
+Call **0141 266 0690** or [book online](/book).
+
+[Slow puncture guide Scotland](/blog/slow-puncture-causes-scotland) | [Tyre sealant vs repair guide](/blog/tyre-sealant-spray-vs-repair-scotland) | [Part-worn tyres safety guide](/blog/part-worn-tyres-scotland-are-they-safe)`,
+  },
+  {
     slug: 'driving-snow-ice-tyre-advice-scotland',
     title: 'Driving in Snow and Ice in Scotland: Tyre Advice and Safety Guide',
     description:
