@@ -10880,6 +10880,110 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'tyre-sealant-spray-vs-repair-scotland',
+    title: 'Tyre Sealant Spray vs Puncture Repair: Which to Use in Scotland',
+    description:
+      'When should you use tyre foam sealant spray vs calling for a proper puncture repair in Scotland? What sealant can and cannot fix, and when it can cause more damage than it solves.',
+    category: 'emergency',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'tyre sealant spray scotland',
+      'tyre foam spray puncture',
+      'can tyre sealant fix a puncture scotland',
+      'tyre puncture spray vs repair',
+      'tyreweld scotland',
+      'slime tyre sealant scotland',
+      'tyre inflation kit scotland',
+      'temporary tyre repair scotland',
+    ],
+    relatedSlugs: [
+      'slow-puncture-causes-scotland',
+      'tyre-sidewall-damage-scotland',
+      'spare-tyre-uk-law-scotland',
+    ],
+    content: `# Tyre Sealant Spray vs Puncture Repair: What to Use in Scotland
+
+Many modern cars — particularly EVs, PHEVs, and newer compact models — come without a spare wheel and instead include a tyre inflation kit (a can of sealant foam and a compressor). Many drivers also buy aftermarket sealant products like Tyreweld or Slime.
+
+These products have their place. But they are frequently used in situations where they will not work, or where using them makes a permanent repair impossible later. This guide explains when tyre sealant is useful in Scotland and when you should call for proper mobile tyre fitting instead.
+
+## What Tyre Sealant Spray Does
+
+Tyre sealant (also sold as tyre foam, Tyreweld, Fix-a-Flat, or supplied as part of the manufacturer's inflation kit) works by:
+1. Injecting a liquid foam or latex compound through the valve into the deflated tyre
+2. The foam coats the inner surface of the tyre
+3. The compressor re-inflates the tyre
+4. As the tyre rotates, the sealant is centrifuged toward any puncture hole and partially seals it
+
+**It works in specific, limited circumstances only.**
+
+## When Tyre Sealant Can Work
+
+**Scenario 1: Small nail or screw in the central tread area**
+- The penetrating object is in the central three-quarters of the tread
+- The hole is 4mm or smaller in diameter
+- The tyre has not been driven flat (no internal damage from rim contact)
+
+In this scenario, sealant can re-inflate the tyre sufficiently to drive slowly (maximum 50 mph) for up to 50 miles to find a professional repair. This is the intended use case.
+
+**Scenario 2: Slow leak from a tread puncture while driving**
+If you notice a gradual pressure loss and stop promptly before the tyre is fully flat, sealant may restore enough pressure to reach a tyre centre.
+
+## When Tyre Sealant Cannot Work and Should Not Be Used
+
+**Sidewall damage**: any puncture or cut in the sidewall cannot be sealed with foam. Sealant does not seal the sidewall — it is centrifuged to the tread area. Using sealant on a sidewall puncture waste time and makes the situation worse.
+
+**Large holes (over 4–6mm)**: sealant cannot seal a hole caused by running over a sharp rock, a large nail, or a structural impact. The foam will simply escape through the hole.
+
+**Tyre driven while flat**: if a tyre has been driven flat (even for 100 metres), the inner lining may have been damaged by the rim cutting into it. Sealant cannot repair internal damage. The tyre must be inspected before refitting.
+
+**Run-flat tyres**: sealant SHOULD NOT be used in run-flat tyres (BMW RSC, Mercedes EMT/MOExtended, Pirelli run-flat). The reinforced sidewall of a run-flat tyre means sealant cannot coat the inner surface properly. Using foam in a run-flat tyre also makes the tyre impossible to inspect — the only proper response to a run-flat puncture is replacement.
+
+**Winter tyres**: foam sealant works less effectively in cold temperatures — it becomes more viscous and may not coat the tyre properly at Scottish winter temperatures (below 5°C).
+
+## The Problem with Sealant and Proper Repair
+
+The biggest issue with tyre sealant in Scotland: **it can make a repairable tyre unrepairable**.
+
+When a tyre fitter demounts the tyre to assess and repair a puncture, the sealant foam covers the inner liner, making it difficult or impossible to:
+- Identify the puncture location precisely
+- Clean the inner liner properly for a BSAU159 mushroom plug repair
+- Bond the repair patch properly
+
+Many tyre fitters will refuse to perform a standard puncture repair on a tyre that has had sealant used. Some will charge an additional fee to clean the tyre before repair. In the worst case, a tyre that was repairable becomes a write-off because sealant has been used, adding the full tyre replacement cost to the bill.
+
+**Bottom line**: only use sealant if you have no alternative and need to move the car to a safe location. Never use it as a long-term solution or alternative to a proper repair.
+
+## After Using Tyre Sealant
+
+1. Drive at maximum 50 mph (80 km/h) — do not exceed this
+2. Drive no more than 50 miles
+3. Get to a tyre centre or call Tyre Rescue as soon as possible
+4. Tell the tyre fitter that sealant has been used — this is important and will affect how they proceed
+5. The sealant must be cleaned from the inside of the tyre before any repair is attempted
+
+## The Better Alternative: Mobile Tyre Fitting
+
+In most Scottish situations, calling Tyre Rescue for mobile tyre fitting is faster and simpler than using sealant:
+
+| Sealant approach | Mobile tyre fitting |
+|---|---|
+| Works only for small tread punctures | Works for all puncture types |
+| Maximum 50 mph after use | Full-speed capability immediately |
+| May make repair impossible | Clean repair possible |
+| Requires tyre centre visit afterward | Complete solution on-site |
+| Response time: 0 minutes | Response time: 25–55 minutes |
+
+If the tyre is still inflated or can be driven slowly to a safe stopping point, using sealant to move the car before calling us is reasonable. If the tyre is completely flat or if you are on a motorway or A-road, call immediately — do not attempt sealant on a live road.
+
+Call **0141 266 0690** or [book online](/book) for mobile puncture repair or tyre replacement across all of Scotland.
+
+[Slow puncture guide Scotland](/blog/slow-puncture-causes-scotland) | [Tyre sidewall damage guide](/blog/tyre-sidewall-damage-scotland) | [Spare tyre guide Scotland](/blog/spare-tyre-uk-law-scotland)`,
+  },
+  {
     slug: 'ds-automobiles-tyre-fitting-scotland',
     title: 'DS Automobiles Tyre Fitting Scotland: DS3, DS4, DS7, DS9 Guide',
     description:
