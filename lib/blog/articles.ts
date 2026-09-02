@@ -10880,6 +10880,143 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'delivery-driver-tyre-guide-scotland',
+    title: 'Tyre Guide for Delivery Drivers in Scotland: Amazon, Deliveroo, Royal Mail and Couriers',
+    description:
+      'Delivery and courier drivers in Scotland cover 30,000–60,000 miles per year, wearing through tyres rapidly. This guide covers cost-effective tyre choices, when to replace, and how mobile fitting saves delivery driver time.',
+    category: 'fitting',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'delivery driver tyres scotland',
+      'courier tyre fitting scotland',
+      'amazon delivery driver tyres scotland',
+      'high mileage tyre scotland',
+      'deliveroo driver tyres scotland',
+      'royal mail tyre fitting scotland',
+      'courier driver tyre guide scotland',
+      'gig economy driver tyres scotland',
+    ],
+    relatedSlugs: [
+      'taxi-private-hire-tyre-requirements-scotland',
+      'fleet-tyre-management-scotland',
+      'budget-tyres-scotland-guide',
+    ],
+    content: `# Tyre Guide for Delivery Drivers in Scotland: Amazon, Deliveroo, Royal Mail and Couriers
+
+Self-employed delivery and courier drivers in Scotland often cover 400–600 miles per week. At that mileage, tyres become a significant operating cost — and a safety liability if not replaced on schedule.
+
+This guide is written specifically for drivers who earn by the mile and need practical, cost-effective tyre advice.
+
+---
+
+## How Fast Do Tyres Wear at High Mileage?
+
+At 50,000 miles per year (typical for Amazon DSP or parcel delivery work):
+- A budget tyre lasting 20,000 miles needs replacing **2.5 times per year per tyre**
+- A premium tyre lasting 35,000 miles needs replacing **1.4 times per year per tyre**
+
+At two tyres per axle, a delivery driver can realistically need 5–7 tyre changes per year on the primary wear axle.
+
+**The cost calculation is not obvious**: a budget tyre appears cheap at £35. Over 50,000 miles at 20,000 miles per tyre = 2.5 tyres = £87.50. A premium tyre at £90 over 50,000 miles at 35,000 miles per tyre = 1.43 tyres = £128.57.
+
+So premium costs more total, but significantly less per change — and importantly, **fewer changes means fewer fitting fees** (£20 per tyre) and fewer days managing the tyre replacement process.
+
+---
+
+## Van vs Car: Different Requirements
+
+### Self-employed car-based couriers (Deliveroo, Just Eat, Amazon Flex, ASOS)
+
+Most car-based couriers use personal vehicles. Key considerations:
+
+- Your vehicle insurer needs to be informed if you are using your car for hire or reward (food delivery counts)
+- Standard passenger tyre specifications are typically fine for car-based delivery
+- Front tyres wear faster in front-wheel-drive cars (which most are) — rotate at 10,000 miles
+- Carry a tyre inflation kit or compact compressor — delivery rounds often cover areas where getting stranded is a major income loss
+
+### Van-based couriers (Amazon DSP, Hermes/Evri, DPD, TNT)
+
+Van drivers need to pay attention to load index. A loaded Vauxhall Vivaro, Mercedes Sprinter, or Ford Transit carrying heavy parcels must have tyres rated for the load.
+
+**Key van tyre requirements**:
+- Check your van's load capacity and match the tyre load index to the Gross Vehicle Weight
+- Sprinter 314/316 CDI (3.5 tonne): minimum LI 107 (975kg per tyre) or higher for maximum payload variants
+- Vivaro / Trafic (2.0 tonne): typically minimum LI 103–107
+- Transit Custom (2.0 tonne): LI 107 typical
+
+Fitting undersized load index tyres on a delivery van is illegal and dangerous.
+
+---
+
+## Best Tyre Choices for Scottish Delivery Drivers
+
+Scotland's weather — frequent rain, occasional snow, varied road surfaces — means wet grip is particularly important.
+
+### Best Value High-Mileage Car Tyres (for car-based couriers)
+
+**Michelin Primacy 4+ / Michelin CrossClimate 2**
+- CrossClimate 2 rated for all-season (3PMSF) — excellent for year-round Scottish driving without changeover
+- Very long lifespan — 35,000–45,000 miles
+- Higher upfront cost, but lowest per-mile cost over time
+- Especially recommended if you deliver year-round including winter months
+
+**Hankook Kinergy Eco2 / Hankook Ventus Prime 4**
+- Mid-range pricing, 25,000–30,000 miles expected life
+- Good wet grip, well reviewed for Scottish conditions
+- Strong value option if premium budget is not available
+
+**Continental AllSeasonContact**
+- All-season 3PMSF rated
+- Good year-round compromise for Scottish delivery drivers
+
+### Best Value Van Tyres (for courier vans)
+
+**Michelin Agilis CrossClimate**
+- All-season van-rated — 3PMSF, excellent wet performance
+- Very long lifespan for commercial van use
+- Recommended if you do not want to manage seasonal changeovers
+
+**Continental VanContact Ultra**
+- Excellent commercial tyre, very long lifespan
+- C-rated load capacity options for all major van sizes
+
+**Falken Linam VAN01**
+- Competitive mid-range van tyre for Scottish conditions
+
+---
+
+## When to Replace — Mileage-Based Rule of Thumb
+
+For high-mileage delivery drivers, calendar-based inspection is not enough. Use a mileage trigger:
+
+| Mileage since last check | Action |
+|---|---|
+| Every 5,000 miles | Quick visual + tread depth check |
+| Every 10,000 miles | Full tread depth check, tyre pressure check |
+| At 4mm tread depth | Book replacement — especially for winter months |
+| At 3mm tread depth | Replace immediately — Scottish wet roads demand this |
+
+---
+
+## How Tyre Rescue Helps Delivery Drivers
+
+**The biggest issue for delivery drivers is downtime.** Any time the car or van is not delivering is lost income.
+
+Tyre Rescue solves this by coming to you:
+- **Home fitting**: fit tyres overnight or early morning before your round starts
+- **Depot/base fitting**: we can come to Amazon DSP or DPD/Evri depots by arrangement
+- **Roadside**: for a flat or blowout during the day, we dispatch to your location
+
+We are available across all of Scotland including Glasgow, Edinburgh, Aberdeen, Dundee, and surrounding areas.
+
+Call **0141 266 0690** — for urgent same-day service, calling is faster than online booking.
+
+[Taxi and private hire tyre guide](/blog/taxi-private-hire-tyre-requirements-scotland) | [Fleet tyre management Scotland](/blog/fleet-tyre-management-scotland) | [Budget tyres Scotland](/blog/budget-tyres-scotland-guide)`,
+  },
+  {
     slug: 'autumn-tyre-preparation-scotland-2026',
     title: 'Autumn Tyre Preparation for Scottish Drivers: October 2026 Guide',
     description:
