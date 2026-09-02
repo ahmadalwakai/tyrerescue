@@ -10880,6 +10880,124 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'do-i-need-to-change-all-4-tyres-scotland',
+    title: 'Do I Need to Change All 4 Tyres at Once in Scotland?',
+    description:
+      'Do you have to replace all four tyres at the same time? When replacing one or two is fine, when all four are needed, and the rules for AWD, PHEV, and EV vehicles in Scotland.',
+    category: 'maintenance',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 6,
+    featured: false,
+    keywords: [
+      'do i need to change all 4 tyres scotland',
+      'replace all tyres at once scotland',
+      'change one tyre or two scotland',
+      'tyre replacement rules scotland',
+      'how many tyres do i need to change scotland',
+      'replace two tyres or four scotland',
+      'AWD tyre replacement scotland',
+      'is it ok to replace one tyre scotland',
+    ],
+    relatedSlugs: [
+      'tyre-rotation-guide-scotland',
+      'uneven-tyre-wear-guide-scotland',
+      'subaru-tyre-fitting-scotland',
+    ],
+    content: `# Do I Need to Change All 4 Tyres at Once in Scotland?
+
+This is one of the most common questions we hear from Scottish drivers. The answer depends on your vehicle type, the condition of your existing tyres, and the reason for replacement.
+
+## The Short Answer
+
+**No — you do not always need to change all four tyres at once.** But there are rules about how many you must change to maintain safety and vehicle function.
+
+---
+
+## Rule 1: Always Replace Tyres in Pairs (Same Axle)
+
+This is the most important rule. Whenever possible, replace both tyres on the same axle at the same time.
+
+**Why**: tyres on the same axle must maintain similar traction in all conditions. If one tyre is new (8mm tread) and the other is old (2–3mm tread), the two tyres will behave differently in braking and cornering. This creates instability and longer stopping distances.
+
+**The exception**: if only one tyre is damaged (e.g., a sidewall bubble or deep cut) and the other three tyres have reasonable tread depth (4mm+), replacing just the damaged tyre may be acceptable as a short-term measure. However:
+- The replacement tyre should be the same brand, model, and size as the other tyre on that axle
+- If there is a significant tread depth difference (over 3mm), replace both
+
+---
+
+## Rule 2: Better Tyres Go on the Rear
+
+If you replace only two tyres (e.g., front axle due to higher wear), the newer tyres should be fitted to the rear, and the better existing tyres moved to the front.
+
+**Why**: rear tyre loss of grip (oversteer) is harder to control than front tyre loss of grip (understeer). Newer, higher-tread tyres on the rear provide better stability in emergency situations.
+
+This is a recommendation, not a legal requirement — but it is standard practice and the approach Tyre Rescue follows unless the vehicle is AWD (see below).
+
+---
+
+## Rule 3: AWD Vehicles — Replace in Sets of Four (or Matched Pairs)
+
+All-wheel-drive vehicles have an important additional requirement.
+
+On Subaru symmetrical AWD (Outback, Forester, XV, Impreza, WRX), replacing only two tyres can damage the centre differential and AWD system.
+
+Subaru's AWD works by distributing torque based on tyre speed differences. If two tyres are significantly different in diameter from the other two (due to different tread wear), the system is constantly trying to correct an apparent difference that does not represent a real wheel slip. Over time, this stresses and can damage the differential.
+
+**Subaru rule**: tyres must match within 1/32" (about 0.8mm) of diameter between all four. In practice, this means replacing in matched pairs from the same purchase batch, or replacing all four.
+
+**Other AWD vehicles** (Quattro, xDrive, 4Motion, e-AWD): similar considerations apply but the specific tolerance varies. Consult your handbook. As a general rule, AWD vehicles should have matching tyres with similar tread depths across all four.
+
+---
+
+## Rule 4: EV and PHEV — Usually Replace in Axle Pairs
+
+Most EVs and PHEVs are either RWD or AWD. For AWD electric vehicles, the same AWD rules as above apply.
+
+For RWD EVs (Tesla Model 3 RWD, MG4 Standard Range), axle-pair replacement is standard.
+
+EVs with instant torque delivery wear rear tyres faster than fronts. It is common to replace rear tyres twice for every front replacement on some high-torque EV models. This is normal.
+
+---
+
+## When You Should Replace All Four
+
+**If all four tyres are approaching the end of their life**: if three tyres have 3–4mm and one has burst or failed, replacing all four makes financial sense — the other three will need replacing within a few thousand miles anyway.
+
+**After a wheel alignment correction**: if your vehicle has been driven with significant misalignment and all four tyres show uneven wear, replacing all four ensures you start fresh with matched wear going forward.
+
+**If your car is AWD (see above)**: for Subaru symmetrical AWD especially, replace in sets of four.
+
+**For performance driving**: if you use your car for track days or spirited driving, matching all four tyres for consistent handling is important.
+
+---
+
+## Quick Reference Table
+
+| Scenario | Minimum Replace |
+|---|---|
+| One tyre punctured / damaged | 1 (ideally replace paired axle tyre too) |
+| One tyre worn below limit | 2 (both on that axle) |
+| Both front tyres worn | 2 front (move best existing to rear) |
+| AWD vehicle — one tyre damaged | 4 (Subaru) or 2 matched pair (other AWD) |
+| All four worn | 4 |
+| EV (RWD) — rear tyres worn | 2 rear |
+
+---
+
+## Cost Consideration
+
+Tyre Rescue charges £20 per tyre for fitting and balancing. Tyre prices depend on brand and size.
+
+If you are replacing two tyres, you save on the pair you do not replace — but if those tyres are in poor condition, they will need replacing again soon and you will pay the fitting fee again. Sometimes replacing four is better value over 12 months.
+
+When you call or book online, tell us your existing tyre tread depths — we can advise on the most cost-effective approach for your specific situation.
+
+Call **0141 266 0690** or [book online](/book) for mobile tyre fitting across Scotland.
+
+[Tyre rotation guide Scotland](/blog/tyre-rotation-guide-scotland) | [Subaru AWD tyre guide](/blog/subaru-tyre-fitting-scotland) | [Uneven tyre wear guide](/blog/uneven-tyre-wear-guide-scotland)`,
+  },
+  {
     slug: 'can-i-drive-on-flat-tyre-scotland',
     title: 'Can I Drive on a Flat Tyre? What to Do in Scotland',
     description:
