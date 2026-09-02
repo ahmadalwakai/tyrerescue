@@ -10880,6 +10880,118 @@ Tyre Rescue carries MG4, ZS EV, and MG5 tyre sizes as standard van stock. Call *
 [EV tyre guide Scotland](/blog/electric-vehicle-tyres-scotland) | [Tyre prices Scotland 2026](/blog/tyre-prices-scotland-guide-2026) | [TPMS warning light guide](/blog/tpms-warning-light-scotland-guide)`,
   },
   {
+    slug: 'used-tyres-scotland-are-they-safe',
+    title: 'Used Tyres in Scotland: Are They Safe? What You Need to Know',
+    description:
+      'Secondhand tyres are legal but carry hidden risks — previous impacts, invisible internal damage, and unknown age. This guide explains the real risks of used tyres in Scotland and what to check before buying.',
+    category: 'safety',
+    publishDate: '2026-09-02',
+    lastModified: '2026-09-02',
+    readingTime: 5,
+    featured: false,
+    keywords: [
+      'used tyres scotland',
+      'secondhand tyres scotland',
+      'are used tyres safe scotland',
+      'second hand tyres glasgow',
+      'part worn tyres scotland',
+      'part worn tyre risks scotland',
+      'buying used tyres scotland',
+      'cheap used tyres scotland',
+    ],
+    relatedSlugs: [
+      'tyre-age-limit-scotland',
+      'budget-tyres-scotland-guide',
+      'tyre-sidewall-damage-scotland',
+    ],
+    content: `# Used Tyres in Scotland: Are They Safe? What You Need to Know
+
+Part-worn (used) tyres are widely available in Scotland — from eBay and Facebook Marketplace to small independent tyre shops. At £15–£30 each, they appear to offer significant savings.
+
+The reality: part-worn tyres are legal but carry serious hidden risks that the tread depth alone cannot reveal.
+
+---
+
+## Are Part-Worn Tyres Legal in Scotland?
+
+Yes — selling and fitting part-worn tyres is legal in the UK, provided they meet specific requirements under the Motor Vehicle Tyres (Safety) Regulations 1994:
+
+- Tread depth must be at least **2mm** across the central three-quarters width
+- No bulges, cuts that expose cord, or damage visible to the naked eye
+- The tyre must be marked with "PART WORN" in letters at least 4mm high
+
+**The enforcement problem**: Trading Standards investigations have repeatedly found that the majority of part-worn tyres sold in the UK do not meet even these minimum legal requirements. A 2014 TyreSafe investigation found that **98% of part-worn tyres examined had at least one dangerous defect**. A 2021 follow-up found similar results.
+
+---
+
+## The Hidden Risks of Used Tyres
+
+### You Cannot See Internal Damage
+
+A tyre that has been driven at low pressure, impacted by a pothole, or involved in a minor collision may have internal damage — delamination of the ply cords, broken internal beads, or partial sidewall tears — that is completely invisible from the outside.
+
+When this internal damage causes a blowout at 70mph on the M8, the visual inspection you did before fitting the tyre tells you nothing about why it failed.
+
+### Unknown History
+
+A used tyre could have:
+- Been driven flat (destroying internal structure)
+- Been repaired with an illegal plug-only repair (now concealed inside)
+- Been run significantly over- or under-inflated for years
+- Experienced a kerb strike that compressed the sidewall bead area
+- Already reached maximum repair zone repairs
+
+None of this is visible once the tyre is cleaned up for resale.
+
+### Unknown Age
+
+Unless you can read and verify the DOT code on the tyre (and trust that the code has not been sanded off, which does happen), you do not know how old a used tyre is. A tyre that is 9 years old with 4mm of tread can look almost new but be approaching the end of its safe service life.
+
+### No Quality Guarantee
+
+New tyres from reputable brands come with manufacturer guarantees against defects. A used tyre has no guarantee, no warranty, and no recourse if it fails.
+
+---
+
+## The Actual Cost Comparison
+
+Used tyres appear cheap at £15–£30 each. But consider the full picture:
+
+**Used tyre scenario**: 4 × used 205/55R16 at £25 each = £100 + £20 per tyre fitting = £180 total. Average life remaining: 3,000–8,000 miles (usually purchased when worn to 3–4mm).
+
+**New budget tyre scenario**: 4 × Nankang NS-2 205/55R16 at ~£45 each = £180 + £20 per tyre fitting = £260 total. Expected life: 18,000–25,000 miles. Cost per mile: significantly lower.
+
+The "saving" on used tyres is often smaller than it appears, and disappears entirely when you account for shorter remaining tread life.
+
+---
+
+## If You Are Considering Used Tyres: Minimum Checks
+
+If cost is genuinely the primary constraint, these are the minimum checks to perform before fitting any used tyre:
+
+1. **Read the DOT code**: locate the four-digit date code on the sidewall. Reject any tyre manufactured more than 6 years ago.
+
+2. **Check all four sidewall areas**: inner and outer, with good light and hands. Feel for any soft spots, bulges, or ridges. Reject anything that has any of these.
+
+3. **Check the tread depth at the inner edge, centre, and outer edge**: if there is uneven wear (more than 2mm difference across the width), reject it — this tyre was run on a misaligned axle and the internal structure may be compromised.
+
+4. **Look for repair plugs**: remove the tyre from the wheel and inspect the inside with a torch. Any visible plug-only repair (without an internal patch) means the tyre has been illegally repaired. Reject it.
+
+5. **Do not accept any tyre where the seller cannot tell you why it was removed**: if they say "just replaced for new" that is plausible. If they cannot or will not say, reject it.
+
+---
+
+## Our Recommendation
+
+At Tyre Rescue, we do not fit or sell used tyres. Our view is that the hidden risks — invisible internal damage, unknown history, unverifiable age — make used tyres an unacceptable safety risk for a vehicle that you, your family, and other road users depend on.
+
+For Scottish drivers on tight budgets, we recommend good-quality budget new tyres (Nankang, Hankook, Nexen) over part-worn alternatives. The cost difference is much smaller than it appears, and the safety difference is significant.
+
+Call **0141 266 0690** or [get a quote online](/book) for new tyre fitting across Scotland.
+
+[Budget tyres Scotland](/blog/budget-tyres-scotland-guide) | [Tyre age limits Scotland](/blog/tyre-age-limit-scotland) | [Tyre sidewall damage](/blog/tyre-sidewall-damage-scotland)`,
+  },
+  {
     slug: 'tyre-age-limit-scotland',
     title: 'Tyre Age Limits in Scotland: How Old Is Too Old?',
     description:
