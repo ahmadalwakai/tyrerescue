@@ -427,8 +427,45 @@ export function ServiceCityContent({ service, city, areas, faqs = [] }: { servic
           </Box>
         )}
 
-        {/* ── PRICE & BOOKING ── */}
+        {/* ── REAL FITTERS NOT BROKERS ── */}
         <Box bg={c.surface} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
+          <Container maxW="1200px">
+            <Text
+              as="h2"
+              fontSize={{ base: '32px', md: '48px' }}
+              color={c.text}
+              mb={6}
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              REAL FITTERS. NOT A BROKER.
+            </Text>
+            <Text fontSize="15px" color={c.muted} lineHeight="1.8" maxW="640px" mb={4} style={{ fontFamily: 'var(--font-body)' }}>
+              Most mobile tyre websites in {city.name} are brokers. They take your booking, post the job on a WhatsApp group, and whoever responds goes to your car. You have no idea who is coming, what van they are in, or whether they carry the right insurance.
+            </Text>
+            <Text fontSize="15px" color={c.muted} lineHeight="1.8" maxW="640px" mb={8} style={{ fontFamily: 'var(--font-body)' }}>
+              Tyre Rescue is different. We have our own workshop at 3 Gateside Street, Parkhead, Glasgow G31 1PD. Every fitter who attends your vehicle is employed or directly contracted by us — trained, insured, and accountable. Your fitter arrives in a Tyre Rescue van carrying a full stock of sizes and professional fitting equipment.
+            </Text>
+            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
+              {[
+                { heading: 'OWN WORKSHOP', body: 'Based at Gateside St, Parkhead G31 — a real tyre shop, not a call centre.' },
+                { heading: 'DIRECT FITTERS', body: 'Every fitter is employed or contracted by us. Not a random contractor from a WhatsApp group.' },
+                { heading: 'FULLY INSURED', body: 'Public liability and trade insurance on every job. You are protected if anything goes wrong.' },
+              ].map((item) => (
+                <Box key={item.heading} bg={c.card} borderWidth="1px" borderColor={c.border} borderRadius="8px" p={5}>
+                  <Text fontSize="14px" fontWeight="700" color={c.accent} mb={2} style={{ fontFamily: 'var(--font-display)' }}>
+                    {item.heading}
+                  </Text>
+                  <Text fontSize="13px" color={c.muted} lineHeight="1.6" style={{ fontFamily: 'var(--font-body)' }}>
+                    {item.body}
+                  </Text>
+                </Box>
+              ))}
+            </SimpleGrid>
+          </Container>
+        </Box>
+
+        {/* ── PRICE & BOOKING ── */}
+        <Box bg={c.bg} py={{ base: '60px', md: '80px' }} px={{ base: 4, md: 8 }}>
           <Container maxW="1200px">
             <Text
               as="h2"

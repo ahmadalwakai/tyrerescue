@@ -26,7 +26,7 @@ export const cityContent: Record<string, CityContent> = {
     uniqueIntro:
       'Our workshop is based at 3 Gateside Street in Parkhead (G31 1PD), giving us rapid access to all Glasgow postcodes from G1 through G78. Whether you are stuck on the M8, parked up in the West End, or at home in Shawlands, our average response time across Glasgow is 35 minutes.',
     uniqueBody:
-      'Glasgow is our home base. Duke Street Tyres has been serving Glasgow drivers since 2014 from our East End workshop. We cover every area from Bearsden in the north to Castlemilk in the south, Clydebank in the west to Baillieston in the east. Our fitters carry a full range of tyre sizes for cars, vans, and SUVs.',
+      'Glasgow is our home. Our workshop is at 3 Gateside Street, Parkhead — a real tyre workshop you can visit, not a call centre or booking platform. Every fitter who comes to your car is employed directly by Tyre Rescue, trained in tyre safety, and carries our public liability insurance. We cover every area from Bearsden in the north to Castlemilk in the south, Clydebank in the west to Baillieston in the east — in our own branded vans, with our own people.',
     neighborCities: ['edinburgh', 'paisley', 'hamilton', 'east-kilbride', 'motherwell', 'cumbernauld'],
   },
   edinburgh: {

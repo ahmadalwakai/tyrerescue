@@ -64,5 +64,9 @@ export function getServiceCityFaqs(
       question: `Do I need to book in advance for ${label} in ${cityName}?`,
       answer: `Emergency callouts in ${cityName} do not require advance booking — just call 0141 266 0690. For scheduled or planned fittings we recommend booking online or by phone at least a few hours ahead to guarantee fitter availability in your area.`,
     },
+    {
+      question: `Is Tyre Rescue a real tyre fitting company or a booking broker?`,
+      answer: `Tyre Rescue is a real mobile tyre fitting company with our own workshop at 3 Gateside Street, Parkhead, Glasgow G31 1PD. Every fitter who attends your vehicle is employed or directly contracted by us — not a random contractor sourced from a WhatsApp group. We are fully insured, trained, and accountable. You will always speak to our own team when you call 0141 266 0690.`,
+    },
   ];
 }
