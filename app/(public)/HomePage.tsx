@@ -445,7 +445,7 @@ function ContactSection() {
         }),
       });
       if (res.ok) {
-        trackContactSubmit();
+        trackContactSubmit({ email: email.trim(), phone: phone.trim() || undefined });
         setStatus('success');
         setName(''); setEmail(''); setPhone(''); setMessage('');
       } else {

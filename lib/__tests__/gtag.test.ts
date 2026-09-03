@@ -144,4 +144,45 @@ describe('gtag analytics helpers', () => {
     });
     expect(trackEvent).toHaveBeenCalledWith('callback_submit', { label: 'contact_form' });
   });
+
+  it('sets enhanced-conversions user_data from a callback phone before the conversion fires', async () => {
+    const { mod } = await loadGtag();
+    const gtag = vi.fn();
+    vi.stubGlobal('window', { gtag });
+
+    mod.trackCallbackSubmit({ phone: '07786 123 456' });
+
+    const setCallIndex = gtag.mock.calls.findIndex((call) => call[0] === 'set');
+    const eventCallIndex = gtag.mock.calls.findIndex(
+      (call) => call[0] === 'event' && call[1] === 'callback_submit',
+    );
+    expect(setCallIndex).toBeGreaterThanOrEqual(0);
+    expect(setCallIndex).toBeLessThan(eventCallIndex);
+    expect(gtag).toHaveBeenCalledWith('set', 'user_data', {
+      phone_number: '+447786123456',
+    });
+  });
+
+  it('sets enhanced-conversions user_data from a contact form email and phone', async () => {
+    const { mod } = await loadGtag();
+    const gtag = vi.fn();
+    vi.stubGlobal('window', { gtag });
+
+    mod.trackContactSubmit({ email: ' Customer@Example.com ', phone: '0141 266 0690' });
+
+    expect(gtag).toHaveBeenCalledWith('set', 'user_data', {
+      email: 'customer@example.com',
+      phone_number: '+441412660690',
+    });
+  });
+
+  it('skips user_data when there is no usable email or phone', async () => {
+    const { mod } = await loadGtag();
+    const gtag = vi.fn();
+    vi.stubGlobal('window', { gtag });
+
+    mod.trackContactSubmit({ phone: 'not-a-number' });
+
+    expect(gtag).not.toHaveBeenCalledWith('set', 'user_data', expect.anything());
+  });
 });

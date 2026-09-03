@@ -1,4 +1,8 @@
 import { trackEvent } from '@/lib/analytics-tracker';
+import {
+  normalizeRecipientEmailInput,
+  normalizeUkPhoneForMatching,
+} from '@/lib/contact-normalization';
 
 /** GA4 measurement ID used by the global gtag.js install in app/layout.tsx. */
 const ENV_GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
@@ -173,8 +177,31 @@ export function trackQuoteStarted(label?: string) {
   trackEvent('quote_started', label ? { label } : undefined);
 }
 
+/**
+ * Google Ads "Enhanced conversions for leads": pass the lead's own hashed
+ * email/phone alongside the conversion so Google can match it more reliably
+ * than the click-only signal. This is the "secondary implementation method"
+ * Google's setup checker asks for — sent via the Google tag (gtag), which
+ * hashes plaintext values client-side before they leave the browser, so raw
+ * PII is never stored or logged by this app.
+ * Must be called before the paired 'conversion' event fires.
+ */
+function setEnhancedConversionUserData({ email, phone }: { email?: string; phone?: string }): void {
+  const normalizedEmail = email ? normalizeRecipientEmailInput(email) : '';
+  const normalizedPhone = phone ? normalizeUkPhoneForMatching(phone) : null;
+
+  const userData: Record<string, string> = {};
+  if (normalizedEmail) userData.email = normalizedEmail;
+  if (normalizedPhone) userData.phone_number = `+${normalizedPhone}`;
+
+  if (Object.keys(userData).length === 0) return;
+
+  window.gtag?.('set', 'user_data', userData);
+}
+
 /** Track callback form submission */
-export function trackCallbackSubmit() {
+export function trackCallbackSubmit(lead: { phone?: string } = {}) {
+  setEnhancedConversionUserData({ phone: lead.phone });
   window.gtag?.('event', 'callback_submit', {
     event_category: 'conversion',
   });
@@ -183,7 +210,8 @@ export function trackCallbackSubmit() {
 }
 
 /** Track successful contact lead submission. */
-export function trackContactSubmit() {
+export function trackContactSubmit(lead: { email?: string; phone?: string } = {}) {
+  setEnhancedConversionUserData({ email: lead.email, phone: lead.phone });
   window.gtag?.('event', 'contact_submit', {
     event_category: 'conversion',
   });
