@@ -561,7 +561,15 @@ export function TyreSelectionSection({ draft, update }: Props) {
       if (!mountedRef.current || seq !== vehicleLookupSeq.current) return;
 
       const vehicle: AssistedChatVehicle | null = result.vehicle ?? result.localVehicle ?? null;
-      const options = result.tyreOptions ?? [];
+      const rawOptions = result.tyreOptions ?? [];
+
+      // Sort: OEM + high confidence first, then by confidence ranking
+      const confidenceRank = (opt: AssistedChatTyreFitmentOption): number => {
+        const base = opt.oem ? 100 : opt.optional ? 0 : 50;
+        const conf = opt.confidence === 'high' ? 30 : opt.confidence === 'medium' ? 10 : 0;
+        return base + conf;
+      };
+      const options = [...rawOptions].sort((a, b) => confidenceRank(b) - confidenceRank(a));
       setFitmentOptions(options);
 
       const patch: Partial<AssistedChatDraft> = {
@@ -584,16 +592,21 @@ export function TyreSelectionSection({ draft, update }: Props) {
       }
 
       if (options.length > 1) {
-        setVehicleLookupMessage('Choose the correct fitment, then confirm this size against the tyre sidewall before booking.');
+        const hasOem = options.some((o) => o.oem);
+        setVehicleLookupMessage(
+          hasOem
+            ? 'Multiple wheel fitments found for this model. The OEM (original) option is shown first — choose the one matching your vehicle\'s trim.'
+            : 'Multiple fitments found for this model year. Choose the variant that matches your vehicle, then confirm against the tyre sidewall.',
+        );
       } else if (patch.tyreLines) {
-        setVehicleLookupMessage('Confirm this size against the tyre sidewall before booking.');
+        setVehicleLookupMessage('Tyre size applied. Confirm this size against the tyre sidewall before booking.');
       } else {
         setVehicleLookupMessage(result.messages?.[0] ?? 'Vehicle found. Enter the tyre size from the sidewall before pricing.');
       }
     } catch (error) {
       if (!mountedRef.current || seq !== vehicleLookupSeq.current) return;
       if ((error as { name?: string }).name === 'AbortError') return;
-      setVehicleLookupError(error instanceof Error ? error.message : 'Vehicle lookup failed.');
+      setVehicleLookupError(error instanceof Error ? error.message : 'Vehicle lookup failed. Check the registration and try again.');
     } finally {
       if (!mountedRef.current || seq !== vehicleLookupSeq.current) return;
       setVehicleLookupLoading(false);
@@ -652,7 +665,7 @@ export function TyreSelectionSection({ draft, update }: Props) {
         </View>
       ) : (
         <View style={styles.vehicleLookupBox}>
-          <FieldLabel>Vehicle registration</FieldLabel>
+          <FieldLabel>Find vehicle / look up</FieldLabel>
           <View style={styles.lookupRow}>
             <TextInput
               value={displayedVehicleReg}
@@ -661,6 +674,8 @@ export function TyreSelectionSection({ draft, update }: Props) {
                 setVehicleLookupError(null);
                 setVehicleLookupMessage(null);
               }}
+              onSubmitEditing={lookupVehicleFitment}
+              returnKeyType="search"
               placeholder="e.g. AB12 CDE"
               placeholderTextColor={colors.subtle}
               autoCapitalize="characters"
@@ -668,7 +683,7 @@ export function TyreSelectionSection({ draft, update }: Props) {
               style={[styles.input, styles.lookupInput]}
             />
             <AppButton
-              label={vehicleLookupLoading ? 'Checking...' : 'Lookup'}
+              label={vehicleLookupLoading ? 'Looking up...' : 'Lookup'}
               variant="secondary"
               onPress={lookupVehicleFitment}
               disabled={vehicleLookupLoading}
@@ -678,28 +693,101 @@ export function TyreSelectionSection({ draft, update }: Props) {
           {vehicleLookupError ? (
             <Text style={styles.lookupError}>{vehicleLookupError}</Text>
           ) : null}
+          {draft.vehicle && !vehicleLookupLoading ? (
+            <View style={styles.vehicleInfoCard}>
+              <Text style={styles.vehicleInfoTitle}>
+                {draft.vehicle.make} {draft.vehicle.model}
+              </Text>
+              <Text style={styles.vehicleInfoMeta}>
+                {[
+                  draft.vehicle.yearOfManufacture,
+                  draft.vehicle.fuelType
+                    ? draft.vehicle.fuelType.charAt(0) + draft.vehicle.fuelType.slice(1).toLowerCase()
+                    : null,
+                  draft.vehicle.colour
+                    ? draft.vehicle.colour.charAt(0) + draft.vehicle.colour.slice(1).toLowerCase()
+                    : null,
+                ].filter(Boolean).join(' · ')}
+              </Text>
+            </View>
+          ) : null}
           {vehicleLookupMessage ? (
             <Text style={styles.lookupMessage}>{vehicleLookupMessage}</Text>
           ) : null}
-          {fitmentOptions.length > 1 ? (
+          {fitmentOptions.length > 0 ? (
             <View style={styles.fitmentOptionStack}>
-              {fitmentOptions.map((option) => (
-                <Pressable
-                  key={option.id}
-                  onPress={() => applyFitmentOption(option)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Use ${option.label}`}
-                  style={({ pressed }) => [
-                    styles.fitmentOption,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Text style={styles.fitmentOptionTitle}>{option.label}</Text>
-                  <Text style={styles.fitmentOptionMeta}>
-                    {option.sourceLabel} · {option.confidence} confidence
-                  </Text>
-                </Pressable>
-              ))}
+              {fitmentOptions.map((option, idx) => {
+                const isTop = idx === 0 && fitmentOptions.length > 1;
+                const isRecommended = isTop && (option.oem || option.confidence === 'high');
+                const confColor = option.confidence === 'high' ? '#16A34A' : option.confidence === 'medium' ? '#D97706' : '#DC2626';
+                const sizeDisplay = (s: AssistedChatTyreSize) =>
+                  s.sizeDisplay ?? `${s.width}/${s.aspect}R${s.rim}`;
+                const frontStr = sizeDisplay(option.front);
+                const rearStr = option.staggered ? sizeDisplay(option.rear) : null;
+                const notesText = option.notes?.length ? option.notes.join(' · ') : null;
+                return (
+                  <Pressable
+                    key={option.id}
+                    onPress={() => applyFitmentOption(option)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Use ${option.label}`}
+                    style={({ pressed }) => [
+                      styles.fitmentOption,
+                      isRecommended && styles.fitmentOptionRecommended,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    {isRecommended ? (
+                      <View style={styles.fitmentRecommendedBanner}>
+                        <Text style={styles.fitmentRecommendedText}>★ Recommended</Text>
+                      </View>
+                    ) : null}
+                    <View style={styles.fitmentTopRow}>
+                      <View style={styles.fitmentSizes}>
+                        <View style={styles.fitmentSizeBlock}>
+                          <Text style={styles.fitmentSizeLabel}>{rearStr ? 'Front' : 'Size'}</Text>
+                          <Text style={styles.fitmentSizeValue}>{frontStr}</Text>
+                        </View>
+                        {rearStr ? (
+                          <View style={styles.fitmentSizeBlock}>
+                            <Text style={styles.fitmentSizeLabel}>Rear</Text>
+                            <Text style={styles.fitmentSizeValue}>{rearStr}</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                      <View style={styles.fitmentBadges}>
+                        {option.oem ? (
+                          <View style={styles.fitmentBadgeOem}>
+                            <Text style={styles.fitmentBadgeText}>OEM</Text>
+                          </View>
+                        ) : null}
+                        {option.staggered ? (
+                          <View style={styles.fitmentBadgeStaggered}>
+                            <Text style={styles.fitmentBadgeText}>Staggered</Text>
+                          </View>
+                        ) : null}
+                        {option.optional ? (
+                          <View style={styles.fitmentBadgeOptional}>
+                            <Text style={styles.fitmentBadgeText}>Optional</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    </View>
+                    <View style={styles.fitmentBottomRow}>
+                      <View style={[styles.confDot, { backgroundColor: confColor }]} />
+                      <Text style={[styles.fitmentOptionMeta, { color: confColor }]}>
+                        {option.confidence} confidence
+                      </Text>
+                      {option.sourceLabel ? (
+                        <Text style={styles.fitmentOptionMeta}> · {option.sourceLabel}</Text>
+                      ) : null}
+                    </View>
+                    {notesText ? (
+                      <Text style={styles.fitmentNotes}>{notesText}</Text>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
             </View>
           ) : null}
         </View>
@@ -925,8 +1013,129 @@ const styles = StyleSheet.create({
   fitmentOptionMeta: {
     color: colors.muted,
     fontSize: fontSize.xs,
-    marginTop: 2,
     textTransform: 'capitalize',
+  },
+  vehicleInfoCard: {
+    borderColor: colors.successBorder,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    backgroundColor: colors.successBg,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    gap: 2,
+  },
+  vehicleInfoTitle: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  vehicleInfoMeta: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  fitmentOptionRecommended: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentMuted,
+  },
+  fitmentRecommendedBanner: {
+    backgroundColor: colors.accent,
+    borderRadius: radius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
+  },
+  fitmentRecommendedText: {
+    color: '#fff',
+    fontSize: fontSize.xs,
+    fontWeight: '800',
+  },
+  fitmentTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: space.sm,
+    marginBottom: 6,
+  },
+  fitmentSizes: {
+    flexDirection: 'row',
+    gap: space.md,
+    flex: 1,
+  },
+  fitmentSizeBlock: {
+    gap: 1,
+  },
+  fitmentSizeLabel: {
+    color: colors.muted,
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  fitmentSizeValue: {
+    color: colors.text,
+    fontSize: fontSize.md,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  fitmentBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    justifyContent: 'flex-end',
+    flexShrink: 0,
+  },
+  fitmentBadgeOem: {
+    backgroundColor: '#16A34A22',
+    borderColor: '#16A34A55',
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  fitmentBadgeStaggered: {
+    backgroundColor: '#7C3AED22',
+    borderColor: '#7C3AED55',
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  fitmentBadgeOptional: {
+    backgroundColor: colors.glassStrong,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  fitmentBadgeText: {
+    color: colors.text,
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  fitmentBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  confDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+  },
+  fitmentNotes: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    marginTop: 5,
+    lineHeight: 16,
+    fontStyle: 'italic',
   },
   sidewallNotice: {
     borderColor: colors.warningBorder,
