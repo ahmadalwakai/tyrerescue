@@ -205,6 +205,7 @@ const ONE_STEP_COMPLETE_STATUSES = new Set([
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All statuses' },
+  { value: 'awaiting_payment', label: 'Awaiting Payment' },
   { value: 'draft', label: 'Draft' },
   { value: 'pending_payment', label: 'Pending Payment' },
   { value: 'confirmed', label: 'Confirmed' },
@@ -290,6 +291,7 @@ const SOURCE_OPTIONS = [
   { value: 'tyrehawk_mobile', label: 'TyreHawk Mobile' },
   { value: 'tyresos', label: 'TyreSOS' },
   { value: 'edinburgh_tyre_fitting', label: 'Edinburgh Tyre Fitting' },
+  { value: '247_mobile_tyres_glasgow', label: '247 Mobile Tyres Glasgow' },
 ];
 
 const DATE_FMT = new Intl.DateTimeFormat('en-GB', {
@@ -1287,10 +1289,7 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null, 
     setError(null);
     try {
       const res = await api.get<MobileListResponse>(buildListPath(p, st, source, s, df, dt));
-      const sorted = [...res.items].sort((a, b) =>
-        (a.sourceLabel ?? '').localeCompare(b.sourceLabel ?? '', undefined, { sensitivity: 'base' }),
-      );
-      setItems(sorted);
+      setItems(res.items);
       setPage(res.page);
       setTotalPages(res.totalPages);
       setTotalCount(res.totalCount);
