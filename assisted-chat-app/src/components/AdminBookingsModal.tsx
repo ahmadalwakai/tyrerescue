@@ -8,6 +8,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -37,6 +38,9 @@ interface MobileListItem {
   createdAt: string | null;
   driverId: string | null;
   driverName: string | null;
+  utmMedium?: string | null;
+  gclid?: string | null;
+  utmCampaign?: string | null;
 }
 
 interface MobileListResponse {
@@ -317,6 +321,34 @@ function formatCurrency(amount: string): string {
   const n = parseFloat(amount);
   if (!Number.isFinite(n)) return amount;
   return `£${n.toFixed(2)}`;
+}
+
+function getTrafficChannel(item: Pick<MobileListItem, 'gclid' | 'utmMedium' | 'utmCampaign'>): { label: string; color: string } | null {
+  if (item.gclid || (item.utmMedium ?? '').toLowerCase() === 'cpc') return { label: '📢 Google Ads', color: '#FBBC04' };
+  if ((item.utmMedium ?? '').toLowerCase() === 'paid') return { label: '💰 Paid', color: '#FBBC04' };
+  if (item.utmCampaign) return { label: '📣 Campaign', color: colors.accent };
+  return null;
+}
+
+function exportBookingsToCSV(items: MobileListItem[]): string {
+  const headers = ['Ref', 'Status', 'Customer', 'Phone', 'Service', 'Type', 'Amount', 'Driver', 'Source', 'Channel', 'Created'];
+  const rows = items.map((it) => {
+    const ch = getTrafficChannel(it);
+    return [
+      it.refNumber,
+      it.status,
+      it.customerName,
+      it.customerPhone,
+      it.serviceType,
+      it.bookingType,
+      it.totalAmount,
+      it.driverName ?? '',
+      it.sourceLabel,
+      ch?.label.replace(/[^\w\s]/g, '') ?? 'Direct',
+      it.createdAt ?? '',
+    ].map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',');
+  });
+  return [headers.join(','), ...rows].join('\n');
 }
 
 function isExternalSource(sourceApp?: string | null, externalReference?: string | null): boolean {
@@ -1419,10 +1451,23 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null, 
           </View>
         </View>
 
-        {/* Count */}
-        <Text style={styles.countText}>
-          {totalCount} booking{totalCount !== 1 ? 's' : ''}
-        </Text>
+        {/* Count + Export */}
+        <View style={styles.countRow}>
+          <Text style={styles.countText}>
+            {totalCount} booking{totalCount !== 1 ? 's' : ''}
+          </Text>
+          {items.length > 0 && (
+            <Pressable
+              style={styles.exportBtn}
+              onPress={() => {
+                const csv = exportBookingsToCSV(items);
+                void Share.share({ message: csv, title: 'Bookings Export' });
+              }}
+            >
+              <Text style={styles.exportBtnTxt}>⬆ Export CSV</Text>
+            </Pressable>
+          )}
+        </View>
 
         {loading ? (
           <View style={styles.centeredMessage}>
@@ -1463,6 +1508,12 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null, 
                   <Text style={styles.bookingCustomer} numberOfLines={1}>
                     {item.customerName}
                   </Text>
+                  {(() => {
+                    const ch = getTrafficChannel(item);
+                    return ch ? (
+                      <Text style={[styles.channelBadge, { color: ch.color }]}>{ch.label}</Text>
+                    ) : null;
+                  })()}
                   <View style={styles.bookingMeta}>
                     <Text style={styles.bookingMetaText} numberOfLines={1}>
                       {SERVICE_LABELS[item.serviceType] ?? item.serviceType}
@@ -1639,12 +1690,35 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
   },
+  countRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+  },
   countText: {
     color: colors.muted,
     fontSize: fontSize.xs,
     fontWeight: '700',
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
+  },
+  exportBtn: {
+    paddingHorizontal: space.sm,
+    paddingVertical: 4,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.glassStrong,
+  },
+  exportBtnTxt: {
+    color: colors.text,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+  },
+  channelBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 2,
   },
   centeredMessage: {
     flex: 1,

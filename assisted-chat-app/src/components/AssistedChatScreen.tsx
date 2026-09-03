@@ -58,6 +58,11 @@ import { AdminInvoicesModal } from './AdminInvoicesModal';
 import { ProjectSourcesModal } from './ProjectSourcesModal';
 import { AddAdminModal } from './AddAdminModal';
 import { MessageSenderModal } from './MessageSenderModal';
+import { AdminTrafficModal } from './AdminTrafficModal';
+import { AdminCallbacksModal } from './AdminCallbacksModal';
+import { AdminRevenueModal } from './AdminRevenueModal';
+import { AdminContactsModal } from './AdminContactsModal';
+import { AdminDemandModal } from './AdminDemandModal';
 import type { VirtualLandlineDraftPrefill } from './VirtualLandlineModal';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
@@ -706,6 +711,11 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const [invoicesOpen, setInvoicesOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
   const [garageOpen, setGarageOpen] = useState(false);
+  const [trafficOpen, setTrafficOpen] = useState(false);
+  const [callbacksOpen, setCallbacksOpen] = useState(false);
+  const [revenueOpen, setRevenueOpen] = useState(false);
+  const [contactsOpen, setContactsOpen] = useState(false);
+  const [demandOpen, setDemandOpen] = useState(false);
   const [addAdminOpen, setAddAdminOpen] = useState(false);
   const [activeJobsOpen, setActiveJobsOpen] = useState(false);
   const [activeJobsInitialSource, setActiveJobsInitialSource] = useState<string | null>(null);
@@ -2080,6 +2090,46 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     });
 
     actions.push({
+      id: 'admin-traffic',
+      label: 'Traffic Attribution',
+      description: 'SEO vs Google Ads — where bookings come from.',
+      disabledReason: noToken,
+      onPress: () => setTrafficOpen(true),
+    });
+
+    actions.push({
+      id: 'admin-revenue',
+      label: 'Revenue',
+      description: 'Revenue analytics by day, source, and status.',
+      disabledReason: noToken,
+      onPress: () => setRevenueOpen(true),
+    });
+
+    actions.push({
+      id: 'admin-demand',
+      label: 'Demand Intelligence',
+      description: 'Hourly demand signals — page views, calls, and bookings.',
+      disabledReason: noToken,
+      onPress: () => setDemandOpen(true),
+    });
+
+    actions.push({
+      id: 'admin-callbacks',
+      label: 'Call Me Back',
+      description: 'View and resolve customer callback requests.',
+      disabledReason: noToken,
+      onPress: () => setCallbacksOpen(true),
+    });
+
+    actions.push({
+      id: 'admin-contacts',
+      label: 'Contact Messages',
+      description: 'Read and manage contact form submissions.',
+      disabledReason: noToken,
+      onPress: () => setContactsOpen(true),
+    });
+
+    actions.push({
       id: 'admin-invoices',
       label: 'Invoices',
       description: 'Browse, send, and manage customer invoices.',
@@ -2581,6 +2631,11 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       />
       <AdminVisitorsModal visible={visitorsOpen} onClose={() => setVisitorsOpen(false)} />
       <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
+      <AdminTrafficModal visible={trafficOpen} onClose={() => setTrafficOpen(false)} />
+      <AdminCallbacksModal visible={callbacksOpen} onClose={() => setCallbacksOpen(false)} />
+      <AdminRevenueModal visible={revenueOpen} onClose={() => setRevenueOpen(false)} />
+      <AdminContactsModal visible={contactsOpen} onClose={() => setContactsOpen(false)} />
+      <AdminDemandModal visible={demandOpen} onClose={() => setDemandOpen(false)} />
       <DeferredGarageModal visible={garageOpen} onClose={() => setGarageOpen(false)} />
       <DeferredAdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
       <DeferredVirtualLandlineModal

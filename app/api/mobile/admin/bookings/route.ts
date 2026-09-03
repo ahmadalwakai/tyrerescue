@@ -114,6 +114,9 @@ export async function GET(request: Request) {
         driverLocationAt: drivers.locationAt,
         quickBookingId: quickBookings.id,
         quickBookingPriceBreakdown: quickBookings.priceBreakdown,
+        utmMedium: bookings.utmMedium,
+        gclid: bookings.gclid,
+        utmCampaign: bookings.utmCampaign,
       })
       .from(bookings)
       .leftJoin(drivers, eq(bookings.driverId, drivers.id))
@@ -174,6 +177,9 @@ export async function GET(request: Request) {
         createdAt: booking.createdAt?.toISOString() ?? null,
         driverId: booking.driverId,
         driverName: booking.driverName ?? null,
+        utmMedium: booking.utmMedium ?? null,
+        gclid: booking.gclid ?? null,
+        utmCampaign: booking.utmCampaign ?? null,
         bookingOrigin,
         isCustomerOriginated: bookingOrigin === 'customer',
         driverSituation: calculateDriverSituation({
