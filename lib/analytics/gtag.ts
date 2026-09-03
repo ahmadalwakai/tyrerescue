@@ -93,8 +93,30 @@ export function event({
   });
 }
 
+/**
+ * Send hashed user data for Enhanced Conversions for Leads.
+ * Must be called before any conversion event. Google normalises and hashes
+ * the values server-side, so we pass them in plain text.
+ */
+export function setEnhancedUserData({ phone, email }: { phone?: string; email?: string }) {
+  if (!phone && !email) return;
+  const data: Record<string, string> = {};
+  if (phone) {
+    // Normalise to E.164 (+44XXXXXXXXXX for UK numbers).
+    const digits = phone.replace(/\D/g, '');
+    data.phone_number = digits.startsWith('44')
+      ? `+${digits}`
+      : digits.startsWith('0')
+      ? `+44${digits.slice(1)}`
+      : `+${digits}`;
+  }
+  if (email) data.email = email.trim().toLowerCase();
+  window.gtag?.('set', 'user_data', data);
+}
+
 /** Track a completed booking (GA4 purchase + Google Ads conversion) */
-export function trackConversion(value: number) {
+export function trackConversion(value: number, email?: string) {
+  if (email) setEnhancedUserData({ email });
   window.gtag?.('event', 'purchase', {
     value,
     currency: 'GBP',
@@ -174,7 +196,8 @@ export function trackQuoteStarted(label?: string) {
 }
 
 /** Track callback form submission */
-export function trackCallbackSubmit() {
+export function trackCallbackSubmit(userData?: { phone?: string; email?: string }) {
+  if (userData) setEnhancedUserData(userData);
   window.gtag?.('event', 'callback_submit', {
     event_category: 'conversion',
   });
@@ -183,7 +206,8 @@ export function trackCallbackSubmit() {
 }
 
 /** Track successful contact lead submission. */
-export function trackContactSubmit() {
+export function trackContactSubmit(userData?: { phone?: string; email?: string }) {
+  if (userData) setEnhancedUserData(userData);
   window.gtag?.('event', 'contact_submit', {
     event_category: 'conversion',
   });

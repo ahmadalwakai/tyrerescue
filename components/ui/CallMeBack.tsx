@@ -61,7 +61,7 @@ export function CallMeBack() {
         }),
       });
       if (res.ok) {
-        trackCallbackSubmit();
+        trackCallbackSubmit({ phone: phone.trim() });
         setState('success');
       } else {
         let friendly = 'Something went wrong. Please try again.';

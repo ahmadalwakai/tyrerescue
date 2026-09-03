@@ -33,6 +33,7 @@ export interface StepPaymentProps {
   refNumber: string;
   breakdown: PricingBreakdown;
   selectedTyres?: SelectedTyre[];
+  customerEmail?: string;
   onSuccess: (refNumber: string) => void;
   onError: (error: string) => void;
 }
@@ -43,6 +44,7 @@ export interface StepPaymentProps {
 function CheckoutForm({
   refNumber,
   breakdown,
+  customerEmail,
   onSuccess,
   onError,
 }: Omit<StepPaymentProps, 'clientSecret' | 'bookingId' | 'selectedTyres'>) {
@@ -87,12 +89,12 @@ function CheckoutForm({
       } catch {
         // Non-blocking — webhook will handle it if this fails
       }
-      trackConversion(breakdown.total / 100);
+      trackConversion(breakdown.total / 100, customerEmail);
       onSuccess(refNumber);
     } else if (paymentIntent && paymentIntent.status === 'processing') {
       // Payment still processing (e.g. bank debits) — navigate to success page
       // which will show awaiting-confirmation state
-      trackConversion(breakdown.total / 100);
+      trackConversion(breakdown.total / 100, customerEmail);
       onSuccess(refNumber);
     } else {
       // Payment not succeeded (cancelled, requires_action, requires_payment_method, etc.)
@@ -212,6 +214,7 @@ export function StepPayment({
   clientSecret,
   refNumber,
   breakdown,
+  customerEmail,
   onSuccess,
   onError,
 }: StepPaymentProps) {
@@ -247,6 +250,7 @@ export function StepPayment({
       <CheckoutForm
         refNumber={refNumber}
         breakdown={breakdown}
+        customerEmail={customerEmail}
         onSuccess={onSuccess}
         onError={onError}
       />

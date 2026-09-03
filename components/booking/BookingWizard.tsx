@@ -706,6 +706,7 @@ export function BookingWizard({
             refNumber={state.refNumber}
             breakdown={state.breakdown}
             selectedTyres={state.selectedTyres}
+            customerEmail={state.customerEmail}
             onSuccess={handlePaymentSuccess}
             onError={handlePaymentError}
           />
