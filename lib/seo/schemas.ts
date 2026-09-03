@@ -8,6 +8,8 @@ import { SERVICE_PRICING, PRICE_RANGE_DISPLAY } from '@/lib/pricing';
 const DEFAULT_BASE_URL = 'https://www.tyrerescue.uk';
 const PHONE = '+441412660690';
 const EMAIL = 'support@tyrerescue.uk';
+const TRUSTPILOT_RATING_VALUE = '3.5';
+const TRUSTPILOT_REVIEW_COUNT = '3';
 
 const ADDRESS = {
   '@type': 'PostalAddress' as const,
@@ -17,6 +19,16 @@ const ADDRESS = {
   addressRegion: 'Scotland',
   addressCountry: 'GB',
 };
+
+function getTrustpilotAggregateRating() {
+  return {
+    '@type': 'AggregateRating',
+    ratingValue: TRUSTPILOT_RATING_VALUE,
+    reviewCount: TRUSTPILOT_REVIEW_COUNT,
+    bestRating: '5',
+    worstRating: '1',
+  };
+}
 
 /* ------------------------------------------------------------------ */
 /*  LocalBusiness / AutoRepair — injected site-wide via layout.tsx    */
@@ -79,13 +91,7 @@ export function getLocalBusinessSchema(baseUrl: string = DEFAULT_BASE_URL) {
       'https://wa.me/447423262955',
       'https://uk.trustpilot.com/review/tyrerescue.uk',
     ],
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.8',
-      reviewCount: '97',
-      bestRating: '5',
-      worstRating: '1',
-    },
+    aggregateRating: getTrustpilotAggregateRating(),
     contactPoint: {
       '@type': 'ContactPoint',
       telephone: PHONE,
@@ -488,13 +494,7 @@ export function getCityLocalBusinessSchema(opts: {
         },
       ],
     },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.8',
-      reviewCount: '97',
-      bestRating: '5',
-      worstRating: '1',
-    },
+    aggregateRating: getTrustpilotAggregateRating(),
     sameAs: [
       'https://www.facebook.com/share/1Bt1ZFNkXN/',
       'https://uk.trustpilot.com/review/tyrerescue.uk',

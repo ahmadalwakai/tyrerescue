@@ -182,7 +182,7 @@ export default function MobileTyreFittingPage() {
               <Link href="/emergency" style={s.ctaSecondary}>Emergency Callout</Link>
             </div>
             <div style={s.trustBar}>
-              <span style={s.trustItem}>★★★★★ 4.8 / 5 on Trustpilot</span>
+              <span style={s.trustItem}>★★★★★ 4.8 / 5 on Google</span>
               <span style={s.trustItem}>34 Scottish cities covered</span>
               <span style={s.trustItem}>G to ZE postcodes</span>
               <span style={s.trustItem}>Fitting from £20</span>

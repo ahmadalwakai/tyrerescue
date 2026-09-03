@@ -178,7 +178,7 @@ export function CompareIndexContent() {
               {[
                 { stat: '45 min', label: 'Avg Response' },
                 { stat: '24/7', label: 'Emergency Service' },
-                { stat: '4.8★', label: 'Trustpilot' },
+                { stat: '4.8★', label: 'Google Rating' },
                 { stat: 'Callout £49 + tyre', label: 'Starting Price' },
               ].map((item) => (
                 <Box key={item.label}>

@@ -166,7 +166,7 @@ A flat tyre on the motorway is frightening but manageable. Follow these steps in
 
 - Turn on hazard lights immediately
 - If it's dark, keep sidelights on
-- If you have a warning triangle, place it 45 metres behind your vehicle (but only if it's safe to walk along the hard shoulder)
+- **Do NOT place a warning triangle on a motorway** — Highway Code Rule 274 explicitly prohibits this. Hazard lights alone are the correct signal on a motorway.
 
 ### Step 3: Exit the Vehicle Safely
 
@@ -641,7 +641,7 @@ Trustpilot, Google Reviews, and word of mouth are your best guides. Look for rec
 - **Hours:** 24/7, 365 days a year
 - **Response Time:** 45 minutes average (Central Belt), 90 minutes (Aberdeen/Inverness)
 - **Starting Price:** Callout from £49 + tyre price (emergency)
-- **Trustpilot:** 4.8/5 stars
+- **Google:** 4.8/5 stars (97 reviews)
 - **Key Features:** Live GPS tracking of your fitter, instant online booking, budget to premium tyre range
 - **Best For:** Emergency callouts, out-of-hours fitting, anyone who values convenience
 
@@ -739,7 +739,7 @@ Black Circles is an online tyre marketplace — you buy the tyre at a competitiv
 | Emergency Callout | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Avg Response | 45 min | N/A | 24–72 hrs | Next day+ | Appointment |
 | GPS Tracking | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Trustpilot | 4.8★ | 3.7★ | 4.5★ | 4.5★ | Varies |
+| Google | 4.8★ | 3.7★ | 4.5★ | 4.5★ | Varies |
 | From Price | £49 callout | £45 | £70 all-in | £25 fit only | In-branch |
 
 ## When to Use Mobile Tyre Fitting vs a Garage
@@ -2183,7 +2183,7 @@ For very remote locations, we'll always tell you honestly whether we can reach y
 1. **Share your location via Google Maps** — open Maps, tap your location dot, tap "Share," and send us the link via WhatsApp (0141 266 0690)
 2. **Note your tyre size** — it's on the sidewall of your current tyre and in your owner's manual
 3. **Stay with your vehicle** if it's safe to do so — but move well away from traffic if you're on a motorway or A-road
-4. **Switch on your hazard lights** and if you have a warning triangle, place it 45 metres behind the car
+4. **Switch on your hazard lights** — on motorways, do NOT use a warning triangle (Highway Code Rule 274); on ordinary roads only, place one 45 metres behind the car if safe to do so
 5. **Check your locking wheel nut key** is accessible — tell us if you don't have one and we can advise
 
 ## Frequently Asked Questions
