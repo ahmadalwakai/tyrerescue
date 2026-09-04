@@ -696,6 +696,21 @@ export const emailVerificationTokens = pgTable('email_verification_tokens', {
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
 });
 
+// AI phone receptionist call sessions
+export const aiCallSessions = pgTable('ai_call_sessions', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  callSid: varchar('call_sid', { length: 64 }).unique().notNull(),
+  callerNumber: varchar('caller_number', { length: 20 }).notNull(),
+  step: integer('step').notNull().default(0),
+  collectedData: jsonb('collected_data').notNull().default(sql`'{}'::jsonb`),
+  transcript: jsonb('transcript').notNull().default(sql`'[]'::jsonb`),
+  status: text('status').notNull().default('active'),
+  callMeBackId: uuid('call_me_back_id'),
+  retryCount: integer('retry_count').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
+});
+
 // Call Me Back requests
 export const callMeBack = pgTable('call_me_back', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
@@ -872,6 +887,8 @@ export const homepageMedia = pgTable('homepage_media', {
 export const siteVisitors = pgTable('site_visitors', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   sessionId: varchar('session_id', { length: 64 }).notNull().unique(),
+  sourceApp: varchar('source_app', { length: 60 }).notNull().default('tyre_rescue'),
+  sourceLabel: varchar('source_label', { length: 120 }).notNull().default('Tyre Rescue'),
   ipHash: varchar('ip_hash', { length: 64 }),
   city: varchar('city', { length: 100 }),
   country: varchar('country', { length: 50 }).default('UK'),
@@ -892,7 +909,10 @@ export const siteVisitors = pgTable('site_visitors', {
   previousVisits: jsonb('previous_visits'),
   createdAt: timestamp('created_at', { withTimezone: true }).default(sql`NOW()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`NOW()`),
-});
+}, (table) => ({
+  sourceAppIdx: index('site_visitors_source_app_idx').on(table.sourceApp),
+  sourceAppLiveIdx: index('site_visitors_source_app_live_idx').on(table.sourceApp, table.isOnline, table.lastHeartbeat),
+}));
 
 export const visitorPageViews = pgTable('visitor_page_views', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
@@ -1371,6 +1391,8 @@ export type Quote = typeof quotes.$inferSelect;
 export type NewQuote = typeof quotes.$inferInsert;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
+export type AiCallSession = typeof aiCallSessions.$inferSelect;
+export type NewAiCallSession = typeof aiCallSessions.$inferInsert;
 export type CallMeBack = typeof callMeBack.$inferSelect;
 export type NewCallMeBack = typeof callMeBack.$inferInsert;
 export type ContactMessage = typeof contactMessages.$inferSelect;
