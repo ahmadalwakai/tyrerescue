@@ -111,7 +111,7 @@ export function AdminCallbacksModal({ visible, onClose }: Props) {
   }, [visible, load]);
 
   const handleCall = (phone: string) => {
-    void Linking.openURL(`tel:${phone}`);
+    void Linking.openURL('tel:' + phone);
   };
 
   const handleResolve = async (id: string, name: string) => {
@@ -187,43 +187,57 @@ export function AdminCallbacksModal({ visible, onClose }: Props) {
                 <Text style={s.emptyText}>No {statusFilter !== 'all' ? statusFilter : ''} callbacks.</Text>
               </View>
             ) : (
-              items.map((item) => (
-                <View key={item.id} style={[s.card, item.status === 'pending' && s.cardPending]}>
-                  <View style={s.cardHeader}>
-                    <View style={s.cardInfo}>
-                      <Text style={s.cardName}>{item.name}</Text>
-                      <Text style={s.cardTime}>{timeAgo(item.createdAt)} · {formatDate(item.createdAt)}</Text>
+              items.map((item) => {
+                const isVapiAiCall = Boolean(item.notes?.includes('Vapi AI Call'));
+
+                return (
+                  <View key={item.id} style={[s.card, item.status === 'pending' && s.cardPending]}>
+                    <View style={s.cardHeader}>
+                      <View style={s.cardInfo}>
+                        <View style={s.nameRow}>
+                          <Text style={s.cardName}>{item.name}</Text>
+                          {isVapiAiCall ? (
+                            <View style={s.sourceBadge}>
+                              <Text style={s.sourceBadgeTxt}>🤖 AI</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                        <Text style={s.cardTime}>{timeAgo(item.createdAt)} · {formatDate(item.createdAt)}</Text>
+                      </View>
+                      <View style={[s.statusPill, item.status === 'pending' ? s.statusPending : s.statusResolved]}>
+                        <Text style={s.statusTxt}>{item.status === 'pending' ? 'Pending' : 'Resolved'}</Text>
+                      </View>
                     </View>
-                    <View style={[s.statusPill, item.status === 'pending' ? s.statusPending : s.statusResolved]}>
-                      <Text style={s.statusTxt}>{item.status === 'pending' ? 'Pending' : 'Resolved'}</Text>
+
+                    <View style={s.phoneBlock}>
+                      <Text style={s.phoneLabel}>Caller phone number</Text>
+                      <Text style={s.cardPhone}>{item.phone}</Text>
                     </View>
-                  </View>
+                    {item.notes ? <Text style={s.cardNotes}>{item.notes}</Text> : null}
 
-                  <Text style={s.cardPhone}>{item.phone}</Text>
-                  {item.notes ? <Text style={s.cardNotes}>{item.notes}</Text> : null}
+                    {item.status === 'resolved' && item.resolvedAt ? (
+                      <Text style={s.resolvedAt}>Resolved {formatDate(item.resolvedAt)}</Text>
+                    ) : null}
 
-                  {item.status === 'resolved' && item.resolvedAt ? (
-                    <Text style={s.resolvedAt}>Resolved {formatDate(item.resolvedAt)}</Text>
-                  ) : null}
-
-                  <View style={s.cardActions}>
-                    <Pressable style={[s.actionBtn, s.callBtn]} onPress={() => handleCall(item.phone)}>
-                      <Text style={s.callBtnTxt}>📞 Call Now</Text>
-                    </Pressable>
-                    {item.status === 'pending' && (
-                      <Pressable
-                        style={[s.actionBtn, s.resolveBtn, resolvingId === item.id && s.actionBtnDisabled]}
-                        onPress={() => void handleResolve(item.id, item.name)}
-                        disabled={resolvingId === item.id}
-                      >
-                        {resolvingId === item.id
-                          ? <ActivityIndicator color={colors.accentText} size="small" />
-                          : <Text style={s.resolveBtnTxt}>✓ Resolved</Text>}
+                    <View style={s.cardActions}>
+                      <Pressable style={[s.actionBtn, s.callBtn]} onPress={() => handleCall(item.phone)}>
+                        <Text style={s.callBtnTxt}>📞 Call Back</Text>
                       </Pressable>
-                    )}
+                      {item.status === 'pending' && (
+                        <Pressable
+                          style={[s.actionBtn, s.resolveBtn, resolvingId === item.id && s.actionBtnDisabled]}
+                          onPress={() => void handleResolve(item.id, item.name)}
+                          disabled={resolvingId === item.id}
+                        >
+                          {resolvingId === item.id
+                            ? <ActivityIndicator color={colors.accentText} size="small" />
+                            : <Text style={s.resolveBtnTxt}>✓ Resolved</Text>}
+                        </Pressable>
+                      )}
+                    </View>
                   </View>
-                </View>
-              ))
+                );
+              })
             )}
           </ScrollView>
         )}
@@ -248,13 +262,18 @@ const s = StyleSheet.create({
   cardPending: { borderColor: colors.warningBorder },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   cardInfo: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.xs },
   cardName: { color: colors.text, fontSize: fontSize.sm, fontWeight: '800' },
   cardTime: { color: colors.muted, fontSize: fontSize.xs, marginTop: 2 },
+  sourceBadge: { backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accent, borderRadius: radius.pill, paddingHorizontal: space.xs, paddingVertical: 2 },
+  sourceBadgeTxt: { color: colors.accent, fontSize: 10, fontWeight: '900' },
   statusPill: { paddingHorizontal: space.sm, paddingVertical: 3, borderRadius: radius.pill },
   statusPending: { backgroundColor: colors.warningBg, borderWidth: 1, borderColor: colors.warningBorder },
   statusResolved: { backgroundColor: colors.successBg, borderWidth: 1, borderColor: colors.successBorder },
   statusTxt: { fontSize: 10, fontWeight: '800', color: colors.text },
-  cardPhone: { color: colors.accent, fontSize: fontSize.md, fontWeight: '900' },
+  phoneBlock: { backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accent, borderRadius: radius.md, padding: space.sm, gap: 2 },
+  phoneLabel: { color: colors.muted, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+  cardPhone: { color: colors.accent, fontSize: fontSize.lg, fontWeight: '900' },
   cardNotes: { color: colors.muted, fontSize: fontSize.xs, fontStyle: 'italic' },
   resolvedAt: { color: colors.success, fontSize: fontSize.xs },
   cardActions: { flexDirection: 'row', gap: space.sm, marginTop: space.xs },
