@@ -35,10 +35,28 @@ function fitmentResolutionFromOptions(
   };
 }
 
+const MAX_TYRE_OPTIONS = 4;
+
+function filterAndRankOptions(
+  options: TyreFitmentOption[],
+  assistance: TyreFitmentAssistance,
+): TyreFitmentOption[] {
+  if (assistance.rankedOptionIds && assistance.rankedOptionIds.length > 0) {
+    const idIndex = new Map(assistance.rankedOptionIds.map((id, i) => [id, i]));
+    const ranked = options
+      .filter((o) => idIndex.has(o.id))
+      .sort((a, b) => (idIndex.get(a.id) ?? 99) - (idIndex.get(b.id) ?? 99));
+    if (ranked.length > 0) return ranked.slice(0, MAX_TYRE_OPTIONS);
+  }
+  // Fallback: sort by confidence rank, OEM first, cap at 4
+  const rank = (o: TyreFitmentOption) => (o.oem ? 100 : 0) + (o.confidence === 'high' ? 30 : o.confidence === 'medium' ? 10 : 0) - (o.optional ? 20 : 0);
+  return [...options].sort((a, b) => rank(b) - rank(a)).slice(0, MAX_TYRE_OPTIONS);
+}
+
 async function buildAssistance(
   vehicle: Vehicle,
   resolution: TyreFitmentResolution,
-): Promise<{ assistance: TyreFitmentAssistance; tyreSize: VehicleFitmentLookupResponse['tyreSize'] }> {
+): Promise<{ assistance: TyreFitmentAssistance; tyreSize: VehicleFitmentLookupResponse['tyreSize']; filteredOptions: TyreFitmentOption[] }> {
   const assistance = await assistTyreFitmentSelection(vehicle, resolution.options, resolution);
   const recommended = assistance.recommendedOptionId
     ? resolution.options.find(
@@ -47,7 +65,8 @@ async function buildAssistance(
           isVerifiedTyreFitmentRecommendation(option),
       ) ?? null
     : null;
-  return { assistance, tyreSize: recommended?.front ?? null };
+  const filteredOptions = filterAndRankOptions(resolution.options, assistance);
+  return { assistance, tyreSize: recommended?.front ?? null, filteredOptions };
 }
 
 function uniqueStates(states: VehicleFitmentLookupStatus[]): VehicleFitmentLookupStatus[] {
@@ -119,14 +138,14 @@ export async function resolveVehicleFitmentLookup(
       'vehicle_tyre_fitments',
       local.messages,
     );
-    const { assistance, tyreSize } = await buildAssistance(vehicle, resolution);
+    const { assistance, tyreSize, filteredOptions } = await buildAssistance(vehicle, resolution);
     return response({
       status: 'locally_confirmed',
       states: ['dvla_resolved', 'locally_confirmed', 'sidewall_confirmation_required'],
       vehicle,
       vehicleSource: 'dvla',
       tyreSize,
-      tyreOptions: localOptions,
+      tyreOptions: filteredOptions,
       tyreAssistance: assistance,
       tyreCatalogStatus: resolution.status,
       requiresSidewallConfirmation: true,
@@ -136,26 +155,26 @@ export async function resolveVehicleFitmentLookup(
 
   if (localRecord) {
     const resolution = await resolveTyreFitmentsByVrm(vrm, vehicle);
-    const { assistance, tyreSize } = await buildAssistance(vehicle, resolution);
-    const catalogState = statusForCatalog(resolution.options);
+    const { assistance, tyreSize, filteredOptions } = await buildAssistance(vehicle, resolution);
+    const catalogState = statusForCatalog(filteredOptions);
     return response({
       status: catalogState.status,
       states: catalogState.states,
       vehicle,
       vehicleSource: 'dvla',
       tyreSize,
-      tyreOptions: resolution.options,
+      tyreOptions: filteredOptions,
       tyreAssistance: assistance,
       tyreCatalogStatus: resolution.status,
-      requiresManualTyre: resolution.options.length === 0,
-      requiresSidewallConfirmation: resolution.options.length > 0,
+      requiresManualTyre: filteredOptions.length === 0,
+      requiresSidewallConfirmation: filteredOptions.length > 0,
       messages: resolution.messages,
     });
   }
 
   const resolution = await resolveTyreFitmentsByVrm(vrm, vehicle);
-  const { assistance, tyreSize } = await buildAssistance(vehicle, resolution);
-  const catalogState = statusForCatalog(resolution.options);
+  const { assistance, tyreSize, filteredOptions } = await buildAssistance(vehicle, resolution);
+  const catalogState = statusForCatalog(filteredOptions);
 
   return response({
     status: catalogState.status,
@@ -163,11 +182,11 @@ export async function resolveVehicleFitmentLookup(
     vehicle,
     vehicleSource: 'dvla',
     tyreSize,
-    tyreOptions: resolution.options,
+    tyreOptions: filteredOptions,
     tyreAssistance: assistance,
     tyreCatalogStatus: resolution.status,
-    requiresManualTyre: resolution.options.length === 0,
-    requiresSidewallConfirmation: resolution.options.length > 0,
+    requiresManualTyre: filteredOptions.length === 0,
+    requiresSidewallConfirmation: filteredOptions.length > 0,
     messages: resolution.messages,
   });
 }

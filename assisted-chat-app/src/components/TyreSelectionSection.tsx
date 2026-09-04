@@ -477,7 +477,8 @@ export function TyreSelectionSection({ draft, update }: Props) {
   const summary = isServiceOnly ? [] : summarizeBookingTyreLines(tyreLines);
   const draftVehicleRegistration = draft.vehicle?.registrationNumber ?? '';
   const [vehicleRegInput, setVehicleRegInput] = useState(draftVehicleRegistration);
-  const displayedVehicleReg = vehicleRegInput || draftVehicleRegistration;
+  const [vehicleRegTouched, setVehicleRegTouched] = useState(false);
+  const displayedVehicleReg = vehicleRegTouched ? vehicleRegInput : (vehicleRegInput || draftVehicleRegistration);
   const [vehicleLookupLoading, setVehicleLookupLoading] = useState(false);
   const [vehicleLookupMessage, setVehicleLookupMessage] = useState<string | null>(null);
   const [vehicleLookupError, setVehicleLookupError] = useState<string | null>(null);
@@ -670,9 +671,13 @@ export function TyreSelectionSection({ draft, update }: Props) {
             <TextInput
               value={displayedVehicleReg}
               onChangeText={(value) => {
+                setVehicleRegTouched(true);
                 setVehicleRegInput(value.toUpperCase());
                 setVehicleLookupError(null);
                 setVehicleLookupMessage(null);
+                if (!value.trim()) {
+                  setFitmentOptions([]);
+                }
               }}
               onSubmitEditing={lookupVehicleFitment}
               returnKeyType="search"
@@ -716,47 +721,54 @@ export function TyreSelectionSection({ draft, update }: Props) {
           ) : null}
           {fitmentOptions.length > 0 ? (
             <View style={styles.fitmentOptionStack}>
+              {fitmentOptions.length > 1 ? (
+                <Text style={styles.fitmentPickLabel}>
+                  {fitmentOptions.length} sizes found — tap the correct one:
+                </Text>
+              ) : null}
               {fitmentOptions.map((option, idx) => {
-                const isTop = idx === 0 && fitmentOptions.length > 1;
-                const isRecommended = isTop && (option.oem || option.confidence === 'high');
-                const confColor = option.confidence === 'high' ? '#16A34A' : option.confidence === 'medium' ? '#D97706' : '#DC2626';
-                const sizeDisplay = (s: AssistedChatTyreSize) =>
+                const isRecommended = idx === 0 && (option.oem || option.confidence === 'high');
+                const sizeStr = (s: AssistedChatTyreSize) =>
                   s.sizeDisplay ?? `${s.width}/${s.aspect}R${s.rim}`;
-                const frontStr = sizeDisplay(option.front);
-                const rearStr = option.staggered ? sizeDisplay(option.rear) : null;
-                const notesText = option.notes?.length ? option.notes.join(' · ') : null;
+                const frontStr = sizeStr(option.front);
+                const rearStr = option.staggered ? sizeStr(option.rear) : null;
                 return (
                   <Pressable
                     key={option.id}
                     onPress={() => applyFitmentOption(option)}
                     accessibilityRole="button"
-                    accessibilityLabel={`Use ${option.label}`}
+                    accessibilityLabel={`Select ${frontStr}`}
                     style={({ pressed }) => [
                       styles.fitmentOption,
                       isRecommended && styles.fitmentOptionRecommended,
                       pressed && styles.pressed,
                     ]}
                   >
-                    {isRecommended ? (
-                      <View style={styles.fitmentRecommendedBanner}>
-                        <Text style={styles.fitmentRecommendedText}>★ Recommended</Text>
-                      </View>
-                    ) : null}
-                    <View style={styles.fitmentTopRow}>
-                      <View style={styles.fitmentSizes}>
-                        <View style={styles.fitmentSizeBlock}>
-                          <Text style={styles.fitmentSizeLabel}>{rearStr ? 'Front' : 'Size'}</Text>
-                          <Text style={styles.fitmentSizeValue}>{frontStr}</Text>
-                        </View>
+                    <View style={styles.fitmentRow}>
+                      <View style={styles.fitmentSizeGroup}>
                         {rearStr ? (
-                          <View style={styles.fitmentSizeBlock}>
-                            <Text style={styles.fitmentSizeLabel}>Rear</Text>
-                            <Text style={styles.fitmentSizeValue}>{rearStr}</Text>
-                          </View>
-                        ) : null}
+                          <>
+                            <View style={styles.fitmentSizeBlock}>
+                              <Text style={styles.fitmentSizeLabel}>Front</Text>
+                              <Text style={styles.fitmentSizeValue}>{frontStr}</Text>
+                            </View>
+                            <Text style={styles.fitmentSlash}>/</Text>
+                            <View style={styles.fitmentSizeBlock}>
+                              <Text style={styles.fitmentSizeLabel}>Rear</Text>
+                              <Text style={styles.fitmentSizeValue}>{rearStr}</Text>
+                            </View>
+                          </>
+                        ) : (
+                          <Text style={styles.fitmentSizeSingle}>{frontStr}</Text>
+                        )}
                       </View>
                       <View style={styles.fitmentBadges}>
-                        {option.oem ? (
+                        {isRecommended ? (
+                          <View style={styles.fitmentBadgeRec}>
+                            <Text style={styles.fitmentBadgeText}>✓ Best match</Text>
+                          </View>
+                        ) : null}
+                        {option.oem && !isRecommended ? (
                           <View style={styles.fitmentBadgeOem}>
                             <Text style={styles.fitmentBadgeText}>OEM</Text>
                           </View>
@@ -766,25 +778,8 @@ export function TyreSelectionSection({ draft, update }: Props) {
                             <Text style={styles.fitmentBadgeText}>Staggered</Text>
                           </View>
                         ) : null}
-                        {option.optional ? (
-                          <View style={styles.fitmentBadgeOptional}>
-                            <Text style={styles.fitmentBadgeText}>Optional</Text>
-                          </View>
-                        ) : null}
                       </View>
                     </View>
-                    <View style={styles.fitmentBottomRow}>
-                      <View style={[styles.confDot, { backgroundColor: confColor }]} />
-                      <Text style={[styles.fitmentOptionMeta, { color: confColor }]}>
-                        {option.confidence} confidence
-                      </Text>
-                      {option.sourceLabel ? (
-                        <Text style={styles.fitmentOptionMeta}> · {option.sourceLabel}</Text>
-                      ) : null}
-                    </View>
-                    {notesText ? (
-                      <Text style={styles.fitmentNotes}>{notesText}</Text>
-                    ) : null}
                   </Pressable>
                 );
               })}
@@ -996,14 +991,21 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   fitmentOptionStack: {
-    gap: space.sm,
+    gap: 8,
+  },
+  fitmentPickLabel: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    marginBottom: 2,
   },
   fitmentOption: {
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceOverlay,
-    padding: space.sm,
+    paddingHorizontal: space.md,
+    paddingVertical: 14,
   },
   fitmentOptionTitle: {
     color: colors.text,
@@ -1014,6 +1016,35 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: fontSize.xs,
     textTransform: 'capitalize',
+  },
+  fitmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.sm,
+  },
+  fitmentSizeGroup: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+    flex: 1,
+  },
+  fitmentSizeSingle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  fitmentSlash: {
+    color: colors.muted,
+    fontSize: 18,
+    fontWeight: '300',
+  },
+  fitmentBadgeRec: {
+    backgroundColor: colors.accent,
+    borderRadius: radius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   vehicleInfoCard: {
     borderColor: colors.successBorder,
@@ -1041,31 +1072,6 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
     backgroundColor: colors.accentMuted,
   },
-  fitmentRecommendedBanner: {
-    backgroundColor: colors.accent,
-    borderRadius: radius.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    alignSelf: 'flex-start',
-    marginBottom: 6,
-  },
-  fitmentRecommendedText: {
-    color: '#fff',
-    fontSize: fontSize.xs,
-    fontWeight: '800',
-  },
-  fitmentTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: space.sm,
-    marginBottom: 6,
-  },
-  fitmentSizes: {
-    flexDirection: 'row',
-    gap: space.md,
-    flex: 1,
-  },
   fitmentSizeBlock: {
     gap: 1,
   },
@@ -1078,7 +1084,7 @@ const styles = StyleSheet.create({
   },
   fitmentSizeValue: {
     color: colors.text,
-    fontSize: fontSize.md,
+    fontSize: 20,
     fontWeight: '900',
     letterSpacing: 0.3,
   },
@@ -1105,37 +1111,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  fitmentBadgeOptional: {
-    backgroundColor: colors.glassStrong,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
   fitmentBadgeText: {
     color: colors.text,
     fontSize: 9,
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  fitmentBottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  confDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 999,
-  },
-  fitmentNotes: {
-    color: colors.muted,
-    fontSize: fontSize.xs,
-    marginTop: 5,
-    lineHeight: 16,
-    fontStyle: 'italic',
   },
   sidewallNotice: {
     borderColor: colors.warningBorder,

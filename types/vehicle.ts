@@ -88,6 +88,7 @@ export interface TyreFitmentResolution {
 export interface TyreFitmentAssistance {
   provider: 'groq' | 'deterministic';
   recommendedOptionId: string | null;
+  rankedOptionIds?: string[];
   summary: string;
   warnings: string[];
 }

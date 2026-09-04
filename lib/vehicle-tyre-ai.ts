@@ -14,6 +14,7 @@ import type {
 
 interface GroqFitmentResponse {
   recommendedOptionId?: string | null;
+  rankedOptionIds?: string[];
   summary?: string;
   warnings?: string[];
 }
@@ -111,6 +112,8 @@ function cleanWarnings(value: unknown, fallback: string[]): string[] {
   return [...new Set([...fallback, ...modelWarnings])].slice(0, 3);
 }
 
+const MAX_DISPLAY_OPTIONS = 4;
+
 export async function assistTyreFitmentSelection(
   vehicle: Vehicle,
   options: TyreFitmentOption[],
@@ -121,6 +124,7 @@ export async function assistTyreFitmentSelection(
 
   try {
     const { askGroqStructured } = await import('@/lib/groq');
+    const allOptionIds = new Set(options.map((o) => o.id));
     const recommendableOptionIds = new Set(
       options.filter(isVerifiedTyreFitmentRecommendation).map((option) => option.id)
     );
@@ -131,33 +135,42 @@ export async function assistTyreFitmentSelection(
         type: 'object',
         properties: {
           recommendedOptionId: { type: ['string', 'null'] },
+          rankedOptionIds: { type: 'array', items: { type: 'string' } },
           summary: { type: 'string' },
           warnings: { type: 'array', items: { type: 'string' } },
         },
-        required: ['recommendedOptionId', 'summary', 'warnings'],
+        required: ['recommendedOptionId', 'rankedOptionIds', 'summary', 'warnings'],
       },
-      maxTokens: 260,
+      maxTokens: 320,
       systemPrompt:
-        'You help a UK mobile tyre fitting admin choose from local vehicle tyre fitment candidates. Use only the candidate IDs provided. Never create, infer, or modify tyre sizes. Return recommendedOptionId as null unless the candidate is marked recommendable and is a high-confidence confirmed-registration fitment. Treat local model tables, medium confidence, low confidence, and any fallback size as suggestions only. If no option is recommendable, explain that the admin must read the tyre sidewall or door placard before booking. If optional wheels or staggered fitments exist, warn the admin to confirm axle-specific sizes.',
+        'You help a UK mobile tyre fitting admin select the correct tyre fitment for a vehicle. Your primary job is to RANK and FILTER the candidate list to the 1-4 most likely fitments for this specific vehicle — eliminating unlikely variants. Use make, model, year, and fuel type to determine which fitment sizes are most common for this exact vehicle. Rank from most likely to least likely. Return rankedOptionIds with the IDs of the top 4 most plausible options only — exclude obscure trims, performance variants, and optional upgrades unless that is clearly the vehicle. Return recommendedOptionId only if one option is clearly the standard fitment with high confidence. Never invent or modify tyre sizes. Use only the IDs provided.',
       userMessage: JSON.stringify({
-        vehicle,
-        catalogStatus: resolution.status,
-        provider: resolution.provider,
+        vehicle: {
+          make: vehicle.make,
+          model: vehicle.model,
+          year: vehicle.yearOfManufacture,
+          fuelType: vehicle.fuelType,
+          colour: vehicle.colour,
+        },
         options: options.map((option) => ({
           id: option.id,
-          label: option.label,
           size: formatSize(option),
           source: option.source,
           confidence: option.confidence,
-          recommendable: isVerifiedTyreFitmentRecommendation(option),
+          oem: Boolean(option.oem ?? (option.source === 'local_vrm_catalog')),
           optional: Boolean(option.optional),
           staggered: Boolean(option.staggered),
-          notes: option.notes ?? [],
+          variant: option.vehicleVariant ?? null,
         })),
       }),
     });
 
     if (!result) return fallback;
+
+    // Filter rankedOptionIds to only valid IDs from our list
+    const rankedOptionIds = Array.isArray(result.rankedOptionIds)
+      ? result.rankedOptionIds.filter((id) => allOptionIds.has(id)).slice(0, MAX_DISPLAY_OPTIONS)
+      : [];
 
     const rejectedModelRecommendation = Boolean(
       result.recommendedOptionId && !recommendableOptionIds.has(result.recommendedOptionId)
@@ -170,6 +183,7 @@ export async function assistTyreFitmentSelection(
     return {
       provider: 'groq',
       recommendedOptionId,
+      rankedOptionIds: rankedOptionIds.length > 0 ? rankedOptionIds : undefined,
       summary: cleanText(result.summary, fallback.summary),
       warnings: cleanWarnings(
         result.warnings,
