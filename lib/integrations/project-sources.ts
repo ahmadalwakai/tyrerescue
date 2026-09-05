@@ -66,6 +66,14 @@ export const PROJECT_SOURCES = [
     campaign: 'edinburgh_tyre_fitting_booking_handoff',
     description: 'Edinburgh Tyre Fitting website bookings for Edinburgh and the 50-mile countryside area.',
   },
+  {
+    app: '247_mo_glasgow',
+    label: '247 Mo Glasgow',
+    origin: 'https://www.247moglasgow.uk',
+    secretEnv: 'MO_GLASGOW_INTEGRATION_SECRET',
+    campaign: '247_mo_glasgow_booking_handoff',
+    description: '247 Mo Glasgow website bookings for Glasgow and surrounding areas.',
+  },
 ] as const satisfies readonly ProjectSource[];
 
 export const INTEGRATED_PROJECT_SOURCES = PROJECT_SOURCES.filter(
@@ -115,6 +123,10 @@ const SOURCE_ALIASES = new Map<string, string>([
   ['edinburghtyrefitting', 'edinburgh_tyre_fitting'],
   ['edinburgh_tyre', 'edinburgh_tyre_fitting'],
   ['edinburgh_tyres', 'edinburgh_tyre_fitting'],
+  ['247_mo_glasgow', '247_mo_glasgow'],
+  ['247moglasgow', '247_mo_glasgow'],
+  ['www_247moglasgow', '247_mo_glasgow'],
+  ['mo_glasgow', '247_mo_glasgow'],
 ]);
 
 export function normalizeProjectSourceApp(value: string | null | undefined): string | null {

@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export type ProjectId =
   | 'tyrerescue'
   | '247mtg'
+  | '247_mo_glasgow'
   | 'dukestreettyres'
   | 'fitmytyre'
   | 'tyrehawkmobile'
@@ -37,6 +38,15 @@ export const PROJECTS: readonly ProjectConfig[] = [
     brandLine1: '247',
     brandLine2: 'TYRES',
     loginSubtitle: 'Use your 247 Mobile Tyres Glasgow admin credentials.',
+    tagline: 'Glasgow mobile tyre fitting — bookings, pricing, drivers and stock.',
+  },
+  {
+    id: '247_mo_glasgow',
+    name: '247 Mo Glasgow',
+    apiBaseUrl: 'https://www.247moglasgow.uk',
+    brandLine1: '247 MO',
+    brandLine2: 'GLASGOW',
+    loginSubtitle: 'Use your 247 Mo Glasgow admin credentials.',
     tagline: 'Glasgow mobile tyre fitting — bookings, pricing, drivers and stock.',
   },
   {

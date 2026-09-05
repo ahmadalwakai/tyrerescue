@@ -39,6 +39,13 @@ const PROJECT_PRICING_ORIGINS: Partial<Record<IntegratedProjectSourceApp, Projec
     lng: -3.16378,
     maxServiceMiles: 50,
   },
+  '247_mo_glasgow': {
+    sourceApp: '247_mo_glasgow',
+    label: 'Glasgow City Centre, G1',
+    lat: 55.8642,
+    lng: -4.2518,
+    maxServiceMiles: 30,
+  },
 };
 
 export function getProjectPricingOrigin(

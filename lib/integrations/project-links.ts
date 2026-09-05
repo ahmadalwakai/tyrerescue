@@ -12,6 +12,7 @@ export const PROJECT_BOOKING_ROUTE_SLUGS = {
   tyrehawk_mobile: 'tyrehawk',
   tyresos: 'tyresos',
   edinburgh_tyre_fitting: 'edinburgh-tyre-fitting',
+  '247_mo_glasgow': '247-mo-glasgow',
 } as const satisfies Record<IntegratedProjectSourceApp, string>;
 
 export interface ProjectIntegrationLink {
