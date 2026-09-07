@@ -1,11 +1,19 @@
 import Groq from 'groq-sdk';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-  timeout: 8_000,
-});
+let _groq: Groq | undefined;
 
-export default groq;
+function getGroq(): Groq {
+  if (!_groq) {
+    _groq = new Groq({ apiKey: process.env.GROQ_API_KEY, timeout: 8_000 });
+  }
+  return _groq;
+}
+
+export default new Proxy({} as Groq, {
+  get(_, prop: string | symbol) {
+    return (getGroq() as any)[prop];
+  },
+});
 
 export async function askGroq(
   systemPrompt: string,
@@ -13,7 +21,7 @@ export async function askGroq(
   maxTokens: number = 500
 ): Promise<string> {
   try {
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroq().chat.completions.create({
       model: 'llama-3.1-8b-instant',
       messages: [
         { role: 'system', content: systemPrompt },

@@ -1,26 +1,36 @@
 import Stripe from 'stripe';
 import { getAppOrigin } from '@/lib/config/site';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing STRIPE_SECRET_KEY environment variable');
+let _stripe: Stripe | undefined;
+
+function getStripe(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('Missing STRIPE_SECRET_KEY environment variable');
+    }
+
+    // Strip whitespace, surrounding quotes, and any non-printable/non-ASCII chars
+    // that would otherwise break the Authorization header.
+    const key = process.env.STRIPE_SECRET_KEY
+      .trim()
+      .replace(/^["']|["']$/g, '')
+      .replace(/[^\x20-\x7E]/g, '');
+
+    if (!/^sk_(test|live)_[A-Za-z0-9]+$/.test(key)) {
+      throw new Error(
+        'STRIPE_SECRET_KEY is malformed (expected "sk_test_..." or "sk_live_..." with no whitespace or non-ASCII characters)'
+      );
+    }
+
+    _stripe = new Stripe(key, { apiVersion: '2026-02-25.clover', typescript: true });
+  }
+  return _stripe;
 }
 
-// Strip whitespace, surrounding quotes, and any non-printable/non-ASCII chars
-// that would otherwise break the Authorization header.
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY
-  .trim()
-  .replace(/^["']|["']$/g, '')
-  .replace(/[^\x20-\x7E]/g, '');
-
-if (!/^sk_(test|live)_[A-Za-z0-9]+$/.test(stripeSecretKey)) {
-  throw new Error(
-    'STRIPE_SECRET_KEY is malformed (expected "sk_test_..." or "sk_live_..." with no whitespace or non-ASCII characters)'
-  );
-}
-
-export const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2026-02-25.clover',
-  typescript: true,
+export const stripe: Stripe = new Proxy({} as Stripe, {
+  get(_, prop: string | symbol) {
+    return (getStripe() as any)[prop];
+  },
 });
 
 /**
