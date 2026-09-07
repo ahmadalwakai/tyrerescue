@@ -142,6 +142,89 @@ describe('gtag analytics helpers', () => {
       value: 1.0,
       currency: 'GBP',
     });
+    // Internal tracker re-uses 'callback_submit' with label to distinguish from actual callbacks.
     expect(trackEvent).toHaveBeenCalledWith('callback_submit', { label: 'contact_form' });
+  });
+
+  it('keeps GA4 purchase events and Google Ads conversion on separate gtag calls', async () => {
+    const { mod } = await loadGtag({
+      NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-123456789/bookingLabel',
+    });
+    const gtag = vi.fn();
+    vi.stubGlobal('window', { gtag });
+
+    mod.trackConversion(99.99, 'user@example.com');
+
+    // GA4 events — no send_to
+    expect(gtag).toHaveBeenCalledWith('event', 'purchase', { value: 99.99, currency: 'GBP' });
+    expect(gtag).toHaveBeenCalledWith('event', 'booking_paid', { value: 99.99, currency: 'GBP' });
+    // Google Ads conversion — explicit send_to, separate call
+    expect(gtag).toHaveBeenCalledWith('event', 'conversion', {
+      send_to: 'AW-123456789/bookingLabel',
+      value: 99.99,
+      currency: 'GBP',
+    });
+    // Confirm no GA4 event accidentally received a send_to
+    const purchaseCall = gtag.mock.calls.find(([, name]) => name === 'purchase');
+    expect(purchaseCall?.[2]).not.toHaveProperty('send_to');
+  });
+
+  describe('trackBookingConversion (deduplication)', () => {
+    function makeSessionStorage() {
+      const store = new Map<string, string>();
+      return {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => { store.set(k, v); },
+        removeItem: (k: string) => { store.delete(k); },
+        clear: () => { store.clear(); },
+        get length() { return store.size; },
+        key: (i: number) => [...store.keys()][i] ?? null,
+      };
+    }
+
+    it('fires conversion on the first call', async () => {
+      const ss = makeSessionStorage();
+      vi.stubGlobal('sessionStorage', ss);
+      const { mod, trackEvent } = await loadGtag({
+        NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-123456789/bookingLabel',
+      });
+      const gtag = vi.fn();
+      vi.stubGlobal('window', { gtag });
+
+      mod.trackBookingConversion('TR-001', 49.99, 'a@b.com');
+
+      expect(gtag).toHaveBeenCalledWith('event', 'purchase', { value: 49.99, currency: 'GBP' });
+      expect(trackEvent).toHaveBeenCalledWith('booking_paid', { value: '49.99' });
+    });
+
+    it('does not fire a second time for the same booking ref', async () => {
+      const ss = makeSessionStorage();
+      vi.stubGlobal('sessionStorage', ss);
+      const { mod } = await loadGtag({
+        NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-123456789/bookingLabel',
+      });
+      const gtag = vi.fn();
+      vi.stubGlobal('window', { gtag });
+
+      mod.trackBookingConversion('TR-002', 49.99);
+      gtag.mockClear();
+      mod.trackBookingConversion('TR-002', 49.99);
+
+      expect(gtag).not.toHaveBeenCalled();
+    });
+
+    it('fires independently for different booking refs', async () => {
+      const ss = makeSessionStorage();
+      vi.stubGlobal('sessionStorage', ss);
+      const { mod } = await loadGtag();
+      const gtag = vi.fn();
+      vi.stubGlobal('window', { gtag });
+
+      mod.trackBookingConversion('TR-003', 10);
+      mod.trackBookingConversion('TR-004', 20);
+
+      const purchaseCalls = gtag.mock.calls.filter(([, name]) => name === 'purchase');
+      expect(purchaseCalls).toHaveLength(2);
+    });
   });
 });

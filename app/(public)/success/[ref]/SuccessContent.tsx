@@ -16,6 +16,7 @@ import { formatPrice } from '@/lib/pricing-engine';
 import { getBrandBySourceApp } from '@/lib/config/site';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
+import { trackBookingConversion } from '@/lib/analytics/gtag';
 
 interface TyreDetail {
   brand: string;
@@ -117,6 +118,11 @@ export function SuccessContent({ booking }: SuccessContentProps) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Confirmation failed');
         setConfirmedStatus(data.status);
+        if (data.status === 'paid') {
+          // Fire only when the server confirms payment — deduplicated by ref so
+          // the no-redirect path (StepPayment already fired) is a no-op.
+          trackBookingConversion(booking.refNumber, booking.totalAmount, booking.customerEmail);
+        }
       } catch (err) {
         setConfirmError(err instanceof Error ? err.message : 'Confirmation failed');
       } finally {

@@ -117,17 +117,12 @@ export function setEnhancedUserData({ phone, email }: { phone?: string; email?: 
 /** Track a completed booking (GA4 purchase + Google Ads conversion) */
 export function trackConversion(value: number, email?: string) {
   if (email) setEnhancedUserData({ email });
-  window.gtag?.('event', 'purchase', {
-    value,
-    currency: 'GBP',
-  });
 
-  // New canonical event name.
-  window.gtag?.('event', 'booking_paid', {
-    value,
-    currency: 'GBP',
-  });
+  // GA4 events — reported under the GA4 property.
+  window.gtag?.('event', 'purchase', { value, currency: 'GBP' });
+  window.gtag?.('event', 'booking_paid', { value, currency: 'GBP' });
 
+  // Google Ads conversion — separate send_to keeps it out of GA4 reports.
   if (ADS_BOOKING_CONVERSION) {
     window.gtag?.('event', 'conversion', {
       send_to: ADS_BOOKING_CONVERSION,
@@ -137,6 +132,40 @@ export function trackConversion(value: number, email?: string) {
   }
   trackEvent('booking_complete', { value: String(value) });
   trackEvent('booking_paid', { value: String(value) });
+}
+
+const PURCHASE_FIRED_KEY = 'tr_conv_fired';
+
+function hasPurchaseFired(ref: string): boolean {
+  try {
+    const stored = sessionStorage.getItem(PURCHASE_FIRED_KEY);
+    const fired: unknown = stored ? JSON.parse(stored) : [];
+    return Array.isArray(fired) && fired.includes(ref);
+  } catch {
+    return false;
+  }
+}
+
+function markPurchaseFired(ref: string): void {
+  try {
+    const stored = sessionStorage.getItem(PURCHASE_FIRED_KEY);
+    const fired: string[] = Array.isArray(JSON.parse(stored ?? '[]'))
+      ? (JSON.parse(stored ?? '[]') as string[])
+      : [];
+    fired.push(ref);
+    sessionStorage.setItem(PURCHASE_FIRED_KEY, JSON.stringify(fired));
+  } catch {}
+}
+
+/**
+ * Track a booking conversion deduplicated by booking ref within the session.
+ * Safe to call from both the payment step (no-redirect flow) and the success
+ * page (redirect / 3-D Secure flow) — only the first call fires.
+ */
+export function trackBookingConversion(ref: string, value: number, email?: string): void {
+  if (hasPurchaseFired(ref)) return;
+  markPurchaseFired(ref);
+  trackConversion(value, email);
 }
 
 /** Track phone call click */
