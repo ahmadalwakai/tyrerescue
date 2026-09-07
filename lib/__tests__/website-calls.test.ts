@@ -29,6 +29,154 @@ function readSource(relativePath: string): string {
   return readFileSync(join(root, relativePath), 'utf8');
 }
 
+class FakeText {
+  nodeType = 3;
+  parentElement: FakeElement | null = null;
+
+  constructor(
+    public nodeValue: string,
+    public ownerDocument: FakeDocument,
+  ) {}
+}
+
+class FakeElement {
+  nodeType = 1;
+  children: FakeElement[] = [];
+  private textNodes: FakeText[] = [];
+  private attributes = new Map<string, string>();
+  setAttributeCalls: Array<{ name: string; value: string }> = [];
+  parentElement: FakeElement | null = null;
+
+  constructor(
+    public tagName: string,
+    public ownerDocument: FakeDocument,
+  ) {
+    this.tagName = tagName.toUpperCase();
+  }
+
+  get textContent(): string {
+    return [
+      ...this.textNodes.map((node) => node.nodeValue),
+      ...this.children.map((child) => child.textContent),
+    ].join('');
+  }
+
+  set textContent(value: string) {
+    this.children = [];
+    this.textNodes = [];
+    this.appendText(value);
+  }
+
+  appendElement(child: FakeElement): FakeElement {
+    child.parentElement = this;
+    this.children.push(child);
+    return child;
+  }
+
+  appendText(value: string): FakeText {
+    const node = new FakeText(value, this.ownerDocument);
+    node.parentElement = this;
+    this.textNodes.push(node);
+    return node;
+  }
+
+  getAttribute(name: string): string | null {
+    return this.attributes.get(name) ?? null;
+  }
+
+  setAttribute(name: string, value: string): void {
+    this.setAttributeCalls.push({ name, value });
+    this.attributes.set(name, value);
+  }
+
+  hasAttribute(name: string): boolean {
+    return this.attributes.has(name);
+  }
+
+  removeAttribute(name: string): void {
+    this.attributes.delete(name);
+  }
+
+  querySelectorAll<T extends Element = Element>(selector: string): T[] {
+    const matches: FakeElement[] = [];
+    const visit = (element: FakeElement) => {
+      for (const child of element.children) {
+        if (child.matches(selector)) matches.push(child);
+        visit(child);
+      }
+    };
+    visit(this);
+    return matches as unknown as T[];
+  }
+
+  getTextNodes(): FakeText[] {
+    return [
+      ...this.textNodes,
+      ...this.children.flatMap((child) => child.getTextNodes()),
+    ];
+  }
+
+  private matches(selector: string): boolean {
+    if (selector === 'a[href^="tel:"], a[href^="TEL:"]') {
+      return this.tagName === 'A' && (this.getAttribute('href') ?? '').toLowerCase().startsWith('tel:');
+    }
+
+    const attrSelector = selector.match(/^(a)?\[([^\]]+)\]$/i);
+    if (!attrSelector) return false;
+
+    const tagName = attrSelector[1]?.toUpperCase();
+    const attrName = attrSelector[2];
+    return (!tagName || this.tagName === tagName) && this.hasAttribute(attrName);
+  }
+}
+
+class FakeDocument {
+  body: FakeElement;
+
+  constructor() {
+    this.body = new FakeElement('body', this);
+  }
+
+  createElement(tagName: string): FakeElement {
+    return new FakeElement(tagName, this);
+  }
+
+  createTreeWalker(root: ParentNode): { nextNode: () => FakeText | null } {
+    const nodes = (root as unknown as FakeElement).getTextNodes();
+    let index = 0;
+    return {
+      nextNode: () => nodes[index++] ?? null,
+    };
+  }
+}
+
+function makeCallDom() {
+  const doc = new FakeDocument();
+  const root = doc.body;
+  const businessText = root.appendElement(doc.createElement('p'));
+  businessText.textContent = 'Call 0141 266 0690 now';
+
+  const whatsAppText = root.appendElement(doc.createElement('p'));
+  whatsAppText.textContent = 'WhatsApp 07423 262955';
+
+  const businessLink = root.appendElement(doc.createElement('a'));
+  businessLink.setAttribute('href', 'tel:01412660690');
+  businessLink.textContent = 'Call 0141 266 0690';
+
+  const whatsAppLink = root.appendElement(doc.createElement('a'));
+  whatsAppLink.setAttribute('href', 'tel:07423262955');
+  whatsAppLink.textContent = 'WhatsApp 07423 262955';
+
+  return {
+    root: root as unknown as ParentNode,
+    businessText,
+    whatsAppText,
+    businessLink,
+    whatsAppLink,
+    doc,
+  };
+}
+
 describe('Google Ads website call tracking', () => {
   it('never renders a static forwarding phone number', async () => {
     const { ADS_FORWARDING_PHONE, getTrackingPhone } = await loadWebsiteCalls({
@@ -190,5 +338,97 @@ describe('Google Ads website call tracking', () => {
     expect(source).not.toContain('\\d[\\d\\s().-]{8,}\\d');
     expect(source).not.toContain('extractPhoneDisplays');
     expect(source).not.toContain('findGoogleAdsForwardingPhone(root');
+  });
+
+  it('syncs only owned business phone text and tel links from Google callback values', async () => {
+    const { syncGoogleAdsWebsiteCallDom } = await loadWebsiteCalls();
+    const { root, businessText, whatsAppText, businessLink, whatsAppLink } = makeCallDom();
+
+    expect(syncGoogleAdsWebsiteCallDom('0800 123 4567', root)).toEqual({
+      displayPhone: '0800 123 4567',
+      telHref: 'tel:08001234567',
+    });
+
+    expect(businessText.textContent).toBe('Call 0800 123 4567 now');
+    expect(businessLink.getAttribute('href')).toBe('tel:08001234567');
+    expect(whatsAppText.textContent).toBe('WhatsApp 07423 262955');
+    expect(whatsAppLink.getAttribute('href')).toBe('tel:07423262955');
+  });
+
+  it('retains the validated forwarding number when unrelated DOM changes are observed', async () => {
+    const { syncGoogleAdsWebsiteCallDom } = await loadWebsiteCalls();
+    const { root, businessText, businessLink, doc } = makeCallDom();
+
+    syncGoogleAdsWebsiteCallDom('0800 123 4567', root);
+    const unrelated = (root as unknown as FakeElement).appendElement(doc.createElement('p'));
+    unrelated.textContent = 'Booking status changed';
+    syncGoogleAdsWebsiteCallDom('0800 123 4567', root);
+
+    expect(businessText.textContent).toBe('Call 0800 123 4567 now');
+    expect(businessLink.getAttribute('href')).toBe('tel:08001234567');
+    expect(unrelated.textContent).toBe('Booking status changed');
+  });
+
+  it('restores owned call changes without touching unrelated mobile links', async () => {
+    const { restoreGoogleAdsWebsiteCallDom, syncGoogleAdsWebsiteCallDom } =
+      await loadWebsiteCalls();
+    const { root, businessText, whatsAppText, businessLink, whatsAppLink } = makeCallDom();
+
+    syncGoogleAdsWebsiteCallDom('0800 123 4567', root);
+    restoreGoogleAdsWebsiteCallDom(root);
+
+    expect(businessText.textContent).toBe('Call 0141 266 0690 now');
+    expect(businessLink.getAttribute('href')).toBe('tel:01412660690');
+    expect(whatsAppText.textContent).toBe('WhatsApp 07423 262955');
+    expect(whatsAppLink.getAttribute('href')).toBe('tel:07423262955');
+  });
+
+  it('leaves the original business number usable when callback validation fails', async () => {
+    const { syncGoogleAdsWebsiteCallDom } = await loadWebsiteCalls();
+    const { root, businessText, businessLink } = makeCallDom();
+
+    expect(syncGoogleAdsWebsiteCallDom('07423 262955', root)).toBeNull();
+    expect(businessText.textContent).toBe('Call 0141 266 0690 now');
+    expect(businessLink.getAttribute('href')).toBe('tel:01412660690');
+  });
+
+  it('does not rewrite unchanged owned attributes on repeated sync', async () => {
+    const { syncGoogleAdsWebsiteCallDom } = await loadWebsiteCalls();
+    const { root, businessLink } = makeCallDom();
+
+    syncGoogleAdsWebsiteCallDom('0800 123 4567', root);
+    const firstWriteCount = businessLink.setAttributeCalls.length;
+    syncGoogleAdsWebsiteCallDom('0800 123 4567', root);
+
+    expect(businessLink.setAttributeCalls).toHaveLength(firstWriteCount);
+  });
+
+  it('does not infer cached forwarding numbers from arbitrary page content', async () => {
+    const { clearGoogleAdsWebsiteCallCallbackValue, findGoogleAdsForwardingPhone } =
+      await loadWebsiteCalls();
+    const { doc, root } = makeCallDom();
+    const arbitrary = (root as unknown as FakeElement).appendElement(doc.createElement('p'));
+    arbitrary.textContent = 'Another visible number 0800 123 4567';
+
+    clearGoogleAdsWebsiteCallCallbackValue();
+
+    expect(findGoogleAdsForwardingPhone()).toBeNull();
+  });
+
+  it('does not let obsolete callback unregisters clear a newer Google callback', async () => {
+    const {
+      GOOGLE_ADS_PHONE_CONVERSION_CALLBACK_NAME,
+      registerGoogleAdsWebsiteCallCallback,
+    } = await loadWebsiteCalls();
+    const firstCallback = vi.fn();
+    const secondCallback = vi.fn();
+    const win: Record<string, unknown> = {};
+    vi.stubGlobal('window', win);
+
+    const unregisterFirst = registerGoogleAdsWebsiteCallCallback(firstCallback);
+    registerGoogleAdsWebsiteCallCallback(secondCallback);
+    unregisterFirst();
+
+    expect(win[GOOGLE_ADS_PHONE_CONVERSION_CALLBACK_NAME]).toBe(secondCallback);
   });
 });

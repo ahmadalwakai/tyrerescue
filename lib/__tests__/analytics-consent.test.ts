@@ -270,4 +270,31 @@ describe('consent wiring', () => {
     expect(providerSource).toContain('registerGoogleAdsWebsiteCallCallback');
     expect(providerSource).toContain('normalizeGoogleAdsPhoneConversionCallback');
   });
+
+  it('disconnects the previous website-call observer before opening a new session', () => {
+    const providerSource = readSource('components/ui/AnalyticsProvider.tsx');
+
+    expect(providerSource).toMatch(
+      /websiteCallObserverRef\.current\?\.disconnect\(\);\s*websiteCallObserverRef\.current = null;\s*websiteCallSessionRef\.current \+= 1;/,
+    );
+  });
+
+  it('does not apply fetch-catch effects from superseded consent requests', () => {
+    const providerSource = readSource('components/ui/AnalyticsProvider.tsx');
+
+    expect(providerSource).toMatch(
+      /catch \(error\) {\s*if \(!isCurrentRequest\(requestVersion, controller\)\) return;\s*if \(\(error as \{ name\?: string \} \| null\)\?\.name !== 'AbortError'\) {\s*applyImmediateConsentEffects\(getStoredConsent\(\)\);/,
+    );
+  });
+
+  it('cleans observers, callbacks, timers and requests on provider unmount', () => {
+    const providerSource = readSource('components/ui/AnalyticsProvider.tsx');
+
+    expect(providerSource).toContain('clearWebsiteCallRetry();');
+    expect(providerSource).toContain('clearWebsiteCallObserverSuppression();');
+    expect(providerSource).toContain('unregisterWebsiteCallCallbackRef.current?.();');
+    expect(providerSource).toMatch(
+      /return \(\) => {\s*mountedRef\.current = false;\s*requestVersionRef\.current \+= 1;\s*abortControllerRef\.current\?\.abort\(\);\s*cleanupWebsiteCallIntegration\(\);/,
+    );
+  });
 });

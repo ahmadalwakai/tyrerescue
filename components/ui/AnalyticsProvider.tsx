@@ -175,6 +175,8 @@ export function AnalyticsProvider() {
         return;
       }
 
+      websiteCallObserverRef.current?.disconnect();
+      websiteCallObserverRef.current = null;
       websiteCallSessionRef.current += 1;
       const session = websiteCallSessionRef.current;
       clearWebsiteCallRetry();
@@ -297,6 +299,7 @@ export function AnalyticsProvider() {
       try {
         res = await fetch('/api/public/cookie-settings', { signal: controller.signal });
       } catch (error) {
+        if (!isCurrentRequest(requestVersion, controller)) return;
         if ((error as { name?: string } | null)?.name !== 'AbortError') {
           applyImmediateConsentEffects(getStoredConsent());
         }
