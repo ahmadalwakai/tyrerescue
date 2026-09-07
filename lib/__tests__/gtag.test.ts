@@ -13,6 +13,19 @@ const ADS_ENV_KEYS = [
   'NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION',
   'NEXT_PUBLIC_GA_MEASUREMENT_ID',
 ] as const;
+const CONSENT_KEY = 'tyrerescue_consent_v2';
+
+function makeStorage() {
+  const store = new Map<string, string>();
+  return {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => { store.set(k, v); },
+    removeItem: (k: string) => { store.delete(k); },
+    clear: () => { store.clear(); },
+    get length() { return store.size; },
+    key: (i: number) => [...store.keys()][i] ?? null,
+  };
+}
 
 async function loadGtag(env: Partial<Record<(typeof ADS_ENV_KEYS)[number], string>> = {}) {
   vi.resetModules();
@@ -27,6 +40,7 @@ async function loadGtag(env: Partial<Record<(typeof ADS_ENV_KEYS)[number], strin
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   trackEventMock.mockClear();
   for (const key of ADS_ENV_KEYS) {
@@ -77,6 +91,29 @@ describe('gtag analytics helpers', () => {
 
     expect(mod.ADS_PHONE_CONVERSION).toBe('AW-123456789/phoneLabel');
     expect(mod.ADS_CONTACT_CONVERSION).toBe('AW-123456789/contactLabel');
+  });
+
+  it('disables phone Ads conversion when it collides with the Contact label', async () => {
+    const { mod } = await loadGtag({
+      NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION: 'AW-18255235286/o1PQCKOk-MYcENaR44BE',
+      NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION: 'AW-18255235286/o1PQCKOk-MYcENaR44BE',
+    });
+    const gtag = vi.fn();
+    vi.stubGlobal('window', { gtag });
+
+    expect(mod.ADS_PHONE_CONTACT_LABEL_COLLISION).toBe(true);
+    expect(mod.ADS_PHONE_CONVERSION).toBeNull();
+    expect(mod.ADS_CONTACT_CONVERSION).toBe('AW-18255235286/o1PQCKOk-MYcENaR44BE');
+
+    mod.trackCallClick('contact_page_card');
+    expect(gtag).not.toHaveBeenCalledWith('event', 'conversion', expect.anything());
+
+    mod.trackContactSubmit();
+    expect(gtag).toHaveBeenCalledWith('event', 'conversion', {
+      send_to: 'AW-18255235286/o1PQCKOk-MYcENaR44BE',
+      value: 1.0,
+      currency: 'GBP',
+    });
   });
 
   it('tracks call clicks without Ads conversion when no verified phone label is configured', async () => {
@@ -146,6 +183,41 @@ describe('gtag analytics helpers', () => {
     expect(trackEvent).toHaveBeenCalledWith('callback_submit', { label: 'contact_form' });
   });
 
+  it('does not send enhanced user data without marketing consent', async () => {
+    const { mod } = await loadGtag();
+    const gtag = vi.fn();
+    vi.stubGlobal('window', { gtag });
+
+    mod.setEnhancedUserData({ email: 'USER@example.COM', phone: '07700 900000' });
+
+    expect(gtag).not.toHaveBeenCalledWith('set', 'user_data', expect.anything());
+  });
+
+  it('sends enhanced user data only after marketing consent is granted', async () => {
+    const { mod } = await loadGtag();
+    const local = makeStorage();
+    local.setItem(
+      CONSENT_KEY,
+      JSON.stringify({
+        essential: true,
+        analytics: true,
+        marketing: true,
+        timestamp: 1,
+        version: '2',
+      }),
+    );
+    const gtag = vi.fn();
+    vi.stubGlobal('localStorage', local);
+    vi.stubGlobal('window', { gtag });
+
+    mod.setEnhancedUserData({ email: 'USER@example.COM', phone: '07700 900000' });
+
+    expect(gtag).toHaveBeenCalledWith('set', 'user_data', {
+      email: 'user@example.com',
+      phone_number: '+447700900000',
+    });
+  });
+
   it('keeps GA4 purchase events and Google Ads conversion on separate gtag calls', async () => {
     const { mod } = await loadGtag({
       NEXT_PUBLIC_GOOGLE_ADS_BOOKING_CONVERSION: 'AW-123456789/bookingLabel',
@@ -193,7 +265,11 @@ describe('gtag analytics helpers', () => {
 
       mod.trackBookingConversion('TR-001', 49.99, 'a@b.com');
 
-      expect(gtag).toHaveBeenCalledWith('event', 'purchase', { value: 49.99, currency: 'GBP' });
+      expect(gtag).toHaveBeenCalledWith('event', 'purchase', {
+        value: 49.99,
+        currency: 'GBP',
+        transaction_id: 'TR-001',
+      });
       expect(trackEvent).toHaveBeenCalledWith('booking_paid', { value: '49.99' });
     });
 
@@ -225,6 +301,59 @@ describe('gtag analytics helpers', () => {
 
       const purchaseCalls = gtag.mock.calls.filter(([, name]) => name === 'purchase');
       expect(purchaseCalls).toHaveLength(2);
+      expect(purchaseCalls.map((call) => call[2])).toEqual([
+        { value: 10, currency: 'GBP', transaction_id: 'TR-003' },
+        { value: 20, currency: 'GBP', transaction_id: 'TR-004' },
+      ]);
+    });
+
+    it('retries when gtag is unavailable and deduplicates after it succeeds', async () => {
+      vi.useFakeTimers();
+      const { mod } = await loadGtag();
+      const win: { gtag?: (...args: unknown[]) => void } = {};
+      vi.stubGlobal('window', win);
+
+      mod.trackBookingConversion('TR-RETRY', 79.99, 'retry@example.com');
+      expect(trackEventMock).not.toHaveBeenCalledWith('booking_paid', expect.anything());
+
+      const gtag = vi.fn();
+      win.gtag = gtag;
+      await vi.advanceTimersByTimeAsync(500);
+
+      expect(gtag).toHaveBeenCalledWith('event', 'purchase', {
+        value: 79.99,
+        currency: 'GBP',
+        transaction_id: 'TR-RETRY',
+      });
+
+      gtag.mockClear();
+      mod.trackBookingConversion('TR-RETRY', 79.99, 'retry@example.com');
+      expect(gtag).not.toHaveBeenCalled();
+    });
+
+    it('still fires once when sessionStorage is blocked', async () => {
+      const blockedStorage = {
+        getItem: vi.fn(() => {
+          throw new Error('blocked');
+        }),
+        setItem: vi.fn(() => {
+          throw new Error('blocked');
+        }),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
+        length: 0,
+        key: vi.fn(),
+      };
+      vi.stubGlobal('sessionStorage', blockedStorage);
+      const { mod } = await loadGtag();
+      const gtag = vi.fn();
+      vi.stubGlobal('window', { gtag });
+
+      mod.trackBookingConversion('TR-NOSTORE', 12.34);
+      mod.trackBookingConversion('TR-NOSTORE', 12.34);
+
+      const purchaseCalls = gtag.mock.calls.filter(([, name]) => name === 'purchase');
+      expect(purchaseCalls).toHaveLength(1);
     });
   });
 });

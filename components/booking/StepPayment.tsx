@@ -27,6 +27,15 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
 
+const PAYMENT_CONFIRMED_STATUSES = new Set([
+  'paid',
+  'driver_assigned',
+  'en_route',
+  'arrived',
+  'in_progress',
+  'completed',
+]);
+
 export interface StepPaymentProps {
   clientSecret: string;
   bookingId: string;
@@ -36,6 +45,31 @@ export interface StepPaymentProps {
   customerEmail?: string;
   onSuccess: (refNumber: string) => void;
   onError: (error: string) => void;
+}
+
+function readServerConversion(value: unknown): { value: number; email?: string } | null {
+  if (!value || typeof value !== 'object') return null;
+  const conversion = (value as { conversion?: unknown }).conversion;
+  if (!conversion || typeof conversion !== 'object') return null;
+
+  const payload = conversion as {
+    value?: unknown;
+    currency?: unknown;
+    email?: unknown;
+  };
+  if (payload.currency !== 'GBP') return null;
+  if (typeof payload.value !== 'number' || !Number.isFinite(payload.value) || payload.value <= 0) {
+    return null;
+  }
+
+  return {
+    value: payload.value,
+    email: typeof payload.email === 'string' ? payload.email : undefined,
+  };
+}
+
+function isServerPaidStatus(status: unknown): boolean {
+  return typeof status === 'string' && PAYMENT_CONFIRMED_STATUSES.has(status);
 }
 
 /**
@@ -77,8 +111,9 @@ function CheckoutForm({
       onError(error.message || 'Payment failed');
     } else if (paymentIntent && paymentIntent.status === 'succeeded') {
       // Payment succeeded without redirect — confirm server-side before navigating
+      let serverConversion: { value: number; email?: string } | null = null;
       try {
-        await fetch('/api/bookings/confirm', {
+        const res = await fetch('/api/bookings/confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -86,15 +121,20 @@ function CheckoutForm({
             paymentIntentId: paymentIntent.id,
           }),
         });
+        const data = await res.json().catch(() => null);
+        if (res.ok && isServerPaidStatus(data?.status)) {
+          serverConversion = readServerConversion(data);
+        }
       } catch {
         // Non-blocking — webhook will handle it if this fails
       }
-      trackBookingConversion(refNumber, breakdown.total / 100, customerEmail);
+      if (serverConversion) {
+        trackBookingConversion(refNumber, serverConversion.value, serverConversion.email ?? customerEmail);
+      }
       onSuccess(refNumber);
     } else if (paymentIntent && paymentIntent.status === 'processing') {
       // Payment still processing (e.g. bank debits) — navigate to success page
       // which will show awaiting-confirmation state
-      trackBookingConversion(refNumber, breakdown.total / 100, customerEmail);
       onSuccess(refNumber);
     } else {
       // Payment not succeeded (cancelled, requires_action, requires_payment_method, etc.)

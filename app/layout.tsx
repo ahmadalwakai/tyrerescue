@@ -13,6 +13,8 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { getLocalBusinessSchema, getWebSiteSchema, getOrganizationSchema } from '@/lib/seo/schemas';
 import { getSiteUrl, resolveBrandFromHeaders } from '@/lib/config/site';
 import { GA_MEASUREMENT_ID, ADS_CONVERSION_IDS } from '@/lib/analytics/gtag';
+import { GOOGLE_CONSENT_DEFAULT } from '@/lib/analytics/consent';
+import { renderGoogleAdsWebsiteCallConfig } from '@/lib/analytics/website-calls';
 import Script from 'next/script';
 import './globals.css';
 
@@ -129,6 +131,16 @@ export default async function RootLayout({
 }>) {
   const brand = resolveBrandFromHeaders(await headers());
   const isDukeStreet = brand.key === 'duke_street_tyres';
+  const gtagInitScript = [
+    'window.dataLayer=window.dataLayer||[];',
+    'function gtag(){dataLayer.push(arguments)}',
+    'window.gtag=gtag;',
+    `gtag('consent','default',${JSON.stringify(GOOGLE_CONSENT_DEFAULT)});`,
+    'gtag(\'js\',new Date());',
+    `gtag('config',${JSON.stringify(GA_MEASUREMENT_ID)},{send_page_view:false});`,
+    ...ADS_CONVERSION_IDS.map((id) => `gtag('config',${JSON.stringify(id)});`),
+    renderGoogleAdsWebsiteCallConfig(brand.phoneDisplay),
+  ].join('');
 
   return (
     <html lang="en-GB" className={`${inter.variable} ${bebasNeue.variable}`} suppressHydrationWarning>
@@ -146,7 +158,7 @@ export default async function RootLayout({
         {/* Consent default must be set before gtag.js loads. Inline & minimal. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}window.gtag=gtag;gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',functionality_storage:'denied',personalization_storage:'denied',security_storage:'granted'});gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}',{send_page_view:false});${ADS_CONVERSION_IDS.map((id) => `gtag('config','${id}');`).join('')}`,
+            __html: gtagInitScript,
           }}
         />
         <Script

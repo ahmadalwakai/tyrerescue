@@ -4,26 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { Box, Flex, Text, VStack } from '@chakra-ui/react';
 import Link from 'next/link';
 import { colorTokens as c } from '@/lib/design-tokens';
-
-const CONSENT_KEY = 'tyrerescue_consent_v2';
-
-interface ConsentData {
-  essential: true;
-  analytics: boolean;
-  marketing: boolean;
-  timestamp: number;
-  version: '2';
-}
+import {
+  getStoredConsent,
+  saveStoredConsent,
+  type ConsentData,
+} from '@/lib/analytics/consent';
 
 export function getConsent(): ConsentData | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem(CONSENT_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as ConsentData;
-  } catch {
-    return null;
-  }
+  return getStoredConsent();
 }
 
 function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
@@ -121,7 +109,7 @@ export function CookieBanner() {
       timestamp: Date.now(),
       version: '2',
     };
-    localStorage.setItem(CONSENT_KEY, JSON.stringify(consent));
+    saveStoredConsent(consent);
     window.dispatchEvent(new CustomEvent('cookie-consent-updated'));
     setShow(false);
     setExpanded(false);

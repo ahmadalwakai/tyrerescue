@@ -2,10 +2,11 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { db } from '@/lib/db';
-import { bookings, bookingTyres, tyreProducts } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { bookings, bookingTyres, payments, tyreProducts } from '@/lib/db/schema';
+import { and, desc, eq } from 'drizzle-orm';
 import { SuccessContent } from './SuccessContent';
 import { getBrandBySourceApp } from '@/lib/config/site';
+import { buildBookingConversionPayload } from '@/lib/analytics/booking-conversion';
 
 interface PageProps {
   params: Promise<{ ref: string }>;
@@ -77,6 +78,24 @@ export default async function SuccessPage({ params }: PageProps) {
     .leftJoin(tyreProducts, eq(bookingTyres.tyreId, tyreProducts.id))
     .where(eq(bookingTyres.bookingId, booking.id));
 
+  const [succeededPayment] = await db
+    .select({
+      amount: payments.amount,
+      currency: payments.currency,
+      status: payments.status,
+      stripePiId: payments.stripePiId,
+    })
+    .from(payments)
+    .where(and(eq(payments.bookingId, booking.id), eq(payments.status, 'succeeded')))
+    .orderBy(desc(payments.createdAt))
+    .limit(1);
+
+  const conversion = buildBookingConversionPayload({
+    refNumber: booking.refNumber,
+    customerEmail: booking.customerEmail,
+    payment: succeededPayment ?? null,
+  });
+
   // Transform booking data for client component
   const bookingData = {
     refNumber: booking.refNumber,
@@ -94,6 +113,8 @@ export default async function SuccessPage({ params }: PageProps) {
     subtotal: parseFloat(booking.subtotal),
     vatAmount: parseFloat(booking.vatAmount),
     totalAmount: parseFloat(booking.totalAmount),
+    paymentSucceeded: Boolean(succeededPayment),
+    conversion,
     tyres: tyreDetails.map((t) => ({
       brand: t.brand || '',
       pattern: t.pattern || '',

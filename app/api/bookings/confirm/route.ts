@@ -11,7 +11,7 @@ import {
   tyreProducts,
   bookingTyres,
 } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { getPaymentIntent } from '@/lib/stripe';
 import { sendBookingEmailOnce } from '@/lib/email/resend';
 import {
@@ -32,6 +32,10 @@ import {
   resolveBookingTyreDisplay,
   totalTyreLineQuantity,
 } from '@/lib/bookings/tyre-line-display';
+import {
+  buildBookingConversionPayload,
+  type BookingConversionPaymentRecord,
+} from '@/lib/analytics/booking-conversion';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -83,6 +87,11 @@ export async function POST(request: NextRequest) {
           bookingId: booking.id,
           refNumber: booking.refNumber,
           email: booking.customerEmail,
+        }),
+        conversion: buildBookingConversionPayload({
+          refNumber: booking.refNumber,
+          customerEmail: booking.customerEmail,
+          payment: await loadSucceededPaymentForBooking(booking.id),
         }),
       });
     }
@@ -141,14 +150,28 @@ export async function POST(request: NextRequest) {
           refNumber: booking.refNumber,
           email: booking.customerEmail,
         }),
+        conversion: buildBookingConversionPayload({
+          refNumber: booking.refNumber,
+          customerEmail: booking.customerEmail,
+          payment: existingPayment,
+        }),
       });
     }
 
     // 4. Record payment
+    const recordedPayment: BookingConversionPaymentRecord = {
+      amount: (pi.amount / 100).toString(),
+      currency: pi.currency,
+      status: 'succeeded',
+      stripePiId: paymentIntentId,
+    };
+
     if (existingPayment) {
       await db
         .update(payments)
         .set({
+          amount: (pi.amount / 100).toString(),
+          currency: pi.currency,
           status: 'succeeded',
           stripePayload: pi as unknown as Record<string, unknown>,
           updatedAt: new Date(),
@@ -288,6 +311,11 @@ export async function POST(request: NextRequest) {
         refNumber: booking.refNumber,
         email: booking.customerEmail,
       }),
+      conversion: buildBookingConversionPayload({
+        refNumber: booking.refNumber,
+        customerEmail: booking.customerEmail,
+        payment: recordedPayment,
+      }),
     });
   } catch (error) {
     console.error('Confirm route error:', error);
@@ -308,6 +336,24 @@ interface BookingTyreEmailDisplay {
   tyreDisplayLines: string[];
   totalQuantity: number;
   receiptDescription: string;
+}
+
+async function loadSucceededPaymentForBooking(
+  bookingId: string,
+): Promise<BookingConversionPaymentRecord | null> {
+  const [payment] = await db
+    .select({
+      amount: payments.amount,
+      currency: payments.currency,
+      status: payments.status,
+      stripePiId: payments.stripePiId,
+    })
+    .from(payments)
+    .where(and(eq(payments.bookingId, bookingId), eq(payments.status, 'succeeded')))
+    .orderBy(desc(payments.createdAt))
+    .limit(1);
+
+  return payment ?? null;
 }
 
 async function loadBookingTyreDisplay(booking: typeof bookings.$inferSelect): Promise<BookingTyreEmailDisplay> {

@@ -1,7 +1,12 @@
 'use client';
 
 import { useEffect, useCallback } from 'react';
-import { getConsent } from './CookieBanner';
+import {
+  buildGoogleConsentModeState,
+  getStoredConsent,
+  type GoogleConsentModeState,
+} from '@/lib/analytics/consent';
+import { clearEnhancedUserData } from '@/lib/analytics/gtag';
 
 interface CookieSettingsData {
   ga4MeasurementId: string;
@@ -12,32 +17,40 @@ interface CookieSettingsData {
   clarityEnabled: boolean;
 }
 
-let settingsCache: CookieSettingsData | null = null;
-
-function loadScript(src: string, id: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (document.getElementById(id)) { resolve(); return; }
-    const s = document.createElement('script');
-    s.id = id;
-    s.src = src;
-    s.async = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject();
-    document.head.appendChild(s);
-  });
+interface AnalyticsWindow extends Window {
+  clarity?: (...args: unknown[]) => void;
+  fbq?: (...args: unknown[]) => void;
 }
 
+let settingsCache: CookieSettingsData | null = null;
+
 /* ----------  Google Consent Mode v2  ---------- */
-function gtagConsentUpdate(analytics: boolean, marketing: boolean) {
-  const w = window as unknown as Record<string, unknown>;
-  if (typeof (w as any).gtag !== 'function') return;
-  const gtag = (w as any).gtag as (...args: unknown[]) => void;
-  gtag('consent', 'update', {
-    analytics_storage: analytics ? 'granted' : 'denied',
-    ad_storage: marketing ? 'granted' : 'denied',
-    ad_user_data: marketing ? 'granted' : 'denied',
-    ad_personalization: marketing ? 'granted' : 'denied',
-  });
+function gtagConsentUpdate(state: GoogleConsentModeState) {
+  const w = window as AnalyticsWindow;
+  if (typeof w.gtag !== 'function') return;
+  try {
+    w.gtag('consent', 'update', state);
+  } catch {
+    // Tracking failures must not affect booking, call, or payment flows.
+  }
+}
+
+function syncLoadedVendorConsent(analytics: boolean, marketing: boolean) {
+  const w = window as AnalyticsWindow;
+
+  if (!analytics && typeof w.clarity === 'function') {
+    try {
+      w.clarity('consent', false);
+    } catch {}
+  }
+
+  if (typeof w.fbq === 'function') {
+    try {
+      w.fbq('consent', marketing ? 'grant' : 'revoke');
+    } catch {}
+  }
+
+  if (!marketing) clearEnhancedUserData();
 }
 
 function initClarity(projectId: string) {
@@ -61,7 +74,12 @@ function initMetaPixel(pixelId: string) {
 
 export function AnalyticsProvider() {
   const applyConsent = useCallback(async () => {
-    const consent = getConsent();
+    const consent = getStoredConsent();
+    const analytics = consent?.analytics === true;
+    const marketing = consent?.marketing === true;
+    gtagConsentUpdate(buildGoogleConsentModeState(consent));
+    syncLoadedVendorConsent(analytics, marketing);
+
     if (!consent) return;
 
     if (!settingsCache) {
@@ -78,14 +96,14 @@ export function AnalyticsProvider() {
 
     // GA4: always loaded in <head>; just update consent state
     if (s.ga4Enabled && s.ga4MeasurementId) {
-      gtagConsentUpdate(consent.analytics, consent.marketing);
+      gtagConsentUpdate(buildGoogleConsentModeState(consent));
     }
 
-    if (consent.analytics) {
+    if (analytics) {
       if (s.clarityEnabled && s.clarityId) initClarity(s.clarityId);
     }
 
-    if (consent.marketing) {
+    if (marketing) {
       if (s.metaPixelEnabled && s.metaPixelId) initMetaPixel(s.metaPixelId);
     }
   }, []);
@@ -100,7 +118,11 @@ export function AnalyticsProvider() {
       applyConsent();
     };
     window.addEventListener('cookie-consent-updated', handler);
-    return () => window.removeEventListener('cookie-consent-updated', handler);
+    window.addEventListener('cookie-consent-reset', handler);
+    return () => {
+      window.removeEventListener('cookie-consent-updated', handler);
+      window.removeEventListener('cookie-consent-reset', handler);
+    };
   }, [applyConsent]);
 
   return null;

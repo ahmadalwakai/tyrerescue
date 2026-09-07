@@ -1,27 +1,54 @@
+import { ADS_PHONE_CONVERSION } from '@/lib/analytics/gtag';
+
 /**
- * Google Ads Website Call Tracking — forwarding-number configuration.
+ * Google Ads Website Call Tracking.
  *
- * Google Ads can replace the site's displayed phone number with a unique
- * forwarding number so inbound calls are attributed to the matching campaign.
- * Set NEXT_PUBLIC_GOOGLE_ADS_FORWARDING_PHONE to the E.164 number Google
- * assigned in Ads → Goals → Phone calls → Website call (auto-detected).
- *
- * When the env var is unset or invalid, getTrackingPhone() falls back to the
- * brand's canonical number so no call is ever missed.
+ * The site must render the real business phone number. When a verified Google
+ * Ads website-call conversion label is configured, gtag.js can dynamically
+ * replace that number with a Google forwarding number at runtime.
  */
 
-/** Validated E.164 forwarding number, or null when unconfigured. */
-export const ADS_FORWARDING_PHONE: string | null = (() => {
-  const raw = process.env.NEXT_PUBLIC_GOOGLE_ADS_FORWARDING_PHONE?.trim();
-  if (!raw) return null;
-  return /^\+[1-9]\d{6,14}$/.test(raw) ? raw : null;
-})();
+export interface GoogleAdsWebsiteCallConfig {
+  conversionId: string;
+  phoneConversionNumber: string;
+}
+
+/** Deprecated: static forwarding numbers must never be rendered by the app. */
+export const ADS_FORWARDING_PHONE: null = null;
+
+function normalizePhoneConversionNumber(value: string): string | null {
+  const phone = value.trim().replace(/\s+/g, ' ');
+  if (!phone) return null;
+
+  const digits = phone.replace(/\D/g, '');
+  return digits.length >= 10 ? phone : null;
+}
+
+export function getGoogleAdsWebsiteCallConfig(
+  defaultPhone: string,
+): GoogleAdsWebsiteCallConfig | null {
+  const phoneConversionNumber = normalizePhoneConversionNumber(defaultPhone);
+  if (!ADS_PHONE_CONVERSION || !phoneConversionNumber) return null;
+
+  return {
+    conversionId: ADS_PHONE_CONVERSION,
+    phoneConversionNumber,
+  };
+}
+
+export function renderGoogleAdsWebsiteCallConfig(defaultPhone: string): string {
+  const config = getGoogleAdsWebsiteCallConfig(defaultPhone);
+  if (!config) return '';
+
+  return `gtag('config',${JSON.stringify(config.conversionId)},${JSON.stringify({
+    phone_conversion_number: config.phoneConversionNumber,
+  })});`;
+}
 
 /**
- * Return the phone number that should be displayed and linked on the site.
- * Uses the Google Ads forwarding number when configured so calls are tracked
- * at the campaign level; otherwise returns the brand's default number.
+ * Preserve the old call-site contract while avoiding fake forwarding numbers.
+ * Google Ads dynamic number insertion happens after render via gtag.js.
  */
 export function getTrackingPhone(defaultPhone: string): string {
-  return ADS_FORWARDING_PHONE ?? defaultPhone;
+  return defaultPhone;
 }

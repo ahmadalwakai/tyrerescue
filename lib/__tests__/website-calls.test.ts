@@ -1,53 +1,75 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const ENV_KEY = 'NEXT_PUBLIC_GOOGLE_ADS_FORWARDING_PHONE';
+const ENV_KEYS = [
+  'NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION',
+  'NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION',
+  'NEXT_PUBLIC_GOOGLE_ADS_FORWARDING_PHONE',
+] as const;
 
-async function loadWebsiteCalls(phone?: string) {
+async function loadWebsiteCalls(env: Partial<Record<(typeof ENV_KEYS)[number], string>> = {}) {
   vi.resetModules();
-  delete process.env[ENV_KEY];
-  if (phone !== undefined) process.env[ENV_KEY] = phone;
+  for (const key of ENV_KEYS) {
+    delete process.env[key];
+  }
+  Object.assign(process.env, env);
   return import('@/lib/analytics/website-calls');
 }
 
 afterEach(() => {
-  delete process.env[ENV_KEY];
+  vi.unstubAllGlobals();
+  for (const key of ENV_KEYS) {
+    delete process.env[key];
+  }
 });
 
-describe('ADS_FORWARDING_PHONE', () => {
-  it('is null when env var is unset', async () => {
-    const { ADS_FORWARDING_PHONE } = await loadWebsiteCalls();
+describe('Google Ads website call tracking', () => {
+  it('never renders a static forwarding phone number', async () => {
+    const { ADS_FORWARDING_PHONE, getTrackingPhone } = await loadWebsiteCalls({
+      NEXT_PUBLIC_GOOGLE_ADS_FORWARDING_PHONE: '+441234567890',
+      NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION: 'AW-123456789/phoneLabel',
+    });
+
     expect(ADS_FORWARDING_PHONE).toBeNull();
+    expect(getTrackingPhone('0141 266 0690')).toBe('0141 266 0690');
   });
 
-  it('accepts a valid E.164 UK number', async () => {
-    const { ADS_FORWARDING_PHONE } = await loadWebsiteCalls('+441234567890');
-    expect(ADS_FORWARDING_PHONE).toBe('+441234567890');
+  it('returns no dynamic call config without a verified phone conversion label', async () => {
+    const { getGoogleAdsWebsiteCallConfig, renderGoogleAdsWebsiteCallConfig } =
+      await loadWebsiteCalls();
+
+    expect(getGoogleAdsWebsiteCallConfig('0141 266 0690')).toBeNull();
+    expect(renderGoogleAdsWebsiteCallConfig('0141 266 0690')).toBe('');
   });
 
-  it('rejects numbers without leading +', async () => {
-    const { ADS_FORWARDING_PHONE } = await loadWebsiteCalls('441234567890');
-    expect(ADS_FORWARDING_PHONE).toBeNull();
+  it('builds the verified Google website-call gtag config', async () => {
+    const { getGoogleAdsWebsiteCallConfig, renderGoogleAdsWebsiteCallConfig } =
+      await loadWebsiteCalls({
+        NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION: 'AW-123456789/phoneLabel',
+      });
+
+    expect(getGoogleAdsWebsiteCallConfig(' 0141   266   0690 ')).toEqual({
+      conversionId: 'AW-123456789/phoneLabel',
+      phoneConversionNumber: '0141 266 0690',
+    });
+    expect(renderGoogleAdsWebsiteCallConfig('0141 266 0690')).toBe(
+      'gtag(\'config\',"AW-123456789/phoneLabel",{"phone_conversion_number":"0141 266 0690"});',
+    );
   });
 
-  it('rejects non-numeric characters after +', async () => {
-    const { ADS_FORWARDING_PHONE } = await loadWebsiteCalls('+44-1234-567890');
-    expect(ADS_FORWARDING_PHONE).toBeNull();
+  it('does not configure website calls when the phone label collides with Contact', async () => {
+    const { getGoogleAdsWebsiteCallConfig } = await loadWebsiteCalls({
+      NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION: 'AW-123456789/contactLabel',
+      NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION: 'AW-123456789/contactLabel',
+    });
+
+    expect(getGoogleAdsWebsiteCallConfig('0141 266 0690')).toBeNull();
   });
 
-  it('trims whitespace before validating', async () => {
-    const { ADS_FORWARDING_PHONE } = await loadWebsiteCalls('  +441234567890  ');
-    expect(ADS_FORWARDING_PHONE).toBe('+441234567890');
-  });
-});
+  it('rejects invalid displayed phone numbers', async () => {
+    const { getGoogleAdsWebsiteCallConfig } = await loadWebsiteCalls({
+      NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION: 'AW-123456789/phoneLabel',
+    });
 
-describe('getTrackingPhone', () => {
-  it('returns the default phone when forwarding number is unconfigured', async () => {
-    const { getTrackingPhone } = await loadWebsiteCalls();
-    expect(getTrackingPhone('+447700900000')).toBe('+447700900000');
-  });
-
-  it('returns the forwarding number when configured', async () => {
-    const { getTrackingPhone } = await loadWebsiteCalls('+441234567890');
-    expect(getTrackingPhone('+447700900000')).toBe('+441234567890');
+    expect(getGoogleAdsWebsiteCallConfig('12345')).toBeNull();
   });
 });

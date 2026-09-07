@@ -17,6 +17,16 @@ import { getBrandBySourceApp } from '@/lib/config/site';
 import { colorTokens as c } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { trackBookingConversion } from '@/lib/analytics/gtag';
+import type { BookingConversionPayload } from '@/lib/analytics/booking-conversion';
+
+const PAYMENT_CONFIRMED_STATUSES = [
+  'paid',
+  'driver_assigned',
+  'en_route',
+  'arrived',
+  'in_progress',
+  'completed',
+];
 
 interface TyreDetail {
   brand: string;
@@ -42,11 +52,41 @@ interface BookingData {
   subtotal: number;
   vatAmount?: number; // Deprecated - VAT removed from system
   totalAmount: number;
+  paymentSucceeded: boolean;
+  conversion: BookingConversionPayload | null;
   tyres: TyreDetail[];
 }
 
 interface SuccessContentProps {
   booking: BookingData;
+}
+
+function readBookingConversionPayload(value: unknown): BookingConversionPayload | null {
+  if (!value || typeof value !== 'object') return null;
+  const payload = value as {
+    transactionId?: unknown;
+    value?: unknown;
+    currency?: unknown;
+    email?: unknown;
+    paymentIntentId?: unknown;
+  };
+  if (typeof payload.transactionId !== 'string' || !payload.transactionId.trim()) return null;
+  if (payload.currency !== 'GBP') return null;
+  if (typeof payload.value !== 'number' || !Number.isFinite(payload.value) || payload.value <= 0) {
+    return null;
+  }
+
+  return {
+    transactionId: payload.transactionId,
+    value: payload.value,
+    currency: 'GBP',
+    email: typeof payload.email === 'string' ? payload.email : undefined,
+    paymentIntentId: typeof payload.paymentIntentId === 'string' ? payload.paymentIntentId : null,
+  };
+}
+
+function isPaidStatus(status: string): boolean {
+  return PAYMENT_CONFIRMED_STATUSES.includes(status);
 }
 
 export function SuccessContent({ booking }: SuccessContentProps) {
@@ -66,14 +106,28 @@ export function SuccessContent({ booking }: SuccessContentProps) {
   const [confirmError, setConfirmError] = useState<string | null>(
     failedStripeRedirect ? 'Payment was not completed. You have not been charged.' : null,
   );
-  const [confirmedStatus, setConfirmedStatus] = useState<string>(booking.status);
+  const [confirmedStatus, setConfirmedStatus] = useState<string>(
+    booking.paymentSucceeded && !isPaidStatus(booking.status) ? 'paid' : booking.status,
+  );
+  const [serverConversion, setServerConversion] = useState<BookingConversionPayload | null>(
+    booking.conversion,
+  );
   const [redirectCountdown, setRedirectCountdown] = useState(8);
   const [redirectCancelled, setRedirectCancelled] = useState(false);
 
   // Check if tracking is available
-  const trackingStatuses = ['driver_assigned', 'en_route', 'arrived', 'in_progress', 'completed'];
+  const trackingStatuses = PAYMENT_CONFIRMED_STATUSES.filter((status) => status !== 'paid');
   const isTrackingAvailable = trackingStatuses.includes(confirmedStatus);
-  const isPaid = confirmedStatus === 'paid' || trackingStatuses.includes(confirmedStatus);
+  const isPaid = isPaidStatus(confirmedStatus);
+
+  useEffect(() => {
+    if (!serverConversion) return;
+    trackBookingConversion(
+      serverConversion.transactionId,
+      serverConversion.value,
+      serverConversion.email ?? booking.customerEmail,
+    );
+  }, [serverConversion, booking.customerEmail]);
 
   // Auto-redirect countdown once payment is confirmed
   useEffect(() => {
@@ -118,10 +172,9 @@ export function SuccessContent({ booking }: SuccessContentProps) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Confirmation failed');
         setConfirmedStatus(data.status);
-        if (data.status === 'paid') {
-          // Fire only when the server confirms payment — deduplicated by ref so
-          // the no-redirect path (StepPayment already fired) is a no-op.
-          trackBookingConversion(booking.refNumber, booking.totalAmount, booking.customerEmail);
+        const conversion = readBookingConversionPayload(data.conversion);
+        if (typeof data.status === 'string' && isPaidStatus(data.status) && conversion) {
+          setServerConversion(conversion);
         }
       } catch (err) {
         setConfirmError(err instanceof Error ? err.message : 'Confirmation failed');
