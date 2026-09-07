@@ -1,10 +1,3 @@
-/**
- * Centralized environment variable validation.
- * Import this at the top of any server module that needs env vars.
- * Throws at import time if a required variable is missing,
- * so broken deploys fail fast instead of at runtime.
- */
-
 function required(key: string): string {
   const value = process.env[key];
   if (!value) {
@@ -17,40 +10,53 @@ function optional(key: string, fallback: string): string {
   return process.env[key] || fallback;
 }
 
+function buildEnv() {
+  return {
+    DATABASE_URL: required('DATABASE_URL'),
+    NEXTAUTH_SECRET: required('NEXTAUTH_SECRET'),
+    STRIPE_SECRET_KEY: required('STRIPE_SECRET_KEY'),
+    STRIPE_WEBHOOK_SECRET: required('STRIPE_WEBHOOK_SECRET'),
+    SITE_URL: optional('NEXTAUTH_URL', 'https://www.tyrerescue.uk'),
+    MAPBOX_TOKEN: optional('NEXT_PUBLIC_MAPBOX_TOKEN', ''),
+    VOODOO_SMS_API_KEY: optional('VOODOO_SMS_API_KEY', ''),
+    VOODOO_SMS_SENDER_ID: optional('VOODOO_SMS_SENDER_ID', 'TyreRescue'),
+    VOODOO_SMS_ENABLED: optional('VOODOO_SMS_ENABLED', 'true'),
+
+    // Email provider (ZeptoMail)
+    ADMIN_ALERT_TO_EMAIL: optional('ADMIN_ALERT_TO_EMAIL', 'dukesttyres@gmail.com'),
+    APP_URL: optional('APP_URL', ''),
+    ZEPTOMAIL_API_KEY: optional('ZEPTOMAIL_API_KEY', ''),
+    ZEPTOMAIL_FROM_EMAIL: optional('ZEPTOMAIL_FROM_EMAIL', 'noreply@tyrerescue.uk'),
+    ZEPTOMAIL_API_URL: optional('ZEPTOMAIL_API_URL', 'https://api.zeptomail.eu/v1.1/email'),
+
+    // Weather API — optional, neutral pricing fallback when missing
+    WEATHER_API_KEY: optional('WEATHER_API_KEY', ''),
+    WEATHER_API_BASE_URL: optional('WEATHER_API_BASE_URL', 'https://api.openweathermap.org'),
+
+    // Firebase Cloud Messaging — direct push delivery (replaces Expo Push relay)
+    FCM_PROJECT_ID: optional('FCM_PROJECT_ID', ''),
+    FCM_SERVICE_ACCOUNT_JSON: optional('FCM_SERVICE_ACCOUNT_JSON', ''),
+
+    // DVLA Vehicle Enquiry Service (free trade key — apply at
+    // dvladigital.blog.gov.uk). Optional: when blank the VRM lookup falls
+    // back to a deterministic mock so dev/preview environments still work.
+    // Supports both DVLA_API_KEY (new) and DVSA_MOT_API_KEY (legacy Vercel name).
+    DVLA_API_KEY: optional('DVLA_API_KEY', '') || optional('DVSA_MOT_API_KEY', ''),
+    DVLA_API_URL: optional(
+      'DVLA_API_URL',
+      'https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles'
+    ),
+  } as const;
+}
+
+type Env = ReturnType<typeof buildEnv>;
+
+let _env: Env | undefined;
+
 /** Server-side only env — never import from client components */
-export const env = {
-  DATABASE_URL: required('DATABASE_URL'),
-  NEXTAUTH_SECRET: required('NEXTAUTH_SECRET'),
-  STRIPE_SECRET_KEY: required('STRIPE_SECRET_KEY'),
-  STRIPE_WEBHOOK_SECRET: required('STRIPE_WEBHOOK_SECRET'),
-  SITE_URL: optional('NEXTAUTH_URL', 'https://www.tyrerescue.uk'),
-  MAPBOX_TOKEN: optional('NEXT_PUBLIC_MAPBOX_TOKEN', ''),
-  VOODOO_SMS_API_KEY: optional('VOODOO_SMS_API_KEY', ''),
-  VOODOO_SMS_SENDER_ID: optional('VOODOO_SMS_SENDER_ID', 'TyreRescue'),
-  VOODOO_SMS_ENABLED: optional('VOODOO_SMS_ENABLED', 'true'),
-
-  // Email provider (ZeptoMail)
-  ADMIN_ALERT_TO_EMAIL: optional('ADMIN_ALERT_TO_EMAIL', 'dukesttyres@gmail.com'),
-  APP_URL: optional('APP_URL', ''),
-  ZEPTOMAIL_API_KEY: optional('ZEPTOMAIL_API_KEY', ''),
-  ZEPTOMAIL_FROM_EMAIL: optional('ZEPTOMAIL_FROM_EMAIL', 'noreply@tyrerescue.uk'),
-  ZEPTOMAIL_API_URL: optional('ZEPTOMAIL_API_URL', 'https://api.zeptomail.eu/v1.1/email'),
-
-  // Weather API — optional, neutral pricing fallback when missing
-  WEATHER_API_KEY: optional('WEATHER_API_KEY', ''),
-  WEATHER_API_BASE_URL: optional('WEATHER_API_BASE_URL', 'https://api.openweathermap.org'),
-
-  // Firebase Cloud Messaging — direct push delivery (replaces Expo Push relay)
-  FCM_PROJECT_ID: optional('FCM_PROJECT_ID', ''),
-  FCM_SERVICE_ACCOUNT_JSON: optional('FCM_SERVICE_ACCOUNT_JSON', ''),
-
-  // DVLA Vehicle Enquiry Service (free trade key — apply at
-  // dvladigital.blog.gov.uk). Optional: when blank the VRM lookup falls
-  // back to a deterministic mock so dev/preview environments still work.
-  // Supports both DVLA_API_KEY (new) and DVSA_MOT_API_KEY (legacy Vercel name).
-  DVLA_API_KEY: optional('DVLA_API_KEY', '') || optional('DVSA_MOT_API_KEY', ''),
-  DVLA_API_URL: optional(
-    'DVLA_API_URL',
-    'https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles'
-  ),
-} as const;
+export const env: Env = new Proxy({} as Env, {
+  get(_, prop: string | symbol) {
+    if (!_env) _env = buildEnv();
+    return (_env as any)[prop];
+  },
+});
