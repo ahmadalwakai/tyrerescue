@@ -99,7 +99,7 @@ describe('saveStoredConsent', () => {
       }),
       removeItem: vi.fn(),
     });
-    const { saveStoredConsent } = await loadConsent();
+    const { getStoredConsent, saveStoredConsent } = await loadConsent();
 
     expect(
       saveStoredConsent({
@@ -110,6 +110,7 @@ describe('saveStoredConsent', () => {
         version: '2',
       }),
     ).toBe(false);
+    expect(getStoredConsent()?.marketing).toBe(true);
   });
 });
 
@@ -196,5 +197,15 @@ describe('consent wiring', () => {
     expect(providerSource).toContain('cookie-consent-reset');
     expect(providerSource).toContain('clearEnhancedUserData');
     expect(layoutSource).toContain('GOOGLE_CONSENT_DEFAULT');
+  });
+
+  it('guards provider async completions and cleans website-call state on consent or route changes', () => {
+    const providerSource = readSource('components/ui/AnalyticsProvider.tsx');
+
+    expect(providerSource).toContain('AbortController');
+    expect(providerSource).toContain('requestVersionRef');
+    expect(providerSource).toContain('mountedRef');
+    expect(providerSource).toContain('cleanupWebsiteCallIntegration');
+    expect(providerSource).toContain('getStoredConsent()?.marketing === true');
   });
 });

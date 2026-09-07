@@ -5,6 +5,7 @@ import { Box, Container, Flex, Text, Link as ChakraLink, SimpleGrid } from '@cha
 import Link from 'next/link';
 import { colorTokens } from '@/lib/design-tokens';
 import { trackCallClick, trackWhatsAppClick } from '@/lib/analytics/gtag';
+import { removeStoredConsent } from '@/lib/analytics/consent';
 
 const colors = {
   bg: colorTokens.bg,
@@ -88,7 +89,7 @@ function FooterColumn({ title, links }: { title: string; links: { label: string;
             textAlign="left"
             style={{ fontFamily: 'var(--font-body)' }}
             onClick={() => {
-              localStorage.removeItem('tyrerescue_consent_v2');
+              removeStoredConsent();
               window.dispatchEvent(new CustomEvent('cookie-consent-reset'));
             }}
           >

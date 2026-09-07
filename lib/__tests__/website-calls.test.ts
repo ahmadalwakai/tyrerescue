@@ -33,36 +33,68 @@ describe('Google Ads website call tracking', () => {
     expect(getTrackingPhone('0141 266 0690')).toBe('0141 266 0690');
   });
 
-  it('returns no dynamic call config without a verified phone conversion label', async () => {
-    const { getGoogleAdsWebsiteCallConfig, renderGoogleAdsWebsiteCallConfig } =
+  it('builds the verified actual website-call gtag config without phone-click env', async () => {
+    const {
+      ADS_ACTUAL_WEBSITE_CALL_CONVERSION,
+      ADS_ACTUAL_WEBSITE_CALL_DISPLAY_PHONE,
+      getGoogleAdsWebsiteCallConfig,
+      renderGoogleAdsWebsiteCallConfig,
+    } =
       await loadWebsiteCalls();
 
-    expect(getGoogleAdsWebsiteCallConfig('0141 266 0690')).toBeNull();
-    expect(renderGoogleAdsWebsiteCallConfig('0141 266 0690')).toBe('');
-  });
-
-  it('builds the verified Google website-call gtag config', async () => {
-    const { getGoogleAdsWebsiteCallConfig, renderGoogleAdsWebsiteCallConfig } =
-      await loadWebsiteCalls({
-        NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION: 'AW-123456789/phoneLabel',
-      });
-
     expect(getGoogleAdsWebsiteCallConfig(' 0141   266   0690 ')).toEqual({
-      conversionId: 'AW-123456789/phoneLabel',
-      phoneConversionNumber: '0141 266 0690',
+      conversionId: ADS_ACTUAL_WEBSITE_CALL_CONVERSION,
+      phoneConversionNumber: ADS_ACTUAL_WEBSITE_CALL_DISPLAY_PHONE,
     });
     expect(renderGoogleAdsWebsiteCallConfig('0141 266 0690')).toBe(
-      'gtag(\'config\',"AW-123456789/phoneLabel",{"phone_conversion_number":"0141 266 0690"});',
+      'gtag(\'config\',"AW-18255235286/jSyqCMuSnvAcENaR44BE",{"phone_conversion_number":"0141 266 0690"});',
     );
   });
 
-  it('does not configure website calls when the phone label collides with Contact', async () => {
-    const { getGoogleAdsWebsiteCallConfig } = await loadWebsiteCalls({
-      NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION: 'AW-123456789/contactLabel',
-      NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION: 'AW-123456789/contactLabel',
-    });
+  it('keeps actual website calls independent from ADS_PHONE_CONVERSION collisions', async () => {
+    const { getGoogleAdsWebsiteCallConfig } =
+      await loadWebsiteCalls({
+        NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION: 'AW-123456789/contactLabel',
+        NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION: 'AW-123456789/contactLabel',
+      });
 
-    expect(getGoogleAdsWebsiteCallConfig('0141 266 0690')).toBeNull();
+    expect(getGoogleAdsWebsiteCallConfig('0141 266 0690')).toEqual({
+      conversionId: 'AW-18255235286/jSyqCMuSnvAcENaR44BE',
+      phoneConversionNumber: '0141 266 0690',
+    });
+  });
+
+  it('scopes website-call activation by consent, host and route', async () => {
+    const { isGoogleAdsWebsiteCallEligible } = await loadWebsiteCalls();
+
+    expect(
+      isGoogleAdsWebsiteCallEligible({
+        hostname: 'www.tyrerescue.uk',
+        pathname: '/',
+        marketingConsent: true,
+      }),
+    ).toBe(true);
+    expect(
+      isGoogleAdsWebsiteCallEligible({
+        hostname: 'www.tyrerescue.uk',
+        pathname: '/',
+        marketingConsent: false,
+      }),
+    ).toBe(false);
+    expect(
+      isGoogleAdsWebsiteCallEligible({
+        hostname: 'www.dukestreettyres.com',
+        pathname: '/',
+        marketingConsent: true,
+      }),
+    ).toBe(false);
+    expect(
+      isGoogleAdsWebsiteCallEligible({
+        hostname: 'www.tyrerescue.uk',
+        pathname: '/tracking/TR-123',
+        marketingConsent: true,
+      }),
+    ).toBe(false);
   });
 
   it('rejects invalid displayed phone numbers', async () => {
@@ -71,5 +103,21 @@ describe('Google Ads website call tracking', () => {
     });
 
     expect(getGoogleAdsWebsiteCallConfig('12345')).toBeNull();
+  });
+
+  it('does not build actual website-call config for a different valid display number', async () => {
+    const { getGoogleAdsWebsiteCallConfig } = await loadWebsiteCalls();
+
+    expect(getGoogleAdsWebsiteCallConfig('0121 555 1212')).toBeNull();
+  });
+
+  it('normalizes mobile tel destinations without replacing the actual fallback number', async () => {
+    const { getTelHrefForDisplayPhone, isActualWebsiteCallTelHref } = await loadWebsiteCalls();
+
+    expect(getTelHrefForDisplayPhone('0800 123 4567')).toBe('tel:08001234567');
+    expect(getTelHrefForDisplayPhone('+44 141 266 0690')).toBe('tel:+441412660690');
+    expect(isActualWebsiteCallTelHref('tel:01412660690')).toBe(true);
+    expect(isActualWebsiteCallTelHref('tel:+441412660690')).toBe(true);
+    expect(isActualWebsiteCallTelHref('tel:08001234567')).toBe(false);
   });
 });

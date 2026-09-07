@@ -149,6 +149,23 @@ describe('gtag analytics helpers', () => {
     });
   });
 
+  it('never emits the verified actual website-call action from trackCallClick', async () => {
+    const { mod } = await loadGtag({
+      NEXT_PUBLIC_GOOGLE_ADS_PHONE_CONVERSION: 'AW-18255235286/jSyqCMuSnvAcENaR44BE',
+    });
+    const gtag = vi.fn();
+    vi.stubGlobal('window', { gtag });
+
+    expect(mod.ADS_PHONE_ACTUAL_CALL_LABEL_COLLISION).toBe(true);
+    expect(mod.ADS_PHONE_CONVERSION).toBeNull();
+
+    mod.trackCallClick('sticky_mobile');
+
+    expect(gtag).not.toHaveBeenCalledWith('event', 'conversion', {
+      send_to: 'AW-18255235286/jSyqCMuSnvAcENaR44BE',
+    });
+  });
+
   it('tracks callback submissions locally as a secondary lead action', async () => {
     const { mod, trackEvent } = await loadGtag();
     const gtag = vi.fn();

@@ -14,7 +14,7 @@ import { getLocalBusinessSchema, getWebSiteSchema, getOrganizationSchema } from 
 import { getSiteUrl, resolveBrandFromHeaders } from '@/lib/config/site';
 import { GA_MEASUREMENT_ID, ADS_CONVERSION_IDS } from '@/lib/analytics/gtag';
 import { GOOGLE_CONSENT_DEFAULT } from '@/lib/analytics/consent';
-import { renderGoogleAdsWebsiteCallConfig } from '@/lib/analytics/website-calls';
+import { getGoogleAdsWebsiteCallConfig } from '@/lib/analytics/website-calls';
 import Script from 'next/script';
 import './globals.css';
 
@@ -131,15 +131,16 @@ export default async function RootLayout({
 }>) {
   const brand = resolveBrandFromHeaders(await headers());
   const isDukeStreet = brand.key === 'duke_street_tyres';
+  const websiteCallConfig = isDukeStreet ? null : getGoogleAdsWebsiteCallConfig(brand.phoneDisplay);
   const gtagInitScript = [
     'window.dataLayer=window.dataLayer||[];',
     'function gtag(){dataLayer.push(arguments)}',
     'window.gtag=gtag;',
+    `window.__TR_WEBSITE_CALL_CONFIG=${JSON.stringify(websiteCallConfig)};`,
     `gtag('consent','default',${JSON.stringify(GOOGLE_CONSENT_DEFAULT)});`,
     'gtag(\'js\',new Date());',
     `gtag('config',${JSON.stringify(GA_MEASUREMENT_ID)},{send_page_view:false});`,
     ...ADS_CONVERSION_IDS.map((id) => `gtag('config',${JSON.stringify(id)});`),
-    renderGoogleAdsWebsiteCallConfig(brand.phoneDisplay),
   ].join('');
 
   return (

@@ -1,4 +1,5 @@
 import { hasMarketingConsent } from '@/lib/analytics/consent';
+import { ADS_ACTUAL_WEBSITE_CALL_CONVERSION } from '@/lib/analytics/website-calls';
 import { trackEvent } from '@/lib/analytics-tracker';
 
 /** GA4 measurement ID used by the global gtag.js install in app/layout.tsx. */
@@ -66,8 +67,13 @@ export const ADS_PHONE_CONTACT_LABEL_COLLISION =
       RAW_ADS_PHONE_CONVERSION === RAW_ADS_CONTACT_CONVERSION,
   );
 
+export const ADS_PHONE_ACTUAL_CALL_LABEL_COLLISION =
+  RAW_ADS_PHONE_CONVERSION === ADS_ACTUAL_WEBSITE_CALL_CONVERSION;
+
 export const ADS_PHONE_CONVERSION: string | null =
-  ADS_PHONE_CONTACT_LABEL_COLLISION ? null : RAW_ADS_PHONE_CONVERSION;
+  ADS_PHONE_CONTACT_LABEL_COLLISION || ADS_PHONE_ACTUAL_CALL_LABEL_COLLISION
+    ? null
+    : RAW_ADS_PHONE_CONVERSION;
 
 export const ADS_CONTACT_CONVERSION: string | null = RAW_ADS_CONTACT_CONVERSION;
 

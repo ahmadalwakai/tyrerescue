@@ -6,6 +6,7 @@ import { Footer } from '@/components/ui/Footer';
 import { colorTokens } from '@/lib/design-tokens';
 import { anim } from '@/lib/animations';
 import { Animated } from '@/components/ui/Animated';
+import { removeStoredConsent } from '@/lib/analytics/consent';
 
 const colors = {
   bg: colorTokens.bg,
@@ -227,7 +228,7 @@ export function CookieContent() {
               <button
                 type="button"
                 onClick={() => {
-                  localStorage.removeItem('tyrerescue_consent_v2');
+                  removeStoredConsent();
                   window.dispatchEvent(new CustomEvent('cookie-consent-reset'));
                 }}
                 style={{

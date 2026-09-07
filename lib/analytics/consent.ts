@@ -30,6 +30,23 @@ export const GOOGLE_CONSENT_DEFAULT: GoogleConsentModeState = {
   security_storage: 'granted',
 };
 
+let memoryConsent: ConsentData | null = null;
+let hasMemoryConsent = false;
+
+function parseConsent(raw: string): ConsentData | null {
+  const parsed = JSON.parse(raw) as Partial<ConsentData> | null;
+  if (
+    parsed?.essential === true &&
+    typeof parsed.analytics === 'boolean' &&
+    typeof parsed.marketing === 'boolean' &&
+    typeof parsed.timestamp === 'number' &&
+    parsed.version === '2'
+  ) {
+    return parsed as ConsentData;
+  }
+  return null;
+}
+
 /**
  * Read the stored cookie consent without importing from a UI component.
  * Returns null when running server-side or when the user hasn't chosen yet.
@@ -38,10 +55,13 @@ export function getStoredConsent(): ConsentData | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(CONSENT_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as ConsentData;
+    if (!raw) return hasMemoryConsent ? memoryConsent : null;
+    const consent = parseConsent(raw);
+    memoryConsent = consent;
+    hasMemoryConsent = true;
+    return consent;
   } catch {
-    return null;
+    return hasMemoryConsent ? memoryConsent : null;
   }
 }
 
@@ -54,6 +74,8 @@ export function hasMarketingConsent(): boolean {
 }
 
 export function saveStoredConsent(consent: ConsentData): boolean {
+  memoryConsent = consent;
+  hasMemoryConsent = true;
   if (typeof window === 'undefined') return false;
   try {
     localStorage.setItem(CONSENT_KEY, JSON.stringify(consent));
@@ -64,6 +86,8 @@ export function saveStoredConsent(consent: ConsentData): boolean {
 }
 
 export function removeStoredConsent(): boolean {
+  memoryConsent = null;
+  hasMemoryConsent = true;
   if (typeof window === 'undefined') return false;
   try {
     localStorage.removeItem(CONSENT_KEY);
