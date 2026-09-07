@@ -10,12 +10,14 @@ import {
 } from '@/lib/analytics/consent';
 import { clearEnhancedUserData } from '@/lib/analytics/gtag';
 import {
+  clearGoogleAdsWebsiteCallCallbackValue,
   configureGoogleAdsWebsiteCall,
   getWindowGoogleAdsWebsiteCallConfig,
   isGoogleAdsWebsiteCallEligible,
-  prepareGoogleAdsWebsiteCallVisibleNumbers,
+  normalizeGoogleAdsPhoneConversionCallback,
+  registerGoogleAdsWebsiteCallCallback,
   restoreGoogleAdsWebsiteCallDom,
-  syncGoogleAdsWebsiteCallTelLinks,
+  syncGoogleAdsWebsiteCallDom,
 } from '@/lib/analytics/website-calls';
 
 interface CookieSettingsData {
@@ -91,6 +93,11 @@ export function AnalyticsProvider() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const websiteCallObserverRef = useRef<MutationObserver | null>(null);
   const websiteCallRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const websiteCallSuppressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unregisterWebsiteCallCallbackRef = useRef<(() => void) | null>(null);
+  const websiteCallObserverSuppressedRef = useRef(false);
+  const websiteCallSessionRef = useRef(0);
+  const websiteCallCallbackPhoneRef = useRef<string | null>(null);
 
   const clearWebsiteCallRetry = useCallback(() => {
     if (!websiteCallRetryRef.current) return;
@@ -98,12 +105,50 @@ export function AnalyticsProvider() {
     websiteCallRetryRef.current = null;
   }, []);
 
+  const clearWebsiteCallObserverSuppression = useCallback(() => {
+    if (websiteCallSuppressTimerRef.current) {
+      clearTimeout(websiteCallSuppressTimerRef.current);
+      websiteCallSuppressTimerRef.current = null;
+    }
+    websiteCallObserverSuppressedRef.current = false;
+  }, []);
+
+  const runOwnedWebsiteCallUpdate = useCallback(
+    (update: () => void) => {
+      websiteCallObserverSuppressedRef.current = true;
+      if (websiteCallSuppressTimerRef.current) {
+        clearTimeout(websiteCallSuppressTimerRef.current);
+      }
+
+      try {
+        update();
+      } finally {
+        websiteCallSuppressTimerRef.current = setTimeout(() => {
+          websiteCallObserverSuppressedRef.current = false;
+          websiteCallSuppressTimerRef.current = null;
+        }, 0);
+      }
+    },
+    [],
+  );
+
   const cleanupWebsiteCallIntegration = useCallback(() => {
+    websiteCallSessionRef.current += 1;
     clearWebsiteCallRetry();
+    clearWebsiteCallObserverSuppression();
     websiteCallObserverRef.current?.disconnect();
     websiteCallObserverRef.current = null;
-    restoreGoogleAdsWebsiteCallDom();
-  }, [clearWebsiteCallRetry]);
+    unregisterWebsiteCallCallbackRef.current?.();
+    unregisterWebsiteCallCallbackRef.current = null;
+    websiteCallCallbackPhoneRef.current = null;
+    clearGoogleAdsWebsiteCallCallbackValue();
+    websiteCallObserverSuppressedRef.current = true;
+    try {
+      restoreGoogleAdsWebsiteCallDom();
+    } finally {
+      clearWebsiteCallObserverSuppression();
+    }
+  }, [clearWebsiteCallObserverSuppression, clearWebsiteCallRetry]);
 
   const websiteCallIsEligible = useCallback(
     (marketing: boolean) => {
@@ -130,38 +175,71 @@ export function AnalyticsProvider() {
         return;
       }
 
-      const isStillAllowed = () => getStoredConsent()?.marketing === true && websiteCallIsEligible(true);
+      websiteCallSessionRef.current += 1;
+      const session = websiteCallSessionRef.current;
+      clearWebsiteCallRetry();
+      clearWebsiteCallObserverSuppression();
+      unregisterWebsiteCallCallbackRef.current?.();
+      unregisterWebsiteCallCallbackRef.current = null;
+      websiteCallCallbackPhoneRef.current = null;
+      clearGoogleAdsWebsiteCallCallbackValue();
+      runOwnedWebsiteCallUpdate(() => restoreGoogleAdsWebsiteCallDom());
+
+      const isStillAllowed = () =>
+        mountedRef.current &&
+        session === websiteCallSessionRef.current &&
+        getStoredConsent()?.marketing === true &&
+        websiteCallIsEligible(true);
+      const applyCallbackPhone = (phoneNumber: unknown) => {
+        if (!isStillAllowed()) return;
+        const normalized = normalizeGoogleAdsPhoneConversionCallback(phoneNumber);
+        if (!normalized || !isStillAllowed()) return;
+
+        websiteCallCallbackPhoneRef.current = normalized.displayPhone;
+        runOwnedWebsiteCallUpdate(() => {
+          if (isStillAllowed()) syncGoogleAdsWebsiteCallDom(normalized.displayPhone);
+        });
+      };
       const runConfig = () => {
         if (!isStillAllowed()) {
           cleanupWebsiteCallIntegration();
           return true;
         }
 
-        prepareGoogleAdsWebsiteCallVisibleNumbers();
-        const configured = configureGoogleAdsWebsiteCall(config);
-        syncGoogleAdsWebsiteCallTelLinks();
+        const configured = configureGoogleAdsWebsiteCall(config, applyCallbackPhone);
         return configured;
       };
       const scheduleRetry = (attempt: number) => {
-        if (attempt > WEBSITE_CALL_RETRY_LIMIT) return;
+        if (attempt > WEBSITE_CALL_RETRY_LIMIT || !isStillAllowed()) return;
         clearWebsiteCallRetry();
         websiteCallRetryRef.current = setTimeout(() => {
           websiteCallRetryRef.current = null;
+          if (!isStillAllowed()) {
+            cleanupWebsiteCallIntegration();
+            return;
+          }
           const configured = runConfig();
           if (!configured) scheduleRetry(attempt + 1);
         }, WEBSITE_CALL_RETRY_MS);
       };
 
-      clearWebsiteCallRetry();
+      unregisterWebsiteCallCallbackRef.current =
+        registerGoogleAdsWebsiteCallCallback(applyCallbackPhone);
       if (!runConfig()) scheduleRetry(1);
 
       if (!websiteCallObserverRef.current && document.body) {
         websiteCallObserverRef.current = new MutationObserver(() => {
+          if (websiteCallObserverSuppressedRef.current) return;
           if (!isStillAllowed()) {
             cleanupWebsiteCallIntegration();
             return;
           }
-          syncGoogleAdsWebsiteCallTelLinks();
+          const callbackPhone = websiteCallCallbackPhoneRef.current;
+          if (!callbackPhone) return;
+
+          runOwnedWebsiteCallUpdate(() => {
+            if (isStillAllowed()) syncGoogleAdsWebsiteCallDom(callbackPhone);
+          });
         });
         websiteCallObserverRef.current.observe(document.body, {
           attributes: true,
@@ -174,7 +252,9 @@ export function AnalyticsProvider() {
     },
     [
       cleanupWebsiteCallIntegration,
+      clearWebsiteCallObserverSuppression,
       clearWebsiteCallRetry,
+      runOwnedWebsiteCallUpdate,
       websiteCallIsEligible,
     ],
   );

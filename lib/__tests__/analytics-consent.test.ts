@@ -112,6 +112,58 @@ describe('saveStoredConsent', () => {
     ).toBe(false);
     expect(getStoredConsent()?.marketing).toBe(true);
   });
+
+  it('keeps explicit denial authoritative when saving over an old grant fails', async () => {
+    const staleGrant = JSON.stringify({
+      essential: true,
+      analytics: true,
+      marketing: true,
+      timestamp: 1,
+      version: '2',
+    });
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => staleGrant),
+      setItem: vi.fn(() => {
+        throw new Error('blocked');
+      }),
+      removeItem: vi.fn(),
+    });
+    const { getStoredConsent, hasMarketingConsent, saveStoredConsent } = await loadConsent();
+
+    expect(
+      saveStoredConsent({
+        essential: true,
+        analytics: false,
+        marketing: false,
+        timestamp: 2,
+        version: '2',
+      }),
+    ).toBe(false);
+    expect(getStoredConsent()?.marketing).toBe(false);
+    expect(hasMarketingConsent()).toBe(false);
+  });
+
+  it('keeps explicit reset authoritative when deleting an old grant fails', async () => {
+    const staleGrant = JSON.stringify({
+      essential: true,
+      analytics: true,
+      marketing: true,
+      timestamp: 1,
+      version: '2',
+    });
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => staleGrant),
+      setItem: vi.fn(),
+      removeItem: vi.fn(() => {
+        throw new Error('blocked');
+      }),
+    });
+    const { getStoredConsent, hasMarketingConsent, removeStoredConsent } = await loadConsent();
+
+    expect(removeStoredConsent()).toBe(false);
+    expect(getStoredConsent()).toBeNull();
+    expect(hasMarketingConsent()).toBe(false);
+  });
 });
 
 describe('buildGoogleConsentModeState', () => {
@@ -207,5 +259,15 @@ describe('consent wiring', () => {
     expect(providerSource).toContain('mountedRef');
     expect(providerSource).toContain('cleanupWebsiteCallIntegration');
     expect(providerSource).toContain('getStoredConsent()?.marketing === true');
+  });
+
+  it('guards website-call callbacks and suppresses observer feedback', () => {
+    const providerSource = readSource('components/ui/AnalyticsProvider.tsx');
+
+    expect(providerSource).toContain('websiteCallObserverSuppressedRef');
+    expect(providerSource).toContain('runOwnedWebsiteCallUpdate');
+    expect(providerSource).toContain('websiteCallSessionRef');
+    expect(providerSource).toContain('registerGoogleAdsWebsiteCallCallback');
+    expect(providerSource).toContain('normalizeGoogleAdsPhoneConversionCallback');
   });
 });

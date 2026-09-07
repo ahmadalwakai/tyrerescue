@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const ENV_KEYS = [
@@ -5,6 +7,7 @@ const ENV_KEYS = [
   'NEXT_PUBLIC_GOOGLE_ADS_CONTACT_CONVERSION',
   'NEXT_PUBLIC_GOOGLE_ADS_FORWARDING_PHONE',
 ] as const;
+const root = process.cwd();
 
 async function loadWebsiteCalls(env: Partial<Record<(typeof ENV_KEYS)[number], string>> = {}) {
   vi.resetModules();
@@ -21,6 +24,10 @@ afterEach(() => {
     delete process.env[key];
   }
 });
+
+function readSource(relativePath: string): string {
+  return readFileSync(join(root, relativePath), 'utf8');
+}
 
 describe('Google Ads website call tracking', () => {
   it('never renders a static forwarding phone number', async () => {
@@ -46,8 +53,11 @@ describe('Google Ads website call tracking', () => {
       conversionId: ADS_ACTUAL_WEBSITE_CALL_CONVERSION,
       phoneConversionNumber: ADS_ACTUAL_WEBSITE_CALL_DISPLAY_PHONE,
     });
-    expect(renderGoogleAdsWebsiteCallConfig('0141 266 0690')).toBe(
-      'gtag(\'config\',"AW-18255235286/jSyqCMuSnvAcENaR44BE",{"phone_conversion_number":"0141 266 0690"});',
+    expect(renderGoogleAdsWebsiteCallConfig('0141 266 0690')).toContain(
+      'phone_conversion_callback',
+    );
+    expect(renderGoogleAdsWebsiteCallConfig('0141 266 0690')).toContain(
+      'AW-18255235286/jSyqCMuSnvAcENaR44BE',
     );
   });
 
@@ -119,5 +129,66 @@ describe('Google Ads website call tracking', () => {
     expect(isActualWebsiteCallTelHref('tel:01412660690')).toBe(true);
     expect(isActualWebsiteCallTelHref('tel:+441412660690')).toBe(true);
     expect(isActualWebsiteCallTelHref('tel:08001234567')).toBe(false);
+  });
+
+  it('configures website calls with Google phone_conversion_callback', async () => {
+    const {
+      buildGoogleAdsWebsiteCallConfigPayload,
+      configureGoogleAdsWebsiteCall,
+    } = await loadWebsiteCalls();
+    const callback = vi.fn();
+    const gtag = vi.fn();
+    vi.stubGlobal('window', { gtag });
+
+    expect(buildGoogleAdsWebsiteCallConfigPayload(callback)).toMatchObject({
+      phone_conversion_number: '0141 266 0690',
+      phone_conversion_callback: callback,
+    });
+    expect(configureGoogleAdsWebsiteCall(undefined, callback)).toBe(true);
+    expect(gtag).toHaveBeenCalledWith(
+      'config',
+      'AW-18255235286/jSyqCMuSnvAcENaR44BE',
+      expect.objectContaining({
+        phone_conversion_number: '0141 266 0690',
+        phone_conversion_callback: callback,
+      }),
+    );
+  });
+
+  it('registers only the explicit Google callback hook', async () => {
+    const {
+      GOOGLE_ADS_PHONE_CONVERSION_CALLBACK_NAME,
+      registerGoogleAdsWebsiteCallCallback,
+    } = await loadWebsiteCalls();
+    const callback = vi.fn();
+    const win: Record<string, unknown> = {};
+    vi.stubGlobal('window', win);
+
+    const unregister = registerGoogleAdsWebsiteCallCallback(callback);
+    expect(win[GOOGLE_ADS_PHONE_CONVERSION_CALLBACK_NAME]).toBe(callback);
+
+    unregister();
+    expect(win[GOOGLE_ADS_PHONE_CONVERSION_CALLBACK_NAME]).toBeUndefined();
+  });
+
+  it('rejects WhatsApp and mobile numbers from Google callback values', async () => {
+    const { normalizeGoogleAdsPhoneConversionCallback } = await loadWebsiteCalls();
+
+    expect(normalizeGoogleAdsPhoneConversionCallback('07423 262955')).toBeNull();
+    expect(normalizeGoogleAdsPhoneConversionCallback('+44 7423 262955')).toBeNull();
+    expect(normalizeGoogleAdsPhoneConversionCallback('07700 900000')).toBeNull();
+    expect(normalizeGoogleAdsPhoneConversionCallback('0800 123 4567')).toEqual({
+      displayPhone: '0800 123 4567',
+      telHref: 'tel:08001234567',
+    });
+  });
+
+  it('does not contain arbitrary forwarding-number discovery', () => {
+    const source = readSource('lib/analytics/website-calls.ts');
+
+    expect(source).toContain('phone_conversion_callback');
+    expect(source).not.toContain('\\d[\\d\\s().-]{8,}\\d');
+    expect(source).not.toContain('extractPhoneDisplays');
+    expect(source).not.toContain('findGoogleAdsForwardingPhone(root');
   });
 });

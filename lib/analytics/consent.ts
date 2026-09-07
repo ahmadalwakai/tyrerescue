@@ -32,6 +32,7 @@ export const GOOGLE_CONSENT_DEFAULT: GoogleConsentModeState = {
 
 let memoryConsent: ConsentData | null = null;
 let hasMemoryConsent = false;
+let memoryConsentAuthoritative = false;
 
 function parseConsent(raw: string): ConsentData | null {
   const parsed = JSON.parse(raw) as Partial<ConsentData> | null;
@@ -53,12 +54,14 @@ function parseConsent(raw: string): ConsentData | null {
  */
 export function getStoredConsent(): ConsentData | null {
   if (typeof window === 'undefined') return null;
+  if (memoryConsentAuthoritative) return memoryConsent;
   try {
     const raw = localStorage.getItem(CONSENT_KEY);
     if (!raw) return hasMemoryConsent ? memoryConsent : null;
     const consent = parseConsent(raw);
     memoryConsent = consent;
     hasMemoryConsent = true;
+    memoryConsentAuthoritative = false;
     return consent;
   } catch {
     return hasMemoryConsent ? memoryConsent : null;
@@ -79,8 +82,10 @@ export function saveStoredConsent(consent: ConsentData): boolean {
   if (typeof window === 'undefined') return false;
   try {
     localStorage.setItem(CONSENT_KEY, JSON.stringify(consent));
+    memoryConsentAuthoritative = false;
     return true;
   } catch {
+    memoryConsentAuthoritative = true;
     return false;
   }
 }
@@ -91,8 +96,10 @@ export function removeStoredConsent(): boolean {
   if (typeof window === 'undefined') return false;
   try {
     localStorage.removeItem(CONSENT_KEY);
+    memoryConsentAuthoritative = false;
     return true;
   } catch {
+    memoryConsentAuthoritative = true;
     return false;
   }
 }
