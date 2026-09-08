@@ -19,7 +19,7 @@ const WHATSAPP_PHONE = DEFAULT_WHATSAPP_PHONE;
 const WHATSAPP_URL = buildWhatsAppHref(FALLBACK_WHATSAPP_MESSAGE, WHATSAPP_PHONE);
 
 const HIDDEN_ROUTES = ['/emergency'];
-const HIDDEN_PREFIXES = ['/admin', '/dashboard', '/driver', '/emergency-tyre-fitting', '/puncture-repair'];
+const HIDDEN_PREFIXES = ['/admin', '/dashboard', '/driver', '/emergency-tyre-fitting', '/puncture-repair/'];
 
 /* ─── Inline SVG Icons ──────────────────────────────────── */
 
