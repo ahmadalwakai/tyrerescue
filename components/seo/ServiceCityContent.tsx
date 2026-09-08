@@ -40,7 +40,15 @@ function capitalize(slug: string) {
   return slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
-export function ServiceCityContent({ service, city, areas, faqs = [] }: { service: ServiceSEO; city: City; areas: Area[]; faqs?: FaqItem[] }) {
+interface ServiceCityContentProps {
+  service: ServiceSEO;
+  city: City;
+  areas: Area[];
+  avgResponseMin: number;
+  faqs?: FaqItem[];
+}
+
+export function ServiceCityContent({ service, city, areas, avgResponseMin, faqs = [] }: ServiceCityContentProps) {
   const otherServices = services.filter((s) => s.slug !== service.slug);
   const cityData = cityContent[city.slug];
   const hasUniqueContent = cityData && !cityData.uniqueIntro.startsWith('TODO');
@@ -59,7 +67,8 @@ export function ServiceCityContent({ service, city, areas, faqs = [] }: { servic
           <Container maxW="1200px">
             <Breadcrumbs items={[
               { label: 'Home', href: '/' },
-              { label: service.name, href: `/${service.slug}/${city.slug}` },
+              // The middle crumb points to the parent service page, not this page.
+              { label: service.name, href: `/${service.slug}` },
               { label: city.name },
             ]} />
           </Container>
@@ -210,7 +219,7 @@ export function ServiceCityContent({ service, city, areas, faqs = [] }: { servic
 
             <Flex mt={12} gap={{ base: 6, md: 0 }} wrap="wrap">
               <Box pr={{ base: 4, md: 8 }}>
-                <Text fontSize={{ base: '32px', md: '48px' }} color={c.text} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>45 MIN</Text>
+                <Text fontSize={{ base: '32px', md: '48px' }} color={c.text} lineHeight="1" style={{ fontFamily: 'var(--font-display)' }}>{avgResponseMin} MIN</Text>
                 <Text fontSize="12px" color={c.muted} style={{ fontFamily: 'var(--font-body)' }}>Avg Response</Text>
               </Box>
               <Box borderLeftWidth="1px" borderRightWidth="1px" borderColor={c.border} px={{ base: 4, md: 8 }}>
