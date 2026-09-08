@@ -4,7 +4,7 @@ import { getAreasForCity, getServiceBySlug } from '@/lib/areas';
 import { getCityBySlug } from '@/lib/cities';
 import { ServiceCityContent } from '@/components/seo/ServiceCityContent';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { getServiceSchema, getBreadcrumbSchema, getFAQSchema, getCityLocalBusinessSchema } from '@/lib/seo/schemas';
+import { getServiceSchema, getBreadcrumbSchema, getFAQSchema } from '@/lib/seo/schemas';
 import { getPriorityServiceCityParams } from '@/lib/seo/priority';
 import { cityContent } from '@/lib/data/cityContent';
 import { getServiceCityFaqs } from '@/lib/content/serviceCityFaq';
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ service: 
   const location = city.name;
   const cityData = cityContent[citySlug];
   const avgResponseMin = cityData?.avgResponseMin ?? 45;
-  const title = `${service.name} ${location} | 24/7 | ${service.priceFrom} | Tyre Rescue`;
+  const title = `${service.name} ${location} | 24/7 | ${service.priceFrom}`;
   const description = `${service.metaDescTemplate.replace(/{location}/g, location)} ${service.priceFrom}. Average ${avgResponseMin} min response. Fully insured. Call 0141 266 0690.`;
   return {
     title,
@@ -46,7 +46,13 @@ export async function generateMetadata({ params }: { params: Promise<{ service: 
       title: `${service.name} in ${location} — Tyre Rescue`,
       description,
       url: `https://www.tyrerescue.uk/${service.slug}/${city.slug}`,
-      images: [{ url: 'https://www.tyrerescue.uk/images/home/slide-1.webp', width: 1200, height: 630, alt: `${service.name} in ${location}` }],
+      // Static fallback until a working city OG image route exists.
+      images: [{
+        url: '/images/home/slide-1.webp',
+        width: 1200,
+        height: 630,
+        alt: `${service.name} in ${location}`,
+      }],
     },
     alternates: {
       canonical: `https://www.tyrerescue.uk/${service.slug}/${city.slug}`,
@@ -72,20 +78,20 @@ export default async function ServiceCityPage({ params }: { params: Promise<{ se
         areaName: city.name,
         areaType: 'City',
       })} />
+      {/* BreadcrumbList matches the visual breadcrumb: Home → Service → City */}
       <JsonLd data={getBreadcrumbSchema([
         { name: 'Home', path: '/' },
+        { name: service.name, path: `/${service.slug}` },
         { name: `${service.name} ${city.name}`, path: `/${service.slug}/${city.slug}` },
       ])} />
       <JsonLd data={getFAQSchema(faqs)} />
-      <JsonLd data={getCityLocalBusinessSchema({
-        cityName: city.name,
-        serviceSlug: serviceSlug,
-        serviceName: service.name,
-        pageUrl: `https://www.tyrerescue.uk/${serviceSlug}/${citySlug}`,
-        avgResponseMin,
-        priceFrom: service.priceFrom,
-      })} />
-      <ServiceCityContent service={service} city={city} areas={areas} faqs={faqs} />
+      {/*
+        NOTE: LocalBusiness schema is intentionally omitted here.
+        layout.tsx injects getLocalBusinessSchema() site-wide — adding
+        CityLocalBusinessSchema here would send two LocalBusiness nodes to
+        Google per city page, which can confuse structured-data parsing.
+      */}
+      <ServiceCityContent service={service} city={city} areas={areas} avgResponseMin={avgResponseMin} faqs={faqs} />
     </>
   );
 }

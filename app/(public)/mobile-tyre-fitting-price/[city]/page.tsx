@@ -22,7 +22,7 @@ export async function generateMetadata({
   const city = getCityPriceData(slug);
   if (!city) return {};
 
-  const title = `Mobile Tyre Fitting ${city.name} — Prices & Instant Booking | Tyre Rescue`;
+  const title = `Mobile Tyre Fitting ${city.name} — Prices & Instant Booking`;
   const description = `Mobile tyre fitting prices in ${city.name}. Budget tyres from £45, mid-range from £65, premium from £90. Fitting from £20. Emergency callout £49. No hidden fees. Call 0141 266 0690.`;
 
   return {

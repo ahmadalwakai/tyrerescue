@@ -52,7 +52,7 @@ const heroHeadlineLines = [
 ];
 
 const heroTrustChips = [
-  '★★★★★ 4.9 Google',
+  '★★★★★ 4.8 Google',
   '45 min - 1 hour',
   'All of Scotland',
   'Home & Work',

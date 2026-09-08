@@ -72,11 +72,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!tyre) {
     return {
-      title: 'Tyre Not Found | Tyre Rescue',
+      title: { absolute: 'Tyre Not Found | Tyre Rescue' },
     };
   }
 
-  const title = `${tyre.brand} ${tyre.pattern} ${tyre.sizeDisplay} | Tyre Rescue`;
+  const title = `${tyre.brand} ${tyre.pattern} ${tyre.sizeDisplay}`;
   const description = `Buy ${tyre.brand} ${tyre.pattern} ${tyre.sizeDisplay} ${tyre.season} tyres online. ${
     tyre.runFlat ? 'Run-flat technology. ' : ''
   }${tyre.wetGrip ? `Wet grip: ${tyre.wetGrip}. ` : ''}Mobile fitting service across all of Scotland — Glasgow, Edinburgh, Aberdeen, Inverness and beyond. 24/7 emergency callout available.`;

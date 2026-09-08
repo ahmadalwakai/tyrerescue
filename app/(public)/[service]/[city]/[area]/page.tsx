@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ service: 
     : `${service.name} in ${area.name}, ${city.name} (${area.postcode}). Response time approximately ${estimatedArrival} minutes. Near ${area.nearestLandmark}. Call 0141 266 0690 — available 24/7.`;
 
   return {
-    title: `${service.name} ${area.name} ${area.postcode} | ${estimatedArrival} Min Response | Tyre Rescue`,
+    title: `${service.name} ${area.name} ${area.postcode} | ${estimatedArrival} Min Response`,
     description: enrichedDesc,
     keywords: [
       `${service.name.toLowerCase()} ${area.name.toLowerCase()}`,

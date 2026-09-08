@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ city: str
   const city = getCityBySlug(slug);
   if (!city) return {};
   return {
-    title: `Mobile Tyre Fitting ${city.name} | 24/7 Emergency Service | Tyre Rescue`,
+    title: `Mobile Tyre Fitting ${city.name} | 24/7 Emergency Service`,
     description: `Emergency and scheduled mobile tyre fitting in ${city.name}, Scotland with AI-powered dispatch for fastest response times. Available 24 hours, 7 days a week. Our certified fitters come to your exact location. Call 0141 266 0690.`,
     keywords: [
       `mobile tyre fitting ${city.name.toLowerCase()}`,

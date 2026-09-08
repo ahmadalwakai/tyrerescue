@@ -99,7 +99,7 @@ export function ContactContent() {
             Contact our mobile tyre fitting team
           </Heading>
           <Text fontSize={{ base: '16px', md: '18px' }} color={colors.textSecondary} lineHeight="1.8" style={anim.fadeUp('0.5s', '0.1s')}>
-            Speak to Tyre Rescue about emergency tyre replacement, scheduled mobile tyre fitting, booking support, payments, cancellations or refunds. Phone support is available 8am to midnight, every day.
+            Speak to Tyre Rescue about emergency tyre replacement, scheduled mobile tyre fitting, booking support, payments, cancellations or refunds. Emergency callouts accepted 24/7. General phone support available 8am to midnight, every day.
           </Text>
           </Box>
 
@@ -199,7 +199,7 @@ export function ContactContent() {
                 </Box>
                 <Box borderBottomWidth="1px" borderColor={colors.border} pb={4}>
                   <Text fontSize="13px" color={colors.textSecondary} mb={1}>Opening hours</Text>
-                  <Text fontSize="16px" color={colors.textPrimary}>8am to midnight, every day</Text>
+                  <Text fontSize="16px" color={colors.textPrimary}>Emergency: 24/7 · Support: 8am–midnight</Text>
                 </Box>
                 <Box>
                   <Text fontSize="13px" color={colors.textSecondary} mb={1}>Service areas</Text>
