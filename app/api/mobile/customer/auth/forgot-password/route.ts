@@ -8,6 +8,7 @@ import { db } from '@/lib/db';
 import { passwordResetTokens, users } from '@/lib/db/schema';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { resetPassword } from '@/lib/email/templates';
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/security';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,15 @@ const forgotPasswordSchema = z.object({
 const SUCCESS_MESSAGE = 'If an account with that email exists, we have sent a password reset link.';
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rl = await checkRateLimit(`customer-forgot-password:${ip}`, RATE_LIMITS.forgotPassword);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { success: true, message: SUCCESS_MESSAGE },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } },
+    );
+  }
+
   try {
     const body = await request.json();
     const parsed = forgotPasswordSchema.safeParse(body);

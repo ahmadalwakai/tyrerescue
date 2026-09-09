@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { welcome, verifyEmail } from '@/lib/email/templates';
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/security';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -22,6 +23,15 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rl = await checkRateLimit(`register:${ip}`, RATE_LIMITS.register);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Too many registration attempts. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } },
+    );
+  }
+
   try {
     const body = await request.json();
 

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   // Light per-IP rate limit. Used during the booking wizard so the limit is
   // generous; primary intent is to stop scripted enumeration of map points.
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`validate-location:${ip}`, RATE_LIMITS.validateLocation);
+  const rl = await checkRateLimit(`validate-location:${ip}`, RATE_LIMITS.validateLocation);
   if (!rl.ok) {
     logSecurityRejection({
       req: request,

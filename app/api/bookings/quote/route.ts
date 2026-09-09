@@ -182,7 +182,7 @@ export async function POST(
 ): Promise<NextResponse<QuoteResponse | ErrorResponse>> {
   const startTime = Date.now();
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`booking-quote:${ip}`, RATE_LIMITS.bookingQuote);
+  const rl = await checkRateLimit(`booking-quote:${ip}`, RATE_LIMITS.bookingQuote);
   if (!rl.ok) {
     logSecurityRejection({
       req: request,

@@ -10,6 +10,7 @@ import {
   linkUnclaimedBookingsForEmail,
   type CustomerMobileUser,
 } from '@/app/api/mobile/customer/_lib';
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/security';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,15 @@ const loginSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rl = await checkRateLimit(`customer-login:${ip}`, RATE_LIMITS.login);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Too many login attempts. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } },
+    );
+  }
+
   try {
     const body = await request.json();
     const parsed = loginSchema.safeParse(body);

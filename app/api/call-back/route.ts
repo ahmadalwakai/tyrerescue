@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   }
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`${ROUTE_KEY}:${ip}`, RATE_LIMITS.callback);
+  const rl = await checkRateLimit(`${ROUTE_KEY}:${ip}`, RATE_LIMITS.callback);
   if (!rl.ok) {
     logSecurityRejection({
       req: request,
