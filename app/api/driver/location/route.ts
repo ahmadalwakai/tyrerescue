@@ -66,7 +66,6 @@ function maxDate(...values: (Date | string | null | undefined)[]): Date | null {
 // throttle themselves first; this is a defence-in-depth guard against
 // runaway loops or buggy old clients.
 const MIN_WRITE_INTERVAL_MS = 8_000;
-const RETRY_AFTER_SECONDS_ON_LIMIT = 30;
 const driverLastWriteAt = new Map<string, number>();
 
 function takeThrottleSlot(
@@ -75,7 +74,8 @@ function takeThrottleSlot(
   const now = Date.now();
   const last = driverLastWriteAt.get(driverId);
   if (last != null && now - last < MIN_WRITE_INTERVAL_MS) {
-    return { allowed: false, retryAfterSeconds: RETRY_AFTER_SECONDS_ON_LIMIT };
+    const retryAfterSeconds = Math.max(1, Math.ceil((last + MIN_WRITE_INTERVAL_MS - now) / 1000));
+    return { allowed: false, retryAfterSeconds };
   }
   driverLastWriteAt.set(driverId, now);
   if (driverLastWriteAt.size > 500) {

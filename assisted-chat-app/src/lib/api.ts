@@ -180,11 +180,13 @@ export function setOnUnauthorized(cb: (() => void) | null): void {
 export class ApiError extends Error {
   status: number;
   details?: unknown;
-  constructor(message: string, status: number, details?: unknown) {
+  retryAfterSeconds?: number;
+  constructor(message: string, status: number, details?: unknown, retryAfterSeconds?: number) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.details = details;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -244,6 +246,8 @@ async function request<T>(
 
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
+    let retryAfterSeconds: number | undefined;
+
     if (res.status === 401) {
       // Notify the session hook so it can clear local state and show login.
       message = 'Session expired. Please log in again.';
@@ -254,6 +258,16 @@ async function request<T>(
           // ignore notifier errors
         }
       }
+    } else if (res.status === 429) {
+      const headerVal = res.headers.get('Retry-After');
+      if (headerVal) {
+        const parsed = Number(headerVal);
+        if (Number.isFinite(parsed) && parsed > 0) retryAfterSeconds = parsed;
+      }
+      if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+        const r = payload as Record<string, unknown>;
+        if (typeof r.error === 'string' && r.error.trim()) message = r.error;
+      }
     } else if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
       const r = payload as Record<string, unknown>;
       if (typeof r.error === 'string' && r.error.trim()) message = r.error;
@@ -262,7 +276,7 @@ async function request<T>(
     if (__DEV__) {
       console.warn(`[api] ${method} ${resolvedApiBaseUrl}${path} → ${res.status}`, payload);
     }
-    throw new ApiError(message, res.status, payload);
+    throw new ApiError(message, res.status, payload, retryAfterSeconds);
   }
 
   return payload as T;

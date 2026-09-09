@@ -7,12 +7,20 @@ import { users, passwordResetTokens } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { resetPassword } from '@/lib/email/templates';
+import { checkRateLimit, getClientIp, RATE_LIMITS, logSecurityRejection, rateLimitedResponse } from '@/lib/security';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
 });
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rl = await checkRateLimit(`forgotPassword:${ip}`, RATE_LIMITS.forgotPassword);
+  if (!rl.ok) {
+    logSecurityRejection({ req: request, reason: 'rate_limited', route: '/api/auth/forgot-password', status: 429, routeKey: 'forgotPassword' });
+    return rateLimitedResponse(rl);
+  }
+
   try {
     const body = await request.json();
 

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { users, passwordResetTokens } from '@/lib/db/schema';
 import { eq, and, gt } from 'drizzle-orm';
+import { checkRateLimit, getClientIp, RATE_LIMITS, logSecurityRejection, rateLimitedResponse } from '@/lib/security';
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Token is required'),
@@ -17,6 +18,13 @@ const resetPasswordSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rl = await checkRateLimit(`forgotPassword:${ip}`, RATE_LIMITS.forgotPassword);
+  if (!rl.ok) {
+    logSecurityRejection({ req: request, reason: 'rate_limited', route: '/api/auth/reset-password', status: 429, routeKey: 'forgotPassword' });
+    return rateLimitedResponse(rl);
+  }
+
   try {
     const body = await request.json();
 

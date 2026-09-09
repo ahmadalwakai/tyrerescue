@@ -1,4 +1,31 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// vi.hoisted runs before any imports and before vi.mock factories, so these
+// refs are available inside mock factory functions.
+const { fakeLimitFn } = vi.hoisted(() => ({ fakeLimitFn: vi.fn() }));
+
+// Declare module-level mocks BEFORE importing the module under test.
+// Vitest hoists these to the top so dynamic `await import('@upstash/redis')`
+// calls inside rate-limit.ts receive the mocked implementations.
+//
+// In-memory tests never trigger these mocks because initRedis() short-circuits
+// when UPSTASH_REDIS_REST_URL / TOKEN env vars are absent.
+// Vitest 4.x requires `mockImplementation` with a class (not an arrow fn or
+// mockReturnValue) when the mock is called with `new`. We use `vi.hoisted`
+// so `fakeLimitFn` is available inside the factory closures.
+vi.mock('@upstash/redis', () => ({
+  Redis: class {},
+}));
+vi.mock('@upstash/ratelimit', () => {
+  const limitFn = fakeLimitFn;
+  return {
+    Ratelimit: class Ratelimit {
+      limit = limitFn;
+      static slidingWindow() { return 'sliding'; }
+    },
+  };
+});
+
 import {
   checkRateLimit,
   _resetRateLimitForTests,
@@ -11,7 +38,7 @@ import {
 } from '../../security/proxy-rate-limit';
 
 // ---------------------------------------------------------------------------
-// In-memory rate limiter
+// In-memory rate limiter (no env vars → Redis is never attempted)
 // ---------------------------------------------------------------------------
 
 describe('checkRateLimit (in-memory fallback)', () => {
@@ -43,10 +70,12 @@ describe('checkRateLimit (in-memory fallback)', () => {
     const windowMs = 30_000;
     const cfg = { limit: 1, windowMs };
     await checkRateLimit('test:1.2.3.4', cfg);
+    vi.advanceTimersByTime(500);
     const result = await checkRateLimit('test:1.2.3.4', cfg);
     expect(result.ok).toBe(false);
+    // After 500ms of a 30s window, ~29.5s remain → rounds up to 30.
     expect(result.retryAfterSeconds).toBeGreaterThanOrEqual(28);
-    expect(result.retryAfterSeconds).toBeLessThanOrEqual(31);
+    expect(result.retryAfterSeconds).toBeLessThanOrEqual(30);
     vi.useRealTimers();
   });
 
@@ -54,7 +83,6 @@ describe('checkRateLimit (in-memory fallback)', () => {
     const cfg = { limit: 2, windowMs: 60_000 };
     await checkRateLimit('test:1.2.3.4', cfg);
     await checkRateLimit('test:1.2.3.4', cfg);
-    // These blocked requests must NOT advance the counter past limit.
     const r3 = await checkRateLimit('test:1.2.3.4', cfg);
     const r4 = await checkRateLimit('test:1.2.3.4', cfg);
     expect(r3.ok).toBe(false);
@@ -99,6 +127,18 @@ describe('checkRateLimit (in-memory fallback)', () => {
     expect(allowed).toBe(5);
     expect(blocked).toBe(5);
   });
+
+  it('in-memory instances do not share counters (per-serverless-instance isolation)', async () => {
+    const cfg = { limit: 2, windowMs: 60_000 };
+    await checkRateLimit('test:1.2.3.4', cfg);
+    await checkRateLimit('test:1.2.3.4', cfg);
+    expect((await checkRateLimit('test:1.2.3.4', cfg)).ok).toBe(false);
+
+    // Simulate a new serverless cold-start: fresh in-memory state means the
+    // counter resets — demonstrating that in-memory does NOT share quota.
+    _resetRateLimitForTests();
+    expect((await checkRateLimit('test:1.2.3.4', cfg)).ok).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -106,6 +146,14 @@ describe('checkRateLimit (in-memory fallback)', () => {
 // ---------------------------------------------------------------------------
 
 describe('checkRateLimit storage-failure fallback', () => {
+  beforeEach(() => {
+    _resetRateLimitForTests();
+    process.env.UPSTASH_REDIS_REST_URL = 'https://fake-redis.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'fake-token';
+    fakeLimitFn.mockReset();
+    fakeLimitFn.mockRejectedValue(new Error('Redis connection refused'));
+  });
+
   afterEach(() => {
     _resetRateLimitForTests();
     delete process.env.UPSTASH_REDIS_REST_URL;
@@ -113,44 +161,60 @@ describe('checkRateLimit storage-failure fallback', () => {
     vi.restoreAllMocks();
   });
 
-  it('falls back to in-memory and still enforces limits when Redis.limit() throws', async () => {
-    // Spy on console.warn before doing anything else.
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-    // Simulate a Redis client that always throws on limit().
-    const fakeRatelimit = {
-      limit: vi.fn().mockRejectedValue(new Error('Redis connection refused')),
-    };
-    vi.doMock('@upstash/redis', () => ({
-      Redis: vi.fn().mockImplementation(() => ({})),
-    }));
-    vi.doMock('@upstash/ratelimit', () => ({
-      Ratelimit: Object.assign(
-        vi.fn().mockImplementation(() => fakeRatelimit),
-        { slidingWindow: vi.fn().mockReturnValue('sliding') },
-      ),
-    }));
-
-    _resetRateLimitForTests();
-    // Use the already-imported module; the storage-failure path is exercised
-    // via the in-memory fallback when Redis throws.
-    const rl = checkRateLimit;
-    const reset = _resetRateLimitForTests;
-    reset();
-
+  it('attempts Redis before falling back to in-memory', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     const cfg = { limit: 2, windowMs: 60_000 };
-    // Should not throw; should degrade gracefully.
-    const r1 = await rl('storage-fail:1.2.3.4', cfg);
+
+    await checkRateLimit('login:1.2.3.4', cfg);
+
+    // The mocked Redis limiter must have been called.
+    expect(fakeLimitFn).toHaveBeenCalled();
+  });
+
+  it('logs console.error for sensitive keys when Redis fails', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const cfg = { limit: 2, windowMs: 60_000 };
+
+    await checkRateLimit('login:1.2.3.4', cfg);
+
+    expect(errSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[rate-limit]'),
+      expect.anything(),
+    );
+  });
+
+  it('logs console.warn (not error) for non-sensitive keys when Redis fails', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const cfg = { limit: 20, windowMs: 60_000 };
+
+    await checkRateLimit('coverageCheck:1.2.3.4', cfg);
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[rate-limit]'),
+      expect.anything(),
+    );
+    expect(errSpy).not.toHaveBeenCalled();
+  });
+
+  it('falls back to in-memory and still enforces limits when Redis.limit() throws', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const cfg = { limit: 2, windowMs: 60_000 };
+
+    // Should not throw; degrades gracefully.
+    const r1 = await checkRateLimit('login:1.2.3.4', cfg);
     expect(r1.ok).toBe(true);
 
     // In-memory still enforces the limit after the Redis fallback.
-    await rl('storage-fail:1.2.3.4', cfg);
-    const blocked = await rl('storage-fail:1.2.3.4', cfg);
+    await checkRateLimit('login:1.2.3.4', cfg);
+    const blocked = await checkRateLimit('login:1.2.3.4', cfg);
     expect(blocked.ok).toBe(false);
+  });
 
-    vi.doUnmock('@upstash/redis');
-    vi.doUnmock('@upstash/ratelimit');
-    warnSpy.mockRestore();
+  it('does not throw when Redis is unreachable', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const cfg = { limit: 5, windowMs: 60_000 };
+    await expect(checkRateLimit('login:1.2.3.4', cfg)).resolves.not.toThrow();
   });
 });
 
@@ -201,9 +265,22 @@ describe('checkProxyRateLimit', () => {
   beforeEach(() => resetProxyRateLimitForTests());
 
   it('never rate-limits GET /api/auth/callback/google (OAuth callback)', () => {
-    // Even after many requests, the OAuth callback must be exempt.
     for (let i = 0; i < 50; i++) {
       const r = checkProxyRateLimit('1.2.3.4', '/api/auth/callback/google', 'GET');
+      expect(r.limited).toBe(false);
+    }
+  });
+
+  it('never rate-limits GET /api/auth/session (NextAuth session reads)', () => {
+    for (let i = 0; i < 50; i++) {
+      const r = checkProxyRateLimit('1.2.3.4', '/api/auth/session', 'GET');
+      expect(r.limited).toBe(false);
+    }
+  });
+
+  it('never rate-limits GET /api/auth/csrf (CSRF token fetch)', () => {
+    for (let i = 0; i < 50; i++) {
+      const r = checkProxyRateLimit('1.2.3.4', '/api/auth/csrf', 'GET');
       expect(r.limited).toBe(false);
     }
   });
@@ -224,10 +301,11 @@ describe('checkProxyRateLimit', () => {
     for (let i = 0; i < 21; i++) {
       checkProxyRateLimit(ip, '/api/auth/signin', 'POST');
     }
+    vi.advanceTimersByTime(1_000);
     const result = checkProxyRateLimit(ip, '/api/auth/signin', 'POST');
-    // Window is 60s so Retry-After must be near 60, not exactly 60 (since some time elapsed).
-    expect(result.retryAfterSeconds).toBeGreaterThanOrEqual(59);
-    expect(result.retryAfterSeconds).toBeLessThanOrEqual(61);
+    // 1s into a 60s window: ~59s remain.
+    expect(result.retryAfterSeconds).toBeGreaterThanOrEqual(58);
+    expect(result.retryAfterSeconds).toBeLessThanOrEqual(60);
     vi.useRealTimers();
   });
 

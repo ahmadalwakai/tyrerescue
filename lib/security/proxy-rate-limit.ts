@@ -24,8 +24,15 @@ export function checkProxyRateLimit(
   pathname: string,
   method: string,
 ): { limited: boolean; retryAfterSeconds: number } {
-  // OAuth callback (GET /api/auth/callback/google) must never be rate-limited.
+  // OAuth callback must never be rate-limited — even if the bucket is full.
   if (method === 'GET' && pathname === '/api/auth/callback/google') {
+    return { limited: false, retryAfterSeconds: 0 };
+  }
+
+  // NextAuth GET endpoints (session, csrf, providers) are harmless reads that
+  // occur on every page load. Counting them against the auth credential quota
+  // would lock out legitimate users after normal browsing.
+  if (method === 'GET' && pathname.startsWith('/api/auth/')) {
     return { limited: false, retryAfterSeconds: 0 };
   }
 

@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { welcome, verifyEmail } from '@/lib/email/templates';
+import { checkRateLimit, getClientIp, RATE_LIMITS, logSecurityRejection, rateLimitedResponse } from '@/lib/security';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -22,6 +23,13 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rl = await checkRateLimit(`register:${ip}`, RATE_LIMITS.register);
+  if (!rl.ok) {
+    logSecurityRejection({ req: request, reason: 'rate_limited', route: '/api/auth/register', status: 429, routeKey: 'register' });
+    return rateLimitedResponse(rl);
+  }
+
   try {
     const body = await request.json();
 

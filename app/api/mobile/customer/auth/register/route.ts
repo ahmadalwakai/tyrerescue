@@ -11,6 +11,7 @@ import {
 } from '@/app/api/mobile/customer/_lib';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
+import { checkRateLimit, getClientIp, RATE_LIMITS, logSecurityRejection, rateLimitedResponse } from '@/lib/security';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,13 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rl = await checkRateLimit(`register:${ip}`, RATE_LIMITS.register);
+  if (!rl.ok) {
+    logSecurityRejection({ req: request, reason: 'rate_limited', route: '/api/mobile/customer/auth/register', status: 429, routeKey: 'register' });
+    return rateLimitedResponse(rl);
+  }
+
   try {
     const body = await request.json();
     const parsed = registerSchema.safeParse(body);
