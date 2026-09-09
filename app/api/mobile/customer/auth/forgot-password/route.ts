@@ -8,6 +8,7 @@ import { db } from '@/lib/db';
 import { passwordResetTokens, users } from '@/lib/db/schema';
 import { createNotificationAndSend } from '@/lib/email/resend';
 import { resetPassword } from '@/lib/email/templates';
+import { checkRateLimit, getClientIp, RATE_LIMITS, logSecurityRejection } from '@/lib/security';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,18 @@ const forgotPasswordSchema = z.object({
 const SUCCESS_MESSAGE = 'If an account with that email exists, we have sent a password reset link.';
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rl = await checkRateLimit(`customer-forgot-password:${ip}`, RATE_LIMITS.forgotPassword);
+  if (!rl.ok) {
+    logSecurityRejection({ req: request, reason: 'rate_limited', route: '/api/mobile/customer/auth/forgot-password', status: 429, routeKey: 'customer-forgot-password' });
+    // Return success shape to prevent email enumeration — attacker cannot distinguish
+    // a rate-limited response from a genuine "email not found" response.
+    return NextResponse.json(
+      { success: true, message: SUCCESS_MESSAGE },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds), 'Cache-Control': 'no-store' } },
+    );
+  }
+
   try {
     const body = await request.json();
     const parsed = forgotPasswordSchema.safeParse(body);

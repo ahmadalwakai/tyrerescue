@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     return incorrectPinResponse(retryAfterSeconds);
   }
 
-  const rl = checkRateLimit(attemptKey, RATE_LIMITS.adminAddAdminPin);
+  const rl = await checkRateLimit(attemptKey, RATE_LIMITS.adminAddAdminPin);
   if (!rl.ok) {
     await recordAdminManagementAudit({
       request,

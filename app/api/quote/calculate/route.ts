@@ -30,7 +30,7 @@ interface ErrorResponse {
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`quote-calculate:${ip}`, RATE_LIMITS.quoteCalculate);
+  const rl = await checkRateLimit(`quote-calculate:${ip}`, RATE_LIMITS.quoteCalculate);
   if (!rl.ok) {
     logSecurityRejection({
       req: request,

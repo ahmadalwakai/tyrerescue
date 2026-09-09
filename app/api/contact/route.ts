@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
   // Per-IP per-route rate limit (best-effort, in-memory).
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`${ROUTE_KEY}:${ip}`, RATE_LIMITS.contact);
+  const rl = await checkRateLimit(`${ROUTE_KEY}:${ip}`, RATE_LIMITS.contact);
   if (!rl.ok) {
     logSecurityRejection({
       req: request,

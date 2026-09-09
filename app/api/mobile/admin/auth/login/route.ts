@@ -3,8 +3,20 @@ import { db, users } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { signMobileToken } from '@/lib/auth';
 import { expoDevCorsPreflight, jsonWithExpoDevCors } from '@/lib/api/dev-cors';
+import { checkRateLimit, getClientIp, RATE_LIMITS, logSecurityRejection } from '@/lib/security';
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rl = await checkRateLimit(`admin-login:${ip}`, RATE_LIMITS.login);
+  if (!rl.ok) {
+    logSecurityRejection({ req: request, reason: 'rate_limited', route: '/api/mobile/admin/auth/login', status: 429, routeKey: 'admin-login' });
+    return jsonWithExpoDevCors(
+      request,
+      { ok: false, error: 'Too many login attempts. Please try again shortly.', code: 'RATE_LIMITED' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds), 'Cache-Control': 'no-store' } },
+    );
+  }
+
   try {
     const body = await request.json();
     const email = String(body?.email || '').toLowerCase().trim();

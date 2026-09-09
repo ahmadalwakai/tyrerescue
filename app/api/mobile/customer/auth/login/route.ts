@@ -10,6 +10,13 @@ import {
   linkUnclaimedBookingsForEmail,
   type CustomerMobileUser,
 } from '@/app/api/mobile/customer/_lib';
+import {
+  checkRateLimit,
+  getClientIp,
+  RATE_LIMITS,
+  logSecurityRejection,
+  rateLimitedResponse,
+} from '@/lib/security';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,6 +27,13 @@ const loginSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rl = await checkRateLimit(`customer-login:${ip}`, RATE_LIMITS.login);
+  if (!rl.ok) {
+    logSecurityRejection({ req: request, reason: 'rate_limited', route: '/api/mobile/customer/auth/login', status: 429, routeKey: 'customer-login' });
+    return rateLimitedResponse(rl);
+  }
+
   try {
     const body = await request.json();
     const parsed = loginSchema.safeParse(body);

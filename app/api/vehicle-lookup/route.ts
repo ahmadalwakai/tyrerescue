@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   // Light per-IP rate limit. DVLA is a paid third-party — we don't want bots
   // to drain the quota.
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`vehicle-lookup:${ip}`, RATE_LIMITS.vehicleLookup);
+  const rl = await checkRateLimit(`vehicle-lookup:${ip}`, RATE_LIMITS.vehicleLookup);
   if (!rl.ok) {
     logSecurityRejection({
       req: request,

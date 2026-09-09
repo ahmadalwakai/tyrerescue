@@ -120,7 +120,7 @@ export async function POST(
 ) {
   // Per-IP rate limit to slow brute-forcing of share tokens.
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`location-share:${ip}`, RATE_LIMITS.locationShare);
+  const rl = await checkRateLimit(`location-share:${ip}`, RATE_LIMITS.locationShare);
   if (!rl.ok) {
     logSecurityRejection({
       req: request,

@@ -3,41 +3,14 @@ import { isAllowedExpoDevOrigin, isLocalNetworkHost } from '@/lib/api/dev-cors';
 import { getCanonicalHostForRequestHost, normalizeHost } from '@/lib/config/site';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import {
+  normalizeIp,
+  checkProxyRateLimit,
+  resetProxyRateLimitForTests,
+} from '@/lib/security/proxy-rate-limit';
 
-/* ─── Rate Limiting (in-memory, per-instance) ─── */
-const rateMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_WINDOW_MS = 60_000;
-const RATE_LIMIT = 20;
-
-const RATE_LIMITED_PREFIXES = [
-  '/api/auth/',
-  '/api/bookings/create',
-  '/api/bookings/quote',
-  '/api/driver/location',
-];
-
-function isRateLimited(ip: string, pathname: string): boolean {
-  if (!RATE_LIMITED_PREFIXES.some((p) => pathname.startsWith(p))) return false;
-
-  const now = Date.now();
-  const entry = rateMap.get(ip);
-
-  if (!entry || now > entry.resetAt) {
-    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return false;
-  }
-
-  entry.count++;
-  return entry.count > RATE_LIMIT;
-}
-
-// Periodic cleanup every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, val] of rateMap) {
-    if (now > val.resetAt) rateMap.delete(key);
-  }
-}, 5 * 60_000);
+// Re-export for tests that need to clear state between runs.
+export { resetProxyRateLimitForTests as _resetProxyRateLimitForTests };
 
 /* ─── noindex prefixes (auth & dashboard) ─── */
 const NOINDEX_PREFIXES = [
@@ -155,12 +128,14 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  /* ─── Rate limiting ─── */
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  if (isRateLimited(ip, pathname)) {
+  /* ─── Rate limiting (per-route, per-IP) ─── */
+  const rawIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const ip = normalizeIp(rawIp);
+  const proxyRl = checkProxyRateLimit(ip, pathname, request.method);
+  if (proxyRl.limited) {
     return NextResponse.json(
-      { error: 'Too many requests' },
-      { status: 429, headers: { 'Retry-After': '60' } },
+      { ok: false, error: 'Too many requests', code: 'RATE_LIMITED' },
+      { status: 429, headers: { 'Retry-After': String(proxyRl.retryAfterSeconds), 'Cache-Control': 'no-store' } },
     );
   }
 

@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { demandSnapshots, visitorClicks, siteVisitors } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
+import {
+  checkRateLimit,
+  getClientIp,
+  RATE_LIMITS,
+  logSecurityRejection,
+  rateLimitedResponse,
+} from '@/lib/security';
 
 const VALID_EVENTS = [
   'page_view',
@@ -29,29 +36,6 @@ const CLICK_LABEL_BY_EVENT: Partial<Record<EventType, string>> = {
   callback_submit: 'Call Back Request',
 };
 
-// In-memory rate limiting: max 30 req/min per session
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRate(sessionId: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(sessionId);
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(sessionId, { count: 1, resetAt: now + 60_000 });
-    return true;
-  }
-  if (entry.count >= 30) return false;
-  entry.count++;
-  return true;
-}
-
-// Clean map periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, v] of rateLimitMap) {
-    if (now > v.resetAt) rateLimitMap.delete(k);
-  }
-}, 120_000);
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -62,8 +46,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false }, { status: 400 });
     }
 
-    if (!checkRate(sessionId)) {
-      return NextResponse.json({ ok: false }, { status: 429 });
+    const ip = getClientIp(request);
+    const rl = await checkRateLimit(`analytics:${ip}:${sessionId}`, RATE_LIMITS.analyticsEvent);
+    if (!rl.ok) {
+      logSecurityRejection({ req: request, reason: 'rate_limited', route: '/api/analytics/event', status: 429, routeKey: 'analytics' });
+      return rateLimitedResponse(rl);
     }
 
     // Update demand snapshot for current hour

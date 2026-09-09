@@ -105,7 +105,7 @@ export async function POST(
   // Per-IP rate limit. Booking creation triggers Stripe PaymentIntent creation
   // and DB writes — strictest limit applied here.
   const clientIp = getClientIp(request);
-  const rl = checkRateLimit(`booking-create:${clientIp}`, RATE_LIMITS.bookingCreate);
+  const rl = await checkRateLimit(`booking-create:${clientIp}`, RATE_LIMITS.bookingCreate);
   if (!rl.ok) {
     logSecurityRejection({
       req: request,
