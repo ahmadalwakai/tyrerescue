@@ -1,0 +1,83 @@
+name: Assisted Chat 49 - native iOS build only
+
+on:
+  push:
+    branches: [codex/assisted-ios49-free-ci]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: assisted-ios49-native
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'ahmadalwakai/tyrerescue' && github.event.repository.private == false && github.actor == 'ahmadalwakai' && github.ref == 'refs/heads/codex/assisted-ios49-free-ci'
+    runs-on: macos-15-intel
+    timeout-minutes: 150
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_PUBLIC_API_BASE_URL: https://www.tyrerescue.uk
+      EXPO_PUBLIC_MAPBOX_TOKEN: ${{ secrets.ASSISTED_IOS49_MAPBOX_TOKEN }}
+      ASSISTED_APP_DIR: assisted-chat-app
+      ASSISTED_CI_DIR: .github/scripts/assisted-ios49
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - name: Checkout the dispatched commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          clean: true
+          lfs: false
+          submodules: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 20.19.4
+          # Deliberately no shared cache for the signing release.
+
+      - name: Verify frozen source and public configuration
+        shell: bash
+        run: node "$ASSISTED_CI_DIR/verify-source.cjs"
+
+      - name: Install locked dependencies and the guarded notifications patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$ASSISTED_APP_DIR"
+          npm ci --no-audit --no-fund
+          node ../"$ASSISTED_CI_DIR/verify-source.cjs" --installed
+
+      - name: Generate and install the native iOS project
+        shell: bash
+        run: bash "$ASSISTED_CI_DIR/prepare-native.sh"
+
+      - name: Sign, archive, export and verify this app only
+        shell: bash
+        env:
+          ASSISTED_IOS_P12_BASE64: ${{ secrets.ASSISTED_IOS49_P12_BASE64 }}
+          ASSISTED_IOS_P12_PASSWORD: ${{ secrets.ASSISTED_IOS49_P12_PASSWORD }}
+          ASSISTED_IOS_PROFILE_BASE64: ${{ secrets.ASSISTED_IOS49_PROFILE_BASE64 }}
+        run: bash "$ASSISTED_CI_DIR/build-native.sh"
+
+      - name: Upload IPA and sanitized verification manifest only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: assisted-chat-1.0.12-49-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/assisted-ios49-output/assisted-chat-1.0.12-49.ipa
+            ${{ runner.temp }}/assisted-ios49-output/manifest.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          include-hidden-files: false
+
+      - name: Always remove temporary signing material and private build logs
+        if: always()
+        shell: bash
+        run: bash "$ASSISTED_CI_DIR/cleanup.sh"

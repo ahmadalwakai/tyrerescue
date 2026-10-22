@@ -1,0 +1,7 @@
+{
+  "git": {
+    "deploymentEnabled": {
+      "codex/assisted-ios49-free-ci": false
+    }
+  }
+}
