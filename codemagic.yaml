@@ -1,0 +1,60 @@
+workflows:
+  customer-ios18-native:
+    name: Tyre Rescue 1.0.3 (18) - native build only
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      node: 20.19.4
+      xcode: '26.2'
+      cocoapods: default
+      groups:
+        - customer_ios18_public
+        - customer_ios18_signing
+      vars:
+        CI: '1'
+        EXPO_NO_TELEMETRY: '1'
+        EXPO_PUBLIC_API_BASE_URL: https://www.tyrerescue.uk
+        CUSTOMER_APP_DIR: tyre-rescue
+        CUSTOMER_CI_DIR: ci/customer-ios18-codemagic
+        CM_RECURSIVE_SUBMODULE_INIT: 'false'
+        DEVELOPER_DIR: /Applications/Xcode-26.2.app/Contents/Developer
+    # No automatic trigger, store integration, publish or email section.
+    scripts:
+      - name: Prepare isolated build workspace
+        script: |
+          set -euo pipefail
+          umask 077
+          test "${CM_TRIGGER_SOURCE:-}" = api
+          test -n "${CM_BUILD_DIR:-}" && test -d "$CM_BUILD_DIR"
+          test -n "${CM_BUILD_ID:-}" && test -n "${CM_ENV:-}"
+          test "$(uname -m)" = arm64
+          test "$(node --version)" = v20.19.4
+          python3 - <<'PY'
+          import os, subprocess
+          origin = subprocess.check_output(['git', '-C', os.environ['CM_BUILD_DIR'], 'remote', 'get-url', 'origin'], text=True).strip()
+          assert origin in ['https://github.com/ahmadalwakai/tyrerescue.git', 'https://github.com/ahmadalwakai/tyrerescue'], 'Unexpected source repository'
+          PY
+          customer_ci_temp="$(mktemp -d "${TMPDIR:-/tmp}/customer-ios18.XXXXXX")"
+          printf 'CUSTOMER_CI_TEMP=%s\n' "$customer_ci_temp" >> "$CM_ENV"
+
+      - name: Verify frozen app, install exact customer dependencies
+        script: |
+          set -euo pipefail
+          # Do not pass signing credentials or a Codemagic API token to npm scripts.
+          env -u CUSTOMER_IOS_P12_BASE64 -u CUSTOMER_IOS_P12_PASSWORD -u CUSTOMER_IOS_PROFILE_BASE64 -u CM_API_TOKEN \
+            bash "$CM_BUILD_DIR/$CUSTOMER_CI_DIR/install-dependencies.sh"
+
+      - name: Generate native iOS project and install CocoaPods
+        script: |
+          set -euo pipefail
+          env -u CUSTOMER_IOS_P12_BASE64 -u CUSTOMER_IOS_P12_PASSWORD -u CUSTOMER_IOS_PROFILE_BASE64 -u CM_API_TOKEN \
+            bash "$CM_BUILD_DIR/$CUSTOMER_CI_DIR/prepare-native.sh"
+
+      - name: Sign existing app identity, export IPA and verify
+        script: |
+          set -euo pipefail
+          unset CM_API_TOKEN
+          bash "$CM_BUILD_DIR/$CUSTOMER_CI_DIR/build-native.sh"
+    artifacts:
+      - $CUSTOMER_CI_TEMP/customer-ios18-output/tyre-rescue-1.0.3-18.ipa
+      - $CUSTOMER_CI_TEMP/customer-ios18-output/manifest.json
