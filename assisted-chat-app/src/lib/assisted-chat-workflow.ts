@@ -1,0 +1,554 @@
+import type {
+  AssistedChatDraft,
+  AssistedChatLocation,
+  AssistedChatQuoteBreakdown,
+  AssistedChatServiceType,
+  BookingTyreLine,
+  QuickBookPatchResponse,
+} from '@/types/assisted-chat';
+import type { AdminQuotePaymentOption, AdminQuoteStatus } from '@/types/admin-quotes';
+import { isValidCoordinate } from '@/lib/geo';
+
+export const ASSISTED_CHAT_STAGE_ORDER = [
+  'CUSTOMER',
+  'LOCATION',
+  'TYRE',
+  'PRICE',
+  'QUOTE',
+  'CONFIRMATION',
+  'PAYMENT',
+  'READY_TO_DISPATCH',
+  'DISPATCHED',
+] as const;
+
+export type AssistedChatStage = (typeof ASSISTED_CHAT_STAGE_ORDER)[number];
+
+export type AssistedChatTimelineStep =
+  | 'CUSTOMER'
+  | 'LOCATION'
+  | 'TYRE'
+  | 'PRICE'
+  | 'QUOTE'
+  | 'PAYMENT'
+  | 'DISPATCH';
+
+export type AssistedChatStepState = 'done' | 'active' | 'todo';
+
+export const ASSISTED_CHAT_SERVICE_LABELS: Record<AssistedChatServiceType, string> = {
+  fit: 'Replacement tyre',
+  repair: 'Tyre repair',
+  locking_nut: 'Locking wheel nut removal',
+  assess: 'Unknown / inspection required',
+};
+
+export function normalizeAssistedChatServiceType(
+  serviceType: AssistedChatServiceType | null | undefined,
+): AssistedChatServiceType {
+  return serviceType === 'repair' || serviceType === 'assess' || serviceType === 'locking_nut'
+    ? serviceType
+    : 'fit';
+}
+
+export function formatAssistedChatServiceType(
+  serviceType: AssistedChatServiceType | null | undefined,
+): string {
+  const normalized = normalizeAssistedChatServiceType(serviceType);
+  return ASSISTED_CHAT_SERVICE_LABELS[normalized];
+}
+
+export function isAssistedChatServiceOnly(
+  serviceType: AssistedChatServiceType | null | undefined,
+): boolean {
+  const normalized = normalizeAssistedChatServiceType(serviceType);
+  return normalized === 'assess' || normalized === 'locking_nut';
+}
+
+export type AssistedChatSecondaryAction =
+  | 'COPY_LOCATION_LINK'
+  | 'SEND_LOCATION_WHATSAPP'
+  | 'SEND_LOCATION_SMS'
+  | 'SEND_LOCATION_EMAIL'
+  | 'COPY_QUOTE_MESSAGE'
+  | 'SEND_QUOTE'
+  | 'COPY_JOB_DETAILS'
+  | 'CLEAR_DRAFT';
+
+export interface AssistedChatWorkflowInput {
+  draft: AssistedChatDraft;
+  quoteStatus?: AdminQuoteStatus | null;
+  quoteConfirmedAt?: string | null;
+  quoteSelectedPaymentOption?: AdminQuotePaymentOption | null;
+  quoteExpired?: boolean;
+  quoteBusy?: boolean;
+  priceLoading?: boolean;
+  dispatchBusy?: boolean;
+  canUseApi?: boolean;
+}
+
+export interface AssistedChatTimelineItem {
+  key: AssistedChatTimelineStep;
+  label: string;
+  state: AssistedChatStepState;
+}
+
+export interface AssistedChatWorkflow {
+  currentStage: AssistedChatStage;
+  completedSteps: AssistedChatTimelineStep[];
+  timeline: AssistedChatTimelineItem[];
+  primaryActionLabel: string;
+  primaryActionDisabled: boolean;
+  primaryActionDisabledReason: string | null;
+  secondaryActions: AssistedChatSecondaryAction[];
+}
+
+const CONFIRMED_QUOTE_STATUSES: readonly AdminQuoteStatus[] = [
+  'CONFIRMED_BY_PHONE',
+  'PAYMENT_PENDING',
+  'PAID',
+];
+
+function hasCustomerDetails(draft: AssistedChatDraft): boolean {
+  return Boolean(
+    draft.customer.name.trim() ||
+      draft.customer.phone.trim() ||
+      draft.customer.email.trim(),
+  );
+}
+
+function hasLocation(draft: AssistedChatDraft): boolean {
+  return draft.location.lat != null && draft.location.lng != null;
+}
+
+export function getManualLocationBlockedReason(location: AssistedChatLocation): string | null {
+  return location.address.trim() && isValidCoordinate(location.lat, location.lng)
+    ? null
+    : 'Select an address from the suggestions before continuing.';
+}
+
+export function normalizeAssistedChatTyreSize(input: string): string | null {
+  const trimmed = input.trim().toUpperCase();
+  if (!trimmed) return null;
+
+  const standardMatch =
+    trimmed.match(/^(\d{3})[\s/-]*(\d{2,3})[\s/-]*R\s*(\d{2})(C?)$/i) ??
+    trimmed.match(/^(\d{3})[\s/-]+(\d{2,3})[\s/-]+(\d{2})(C?)$/i);
+  if (standardMatch) {
+    const width = Number(standardMatch[1]);
+    const aspect = Number(standardMatch[2]);
+    const rim = Number(standardMatch[3]);
+    if (aspect > 0 && isValidTyreRange(width, aspect, rim)) {
+      return `${width}/${aspect}/R${rim}${standardMatch[4].toUpperCase()}`;
+    }
+  }
+
+  const compactMatch = trimmed.match(/^(\d{3})[\s/-]*R\s*(\d{2})(C?)$/i);
+  if (compactMatch) {
+    const width = Number(compactMatch[1]);
+    const rim = Number(compactMatch[2]);
+    if (isValidTyreRange(width, 0, rim)) {
+      return `${width}/R${rim}${compactMatch[3].toUpperCase()}`;
+    }
+  }
+
+  return null;
+}
+
+export function compactAssistedChatTyreSize(input: string): string {
+  return (normalizeAssistedChatTyreSize(input) ?? input.trim().toUpperCase())
+    .replace(/\s+/g, '')
+    .replace('/R', 'R');
+}
+
+function isValidTyreRange(width: number, aspect: number, rim: number): boolean {
+  return width >= 100 && width <= 400 && aspect >= 0 && aspect <= 100 && rim >= 10 && rim <= 26;
+}
+
+function cleanOptionalText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function cleanOptionalBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
+}
+
+export function createBookingTyreLine(partial: Partial<BookingTyreLine> = {}): BookingTyreLine {
+  return {
+    id: partial.id ?? `tyre-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    size: partial.size ?? '',
+    quantity: Math.max(1, Math.round(partial.quantity ?? 1)),
+    axle: cleanOptionalText(partial.axle),
+    loadIndex: cleanOptionalText(partial.loadIndex),
+    speedIndex: cleanOptionalText(partial.speedIndex),
+    runFlat: cleanOptionalBoolean(partial.runFlat),
+    xl: cleanOptionalBoolean(partial.xl),
+    commercial: cleanOptionalBoolean(partial.commercial),
+    brand: partial.brand ?? null,
+    pattern: partial.pattern ?? null,
+    season: partial.season ?? null,
+    source: partial.source ?? null,
+    price: typeof partial.price === 'number' && Number.isFinite(partial.price) ? partial.price : null,
+  };
+}
+
+export function ensureBookingTyreLines(lines: unknown): BookingTyreLine[] {
+  const source = Array.isArray(lines) ? lines : [];
+  const next = source.map((line, index) => {
+    const raw = line && typeof line === 'object' ? (line as Partial<BookingTyreLine>) : {};
+    return createBookingTyreLine({
+      id: typeof raw.id === 'string' && raw.id.trim() ? raw.id : `tyre-${index + 1}`,
+      size: typeof raw.size === 'string' ? raw.size : '',
+      quantity: typeof raw.quantity === 'number' && Number.isFinite(raw.quantity) ? raw.quantity : 1,
+      axle: cleanOptionalText(raw.axle),
+      loadIndex: cleanOptionalText(raw.loadIndex),
+      speedIndex: cleanOptionalText(raw.speedIndex),
+      runFlat: cleanOptionalBoolean(raw.runFlat),
+      xl: cleanOptionalBoolean(raw.xl),
+      commercial: cleanOptionalBoolean(raw.commercial),
+      brand: typeof raw.brand === 'string' ? raw.brand : null,
+      pattern: typeof raw.pattern === 'string' ? raw.pattern : null,
+      season: typeof raw.season === 'string' ? raw.season : null,
+      source: typeof raw.source === 'string' ? raw.source : null,
+      price: typeof raw.price === 'number' && Number.isFinite(raw.price) ? raw.price : null,
+    });
+  });
+  return next.length > 0 ? next : [createBookingTyreLine({ id: 'tyre-1' })];
+}
+
+export function isEmptyOptionalTyreLine(line: BookingTyreLine, index: number): boolean {
+  return (
+    index > 0 &&
+    !line.size.trim() &&
+    !line.axle?.trim() &&
+    !line.loadIndex?.trim() &&
+    !line.speedIndex?.trim() &&
+    line.runFlat == null &&
+    line.xl == null &&
+    line.commercial == null &&
+    !line.brand?.trim() &&
+    !line.pattern?.trim() &&
+    !line.season?.trim() &&
+    !line.source?.trim() &&
+    (line.price == null || line.price === 0) &&
+    Math.max(1, Math.round(line.quantity || 1)) === 1
+  );
+}
+
+export function getFilledBookingTyreLines(lines: BookingTyreLine[]): BookingTyreLine[] {
+  return ensureBookingTyreLines(lines)
+    .map((line) => ({
+      ...line,
+      quantity: Math.max(1, Math.round(line.quantity || 1)),
+    }))
+    .filter((line, index) => !isEmptyOptionalTyreLine(line, index));
+}
+
+export function getNormalizedBookingTyreLines(lines: BookingTyreLine[]): BookingTyreLine[] {
+  return getFilledBookingTyreLines(lines).map((line) => ({
+    ...line,
+    size: normalizeAssistedChatTyreSize(line.size) ?? line.size.trim(),
+    quantity: Math.max(1, Math.round(line.quantity || 1)),
+  }));
+}
+
+export function validateBookingTyreLines(lines: BookingTyreLine[]): string | null {
+  const ensured = ensureBookingTyreLines(lines);
+  const filled = getFilledBookingTyreLines(ensured);
+
+  if (filled.length === 0 || isEmptyOptionalTyreLine(ensured[0], 0)) {
+    return 'Add tyre size.';
+  }
+
+  for (let i = 0; i < ensured.length; i += 1) {
+    const line = ensured[i];
+    if (isEmptyOptionalTyreLine(line, i)) continue;
+    const label = `Tyre ${i + 1}`;
+    if (!normalizeAssistedChatTyreSize(line.size)) {
+      return i === 0
+        ? 'Add tyre size.'
+        : `Update ${label} size or remove it.`;
+    }
+    if (!Number.isFinite(line.quantity) || line.quantity < 1) {
+      return `${label} quantity must be at least 1.`;
+    }
+  }
+
+  return null;
+}
+
+export function buildBookingTyreLinePayload(lines: BookingTyreLine[]): BookingTyreLine[] {
+  return getNormalizedBookingTyreLines(lines).map((line) => ({
+    id: line.id,
+    size: line.size,
+    quantity: Math.max(1, Math.round(line.quantity || 1)),
+    axle: line.axle ?? null,
+    loadIndex: line.loadIndex ?? null,
+    speedIndex: line.speedIndex ?? null,
+    runFlat: line.runFlat ?? null,
+    xl: line.xl ?? null,
+    commercial: line.commercial ?? null,
+    brand: line.brand ?? null,
+    pattern: line.pattern ?? null,
+    season: line.season ?? null,
+    source: line.source ?? null,
+    price: typeof line.price === 'number' && Number.isFinite(line.price) ? line.price : null,
+  }));
+}
+
+export function buildAssistedChatVehiclePayload(draft: AssistedChatDraft): {
+  registrationNumber: string;
+  make: string;
+  model: string | null;
+} | null {
+  if (!draft.vehicle) return null;
+  const registrationNumber = draft.vehicle.registrationNumber.trim().toUpperCase().replace(/\s+/g, '');
+  const make = draft.vehicle.make.trim();
+  const model = draft.vehicle.model?.trim() || null;
+  if (!registrationNumber || !make) return null;
+  return { registrationNumber, make, model };
+}
+
+export function primaryBookingTyreLine(draft: AssistedChatDraft): BookingTyreLine {
+  return buildBookingTyreLinePayload(draft.tyreLines)[0] ?? createBookingTyreLine({ id: 'tyre-1' });
+}
+
+export function summarizeBookingTyreLines(lines: BookingTyreLine[]): string[] {
+  return buildBookingTyreLinePayload(lines).map((line) => {
+    const axle = line.axle?.trim().toLowerCase();
+    const prefix =
+      axle === 'front'
+        ? 'Front'
+        : axle === 'rear'
+        ? 'Rear'
+        : axle === 'all'
+        ? 'All'
+        : line.axle?.trim() || null;
+    return prefix ? `${prefix}: ${line.quantity} × ${line.size}` : `${line.quantity} × ${line.size}`;
+  });
+}
+
+export function totalBookingTyreQuantity(lines: BookingTyreLine[]): number {
+  return buildBookingTyreLinePayload(lines).reduce((sum, line) => sum + line.quantity, 0);
+}
+
+export function hasAssistedChatTyre(draft: AssistedChatDraft): boolean {
+  if (isAssistedChatServiceOnly(draft.serviceType)) return true;
+  if (!draft.tyreConfirmedFromSidewall) return false;
+  return validateBookingTyreLines(draft.tyreLines) === null;
+}
+
+function hasSavedQuote(draft: AssistedChatDraft): boolean {
+  return Boolean(draft.savedQuoteId || draft.savedQuoteRef);
+}
+
+function hasConfirmedQuote(input: AssistedChatWorkflowInput): boolean {
+  return Boolean(
+    input.quoteConfirmedAt ||
+      input.quoteSelectedPaymentOption ||
+      (input.quoteStatus && CONFIRMED_QUOTE_STATUSES.includes(input.quoteStatus)),
+  );
+}
+
+export function getAssistedChatStage(input: AssistedChatWorkflowInput): AssistedChatStage {
+  const { draft } = input;
+  const quoteConfirmed = hasConfirmedQuote(input);
+
+  if (draft.dispatchedRefNumber) return 'DISPATCHED';
+  if (!hasLocation(draft)) return 'LOCATION';
+  if (!hasAssistedChatTyre(draft)) return 'TYRE';
+  if (!draft.quote || draft.priceNeedsRefresh) return 'PRICE';
+  if (!hasSavedQuote(draft)) return 'QUOTE';
+  if (!quoteConfirmed) return 'CONFIRMATION';
+  if (!draft.paymentChoice) return 'PAYMENT';
+  return 'READY_TO_DISPATCH';
+}
+
+export function getAssistedChatBlockedReason(input: AssistedChatWorkflowInput): string | null {
+  const { draft } = input;
+  const stage = getAssistedChatStage(input);
+  const quoteConfirmed = hasConfirmedQuote(input);
+
+  if (input.canUseApi === false && stage !== 'CUSTOMER' && stage !== 'TYRE' && stage !== 'DISPATCHED') {
+    return 'Unable to verify this session. Please retry.';
+  }
+
+  if (stage === 'TYRE') {
+    if (isAssistedChatServiceOnly(draft.serviceType)) return null;
+    const tyreError = validateBookingTyreLines(draft.tyreLines);
+    if (tyreError) return tyreError;
+    if (!draft.tyreConfirmedFromSidewall) return 'Confirm the tyre size from the sidewall before pricing.';
+    return null;
+  }
+
+  if (stage === 'PRICE') {
+    if (!hasLocation(draft)) return 'Confirm the customer location before pricing.';
+    if (!isAssistedChatServiceOnly(draft.serviceType) && validateBookingTyreLines(draft.tyreLines)) {
+      return 'Add tyre size and quantity before pricing, or choose a service-only job.';
+    }
+    if (!isAssistedChatServiceOnly(draft.serviceType) && !draft.tyreConfirmedFromSidewall) {
+      return 'Confirm the tyre size from the sidewall before pricing.';
+    }
+    if (input.priceLoading) return 'Price is already being calculated.';
+    return null;
+  }
+
+  if (stage === 'QUOTE') {
+    if (!draft.quote) return 'Get a price before saving the quote.';
+    if (input.quoteBusy) return 'Quote action is already running.';
+    return null;
+  }
+
+  if (stage === 'CONFIRMATION') {
+    if (!hasSavedQuote(draft)) return 'Save the quote before confirming it.';
+    if (input.quoteExpired) return 'Refresh the quote before confirming it.';
+    if (input.quoteBusy) return 'Quote action is already running.';
+    return null;
+  }
+
+  if (stage === 'READY_TO_DISPATCH') {
+    if (!draft.quickBookingId) return 'Get a current price before dispatching.';
+    if (!draft.quote) return 'Get a price before dispatching.';
+    if (!quoteConfirmed) return 'Confirm the saved quote before dispatching.';
+    if (!draft.paymentChoice) return 'Choose a payment option before dispatching.';
+    if (input.dispatchBusy) return 'Dispatch is already running.';
+    return null;
+  }
+
+  if (stage === 'LOCATION') {
+    if (input.canUseApi === false) return 'Unable to verify this session. Please retry.';
+    return null;
+  }
+
+  if (stage === 'DISPATCHED') return null;
+
+  return null;
+}
+
+export function getAssistedChatPrimaryAction(input: AssistedChatWorkflowInput): {
+  label: string;
+  disabled: boolean;
+  disabledReason: string | null;
+} {
+  const stage = getAssistedChatStage(input);
+  const blockedReason = getAssistedChatBlockedReason(input);
+
+  const labelByStage: Record<AssistedChatStage, string> = {
+    CUSTOMER: 'Continue to Location',
+    LOCATION: 'Send Location Link',
+    TYRE: 'Continue to Price',
+    PRICE: input.draft.priceNeedsRefresh ? 'Refresh Price' : 'Get Price',
+    QUOTE: 'Save Quote',
+    CONFIRMATION: 'Confirm Quote',
+    PAYMENT: 'Choose Payment',
+    READY_TO_DISPATCH: 'Review & Dispatch',
+    DISPATCHED: 'Open Booking',
+  };
+
+  return {
+    label: labelByStage[stage],
+    disabled: blockedReason !== null,
+    disabledReason: blockedReason,
+  };
+}
+
+function timelineState(
+  key: AssistedChatTimelineStep,
+  activeKey: AssistedChatTimelineStep,
+  completedSteps: AssistedChatTimelineStep[],
+): AssistedChatStepState {
+  if (key === activeKey) return 'active';
+  if (completedSteps.includes(key)) return 'done';
+  return 'todo';
+}
+
+function timelineKeyForStage(stage: AssistedChatStage): AssistedChatTimelineStep {
+  if (stage === 'CONFIRMATION') return 'QUOTE';
+  if (stage === 'READY_TO_DISPATCH' || stage === 'DISPATCHED') return 'DISPATCH';
+  return stage;
+}
+
+export function getAssistedChatWorkflow(input: AssistedChatWorkflowInput): AssistedChatWorkflow {
+  const { draft } = input;
+  const currentStage = getAssistedChatStage(input);
+  const quoteConfirmed = hasConfirmedQuote(input);
+  const completedSteps: AssistedChatTimelineStep[] = [];
+
+  if (hasCustomerDetails(draft)) completedSteps.push('CUSTOMER');
+  if (hasLocation(draft)) completedSteps.push('LOCATION');
+  if (hasAssistedChatTyre(draft)) completedSteps.push('TYRE');
+  if (draft.quote && !draft.priceNeedsRefresh) completedSteps.push('PRICE');
+  if (hasSavedQuote(draft) && quoteConfirmed) completedSteps.push('QUOTE');
+  else if (hasSavedQuote(draft) && currentStage !== 'QUOTE') completedSteps.push('QUOTE');
+  if (draft.paymentChoice) completedSteps.push('PAYMENT');
+  if (draft.dispatchedRefNumber) completedSteps.push('DISPATCH');
+
+  const activeKey = timelineKeyForStage(currentStage);
+  const timeline: AssistedChatTimelineItem[] = [
+    { key: 'CUSTOMER', label: 'Customer', state: timelineState('CUSTOMER', activeKey, completedSteps) },
+    { key: 'LOCATION', label: 'Location', state: timelineState('LOCATION', activeKey, completedSteps) },
+    { key: 'TYRE', label: 'Tyre', state: timelineState('TYRE', activeKey, completedSteps) },
+    { key: 'PRICE', label: 'Price', state: timelineState('PRICE', activeKey, completedSteps) },
+    { key: 'QUOTE', label: 'Quote', state: timelineState('QUOTE', activeKey, completedSteps) },
+    { key: 'PAYMENT', label: 'Payment', state: timelineState('PAYMENT', activeKey, completedSteps) },
+    { key: 'DISPATCH', label: 'Dispatch', state: timelineState('DISPATCH', activeKey, completedSteps) },
+  ];
+
+  const primary = getAssistedChatPrimaryAction(input);
+  const secondaryActions: AssistedChatSecondaryAction[] = [
+    'COPY_LOCATION_LINK',
+    'SEND_LOCATION_WHATSAPP',
+    'SEND_LOCATION_SMS',
+    'SEND_LOCATION_EMAIL',
+    'COPY_QUOTE_MESSAGE',
+    'SEND_QUOTE',
+    'COPY_JOB_DETAILS',
+    'CLEAR_DRAFT',
+  ];
+
+  return {
+    currentStage,
+    completedSteps,
+    timeline,
+    primaryActionLabel: primary.label,
+    primaryActionDisabled: primary.disabled,
+    primaryActionDisabledReason: primary.disabledReason,
+    secondaryActions,
+  };
+}
+
+export function quoteFromQuickBookPatch(
+  breakdown: QuickBookPatchResponse['booking']['priceBreakdown'],
+  distanceKm: string | null,
+): AssistedChatQuoteBreakdown {
+  if (!breakdown) {
+    throw new Error('Pricing engine returned no breakdown.');
+  }
+
+  const pricingDistanceMiles = breakdown.distanceMiles ?? breakdown.pricingDistanceMiles ?? null;
+  const pricingDistanceKm =
+    pricingDistanceMiles != null
+      ? pricingDistanceMiles * 1.60934
+      : distanceKm
+      ? Number(distanceKm)
+      : null;
+  return {
+    subtotal: breakdown.subtotal,
+    vatAmount: breakdown.vatAmount,
+    total: breakdown.total,
+    lineItems: breakdown.lineItems,
+    distanceKm: pricingDistanceKm,
+    distanceMiles: pricingDistanceMiles,
+    serviceDistanceMiles: breakdown.serviceDistanceMiles ?? null,
+    pricingDistanceMiles,
+    pricingDurationMinutes: breakdown.pricingDurationMinutes ?? null,
+    garageDistanceMiles: breakdown.garageDistanceMiles ?? null,
+    pricingDistanceSource: breakdown.pricingDistanceSource ?? null,
+    distanceFloorApplied: breakdown.distanceFloorApplied ?? null,
+    fittingPrice: breakdown.fittingPrice ?? null,
+    tyrePrice: breakdown.tyrePrice ?? null,
+    totalPrice: breakdown.totalPrice ?? null,
+    tyreLines: breakdown.tyreLines ?? undefined,
+    adminAdjustmentAmount: breakdown.adminAdjustmentAmount ?? null,
+    adminAdjustmentReason: breakdown.adminAdjustmentReason ?? null,
+    serviceOrigin: breakdown.serviceOrigin ?? null,
+  };
+}

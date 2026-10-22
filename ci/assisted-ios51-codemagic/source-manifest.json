@@ -1,0 +1,1132 @@
+{
+  "fileCount": 225,
+  "files": [
+    {
+      "file": ".easignore",
+      "bytes": 700,
+      "sha256": "c736335d283000a3a75be67eac367b098666350b6a5be817285c105b7361eed2"
+    },
+    {
+      "file": "app.json",
+      "bytes": 3698,
+      "sha256": "988fcf182d500809b83677d9b84a0cb64cc086ae6898681100b29a7fde000121"
+    },
+    {
+      "file": "app/_layout.tsx",
+      "bytes": 5599,
+      "sha256": "79c791512e5ed3f344b79aee062e065f7003eb4e95ea4af1bcd4f59be996405f"
+    },
+    {
+      "file": "app/index.tsx",
+      "bytes": 3661,
+      "sha256": "5b6b191bd7e286bcec3c09f76036240ebb969c3506a9fdd6624560be15a8e392"
+    },
+    {
+      "file": "app/tax-payroll/_layout.tsx",
+      "bytes": 2675,
+      "sha256": "f5f3446278dbc2cfb96e407a0358c2890b532f8ae95561f0d91007324d40057f"
+    },
+    {
+      "file": "app/tax-payroll/activity.tsx",
+      "bytes": 4212,
+      "sha256": "18fcd6514d3ab9c41bb6b3fb607126906bfb43eb186e16576f75aa7d89d3a3fa"
+    },
+    {
+      "file": "app/tax-payroll/corporation-tax.tsx",
+      "bytes": 3558,
+      "sha256": "52adbaecd8bd3df82378f654a8fbccf9bb054fbd8399d9ef947610cb1642d00d"
+    },
+    {
+      "file": "app/tax-payroll/employees-payroll.tsx",
+      "bytes": 9842,
+      "sha256": "8f651d84a8cabd089a336440d9ba50dd3174f90c63cbc25433244ca8327f0709"
+    },
+    {
+      "file": "app/tax-payroll/employees/[employeeId].tsx",
+      "bytes": 15171,
+      "sha256": "0f417fa37a7070fbca89e5b0c83ffc79b07e3a1f815b58568f087206a7af261c"
+    },
+    {
+      "file": "app/tax-payroll/employees/new.tsx",
+      "bytes": 5773,
+      "sha256": "d687247e1cb748b20bd5a9cb9386263578904f27eb79274f81eeaeb4fe308f5e"
+    },
+    {
+      "file": "app/tax-payroll/index.tsx",
+      "bytes": 16043,
+      "sha256": "92fbd27ebbbc35622e6074b0086b85285f56724d8e626280e64351e0efc92588"
+    },
+    {
+      "file": "app/tax-payroll/ledger.tsx",
+      "bytes": 5597,
+      "sha256": "b213714c0e56e2a88f2b0499ff64aae3875c50912c762e930d1fad8b47e44aa7"
+    },
+    {
+      "file": "app/tax-payroll/monthly-tax.tsx",
+      "bytes": 14913,
+      "sha256": "e9883aeb5416f40fc301e8fb06d4d0eb2e589fabd463b4b484b029d6a08eafc6"
+    },
+    {
+      "file": "app/tax-payroll/notifications.tsx",
+      "bytes": 2995,
+      "sha256": "6f1259ad4b097da62c7bb1210fb200bf744f7c65061a1b36789cb94bad0f3455"
+    },
+    {
+      "file": "app/tax-payroll/payroll/runs/[runId].tsx",
+      "bytes": 368,
+      "sha256": "a09cdac6c57a0b748e75a4c87f1764fc2b79a053ab9c7a38917e8905b6778d82"
+    },
+    {
+      "file": "app/tax-payroll/payroll/runs/[runId]/payslips.tsx",
+      "bytes": 2302,
+      "sha256": "22752fc36c2ab274046e36f15c7378fa7b8630146d8527b1e36ef2fa9fe985af"
+    },
+    {
+      "file": "app/tax-payroll/payroll/runs/[runId]/review.tsx",
+      "bytes": 440,
+      "sha256": "0d1e75867996783e98d2233453dd32be42ac8aa8cf14ac77bda419f590b9cfd1"
+    },
+    {
+      "file": "app/tax-payroll/payroll/runs/new.tsx",
+      "bytes": 4392,
+      "sha256": "c69d7a2bd53924a090725d0ae71afe1271a5fc91b22b86347804e0fe88622806"
+    },
+    {
+      "file": "app/tax-payroll/payroll/settings.tsx",
+      "bytes": 10642,
+      "sha256": "9f279af1d5b245fce4a125d5204a103811c997e1345305e4e51e0760e1a30782"
+    },
+    {
+      "file": "app/tax-payroll/settings.tsx",
+      "bytes": 8670,
+      "sha256": "8c62738ba87266d5d5ef3cdf86fb96c086b9009c6cab61dc3d68289645496a51"
+    },
+    {
+      "file": "app/tax-payroll/vat.tsx",
+      "bytes": 4665,
+      "sha256": "573485966ac687112e994717007aa40ef41d34a3ffe6d1a1359e42b077239be9"
+    },
+    {
+      "file": "assets/adaptive-icon.png",
+      "bytes": 27182,
+      "sha256": "cddc5c233d2efda1f2ee62ebbd6dd1460b2a31df708c9b1c6862a137d6aa6796"
+    },
+    {
+      "file": "assets/administration-icon.jpg",
+      "bytes": 517977,
+      "sha256": "a983ee564385992ecf5c9d64486179edfe6ae2bd8480a5b34f4f1e449e04b085"
+    },
+    {
+      "file": "assets/favicon.png",
+      "bytes": 1987,
+      "sha256": "ee6ef44de09793aeb70e2272661afa801bff4e7dd3eadfddf56cec855d6d108e"
+    },
+    {
+      "file": "assets/icon.png",
+      "bytes": 57847,
+      "sha256": "d6c3e11e1cba133dbf6b358da7e882a8c83b4de3e221b8c2c513c915f17b971f"
+    },
+    {
+      "file": "assets/images/assisted-chat-header.png",
+      "bytes": 2314404,
+      "sha256": "eb2f2044c68ca1edb88d19df43c5e34da5c5dbbe073aaf42059ae4226da6bfdc"
+    },
+    {
+      "file": "assets/sounds/chat-receive.wav",
+      "bytes": 26062,
+      "sha256": "f9d0ef5a5c740c2ac250ac3876db9e4340669044a5bf78ae09192918db3e2ebc"
+    },
+    {
+      "file": "assets/sounds/chat-send.wav",
+      "bytes": 11086,
+      "sha256": "3d9e86003f8ebd1a3f6f3d8af65b6b682562a46d532ccd204dcba21305b950ff"
+    },
+    {
+      "file": "assets/sounds/CHAT-SOUNDS.md",
+      "bytes": 2915,
+      "sha256": "64ee7ff70be89e4a24eaba472e3ee582cde5e49e859f965c1f69d77b25c6c28b"
+    },
+    {
+      "file": "assets/sounds/KENNEY-LICENSE.txt",
+      "bytes": 574,
+      "sha256": "f7966c773bbed0eca6a9c75081c44a178b38eae112724dbb5fdfbd4192d118a9"
+    },
+    {
+      "file": "assets/sounds/urgent_booking.mp3",
+      "bytes": 432096,
+      "sha256": "3678c913781f71b7827fcf65af9fd371c5dd386d2b581ed066d54fde9184b262"
+    },
+    {
+      "file": "assets/splash.png",
+      "bytes": 104521,
+      "sha256": "c3493f1d80ce1e3699e7e06f7634dd2830b2fe6a6cffd900a5c9dc02042225d2"
+    },
+    {
+      "file": "assets/video/assisted-chat-header.mp4",
+      "bytes": 1057983,
+      "sha256": "8358924f66b8b10b75337dcb923a1a762752afc14d2f6e17910f452470abd4e0"
+    },
+    {
+      "file": "babel.config.js",
+      "bytes": 114,
+      "sha256": "44319908f2404dc609ebe9649a7436f7688ce35ade6f126cef98381809a28fce"
+    },
+    {
+      "file": "eas.json",
+      "bytes": 701,
+      "sha256": "004647c5250c285552044ebac4ec9f874f4d9a9f4911976f78367a5f57e51d61"
+    },
+    {
+      "file": "metro.config.js",
+      "bytes": 865,
+      "sha256": "32491119c72fa174b716cd2ab41d1d7e5299f631aeb2b57c1059cdbb2f64f264"
+    },
+    {
+      "file": "package-lock.json",
+      "bytes": 366084,
+      "sha256": "1ef71bea01739d77bd82eeae55a74670c5335a8014db44139c15df8047cd680b"
+    },
+    {
+      "file": "package.json",
+      "bytes": 1832,
+      "sha256": "657a0a606514798b1d52e55b1a7e716ef6f7eeebbf7cff71e2e7cb0f81652635"
+    },
+    {
+      "file": "patches/expo-notifications+55.0.25.patch",
+      "bytes": 1534,
+      "sha256": "fae8c2922e9795ff0ad6e16ebc30edd166fb716421fe3e89bbff45eada834d86"
+    },
+    {
+      "file": "scripts/apply-patches.js",
+      "bytes": 1231,
+      "sha256": "f1e5b37c49af9d0a31e880ed93e5c0cce879f9815b22a72190d4e688a318a34e"
+    },
+    {
+      "file": "src/components/ActionButtons.tsx",
+      "bytes": 5557,
+      "sha256": "23cfbacaebf77f9c3b5a336a648c145823d8d62aaa95451156704d6d4b9d1988"
+    },
+    {
+      "file": "src/components/ActiveJobsModal.tsx",
+      "bytes": 80692,
+      "sha256": "c024af54f3258d9c1cc9e397877ab19c8adad85b8b18f24ab15ff87ea649cca8"
+    },
+    {
+      "file": "src/components/AddAdminModal.tsx",
+      "bytes": 21461,
+      "sha256": "7866fe29f6a9e9af947283eb9933b637480b25a128807cfe18cdd383c5b5b952"
+    },
+    {
+      "file": "src/components/AdminAccountModal.tsx",
+      "bytes": 19904,
+      "sha256": "ea3680b3b83cdb45ae85b3b91f835704d16ff064a5be15d35c326b77b34b0e9f"
+    },
+    {
+      "file": "src/components/AdminBookingsModal.tsx",
+      "bytes": 83158,
+      "sha256": "9753e4f6484b69f7b6548b9421411e10254702a4a65c5bf8d5f2e10dbfbd7cce"
+    },
+    {
+      "file": "src/components/AdminCallbacksModal.tsx",
+      "bytes": 13189,
+      "sha256": "a847d0c1b004833ede054ed0e13c5d69baefcf9a83e8e13f999a068e175d193c"
+    },
+    {
+      "file": "src/components/AdminContactsModal.tsx",
+      "bytes": 12169,
+      "sha256": "69ecbc9cbf656b8c1dc15c59f689034e86c458ec319aa97a9321aa2041c2a40b"
+    },
+    {
+      "file": "src/components/AdminDemandModal.tsx",
+      "bytes": 12646,
+      "sha256": "65c56a9ac901b678163dece02bfa4985a0498bf15e551777066fd1bf7f0d98b9"
+    },
+    {
+      "file": "src/components/AdminDevicesModal.tsx",
+      "bytes": 11240,
+      "sha256": "906b3ce2efe19f97595e4fe678384af4937b6cfb42ce3a43447dea77cc39f16e"
+    },
+    {
+      "file": "src/components/AdminInvoicesModal.tsx",
+      "bytes": 40220,
+      "sha256": "53ce8558073f40a57bbd2839e25fc013360591946e335246b017c99d86339b7d"
+    },
+    {
+      "file": "src/components/AdminQuotesModal.tsx",
+      "bytes": 28101,
+      "sha256": "ea571fe88ab41eb487a7279a20be1b1a5c631f0176e31b96cc72319bf0cd87d5"
+    },
+    {
+      "file": "src/components/AdminRevenueModal.tsx",
+      "bytes": 14042,
+      "sha256": "cedb57216945ee0a3f5f2dca3ee136c7e593080679ed051a1ae0373a417fc5a4"
+    },
+    {
+      "file": "src/components/AdminStockModal.tsx",
+      "bytes": 49705,
+      "sha256": "5985026811dc866c01a7a10843be73a55b0561edf0bb70780301504c43660354"
+    },
+    {
+      "file": "src/components/AdminTrafficModal.tsx",
+      "bytes": 18316,
+      "sha256": "93eed01e455c08c6f793132d256c08593db599445b61c19221cc1c62d17f4046"
+    },
+    {
+      "file": "src/components/AdminVisitorsModal.tsx",
+      "bytes": 31505,
+      "sha256": "ae349aecd7466c764c0761d0d9f90f49f365070704962514ed66fe97435573fa"
+    },
+    {
+      "file": "src/components/alerts/DriverJourneysModal.tsx",
+      "bytes": 6072,
+      "sha256": "96a9c5b708c5a18b3c93f8ba2dff44d7c9fdd3506aa3f335d81402cd83410214"
+    },
+    {
+      "file": "src/components/alerts/NotificationReliabilityCard.tsx",
+      "bytes": 21786,
+      "sha256": "126659f85cbae877820322dbb60cbd6528012466c5ff95fcacad0bbf7f58037e"
+    },
+    {
+      "file": "src/components/alerts/UrgentBookingPopup.tsx",
+      "bytes": 20700,
+      "sha256": "16ec53ce6f5668f6b1ca41183316111789dbd2fb390b8ca03514ab168bec2570"
+    },
+    {
+      "file": "src/components/AssistedChatScreen.tsx",
+      "bytes": 208334,
+      "sha256": "21a6a50f6c66956164a21e04832c17e02dfc82e4708bf8641a84f8622901dbb3"
+    },
+    {
+      "file": "src/components/chat/ChatScreenLayout.tsx",
+      "bytes": 3424,
+      "sha256": "6c3772e64376ce89addc44750c545f89ce4af60d14fff437a1dbadfedccca297"
+    },
+    {
+      "file": "src/components/ChatComposerIconButton.tsx",
+      "bytes": 1841,
+      "sha256": "20b8b238105abae0b8839140d656a398862caa2927957aeb57a6056ed50641a8"
+    },
+    {
+      "file": "src/components/ChatHubModal.tsx",
+      "bytes": 62832,
+      "sha256": "8323a1114b876e36c5aef1be5f14ea96be94ca16828d40e17ffd22c163709d47"
+    },
+    {
+      "file": "src/components/ChatImageBubble.tsx",
+      "bytes": 2909,
+      "sha256": "5c00303a6435911a50679d77a43944c6e71b230c46e2c0972e8df14a3e4b896d"
+    },
+    {
+      "file": "src/components/CopyAddressButton.tsx",
+      "bytes": 2504,
+      "sha256": "e14eb65b6fb9fef4601d978f96329c8408525d5374a7339ef928365e85b7bdba"
+    },
+    {
+      "file": "src/components/CopyCoordinatesButton.tsx",
+      "bytes": 2953,
+      "sha256": "4b609c008b093919e7b3738bb42ab54243cf3015e8e6eed749656e5de8db31b8"
+    },
+    {
+      "file": "src/components/CustomerMessageCard.tsx",
+      "bytes": 2782,
+      "sha256": "d1bb7f38b3beca39893cf31b99de5da31f469a31a7d9c1f0f9280122bbc37f40"
+    },
+    {
+      "file": "src/components/DriverChatModal.tsx",
+      "bytes": 39033,
+      "sha256": "ab3cddddc2295256c1e293b46bbf59e1e6794ee2efd8fe61475b632aa5cbde84"
+    },
+    {
+      "file": "src/components/DuplicateBookingWarning.tsx",
+      "bytes": 2103,
+      "sha256": "8fd54a6b49a0094cdd315e60b79a1776e956bccdefe7df7a60c22f5d3a45939c"
+    },
+    {
+      "file": "src/components/FailedActionRecovery.tsx",
+      "bytes": 1734,
+      "sha256": "41393937aa950772c087bfa6247829d12faeba07549a2f0eed37169ae439f2a1"
+    },
+    {
+      "file": "src/components/GarageModal.tsx",
+      "bytes": 47315,
+      "sha256": "fc86716d00f6727f3e0f68d30dc601dd9fdfb3dff22c08fe45a9a567ca3907e5"
+    },
+    {
+      "file": "src/components/HeaderLiveVisitorCounter.tsx",
+      "bytes": 7643,
+      "sha256": "9258cb1a12c7c95a3e46b8b0eaf0fe9abd2026b57231e112264e785cd0aed98b"
+    },
+    {
+      "file": "src/components/icons/AppIcon.tsx",
+      "bytes": 584,
+      "sha256": "4b22e05a1fe93f1882c1c0c782c8470148b816d22c0d4d4d87c8c8af7ef5f23b"
+    },
+    {
+      "file": "src/components/invoices/InvoicePresentationEditor.tsx",
+      "bytes": 12992,
+      "sha256": "bf84fc280e3402cd175c5d7006a2edf032206b7df5350ad14561e8c7a8653e3b"
+    },
+    {
+      "file": "src/components/layout/AdminModalShell.tsx",
+      "bytes": 9435,
+      "sha256": "9bcd00e4e98383d2816b4ba29a1824dcf60b41d1162937161552d127a4c6cf0c"
+    },
+    {
+      "file": "src/components/layout/BottomSafeActionBar.tsx",
+      "bytes": 1733,
+      "sha256": "3273d5ba15870fdab1c412e421ace17d673f48bbdf074e492610178421bbfc7c"
+    },
+    {
+      "file": "src/components/layout/ModalSafeAreaView.tsx",
+      "bytes": 660,
+      "sha256": "35701391b929b61a2098145ab9128c946250ffc086afaa4f75f5e1b9c8bab789"
+    },
+    {
+      "file": "src/components/LocationSection.tsx",
+      "bytes": 67262,
+      "sha256": "903adc55f66bffbce074cc40634eec301f53469b6937ed231d98ad128eb6654c"
+    },
+    {
+      "file": "src/components/LockingWheelNutSection.tsx",
+      "bytes": 6771,
+      "sha256": "509c995d0bba75e03b01ec95cc5ab3dfdaf79aa1a63d4872c0681c937b20753b"
+    },
+    {
+      "file": "src/components/LoginScreen.tsx",
+      "bytes": 20675,
+      "sha256": "12308b6a1afe1a26c1283e5eca2810210a1e99c7eb5585be27c3b212e3ad0938"
+    },
+    {
+      "file": "src/components/MessageSenderModal.tsx",
+      "bytes": 5673,
+      "sha256": "de5c754e2afc39f95c76d4a4acb6e55182a026b197b181922b0f7abdcafedda2"
+    },
+    {
+      "file": "src/components/motion.ts",
+      "bytes": 4617,
+      "sha256": "bddf3a61fd884ef690b6bbaeac69492a2059d084b2cb203849a8dfbeea65cc8c"
+    },
+    {
+      "file": "src/components/PaymentLinkCard.tsx",
+      "bytes": 6758,
+      "sha256": "2167abf8d1e9fd137fda25fb32169555a3913b7a2e170c2366cade394b00bc6f"
+    },
+    {
+      "file": "src/components/payroll/CompanyPayrollAccessPanel.tsx",
+      "bytes": 8262,
+      "sha256": "db74b1d06176b9bfbfd1e9fc476c56f87b5f0d39e5f7b7b3c71cadd06aed1f28"
+    },
+    {
+      "file": "src/components/payroll/EmployeeTaxSetupPanel.tsx",
+      "bytes": 15389,
+      "sha256": "a9e04974991c91865759dba0d3bcea2971484e1373381bb71582a252889f8a11"
+    },
+    {
+      "file": "src/components/payroll/PayrollEarningsEditor.tsx",
+      "bytes": 7662,
+      "sha256": "4c4bb19c6eeded97c74f0aae1619bb5f91392c86ec1161c06a0cfad7e60cd0ce"
+    },
+    {
+      "file": "src/components/payroll/PayrollWorkspaceScreen.tsx",
+      "bytes": 10365,
+      "sha256": "d1e29026154cd0204e96d9a7db4e90011f6ccf014f37d5237a8fb0b0afb71261"
+    },
+    {
+      "file": "src/components/PriceSummary.tsx",
+      "bytes": 13541,
+      "sha256": "e8b4ea35345e79d7ac7cdd05d6037f4715524bc0ab3e631506a89489fa687f46"
+    },
+    {
+      "file": "src/components/ProjectSourcesModal.tsx",
+      "bytes": 12376,
+      "sha256": "06215e516ccdea9b7db0256dcecb960859b731296a00de96526d925ca05f8623"
+    },
+    {
+      "file": "src/components/quote/CompactQuoteCard.tsx",
+      "bytes": 9848,
+      "sha256": "46336db64c513d4871fd170f64e866bba59b8939e1ed4b337de7b9242a2612de"
+    },
+    {
+      "file": "src/components/quote/EditQuotePriceModal.tsx",
+      "bytes": 9635,
+      "sha256": "2d8e1db8f7cb2c9019ca57f67f67f33601638ac6a136550d3ec2c521c195aa7c"
+    },
+    {
+      "file": "src/components/QuoteDraftActions.tsx",
+      "bytes": 14229,
+      "sha256": "1658b443a579d643622e7472f46e4c4956d034ab225f072a4f90bb7dae171e6f"
+    },
+    {
+      "file": "src/components/RecentCustomersModal.tsx",
+      "bytes": 8554,
+      "sha256": "6a2a3ba8facfee98560fe2396ac91f1334d8be807c171947386872f537b148c7"
+    },
+    {
+      "file": "src/components/security/AdminAppLockProvider.tsx",
+      "bytes": 8573,
+      "sha256": "45ec722a75f545c9a8da8ee4e26ab334b2d212e9cf0102b8ce1c0525bbef4b72"
+    },
+    {
+      "file": "src/components/SessionRecoveryScreen.tsx",
+      "bytes": 2393,
+      "sha256": "1a1fc7db741c05d989cc60d6b69e222e8f6104fb364d9f4dac9ad1debf883de4"
+    },
+    {
+      "file": "src/components/theme.ts",
+      "bytes": 4713,
+      "sha256": "16cfcc6cd28319770f6aa06beff911be4124f8203890c897d2ae4615dbe1354c"
+    },
+    {
+      "file": "src/components/TodayBookingsModal.tsx",
+      "bytes": 14913,
+      "sha256": "e59206ef56058432f87984efce4aa8ffce2b7bdd7c7afd69752a446ff8ecd376"
+    },
+    {
+      "file": "src/components/tracking/BookingTrackingCard.tsx",
+      "bytes": 14126,
+      "sha256": "5a5ff0e14056fbd02f75f74a0f49ef662075848d8db0ff30ff50f5f6a1820be2"
+    },
+    {
+      "file": "src/components/tracking/DriverAssignSection.tsx",
+      "bytes": 18545,
+      "sha256": "f6689c9547d3e1eb03098556ccf6845f9f923f475ef84b9be9cb2418a94079d0"
+    },
+    {
+      "file": "src/components/tracking/DriverLocationShareActions.tsx",
+      "bytes": 2186,
+      "sha256": "d81ab0e7bec3ecc3bbca58e29a36b8ed1f1f34671aa889975629859a296c5928"
+    },
+    {
+      "file": "src/components/tracking/LiveTrackingMapMobile.tsx",
+      "bytes": 6315,
+      "sha256": "3ead2d1733e179617c31b0f8726c8808c5d390c740141422171fd694c34d90ad"
+    },
+    {
+      "file": "src/components/tracking/tracking-map-html.ts",
+      "bytes": 18344,
+      "sha256": "cd3348fc081adef8bf0212e6fb2a59debb2fc610e1df57c1ff984a7feb66f6d8"
+    },
+    {
+      "file": "src/components/TrackingModal.tsx",
+      "bytes": 63356,
+      "sha256": "3ace2344f8116fa1f2bb7b503876e7a9f4b27d12b5bfedd7d0c60ba627e71685"
+    },
+    {
+      "file": "src/components/TyreSelectionSection.tsx",
+      "bytes": 42508,
+      "sha256": "f11dc6fe39988dd82e1e77d3798b865dd9fc9312c75aff5f920daaabf0fef120"
+    },
+    {
+      "file": "src/components/ui.tsx",
+      "bytes": 16194,
+      "sha256": "bf1e5c038fff840ff04ddd755aa1bc06d25ea0b8cddb80f7c75317a8fd5192ef"
+    },
+    {
+      "file": "src/components/ui/ActionButton.tsx",
+      "bytes": 7490,
+      "sha256": "5bae8ddf30097d7ddd73363680236402dac551c5d69cd93d67bb84c1ac42e820"
+    },
+    {
+      "file": "src/components/ui/AlertActionButton.tsx",
+      "bytes": 5894,
+      "sha256": "1e0432be383320f6687a5371387794191df79468ab4f26a8e7a0da85620bf81d"
+    },
+    {
+      "file": "src/components/VirtualLandlineModal.tsx",
+      "bytes": 33052,
+      "sha256": "43361317b43be8c2e497d32bb2ce50c8a462ca4d3c2c67ae0c353b55a11c2e9c"
+    },
+    {
+      "file": "src/components/VoiceMessageBubble.tsx",
+      "bytes": 7152,
+      "sha256": "8202676b09eb4294e2b763e30965625b5b4fb141f301c6aaadbdae6442b80e36"
+    },
+    {
+      "file": "src/components/workflow/NextBestActionCard.tsx",
+      "bytes": 5767,
+      "sha256": "4ec18204a16bc7dc6d9a07c1da5e4e148803e919b1f6c42747078cc34c8f7c53"
+    },
+    {
+      "file": "src/components/workflow/OperatorStepProgress.tsx",
+      "bytes": 9710,
+      "sha256": "d92f866a302632bf5668c952406455a5dfcfa1f5a3357d3ed6e2e82701c54c6d"
+    },
+    {
+      "file": "src/components/workflow/StepCard.tsx",
+      "bytes": 6792,
+      "sha256": "3df2fffae43682771d5313d7854c34931aac034bccb28d579e062369bc8987d1"
+    },
+    {
+      "file": "src/components/workflow/WorkingStatusCard.tsx",
+      "bytes": 2967,
+      "sha256": "cc1775c02dcd7c5c63d62a5e30abde0ae8a74e08a7101c6125a92ecfa2e9545e"
+    },
+    {
+      "file": "src/hooks/useAccountPreferences.ts",
+      "bytes": 4691,
+      "sha256": "eddabb7bd7c56987f2aee48750724214b65a7c7297108d46b8aa303679d3613f"
+    },
+    {
+      "file": "src/hooks/useActiveJobs.ts",
+      "bytes": 9405,
+      "sha256": "68339f2bdba08b8e56ef985c08895f3f1cf2b1c7ed8b9c8001492b5995de8949"
+    },
+    {
+      "file": "src/hooks/useAdminDevices.ts",
+      "bytes": 4561,
+      "sha256": "1be83a15f154bb1a6743ef7badb9c3bdca62287577431dd9dd609dd46a37de07"
+    },
+    {
+      "file": "src/hooks/useAdminInvoices.ts",
+      "bytes": 7321,
+      "sha256": "44af0956429b38647c53f7e29d2686283ae503465830c258633def1a8ac53c50"
+    },
+    {
+      "file": "src/hooks/useAdminPaymentLink.ts",
+      "bytes": 19814,
+      "sha256": "6196c8b106fe574f05278140e409e990046d2b9aeb5ae88b656eab9ba14af81a"
+    },
+    {
+      "file": "src/hooks/useAdminSession.ts",
+      "bytes": 23947,
+      "sha256": "266a8c6c11dbb71924ae9027ac86f7f32545cecd5708142a71698e9f17d5d333"
+    },
+    {
+      "file": "src/hooks/useAdminStock.ts",
+      "bytes": 9037,
+      "sha256": "b11de7e3ab4bf53ab115da910478023e3086c7fe2f51ffb979fd94fc23dc0c0d"
+    },
+    {
+      "file": "src/hooks/useAdminVisitors.ts",
+      "bytes": 5488,
+      "sha256": "35ae4b097a6d700ddd21f597224306559690d82279697fa2438cf49262c03adf"
+    },
+    {
+      "file": "src/hooks/useAssistedChatDispatch.ts",
+      "bytes": 18892,
+      "sha256": "de9443e75538637947cca465e60fa5d8360e3c47759bb9b2a563d5fd6d68348a"
+    },
+    {
+      "file": "src/hooks/useAssistedChatDraft.ts",
+      "bytes": 14091,
+      "sha256": "597826f641a529e707611a4f7d9e3a37a6e40fe6c5e96d69db7e9881f89a8d25"
+    },
+    {
+      "file": "src/hooks/useAssistedChatLocationShare.ts",
+      "bytes": 13560,
+      "sha256": "e4465ae86c92393aa1eb961e796a76b123e7385e339e2f7c605739a23a3e85be"
+    },
+    {
+      "file": "src/hooks/useAssistedChatPrice.ts",
+      "bytes": 10172,
+      "sha256": "17c8bed13e8aef6fcf7c0aeececa6d145c7c758efa170a11ab92439554965fc8"
+    },
+    {
+      "file": "src/hooks/useAssistedChatQuoteActions.ts",
+      "bytes": 13220,
+      "sha256": "b26d3bd8c436211037db034813cc637e8c0b89860c317611bb438026ab8b53fe"
+    },
+    {
+      "file": "src/hooks/useBookingTracking.ts",
+      "bytes": 5770,
+      "sha256": "1cf3f6165b6f50b1474d2fa6e2c493a48e6210c78fd7bc7da473eadf7e6873b5"
+    },
+    {
+      "file": "src/hooks/useChatSounds.ts",
+      "bytes": 5761,
+      "sha256": "d8b502f1bdc6e71b58571ee441f6c43f86746f45d4a9bfe0890eb5e6de80d910"
+    },
+    {
+      "file": "src/hooks/useChatVoiceRecorder.ts",
+      "bytes": 2508,
+      "sha256": "5762f97fe1451db77d2962f6f869827e1363e691e58015892bb3223ef8cb9f9c"
+    },
+    {
+      "file": "src/hooks/useCompanyTaxSettings.ts",
+      "bytes": 2112,
+      "sha256": "8a3634978a1d7a9e72d17e94209236d5ad0a63bbb2fd9f59794d64c69160b0d6"
+    },
+    {
+      "file": "src/hooks/useCorporationTax.ts",
+      "bytes": 2011,
+      "sha256": "c703e4d821b547e82dcc6f58b4dc6e061540846a0334f8509e3d6bd766f176af"
+    },
+    {
+      "file": "src/hooks/useDriverJourneys.ts",
+      "bytes": 7033,
+      "sha256": "e00259f281765e15e71f3a7ab12b018d08131aad4fa4ab54407fbc31ea967fd1"
+    },
+    {
+      "file": "src/hooks/useDriverList.ts",
+      "bytes": 2432,
+      "sha256": "3c812ff4476592d2d856cd6b416de8cb93833b5b94e960633f860b8cdaa4cd7b"
+    },
+    {
+      "file": "src/hooks/useDriverLocationShare.ts",
+      "bytes": 5207,
+      "sha256": "f480026c08bb7ecdf261ea0f3e10eef04519ccc9fdc31a6a44953f954119e2f8"
+    },
+    {
+      "file": "src/hooks/useDuplicateBookingWarning.ts",
+      "bytes": 5592,
+      "sha256": "299305ce37e58706abe89c38b05a8892930bae132018aa12d9a05f9b7e20eba7"
+    },
+    {
+      "file": "src/hooks/useEmployee.ts",
+      "bytes": 5173,
+      "sha256": "fb2d039b87546fb867afa67012961f7b663d87866a2887221c62ea39b8e0c604"
+    },
+    {
+      "file": "src/hooks/useEmployees.ts",
+      "bytes": 3280,
+      "sha256": "b360ff97a0e4014e659903ad41d0dd640445d5aee619f5bf5bf18ce257fff49f"
+    },
+    {
+      "file": "src/hooks/useLiveVisitorCount.ts",
+      "bytes": 5964,
+      "sha256": "9d1d4358129696b0bd7cb128f23cd8edadfc9e1e114658db764425ac03070634"
+    },
+    {
+      "file": "src/hooks/useMonthlyTax.ts",
+      "bytes": 6347,
+      "sha256": "cd555c700d7bf6c98ac50ac2903a706a39c88d3a66be814e1ee0adbb824bedc2"
+    },
+    {
+      "file": "src/hooks/useNewCustomerBookingAlert.ts",
+      "bytes": 12824,
+      "sha256": "e13e411424346ef2b5b8e695e3ba42b84a96eaf4e200c9deb7d62c9bfcd2bdb4"
+    },
+    {
+      "file": "src/hooks/usePayrollDraft.ts",
+      "bytes": 3603,
+      "sha256": "6b8df7921bbe815504860baf3e218ebae568c6f412525026a9a9107cf273ada7"
+    },
+    {
+      "file": "src/hooks/usePayrollDrafts.ts",
+      "bytes": 3180,
+      "sha256": "1e6eafca5cca5eaa4e5b8b5e4a273f07924f118d76a53d1c4a75b3acf86dc215"
+    },
+    {
+      "file": "src/hooks/usePayrollRun.ts",
+      "bytes": 4592,
+      "sha256": "23f59d02cf5ccea4660b4eed42036638edaae1bcc446ad97f78df2c4525cec53"
+    },
+    {
+      "file": "src/hooks/usePayrollSettings.ts",
+      "bytes": 4268,
+      "sha256": "51d1081a743073a492f46c52197bfac7757ddb2a1b3e3a93dde9d552e63b3ab4"
+    },
+    {
+      "file": "src/hooks/usePayrollWorkspace.ts",
+      "bytes": 9550,
+      "sha256": "a16700c7cfd9763a6ececf29a66733caa1e458677376bebfa640d49110ff9bbc"
+    },
+    {
+      "file": "src/hooks/useRecentCustomers.ts",
+      "bytes": 3498,
+      "sha256": "200c0a9db6d8674799c8edc3c22a33242f755863a187ce557c5ce61b97feb5c8"
+    },
+    {
+      "file": "src/hooks/useTaxActivity.ts",
+      "bytes": 2118,
+      "sha256": "ae796aded1994e8c2551c10b8bd3c9a51439a453ec59f7665869ed33c76f3af4"
+    },
+    {
+      "file": "src/hooks/useTaxApiScope.ts",
+      "bytes": 2347,
+      "sha256": "6663cf382d14447751327553a6d05f86e2715bbd7b913ab76723d2199df5bbed"
+    },
+    {
+      "file": "src/hooks/useTaxCompanies.ts",
+      "bytes": 6167,
+      "sha256": "d6506cf8c6992b52e3ace7fe45f4161dacd8ee3e36fea8d48ae88191f1849708"
+    },
+    {
+      "file": "src/hooks/useTaxNotifications.ts",
+      "bytes": 1466,
+      "sha256": "f8a0454fc8ece9e9066b7d212012a742c8fb3b541a15a8d102e33994ad13a1ec"
+    },
+    {
+      "file": "src/hooks/useTaxPayrollOverview.ts",
+      "bytes": 3152,
+      "sha256": "0400559cca4c43095fc7837c25eb784f07d6aae4f372dd18ec70c6141a42ab1c"
+    },
+    {
+      "file": "src/hooks/useTodayBookings.ts",
+      "bytes": 6326,
+      "sha256": "9280a8ff56c2d192397f6cbfb8732193610132b93b3c4567427b6ab34bf68105"
+    },
+    {
+      "file": "src/hooks/useTracking.ts",
+      "bytes": 4211,
+      "sha256": "9c8309e6d804bbcb6e52f7b55d79da624b5ddb8ca9ba43c7cd6b45a6bbb21212"
+    },
+    {
+      "file": "src/hooks/useVatReturn.ts",
+      "bytes": 1736,
+      "sha256": "cee86f6365470f86fa331dc0177c233224df52770882b0a860c0e37b47f62d52"
+    },
+    {
+      "file": "src/lib/account-preferences.ts",
+      "bytes": 2156,
+      "sha256": "094058af86fdb3c1b8e64ec5b2f5d9ee9322ae89e2e190a5d7af330821edf2eb"
+    },
+    {
+      "file": "src/lib/account-support-report.ts",
+      "bytes": 2971,
+      "sha256": "e1e6920110529352ac3da4d85f170634698fce8fd1b7358509b0a550b8c54117"
+    },
+    {
+      "file": "src/lib/admin-app-lock.ts",
+      "bytes": 8576,
+      "sha256": "f1cbf306793e00f68d7f265f7ae6f5a24cd4315de40c2086d5c7b3deb2248c71"
+    },
+    {
+      "file": "src/lib/admin-biometrics.ts",
+      "bytes": 2977,
+      "sha256": "84c2acc1358cf5c1fd5d79a55667477cd82a9ea2e2112622870a3207e8014603"
+    },
+    {
+      "file": "src/lib/admin-device-heartbeat.ts",
+      "bytes": 5380,
+      "sha256": "5ed8e6ed6ec739561fb5bc831118dbc93da101c0e89a502c09667d141ec45196"
+    },
+    {
+      "file": "src/lib/admin-device-metadata.ts",
+      "bytes": 2469,
+      "sha256": "095dea4adc6c6d3e0de8338c893a774d8a611c4ea688b4975c103af93e011557"
+    },
+    {
+      "file": "src/lib/admin-session-storage.ts",
+      "bytes": 11250,
+      "sha256": "920c570d92fcc312cc424e774edbd0ed8148c11ba01ecb1b7f31d90e8c0b1fd6"
+    },
+    {
+      "file": "src/lib/api.ts",
+      "bytes": 10633,
+      "sha256": "9353e67a565531dba1440e0fb5d031cbf5bff3e68b8ddaf105ddf0922e223b8c"
+    },
+    {
+      "file": "src/lib/assisted-chat-workflow.ts",
+      "bytes": 20288,
+      "sha256": "9f2cbc2b90cee984b69e5205863d015e4dc7734f2ac337cba9c2d1091b42c988"
+    },
+    {
+      "file": "src/lib/booking-address.ts",
+      "bytes": 893,
+      "sha256": "24b925ff187f95b9e366b9ddd849027d92c910fe7ffc90763c138f4af31f953e"
+    },
+    {
+      "file": "src/lib/booking-coordinates.ts",
+      "bytes": 880,
+      "sha256": "1c45de789f3f9ea67afcbb0fe26e217b4c32e77711d9212a402e3462745b18bf"
+    },
+    {
+      "file": "src/lib/browser-network-events.ts",
+      "bytes": 1866,
+      "sha256": "ccaeee67d916c84d71e03140cb840b2fc1a2f76f162633867355fa3ab649f520"
+    },
+    {
+      "file": "src/lib/chat-attachments.ts",
+      "bytes": 4705,
+      "sha256": "510fb251a63cea5eef9ab84a6791e47d003f8ed63d2252d59d008692302219dc"
+    },
+    {
+      "file": "src/lib/chat-download.ts",
+      "bytes": 3372,
+      "sha256": "d58c6c92cc4b8dc14d370918ce0f027e98f4347f656b06c2d8958d053ada771e"
+    },
+    {
+      "file": "src/lib/chat-message-display.ts",
+      "bytes": 536,
+      "sha256": "18c30add8196f0673b87e1442f2e8eb9e828411d5e5d480ae9c5d982be7c2fad"
+    },
+    {
+      "file": "src/lib/chat-sound-tracker.ts",
+      "bytes": 1850,
+      "sha256": "4369c28ed6dd9ead83876831dcff8b1dea62c08270c712a34a3d3f5467770fe2"
+    },
+    {
+      "file": "src/lib/chat-voice.ts",
+      "bytes": 10328,
+      "sha256": "fd61ff8441e8cddbc53e1a7d1b618b0190181f0d906f3e15028ec783f6b66f75"
+    },
+    {
+      "file": "src/lib/clipboard.ts",
+      "bytes": 231,
+      "sha256": "036c76a9e3191c1ae029f523a1b64d66e42bf9dd2e4bbb83a3530eff2ebf9898"
+    },
+    {
+      "file": "src/lib/customer-message.ts",
+      "bytes": 5400,
+      "sha256": "bfc065e928a085189a7ab86cf0b5261e5eca530d8f4fb07dd657ad498519c3a5"
+    },
+    {
+      "file": "src/lib/driver-location-share.ts",
+      "bytes": 7692,
+      "sha256": "d39a5339eeb3fd26b1d04d20c528003907dd5306011cdb9644d037c7204bad27"
+    },
+    {
+      "file": "src/lib/geo.ts",
+      "bytes": 1009,
+      "sha256": "fe4e238e6347ecb0325348baefe71867c076022f7b91ef6591a68c40b0752e3d"
+    },
+    {
+      "file": "src/lib/header-layout.ts",
+      "bytes": 2444,
+      "sha256": "fdc7e9a8cab32b431ff30389f9a379114745bafb06f6eadfa9e954b0a5e704c5"
+    },
+    {
+      "file": "src/lib/header-notifications.ts",
+      "bytes": 834,
+      "sha256": "ce1893ddb876cc80807986d562720649142c2e461fc1005e3c60d49a8c57a00a"
+    },
+    {
+      "file": "src/lib/header-video.ts",
+      "bytes": 5559,
+      "sha256": "2e3a1f614444fffa43d0267f17eba4f13b7cd97293b84e564c4752cf10868947"
+    },
+    {
+      "file": "src/lib/invoice-download.ts",
+      "bytes": 3185,
+      "sha256": "15da02e0b7b4394b4755226412f499ac182898aba0f1f4b2705892d3a6e0e87e"
+    },
+    {
+      "file": "src/lib/live-visitor-notice.ts",
+      "bytes": 2283,
+      "sha256": "bd487d5081eefc9bcb0531fa5d157ea96f92f3787be8369f4c001c7193df780d"
+    },
+    {
+      "file": "src/lib/manual-logout.ts",
+      "bytes": 737,
+      "sha256": "4b1109e8cfd873355ad15f764fda077e22b29d8f72223d5efe00228254210657"
+    },
+    {
+      "file": "src/lib/mapbox.ts",
+      "bytes": 1233,
+      "sha256": "31fa0fe23490d9c9fbbfc9dadb4673754248baaa5130f3fc20c51c1ec14057c4"
+    },
+    {
+      "file": "src/lib/modal-presentation.ts",
+      "bytes": 1281,
+      "sha256": "e8b8e278d0d8ffda8eeb41ad136ece603973d4199c483f42dd25108d36c127fe"
+    },
+    {
+      "file": "src/lib/money.ts",
+      "bytes": 3200,
+      "sha256": "46c08cf59b123b703ad9be9596078b92f06c1206e8f3d1a5248d7138c2052c09"
+    },
+    {
+      "file": "src/lib/monthly-tax-response.ts",
+      "bytes": 7579,
+      "sha256": "ed2dc867b42e840da928c231897b104fb6f164d028adc6f27c11a3cae039144a"
+    },
+    {
+      "file": "src/lib/native-event-subscription.ts",
+      "bytes": 355,
+      "sha256": "6bd246da451c3826165088ab10ac1102d051626cdb1c82e04da1905145adaf0c"
+    },
+    {
+      "file": "src/lib/native-urgent-sound.ts",
+      "bytes": 1645,
+      "sha256": "3936c837d8ef88ea27d22b8e31e31dad127b02682f393e6d86549421be4fdf3c"
+    },
+    {
+      "file": "src/lib/notification-contract.ts",
+      "bytes": 761,
+      "sha256": "dd1bbf64819806e7b1911c9904dc0fd07bf309ea9438105d368f293775e959ec"
+    },
+    {
+      "file": "src/lib/notification-safety.ts",
+      "bytes": 3378,
+      "sha256": "9d3910df0b870c3e7de61df5f634c872d9406b20c5b636a20b4ef31315712b4e"
+    },
+    {
+      "file": "src/lib/notification-startup-config.ts",
+      "bytes": 570,
+      "sha256": "243eff1d3dcf279c6a53f62ebc72b3d6ea33fdf9580ead6fc9876bb4cb3d0d06"
+    },
+    {
+      "file": "src/lib/notifications.ts",
+      "bytes": 38186,
+      "sha256": "775555a6f0184d8d0077ed9dd43765618ce6f76175ad4ee1a4d5189285ecd484"
+    },
+    {
+      "file": "src/lib/notifications.web.ts",
+      "bytes": 4183,
+      "sha256": "babbf4665e064ffe84cc98e2bcffc07229a5f4d61d4fcf677ccc1d2a79cd1aeb"
+    },
+    {
+      "file": "src/lib/operator-workflow-state.ts",
+      "bytes": 10572,
+      "sha256": "9e44dc499aa9d1980a128b541a1b3be1406f613ec787ec6c321ac94756542ee5"
+    },
+    {
+      "file": "src/lib/payment-link-status.ts",
+      "bytes": 4971,
+      "sha256": "1bbed9655aa6a0073983f4b8c156b2db394eb74dcf07ed21bf4d418a15b477bf"
+    },
+    {
+      "file": "src/lib/payroll-panel-response.ts",
+      "bytes": 7992,
+      "sha256": "260774047b5a532fe3348c733ef7f9fa5633fbef5d594c3221764c9b353075f4"
+    },
+    {
+      "file": "src/lib/payroll-readiness-response.ts",
+      "bytes": 1534,
+      "sha256": "4f6f5f8c3017977af1848bf7b249f2539f2bbf011fe69432fbb65825d2a3581c"
+    },
+    {
+      "file": "src/lib/payroll-setup-response.ts",
+      "bytes": 8273,
+      "sha256": "2f77b6d6b48ba5bbe78a5ba9b6058764cc80afc53d64f14d74f7129cdca5f1de"
+    },
+    {
+      "file": "src/lib/payroll-workspace-response.ts",
+      "bytes": 7760,
+      "sha256": "9f936973086c6434aa6caab3283fa75d62f651ccd0e0850d0d5b86c4907f7fd7"
+    },
+    {
+      "file": "src/lib/pricing-context.ts",
+      "bytes": 143,
+      "sha256": "c5b5e2fd92a640e50f56f6e058ce935698fc562aa0646b74d27dd21c6b2346ce"
+    },
+    {
+      "file": "src/lib/project-config.ts",
+      "bytes": 4633,
+      "sha256": "a88623c77044b0f15541635c30827bb46690b0061fbdfe12b4ee955d8ef7263e"
+    },
+    {
+      "file": "src/lib/quote-price-display.ts",
+      "bytes": 1229,
+      "sha256": "bd557f5a2d87435e042d0be03a60abe0ebbbbb2dd8e61ca80dc6ebd1b74a6789"
+    },
+    {
+      "file": "src/lib/quote-price.ts",
+      "bytes": 2110,
+      "sha256": "e59acb63c17392fb691088d63575b995470bb250a6f73d4b66fabadf337aab6c"
+    },
+    {
+      "file": "src/lib/session-startup-config.ts",
+      "bytes": 463,
+      "sha256": "7c215f24c6e2ce5cc128c1dbcddf0fb13b2b8322c79c7cff07fdd4ed843bfe3d"
+    },
+    {
+      "file": "src/lib/startup-logging.ts",
+      "bytes": 14845,
+      "sha256": "7efed85626f781d1f3c0f86f21b9f6d8a6aceaf53124e6027d7e988046e18403"
+    },
+    {
+      "file": "src/lib/tax-company-response.ts",
+      "bytes": 4644,
+      "sha256": "305dd4830b67391e12b31b06a6d81803d0aa027ac8d6092cbee9239e814a084a"
+    },
+    {
+      "file": "src/lib/tax-input.ts",
+      "bytes": 2576,
+      "sha256": "f21ef75a291263e5f1a21592a5776d28dfa35e418224af6dee3016f5c3a90e3f"
+    },
+    {
+      "file": "src/lib/tax-payroll-overview-response.ts",
+      "bytes": 6201,
+      "sha256": "b13d7995b9e9f1f3da3001f56e8acc096f66dd4a02630f1a48c77ebb27ee6ada"
+    },
+    {
+      "file": "src/lib/urgent-alerts.ts",
+      "bytes": 19504,
+      "sha256": "99937840c745f15d3a16923a9453e4173aedfb3df4f603032de8a47118e3e6f3"
+    },
+    {
+      "file": "src/lib/urgent-watcher.ts",
+      "bytes": 2845,
+      "sha256": "9913ddbd5c20ef96bffe5b7fc07734f2d20ef2aa5d9667c279e8ab52ba99f30e"
+    },
+    {
+      "file": "src/lib/urgent-watcher.web.ts",
+      "bytes": 591,
+      "sha256": "c2196d7094143bc3daefc72a4bd7f6c2709b4a0a949c4fb50400fdf3cc97dd21"
+    },
+    {
+      "file": "src/lib/virtual-landline.ts",
+      "bytes": 2204,
+      "sha256": "4a92dd045bf84ca33aff4c5e8f9704d0618ed142a231fab33a5f4ad65c699b37"
+    },
+    {
+      "file": "src/lib/whatsapp-templates.ts",
+      "bytes": 4968,
+      "sha256": "9c7ce08edecd9027859c8f6693ceab1b0b3cf19022193bd6a71aaf571d920029"
+    },
+    {
+      "file": "src/startup-entry.js",
+      "bytes": 5309,
+      "sha256": "9ec0130601d57b481b7c9d98c99bb53b42b54b778b7593bec7c60643a6b2fe84"
+    },
+    {
+      "file": "src/types/admin-devices.ts",
+      "bytes": 6735,
+      "sha256": "c8f22921d96a18f6e137a1383090dbcf1456715b9ee7d47fd3f06a498eea85ea"
+    },
+    {
+      "file": "src/types/admin-quotes.ts",
+      "bytes": 4430,
+      "sha256": "c49725c4e10b96e86eb9b27be1265570489afdb2c9eab583cd06a07a267f08ff"
+    },
+    {
+      "file": "src/types/assets.d.ts",
+      "bytes": 224,
+      "sha256": "730567dea6e655a4176d620c728c9c0d0c19546f721714757e382b3ce87e24c1"
+    },
+    {
+      "file": "src/types/assisted-chat.ts",
+      "bytes": 13031,
+      "sha256": "be268eec298662c1d0e15cd6192d51d8f9674830cd6181c109e8a7ecdb565be0"
+    },
+    {
+      "file": "src/types/driver-journeys.ts",
+      "bytes": 5175,
+      "sha256": "b63381b28513f43b61746db4a81c3fa281b4516d3032221b325c11e0ff5f07d5"
+    },
+    {
+      "file": "src/types/invoice-presentation.ts",
+      "bytes": 5247,
+      "sha256": "966166df946ef94e12ba925bdb51523f347f40652129be3d017d0c5af2c3c6bf"
+    },
+    {
+      "file": "src/types/monthly-tax.ts",
+      "bytes": 1464,
+      "sha256": "81bf5eef108267b7aa789ee2c52be77afade464142a36e802d37986462a0bb4f"
+    },
+    {
+      "file": "src/types/new-customer-booking-alerts.ts",
+      "bytes": 4076,
+      "sha256": "c67e544709111fa4e24ac1c19c1cf31d83d76615bba1ddbe1996dfb870b531e8"
+    },
+    {
+      "file": "src/types/operator-workflow.ts",
+      "bytes": 1959,
+      "sha256": "1008420f497323236604058ce5c94f3a443631774187d4fe0ad27da2aa28d391"
+    },
+    {
+      "file": "src/types/payroll-calculation.ts",
+      "bytes": 980,
+      "sha256": "5279a207ef6413eb140cdb50d9f80cd91421db28ed418a7e8bc5724c2b38158f"
+    },
+    {
+      "file": "src/types/tax-payroll.ts",
+      "bytes": 12215,
+      "sha256": "6cb33c78d022d508b62340a07c0090f9817b811c49eb5930b0c082ee9d09b078"
+    },
+    {
+      "file": "src/types/virtual-landline.ts",
+      "bytes": 3138,
+      "sha256": "79bb7b3b9bbe9a608189f412bc01cc8d81241fb0861935fc4e2de44a9428b8dc"
+    },
+    {
+      "file": "tsconfig.json",
+      "bytes": 439,
+      "sha256": "42f963965e742f739ff07d179937d91496dcbaf85fd7da9ba6077043b490e960"
+    }
+  ],
+  "sourceManifestSha256": "00d540c1ac793f9fe580c1aba28863229e7f212e0a3a72bf8fe163e8bfa1e92d",
+  "packageLockSha256": "1ef71bea01739d77bd82eeae55a74670c5335a8014db44139c15df8047cd680b"
+}
