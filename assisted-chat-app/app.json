@@ -1,0 +1,112 @@
+{
+  "expo": {
+    "name": "Tyre Rescue Assisted Chat",
+    "slug": "tyre-rescue-assisted-chat",
+    "version": "1.0.12",
+    "orientation": "portrait",
+    "scheme": "tyrerescueassistedchat",
+    "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#09090B"
+    },
+    "android": {
+      "package": "uk.tyrerescue.assistedchat",
+      "versionCode": 7,
+      "permissions": [
+        "INTERNET",
+        "CAMERA",
+        "POST_NOTIFICATIONS",
+        "RECORD_AUDIO",
+        "USE_FULL_SCREEN_INTENT",
+        "WAKE_LOCK",
+        "VIBRATE"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1E40AF"
+      },
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "ios": {
+      "bundleIdentifier": "uk.tyrerescue.assistedchat",
+      "buildNumber": "50",
+      "supportsTablet": true,
+      "icon": "./assets/administration-icon.jpg",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Tyre Rescue uses the camera so operators can send job photos in Assisted Chat.",
+        "NSMicrophoneUsageDescription": "Tyre Rescue uses the microphone so operators can send voice messages in Assisted Chat.",
+        "NSPhotoLibraryUsageDescription": "Tyre Rescue uses your photo library so operators can send images in Assisted Chat.",
+        "NSLocationWhenInUseUsageDescription": "Tyre Rescue Assisted Chat lets operators view customer and driver locations for active rescue bookings.",
+        "NSFaceIDUsageDescription": "Use Face ID to unlock Assisted Chat while keeping your admin account signed in."
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "backgroundColor": "#09090B",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Tyre Rescue uses the camera so operators can send job photos in Assisted Chat.",
+          "photosPermission": "Tyre Rescue uses your photo library so operators can send images in Assisted Chat.",
+          "microphonePermission": "Tyre Rescue uses the microphone so operators can send voice messages in Assisted Chat."
+        }
+      ],
+      "expo-sharing",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Tyre Rescue uses the microphone so operators can send voice messages in Assisted Chat.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Use Face ID to unlock Assisted Chat while keeping your admin account signed in."
+        }
+      ],
+      "expo-font",
+      "expo-asset",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": "Use Face ID to unlock Assisted Chat while keeping your admin account signed in."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sounds/urgent_booking.mp3",
+            "./assets/sounds/chat-send.wav",
+            "./assets/sounds/chat-receive.wav"
+          ]
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "7b51b2be-7b4e-484e-bb94-82628e8253e5"
+      }
+    },
+    "owner": "ahmadawadalwakai"
+  }
+}

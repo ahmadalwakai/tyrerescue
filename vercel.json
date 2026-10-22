@@ -1,0 +1,7 @@
+{
+  "git": {
+    "deploymentEnabled": {
+      "release/assisted-chat-ios50-20261022": false
+    }
+  }
+}
