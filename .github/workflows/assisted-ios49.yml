@@ -1,8 +1,6 @@
 name: Assisted Chat 49 - native iOS build only
 
 on:
-  push:
-    branches: [codex/assisted-ios49-free-ci]
   workflow_dispatch:
 
 permissions:
@@ -14,7 +12,7 @@ concurrency:
 
 jobs:
   build:
-    if: github.repository == 'ahmadalwakai/tyrerescue' && github.event.repository.private == false && github.actor == 'ahmadalwakai' && github.ref == 'refs/heads/codex/assisted-ios49-free-ci'
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'ahmadalwakai/tyrerescue' && github.event.repository.private == false && github.actor == 'ahmadalwakai' && github.ref == 'refs/heads/codex/assisted-ios49-free-ci'
     runs-on: macos-15-intel
     timeout-minutes: 150
     env:
