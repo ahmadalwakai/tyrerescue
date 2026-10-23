@@ -1,8 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { type ComponentProps, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { type ComponentProps } from 'react';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -10,50 +9,25 @@ import { colors, typography } from '@/src/theme';
 
 type FeatherName = ComponentProps<typeof Feather>['name'];
 
-function AnimatedTabIcon({ color, focused, name }: { color: string; focused: boolean; name: FeatherName }) {
-  const active = useSharedValue(focused ? 1 : 0);
-
-  useEffect(() => {
-    active.value = withTiming(focused ? 1 : 0, { duration: 220 });
-  }, [active, focused]);
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: active.value * 0.95,
-    transform: [{ scale: 0.72 + active.value * 0.28 }],
-  }));
-
-  const iconStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + active.value * 0.1 }],
-  }));
-
+function TabIcon({ color, focused, name }: { color: string; focused: boolean; name: FeatherName }) {
   return (
-    <View style={styles.tabIconShell}>
-      <Animated.View pointerEvents="none" style={[styles.tabIconGlow, glowStyle]} />
-      <Animated.View style={iconStyle}>
-        <Feather size={22} name={name} color={color} />
-      </Animated.View>
+    <View accessible={false} style={[styles.tabIconShell, focused ? styles.tabIconSelected : null]}>
+      <Feather accessible={false} size={22} name={name} color={color} />
     </View>
   );
 }
 
-function AnimatedTabLabel({ color, focused, label }: { color: string; focused: boolean; label: string }) {
-  const active = useSharedValue(focused ? 1 : 0);
-
-  useEffect(() => {
-    active.value = withTiming(focused ? 1 : 0, { duration: 220 });
-  }, [active, focused]);
-
-  const labelStyle = useAnimatedStyle(() => ({
-    opacity: 0.72 + active.value * 0.28,
-    transform: [{ translateY: 1 - active.value }],
-  }));
-
-  return <Animated.Text style={[styles.tabLabel, { color }, labelStyle]}>{label}</Animated.Text>;
+function TabLabel({ color, focused, label }: { color: string; focused: boolean; label: string }) {
+  return <Text style={[styles.tabLabel, { color, fontFamily: focused ? typography.bodyBold : typography.bodyMedium }]}>{label}</Text>;
 }
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
   const bottomInset = Math.max(insets.bottom, 8);
+  // Reserve enough room for wrapped labels at the user's preferred text size.
+  const labelLines = Math.max(1, Math.ceil((7 * 7.2 * fontScale) / Math.max(1, width / 4 - 12)));
+  const tabBarHeight = 40 + Math.ceil(16 * fontScale) * labelLines + bottomInset;
 
   return (
     <Tabs
@@ -63,14 +37,19 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          minHeight: 64 + bottomInset,
+          height: tabBarHeight,
+          minHeight: 56 + bottomInset,
           paddingBottom: bottomInset,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontFamily: typography.bodyMedium,
-          fontSize: 11,
+          fontSize: 12,
+          lineHeight: 16,
         },
+        tabBarItemStyle: { minHeight: 44, paddingHorizontal: 4 },
+        tabBarAllowFontScaling: true,
+        animation: 'none',
         headerShown: false,
         tabBarButton: HapticTab,
       }}>
@@ -78,24 +57,27 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Book',
-          tabBarIcon: ({ color, focused }) => <AnimatedTabIcon name="tool" color={color} focused={focused} />,
-          tabBarLabel: ({ color, focused }) => <AnimatedTabLabel label="Book" color={color} focused={focused} />,
+          tabBarAccessibilityLabel: 'Book a tyre service',
+          tabBarIcon: ({ color, focused }) => <TabIcon name="tool" color={color} focused={focused} />,
+          tabBarLabel: ({ color, focused }) => <TabLabel label="Book" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="track"
         options={{
           title: 'Track',
-          tabBarIcon: ({ color, focused }) => <AnimatedTabIcon name="map-pin" color={color} focused={focused} />,
-          tabBarLabel: ({ color, focused }) => <AnimatedTabLabel label="Track" color={color} focused={focused} />,
+          tabBarAccessibilityLabel: 'Track your booking',
+          tabBarIcon: ({ color, focused }) => <TabIcon name="map-pin" color={color} focused={focused} />,
+          tabBarLabel: ({ color, focused }) => <TabLabel label="Track" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="account"
         options={{
           title: 'Account',
-          tabBarIcon: ({ color, focused }) => <AnimatedTabIcon name="user" color={color} focused={focused} />,
-          tabBarLabel: ({ color, focused }) => <AnimatedTabLabel label="Account" color={color} focused={focused} />,
+          tabBarAccessibilityLabel: 'Your account and bookings',
+          tabBarIcon: ({ color, focused }) => <TabIcon name="user" color={color} focused={focused} />,
+          tabBarLabel: ({ color, focused }) => <TabLabel label="Account" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -109,8 +91,9 @@ export default function TabLayout() {
         name="support"
         options={{
           title: 'Help',
-          tabBarIcon: ({ color, focused }) => <AnimatedTabIcon name="phone" color={color} focused={focused} />,
-          tabBarLabel: ({ color, focused }) => <AnimatedTabLabel label="Help" color={color} focused={focused} />,
+          tabBarAccessibilityLabel: 'Get help from Tyre Rescue',
+          tabBarIcon: ({ color, focused }) => <TabIcon name="phone" color={color} focused={focused} />,
+          tabBarLabel: ({ color, focused }) => <TabLabel label="Help" color={color} focused={focused} />,
         }}
       />
     </Tabs>
@@ -118,22 +101,22 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabIconGlow: {
-    backgroundColor: 'rgba(249,115,22,0.16)',
-    borderRadius: 16,
-    height: 32,
-    position: 'absolute',
-    width: 32,
+  tabIconSelected: {
+    backgroundColor: colors.surfaceRaised,
   },
   tabIconShell: {
     alignItems: 'center',
-    height: 32,
+    height: 28,
     justifyContent: 'center',
-    marginTop: 2,
-    width: 40,
+    borderRadius: 10,
+    width: 44,
   },
   tabLabel: {
     fontFamily: typography.bodyMedium,
-    fontSize: 11,
+    fontSize: 12,
+    lineHeight: 16,
+    flexShrink: 1,
+    textAlign: 'center',
+    maxWidth: '100%',
   },
 });

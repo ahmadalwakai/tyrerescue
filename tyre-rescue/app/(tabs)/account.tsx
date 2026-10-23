@@ -136,6 +136,24 @@ export default function AccountScreen() {
         detail={account.profile ? undefined : 'Create an account or sign in to manage bookings, invoices, and tracking.'}
       />
 
+      {account.connectionError || account.offline ? (
+        <Card>
+          <Text accessibilityRole="alert" style={styles.mutedText}>
+            {account.refreshing ? 'Showing saved details while checking your connection.' : account.offline ? 'Connection unavailable. Showing saved account information and your most recent active booking.' : account.connectionError}
+          </Text>
+          {account.lastSyncedAt ? <Text style={styles.passwordHelp}>Last updated {new Date(account.lastSyncedAt).toLocaleString('en-GB', { timeZone: 'Europe/London' })}. Booking status may have changed.</Text> : null}
+          <PrimaryButton icon="refresh-cw" variant="secondary" loading={account.refreshing} onPress={() => void account.refresh()}>Retry connection</PrimaryButton>
+        </Card>
+      ) : null}
+
+      {!account.profile && account.token ? (
+        <Card>
+          <Text style={styles.mutedText}>Your sign-in is saved. Connect to the internet to load your account.</Text>
+          <PrimaryButton loading={account.refreshing} onPress={() => void account.refresh()}>Load my account</PrimaryButton>
+          <PrimaryButton variant="secondary" onPress={() => void account.logout()}>Sign out</PrimaryButton>
+        </Card>
+      ) : null}
+
       {account.profile ? (
         <>
           <Card>
@@ -143,13 +161,14 @@ export default function AccountScreen() {
             <Row label="Email" value={account.profile.email} />
             {account.profile.phone ? <Row label="Phone" value={account.profile.phone} /> : null}
           </Card>
+          <AccountSettings key={`${account.profile.id}-${account.sessionRevision}`} onDeleted={() => { setPassword(''); setConfirmPassword(''); setMessage('Your account has been deleted. Required service and financial records are retained.'); }} />
           {account.profile.emailVerified === false ? <InlineNotice>Verify your email using the message we sent you, then refresh to securely link your previous bookings.</InlineNotice> : null}
 
           <View style={styles.actionRow}>
             <PrimaryButton icon="plus" style={styles.actionButton} onPress={() => router.push('/')}>
               New booking
             </PrimaryButton>
-            <PrimaryButton icon="refresh-cw" variant="secondary" style={styles.actionButton} onPress={account.refresh}>
+            <PrimaryButton icon="refresh-cw" variant="secondary" loading={account.refreshing} style={styles.actionButton} onPress={() => void account.refresh()}>
               Refresh
             </PrimaryButton>
           </View>
@@ -183,7 +202,7 @@ export default function AccountScreen() {
             Sign out
           </PrimaryButton>
         </>
-      ) : (
+      ) : !account.token ? (
         <>
           <View style={styles.authTabs}>
             <AuthTab label="Sign in" selected={authMode === 'login'} onPress={() => switchAuthMode('login')} />
@@ -227,9 +246,62 @@ export default function AccountScreen() {
             </PrimaryButton>
           )}
         </>
-      )}
+      ) : null}
     </ScrollView>
   );
+}
+
+function AccountSettings({ onDeleted }: { onDeleted: () => void }) {
+  const account = useCustomerAccount();
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [nextName, setNextName] = useState(account.profile?.name ?? '');
+  const [nextPhone, setNextPhone] = useState(account.profile?.phone ?? '');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    if (saving || removing) return;
+    setSaving(true); setError(null); setNotice(null);
+    try {
+      await account.updateProfile({ name: nextName.trim(), phone: nextPhone.trim() || null });
+      setEditing(false);
+      setNotice('Your account details have been updated. For changes to an existing booking, contact the team.');
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to save your details. Please try again.'); }
+    finally { setSaving(false); }
+  }
+
+  async function remove() {
+    if (removing || saving || confirmation !== 'DELETE' || !deletePassword) return;
+    setRemoving(true); setError(null); setNotice(null);
+    try { await account.deleteAccount(deletePassword); onDeleted(); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to delete your account. Please try again.'); }
+    finally { setDeletePassword(''); setRemoving(false); }
+  }
+
+  return <Card>
+    <Text style={styles.sectionTitle}>Account settings</Text>
+    {notice ? <InlineNotice tone="success">{notice}</InlineNotice> : null}
+    {error ? <Text accessibilityRole="alert" style={styles.settingsError}>{error}</Text> : null}
+    {editing ? <>
+      <TextField label="Full name" accessibilityLabel="Full name" autoComplete="name" value={nextName} onChangeText={setNextName} maxLength={255} editable={!saving} />
+      <TextField label="Phone" accessibilityLabel="Phone number" autoComplete="tel" keyboardType="phone-pad" value={nextPhone} onChangeText={setNextPhone} maxLength={20} editable={!saving} />
+      <Text style={styles.passwordHelp}>Your email stays unchanged. These details apply to your account and future bookings.</Text>
+      <PrimaryButton loading={saving} disabled={nextName.trim().length < 2 || account.offline} onPress={() => void save()}>Save details</PrimaryButton>
+      <PrimaryButton variant="secondary" disabled={saving} onPress={() => { setEditing(false); setError(null); }}>Cancel editing</PrimaryButton>
+    </> : <PrimaryButton icon="edit-2" variant="secondary" disabled={deleting} onPress={() => { setNextName(account.profile?.name ?? ''); setNextPhone(account.profile?.phone ?? ''); setNotice(null); setError(null); setEditing(true); }}>Edit name and phone</PrimaryButton>}
+    {deleting ? <>
+      <InlineNotice tone="danger">Deleting your account removes your account identity and sign-in access. Required service, booking and financial records, including invoices, are retained. Existing services are not cancelled. Download any invoices you need first.</InlineNotice>
+      <TextField label="Current password" accessibilityLabel="Current password to confirm account deletion" value={deletePassword} onChangeText={setDeletePassword} secureTextEntry autoComplete="current-password" editable={!removing} />
+      <TextField label="Type DELETE to confirm" accessibilityLabel="Type DELETE to confirm account deletion" value={confirmation} onChangeText={setConfirmation} autoCapitalize="characters" maxLength={6} editable={!removing} />
+      <PrimaryButton variant="danger" loading={removing} disabled={confirmation !== 'DELETE' || !deletePassword || account.offline} onPress={() => void remove()}>Permanently delete account</PrimaryButton>
+      <PrimaryButton variant="secondary" disabled={removing} onPress={() => { setDeleting(false); setDeletePassword(''); setConfirmation(''); setError(null); }}>Keep my account</PrimaryButton>
+    </> : <PrimaryButton variant="secondary" disabled={editing} onPress={() => { setNotice(null); setError(null); setDeleting(true); }}>Delete account</PrimaryButton>}
+  </Card>;
 }
 
 function AuthTab({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
@@ -354,6 +426,12 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 12,
     lineHeight: 18,
+  },
+  settingsError: {
+    color: colors.danger,
+    fontFamily: typography.body,
+    fontSize: 14,
+    lineHeight: 21,
   },
   section: {
     gap: 10,

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
+import { Platform } from 'react-native';
 import { useStripe } from '@stripe/stripe-react-native';
-import { STRIPE_PUBLISHABLE_KEY } from './config';
+import { APPLE_MERCHANT_ID, STRIPE_PUBLISHABLE_KEY } from './config';
 
 export function extractPaymentIntentId(clientSecret: string) {
   return clientSecret.split('_secret_')[0];
@@ -30,6 +31,9 @@ export function useCustomerPayment() {
       paymentIntentClientSecret: clientSecret,
       returnURL: 'tyrerescue://stripe-redirect',
       allowsDelayedPaymentMethods: false,
+      ...(Platform.OS === 'ios' && APPLE_MERCHANT_ID
+        ? { applePay: { merchantCountryCode: 'GB' } }
+        : {}),
       appearance: {
         colors: {
           primary: '#F97316',

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '');
 
@@ -28,6 +29,13 @@ export const STRIPE_PUBLISHABLE_KEY =
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
     ''
   ).trim();
+
+const appleMerchantIdentifier = Constants.expoConfig?.extra?.appleMerchantIdentifier;
+export const APPLE_MERCHANT_ID =
+  typeof appleMerchantIdentifier === 'string' &&
+  /^merchant\.[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*$/.test(appleMerchantIdentifier)
+    ? appleMerchantIdentifier
+    : undefined;
 
 export const PHONE_DISPLAY =
   process.env.EXPO_PUBLIC_PHONE_NUMBER || '0141 266 0690';

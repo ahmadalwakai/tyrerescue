@@ -20,6 +20,9 @@ export const API = {
   customerLogin: '/api/mobile/customer/auth/login',
   customerForgotPassword: '/api/mobile/customer/auth/forgot-password',
   customerMe: '/api/mobile/customer/me',
+  customerProfile: '/api/mobile/customer/profile',
+  customerDeleteAccount: '/api/mobile/customer/account',
+  customerAssistedHelp: '/api/mobile/customer/assisted-help',
   customerInvoices: '/api/mobile/customer/invoices',
   customerPushToken: '/api/mobile/customer/push-token',
   callBack: '/api/call-back',
@@ -44,22 +47,75 @@ export function fetchApi(path: string, init?: RequestInit): Promise<Response> {
   });
 }
 
-export async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetchApi(path, {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      ...(init?.body ? { 'Content-Type': 'application/json' } : null),
-      ...(init?.headers || {}),
-    },
-  });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    const message =
-      data && typeof data === 'object'
-        ? (data.message as string) || (data.error as string)
-        : null;
-    throw new Error(message || `Request failed (${res.status})`);
+type CustomerApiErrorKind = 'http' | 'timeout' | 'network' | 'aborted';
+
+export class CustomerApiError extends Error {
+  readonly kind: CustomerApiErrorKind;
+  readonly status: number | null;
+
+  constructor(message: string, kind: CustomerApiErrorKind, status: number | null = null) {
+    super(message);
+    this.name = kind === 'aborted' ? 'AbortError' : 'CustomerApiError';
+    this.kind = kind;
+    this.status = status;
   }
-  return data as T;
+}
+
+export function isCustomerConnectionError(error: unknown): error is CustomerApiError {
+  return error instanceof CustomerApiError && (error.kind === 'timeout' || error.kind === 'network');
+}
+
+/** A deadline covers both the response and its body. Mutations are never retried automatically. */
+export async function requestJson<T>(path: string, init?: RequestInit, timeoutMs = 20_000): Promise<T> {
+  if (init?.signal?.aborted) throw new CustomerApiError('Request cancelled.', 'aborted');
+
+  const controller = new AbortController();
+  let timedOut = false;
+  const abort = () => controller.abort();
+  let interrupt = () => {};
+  const interrupted = new Promise<never>((_, reject) => {
+    interrupt = () => reject(new CustomerApiError(
+      timedOut ? 'Connection timed out. Check your connection and try again.' : 'Request cancelled.',
+      timedOut ? 'timeout' : 'aborted',
+    ));
+    controller.signal.addEventListener('abort', interrupt, { once: true });
+  });
+  init?.signal?.addEventListener('abort', abort, { once: true });
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+
+  try {
+    return await Promise.race([interrupted, (async () => {
+      const res = await fetchApi(path, {
+        ...init,
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/json',
+          ...(init?.body ? { 'Content-Type': 'application/json' } : null),
+          ...(init?.headers || {}),
+        },
+      });
+      const data = await res.json().catch((error: unknown) => {
+        if (controller.signal.aborted || !(error instanceof SyntaxError)) throw error;
+        return null;
+      });
+      if (!res.ok) {
+        const message = data && typeof data === 'object'
+          ? (typeof data.message === 'string' && data.message) || (typeof data.error === 'string' && data.error)
+          : null;
+        throw new CustomerApiError(message || `Request failed (${res.status})`, 'http', res.status);
+      }
+      return data as T;
+    })()]);
+  } catch (error) {
+    if (error instanceof CustomerApiError) throw error;
+    if (controller.signal.aborted) throw new CustomerApiError(
+      timedOut ? 'Connection timed out. Check your connection and try again.' : 'Request cancelled.',
+      timedOut ? 'timeout' : 'aborted',
+    );
+    throw new CustomerApiError('Unable to connect. Check your connection and try again.', 'network');
+  } finally {
+    clearTimeout(timer);
+    init?.signal?.removeEventListener('abort', abort);
+    controller.signal.removeEventListener('abort', interrupt);
+  }
 }

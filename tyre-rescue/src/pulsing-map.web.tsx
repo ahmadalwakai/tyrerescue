@@ -10,6 +10,7 @@ import {
   type MapCoordinate,
 } from './mapbox';
 import { colors, typography } from './theme';
+import { useCustomerReducedMotion } from './use-customer-reduced-motion';
 
 type MapboxGL = typeof import('mapbox-gl').default;
 type MapboxMap = import('mapbox-gl').Map;
@@ -35,6 +36,7 @@ export function PulsingMap({
   style?: StyleProp<ViewStyle>;
   onCoordinateSelected?: (coordinate: MapCoordinate) => void;
 }) {
+  const reducedMotion = useCustomerReducedMotion();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const markerRefs = useRef<MapboxMarker[]>([]);
@@ -48,6 +50,7 @@ export function PulsingMap({
     routeCoordinates,
     visibleCoordinates: [] as MapCoordinate[],
     zoomLevel,
+    reducedMotion,
   });
   const visibleCoordinates = useMemo(
     () => [...(routeCoordinates ?? []), ...markers.map((marker) => marker.coordinate)],
@@ -62,8 +65,9 @@ export function PulsingMap({
       routeCoordinates,
       visibleCoordinates,
       zoomLevel,
+      reducedMotion,
     };
-  }, [markers, routeCoordinates, visibleCoordinates, zoomLevel]);
+  }, [markers, routeCoordinates, visibleCoordinates, zoomLevel, reducedMotion]);
 
   useEffect(() => {
     if (!MAPBOX_TOKEN || !containerRef.current || mapRef.current) return;
@@ -88,7 +92,7 @@ export function PulsingMap({
       mapRef.current = map;
       map.on('click', event => selectRef.current?.([event.lngLat.lng, event.lngLat.lat]));
       map.on('load', () => {
-      readyRef.current = true;
+        readyRef.current = true;
         const latest = latestMapDataRef.current;
         syncMap(
           mapboxgl,
@@ -98,6 +102,7 @@ export function PulsingMap({
           latest.routeCoordinates,
           latest.visibleCoordinates,
           latest.zoomLevel,
+          latest.reducedMotion,
         );
       });
     });
@@ -116,9 +121,9 @@ export function PulsingMap({
     if (!mapRef.current || !readyRef.current) return;
     void import('mapbox-gl').then((module) => {
       const mapboxgl = module.default as MapboxGL;
-      syncMap(mapboxgl, mapRef.current, markerRefs, markers, routeCoordinates, visibleCoordinates, zoomLevel);
+      syncMap(mapboxgl, mapRef.current, markerRefs, markers, routeCoordinates, visibleCoordinates, zoomLevel, reducedMotion);
     });
-  }, [markers, routeCoordinates, visibleCoordinates, zoomLevel]);
+  }, [markers, routeCoordinates, visibleCoordinates, zoomLevel, reducedMotion]);
 
   if (!MAPBOX_TOKEN) {
     return (
@@ -143,6 +148,7 @@ function syncMap(
   routeCoordinates: MapCoordinate[] | null | undefined,
   visibleCoordinates: MapCoordinate[],
   zoomLevel: number,
+  reducedMotion: boolean,
 ) {
   if (!map) return;
   markerRefs.current.forEach((marker) => marker.remove());
@@ -155,9 +161,9 @@ function syncMap(
   syncRouteSource(map, routeCoordinates);
   const bounds = getBounds(mapboxgl, visibleCoordinates);
   if (bounds) {
-    map.fitBounds(bounds, { duration: 500, maxZoom: 14, padding: 44 });
+    map.fitBounds(bounds, { duration: reducedMotion ? 0 : 300, maxZoom: 14, padding: 44 });
   } else {
-    map.easeTo({ center: getCenterCoordinate(visibleCoordinates), duration: 500, zoom: zoomLevel });
+    map.easeTo({ center: getCenterCoordinate(visibleCoordinates), duration: reducedMotion ? 0 : 300, zoom: zoomLevel });
   }
 }
 
@@ -243,7 +249,7 @@ function createPulseElement(color: string) {
   root.className = 'tyre-rescue-pulse';
   root.style.setProperty('--pulse-color', color);
   root.style.setProperty('--pulse-border-color', `${color}55`);
-  root.innerHTML = '<span></span><span></span><i></i>';
+  root.innerHTML = '<span></span><i></i>';
   return root;
 }
 
@@ -261,12 +267,6 @@ function injectPulseCss() {
   const style = document.createElement('style');
   style.id = 'tyre-rescue-pulse-css';
   style.textContent = `
-    @keyframes tyre-rescue-radar-pulse {
-      0% { opacity: 0; transform: scale(0.65); }
-      8% { opacity: 0.72; }
-      65% { opacity: 0.28; }
-      100% { opacity: 0; transform: scale(3.2); }
-    }
     .tyre-rescue-pulse {
       align-items: center;
       display: flex;
@@ -276,15 +276,12 @@ function injectPulseCss() {
       width: 64px;
     }
     .tyre-rescue-pulse span {
-      animation: tyre-rescue-radar-pulse 2600ms infinite;
       border: 2px solid var(--pulse-color);
       border-radius: 14px;
       height: 28px;
       position: absolute;
       width: 28px;
-    }
-    .tyre-rescue-pulse span:nth-child(2) {
-      animation-delay: 800ms;
+      opacity: 0.35;
     }
     .tyre-rescue-pulse i {
       background: var(--pulse-color);

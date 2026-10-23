@@ -16,22 +16,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import Animated, {
-  Easing,
-  FadeIn,
-  FadeInDown,
-  FadeInLeft,
-  FadeInRight,
-  interpolateColor,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withSpring,
-  withTiming,
-  ZoomIn,
-} from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { API, customerInvoiceUrl, fetchApi, requestJson } from './api';
 import { addToCart, cartItemCount, updateCartQuantity } from './booking-helpers';
@@ -40,10 +25,14 @@ import { bookingDraftSession, clearBookingDraft, saveBookingDraft } from './book
 import { getSecureItem } from './secure-storage';
 import { CustomerLocationStep as LocationStep } from './customer-location-step';
 import { CustomerCallbackRequest } from './customer-callback';
+import { CustomerAssistedHelpRequest } from './customer-assisted-help-request';
 import { CustomerFittingChoice } from './customer-fitting-choice';
+import { BookingContinueButton, BookingFooter, BookingFooterProvider } from './booking-footer';
+import { useCustomerReducedMotion } from './use-customer-reduced-motion';
 import { bookingAccessScope, saveBookingAccess } from './customer-booking-access';
 import { BUSINESS_NAME, PHONE_DISPLAY, PHONE_TEL } from './config';
 import { useCustomerAccount } from './customer-account';
+import { CustomerActiveBookingCard } from './customer-active-booking';
 import { customerPushScope, registerForCustomerPushNotificationsAsync } from './customer-notifications';
 import { CustomerPaymentControl } from './customer-payment-control';
 import {
@@ -100,15 +89,12 @@ const WIZARD_ORDER: WizardStep[] = [
   'done',
 ];
 
-const HERO_TITLE_TEXT = 'Choose how soon you need us';
-const LETTER_CASCADE_BLUR = 7;
-const LETTER_CASCADE_STEP_MS = 28;
-const HERO_TITLE_LETTER_COUNT = HERO_TITLE_TEXT.replace(/\s/g, '').length;
-const GOLD_SHIMMER_START_DELAY_MS = HERO_TITLE_LETTER_COUNT * LETTER_CASCADE_STEP_MS + 900;
-const GOLD_SHIMMER_STEP_MS = 36;
-const CAN_ANIMATE_TEXT_BLUR = Platform.OS === 'web';
-
 type UpdateState = (updates: Partial<BookingState>) => void;
+
+function LockingNutPriceNotice({ status }: { status: BookingState['lockingNutStatus'] }) {
+  if (status !== 'no_key') return null;
+  return <InlineNotice>The team must confirm any locking wheel nut removal charge with you first. The amount shown for payment covers only the listed services. Any additional removal fee needs your agreement before it is charged.</InlineNotice>;
+}
 
 interface StepProps {
   state: BookingState;
@@ -119,119 +105,12 @@ interface StepProps {
   setNavigationLocked?: (locked: boolean) => void;
 }
 
-function AmbientBookingBackground() {
-  const drift = useSharedValue(0);
-
-  useEffect(() => {
-    drift.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 26000, easing: Easing.inOut(Easing.quad) }),
-        withTiming(0, { duration: 26000, easing: Easing.inOut(Easing.quad) }),
-      ),
-      -1,
-      false,
-    );
-  }, [drift]);
-
-  const ambientStyle = useAnimatedStyle(() => ({
-    opacity: 0.38 + drift.value * 0.18,
-    transform: [{ translateY: -14 + drift.value * 24 }],
-  }));
-
-  return <Animated.View pointerEvents="none" style={[screenStyles.ambientBackground, ambientStyle]} />;
-}
-
-function CascadeLetter({ char, delay, shimmerDelay }: { char: string; delay: number; shimmerDelay: number }) {
-  const progress = useSharedValue(0);
-  const shimmer = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withDelay(
-      delay,
-      withSequence(
-        withTiming(1.08, { duration: 450, easing: Easing.out(Easing.cubic) }),
-        withSpring(1, { damping: 14, stiffness: 180, mass: 0.7 }),
-      ),
-    );
-
-    shimmer.value = withDelay(
-      shimmerDelay,
-      withRepeat(
-        withSequence(
-          withTiming(1, { duration: 420, easing: Easing.out(Easing.quad) }),
-          withTiming(0, { duration: 640, easing: Easing.inOut(Easing.quad) }),
-          withDelay(2100, withTiming(0, { duration: 1 })),
-        ),
-        -1,
-        false,
-      ),
-    );
-  }, [delay, progress, shimmer, shimmerDelay]);
-
-  const letterStyle = useAnimatedStyle(() => {
-    const settledProgress = Math.min(1, progress.value);
-    const blur = LETTER_CASCADE_BLUR * (1 - settledProgress);
-    const shimmerColor = interpolateColor(
-      shimmer.value,
-      [0, 0.48, 1],
-      [colors.text, '#FFD166', '#FFF2B8'],
-    );
-    const shimmerGlow = interpolateColor(
-      shimmer.value,
-      [0, 0.55, 1],
-      ['rgba(245,245,245,0.32)', 'rgba(255,209,102,0.92)', 'rgba(255,242,184,0.54)'],
-    );
-
-    return {
-      color: shimmerColor,
-      filter: CAN_ANIMATE_TEXT_BLUR ? `blur(${blur}px)` : undefined,
-      opacity: settledProgress,
-      textShadowColor: shimmerGlow,
-      textShadowRadius: blur + shimmer.value * 9,
-      transform: [
-        { translateX: -18 + settledProgress * 18 },
-        { scale: 0.92 + progress.value * 0.08 },
-      ],
-    };
-  });
-
-  return <Animated.Text style={[screenStyles.heroTitleLetter, letterStyle]}>{char}</Animated.Text>;
-}
-
-function LetterCascadeTitle({ title }: { title: string }) {
-  let letterIndex = 0;
-  const words = title.toUpperCase().split(' ');
-
-  return (
-    <View accessible accessibilityRole="header" accessibilityLabel={title} style={screenStyles.heroTitle}>
-      {words.map((word, wordIndex) => (
-        <View key={`${word}-${wordIndex}`} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={screenStyles.heroTitleWord}>
-          {word.split('').map((char, charIndex) => {
-            const delay = 140 + letterIndex * LETTER_CASCADE_STEP_MS;
-            const shimmerDelay = GOLD_SHIMMER_START_DELAY_MS + letterIndex * GOLD_SHIMMER_STEP_MS;
-            letterIndex += 1;
-            return <CascadeLetter key={`${word}-${char}-${charIndex}`} char={char} delay={delay} shimmerDelay={shimmerDelay} />;
-          })}
-        </View>
-      ))}
-    </View>
-  );
-}
-
 function ServiceHeroHeader() {
-  const detailDelay = HERO_TITLE_LETTER_COUNT * LETTER_CASCADE_STEP_MS + 620;
-
-  return (
-    <View style={screenStyles.heroHeader}>
-      <Animated.Text entering={FadeIn.duration(260).delay(70)} style={screenStyles.heroEyebrow}>
-        Start your booking
-      </Animated.Text>
-      <LetterCascadeTitle title={HERO_TITLE_TEXT} />
-      <Animated.Text entering={FadeIn.duration(360).delay(detailDelay)} style={screenStyles.heroDetail}>
-        Get help now, book a fitting, or ask our team to call you.
-      </Animated.Text>
-    </View>
-  );
+  return <View style={screenStyles.heroHeader}>
+    <Text style={screenStyles.heroEyebrow}>Mobile tyre support</Text>
+    <Text accessibilityRole="header" style={screenStyles.heroTitle}>How can we help?</Text>
+    <Text style={screenStyles.heroDetail}>Get roadside help now or book a fitting that suits you.</Text>
+  </View>;
 }
 
 function parseSize(size: string) {
@@ -248,7 +127,7 @@ function currentStepLabel(step: WizardStep) {
     details: 'Tyres',
     tyres: 'Choose',
     schedule: 'Schedule',
-    quote: 'Quote',
+    quote: 'Review',
     customer: 'Details',
     payment: 'Payment',
     done: 'Done',
@@ -256,30 +135,35 @@ function currentStepLabel(step: WizardStep) {
   return labels[step];
 }
 
+const BOOKING_STAGES = [
+  { title: 'Request details', steps: ['service', 'location', 'eligibility'] },
+  { title: 'Choose service', steps: ['details', 'tyres', 'schedule'] },
+  { title: 'Confirm & pay', steps: ['quote', 'customer', 'payment', 'done'] },
+] as const;
+
 function StepProgress({ state, step }: { state: BookingState; step: WizardStep }) {
   if (step === 'service' || step === 'done') return null;
+  const activeStage = BOOKING_STAGES.findIndex(stage => (stage.steps as readonly string[]).includes(step));
   const steps = getSteps(state.bookingType, state.serviceType, state.fittingLocation);
   const index = getProgressIndex(steps, step);
-  const progress = steps.length <= 1 ? 0 : (index / (steps.length - 1)) * 100;
+  return <View style={screenStyles.progressCard}>
+    <View style={screenStyles.progressHeading}>
+      <Text style={screenStyles.progressTitle}>Stage {activeStage + 1} of 3</Text>
+      <Text style={screenStyles.progressDetail}>{currentStepLabel(step)} · {index + 1} of {steps.length} steps</Text>
+    </View>
+    <View style={screenStyles.stageRow}>
+      {BOOKING_STAGES.map((stage, stageIndex) => <View key={stage.title} accessible accessibilityLabel={
+        'Stage ' + (stageIndex + 1) + ', ' + stage.title + (stageIndex === activeStage ? ', current' : '')
+      } style={screenStyles.stageItem}>
+        <View style={[screenStyles.stageTrack, stageIndex <= activeStage ? screenStyles.stageTrackActive : null]} />
+        <Text style={[screenStyles.stageLabel, stageIndex === activeStage ? screenStyles.stageLabelActive : null]}>{stageIndex + 1}. {stage.title}</Text>
+      </View>)}
+    </View>
+  </View>;
+}
 
-  return (
-    <Animated.View entering={FadeInDown.duration(260)} style={screenStyles.progressMotion}>
-      <Card style={screenStyles.progressCard}>
-        <View style={screenStyles.progressBadgeRow}>
-          <View style={screenStyles.progressBadge}>
-            <View style={screenStyles.progressBadgeDot} />
-            <Text style={screenStyles.progressBadgeText}>
-              Step {index + 1} of {steps.length}
-            </Text>
-          </View>
-          <Text style={screenStyles.progressTitle}>{currentStepLabel(step)}</Text>
-        </View>
-      <View style={screenStyles.progressTrack}>
-          <Animated.View key={`${step}-${Math.round(progress)}`} entering={FadeIn.duration(260)} style={[screenStyles.progressFill, { width: `${progress}%` }]} />
-      </View>
-      </Card>
-    </Animated.View>
-  );
+function renderLocationConfirmAction(props: ComponentProps<typeof PrimaryButton>) {
+  return <BookingContinueButton {...props} />;
 }
 
 export function BookingScreen() {
@@ -290,6 +174,7 @@ export function BookingScreen() {
 
 function CustomerBookingSession() {
   const account = useCustomerAccount();
+  const reducedMotion = useCustomerReducedMotion();
   const [state, setState] = useState<BookingState>(initialBookingState);
   const [step, setStep] = useState<WizardStep>('service');
   const [draftReady, setDraftReady] = useState(false);
@@ -381,30 +266,32 @@ function CustomerBookingSession() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={screenStyles.root}
     >
-      <AmbientBookingBackground />
+      <BookingFooterProvider step={step}>
       <ScrollView
         ref={scrollRef}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        style={screenStyles.scroll}
         contentContainerStyle={[screenStyles.content, safeContentInsets]}
       >
-        <Animated.View entering={FadeInDown.duration(260)} style={screenStyles.topBar}>
-          <Logo />
+        <View style={screenStyles.topBar}>
+          <View style={screenStyles.brand}><Logo compact animated={false} /><Text style={screenStyles.brandName}>TYRE RESCUE</Text></View>
           {step !== 'service' && step !== 'done' && !state.pendingPaymentIntentId && !state.paymentAttemptIntentId ? (
             <Pressable accessibilityRole="button" accessibilityLabel="Previous booking step" disabled={navigationLocked} onPress={goPrev} style={screenStyles.backButton}>
               <Feather name="chevron-left" size={18} color={colors.text} />
             </Pressable>
           ) : null}
-        </Animated.View>
+        </View>
 
         {draftRestored ? <InlineNotice>Your saved details have been restored. Prices and appointment availability will be checked again.</InlineNotice> : null}
         <StepProgress state={state} step={step} />
 
-        <Animated.View key={step} entering={FadeInDown.duration(320)} style={screenStyles.stepMotion}>
+        <Animated.View key={step} entering={reducedMotion ? undefined : FadeIn.duration(160)} style={screenStyles.stepMotion}>
           {step === 'service' ? (
             <ServiceStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
           ) : null}
           {step === 'location' ? (
-            <LocationStep state={state} updateState={updateState} goNext={goNext} />
+            <LocationStep state={state} updateState={updateState} goNext={goNext} renderConfirmAction={renderLocationConfirmAction} />
           ) : null}
           {step === 'eligibility' ? (
             <EligibilityStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
@@ -419,7 +306,7 @@ function CustomerBookingSession() {
             <ScheduleStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
           ) : null}
           {step === 'quote' ? (
-            <QuoteStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} />
+            <QuoteStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} setNavigationLocked={setNavigationLocked} />
           ) : null}
           {step === 'customer' ? (
             <CustomerStep state={state} updateState={updateState} goNext={goNext} goPrev={goPrev} goTo={goTo} setNavigationLocked={setNavigationLocked} />
@@ -430,6 +317,8 @@ function CustomerBookingSession() {
           {step === 'done' ? <DoneStep state={state} reset={reset} /> : null}
         </Animated.View>
       </ScrollView>
+      <BookingFooter step={step} />
+      </BookingFooterProvider>
     </KeyboardAvoidingView>
   );
 }
@@ -475,80 +364,58 @@ function requiresNewQuote(message: string) {
   );
 }
 
+function ServiceChoice({ icon, title, detail, meta, selected, emergency, onPress }: {
+  icon: ComponentProps<typeof Feather>['name']; title: string; detail: string; meta: string;
+  selected: boolean; emergency?: boolean; onPress: () => void;
+}) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${detail} ${meta}`} accessibilityState={{ selected }} onPress={onPress}
+    style={({ pressed }) => [screenStyles.serviceChoice, emergency ? screenStyles.emergencyChoice : null,
+      selected ? screenStyles.serviceChoiceSelected : null, pressed ? screenStyles.choicePressed : null]}>
+    <View style={screenStyles.serviceChoiceHeading}>
+      <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[screenStyles.serviceChoiceIcon, emergency ? screenStyles.emergencyChoiceIcon : null]}><Feather accessible={false} name={icon} size={24} color={colors.accent} /></View>
+      <View style={screenStyles.serviceChoiceCopy}>
+        <Text style={screenStyles.serviceChoiceTitle}>{title}</Text>
+        <Text style={screenStyles.serviceChoiceDetail}>{detail}</Text>
+      </View>
+      <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><Feather accessible={false} name={selected ? 'check-circle' : 'chevron-right'} size={22} color={selected ? colors.accent : colors.muted} /></View>
+    </View>
+    <Text style={[screenStyles.serviceChoiceMeta, emergency ? screenStyles.emergencyChoiceMeta : null]}>{meta}</Text>
+  </Pressable>;
+}
+
 function ServiceStep({ state, updateState, goNext }: StepProps) {
   const [availability, setAvailability] = useState<{ available: boolean; count: number } | null>(null);
-
   useEffect(() => {
     requestJson<{ available: boolean; count: number }>(API.driverAvailable)
       .then(setAvailability)
       .catch(() => setAvailability({ available: false, count: 0 }));
   }, []);
-
-  return (
-    <View style={screenStyles.stepGap}>
-      <ServiceHeroHeader />
-
-      <Animated.View entering={FadeInLeft.duration(260).delay(120)}>
-        <OptionCard
-          icon="zap"
-          iconShimmer
-          meta={availability?.available ? 'Available now' : availability ? 'Call to check' : 'Checking'}
-          metaTone={availability?.available ? 'success' : availability ? 'accent' : 'neutral'}
-          selected={state.bookingType === 'emergency'}
-          title="Emergency Callout"
-          detail="Driver-led callout to your confirmed location."
-          onPress={() => {
-            void Haptics.selectionAsync().catch(() => {});
-            updateState({
-              ...quoteReset,
-              bookingType: 'emergency',
-              ...(state.fittingLocation === 'shop' ? { address: '', lat: null, lng: null, distanceMiles: null } : {}),
-              fittingLocation: null,
-              scheduledDate: null,
-              scheduledTime: null,
-            });
-          }}
-        />
-      </Animated.View>
-      <Animated.View entering={FadeInRight.duration(260).delay(180)}>
-        <OptionCard
-          icon="calendar"
-          iconShimmer
-          meta="Book a slot"
-          metaTone="accent"
-          selected={state.bookingType === 'scheduled'}
-          title="Schedule a Fitting"
-          detail="Choose the shop or mobile fitting, then pick a date and time."
-          onPress={() => {
-            if (state.bookingType === 'scheduled') return;
-            void Haptics.selectionAsync().catch(() => {});
-            updateState({
-              ...quoteReset,
-              bookingType: 'scheduled',
-              fittingLocation: state.fittingLocation ?? null,
-            });
-          }}
-        />
-      </Animated.View>
-
-      {state.bookingType === 'scheduled' ? <CustomerFittingChoice state={state} updateState={updateState} /> : null}
-      <Animated.View entering={FadeInDown.duration(320).delay(200)}>
-        <PrimaryButton icon="arrow-right" disabled={!state.bookingType || (state.bookingType === 'scheduled' && !state.fittingLocation)} shine={Boolean(state.bookingType)} onPress={goNext}>
-          Continue
-        </PrimaryButton>
-      </Animated.View>
-      <Animated.View entering={FadeInDown.duration(260).delay(240)}>
-        <PrimaryButton
-          icon="phone"
-          variant="secondary"
-          onPress={() => Linking.openURL(`tel:${PHONE_TEL}`)}
-        >
-          {PHONE_DISPLAY}
-        </PrimaryButton>
-      </Animated.View>
+  return <View style={screenStyles.stepGap}>
+    <CustomerActiveBookingCard />
+    <ServiceHeroHeader />
+    <ServiceChoice icon="zap" emergency title="Emergency tyre help" detail="Flat tyre or a breakdown? Start a callout at your location."
+      meta={availability?.available ? 'Drivers available now' : availability ? 'Call to check availability' : 'Checking driver availability'}
+      selected={state.bookingType === 'emergency'} onPress={() => {
+        void Haptics.selectionAsync().catch(() => {});
+        updateState({ ...quoteReset, bookingType: 'emergency',
+          ...(state.fittingLocation === 'shop' ? { address: '', lat: null, lng: null, distanceMiles: null } : {}),
+          fittingLocation: null, scheduledDate: null, scheduledTime: null });
+      }} />
+    <ServiceChoice icon="calendar" title="Book a fitting" detail="Choose a workshop visit or mobile fitting."
+      meta="Pick a date and time" selected={state.bookingType === 'scheduled'} onPress={() => {
+        if (state.bookingType === 'scheduled') return;
+        void Haptics.selectionAsync().catch(() => {});
+        updateState({ ...quoteReset, bookingType: 'scheduled', fittingLocation: state.fittingLocation ?? null });
+      }} />
+    {state.bookingType === 'scheduled' ? <CustomerFittingChoice state={state} updateState={updateState} /> : null}
+    <BookingContinueButton icon="arrow-right" disabled={!state.bookingType || (state.bookingType === 'scheduled' && !state.fittingLocation)} onPress={goNext}>Continue</BookingContinueButton>
+    <View style={screenStyles.homeSupport}>
+      <Text style={screenStyles.supportTitle}>Need a hand?</Text>
+      <PrimaryButton icon="phone" variant="secondary" onPress={() => Linking.openURL('tel:' + PHONE_TEL)}>Call {PHONE_DISPLAY}</PrimaryButton>
       <CustomerCallbackRequest name={state.customerName} phone={state.customerPhone} notes="Callback requested from the customer booking app." />
     </View>
-  );
+    <CustomerAssistedHelpRequest />
+  </View>;
 }
 
 interface EligibilityResult {
@@ -657,7 +524,7 @@ function EligibilityStep({ state, updateState, goNext, goPrev }: StepProps) {
         <Text style={screenStyles.mutedCentered}>{result.driversOnline} driver{result.driversOnline === 1 ? '' : 's'} online</Text>
       </Card>
       {result.driversOnline === 0 ? <><InlineNotice>No live driver is currently available to confirm this estimate. Call us or request a callback before paying.</InlineNotice><PrimaryButton icon="phone" onPress={() => { void Linking.openURL(`tel:${PHONE_TEL}`); }}>Call the team</PrimaryButton><CustomerCallbackRequest name={state.customerName} phone={state.customerPhone} notes={`Emergency availability at ${state.address}`} /></> :
-      <PrimaryButton icon="arrow-right" onPress={() => {
+      <BookingContinueButton icon="arrow-right" onPress={() => {
         updateState({
           emergencyEtaLabel: result.etaLabel,
           nearestDriverName: result.driverName,
@@ -665,7 +532,7 @@ function EligibilityStep({ state, updateState, goNext, goPrev }: StepProps) {
         goNext();
       }}>
         Continue
-      </PrimaryButton>
+      </BookingContinueButton>
       }
     </View>
   );
@@ -833,6 +700,7 @@ function ProblemCard({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={`${option.title}. ${option.detail} ${option.meta}`}
       accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => [
@@ -841,8 +709,8 @@ function ProblemCard({
         pressed ? screenStyles.problemCardPressed : null,
       ]}
     >
-      <View style={[screenStyles.problemIcon, selected ? screenStyles.problemIconSelected : null]}>
-        <Feather name={option.icon} size={24} color={selected ? colors.accent : colors.text} />
+      <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[screenStyles.problemIcon, selected ? screenStyles.problemIconSelected : null]}>
+        <Feather accessible={false} name={option.icon} size={24} color={selected ? colors.accent : colors.text} />
       </View>
       <View style={screenStyles.problemCopy}>
         <Text style={[screenStyles.problemTitle, selected ? screenStyles.problemTitleSelected : null]}>
@@ -924,12 +792,15 @@ function DetailsStep({ state, updateState, goTo }: StepProps) {
 
   const photoRequest = useRef(0);
   const photoMounted = useRef(true);
+  const photoUploadController = useRef<AbortController | null>(null);
   const [unknownSize, setUnknownSize] = useState(false);
-  useEffect(() => { photoMounted.current = true; return () => { photoMounted.current = false; if (searchTimer.current) clearTimeout(searchTimer.current); }; }, []);
+  useEffect(() => { photoMounted.current = true; return () => { photoMounted.current = false; photoUploadController.current?.abort(); if (searchTimer.current) clearTimeout(searchTimer.current); }; }, []);
   const pickPhoto = async (camera: boolean) => {
     if (uploading) return;
     const revision = ++photoRequest.current;
     const current = () => photoMounted.current && photoRequest.current === revision;
+    let uploadTimer: ReturnType<typeof setTimeout> | undefined;
+    let uploadTimedOut = false;
     setUploading(true); setError(null);
     try {
       const permission = camera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -948,12 +819,15 @@ function DetailsStep({ state, updateState, goTo }: StepProps) {
         if (blob.size > 10 * 1024 * 1024) throw new Error('Choose a photo smaller than 10 MB.');
         form.append('file', blob, asset.fileName || 'tyre-photo.jpg');
       } else form.append('file', { uri: asset.uri, name: asset.fileName || 'tyre-photo.jpg', type: mime } as unknown as Blob);
-      const res = await fetchApi(API.uploadTyrePhoto, { method: 'POST', body: form, headers: { Accept: 'application/json' } });
+      const controller = new AbortController();
+      photoUploadController.current = controller;
+      uploadTimer = setTimeout(() => { uploadTimedOut = true; controller.abort(); }, 30_000);
+      const res = await fetchApi(API.uploadTyrePhoto, { method: 'POST', body: form, headers: { Accept: 'application/json' }, signal: controller.signal });
       const data = await res.json();
       if (!res.ok || typeof data.url !== 'string') throw new Error(data.error || 'Photo upload failed.');
       if (current()) { setPhotoUrl(data.url); updateState({ tyrePhotoUrl: data.url }); }
-    } catch (err) { if (current()) setError(err instanceof Error ? err.message : 'Photo upload failed.'); }
-    finally { if (current()) setUploading(false); }
+    } catch (err) { if (current()) setError(uploadTimedOut ? 'Photo upload timed out. Please try again when connected.' : err instanceof Error ? err.message : 'Photo upload failed.'); }
+    finally { if (uploadTimer) clearTimeout(uploadTimer); photoUploadController.current = null; if (current()) setUploading(false); }
   };
 
   const canContinue = width.length >= 3 && aspect.length >= 2 && rim.length >= 2 && condition;
@@ -1065,6 +939,7 @@ function DetailsStep({ state, updateState, goTo }: StepProps) {
             </Pressable>
           ))}
         </View>
+        <LockingNutPriceNotice status={lockingNut} />
       </Section>
 
       <Section title="Photo">
@@ -1074,19 +949,19 @@ function DetailsStep({ state, updateState, goTo }: StepProps) {
         </PrimaryButton>
         {Platform.OS !== 'web' ? <PrimaryButton icon="camera" variant="secondary" disabled={uploading} onPress={() => { void pickPhoto(true); }}>Take a photo</PrimaryButton> : null}
         {photoUrl ? <><InlineNotice tone="success">Photo uploaded and attached to your booking.</InlineNotice><PrimaryButton variant="ghost" disabled={uploading} onPress={() => { setPhotoUrl(null); updateState({ tyrePhotoUrl: null }); }}>Remove photo</PrimaryButton></> : null}
-        <PrimaryButton variant="ghost" disabled={uploading} onPress={() => setUnknownSize(value => !value)}>I do not know my tyre size</PrimaryButton>
-        {unknownSize ? <><InlineNotice>Send us a photo and request a call. Our team will help identify the size and confirm the price before you pay.</InlineNotice><CustomerCallbackRequest name={state.customerName} phone={state.customerPhone} notes={['Help identifying tyre size.', vehicleReg, vehicleMake, vehicleModel, photoUrl || '', state.address].filter(Boolean).join(' ')} /></> : null}
+        <PrimaryButton variant="ghost" disabled={uploading} onPress={() => setUnknownSize(value => !value)}>{unknownSize ? 'Use a confirmed tyre size instead' : 'I do not know my tyre size'}</PrimaryButton>
+        {unknownSize ? <CustomerAssistedHelpRequest name={state.customerName} phone={state.customerPhone} details={{ address: state.address, lat: state.lat ?? NaN, lng: state.lng ?? NaN, vehicleReg, vehicleMake, vehicleModel, photoUrl: photoUrl || undefined }} /> : null}
       </Section>
 
       <PriceEstimateCard state={draftEstimateState} />
 
       {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
 
-      <PrimaryButton
+      {!unknownSize ? <BookingContinueButton
         icon="arrow-right"
-        disabled={!canContinue || uploading}
+        disabled={unknownSize || !canContinue || uploading}
         onPress={() => {
-          if (!condition || uploading) return;
+          if (unknownSize || !condition || uploading) return;
           const nextServiceType = condition === 'repair' ? 'repair' : condition === 'replacement' ? 'fit' : 'assess';
           const shouldClearTyres =
             condition === 'repair' ||
@@ -1116,7 +991,7 @@ function DetailsStep({ state, updateState, goTo }: StepProps) {
         }}
       >
         Continue
-      </PrimaryButton>
+      </BookingContinueButton> : null}
     </View>
   );
 }
@@ -1241,9 +1116,9 @@ function TyresStep({ state, updateState, goNext }: StepProps) {
 
       <PriceEstimateCard state={state} />
 
-      <PrimaryButton icon="arrow-right" disabled={state.selectedTyres.length === 0} onPress={goNext}>
+      <BookingContinueButton icon="arrow-right" disabled={state.selectedTyres.length === 0} onPress={goNext}>
         Continue
-      </PrimaryButton>
+      </BookingContinueButton>
 
       <Modal transparent visible={Boolean(orderPrompt)} animationType="fade" onRequestClose={() => setOrderPrompt(null)}>
         <View style={screenStyles.modalBackdrop}>
@@ -1347,7 +1222,7 @@ function ScheduleStep({ state, updateState, goNext, goTo }: StepProps) {
 
       <PriceEstimateCard state={{ ...state, fittingLocation }} />
 
-      <PrimaryButton
+      <BookingContinueButton
         icon="arrow-right"
         disabled={loading || Boolean(error) || !fittingLocation || !slots.some(slot => slot.available && slot.time === selectedTime)}
         onPress={() => {
@@ -1362,7 +1237,7 @@ function ScheduleStep({ state, updateState, goNext, goTo }: StepProps) {
         }}
       >
         Continue
-      </PrimaryButton>
+      </BookingContinueButton>
     </View>
   );
 }
@@ -1390,8 +1265,12 @@ async function findCheapestMatchingTyre(state: BookingState): Promise<SelectedTy
   };
 }
 
-function QuoteStep({ state, updateState, goNext, goTo }: StepProps) {
+function QuoteStep(props: StepProps) {
+  const { state, updateState, goTo } = props;
   const [loading, setLoading] = useState(!state.breakdown);
+  const [creatingBooking, setCreatingBooking] = useState(false);
+  const bookingCreationLocked = useRef(false);
+  const quoteRequestPending = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const revision = useRef(0);
   const mounted = useRef(true);
@@ -1403,7 +1282,8 @@ function QuoteStep({ state, updateState, goNext, goTo }: StepProps) {
   }, []);
 
   const requestQuote = useCallback(async () => {
-    if (state.lat == null || state.lng == null || !state.bookingType) return;
+    if (bookingCreationLocked.current || quoteRequestPending.current || state.lat == null || state.lng == null || !state.bookingType) return;
+    quoteRequestPending.current = true;
     const requestRevision = ++revision.current;
     const current = () => mounted.current && requestRevision === revision.current;
     setLoading(true);
@@ -1459,6 +1339,7 @@ function QuoteStep({ state, updateState, goNext, goTo }: StepProps) {
       if (message.toLowerCase().includes('slot')) goTo('schedule');
       setError(message);
     } finally {
+      quoteRequestPending.current = false;
       if (current()) setLoading(false);
     }
   }, [goTo, state, updateState]);
@@ -1470,38 +1351,26 @@ function QuoteStep({ state, updateState, goNext, goTo }: StepProps) {
   if (loading && !state.breakdown) return <LoadingState label="Calculating live quote..." />;
 
   const total = state.breakdown?.total ?? 0;
-  const expired = !state.quoteExpiresAt || Date.parse(state.quoteExpiresAt) <= now;
+  const expiresAt = state.quoteExpiresAt ? Date.parse(state.quoteExpiresAt) : Number.NaN;
+  const expired = !Number.isFinite(expiresAt) || expiresAt <= now;
 
   return (
     <View style={screenStyles.stepGap}>
-      <ScreenHeader eyebrow="Quote" title="Your price" detail="Review your service and total before entering your contact details." />
+      {!state.breakdown ? <ScreenHeader eyebrow="Review" title="Your booking and price" detail="Check your service, price and contact details together before payment." /> : null}
       {error ? (
         <>
           <InlineNotice tone="danger">{error}</InlineNotice>
-          <PrimaryButton icon="refresh-cw" onPress={requestQuote}>Retry</PrimaryButton>
+          <PrimaryButton icon="refresh-cw" disabled={creatingBooking} onPress={requestQuote}>Retry</PrimaryButton>
           <CustomerCallbackRequest name={state.customerName} phone={state.customerPhone} notes={['Help with a booking quote.', state.vehicleReg, state.address, state.tyrePhotoUrl || ''].filter(Boolean).join(' ')} />
         </>
       ) : null}
       {state.breakdown ? (
         <>
-          <Card>
-            <Row label="Service" value={state.serviceType === 'repair' ? 'Puncture repair' : state.serviceType === 'assess' ? 'Assessment' : 'Tyre fitting'} />
-            <Row label="Problem" value={problemTitle(state.problemType)} />
-            <Row label="Location" value={state.address} />
-            {state.scheduledDate && state.scheduledTime ? <Row label="Appointment" value={`${state.scheduledDate} ${state.scheduledTime}`} /> : null}
-            {state.selectedTyres.map((tyre) => (
-              <Row key={tyre.tyreId} label={`${tyre.quantity}x ${tyre.brand}`} value={tyre.sizeDisplay} />
-            ))}
-          </Card>
-          <Card style={screenStyles.totalCard}>
-            <Text style={screenStyles.totalLabel}>Total</Text>
-            <Text style={screenStyles.totalPrice}>{formatPrice(total)}</Text>
-          </Card>
           {expired ? <InlineNotice>Your quote has expired. Refresh the price to continue; your details will be kept.</InlineNotice> : <Text style={screenStyles.mutedCentered}>Price valid until {new Date(state.quoteExpiresAt!).toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' })} UK time.</Text>}
-          <PrimaryButton icon="arrow-right" disabled={total <= 0 || loading || Boolean(error) || expired} onPress={goNext}>
-            Continue to details
-          </PrimaryButton>
-          <PrimaryButton icon="refresh-cw" variant="secondary" loading={loading} onPress={requestQuote}>
+          <CustomerStep {...props} quoteReady={total > 0 && !loading && !error && !expired}
+            canSubmit={() => !quoteRequestPending.current}
+            setNavigationLocked={(locked) => { bookingCreationLocked.current = locked; setCreatingBooking(locked); props.setNavigationLocked?.(locked); }} />
+          <PrimaryButton icon="refresh-cw" variant="ghost" loading={loading} disabled={creatingBooking} onPress={requestQuote}>
             Refresh quote
           </PrimaryButton>
         </>
@@ -1516,7 +1385,9 @@ function CustomerStep({
   goNext,
   goTo,
   setNavigationLocked,
-}: StepProps) {
+  quoteReady = true,
+  canSubmit,
+}: StepProps & { quoteReady?: boolean; canSubmit?: () => boolean }) {
   const { profile, token } = useCustomerAccount();
   const [name, setName] = useState(state.customerName || profile?.name || '');
   const [email, setEmail] = useState(state.customerEmail || profile?.email || '');
@@ -1537,14 +1408,15 @@ function CustomerStep({
   }, [email, name, phone, profile, state.customerEmail, state.customerName, state.customerPhone]);
 
   const submit = async () => {
-    if (creating.current) return;
+    if (creating.current || !quoteReady || canSubmit?.() === false) return;
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPhone = phone.trim();
     if (!name.trim()) return setError('Full name is required.');
     if (!EMAIL_RE.test(trimmedEmail)) return setError('Enter a valid email address.');
     if (!PHONE_RE.test(trimmedPhone.replace(/\s/g, ''))) return setError('Enter a valid UK phone number.');
     if (!state.quoteId) return setError('Quote is missing. Please refresh the quote.');
-    if (!state.quoteExpiresAt || Date.parse(state.quoteExpiresAt) <= Date.now()) return setError('Quote has expired. Please refresh the quote.');
+    const expiresAt = state.quoteExpiresAt ? Date.parse(state.quoteExpiresAt) : Number.NaN;
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) return setError('Quote has expired. Please refresh the quote.');
 
     creating.current = true;
     setNavigationLocked?.(true);
@@ -1605,12 +1477,14 @@ function CustomerStep({
       {state.breakdown ? (
         <Card>
           <Row label="Service" value={state.serviceType === 'repair' ? 'Puncture repair' : state.serviceType === 'assess' ? 'Assessment' : 'Tyre fitting'} />
+          <Row label="Problem" value={problemTitle(state.problemType)} />
           <Row label="Location" value={state.address} />
           <Row label={state.bookingType === 'scheduled' ? 'Appointment (UK time)' : 'Estimated arrival'} value={state.bookingType === 'scheduled' ? `${state.scheduledDate} ${state.scheduledTime}` : state.emergencyEtaLabel || 'Our team will confirm availability'} />
           <PrimaryButton variant="ghost" disabled={loading} onPress={() => goTo(state.fittingLocation === 'shop' ? 'service' : 'location')}>Edit location</PrimaryButton>
           <Row label="Vehicle" value={[state.vehicleReg, state.vehicleMake, state.vehicleModel].filter(Boolean).join(' ') || 'Not specified'} />
           <Row label="Tyre size" value={tyreSizeDisplay(state.tyreSize)} />
           <Row label="Quantity" value={String(state.quantity)} />
+          {state.selectedTyres.map((tyre) => <Row key={tyre.tyreId} label={`${tyre.quantity}x ${tyre.brand} ${tyre.pattern}`} value={tyre.sizeDisplay} />)}
           <PrimaryButton variant="ghost" disabled={loading} onPress={() => goTo('details')}>Edit vehicle or tyres</PrimaryButton>
           {state.tyrePhotoUrl ? <Image accessibilityLabel="Attached tyre photo" source={{ uri: state.tyrePhotoUrl }} style={screenStyles.photoPreview} /> : null}
           {(state.breakdown.lineItems || []).map((item, index) => <Row key={`${item.type}-${index}`} label={item.label} value={formatPrice(item.amount)} />)}
@@ -1622,15 +1496,16 @@ function CustomerStep({
       <TextField label="Full name" value={name} onChangeText={value => { setName(value); updateState({ customerName: value }); }} placeholder="John Smith" autoComplete="name" />
       <TextField label="Email" value={email} onChangeText={value => { setEmail(value); updateState({ customerEmail: value }); }} placeholder="john@example.com" keyboardType="email-address" autoComplete="email" />
       <TextField label="Phone" value={phone} onChangeText={value => { setPhone(value); updateState({ customerPhone: value }); }} placeholder="07123 456789" keyboardType="phone-pad" autoComplete="tel" />
+      <LockingNutPriceNotice status={state.lockingNutStatus} />
       {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
       {quoteNeedsRestart ? (
-        <PrimaryButton icon="refresh-cw" onPress={() => { updateState({ ...quoteReset, customerName: name, customerEmail: email, customerPhone: phone }); goTo('quote'); }}>
+        <BookingContinueButton icon="refresh-cw" onPress={() => { updateState({ ...quoteReset, customerName: name, customerEmail: email, customerPhone: phone }); goTo('quote'); }}>
           Refresh price and keep my details
-        </PrimaryButton>
+        </BookingContinueButton>
       ) : (
-        <PrimaryButton icon="credit-card" loading={loading} onPress={submit}>
+        <BookingContinueButton icon="credit-card" loading={loading} disabled={!quoteReady} onPress={submit}>
           Confirm details & continue to payment
-        </PrimaryButton>
+        </BookingContinueButton>
       )}
     </View>
   );
@@ -1709,6 +1584,7 @@ function PaymentStep({ state, updateState, goTo, setNavigationLocked }: StepProp
         <Row label="Reference" value={state.refNumber || '-'} />
         <Row label="Total" value={amountLabel} valueStyle={{ color: colors.accent }} />
       </Card>
+      <LockingNutPriceNotice status={state.lockingNutStatus} />
       {state.pendingPaymentIntentId ? <View style={{ gap: 12 }}>
         <InlineNotice>Your payment is being checked. You will not be charged again when you retry confirmation.</InlineNotice>
         {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
@@ -1784,27 +1660,27 @@ function DoneStep({ state, reset }: { state: BookingState; reset: () => void }) 
   return (
     <View style={screenStyles.stepGap}>
       <ScreenHeader eyebrow="Confirmed" title="Booking received" detail={`${BUSINESS_NAME} has your booking reference.`} />
-      <Animated.View entering={FadeInDown.duration(320)} style={screenStyles.doneCardMotion}>
+      <View style={screenStyles.doneCardMotion}>
         <Card style={screenStyles.doneCard}>
-          <Animated.View entering={ZoomIn.duration(420).delay(120)} style={screenStyles.doneCheckBadge}>
+          <View style={screenStyles.doneCheckBadge}>
             <Feather name="check-circle" size={38} color={colors.success} />
-          </Animated.View>
-          <Animated.View entering={FadeInDown.duration(360).delay(190)} style={screenStyles.doneRefRow}>
+          </View>
+          <View style={screenStyles.doneRefRow}>
             <Text style={screenStyles.doneRef}>{refNumber || '-'}</Text>
             {refNumber ? (
-              <Animated.View entering={FadeInDown.duration(320).delay(270)}>
+              <View>
                 <Pressable accessibilityLabel="Copy booking reference" accessibilityRole="button" onPress={copyReference} style={screenStyles.doneCopyButton}>
                   <Feather name={referenceCopied ? 'check' : 'copy'} size={16} color={referenceCopied ? colors.success : colors.text} />
                   <Text style={screenStyles.doneCopyText}>{referenceCopied ? 'Copied' : 'Copy'}</Text>
                 </Pressable>
-              </Animated.View>
+              </View>
             ) : null}
-          </Animated.View>
-          <Animated.Text entering={FadeIn.duration(360).delay(340)} style={screenStyles.mutedCentered}>
+          </View>
+          <Text style={screenStyles.mutedCentered}>
             Confirmation email and SMS will be sent after payment confirmation.
-          </Animated.Text>
+          </Text>
         </Card>
-      </Animated.View>
+      </View>
       {state.refNumber && state.invoiceDownloadToken ? (
         <PrimaryButton
           icon="download"
@@ -1910,142 +1786,42 @@ const screenStyles = StyleSheet.create({
     flex: 1,
     overflow: 'hidden',
   },
-  ambientBackground: {
-    backgroundColor: 'rgba(249,115,22,0.045)',
-    borderBottomColor: 'rgba(249,115,22,0.08)',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    height: 270,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: -58,
-  },
-  content: {
-    gap: 18,
-    padding: spacing.page,
-    paddingBottom: 42,
-  },
-  topBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    minHeight: 54,
-  },
-  backButton: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    height: 42,
-    justifyContent: 'center',
-    width: 42,
-  },
-  stepGap: {
-    gap: 14,
-  },
-  heroHeader: {
-    alignSelf: 'stretch',
-    gap: 7,
-    marginBottom: 18,
-  },
-  heroEyebrow: {
-    color: colors.accent,
-    fontFamily: typography.bodyBold,
-    fontSize: 12,
-    textTransform: 'uppercase',
-  },
-  heroTitle: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    maxWidth: '100%',
-  },
-  heroTitleWord: {
-    flexDirection: 'row',
-    marginRight: 9,
-  },
-  heroTitleLetter: {
-    color: colors.text,
-    fontFamily: typography.display,
-    fontSize: 44,
-    lineHeight: 44,
-  },
-  heroDetail: {
-    color: colors.muted,
-    flexShrink: 1,
-    fontFamily: typography.body,
-    fontSize: 15,
-    lineHeight: 22,
-    maxWidth: '100%',
-  },
-  stepMotion: {
-    alignSelf: 'stretch',
-  },
-  progressMotion: {
-    alignSelf: 'stretch',
-  },
-  progressCard: {
-    backgroundColor: '#1F1F23',
-    gap: 12,
-    padding: 12,
-  },
-  progressBadgeRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  progressBadge: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(249,115,22,0.12)',
-    borderColor: 'rgba(249,115,22,0.34)',
-    borderRadius: radii.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 6,
-    minHeight: 30,
-    paddingHorizontal: 10,
-  },
-  progressBadgeDot: {
-    backgroundColor: colors.accent,
-    borderRadius: 4,
-    height: 8,
-    width: 8,
-  },
-  progressBadgeText: {
-    color: colors.text,
-    fontFamily: typography.bodyBold,
-    fontSize: 12,
-  },
-  progressTitle: {
-    color: colors.accent,
-    flexShrink: 1,
-    fontFamily: typography.bodyBold,
-    fontSize: 12,
-    textAlign: 'right',
-    textTransform: 'uppercase',
-  },
-  progressTrack: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 999,
-    height: 5,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    backgroundColor: colors.accent,
-    borderRadius: 999,
-    height: 5,
-  },
-  progressRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  progressText: {
-    color: colors.muted,
-    fontFamily: typography.bodyMedium,
-    fontSize: 12,
-  },
+  scroll: { flex: 1 },
+  content: { gap: 16, padding: spacing.page, paddingBottom: 24 },
+  topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', gap: 12, minHeight: 42 },
+  brand: { alignItems: 'center', flexDirection: 'row', flexShrink: 1, gap: 10 },
+  brandName: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 15, flexShrink: 1 },
+  backButton: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.md, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 },
+  stepGap: { gap: 14 },
+  heroHeader: { alignSelf: 'stretch', gap: 6, marginBottom: 2 },
+  heroEyebrow: { color: colors.accent, fontFamily: typography.bodyMedium, fontSize: 12 },
+  heroTitle: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 28, lineHeight: 36, flexShrink: 1 },
+  heroDetail: { color: colors.muted, fontFamily: typography.body, fontSize: 15, lineHeight: 22, flexShrink: 1 },
+  stepMotion: { alignSelf: 'stretch' },
+  serviceChoice: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 14, padding: 16, gap: 12 },
+  emergencyChoice: { backgroundColor: '#231A14', borderColor: '#B75B26' },
+  serviceChoiceSelected: { borderColor: colors.accent, backgroundColor: '#2B211B' },
+  choicePressed: { opacity: 0.84 },
+  serviceChoiceHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  serviceChoiceIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, flexShrink: 0 },
+  emergencyChoiceIcon: { backgroundColor: 'rgba(249,115,22,0.16)' },
+  serviceChoiceCopy: { flex: 1, minWidth: 0, gap: 5 },
+  serviceChoiceTitle: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 20, lineHeight: 27, flexShrink: 1 },
+  serviceChoiceDetail: { color: colors.muted, fontFamily: typography.body, fontSize: 14, lineHeight: 21 },
+  serviceChoiceMeta: { color: colors.muted, fontFamily: typography.bodyMedium, fontSize: 12, lineHeight: 18 },
+  emergencyChoiceMeta: { color: '#FDBA74' },
+  homeSupport: { gap: 10, marginTop: 4 },
+  supportTitle: { color: colors.muted, fontFamily: typography.bodyMedium, fontSize: 13 },
+  progressCard: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 12, padding: 12, gap: 12 },
+  progressHeading: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },
+  progressTitle: { color: colors.text, fontFamily: typography.bodyBold, fontSize: 14 },
+  progressDetail: { color: colors.muted, fontFamily: typography.body, fontSize: 12 },
+  stageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  stageItem: { flexBasis: 90, flexGrow: 1, flexShrink: 1, gap: 6 },
+  stageTrack: { height: 4, borderRadius: 4, backgroundColor: colors.border },
+  stageTrackActive: { backgroundColor: colors.accent },
+  stageLabel: { color: colors.muted, fontFamily: typography.bodyMedium, fontSize: 12, lineHeight: 18 },
+  stageLabelActive: { color: colors.text },
   suggestions: {
     backgroundColor: colors.card,
     borderColor: colors.border,

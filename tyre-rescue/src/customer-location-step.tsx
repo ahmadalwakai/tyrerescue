@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type ComponentProps, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { API, requestJson } from './api';
 import { resetBookingQuote, withDeadline } from './booking-safety';
@@ -11,7 +11,7 @@ import { Card, InlineNotice, LoadingState, PrimaryButton, Row, ScreenHeader, Tex
 
 interface Validation { valid: boolean; distanceMiles: number; message: string }
 interface Place { lat: number; lng: number; address: string }
-export function CustomerLocationStep({ state, updateState, goNext }: { state: BookingState; updateState: (value: Partial<BookingState>) => void; goNext: () => void }) {
+export function CustomerLocationStep({ state, updateState, goNext, renderConfirmAction }: { state: BookingState; updateState: (value: Partial<BookingState>) => void; goNext: () => void; renderConfirmAction?: (props: ComponentProps<typeof PrimaryButton>) => ReactNode }) {
   const [address, setAddress] = useState(state.address);
   const [selected, setSelected] = useState<Place | null>(state.lat !== null && state.lng !== null ? { lat: state.lat, lng: state.lng, address: state.address } : null);
   const [validation, setValidation] = useState<Validation | null>(null);
@@ -50,12 +50,12 @@ export function CustomerLocationStep({ state, updateState, goNext }: { state: Bo
     } catch (err) { if (mounted.current && revision === generation.current) { setError(err instanceof Error ? err.message : 'Unable to select this location.'); setBusy(false); } }
   }, [applyPlace]);
 
-  const locate = useCallback(async (explicit = true) => {
+  const locate = useCallback(async () => {
     const revision = ++generation.current;
     const current = () => mounted.current && revision === generation.current;
     setBusy(true); setError(null); setSelected(null); setValidation(null); setAccuracy(null); setSettingsNeeded(false);
     try {
-      const result = await prepareCustomerLocation({ requestPermission: explicit, force: explicit });
+      const result = await prepareCustomerLocation({ requestPermission: true, force: true });
       if (!current()) return;
       setSettingsNeeded(result.settingsNeeded);
       if (result.status !== 'ready' || !result.place) {
@@ -72,9 +72,8 @@ export function CustomerLocationStep({ state, updateState, goNext }: { state: Bo
     mounted.current = true;
     const saved = initial.current;
     if (saved.lat !== null && saved.lng !== null) void applyPlace({ lat: saved.lat, lng: saved.lng, address: saved.address }, ++generation.current);
-    else if (!saved.address && Platform.OS !== 'web') void locate(false);
     return () => { mounted.current = false; if (searchTimer.current) clearTimeout(searchTimer.current); };
-  }, [applyPlace, locate]);
+  }, [applyPlace]);
 
   function changeAddress(value: string) {
     const revision = ++generation.current;
@@ -109,7 +108,7 @@ export function CustomerLocationStep({ state, updateState, goNext }: { state: Bo
     {selected ? <Card>
       <Row label="Address / map pin" value={selected.address} />
       {accuracy !== null ? <Row label="GPS accuracy" value={`Approximately ${Math.ceil(accuracy)} metres`} /> : null}
-      <PrimaryButton icon="check" disabled={!validation?.valid || busy} onPress={confirmLocation}>Yes, use this location</PrimaryButton>
+      {renderConfirmAction ? renderConfirmAction({ icon: 'check', disabled: !validation?.valid || busy, onPress: confirmLocation, children: 'Yes, use this location' }) : <PrimaryButton icon="check" disabled={!validation?.valid || busy} onPress={confirmLocation}>Yes, use this location</PrimaryButton>}
       <PrimaryButton variant="ghost" onPress={editAddress}>Change address</PrimaryButton>
       <PulsingMap centerCoordinate={[selected.lng, selected.lat]} markers={liveLocationMarkers(selected.lat, selected.lng)} onCoordinateSelected={coordinate => { void chooseCoordinate(coordinate); }} style={styles.map} />
       <Text style={styles.hint}>Tap the map to move the pin to your vehicle.</Text>

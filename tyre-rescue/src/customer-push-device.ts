@@ -62,3 +62,11 @@ export function detachCustomerPushDevice(authToken: string | null) {
     try { await flushPendingCleanup(); } catch { /* Retry at the next registration. */ }
   });
 }
+
+/** A deleted account has already been revoked server-side; retain no credential. */
+export function forgetCustomerPushDevice() {
+  accountRevision += 1;
+  return serialize(async () => {
+    await Promise.all([deleteSecureItem(DEVICE_KEY), deleteSecureItem(CLEANUP_KEY)]);
+  });
+}

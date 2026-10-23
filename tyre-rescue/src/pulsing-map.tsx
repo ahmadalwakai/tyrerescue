@@ -1,8 +1,6 @@
 import Mapbox from '@rnmapbox/maps';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import {
-  Animated,
-  Easing,
   StyleSheet,
   Text,
   View,
@@ -18,6 +16,7 @@ import {
   type MapCoordinate,
 } from './mapbox';
 import { colors, typography } from './theme';
+import { useCustomerReducedMotion } from './use-customer-reduced-motion';
 
 if (MAPBOX_TOKEN) {
   Mapbox.setAccessToken(MAPBOX_TOKEN);
@@ -40,6 +39,7 @@ export function PulsingMap({
   style?: StyleProp<ViewStyle>;
   onCoordinateSelected?: (coordinate: MapCoordinate) => void;
 }) {
+  const reducedMotion = useCustomerReducedMotion();
   const visibleCoordinates = useMemo(
     () => [...(routeCoordinates ?? []), ...markers.map((marker) => marker.coordinate)],
     [markers, routeCoordinates],
@@ -67,7 +67,7 @@ export function PulsingMap({
         styleURL={MAPBOX_DARK_STYLE_URL}
       >
         <Mapbox.Camera
-          animationDuration={550}
+          animationDuration={reducedMotion ? 0 : 300}
           animationMode="easeTo"
           bounds={cameraBounds ?? undefined}
           centerCoordinate={cameraBounds ? undefined : cameraCenter}
@@ -150,75 +150,11 @@ function getRouteShape(routeCoordinates?: MapCoordinate[] | null) {
 }
 
 function RadarPulse({ color }: { color: string }) {
-  const first = useRef(new Animated.Value(0)).current;
-  const second = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const firstLoop = createRadarLoop(first, 0);
-    const secondLoop = createRadarLoop(second, 800);
-    firstLoop.start();
-    secondLoop.start();
-
-    return () => {
-      firstLoop.stop();
-      secondLoop.stop();
-    };
-  }, [first, second]);
-
   return (
     <View style={styles.radarPulse}>
-      <PulseRing color={color} progress={first} />
-      <PulseRing color={color} progress={second} />
+      <View style={[styles.radarPulseRing, { borderColor: color }]} />
       <View style={[styles.radarPulseDot, { backgroundColor: color, borderColor: `${color}55` }]} />
     </View>
-  );
-}
-
-function PulseRing({ color, progress }: { color: string; progress: Animated.Value }) {
-  const opacity = progress.interpolate({
-    inputRange: [0, 0.08, 0.65, 1],
-    outputRange: [0, 0.72, 0.28, 0],
-  });
-  const scale = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.65, 3.2],
-  });
-
-  return (
-    <Animated.View
-      style={[
-        styles.radarPulseRing,
-        {
-          borderColor: color,
-          opacity,
-          transform: [{ scale }],
-        },
-      ]}
-    />
-  );
-}
-
-function createRadarLoop(value: Animated.Value, delay: number) {
-  const duration = 1800;
-  const cycle = 2600;
-  const rest = Math.max(0, cycle - delay - duration);
-
-  return Animated.loop(
-    Animated.sequence([
-      Animated.delay(delay),
-      Animated.timing(value, {
-        toValue: 1,
-        duration,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.timing(value, {
-        toValue: 0,
-        duration: 0,
-        useNativeDriver: true,
-      }),
-      Animated.delay(rest),
-    ]),
   );
 }
 
@@ -242,6 +178,7 @@ const styles = StyleSheet.create({
     height: 28,
     position: 'absolute',
     width: 28,
+    opacity: 0.35,
   },
   radarPulseDot: {
     borderRadius: 7,

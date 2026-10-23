@@ -177,7 +177,6 @@ export function getSteps(bookingType: BookingType | null, serviceType?: ServiceT
     'details',
     'tyres',
     'quote',
-    'customer',
     'payment',
   ];
   const scheduled: WizardStep[] = [
@@ -187,7 +186,6 @@ export function getSteps(bookingType: BookingType | null, serviceType?: ServiceT
     'tyres',
     'schedule',
     'quote',
-    'customer',
     'payment',
   ];
   const base = bookingType === 'emergency' ? emergency : scheduled;

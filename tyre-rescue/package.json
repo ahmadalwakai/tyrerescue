@@ -1,7 +1,10 @@
 {
   "name": "tyre-rescue",
   "main": "expo-router/entry",
-  "version": "1.0.3",
+  "version": "1.0.4",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",

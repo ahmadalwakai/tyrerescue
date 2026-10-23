@@ -3,7 +3,6 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { AppState, Platform } from 'react-native';
 import 'react-native-reanimated';
 import {
   BebasNeue_400Regular,
@@ -20,9 +19,6 @@ import { colors } from '@/src/theme';
 import { CustomerStripeProvider } from '../src/stripe-provider';
 import { CustomerAccountProvider } from '@/src/customer-account';
 import { CustomerNotificationBootstrap } from '@/src/customer-notifications';
-import { prepareCustomerLocation } from '@/src/customer-location';
-
-let locationPreparedAtEntry = false;
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -41,26 +37,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
-  }, [fontsLoaded]);
-
-  useEffect(() => {
-    if (!fontsLoaded || Platform.OS === 'web') return;
-    let mounted = true;
-    const prepare = () => {
-      if (AppState.currentState !== 'active') return;
-      const requestPermission = !locationPreparedAtEntry;
-      locationPreparedAtEntry = true;
-      void prepareCustomerLocation({ requestPermission }).then(result => {
-        // The iOS permission sheet may close before AppState reports active.
-        // An active event can join that same idle request; resume GPS once it settles.
-        if (mounted && result.status === 'idle' && AppState.currentState === 'active') {
-          void prepareCustomerLocation();
-        }
-      });
-    };
-    prepare();
-    const subscription = AppState.addEventListener('change', state => { if (state === 'active') prepare(); });
-    return () => { mounted = false; subscription.remove(); };
   }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;
