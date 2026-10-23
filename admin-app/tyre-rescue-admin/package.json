@@ -1,4 +1,7 @@
 {
+  "engines": {
+    "node": "24.x"
+  },
   "name": "tyre-rescue-admin-legacy",
   "main": "expo-router/entry",
   "version": "1.0.0",

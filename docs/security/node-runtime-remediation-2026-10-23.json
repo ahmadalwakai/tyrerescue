@@ -1,0 +1,217 @@
+{
+  "date": "2026-10-23",
+  "status": "partially_completed_production_access_blocked",
+  "project": "tyrerescue",
+  "sources": [
+    "https://nodejs.org/en/blog/vulnerability/october-2026-security-releases",
+    "https://nodejs.org/dist/index.json",
+    "https://nodejs.org/dist/v24.22.1/SHASUMS256.txt",
+    "https://vercel.com/kb/bulletin/node-js-security-advisory",
+    "https://vercel.com/docs/functions/runtimes/node-js/node-js-versions",
+    "https://docs.expo.dev/eas/json/"
+  ],
+  "officialLatestVerified": {
+    "22": "22.23.4",
+    "24": "24.22.1",
+    "26": "26.12.1",
+    "securityAnnouncementDate": "2026-10-21",
+    "note": "Vercel bulletin still describes managed runtime rollout as in progress. WAF coverage does not prove runtime patching or protect fetched responses."
+  },
+  "runtimeEvidence": {
+    "localDevelopmentCommands": {
+      "before": "v24.7.0",
+      "after": "v24.22.1",
+      "method": "Executed node --version and process.version after nvm install/use; verified official SHA256 and valid OpenJS Authenticode signature."
+    },
+    "localBuild": {
+      "observed": "v24.22.1",
+      "defaultBuild": "failed",
+      "defaultBuildCause": "Existing package.json type=commonjs conflicts with ESM application sources under Turbopack; that pre-existing user field was preserved.",
+      "webpackBuild": "compiled_successfully_but_failed_typecheck",
+      "webpackExitCode": 1,
+      "webpackTypecheckCause": "Existing app/api/chat/upload/route.ts exports resolveChatUploadMimeType, which is not an allowed Next.js route export; this file was not modified by the remediation."
+    },
+    "production": {
+      "before": null,
+      "after": null,
+      "status": "unverified",
+      "reason": "Vercel MCP and existing CLI session both returned 403 for the linked team/project.",
+      "deployedThisTask": false,
+      "plannedMajor": "24.x",
+      "caveat": "Confirm actual production release line before deployment; preserve 22 or 26 if already in use and supported by the provider. Local version and engines are not production evidence."
+    },
+    "easRemoteBuilds": {
+      "actualBefore": null,
+      "actualAfter": null,
+      "configuredForFutureBuilds": "24.22.1",
+      "profilesUpdated": 19,
+      "cloudBuildExecutedThisTask": false
+    },
+    "containersAndExternalBackends": {
+      "status": "no_deployment_evidence_in_inspected_workspace",
+      "note": "No repository Docker/container configuration, GitHub Actions workflow, Docker executable, or matching Windows backend service identified. Remote infrastructure and all associated services cannot be ruled out without hosting access."
+    },
+    "existingProcesses": "No running Tyrerescue server positively identified before update. Port 3000 belongs to another project and was preserved. Updating the nvm symlink does not update already running processes. Codex/browser tool runtimes are outside application scope."
+  },
+  "changes": {
+    "root": [
+      ".nvmrc pins 24.22.1",
+      "engines.node=24.x in package.json and lock root metadata",
+      "check:node and predev/prebuild/prestart enforce >=24.22.1 within major 24 and report only process.version",
+      "GET /api/admin/runtime requires an admin session and returns only process.version with private no-store caching"
+    ],
+    "nestedProjects": [
+      "247moglasgow",
+      "edinburgh-tyre-fitting",
+      "admin-app",
+      "admin-app/tyre-rescue-admin",
+      "assisted-chat-app",
+      "driver-app",
+      "stock-app",
+      "tyre-rescue"
+    ],
+    "nestedConfiguration": "engines.node=24.x and matching lock metadata; all 19 build profiles in 7 eas.json files pin 24.22.1. Other fields/dependencies preserved.",
+    "deploymentBuildRequirement": "Use npm run build (or explicitly run npm run check:node); invoking next build directly bypasses npm prebuild.",
+    "userChangesPreserved": true
+  },
+  "verification": {
+    "stripeAndPaymentMockTests": {
+      "files": 7,
+      "passed": 112,
+      "failed": 0,
+      "node": "v24.22.1"
+    },
+    "nodePolicyTests": {
+      "passed": 3,
+      "failed": 0
+    },
+    "protectedRuntimeRouteTests": {
+      "passed": 3,
+      "failed": 0
+    },
+    "scopedLint": "passed",
+    "packageAndLockPreservation": "passed",
+    "publicProductionHttp": {
+      "/": 200,
+      "/book": 200,
+      "/api/health": 200,
+      "databaseCheck": "ok"
+    },
+    "bookingBrowserSmoke": {
+      "serviceChoiceRendered": true,
+      "consoleErrorsObserved": 0
+    },
+    "publicWebhookNegativeProbes": {
+      "missingSignature": 400,
+      "invalidSignature": 400,
+      "payload": "empty JSON object; no booking/payment mutation"
+    },
+    "newRuntimeEndpointOnProduction": "404 as expected before deployment; no production process.version attestation obtained",
+    "livePaymentOrWebhookDelivery": "not_verified",
+    "realPaymentsMade": false,
+    "localProductionBuild": {
+      "status": "failed",
+      "turbopack": "existing CommonJS/ESM format conflict",
+      "webpack": "compiled successfully; blocked by existing invalid chat upload route export",
+      "artifactReadyForRelease": false
+    }
+  },
+  "securityReview": {
+    "localLogFilesReviewed": 175,
+    "localLogLinesReviewed": 84890,
+    "confirmedCompromiseIndicators": [],
+    "interpretation": "No confirmed exploit indicators identified in the limited historical local logs. General path/child_process matches were build/import/Pods stack traces. Absence of visible activity does not prove absence of compromise.",
+    "liveHostingRuntimeAndFirewallLogs": "unavailable_due_to_403",
+    "stripeReadOnlyCheck": {
+      "mode": "test",
+      "authentication": "succeeded",
+      "lookbackHours": 48,
+      "eventLimit": 100,
+      "accountWideEventsReturned": 5,
+      "eventsTaggedForThisProject": 0,
+      "failedDisputedBlockedTypesInSample": 0,
+      "pendingWebhooksInSample": 0,
+      "matchingProductionWebhookEndpointsInTestAccount": 0,
+      "note": "Shared-account test events are not evidence about this project's live account activity. No API writes, replays, or key mutations were performed."
+    },
+    "stripeLiveApiRequestAndSecurityAuditLogs": "unavailable; no live credential or connected Stripe dashboard access identified",
+    "originalLogsDeletedOrCleaned": false,
+    "historicalHostingLogs": {
+      "files": 77,
+      "exactRemoteNodeVersionEvidence": false,
+      "localCliOnlyVersion": "v24.7.0",
+      "confirmedExploitMarkers": 0,
+      "note": "Historical snapshots only; not live hosting access. Three version lines belong to local CLI; generic authentication matches were test names."
+    }
+  },
+  "sharedStripeKeyCutover": {
+    "status": "ready_for_secure_standard_secret_key_replacement; replacement_not_provided",
+    "variableNamesOnly": [
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+    ],
+    "usage": {
+      "STRIPE_SECRET_KEY": [
+        "lib/stripe.ts",
+        "edinburgh-tyre-fitting/lib/stripe.ts"
+      ],
+      "STRIPE_WEBHOOK_SECRET": [
+        "lib/stripe.ts",
+        "app/api/stripe/webhook/route.ts"
+      ],
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": [
+        "components/booking/StepPayment.tsx",
+        "components/admin/quick-book/QuickBookForm.tsx",
+        "tyre-rescue/src/config.ts"
+      ],
+      "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": [
+        "tyre-rescue/src/config.ts"
+      ]
+    },
+    "replacementProcedure": [
+      "Centrally inventory every consuming project and environment; this repository cannot establish the full shared-key inventory.",
+      "Receive the replacement through the hosting secret manager or an equivalent secure channel, never chat, logs, or the repository.",
+      "Update STRIPE_SECRET_KEY in each intended deployment environment; restart/redeploy all consumers because the Stripe client is cached per process.",
+      "Current validation accepts a standard secret key; introducing a restricted key requires a separately reviewed compatibility change.",
+      "API-key replacement alone does not require changing the endpoint signing secret or public key. If those are separately changed, update the relevant variables and rebuild native/web clients where public values are embedded.",
+      "Verify credential access, test checkout and signed webhook delivery/deduplication without real payments, using an isolated test environment.",
+      "Record successful migration of every project centrally before centrally revoking the old shared key.",
+      "If active exploitation is detected, escalate immediately to the central incident owner, preserve evidence, and coordinate containment/revocation across all projects."
+    ],
+    "keysRotatedOrRevokedThisTask": false,
+    "secretValuesDisplayedOrCommitted": false
+  },
+  "remainingActions": [
+    "Resolve the pre-existing CommonJS/ESM build configuration and invalid chat upload route export in a separate reviewed change, or apply the security patch to a known buildable production source snapshot. No deployment should promote an unverified build.",
+    "Restore authorized Vercel team/project access; inspect actual production build and function runtime versions plus deployment/source provenance before release.",
+    "Stage a security-only deployment from the known production source with these scoped changes, preserving unrelated workspace changes; verify before promotion.",
+    "Confirm all applicable managed runtimes and regions are patched using process.version/build logs/provider attestation, including cron/payment/webhook functions.",
+    "Verify future EAS build logs attest 24.22.1; independently inventory and update any external Node services or container images if discovered.",
+    "Review current Vercel runtime/firewall/audit logs and live Stripe API/security/webhook-delivery logs once authorized access is available.",
+    "Complete centrally coordinated shared-key cutover only when a replacement is supplied securely."
+  ],
+  "localEvidenceDirectory": ".vercel/node-security-20261023/",
+  "evidenceNotes": "Contains baseline snapshots, original-log SHA256 inventory, redacted test/build results, public HTTP/probe receipts, binary hash verification, and read-only Stripe summaries. Directory is ignored by Git; original logs are retained.",
+  "completedAtUtc": "2026-10-23T21:49:09.820Z",
+  "gitPushScope": {
+    "branch": "security/rate-limiting",
+    "trackedPackages": 7,
+    "trackedEasConfigs": 6,
+    "trackedEasBuildProfiles": 17,
+    "localOnlyChanges": [
+      "247moglasgow/package.json and package-lock.json (project directory is untracked)",
+      "edinburgh-tyre-fitting/package.json and package-lock.json (project directory is untracked)",
+      "stock-app/eas.json (pre-existing untracked user configuration)"
+    ],
+    "preservation": "Only runtime policy additions are staged from HEAD for mixed files; unrelated working-tree edits remain local.",
+    "validationScope": "Earlier 118 tests and build attempts ran on the working tree with unrelated user changes. Separately, a snapshot of the exact proposed commit files and HEAD auth/Vitest configuration passed 3 Node policy tests and 3 protected runtime route tests on v24.22.1.",
+    "stagedSnapshotTests": {
+      "node": "v24.22.1",
+      "passed": 6,
+      "failed": 0,
+      "fullProductionBuild": "not_run_for_scoped_snapshot"
+    }
+  }
+}

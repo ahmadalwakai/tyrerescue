@@ -1,8 +1,15 @@
 {
+  "engines": {
+    "node": "24.x"
+  },
   "name": "tyrerescue",
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "check:node": "node scripts/check-node-runtime.mjs",
+    "predev": "npm run check:node",
+    "prebuild": "npm run check:node",
+    "prestart": "npm run check:node",
     "dev": "node --dns-result-order=ipv4first node_modules/next/dist/bin/next dev -p 3002",
     "build": "next build",
     "start": "next start",
