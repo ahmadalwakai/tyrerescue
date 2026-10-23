@@ -12,7 +12,7 @@ import {
 import { colors, typography } from './theme';
 import { useCustomerReducedMotion } from './use-customer-reduced-motion';
 
-type MapboxGL = typeof import('mapbox-gl').default;
+type MapboxGL = typeof import('mapbox-gl');
 type MapboxMap = import('mapbox-gl').Map;
 type MapboxMarker = import('mapbox-gl').Marker;
 type MapboxGeoJSONSource = import('mapbox-gl').GeoJSONSource;

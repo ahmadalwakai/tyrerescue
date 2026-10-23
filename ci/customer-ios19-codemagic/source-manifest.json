@@ -2,7 +2,7 @@
   "version": "1.0.4",
   "buildNumber": "19",
   "bundleIdentifier": "uk.tyrerescue.customer",
-  "sourceManifestSha256": "64333e9a0ec89ac5bfafb880f99094166c198416af9fc4d5f8cffbe7e37abdf5",
+  "sourceManifestSha256": "d8308fd2e320e0d4d300a686e237667660afaa9c4583dffaa7941178533bff15",
   "fileCount": 100,
   "files": [
     {
@@ -232,8 +232,8 @@
     },
     {
       "file": "scripts/customer-location.test.cjs",
-      "bytes": 15242,
-      "sha256": "fe114b391f984b4a86571fbd9d04607a425129232fb881c1c076b809f67a6468"
+      "bytes": 16199,
+      "sha256": "3e03bbcd991af360a804275e8218d54e5a5433b32f465133dbb72dcaa7cf9889"
     },
     {
       "file": "scripts/customer-motion.test.cjs",
@@ -412,8 +412,8 @@
     },
     {
       "file": "src/pulsing-map.web.tsx",
-      "bytes": 9320,
-      "sha256": "a6937757575ee19a98decf8926ca622f1508e28ac6e3efb85a6f0776e358c6d4"
+      "bytes": 9312,
+      "sha256": "948a2c47b1c83481159aa0805ae0188d98b5f8902a685e21340c4742354d3e80"
     },
     {
       "file": "src/secure-storage.native.ts",

@@ -1,6 +1,24 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { loadSource, deferred, settle } = require('../../assisted-chat-app/scripts/chat-modals.test.cjs');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const ts = require('typescript');
+
+function loadSource(relative, dependencies, globals = {}) {
+  const filename = path.join(__dirname, '../src', relative);
+  const compiled = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: {
+    module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
+  } }).outputText;
+  const module = { exports: {} };
+  vm.runInNewContext(`(function(require,module,exports){${compiled}\n})`, { URLSearchParams, Date, ...globals }, { filename })(name => {
+    if (!(name in dependencies)) throw new Error(`Unexpected dependency: ${name}`);
+    return dependencies[name];
+  }, module, module.exports);
+  return module.exports;
+}
+function deferred() { let resolve; let reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
+async function settle() { for (let index = 0; index < 6; index++) await new Promise(resolve => setImmediate(resolve)); }
 
 const gpsPlace = { lat: 55.8642, lng: -4.2518, address: 'Demo Glasgow address', accuracy: 8, capturedAt: Date.now() };
 const ready = (place = gpsPlace) => ({ status: 'ready', place, message: null, settingsNeeded: false });
@@ -23,7 +41,7 @@ function harness(initial = {}, platform = 'ios') {
     useEffect(effect, deps) { const r = rendering; const index = r.cursor++; if (!r.hooks[index] || changed(r.hooks[index].deps, deps)) r.effects.push(() => { r.hooks[index]?.cleanup?.(); r.hooks[index] = { deps, cleanup: effect() }; }); },
   };
   const node = (type, props) => ({ type, props });
-  const component = loadSource('../../tyre-rescue/src/customer-location-step.tsx', {
+  const component = loadSource('customer-location-step.tsx', {
     react, 'react/jsx-runtime': { jsx: node, jsxs: node, Fragment: 'Fragment' },
     'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', Platform: { OS: platform }, Linking: { openSettings: async () => {} }, StyleSheet: { create: (value) => value } },
     './api': { API: { validateLocation: '/isolated/location' }, requestJson: async (url, init) => { const body = JSON.parse(init.body); state.validations.push(body); return state.validate(body); } },
