@@ -1,0 +1,323 @@
+import { useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  Pressable,
+  Platform,
+} from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
+  Easing,
+  FadeIn,
+  FadeOut,
+} from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, fontSize, radius } from '@/constants/theme';
+import { useJobAlert, type JobAlertType } from '@/context/job-alert-context';
+import { useI18n } from '@/i18n';
+import { lightHaptic } from '@/services/haptics';
+import { stopAlertSound } from '@/services/sound';
+
+/** Map alert type to i18n title key and icon name. */
+function getAlertMeta(alertType: JobAlertType, t: (k: string) => string) {
+  switch (alertType) {
+    case 'reassignment':
+      return { title: t('jobAlert.titleReassignment'), icon: 'navigate' as const, buttonLabel: t('jobAlert.openRoute') };
+    case 'upcoming_v2':
+      return { title: t('jobAlert.titleUpcoming'), icon: 'time' as const, buttonLabel: t('jobAlert.viewJob') };
+    default:
+      return { title: t('jobAlert.title'), icon: 'navigate' as const, buttonLabel: t('jobAlert.openRoute') };
+  }
+}
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+export function JobAlertPopup() {
+  const { visible, alertData, dismiss } = useJobAlert();
+  const router = useRouter();
+  const { t } = useI18n();
+  const navigatingRef = useRef(false);
+
+  // ── Pulse animation ──
+  const scale = useSharedValue(1);
+  const shadowOpacity = useSharedValue(0.3);
+  const animRunning = useRef(false);
+
+  useEffect(() => {
+    if (visible) {
+      // Reset navigation lock when popup becomes visible
+      navigatingRef.current = false;
+      animRunning.current = true;
+      scale.value = withRepeat(
+        withSequence(
+          withTiming(1.06, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1, // infinite
+        false,
+      );
+      shadowOpacity.value = withRepeat(
+        withSequence(
+          withTiming(0.7, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.3, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        false,
+      );
+    } else {
+      cancelAnimation(scale);
+      cancelAnimation(shadowOpacity);
+      scale.value = 1;
+      shadowOpacity.value = 0.3;
+      animRunning.current = false;
+    }
+  }, [scale, shadowOpacity, visible]);
+
+  const animatedButtonStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const animatedGlowStyle = useAnimatedStyle(() => {
+    if (Platform.OS === 'web') return {};
+    return {
+      shadowOpacity: shadowOpacity.value,
+    };
+  });
+
+  const closeAlert = () => {
+    stopAlertSound();
+    dismiss();
+    lightHaptic();
+  };
+
+  const handleOpenJob = () => {
+    if (navigatingRef.current) return;
+    navigatingRef.current = true;
+
+    // Stop animation immediately
+    cancelAnimation(scale);
+    cancelAnimation(shadowOpacity);
+    scale.value = 1;
+    shadowOpacity.value = 0.3;
+    animRunning.current = false;
+
+    const ref = alertData?.ref;
+    closeAlert();
+
+    if (ref) {
+      router.push(
+        alertData?.alertType === 'upcoming_v2'
+          ? `/(tabs)/jobs/${ref}`
+          : `/(tabs)/jobs/${ref}/route`,
+      );
+    } else {
+      router.push('/(tabs)/jobs');
+    }
+  };
+
+  if (!visible || !alertData) return null;
+
+  const handleDismiss = () => {
+    stopAlertSound();
+    dismiss();
+  };
+
+  const meta = getAlertMeta(alertData.alertType, t);
+
+  return (
+    <Modal
+      transparent
+      animationType="fade"
+      visible={visible}
+      statusBarTranslucent
+      onRequestClose={handleDismiss}
+    >
+      <View style={styles.overlay}>
+        <Animated.View
+          entering={FadeIn.duration(250)}
+          exiting={FadeOut.duration(200)}
+          style={styles.card}
+        >
+          {/* Icon */}
+          <View style={styles.iconCircle}>
+            <Ionicons name={meta.icon} size={36} color="#fff" />
+          </View>
+
+          {/* Title */}
+          <Text style={styles.title}>{meta.title}</Text>
+
+          {/* Job ref */}
+          {alertData.ref && (
+            <Text style={styles.refText}>#{alertData.ref}</Text>
+          )}
+
+          {/* Body / address info */}
+          {alertData.body ? (
+            <Text style={styles.bodyText} numberOfLines={3}>
+              {alertData.body}
+            </Text>
+          ) : null}
+
+          {alertData.paymentLabel || alertData.urgencyLabel ? (
+            <View style={styles.metaRow}>
+              {alertData.paymentLabel ? (
+                <Text style={styles.metaChip} numberOfLines={1}>
+                  {alertData.paymentLabel}
+                </Text>
+              ) : null}
+              {alertData.urgencyLabel ? (
+                <Text style={styles.metaChip} numberOfLines={1}>
+                  {alertData.urgencyLabel}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+
+          {/* One clear action: open the job route. */}
+          <AnimatedPressable
+            onPress={handleOpenJob}
+            style={[styles.buttonOuter, animatedGlowStyle]}
+          >
+            <Animated.View style={[styles.buttonInner, animatedButtonStyle]}>
+              <Ionicons name="navigate" size={22} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.buttonText}>{meta.buttonLabel}</Text>
+            </Animated.View>
+          </AnimatedPressable>
+
+          {/* Dismiss link */}
+          <Pressable onPress={handleDismiss} style={styles.dismissButton} hitSlop={12}>
+            <Text style={styles.dismissText}>{t('jobAlert.dismiss')}</Text>
+          </Pressable>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    width: '100%',
+    maxWidth: 360,
+    alignItems: 'center',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
+        elevation: 12,
+      },
+    }),
+  },
+  iconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  title: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.xl,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  refText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.lg,
+    color: colors.accent,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  bodyText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.base,
+    color: colors.muted,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+    lineHeight: 22,
+    paddingHorizontal: spacing.sm,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.lg,
+  },
+  metaChip: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.xs,
+    color: colors.accent,
+    backgroundColor: 'rgba(249,115,22,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,22,0.28)',
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+    overflow: 'hidden',
+  },
+  buttonOuter: {
+    width: '100%',
+    borderRadius: radius.lg,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 18px rgba(249,115,22,0.35)',
+      },
+      default: {
+        shadowColor: '#F97316',
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 12,
+        elevation: 8,
+      },
+    }),
+    marginBottom: spacing.sm,
+  },
+  buttonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F97316',
+    borderRadius: radius.lg,
+    paddingVertical: 16,
+    paddingHorizontal: spacing.xl,
+  },
+  buttonText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: fontSize.lg,
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  dismissButton: {
+    paddingVertical: spacing.sm,
+  },
+  dismissText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: fontSize.sm,
+    color: colors.muted,
+  },
+});

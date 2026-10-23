@@ -1,0 +1,397 @@
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { AppState, Linking, type AppStateStatus } from 'react-native';
+import { Slot, useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
+import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
+import { AuthProvider, useAuth } from '@/auth/context';
+import { I18nProvider } from '@/i18n';
+import { JobAlertProvider, useJobAlert, type JobAlertType } from '@/context/job-alert-context';
+import { JobAlertPopup } from '@/components/JobAlertPopup';
+import {
+  registerForPushNotifications,
+  addNotificationResponseListener,
+  addNotificationReceivedListener,
+  getLastNotificationResponse,
+  fireLocalCriticalNotification,
+  DRIVER_JOBS_URGENT_CHANNEL_ID,
+  JOBS_UPCOMING_CHANNEL_ID,
+  NOTIFICATION_ACTION_CALL_CUSTOMER,
+} from '@/services/notifications';
+import { initOfflineQueue } from '@/services/offline-queue';
+import { preloadSounds, playSound, loadSoundConfig, stopAlertSound } from '@/services/sound';
+import { markAlerted, fireJobAlert, isAlerted } from '@/services/job-alert';
+import { useNewJobDetector } from '@/hooks/useNewJobDetector';
+import { driverApi, type JobSummary } from '@/api/client';
+import { useLocationBroadcast } from '@/hooks/useLocation';
+import { getOnlineLocationRevision, subscribeOnlineLocationState } from '@/services/online-location-state';
+import { DriverSessionGate } from '@/components/DriverSessionGate';
+
+// Import background-location to register the task at module level
+import '@/services/background-location';
+
+SplashScreen.preventAutoHideAsync();
+
+/** Accepted type values for critical job notifications from the backend. */
+const JOB_TYPES = new Set(['new_job', 'job_assigned', 'new_assignment', 'reassignment', 'upcoming_v2']);
+const TRACKED_JOB_STATUSES = new Set(['driver_assigned', 'en_route', 'arrived', 'in_progress']);
+
+/** Map notification types to alert types for the popup. */
+function toAlertType(type: string | null): JobAlertType {
+  if (type === 'reassignment') return 'reassignment';
+  if (type === 'upcoming_v2') return 'upcoming_v2';
+  return 'new_job';
+}
+
+/** Map notification types to sound events. */
+function toSoundEvent(type: string | null): 'new_job' | 'reassignment' | 'upcoming_v2' {
+  if (type === 'reassignment') return 'reassignment';
+  if (type === 'upcoming_v2') return 'upcoming_v2';
+  return 'new_job';
+}
+
+/** Normalize push notification payload to handle backend key variations. */
+function normalizeNotificationPayload(data: Record<string, unknown> | undefined): {
+  type: string | null;
+  ref: string | null;
+  conversationId: string | null;
+  isJobAlert: boolean;
+  customerPhone: string | null;
+  paymentStatus: string | null;
+  address: string | null;
+} {
+  if (!data) {
+    return {
+      type: null,
+      ref: null,
+      conversationId: null,
+      isJobAlert: false,
+      customerPhone: null,
+      paymentStatus: null,
+      address: null,
+    };
+  }
+  const type = (typeof data.type === 'string' ? data.type : null);
+  const ref =
+    (typeof data.ref === 'string' && data.ref) ||
+    (typeof data.refNumber === 'string' && data.refNumber) ||
+    (typeof data.bookingRef === 'string' && data.bookingRef) ||
+    null;
+  const conversationId =
+    (typeof data.conversationId === 'string' && data.conversationId) || null;
+  const customerPhone =
+    (typeof data.customerPhone === 'string' && data.customerPhone) || null;
+  const paymentStatus =
+    (typeof data.paymentStatus === 'string' && data.paymentStatus) || null;
+  const address =
+    (typeof data.address === 'string' && data.address) ||
+    (typeof data.location === 'string' && data.location) ||
+    null;
+  return {
+    type,
+    ref,
+    conversationId,
+    isJobAlert: !!type && JOB_TYPES.has(type),
+    customerPhone,
+    paymentStatus,
+    address,
+  };
+}
+
+function jobPathForNotificationAction(ref: string): `/(tabs)/jobs/${string}/route` {
+  return `/(tabs)/jobs/${ref}/route`;
+}
+
+function cleanPhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const hasPlus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/[^\d]/g, '');
+  if (digits.length < 5) return null;
+  return `${hasPlus ? '+' : ''}${digits}`;
+}
+
+function handleJobNotificationAction(
+  ref: string,
+  actionIdentifier: string,
+  customerPhone: string | null,
+  router: ReturnType<typeof useRouter>,
+): void {
+  if (actionIdentifier === NOTIFICATION_ACTION_CALL_CUSTOMER) {
+    const phone = cleanPhone(customerPhone);
+    if (phone) {
+      void Linking.openURL(`tel:${phone}`).catch(() => {
+        router.push(`/(tabs)/jobs/${ref}`);
+      });
+      return;
+    }
+  }
+  router.push(jobPathForNotificationAction(ref));
+}
+
+function RootNavigator({ onReady }: { onReady: () => void }) {
+  const { user, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+  const { showAlert: showJobAlert } = useJobAlert();
+  const { checkForNewJobs, reset: resetDetector } = useNewJobDetector();
+  const notifListenerRef = useRef<ReturnType<typeof addNotificationResponseListener> | null>(null);
+  const notifReceivedRef = useRef<ReturnType<typeof addNotificationReceivedListener> | null>(null);
+  const splashHidden = useRef(false);
+  const handledNotifIds = useRef(new Set<string>());
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [trackingSignal, setTrackingSignal] = useState<{
+    online: boolean;
+    activeRef: string | null;
+    resolved: boolean;
+  }>({ online: false, activeRef: null, resolved: false });
+
+  useLocationBroadcast(
+    !!user && trackingSignal.online,
+    trackingSignal.activeRef != null,
+    trackingSignal.activeRef,
+    !isLoading && !!user && trackingSignal.resolved,
+  );
+
+  useEffect(() => subscribeOnlineLocationState((online) => {
+    setTrackingSignal((previous) => ({ ...previous, online, resolved: true }));
+  }), []);
+
+  // Hide splash once auth state is resolved — this is the only real wait
+  useEffect(() => {
+    if (!isLoading && !splashHidden.current) {
+      splashHidden.current = true;
+      onReady();
+    }
+  }, [isLoading, onReady]);
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (!user && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    } else if (user && inAuthGroup) {
+      router.replace('/(tabs)');
+    }
+  }, [user, isLoading, segments, router]);
+
+  // Register push notifications and version check when user is logged in
+  useEffect(() => {
+    if (!user) return;
+
+    const registerPush = () => {
+      registerForPushNotifications().catch(() => {
+        // Retry handled by interval below.
+      });
+    };
+
+    registerPush();
+    initOfflineQueue();
+    preloadSounds();
+    loadSoundConfig(() => driverApi.getSoundConfig());
+    const pushRetryTimer = setInterval(registerPush, 30_000);
+
+    // Play sound + show popup when a push notification arrives while app is foregrounded.
+    // The native notification (with channel sound) is also shown by the system —
+    // we play in-app sound as a supplement but the channel sound is the primary mechanism.
+    notifReceivedRef.current = addNotificationReceivedListener((notification) => {
+      const { type, ref, isJobAlert, customerPhone, address } = normalizeNotificationPayload(
+        notification.request.content.data as Record<string, unknown>,
+      );
+
+      if (isJobAlert) {
+        const eventType = toSoundEvent(type);
+        const alreadyAlerted = ref ? isAlerted(ref, eventType) : false;
+        if (ref) markAlerted(ref, eventType);
+        if (!alreadyAlerted) {
+          // Fire local notification on the correct channel for native sound + tray entry.
+          // The remote push was suppressed by the handler; this local notification
+          // is presented on the correct channel with native sound + vibration.
+          const channelId = eventType === 'upcoming_v2' ? JOBS_UPCOMING_CHANNEL_ID : DRIVER_JOBS_URGENT_CHANNEL_ID;
+          fireLocalCriticalNotification(
+            notification.request.content.title ?? 'Job Alert',
+            notification.request.content.body ?? '',
+            notification.request.content.data as Record<string, unknown>,
+            channelId,
+          );
+          // In-app vibration (supplement to native channel vibration)
+          fireJobAlert(eventType);
+          // In-app popup (visible only while app is foregrounded)
+          showJobAlert({
+            ref,
+            title: notification.request.content.title ?? '',
+            body: address ?? notification.request.content.body ?? '',
+            alertType: toAlertType(type),
+            customerPhone,
+            paymentLabel: null,
+          });
+        }
+      } else if (type === 'chat_message') {
+        playSound('new_message');
+      }
+    });
+
+    // Handle notification taps — navigate to the relevant job
+    notifListenerRef.current = addNotificationResponseListener((response) => {
+      const nid = response.notification.request.identifier;
+      if (handledNotifIds.current.has(nid)) return;
+      handledNotifIds.current.add(nid);
+      const { ref, isJobAlert, type, conversationId, customerPhone } = normalizeNotificationPayload(
+        response.notification.request.content.data as Record<string, unknown>,
+      );
+      if (isJobAlert && ref) {
+        stopAlertSound();
+        markAlerted(ref, toSoundEvent(type));
+        handleJobNotificationAction(ref, response.actionIdentifier, customerPhone, router);
+      } else if (type === 'chat_message' && conversationId) {
+        router.push(`/(tabs)/chat/${conversationId}`);
+      }
+    });
+
+    // Handle cold-start: check if app was opened from a notification tap
+    getLastNotificationResponse().then((response) => {
+      if (!response) return;
+      const nid = response.notification.request.identifier;
+      if (handledNotifIds.current.has(nid)) return;
+      handledNotifIds.current.add(nid);
+      const { ref, isJobAlert, type, conversationId, customerPhone } = normalizeNotificationPayload(
+        response.notification.request.content.data as Record<string, unknown>,
+      );
+      if (isJobAlert && ref) {
+        stopAlertSound();
+        markAlerted(ref, toSoundEvent(type));
+        handleJobNotificationAction(ref, response.actionIdentifier, customerPhone, router);
+      } else if (type === 'chat_message' && conversationId) {
+        router.push(`/(tabs)/chat/${conversationId}`);
+      }
+    });
+
+    return () => {
+      clearInterval(pushRetryTimer);
+      notifListenerRef.current?.remove();
+      notifReceivedRef.current?.remove();
+    };
+  }, [user, router, showJobAlert]);
+
+  // ── Global job polling ─────────────────────────────────────────────
+  // Polls driverApi.getJobs() every 12s while logged-in and app is in foreground.
+  // Detects new jobs on ANY screen and fires popup + sound globally.
+  useEffect(() => {
+    if (!user) return;
+
+    // Reset detector so the first poll re-seeds knownRefs for this session
+    resetDetector();
+
+    const POLL_INTERVAL = 12_000;
+    let cancelled = false;
+
+    const poll = async () => {
+      const locationRevision = getOnlineLocationRevision();
+      try {
+        const [res, status] = await Promise.all([
+          driverApi.getJobs(),
+          driverApi.getStatus(),
+        ]);
+        const allJobs = [...res.active, ...(res.upcoming ?? [])];
+        const trackedJob = allJobs.find((job: JobSummary) =>
+          TRACKED_JOB_STATUSES.has(job.status),
+        );
+        // A status request that started before a manual toggle must not undo it.
+        if (!cancelled && locationRevision === getOnlineLocationRevision()) {
+          setTrackingSignal({
+            online: status.isOnline,
+            activeRef: trackedJob?.refNumber ?? null,
+            resolved: true,
+          });
+        }
+        if (!cancelled) checkForNewJobs(allJobs);
+      } catch {
+        // Non-blocking — retry on next interval
+      }
+    };
+
+    poll();
+
+    const startPolling = () => {
+      if (pollTimerRef.current) return;
+      pollTimerRef.current = setInterval(poll, POLL_INTERVAL);
+    };
+
+    const stopPolling = () => {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+
+    startPolling();
+
+    const appStateSub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') {
+        poll();
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      stopPolling();
+      appStateSub.remove();
+    };
+  }, [user, checkForNewJobs, resetDetector]);
+
+  // Render tab content when logged in
+  if (user) {
+    return <Slot />;
+  }
+
+  return <Slot />;
+}
+
+export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    BebasNeue_400Regular,
+  });
+
+  const [appReady, setAppReady] = useState(false);
+
+  const handleReady = useCallback(() => {
+    setAppReady(true);
+  }, []);
+
+  useEffect(() => {
+    // Hide native splash only when fonts are loaded AND auth has resolved
+    if ((fontsLoaded || fontError) && appReady) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError, appReady]);
+
+  if (!fontsLoaded && !fontError) return null;
+
+  return (
+    <I18nProvider>
+      <AuthProvider>
+        <JobAlertProvider>
+          <StatusBar style="light" />
+          <RootNavigator onReady={handleReady} />
+          <JobAlertPopup />
+          <DriverSessionGate />
+        </JobAlertProvider>
+      </AuthProvider>
+    </I18nProvider>
+  );
+}

@@ -1,0 +1,60 @@
+workflows:
+  driver-ios21-native:
+    name: Tyre Rescue Driver 1.3.0 (21) - native build only
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      node: 20.19.4
+      xcode: '26.2'
+      cocoapods: default
+      groups:
+        - driver_ios21_public
+        - driver_ios21_signing
+      vars:
+        CI: '1'
+        EXPO_NO_TELEMETRY: '1'
+        EXPO_PUBLIC_API_URL: https://www.tyrerescue.uk
+        DRIVER_APP_DIR: driver-app
+        DRIVER_CI_DIR: ci/driver-ios21-codemagic
+        CM_RECURSIVE_SUBMODULE_INIT: 'false'
+        DEVELOPER_DIR: /Applications/Xcode-26.2.app/Contents/Developer
+    # No automatic trigger, store integration, publish or email section.
+    scripts:
+      - name: Prepare isolated build workspace
+        script: |
+          set -euo pipefail
+          umask 077
+          test "${CM_TRIGGER_SOURCE:-}" = api
+          test -n "${CM_BUILD_DIR:-}" && test -d "$CM_BUILD_DIR"
+          test -n "${CM_BUILD_ID:-}" && test -n "${CM_ENV:-}"
+          test "$(uname -m)" = arm64
+          test "$(node --version)" = v20.19.4
+          python3 - <<'PY'
+          import os, subprocess
+          origin = subprocess.check_output(['git', '-C', os.environ['CM_BUILD_DIR'], 'remote', 'get-url', 'origin'], text=True).strip()
+          assert origin in ['https://github.com/ahmadalwakai/tyrerescue.git', 'https://github.com/ahmadalwakai/tyrerescue'], 'Unexpected source repository'
+          PY
+          driver_ci_temp="$(mktemp -d "${TMPDIR:-/tmp}/driver-ios21.XXXXXX")"
+          printf 'DRIVER_CI_TEMP=%s\n' "$driver_ci_temp" >> "$CM_ENV"
+
+      - name: Verify frozen app, install exact driver dependencies
+        script: |
+          set -euo pipefail
+          # Do not pass signing credentials or a Codemagic API token to npm scripts.
+          env -u DRIVER_IOS_P12_BASE64 -u DRIVER_IOS_P12_PASSWORD -u DRIVER_IOS_PROFILE_BASE64 -u CM_API_TOKEN \
+            bash "$CM_BUILD_DIR/$DRIVER_CI_DIR/install-dependencies.sh"
+
+      - name: Generate native iOS project and install CocoaPods
+        script: |
+          set -euo pipefail
+          env -u DRIVER_IOS_P12_BASE64 -u DRIVER_IOS_P12_PASSWORD -u DRIVER_IOS_PROFILE_BASE64 -u CM_API_TOKEN \
+            bash "$CM_BUILD_DIR/$DRIVER_CI_DIR/prepare-native.sh"
+
+      - name: Sign existing app identity, export IPA and verify
+        script: |
+          set -euo pipefail
+          unset CM_API_TOKEN
+          bash "$CM_BUILD_DIR/$DRIVER_CI_DIR/build-native.sh"
+    artifacts:
+      - $DRIVER_CI_TEMP/driver-ios21-output/tyre-rescue-driver-1.3.0-21.ipa
+      - $DRIVER_CI_TEMP/driver-ios21-output/manifest.json
