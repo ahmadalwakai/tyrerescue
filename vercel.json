@@ -1,0 +1,7 @@
+{
+  "git": {
+    "deploymentEnabled": {
+      "release/driver-ios22-20261023": false
+    }
+  }
+}

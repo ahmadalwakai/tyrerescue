@@ -1,0 +1,487 @@
+{
+  "fileCount": 96,
+  "files": [
+    {
+      "file": ".npmrc",
+      "bytes": 23,
+      "sha256": "2d2a164460fb5bcd1d8e4b4bab8dfd4b05680863a3f3af56aa4b2b016ef843cc"
+    },
+    {
+      "file": "app.json",
+      "bytes": 5080,
+      "sha256": "e3506a2d8a6ff5306669f514f26523bb7ca6b4c2fca7c841771ef5ff9344de38"
+    },
+    {
+      "file": "app/(auth)/_layout.tsx",
+      "bytes": 284,
+      "sha256": "8293fe1f1121a5b07fa7600abe7cccb8141b020ee4925089e707c651150d04cd"
+    },
+    {
+      "file": "app/(auth)/forgot-password.tsx",
+      "bytes": 5967,
+      "sha256": "92c00e1df82974913c6affb0f56815607464a9f8df3767359a90f7e627e4a7fc"
+    },
+    {
+      "file": "app/(auth)/login.tsx",
+      "bytes": 4890,
+      "sha256": "0341563bd564ca8718bfb9d7f5e18975f581b2e6697da425b53372b6adbb4ea0"
+    },
+    {
+      "file": "app/(auth)/reset-password.tsx",
+      "bytes": 6901,
+      "sha256": "c4957cd3743eb9f2f92c2346edfccd04da84a83b57b8a6986aa1d49da4a396df"
+    },
+    {
+      "file": "app/(tabs)/_layout.tsx",
+      "bytes": 3977,
+      "sha256": "2fcb181eef4aa9879d379611334f20c8beba5ca852d2d46f98b2e750238f9692"
+    },
+    {
+      "file": "app/(tabs)/chat/[id].tsx",
+      "bytes": 34811,
+      "sha256": "91accc79d8d3727920aa37ce54e498fe5c9939c781fec1f8fe254803f837737d"
+    },
+    {
+      "file": "app/(tabs)/chat/_layout.tsx",
+      "bytes": 391,
+      "sha256": "034926b8b3a59c33f5fd7d067a2b066043ed9bb4ba6db8e971977796d02b4754"
+    },
+    {
+      "file": "app/(tabs)/chat/index.tsx",
+      "bytes": 5497,
+      "sha256": "030053c796fa47060eb257e6d546a0e460842d5c450628c961d21d63ea83bda5"
+    },
+    {
+      "file": "app/(tabs)/index.tsx",
+      "bytes": 40754,
+      "sha256": "db55d44c9b3e57d0e24e32f5b38f2ecb36190eafca06578659709755496413bf"
+    },
+    {
+      "file": "app/(tabs)/jobs/[ref].tsx",
+      "bytes": 42207,
+      "sha256": "dbc6774716a105aedf5bb69704d2b2c8e10625716448ab620baf63347868b685"
+    },
+    {
+      "file": "app/(tabs)/jobs/[ref]/map.tsx",
+      "bytes": 1123,
+      "sha256": "cc23e5053f3de9ce1011109badea81485972d84563e094f95b754e2b8653ae47"
+    },
+    {
+      "file": "app/(tabs)/jobs/[ref]/route.tsx",
+      "bytes": 246821,
+      "sha256": "f2af92781b7a0e421d897dc5a9566b88cb09bac70109d4ec01e5c55332669150"
+    },
+    {
+      "file": "app/(tabs)/jobs/[ref]/wheel-nut-consent.tsx",
+      "bytes": 21526,
+      "sha256": "0d9f338e55015c5ca1e7f5fe47fe634a50a5ea902e5a007c124760b63dd529db"
+    },
+    {
+      "file": "app/(tabs)/jobs/_layout.tsx",
+      "bytes": 391,
+      "sha256": "d9b9d2ce3184db47442a792f210b101fed819d84f99b7160866e584945f9aa81"
+    },
+    {
+      "file": "app/(tabs)/jobs/index.tsx",
+      "bytes": 16821,
+      "sha256": "26b7c90624a01118200f16887823e987415d9c417345e828201b5e7c7516bb03"
+    },
+    {
+      "file": "app/(tabs)/notifications.tsx",
+      "bytes": 6819,
+      "sha256": "7fe673067a8f015c2a15ad0d131650e84524407c34b7948a675f7badfb154db5"
+    },
+    {
+      "file": "app/(tabs)/profile.tsx",
+      "bytes": 13039,
+      "sha256": "89716e23e7e54cf89621b885b642bcc3e2c4f057399919772567f2d17bcb9e70"
+    },
+    {
+      "file": "app/_layout.tsx",
+      "bytes": 14164,
+      "sha256": "9a58f2050bf51cdc4a0388ed1d92ff08e8c3f0c33001027802c62c1ef4108a8a"
+    },
+    {
+      "file": "assets/adaptive-icon.png",
+      "bytes": 26419,
+      "sha256": "2e63df2f4a2118adc787109395963a45b8c26690772d98781dbdda186d977a66"
+    },
+    {
+      "file": "assets/dashboard-bg.jpg",
+      "bytes": 80246,
+      "sha256": "cbf694761b7659278c10e01159a4a3075b29bf42e7c621a812f9ac5fb67703ad"
+    },
+    {
+      "file": "assets/icon.png",
+      "bytes": 27098,
+      "sha256": "ddbc6c250626bf9c0926cf3a2eb4c94708733f8d0356225dcc600dcf7ce6ab70"
+    },
+    {
+      "file": "assets/notification-icon.png",
+      "bytes": 2366,
+      "sha256": "4d2f87b12efcb8d0ffe15fd134833147d8f2b8c642aa681c819ae67220540c5a"
+    },
+    {
+      "file": "assets/sounds/new_job.wav",
+      "bytes": 13274,
+      "sha256": "aea746ca42aba55176f3cbd72c647ac1c48ec24cd8c581329b08fd17a05b2735"
+    },
+    {
+      "file": "assets/sounds/notification_tone.mp3",
+      "bytes": 121344,
+      "sha256": "337e4b732bc20ed1ebba4db096d7fba8a990cf0e444408689b683e91592f43c2"
+    },
+    {
+      "file": "assets/sounds/unvversfiled_ringtone_021_365652.mp3",
+      "bytes": 413109,
+      "sha256": "63bc8b342601195d845e6b578f53ca0466dbfacc0fcbbdbb9c581b2185cb018e"
+    },
+    {
+      "file": "assets/splash.png",
+      "bytes": 94122,
+      "sha256": "8880a6a4409c249bacb7a9cbd1f883a8f33f39c91546b5493bd082af05233120"
+    },
+    {
+      "file": "babel.config.js",
+      "bytes": 114,
+      "sha256": "44319908f2404dc609ebe9649a7436f7688ce35ade6f126cef98381809a28fce"
+    },
+    {
+      "file": "metro.config.js",
+      "bytes": 2803,
+      "sha256": "64e408e275b75492c28865b93f2b1ee82e3dad386750181778ffcf279168d43b"
+    },
+    {
+      "file": "package-lock.json",
+      "bytes": 494840,
+      "sha256": "e558956da32baa0b4af3d942bbccf5632923f31798dc3b959a308fe89c00c33f"
+    },
+    {
+      "file": "package.json",
+      "bytes": 2237,
+      "sha256": "73e67f995d7d05324e11e1a6e9355e88d2579a2ec18bc00b5c151c972a1f770d"
+    },
+    {
+      "file": "src/api/client.ts",
+      "bytes": 24869,
+      "sha256": "4a0c78405db1f7609ef46a3de683b565b1d1ec15180312fa273d75bd63a1659e"
+    },
+    {
+      "file": "src/auth/biometric-unlock.ts",
+      "bytes": 1193,
+      "sha256": "77c981ed558a4c9868e9e74aaa028b568c1632ded0e6d55fe8542e9079f6b46c"
+    },
+    {
+      "file": "src/auth/context.tsx",
+      "bytes": 7172,
+      "sha256": "06afaeca103fa493df9151525073938aae020cf495d34bc4031192bd20812d91"
+    },
+    {
+      "file": "src/auth/session.ts",
+      "bytes": 3585,
+      "sha256": "4e0f0944065db7a0e0a3ef1bc43e18c1cf25671ad8ab8852798e5edfc2b9f9de"
+    },
+    {
+      "file": "src/components/AlertReadinessPill.tsx",
+      "bytes": 6805,
+      "sha256": "3f16391ae667c7c433e92b830fdaccc2fe7868ee7efc52e30c1c88652240029f"
+    },
+    {
+      "file": "src/components/AnimatedPressable.tsx",
+      "bytes": 1246,
+      "sha256": "64420e3d313db4f1d278a011fb498310ce41ea0f5d77f42ed01d68764f04b1f0"
+    },
+    {
+      "file": "src/components/DriverPaymentCard.tsx",
+      "bytes": 3538,
+      "sha256": "2b0033a2f86e06c1c84bb19585b7a043b82408225214c47b9a4e0390da5530f2"
+    },
+    {
+      "file": "src/components/DriverSessionGate.tsx",
+      "bytes": 7801,
+      "sha256": "62e054bf513f932e0df1fe4318d21e5302d74f004e92b88d9f66765674314468"
+    },
+    {
+      "file": "src/components/EmptyState.tsx",
+      "bytes": 1207,
+      "sha256": "6c2e9bd600865716f64d0d36b9e777b876b59f5ed408ed843bc3427125727377"
+    },
+    {
+      "file": "src/components/JobAlertPopup.tsx",
+      "bytes": 8837,
+      "sha256": "79c31aaf730fbf65e8cbbae956c20801a9cf8729015f487908535be39a9b622a"
+    },
+    {
+      "file": "src/components/JobCard.tsx",
+      "bytes": 5994,
+      "sha256": "94edf5d3419b0686b23133aaa771f4a09602d990984d8c463b69a191e77c0ff9"
+    },
+    {
+      "file": "src/components/LoadingScreen.tsx",
+      "bytes": 618,
+      "sha256": "d0e74a4201d686a84ff5d595b3dca8e68f075f79952afbe19f1dea9afe93321b"
+    },
+    {
+      "file": "src/components/SkeletonLoader.tsx",
+      "bytes": 4264,
+      "sha256": "95a63ff1da54129069d9d6dc0af7a4e65f8697ddee6d88eb13134cc923058633"
+    },
+    {
+      "file": "src/components/StatusBadge.tsx",
+      "bytes": 904,
+      "sha256": "b67abbee781445d1fa5ed194d0859541e1bbab6807ec283d23ba54d5ed29f559"
+    },
+    {
+      "file": "src/components/navigation/DriverNavigationMap.tsx",
+      "bytes": 8981,
+      "sha256": "1b152533d2e25240c2f96a08289de8320aa7b5b04d39bb47cbe8435d13c227ca"
+    },
+    {
+      "file": "src/components/navigation/DriverNavigationMap.types.ts",
+      "bytes": 885,
+      "sha256": "aaf1fdf137623df0d44fc496f188669940b72bbac6a871876ddd7af6630f99c1"
+    },
+    {
+      "file": "src/components/navigation/DriverNavigationMap.web.tsx",
+      "bytes": 1519,
+      "sha256": "f2a19d41ec99c3c286c37f30018f42f54ead75a89f9036e93387b948d5ff19c9"
+    },
+    {
+      "file": "src/constants/build-info.ts",
+      "bytes": 189,
+      "sha256": "f78e67993e04fb57752ddb1b62e567c4e8982c456995d45fb4d9d309bb33ddb1"
+    },
+    {
+      "file": "src/constants/theme.ts",
+      "bytes": 2403,
+      "sha256": "4ad5829c46986b46fab2eb86a58b18e32272d62da8574263872a3b7cee84be70"
+    },
+    {
+      "file": "src/context/job-alert-context.tsx",
+      "bytes": 2175,
+      "sha256": "8cd11b1a791d17e9fc3922fe4c77f74503c64fee10140fd2c137da8e4e20e3db"
+    },
+    {
+      "file": "src/hooks/useChatUnreadCount.ts",
+      "bytes": 1059,
+      "sha256": "552e2e0a95c64d310d1303bc981d7f44351ba7e2fb712d713454783327b54377"
+    },
+    {
+      "file": "src/hooks/useLivePolling.ts",
+      "bytes": 1886,
+      "sha256": "6d65a204fa1b16654894713f8509e4abbe234807b0f64a42890f1fd2348b4179"
+    },
+    {
+      "file": "src/hooks/useLocation.ts",
+      "bytes": 4780,
+      "sha256": "d4afbf4684b0e55257cdf46b13e4e88e06f591d0ac7ed100ccb877658a7e8f69"
+    },
+    {
+      "file": "src/hooks/useNewJobDetector.ts",
+      "bytes": 3424,
+      "sha256": "dd471a65cdd396b002d20bc8f1f6c1b0ac12cb9cb59a59772acacb3b4abe700f"
+    },
+    {
+      "file": "src/hooks/useRefreshOnFocus.ts",
+      "bytes": 236,
+      "sha256": "06248e0d40bd33dc0fbba96c77af8bf1724d27ef033e306a67f8876b896658f0"
+    },
+    {
+      "file": "src/hooks/useSingleFlight.ts",
+      "bytes": 2535,
+      "sha256": "ad3cac4c1b16eeea3a3fbf6b7c3211c4910d753540b2c2ecae9669d103c131d3"
+    },
+    {
+      "file": "src/i18n/index.tsx",
+      "bytes": 3972,
+      "sha256": "09fdb95ad2d0600be13669142b53e99685da5a5949e774963c22e1dbd4fe90e6"
+    },
+    {
+      "file": "src/i18n/locales/ar.json",
+      "bytes": 40500,
+      "sha256": "0bef9f4e22a7de8149aa1194c38bcfba6626ccfa836ce196c15c5ad9807d73c4"
+    },
+    {
+      "file": "src/i18n/locales/en.json",
+      "bytes": 31023,
+      "sha256": "9ed35f5d64d57b8a97ab3859587127cdde883c26d8fb1b4122f2c8c5554efda5"
+    },
+    {
+      "file": "src/lib/chat-download.ts",
+      "bytes": 2978,
+      "sha256": "89945625cb7ccee3146feab600b1b5c7beafb1204fc9c44a56cdafdb5b8778ca"
+    },
+    {
+      "file": "src/lib/dev/driverGpsSimulator.ts",
+      "bytes": 9153,
+      "sha256": "54a1aa33e839343301ce1e1eec003bfd43ed6edbefe3ce3e8df666bc8b9e0a35"
+    },
+    {
+      "file": "src/lib/driver-smart-reminders.ts",
+      "bytes": 8696,
+      "sha256": "cce79d1bf82ae68ba93eac7056ae689b3bf61fb9bae14f79beb97aa9a0abd4eb"
+    },
+    {
+      "file": "src/lib/navigation/apple-maps.ts",
+      "bytes": 546,
+      "sha256": "4dc7eb549cf16905ef68c7716c300704d700ef92bfccb94058fa5e9dc2a93f11"
+    },
+    {
+      "file": "src/lib/navigation/google-maps.ts",
+      "bytes": 1405,
+      "sha256": "234e58dba9afc9c3e5d6d73cf26021159bb64d0fc86dedc122433cfac5b3a268"
+    },
+    {
+      "file": "src/lib/navigation/heading.ts",
+      "bytes": 2092,
+      "sha256": "a60bd06477cdbc228b49da802432da01f7ce107640cf11b3c0776e42b78e62ed"
+    },
+    {
+      "file": "src/lib/navigation/jobTimeEstimate.ts",
+      "bytes": 4847,
+      "sha256": "e21406a382b0dc8d7af83babcacc97689cfee98f771396f00b98937764e6d8ee"
+    },
+    {
+      "file": "src/lib/navigation/nativeMapModel.ts",
+      "bytes": 4819,
+      "sha256": "dff04007153496282f51fca68af12422f751cade41fa8dfc380c6dded2322af6"
+    },
+    {
+      "file": "src/lib/navigation/navigationProgress.ts",
+      "bytes": 45743,
+      "sha256": "a0f96873a52b034e8ed43ca87472ba826d6796c6c7f6bfd63b4dc687ab932a78"
+    },
+    {
+      "file": "src/lib/navigation/protectedNavigation.ts",
+      "bytes": 1795,
+      "sha256": "6ee3928f8e6d36eb1771c7fa2920815957650ef7846a9e679ea8897c77cb1548"
+    },
+    {
+      "file": "src/lib/navigation/routeDeviation.ts",
+      "bytes": 4684,
+      "sha256": "e79079869a65e3fd857ff575475b0cc9152a2c5275c70deb8e610096cb5a63c7"
+    },
+    {
+      "file": "src/lib/navigation/routeGeometry.ts",
+      "bytes": 4229,
+      "sha256": "561c215ee821ba0f87409dd4f501adfe5b6a07b467f7a661f69739a1ea707222"
+    },
+    {
+      "file": "src/lib/navigation/waze.ts",
+      "bytes": 1504,
+      "sha256": "4d93a05a73ac3f88de0ae7ffa53ae2a698d9f5921dd59ebb37284cfcb541b3cc"
+    },
+    {
+      "file": "src/lib/payment-status.ts",
+      "bytes": 5329,
+      "sha256": "ae1fe8c8dbfef53deb2e72aa1bdd92af61aedbab25682b1a377c4220651aeef2"
+    },
+    {
+      "file": "src/lib/route-events.ts",
+      "bytes": 9965,
+      "sha256": "6233b3578df9e0bdc46167003074e1e1ba5d1e30c2f3eedf2263e4ff79b338a1"
+    },
+    {
+      "file": "src/lib/tyre-lines.ts",
+      "bytes": 2623,
+      "sha256": "dcdf397bf68d287dfb69e7a9243a4860a1371ee733d31d9f518e8d7c268e6252"
+    },
+    {
+      "file": "src/services/background-location.ts",
+      "bytes": 19945,
+      "sha256": "f9abd06ab99513ddd6dff6e34becf100d89eaa85026c2ce98937b4c5b4b72796"
+    },
+    {
+      "file": "src/services/directions.ts",
+      "bytes": 41496,
+      "sha256": "1452ba62dd8f36afe376ccfecd50b9ff0df4169b85236e5a9777bc520c869499"
+    },
+    {
+      "file": "src/services/driver-watcher.ts",
+      "bytes": 3309,
+      "sha256": "e80a39c7b8e4fdc9ae2a1fc57b1d9fb5e52a18010334cb25c4db025ecb5436c3"
+    },
+    {
+      "file": "src/services/haptics.ts",
+      "bytes": 1968,
+      "sha256": "2a15b2b1e92c076d212f3c4f2d1ace2f272ccfad584345342409164fdebc88d7"
+    },
+    {
+      "file": "src/services/haptics.web.ts",
+      "bytes": 288,
+      "sha256": "4ff0bb9307334d90c59ed77b2db9737f474d7ab65944f0ad01c32c0ccf234b22"
+    },
+    {
+      "file": "src/services/job-alert.ts",
+      "bytes": 2590,
+      "sha256": "131f4f01b6812440e9b5e86f38c68d1c8d6946f60452002d4ae61c058084275b"
+    },
+    {
+      "file": "src/services/notifications.ts",
+      "bytes": 13301,
+      "sha256": "082a3568a59c2e5f1b6ee8939edf99ed311acc14975363a0908159a6208cb283"
+    },
+    {
+      "file": "src/services/notifications.web.ts",
+      "bytes": 1213,
+      "sha256": "0e4e4d36cdeb4cc251854e5139a3357f624bc987b2f8d604f6e01725527d99df"
+    },
+    {
+      "file": "src/services/offline-queue.ts",
+      "bytes": 9990,
+      "sha256": "b48c21b89796a1ab59d1959b88933330f6e6eb2c1ef0c27014297b293a4ab14a"
+    },
+    {
+      "file": "src/services/online-location-state.ts",
+      "bytes": 2045,
+      "sha256": "5c1f94fdf91e5ce32e396a5e043dc4795abd20b0341376550d20d5e357f87785"
+    },
+    {
+      "file": "src/services/protected-directions.ts",
+      "bytes": 1668,
+      "sha256": "f1f7a2a4d7c141d92ddd92206463dba5234ed78cbbb3a69f5777868b80065b5a"
+    },
+    {
+      "file": "src/services/secure-storage.ts",
+      "bytes": 2679,
+      "sha256": "e6c6a63e8235066b59bb94247c27a0e5b2b40edf7242c0a6d5ee2cee8afafd20"
+    },
+    {
+      "file": "src/services/secure-storage.web.ts",
+      "bytes": 1031,
+      "sha256": "d57da944a70d2c91c03c82458c27d521b465d76076b1f2125f77207e69b520cd"
+    },
+    {
+      "file": "src/services/sound.ts",
+      "bytes": 9204,
+      "sha256": "acceac3e69e8f338294cb7183ba71f23a011f69f0ab2f6e1358fb442dfdf55ca"
+    },
+    {
+      "file": "src/services/sound.web.ts",
+      "bytes": 843,
+      "sha256": "308471aa74b6e65e8539192d4c09fa49624429d376139390d7002095855a4a22"
+    },
+    {
+      "file": "src/services/tracking-diagnostics.ts",
+      "bytes": 729,
+      "sha256": "9570fb1bbcb57cfb9b6633d209fa22fc112d750c4f1be56e1fdb6d325660bda4"
+    },
+    {
+      "file": "src/services/voice.ts",
+      "bytes": 4283,
+      "sha256": "9204b9e102e41d6cb8e4b6e7d82a8e4e9553a7c197aefe0978b2dab53d35634b"
+    },
+    {
+      "file": "src/shims/expo-secure-store.web.ts",
+      "bytes": 2240,
+      "sha256": "bcb09b1a1c4a60091f4cc8278331f6a5de7ce4aa3129eebdc5c31d85cbffe49e"
+    },
+    {
+      "file": "tsconfig.json",
+      "bytes": 409,
+      "sha256": "d4d24681f982d38c051b02ff0cbe737003b7b6c41e17526b9e3b22c2e2228b02"
+    }
+  ],
+  "sourceManifestSha256": "0565879ca874fc06fc636c52059b88cc8295b3708e426a909973f9d6fcf40e2f",
+  "packageLockSha256": "e558956da32baa0b4af3d942bbccf5632923f31798dc3b959a308fe89c00c33f"
+}
