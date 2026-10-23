@@ -2,7 +2,7 @@
   "version": "1.0.4",
   "buildNumber": "19",
   "bundleIdentifier": "uk.tyrerescue.customer",
-  "sourceManifestSha256": "d202442f528b719a93a77ed59306e358ae3f61995f59cdab46415f70636b955c",
+  "sourceManifestSha256": "64333e9a0ec89ac5bfafb880f99094166c198416af9fc4d5f8cffbe7e37abdf5",
   "fileCount": 100,
   "files": [
     {
@@ -187,13 +187,13 @@
     },
     {
       "file": "package-lock.json",
-      "bytes": 509025,
-      "sha256": "d10c06a531fa99d6d251de09b540b9c82df4adb5c99e18c4ea6a2b428b216cc7"
+      "bytes": 509448,
+      "sha256": "fd3b60ba67a27760c4f67e2f5235e1d02a8f1b7ddcaa275f1ca5ab9f2ed3eac9"
     },
     {
       "file": "package.json",
-      "bytes": 1860,
-      "sha256": "58887065a93e609dd1ee96bbaee11eaa258c1a4e4510b2b0855b446c65db0c9c"
+      "bytes": 1895,
+      "sha256": "b9ef20efe6e54bbd3a7cddf523a5d4ea45b2005744f6bbe1534c0268ab477303"
     },
     {
       "file": "scripts/customer-account.test.cjs",
