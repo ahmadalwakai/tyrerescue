@@ -84,7 +84,6 @@ workflows:
         EXPO_PUBLIC_API_BASE_URL: https://www.tyrerescue.uk
         CUSTOMER_APP_DIR: tyre-rescue
         CUSTOMER_CI_DIR: ci/customer-ios20-codemagic
-        EXPO_PUBLIC_APPLE_MERCHANT_ID: ''
         CM_RECURSIVE_SUBMODULE_INIT: 'false'
         DEVELOPER_DIR: /Applications/Xcode-26.2.app/Contents/Developer
     # Start explicitly from the UI or API; no automatic publishing trigger.
