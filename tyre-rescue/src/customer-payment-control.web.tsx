@@ -21,6 +21,7 @@ interface CustomerPaymentControlProps {
   onPaymentAttempt: (paymentIntentId: string) => Promise<void>;
   onPaymentCancelled: () => Promise<void>;
   onPaymentActivity: (active: boolean) => void;
+  onCheckPaymentStatus?: (paymentIntentId: string) => Promise<{ paymentIntentId: string; status: string; canResume: boolean }>;
   disabled?: boolean;
 }
 

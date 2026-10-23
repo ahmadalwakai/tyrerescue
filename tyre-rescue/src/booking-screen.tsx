@@ -35,6 +35,7 @@ import { useCustomerAccount } from './customer-account';
 import { CustomerActiveBookingCard } from './customer-active-booking';
 import { customerPushScope, registerForCustomerPushNotificationsAsync } from './customer-notifications';
 import { CustomerPaymentControl } from './customer-payment-control';
+import { validateCustomerPaymentStatus, type CustomerPaymentStatus } from './customer-payment-recovery';
 import {
   getDrivingRouteCoordinates,
   routeLiveMapMarkers,
@@ -1520,35 +1521,35 @@ function PaymentStep({ state, updateState, goTo, setNavigationLocked }: StepProp
   const [recoveredAmount, setRecoveredAmount] = useState<number | null>(null);
   const [recovering, setRecovering] = useState(false);
   const [checkoutActive, setCheckoutActive] = useState(false);
+  const [recoveryVersion, setRecoveryVersion] = useState(0);
+  const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
+  const automaticRecovery = useRef<string | null>(null);
+  const paymentMounted = useRef(true);
   const operation = useRef<'checkout' | 'recovery' | null>(null);
-  const currentSession = () => draftSession === bookingDraftSession();
+  const currentSession = useCallback(() => paymentMounted.current && draftSession === bookingDraftSession(), [draftSession]);
+  useEffect(() => {
+    paymentMounted.current = true;
+    return () => { paymentMounted.current = false; };
+  }, []);
   const amountLabel = state.breakdown ? formatPrice(state.breakdown.total) : recoveredAmount !== null ? formatPrice(recoveredAmount) : 'See your booking receipt';
-  async function recoverPayment() {
-    if (operation.current || recovering || checkoutActive || checking || !state.refNumber || !currentSession()) return;
-    operation.current = 'recovery';
-    setRecovering(true); setError(null);
-    try {
-      const expectedPayment = state.pendingPaymentIntentId || state.paymentAttemptIntentId;
-      const result = await requestJson<{ paymentIntentId: string; status: string; canResume: boolean; clientSecret?: string; amountPence: number }>(`/api/mobile/customer/bookings/${encodeURIComponent(state.refNumber)}/payment?paymentIntentId=${encodeURIComponent(expectedPayment || '')}`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(state.bookingAccessToken ? { 'X-Booking-Access': state.bookingAccessToken } : {}) } });
-      if (!currentSession()) return;
-      if (result.paymentIntentId !== expectedPayment) throw new Error('This payment needs review by our team. Do not make another payment.');
-      if (result.canResume && result.clientSecret && result.paymentIntentId === (state.pendingPaymentIntentId || state.paymentAttemptIntentId) && Number.isSafeInteger(result.amountPence) && result.amountPence > 0) {
-        setRecoveredAmount(result.amountPence / 100);
-        updateState({ stripeClientSecret: result.clientSecret, pendingPaymentIntentId: null, paymentAttemptIntentId: null });
-      } else if (result.status === 'succeeded' || result.status === 'processing') await handlePaid(result.paymentIntentId);
-      else setError('This payment needs help from our team. Please call us before making another booking.');
-    } catch (err) { if (currentSession()) setError(err instanceof Error ? err.message : 'Unable to recover this payment. Please contact the team.'); }
-    finally { if (operation.current === 'recovery') operation.current = null; if (currentSession()) setRecovering(false); }
-  }
+  const checkPaymentStatus = useCallback(async (paymentIntentId: string): Promise<CustomerPaymentStatus> => {
+    if (!currentSession() || !state.refNumber) throw new Error('Your account session changed. Please reopen this booking.');
+    const result = await requestJson<unknown>(`/api/mobile/customer/bookings/${encodeURIComponent(state.refNumber)}/payment?paymentIntentId=${encodeURIComponent(paymentIntentId)}`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(state.bookingAccessToken ? { 'X-Booking-Access': state.bookingAccessToken } : {}) },
+    });
+    if (!currentSession()) throw new Error('Your account session changed. Please reopen this booking.');
+    return validateCustomerPaymentStatus(result, paymentIntentId);
+  }, [currentSession, state.refNumber, state.bookingAccessToken, token]);
   const handlePaid = useCallback(
     async (paymentIntentId: string) => {
-      if (confirming.current || draftSession !== bookingDraftSession()) return;
+      if (confirming.current || !currentSession()) return;
       if (!state.refNumber) throw new Error('Booking reference is missing.');
       confirming.current = true;
       setChecking(true); setError(null);
       try {
       updateState({ pendingPaymentIntentId: paymentIntentId });
       await saveBookingDraft({ ...state, pendingPaymentIntentId: paymentIntentId }, 'payment', draftSession).catch(() => {});
+      if (!currentSession()) return;
       const confirmation = await withDeadline(requestJson<{
         status: string;
         paymentConfirmed: boolean;
@@ -1563,40 +1564,85 @@ function PaymentStep({ state, updateState, goTo, setNavigationLocked }: StepProp
         }),
       }), 30000, 'Confirmation is taking longer than expected. Check the same payment again; do not pay again.');
       requireConfirmedBooking(confirmation);
-      if (draftSession !== bookingDraftSession()) return;
+      if (!currentSession()) return;
       updateState({ pendingPaymentIntentId: null, paymentAttemptIntentId: null, bookingAccessToken: confirmation.bookingAccessToken || state.bookingAccessToken });
       if (confirmation.invoiceDownloadToken) {
         updateState({ invoiceDownloadToken: confirmation.invoiceDownloadToken });
       }
       goTo('done');
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unable to confirm this booking yet.');
+        if (currentSession()) setError(err instanceof Error ? err.message : 'Unable to confirm this booking yet.');
         throw err;
-      } finally { confirming.current = false; setChecking(false); }
+      } finally { confirming.current = false; if (currentSession()) setChecking(false); }
     },
-    [goTo, state, token, updateState, draftSession],
+    [goTo, state, token, updateState, draftSession, currentSession],
   );
+
+  const recoverPayment = useCallback(async () => {
+    const expectedPayment = state.pendingPaymentIntentId || state.paymentAttemptIntentId;
+    if (operation.current || !expectedPayment || !currentSession()) return;
+    operation.current = 'recovery';
+    setRecovering(true); setError(null); setPaymentNotice(null);
+    try {
+      const result = await checkPaymentStatus(expectedPayment);
+      if (!currentSession()) return;
+      if (result.canResume && result.clientSecret) {
+        // Keep a durable reference until this same intent is completed or safely cancelled.
+        const updates = { stripeClientSecret: result.clientSecret, pendingPaymentIntentId: null, paymentAttemptIntentId: result.paymentIntentId };
+        await saveBookingDraft({ ...state, ...updates }, 'payment', draftSession);
+        if (!currentSession()) return;
+        setRecoveredAmount(result.amountPence / 100);
+        updateState(updates);
+        setRecoveryVersion(value => value + 1);
+        setPaymentNotice(result.status === 'requires_action' ? 'Authentication was not completed. Continue this payment below.' : 'Payment was not completed. You can retry this payment below.');
+      } else if (result.status === 'succeeded') {
+        await handlePaid(result.paymentIntentId);
+      } else if (result.status === 'processing') {
+        await saveBookingDraft({ ...state, pendingPaymentIntentId: result.paymentIntentId }, 'payment', draftSession);
+        if (!currentSession()) return;
+        updateState({ pendingPaymentIntentId: result.paymentIntentId });
+        setPaymentNotice('Your bank is still processing this payment. Check its status again shortly; do not pay again.');
+      } else if (result.status === 'canceled') {
+        setError('This payment was cancelled. Please contact the team to restart this booking.');
+      } else {
+        setError('This payment needs help from our team. Please call us before making another booking.');
+      }
+    } catch (err) {
+      if (currentSession()) setError(err instanceof Error ? err.message : 'Unable to check this payment. Please try again or contact the team.');
+    } finally {
+      if (operation.current === 'recovery') operation.current = null;
+      if (currentSession()) setRecovering(false);
+    }
+  }, [checkPaymentStatus, currentSession, draftSession, handlePaid, state, updateState]);
+
+  useEffect(() => {
+    const expectedPayment = state.pendingPaymentIntentId || state.paymentAttemptIntentId;
+    if (!expectedPayment || state.stripeClientSecret || automaticRecovery.current === expectedPayment || operation.current) return;
+    automaticRecovery.current = expectedPayment;
+    void recoverPayment();
+  }, [recoverPayment, state.pendingPaymentIntentId, state.paymentAttemptIntentId, state.stripeClientSecret]);
 
   return (
     <View style={screenStyles.stepGap}>
-      <ScreenHeader eyebrow="Payment" title="Secure payment" detail="Card payment is handled by Stripe." />
+      <ScreenHeader eyebrow="Payment" title="Secure payment" detail="Your payment is handled securely by Stripe." />
       <Card>
         <Row label="Reference" value={state.refNumber || '-'} />
         <Row label="Total" value={amountLabel} valueStyle={{ color: colors.accent }} />
       </Card>
       <LockingNutPriceNotice status={state.lockingNutStatus} />
+      {paymentNotice ? <InlineNotice>{paymentNotice}</InlineNotice> : null}
+      {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
       {state.pendingPaymentIntentId ? <View style={{ gap: 12 }}>
         <InlineNotice>Your payment is being checked. You will not be charged again when you retry confirmation.</InlineNotice>
-        {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
-        <PrimaryButton loading={checking} onPress={() => { if (checking) return; setChecking(true); setError(null); void handlePaid(state.pendingPaymentIntentId!).catch(err => setError(err instanceof Error ? err.message : 'Unable to confirm yet. Please retry or call the team.')).finally(() => setChecking(false)); }}>Check booking confirmation</PrimaryButton>
-        <PrimaryButton variant="secondary" loading={recovering} disabled={checking || checkoutActive} onPress={() => { void recoverPayment(); }}>Recover or resume this payment</PrimaryButton>
+        <PrimaryButton loading={checking || recovering} disabled={checkoutActive} onPress={() => { void recoverPayment(); }}>Check payment status</PrimaryButton>
         <PrimaryButton icon="phone" variant="secondary" onPress={() => { void Linking.openURL(`tel:${PHONE_TEL}`); }}>Contact the team</PrimaryButton>
       </View> : state.stripeClientSecret && state.refNumber ? (
         <CustomerPaymentControl
-          key={state.stripeClientSecret}
+          key={`${state.stripeClientSecret}:${recoveryVersion}`}
           amountLabel={amountLabel}
           clientSecret={state.stripeClientSecret}
           onPaid={handlePaid}
+          onCheckPaymentStatus={checkPaymentStatus}
           refNumber={state.refNumber}
           disabled={recovering}
           onPaymentActivity={active => {
@@ -1614,13 +1660,15 @@ function PaymentStep({ state, updateState, goTo, setNavigationLocked }: StepProp
           onPaymentCancelled={async () => {
             if (!currentSession()) return;
             await saveBookingDraft({ ...state, paymentAttemptIntentId: null }, 'payment', draftSession);
+            if (!currentSession()) return;
             updateState({ paymentAttemptIntentId: null });
           }}
         />
       ) : (
-        <InlineNotice tone="danger">Missing payment information. Please go back and try again.</InlineNotice>
+        <InlineNotice>{recovering ? 'Checking your previous payment…' : 'Check your payment status to safely continue this booking.'}</InlineNotice>
       )}
       {state.paymentAttemptIntentId && !state.pendingPaymentIntentId ? <PrimaryButton variant="secondary" loading={recovering} disabled={checkoutActive || checking} onPress={() => { void recoverPayment(); }}>Check this payment status</PrimaryButton> : null}
+      {!state.pendingPaymentIntentId && (state.paymentAttemptIntentId || error) ? <PrimaryButton icon="phone" variant="secondary" onPress={() => { void Linking.openURL(`tel:${PHONE_TEL}`); }}>Contact the team</PrimaryButton> : null}
     </View>
   );
 }

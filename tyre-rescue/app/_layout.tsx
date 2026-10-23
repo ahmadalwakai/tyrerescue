@@ -66,6 +66,7 @@ export default function RootLayout() {
         >
           <Stack screenOptions={{ contentStyle: { backgroundColor: colors.bg } }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="stripe-redirect" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="light" />
         </ThemeProvider>

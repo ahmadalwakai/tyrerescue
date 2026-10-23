@@ -7,6 +7,31 @@ export function extractPaymentIntentId(clientSecret: string) {
   return clientSecret.split('_secret_')[0];
 }
 
+export const PAYMENT_SHEET_TIMEOUT_MS = 120_000;
+export const PAYMENT_SHEET_WATCHDOG_MS = 135_000;
+// Stripe owns one native sheet. Keep the lock across route/control remounts until native settles.
+let paymentSheetPresentation: Promise<unknown> | null = null;
+
+function paymentError(name: string, message: string) {
+  const error = new Error(message);
+  error.name = name;
+  return error;
+}
+
+async function awaitPaymentSheet<T>(promise: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(paymentError('PaymentUnknown', 'The payment window did not return a result. Check this payment before trying again.')), PAYMENT_SHEET_WATCHDOG_MS);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function validateStripePublishableKey() {
   const stripePublishableKey = STRIPE_PUBLISHABLE_KEY.trim();
   const isProductionBuild = typeof __DEV__ !== 'undefined' && !__DEV__;
@@ -25,6 +50,7 @@ export function useCustomerPayment() {
 
   const prepare = useCallback(async (clientSecret: string) => {
     validateStripePublishableKey();
+    if (paymentSheetPresentation) throw paymentError('PaymentUnknown', 'The previous payment window is still open. Close it before retrying.');
 
     const { error } = await initPaymentSheet({
       merchantDisplayName: 'Tyre Rescue',
@@ -56,9 +82,25 @@ export function useCustomerPayment() {
   }, [initPaymentSheet]);
 
   const pay = useCallback(async () => {
-    const { error } = await presentPaymentSheet();
-    if (error) { const failure = new Error(error.message); if (error.code === 'Canceled') failure.name = 'PaymentCancelled'; throw failure; }
+    if (paymentSheetPresentation) throw paymentError('PaymentUnknown', 'The previous payment window is still open. Check the same payment before retrying.');
+    try {
+      // The native timeout dismisses the sheet. A JS-only timeout cannot close a native modal.
+      const presentation = Promise.resolve().then(() => presentPaymentSheet({ timeout: PAYMENT_SHEET_TIMEOUT_MS }))
+        .finally(() => { if (paymentSheetPresentation === presentation) paymentSheetPresentation = null; });
+      paymentSheetPresentation = presentation;
+      const { error } = await awaitPaymentSheet(presentation);
+      if (error) {
+        const name = error.code === 'Canceled' ? 'PaymentCancelled'
+          : error.code === 'Failed' ? 'PaymentFailed'
+            : error.code === 'Timeout' ? 'PaymentTimedOut' : 'PaymentUnknown';
+        throw paymentError(name, error.message);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name.startsWith('Payment')) throw error;
+      throw paymentError('PaymentUnknown', error instanceof Error ? error.message : 'Stripe did not return a payment result.');
+    }
   }, [presentPaymentSheet]);
 
-  return { prepare, pay };
+  const isPresenting = useCallback(() => paymentSheetPresentation !== null, []);
+  return { prepare, pay, isPresenting };
 }

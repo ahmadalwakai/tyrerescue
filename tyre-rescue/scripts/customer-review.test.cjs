@@ -131,6 +131,7 @@ function harness(overrides = {}) {
     },
     './config': {}, './customer-account': { useCustomerAccount: () => account },
     './customer-active-booking': {}, './customer-notifications': {}, './customer-payment-control': {},
+    './customer-payment-recovery': load('customer-payment-recovery.ts'),
     './mapbox': {}, './pulsing-map': {}, './theme': { colors: {}, radii: {}, spacing: {}, typography: {} },
     './ui': {
       ScreenHeader: 'ScreenHeader', Card: 'Card', Row: 'Row', TextField: 'TextField', InlineNotice: 'InlineNotice',

@@ -1,3 +1,4 @@
+/* global __dirname */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -17,7 +18,7 @@ function load(relative, dependencies = {}, globals = {}) {
   }).outputText;
   const module = { exports: {} };
   vm.runInNewContext(`(function(require,module,exports){${compiled}\n})`, {
-    Error, process: { env: {} }, __DEV__: true, ...globals,
+    Error, setTimeout, clearTimeout, process: { env: {} }, __DEV__: true, ...globals,
   }, { filename })((name) => {
     if (!(name in dependencies)) throw new Error(`Unexpected dependency: ${name}`);
     return dependencies[name];
@@ -108,7 +109,7 @@ function paymentHarness(merchantId, platform = 'ios', overrides = {}) {
     ...overrides,
   };
   const module = load('src/use-customer-payment.native.ts', {
-    react: { useCallback: (callback) => callback },
+    react: { useCallback: (callback) => callback, useRef: (current) => ({ current }) },
     'react-native': { Platform: { OS: platform } },
     '@stripe/stripe-react-native': { useStripe: () => stripe },
     './config': { APPLE_MERCHANT_ID: merchantId, STRIPE_PUBLISHABLE_KEY: 'pk_test_isolated' },
@@ -144,13 +145,17 @@ test('wallet cancellation retains the payment cancellation signal used to avoid 
 });
 
 test('StripeProvider receives the configured merchant and keeps the existing redirect scheme', () => {
+  const node = (type, props) => ({ type, props });
   const { CustomerStripeProvider } = load('src/stripe-provider.native.tsx', {
-    'react/jsx-runtime': { jsx: (type, props) => ({ type, props }) },
+    react: { useEffect() {} },
+    'react-native': { Linking: {} },
+    './customer-payment-redirect': { isStripeRedirectUrl: () => false },
+    'react/jsx-runtime': { jsx: node, jsxs: node, Fragment: 'Fragment' },
     '@stripe/stripe-react-native': { StripeProvider: 'StripeProvider' },
     './config': { APPLE_MERCHANT_ID: merchant, STRIPE_PUBLISHABLE_KEY: 'pk_test_isolated' },
   });
   const provider = CustomerStripeProvider({ children: 'checkout' });
   assert.equal(provider.props.merchantIdentifier, merchant);
   assert.equal(provider.props.urlScheme, 'tyrerescue');
-  assert.equal(provider.props.children, 'checkout');
+  assert.equal(provider.props.children.props.children[1], 'checkout');
 });

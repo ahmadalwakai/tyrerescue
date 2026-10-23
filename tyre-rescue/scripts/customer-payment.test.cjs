@@ -1,3 +1,4 @@
+/* global __dirname */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -11,7 +12,7 @@ function loadSource(relative, dependencies = {}, globals = {}) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   const module = { exports: {} };
-  vm.runInNewContext(`(function(require,module,exports){${compiled}\n})`, { Error, Date, Intl, ...globals }, { filename })((name) => {
+  vm.runInNewContext(`(function(require,module,exports){${compiled}\n})`, { Error, Date, Intl, setTimeout, clearTimeout, ...globals }, { filename })((name) => {
     if (!(name in dependencies)) throw new Error(`Unexpected dependency: ${name}`);
     return dependencies[name];
   }, module, module.exports);
@@ -28,7 +29,8 @@ function find(tree, predicate) {
 function harness(platform) {
   let rendering;
   const state = { payCalls: 0, confirmCalls: [], attempts: [], activity: [], cancellations: 0,
-    pay: async () => {}, confirm: async () => {}, attempt: async () => {}, submit: async () => ({}) };
+    pay: async () => {}, confirm: async () => {}, attempt: async () => {}, submit: async () => ({}),
+    paymentStatus: 'succeeded', canResume: false };
   const changed = (before, next) => !before || next.some((value, index) => value !== before[index]);
   const react = {
     useState(initial) { const r = rendering; const index = r.cursor++; if (!r.hooks[index]) r.hooks[index] = { value: typeof initial === 'function' ? initial() : initial }; return [r.hooks[index].value, value => { r.hooks[index].value = typeof value === 'function' ? value(r.hooks[index].value) : value; }]; },
@@ -62,6 +64,7 @@ function harness(platform) {
     onPaymentAttempt: async id => { state.attempts.push(id); await state.attempt(id); },
     onPaymentCancelled: async () => { state.cancellations++; },
     onPaymentActivity: active => { state.activity.push(active); },
+    ...(platform === 'native' ? { onCheckPaymentStatus: async id => ({ paymentIntentId: id, status: state.paymentStatus, canResume: state.canResume }) } : {}),
   };
   function renderer(component) {
     const r = { cursor: 0, hooks: [], effects: [] };
@@ -128,10 +131,11 @@ for (const platform of ['native', 'web']) {
 
 test('native: a known cancellation clears the durable attempt without claiming the booking was paid', async () => {
   const h = harness('native'); h.read(); await settle();
+  h.state.paymentStatus = 'requires_payment_method'; h.state.canResume = true;
   h.state.pay = async () => { const error = new Error('Cancelled by customer'); error.name = 'PaymentCancelled'; throw error; };
   await h.button().props.onPress();
   assert.equal(h.state.cancellations, 1); assert.equal(h.state.confirmCalls.length, 0);
-  assert.equal(h.button().props.children, 'Pay £150.00');
+  assert.equal(h.button().props.children, 'Retry payment');
   assert.deepEqual(h.state.activity, [true, false]);
   h.unmount();
 });

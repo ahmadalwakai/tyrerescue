@@ -107,6 +107,7 @@ function screenHarness() {
     './customer-assisted-help-request': {}, './customer-fitting-choice': { CustomerFittingChoice: 'CustomerFittingChoice' },
     './booking-footer': { BookingContinueButton: 'BookingContinueButton' }, './use-customer-reduced-motion': {},
     './customer-booking-access': {}, './config': {}, './customer-account': {}, './customer-active-booking': { CustomerActiveBookingCard: 'CustomerActiveBookingCard' }, './customer-notifications': {}, './customer-payment-control': {},
+    './customer-payment-recovery': load('customer-payment-recovery.ts'),
     './mapbox': {}, './pulsing-map': {}, './theme': { colors: {}, radii: {}, spacing: {}, typography: {} },
     './ui': { PrimaryButton: 'PrimaryButton' }, './types': types,
   }, ['ServiceStep', 'ServiceChoice', 'ProblemCard', 'StepProgress']);
