@@ -16,7 +16,7 @@ workflows:
         bundle_identifier: uk.tyrerescue.assistedchat
       groups:
         # EXPO_PUBLIC_MAPBOX_TOKEN: address search and maps; the build fails without it.
-        - assisted_chat_ios_public
+        - assisted_ios49_public
       vars:
         CI: '1'
         EXPO_NO_TELEMETRY: '1'
@@ -36,7 +36,7 @@ workflows:
             *) echo 'Unexpected source repository'; exit 1 ;;
           esac
           if [ -z "${EXPO_PUBLIC_MAPBOX_TOKEN:-}" ]; then
-            echo 'EXPO_PUBLIC_MAPBOX_TOKEN is missing from the assisted_chat_ios_public group.'
+            echo 'EXPO_PUBLIC_MAPBOX_TOKEN is missing from the assisted_ios49_public group.'
             exit 1
           fi
           node -e "const e=require('./app.json').expo; console.log('Building ' + e.ios.bundleIdentifier + ' ' + e.version + ' (' + e.ios.buildNumber + ')')"
