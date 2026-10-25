@@ -1,5 +1,26 @@
 # Build only; TestFlight upload follows separately.
 workflows:
+  # One-off: creates (or reuses) the App Store profile for Assisted Chat on the
+  # Apple Developer Portal with the distribution certificate Codemagic already
+  # holds. Afterwards fetch it under Code signing identities.
+  assisted-chat-ios-profile:
+    name: Tyre Rescue Assisted Chat - App Store profile
+    instance_type: mac_mini_m2
+    max_build_duration: 15
+    integrations:
+      app_store_connect: Vibeset Codemagic
+    environment:
+      vars:
+        CM_RECURSIVE_SUBMODULE_INIT: 'false'
+    scripts:
+      - name: Create or reuse the App Store profile
+        script: |
+          set -euo pipefail
+          venv="$(mktemp -d)/venv"
+          python3 -m venv "$venv"
+          "$venv/bin/pip" install --quiet --disable-pip-version-check 'pyjwt[crypto]==2.10.1'
+          "$venv/bin/python" "$CM_BUILD_DIR/ci/assisted-chat-ios/ensure-profile.py"
+
   assisted-chat-ios:
     name: Tyre Rescue Assisted Chat - iOS
     instance_type: mac_mini_m2
