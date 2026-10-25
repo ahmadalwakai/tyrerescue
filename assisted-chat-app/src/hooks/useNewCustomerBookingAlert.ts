@@ -8,6 +8,7 @@ import {
 } from '@/lib/notifications';
 import { isNotificationStartupDisabled } from '@/lib/notification-startup-config';
 import { logStartupModuleFailed } from '@/lib/startup-logging';
+import { getBookingAlertCopy, isUrgentBookingAlert, selectBookingAlertCandidate, shouldTriggerBookingAlert, sourceDisplayFor } from '@/types/new-customer-booking-alerts';
 
 /**
  * Detects when a NEW booking lands on the system after the operator has
@@ -27,7 +28,7 @@ import { logStartupModuleFailed } from '@/lib/startup-logging';
  * IMPORTANT — booking source detection:
  *   `/api/mobile/admin/bookings` exposes both operator-origin metadata and
  *   project-source metadata. The popup interrupts for:
- *   - direct customer emergency bookings, and
+ *   - direct customer emergency and scheduled bookings, and
  *   - any booking handed off from an integrated external project
  *     (TyreRepair.uk, FitMyTyre, TyreSOS, etc.).
  *
@@ -38,7 +39,6 @@ import { logStartupModuleFailed } from '@/lib/startup-logging';
 const STORAGE_KEY = 'assistedChat.lastSeenCustomerBooking.v1';
 const POLL_INTERVAL_MS = 20_000;
 const FOREGROUND_REMINDER_INTERVAL_MS = 60_000;
-const TYRE_RESCUE_SOURCE_APP = 'tyre_rescue';
 
 interface BookingsListItem {
   id: string;
@@ -117,34 +117,6 @@ function isNewerThanSeen(latest: BookingsListItem, seen: LastSeen | null): boole
   return latest.id !== seen.id;
 }
 
-function isCustomerOriginatedBooking(item: BookingsListItem): boolean {
-  if (typeof item.isCustomerOriginated === 'boolean') return item.isCustomerOriginated;
-  if (typeof item.bookingOrigin === 'string') return item.bookingOrigin === 'customer';
-  return true;
-}
-
-function normalizedSourceApp(value: string | null | undefined): string {
-  return (value ?? '').trim().toLowerCase();
-}
-
-function isIntegratedProjectBooking(item: BookingsListItem): boolean {
-  const sourceApp = normalizedSourceApp(item.sourceApp);
-  return Boolean(sourceApp && sourceApp !== TYRE_RESCUE_SOURCE_APP);
-}
-
-function sourceDisplayFor(item: BookingsListItem): string | null {
-  const label = item.sourceLabel?.trim();
-  const reference = item.externalReference?.trim();
-  if (!label || !reference) return null;
-  return `${label} reference ${reference}`;
-}
-
-function shouldTriggerBookingAlert(item: BookingsListItem): boolean {
-  if (isIntegratedProjectBooking(item)) return true;
-  if (!isCustomerOriginatedBooking(item)) return false;
-  return (item.bookingType ?? '').toLowerCase() === 'emergency';
-}
-
 function toAlertSummary(item: BookingsListItem): BookingAlertSummary {
   return {
     id: item.id,
@@ -162,7 +134,7 @@ function toAlertSummary(item: BookingsListItem): BookingAlertSummary {
     tyreSize: null,
     scheduledAt: item.scheduledAt ?? null,
     createdAt: item.createdAt ?? null,
-    isUrgent: shouldTriggerBookingAlert(item),
+    isUrgent: isUrgentBookingAlert(item),
   };
 }
 
@@ -172,10 +144,8 @@ export interface NewCustomerBookingAlertState {
   /** Clear the alert and persist the current latest booking as "seen". */
   markBookingsSeen: () => Promise<void>;
   /**
-   * Manually fire the local urgent notification + bookkeeping for the
-   * current alert. Safe to call repeatedly — it dedupes per booking id
-   * and rate-limits to one reminder per 60s while the booking remains
-   * unresolved.
+   * Present the local notification once for a scheduled customer booking.
+   * Urgent bookings may remind at most every 60s while unresolved.
    */
   triggerForegroundUrgentAlert: () => Promise<void>;
 }
@@ -228,9 +198,11 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
       }
 
       if (isNewerThanSeen(latest, lastSeenRef.current)) {
-        const alertCandidate = res.items.find((item) => (
-          isNewerThanSeen(item, lastSeenRef.current) && shouldTriggerBookingAlert(item)
-        ));
+        // Keep an older unseen emergency/project visible when a newer normal
+        // scheduled booking arrives in the same polling batch.
+        const alertCandidate = selectBookingAlertCandidate(
+          res.items.filter((item) => isNewerThanSeen(item, lastSeenRef.current)),
+        );
         if (!alertCandidate) {
           await persistSeen(latest);
           setHasNewCustomerBooking(false);
@@ -349,19 +321,16 @@ export function useNewCustomerBookingAlert(): NewCustomerBookingAlertState {
     const sameBooking = lastAlertedBookingIdRef.current === booking.id;
     const cooldownActive =
       sameBooking && now - lastAlertedAtRef.current < FOREGROUND_REMINDER_INTERVAL_MS;
-    if (cooldownActive) return;
+    if (cooldownActive || (sameBooking && !isUrgentBookingAlert(booking))) return;
 
     lastAlertedBookingIdRef.current = booking.id;
     lastAlertedAtRef.current = now;
-    const sourceDisplay = sourceDisplayFor(booking);
+    const copy = getBookingAlertCopy(booking);
     await presentLocalUrgentBookingNotification({
       bookingId: booking.id,
-      title: sourceDisplay ? 'New project booking received' : 'Emergency booking received',
-      body: sourceDisplay
-        ? `${sourceDisplay}${booking.customerName ? ` from ${booking.customerName}` : ''}`
-        : booking.customerName
-          ? `New emergency booking from ${booking.customerName}`
-          : 'Open Assisted Chat now',
+      title: copy.title,
+      body: copy.body,
+      isUrgent: isUrgentBookingAlert(booking),
     });
   }, []);
 

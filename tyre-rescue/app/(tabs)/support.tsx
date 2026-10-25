@@ -1,12 +1,15 @@
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PHONE_DISPLAY, PHONE_TEL, SMS_PHONE_TEL, SUPPORT_EMAIL, whatsappUrl } from '@/src/config';
 import { colors, spacing, typography } from '@/src/theme';
 import { Card, Logo, PrimaryButton, Row, ScreenHeader, useScreenContentInsets } from '@/src/ui';
+import { CustomerCallbackRequest } from '@/src/customer-callback';
 
 export default function SupportScreen() {
   const safeContentInsets = useScreenContentInsets();
+  const router = useRouter();
 
   return (
     <ScrollView contentContainerStyle={[styles.content, safeContentInsets]}>
@@ -17,6 +20,9 @@ export default function SupportScreen() {
         <Row label="Email" value={SUPPORT_EMAIL} valueStyle={{ color: colors.accent }} />
         <Row label="Coverage" value="Central Scotland" />
       </Card>
+      <PrimaryButton icon="message-circle" onPress={() => router.push('/(tabs)/chat')}>
+        Chat with us
+      </PrimaryButton>
       <PrimaryButton icon="phone" onPress={() => Linking.openURL(`tel:${PHONE_TEL}`)}>
         Call Tyre Rescue
       </PrimaryButton>
@@ -37,6 +43,7 @@ export default function SupportScreen() {
       >
         Email support
       </PrimaryButton>
+      <CustomerCallbackRequest />
       <View style={styles.notice}>
         <Feather name="map-pin" size={18} color={colors.accent} />
         <Text style={styles.noticeText}>Location access is only requested while creating a booking.</Text>

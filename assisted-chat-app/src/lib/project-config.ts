@@ -118,6 +118,7 @@ export function getProjectById(id: ProjectId): ProjectConfig {
 }
 
 const PROJECT_STORAGE_KEY = 'assistedChat.activeProject.v1';
+const PROJECT_PICKER_VALUE = '__picker__';
 
 export async function getStoredProjectId(): Promise<ProjectId | null> {
   try {
@@ -130,17 +131,15 @@ export async function getStoredProjectId(): Promise<ProjectId | null> {
 }
 
 export async function setStoredProjectId(id: ProjectId): Promise<void> {
-  try {
-    await AsyncStorage.setItem(PROJECT_STORAGE_KEY, id);
-  } catch {
-    // best effort
-  }
+  await AsyncStorage.setItem(PROJECT_STORAGE_KEY, id);
 }
 
 export async function clearStoredProjectId(): Promise<void> {
-  try {
-    await AsyncStorage.removeItem(PROJECT_STORAGE_KEY);
-  } catch {
-    // best effort
-  }
+  // Distinguish an explicit return to the workspace picker from a missing
+  // legacy selection, which may need recovery before any credential is used.
+  await AsyncStorage.setItem(PROJECT_STORAGE_KEY, PROJECT_PICKER_VALUE);
+}
+
+export async function isStoredProjectPickerSelected(): Promise<boolean> {
+  return await AsyncStorage.getItem(PROJECT_STORAGE_KEY) === PROJECT_PICKER_VALUE;
 }

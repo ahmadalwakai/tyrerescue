@@ -30,6 +30,8 @@ import { markAlerted, fireJobAlert, isAlerted } from '@/services/job-alert';
 import { useNewJobDetector } from '@/hooks/useNewJobDetector';
 import { driverApi, type JobSummary } from '@/api/client';
 import { useLocationBroadcast } from '@/hooks/useLocation';
+import { getOnlineLocationRevision, subscribeOnlineLocationState } from '@/services/online-location-state';
+import { DriverSessionGate } from '@/components/DriverSessionGate';
 
 // Import background-location to register the task at module level
 import '@/services/background-location';
@@ -148,13 +150,19 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
   const [trackingSignal, setTrackingSignal] = useState<{
     online: boolean;
     activeRef: string | null;
-  }>({ online: false, activeRef: null });
+    resolved: boolean;
+  }>({ online: false, activeRef: null, resolved: false });
 
   useLocationBroadcast(
-    !!user && (trackingSignal.online || trackingSignal.activeRef != null),
+    !!user && trackingSignal.online,
     trackingSignal.activeRef != null,
     trackingSignal.activeRef,
+    !isLoading && !!user && trackingSignal.resolved,
   );
+
+  useEffect(() => subscribeOnlineLocationState((online) => {
+    setTrackingSignal((previous) => ({ ...previous, online, resolved: true }));
+  }), []);
 
   // Hide splash once auth state is resolved — this is the only real wait
   useEffect(() => {
@@ -196,7 +204,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     // The native notification (with channel sound) is also shown by the system —
     // we play in-app sound as a supplement but the channel sound is the primary mechanism.
     notifReceivedRef.current = addNotificationReceivedListener((notification) => {
-      const { type, ref, isJobAlert, customerPhone, paymentStatus, address } = normalizeNotificationPayload(
+      const { type, ref, isJobAlert, customerPhone, address } = normalizeNotificationPayload(
         notification.request.content.data as Record<string, unknown>,
       );
 
@@ -224,7 +232,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
             body: address ?? notification.request.content.body ?? '',
             alertType: toAlertType(type),
             customerPhone,
-            paymentLabel: paymentStatus ? `Payment: ${paymentStatus.replace(/_/g, ' ')}` : null,
+            paymentLabel: null,
           });
         }
       } else if (type === 'chat_message') {
@@ -284,8 +292,10 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     resetDetector();
 
     const POLL_INTERVAL = 12_000;
+    let cancelled = false;
 
     const poll = async () => {
+      const locationRevision = getOnlineLocationRevision();
       try {
         const [res, status] = await Promise.all([
           driverApi.getJobs(),
@@ -295,11 +305,15 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
         const trackedJob = allJobs.find((job: JobSummary) =>
           TRACKED_JOB_STATUSES.has(job.status),
         );
-        setTrackingSignal({
-          online: status.isOnline,
-          activeRef: trackedJob?.refNumber ?? null,
-        });
-        checkForNewJobs(allJobs);
+        // A status request that started before a manual toggle must not undo it.
+        if (!cancelled && locationRevision === getOnlineLocationRevision()) {
+          setTrackingSignal({
+            online: status.isOnline,
+            activeRef: trackedJob?.refNumber ?? null,
+            resolved: true,
+          });
+        }
+        if (!cancelled) checkForNewJobs(allJobs);
       } catch {
         // Non-blocking — retry on next interval
       }
@@ -331,6 +345,7 @@ function RootNavigator({ onReady }: { onReady: () => void }) {
     });
 
     return () => {
+      cancelled = true;
       stopPolling();
       appStateSub.remove();
     };
@@ -374,6 +389,7 @@ export default function RootLayout() {
           <StatusBar style="light" />
           <RootNavigator onReady={handleReady} />
           <JobAlertPopup />
+          <DriverSessionGate />
         </JobAlertProvider>
       </AuthProvider>
     </I18nProvider>

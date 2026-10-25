@@ -76,6 +76,9 @@ export interface BookingState {
   refNumber: string | null;
   stripeClientSecret: string | null;
   invoiceDownloadToken: string | null;
+  bookingAccessToken: string | null;
+  pendingPaymentIntentId: string | null;
+  paymentAttemptIntentId: string | null;
 }
 
 export type WizardStep =
@@ -161,9 +164,12 @@ export const initialBookingState: BookingState = {
   refNumber: null,
   stripeClientSecret: null,
   invoiceDownloadToken: null,
+  bookingAccessToken: null,
+  pendingPaymentIntentId: null,
+  paymentAttemptIntentId: null,
 };
 
-export function getSteps(bookingType: BookingType | null, serviceType?: ServiceType | null): WizardStep[] {
+export function getSteps(bookingType: BookingType | null, serviceType?: ServiceType | null, fittingLocation?: FittingLocation | null): WizardStep[] {
   const emergency: WizardStep[] = [
     'service',
     'location',
@@ -171,7 +177,6 @@ export function getSteps(bookingType: BookingType | null, serviceType?: ServiceT
     'details',
     'tyres',
     'quote',
-    'customer',
     'payment',
   ];
   const scheduled: WizardStep[] = [
@@ -181,11 +186,10 @@ export function getSteps(bookingType: BookingType | null, serviceType?: ServiceT
     'tyres',
     'schedule',
     'quote',
-    'customer',
     'payment',
   ];
   const base = bookingType === 'emergency' ? emergency : scheduled;
-  return serviceType === 'repair' ? base.filter((step) => step !== 'tyres') : base;
+  return base.filter(step => !(serviceType === 'repair' && step === 'tyres') && !(bookingType === 'scheduled' && fittingLocation === 'shop' && step === 'location'));
 }
 
 export function clampQuantity(value: number) {

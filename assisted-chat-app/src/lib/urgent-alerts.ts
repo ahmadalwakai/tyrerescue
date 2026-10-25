@@ -60,7 +60,19 @@ const DIRECT_TOKEN_REGISTERED_AT_KEY = 'assistedChat.directFcmRegisteredAt.v1';
 
 const tokenSuffix = (token: string): string => token.slice(-8);
 let directRegistrationInFlight: Promise<boolean> | null = null;
+let directRegistrationContext: { adminToken: string; baseUrl: string } | null = null;
+let directRegistrationConfirmed: { adminToken: string; baseUrl: string; fcmToken: string } | null = null;
 let topicSubscriptionInFlight: Promise<boolean> | null = null;
+let iosRegistration: (UrgentAlertsReadinessSnapshot & { adminToken: string; baseUrl: string }) | null = null;
+
+function readIosReadinessSnapshot(): UrgentAlertsReadinessSnapshot {
+  if (!iosRegistration || iosRegistration.adminToken !== getAdminToken()
+    || iosRegistration.baseUrl !== getApiBaseUrl()) {
+    iosRegistration = null;
+    return { tokenSuffix: null, registeredAt: null };
+  }
+  return { tokenSuffix: iosRegistration.tokenSuffix, registeredAt: iosRegistration.registeredAt };
+}
 
 async function readReadinessSnapshot(): Promise<UrgentAlertsReadinessSnapshot> {
   try {
@@ -80,6 +92,7 @@ async function readReadinessSnapshot(): Promise<UrgentAlertsReadinessSnapshot> {
 }
 
 export async function getUrgentAlertsReadinessSnapshot(): Promise<UrgentAlertsReadinessSnapshot> {
+  if (Platform.OS === 'ios') return readIosReadinessSnapshot();
   return readReadinessSnapshot();
 }
 
@@ -130,9 +143,16 @@ export async function initializeUrgentAlerts(): Promise<void> {
  * token messages (primary urgent path).
  */
 export async function registerDirectUrgentBookingToken(): Promise<boolean> {
-  if (directRegistrationInFlight) return directRegistrationInFlight;
+  const adminToken = getAdminToken();
+  const baseUrl = getApiBaseUrl();
+  if (directRegistrationInFlight && directRegistrationContext?.adminToken === adminToken
+    && directRegistrationContext.baseUrl === baseUrl) return directRegistrationInFlight;
+  const context = { adminToken: adminToken ?? '', baseUrl };
+  directRegistrationContext = context;
+  const isCurrent = () => getAdminToken() === adminToken && getApiBaseUrl() === baseUrl
+    && directRegistrationContext === context;
 
-  directRegistrationInFlight = (async () => {
+  const registration = (async () => {
     if (Platform.OS !== 'android') return false;
     if (isNotificationStartupDisabled()) return false;
     if (!getAdminToken()) {
@@ -145,6 +165,7 @@ export async function registerDirectUrgentBookingToken(): Promise<boolean> {
 
     try {
       const fcmToken = await getDeviceFcmToken();
+      if (!isCurrent()) return false;
       if (!fcmToken) {
         await clearDirectReadinessSnapshot();
         console.log('[urgent-alerts] FCM device token unavailable — direct token registration skipped');
@@ -155,15 +176,23 @@ export async function registerDirectUrgentBookingToken(): Promise<boolean> {
         AsyncStorage.getItem(DIRECT_TOKEN_REGISTERED_KEY),
         AsyncStorage.getItem(DIRECT_TOKEN_REGISTERED_TOKEN_KEY),
       ]);
-      if (existing === '1' && existingToken === fcmToken) {
+      if (!isCurrent()) return false;
+      // A device token is shared by successive logins. Persisted flags alone
+      // cannot prove the server still has this session's registration after
+      // an administrator removes its previous device-session binding.
+      if (existing === '1' && existingToken === fcmToken
+        && directRegistrationConfirmed?.adminToken === adminToken
+        && directRegistrationConfirmed.baseUrl === baseUrl
+        && directRegistrationConfirmed.fcmToken === fcmToken) {
         const snapshot = await readReadinessSnapshot();
+        if (!isCurrent()) return false;
         if (!snapshot.tokenSuffix || !snapshot.registeredAt) {
           await Promise.all([
             AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_SUFFIX_KEY, tokenSuffix(fcmToken)),
             AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_AT_KEY, String(Date.now())),
           ]);
         }
-        return true;
+        return isCurrent();
       }
 
       logStartupCheckpoint('NOTIFICATIONS_API_SYNC_START', { tokenKind: 'native-device' });
@@ -171,6 +200,7 @@ export async function registerDirectUrgentBookingToken(): Promise<boolean> {
         token: fcmToken,
         platform: 'android',
       });
+      if (!isCurrent()) return false;
 
       if (!isOkResponse(response) || response.registered !== true) {
         await clearDirectReadinessSnapshot();
@@ -191,25 +221,32 @@ export async function registerDirectUrgentBookingToken(): Promise<boolean> {
         AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_SUFFIX_KEY, suffix),
         AsyncStorage.setItem(DIRECT_TOKEN_REGISTERED_AT_KEY, String(registeredAt)),
       ]);
+      if (!isCurrent()) return false;
+      directRegistrationConfirmed = { adminToken: context.adminToken, baseUrl, fcmToken };
 
       logStartupCheckpoint('NOTIFICATIONS_API_SYNC_SUCCESS', { tokenKind: 'native-device' });
       console.log(`[urgent-alerts] direct FCM token registered tokenSuffix=${suffix}`);
       return true;
     } catch (err) {
+      if (!isCurrent()) return false;
       await clearDirectReadinessSnapshot();
       logStartupModuleFailed('NOTIFICATIONS_API_SYNC_FAILED', err, { tokenKind: 'native-device' });
       console.error('[urgent-alerts] direct token registration failed:', err);
       return false;
     }
   })().finally(() => {
-    directRegistrationInFlight = null;
+    if (directRegistrationInFlight === registration) {
+      directRegistrationInFlight = null;
+      directRegistrationContext = null;
+    }
   });
-
-  return directRegistrationInFlight;
+  directRegistrationInFlight = registration;
+  return registration;
 }
 
 export async function ensureUrgentAlertsArmed(): Promise<EnsureUrgentAlertsArmedResult> {
   if (Platform.OS === 'web' || isNotificationStartupDisabled()) {
+    iosRegistration = null;
     return {
       armed: false,
       snapshot: { tokenSuffix: null, registeredAt: null },
@@ -219,7 +256,27 @@ export async function ensureUrgentAlertsArmed(): Promise<EnsureUrgentAlertsArmed
   }
 
   try {
-    await registerAdminPushNotifications();
+    const adminToken = getAdminToken();
+    const baseUrl = getApiBaseUrl();
+    // iOS uses the confirmed Expo/APNs registration. Android's FCM topic,
+    // foreground watcher and full-screen intent are not iOS requirements.
+    if (Platform.OS === 'ios') iosRegistration = null;
+    const expoToken = await registerAdminPushNotifications();
+    if (Platform.OS === 'ios') {
+      const registered = Boolean(expoToken && adminToken && adminToken === getAdminToken()
+        && baseUrl === getApiBaseUrl());
+      if (registered && expoToken && adminToken) {
+        iosRegistration = {
+          tokenSuffix: tokenSuffix(expoToken), registeredAt: Date.now(), adminToken, baseUrl,
+        };
+      }
+      return {
+        armed: registered,
+        snapshot: readIosReadinessSnapshot(),
+        fullScreenIntentGranted: true,
+        watcherStarted: false,
+      };
+    }
     const directRegistered = await registerDirectUrgentBookingToken();
     await subscribeToUrgentBookingTopic();
     const snapshot = await readReadinessSnapshot();
@@ -248,11 +305,12 @@ export async function ensureUrgentAlertsArmed(): Promise<EnsureUrgentAlertsArmed
       watcherStarted,
     };
   } catch (error) {
+    if (Platform.OS === 'ios') iosRegistration = null;
     logStartupModuleFailed('urgent-alerts.ensure-armed.failed', error);
     return {
       armed: false,
-      snapshot: await readReadinessSnapshot(),
-      fullScreenIntentGranted: false,
+      snapshot: await getUrgentAlertsReadinessSnapshot(),
+      fullScreenIntentGranted: Platform.OS === 'ios',
       watcherStarted: false,
     };
   }
@@ -340,18 +398,25 @@ export async function subscribeToUrgentBookingTopic(): Promise<boolean> {
  * Clear the topic subscription flag so that the next call to
  * `subscribeToUrgentBookingTopic` re-subscribes the device.
  * Call on admin logout alongside `unregisterAdminPushNotifications`.
+ * Supply the owning session guard when cleanup may continue after logout;
+ * later native/storage stages must not affect a newly signed-in session.
  */
-export async function clearTopicSubscriptionFlag(): Promise<void> {
+export async function clearTopicSubscriptionFlag(isCurrent: () => boolean = () => true): Promise<void> {
+  if (!isCurrent()) return;
+  iosRegistration = null;
+  directRegistrationConfirmed = null;
   try {
     await clearUrgentWatcherAuth();
   } catch (error) {
     logStartupModuleFailed('urgent-alerts.clear-watcher-auth.failed', error);
   }
+  if (!isCurrent()) return;
   try {
     await stopUrgentWatcher();
   } catch (error) {
     logStartupModuleFailed('urgent-alerts.stop-watcher.failed', error);
   }
+  if (!isCurrent()) return;
   try {
     await Promise.all([
       AsyncStorage.removeItem(TOPIC_SUBSCRIBED_KEY),
@@ -369,13 +434,21 @@ export async function clearTopicSubscriptionFlag(): Promise<void> {
 /**
  * Get the current urgent alerts status for display.
  *
- * 'active'         — permission granted and topic subscription confirmed.
+ * 'active'         — permission granted and platform registration confirmed.
  * 'no_permission'  — the admin has not granted notification permissions.
- * 'unavailable'    — running on web, iOS, or a simulator (push unavailable).
+ * 'unavailable'    — platform registration has not been confirmed.
  *
  * Does not trigger any permission request.
  */
 export async function getUrgentAlertsStatus(): Promise<UrgentAlertsStatus> {
+  if (Platform.OS === 'ios') {
+    const permission = await getUrgentAlertsPermissionStatus();
+    if (permission !== 'granted') {
+      iosRegistration = null;
+      return 'no_permission';
+    }
+    return readIosReadinessSnapshot().registeredAt ? 'active' : 'unavailable';
+  }
   if (Platform.OS !== 'android') return 'unavailable';
   const permission = await getUrgentAlertsPermissionStatus();
   if (permission !== 'granted') return 'no_permission';

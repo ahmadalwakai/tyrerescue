@@ -14,6 +14,7 @@ import { colors, fontSize, radius } from './theme';
 import { copyToClipboard } from '@/lib/clipboard';
 import { formatGbp } from '@/lib/money';
 import { formatAssistedChatServiceType } from '@/lib/assisted-chat-workflow';
+import { CopyAddressButton } from './CopyAddressButton';
 
 interface Props {
   visible: boolean;
@@ -219,6 +220,7 @@ export function TodayBookingsModal({ visible, items, onClose }: Props) {
                 {selected.customerAddress ? (
                   <DetailRow label="Address" value={selected.customerAddress} />
                 ) : null}
+                <CopyAddressButton address={selected.customerAddress} contextKey={selected.bookingReference} />
                 {selected.tyreSize ? (
                   <DetailRow label="Tyre size" value={selected.tyreSize} />
                 ) : null}

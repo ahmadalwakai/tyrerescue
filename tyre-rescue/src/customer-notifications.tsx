@@ -2,15 +2,19 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
-import { API, requestJson } from './api';
 import { useCustomerAccount } from './customer-account';
+import { listBookingAccess } from './customer-booking-access';
+import { customerPushScope, registerCustomerPushDevice } from './customer-push-device';
+export { customerPushScope } from './customer-push-device';
 
 type RegisterCustomerPushInput = {
   authToken?: string | null;
   refNumber?: string | null;
   email?: string | null;
+  bookingAccessToken?: string | null;
+  notificationScope?: number;
 };
 
 type DriverNearbyNotificationInput = {
@@ -111,10 +115,12 @@ function getNearbyNotificationBody(input: DriverNearbyNotificationInput) {
 
 export async function notifyCustomerDriverNearbyAsync(input: DriverNearbyNotificationInput) {
   try {
+    const scope = customerPushScope();
     if (Platform.OS === 'web') return false;
 
     await ensureBookingUpdatesChannelAsync();
     if (!(await ensureCustomerNotificationPermissionAsync())) return false;
+    if (scope !== customerPushScope()) return false;
 
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -139,21 +145,11 @@ export async function notifyCustomerDriverNearbyAsync(input: DriverNearbyNotific
 
 export async function registerForCustomerPushNotificationsAsync(input: RegisterCustomerPushInput = {}) {
   try {
+    const scope = input.notificationScope ?? customerPushScope();
     const token = await getExpoPushToken();
     if (!token) return null;
-
-    await requestJson<{ ok: boolean }>(API.customerPushToken, {
-      method: 'POST',
-      headers: input.authToken ? { Authorization: `Bearer ${input.authToken}` } : undefined,
-      body: JSON.stringify({
-        token,
-        platform: Platform.OS === 'android' ? 'android' : 'ios',
-        refNumber: input.refNumber ?? undefined,
-        email: input.email ?? undefined,
-      }),
-    });
-
-    return token;
+    const registered = await registerCustomerPushDevice({ ...input, token, scope, platform: Platform.OS === 'android' ? 'android' : 'ios' });
+    return registered ? token : null;
   } catch (error) {
     console.warn('[customer-notifications] registration failed', error);
     return null;
@@ -179,14 +175,20 @@ function extractTrackingRef(response: Notifications.NotificationResponse) {
 
 function openTrackingFromResponse(response: Notifications.NotificationResponse) {
   if (response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+  const data = response.notification.request.content.data as Record<string, unknown>;
+  if (data.type === 'customer_chat_message' && typeof data.conversationId === 'string') {
+    router.push({ pathname: '/chat', params: { conversationId: data.conversationId,
+      ...(typeof data.refNumber === 'string' ? { ref: data.refNumber } : {}),
+      ...(typeof data.bookingId === 'string' ? { bookingId: data.bookingId } : {}) } });
+    return;
+  }
   const ref = extractTrackingRef(response);
   if (!ref) return;
   router.push({ pathname: '/track', params: { ref } });
 }
 
 export function CustomerNotificationBootstrap() {
-  const { token, profile, bookings } = useCustomerAccount();
-  const latestRef = bookings[0]?.refNumber ?? null;
+  const { token, loading } = useCustomerAccount();
 
   useEffect(() => {
     if (Platform.OS === 'web') return undefined;
@@ -214,13 +216,21 @@ export function CustomerNotificationBootstrap() {
   }, []);
 
   useEffect(() => {
-    if (!token || !latestRef) return;
-    void registerForCustomerPushNotificationsAsync({
-      authToken: token,
-      refNumber: latestRef,
-      email: profile?.email ?? null,
-    });
-  }, [latestRef, profile?.email, token]);
+    if (loading) return;
+    let active = true;
+    const register = async () => {
+      if (!active) return;
+      if (token) await registerForCustomerPushNotificationsAsync({ authToken: token });
+      else for (const receipt of await listBookingAccess()) {
+        if (!active) return;
+        await registerForCustomerPushNotificationsAsync(receipt);
+      }
+    };
+    void register();
+    const timer = setInterval(() => { void register(); }, 5 * 60_000);
+    const listener = AppState.addEventListener('change', (state) => { if (state === 'active') void register(); });
+    return () => { active = false; clearInterval(timer); listener.remove(); };
+  }, [loading, token]);
 
   return null;
 }

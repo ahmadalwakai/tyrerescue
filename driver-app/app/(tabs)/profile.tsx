@@ -149,6 +149,14 @@ export default function ProfileScreen() {
         </View>
       )}
 
+      <View style={styles.card}>
+        <Ionicons name="scan-outline" size={28} color={colors.navigation} />
+        <Text style={[styles.sectionTitle, { marginTop: 12 }]}>{t('driverUi.secureSession')}</Text>
+        <Text style={{ color: colors.muted, lineHeight: 23, marginBottom: 16 }}>{t('driverUi.secureSessionBody')}</Text>
+        <AnimatedPressable accessibilityRole="button" style={{ minHeight: 48, borderRadius: 12, backgroundColor: colors.navigation, justifyContent: 'center', alignItems: 'center' }} onPress={() => { void Linking.openSettings(); }}>
+          <Text style={{ color: colors.white, fontFamily: 'Inter_700Bold' }}>{t('driverUi.openSettings')}</Text>
+        </AnimatedPressable>
+      </View>
       {/* Change Password */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>{t('profile.changePassword')}</Text>

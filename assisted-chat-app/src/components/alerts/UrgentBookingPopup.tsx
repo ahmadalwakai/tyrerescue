@@ -5,13 +5,16 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   Vibration,
   View,
 } from 'react-native';
 import type { BookingAlertSummary } from '@/hooks/useNewCustomerBookingAlert';
+import { formatBookingAlertDate, getBookingAlertCopy, isScheduledBooking } from '@/types/new-customer-booking-alerts';
 import { AppButton } from '../ui';
+import { CopyAddressButton } from '../CopyAddressButton';
 import { colors, fontSize, radius, space } from '../theme';
 import {
   isNativeUrgentSoundAvailable,
@@ -38,7 +41,7 @@ const VIBRATION_PATTERN: ReadonlyArray<number> = [0, 500, 250, 500, 250, 900];
 // notifications.ts) handles playback when the local notification fires.
 // On web there are no notification channels, so we play the same asset
 // via the HTML Audio element from inside the popup effect.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+ 
 const URGENT_SOUND_MODULE = require('../../../assets/sounds/urgent_booking.mp3') as string | number | { default?: string; uri?: string };
 
 // Metro/Expo web serves project assets at `/assets/<path-from-project-root>`.
@@ -183,11 +186,9 @@ export function UrgentBookingPopup({
   const lastSoundPlayedAtRef = useRef<number>(0);
   const nativeReminderTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sourceDisplay = booking?.sourceDisplay ?? null;
-  const title = sourceDisplay ? 'New booking received' : 'Emergency booking received';
-  const eyebrow = sourceDisplay ? 'Project booking' : 'Urgent';
-  const body = sourceDisplay
-    ? `${sourceDisplay} has been created. Open bookings now.`
-    : 'A customer has created an emergency booking. Open bookings now.';
+  const { title, eyebrow, body, bookingTypeLabel } = getBookingAlertCopy(booking ?? {});
+  const isUrgent = booking?.isUrgent === true;
+  const isScheduled = isScheduledBooking(booking ?? {});
 
   // Register the autoplay unlock listeners once per popup mount. They
   // remove themselves after the first user gesture.
@@ -234,7 +235,7 @@ export function UrgentBookingPopup({
     );
     shimmerLoop.current.start();
 
-    if (Platform.OS !== 'web') {
+    if (isUrgent && Platform.OS !== 'web') {
       try {
         // Second arg `true` repeats the pattern until Vibration.cancel().
         Vibration.vibrate(VIBRATION_PATTERN as number[], true);
@@ -288,7 +289,7 @@ export function UrgentBookingPopup({
           playUrgentSoundOnce();
         }
       }, SOUND_REPEAT_INTERVAL_MS);
-    } else {
+    } else if (isUrgent) {
       // Web fallback: play the bundled urgent sound directly, looping
       // until the operator opens or dismisses the popup.
       // Browsers may block autoplay until the user has interacted with
@@ -358,7 +359,7 @@ export function UrgentBookingPopup({
         webAudioRef.current = null;
       }
     };
-  }, [visible, pulse, shimmer, booking?.id]);
+  }, [visible, pulse, shimmer, booking?.id, isUrgent]);
 
   const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.55] });
   // Shimmer travels from off-left to off-right of the button. We add the
@@ -378,9 +379,14 @@ export function UrgentBookingPopup({
       statusBarTranslucent
     >
       <View style={styles.overlay} accessibilityViewIsModal>
-        <View style={styles.card}>
-          <Animated.View style={[styles.headerBar, { opacity }]} />
-          <Text style={styles.eyebrow}>{eyebrow}</Text>
+        <View style={[styles.card, !isUrgent && styles.scheduledCard]}>
+        <ScrollView
+          style={styles.cardScroll}
+          contentContainerStyle={styles.cardContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Animated.View style={[styles.headerBar, !isUrgent && styles.scheduledHeaderBar, { opacity: isUrgent ? opacity : 1 }]} />
+          <Text style={[styles.eyebrow, !isUrgent && styles.scheduledEyebrow]}>{eyebrow}</Text>
           <Text style={styles.title} accessibilityRole="header">
             {title}
           </Text>
@@ -389,12 +395,17 @@ export function UrgentBookingPopup({
           </Text>
 
           <View style={styles.detailsBox}>
+            <DetailRow label="Type" value={bookingTypeLabel} />
+            {isScheduled ? (
+              <DetailRow label="Scheduled" value={`${formatBookingAlertDate(booking?.scheduledAt)} (UK time)`} />
+            ) : null}
             {sourceDisplay ? (
               <DetailRow label="Source" value={sourceDisplay} />
             ) : null}
             <DetailRow label="Customer" value={booking?.customerName || 'Unknown'} />
             <DetailRow label="Phone" value={booking?.customerPhone || 'Unknown'} />
             <DetailRow label="Location" value={booking?.addressLine || 'See bookings list'} />
+            <CopyAddressButton address={booking?.addressLine} contextKey={booking?.id} />
             <DetailRow label="Tyre size" value={booking?.tyreSize || 'See bookings list'} />
             <DetailRow label="Created" value={formatCreatedAt(booking?.createdAt ?? null)} />
             {booking?.refNumber ? (
@@ -402,6 +413,8 @@ export function UrgentBookingPopup({
             ) : null}
           </View>
 
+        </ScrollView>
+        <View style={styles.cardFooter}>
           <View style={styles.buttonRow}>
             <View
               style={styles.primaryButtonWrap}
@@ -412,7 +425,7 @@ export function UrgentBookingPopup({
                 variant="primary"
                 onPress={onOpenBookings}
                 fullWidth
-                accessibilityLabel="Open the bookings list for this emergency booking"
+                accessibilityLabel={`Open the bookings list for this ${bookingTypeLabel.toLowerCase()} booking`}
               />
               {/* White shimmer overlay stays non-interactive so the button remains tappable. */}
               <Animated.View
@@ -434,7 +447,7 @@ export function UrgentBookingPopup({
             <Pressable
               onPress={onDismiss}
               accessibilityRole="button"
-              accessibilityLabel="Dismiss this urgent booking popup for now"
+              accessibilityLabel="Dismiss this new booking popup for now"
               style={({ pressed }) => [
                 styles.dismissButton,
                 pressed && styles.dismissButtonPressed,
@@ -443,6 +456,7 @@ export function UrgentBookingPopup({
               <Text style={styles.dismissLabel}>Dismiss for now</Text>
             </Pressable>
           </View>
+        </View>
         </View>
       </View>
     </Modal>
@@ -471,13 +485,20 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 420,
+    maxHeight: '100%',
+    flexGrow: 0,
     backgroundColor: colors.surface,
     borderColor: colors.dangerBorder,
     borderWidth: 2,
     borderRadius: radius.lg,
-    padding: space.xl,
     overflow: 'hidden',
   },
+  cardScroll: { flexGrow: 0, flexShrink: 1 },
+  cardContent: { padding: space.xl, paddingBottom: 0 },
+  cardFooter: { paddingHorizontal: space.xl, paddingBottom: space.xl },
+  scheduledCard: { borderColor: colors.blue },
+  scheduledHeaderBar: { backgroundColor: colors.blue },
+  scheduledEyebrow: { color: colors.blue },
   headerBar: {
     position: 'absolute',
     top: 0,

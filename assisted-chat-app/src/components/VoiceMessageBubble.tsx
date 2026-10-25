@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fontSize, radius, space } from './theme';
 import { resolveChatAudioUri } from '@/lib/chat-attachments';
+import { getAdminToken, getApiBaseUrl, getApiContextRevision } from '@/lib/api';
+import { getAdminSessionRevision } from '@/hooks/useAdminSession';
+import { createChatVoicePlayer, type VoicePlaybackState } from '@/lib/chat-voice';
 
 const VOICE_BARS = [12, 20, 15, 28, 18, 34, 22, 16, 30, 20, 13, 24, 17, 31, 19, 14];
 
@@ -16,14 +19,23 @@ export function VoiceMessageBubble({
   uri,
   mine,
   onLongPress,
+  active = true,
+  scopeKey = '',
 }: {
   uri: string;
   mine: boolean;
   onLongPress?: () => void;
+  active?: boolean;
+  scopeKey?: string;
 }) {
   const sourceUri = useMemo(() => resolveChatAudioUri(uri), [uri]);
-  const [opening, setOpening] = useState(false);
-  const progress = 0;
+  const identity = `${sourceUri}:${scopeKey}:${active}`;
+  const emptyPlayback: VoicePlaybackState = { loading: false, playing: false, currentTime: 0, duration: 0 };
+  const [snapshot, setSnapshot] = useState({ identity, state: emptyPlayback });
+  if (snapshot.identity !== identity) setSnapshot({ identity, state: emptyPlayback });
+  const playback = snapshot.identity === identity ? snapshot.state : emptyPlayback;
+  const controller = useRef<ReturnType<typeof createChatVoicePlayer> | null>(null);
+  const progress = playback.duration > 0 ? Math.min(1, playback.currentTime / playback.duration) : 0;
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearLongPressTimer = useCallback(() => {
@@ -41,17 +53,40 @@ export function VoiceMessageBubble({
     }, 280);
   }, [clearLongPressTimer, onLongPress]);
 
-  const togglePlayback = useCallback(async () => {
-    if (opening) return;
-    setOpening(true);
+  useEffect(() => {
+    if (!active) return;
+    let disposed = false;
+    const revision = getApiContextRevision();
+    const sessionRevision = getAdminSessionRevision();
+    const token = getAdminToken();
+    const isCurrent = () => !disposed && AppState.currentState === 'active'
+      && revision === getApiContextRevision() && sessionRevision === getAdminSessionRevision() && token === getAdminToken();
+    // Only our own API may receive the session token. External blob/CDN audio
+    // URLs deliberately receive no authorization headers.
+    let headers: Record<string, string> | undefined;
     try {
-      await Linking.openURL(sourceUri);
-    } catch {
-      // Playback is best-effort in this crash-safe TestFlight path.
-    } finally {
-      setOpening(false);
+      if (token && new URL(sourceUri).origin === new URL(getApiBaseUrl()).origin) headers = { Authorization: `Bearer ${token}` };
+    } catch { /* Invalid sources fail safely when explicitly played. */ }
+    const player = createChatVoicePlayer({ uri: sourceUri, headers }, isCurrent, (state) => setSnapshot({ identity, state }));
+    controller.current = player;
+    const listener = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') void player.stop();
+    });
+    return () => {
+      disposed = true;
+      listener.remove();
+      if (controller.current === player) controller.current = null;
+      void player.dispose();
+    };
+  }, [active, sourceUri, scopeKey, identity]);
+
+  const togglePlayback = useCallback(async () => {
+    const player = controller.current;
+    try { await player?.toggle(); }
+    catch (error) {
+      if (controller.current === player && AppState.currentState === 'active') Alert.alert('Voice message', error instanceof Error ? error.message : 'Could not play this voice message.');
     }
-  }, [opening, sourceUri]);
+  }, []);
 
   useEffect(() => clearLongPressTimer, [clearLongPressTimer]);
 
@@ -65,7 +100,8 @@ export function VoiceMessageBubble({
       <Pressable
         onPress={togglePlayback}
         accessibilityRole="button"
-        accessibilityLabel="Open voice message"
+        accessibilityLabel={playback.playing ? 'Pause voice message' : 'Play voice message'}
+        accessibilityState={{ busy: playback.loading }}
         style={({ pressed }) => [
           styles.playButton,
           mine ? styles.playButtonMine : styles.playButtonOther,
@@ -73,7 +109,7 @@ export function VoiceMessageBubble({
         ]}
       >
         <Text style={[styles.playIcon, mine ? styles.playIconMine : styles.playIconOther]}>
-          {opening ? '...' : '>'}
+          {playback.loading ? '...' : playback.playing ? 'Ⅱ' : '▶'}
         </Text>
       </Pressable>
       <View style={styles.voiceContent}>
@@ -94,7 +130,7 @@ export function VoiceMessageBubble({
           })}
         </View>
         <Text style={[styles.duration, mine ? styles.durationMine : styles.durationOther]}>
-          {formatAudioTime(0)}
+          {formatAudioTime(playback.currentTime)} / {formatAudioTime(playback.duration)}
         </Text>
       </View>
     </View>
@@ -110,8 +146,8 @@ const styles = StyleSheet.create({
     paddingTop: 2,
   },
   playButton: {
-    width: 38,
-    height: 38,
+    width: 48,
+    height: 48,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',

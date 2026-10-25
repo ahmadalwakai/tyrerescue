@@ -11,6 +11,8 @@ import {
   DRIVER_JOBS_URGENT_CHANNEL_ID,
 } from '@/services/notifications';
 import type { JobSummary } from '@/api/client';
+import { useI18n } from '@/i18n';
+import { getDriverPaymentDisplay } from '@/lib/payment-status';
 
 /**
  * Hook that detects newly-arrived jobs from polling data and fires alerts.
@@ -25,6 +27,7 @@ export function useNewJobDetector() {
   const knownRefs = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
   const { showAlert } = useJobAlert();
+  const { t } = useI18n();
 
   /** Reset detector state (call on logout / new session). */
   const reset = useCallback(() => {
@@ -83,10 +86,7 @@ export function useNewJobDetector() {
             body: firstNew.addressLine ?? '',
             alertType: 'new_job',
             customerPhone: firstNew.customerPhone ?? null,
-            paymentLabel:
-              firstNew.paymentSummary?.label ??
-              firstNew.payment?.label ??
-              null,
+            paymentLabel: t(getDriverPaymentDisplay(firstNew.paymentSummary ?? firstNew.payment).labelKey),
             urgencyLabel: firstNew.bookingType === 'emergency' ? 'Emergency' : null,
           });
         }
@@ -94,7 +94,7 @@ export function useNewJobDetector() {
 
       knownRefs.current = new Set(currentRefs);
     },
-    [showAlert],
+    [showAlert, t],
   );
 
   return { checkForNewJobs, reset };

@@ -26,11 +26,12 @@ import { clearAlertedRef } from '@/services/job-alert';
 import {
   ACTIVE_BOOKING_REF_KEY,
   armBackgroundLocationForJob,
-  stopBackgroundLocation,
+  clearActiveBookingTracking,
 } from '@/services/background-location';
 import * as secureStorage from '@/services/secure-storage';
 import { useI18n } from '@/i18n';
-import { getDriverPaymentDisplay, paymentToneColors } from '@/lib/payment-status';
+import { getDriverCashToCollectPence } from '@/lib/payment-status';
+import { DriverPaymentCard } from '@/components/DriverPaymentCard';
 import {
   formatJobTyreLine,
   formatJobTyreLinesSummary,
@@ -72,88 +73,8 @@ function formatGbpFromPence(pence: number | null | undefined): string | null {
   return gbpFormatter.format(pence / 100);
 }
 
-function PaymentCard({
-  payment,
-  refNumber,
-  t,
-}: {
-  payment: PaymentSummary | null;
-  refNumber: string;
-  t: (key: string) => string;
-}) {
-  if (!payment) {
-    return (
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{t('jobDetail.payment')}</Text>
-        <Text style={styles.cardMeta}>{t('jobDetail.notAvailable')}</Text>
-      </View>
-    );
-  }
-
-  const display = getDriverPaymentDisplay(payment, refNumber);
-  const statusLabel = t(display.labelKey);
-  const methodLabel = payment.methodLabel || t('jobDetail.paymentMethodUnknown');
-
-  const amountLabel =
-    display.tone === 'paid'
-      ? t('jobDetail.nothingToCollect')
-      : display.amountLabel ?? t(display.descriptionKey);
-
-  return (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>{t('jobDetail.payment')}</Text>
-      {(() => {
-        const tone = paymentToneColors(display.tone);
-        return (
-          <View
-            style={[
-              styles.payToneBadge,
-              { backgroundColor: tone.bg, borderColor: tone.border },
-            ]}
-          >
-            <Ionicons
-              name={
-                display.tone === 'paid'
-                  ? 'checkmark-circle'
-                  : display.tone === 'action'
-                    ? 'cash-outline'
-                    : display.tone === 'warning' || display.tone === 'failed'
-                      ? 'alert-circle-outline'
-                      : 'time-outline'
-              }
-              size={18}
-              color={tone.text}
-            />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.payToneLabel, { color: tone.text }]}>
-                {t(display.labelKey)}
-                {display.amountLabel != null ? ` · ${display.amountLabel}` : ''}
-              </Text>
-              <Text style={[styles.payToneDesc, { color: tone.text }]}>
-                {t(display.descriptionKey)}
-              </Text>
-            </View>
-          </View>
-        );
-      })()}
-      {payment.totalPence != null && payment.totalPence > 0 && (
-        <>
-          <Text style={styles.cardMeta}>{t('jobDetail.jobPrice')}</Text>
-          <Text style={[styles.cardValue, { fontSize: fontSize.lg, fontWeight: '700' }]}>
-            {formatGbpFromPence(payment.totalPence)}
-          </Text>
-        </>
-      )}
-      <Text style={[styles.cardMeta, { marginTop: 8 }]}>{t('jobDetail.paymentMethod')}</Text>
-      <Text style={styles.cardValue}>{methodLabel}</Text>
-      <Text style={[styles.cardMeta, { marginTop: 8 }]}>{t('jobDetail.paymentStatus')}</Text>
-      <Text style={styles.cardValue}>{statusLabel}</Text>
-      <Text style={[styles.cardMeta, { marginTop: 8 }]}>{t('jobDetail.amountToCollect')}</Text>
-      <Text style={[styles.cardValue, { fontSize: fontSize.lg, fontWeight: '700' }]}>
-        {amountLabel}
-      </Text>
-    </View>
-  );
+function PaymentCard({ payment }: { payment: PaymentSummary | null; refNumber?: string; t: (key: string) => string }) {
+  return <DriverPaymentCard payment={payment} />;
 }
 
 function getDriverActions(t: (key: string) => string): Record<string, { label: string; next: string }> {
@@ -253,7 +174,7 @@ export default function JobDetailScreen() {
               await stopAlertSound();
             }
             if (nextStatus === 'completed') {
-              await stopBackgroundLocation();
+              await clearActiveBookingTracking();
               heavyHaptic();
               playSound('job_completed');
             } else {
@@ -309,7 +230,7 @@ export default function JobDetailScreen() {
   const tyreSizeSummary = formatJobTyreLinesSummary(job);
 
   const paymentForJob = job?.paymentSummary ?? job?.payment ?? null;
-  const amountToCollectPence = paymentForJob?.amountToCollectPence ?? 0;
+  const amountToCollectPence = getDriverCashToCollectPence(paymentForJob) ?? 0;
   const hasCollection = amountToCollectPence > 0;
   const amountToCollectLabel = formatGbpFromPence(amountToCollectPence) ?? t('jobDetail.notAvailable');
   const readableStatus = job?.status?.replace(/_/g, ' ') ?? t('jobs.unknown');
@@ -504,7 +425,7 @@ export default function JobDetailScreen() {
           try {
             errorHaptic();
             await driverApi.rejectJob(ref);
-            await stopBackgroundLocation();
+            await clearActiveBookingTracking();
             await stopAlertSound();
             clearAlertedRef(ref);
             router.back();

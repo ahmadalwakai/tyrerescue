@@ -76,7 +76,7 @@
     "searchingForJobs": "Searching for jobs…",
     "readyToReceive": "Ready to receive tyre rescue assignments",
     "locationSharingActive": "Location sharing active (background)",
-    "locationSignalActive": "Location signal active",
+    "locationSignalActive": "Location sharing inactive",
     "lastSync": "Last sync: {{time}}",
     "syncing": "Syncing…",
     "justNow": "Just now",
@@ -92,7 +92,7 @@
     "failedUpdateStatus": "Failed to update status.",
     "alertPermsRequiredTitle": "Enable alerts before going online",
     "notificationsRequired": "Notifications must be enabled so new job alerts can reach you.",
-    "locationRequired": "Foreground and background location must be enabled so dispatch and customers can track active jobs.",
+    "locationRequired": "Allow foreground and background location to share GPS with dispatch while Online, including between jobs. Sharing stops when you go Offline or sign out.",
     "watcherRequired": "The background job alert watcher is not active. We tried to re-arm it; sign out and back in if this keeps showing.",
     "fullScreenAlertRequired": "Full-screen alerts must be enabled so new jobs pop up over your lock screen. Without this you will miss jobs.",
     "batteryOptRequired": "Battery optimisation must be turned off for this app so job alerts are not blocked while your phone is idle.",
@@ -110,7 +110,7 @@
     "tapToFix": "Tap to fix",
     "rearmHint": "Sign out and back in to re-arm",
     "iosNotificationHint": "Enable Time Sensitive job alerts in iOS Settings",
-    "iosLocationHint": "Enable location permissions for active-job tracking",
+    "iosLocationHint": "Enable location permissions to share GPS while Online",
     "iosTimeSensitiveEnabled": "iOS Time Sensitive alerts enabled"
   },
   "jobs": {
@@ -508,6 +508,9 @@
   },
   "payment": {
     "paid": "Paid",
+    "notPaid": "Not paid",
+    "cashRemaining": "Cash remaining",
+    "cashRemainingDesc": "Collect only the remaining cash shown below.",
     "unknownLabel": "Payment status unknown",
     "checkWithAdmin": "Check with admin before collecting.",
     "paidOnline": "Paid online",
@@ -641,5 +644,39 @@
     "actionMarkArrived": "Mark arrived",
     "actionCompleteJob": "Complete job",
     "actionCheckPayment": "Check payment"
+  },
+  "security": {
+    "facePrompt": "Unlock Tyre Rescue Driver with Face ID",
+    "lockTitle": "Welcome back",
+    "lockBody": "Use Face ID to open your driver workspace. Your sign-in stays saved on this iPhone.",
+    "sessionRemoved": "This device session was removed. Verify your password to start a new secure session.",
+    "verifySession": "Your earlier sign-in needs a one-time password check. Your saved sign-in has not been erased.",
+    "recoveryFailed": "We could not verify your sign-in. Check your connection and password, then try again.",
+    "checking": "Checking…",
+    "verifyButton": "Verify sign-in",
+    "faceSetup": "Enable Face ID for this app in iPhone Settings. If Face ID is not set up, first add it in Settings → Face ID & Passcode.",
+    "faceRetry": "Your session is still saved. Try Face ID again when you are ready.",
+    "unlock": "Unlock with Face ID",
+    "openSettings": "Open Settings",
+    "trackingUnaffected": "While Online, dispatch location sharing continues behind this privacy screen. Going Offline or signing out stops it.",
+    "signOut": "Sign out of this iPhone"
+  },
+  "driverUi": {
+    "navigate": "Navigate",
+    "callCustomer": "Call customer",
+    "openJob": "Open job",
+    "locationMissing": "Location needs checking",
+    "nextStop": "Your next stop",
+    "navigateNext": "Navigate to next job",
+    "trackingActive": "Background tracking active",
+    "trackingNeedsAttention": "Location sharing needs attention",
+    "trackingOffline": "You are offline",
+    "trackingHint": "While Online, location sharing continues when you use another app. Keep Location set to Always.",
+    "openSettings": "Open settings",
+    "availability": "Available for jobs",
+    "secureSession": "Saved sign-in & Face ID",
+    "secureSessionBody": "Stay signed in on this iPhone. Face ID protects your workspace when you return. Sign out only when you choose.",
+    "permissions": "Location & notifications",
+    "openJobDetails": "Job details"
   }
 }

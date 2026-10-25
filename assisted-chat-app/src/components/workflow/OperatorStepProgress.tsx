@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     color: colors.accent,
-    letterSpacing: 0.2,
+    letterSpacing: 0,
   },
   counterLabel: {
     fontSize: fontSize.xs,

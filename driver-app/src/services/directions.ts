@@ -869,6 +869,35 @@ function parseRoute(raw: MapboxRoute, destinationSnap: LngLat | null): Direction
   };
 }
 
+/** Parse the provider response without credentials, networking, or native imports. */
+export function parseMapboxDirectionsPayload(value: unknown): FetchDirectionsResult {
+  try {
+    if (!value || typeof value !== 'object') throw new Error('Invalid response');
+    const data = value as MapboxDirectionsResponse;
+    if (data.code !== 'Ok' || !Array.isArray(data.routes)) throw new Error('No routes');
+    const waypoint = data.waypoints?.[data.waypoints.length - 1]?.location;
+    const destinationSnap: LngLat | null = Array.isArray(waypoint) && isValidCoord({ lng: waypoint[0], lat: waypoint[1] })
+      ? [waypoint[0], waypoint[1]] : null;
+    const routes: DirectionsRoute[] = [];
+    for (const raw of data.routes.slice(0, MAX_ROUTES)) {
+      const coordinates = raw?.geometry?.coordinates;
+      if (!Array.isArray(coordinates) || coordinates.length < 2 || coordinates.length > 50_000 ||
+        !coordinates.every((point) => Array.isArray(point) && point.length === 2 && isValidCoord({ lng: point[0], lat: point[1] })) ||
+        !Number.isFinite(raw.distance) || raw.distance < 0 || !Number.isFinite(raw.duration) || raw.duration < 0 ||
+        !Array.isArray(raw.legs) || raw.legs.length === 0) continue;
+      const parsed = parseRoute(raw, destinationSnap);
+      if (parsed.steps.length === 0 || parsed.steps.length > 2_000 || parsed.steps.some((step) =>
+        !isValidCoord({ lng: step.location[0], lat: step.location[1] }) ||
+        !Number.isFinite(step.distanceMeters) || step.distanceMeters < 0 ||
+        !Number.isFinite(step.durationSeconds) || step.durationSeconds < 0)) continue;
+      routes.push(parsed);
+    }
+    return routes.length > 0 ? { routes } : { error: { kind: 'no-route', message: 'No usable road guidance is available.' } };
+  } catch {
+    return { error: { kind: 'no-route', message: 'No usable road guidance is available.' } };
+  }
+}
+
 /**
  * Fetch a road-following driving route between two points.
  * - longitude,latitude ordering enforced.

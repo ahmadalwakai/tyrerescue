@@ -164,7 +164,7 @@ export function VirtualLandlineModal({ visible, onClose, onCreateDraft }: Virtua
       setLoadState('error');
       setMessage({ kind: 'err', text: error instanceof Error ? error.message : 'Server error loading calls.' });
     }
-  }, [currentFilter.direction, currentFilter.reviewed, search]);
+  }, [currentFilter.direction, currentFilter.reviewed, currentFilter.source, search]);
 
   useEffect(() => {
     if (!visible) return;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,10 +14,15 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { api } from '@/lib/api';
+import { api, getApiContextRevision } from '@/lib/api';
 import { downloadInvoicePdfToDevice } from '@/lib/invoice-download';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
+import { DriverLocationShareActions } from '@/components/tracking/DriverLocationShareActions';
+import { CopyAddressButton } from './CopyAddressButton';
+import { CopyCoordinatesButton } from './CopyCoordinatesButton';
+import { formatBookingCoordinatesForCopy } from '@/lib/booking-coordinates';
+import { InvoicePresentationEditor, type InvoicePresentationEditorHandle } from './invoices/InvoicePresentationEditor';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -196,6 +201,10 @@ interface Props {
 
 const TERMINAL_STATUSES = new Set([
   'completed', 'cancelled', 'refunded', 'refunded_partial', 'cancelled_refund_pending',
+]);
+
+const DRIVER_LOCATION_SHARE_STATUSES = new Set([
+  'assigned', 'driver_assigned', 'en_route', 'arrived', 'on_site', 'in_progress',
 ]);
 
 const ONE_STEP_COMPLETE_STATUSES = new Set([
@@ -391,12 +400,12 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
+function DetailRow({ label, value, selectable = false }: { label: string; value: string | null | undefined; selectable?: boolean }) {
   if (!value) return null;
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
+      <Text selectable={selectable} style={styles.detailValue}>{value}</Text>
     </View>
   );
 }
@@ -462,14 +471,16 @@ function OptionPicker({
 
 // ── Detail View ────────────────────────────────────────────────────────────
 
-type ActionMode = null | 'status' | 'edit' | 'assign' | 'refund';
+type ActionMode = null | 'status' | 'edit' | 'assign' | 'refund' | 'invoice';
 
 function BookingDetailView({
   refNumber,
   onBack,
+  invoiceEditorRef,
 }: {
   refNumber: string;
   onBack: () => void;
+  invoiceEditorRef: RefObject<InvoicePresentationEditorHandle | null>;
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -830,6 +841,15 @@ function BookingDetailView({
         <Text style={styles.fieldGroup}>Location</Text>
         <Text style={styles.fieldLabel}>Address</Text>
         <TextInput value={editAddress} onChangeText={setEditAddress} style={[styles.actionInput, styles.actionInputMulti]} multiline />
+        <CopyAddressButton address={editAddress} contextKey={data?.booking.id} />
+        {data ? (
+          <>
+            <Text style={styles.fieldLabel}>Saved coordinates</Text>
+            <Text selectable style={styles.detailValue}>{formatBookingCoordinatesForCopy(data.booking.lat, data.booking.lng) || 'Unavailable'}</Text>
+            {editAddress !== data.booking.addressLine ? <Text style={styles.fieldLabel}>These coordinates belong to the saved booking location.</Text> : null}
+            <CopyCoordinatesButton lat={data.booking.lat} lng={data.booking.lng} contextKey={`${data.booking.sourceApp}:${data.booking.id}`} />
+          </>
+        ) : null}
 
         <Text style={styles.fieldGroup}>Pricing</Text>
         <Text style={styles.fieldLabel}>Subtotal (£)</Text>
@@ -1011,7 +1031,7 @@ function BookingDetailView({
         {/* Header */}
         <View style={styles.sheetHeader}>
           <Pressable
-            onPress={() => { if (action) { setAction(null); } else { onBack(); } }}
+            onPress={() => { if (action === 'invoice' && invoiceEditorRef.current) { invoiceEditorRef.current.requestClose(); } else if (action) { setAction(null); } else { onBack(); } }}
             style={styles.backBtn}
           >
             <Text style={styles.backBtnText}>{action ? '← Back' : '← Back'}</Text>
@@ -1035,6 +1055,7 @@ function BookingDetailView({
           {action === 'edit' && renderEditAction()}
           {action === 'assign' && renderAssignAction()}
           {action === 'refund' && renderRefundAction()}
+          {action === 'invoice' && <InvoicePresentationEditor ref={invoiceEditorRef} bookingRef={refNumber} onClose={() => { setAction(null); void load(); }} />}
           {action === null && (
             <ScrollView contentContainerStyle={styles.detailScroll}>
               {/* Status + type */}
@@ -1127,10 +1148,13 @@ function BookingDetailView({
               <SectionTitle title="Location" />
               <View style={styles.card}>
                 <DetailRow label="Address" value={data.booking.addressLine} />
+                <CopyAddressButton address={data.booking.addressLine} contextKey={data.booking.id} />
                 <DetailRow
                   label="Coordinates"
-                  value={data.booking.lat && data.booking.lng ? `${data.booking.lat}, ${data.booking.lng}` : null}
+                  value={formatBookingCoordinatesForCopy(data.booking.lat, data.booking.lng)}
+                  selectable
                 />
+                <CopyCoordinatesButton lat={data.booking.lat} lng={data.booking.lng} contextKey={`${data.booking.sourceApp}:${data.booking.id}`} />
                 <DetailRow
                   label="Distance"
                   value={data.booking.distanceMiles ? `${parseFloat(data.booking.distanceMiles).toFixed(1)} miles` : null}
@@ -1195,6 +1219,7 @@ function BookingDetailView({
                 <DetailRow label="Payment status" value={data.paymentSummary?.label ?? data.booking.paymentType} />
                 <DetailRow label="Payment method" value={data.paymentSummary?.methodLabel} />
                 <DetailRow label="Invoice" value={data.invoice?.invoiceNumber ?? (canDownloadInvoice ? 'Ready to generate' : null)} />
+                <AppButton label="Invoice options" variant="secondary" onPress={() => { setActionError(null); setAction('invoice'); }} fullWidth />
                 <DetailRow label="Stripe PI" value={data.booking.stripePiId} />
               </View>
 
@@ -1210,6 +1235,13 @@ function BookingDetailView({
                       label="Status"
                       value={`${data.assignedDriver.isOnline ? 'Online' : 'Offline'}${data.assignedDriver.status ? ` — ${data.assignedDriver.status}` : ''}`}
                     />
+                    {DRIVER_LOCATION_SHARE_STATUSES.has(data.booking.status) ? (
+                      <DriverLocationShareActions
+                        bookingRef={data.booking.refNumber}
+                        bookingId={data.booking.id}
+                        customerPhone={data.booking.customerPhone}
+                      />
+                    ) : null}
                   </View>
                 </>
               ) : null}
@@ -1295,6 +1327,7 @@ function SourcePicker({
 // ── Main modal ─────────────────────────────────────────────────────────────
 
 export function AdminBookingsModal({ visible, onClose, initialRefNumber = null, initialSourceApp = null }: Props) {
+  const invoiceEditorRef = useRef<InvoicePresentationEditorHandle | null>(null);
   const [items, setItems] = useState<MobileListItem[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -1381,9 +1414,11 @@ export function AdminBookingsModal({ visible, onClose, initialRefNumber = null, 
   // Detail view
   if (selectedRef) {
     return (
-      <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={() => setSelectedRef(null)}>
+      <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={() => { if (invoiceEditorRef.current) invoiceEditorRef.current.requestClose(); else setSelectedRef(null); }}>
         <BookingDetailView
+          key={`${getApiContextRevision()}:${selectedRef}`}
           refNumber={selectedRef}
+          invoiceEditorRef={invoiceEditorRef}
           onBack={() => setSelectedRef(null)}
         />
       </Modal>

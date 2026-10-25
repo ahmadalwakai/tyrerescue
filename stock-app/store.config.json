@@ -1,0 +1,83 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "version": "1.0",
+    "copyright": "(c) 2026 Tyre Rescue",
+    "release": {
+      "automaticRelease": false
+    },
+    "info": {
+      "en-GB": {
+        "description": "Tyre Rescue Stock is a private inventory and shift app for authorised Tyre Rescue staff. Drivers and managers can work from the correct city stock, start and end shifts, record Garage and Emergency Call-Out tyre sales, add or correct city stock when permitted, flag missing tyre requests, and review recent stock movements so managers know exactly what needs to be bought.",
+        "keywords": [
+          "tyres",
+          "stock",
+          "inventory",
+          "drivers",
+          "shifts",
+          "garage",
+          "fleet"
+        ],
+        "marketingUrl": "https://www.tyrerescue.uk",
+        "promoText": "Private Tyre Rescue city stock, sales, shifts, and restock control.",
+        "supportUrl": "https://www.tyrerescue.uk/contact",
+        "title": "Tyre Rescue Stock",
+        "subtitle": "City tyre stock control",
+        "privacyPolicyUrl": "https://www.tyrerescue.uk/privacy-policy",
+        "releaseNotes": "Initial release for authorised Tyre Rescue staff: city stock, driver shifts, Garage and Emergency Call-Out tyre sales, stock corrections, and missing tyre requests.",
+        "screenshots": {
+          "APP_IPHONE_65": [
+            "store\\apple\\screenshot\\en-GB\\APP_IPHONE_65\\01-login.png",
+            "store\\apple\\screenshot\\en-GB\\APP_IPHONE_65\\02-city-stock.png",
+            "store\\apple\\screenshot\\en-GB\\APP_IPHONE_65\\03-shifts-movements.png"
+          ],
+          "APP_IPAD_PRO_3GEN_129": [
+            "store\\apple\\screenshot\\en-GB\\APP_IPAD_PRO_3GEN_129\\01-ipad-login.png",
+            "store\\apple\\screenshot\\en-GB\\APP_IPAD_PRO_3GEN_129\\02-ipad-city-stock.png",
+            "store\\apple\\screenshot\\en-GB\\APP_IPAD_PRO_3GEN_129\\03-ipad-shifts-movements.png"
+          ]
+        }
+      }
+    },
+    "review": {
+      "firstName": "Ahmad",
+      "lastName": "Alwakai",
+      "email": "dukesttyres@gmail.com",
+      "phone": "+441412660690",
+      "demoRequired": false,
+      "notes": "Tyre Rescue Stock is a private internal app for authorised Tyre Rescue staff. It manages city tyre stock, shifts, stock corrections, Garage sales, Emergency Call-Out sales, missing tyre requests, and restock visibility for managers."
+    },
+    "categories": [
+      "BUSINESS"
+    ],
+    "advisory": {
+      "ageRatingOverride": "NONE",
+      "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+      "contests": "NONE",
+      "gambling": false,
+      "gamblingSimulated": "NONE",
+      "horrorOrFearThemes": "NONE",
+      "kidsAgeBand": null,
+      "koreaAgeRatingOverride": "NONE",
+      "lootBox": false,
+      "matureOrSuggestiveThemes": "NONE",
+      "medicalOrTreatmentInformation": "NONE",
+      "profanityOrCrudeHumor": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "sexualContentOrNudity": "NONE",
+      "unrestrictedWebAccess": false,
+      "violenceCartoonOrFantasy": "NONE",
+      "violenceRealistic": "NONE",
+      "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+      "advertising": false,
+      "ageAssurance": false,
+      "ageRatingOverrideV2": "NONE",
+      "developerAgeRatingInfoUrl": null,
+      "gunsOrOtherWeapons": "NONE",
+      "healthOrWellnessTopics": false,
+      "messagingAndChat": false,
+      "parentalControls": false,
+      "userGeneratedContent": false
+    }
+  }
+}

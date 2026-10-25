@@ -1,243 +1,110 @@
-import { View, Text, StyleSheet } from 'react-native';
 import { useRef } from 'react';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { format } from 'date-fns';
 import { colors, spacing, fontSize, radius, cardShadow } from '@/constants/theme';
 import { AnimatedPressable } from './AnimatedPressable';
 import { StatusBadge } from './StatusBadge';
+import { DriverPaymentCard } from './DriverPaymentCard';
 import { lightHaptic } from '@/services/haptics';
-import { format } from 'date-fns';
 import type { JobSummary } from '@/api/client';
 import { useI18n } from '@/i18n';
-import { formatGbpFromPence, getDriverPaymentDisplay, paymentToneColors } from '@/lib/payment-status';
 import { formatJobTyreLinesSummary } from '@/lib/tyre-lines';
 
-type JobCardIcon = keyof typeof Ionicons.glyphMap;
+interface JobCardProps { job: JobSummary; onPress: () => void }
 
-function paymentIcon(tone: ReturnType<typeof getDriverPaymentDisplay>['tone']): JobCardIcon {
-  switch (tone) {
-    case 'paid':
-      return 'checkmark-circle';
-    case 'failed':
-      return 'close-circle';
-    case 'warning':
-    case 'action':
-      return 'alert-circle';
-    case 'pending':
-      return 'time';
-    case 'unknown':
-    default:
-      return 'help-circle';
-  }
-}
+export function JobCard({ job, onPress }: JobCardProps) {
+  const { t, dateLocale } = useI18n();
+  const router = useRouter();
+  const navLockRef = useRef(false);
+  const terminal = ['completed', 'cancelled', 'cancelled_refund_pending', 'refunded', 'refunded_partial'].includes(job.status);
+  const service = job.serviceType === 'mobile_fitting' ? t('jobs.fitting') : t('jobs.emergency');
+  const tyreSummary = formatJobTyreLinesSummary(job);
+  const date = job.scheduledAt ? new Date(job.scheduledAt) : null;
+  const scheduled = date && Number.isFinite(date.getTime())
+    ? format(date, 'dd MMM, HH:mm', { locale: dateLocale }) : null;
+  const openOnce = (action: () => void) => {
+    if (navLockRef.current) return;
+    navLockRef.current = true;
+    setTimeout(() => { navLockRef.current = false; }, 800);
+    lightHaptic();
+    action();
+  };
+  const phone = job.customerPhone?.replace(/[^+\d]/g, '') ?? '';
 
-function statusEdgeColor(job: JobSummary): string {
-  if (job.serviceType !== 'mobile_fitting') return colors.danger;
-  if (job.status === 'en_route' || job.status === 'arrived' || job.status === 'in_progress') {
-    return colors.accent;
-  }
-  if (job.status === 'completed') return colors.success;
-  return colors.info;
-}
-
-function MetaChip({
-  icon,
-  label,
-}: {
-  icon: JobCardIcon;
-  label: string | null | undefined;
-}) {
-  if (!label) return null;
   return (
-    <View style={styles.metaChip}>
-      <Ionicons name={icon} size={13} color={colors.muted} />
-      <Text style={styles.metaChipText} numberOfLines={1}>
-        {label}
-      </Text>
+    <View style={styles.card}>
+      <View style={[styles.edge, { backgroundColor: job.status === 'completed' ? colors.success : terminal ? colors.danger : colors.navigation }]} />
+      <AnimatedPressable
+        onPress={() => openOnce(onPress)}
+        style={styles.content}
+        accessibilityRole="button"
+        accessibilityLabel={`${t('driverUi.openJob')} ${job.refNumber}, ${job.customerName}`}
+      >
+        <View style={styles.header}>
+          <View style={styles.refBlock}>
+            <Text style={styles.reference}>#{job.refNumber} · {service}</Text>
+            <Text style={styles.customer} numberOfLines={1}>{job.customerName}</Text>
+          </View>
+          <StatusBadge status={job.status} />
+        </View>
+        <View style={styles.addressRow}>
+          <Ionicons name="location" size={19} color={colors.navigation} />
+          <Text style={styles.address} numberOfLines={3}>{job.addressLine || t('driverUi.locationMissing')}</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+        </View>
+        <View style={styles.meta}>
+          {scheduled && <Text style={styles.metaText}>{scheduled}</Text>}
+          {tyreSummary && <Text style={styles.metaText} numberOfLines={2}>{tyreSummary}</Text>}
+        </View>
+      </AnimatedPressable>
+      <View style={styles.payment}><DriverPaymentCard payment={job.paymentSummary ?? job.payment} compact /></View>
+      {!terminal && (
+        <View style={styles.actions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${t('driverUi.navigate')} ${job.customerName}`}
+            style={({ pressed }) => [styles.action, styles.navigate, pressed && styles.pressed]}
+            onPress={() => openOnce(() => router.push(`/(tabs)/jobs/${job.refNumber}/route`))}
+          >
+            <Ionicons name="navigate" size={20} color={colors.white} />
+            <Text style={styles.actionText}>{t('driverUi.navigate')}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${t('driverUi.callCustomer')} ${job.customerName}`}
+            accessibilityState={{ disabled: !phone }}
+            disabled={!phone}
+            style={({ pressed }) => [styles.action, styles.call, (!phone || pressed) && styles.pressed]}
+            onPress={() => { void Linking.openURL(`tel:${phone}`).catch(() => onPress()); }}
+          >
+            <Ionicons name="call-outline" size={20} color={colors.text} />
+            <Text style={styles.actionText}>{t('driverUi.callCustomer')}</Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
 
-interface JobCardProps {
-  job: JobSummary;
-  onPress: () => void;
-}
-
-export function JobCard({ job, onPress }: JobCardProps) {
-  const { t, dateLocale } = useI18n();
-  const payment = job.paymentSummary ?? job.payment ?? null;
-  const paymentDisplay = payment
-    ? getDriverPaymentDisplay(payment, job.refNumber)
-    : null;
-  const paymentColors = paymentDisplay ? paymentToneColors(paymentDisplay.tone) : null;
-  const totalLabel = formatGbpFromPence(payment?.totalPence);
-  const serviceLabel = job.serviceType === 'mobile_fitting' ? t('jobs.fitting') : t('jobs.emergency');
-  const scheduledLabel = job.scheduledAt
-    ? format(new Date(job.scheduledAt), 'dd MMM, HH:mm', { locale: dateLocale })
-    : null;
-  const paymentLabel = paymentDisplay
-    ? `${t(paymentDisplay.labelKey)}${paymentDisplay.amountLabel != null ? ` · ${paymentDisplay.amountLabel}` : ''}`
-    : null;
-  const tyreSummary = formatJobTyreLinesSummary(job);
-  // Guard against a rapid double-tap pushing the detail screen twice.
-  const navLockRef = useRef(false);
-  return (
-    <AnimatedPressable
-      onPress={() => {
-        if (navLockRef.current) return;
-        navLockRef.current = true;
-        setTimeout(() => {
-          navLockRef.current = false;
-        }, 800);
-        lightHaptic();
-        onPress();
-      }}
-      style={styles.card}
-      pressScale={0.97}
-    >
-      <View style={[styles.edge, { backgroundColor: statusEdgeColor(job) }]} />
-      <View style={styles.header}>
-        <View style={styles.refBlock}>
-          <Text style={styles.ref}>#{job.refNumber}</Text>
-          <Text style={styles.serviceLine} numberOfLines={1}>
-            {serviceLabel}
-          </Text>
-        </View>
-        <View style={styles.headerRight}>
-          <StatusBadge status={job.status} />
-          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-        </View>
-      </View>
-
-      <Text style={styles.customer} numberOfLines={1}>
-        {job.customerName}
-      </Text>
-
-      <Text style={styles.address} numberOfLines={2}>
-        {job.addressLine}
-      </Text>
-
-      <View style={styles.metaGrid}>
-        <MetaChip icon="calendar-outline" label={scheduledLabel} />
-        <MetaChip icon="disc-outline" label={tyreSummary} />
-        <MetaChip icon="cash-outline" label={totalLabel} />
-      </View>
-
-      {payment && paymentDisplay && paymentColors && (
-        <View
-          style={[
-            styles.paymentChip,
-            {
-              backgroundColor: paymentColors.bg,
-              borderColor: paymentColors.border,
-            },
-          ]}
-        >
-          <Ionicons name={paymentIcon(paymentDisplay.tone)} size={14} color={paymentColors.text} />
-          <Text style={[styles.paymentChipText, { color: paymentColors.text }]} numberOfLines={1}>
-            {paymentLabel}
-          </Text>
-        </View>
-      )}
-    </AnimatedPressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    padding: spacing.lg,
-    paddingLeft: spacing.lg + spacing.xs,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    overflow: 'hidden',
-    ...cardShadow,
-  },
-  edge: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 5,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  refBlock: {
-    flex: 1,
-    minWidth: 0,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  ref: {
-    color: colors.accent,
-    fontFamily: 'Inter_700Bold',
-    fontSize: fontSize.sm,
-  },
-  serviceLine: {
-    color: colors.muted,
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: fontSize.xs,
-    marginTop: 2,
-  },
-  customer: {
-    color: colors.text,
-    fontFamily: 'Inter_700Bold',
-    fontSize: fontSize.lg,
-    marginBottom: 2,
-  },
-  address: {
-    color: colors.muted,
-    fontFamily: 'Inter_400Regular',
-    fontSize: fontSize.sm,
-    marginBottom: spacing.sm,
-  },
-  metaGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  metaChip: {
-    minHeight: 28,
-    maxWidth: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.full,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
-  },
-  metaChipText: {
-    color: colors.muted,
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: fontSize.xs,
-    flexShrink: 1,
-  },
-  paymentChip: {
-    marginTop: spacing.sm,
-    minHeight: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.full,
-    borderWidth: 1,
-  },
-  paymentChipText: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: fontSize.xs,
-    flexShrink: 1,
-  },
+  card: { backgroundColor: colors.surface, borderRadius: radius.xxl, borderWidth: 1, borderColor: colors.border, marginBottom: spacing.md, overflow: 'hidden', ...cardShadow },
+  edge: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
+  content: { padding: spacing.lg, paddingBottom: spacing.sm },
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.md },
+  refBlock: { flex: 1, minWidth: 0 },
+  reference: { color: colors.muted, fontSize: fontSize.xs, fontFamily: 'Inter_600SemiBold', marginBottom: 5 },
+  customer: { color: colors.text, fontSize: 20, fontFamily: 'Inter_700Bold' },
+  addressRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  address: { flex: 1, color: colors.text, fontFamily: 'Inter_600SemiBold', fontSize: 16, lineHeight: 24 },
+  meta: { gap: 6, marginTop: spacing.md },
+  metaText: { color: colors.muted, fontFamily: 'Inter_400Regular', fontSize: fontSize.sm, lineHeight: 20 },
+  payment: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
+  actions: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
+  action: { flex: 1, minHeight: 50, padding: spacing.sm, borderRadius: radius.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
+  navigate: { backgroundColor: colors.navigation },
+  call: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  actionText: { color: colors.text, fontSize: fontSize.base, fontFamily: 'Inter_700Bold', flexShrink: 1, textAlign: 'center' },
+  pressed: { opacity: 0.6 },
 });

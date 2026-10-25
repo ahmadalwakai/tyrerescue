@@ -19,7 +19,9 @@ import { WebView } from 'react-native-webview';
 import { colors, fontSize, radius, space } from './theme';
 import { api } from '@/lib/api';
 import { isValidCoordinate, haversineMiles, formatDistanceMiles } from '@/lib/geo';
-import { AdminHeaderButton, AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
+import { buildTrackingMapHtml, type TrackingMapState } from './tracking/tracking-map-html';
+import { CopyAddressButton } from './CopyAddressButton';
+import { ModalSafeAreaView } from './layout/ModalSafeAreaView';
 import {
   useTracking,
   type TrackingDriver,
@@ -39,18 +41,6 @@ interface WebFrameRef {
   } | null;
 }
 
-const driverRosterCardShadow = (
-  Platform.OS === 'web'
-    ? { boxShadow: '0 6px 10px rgba(79,140,255,0.12)' }
-    : {
-        shadowColor: colors.blue,
-        shadowOpacity: 0.12,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 3,
-      }
-) as ViewStyle;
-
 const trackingPanelShadow = (
   Platform.OS === 'web'
     ? { boxShadow: '0 -6px 18px rgba(249,115,22,0.12)' }
@@ -62,38 +52,6 @@ const trackingPanelShadow = (
         elevation: 4,
       }
 ) as ViewStyle;
-
-interface TrackingMapState {
-  drivers: Array<{
-    id: string;
-    name: string;
-    phone: string | null;
-    lat: number | null;
-    lng: number | null;
-    status: TrackingDriver['status'];
-    freshness: TrackingDriver['locationFreshness'];
-    activeJobRef: string | null;
-    lastSeenAt: string | null;
-    selected: boolean;
-  }>;
-  jobs: Array<{
-    id: string;
-    ref: string;
-    status: string;
-    customerName: string | null;
-    customerPhone: string | null;
-    address: string;
-    tyreSummary: string | null;
-    vehicleSummary: string | null;
-    paymentLine: string;
-    paymentNeedsCheck: boolean;
-    lat: number | null;
-    lng: number | null;
-    assignmentStatus: TrackingJob['assignmentStatus'];
-    selected: boolean;
-  }>;
-  doFit: boolean;
-}
 
 const GBP = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
 
@@ -180,243 +138,6 @@ const JOB_RANGE_OPTIONS: Array<{ value: TrackingJobsRange; label: string }> = [
 ];
 
 const ASSIGNABLE_JOB_STATUSES = new Set(['awaiting_payment', 'deposit_paid', 'paid']);
-
-function buildTrackingMapHtml(token: string, initialState: TrackingMapState | null = null): string {
-  const initialStateJson = JSON.stringify(initialState).replace(/</g, '\\u003c');
-  return `<!doctype html><html><head>
-<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-<link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet" />
-<script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
-<style>
-html,body,#m{margin:0;padding:0;width:100%;height:100%;background:#09090B}
-.pin{--pin-color:#9CA3AF;display:flex;flex-direction:column;align-items:center;cursor:pointer;user-select:none;-webkit-user-select:none}
-.pcore{position:relative;width:30px;height:30px;display:flex;align-items:center;justify-content:center}
-.pring{position:absolute;top:50%;left:50%;width:16px;height:16px;border-radius:50%;border:2px solid var(--pin-color);transform:translate(-50%,-50%);opacity:0;z-index:1;animation:radar 1.8s ease-out infinite;pointer-events:none}
-.pring.r2{animation-delay:.8s}
-.pdot{position:relative;z-index:2;width:16px;height:16px;border-radius:50%;background:var(--pin-color);border:2px solid #09090B;transition:background 0.1s;box-shadow:0 2px 6px rgba(0,0,0,.55)}
-.pin.sel .pdot{box-shadow:0 2px 6px rgba(0,0,0,.55),0 0 0 3px #FAFAFA}
-.plbl{margin-top:3px;font-size:9px;font-weight:700;color:#F8FAFC;background:rgba(9,9,11,0.86);padding:1px 5px;border-radius:3px;white-space:nowrap;max-width:84px;overflow:hidden;text-overflow:ellipsis;font-family:system-ui,sans-serif;line-height:1.4;border:1px solid rgba(249,115,22,.18)}
-@keyframes radar{0%{transform:translate(-50%,-50%) scale(1);opacity:.7}100%{transform:translate(-50%,-50%) scale(3.8);opacity:0}}
-@media (prefers-reduced-motion: reduce){.pring{animation:none;transform:translate(-50%,-50%) scale(1.9);opacity:.16}.pring.r2{display:none}}
-.mapboxgl-popup{max-width:270px!important}
-.mapboxgl-popup-tip{display:none}
-.mapboxgl-popup-content{background:transparent;border:0;padding:0;box-shadow:none}
-.mapboxgl-popup-close-button{top:4px;right:6px;color:#FAFAFA;font-size:16px;text-shadow:0 1px 2px rgba(0,0,0,.72);z-index:5}
-.hub-card{position:relative;min-width:230px;overflow:hidden;isolation:isolate;border-radius:14px;padding:12px 13px;background:linear-gradient(145deg,#2A2A2F 0%,#18181B 50%,#0F0F12 100%);border:1px solid rgba(255,121,0,.42);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -18px 30px rgba(0,0,0,.22),0 14px 28px rgba(0,0,0,.52),0 0 24px rgba(255,121,0,.12);transform:perspective(560px) rotateX(4deg);transform-origin:center bottom;font-family:system-ui,sans-serif}
-.hub-card:before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(249,115,22,.12),transparent 38%,rgba(255,121,0,.1));pointer-events:none;z-index:1}
-.hub-shimmer{position:absolute;z-index:4;top:-38%;bottom:-38%;left:-120px;width:88px;transform:skewX(-18deg);background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.08) 14%,rgba(255,255,255,.55) 50%,rgba(255,255,255,.08) 86%,transparent 100%);filter:blur(.2px);opacity:.82;mix-blend-mode:screen;pointer-events:none;animation:hubShimmer 1.65s cubic-bezier(.4,0,.2,1) infinite}
-.hub-top{position:relative;z-index:2;display:flex;align-items:center;gap:10px;min-width:0}
-.hub-avatar{width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#FF9A2E,#FF7900);display:flex;align-items:center;justify-content:center;color:#09090B;font-size:14px;font-weight:900;box-shadow:inset 0 1px 0 rgba(255,255,255,.38),0 8px 15px rgba(255,121,0,.24)}
-.hub-card.job .hub-avatar{background:linear-gradient(145deg,#FDBA74,#F97316);box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 8px 15px rgba(249,115,22,.24)}
-.hub-copy{min-width:0;flex:1}
-.hub-kicker{font-size:9px;font-weight:900;color:#FCD34D;text-transform:uppercase;letter-spacing:0}
-.hub-title{font-size:15px;font-weight:900;color:#FAFAFA;line-height:1.16;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 1px rgba(0,0,0,.85)}
-.hub-meta{position:relative;z-index:2;margin-top:8px;color:#D4D4D8;font-size:11px;line-height:1.35}
-.hub-warn{color:#FBBF24;font-weight:800}
-.hub-pills{position:relative;z-index:2;display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.hub-pill{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0;padding:3px 7px;border-radius:999px;background:rgba(156,163,175,.14);color:#D4D4D8;border:1px solid rgba(156,163,175,.28)}
-.hub-pill.ok{background:rgba(34,197,94,.16);color:#86EFAC;border-color:rgba(34,197,94,.38)}
-.hub-pill.warn{background:rgba(245,158,11,.16);color:#FCD34D;border-color:rgba(245,158,11,.38)}
-.hub-pill.danger{background:rgba(239,68,68,.16);color:#FCA5A5;border-color:rgba(239,68,68,.38)}
-.hub-tools{position:relative;z-index:2;display:flex;gap:7px;margin-top:10px}
-.hub-tool{flex:1;min-height:32px;border:1px solid rgba(255,121,0,.5);border-radius:10px;background:rgba(255,121,0,.14);color:#F8FAFC;font-size:11px;font-weight:900;cursor:pointer}
-.hub-tool.primary{background:linear-gradient(180deg,#FF9A2E,#FF7900);color:#09090B;border-color:rgba(255,121,0,.78)}
-.hub-tool:disabled{opacity:.42;cursor:not-allowed}
-@keyframes hubShimmer{0%{left:-120px}100%{left:calc(100% + 120px)}}
-@media (prefers-reduced-motion: reduce){.hub-shimmer{animation:hubShimmer 2.4s ease-in-out infinite}.hub-card{transform:none}}
-</style>
-</head><body>
-<div id="m"></div>
-<script>
-mapboxgl.accessToken=${JSON.stringify(token)};
-var map=new mapboxgl.Map({container:'m',style:'mapbox://styles/mapbox/dark-v11',center:[-4.2518,55.8642],zoom:11,attributionControl:false});
-var MSG_SOURCE='tyrerescue-tracking-map';
-var mks={};
-var loaded=false,pending=null,didFit=false;
-var initialState=${initialStateJson};
-function post(o){try{if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify(o));else if(window.parent&&window.parent!==window)window.parent.postMessage({source:MSG_SOURCE,payload:o},'*');}catch(e){}}
-function esc(s){return(s==null?'':String(s)).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c;});}
-function escAttr(s){return(s==null?'':String(s)).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c;});}
-function initials(name,fallback){var parts=String(name||'').trim().split(/\\s+/).filter(Boolean);var a=(parts[0]||fallback||'T').charAt(0);var b=(parts[1]||'').charAt(0);return (a+b).toUpperCase();}
-function freshnessText(f){if(f==='live')return'Live';if(f==='stale')return'Stale GPS';if(f==='offline')return'Offline';return'Unknown';}
-function driverHtml(d){
-  var fresh=d.freshness||'unknown';
-  var status=d.status||'unknown';
-  var freshTone=fresh==='live'?'ok':(fresh==='stale'?'warn':'');
-  var statusTone=status==='available'?'ok':(status==='busy'?'warn':'');
-  var h='<div class="hub-card driver"><span class="hub-shimmer"></span><div class="hub-top"><div class="hub-avatar">'+esc(initials(d.name,'D'))+'</div><div class="hub-copy"><div class="hub-kicker">Driver</div><div class="hub-title">'+esc(d.name||'Driver')+'</div></div></div>';
-  h+='<div class="hub-pills"><span class="hub-pill '+freshTone+'">'+esc(freshnessText(fresh))+'</span><span class="hub-pill '+statusTone+'">'+esc(status)+'</span></div>';
-  h+='<div class="hub-meta">';
-  if(d.phone)h+=esc(d.phone)+'<br>';
-  h+=d.activeJobRef?'Active job: #'+esc(d.activeJobRef):'No active job';
-  if(d.lastSeenAt)h+='<br>Last seen: '+esc(d.lastSeenAt);
-  h+='</div><div class="hub-tools">';
-  h+='<button type="button" class="hub-tool" data-action="call" data-phone="'+escAttr(d.phone||'')+'" '+(!d.phone?'disabled':'')+'>Call</button>';
-  h+='<button type="button" class="hub-tool primary" data-action="select" data-kind="driver" data-id="'+escAttr(d.id)+'">Select</button>';
-  h+='</div></div>';
-  return h;
-}
-function jobHtml(j){
-  var assigned=j.assignmentStatus==='unassigned'?false:true;
-  var h='<div class="hub-card job"><span class="hub-shimmer"></span><div class="hub-top"><div class="hub-avatar">J</div><div class="hub-copy"><div class="hub-kicker">Job</div><div class="hub-title">#'+esc(j.ref||'Job')+'</div></div></div>';
-  h+='<div class="hub-pills"><span class="hub-pill '+(!assigned?'danger':'ok')+'">'+esc(!assigned?'Unassigned':'Assigned')+'</span><span class="hub-pill '+(j.paymentNeedsCheck?'warn':'ok')+'">'+esc(j.paymentNeedsCheck?'Check payment':'Paid')+'</span></div>';
-  h+='<div class="hub-meta">';
-  if(j.customerName)h+=esc(j.customerName)+'<br>';
-  h+=esc(j.address||'No address');
-  if(j.tyreSummary)h+='<br>'+esc(j.tyreSummary);
-  if(j.vehicleSummary)h+='<br>'+esc(j.vehicleSummary);
-  h+='<br><span class="'+(j.paymentNeedsCheck?'hub-warn':'')+'">'+esc(j.paymentLine||'Payment needs checking')+'</span>';
-  h+='</div><div class="hub-tools">';
-  h+='<button type="button" class="hub-tool" data-action="call" data-phone="'+escAttr(j.customerPhone||'')+'" '+(!j.customerPhone?'disabled':'')+'>Call customer</button>';
-  h+='<button type="button" class="hub-tool primary" data-action="select" data-kind="job" data-id="'+escAttr(j.id)+'">Select job</button>';
-  h+='</div></div>';
-  return h;
-}
-function driverColor(status,fresh){
-  if(fresh==='offline')return'#6B7280';
-  if(fresh==='stale')return'#D97706';
-  if(status==='busy')return'#FF7900';
-  if(status==='available')return'#22c55e';
-  return'#9CA3AF';
-}
-function jobColor(aStatus){return aStatus==='unassigned'?'#EF4444':'#F97316';}
-function makeEl(color,label,sel){
-  var el=document.createElement('div');
-  el.className='pin'+(sel?' sel':'');
-  el.style.setProperty('--pin-color',color);
-  var core=document.createElement('div');
-  core.className='pcore';
-  var ring1=document.createElement('span');
-  ring1.className='pring';
-  var ring2=document.createElement('span');
-  ring2.className='pring r2';
-  var dot=document.createElement('div');
-  dot.className='pdot';
-  var lbl=document.createElement('div');
-  lbl.className='plbl';
-  lbl.textContent=esc(label);
-  core.appendChild(ring1);
-  core.appendChild(ring2);
-  core.appendChild(dot);
-  el.appendChild(core);
-  el.appendChild(lbl);
-  return el;
-}
-function addClick(el,kind,id){
-  el.addEventListener('click',function(e){e.stopPropagation();post({type:'mk',kind:kind,id:id});});
-}
-function apply(s){
-  if(!s)return;
-  var seen={};
-  var pts=[];
-  // Drivers
-  var ds=s.drivers||[];
-  for(var i=0;i<ds.length;i++){
-    var d=ds[i];
-    if(d.lat==null||d.lng==null)continue;
-    seen[d.id]=true;
-    pts.push([d.lng,d.lat]);
-    var color=driverColor(d.status,d.freshness);
-    var label=d.name||'Driver';
-    var sel=!!d.selected;
-    if(mks[d.id]){
-      mks[d.id].marker.setLngLat([d.lng,d.lat]);
-      mks[d.id].el.style.setProperty('--pin-color',color);
-      mks[d.id].el.classList.toggle('sel',sel);
-      if(mks[d.id].popup)mks[d.id].popup.setHTML(driverHtml(d));
-      var lbl=mks[d.id].el.querySelector('.plbl');
-      if(lbl)lbl.textContent=esc(label);
-    }else{
-      var el=makeEl(color,label,sel);
-      (function(id){addClick(el,'driver',id);})(d.id);
-      var pop=new mapboxgl.Popup({offset:24,closeButton:true,className:'hub-pop'}).setHTML(driverHtml(d));
-      var mk=new mapboxgl.Marker({element:el,anchor:'bottom'}).setLngLat([d.lng,d.lat]).setPopup(pop).addTo(map);
-      mks[d.id]={marker:mk,el:el,popup:pop};
-    }
-  }
-  // Jobs
-  var js=s.jobs||[];
-  for(var j=0;j<js.length;j++){
-    var jb=js[j];
-    if(jb.lat==null||jb.lng==null)continue;
-    seen[jb.id]=true;
-    pts.push([jb.lng,jb.lat]);
-    var color=jobColor(jb.assignmentStatus);
-    var label=jb.ref;
-    var sel=!!jb.selected;
-    if(mks[jb.id]){
-      mks[jb.id].marker.setLngLat([jb.lng,jb.lat]);
-      mks[jb.id].el.style.setProperty('--pin-color',color);
-      mks[jb.id].el.classList.toggle('sel',sel);
-      if(mks[jb.id].popup)mks[jb.id].popup.setHTML(jobHtml(jb));
-      var lbl=mks[jb.id].el.querySelector('.plbl');
-      if(lbl)lbl.textContent=esc(label);
-    }else{
-      var el=makeEl(color,label,sel);
-      (function(id){addClick(el,'job',id);})(jb.id);
-      var pop=new mapboxgl.Popup({offset:24,closeButton:true,className:'hub-pop'}).setHTML(jobHtml(jb));
-      var mk=new mapboxgl.Marker({element:el,anchor:'bottom'}).setLngLat([jb.lng,jb.lat]).setPopup(pop).addTo(map);
-      mks[jb.id]={marker:mk,el:el,popup:pop};
-    }
-  }
-  // Remove stale markers
-  Object.keys(mks).forEach(function(id){
-    if(!seen[id]){mks[id].marker.remove();delete mks[id];}
-  });
-  // Auto-fit on first render with real points
-  if(!didFit&&s.doFit&&pts.length>0){
-    if(pts.length===1){
-      map.easeTo({center:pts[0],zoom:13,duration:600});
-    }else{
-      var b=new mapboxgl.LngLatBounds();
-      pts.forEach(function(p){b.extend(p);});
-      map.fitBounds(b,{padding:90,maxZoom:13,duration:600});
-    }
-    didFit=true;
-  }
-}
-function receiveState(s){if(!s)return;if(loaded)apply(s);else pending=s;}
-window.__applyState=function(json){
-  try{receiveState(JSON.parse(json));}catch(e){}
-};
-window.__fitAll=function(){
-  var pts=[];
-  Object.keys(mks).forEach(function(id){
-    var ll=mks[id].marker.getLngLat();
-    pts.push([ll.lng,ll.lat]);
-  });
-  if(pts.length===0)return;
-  if(pts.length===1){map.easeTo({center:pts[0],zoom:13,duration:500});return;}
-  var b=new mapboxgl.LngLatBounds();
-  pts.forEach(function(p){b.extend(p);});
-  map.fitBounds(b,{padding:90,maxZoom:13,duration:500});
-};
-document.addEventListener('click',function(e){
-  var btn=e.target&&e.target.closest?e.target.closest('.hub-tool'):null;
-  if(!btn)return;
-  e.preventDefault();
-  e.stopPropagation();
-  var action=btn.getAttribute('data-action')||'';
-  if(action==='call'){
-    var phone=btn.getAttribute('data-phone')||'';
-    if(phone)post({type:'call',phone:phone});
-  }else if(action==='select'){
-    post({type:'mk',kind:btn.getAttribute('data-kind')||'',id:btn.getAttribute('data-id')||''});
-  }
-});
-window.addEventListener('message',function(event){
-  try{
-    var msg=event.data||{};
-    if(msg.source!==MSG_SOURCE)return;
-    if(msg.type==='state')receiveState(msg.state);
-    else if(msg.type==='cmd'&&msg.name==='fit')window.__fitAll&&window.__fitAll();
-  }catch(e){}
-});
-map.on('load',function(){loaded=true;if(pending){apply(pending);pending=null;}else if(initialState){apply(initialState);}});
-</script></body></html>`;
-}
-
-// ─── Sub-components ──────────────────────────────────────────────────────────
 
 interface DriverDetailProps {
   driver: TrackingDriver;
@@ -508,6 +229,7 @@ function JobDetail({ job, distanceFromDriver }: JobDetailProps) {
         <Text style={styles.detailName} numberOfLines={1}>{job.customerName}</Text>
       ) : null}
       <Text style={styles.detailAddress} numberOfLines={2}>{job.address}</Text>
+      <CopyAddressButton address={job.address} contextKey={job.id} />
       {job.tyreSummary ? (
         <Text style={styles.detailMeta}>Tyres: {job.tyreSummary}</Text>
       ) : null}
@@ -663,134 +385,6 @@ function DriverListSheet({ visible, drivers, selectedId, onSelect, onClose }: Dr
     </Modal>
   );
 }
-
-interface DriverRosterProps {
-  drivers: TrackingDriver[];
-  selectedId: string | null;
-  collapsed: boolean;
-  onToggle: () => void;
-  onSelect: (id: string) => void;
-  onOpenAll: () => void;
-}
-
-function DriverRoster({ drivers, selectedId, collapsed, onToggle, onSelect, onOpenAll }: DriverRosterProps) {
-  if (drivers.length === 0) {
-    return (
-      <View style={[styles.driverRosterEmpty, styles.driverRosterCollapsed]}>
-        <View style={[styles.driverRosterHeader, styles.driverRosterHeaderCollapsed]}>
-          <View style={styles.driverRosterTitleBlock}>
-            <Text style={styles.driverRosterTitle}>Drivers (0)</Text>
-            <Text style={styles.driverRosterEmptyText}>No drivers found.</Text>
-          </View>
-          <Pressable
-            onPress={onToggle}
-            accessibilityRole="button"
-            accessibilityLabel="Toggle driver cards"
-            style={({ pressed }) => [styles.driverRosterMenuBtn, pressed && styles.btnPressed]}
-          >
-            <Text style={styles.driverRosterMenuText}>⋮</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={[styles.driverRoster, collapsed && styles.driverRosterCollapsed]}>
-      <View style={[styles.driverRosterHeader, collapsed && styles.driverRosterHeaderCollapsed]}>
-        <View style={styles.driverRosterTitleBlock}>
-          <Text style={styles.driverRosterTitle}>Drivers ({drivers.length})</Text>
-          {!collapsed ? (
-            <Text style={styles.driverRosterSubtitle}>
-              Select a driver to inspect, call, or assign a job.
-            </Text>
-          ) : null}
-        </View>
-        <View style={styles.driverRosterActions}>
-          <Pressable
-            onPress={onOpenAll}
-            accessibilityRole="button"
-            accessibilityLabel="Open all drivers"
-            style={({ pressed }) => [styles.driverRosterAllBtn, pressed && styles.btnPressed]}
-          >
-            <Text style={styles.driverRosterAllText}>All drivers</Text>
-          </Pressable>
-          <Pressable
-            onPress={onToggle}
-            accessibilityRole="button"
-            accessibilityLabel={collapsed ? 'Expand driver cards' : 'Collapse driver cards'}
-            accessibilityState={{ expanded: !collapsed }}
-            style={({ pressed }) => [styles.driverRosterMenuBtn, !collapsed && styles.driverRosterMenuBtnActive, pressed && styles.btnPressed]}
-          >
-            <Text style={styles.driverRosterMenuText}>⋮</Text>
-          </Pressable>
-        </View>
-      </View>
-      {!collapsed ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.driverRosterScroll}
-        >
-          {drivers.map((driver) => {
-            const selected = driver.id === selectedId;
-            const stale = driver.locationFreshness === 'stale' || driver.locationFreshness === 'offline';
-            const live = driver.locationFreshness === 'live';
-            return (
-              <Pressable
-                key={driver.id}
-                onPress={() => onSelect(driver.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`Open driver ${driver.name}`}
-                style={({ pressed }) => [
-                  styles.driverRosterCard,
-                  selected && styles.driverRosterCardSelected,
-                  pressed && styles.btnPressed,
-                ]}
-              >
-                <View style={styles.driverRosterCardTop}>
-                  <View style={[
-                    styles.driverRosterAvatar,
-                    live && styles.driverRosterAvatarLive,
-                    stale && styles.driverRosterAvatarStale,
-                  ]}>
-                    <Text style={styles.driverRosterAvatarText}>{initials(driver.name, 'D')}</Text>
-                  </View>
-                  <View style={styles.driverRosterCopy}>
-                    <Text style={styles.driverRosterName} numberOfLines={1}>{driver.name}</Text>
-                    <Text style={[styles.driverRosterMeta, stale && styles.driverRosterMetaWarn]} numberOfLines={1}>
-                      {freshnessLabel(driver.locationFreshness)}
-                      {driver.lastSeenAt ? ` · ${formatRelative(driver.lastSeenAt)}` : ''}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.driverRosterPillRow}>
-                  <Text style={[
-                    styles.driverRosterPill,
-                    driver.status === 'available' && styles.driverRosterPillAvailable,
-                    driver.status === 'busy' && styles.driverRosterPillBusy,
-                  ]}>
-                    {driver.status}
-                  </Text>
-                  <Text style={styles.driverRosterPill}>
-                    {driver.activeJobRef ? `#${driver.activeJobRef}` : 'No job'}
-                  </Text>
-                </View>
-                {situationLine(driver.driverSituation) ? (
-                  <Text style={styles.driverRosterMeta} numberOfLines={1}>
-                    {situationLine(driver.driverSituation)}
-                  </Text>
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      ) : null}
-    </View>
-  );
-}
-
-// ─── Job list sheet ──────────────────────────────────────────────────────────
 
 interface JobListSheetProps {
   visible: boolean;
@@ -1006,21 +600,113 @@ function AssignConfirmSheet({ visible, driver, job, loading, error, onConfirm, o
   );
 }
 
+interface TrackingControlsSheetProps {
+  visible: boolean;
+  jobsRange: TrackingJobsRange;
+  onChangeRange: (range: TrackingJobsRange) => void;
+  driverCount: number;
+  jobCount: number;
+  driverLocationCount: number;
+  jobLocationCount: number;
+  loading: boolean;
+  lastUpdated: number | null;
+  onRefresh: () => void;
+  onFitAll: () => void;
+  onOpenDrivers: () => void;
+  onOpenJobs: () => void;
+  onClose: () => void;
+}
+
+/** An overlay inside the tracking modal avoids stacking native sheet presentations. */
+function TrackingControlsSheet(props: TrackingControlsSheetProps) {
+  const insets = useSafeAreaInsets();
+  if (!props.visible) return null;
+  return (
+    <View style={styles.controlsOverlay} accessibilityViewIsModal testID="tracking-controls-sheet">
+      <Pressable style={styles.sheetBackdrop} onPress={props.onClose} accessibilityLabel="Dismiss tracking controls">
+        <Pressable style={[styles.controlsSheet, { paddingBottom: Math.max(insets.bottom, space.md) }]}
+          onPress={(event) => event.stopPropagation()}>
+          <View style={styles.controlsHeading}>
+            <Text style={styles.controlsTitle} accessibilityRole="header">Tracking controls</Text>
+            <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Close tracking controls"
+              style={({ pressed }) => [styles.headerBtn, pressed && styles.btnPressed]}>
+              <Text style={styles.headerBtnText}>Done</Text>
+            </Pressable>
+          </View>
+          <ScrollView style={styles.controlsScroll} contentContainerStyle={styles.controlsContent}>
+            <Text style={styles.controlsUpdated}>
+              {props.loading ? 'Updating locations…' : props.lastUpdated != null
+                ? `Updated ${formatRelative(new Date(props.lastUpdated).toISOString())}` : 'Waiting for tracking data'}
+            </Text>
+            <View style={styles.controlsActionRow}>
+              <Pressable onPress={props.onOpenDrivers} accessibilityRole="button" accessibilityLabel={`Show ${props.driverCount} drivers`}
+                style={({ pressed }) => [styles.controlsTile, pressed && styles.btnPressed]}>
+                <Text style={styles.controlsTileTitle}>Drivers ({props.driverCount})</Text>
+                <Text style={styles.controlsTileHint}>{props.driverLocationCount} with GPS</Text>
+              </Pressable>
+              <Pressable onPress={props.onOpenJobs} accessibilityRole="button" accessibilityLabel={`Show ${props.jobCount} jobs`}
+                style={({ pressed }) => [styles.controlsTile, pressed && styles.btnPressed]}>
+                <Text style={styles.controlsTileTitle}>Jobs ({props.jobCount})</Text>
+                <Text style={styles.controlsTileHint}>{props.jobLocationCount} on map</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.controlsSectionTitle}>Job dates</Text>
+            <View style={styles.rangeOptions}>
+              {JOB_RANGE_OPTIONS.map((option) => (
+                <Pressable key={option.value} onPress={() => props.onChangeRange(option.value)}
+                  accessibilityRole="button" accessibilityLabel={`Show ${option.label} jobs`}
+                  accessibilityState={{ selected: props.jobsRange === option.value }}
+                  style={({ pressed }) => [styles.rangeChip, props.jobsRange === option.value && styles.rangeChipActive, pressed && styles.btnPressed]}>
+                  <Text style={[styles.rangeChipText, props.jobsRange === option.value && styles.rangeChipTextActive]}>{option.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={styles.controlsActionRow}>
+              <Pressable onPress={props.onFitAll} accessibilityRole="button" accessibilityLabel="Fit all locations"
+                style={({ pressed }) => [styles.controlsAction, pressed && styles.btnPressed]}>
+                <Text style={styles.controlsActionText}>Fit all</Text>
+              </Pressable>
+              <Pressable onPress={props.onRefresh} disabled={props.loading} accessibilityRole="button" accessibilityLabel="Refresh tracking"
+                accessibilityState={{ disabled: props.loading }}
+                style={({ pressed }) => [styles.controlsAction, props.loading && styles.btnDisabled, pressed && styles.btnPressed]}>
+                <Text style={styles.controlsActionText}>{props.loading ? 'Updating…' : 'Refresh'}</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.controlsSectionTitle}>Map key</Text>
+            <Text style={styles.controlsHint}>Round markers are drivers. Diamond markers are jobs. Tap a numbered group to see each location.</Text>
+            <View style={styles.legendRow}>
+              {[
+                ['#16A34A', 'Available driver'], ['#F97316', 'Busy driver'], ['#D97706', 'Stale GPS'],
+                ['#64748B', 'Offline / unknown'], ['#DC2626', 'Unassigned job'], ['#2563EB', 'Assigned job'],
+              ].map(([color, label]) => (
+                <View key={label} style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: color }]} />
+                  <Text style={styles.legendLabel}>{label}</Text>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </View>
+  );
+}
+
 // ─── Main TrackingModal ──────────────────────────────────────────────────────
 
 export function TrackingModal({ visible, onClose }: Props) {
   const [jobsRange, setJobsRange] = useState<TrackingJobsRange>('today');
-  const { data, loading, error, lastUpdated, refresh } = useTracking(visible, jobsRange);
-  const insets = useSafeAreaInsets();
+  const { data, dataRange, loading, error, lastUpdated, refresh } = useTracking(visible, jobsRange);
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [driversOpen, setDriversOpen] = useState(false);
   const [jobsOpen, setJobsOpen] = useState(false);
-  const [driverRosterCollapsed, setDriverRosterCollapsed] = useState(true);
+  const [controlsOpen, setControlsOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
-  const [didFit, setDidFit] = useState(false);
+  const [mapError, setMapError] = useState(false);
+  const [mapReloadKey, setMapReloadKey] = useState(0);
 
   const webRef = useRef<WebView>(null);
   const webFrameRef = useRef<WebFrameRef | null>(null);
@@ -1032,10 +718,10 @@ export function TrackingModal({ visible, onClose }: Props) {
       setSelectedJobId(null);
       setDriversOpen(false);
       setJobsOpen(false);
-      setDriverRosterCollapsed(true);
+      setControlsOpen(false);
       setAssignOpen(false);
       setAssignError(null);
-      setDidFit(false);
+      setMapError(false);
     }
   }, [visible]);
 
@@ -1043,7 +729,6 @@ export function TrackingModal({ visible, onClose }: Props) {
     setSelectedJobId(null);
     setAssignOpen(false);
     setAssignError(null);
-    setDidFit(false);
   }, [jobsRange]);
 
   // Resume poll when app comes to foreground
@@ -1100,9 +785,12 @@ export function TrackingModal({ visible, onClose }: Props) {
     return {
       drivers: driverMarkers,
       jobs: jobMarkers,
-      doFit: !didFit && (driverMarkers.length > 0 || jobMarkers.length > 0),
+      doFit: true,
+      // A pending date request still displays the previous data. Reframe only
+      // when the response for the new date range has actually been accepted.
+      fitKey: dataRange ?? jobsRange,
     };
-  }, [data, didFit, selectedDriverId, selectedJobId]);
+  }, [data, dataRange, jobsRange, selectedDriverId, selectedJobId]);
 
   const html = useMemo(() => (token ? buildTrackingMapHtml(token) : ''), [token]);
 
@@ -1111,6 +799,11 @@ export function TrackingModal({ visible, onClose }: Props) {
       { source: 'tyrerescue-tracking-map', type: 'state', state: mapState },
       '*',
     );
+  }, [mapState]);
+
+  const postMapStateToNative = useCallback(() => {
+    const json = JSON.stringify(JSON.stringify(mapState)).replace(/</g, '\\u003c');
+    webRef.current?.injectJavaScript(`window.__applyState && window.__applyState(${json}); true;`);
   }, [mapState]);
 
   const canAssign =
@@ -1139,25 +832,29 @@ export function TrackingModal({ visible, onClose }: Props) {
   // Sync marker state to WebView
   useEffect(() => {
     if (!visible || !token) return;
-    if (mapState.doFit) setDidFit(true);
     if (Platform.OS === 'web') {
       postMapStateToWebFrame();
       return;
     }
-    const json = JSON.stringify(mapState).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    webRef.current?.injectJavaScript(
-      `window.__applyState && window.__applyState('${json}'); true;`,
-    );
+    postMapStateToNative();
   }, [
     visible,
     token,
     mapState,
     postMapStateToWebFrame,
+    postMapStateToNative,
   ]);
 
   const handleWebMessage = useCallback((raw: string) => {
     try {
       const msg = JSON.parse(raw) as { type?: string; kind?: string; id?: string; phone?: string };
+      if (msg.type === 'ready') {
+        setMapError(false);
+        if (Platform.OS === 'web') postMapStateToWebFrame();
+        else postMapStateToNative();
+        return;
+      }
+      if (msg.type === 'map-error') { setMapError(true); return; }
       if (msg.type === 'call' && msg.phone?.trim()) {
         callNumber(msg.phone);
         return;
@@ -1172,7 +869,7 @@ export function TrackingModal({ visible, onClose }: Props) {
     } catch {
       /* ignore malformed messages */
     }
-  }, []);
+  }, [postMapStateToNative, postMapStateToWebFrame]);
 
   useEffect(() => {
     if (!visible || Platform.OS !== 'web' || typeof window === 'undefined') return;
@@ -1184,6 +881,7 @@ export function TrackingModal({ visible, onClose }: Props) {
     }
 
     const handleIframeMessage = (event: MessageEvent) => {
+      if (event.source !== webFrameRef.current?.contentWindow) return;
       const message = event.data as { source?: string; payload?: unknown };
       if (!message || message.source !== 'tyrerescue-tracking-map') return;
       handleWebMessage(JSON.stringify(message.payload ?? {}));
@@ -1230,31 +928,39 @@ export function TrackingModal({ visible, onClose }: Props) {
   const showLoadingOverlay = loading && data == null;
   const driverCount = data?.drivers.length ?? 0;
   const jobCount = data?.jobs.length ?? 0;
-  const panelBottomPadding = Math.max(insets.bottom, Platform.OS === 'android' ? 48 : 0) + space.sm;
 
   return (
     <Modal
       visible={visible}
       animationType="slide"
+      presentationStyle="fullScreen"
       statusBarTranslucent
-      onRequestClose={onClose}
+      onRequestClose={() => { if (controlsOpen) setControlsOpen(false); else onClose(); }}
     >
-      <AdminModalShell>
-        <AdminModalHeader
-          title="Tracking hub"
-          subtitle="All drivers and dispatch jobs"
-          onClose={onClose}
-          actions={
-            <>
-              <AdminHeaderButton label="Fit all" onPress={handleFitAll} />
-              <AdminHeaderButton label={loading ? 'Updating...' : 'Refresh'} onPress={refresh} />
-            </>
-          }
-        />
+      <ModalSafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
+        <View style={styles.content} accessibilityElementsHidden={controlsOpen}
+          importantForAccessibility={controlsOpen ? 'no-hide-descendants' : 'auto'}>
+        <View style={styles.header} testID="tracking-single-header">
+          <View style={styles.headerTitleBlock}>
+            <Text style={styles.title} accessibilityRole="header">Tracking hub</Text>
+            <Text style={styles.subtitle}>
+              {driverCount} drivers · {jobCount} jobs · {JOB_RANGE_OPTIONS.find((option) => option.value === jobsRange)?.label}
+            </Text>
+          </View>
+          <Pressable onPress={() => setControlsOpen(true)} accessibilityRole="button"
+            accessibilityLabel="Open tracking controls" accessibilityState={{ expanded: controlsOpen }}
+            style={({ pressed }) => [styles.headerBtn, styles.controlsHeaderBtn, pressed && styles.btnPressed]}>
+            <Text style={styles.headerBtnText}>Controls</Text>
+          </Pressable>
+          <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close tracking"
+            style={({ pressed }) => [styles.headerBtn, pressed && styles.btnPressed]}>
+            <Text style={styles.closeBtnText}>Close</Text>
+          </Pressable>
+        </View>
 
-        {error && data == null ? (
+        {error ? (
           <View style={styles.errorBanner}>
-            <Text style={styles.errorBannerText}>{error}</Text>
+            <Text style={styles.errorBannerText}>{data ? 'Could not refresh. Showing last received locations.' : 'Could not load tracking. Please try again.'}</Text>
             <Pressable
               onPress={refresh}
               accessibilityRole="button"
@@ -1265,103 +971,12 @@ export function TrackingModal({ visible, onClose }: Props) {
           </View>
         ) : null}
 
-        <View style={styles.trackingHeaderControls}>
-          <View style={styles.jobRangeRow}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.jobRangeContent}
-            >
-              {JOB_RANGE_OPTIONS.map((option) => {
-                const selected = jobsRange === option.value;
-                return (
-                  <Pressable
-                    key={option.value}
-                    onPress={() => setJobsRange(option.value)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Show ${option.label} jobs`}
-                    style={({ pressed }) => [
-                      styles.rangeChip,
-                      selected && styles.rangeChipActive,
-                      pressed && styles.btnPressed,
-                    ]}
-                  >
-                    <Text style={[styles.rangeChipText, selected && styles.rangeChipTextActive]}>
-                      {option.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-
-          <View style={styles.filterRow}>
-            <Pressable
-              onPress={() => setDriversOpen(true)}
-              accessibilityRole="button"
-              accessibilityLabel={`Show ${driverCount} drivers`}
-              style={({ pressed }) => [styles.filterBtn, pressed && styles.btnPressed]}
-            >
-              <Text style={styles.filterBtnText}>Drivers ({driverCount})</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setJobsOpen(true)}
-              accessibilityRole="button"
-              accessibilityLabel={`Show ${jobCount} jobs`}
-              style={({ pressed }) => [styles.filterBtn, pressed && styles.btnPressed]}
-            >
-              <Text style={styles.filterBtnText}>Jobs ({jobCount})</Text>
-            </Pressable>
-            <Text style={styles.updatedText} numberOfLines={1}>
-              {loading
-                ? 'Updating...'
-                : lastUpdated != null
-                ? `Updated ${formatRelative(new Date(lastUpdated).toISOString())}`
-                : 'Not yet loaded'}
-            </Text>
-          </View>
-
-          <View style={styles.legendRow}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#22c55e' }]} />
-              <Text style={styles.legendLabel}>Available</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#FF7900' }]} />
-              <Text style={styles.legendLabel}>Busy</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#D97706' }]} />
-              <Text style={styles.legendLabel}>Stale GPS</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
-              <Text style={styles.legendLabel}>Unassigned job</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#F97316' }]} />
-              <Text style={styles.legendLabel}>Assigned job</Text>
-            </View>
-          </View>
-
-          {data ? (
-            <DriverRoster
-              drivers={data.drivers}
-              selectedId={selectedDriverId}
-              collapsed={driverRosterCollapsed}
-              onToggle={() => setDriverRosterCollapsed((value) => !value)}
-              onSelect={setSelectedDriverId}
-              onOpenAll={() => setDriversOpen(true)}
-            />
-          ) : null}
-        </View>
-
         {/* Map */}
-        <View style={styles.mapWrap}>
+        <View style={styles.mapWrap} testID="tracking-map-area">
           {!token ? (
             <View style={styles.fallback}>
               <Text style={styles.fallbackText}>
-                Mapbox token not configured. Set EXPO_PUBLIC_MAPBOX_TOKEN.
+                The map is unavailable. Open Controls to view drivers and jobs.
               </Text>
             </View>
           ) : Platform.OS === 'web' ? (
@@ -1377,6 +992,7 @@ export function TrackingModal({ visible, onClose }: Props) {
               }>;
               return (
                 <Iframe
+                  key={mapReloadKey}
                   ref={webFrameRef}
                   onLoad={postMapStateToWebFrame}
                   srcDoc={html}
@@ -1389,6 +1005,7 @@ export function TrackingModal({ visible, onClose }: Props) {
             })()
           ) : (
             <WebView
+              key={mapReloadKey}
               ref={webRef}
               originWhitelist={['*']}
               source={{ html }}
@@ -1400,8 +1017,20 @@ export function TrackingModal({ visible, onClose }: Props) {
               mixedContentMode="always"
               setSupportMultipleWindows={false}
               onMessage={(e) => handleWebMessage(e.nativeEvent.data)}
+              onLoadEnd={postMapStateToNative}
+              onError={() => setMapError(true)}
             />
           )}
+
+          {mapError && token ? (
+            <View style={styles.mapFailure}>
+              <Text style={styles.mapFailureText}>Map unavailable. Driver and job lists are still available in Controls.</Text>
+              <Pressable onPress={() => { setMapError(false); setMapReloadKey((value) => value + 1); }}
+                accessibilityRole="button" accessibilityLabel="Reload map" style={styles.headerBtn}>
+                <Text style={styles.headerBtnText}>Reload map</Text>
+              </Pressable>
+            </View>
+          ) : null}
 
           {showLoadingOverlay ? (
             <View style={[styles.mapOverlay, styles.noPointerEvents]}>
@@ -1419,7 +1048,7 @@ export function TrackingModal({ visible, onClose }: Props) {
 
         {/* Detail panel */}
         {hasPanel ? (
-          <View style={[styles.panel, { paddingBottom: panelBottomPadding }]}>
+          <View style={styles.panel}>
             <ScrollView
               style={styles.panelScroll}
               contentContainerStyle={styles.panelScrollContent}
@@ -1466,7 +1095,24 @@ export function TrackingModal({ visible, onClose }: Props) {
             </View>
           </View>
         ) : null}
-      </AdminModalShell>
+        </View>
+        <TrackingControlsSheet
+          visible={controlsOpen}
+          jobsRange={jobsRange}
+          onChangeRange={setJobsRange}
+          driverCount={driverCount}
+          jobCount={jobCount}
+          driverLocationCount={mapState.drivers.length}
+          jobLocationCount={mapState.jobs.length}
+          loading={loading}
+          lastUpdated={lastUpdated}
+          onRefresh={() => { void refresh(); }}
+          onFitAll={() => { setControlsOpen(false); handleFitAll(); }}
+          onOpenDrivers={() => { setControlsOpen(false); setDriversOpen(true); }}
+          onOpenJobs={() => { setControlsOpen(false); setJobsOpen(true); }}
+          onClose={() => setControlsOpen(false)}
+        />
+      </ModalSafeAreaView>
 
       <DriverListSheet
         visible={driversOpen}
@@ -1500,30 +1146,36 @@ export function TrackingModal({ visible, onClose }: Props) {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  safe: { flex: 1, backgroundColor: '#000000' },
+  content: { flex: 1, minHeight: 0 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: space.lg,
-    paddingTop: space.md,
-    paddingBottom: space.sm,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    backgroundColor: '#000000',
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     gap: space.sm,
   },
   headerTitleBlock: { flex: 1, minWidth: 0 },
-  title: { color: colors.text, fontSize: fontSize.xl, fontWeight: '700' },
+  title: { color: colors.text, fontSize: 20, lineHeight: 26, fontWeight: '800' },
   subtitle: { marginTop: 2, color: colors.muted, fontSize: fontSize.xs, fontWeight: '600' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   headerBtn: {
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
+    minHeight: 48,
+    minWidth: 48,
+    paddingHorizontal: space.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  headerBtnText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '600' },
+  headerBtnText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  controlsHeaderBtn: { backgroundColor: colors.panelSoft, borderColor: colors.accent },
   closeBtn: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
     borderRadius: radius.md,
@@ -1555,23 +1207,38 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dangerBorder,
   },
   retryBtnText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '700' },
-  trackingHeaderControls: {
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.glowBorder,
-    paddingTop: space.sm,
-    paddingBottom: space.sm,
-    gap: space.xs,
-  },
+  controlsOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
+  controlsSheet: { maxHeight: '90%', backgroundColor: colors.surface, borderTopLeftRadius: 22,
+    borderTopRightRadius: 22, borderWidth: 1, borderColor: colors.borderStrong, overflow: 'hidden' },
+  controlsHeading: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md,
+    paddingVertical: space.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  controlsTitle: { flex: 1, minWidth: 0, color: colors.text, fontSize: 19, fontWeight: '800' },
+  controlsScroll: { flexShrink: 1, minHeight: 0 },
+  controlsContent: { padding: space.md, gap: space.md },
+  controlsUpdated: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  controlsActionRow: { flexDirection: 'row', gap: space.sm },
+  controlsTile: { flex: 1, minWidth: 0, minHeight: 76, justifyContent: 'center', padding: space.md,
+    borderRadius: radius.lg, backgroundColor: colors.panelSoft, borderWidth: 1, borderColor: colors.borderStrong },
+  controlsTileTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  controlsTileHint: { color: colors.muted, fontSize: 12, marginTop: 4 },
+  controlsSectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  controlsAction: { flex: 1, minWidth: 0, minHeight: 48, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.accent },
+  controlsActionText: { color: colors.accent, fontSize: 15, fontWeight: '800' },
+  controlsHint: { color: colors.muted, fontSize: 13, lineHeight: 20 },
+  rangeOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   mapWrap: {
     flex: 1,
-    backgroundColor: colors.bg,
-    borderTopWidth: 1,
-    borderTopColor: colors.glowBorder,
+    minHeight: 0,
+    overflow: 'hidden',
+    backgroundColor: '#F1F5F9',
   },
-  web: { flex: 1, backgroundColor: colors.bg },
-  fallback: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
+  web: { flex: 1, backgroundColor: '#F1F5F9' },
+  fallback: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', padding: space.lg },
   fallbackText: { color: colors.muted, fontSize: fontSize.sm, textAlign: 'center' },
+  mapFailure: { position: 'absolute', top: space.md, left: space.md, right: space.md, padding: space.md,
+    borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong, gap: space.sm },
+  mapFailureText: { color: colors.text, fontSize: 14, lineHeight: 21 },
   mapOverlay: {
     position: 'absolute',
     bottom: space.lg,
@@ -1593,23 +1260,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     overflow: 'hidden',
   },
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: space.lg,
-    paddingVertical: 2,
-    gap: space.sm,
-  },
-  jobRangeRow: {
-    paddingTop: 0,
-  },
-  jobRangeContent: {
-    paddingHorizontal: space.lg,
-    paddingBottom: 2,
-    gap: space.sm,
-  },
   rangeChip: {
-    minHeight: 34,
+    minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: space.md,
     borderRadius: radius.md,
@@ -1629,209 +1281,29 @@ const styles = StyleSheet.create({
   rangeChipTextActive: {
     color: colors.text,
   },
-  filterBtn: {
-    paddingHorizontal: space.md,
-    paddingVertical: 6,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.panelSoft,
-  },
-  filterBtnText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '700' },
-  updatedText: { flex: 1, color: colors.subtle, fontSize: fontSize.xs, textAlign: 'right' },
   legendRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    paddingHorizontal: space.lg,
     paddingBottom: 0,
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendLabel: { color: colors.muted, fontSize: 10 },
-  driverRoster: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: 'transparent',
-    paddingTop: space.sm,
-    paddingBottom: 0,
-  },
-  driverRosterCollapsed: {
-    paddingTop: 4,
-    paddingBottom: 0,
-  },
-  driverRosterHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: space.sm,
-    paddingHorizontal: space.lg,
-    marginBottom: space.sm,
-  },
-  driverRosterHeaderCollapsed: {
-    marginBottom: 0,
-  },
-  driverRosterTitleBlock: {
-    flex: 1,
-    minWidth: 0,
-  },
-  driverRosterTitle: {
-    color: colors.text,
-    fontSize: fontSize.sm,
-    fontWeight: '900',
-  },
-  driverRosterSubtitle: {
-    color: colors.muted,
-    fontSize: 10,
-    marginTop: 2,
-  },
-  driverRosterActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-  },
-  driverRosterAllBtn: {
-    minHeight: 32,
-    justifyContent: 'center',
-    paddingHorizontal: space.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.panelSoft,
-  },
-  driverRosterAllText: {
-    color: colors.text,
-    fontSize: fontSize.xs,
-    fontWeight: '800',
-  },
-  driverRosterMenuBtn: {
-    width: 38,
-    minHeight: 34,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.panelSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  driverRosterMenuBtnActive: {
-    borderColor: colors.accent,
-    backgroundColor: 'rgba(255,121,0,0.16)',
-  },
-  driverRosterMenuText: {
-    color: colors.text,
-    fontSize: fontSize.lg,
-    fontWeight: '900',
-    lineHeight: 22,
-  },
-  driverRosterScroll: {
-    gap: space.sm,
-    paddingHorizontal: space.lg,
-  },
-  driverRosterCard: {
-    width: 214,
-    minHeight: 92,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.card,
-    padding: space.sm,
-    gap: space.sm,
-    ...driverRosterCardShadow,
-  },
-  driverRosterCardSelected: {
-    borderColor: colors.accent,
-    backgroundColor: 'rgba(255,121,0,0.14)',
-  },
-  driverRosterCardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-  },
-  driverRosterAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.panel,
-    borderWidth: 2,
-    borderColor: colors.borderStrong,
-  },
-  driverRosterAvatarLive: {
-    backgroundColor: '#16A34A',
-    borderColor: '#86EFAC',
-  },
-  driverRosterAvatarStale: {
-    backgroundColor: '#92400E',
-    borderColor: '#FCD34D',
-  },
-  driverRosterAvatarText: {
-    color: colors.text,
-    fontSize: fontSize.xs,
-    fontWeight: '900',
-  },
-  driverRosterCopy: { flex: 1, minWidth: 0 },
-  driverRosterName: {
-    color: colors.text,
-    fontSize: fontSize.sm,
-    fontWeight: '900',
-  },
-  driverRosterMeta: {
-    color: colors.muted,
-    fontSize: 10,
-    marginTop: 2,
-  },
-  driverRosterMetaWarn: { color: colors.warning },
-  driverRosterPillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  driverRosterPill: {
-    color: colors.text,
-    fontSize: 10,
-    fontWeight: '800',
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    borderRadius: radius.sm,
-    backgroundColor: colors.panelSoft,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    overflow: 'hidden',
-    textTransform: 'capitalize',
-  },
-  driverRosterPillAvailable: {
-    borderColor: '#22c55e',
-    backgroundColor: 'rgba(34,197,94,0.14)',
-  },
-  driverRosterPillBusy: {
-    borderColor: colors.accent,
-    backgroundColor: 'rgba(255,121,0,0.14)',
-  },
-  driverRosterEmpty: {
-    borderTopWidth: 1,
-    borderTopColor: colors.glowBorder,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-  },
-  driverRosterEmptyText: {
-    color: colors.muted,
-    fontSize: fontSize.xs,
-    marginTop: 2,
-  },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendLabel: { color: colors.muted, fontSize: 12 },
   panel: {
     borderTopWidth: 1,
     borderTopColor: colors.glowBorder,
     backgroundColor: colors.surface,
     paddingHorizontal: space.lg,
     paddingTop: space.md,
+    paddingBottom: space.sm,
     gap: space.sm,
     maxHeight: '48%',
     ...trackingPanelShadow,
   },
   panelScroll: {
     flexShrink: 1,
+    minHeight: 0,
   },
   panelScrollContent: {
     gap: space.sm,
@@ -1848,6 +1320,8 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   panelBtn: {
+    minHeight: 48,
+    justifyContent: 'center',
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
     borderRadius: radius.md,
@@ -1859,6 +1333,9 @@ const styles = StyleSheet.create({
   panelBtnText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '600' },
   assignBtn: {
     flex: 1,
+    minWidth: 0,
+    minHeight: 48,
+    justifyContent: 'center',
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
     borderRadius: radius.md,

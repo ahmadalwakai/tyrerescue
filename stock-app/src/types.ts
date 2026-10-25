@@ -72,6 +72,10 @@ export interface InventoryItem {
 
 export interface StockMovement {
   id: string;
+  idempotencyKey?: string | null;
+  cityId?: string;
+  tyreProductId?: string;
+  shiftId?: string | null;
   movementType: string;
   quantityDelta: number;
   previousBalance: number;
@@ -84,4 +88,45 @@ export interface StockMovement {
     pattern: string;
     sizeDisplay: string;
   };
+}
+
+export interface InventorySummary {
+  current: number;
+  available: number;
+  reserved: number;
+  toBuy: number;
+  totalProducts: number;
+}
+
+export interface InventoryPage {
+  items: InventoryItem[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+  summary: InventorySummary;
+}
+
+export type MovementType = 'SALE' | 'RECEIVED' | 'DAMAGED' | 'CORRECTION' | 'RETURN';
+
+export interface MovementDraft {
+  movementType: MovementType;
+  quantity: number;
+  direction: 'add' | 'reduce';
+  saleChannel: SaleChannel;
+  bookingId: string;
+  note: string;
+}
+
+export interface MovementPayload {
+  cityId: string;
+  tyreProductId: string;
+  movementType: MovementType;
+  quantityDelta: number;
+  shiftId?: string | null;
+  workerUserId?: string | null;
+  saleChannel?: SaleChannel | null;
+  bookingId?: string | null;
+  note?: string | null;
+  reason?: string | null;
+  idempotencyKey: string;
 }

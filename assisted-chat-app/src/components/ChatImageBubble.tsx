@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontSize, radius, space } from './theme';
 import { resolveChatAudioUri } from '@/lib/chat-attachments';
@@ -7,46 +7,50 @@ import { resolveChatAudioUri } from '@/lib/chat-attachments';
 export function ChatImageBubble({
   uri,
   mine,
+  onPreview,
   onLongPress,
 }: {
   uri: string;
   mine: boolean;
+  onPreview: (uri: string) => void;
   onLongPress?: () => void;
 }) {
-  const [previewOpen, setPreviewOpen] = useState(false);
   const sourceUri = useMemo(() => resolveChatAudioUri(uri), [uri]);
 
   return (
-    <>
+    <Pressable
+      onPress={() => onPreview(sourceUri)}
+      onLongPress={onLongPress}
+      delayLongPress={280}
+      accessibilityRole="imagebutton"
+      accessibilityLabel="Open chat photo"
+      style={({ pressed }) => [
+        styles.thumbButton,
+        mine ? styles.thumbMine : styles.thumbOther,
+        pressed && styles.pressed,
+      ]}
+    >
+      <Image source={{ uri: sourceUri }} style={styles.thumbImage} resizeMode="cover" />
+    </Pressable>
+  );
+}
+
+/** The chat owns this overlay, so preview never presents a second iOS controller. */
+export function ChatPhotoPreview({ uri, onClose }: { uri: string | null; onClose: () => void }) {
+  if (!uri) return null;
+  return (
+    <View style={styles.previewBackdrop} accessibilityViewIsModal>
       <Pressable
-        onPress={() => setPreviewOpen(true)}
-        onLongPress={onLongPress}
-        delayLongPress={280}
-        accessibilityRole="imagebutton"
-        accessibilityLabel="Open chat photo"
-        style={({ pressed }) => [
-          styles.thumbButton,
-          mine ? styles.thumbMine : styles.thumbOther,
-          pressed && styles.pressed,
-        ]}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close photo preview"
+        style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
       >
-        <Image source={{ uri: sourceUri }} style={styles.thumbImage} resizeMode="cover" />
+        <Ionicons name="close" size={24} color={colors.text} />
       </Pressable>
-      <Modal visible={previewOpen} transparent animationType="fade" onRequestClose={() => setPreviewOpen(false)}>
-        <View style={styles.previewBackdrop}>
-          <Pressable
-            onPress={() => setPreviewOpen(false)}
-            accessibilityRole="button"
-            accessibilityLabel="Close photo preview"
-            style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
-          >
-            <Ionicons name="close" size={24} color={colors.text} />
-          </Pressable>
-          <Image source={{ uri: sourceUri }} style={styles.previewImage} resizeMode="contain" />
-          <Text style={styles.previewHint}>Tap close to return to chat</Text>
-        </View>
-      </Modal>
-    </>
+      <Image source={{ uri }} style={styles.previewImage} resizeMode="contain" />
+      <Text style={styles.previewHint}>Tap close to return to chat</Text>
+    </View>
   );
 }
 
@@ -67,7 +71,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.inputBg,
   },
   previewBackdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
     backgroundColor: 'rgba(1,3,10,0.94)',
     alignItems: 'center',
     justifyContent: 'center',

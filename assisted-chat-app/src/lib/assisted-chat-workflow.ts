@@ -1,11 +1,13 @@
 import type {
   AssistedChatDraft,
+  AssistedChatLocation,
   AssistedChatQuoteBreakdown,
   AssistedChatServiceType,
   BookingTyreLine,
   QuickBookPatchResponse,
 } from '@/types/assisted-chat';
 import type { AdminQuotePaymentOption, AdminQuoteStatus } from '@/types/admin-quotes';
+import { isValidCoordinate } from '@/lib/geo';
 
 export const ASSISTED_CHAT_STAGE_ORDER = [
   'CUSTOMER',
@@ -115,6 +117,12 @@ function hasCustomerDetails(draft: AssistedChatDraft): boolean {
 
 function hasLocation(draft: AssistedChatDraft): boolean {
   return draft.location.lat != null && draft.location.lng != null;
+}
+
+export function getManualLocationBlockedReason(location: AssistedChatLocation): string | null {
+  return location.address.trim() && isValidCoordinate(location.lat, location.lng)
+    ? null
+    : 'Select an address from the suggestions before continuing.';
 }
 
 export function normalizeAssistedChatTyreSize(input: string): string | null {
@@ -360,7 +368,7 @@ export function getAssistedChatBlockedReason(input: AssistedChatWorkflowInput): 
   const quoteConfirmed = hasConfirmedQuote(input);
 
   if (input.canUseApi === false && stage !== 'CUSTOMER' && stage !== 'TYRE' && stage !== 'DISPATCHED') {
-    return 'Log in again before using admin actions.';
+    return 'Unable to verify this session. Please retry.';
   }
 
   if (stage === 'TYRE') {
@@ -406,7 +414,7 @@ export function getAssistedChatBlockedReason(input: AssistedChatWorkflowInput): 
   }
 
   if (stage === 'LOCATION') {
-    if (input.canUseApi === false) return 'Log in again before sending a location link.';
+    if (input.canUseApi === false) return 'Unable to verify this session. Please retry.';
     return null;
   }
 

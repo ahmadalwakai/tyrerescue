@@ -57,7 +57,9 @@ export function derivePaymentLinkLiveStatus(res: PaymentLinkStatusResponse): Pay
     return 'refunded';
   }
 
-  if (state === 'paid' || amountToCollectPence === 0) return 'paid';
+  // A zero balance is not payment evidence (for example a missing/zero quote).
+  // Only the protected API's canonical settled state can confirm payment.
+  if (state === 'paid') return 'paid';
 
   if (
     state === 'balance_due' ||
@@ -102,7 +104,8 @@ export function shouldIgnoreStalePaymentLinkStatus(
   incoming: PaymentLinkLiveStatus | null,
 ): boolean {
   if (!current || !incoming || current === incoming) return false;
-  if (current === 'paid' || current === 'refunded') return incoming !== current;
+  if (current === 'refunded') return incoming !== current;
+  if (current === 'paid') return incoming !== 'refunded';
   if (isPaymentLinkTerminalStatus(current)) {
     return incoming === 'awaiting' || incoming === 'checking' || incoming === 'partial';
   }

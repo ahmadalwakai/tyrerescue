@@ -22,6 +22,7 @@ import type { LocationShareMessage, LocationShareMethod, LocationShareProgress }
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 import { AppIcon } from './icons/AppIcon';
+import { CopyAddressButton } from './CopyAddressButton';
 
 const GARAGE_LOCATION = { lat: 55.8547, lng: -4.2206 } as const;
 const ROUTE_MAP_MESSAGE_SOURCE = 'tyrerescue-location-route-map';
@@ -851,6 +852,7 @@ export function LocationSection({
         </>
       ) : null}
 
+      <CopyAddressButton address={draft.location.address} postcode={draft.location.postcode} />
       {hasCoords ? (
         <View style={styles.confirmedBox}>
           <View style={[styles.mapWrap, mapExpanded && styles.mapWrapExpanded]}>

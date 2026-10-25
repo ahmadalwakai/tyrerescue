@@ -10,7 +10,17 @@
  * the payment ledger. This file only maps those facts to driver-facing copy.
  */
 
-import type { PaymentSummary } from '@/api/client';
+/** Minimal API facts needed by this pure formatter (no auth/network imports). */
+export interface DriverPaymentSummaryInput {
+  state: string;
+  method: string;
+  totalPence: number | null;
+  paidPence: number | null;
+  remainingBalancePence: number | null;
+  amountToCollectPence: number | null;
+  settlementVerified?: boolean;
+  cashToCollectPence?: number | null;
+}
 
 /** Visual tone for the payment badge. */
 export type PaymentTone = 'paid' | 'pending' | 'action' | 'warning' | 'failed' | 'unknown';
@@ -31,66 +41,46 @@ const gbpFormatter = new Intl.NumberFormat('en-GB', {
   currency: 'GBP',
 });
 
-function pendingDescriptionKey(payment: PaymentSummary): string {
-  if (payment.method === 'deposit_link') return 'payment.depositPendingDesc';
-  return payment.method === 'card_link'
-    ? 'payment.onlineNotReceived'
-    : 'payment.pendingDesc';
-}
-
 /** Format a pence integer to a GBP string, or null when not a finite number. */
 export function formatGbpFromPence(pence: number | null | undefined): string | null {
-  if (pence == null || !Number.isFinite(pence)) return null;
+  if (pence == null || !Number.isSafeInteger(pence) || pence < 0) return null;
   return gbpFormatter.format(pence / 100);
+}
+
+/** Cash-only balance, checked against the authoritative server receipt total. */
+export function getDriverCashToCollectPence(payment: DriverPaymentSummaryInput | null | undefined): number | null {
+  if (!payment || payment.method !== 'cash' || payment.state !== 'cash_to_collect') return null;
+  const due = payment.cashToCollectPence;
+  const total = payment.totalPence;
+  const paid = payment.paidPence;
+  if (due == null || total == null || paid == null || !Number.isSafeInteger(due) ||
+    !Number.isSafeInteger(total) || !Number.isSafeInteger(paid) || due <= 0 || total <= 0 || paid < 0) return null;
+  return due === Math.max(0, total - paid) && payment.amountToCollectPence === due &&
+    payment.remainingBalancePence === due ? due : null;
 }
 
 /**
  * Map a (possibly missing) PaymentSummary to a driver display.
  *
  * Rules:
- * - status = paid + no due balance  -> green "paid", nothing to collect.
- * - Deposit paid, balance due       -> amber "action", collect the balance.
- * - Cash / deposit-unpaid           -> amber "action"/"pending", collect total.
- * - Unknown or missing              -> grey "unknown", confirm with admin.
- * Never returns a green/paid tone unless the payment is genuinely settled.
+ * Paid requires an explicit server settlement decision AND consistent amounts.
+ * Every other booking says Not paid. Only cash bookings show money, and that
+ * amount is the confirmed remaining cash, never the original/deposit price.
  */
 export function getDriverPaymentDisplay(
-  payment: PaymentSummary | null | undefined,
+  payment: DriverPaymentSummaryInput | null | undefined,
   ref?: string | null,
 ): DriverPaymentDisplay {
   void ref;
 
-  if (!payment) {
-    return {
-      labelKey: 'payment.unknownLabel',
-      tone: 'unknown',
-      descriptionKey: 'payment.checkWithAdmin',
-    };
-  }
+  const safePence = (value: number | null | undefined): value is number =>
+    value != null && Number.isSafeInteger(value) && value >= 0;
+  const fullyPaid = payment?.settlementVerified === true && payment.state === 'paid' &&
+    safePence(payment.totalPence) && payment.totalPence > 0 &&
+    safePence(payment.paidPence) && payment.paidPence >= payment.totalPence &&
+    payment.amountToCollectPence === 0 && payment.remainingBalancePence === 0;
 
-  const collect = formatGbpFromPence(payment.amountToCollectPence) ?? undefined;
-
-  const needsChecking = (): DriverPaymentDisplay => ({
-    labelKey: 'payment.needsChecking',
-    tone: 'warning',
-    descriptionKey: 'payment.checkBeforeFitting',
-    amountLabel: (payment.amountToCollectPence ?? 0) > 0 ? collect : undefined,
-  });
-
-  if (payment.state === 'needs_checking') {
-    return needsChecking();
-  }
-
-  if (payment.state === 'failed') {
-    return {
-      labelKey: 'payment.failed',
-      tone: 'failed',
-      descriptionKey: 'payment.failedDesc',
-      amountLabel: (payment.amountToCollectPence ?? 0) > 0 ? collect : undefined,
-    };
-  }
-
-  if (payment.state === 'paid') {
+  if (fullyPaid) {
     return {
       labelKey: 'payment.paid',
       tone: 'paid',
@@ -98,54 +88,17 @@ export function getDriverPaymentDisplay(
     };
   }
 
-  // Deposit taken online, remaining balance due on arrival.
-  if (payment.state === 'balance_due' || payment.state === 'deposit_paid') {
-    const hasBalance = (payment.amountToCollectPence ?? 0) > 0;
-    return {
-      labelKey: hasBalance ? 'payment.balanceDue' : 'payment.depositPaid',
-      tone: hasBalance ? 'action' : 'pending',
-      descriptionKey: hasBalance
-        ? 'payment.collectBalance'
-        : 'payment.confirmIfUnsure',
-      amountLabel: hasBalance ? collect : undefined,
-    };
-  }
-
-  // Cash job — full amount collected on arrival.
-  if (payment.state === 'cash_to_collect' || payment.method === 'cash') {
-    return {
-      labelKey: 'payment.payOnArrival',
-      tone: 'action',
-      descriptionKey: 'payment.collectFromCustomer',
-      amountLabel: (payment.amountToCollectPence ?? 0) > 0 ? collect : undefined,
-    };
-  }
-
-  if (payment.state === 'pending') {
-    if (payment.method === 'deposit_link') {
-      const depositDue = formatGbpFromPence(payment.depositAmountPence ?? payment.amountToCollectPence) ?? undefined;
-      return {
-        labelKey: 'payment.depositPending',
-        tone: 'pending',
-        descriptionKey: pendingDescriptionKey(payment),
-        amountLabel: ((payment.depositAmountPence ?? payment.amountToCollectPence ?? 0) > 0) ? depositDue : undefined,
-      };
-    }
-
-    return {
-      labelKey: payment.linkStatus === 'sent' ? 'payment.paymentLinkSent' : 'payment.paymentPending',
-      tone: 'pending',
-      descriptionKey: pendingDescriptionKey(payment),
-      amountLabel: (payment.amountToCollectPence ?? 0) > 0 ? collect : undefined,
-    };
-  }
-
-  // Anything we cannot positively classify stays neutral — never green.
+  const cashDue = getDriverCashToCollectPence(payment);
+  const hasSafeCashBalance = cashDue != null;
+  const needsReview = !payment || payment.state === 'unknown' || payment.state === 'needs_checking' ||
+    payment.state === 'paid';
   return {
-    labelKey: 'payment.unknownLabel',
-    tone: 'unknown',
-    descriptionKey: 'payment.checkWithAdmin',
-    amountLabel: (payment.amountToCollectPence ?? 0) > 0 ? collect : undefined,
+    labelKey: 'payment.notPaid',
+    tone: needsReview ? 'warning' : payment.state === 'failed' ? 'failed' : hasSafeCashBalance ? 'action' : 'pending',
+    descriptionKey: needsReview ? 'payment.checkWithAdmin'
+      : hasSafeCashBalance ? 'payment.cashRemainingDesc'
+      : payment.state === 'failed' ? 'payment.failedDesc' : 'payment.pendingDesc',
+    amountLabel: hasSafeCashBalance ? formatGbpFromPence(cashDue) ?? undefined : undefined,
   };
 }
 

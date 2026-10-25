@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
-import { api } from '@/lib/api';
+import { api, getApiContextRevision } from '@/lib/api';
 
 const POLL_INTERVAL_MS = 8_000;
 const PROJECT_ROTATE_INTERVAL_MS = 3_000;
@@ -21,6 +21,7 @@ export interface LiveVisitorCountSnapshot {
 }
 
 export interface LiveVisitorCountState {
+  contextKey: string;
   liveCount: number | null;
   activeWindowSeconds: number | null;
   updatedAt: string | null;
@@ -54,6 +55,8 @@ function fallbackProjectSnapshot(liveCount: number): LiveVisitorProjectSnapshot 
 }
 
 export function useLiveVisitorCount(enabled: boolean): LiveVisitorCountState {
+  const contextRevision = getApiContextRevision();
+  const contextKey = enabled ? String(contextRevision) : 'disabled';
   const [liveCount, setLiveCount] = useState<number | null>(null);
   const [activeWindowSeconds, setActiveWindowSeconds] = useState<number | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
@@ -61,6 +64,7 @@ export function useLiveVisitorCount(enabled: boolean): LiveVisitorCountState {
   const [activeProjectIndex, setActiveProjectIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadedContextRevision, setLoadedContextRevision] = useState<number | null>(null);
 
   const hasLoadedRef = useRef(false);
   const enabledRef = useRef(enabled);
@@ -68,15 +72,20 @@ export function useLiveVisitorCount(enabled: boolean): LiveVisitorCountState {
 
   useEffect(() => {
     enabledRef.current = enabled;
-    if (!enabled) {
-      inFlightRef.current?.abort();
-      hasLoadedRef.current = false;
-      setActiveProjectIndex(0);
-    }
-  }, [enabled]);
+    inFlightRef.current?.abort();
+    hasLoadedRef.current = false;
+    setLiveCount(null);
+    setProjects([]);
+    setActiveWindowSeconds(null);
+    setUpdatedAt(null);
+    setLoadedContextRevision(null);
+    setActiveProjectIndex(0);
+    setError(null);
+    setLoading(enabled);
+  }, [contextRevision, enabled]);
 
   const refresh = useCallback(async () => {
-    if (!enabledRef.current) return;
+    if (!enabledRef.current || getApiContextRevision() !== contextRevision) return;
 
     inFlightRef.current?.abort();
     const controller = new AbortController();
@@ -89,7 +98,7 @@ export function useLiveVisitorCount(enabled: boolean): LiveVisitorCountState {
         '/api/mobile/admin/visitors/live-count',
         { signal: controller.signal },
       );
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted || !enabledRef.current || getApiContextRevision() !== contextRevision) return;
       const nextProjects =
         Array.isArray(snapshot.projects) && snapshot.projects.length > 0
           ? snapshot.projects.map(normalizeProjectSnapshot)
@@ -100,15 +109,16 @@ export function useLiveVisitorCount(enabled: boolean): LiveVisitorCountState {
       setActiveWindowSeconds(Math.max(1, Number(snapshot.activeWindowSeconds) || 60));
       setUpdatedAt(snapshot.updatedAt || new Date().toISOString());
       setError(null);
+      setLoadedContextRevision(contextRevision);
       hasLoadedRef.current = true;
     } catch {
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted || getApiContextRevision() !== contextRevision) return;
       setError('Failed to load live visitors');
     } finally {
-      if (!controller.signal.aborted) setLoading(false);
+      if (!controller.signal.aborted && getApiContextRevision() === contextRevision) setLoading(false);
       if (inFlightRef.current === controller) inFlightRef.current = null;
     }
-  }, []);
+  }, [contextRevision]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -142,15 +152,16 @@ export function useLiveVisitorCount(enabled: boolean): LiveVisitorCountState {
     return () => clearInterval(timer);
   }, [enabled, projects.length]);
 
-  if (!enabled) {
+  if (!enabled || loadedContextRevision !== contextRevision) {
     return {
+      contextKey,
       liveCount: null,
       activeWindowSeconds: null,
       updatedAt: null,
       projects: [],
       activeProject: null,
-      loading: false,
-      error: null,
+      loading: enabled && loading,
+      error: enabled ? error : null,
       refresh,
     };
   }
@@ -159,6 +170,7 @@ export function useLiveVisitorCount(enabled: boolean): LiveVisitorCountState {
     projects.length > 0 ? projects[activeProjectIndex % projects.length] ?? projects[0] : null;
 
   return {
+    contextKey,
     liveCount,
     activeWindowSeconds,
     updatedAt,

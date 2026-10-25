@@ -30,6 +30,8 @@ function shouldReplaceStoredApiUrl(stored: string | null): boolean {
 }
 
 let cachedToken: string | null = null;
+let tokenLoaded = false;
+let tokenWritePending: Promise<void> = Promise.resolve();
 let cachedApiUrl: string | null = null;
 
 function isDevelopmentBuild(): boolean {
@@ -54,6 +56,9 @@ function isUnsafeProductionApiUrl(url: string): boolean {
   if (isDevelopmentBuild()) return false;
   try {
     const parsed = new URL(url);
+    // Long-lived device credentials may only leave the app for this project's
+    // exact production API. A stale/custom stored URL is not an allow-list.
+    if (parsed.origin !== new URL(PRODUCTION_API_URL).origin || parsed.pathname !== '/' || parsed.username || parsed.password) return true;
     const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
     const isPrivate172 = /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
     const isPrivateHost =
@@ -98,39 +103,53 @@ export async function setApiUrl(url: string) {
 }
 
 export async function getToken(): Promise<string | null> {
-  if (cachedToken) return cachedToken;
+  await tokenWritePending.catch(() => {});
+  if (tokenLoaded) return cachedToken;
   cachedToken = await secureStorage.getItemAsync(TOKEN_KEY);
+  tokenLoaded = true;
   return cachedToken;
 }
 
 export async function setToken(token: string) {
-  cachedToken = token;
-  try {
+  // A successful sign-in must survive suspension and a fresh native process.
+  // Do not claim persistence when Keychain writing failed.
+  const pending = tokenWritePending.catch(() => {}).then(async () => {
     await secureStorage.setItemAsync(TOKEN_KEY, token);
-  } catch {
-    // Persistence is best-effort; keep the in-memory token for this session.
-  }
+    cachedToken = token;
+    tokenLoaded = true;
+  });
+  tokenWritePending = pending;
+  await pending;
 }
 
 export async function clearToken() {
   cachedToken = null;
-  try {
-    await secureStorage.deleteItemAsync(TOKEN_KEY);
-  } catch {
-    // Storage cleanup must not crash auth recovery/logout.
-  }
+  tokenLoaded = true;
+  const pending = tokenWritePending.catch(() => {}).then(async () => {
+    // A tombstone prevents an old credential resurfacing if a delete fails.
+    await secureStorage.setItemAsync(TOKEN_KEY, '');
+    await secureStorage.deleteItemAsync(TOKEN_KEY).catch(() => {});
+    cachedToken = null;
+    tokenLoaded = true;
+  });
+  tokenWritePending = pending;
+  await pending;
 }
 
 interface ApiOptions {
   method?: string;
   body?: unknown;
   headers?: Record<string, string>;
+  /** Captured credential for explicit session revocation, never stored in logs. */
+  token?: string | null;
+  signal?: AbortSignal;
 }
 
 export class ApiError extends Error {
   status: number;
   retryAfterSeconds: number | null;
   code: 'network' | 'http' | 'parse';
+  serverCode?: string;
   constructor(
     message: string,
     status: number,
@@ -147,7 +166,7 @@ export class ApiError extends Error {
 
 export async function api<T = unknown>(path: string, options: ApiOptions = {}): Promise<T> {
   const baseUrl = await getApiUrl();
-  const token = await getToken();
+  const token = options.token === undefined ? await getToken() : options.token;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -158,56 +177,70 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  let res: Response;
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const abortRequest = () => controller?.abort();
+  options.signal?.addEventListener('abort', abortRequest, { once: true });
+  if (options.signal?.aborted) abortRequest();
   const timeout = controller
     ? setTimeout(() => controller.abort(), API_TIMEOUT_MS)
     : null;
   try {
-    res = await fetch(`${baseUrl}${path}`, {
-      method: options.method || 'GET',
-      headers,
-      body: options.body ? JSON.stringify(options.body) : undefined,
-      signal: controller?.signal,
-    });
-  } catch {
-    throw new ApiError('Network error. Check your connection and try again.', 0, null, 'network');
+    let res: Response;
+    try {
+      res = await fetch(`${baseUrl}${path}`, {
+        method: options.method || 'GET',
+        headers,
+        body: options.body ? JSON.stringify(options.body) : undefined,
+        signal: controller?.signal ?? options.signal,
+      });
+    } catch {
+      throw new ApiError('Network error. Check your connection and try again.', 0, null, 'network');
+    }
+
+    if (res.status === 401) {
+      const body = await res.json().catch(() => null);
+      const error = new ApiError(typeof body?.error === 'string' ? body.error : 'Unable to verify this request. Please try again.', 401);
+      error.serverCode = typeof body?.code === 'string' ? body.code : undefined;
+      // A rejected request is not a driver's explicit sign-out. Preserve Keychain
+      // and let the session screen recover or show a confirmed removal.
+      throw error;
+    }
+
+    if (res.status === 429) {
+      const headerVal = res.headers.get('Retry-After');
+      const parsed = headerVal ? parseInt(headerVal, 10) : NaN;
+      const retryAfterSeconds = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+      // Drain body silently — never throw raw HTML/JSON parse errors at the caller.
+      await res.json().catch(() => null);
+      throw new ApiError('Too many requests', 429, retryAfterSeconds);
+    }
+
+    let data: unknown;
+    try {
+      data = await res.json();
+    } catch {
+      if (controller?.signal.aborted || options.signal?.aborted) {
+        throw new ApiError('Network error. Check your connection and try again.', 0, null, 'network');
+      }
+      throw new ApiError(
+        res.ok ? 'Invalid server response' : `Request failed (${res.status})`,
+        res.status,
+        null,
+        'parse',
+      );
+    }
+
+    if (!res.ok) {
+      const errBody = data as Record<string, string> | null;
+      throw new ApiError(errBody?.error || `Request failed (${res.status})`, res.status);
+    }
+
+    return data as T;
   } finally {
+    // Keep the deadline and caller cancellation alive through body download.
     if (timeout) clearTimeout(timeout);
+    options.signal?.removeEventListener('abort', abortRequest);
   }
-
-  if (res.status === 401) {
-    await clearToken();
-    throw new ApiError('Session expired. Please log in again.', 401);
-  }
-
-  if (res.status === 429) {
-    const headerVal = res.headers.get('Retry-After');
-    const parsed = headerVal ? parseInt(headerVal, 10) : NaN;
-    const retryAfterSeconds = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-    // Drain body silently — never throw raw HTML/JSON parse errors at the caller.
-    await res.json().catch(() => null);
-    throw new ApiError('Too many requests', 429, retryAfterSeconds);
-  }
-
-  let data: unknown;
-  try {
-    data = await res.json();
-  } catch {
-    throw new ApiError(
-      res.ok ? 'Invalid server response' : `Request failed (${res.status})`,
-      res.status,
-      null,
-      'parse',
-    );
-  }
-
-  if (!res.ok) {
-    const errBody = data as Record<string, string> | null;
-    throw new ApiError(errBody?.error || `Request failed (${res.status})`, res.status);
-  }
-
-  return data as T;
 }
 
 async function appendMultipartFile(
@@ -260,8 +293,7 @@ async function multipartApi<T = unknown>(path: string, formData: FormData): Prom
   }
 
   if (res.status === 401) {
-    await clearToken();
-    throw new ApiError('Session expired. Please log in again.', 401);
+    throw new ApiError('Unable to verify this request. Please try again.', 401);
   }
 
   const contentType = res.headers.get('content-type') || '';
@@ -417,6 +449,8 @@ export interface PaymentSummary {
   linkOpenedAt: string | null;
   linkExpiresAt: string | null;
   reason: string;
+  settlementVerified?: boolean;
+  cashToCollectPence?: number | null;
 }
 
 export interface WheelNutConsentStatus {
@@ -475,11 +509,17 @@ export interface JobsResponse {
 }
 
 export const driverApi = {
-  login: (email: string, password: string) =>
+  login: (email: string, password: string, device?: Record<string, unknown>) =>
     api<LoginResponse>('/api/driver/auth/login', {
       method: 'POST',
-      body: { email, password },
+      body: { email, password, persistentSession: true, device },
     }),
+
+  restoreSession: (device?: Record<string, unknown>) =>
+    api<LoginResponse>('/api/driver/auth/session', { method: 'POST', body: { device } }),
+
+  logoutSession: (token: string) =>
+    api<{ ok: boolean }>('/api/driver/auth/logout', { method: 'POST', token }),
 
   forgotPassword: (email: string) =>
     api<{ success: boolean; message: string }>('/api/auth/forgot-password', {

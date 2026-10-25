@@ -140,6 +140,8 @@ export interface NavigationProgressInput {
   routeIsCurrent: boolean;
   previous: NavigationProgress | null;
   gpsHeading: number | null;
+  /** A fresh, calibrated compass sample. Used only while stationary. */
+  compassHeading?: number | null;
   speedMps: number | null;
   accuracyMeters: number | null;
   fixTimestampMs: number | null;
@@ -930,6 +932,14 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
   const previousForRoute = previous?.routeRevision === routeRevision ? previous : null;
   const speedMps = smoothSpeedMps(previousForRoute?.speedMps, input.speedMps);
   const speedMph = metersPerSecondToMph(speedMps);
+  const movingForHeading =
+    typeof input.speedMps === 'number' && Number.isFinite(input.speedMps)
+      ? input.speedMps > 1
+      : speedMps != null && speedMps > 1;
+  const compassHeading = typeof input.compassHeading === 'number' &&
+    Number.isFinite(input.compassHeading) && input.compassHeading >= 0
+    ? normaliseDegrees(input.compassHeading)
+    : null;
   const cameraMode = input.cameraMode ?? 'following';
   const isRecalculating = input.isRecalculating === true;
   const stale =
@@ -981,7 +991,8 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
     distanceAlongRouteMetres: null,
     routeHeading: null,
     rawHeading: gpsHeading,
-    displayHeading: smoothCircularHeading(previousForRoute?.displayHeading, gpsHeading),
+    displayHeading: smoothCircularHeading(previousForRoute?.displayHeading,
+      !movingForHeading && compassHeading != null ? compassHeading : gpsHeading),
     speedMps,
     speedMph,
     speedDisplayReliable: !stale && speedMph != null,
@@ -1027,9 +1038,27 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
 
   if (
     previousForRoute != null &&
+    previousForRoute.fixTimestampMs === fixTimestampMs
+  ) {
+    // A clock tick or compass update is not a new GPS fix. Retain matching,
+    // speed filtering and recovery state until an actually newer fix arrives.
+    return {
+      ...previousForRoute,
+      displayHeading: !movingForHeading && compassHeading != null && !previousForRoute.locationWeak
+        ? smoothCircularHeading(previousForRoute.displayHeading, compassHeading, 0.42)
+        : previousForRoute.displayHeading,
+      isRecalculating,
+      cameraMode,
+      animationDurationMs: 0,
+      forceSnap: false,
+    };
+  }
+
+  if (
+    previousForRoute != null &&
     previousForRoute.fixTimestampMs != null &&
     fixTimestampMs != null &&
-    fixTimestampMs <= previousForRoute.fixTimestampMs
+    fixTimestampMs < previousForRoute.fixTimestampMs
   ) {
     return {
       ...previousForRoute,
@@ -1149,23 +1178,21 @@ export function buildNavigationProgress(input: NavigationProgressInput): Navigat
   const snappedLocation = trustedDisplaySnap ? match.point : retainedSnappedLocation;
   const displayLocation = snappedLocation ?? rawLocation;
   const displayMode: DriverDisplayMode = snappedLocation ? 'snapped' : 'raw';
-  const movingForHeading =
-    typeof input.speedMps === 'number' && Number.isFinite(input.speedMps)
-      ? input.speedMps > 1
-      : speedMps != null && speedMps > 1;
   const rawHeadingReliable =
-    movingForHeading && typeof gpsHeading === 'number' && Number.isFinite(gpsHeading);
+    movingForHeading && typeof gpsHeading === 'number' && Number.isFinite(gpsHeading) && gpsHeading >= 0;
   const matchedHeadingReliable =
     trustedDisplaySnap &&
     match.routeHeading != null &&
     match.distanceMeters <= Math.min(20, maxDisplaySnapDistanceMeters * 0.6);
   const targetHeading = rawHeadingReliable
     ? gpsHeading
-    : matchedHeadingReliable
-      ? match.routeHeading
-      : progressTrusted
-        ? previousForRoute?.displayHeading ?? match.routeHeading ?? gpsHeading
-        : gpsHeading;
+    : !movingForHeading && compassHeading != null
+      ? compassHeading
+      : matchedHeadingReliable
+        ? match.routeHeading
+        : progressTrusted
+          ? previousForRoute?.displayHeading ?? match.routeHeading ?? gpsHeading
+          : gpsHeading;
   const headingAlpha = movingForHeading ? 0.42 : 0.18;
   const displayHeading = smoothCircularHeading(
     previousForRoute?.displayHeading,

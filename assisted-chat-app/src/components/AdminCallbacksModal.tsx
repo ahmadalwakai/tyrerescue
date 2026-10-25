@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { colors, fontSize, radius, space } from './theme';
 import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
-import { api } from '@/lib/api';
+import { api, getAdminToken, getApiContextRevision } from '@/lib/api';
+import { getAdminSessionRevision } from '@/hooks/useAdminSession';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -62,6 +63,7 @@ function timeAgo(iso: string | null): string {
 interface Props {
   visible: boolean;
   onClose: () => void;
+  onDismiss?: () => void;
 }
 
 const STATUS_FILTERS = [
@@ -72,7 +74,7 @@ const STATUS_FILTERS = [
 
 // ── Main component ────────────────────────────────────────────────────────
 
-export function AdminCallbacksModal({ visible, onClose }: Props) {
+export function AdminCallbacksModal({ visible, onClose, onDismiss }: Props) {
   const [items, setItems] = useState<CallbackItem[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -81,40 +83,52 @@ export function AdminCallbacksModal({ visible, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [resolvingId, setResolvingId] = useState<string | null>(null);
-  const mountedRef = useRef(true);
+  const scopeKey = `${getApiContextRevision()}:${getAdminSessionRevision()}`;
+  const visibleRef = useRef(visible);
+  const generationRef = useRef(0);
+  const requestRef = useRef(0);
+  const captureScope = useCallback(() => ({ generation: generationRef.current, apiRevision: getApiContextRevision(),
+    sessionRevision: getAdminSessionRevision(), token: getAdminToken() }), []);
+  const isCurrent = useCallback((scope: ReturnType<typeof captureScope>) => visibleRef.current && scope.generation === generationRef.current
+    && scope.apiRevision === getApiContextRevision() && scope.sessionRevision === getAdminSessionRevision() && scope.token === getAdminToken(), []);
 
   const load = useCallback(async (isRefresh = false) => {
+    const scope = captureScope();
+    if (!isCurrent(scope)) return;
+    const request = ++requestRef.current;
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
     try {
       const res = await api.get<CallbacksResponse>(`/api/mobile/admin/callbacks?status=${statusFilter}`);
-      if (mountedRef.current) {
+      if (isCurrent(scope) && request === requestRef.current) {
         setItems(res.items);
         setPendingCount(res.pendingCount);
         setTotalCount(res.totalCount);
       }
     } catch (err) {
-      if (mountedRef.current) setError(err instanceof Error ? err.message : 'Failed to load callbacks.');
+      if (isCurrent(scope) && request === requestRef.current) setError(err instanceof Error ? err.message : 'Failed to load callbacks.');
     } finally {
-      if (mountedRef.current) { setLoading(false); setRefreshing(false); }
+      if (isCurrent(scope) && request === requestRef.current) { setLoading(false); setRefreshing(false); }
     }
-  }, [statusFilter]);
+  }, [captureScope, isCurrent, statusFilter]);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
-
-  useEffect(() => {
+  useLayoutEffect(() => {
+    visibleRef.current = visible;
+    generationRef.current += 1;
+    requestRef.current += 1;
+    setItems([]); setPendingCount(0); setTotalCount(0); setError(null); setLoading(false); setRefreshing(false); setResolvingId(null);
     if (visible) void load();
-  }, [visible, load]);
+    return () => { visibleRef.current = false; generationRef.current += 1; };
+  }, [visible, load, scopeKey]);
 
   const handleCall = (phone: string) => {
     void Linking.openURL('tel:' + phone);
   };
 
   const handleResolve = async (id: string, name: string) => {
+    const scope = captureScope();
+    if (!isCurrent(scope)) return;
     Alert.alert(
       'Mark as Resolved',
       `Mark callback from ${name} as resolved?`,
@@ -124,14 +138,15 @@ export function AdminCallbacksModal({ visible, onClose }: Props) {
           text: 'Resolved',
           style: 'default',
           onPress: async () => {
+            if (!isCurrent(scope)) return;
             setResolvingId(id);
             try {
               await api.patch(`/api/mobile/admin/callbacks/${id}`, { status: 'resolved' });
-              await load();
+              if (isCurrent(scope)) await load();
             } catch {
-              Alert.alert('Error', 'Failed to update callback status.');
+              if (isCurrent(scope)) Alert.alert('Error', 'Failed to update callback status.');
             } finally {
-              if (mountedRef.current) setResolvingId(null);
+              if (isCurrent(scope)) setResolvingId(null);
             }
           },
         },
@@ -144,7 +159,7 @@ export function AdminCallbacksModal({ visible, onClose }: Props) {
     : `${totalCount} total`;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose} onDismiss={onDismiss}>
       <AdminModalShell>
         <AdminModalHeader
           title="Call Me Back"

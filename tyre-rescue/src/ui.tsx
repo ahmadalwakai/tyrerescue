@@ -1,7 +1,8 @@
 import { Feather } from '@expo/vector-icons';
-import { type ComponentProps, type PropsWithChildren, type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ComponentProps, type PropsWithChildren, type ReactNode, useEffect, useMemo } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -13,18 +14,11 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, radii, spacing, typography } from './theme';
+import { colors, radii, spacing, typography, typeScale } from './theme';
+import { useCustomerReducedMotion } from './use-customer-reduced-motion';
 
 type FeatherName = ComponentProps<typeof Feather>['name'];
 
@@ -40,64 +34,11 @@ export function useScreenContentInsets() {
   );
 }
 
-export function Logo({ compact = false, animated = true }: { compact?: boolean; animated?: boolean }) {
-  const wheelX = useSharedValue(animated ? -16 : 0);
-  const wheelRotation = useSharedValue(animated ? -72 : 0);
-  const wheelScale = useSharedValue(1);
-
-  useEffect(() => {
-    if (!animated) return;
-
-    const settle = { duration: 620, easing: Easing.out(Easing.cubic) };
-    const idle = { duration: 980, easing: Easing.inOut(Easing.quad) };
-
-    wheelX.value = withSequence(
-      withTiming(0, settle),
-      withDelay(
-        1800,
-        withRepeat(
-          withSequence(
-            withTiming(2, idle),
-            withTiming(-1, idle),
-            withTiming(0, { duration: 720, easing: Easing.out(Easing.quad) }),
-          ),
-          -1,
-          false,
-        ),
-      ),
-    );
-    wheelRotation.value = withSequence(
-      withTiming(0, settle),
-      withDelay(
-        1800,
-        withRepeat(
-          withSequence(
-            withTiming(5, idle),
-            withTiming(-3, idle),
-            withTiming(0, { duration: 720, easing: Easing.out(Easing.quad) }),
-          ),
-          -1,
-          false,
-        ),
-      ),
-    );
-    wheelScale.value = withSequence(
-      withTiming(1.05, { duration: 260, easing: Easing.out(Easing.quad) }),
-      withTiming(1, { duration: 300, easing: Easing.out(Easing.quad) }),
-    );
-  }, [animated, wheelRotation, wheelScale, wheelX]);
-
-  const wheelMotionStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: wheelX.value },
-      { rotate: `${wheelRotation.value}deg` },
-      { scale: wheelScale.value },
-    ],
-  }));
-
+// The animated prop remains accepted for existing screens; the brand stays still.
+export function Logo({ compact = false }: { compact?: boolean; animated?: boolean }) {
   return (
-    <View style={styles.logoRow}>
-      <Animated.Image source={require('@/assets/images/icon.png')} style={[compact ? styles.logoIconSmall : styles.logoIcon, wheelMotionStyle]} />
+    <View accessible accessibilityLabel="Tyre Rescue" style={styles.logoRow}>
+      <Image accessible={false} source={require('@/assets/images/icon.png')} style={compact ? styles.logoIconSmall : styles.logoIcon} />
       {!compact ? (
         <View>
           <Text style={styles.logoTyre}>TYRE</Text>
@@ -112,7 +53,7 @@ export function ScreenHeader({ eyebrow, title, detail }: { eyebrow?: string; tit
   return (
     <View style={styles.header}>
       {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-      <Text style={styles.title}>{title}</Text>
+      <Text accessibilityRole="header" style={styles.title}>{title}</Text>
       {detail ? <Text style={styles.detail}>{detail}</Text> : null}
     </View>
   );
@@ -138,16 +79,30 @@ export function Pill({ children, tone = 'neutral' }: PropsWithChildren<{ tone?: 
   );
 }
 
+function usePressFeedback(disabled = false) {
+  const reducedMotion = useCustomerReducedMotion();
+  const scale = useSharedValue(1);
+  useEffect(() => { if (reducedMotion || disabled) scale.value = 1; }, [disabled, reducedMotion, scale]);
+  const motionStyle = useAnimatedStyle(() => ({ transform: [{ scale: reducedMotion || disabled ? 1 : scale.value }] }));
+  return {
+    motionStyle,
+    pressIn: () => { if (!reducedMotion && !disabled) scale.value = withTiming(0.985, { duration: 80 }); },
+    pressOut: () => { if (!reducedMotion && !disabled) scale.value = withTiming(1, { duration: 100 }); },
+  };
+}
+
 export function PrimaryButton({
   children,
   icon,
   loading,
   disabled,
   variant = 'primary',
-  shine,
+  shine: _shine,
   style,
   onPressIn,
   onPressOut,
+  accessibilityLabel,
+  accessibilityState,
   ...props
 }: PropsWithChildren<
   PressableProps & {
@@ -159,13 +114,8 @@ export function PrimaryButton({
     style?: StyleProp<ViewStyle>;
   }
 >) {
-  const isDisabled = disabled || loading;
-  const [buttonFrame, setButtonFrame] = useState({ width: 0, height: 0 });
-  const pressScale = useSharedValue(1);
-  const shineProgress = useSharedValue(0);
-  const rippleProgress = useSharedValue(1);
-  const rippleX = useSharedValue(0);
-  const rippleY = useSharedValue(0);
+  const isDisabled = Boolean(disabled || loading);
+  const { motionStyle, pressIn, pressOut } = usePressFeedback(isDisabled);
   const buttonStyle =
     variant === 'secondary'
       ? styles.buttonSecondary
@@ -175,67 +125,24 @@ export function PrimaryButton({
           ? styles.buttonGhost
           : styles.buttonPrimary;
   const textStyle =
-    variant === 'secondary' || variant === 'ghost'
-      ? styles.buttonTextLight
-      : styles.buttonTextDark;
-
-  useEffect(() => {
-    if (!shine || isDisabled || variant !== 'primary') return;
-
-    shineProgress.value = withDelay(
-      520,
-      withTiming(1, { duration: 920, easing: Easing.inOut(Easing.cubic) }),
-    );
-  }, [isDisabled, shine, shineProgress, variant]);
-
-  const buttonMotionStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pressScale.value }],
-  }));
-
-  const shineStyle = useAnimatedStyle(() => {
-    const width = buttonFrame.width || 280;
-    const travel = width * 1.65;
-    const peak = 1 - Math.abs(shineProgress.value - 0.5) * 2;
-
-    return {
-      opacity: shine && variant === 'primary' && !isDisabled ? Math.max(0, peak) * 0.3 : 0,
-      transform: [
-        { translateX: -width * 0.38 + shineProgress.value * travel },
-        { rotate: '18deg' },
-      ],
-    };
-  });
-
-  const rippleSize = Math.max(buttonFrame.width, buttonFrame.height, 84) * 1.7;
-  const rippleStyle = useAnimatedStyle(() => ({
-    height: rippleSize,
-    left: rippleX.value - rippleSize / 2,
-    opacity: (1 - rippleProgress.value) * 0.22,
-    top: rippleY.value - rippleSize / 2,
-    transform: [{ scale: 0.08 + rippleProgress.value * 1.04 }],
-    width: rippleSize,
-  }));
+    variant === 'primary' ? styles.buttonTextDark : styles.buttonTextLight;
+  const label = accessibilityLabel ?? (typeof children === 'string' || typeof children === 'number' ? String(children) : undefined);
+  const iconColor = variant === 'primary' ? colors.bg : colors.text;
 
   return (
-    <Animated.View style={[styles.buttonMotion, style, buttonMotionStyle]}>
+    <Animated.View style={[styles.buttonMotion, style, motionStyle]}>
       <Pressable
-        accessibilityRole="button"
+        {...props}
+        accessibilityRole={props.accessibilityRole ?? 'button'}
+        accessibilityLabel={label}
+        accessibilityState={{ ...accessibilityState, disabled: isDisabled, busy: Boolean(loading || accessibilityState?.busy) }}
         disabled={isDisabled}
-        onLayout={(event) => setButtonFrame(event.nativeEvent.layout)}
         onPressIn={(event) => {
-          if (!isDisabled) {
-            pressScale.value = withTiming(0.97, { duration: 90, easing: Easing.out(Easing.quad) });
-            rippleX.value = event.nativeEvent.locationX;
-            rippleY.value = event.nativeEvent.locationY;
-            rippleProgress.value = 0;
-            rippleProgress.value = withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) });
-          }
+          pressIn();
           onPressIn?.(event);
         }}
         onPressOut={(event) => {
-          if (!isDisabled) {
-            pressScale.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.back(1.8)) });
-          }
+          pressOut();
           onPressOut?.(event);
         }}
         style={({ pressed }) => [
@@ -244,22 +151,9 @@ export function PrimaryButton({
           isDisabled ? styles.buttonDisabled : null,
           pressed && !isDisabled ? styles.buttonPressed : null,
         ]}
-        {...props}
       >
-        {variant === 'primary' ? (
-          <>
-            <Animated.View pointerEvents="none" style={[styles.buttonShine, shineStyle]} />
-            <Animated.View pointerEvents="none" style={[styles.buttonRipple, rippleStyle]} />
-          </>
-        ) : null}
-        {loading ? (
-          <ActivityIndicator color={variant === 'primary' ? colors.bg : colors.text} />
-        ) : (
-          <>
-            {icon ? <Feather name={icon} size={18} color={variant === 'primary' ? colors.bg : colors.text} /> : null}
-            <Text style={[styles.buttonText, textStyle]}>{children}</Text>
-          </>
-        )}
+        {loading ? <ActivityIndicator accessible={false} color={iconColor} /> : icon ? <Feather accessible={false} name={icon} size={18} color={iconColor} /> : null}
+        <Text style={[styles.buttonText, textStyle]}>{children}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -270,6 +164,9 @@ export function TextField({
   error,
   style,
   inputStyle,
+  accessibilityLabel,
+  accessibilityHint,
+  accessibilityState,
   ...props
 }: TextInputProps & {
   label: string;
@@ -281,13 +178,16 @@ export function TextField({
     <View style={[styles.field, style]}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
-        placeholderTextColor={colors.muted}
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={[styles.input, error ? styles.inputError : null, inputStyle]}
         {...props}
+        accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityHint={[accessibilityHint, error].filter(Boolean).join('. ') || undefined}
+        accessibilityState={{ ...accessibilityState, disabled: props.editable === false || accessibilityState?.disabled === true }}
+        placeholderTextColor={props.placeholderTextColor ?? colors.muted}
+        autoCapitalize={props.autoCapitalize ?? 'none'}
+        autoCorrect={props.autoCorrect ?? false}
+        style={[styles.input, error ? styles.inputError : null, inputStyle]}
       />
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" accessibilityLabel={`${label}: ${error}`} style={styles.errorText}>{error}</Text> : null}
     </View>
   );
 }
@@ -298,10 +198,12 @@ export function OptionCard({
   meta,
   metaTone,
   icon,
-  iconShimmer,
+  iconShimmer: _iconShimmer,
   selected,
   disabled,
   onPress,
+  accessibilityLabel,
+  accessibilityHint,
 }: {
   title: string;
   detail?: string;
@@ -312,76 +214,22 @@ export function OptionCard({
   selected?: boolean;
   disabled?: boolean;
   onPress?: () => void;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }) {
-  const shimmerProgress = useSharedValue(0);
-  const selectedProgress = useSharedValue(selected ? 1 : 0);
-  const pressedProgress = useSharedValue(0);
-  const iconReveal = useSharedValue(0);
-
-  useEffect(() => {
-    iconReveal.value = withDelay(
-      80,
-      withTiming(1, { duration: 250, easing: Easing.out(Easing.cubic) }),
-    );
-  }, [iconReveal]);
-
-  useEffect(() => {
-    selectedProgress.value = withTiming(selected ? 1 : 0, {
-      duration: 220,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [selected, selectedProgress]);
-
-  useEffect(() => {
-    if (!iconShimmer) return;
-
-    shimmerProgress.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.quad) }),
-        withDelay(950, withTiming(0, { duration: 0 })),
-      ),
-      -1,
-      false,
-    );
-  }, [iconShimmer, shimmerProgress]);
-
-  const optionMotionStyle = useAnimatedStyle(() => ({
-    elevation: selectedProgress.value * 8,
-    shadowOpacity: selectedProgress.value * 0.28,
-    shadowRadius: 10 + selectedProgress.value * 8,
-    transform: [{ scale: 1 + selectedProgress.value * 0.02 - pressedProgress.value * 0.012 }],
-  }));
-
-  const stripeStyle = useAnimatedStyle(() => ({
-    opacity: selectedProgress.value,
-    transform: [{ scaleY: 0.35 + selectedProgress.value * 0.65 }],
-  }));
-
-  const iconMotionStyle = useAnimatedStyle(() => ({
-    opacity: iconReveal.value,
-    transform: [
-      { rotate: `${-20 + iconReveal.value * 20 + selectedProgress.value * 8}deg` },
-      { scale: 0.9 + iconReveal.value * 0.1 },
-    ],
-  }));
-
-  const shimmerStyle = useAnimatedStyle(() => ({
-    opacity: iconShimmer ? 0.42 : 0,
-    transform: [{ translateY: -24 + shimmerProgress.value * 48 }],
-  }));
+  const { motionStyle, pressIn, pressOut } = usePressFeedback(disabled);
 
   return (
-    <Animated.View style={[styles.optionMotion, optionMotionStyle]}>
+    <Animated.View style={[styles.optionMotion, motionStyle]}>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? [title, meta, detail].filter(Boolean).join('. ')}
+        accessibilityHint={accessibilityHint}
+        accessibilityState={{ selected: Boolean(selected), disabled: Boolean(disabled) }}
         disabled={disabled}
         onPress={onPress}
-        onPressIn={() => {
-          if (!disabled) pressedProgress.value = withTiming(1, { duration: 90, easing: Easing.out(Easing.quad) });
-        }}
-        onPressOut={() => {
-          if (!disabled) pressedProgress.value = withTiming(0, { duration: 150, easing: Easing.out(Easing.quad) });
-        }}
+        onPressIn={pressIn}
+        onPressOut={pressOut}
         style={({ pressed }) => [
           styles.option,
           selected ? styles.optionSelected : null,
@@ -389,15 +237,14 @@ export function OptionCard({
           pressed && !disabled ? styles.optionPressed : null,
         ]}
       >
-        <Animated.View pointerEvents="none" style={[styles.optionAccentStripe, stripeStyle]} />
         <View style={styles.optionTop}>
           {icon ? (
-            <Animated.View style={[styles.optionIconShell, selected ? styles.optionIconShellSelected : null, iconMotionStyle]}>
-              {iconShimmer ? <Animated.View pointerEvents="none" style={[styles.optionIconShimmer, shimmerStyle]} /> : null}
-              <Feather name={icon} size={20} color={selected ? colors.accent : colors.text} />
-            </Animated.View>
+            <View style={[styles.optionIconShell, selected ? styles.optionIconShellSelected : null]}>
+              <Feather accessible={false} name={icon} size={20} color={selected ? colors.accent : colors.text} />
+            </View>
           ) : null}
           {meta ? <Pill tone={selected ? 'accent' : metaTone ?? 'neutral'}>{meta}</Pill> : null}
+          {selected ? <Feather accessible={false} name="check-circle" size={20} color={colors.accent} /> : null}
         </View>
         <Text style={[styles.optionTitle, selected ? styles.optionTitleSelected : null]}>{title}</Text>
         {detail ? <Text style={styles.optionDetail}>{detail}</Text> : null}
@@ -420,15 +267,15 @@ export function InlineNotice({
           : styles.noticeNeutral;
   return (
     <View style={[styles.notice, toneStyle]}>
-      <Text style={styles.noticeText}>{children}</Text>
+      <Text accessibilityRole={tone === 'danger' ? 'alert' : undefined} accessibilityLiveRegion={tone === 'danger' ? 'polite' : undefined} style={styles.noticeText}>{children}</Text>
     </View>
   );
 }
 
 export function LoadingState({ label }: { label: string }) {
   return (
-    <View style={styles.loading}>
-      <ActivityIndicator size="large" color={colors.accent} />
+    <View accessible accessibilityLabel={label} accessibilityState={{ busy: true }} style={styles.loading}>
+      <ActivityIndicator accessible={false} size="large" color={colors.accent} />
       <Text style={styles.loadingText}>{label}</Text>
     </View>
   );
@@ -444,7 +291,7 @@ export function Row({
   valueStyle?: StyleProp<TextStyle>;
 }) {
   return (
-    <View style={styles.row}>
+    <View accessible accessibilityLabel={`${label}: ${value}`} style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
       <Text style={[styles.rowValue, valueStyle]}>{value}</Text>
     </View>
@@ -454,7 +301,7 @@ export function Row({
 export function Section({ title, children }: PropsWithChildren<{ title: string }>) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text>
       {children}
     </View>
   );
@@ -472,6 +319,7 @@ export const styles = StyleSheet.create({
   logoRow: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
   logoIcon: {
@@ -484,14 +332,14 @@ export const styles = StyleSheet.create({
   },
   logoTyre: {
     color: colors.text,
-    fontFamily: typography.display,
+    fontFamily: typography.brand,
     fontSize: 24,
     letterSpacing: 0,
     lineHeight: 24,
   },
   logoRescue: {
     color: colors.accent,
-    fontFamily: typography.display,
+    fontFamily: typography.brand,
     fontSize: 24,
     letterSpacing: 0,
     lineHeight: 24,
@@ -499,28 +347,30 @@ export const styles = StyleSheet.create({
   header: {
     alignSelf: 'stretch',
     gap: 6,
-    marginBottom: 18,
+    marginBottom: 8,
   },
   eyebrow: {
     color: colors.accent,
-    fontFamily: typography.bodyBold,
+    fontFamily: typography.bodyMedium,
     fontSize: 12,
+    lineHeight: 18,
+    letterSpacing: 1,
     textTransform: 'uppercase',
   },
   title: {
     color: colors.text,
     flexShrink: 1,
-    fontFamily: typography.display,
-    fontSize: 44,
-    lineHeight: 44,
+    fontFamily: typography.heading,
+    fontSize: typeScale.title,
+    lineHeight: typeScale.titleLine,
     maxWidth: '100%',
   },
   detail: {
     color: colors.muted,
     flexShrink: 1,
     fontFamily: typography.body,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.bodyLine,
     maxWidth: '100%',
   },
   card: {
@@ -529,14 +379,16 @@ export const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radii.lg,
     borderWidth: 1,
-    padding: 16,
+    gap: spacing.gap,
+    padding: spacing.card,
   },
   pill: {
     flexShrink: 1,
     borderRadius: radii.sm,
     borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    maxWidth: '100%',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   pillNeutral: {
     backgroundColor: 'rgba(255,255,255,0.04)',
@@ -558,10 +410,12 @@ export const styles = StyleSheet.create({
     color: colors.text,
     flexShrink: 1,
     fontFamily: typography.bodyMedium,
-    fontSize: 11,
+    fontSize: 12,
+    lineHeight: 18,
   },
   buttonMotion: {
     alignSelf: 'stretch',
+    minWidth: 0,
   },
   button: {
     alignItems: 'center',
@@ -570,45 +424,35 @@ export const styles = StyleSheet.create({
     gap: 8,
     justifyContent: 'center',
     minHeight: 52,
-    overflow: 'hidden',
-    paddingHorizontal: 14,
-    position: 'relative',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   buttonPrimary: {
     backgroundColor: colors.accent,
   },
   buttonSecondary: {
-    backgroundColor: 'transparent',
+    backgroundColor: colors.surfaceRaised,
     borderColor: colors.border,
     borderWidth: 1,
   },
   buttonDanger: {
-    backgroundColor: colors.danger,
+    backgroundColor: colors.dangerButton,
   },
   buttonGhost: {
     backgroundColor: 'transparent',
   },
   buttonPressed: {
-    opacity: 0.84,
+    opacity: 0.8,
   },
   buttonDisabled: {
-    opacity: 0.45,
-  },
-  buttonShine: {
-    backgroundColor: 'rgba(255,255,255,0.42)',
-    bottom: -24,
-    position: 'absolute',
-    top: -24,
-    width: 42,
-  },
-  buttonRipple: {
-    backgroundColor: 'rgba(255,255,255,0.44)',
-    borderRadius: 999,
-    position: 'absolute',
+    opacity: 0.5,
   },
   buttonText: {
     fontFamily: typography.bodyBold,
-    fontSize: 15,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.bodyLine,
+    flexShrink: 1,
+    textAlign: 'center',
   },
   buttonTextDark: {
     color: colors.bg,
@@ -617,12 +461,15 @@ export const styles = StyleSheet.create({
     color: colors.text,
   },
   field: {
-    gap: 7,
+    alignSelf: 'stretch',
+    gap: 8,
+    minWidth: 0,
   },
   label: {
-    color: colors.muted,
+    color: colors.text,
     fontFamily: typography.bodyMedium,
-    fontSize: 13,
+    fontSize: typeScale.label,
+    lineHeight: typeScale.labelLine,
   },
   input: {
     backgroundColor: colors.input,
@@ -631,9 +478,12 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     color: colors.text,
     fontFamily: typography.body,
-    fontSize: 16,
-    minHeight: 50,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.bodyLine,
+    minHeight: 52,
     paddingHorizontal: 14,
+    paddingVertical: 12,
+    minWidth: 0,
   },
   inputError: {
     borderColor: colors.danger,
@@ -641,12 +491,12 @@ export const styles = StyleSheet.create({
   errorText: {
     color: colors.danger,
     fontFamily: typography.body,
-    fontSize: 12,
+    fontSize: typeScale.label,
+    lineHeight: typeScale.labelLine,
   },
   optionMotion: {
     alignSelf: 'stretch',
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 8 },
+    minWidth: 0,
   },
   option: {
     alignSelf: 'stretch',
@@ -654,19 +504,16 @@ export const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radii.lg,
     borderWidth: 1,
-    gap: 8,
-    minHeight: 118,
-    overflow: 'hidden',
-    padding: 16,
-    paddingLeft: 18,
-    position: 'relative',
+    gap: 12,
+    minHeight: 112,
+    padding: spacing.card,
   },
   optionSelected: {
     backgroundColor: 'rgba(249,115,22,0.1)',
     borderColor: 'rgba(249,115,22,0.72)',
   },
   optionDisabled: {
-    opacity: 0.48,
+    opacity: 0.5,
   },
   optionPressed: {
     opacity: 0.86,
@@ -674,45 +521,30 @@ export const styles = StyleSheet.create({
   optionTop: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     justifyContent: 'space-between',
-  },
-  optionAccentStripe: {
-    backgroundColor: colors.accent,
-    borderRadius: 999,
-    bottom: 14,
-    left: 0,
-    position: 'absolute',
-    top: 14,
-    width: 4,
   },
   optionIconShell: {
     alignItems: 'center',
     backgroundColor: 'rgba(249,115,22,0.08)',
     borderColor: 'rgba(249,115,22,0.22)',
-    borderRadius: 21,
+    borderRadius: radii.md,
     borderWidth: 1,
-    height: 42,
+    height: 40,
     justifyContent: 'center',
-    overflow: 'hidden',
-    width: 42,
+    width: 40,
   },
   optionIconShellSelected: {
     backgroundColor: 'rgba(249,115,22,0.16)',
     borderColor: 'rgba(249,115,22,0.42)',
   },
-  optionIconShimmer: {
-    backgroundColor: 'rgba(249,115,22,0.55)',
-    height: 18,
-    position: 'absolute',
-    width: 54,
-  },
   optionTitle: {
     color: colors.text,
     flexShrink: 1,
-    fontFamily: typography.display,
-    fontSize: 30,
-    lineHeight: 31,
+    fontFamily: typography.heading,
+    fontSize: typeScale.section,
+    lineHeight: typeScale.sectionLine,
     maxWidth: '100%',
   },
   optionTitleSelected: {
@@ -722,14 +554,14 @@ export const styles = StyleSheet.create({
     color: colors.muted,
     flexShrink: 1,
     fontFamily: typography.body,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.bodyLine,
     maxWidth: '100%',
   },
   notice: {
     borderRadius: radii.md,
     borderWidth: 1,
-    padding: 12,
+    padding: 14,
   },
   noticeNeutral: {
     backgroundColor: colors.surface,
@@ -750,8 +582,8 @@ export const styles = StyleSheet.create({
   noticeText: {
     color: colors.text,
     fontFamily: typography.body,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.bodyLine,
   },
   loading: {
     alignItems: 'center',
@@ -761,35 +593,45 @@ export const styles = StyleSheet.create({
   loadingText: {
     color: colors.muted,
     fontFamily: typography.body,
-    fontSize: 14,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.bodyLine,
   },
   row: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     borderBottomColor: colors.border,
     borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     justifyContent: 'space-between',
     paddingVertical: 10,
   },
   rowLabel: {
     color: colors.muted,
     fontFamily: typography.body,
-    fontSize: 13,
+    fontSize: typeScale.label,
+    lineHeight: typeScale.labelLine,
+    flexShrink: 1,
+    flexBasis: 96,
   },
   rowValue: {
     color: colors.text,
     flexShrink: 1,
-    fontFamily: typography.bodyBold,
-    fontSize: 14,
+    fontFamily: typography.bodyMedium,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.bodyLine,
+    flexBasis: 140,
+    flexGrow: 1,
     textAlign: 'right',
   },
   section: {
-    gap: 12,
+    gap: spacing.gap,
   },
   sectionTitle: {
     color: colors.text,
-    fontFamily: typography.bodyBold,
-    fontSize: 17,
+    fontFamily: typography.heading,
+    fontSize: typeScale.section,
+    lineHeight: typeScale.sectionLine,
   },
   emptyBox: {
     alignItems: 'center',
@@ -802,8 +644,8 @@ export const styles = StyleSheet.create({
   emptyText: {
     color: colors.muted,
     fontFamily: typography.body,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.bodyLine,
     textAlign: 'center',
   },
 });

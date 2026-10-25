@@ -5,7 +5,7 @@
  * deep-linked straight out to external Google Maps, creating two competing map
  * experiences and dropping the driver onto a grey placeholder.
  *
- * The real, in-app Mapbox navigation cockpit lives at
+ * The native, in-app navigation cockpit lives at
  * `app/(tabs)/jobs/[ref]/route.tsx`. To guarantee there is exactly ONE map
  * experience, this route now redirects to the cockpit. The expo-router path is
  * preserved (no route removed) so any existing deep links keep working.

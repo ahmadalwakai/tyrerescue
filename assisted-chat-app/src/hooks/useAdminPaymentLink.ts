@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, getApiContextRevision } from '@/lib/api';
 import { subscribeBrowserNetworkEvents } from '@/lib/browser-network-events';
 import { removeNativeEventSubscription } from '@/lib/native-event-subscription';
 import { logStartupModuleFailed } from '@/lib/startup-logging';
 import type {
   AdminPaymentLinkResponse,
   AssistedChatDraft,
+  DepositCheckoutResponse,
   StripePaymentLinkState,
 } from '@/types/assisted-chat';
 import {
@@ -180,9 +181,13 @@ export function useAdminPaymentLink({
   const abortControllerRef = useRef<AbortController | null>(null);
   const autoWindowStartedAtRef = useRef<number | null>(null);
   const autoWindowLinkKeyRef = useRef<string | null>(null);
+  const createIdentityRef = useRef('');
 
   const ref = draft.dispatchedRefNumber ?? draft.paymentLink?.refNumber ?? null;
   const hasLink = draft.paymentLink != null;
+  // Update these during render so a cleared/new draft is fenced before effects.
+  refRef.current = ref;
+  createIdentityRef.current = `${draft.dispatchedBookingId ?? draft.paymentLink?.bookingId ?? ''}|${ref ?? ''}`;
   const linkKey = draft.paymentLink
     ? [
         ref ?? draft.paymentLink.refNumber,
@@ -309,6 +314,7 @@ export function useAdminPaymentLink({
     }
 
     const controller = new AbortController();
+    const revision = getApiContextRevision();
     abortControllerRef.current = controller;
     checkInflight.current = true;
     setChecking(true);
@@ -328,7 +334,7 @@ export function useAdminPaymentLink({
         ),
         controller,
       );
-      if (controller.signal.aborted) return liveStatusRef.current;
+      if (controller.signal.aborted || getApiContextRevision() !== revision || refRef.current !== currentRef) return null;
 
       const nextStatus = applyStatus(res);
       if (mountedRef.current) {
@@ -340,7 +346,7 @@ export function useAdminPaymentLink({
       return nextStatus;
     } catch (err) {
       if (isAbortError(err)) return liveStatusRef.current;
-      if (!mountedRef.current) return null;
+      if (!mountedRef.current || getApiContextRevision() !== revision || refRef.current !== currentRef) return null;
       const message =
         err instanceof ApiError
           ? err.message
@@ -473,21 +479,45 @@ export function useAdminPaymentLink({
   const createForDispatchedBooking = useCallback(async () => {
     if (!mountedRef.current) return null;
     if (createInflight.current) return null;
-    const ref = draft.dispatchedRefNumber;
+    const ref = draft.dispatchedRefNumber ?? draft.paymentLink?.refNumber;
     if (!ref) {
       setError('Dispatch the booking before creating a payment link.');
       return null;
     }
 
     createInflight.current = true;
+    const revision = getApiContextRevision();
+    const identity = createIdentityRef.current;
+    const isCurrent = () => mountedRef.current && getApiContextRevision() === revision && createIdentityRef.current === identity;
     setBusy(true);
     setError(null);
     try {
-      const res = await api.post<AdminPaymentLinkResponse>(
-        `/api/admin/bookings/${encodeURIComponent(ref)}/payment-link`,
-        {},
+      const previous = draft.paymentLink;
+      // The first deposit-link request may have failed after the booking was
+      // created. In that case there is no previous link, but collecting the
+      // full outstanding balance would silently change the chosen method.
+      const isDeposit = previous?.kind === 'deposit' || draft.paymentChoice === 'deposit';
+      const depositBookingId = previous?.bookingId ?? draft.dispatchedBookingId;
+      if (isDeposit && !depositBookingId) {
+        throw new Error('Recover this booking before retrying its deposit payment link.');
+      }
+      const deposit = isDeposit
+        ? await api.post<DepositCheckoutResponse>(
+          `/api/bookings/${encodeURIComponent(depositBookingId!)}/deposit`,
+          { mode: 'checkout' },
+        ) : null;
+      const res = deposit ? null : await api.post<AdminPaymentLinkResponse>(
+        `/api/admin/bookings/${encodeURIComponent(ref)}/payment-link`, {},
       );
-      const paymentLink: StripePaymentLinkState = {
+      const paymentLink: StripePaymentLinkState | null = deposit && depositBookingId ? {
+        kind: 'deposit',
+        paymentUrl: deposit.checkoutUrl ?? '',
+        amountPence: deposit.depositAmountPence,
+        remainingBalancePence: deposit.remainingBalancePence,
+        bookingId: depositBookingId,
+        refNumber: ref,
+        createdAtIso: new Date().toISOString(),
+      } : res ? {
         kind: 'full',
         paymentUrl: res.paymentUrl,
         amountPence: res.amountPence,
@@ -495,8 +525,9 @@ export function useAdminPaymentLink({
         bookingId: res.bookingId,
         refNumber: res.refNumber,
         createdAtIso: res.createdAtIso,
-      };
-      if (!mountedRef.current) return null;
+      } : null;
+      if (!paymentLink?.paymentUrl) throw new Error('Stripe did not return a payment link.');
+      if (!isCurrent()) return null;
       liveStatusRef.current = 'awaiting';
       setLiveStatus('awaiting');
       autoWindowStartedAtRef.current = null;
@@ -505,16 +536,16 @@ export function useAdminPaymentLink({
       update({ paymentLink });
       return paymentLink;
     } catch (err) {
-      if (!mountedRef.current) return null;
+      if (!isCurrent()) return null;
       const message =
-        err instanceof ApiError ? err.message : 'Failed to create payment link.';
+        err instanceof Error ? err.message : 'Failed to create payment link.';
       setError(message);
       return null;
     } finally {
       if (mountedRef.current) setBusy(false);
       createInflight.current = false;
     }
-  }, [draft.dispatchedRefNumber, update]);
+  }, [draft.dispatchedBookingId, draft.dispatchedRefNumber, draft.paymentChoice, draft.paymentLink, update]);
 
   const checkNow = useCallback(async (): Promise<PaymentLinkLiveStatus | null> => {
     return runStripeCheck('manual');

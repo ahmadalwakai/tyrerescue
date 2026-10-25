@@ -14,9 +14,23 @@ dist/
 # Env & logs
 .env
 .env.local
+.env.*
 credentials.json
+*.p8
+*.p12
+*.mobileprovision
+*.pem
+*.key
 *.log
+*.exit
+*.pid
+*.ps1
+*.zip
+*.tar
+*.tgz
 build-info.json
+.git/
+.vscode/
 
 # Entire local native projects — EAS regenerates these via prebuild.
 android/

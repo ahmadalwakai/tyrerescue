@@ -37,15 +37,16 @@
     },
     "ios": {
       "bundleIdentifier": "uk.tyrerescue.assistedchat",
-      "buildNumber": "42",
+      "buildNumber": "51",
       "supportsTablet": true,
-      "icon": "./assets/icon.png",
+      "icon": "./assets/administration-icon.jpg",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Tyre Rescue uses the camera so operators can send job photos in Assisted Chat.",
         "NSMicrophoneUsageDescription": "Tyre Rescue uses the microphone so operators can send voice messages in Assisted Chat.",
         "NSPhotoLibraryUsageDescription": "Tyre Rescue uses your photo library so operators can send images in Assisted Chat.",
-        "NSLocationWhenInUseUsageDescription": "Tyre Rescue Assisted Chat lets operators view customer and driver locations for active rescue bookings."
+        "NSLocationWhenInUseUsageDescription": "Tyre Rescue Assisted Chat lets operators view customer and driver locations for active rescue bookings.",
+        "NSFaceIDUsageDescription": "Use Face ID to unlock Assisted Chat while keeping your admin account signed in."
       }
     },
     "web": {
@@ -64,13 +65,36 @@
         }
       ],
       "expo-sharing",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Tyre Rescue uses the microphone so operators can send voice messages in Assisted Chat.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Use Face ID to unlock Assisted Chat while keeping your admin account signed in."
+        }
+      ],
       "expo-font",
       "expo-asset",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": "Use Face ID to unlock Assisted Chat while keeping your admin account signed in."
+        }
+      ],
       [
         "expo-notifications",
         {
           "sounds": [
-            "./assets/sounds/urgent_booking.mp3"
+            "./assets/sounds/urgent_booking.mp3",
+            "./assets/sounds/chat-send.wav",
+            "./assets/sounds/chat-receive.wav"
           ]
         }
       ]

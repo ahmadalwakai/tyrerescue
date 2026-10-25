@@ -8,7 +8,6 @@ import {
   RefreshControl,
   Alert,
   AppState,
-  ImageBackground,
   Linking,
   Platform,
   Pressable,
@@ -32,19 +31,18 @@ import { lightHaptic } from '@/services/haptics';
 import { useNewJobDetector } from '@/hooks/useNewJobDetector';
 import { DriverAlertWatcher } from '@/services/driver-watcher';
 import { useI18n } from '@/i18n';
-import { getDriverPaymentDisplay } from '@/lib/payment-status';
+import { getDriverPaymentDisplay , getDriverCashToCollectPence } from '@/lib/payment-status';
 import { hasJobTyreDetails } from '@/lib/tyre-lines';
 import {
   requestLocationPermissions,
-  startBackgroundLocation,
+  isBackgroundLocationRunning,
+  setOnlineLocationTracking,
 } from '@/services/background-location';
+import { getOnlineLocationRevision, subscribeOnlineLocationState } from '@/services/online-location-state';
 
-const DASHBOARD_BACKGROUND = require('../../assets/dashboard-bg.jpg');
 type DashboardIconName = keyof typeof Ionicons.glyphMap;
 type BriefingIconName = keyof typeof Ionicons.glyphMap;
 type Translate = (key: string, vars?: Record<string, string | number>) => string;
-
-const TRACKED_JOB_STATUSES = new Set(['driver_assigned', 'en_route', 'arrived', 'in_progress']);
 
 const gbpFormatter = new Intl.NumberFormat('en-GB', {
   style: 'currency',
@@ -157,6 +155,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { t, dateLocale } = useI18n();
   const [isOnline, setIsOnline] = useState(false);
+  const [bgRunning, setBgRunning] = useState(false);
   const [activeJobs, setActiveJobs] = useState<JobSummary[]>([]);
   const [upcomingJobs, setUpcomingJobs] = useState<JobSummary[]>([]);
   const [completedCount, setCompletedCount] = useState(0);
@@ -177,23 +176,21 @@ export default function DashboardScreen() {
     locationBackground: true,
   });
 
-  const trackingJob =
-    activeJobs.find((job) => TRACKED_JOB_STATUSES.has(job.status)) ??
-    upcomingJobs.find((job) => TRACKED_JOB_STATUSES.has(job.status)) ??
-    null;
-  const trackingJobRef = trackingJob?.refNumber ?? null;
-  const shouldBroadcastLocation = isOnline || trackingJobRef != null;
-  const bgRunning = shouldBroadcastLocation;
   const requestLocationPermission = requestLocationPermissions;
   const { checkForNewJobs } = useNewJobDetector();
 
   const fetchData = useCallback(async () => {
+    const locationRevision = getOnlineLocationRevision();
     try {
       const [statusRes, jobsRes] = await Promise.all([
         driverApi.getStatus(),
         driverApi.getJobs(),
       ]);
-      setIsOnline(statusRes.isOnline);
+      const backgroundRunning = statusRes.isOnline && await isBackgroundLocationRunning();
+      if (locationRevision === getOnlineLocationRevision()) {
+        setIsOnline(statusRes.isOnline);
+        setBgRunning(backgroundRunning);
+      }
 
       // Detect newly assigned jobs from both active + upcoming
       const allVisibleJobs = [...jobsRes.active, ...(jobsRes.upcoming ?? [])];
@@ -214,6 +211,11 @@ export default function DashboardScreen() {
       setFetchError(msg);
     }
   }, [checkForNewJobs, t]);
+
+  useEffect(() => subscribeOnlineLocationState((online) => {
+    setIsOnline(online);
+    if (!online) setBgRunning(false);
+  }), []);
 
   useEffect(() => {
     fetchData();
@@ -237,20 +239,20 @@ export default function DashboardScreen() {
     setRefreshing(false);
   }, [fetchData]);
 
-  const primaryJobRef = activeJobs[0]?.refNumber ?? upcomingJobs[0]?.refNumber ?? null;
   const visibleJobs = useMemo(
     () => [...activeJobs, ...upcomingJobs].sort(sortByOperationalPriority),
     [activeJobs, upcomingJobs],
   );
   const nextJob = visibleJobs[0] ?? null;
+  const primaryJobRef = nextJob?.refNumber ?? null;
   const nextJobTime = formatBriefingTime(nextJob?.scheduledAt, dateLocale);
   const collectionJobs = useMemo(
-    () => visibleJobs.filter((job) => ((job.paymentSummary ?? job.payment)?.amountToCollectPence ?? 0) > 0),
+    () => visibleJobs.filter((job) => (getDriverCashToCollectPence(job.paymentSummary ?? job.payment) ?? 0) > 0),
     [visibleJobs],
   );
   const collectionTotalPence = useMemo(
     () => collectionJobs.reduce(
-      (total, job) => total + ((job.paymentSummary ?? job.payment)?.amountToCollectPence ?? 0),
+      (total, job) => total + (getDriverCashToCollectPence(job.paymentSummary ?? job.payment) ?? 0),
       0,
     ),
     [collectionJobs],
@@ -472,11 +474,11 @@ export default function DashboardScreen() {
         }
       }
 
+      const locationRevision = getOnlineLocationRevision();
       const res = await driverApi.setOnline(value);
+      if (locationRevision !== getOnlineLocationRevision()) return;
       setIsOnline(res.isOnline);
-      if (res.isOnline) {
-        void startBackgroundLocation();
-      }
+      setBgRunning(await setOnlineLocationTracking(res.isOnline));
     } catch (err) {
       const serverMsg =
         err instanceof ApiError && err.code === 'network'
@@ -494,13 +496,7 @@ export default function DashboardScreen() {
   };
 
   return (
-    <ImageBackground
-      source={DASHBOARD_BACKGROUND}
-      resizeMode="cover"
-      style={styles.background}
-      imageStyle={styles.backgroundImage}
-    >
-      <View style={[styles.backgroundOverlay, styles.noPointerEvents]} />
+    <View style={styles.background}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
@@ -545,6 +541,8 @@ export default function DashboardScreen() {
               <Text style={styles.cockpitHint} numberOfLines={2}>{cockpitStateHint}</Text>
             </View>
             <Switch
+              accessibilityLabel={t('driverUi.availability')}
+              hitSlop={12}
               value={isOnline}
               onValueChange={handleToggleOnline}
               disabled={toggling}
@@ -571,6 +569,22 @@ export default function DashboardScreen() {
           </View>
         </Animated.View>
 
+        <Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/profile')} style={[styles.trackingPanel, { borderColor: isOnline && bgRunning ? colors.success : colors.border }]}>
+          <Ionicons name={isOnline && bgRunning ? 'locate' : 'location-outline'} size={23} color={isOnline && bgRunning ? colors.success : colors.muted} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.trackingTitle}>{t(isOnline ? bgRunning ? 'driverUi.trackingActive' : 'driverUi.trackingNeedsAttention' : 'driverUi.trackingOffline')}</Text>
+            <Text style={styles.trackingHint}>{t('driverUi.trackingHint')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+        </Pressable>
+        {nextJob && <Pressable accessibilityRole="button" onPress={() => router.push(`/(tabs)/jobs/${nextJob.refNumber}/route`)} style={styles.nextStopButton}>
+          <Ionicons name="navigate" size={27} color={colors.white} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.nextStopTitle}>{t('driverUi.navigateNext')}</Text>
+            <Text style={styles.nextStopAddress} numberOfLines={2}>{nextJob.customerName} · {nextJob.addressLine}</Text>
+          </View>
+          <Ionicons name="arrow-forward" size={23} color={colors.white} />
+        </Pressable>}
         <Animated.View entering={FadeInDown.duration(300).delay(60)} style={styles.quickActionRow}>
           <Pressable
             accessibilityRole="button"
@@ -766,11 +780,17 @@ export default function DashboardScreen() {
           />
         )}
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  trackingPanel: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, backgroundColor: colors.surface, borderWidth: 1, borderRadius: 18, marginBottom: 12 },
+  trackingTitle: { color: colors.text, fontFamily: 'Inter_700Bold', fontSize: 15, marginBottom: 5 },
+  trackingHint: { color: colors.muted, fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18 },
+  nextStopButton: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, minHeight: 82, backgroundColor: colors.navigation, borderRadius: 18, marginBottom: 16 },
+  nextStopTitle: { color: colors.white, fontFamily: 'Inter_700Bold', fontSize: 18, marginBottom: 5 },
+  nextStopAddress: { color: '#EBF3FF', fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19 },
   background: {
     flex: 1,
     backgroundColor: colors.bg,

@@ -313,10 +313,11 @@ export async function registerForPushNotifications(): Promise<string | null> {
 /**
  * Unregister push token from backend (e.g. on logout).
  */
-export async function unregisterPushToken(): Promise<void> {
+export async function unregisterPushToken(token?: string | null): Promise<void> {
   try {
     await api('/api/driver/push-token', {
       method: 'DELETE',
+      token,
     });
   } catch {
     // Non-fatal

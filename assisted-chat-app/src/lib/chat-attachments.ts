@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { getApiBaseUrl, ApiError, getAdminToken } from './api';
+import { getApiBaseUrl, ApiError, getAdminToken, getApiContextRevision } from './api';
 
 export interface ChatAttachmentUpload {
   url: string;
@@ -94,11 +94,15 @@ async function uploadChatAttachment(
   mimeType: string,
   webFile?: File,
 ): Promise<ChatAttachmentUpload> {
+  const token = getAdminToken();
+  const baseUrl = getApiBaseUrl();
+  const revision = getApiContextRevision();
   const formData = new FormData();
   await appendFile(formData, uri, fileName, mimeType, webFile);
-
-  const token = getAdminToken();
-  const res = await fetch(`${getApiBaseUrl()}/api/chat/upload`, {
+  if (revision !== getApiContextRevision() || token !== getAdminToken() || baseUrl !== getApiBaseUrl()) {
+    throw new Error('The account or project changed. Reopen the conversation before sending an attachment.');
+  }
+  const res = await fetch(`${baseUrl}/api/chat/upload`, {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: formData,

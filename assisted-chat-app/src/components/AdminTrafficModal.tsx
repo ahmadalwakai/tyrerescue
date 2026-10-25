@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Text,
   View,
-  type ViewStyle,
 } from 'react-native';
 import { colors, fontSize, radius, space } from './theme';
 import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
@@ -130,16 +129,6 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 const PERIODS = [7, 30, 90];
-
-function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
-  return (
-    <View style={[s.statCard, { borderTopColor: color }]}>
-      <Text style={s.statValue}>{value}</Text>
-      <Text style={s.statLabel}>{label}</Text>
-      {sub ? <Text style={s.statSub}>{sub}</Text> : null}
-    </View>
-  );
-}
 
 function BarRow({ label, value, max, color, sub }: { label: string; value: number; max: number; color: string; sub?: string }) {
   const pct = max > 0 ? (value / max) * 100 : 0;

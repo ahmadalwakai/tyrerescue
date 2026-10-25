@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -12,15 +11,19 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { api } from '@/lib/api';
+import { api, ApiError, getAdminToken, getApiContextRevision } from '@/lib/api';
+import { getAdminSessionRevision } from '@/hooks/useAdminSession';
+import { useChatSounds } from '@/hooks/useChatSounds';
+import { useChatVoiceRecorder } from '@/hooks/useChatVoiceRecorder';
+import { chatMessageDisplayText } from '@/lib/chat-message-display';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
-import { AdminHeaderButton, AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
+import { ChatScreenLayout, useChatBottomPadding } from './chat/ChatScreenLayout';
 import { useDriverList, type DriverListItem } from '@/hooks/useDriverList';
-import { uploadChatImageAttachment, type ChatLocalAsset } from '@/lib/chat-attachments';
+import { uploadChatImageAttachment, uploadChatVoiceAttachment, type ChatLocalAsset } from '@/lib/chat-attachments';
 import { saveChatAttachmentToDevice } from '@/lib/chat-download';
 import { ChatComposerIconButton } from './ChatComposerIconButton';
-import { ChatImageBubble } from './ChatImageBubble';
+import { ChatImageBubble, ChatPhotoPreview } from './ChatImageBubble';
 import { VoiceMessageBubble } from './VoiceMessageBubble';
 
 type ChatChannel = 'customer_admin' | 'customer_driver' | 'admin_driver';
@@ -30,9 +33,10 @@ type MessageType = 'text' | 'image' | 'audio' | 'admin_note';
 type DeliveryStatus = 'sending' | 'sent' | 'delivered' | 'failed';
 
 interface ConversationSummary {
+  scope?: 'booking' | 'direct_driver';
   id: string;
-  bookingId: string;
-  bookingRef: string;
+  bookingId: string | null;
+  bookingRef: string | null;
   channel: ChatChannel;
   status: ConversationStatus;
   locked: boolean;
@@ -49,8 +53,8 @@ interface ConversationSummary {
 
 interface ConversationDetail {
   id: string;
-  bookingId: string;
-  bookingRef: string;
+  bookingId: string | null;
+  bookingRef: string | null;
   channel: ChatChannel;
   status: ConversationStatus;
   locked: boolean;
@@ -94,7 +98,10 @@ interface MessagesResponse {
 
 interface Props {
   visible: boolean;
+  initialConversationId?: string | null;
+  entryMode?: 'all' | 'drivers';
   onClose: () => void;
+  onDismiss?: () => void;
 }
 
 const CHANNEL_LABELS: Record<ChatChannel, string> = {
@@ -109,9 +116,6 @@ const CHANNEL_FILTERS: Array<{ value: 'all' | ChatChannel; label: string }> = [
   { value: 'customer_admin', label: 'Customers' },
   { value: 'customer_driver', label: 'Customer/Driver' },
 ];
-
-const VOICE_UNAVAILABLE_MESSAGE =
-  'Voice messages are temporarily disabled in this TestFlight build while the native audio crash is being fixed.';
 
 function formatRelative(dateStr: string | null): string {
   if (!dateStr) return 'No messages';
@@ -159,9 +163,8 @@ function getDriverChatBooking(driver: DriverListItem | null): { id: string; ref:
   return null;
 }
 
-export function ChatHubModal({ visible, onClose }: Props) {
-  const { drivers, loading: driversLoading, error: driversError, reload: reloadDrivers } = useDriverList();
-  const recorderState = { durationMillis: 0 };
+export function ChatHubModal({ visible, onClose, onDismiss, entryMode = 'all', initialConversationId }: Props) {
+  const { drivers, loading: driversLoading, error: driversError, reload: reloadDrivers } = useDriverList(visible);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [selected, setSelected] = useState<ConversationSummary | null>(null);
   const [detail, setDetail] = useState<ConversationDetail | null>(null);
@@ -181,7 +184,50 @@ export function ChatHubModal({ visible, onClose }: Props) {
   const [editTarget, setEditTarget] = useState<MessageView | null>(null);
   const [editText, setEditText] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  const sendRequestRef = useRef<object | null>(null);
+  const messageFetchRef = useRef(0);
+  const acceptedMessagesRef = useRef<{ id: string; messages: MessageView[] } | null>(null);
+  const notificationTargetRef = useRef<string | null>(null);
+  const bottomPadding = useChatBottomPadding();
+  const scopeKey = `${getAdminSessionRevision()}:${getApiContextRevision()}`;
+  const scopeRef = useRef({ visible, scopeKey, generation: 0, conversationId: null as string | null });
+  if (scopeRef.current.visible !== visible || scopeRef.current.scopeKey !== scopeKey) {
+    scopeRef.current = { visible, scopeKey, generation: scopeRef.current.generation + 1, conversationId: null };
+  }
+  const driverRequestRef = useRef<object | null>(null);
+  const listRequestRef = useRef(0);
+  const { observeMessages, playSent } = useChatSounds({ visible, conversationId: selected?.id ?? null, scopeKey });
+  const captureScope = useCallback(() => ({ ...scopeRef.current, token: getAdminToken(), apiRevision: getApiContextRevision(), sessionRevision: getAdminSessionRevision() }), []);
+  const isCurrent = useCallback((scope: ReturnType<typeof captureScope>, conversationId?: string) => (
+    scopeRef.current.visible && scope.visible && scope.scopeKey === scopeRef.current.scopeKey &&
+    scope.generation === scopeRef.current.generation && scope.token === getAdminToken() &&
+    scope.apiRevision === getApiContextRevision() && scope.sessionRevision === getAdminSessionRevision() &&
+    (!conversationId || scopeRef.current.conversationId === conversationId)
+  ), []);
+  const { state: recorderState, start: startRecording, finish: finishRecording, cancel: cancelRecording, getState: getRecordingState } = useChatVoiceRecorder({ visible, conversationId: selected?.id ?? null, scopeKey });
+  const returnToList = useCallback(() => {
+    setPreviewUri(null);
+    void cancelRecording();
+    scopeRef.current.generation += 1;
+    sendRequestRef.current = null; messageFetchRef.current += 1;
+    scopeRef.current.conversationId = null;
+    driverRequestRef.current = null;
+    setOpeningDriverChat(false);
+    setSelected(null); setDetail(null); setMessages([]); setText(''); setSending(false); setMediaBusy(false); setVoiceBusy(false);
+    setActionTarget(null); setEditTarget(null); setActionBusy(false); setError(null);
+  }, [cancelRecording]);
+
+  const closeChat = useCallback(() => {
+    setPreviewUri(null);
+    void cancelRecording();
+    scopeRef.current.visible = false;
+    scopeRef.current.generation += 1;
+    sendRequestRef.current = null;
+    messageFetchRef.current += 1;
+    onClose();
+  }, [onClose, cancelRecording]);
 
   const sortedDrivers = useMemo(
     () =>
@@ -197,11 +243,25 @@ export function ChatHubModal({ visible, onClose }: Props) {
     [drivers],
   );
 
+  const visibleDrivers = useMemo(() => {
+    if (entryMode !== 'drivers' || !query.trim()) return sortedDrivers;
+    const nameQuery = query.trim().toLocaleLowerCase();
+    const phoneQuery = query.replace(/\D/g, '');
+    return sortedDrivers.filter((driver) => driver.name.toLocaleLowerCase().includes(nameQuery) ||
+      Boolean(phoneQuery && driver.phone?.replace(/\D/g, '').includes(phoneQuery)));
+  }, [entryMode, query, sortedDrivers]);
+  const visibleConversations = useMemo(() => {
+    if (entryMode !== 'drivers' || !query.trim()) return conversations;
+    const matchingDriverIds = new Set(visibleDrivers.map((driver) => driver.id));
+    const nameQuery = query.trim().toLocaleLowerCase();
+    return conversations.filter((conversation) => Boolean(conversation.driverId && matchingDriverIds.has(conversation.driverId)) ||
+      Boolean(conversation.driverName?.toLocaleLowerCase().includes(nameQuery)));
+  }, [conversations, entryMode, query, visibleDrivers]);
+
   const selectedDriver = useMemo(
     () => sortedDrivers.find((driver) => driver.id === selectedDriverId) ?? null,
     [selectedDriverId, sortedDrivers],
   );
-  const selectedDriverBooking = useMemo(() => getDriverChatBooking(selectedDriver), [selectedDriver]);
 
   const markRead = useCallback((id: string) => {
     api.post(`/api/chat/conversations/${encodeURIComponent(id)}/read`).catch(() => undefined);
@@ -209,36 +269,55 @@ export function ChatHubModal({ visible, onClose }: Props) {
 
   const fetchConversations = useCallback(async () => {
     if (!visible) return;
+    const scope = captureScope();
+    const request = ++listRequestRef.current;
     setLoadingList((value) => value || conversations.length === 0);
     setError(null);
     try {
       const params = new URLSearchParams();
       const trimmed = query.trim();
-      if (trimmed) params.set('bookingRef', trimmed);
-      if (selectedDriverId) {
-        params.set('driverId', selectedDriverId);
+      if (trimmed && entryMode !== 'drivers') params.set('bookingRef', trimmed);
+      if (entryMode === 'drivers') {
         params.set('channel', 'admin_driver');
       } else if (channel !== 'all') {
         params.set('channel', channel);
       }
       const data = await api.get<ConversationsResponse>(`/api/chat/conversations?${params.toString()}`);
-      setConversations(data.conversations ?? []);
+      if (isCurrent(scope) && request === listRequestRef.current) setConversations(data.conversations ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load chat hub.');
+      if (isCurrent(scope) && request === listRequestRef.current) setError(err instanceof Error ? err.message : 'Could not load chat hub.');
     } finally {
-      setLoadingList(false);
+      if (isCurrent(scope) && request === listRequestRef.current) setLoadingList(false);
     }
-  }, [channel, conversations.length, query, selectedDriverId, visible]);
+  }, [captureScope, channel, conversations.length, entryMode, isCurrent, query, visible]);
 
   const fetchMessages = useCallback(async (conversationId: string) => {
+    const scope = captureScope();
+    const request = ++messageFetchRef.current;
     const data = await api.get<MessagesResponse>(
       `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages?limit=60`,
     );
+    if (!isCurrent(scope, conversationId) || request !== messageFetchRef.current) return;
+    acceptedMessagesRef.current = { id: conversationId, messages: data.messages ?? [] };
     setMessages(data.messages ?? []);
+    observeMessages(data.messages ?? [], conversationId);
     markRead(conversationId);
-  }, [markRead]);
+  }, [captureScope, isCurrent, markRead, observeMessages]);
+
+  // A fast response can finish before the new chat's layout effect installs its sound scope.
+  // Replay only the accepted snapshot after commit; the tracker suppresses duplicate observations.
+  useEffect(() => {
+    const snapshot = acceptedMessagesRef.current;
+    if (visible && !loadingChat && snapshot && snapshot.id === selected?.id) observeMessages(snapshot.messages, snapshot.id);
+  }, [selected?.id, loadingChat, messages, observeMessages, visible]);
 
   const openConversation = useCallback(async (conversation: ConversationSummary) => {
+    scopeRef.current.generation += 1;
+    scopeRef.current.conversationId = conversation.id;
+    acceptedMessagesRef.current = null;
+    sendRequestRef.current = null; messageFetchRef.current += 1;
+    const scope = captureScope();
+    setSending(false); setMediaBusy(false); setActionBusy(false); setActionTarget(null); setEditTarget(null);
     setSelected(conversation);
     setDetail(null);
     setMessages([]);
@@ -250,58 +329,52 @@ export function ChatHubModal({ visible, onClose }: Props) {
         api.get<ConversationDetail>(`/api/chat/conversations/${encodeURIComponent(conversation.id)}`),
         fetchMessages(conversation.id),
       ]);
+      if (!isCurrent(scope, conversation.id)) return;
       setDetail(nextDetail);
       setConversations((items) =>
         items.map((item) => (item.id === conversation.id ? { ...item, unreadCount: 0 } : item)),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not open this conversation.');
+      if (isCurrent(scope, conversation.id)) setError(err instanceof Error ? err.message : 'Could not open this conversation.');
     } finally {
-      setLoadingChat(false);
+      if (isCurrent(scope, conversation.id)) setLoadingChat(false);
     }
-  }, [fetchMessages]);
+  }, [captureScope, fetchMessages, isCurrent]);
 
-  const openDriverConversation = useCallback(async () => {
-    if (!selectedDriver || openingDriverChat) return;
-    const chatBooking = getDriverChatBooking(selectedDriver);
-    if (!chatBooking) {
-      setError('This driver has no booking to attach a private chat to.');
-      return;
-    }
-
+  const openDriverConversation = useCallback(async (driver: DriverListItem) => {
+    if (driverRequestRef.current) return;
+    const request = {};
+    driverRequestRef.current = request;
+    const scope = captureScope();
+    setSelectedDriverId(driver.id);
     setOpeningDriverChat(true);
     setError(null);
     try {
-      const created = await api.post<CreateConversationResponse>('/api/chat/conversations', {
-        bookingId: chatBooking.id,
-        channel: 'admin_driver',
-        driverId: selectedDriver.id,
-      });
+      const created = await api.post<CreateConversationResponse>('/api/chat/conversations/direct-driver', { driverId: driver.id });
+      if (!isCurrent(scope)) return;
       const fallback: ConversationSummary = {
-        id: created.conversationId,
-        bookingId: chatBooking.id,
-        bookingRef: chatBooking.ref ?? 'Driver chat',
-        channel: 'admin_driver',
-        status: 'open',
-        locked: false,
-        muted: false,
-        customerName: 'Private driver chat',
-        driverId: selectedDriver.id,
-        driverName: selectedDriver.name,
-        lastMessageBody: null,
-        lastMessageAt: null,
-        lastMessageSenderRole: null,
-        unreadCount: 0,
-        createdAt: new Date().toISOString(),
+        id: created.conversationId, scope: 'direct_driver', bookingId: null, bookingRef: null,
+        channel: 'admin_driver', status: 'open', locked: false, muted: false,
+        customerName: '', driverId: driver.id, driverName: driver.name,
+        lastMessageBody: null, lastMessageAt: null, lastMessageSenderRole: null,
+        unreadCount: 0, createdAt: new Date().toISOString(),
       };
       await openConversation(fallback);
-      void fetchConversations();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not open private driver chat.');
+      if (isCurrent(scope)) {
+        const code = err instanceof ApiError && err.details && typeof err.details === 'object'
+          ? (err.details as { code?: unknown }).code : null;
+        setError(err instanceof ApiError && (err.status === 404 || code === 'DIRECT_DRIVER_CHAT_UNAVAILABLE')
+          ? 'Direct driver chat needs a server update. Refresh after the server has been updated.'
+          : err instanceof Error ? err.message : 'Could not open private driver chat.');
+      }
     } finally {
-      setOpeningDriverChat(false);
+      if (driverRequestRef.current === request) {
+        driverRequestRef.current = null;
+        if (scopeRef.current.visible) setOpeningDriverChat(false);
+      }
     }
-  }, [fetchConversations, openConversation, openingDriverChat, selectedDriver]);
+  }, [captureScope, isCurrent, openConversation]);
 
   useEffect(() => {
     if (!visible) return;
@@ -311,21 +384,48 @@ export function ChatHubModal({ visible, onClose }: Props) {
       if (selected) fetchMessages(selected.id).catch(() => undefined);
     }, 10_000);
     return () => clearInterval(timer);
-  }, [fetchConversations, fetchMessages, selected, visible]);
+  }, [fetchConversations, fetchMessages, scopeKey, selected, visible]);
+
+  useLayoutEffect(() => {
+    scopeRef.current.visible = visible;
+    // Keep the native presenter while clearing data before a retained host
+    // reopens or changes administrator/project scope.
+    setPreviewUri(null);
+    driverRequestRef.current = null;
+    sendRequestRef.current = null;
+    messageFetchRef.current += 1;
+    listRequestRef.current += 1;
+    acceptedMessagesRef.current = null;
+    scopeRef.current.conversationId = null;
+    setSending(false); setMediaBusy(false); setVoiceBusy(false); setOpeningDriverChat(false); setLoadingChat(false); setLoadingList(false);
+    setConversations([]);
+    setSelected(null);
+    setDetail(null);
+    setMessages([]);
+    setText('');
+    setError(null);
+    setSelectedDriverId(null);
+    setActionTarget(null);
+    setEditTarget(null);
+    setEditText('');
+    if (visible) setChannel(entryMode === 'drivers' ? 'admin_driver' : 'all');
+    return () => { scopeRef.current.visible = false; scopeRef.current.generation += 1; };
+  }, [entryMode, scopeKey, visible]);
 
   useEffect(() => {
-    if (!visible) {
-      setSelected(null);
-      setDetail(null);
-      setMessages([]);
-      setText('');
-      setError(null);
-      setSelectedDriverId(null);
-      setActionTarget(null);
-      setEditTarget(null);
-      setEditText('');
-    }
-  }, [visible]);
+    if (!visible || !initialConversationId) { notificationTargetRef.current = null; return; }
+    if (notificationTargetRef.current === initialConversationId || !/^[0-9a-f-]{36}$/i.test(initialConversationId)) return;
+    notificationTargetRef.current = initialConversationId;
+    let active = true;
+    const scope = captureScope();
+    void api.get<ConversationDetail>(`/api/chat/conversations/${encodeURIComponent(initialConversationId)}`)
+      .then(async (target) => {
+        if (!active || !isCurrent(scope) || target.channel !== 'customer_admin') return;
+        await openConversation({ ...target, scope: 'booking', customerName: '', driverId: null, driverName: null,
+          lastMessageBody: null, lastMessageAt: null, lastMessageSenderRole: null, unreadCount: 0, createdAt: '' });
+      }).catch((reason) => { if (active && isCurrent(scope)) setError(reason instanceof Error ? reason.message : 'Could not open customer chat.'); });
+    return () => { active = false; };
+  }, [captureScope, initialConversationId, isCurrent, openConversation, scopeKey, visible]);
 
   const updateMessage = useCallback((updated: MessageView) => {
     setMessages((items) => items.map((item) => (item.id === updated.id ? updated : item)));
@@ -333,7 +433,11 @@ export function ChatHubModal({ visible, onClose }: Props) {
 
   const handleSend = useCallback(async () => {
     const body = text.trim();
-    if (!selected || !body || sending) return;
+    if (!selected || !body || sending || sendRequestRef.current || getRecordingState().phase !== 'idle') return;
+    const scope = captureScope();
+    if (!isCurrent(scope, selected.id)) return;
+    const request = {};
+    sendRequestRef.current = request;
     setSending(true);
     setError(null);
     try {
@@ -341,68 +445,116 @@ export function ChatHubModal({ visible, onClose }: Props) {
         `/api/chat/conversations/${encodeURIComponent(selected.id)}/messages`,
         { body, messageType: 'text' },
       );
-      setMessages((items) => [...items, sent]);
+      if (!isCurrent(scope, selected.id)) return;
+      messageFetchRef.current += 1;
+      setMessages((items) => items.some((item) => item.id === sent.id) ? items : [...items, sent]);
+      playSent(sent.id);
       setText('');
       markRead(selected.id);
       void fetchConversations();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send message.');
+      if (isCurrent(scope, selected.id)) setError(err instanceof Error ? err.message : 'Could not send message.');
     } finally {
-      setSending(false);
+      if (sendRequestRef.current === request) sendRequestRef.current = null;
+      if (isCurrent(scope, selected.id)) setSending(false);
     }
-  }, [fetchConversations, markRead, selected, sending, text]);
+  }, [captureScope, fetchConversations, getRecordingState, isCurrent, markRead, playSent, selected, sending, text]);
 
   const inputDisabled =
     sending ||
     voiceBusy ||
+    recorderState.phase !== 'idle' ||
     mediaBusy ||
     loadingChat ||
     !selected ||
     detail?.locked === true ||
     detail?.status === 'closed' ||
     detail?.status === 'archived';
-  const recordingComposerActive = false;
+  const recordingComposerActive = recorderState.phase !== 'idle';
 
   const startVoiceRecording = useCallback(async () => {
-    if (inputDisabled || voiceBusy) return;
-    setError(VOICE_UNAVAILABLE_MESSAGE);
-  }, [inputDisabled, voiceBusy]);
+    if (inputDisabled || voiceBusy || sendRequestRef.current) return;
+    const scope = captureScope();
+    setError(null);
+    try { await startRecording(); }
+    catch (err) { if (isCurrent(scope)) setError(err instanceof Error ? err.message : 'Could not start voice recording.'); }
+  }, [captureScope, inputDisabled, isCurrent, voiceBusy, startRecording]);
 
   const cancelVoiceRecording = useCallback(async () => {
+    await cancelRecording();
     setVoiceBusy(false);
-  }, []);
+  }, [cancelRecording]);
 
   const sendVoiceRecording = useCallback(async () => {
-    setError(VOICE_UNAVAILABLE_MESSAGE);
-  }, []);
+    if (!selected || voiceBusy || sending || sendRequestRef.current) return;
+    const scope = captureScope();
+    if (!isCurrent(scope, selected.id)) return;
+    const request = {};
+    sendRequestRef.current = request;
+    setVoiceBusy(true);
+    setError(null);
+    try {
+      const uri = await finishRecording();
+      if (!uri || !isCurrent(scope, selected.id)) return;
+      const attachment = await uploadChatVoiceAttachment(uri);
+      if (!isCurrent(scope, selected.id) || getRecordingState().phase !== 'ready') return;
+      const sent = await api.post<MessageView>(
+        `/api/chat/conversations/${encodeURIComponent(selected.id)}/messages`,
+        { body: null, messageType: 'audio', attachment },
+      );
+      if (!isCurrent(scope, selected.id)) return;
+      messageFetchRef.current += 1;
+      setMessages((items) => items.some((item) => item.id === sent.id) ? items : [...items, sent]);
+      playSent(sent.id);
+      markRead(selected.id);
+      void fetchConversations();
+      await cancelRecording();
+    } catch (err) {
+      if (isCurrent(scope, selected.id)) setError(err instanceof Error ? err.message : 'Could not send voice message. Tap Send voice to retry.');
+    } finally {
+      if (sendRequestRef.current === request) sendRequestRef.current = null;
+      if (isCurrent(scope, selected.id)) setVoiceBusy(false);
+    }
+  }, [captureScope, fetchConversations, getRecordingState, isCurrent, markRead, playSent, selected, sending, voiceBusy, cancelRecording, finishRecording]);
 
   const sendImageAsset = useCallback(async (asset: ChatLocalAsset) => {
-    if (!selected || mediaBusy || sending) return;
+    if (!selected || mediaBusy || sending || sendRequestRef.current || getRecordingState().phase !== 'idle') return;
+    const scope = captureScope();
+    if (!isCurrent(scope, selected.id)) return;
+    const request = {};
+    sendRequestRef.current = request;
     setMediaBusy(true);
     setSending(true);
     setError(null);
     try {
       const attachment = await uploadChatImageAttachment(asset);
+      if (!isCurrent(scope, selected.id)) return;
       const sent = await api.post<MessageView>(
         `/api/chat/conversations/${encodeURIComponent(selected.id)}/messages`,
         { body: null, messageType: 'image', attachment },
       );
-      setMessages((items) => [...items, sent]);
+      if (!isCurrent(scope, selected.id)) return;
+      messageFetchRef.current += 1;
+      setMessages((items) => items.some((item) => item.id === sent.id) ? items : [...items, sent]);
+      playSent(sent.id);
       markRead(selected.id);
       void fetchConversations();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send photo.');
+      if (isCurrent(scope, selected.id)) setError(err instanceof Error ? err.message : 'Could not send photo.');
     } finally {
-      setSending(false);
-      setMediaBusy(false);
+      if (sendRequestRef.current === request) sendRequestRef.current = null;
+      if (isCurrent(scope, selected.id)) { setSending(false); setMediaBusy(false); }
     }
-  }, [fetchConversations, markRead, mediaBusy, selected, sending]);
+  }, [captureScope, fetchConversations, getRecordingState, isCurrent, markRead, mediaBusy, playSent, selected, sending]);
 
   const pickImageFromLibrary = useCallback(async () => {
-    if (inputDisabled) return;
+    if (inputDisabled || !selected) return;
+    const scope = captureScope();
+    if (!isCurrent(scope, selected.id)) return;
     setError(null);
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!isCurrent(scope, selected.id)) return;
       if (!permission.granted) {
         setError('Photo library permission is required to send an image.');
         return;
@@ -412,7 +564,7 @@ export function ChatHubModal({ visible, onClose }: Props) {
         allowsEditing: false,
         quality: 0.82,
       });
-      if (result.canceled || !result.assets[0]) return;
+      if (!isCurrent(scope, selected.id) || result.canceled || !result.assets[0]) return;
       const asset = result.assets[0];
       await sendImageAsset({
         uri: asset.uri,
@@ -421,15 +573,18 @@ export function ChatHubModal({ visible, onClose }: Props) {
         file: asset.file,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not open photo library.');
+      if (isCurrent(scope, selected.id)) setError(err instanceof Error ? err.message : 'Could not open photo library.');
     }
-  }, [inputDisabled, sendImageAsset]);
+  }, [captureScope, selected, inputDisabled, isCurrent, sendImageAsset]);
 
   const takeCameraPhoto = useCallback(async () => {
-    if (inputDisabled) return;
+    if (inputDisabled || !selected) return;
+    const scope = captureScope();
+    if (!isCurrent(scope, selected.id)) return;
     setError(null);
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!isCurrent(scope, selected.id)) return;
       if (!permission.granted) {
         setError('Camera permission is required to send a photo.');
         return;
@@ -440,7 +595,7 @@ export function ChatHubModal({ visible, onClose }: Props) {
         quality: 0.82,
         cameraType: ImagePicker.CameraType.back,
       });
-      if (result.canceled || !result.assets[0]) return;
+      if (!isCurrent(scope, selected.id) || result.canceled || !result.assets[0]) return;
       const asset = result.assets[0];
       await sendImageAsset({
         uri: asset.uri,
@@ -449,13 +604,15 @@ export function ChatHubModal({ visible, onClose }: Props) {
         file: asset.file,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not open camera.');
+      if (isCurrent(scope, selected.id)) setError(err instanceof Error ? err.message : 'Could not open camera.');
     }
-  }, [inputDisabled, sendImageAsset]);
+  }, [captureScope, selected, inputDisabled, isCurrent, sendImageAsset]);
 
   const handleSaveMessageAttachment = useCallback(async (message: MessageView) => {
     const attachment = getImageAttachment(message) ?? getAudioAttachment(message);
     if (!attachment) return;
+    const scope = captureScope();
+    if (!isCurrent(scope)) return;
     setActionBusy(true);
     setError(null);
     try {
@@ -464,16 +621,18 @@ export function ChatHubModal({ visible, onClose }: Props) {
         mimeType: attachment.mimeType,
         fileName: attachment.fileName,
       });
-      setActionTarget(null);
+      if (isCurrent(scope)) setActionTarget(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save attachment.');
+      if (isCurrent(scope)) setError(err instanceof Error ? err.message : 'Could not save attachment.');
     } finally {
-      setActionBusy(false);
+      if (isCurrent(scope)) setActionBusy(false);
     }
-  }, []);
+  }, [captureScope, isCurrent]);
 
   const handleDeleteMessage = useCallback(async (message: MessageView) => {
     if (!selected) return;
+    const scope = captureScope();
+    if (!isCurrent(scope, selected.id)) return;
     setActionBusy(true);
     setError(null);
     try {
@@ -481,15 +640,17 @@ export function ChatHubModal({ visible, onClose }: Props) {
         `/api/chat/conversations/${encodeURIComponent(selected.id)}/messages/${encodeURIComponent(message.id)}`,
         { action: 'delete' },
       );
+      if (!isCurrent(scope, selected.id)) return;
+      messageFetchRef.current += 1;
       updateMessage(updated);
       setActionTarget(null);
       void fetchConversations();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete message.');
+      if (isCurrent(scope, selected.id)) setError(err instanceof Error ? err.message : 'Could not delete message.');
     } finally {
-      setActionBusy(false);
+      if (isCurrent(scope, selected.id)) setActionBusy(false);
     }
-  }, [fetchConversations, selected, updateMessage]);
+  }, [captureScope, isCurrent, fetchConversations, selected, updateMessage]);
 
   const beginEditMessage = useCallback((message: MessageView) => {
     setEditTarget(message);
@@ -500,6 +661,8 @@ export function ChatHubModal({ visible, onClose }: Props) {
   const submitEditMessage = useCallback(async () => {
     const body = editText.trim();
     if (!selected || !editTarget || !body) return;
+    const scope = captureScope();
+    if (!isCurrent(scope, selected.id)) return;
     setActionBusy(true);
     setError(null);
     try {
@@ -507,39 +670,36 @@ export function ChatHubModal({ visible, onClose }: Props) {
         `/api/chat/conversations/${encodeURIComponent(selected.id)}/messages/${encodeURIComponent(editTarget.id)}`,
         { action: 'edit', body },
       );
+      if (!isCurrent(scope, selected.id)) return;
+      messageFetchRef.current += 1;
       updateMessage(updated);
       setEditTarget(null);
       setEditText('');
       void fetchConversations();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not edit message.');
+      if (isCurrent(scope, selected.id)) setError(err instanceof Error ? err.message : 'Could not edit message.');
     } finally {
-      setActionBusy(false);
+      if (isCurrent(scope, selected.id)) setActionBusy(false);
     }
-  }, [editTarget, editText, fetchConversations, selected, updateMessage]);
+  }, [captureScope, isCurrent, editTarget, editText, fetchConversations, selected, updateMessage]);
 
-  const headerTitle = selected ? `#${selected.bookingRef}` : 'Chat hub';
-  const headerSubtitle = selected
-    ? `${CHANNEL_LABELS[selected.channel]}${selected.driverName ? ` - ${selected.driverName}` : ''}`
-    : `${conversations.length} conversation${conversations.length === 1 ? '' : 's'}`;
+  const directSelected = selected?.scope === 'direct_driver' || Boolean(selected && !selected.bookingId);
+  const headerTitle = selected
+    ? selected.channel === 'admin_driver' ? selected.driverName || 'Driver chat' : selected.customerName || 'Customer chat'
+    : entryMode === 'drivers' ? 'Chat with a driver' : 'Messages';
+  const headerSubtitle = selected ? directSelected ? 'Private admin / driver conversation' : CHANNEL_LABELS[selected.channel] : 'Choose a driver or continue a conversation';
+  const handleRequestClose = () => {
+    if (previewUri) setPreviewUri(null);
+    else if (editTarget) { setEditTarget(null); setEditText(''); }
+    else if (actionTarget) setActionTarget(null);
+    else closeChat();
+  };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <AdminModalShell keyboardAvoidingEnabled={false}>
-        <KeyboardAvoidingView
-          style={styles.keyboard}
-          behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
-        >
-          <AdminModalHeader
-            title={headerTitle}
-            subtitle={headerSubtitle}
-            onClose={onClose}
-            actions={selected ? (
-              <AdminHeaderButton label="Back" onPress={() => setSelected(null)} />
-            ) : null}
-          />
-
+    <Modal visible={visible} presentationStyle="fullScreen" animationType="slide" onRequestClose={handleRequestClose} onDismiss={onDismiss}>
+      <ChatScreenLayout title={headerTitle} subtitle={headerSubtitle}
+        reference={selected && !directSelected && selected.bookingRef ? `#${selected.bookingRef}` : null}
+        onBack={selected ? returnToList : undefined} onClose={closeChat}>
           {error ? (
             <View style={styles.noticeWrap}>
               <StatusBanner kind="err" message={error} />
@@ -587,17 +747,20 @@ export function ChatHubModal({ visible, onClose }: Props) {
                           <ChatImageBubble
                             uri={imageAttachment.url}
                             mine={mine}
+                            onPreview={setPreviewUri}
                             onLongPress={() => setActionTarget(message)}
                           />
                         ) : audioAttachment ? (
                           <VoiceMessageBubble
                             uri={audioAttachment.url}
+                        active={visible}
+                        scopeKey={scopeKey}
                             mine={mine}
                             onLongPress={() => setActionTarget(message)}
                           />
                         ) : (
                           <Text style={[styles.body, mine ? styles.bodyMine : styles.bodyOther]}>
-                            {message.body || 'Attachment'}
+                            {chatMessageDisplayText(message.body || 'Attachment')}
                           </Text>
                         )}
                         <Text style={[styles.time, mine ? styles.timeMine : styles.timeOther]}>
@@ -627,8 +790,8 @@ export function ChatHubModal({ visible, onClose }: Props) {
                 )}
               </ScrollView>
 
-              <View style={styles.composer}>
-                {inputDisabled && !loadingChat ? (
+              <View style={[styles.composer, { paddingBottom: bottomPadding }]}>
+                {inputDisabled && !loadingChat && !recordingComposerActive ? (
                   <Text style={styles.inputHint}>This conversation cannot accept new messages right now.</Text>
                 ) : null}
                 {recordingComposerActive ? (
@@ -636,7 +799,7 @@ export function ChatHubModal({ visible, onClose }: Props) {
                     <View style={styles.recordingPill}>
                       <View style={styles.recordingDot} />
                       <Text style={styles.recordingText}>
-                        Recording {formatRecordingTime(recorderState.durationMillis)}
+                        {recorderState.phase === 'preparing' ? 'Preparing microphone...' : recorderState.phase === 'ready' ? 'Voice ready' : recorderState.phase === 'stopping' ? 'Finishing...' : 'Recording'} {formatRecordingTime(recorderState.durationMillis)}
                       </Text>
                     </View>
                     <AppButton
@@ -651,12 +814,12 @@ export function ChatHubModal({ visible, onClose }: Props) {
                       variant="primary"
                       onPress={() => { void sendVoiceRecording(); }}
                       loading={voiceBusy}
-                      disabled={voiceBusy}
+                      disabled={voiceBusy || recorderState.phase === 'preparing' || recorderState.phase === 'stopping'}
                       style={styles.recordSendButton}
                     />
                   </View>
                 ) : (
-                  <View style={styles.inputRow}>
+                  <View style={styles.composerFields}>
                     <TextInput
                       value={text}
                       onChangeText={setText}
@@ -665,7 +828,10 @@ export function ChatHubModal({ visible, onClose }: Props) {
                       editable={!inputDisabled}
                       style={styles.input}
                       multiline
+                      maxLength={5000}
+                      accessibilityLabel="Message text"
                     />
+                    <View style={styles.inputRow}>
                     <ChatComposerIconButton
                       icon="image-outline"
                       label="Send image"
@@ -695,21 +861,22 @@ export function ChatHubModal({ visible, onClose }: Props) {
                       disabled={inputDisabled || !text.trim()}
                       style={styles.sendButton}
                     />
+                    </View>
                   </View>
                 )}
               </View>
             </>
           ) : (
-            <>
+            <ScrollView style={styles.list} contentContainerStyle={[styles.listContent, { paddingBottom: bottomPadding + space.lg }]} keyboardShouldPersistTaps="handled">
               <View style={styles.filters}>
                 <TextInput
                   value={query}
                   onChangeText={setQuery}
                   onSubmitEditing={() => void fetchConversations()}
-                  placeholder="Search booking ref..."
+                  placeholder={entryMode === 'drivers' ? 'Search driver name or phone...' : 'Search booking ref...'}
                   placeholderTextColor={colors.subtle}
                   style={styles.searchInput}
-                  autoCapitalize="characters"
+                  autoCapitalize={entryMode === 'drivers' ? 'none' : 'characters'}
                 />
                 <AppButton label="Refresh" variant="secondary" onPress={fetchConversations} style={styles.refreshButton} />
               </View>
@@ -718,7 +885,7 @@ export function ChatHubModal({ visible, onClose }: Props) {
                   <View style={styles.driverPrivateCopy}>
                     <Text style={styles.driverPrivateTitle}>Private driver chat</Text>
                     <Text style={styles.driverPrivateSubtitle}>
-                      Choose a driver with an active job and open a private admin-driver conversation.
+                      Tap a driver to chat. No booking or assignment needed.
                     </Text>
                   </View>
                   <AppButton
@@ -730,65 +897,31 @@ export function ChatHubModal({ visible, onClose }: Props) {
                   />
                 </View>
                 {driversError ? <StatusBanner kind="err" message={driversError} /> : null}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.driverMenu}
-                >
-                  {driversLoading && sortedDrivers.length === 0 ? (
+                <View style={styles.driverMenu}>
+                  {driversLoading && visibleDrivers.length === 0 ? (
                     <View style={styles.driverEmptyChip}>
                       <ActivityIndicator color={colors.accent} />
                       <Text style={styles.driverEmptyText}>Loading drivers...</Text>
                     </View>
-                  ) : sortedDrivers.length === 0 ? (
+                  ) : visibleDrivers.length === 0 ? (
                     <View style={styles.driverEmptyChip}>
-                      <Text style={styles.driverEmptyText}>No drivers found</Text>
+                      <Text style={styles.driverEmptyText}>{query.trim() ? 'No matching drivers' : 'No drivers found'}</Text>
                     </View>
                   ) : (
-                    sortedDrivers.map((driver) => (
+                    visibleDrivers.map((driver) => (
                       <DriverMenuItem
                         key={driver.id}
                         driver={driver}
                         selected={driver.id === selectedDriverId}
-                        onPress={() => {
-                          setSelectedDriverId((current) => (current === driver.id ? null : driver.id));
-                          setChannel('admin_driver');
-                        }}
+                        busy={openingDriverChat && driver.id === selectedDriverId}
+                        disabled={openingDriverChat}
+                        onPress={() => { void openDriverConversation(driver); }}
                       />
                     ))
                   )}
-                </ScrollView>
-                <View style={styles.driverPrivateActions}>
-                  <View style={styles.driverPrivateStatus}>
-                    <Text style={styles.driverPrivateStatusLabel}>Selected driver</Text>
-                    <Text style={styles.driverPrivateStatusValue} numberOfLines={1}>
-                      {selectedDriver ? selectedDriver.name : 'None selected'}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.driverPrivateStatusMeta,
-                        selectedDriver?.activeJobId ? styles.driverPrivateStatusOk : styles.driverPrivateStatusWarn,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {selectedDriver
-                        ? selectedDriverBooking
-                          ? `${selectedDriverBooking.active ? 'Active' : 'Latest'} booking #${selectedDriverBooking.ref ?? 'available'}`
-                          : 'No booking available for private chat'
-                        : 'Pick a driver from the menu'}
-                    </Text>
-                  </View>
-                  <AppButton
-                    label="Open Private Chat"
-                    variant="primary"
-                    onPress={() => { void openDriverConversation(); }}
-                    loading={openingDriverChat}
-                    disabled={!selectedDriverBooking || openingDriverChat}
-                    style={styles.openDriverChatButton}
-                  />
                 </View>
               </View>
-              <View style={styles.channelFilters}>
+              {entryMode !== 'drivers' ? <View style={styles.channelFilters}>
                 {CHANNEL_FILTERS.map((item) => {
                   const active = item.value === channel;
                   return (
@@ -808,15 +941,15 @@ export function ChatHubModal({ visible, onClose }: Props) {
                     </Pressable>
                   );
                 })}
-              </View>
+              </View> : null}
 
-              <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-                {loadingList && conversations.length === 0 ? (
+              <Text style={styles.sectionTitle}>Recent conversations</Text>
+                {loadingList && visibleConversations.length === 0 ? (
                   <View style={styles.loading}>
                     <ActivityIndicator color={colors.accent} />
                     <Text style={styles.muted}>Loading chat hub...</Text>
                   </View>
-                ) : conversations.length === 0 ? (
+                ) : visibleConversations.length === 0 ? (
                   <View style={styles.empty}>
                     <Text style={styles.emptyTitle}>No conversations found</Text>
                     <Text style={styles.muted}>
@@ -826,7 +959,7 @@ export function ChatHubModal({ visible, onClose }: Props) {
                     </Text>
                   </View>
                 ) : (
-                  conversations.map((conversation) => (
+                  visibleConversations.map((conversation) => (
                     <Pressable
                       key={conversation.id}
                       onPress={() => void openConversation(conversation)}
@@ -838,7 +971,7 @@ export function ChatHubModal({ visible, onClose }: Props) {
                       ]}
                     >
                       <View style={styles.conversationTop}>
-                        <Text style={styles.bookingRef}>#{conversation.bookingRef}</Text>
+                        <Text style={styles.bookingRef}>{conversation.scope === 'direct_driver' || !conversation.bookingId ? conversation.driverName || 'Driver chat' : `#${conversation.bookingRef}`}</Text>
                         {conversation.unreadCount > 0 ? (
                           <View style={styles.unreadBadge}>
                             <Text style={styles.unreadText}>{conversation.unreadCount}</Text>
@@ -851,7 +984,7 @@ export function ChatHubModal({ visible, onClose }: Props) {
                         <Text style={styles.timeLabel}>{formatRelative(conversation.lastMessageAt)}</Text>
                       </View>
                       <Text style={styles.people} numberOfLines={1}>
-                        {conversation.customerName || 'Customer'}
+                        {conversation.scope === 'direct_driver' || !conversation.bookingId ? 'Private driver chat' : conversation.customerName || 'Customer'}
                         {conversation.driverName ? ` - Driver: ${conversation.driverName}` : ''}
                       </Text>
                       <Text style={styles.preview} numberOfLines={2}>
@@ -861,10 +994,9 @@ export function ChatHubModal({ visible, onClose }: Props) {
                     </Pressable>
                   ))
                 )}
-              </ScrollView>
-            </>
+            </ScrollView>
           )}
-          <MessageActionsModal
+          <MessageActionsOverlay
             visible={Boolean(actionTarget)}
             message={actionTarget}
             busy={actionBusy}
@@ -887,7 +1019,7 @@ export function ChatHubModal({ visible, onClose }: Props) {
               if (actionTarget) void handleDeleteMessage(actionTarget);
             }}
           />
-          <EditMessageModal
+          <EditMessageOverlay
             visible={Boolean(editTarget)}
             value={editText}
             busy={actionBusy}
@@ -900,13 +1032,13 @@ export function ChatHubModal({ visible, onClose }: Props) {
               void submitEditMessage();
             }}
           />
-        </KeyboardAvoidingView>
-      </AdminModalShell>
+          <ChatPhotoPreview uri={previewUri} onClose={() => setPreviewUri(null)} />
+      </ChatScreenLayout>
     </Modal>
   );
 }
 
-function MessageActionsModal({
+function MessageActionsOverlay({
   visible,
   message,
   busy,
@@ -929,9 +1061,9 @@ function MessageActionsModal({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  if (!visible) return null;
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.actionBackdrop} onPress={onClose}>
+      <Pressable style={styles.actionBackdrop} onPress={onClose} accessibilityViewIsModal>
         <Pressable style={styles.actionSheet}>
           <View style={styles.actionHandle} />
           <Text style={styles.actionTitle}>Message tools</Text>
@@ -944,11 +1076,10 @@ function MessageActionsModal({
           <ActionSheetButton label="Cancel" disabled={busy} onPress={onClose} />
         </Pressable>
       </Pressable>
-    </Modal>
   );
 }
 
-function EditMessageModal({
+function EditMessageOverlay({
   visible,
   value,
   busy,
@@ -963,9 +1094,9 @@ function EditMessageModal({
   onCancel: () => void;
   onSave: () => void;
 }) {
+  if (!visible) return null;
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View style={styles.actionBackdrop}>
+      <View style={styles.actionBackdrop} accessibilityViewIsModal>
         <View style={styles.actionSheet}>
           <View style={styles.actionHandle} />
           <Text style={styles.actionTitle}>Edit message</Text>
@@ -984,7 +1115,6 @@ function EditMessageModal({
           </View>
         </View>
       </View>
-    </Modal>
   );
 }
 
@@ -1020,25 +1150,31 @@ function DriverMenuItem({
   driver,
   selected,
   onPress,
+  busy,
+  disabled,
 }: {
   driver: DriverListItem;
   selected: boolean;
+  busy: boolean;
+  disabled: boolean;
   onPress: () => void;
 }) {
   const chatBooking = getDriverChatBooking(driver);
-  const availableForPrivateChat = Boolean(chatBooking);
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Select driver ${driver.name}`}
+      accessibilityLabel={`Chat with ${driver.name}`}
+      accessibilityState={{ disabled, busy }}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.driverChip,
         selected && styles.driverChipSelected,
-        !availableForPrivateChat && styles.driverChipMuted,
+
         pressed && styles.pressed,
       ]}
     >
+      <View style={styles.driverChipCopy}>
       <View style={styles.driverChipTop}>
         <View
           style={[
@@ -1046,7 +1182,7 @@ function DriverMenuItem({
             driver.isOnline ? styles.driverStatusDotOnline : styles.driverStatusDotOffline,
           ]}
         />
-        <Text style={[styles.driverChipName, selected && styles.driverChipNameSelected]} numberOfLines={1}>
+        <Text style={[styles.driverChipName, selected && styles.driverChipNameSelected]}>
           {driver.name}
         </Text>
       </View>
@@ -1056,14 +1192,16 @@ function DriverMenuItem({
       <Text
         style={[
           styles.driverChipJob,
-          chatBooking?.active ? styles.driverChipJobActive : availableForPrivateChat ? styles.driverChipJobLatest : styles.driverChipJobMissing,
+          chatBooking?.active ? styles.driverChipJobActive : styles.driverChipJobLatest,
         ]}
         numberOfLines={1}
       >
         {chatBooking?.ref
           ? `${chatBooking.active ? 'Active' : 'Latest'} #${chatBooking.ref}`
-          : 'No booking'}
+          : 'Direct conversation'}
       </Text>
+      </View>
+      {busy ? <ActivityIndicator color={colors.accent} /> : <Text style={styles.driverChatAction}>{'Chat >'}</Text>}
     </Pressable>
   );
 }
@@ -1090,11 +1228,11 @@ const styles = StyleSheet.create({
   filters: {
     flexDirection: 'row',
     gap: space.sm,
-    paddingHorizontal: space.lg,
-    paddingTop: space.md,
+    paddingTop: space.sm,
   },
   searchInput: {
     flex: 1,
+    minWidth: 0,
     minHeight: 48,
     borderRadius: radius.md,
     borderWidth: 1,
@@ -1106,8 +1244,7 @@ const styles = StyleSheet.create({
   },
   refreshButton: { minWidth: 96 },
   driverPrivateCard: {
-    marginHorizontal: space.lg,
-    marginTop: space.md,
+    marginTop: space.sm,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.borderStrong,
@@ -1129,9 +1266,12 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingRight: space.xs,
   },
+  driverChipCopy: { flex: 1, minWidth: 0, gap: 4 },
+  driverChatAction: { color: colors.accent, fontSize: 14, fontWeight: '800' },
   driverChip: {
-    width: 156,
-    minHeight: 88,
+    width: '100%',
+    minHeight: 76,
+    flexDirection: 'row', alignItems: 'center',
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1206,8 +1346,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
   },
   filterPill: {
-    height: 42,
-    minHeight: 42,
+    minHeight: 48,
     minWidth: 74,
     alignSelf: 'center',
     borderRadius: radius.md,
@@ -1221,7 +1360,8 @@ const styles = StyleSheet.create({
   filterPillActive: { borderColor: colors.accent, backgroundColor: colors.warningBg },
   filterPillText: { color: colors.muted, fontSize: fontSize.sm, fontWeight: '800' },
   filterPillTextActive: { color: colors.accent },
-  list: { flex: 1 },
+  sectionTitle: { color: colors.muted, fontSize: 13, fontWeight: '800', marginTop: space.sm },
+  list: { flex: 1, minHeight: 0, backgroundColor: '#000000' },
   listContent: { flexGrow: 1, gap: space.sm, paddingHorizontal: space.lg, paddingBottom: space.xl },
   conversationCard: {
     borderRadius: radius.md,
@@ -1250,7 +1390,7 @@ const styles = StyleSheet.create({
   timeLabel: { color: colors.muted, fontSize: fontSize.xs },
   people: { color: colors.text, fontSize: fontSize.md, fontWeight: '800' },
   preview: { color: colors.muted, fontSize: fontSize.sm, lineHeight: 20 },
-  messages: { flex: 1 },
+  messages: { flex: 1, minHeight: 0, backgroundColor: '#000000' },
   messagesContent: {
     flexGrow: 1,
     paddingHorizontal: space.lg,
@@ -1277,7 +1417,7 @@ const styles = StyleSheet.create({
   sender: { fontSize: fontSize.xs, fontWeight: '900' },
   senderMine: { color: colors.accentText },
   senderOther: { color: colors.muted },
-  body: { fontSize: fontSize.md, lineHeight: 20 },
+  body: { fontSize: fontSize.md, lineHeight: 23, textAlign: 'auto', writingDirection: 'auto', flexShrink: 1 },
   bodyMine: { color: colors.accentText },
   bodyOther: { color: colors.text },
   deletedBody: { fontStyle: 'italic', opacity: 0.72 },
@@ -1287,15 +1427,16 @@ const styles = StyleSheet.create({
   composer: {
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    backgroundColor: colors.bg,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
+    backgroundColor: '#000000',
+    paddingHorizontal: space.md,
+    paddingTop: space.sm,
     gap: space.xs,
   },
   inputHint: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '800' },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm },
+  composerFields: { gap: space.sm },
+  inputRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.sm },
   input: {
-    flex: 1,
+    width: '100%',
     minHeight: 48,
     maxHeight: 116,
     borderRadius: radius.md,
@@ -1306,8 +1447,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
     fontSize: fontSize.md,
+    textAlign: 'auto', writingDirection: 'auto', textAlignVertical: 'top',
   },
-  sendButton: { minWidth: 88 },
+  sendButton: { flex: 1, minWidth: 84, minHeight: 48 },
   recordingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1337,7 +1479,8 @@ const styles = StyleSheet.create({
   recordCancelButton: { minWidth: 82 },
   recordSendButton: { minWidth: 122 },
   actionBackdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
     backgroundColor: 'rgba(1,3,10,0.72)',
     justifyContent: 'flex-end',
     padding: space.lg,

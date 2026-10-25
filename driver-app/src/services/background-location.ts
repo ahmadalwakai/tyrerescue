@@ -1,16 +1,33 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { ApiError, api, getApiUrl, getToken } from '@/api/client';
-import { enqueue, flushOfflineQueue, getQueueLength } from '@/services/offline-queue';
+import { discardQueuedLocations, enqueue, flushOfflineQueue, getQueueLength } from '@/services/offline-queue';
 import * as secureStorage from '@/services/secure-storage';
 import { endpointHostname, logDriverTrackingDiagnostic } from '@/services/tracking-diagnostics';
+import {
+  getOnlineLocationRevision,
+  isOnlineLocationEnabled,
+  setOnlineLocationEnabled,
+} from '@/services/online-location-state';
 
 const BACKGROUND_LOCATION_TASK = 'background-location-task';
 export const ACTIVE_BOOKING_REF_KEY = 'active_booking_ref';
 const LOCATION_PATH = '/api/driver/location';
-const LAST_KNOWN_MAX_AGE_MS = 60_000;
-const LAST_KNOWN_REQUIRED_ACCURACY_M = 100;
 const MAX_ACCEPTED_ACCURACY_M = 100;
+let nativeOperation: Promise<unknown> = Promise.resolve();
+let retryAfterMs = 0;
+
+function withNativeOperation<T>(operation: () => Promise<T>): Promise<T> {
+  const pending = nativeOperation.catch(() => {}).then(operation);
+  nativeOperation = pending;
+  return pending;
+}
+
+async function canSendLocation(revision: number): Promise<boolean> {
+  if (!(await isOnlineLocationEnabled())) return false;
+  const token = await getToken();
+  return !!token && revision === getOnlineLocationRevision();
+}
 
 type NavigationLocationPoint = {
   lat: number;
@@ -45,7 +62,12 @@ function normaliseOptionalNumber(value: number | null | undefined): number | nul
 function normaliseHeading(value: number | null | undefined): number | null {
   const heading = normaliseOptionalNumber(value);
   if (heading == null || heading < 0 || heading > 360) return null;
-  return heading;
+  return heading === 360 ? 0 : heading;
+}
+
+function normaliseSpeed(value: number | null | undefined): number | null {
+  const speed = normaliseOptionalNumber(value);
+  return speed != null && speed >= 0 ? speed : null;
 }
 
 function timestampIsoFromLocation(location: Location.LocationObject): string | null {
@@ -73,7 +95,7 @@ function locationBody(
     timestamp,
     accuracy: normaliseOptionalNumber(options.accuracy),
     heading: normaliseHeading(options.heading),
-    speed: normaliseOptionalNumber(options.speed),
+    speed: normaliseSpeed(options.speed),
     source: options.source,
   };
 }
@@ -102,7 +124,7 @@ function shouldQueueLocation(error: unknown): boolean {
 
 function hasUsableAccuracy(location: Location.LocationObject): boolean {
   const accuracy = normaliseOptionalNumber(location.coords.accuracy);
-  return accuracy == null || accuracy <= MAX_ACCEPTED_ACCURACY_M;
+  return accuracy != null && accuracy >= 0 && accuracy <= MAX_ACCEPTED_ACCURACY_M;
 }
 
 async function isNewerThanLastAck(bookingRef: string | null, timestamp: string): Promise<boolean> {
@@ -111,7 +133,7 @@ async function isNewerThanLastAck(bookingRef: string | null, timestamp: string):
   const prevMs = Date.parse(previous);
   const nextMs = Date.parse(timestamp);
   if (!Number.isFinite(prevMs) || !Number.isFinite(nextMs)) return true;
-  return nextMs >= prevMs;
+  return nextMs > prevMs;
 }
 
 async function rememberAck(bookingRef: string | null, timestamp: string | null | undefined) {
@@ -119,10 +141,17 @@ async function rememberAck(bookingRef: string | null, timestamp: string | null |
   await secureStorage.setItemAsync(ackKey(bookingRef), timestamp).catch(() => {});
 }
 
-async function postDriverLocation(
+export async function sendDriverLocationSample(
   location: Location.LocationObject,
   bookingRef: string | null,
-): Promise<void> {
+  source: 'background' | 'foreground' = 'background',
+): Promise<boolean> {
+  const revision = getOnlineLocationRevision();
+  if (!(await canSendLocation(revision)) || Date.now() < retryAfterMs) return false;
+  const permission = source === 'background'
+    ? await Location.getBackgroundPermissionsAsync()
+    : await Location.getForegroundPermissionsAsync();
+  if (permission.status !== 'granted') return false;
   const timestamp = timestampIsoFromLocation(location);
   logDriverTrackingDiagnostic('location_sample_received', {
     jobId: bookingRef,
@@ -136,7 +165,7 @@ async function postDriverLocation(
       accuracy: normaliseOptionalNumber(location.coords.accuracy),
       locationTimestamp: timestamp,
     });
-    return;
+    return false;
   }
   if (!(await isNewerThanLastAck(bookingRef, timestamp))) {
     logDriverTrackingDiagnostic('location_sample_rejected', {
@@ -144,55 +173,23 @@ async function postDriverLocation(
       reason: 'older_than_last_ack',
       locationTimestamp: timestamp,
     });
-    return;
+    return false;
   }
 
-  await postDriverCoordinates(
+  // A 403 may have cleared a stale job while the hook still holds its old ref.
+  const storedRef = await secureStorage.getItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => null);
+  return postDriverCoordinates(
     { lat: location.coords.latitude, lng: location.coords.longitude },
-    bookingRef,
+    storedRef === bookingRef ? bookingRef : null,
     {
       timestamp,
       accuracy: location.coords.accuracy,
       heading: location.coords.heading,
       speed: location.coords.speed,
-      source: 'background',
+      source,
     },
+    revision,
   );
-}
-
-async function queueBackgroundLocation(
-  location: Location.LocationObject,
-  bookingRef: string | null,
-  reason: string,
-): Promise<void> {
-  const timestamp = timestampIsoFromLocation(location);
-  if (!timestamp || !hasUsableAccuracy(location)) {
-    logDriverTrackingDiagnostic('location_sample_rejected', {
-      jobId: bookingRef,
-      reason: !timestamp ? 'invalid_timestamp' : 'accuracy_too_low',
-      accuracy: normaliseOptionalNumber(location.coords.accuracy),
-      locationTimestamp: timestamp,
-    });
-    return;
-  }
-  const body = locationBody(
-    { lat: location.coords.latitude, lng: location.coords.longitude },
-    bookingRef,
-    timestamp,
-    {
-      accuracy: location.coords.accuracy,
-      heading: location.coords.heading,
-      speed: location.coords.speed,
-      source: 'background',
-    },
-  );
-  enqueue(LOCATION_PATH, 'POST', body);
-  logDriverTrackingDiagnostic('offline_queue_enqueued', {
-    jobId: bookingRef,
-    reason,
-    queueCount: getQueueLength(),
-    locationTimestamp: timestamp,
-  });
 }
 
 async function postDriverCoordinates(
@@ -205,14 +202,16 @@ async function postDriverCoordinates(
     speed?: number | null;
     source: 'background' | 'foreground';
   },
-): Promise<void> {
+  revision: number,
+): Promise<boolean> {
+  if (!(await canSendLocation(revision))) return false;
   if (!isValidLocationPoint(point)) {
     logDriverTrackingDiagnostic('location_sample_rejected', {
       jobId: bookingRef,
       reason: 'invalid_location',
       locationTimestamp: sample.timestamp,
     });
-    return;
+    return false;
   }
   if (!(await isNewerThanLastAck(bookingRef, sample.timestamp))) {
     logDriverTrackingDiagnostic('location_sample_rejected', {
@@ -220,13 +219,14 @@ async function postDriverCoordinates(
       reason: 'older_than_last_ack',
       locationTimestamp: sample.timestamp,
     });
-    return;
+    return false;
   }
   const body = locationBody(point, bookingRef, sample.timestamp, sample);
   const baseUrl = await getApiUrl().catch(() => null);
   const host = endpointHostname(baseUrl);
 
   try {
+    if (!(await canSendLocation(revision))) return false;
     logDriverTrackingDiagnostic('upload_request_started', {
       jobId: bookingRef,
       requestHostname: host,
@@ -250,6 +250,7 @@ async function postDriverCoordinates(
       await rememberAck(bookingRef, response.acceptedLocationTimestamp ?? sample.timestamp);
     }
     void flushOfflineQueue();
+    return response.accepted !== false;
   } catch (error) {
     logDriverTrackingDiagnostic('upload_request_failed', {
       jobId: bookingRef,
@@ -258,9 +259,23 @@ async function postDriverCoordinates(
       httpStatus: error instanceof ApiError ? error.status : null,
       locationTimestamp: sample.timestamp,
     });
-    if (error instanceof ApiError && error.status === 403) {
-      await stopBackgroundLocation();
-      return;
+    if (!(await canSendLocation(revision))) return false;
+    if (error instanceof ApiError && error.status === 403 && bookingRef) {
+      // Assignment can change while a driver remains Online. Drop only the
+      // rejected job context and retry once as an unassigned driver sample.
+      await secureStorage.deleteItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => {});
+      return postDriverCoordinates(point, null, sample, revision);
+    }
+    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+      // Gateways and temporary authorization failures must not erase Online
+      // consent or stop native GPS. The API still rejects unauthorised samples;
+      // retry quietly and let session verification handle confirmed revocation.
+      retryAfterMs = Date.now() + 30_000;
+      return false;
+    }
+    if (error instanceof ApiError && error.status === 429) {
+      retryAfterMs = Date.now() + (error.retryAfterSeconds ?? 30) * 1000;
+      return false;
     }
     if (shouldQueueLocation(error)) {
       enqueue(LOCATION_PATH, 'POST', body);
@@ -271,6 +286,7 @@ async function postDriverCoordinates(
         locationTimestamp: sample.timestamp,
       });
     }
+    return false;
   }
 }
 
@@ -283,41 +299,50 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
     return;
   }
 
-  const { locations } = data as { locations: Location.LocationObject[] };
+  const { locations } = (data ?? {}) as { locations?: Location.LocationObject[] };
   const locationCount = Array.isArray(locations) ? locations.length : 0;
   logDriverTrackingDiagnostic('background_task_invoked', {
     locationCount,
   });
-  if (locationCount === 0) return;
+  if (locationCount === 0 || !locations) return;
 
-  const activeRef = await secureStorage.getItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => null);
-  logDriverTrackingDiagnostic('active_job_loaded', {
-    jobId: activeRef,
-    result: activeRef ? 'found' : 'missing',
-    locationCount,
-  });
-
-  if (!activeRef) {
-    return;
-  }
-
-  const ordered = [...locations].sort((a, b) => a.timestamp - b.timestamp);
-
-  const token = await getToken();
-  logDriverTrackingDiagnostic('auth_token_loaded', {
-    jobId: activeRef,
-    result: token ? 'present' : 'missing',
-    locationCount,
-  });
-  if (!token) {
-    for (const location of ordered) {
-      await queueBackgroundLocation(location, activeRef, 'missing_token');
+  try {
+    if (!(await isOnlineLocationEnabled())) {
+      await stopBackgroundLocation();
+      return;
     }
-    return;
-  }
 
-  for (const location of ordered) {
-    await postDriverLocation(location, activeRef);
+    const activeRef = await secureStorage.getItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => null);
+    logDriverTrackingDiagnostic('active_job_loaded', {
+      jobId: activeRef,
+      result: activeRef ? 'found' : 'missing',
+      locationCount,
+    });
+
+    const ordered = [...locations].sort((a, b) => a.timestamp - b.timestamp);
+
+    const token = await getToken();
+    logDriverTrackingDiagnostic('auth_token_loaded', {
+      jobId: activeRef,
+      result: token ? 'present' : 'missing',
+      locationCount,
+    });
+    if (!token) {
+      // Absence/unavailability of a credential is not an explicit Offline action.
+      // Sign-out and verified revocation own native shutdown. Never queue samples
+      // for a later account, but allow the next task to recover its credentials.
+      return;
+    }
+
+    for (const location of ordered) {
+      await sendDriverLocationSample(location, activeRef);
+    }
+  } catch (taskError) {
+    // iOS may briefly deny Keychain access during lock/unlock or before the
+    // first unlock after reboot. Preserve consent and the registered task.
+    logDriverTrackingDiagnostic('background_task_invoked', {
+      reason: taskError instanceof Error ? taskError.message : 'background_task_unavailable',
+    });
   }
 });
 
@@ -339,34 +364,37 @@ export async function requestLocationPermissions(): Promise<{
 }
 
 export async function startBackgroundLocation(): Promise<boolean> {
+  return withNativeOperation(startNativeBackgroundLocation);
+}
+
+async function startNativeBackgroundLocation(): Promise<boolean> {
   try {
+    const revision = getOnlineLocationRevision();
     const activeRef = await secureStorage.getItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => null);
     logDriverTrackingDiagnostic('tracking_start_requested', {
       jobId: activeRef,
       queueCount: getQueueLength(),
     });
-    if (!activeRef) {
+    if (!(await canSendLocation(revision))) {
       logDriverTrackingDiagnostic('tracking_start_failed', {
-        reason: 'missing_active_job',
+        reason: 'offline_or_signed_out',
         queueCount: getQueueLength(),
       });
       return false;
     }
 
-    const isTracking = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(
-      () => false,
-    );
-    if (isTracking) {
-      logDriverTrackingDiagnostic('tracking_start_succeeded', {
-        jobId: activeRef,
-        result: 'already_running',
-        queueCount: getQueueLength(),
-      });
-      return true;
-    }
-
-    const { foreground, background } = await requestLocationPermissions();
+    // Automatic restarts must never show permission prompts. Only the driver's
+    // Go Online flow requests permissions.
+    const [foregroundPermission, backgroundPermission] = await Promise.all([
+      Location.getForegroundPermissionsAsync(),
+      Location.getBackgroundPermissionsAsync(),
+    ]);
+    const foreground = foregroundPermission.status === 'granted';
+    const background = backgroundPermission.status === 'granted';
     if (!foreground || !background) {
+      const running = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK)
+        .catch(() => false);
+      if (running) await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
       logDriverTrackingDiagnostic('tracking_start_failed', {
         jobId: activeRef,
         reason: 'permission_denied',
@@ -376,12 +404,24 @@ export async function startBackgroundLocation(): Promise<boolean> {
       return false;
     }
 
+    const isTracking = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK)
+      .catch(() => false);
+    if (!(await canSendLocation(revision))) return false;
+    if (isTracking) {
+      logDriverTrackingDiagnostic('tracking_start_succeeded', {
+        jobId: activeRef,
+        result: 'already_running',
+        queueCount: getQueueLength(),
+      });
+      return true;
+    }
+
     await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
       accuracy: Location.Accuracy.BestForNavigation,
-      timeInterval: 10_000,
-      distanceInterval: 10,
-      deferredUpdatesInterval: 10_000,
-      deferredUpdatesDistance: 10,
+      timeInterval: 20_000,
+      distanceInterval: 0,
+      deferredUpdatesInterval: 20_000,
+      deferredUpdatesDistance: 0,
       activityType: Location.ActivityType.AutomotiveNavigation,
       pausesUpdatesAutomatically: false,
       showsBackgroundLocationIndicator: true,
@@ -392,13 +432,17 @@ export async function startBackgroundLocation(): Promise<boolean> {
         killServiceOnDestroy: false,
       },
     });
+    if (!(await canSendLocation(revision))) {
+      await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+      return false;
+    }
 
     logDriverTrackingDiagnostic('tracking_start_succeeded', {
       jobId: activeRef,
       result: 'started',
       pausesUpdatesAutomatically: false,
-      intervalMs: 10_000,
-      distanceMeters: 10,
+      intervalMs: 20_000,
+      distanceMeters: 0,
       queueCount: getQueueLength(),
     });
     return true;
@@ -413,8 +457,10 @@ export async function startBackgroundLocation(): Promise<boolean> {
 
 export async function armBackgroundLocationForJob(
   bookingRef?: string | null,
-  knownLocation?: NavigationLocationPoint | null,
+  _knownLocation?: NavigationLocationPoint | null,
 ): Promise<boolean> {
+  if (!(await isOnlineLocationEnabled())) return false;
+  const revision = getOnlineLocationRevision();
   const activeRef = bookingRef?.trim() || null;
   if (activeRef) {
     await secureStorage.setItemAsync(ACTIVE_BOOKING_REF_KEY, activeRef).catch(() => {});
@@ -430,37 +476,17 @@ export async function armBackgroundLocationForJob(
     queueCount: getQueueLength(),
   });
 
-  let immediatePoint = isValidLocationPoint(knownLocation) ? knownLocation : null;
-  if (!immediatePoint) {
-    const lastKnown = await Location.getLastKnownPositionAsync({
-      maxAge: LAST_KNOWN_MAX_AGE_MS,
-      requiredAccuracy: LAST_KNOWN_REQUIRED_ACCURACY_M,
-    }).catch(() => null);
-    if (lastKnown) {
-      immediatePoint = {
-        lat: lastKnown.coords.latitude,
-        lng: lastKnown.coords.longitude,
-      };
-      if (lastKnown.coords.accuracy != null && lastKnown.coords.accuracy > MAX_ACCEPTED_ACCURACY_M) {
-        immediatePoint = null;
-      }
-    }
-  }
-
-  const timestamp = new Date().toISOString();
-  if (immediatePoint) {
-    void postDriverCoordinates(immediatePoint, storedRef, {
-      timestamp,
-      accuracy: null,
-      heading: null,
-      speed: null,
-      source: 'foreground',
-    });
-  } else {
+  // Navigation coordinates alone have no sample timestamp/accuracy. Obtain a
+  // full native sample instead of making cached coordinates appear freshly seen.
+  if (started && await canSendLocation(revision)) {
     void Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.BestForNavigation,
     })
-      .then((location) => postDriverLocation(location, storedRef))
+      .then(async (location) => {
+        if (await canSendLocation(revision)) {
+          await sendDriverLocationSample(location, storedRef, 'foreground');
+        }
+      })
       .catch(() => {});
   }
 
@@ -468,24 +494,51 @@ export async function armBackgroundLocationForJob(
 }
 
 export async function stopBackgroundLocation(clearActiveRef = true): Promise<void> {
-  const isTracking = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(
-    () => false,
-  );
-  if (isTracking) {
-    await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
-  }
-  if (clearActiveRef) {
-    await secureStorage.deleteItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => {});
-  }
-  logDriverTrackingDiagnostic('tracking_stopped', {
-    wasRunning: isTracking,
-    clearActiveRef,
-    queueCount: getQueueLength(),
+  return withNativeOperation(async () => {
+    const isTracking = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK)
+      .catch(() => false);
+    if (isTracking) await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+    if (clearActiveRef) {
+      await secureStorage.deleteItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => {});
+    }
+    logDriverTrackingDiagnostic('tracking_stopped', {
+      wasRunning: isTracking,
+      clearActiveRef,
+      queueCount: getQueueLength(),
+    });
   });
 }
 
+export async function setOnlineLocationTracking(online: boolean): Promise<boolean> {
+  try {
+    await setOnlineLocationEnabled(online);
+  } catch {
+    await discardQueuedLocations();
+    await stopBackgroundLocation();
+    return false;
+  }
+  if (online) return startBackgroundLocation();
+  retryAfterMs = 0;
+  await discardQueuedLocations();
+  await stopBackgroundLocation();
+  return false;
+}
+
+/** Ending/rejecting one job must not turn off an Online driver's GPS. */
+export async function clearActiveBookingTracking(): Promise<void> {
+  await secureStorage.deleteItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => {});
+  if (await isOnlineLocationEnabled()) await startBackgroundLocation();
+  else await stopBackgroundLocation();
+}
+
 export async function isBackgroundLocationRunning(): Promise<boolean> {
-  return Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => false);
+  if (!(await isOnlineLocationEnabled())) return false;
+  const [running, foreground, background] = await Promise.all([
+    Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => false),
+    Location.getForegroundPermissionsAsync().catch(() => null),
+    Location.getBackgroundPermissionsAsync().catch(() => null),
+  ]);
+  return running && foreground?.status === 'granted' && background?.status === 'granted';
 }
 
 export { BACKGROUND_LOCATION_TASK };

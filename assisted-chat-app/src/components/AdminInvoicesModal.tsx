@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,6 +16,8 @@ import { colors, fontSize, radius, space } from './theme';
 import { api } from '@/lib/api';
 import { downloadInvoicePdfToDevice } from '@/lib/invoice-download';
 import { AdminHeaderButton, AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
+import { InvoicePresentationEditor, type InvoicePresentationEditorHandle } from './invoices/InvoicePresentationEditor';
+import { AppButton, StatusBanner } from './ui';
 import {
   useAdminInvoices,
   useInvoiceDetail,
@@ -320,15 +322,17 @@ function InvoiceFormView({ invoiceId, initialData, onSuccess, onCancel }: Create
 
 // ── Invoice detail view ───────────────────────────────────────────────────
 
-function InvoiceDetailView({ invoiceId, onClose, onEdit, onAction, actionLoading }: {
+function InvoiceDetailView({ invoiceId, enabled, onClose, onEdit, onAction, actionLoading }: {
   invoiceId: string;
+  enabled: boolean;
   onClose: () => void;
   onEdit: () => void;
   onAction: (id: string, action: 'send' | 'archive' | 'delete' | 'markPaid') => void;
   actionLoading: string | null;
 }) {
-  const { detail, loading } = useInvoiceDetail(invoiceId, true);
+  const { detail, loading, error, refresh } = useInvoiceDetail(invoiceId, enabled);
   const busy = actionLoading === invoiceId;
+  const totalAmount = detail?.bookingId && detail.bookingTotalPence != null ? (detail.bookingTotalPence / 100).toFixed(2) : detail?.totalAmount ?? '0';
 
   function openPdf() {
     if (!detail) return;
@@ -349,23 +353,28 @@ function InvoiceDetailView({ invoiceId, onClose, onEdit, onAction, actionLoading
         title={detail?.invoiceNumber ?? '...'}
         onClose={onClose}
         actions={detail && !detail.deletedAt ? (
-          <AdminHeaderButton label="Edit" onPress={onEdit} />
+          <AdminHeaderButton label={detail.bookingId ? 'Invoice options' : 'Edit'} onPress={onEdit} />
         ) : null}
       />
 
-      {loading || !detail ? (
+      {error ? <View style={{ padding: space.md, gap: space.md }}>
+        <StatusBanner kind="err" message={error} />
+        <AppButton label="Retry" variant="secondary" onPress={refresh} fullWidth />
+      </View> : loading || !detail ? (
         <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
       ) : (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: space.md, paddingBottom: 40 }}>
           {/* Status + amount */}
           <View style={[s.card, s.row]}>
             <StatusBadge status={detail.status} />
-            <Text style={[s.amountLarge, { color: STATUS_COLOR[detail.status] ?? colors.accent }]}>{fmtGbp(detail.totalAmount)}</Text>
+            <Text style={[s.amountLarge, { color: STATUS_COLOR[detail.status] ?? colors.accent }]}>{fmtGbp(totalAmount)}</Text>
           </View>
+          {detail.bookingId ? <Text style={[s.fieldMuted, { marginBottom: space.md }]}>Payment status follows the booking payment records. Record payments from the booking.</Text> : null}
 
           {/* Customer */}
           <View style={s.card}>
             <Text style={s.sectionTitle}>Customer</Text>
+            {detail.bookingId ? <Text style={s.fieldMuted}>Linked to booking {detail.bookingRef ?? '—'}. Edit customer, address and booking price in Bookings.</Text> : null}
             <Text style={s.fieldVal}>{detail.customerName}</Text>
             <Text style={s.fieldMuted}>{detail.customerEmail}</Text>
             {detail.customerPhone ? <Text style={s.fieldMuted}>{detail.customerPhone}</Text> : null}
@@ -383,12 +392,24 @@ function InvoiceDetailView({ invoiceId, onClose, onEdit, onAction, actionLoading
             </View>
           </View>
 
-          {/* Final total only */}
+          {detail.bookingId && detail.invoicePresentation?.extraInformation ? <View style={s.card}>
+            <Text style={s.sectionTitle}>Extra information for the customer</Text>
+            <Text style={s.fieldVal}>{detail.invoicePresentation.extraInformation}</Text>
+          </View> : null}
+          {detail.bookingId && detail.priceBreakdownStale ? <StatusBanner kind="warn" message="The booking total changed. The old breakdown is hidden on the invoice. Open Invoice options to review it or reset to final total only." /> : null}
+          {detail.bookingId && !detail.priceBreakdownStale && detail.invoicePresentation?.priceBreakdown ? <View style={s.card}>
+            <Text style={s.sectionTitle}>Customer price breakdown</Text>
+            {detail.invoicePresentation.priceBreakdown.map((line, index) => <View key={index} style={[s.row, { gap: space.md, marginTop: space.sm }]}>
+              <Text style={[s.fieldVal, { flex: 1 }]}>{line.label}</Text>
+              <Text style={s.fieldVal}>{fmtGbp((line.amountPence / 100).toFixed(2))}</Text>
+            </View>)}
+          </View> : null}
+          {/* Final total */}
           <View style={s.card}>
             <Text style={s.sectionTitle}>Final Total</Text>
             <View style={[s.row, { marginTop: space.xs }]}>
               <Text style={[s.fieldKey, { color: colors.text, fontWeight: '800' }]}>TOTAL</Text>
-              <Text style={[s.amountLarge, { color: colors.accent }]}>{fmtGbp(detail.totalAmount)}</Text>
+              <Text style={[s.amountLarge, { color: colors.accent }]}>{fmtGbp(totalAmount)}</Text>
             </View>
           </View>
 
@@ -400,7 +421,7 @@ function InvoiceDetailView({ invoiceId, onClose, onEdit, onAction, actionLoading
               {detail.status !== 'paid' && detail.status !== 'cancelled' && detail.status !== 'archived' && (
                 <>
                   <ActionPill label="Send Invoice" color={STATUS_COLOR.sent} loading={busy} onPress={() => onAction(detail.id, 'send')} />
-                  <ActionPill label="Mark Paid" color={STATUS_COLOR.paid} loading={busy} onPress={() => onAction(detail.id, 'markPaid')} />
+                  {!detail.bookingId ? <ActionPill label="Mark Paid" color={STATUS_COLOR.paid} loading={busy} onPress={() => onAction(detail.id, 'markPaid')} /> : null}
                 </>
               )}
               {detail.status !== 'archived' && (
@@ -462,7 +483,7 @@ function InvoiceCard({ inv, onView, onAction, actionLoading }: {
             {inv.status !== 'paid' && inv.status !== 'cancelled' && inv.status !== 'archived' && (
               <>
                 <ActionPill label="Send" color={STATUS_COLOR.sent} loading={busy} onPress={() => onAction(inv.id, 'send')} />
-                <ActionPill label="Mark Paid" color={STATUS_COLOR.paid} loading={busy} onPress={() => onAction(inv.id, 'markPaid')} />
+                {!inv.bookingId ? <ActionPill label="Mark Paid" color={STATUS_COLOR.paid} loading={busy} onPress={() => onAction(inv.id, 'markPaid')} /> : null}
               </>
             )}
             {inv.status !== 'archived' && (
@@ -488,6 +509,7 @@ type Screen = 'list' | 'create' | 'edit' | 'detail';
 interface Props { visible: boolean; onClose: () => void; }
 
 export function AdminInvoicesModal({ visible, onClose }: Props) {
+  const invoiceEditorRef = useRef<InvoicePresentationEditorHandle | null>(null);
   const [screen, setScreen] = useState<Screen>('list');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
@@ -498,9 +520,9 @@ export function AdminInvoicesModal({ visible, onClose }: Props) {
     refresh, applySearch, applyStatus, goPage, doAction,
   } = useAdminInvoices(visible);
 
-  const { detail: editDetail } = useInvoiceDetail(
+  const { detail: editDetail, error: editError, refresh: retryEditDetail } = useInvoiceDetail(
     screen === 'edit' ? selectedId : null,
-    screen === 'edit' && !!selectedId
+    visible && screen === 'edit' && !!selectedId
   );
 
   function handleAction(id: string, action: 'send' | 'archive' | 'delete' | 'markPaid') {
@@ -525,6 +547,7 @@ export function AdminInvoicesModal({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => {
+      if (invoiceEditorRef.current) { invoiceEditorRef.current.requestClose(); return; }
       if (screen !== 'list') { setScreen(showEdit ? 'detail' : 'list'); } else { onClose(); }
     }}>
       <AdminModalShell>
@@ -616,7 +639,15 @@ export function AdminInvoicesModal({ visible, onClose }: Props) {
         )}
 
         {/* ── Edit ── */}
-        {showEdit && editDetail && (
+        {showEdit && editDetail && editDetail.bookingId ? (
+          <View style={{ flex: 1 }}>
+            <AdminModalHeader title={editDetail.invoiceNumber} onClose={() => { if (invoiceEditorRef.current) invoiceEditorRef.current.requestClose(); else setScreen('detail'); }} />
+            {editDetail.bookingRef ? <InvoicePresentationEditor ref={invoiceEditorRef} bookingRef={editDetail.bookingRef} onClose={handleEditSuccess} /> : <View style={{ padding: space.md, gap: space.md }}>
+              <StatusBanner kind="err" message="This invoice is linked to a booking, but its reference could not be loaded. Open the booking in Bookings to edit its invoice options." />
+              <AppButton label="Back to invoice" variant="secondary" onPress={() => setScreen('detail')} fullWidth />
+            </View>}
+          </View>
+        ) : showEdit && editDetail ? (
           <InvoiceFormView
             invoiceId={selectedId!}
             initialData={{
@@ -638,13 +669,18 @@ export function AdminInvoicesModal({ visible, onClose }: Props) {
             onSuccess={handleEditSuccess}
             onCancel={() => setScreen('detail')}
           />
-        )}
-        {showEdit && !editDetail && <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />}
+        ) : null}
+        {showEdit && editError ? <View style={{ padding: space.md, gap: space.md }}>
+          <StatusBanner kind="err" message={editError} />
+          <AppButton label="Retry" variant="secondary" onPress={retryEditDetail} fullWidth />
+          <AppButton label="Back to invoice" variant="ghost" onPress={() => setScreen('detail')} fullWidth />
+        </View> : showEdit && !editDetail ? <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} /> : null}
 
         {/* ── Detail ── */}
         {showDetail && (
           <InvoiceDetailView
             invoiceId={selectedId!}
+            enabled={visible}
             onClose={() => { setScreen('list'); setSelectedId(null); }}
             onEdit={() => setScreen('edit')}
             onAction={handleAction}

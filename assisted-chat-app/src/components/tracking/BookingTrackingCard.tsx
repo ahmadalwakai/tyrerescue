@@ -3,6 +3,7 @@ import { Linking, Platform, StyleSheet, Text, View, type ViewStyle } from 'react
 import { AppButton, StatusBanner } from '@/components/ui';
 import { colors, fontSize, radius, space } from '@/components/theme';
 import { copyToClipboard } from '@/lib/clipboard';
+import { CopyAddressButton } from '../CopyAddressButton';
 import { buildWhatsAppUrl } from '@/lib/customer-message';
 import type {
   BookingTrackingData,
@@ -250,12 +251,11 @@ export function BookingTrackingCard({
         </View>
       ) : null}
 
-      {customerAddress ? (
         <View style={styles.addressBlock}>
           <Text style={styles.linkLabel}>Destination</Text>
-          <Text style={styles.addressText}>{customerAddress}</Text>
+          <Text style={styles.addressText}>{customerAddress || 'Address not provided'}</Text>
+          <CopyAddressButton address={customerAddress} />
         </View>
-      ) : null}
 
       {/* ── Customer tracking link ───────────────────────── */}
       <View style={styles.linkBlock}>

@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { api, getAdminToken, getApiBaseUrl } from '@/lib/api';
+import { getAdminSessionRevision } from '@/hooks/useAdminSession';
+import type { CustomerInvoicePresentation } from '@/types/invoice-presentation';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -32,6 +34,11 @@ export interface InvoiceItem {
 }
 
 export interface InvoiceDetail extends InvoiceRow {
+  bookingRef?: string | null;
+  bookingTotalPence?: number | null;
+  invoicePresentation?: CustomerInvoicePresentation;
+  bookingUpdatedAt?: string | null;
+  priceBreakdownStale?: boolean;
   customerPhone: string | null;
   customerAddress: string | null;
   companyName: string | null;
@@ -147,38 +154,39 @@ export function useAdminInvoices(enabled: boolean) {
 // ── Detail hook ────────────────────────────────────────────────────────────
 
 export function useInvoiceDetail(id: string | null, enabled: boolean) {
-  const [detail, setDetail] = useState<InvoiceDetail | null>(null);
-  const [loading, setLoading] = useState(false);
+  const token = getAdminToken();
+  const baseUrl = getApiBaseUrl();
+  const revision = getAdminSessionRevision();
+  const context = useMemo(() => ({ id, token, baseUrl, revision }), [id, token, baseUrl, revision]);
+  const [state, setState] = useState<{ context: typeof context; detail: InvoiceDetail | null; loading: boolean; error: string | null } | null>(null);
+  const [refreshCycle, setRefreshCycle] = useState(0);
+  const refresh = useCallback(() => setRefreshCycle((value) => value + 1), []);
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
+    const current = () => !cancelled && getAdminToken() === context.token && getApiBaseUrl() === context.baseUrl
+      && getAdminSessionRevision() === context.revision;
 
     void (async () => {
-      if (!id || !enabled) {
-        if (!cancelled) {
-          setDetail(null);
-          setLoading(false);
-        }
-        return;
-      }
-
-      setLoading(true);
+      if (!context.id || !enabled || !context.token) return;
+      setState({ context, detail: null, loading: true, error: null });
       try {
         const { invoice, items } = await api.get<{ invoice: Omit<InvoiceDetail, 'items'>; items: InvoiceItem[] }>(
-          `/api/mobile/admin/invoices/${id}`,
+          `/api/mobile/admin/invoices/${encodeURIComponent(context.id)}`, { signal: controller.signal },
         );
-        if (!cancelled) setDetail({ ...invoice, items });
-      } catch {
-        if (!cancelled) setDetail(null);
-      } finally {
-        if (!cancelled) setLoading(false);
+        if (current()) setState({ context, detail: { ...invoice, items }, loading: false, error: null });
+      } catch (cause) {
+        if (current()) setState({ context, detail: null, loading: false, error: cause instanceof Error ? cause.message : 'Could not load this invoice. Please retry.' });
       }
     })();
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [id, enabled]);
+  }, [context, enabled, refreshCycle]);
 
-  return { detail, loading };
+  const visible = enabled && state?.context === context ? state : null;
+  return { detail: visible?.detail ?? null, loading: Boolean(enabled && id && (!visible || visible.loading)), error: visible?.error ?? null, refresh };
 }

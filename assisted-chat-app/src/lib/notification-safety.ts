@@ -5,7 +5,7 @@ export interface UrgentBookingNotificationOpenRequest {
   refNumber: string | null;
 }
 
-const EXPO_TOKEN_PREFIX = 'ExponentPushToken[';
+const EXPO_TOKEN_PATTERN = /^(?:ExponentPushToken|ExpoPushToken)\[[^\]\s]+\]$/;
 const VALID_PERMISSION_STATUSES = new Set<NotificationPermissionStatus>([
   'granted',
   'denied',
@@ -34,7 +34,7 @@ export function normalizePermissionResponse(value: unknown): NotificationPermiss
 export function normalizeExpoPushToken(value: unknown): string | null {
   if (!isRecord(value)) return null;
   const token = readNonEmptyString(value.data);
-  return token && token.startsWith(EXPO_TOKEN_PREFIX) ? token : null;
+  return token && EXPO_TOKEN_PATTERN.test(token) ? token : null;
 }
 
 export function normalizeDevicePushToken(
@@ -44,7 +44,7 @@ export function normalizeDevicePushToken(
   if (!isRecord(value)) return null;
   if (value.type !== expectedType) return null;
   const token = readNonEmptyString(value.data);
-  if (!token || token.startsWith(EXPO_TOKEN_PREFIX)) return null;
+  if (!token || /^(?:ExponentPushToken|ExpoPushToken)\[/.test(token)) return null;
   return token;
 }
 
@@ -69,6 +69,46 @@ export function parseUrgentBookingNotificationOpenRequest(
   return { bookingId, refNumber };
 }
 
+/** A push only selects an event; the modal fetches its authenticated state. */
+export function parseDriverJourneyNotificationOpenRequest(data: unknown): { eventId: string } | null {
+  if (!isRecord(data) || !['driver_journey_confirmation', 'driver_journey_near', 'driver_journey_stopped'].includes(String(data.type))) return null;
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const eventId = readNonEmptyString(data.eventId);
+  const journeyId = readNonEmptyString(data.journeyId);
+  const bookingId = readNonEmptyString(data.bookingId);
+  if (!eventId || !journeyId || !bookingId || ![eventId, journeyId, bookingId].every((id) => uuid.test(id))) return null;
+  return { eventId };
+}
+
 export function isOkResponse(value: unknown): boolean {
   return isRecord(value) && value.ok === true;
+}
+
+/** Notification content selects a thread; its contents always come from authenticated APIs. */
+export function parseCustomerChatNotificationOpenRequest(data: unknown): { conversationId: string } | null {
+  if (!isRecord(data) || data.type !== 'chat_message') return null;
+  const conversationId = readNonEmptyString(data.conversationId);
+  return conversationId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)
+    ? { conversationId } : null;
+}
+
+export function parseCallbackNotificationOpenRequest(data: unknown): { callbackId: string } | null {
+  if (!isRecord(data) || data.type !== 'callback_request') return null;
+  const callbackId = readNonEmptyString(data.callbackId);
+  return callbackId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(callbackId)
+    ? { callbackId } : null;
+}
+
+export interface PendingCallbackNotification {
+  callbackId: string;
+  apiRevision: number;
+  sessionRevision: number;
+}
+
+/** A notification cannot bypass sign-in, a changed workspace, or UIKit dismissal. */
+export function callbackNotificationDisposition(pending: PendingCallbackNotification, current: {
+  authenticated: boolean; apiRevision: number; sessionRevision: number; ready: boolean; busy: boolean;
+}): 'discard' | 'wait' | 'open' {
+  if (!current.authenticated || pending.apiRevision !== current.apiRevision || pending.sessionRevision !== current.sessionRevision) return 'discard';
+  return current.ready && !current.busy ? 'open' : 'wait';
 }

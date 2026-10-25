@@ -1,234 +1,118 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import * as Location from 'expo-location';
 import { AppState, type AppStateStatus } from 'react-native';
-import { driverApi, ApiError } from '@/api/client';
 import {
   ACTIVE_BOOKING_REF_KEY,
+  sendDriverLocationSample,
   startBackgroundLocation,
-  stopBackgroundLocation,
+  setOnlineLocationTracking,
   requestLocationPermissions,
 } from '@/services/background-location';
-import { enqueue, flushOfflineQueue } from '@/services/offline-queue';
+import { getOnlineLocationRevision, isOnlineLocationEnabled } from '@/services/online-location-state';
 import * as secureStorage from '@/services/secure-storage';
 
-// ── Throttling constants ─────────────────────────────────────────────────
-// Server enforces a hard 8s min between writes per driver. Stay above.
-const ACTIVE_INTERVAL = 10_000; // foreground heartbeat while a job is active
-const IDLE_INTERVAL = 45_000;   // foreground heartbeat while waiting for jobs
-const MIN_INTERVAL_MS = 9_000;  // server enforces 8s; keep just above it
-const MIN_MOVEMENT_METERS = 10;
-const MAX_QUIET_MS = 30_000;    // force a heartbeat at least this often
-const DEFAULT_BACKOFF_MS = 30_000;
-const LOCATION_PATH = '/api/driver/location';
-
-function distanceMeters(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-): number {
-  const R = 6_371_000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLng = toRad(b.lng - a.lng);
-  const lat1 = toRad(a.lat);
-  const lat2 = toRad(b.lat);
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
-
-function locationBody(
-  lat: number,
-  lng: number,
-  bookingRef: string | null,
-  sample: {
-    timestamp: string;
-    accuracy?: number | null;
-    heading?: number | null;
-    speed?: number | null;
-  },
-) {
-  return {
-    lat,
-    lng,
-    ...(bookingRef ? { bookingRef } : {}),
-    timestamp: sample.timestamp,
-    accuracy: sample.accuracy ?? null,
-    heading: sample.heading ?? null,
-    speed: sample.speed ?? null,
-    source: 'foreground',
-  };
-}
-
-function shouldQueueLocation(error: unknown): boolean {
-  if (error instanceof ApiError) {
-    return error.code === 'network' || error.status === 0 || error.status >= 500;
-  }
-  return true;
-}
+// Native background delivery is OS-controlled. These foreground heartbeats
+// provide genuine samples even while an Online driver is stationary/unassigned.
+const ACTIVE_INTERVAL = 10_000;
+const IDLE_INTERVAL = 20_000;
+const MIN_INTERVAL_MS = 9_000; // Server minimum is 8 seconds.
 
 export function useLocationBroadcast(
   isOnline: boolean,
   hasActiveJob: boolean,
   activeBookingRef?: string | null,
+  statusResolved = true,
 ) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const activeRefRef = useRef<string | null>(activeBookingRef ?? null);
-  const inFlightRef = useRef<boolean>(false);
-  const lastSentAtRef = useRef<number>(0);
-  const lastSentCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
-  const backoffUntilRef = useRef<number>(0);
+  const onlineRef = useRef(isOnline);
+  onlineRef.current = isOnline && statusResolved;
+  const inFlightRef = useRef(false);
+  const lastSentAtRef = useRef(0);
   const [bgRunning, setBgRunning] = useState(false);
 
-  // Keep ref in sync without re-creating the polling interval on every change.
   useEffect(() => {
     activeRefRef.current = activeBookingRef ?? null;
-    if (activeBookingRef) {
+    if (!statusResolved) return;
+    if (isOnline && activeBookingRef) {
       secureStorage.setItemAsync(ACTIVE_BOOKING_REF_KEY, activeBookingRef).catch(() => {});
-    } else if (!hasActiveJob) {
+    } else {
       secureStorage.deleteItemAsync(ACTIVE_BOOKING_REF_KEY).catch(() => {});
     }
-  }, [activeBookingRef, hasActiveJob]);
+  }, [activeBookingRef, isOnline, statusResolved]);
 
   const sendForegroundLocation = useCallback(async () => {
-    const now = Date.now();
-    if (now < backoffUntilRef.current) return;
-    if (inFlightRef.current) return;
-
+    if (!onlineRef.current || appStateRef.current !== 'active' || inFlightRef.current) return;
+    if (lastSentAtRef.current && Date.now() - lastSentAtRef.current < MIN_INTERVAL_MS) return;
+    const revision = getOnlineLocationRevision();
+    inFlightRef.current = true;
     try {
+      if (!(await isOnlineLocationEnabled())) return;
       const { status } = await Location.getForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-
-      const loc = await Location.getCurrentPositionAsync({
+      if (status !== 'granted' || !onlineRef.current) return;
+      const location = await Location.getCurrentPositionAsync({
         accuracy: hasActiveJob ? Location.Accuracy.BestForNavigation : Location.Accuracy.High,
       });
-
-      const coords = {
-        lat: loc.coords.latitude,
-        lng: loc.coords.longitude,
-      };
-      const sample = {
-        timestamp: new Date(loc.timestamp).toISOString(),
-        accuracy: loc.coords.accuracy,
-        heading: loc.coords.heading,
-        speed: loc.coords.speed,
-      };
-
-      const last = lastSentCoordsRef.current;
-      const sinceLast = Date.now() - lastSentAtRef.current;
-
-      if (lastSentAtRef.current && sinceLast < MIN_INTERVAL_MS) return;
-
-      if (
-        last &&
-        sinceLast < MAX_QUIET_MS &&
-        distanceMeters(last, coords) < MIN_MOVEMENT_METERS
-      ) {
-        return;
-      }
-
-      inFlightRef.current = true;
-      try {
-        await driverApi.updateLocation(coords.lat, coords.lng, activeRefRef.current, {
-          ...sample,
-          source: 'foreground',
-        });
-        void flushOfflineQueue();
+      // Going Offline/logging out while GPS resolves invalidates this sample.
+      if (!onlineRef.current || revision !== getOnlineLocationRevision() ||
+          appStateRef.current !== 'active') return;
+      if (await sendDriverLocationSample(location, activeRefRef.current, 'foreground')) {
         lastSentAtRef.current = Date.now();
-        lastSentCoordsRef.current = coords;
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 429) {
-          const seconds = err.retryAfterSeconds ?? DEFAULT_BACKOFF_MS / 1000;
-          backoffUntilRef.current = Date.now() + seconds * 1000;
-          return;
-        }
-        if (shouldQueueLocation(err)) {
-          enqueue(
-            LOCATION_PATH,
-            'POST',
-            locationBody(coords.lat, coords.lng, activeRefRef.current, sample),
-          );
-          lastSentAtRef.current = Date.now();
-          lastSentCoordsRef.current = coords;
-        }
-      } finally {
-        inFlightRef.current = false;
       }
     } catch {
-      // Silently ignore — permission / GPS errors
+      // Permission/GPS failures are not evidence of a stationary driver.
+    } finally {
+      inFlightRef.current = false;
     }
   }, [hasActiveJob]);
 
-  // Start/stop foreground polling
-  const startForegroundPolling = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    sendForegroundLocation();
-    const interval = hasActiveJob ? ACTIVE_INTERVAL : IDLE_INTERVAL;
-    intervalRef.current = setInterval(sendForegroundLocation, interval);
-  }, [hasActiveJob, sendForegroundLocation]);
-
   const stopForegroundPolling = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = null;
   }, []);
 
-  // Handle app state changes (foreground <-> background)
-  useEffect(() => {
-    if (!isOnline) return;
+  const startForegroundPolling = useCallback(() => {
+    stopForegroundPolling();
+    if (!onlineRef.current || appStateRef.current !== 'active') return;
+    void sendForegroundLocation();
+    intervalRef.current = setInterval(sendForegroundLocation,
+      hasActiveJob ? ACTIVE_INTERVAL : IDLE_INTERVAL);
+  }, [hasActiveJob, sendForegroundLocation, stopForegroundPolling]);
 
-    const handleAppState = async (nextState: AppStateStatus) => {
-      const wasActive = appStateRef.current === 'active';
-      const isActive = nextState === 'active';
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
       appStateRef.current = nextState;
-
-      if (wasActive && !isActive) {
-        // App going to background — keep the native foreground service alive.
-        stopForegroundPolling();
-        const started = hasActiveJob ? await startBackgroundLocation() : false;
-        setBgRunning(started);
-      } else if (!wasActive && isActive) {
-        // App returning to foreground — keep background tracking armed and add
-        // a foreground heartbeat for web/dev and faster first updates.
-        const started = hasActiveJob ? await startBackgroundLocation() : false;
-        setBgRunning(started);
-        startForegroundPolling();
-      }
-    };
-
-    const sub = AppState.addEventListener('change', handleAppState);
+      stopForegroundPolling();
+      if (!onlineRef.current) return;
+      void startBackgroundLocation().then((started) => {
+        if (onlineRef.current) setBgRunning(started);
+      });
+      if (nextState === 'active') startForegroundPolling();
+    });
     return () => sub.remove();
-  }, [hasActiveJob, isOnline, startForegroundPolling, stopForegroundPolling]);
+  }, [startForegroundPolling, stopForegroundPolling]);
 
-  // Main online/offline effect
   useEffect(() => {
+    let cancelled = false;
+    stopForegroundPolling();
+    // Cold launch/profile network failure is not an explicit Offline choice.
+    // Leave the already registered native task and persisted consent intact.
+    if (!statusResolved) return;
     if (!isOnline) {
-      stopForegroundPolling();
-      stopBackgroundLocation().then(() => setBgRunning(false));
-      // Reset throttle state so first POST after coming back online is fresh.
       lastSentAtRef.current = 0;
-      lastSentCoordsRef.current = null;
-      backoffUntilRef.current = 0;
-      return;
+      setBgRunning(false);
     }
-
-    if (hasActiveJob) {
-      startBackgroundLocation().then((started) => setBgRunning(started));
-    } else {
-      stopBackgroundLocation().then(() => setBgRunning(false));
-    }
-
-    if (appStateRef.current === 'active') {
-      startForegroundPolling();
-    } else {
-      stopForegroundPolling();
-    }
-
+    void setOnlineLocationTracking(isOnline).then((started) => {
+      if (cancelled) return;
+      setBgRunning(started);
+      if (isOnline) startForegroundPolling();
+    });
     return () => {
+      cancelled = true;
       stopForegroundPolling();
     };
-  }, [hasActiveJob, isOnline, startForegroundPolling, stopForegroundPolling]);
+  }, [isOnline, statusResolved, startForegroundPolling, stopForegroundPolling]);
 
   return { requestPermission: requestLocationPermissions, bgRunning };
 }

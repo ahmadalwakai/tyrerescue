@@ -10,7 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, SESSION_VERIFICATION_ERROR } from '@/lib/api';
 import { copyToClipboard } from '@/lib/clipboard';
 import { formatGbp } from '@/lib/money';
 import type {
@@ -24,6 +24,7 @@ import type {
 import { AppButton, FieldLabel, StatusBanner } from './ui';
 import { colors, fontSize, radius } from './theme';
 import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
+import { CopyAddressButton } from './CopyAddressButton';
 
 type QuoteMode = 'recent' | 'today' | 'pending' | 'expired';
 const QUOTE_REACTIVATION_MS = 2 * 60 * 60 * 1000;
@@ -110,7 +111,7 @@ function isDepositPaymentOption(option: AdminQuotePaymentOption): boolean {
 
 function getErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof ApiError) {
-    if (err.status === 401) return 'Session expired. Please log in again.';
+    if (err.status === 401) return SESSION_VERIFICATION_ERROR;
     if (err.status === 409) return err.message || 'Quote cannot be confirmed in its current state.';
   }
   return err instanceof Error ? err.message : fallback;
@@ -405,6 +406,7 @@ export function AdminQuotesModal({ visible, onClose, onUseQuote }: Props) {
               <Text style={styles.detailLine}>Phone: {selected.customerPhone ?? 'Not set'}</Text>
               <Text style={styles.detailLine}>Name: {selected.customerName ?? 'Not set'}</Text>
               <Text style={styles.detailLine}>Address: {selected.address ?? 'Not set'}</Text>
+              <CopyAddressButton address={selected.address} postcode={selected.postcode} contextKey={selected.id} />
               <Text style={styles.detailLine}>Tyre: {selected.tyreSize ?? 'Not set'} x {selected.quantity}</Text>
               <Text style={styles.detailLine}>Price: {formatGbp(selected.priceAmount / 100)}</Text>
               <Text style={styles.detailLine}>Expires: {formatDateTime(selected.expiresAt)}</Text>

@@ -1,11 +1,11 @@
 {
-  "engines": {
-    "node": "24.x"
-  },
   "name": "tyre-rescue-admin",
   "version": "1.0.0",
   "private": true,
   "main": "expo-router/entry",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",

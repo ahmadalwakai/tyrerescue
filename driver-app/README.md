@@ -109,8 +109,8 @@ eas submit --platform android
 
 ### Apple App Review Notes
 
-- **Location**: Used for route guidance and dispatch tracking while a driver is working on an active job.
-- **Background location**: Enabled for active-job tracking only. Tracking stops when the job is completed or cancelled.
+- **Location**: Used for route guidance and dispatch tracking while the driver chooses to remain Online.
+- **Background location**: Shares GPS while the driver is Online, including between jobs without a booking assignment. Going Offline or signing out stops tracking and discards queued GPS samples. Native sample delivery remains subject to iOS/Android background limits; no GPS silence is evidence of a stop.
 - **Notifications**: Used for new driver job alerts and urgent job updates. iOS uses standard Apple notifications with sound and Time Sensitive interruption where permitted by iOS/user settings.
 - **Foreground job alert**: The full-screen alert is an in-app alert shown only when the app is open.
 - **PushKit/CallKit**: Not used for normal job alerts.

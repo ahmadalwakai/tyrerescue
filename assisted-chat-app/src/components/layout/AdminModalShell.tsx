@@ -7,13 +7,13 @@ import {
   StyleSheet,
   Text,
   View,
-  type GestureResponderEvent,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontSize, radius, space } from '../theme';
 import { useFadeSlideIn, usePressScale } from '../motion';
+import { ModalSafeAreaView } from './ModalSafeAreaView';
 
 interface AdminModalShellProps {
   children: ReactNode;
@@ -47,14 +47,13 @@ export function AdminModalShell({
   keyboardAvoidingEnabled = true,
   chrome = 'default',
 }: AdminModalShellProps) {
-  const insets = useSafeAreaInsets();
   const entranceStyle = useFadeSlideIn({ distance: 14, duration: 280 });
   const content = (
     <Animated.View style={[styles.content, entranceStyle]}>{children}</Animated.View>
   );
   return (
-    <SafeAreaView
-      style={[styles.shell, { paddingBottom: Math.max(insets.bottom, 0) }, style]}
+    <ModalSafeAreaView
+      style={[styles.shell, style]}
       edges={['left', 'right', 'bottom']}
     >
       {chrome === 'default' ? <AdminChromeBackdrop /> : <PlainChromeBackdrop />}
@@ -69,7 +68,7 @@ export function AdminModalShell({
       ) : (
         content
       )}
-    </SafeAreaView>
+    </ModalSafeAreaView>
   );
 }
 
@@ -136,10 +135,10 @@ export function AdminModalHeader({
 
 export function AdminHeaderButton({ label, onPress, disabled, primary, danger }: AdminHeaderButtonProps) {
   const { pressScaleStyle, pressIn, pressOut } = usePressScale(Boolean(disabled));
-  const handlePressIn = (_event: GestureResponderEvent) => {
+  const handlePressIn = () => {
     pressIn();
   };
-  const handlePressOut = (_event: GestureResponderEvent) => {
+  const handlePressOut = () => {
     pressOut();
   };
   return (

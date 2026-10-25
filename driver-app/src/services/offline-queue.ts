@@ -1,6 +1,7 @@
 import { AppState, type AppStateStatus } from 'react-native';
 import * as secureStorage from '@/services/secure-storage';
 import { logDriverTrackingDiagnostic } from '@/services/tracking-diagnostics';
+import { getOnlineLocationRevision, isOnlineLocationEnabled } from '@/services/online-location-state';
 
 const QUEUE_KEY = 'offline_request_queue';
 const MAX_QUEUE_AGE_MS = 12 * 60 * 60 * 1000;
@@ -20,7 +21,9 @@ interface QueuedRequest {
 
 let queue: QueuedRequest[] = [];
 let flushing = false;
+let initialization: Promise<void> | null = null;
 let initialized = false;
+let discardStoredLocations = false;
 let appStateSubscription: { remove: () => void } | null = null;
 
 function stableBodyKey(body: unknown): string {
@@ -90,25 +93,44 @@ function trimQueue(items: QueuedRequest[]): QueuedRequest[] {
  * Load any persisted queue from storage on app start.
  * Idempotent — safe to call multiple times.
  */
-export async function initOfflineQueue(): Promise<void> {
-  if (initialized) return;
-  initialized = true;
-  try {
-    const stored = await secureStorage.getItemAsync(QUEUE_KEY);
-    if (stored) {
-      queue = trimQueue(JSON.parse(stored));
-    }
-  } catch {
-    queue = [];
+export function initOfflineQueue(): Promise<void> {
+  if (initialized) return Promise.resolve();
+  if (!appStateSubscription) {
+    appStateSubscription = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') void flushOfflineQueue();
+    });
   }
+  if (!initialization) {
+    initialization = loadOfflineQueue().then((loaded) => {
+      initialized = loaded;
+    }).finally(() => { initialization = null; });
+  }
+  return initialization;
+}
 
-  // Flush queue whenever app returns to foreground
-  appStateSubscription?.remove();
-  appStateSubscription = AppState.addEventListener('change', (state: AppStateStatus) => {
-    if (state === 'active') {
-      void flushOfflineQueue();
+async function loadOfflineQueue(): Promise<boolean> {
+  let stored: string | null;
+  try {
+    stored = await secureStorage.getItemAsync(QUEUE_KEY);
+  } catch {
+    // Locked/migrating Keychain is temporary. Keep pending requests in memory
+    // and retry before any write, so a headless enqueue cannot replace an
+    // unread persisted queue with a new empty queue.
+    return false;
+  }
+  if (stored) {
+    try {
+      const parsed: unknown = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        const saved = (parsed as QueuedRequest[]).filter((request) =>
+          !discardStoredLocations || request.path !== '/api/driver/location');
+        queue = trimQueue([...saved, ...queue]);
+      }
+    } catch {
+      // Malformed persisted JSON must not erase newer in-memory actions.
     }
-  });
+  }
+  return true;
 }
 
 /**
@@ -162,20 +184,30 @@ export function dropQueued(path: string, method?: string): void {
   }
 }
 
+/** Also load persisted samples so logout cannot leave GPS for the next session. */
+export async function discardQueuedLocations(): Promise<void> {
+  discardStoredLocations = true;
+  dropQueued('/api/driver/location', 'POST');
+  await initOfflineQueue();
+  dropQueued('/api/driver/location', 'POST');
+  await persistQueue();
+}
+
 /**
  * Attempt to flush all queued requests.
  */
 export async function flushOfflineQueue(): Promise<void> {
-  if (flushing || queue.length === 0) return;
+  if (flushing) return;
   flushing = true;
-  const startingCount = queue.length;
-  logDriverTrackingDiagnostic('offline_queue_flush_started', {
-    queueCount: startingCount,
-  });
 
   try {
+    await initOfflineQueue();
+    if (!initialized || queue.length === 0) return;
+    logDriverTrackingDiagnostic('offline_queue_flush_started', {
+      queueCount: queue.length,
+    });
     // Import dynamically to avoid circular dependency
-    const { api, ApiError } = await import('@/api/client');
+    const { api, ApiError, getToken } = await import('@/api/client');
 
     const failed: QueuedRequest[] = [];
     const now = Date.now();
@@ -183,7 +215,16 @@ export async function flushOfflineQueue(): Promise<void> {
     let attemptedCount = 0;
     let droppedCount = 0;
 
-    for (const req of sortQueueChronologically(queue)) {
+    const snapshot = sortQueueChronologically(queue);
+    const snapshotIds = new Set(snapshot.map((request) => request.id));
+    const locationRevision = getOnlineLocationRevision();
+    for (const req of snapshot) {
+      const isLocation = req.path === '/api/driver/location';
+      if (isLocation && (!(await isOnlineLocationEnabled()) || !(await getToken()) ||
+          locationRevision !== getOnlineLocationRevision())) {
+        droppedCount += 1;
+        continue;
+      }
       if (now - req.timestamp > MAX_QUEUE_AGE_MS) continue;
       if (req.retryAt && req.retryAt > now) {
         failed.push(req);
@@ -194,6 +235,8 @@ export async function flushOfflineQueue(): Promise<void> {
         attemptedCount += 1;
         await api(req.path, { method: req.method, body: req.body });
       } catch (err) {
+        if (isLocation && (!(await isOnlineLocationEnabled()) ||
+            locationRevision !== getOnlineLocationRevision())) continue;
         if (!shouldRetryQueuedError(err, ApiError)) {
           droppedCount += 1;
           continue;
@@ -207,7 +250,9 @@ export async function flushOfflineQueue(): Promise<void> {
       }
     }
 
-    queue = trimQueue(failed);
+    const stillOnline = await isOnlineLocationEnabled();
+    queue = trimQueue([...failed, ...queue.filter((request) => !snapshotIds.has(request.id))])
+      .filter((request) => request.path !== '/api/driver/location' || stillOnline);
     await persistQueue();
     logDriverTrackingDiagnostic(
       queue.length === 0 ? 'offline_queue_flush_succeeded' : 'offline_queue_flush_failed',
@@ -230,6 +275,8 @@ export async function flushOfflineQueue(): Promise<void> {
 
 async function persistQueue(): Promise<void> {
   try {
+    await initOfflineQueue();
+    if (!initialized) return;
     await secureStorage.setItemAsync(QUEUE_KEY, JSON.stringify(queue));
   } catch {
     // Storage failure is non-fatal

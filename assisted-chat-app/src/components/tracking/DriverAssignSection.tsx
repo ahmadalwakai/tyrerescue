@@ -71,14 +71,12 @@ export function DriverAssignSection({
   const trackingReady = trackingData?.customerUrl != null;
   const refNumber = bookingRef ?? trackingData?.refNumber ?? null;
 
-  const customerPoint =
-    customerLat != null && customerLng != null
-      ? { lat: customerLat, lng: customerLng }
-      : null;
-
   const driverOptions = useMemo(
-    () =>
-      drivers
+    () => {
+      const customerPoint = customerLat != null && customerLng != null
+        ? { lat: customerLat, lng: customerLng }
+        : null;
+      return drivers
         .map((driver) => ({
           driver,
           distKm: getDriverDistanceKm(driver, customerPoint),
@@ -92,8 +90,9 @@ export function DriverAssignSection({
           if (a.distKm != null) return -1;
           if (b.distKm != null) return 1;
           return a.driver.name.localeCompare(b.driver.name);
-        }),
-    [customerPoint, drivers],
+        });
+    },
+    [customerLat, customerLng, drivers],
   );
   const selectedDriver = driverOptions.find((option) => option.driver.id === selectedId) ?? null;
 

@@ -1,19 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import {
-  ADMIN_SESSION_STORAGE_KEY,
   clearInvalidAdminSessionStorage,
+  readStoredAdminProjectId,
+  readStoredAdminSession,
+  subscribeAdminSessionStorage,
+  writeStoredAdminSession,
+  type StoredAdminSession,
 } from '@/lib/admin-session-storage';
-import {
-  getApiBaseUrl,
-  setAdminToken,
-  setApiBaseUrl,
-  setOnUnauthorized,
-} from '@/lib/api';
+import { getAdminToken, getApiBaseUrl, setAdminToken, setApiBaseUrl } from '@/lib/api';
 import {
   clearStoredProjectId,
   getProjectById,
-  getStoredProjectId,
+  isStoredProjectPickerSelected,
   setStoredProjectId,
   type ProjectConfig,
   type ProjectId,
@@ -25,9 +24,13 @@ import {
   logStartupModuleStarted,
 } from '@/lib/startup-logging';
 import { isSessionRestoreDisabled } from '@/lib/session-startup-config';
+import { readAdminDeviceMetadata } from '@/lib/admin-device-metadata';
+import { retainAdminDeviceHeartbeat, setAdminDeviceHeartbeatContext } from '@/lib/admin-device-heartbeat';
 
-const STORAGE_KEY = ADMIN_SESSION_STORAGE_KEY;
 const GENERIC_LOGIN_ERROR = 'Login failed. Please try again.';
+const STORAGE_RECOVERY_ERROR = 'Your saved sign-in could not be read. Retry to restore it; it has not been deleted.';
+const LOGOUT_RECOVERY_ERROR = 'Sign-out could not be saved on this device. Retry to finish signing out before reopening the app.';
+const PROJECT_RECOVERY_ERROR = 'The workspace selection could not be saved. Retry; your saved sign-ins have not been deleted.';
 const FRIENDLY_LOGIN_ERRORS = new Set([
   'Email or password is incorrect, or this account is not an admin.',
   'This account is not allowed to sign in here.',
@@ -37,352 +40,522 @@ const FRIENDLY_LOGIN_ERRORS = new Set([
   GENERIC_LOGIN_ERROR,
 ]);
 
-// Mirrors the response shape from
-// /app/api/mobile/admin/auth/login/route.ts → returns { token, user }.
 type MobileAdminUser = { id: string; name: string; email: string; role: 'admin' };
+interface MobileAdminLoginResponse { token: string; user: MobileAdminUser }
+export type AdminSessionStatus = 'loading' | 'logged-out' | 'logged-in' | 'recovery';
 
-interface MobileAdminLoginResponse {
-  token: string;
-  user: MobileAdminUser;
+interface SessionSnapshot {
+  status: AdminSessionStatus;
+  session: StoredAdminSession | null;
+  activeProject: ProjectConfig | null;
+  recoveryError: string | null;
+  notice?: string | null;
 }
 
-interface StoredSession {
-  token: string;
-  user: MobileAdminLoginResponse['user'];
+// Index and Tax & Payroll mount separate hook instances. Their credentials,
+// explicit sign-out and in-flight guards must belong to one runtime session.
+let snapshot: SessionSnapshot | null = null;
+let sessionRevision = 0;
+let restorePromise: Promise<void> | null = null;
+let loginOperation: object | null = null;
+let issuingCoordinatedClear = false;
+let observingStorage = false;
+let mountedHooks = 0;
+let legacyRetryTimer: ReturnType<typeof setInterval> | null = null;
+let legacyAppStateListener: { remove: () => void } | null = null;
+let legacyUpgradePromise: Promise<void> | null = null;
+let legacyUpgradeController: AbortController | null = null;
+let pendingLogout: {
+  apiBaseUrl: string; token: string | null; project: ProjectConfig | null;
+  reason?: string; notice?: string;
+} | null = null;
+type ProjectAction = { kind: 'select'; project: ProjectConfig } | { kind: 'clear' };
+let pendingProjectAction: ProjectAction | null = null;
+let projectOperations: Promise<unknown> = Promise.resolve();
+const listeners = new Set<(value: SessionSnapshot) => void>();
+
+/** Guards explicit logout cleanup against a later sign-in/project transition. */
+export function getAdminSessionRevision(): number { return sessionRevision; }
+
+function normaliseBaseUrl(url: string): string { return url.replace(/\/+$/, ''); }
+function currentOperation(revision: number, apiBaseUrl: string): boolean {
+  return revision === sessionRevision && normaliseBaseUrl(getApiBaseUrl()) === apiBaseUrl;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+function publish(next: SessionSnapshot): void {
+  snapshot = next;
+  setAdminToken(next.status === 'logged-in' ? next.session?.token ?? null : null);
+  const session = next.status === 'logged-in' ? next.session : null;
+  const revision = sessionRevision;
+  const apiBaseUrl = normaliseBaseUrl(session?.apiBaseUrl ?? getApiBaseUrl());
+  setAdminDeviceHeartbeatContext(session?.token.startsWith('acs_v1.') ? {
+    token: session.token,
+    apiBaseUrl,
+    revision,
+    isCurrent: () => currentOperation(revision, apiBaseUrl) && snapshot?.session?.token === session.token,
+    onRevoked: () => finishRemoteDeviceSignOut(revision, apiBaseUrl, session.token),
+  } : null);
+  for (const listener of listeners) listener(next);
+  reconcileLegacyRetries();
 }
 
-function readNonEmptyString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
+function reconcileLegacyRetries(): void {
+  const session = snapshot?.status === 'logged-in' ? snapshot.session : null;
+  if (mountedHooks > 0 && session && !session.token.startsWith('acs_v1.')) {
+    const retry = () => {
+      const current = snapshot?.status === 'logged-in' ? snapshot.session : null;
+      if (!current || current.token.startsWith('acs_v1.')) return;
+      void upgradeLegacySession(current, sessionRevision, normaliseBaseUrl(getApiBaseUrl()));
+    };
+    // Renewal retries preserve a legacy sign-in after a temporary outage;
+    // neither timer expiry nor an unsuccessful request signs the user out.
+    if (!legacyRetryTimer) legacyRetryTimer = setInterval(retry, 5 * 60_000);
+    if (!legacyAppStateListener) {
+      legacyAppStateListener = AppState.addEventListener('change', (state) => {
+        if (state === 'active') retry();
+      });
+    }
+    return;
+  }
+  if (legacyRetryTimer) clearInterval(legacyRetryTimer);
+  legacyRetryTimer = null;
+  legacyAppStateListener?.remove();
+  legacyAppStateListener = null;
+  legacyUpgradeController?.abort();
+  legacyUpgradeController = null;
+  legacyUpgradePromise = null;
 }
 
-function validateAdminUser(value: unknown): MobileAdminUser | null {
-  if (!isRecord(value)) return null;
-  const id = readNonEmptyString(value.id);
-  const name = readNonEmptyString(value.name);
-  const email = readNonEmptyString(value.email);
-  if (!id || !name || !email || value.role !== 'admin') return null;
-  return { id, name, email, role: 'admin' };
+function signedOut(project: ProjectConfig | null, notice: string | null = null): SessionSnapshot {
+  return { status: 'logged-out', session: null, activeProject: project, recoveryError: null, notice };
+}
+
+function recovery(project: ProjectConfig | null, message: string): void {
+  publish({ status: 'recovery', session: null, activeProject: project, recoveryError: message });
+}
+
+function safeFailure(label: string): void {
+  // Native/network errors can contain request values. Keep diagnostics useful
+  // without ever putting credentials, tokens or storage contents in logs.
+  logStartupModuleFailed(label, new Error('Saved sign-in operation unavailable.'));
 }
 
 function validateLoginResponse(payload: unknown): MobileAdminLoginResponse | null {
-  if (!isRecord(payload)) return null;
-  const token = readNonEmptyString(payload.token);
-  const user = validateAdminUser(payload.user);
-  return token && user ? { token, user } : null;
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+  const value = payload as Record<string, unknown>;
+  if (typeof value.token !== 'string' || !value.token.trim() ||
+      !value.user || typeof value.user !== 'object' || Array.isArray(value.user)) return null;
+  const user = value.user as Record<string, unknown>;
+  if (user.role !== 'admin' || typeof user.id !== 'string' || !user.id.trim() ||
+      typeof user.name !== 'string' || !user.name.trim() ||
+      typeof user.email !== 'string' || !user.email.trim()) return null;
+  return {
+    token: value.token.trim(),
+    user: { id: user.id.trim(), name: user.name.trim(), email: user.email.trim(), role: 'admin' },
+  };
 }
 
-function validateStoredSession(payload: unknown): StoredSession | null {
-  const session = validateLoginResponse(payload);
-  return session ? { token: session.token, user: session.user } : null;
+function clearStoredSession(reason: string): Promise<boolean> {
+  // Suppress only this call's synchronous intent, never another action arriving
+  // while native persistence is awaiting completion.
+  issuingCoordinatedClear = true;
+  try { return clearInvalidAdminSessionStorage(reason); }
+  finally { issuingCoordinatedClear = false; }
 }
 
-function userFacingLoginError(error: unknown): string {
-  const message = error instanceof Error ? error.message : '';
-  return FRIENDLY_LOGIN_ERRORS.has(message) ? message : GENERIC_LOGIN_ERROR;
+function observeStorage(): void {
+  if (observingStorage) return;
+  observingStorage = true;
+  subscribeAdminSessionStorage((event) => {
+    if (event.kind !== 'clear-intent' || issuingCoordinatedClear ||
+        normaliseBaseUrl(event.apiBaseUrl) !== normaliseBaseUrl(getApiBaseUrl())) return;
+    // Explicit diagnostic recovery is another user-directed local sign-out.
+    sessionRevision += 1;
+    restorePromise = null;
+    loginOperation = null;
+    pendingLogout = null;
+    pendingProjectAction = null;
+    publish(signedOut(snapshot?.activeProject ?? null));
+  });
 }
 
-async function clearStoredSession(reason: string): Promise<void> {
-  await clearInvalidAdminSessionStorage(reason);
+async function revokeCapturedSession(apiBaseUrl: string, token: string | null): Promise<void> {
+  if (!token?.startsWith('acs_v1.')) return;
+  try {
+    await fetch(`${apiBaseUrl}/api/mobile/admin/auth/logout`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  } catch {
+    logStartupCheckpoint('session.logout.remote.unavailable');
+  }
 }
 
-export type AdminSessionStatus = 'loading' | 'logged-out' | 'logged-in';
+function upgradeLegacySession(session: StoredAdminSession, revision: number, apiBaseUrl: string): Promise<void> {
+  if (session.token.startsWith('acs_v1.') || !currentOperation(revision, apiBaseUrl) ||
+      snapshot?.session?.token !== session.token) return Promise.resolve();
+  if (legacyUpgradePromise) return legacyUpgradePromise;
+  const pending = attemptLegacyUpgrade(session, revision, apiBaseUrl);
+  legacyUpgradePromise = pending;
+  void pending.finally(() => {
+    if (legacyUpgradePromise === pending) legacyUpgradePromise = null;
+  });
+  return pending;
+}
+
+async function attemptLegacyUpgrade(session: StoredAdminSession, revision: number, apiBaseUrl: string): Promise<void> {
+  const controller = new AbortController();
+  legacyUpgradeController = controller;
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  try {
+    const payload = await Promise.race([
+      (async () => {
+        const response = await fetch(`${apiBaseUrl}/api/mobile/admin/auth/session`, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: { Authorization: `Bearer ${session.token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ device: readAdminDeviceMetadata() }),
+        });
+        return response.ok ? response.json() : null;
+      })(),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          controller.abort();
+          reject(new Error('Legacy sign-in renewal request timed out.'));
+        }, 8_000);
+      }),
+    ]);
+    if (timeout) clearTimeout(timeout);
+    timeout = null;
+    if (controller.signal.aborted || !currentOperation(revision, apiBaseUrl)) return;
+    const upgraded = validateLoginResponse(payload);
+    if (!upgraded || !upgraded.token.startsWith('acs_v1.') ||
+        !currentOperation(revision, apiBaseUrl)) return;
+    const storedSession: StoredAdminSession = { ...upgraded, apiBaseUrl };
+    await writeStoredAdminSession(storedSession);
+    if (!currentOperation(revision, apiBaseUrl) || snapshot?.session?.token !== session.token) return;
+    publish({ ...snapshot, session: storedSession });
+    logStartupCheckpoint('session.legacy.upgrade.completed');
+  } catch {
+    // Expired legacy JWT, older servers, offline use and storage failures all
+    // leave the cached sign-in intact. The API still authorizes every request.
+    logStartupCheckpoint('session.legacy.upgrade.unavailable');
+  } finally {
+    if (timeout) clearTimeout(timeout);
+    if (legacyUpgradeController === controller) legacyUpgradeController = null;
+  }
+}
+
+async function restoreSession(projectOverride?: ProjectConfig | null): Promise<void> {
+  if (restorePromise) return restorePromise;
+  const revision = sessionRevision;
+  restorePromise = (async () => {
+    let project = projectOverride ?? snapshot?.activeProject ?? null;
+    logStartupModuleStarted('Session hydration');
+    logStartupCheckpoint('Session hydration started');
+    try {
+      if (projectOverride === undefined) {
+        const projectId = await readStoredAdminProjectId();
+        if (revision !== sessionRevision) return;
+        project = projectId ? getProjectById(projectId) : null;
+      }
+      if (revision !== sessionRevision) return;
+      if (project) setApiBaseUrl(project.apiBaseUrl);
+      const apiBaseUrl = normaliseBaseUrl(getApiBaseUrl());
+      if (isSessionRestoreDisabled()) {
+        recovery(project, 'This build has saved sign-in restore paused. Your saved sign-in has not been deleted.');
+        logStartupCheckpoint('Session restore skipped', { reason: 'startup-disabled' });
+        return;
+      }
+      if (!project && await isStoredProjectPickerSelected()) {
+        if (currentOperation(revision, apiBaseUrl)) publish(signedOut(null));
+        return;
+      }
+      const stored = await readStoredAdminSession();
+      if (!currentOperation(revision, apiBaseUrl)) return;
+      const validated = validateLoginResponse(stored);
+      if (stored && (!validated || (stored.apiBaseUrl &&
+          normaliseBaseUrl(stored.apiBaseUrl) !== apiBaseUrl))) {
+        recovery(project, STORAGE_RECOVERY_ERROR);
+        return;
+      }
+      if (stored && validated) {
+        const session: StoredAdminSession = { ...validated, apiBaseUrl };
+        publish({ status: 'logged-in', session, activeProject: project, recoveryError: null });
+        logStartupCheckpoint('Session hydration completed', { status: 'logged-in', source: 'storage' });
+        // The protected app can reopen offline before this optional request.
+        void upgradeLegacySession(session, revision, apiBaseUrl);
+      } else {
+        publish(signedOut(project));
+        logStartupCheckpoint('Session hydration completed', { status: 'logged-out', source: 'none' });
+      }
+      logStartupModuleCompleted('Session hydration');
+    } catch {
+      if (revision !== sessionRevision) return;
+      safeFailure('session.hydration.storage.unavailable');
+      recovery(project, STORAGE_RECOVERY_ERROR);
+    }
+  })();
+  const pending = restorePromise;
+  try { await pending; }
+  finally { if (restorePromise === pending) restorePromise = null; }
+}
+
+async function finishLogout(revision: number): Promise<void> {
+  const operation = pendingLogout;
+  if (!operation) return;
+  // Persist the logout tombstone without waiting for connectivity. A failed
+  // server request must never allow a local credential to reappear on restart.
+  const clearing = clearStoredSession(operation.reason ?? 'manual_logout');
+  void revokeCapturedSession(operation.apiBaseUrl, operation.token);
+  const cleared = await clearing;
+  if (!currentOperation(revision, operation.apiBaseUrl)) return;
+  if (!cleared) {
+    recovery(operation.project, LOGOUT_RECOVERY_ERROR);
+    return;
+  }
+  pendingLogout = null;
+  publish(signedOut(operation.project, operation.notice));
+}
+
+function finishRemoteDeviceSignOut(capturedRevision: number, apiBaseUrl: string, token: string): void {
+  if (!currentOperation(capturedRevision, apiBaseUrl) || getAdminToken() !== token ||
+      snapshot?.session?.token !== token) return;
+  const revision = ++sessionRevision;
+  const notice = 'This device was signed out by an administrator.';
+  pendingLogout = {
+    apiBaseUrl, token: null, project: snapshot.activeProject,
+    reason: 'admin-remote-revoke', notice,
+  };
+  restorePromise = null;
+  loginOperation = null;
+  pendingProjectAction = null;
+  publish(signedOut(pendingLogout.project, notice));
+  // The server already revoked this device. Do not wait on notification
+  // cleanup or send authenticated requests using its revoked credential.
+  void finishLogout(revision).catch(() => {
+    if (currentOperation(revision, apiBaseUrl)) recovery(snapshot?.activeProject ?? null, LOGOUT_RECOVERY_ERROR);
+  });
+}
+
+async function performProjectAction(action: ProjectAction, revision: number): Promise<void> {
+  const previousProject = snapshot?.activeProject ?? null;
+  const oldBaseUrl = normaliseBaseUrl(getApiBaseUrl());
+  const operation = projectOperations.catch(() => {}).then(async () => {
+    if (!currentOperation(revision, oldBaseUrl)) return false;
+    if (action.kind === 'select') await setStoredProjectId(action.project.id);
+    else await clearStoredProjectId();
+    if (!currentOperation(revision, oldBaseUrl)) {
+      // An explicit newer action won while AsyncStorage was completing. Keep
+      // its current selection instead of leaving this old write on disk.
+      const currentProject = snapshot?.activeProject;
+      if (currentProject) await setStoredProjectId(currentProject.id);
+      else await clearStoredProjectId();
+      return false;
+    }
+    return true;
+  });
+  projectOperations = operation;
+  try {
+    if (!await operation || !currentOperation(revision, oldBaseUrl)) return;
+    pendingProjectAction = null;
+    if (action.kind === 'clear') {
+      publish(signedOut(null));
+      return;
+    }
+    // Retain A's secure envelope. Only after B's selection is durable may any
+    // B-scoped cached credential be restored or its API receive requests.
+    setApiBaseUrl(action.project.apiBaseUrl);
+    await restoreSession(action.project);
+  } catch {
+    if (currentOperation(revision, oldBaseUrl)) {
+      safeFailure('session.project-selection.persist.failed');
+      recovery(previousProject, PROJECT_RECOVERY_ERROR);
+    }
+  }
+}
 
 export interface AdminSession {
   status: AdminSessionStatus;
-  user: MobileAdminLoginResponse['user'] | null;
+  user: MobileAdminUser | null;
   loginError: string | null;
   expiredMessage: string | null;
+  recoveryError: string | null;
   loggingIn: boolean;
   activeProject: ProjectConfig | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  retryRestore: () => Promise<void>;
   selectProject: (id: ProjectId) => Promise<void>;
   clearProject: () => Promise<void>;
 }
 
 export function useAdminSession(): AdminSession {
-  const [status, setStatus] = useState<AdminSessionStatus>('loading');
-  const [user, setUser] = useState<MobileAdminLoginResponse['user'] | null>(null);
+  const [state, setState] = useState<SessionSnapshot>(() => snapshot ?? {
+    status: 'loading', session: null, activeProject: null, recoveryError: null,
+  });
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [expiredMessage, setExpiredMessage] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
-  const [activeProject, setActiveProject] = useState<ProjectConfig | null>(null);
-  const cancelled = useRef(false);
-  const loginInFlight = useRef(false);
 
-  // Hydrate project + session from AsyncStorage on mount + register 401 handler.
   useEffect(() => {
-    cancelled.current = false;
-    logStartupModuleStarted('Session hydration');
-    logStartupCheckpoint('Session hydration started');
-    (async () => {
-      // Step 1: Restore active project and apply its API URL.
-      const storedProjectId = await getStoredProjectId();
-      let restoredProject: ProjectConfig | null = null;
-      if (storedProjectId) {
-        try {
-          restoredProject = getProjectById(storedProjectId);
-          setApiBaseUrl(restoredProject.apiBaseUrl);
-          setActiveProject(restoredProject);
-        } catch {
-          await clearStoredProjectId();
-        }
-      }
-      if (cancelled.current) return;
-
-      const restoreDisabled = isSessionRestoreDisabled();
-      let storageSource: 'none' | 'storage' | 'malformed-storage' | 'restore-disabled' =
-        restoreDisabled ? 'restore-disabled' : 'none';
-      try {
-        if (restoreDisabled) {
-          logStartupCheckpoint('Session restore skipped', { reason: 'startup-disabled' });
-        } else {
-          const raw = await AsyncStorage.getItem(STORAGE_KEY);
-          if (cancelled.current) return;
-          if (raw) {
-            const parsed = JSON.parse(raw) as unknown;
-            const storedSession = validateStoredSession(parsed);
-            if (storedSession) {
-              setAdminToken(storedSession.token);
-              setUser(storedSession.user);
-              setStatus('logged-in');
-              logStartupCheckpoint('Session hydration completed', { status: 'logged-in', source: 'storage' });
-              logStartupModuleCompleted('Session hydration');
-              return;
-            }
-            storageSource = 'malformed-storage';
-            await clearStoredSession('malformed-session');
-          }
-        }
-      } catch (error) {
-        storageSource = 'malformed-storage';
-        logStartupModuleFailed('session.hydration.failed', error, { source: 'storage' });
-        await clearStoredSession('hydrate-failed');
-      }
-      // Fall back to env token (dev convenience). Still treated as "logged-in"
-      // so the chat opens, but no profile is shown.
-      const envToken = process.env.EXPO_PUBLIC_ADMIN_TOKEN?.trim();
-      if (envToken) {
-        setAdminToken(envToken);
-        setStatus('logged-in');
-        logStartupCheckpoint('Session hydration completed', { status: 'logged-in', source: 'env' });
-        logStartupModuleCompleted('Session hydration');
-        return;
-      }
-      setStatus('logged-out');
-      logStartupCheckpoint('Session hydration completed', { status: 'logged-out', source: storageSource });
-      logStartupModuleCompleted('Session hydration');
-    })();
+    mountedHooks += 1;
+    const releaseHeartbeat = retainAdminDeviceHeartbeat();
+    listeners.add(setState);
+    observeStorage();
+    if (snapshot) setState(snapshot);
+    else void restoreSession();
+    reconcileLegacyRetries();
     return () => {
-      cancelled.current = true;
+      listeners.delete(setState);
+      mountedHooks -= 1;
+      releaseHeartbeat();
+      reconcileLegacyRetries();
     };
   }, []);
 
-  // Select a project: switches the active backend, clears any existing session.
-  const selectProject = useCallback(async (id: ProjectId) => {
-    let project: ProjectConfig;
-    try {
-      project = getProjectById(id);
-    } catch {
+  const logout = useCallback(async () => {
+    const revision = ++sessionRevision;
+    const apiBaseUrl = normaliseBaseUrl(getApiBaseUrl());
+    pendingLogout = {
+      apiBaseUrl,
+      token: getAdminToken() ?? (pendingLogout?.apiBaseUrl === apiBaseUrl ? pendingLogout.token : null),
+      project: snapshot?.activeProject ?? null,
+    };
+    restorePromise = null;
+    pendingProjectAction = null;
+    loginOperation = null;
+    setLoggingIn(false);
+    setLoginError(null);
+    publish(signedOut(pendingLogout.project));
+    await finishLogout(revision);
+  }, []);
+
+  const retryRestore = useCallback(async () => {
+    const revision = ++sessionRevision;
+    restorePromise = null;
+    if (pendingLogout) {
+      await finishLogout(revision);
       return;
     }
-    // Clear existing session — it belongs to the previous backend.
-    // Clear token in-memory first so any in-flight request with the old token
-    // does not race against the new backend even if storage removal fails.
-    setAdminToken(null);
-    try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
-    } catch (error) {
-      logStartupModuleFailed('session.project-switch.storage.clear.failed', error, { toProject: id });
+    if (pendingProjectAction) {
+      await performProjectAction(pendingProjectAction, revision);
+      return;
     }
-    setApiBaseUrl(project.apiBaseUrl);
-    setActiveProject(project);
-    await setStoredProjectId(id);
-    setStatus('logged-out');
+    publish({ status: 'loading', session: null, activeProject: snapshot?.activeProject ?? null, recoveryError: null });
+    await restoreSession();
   }, []);
 
-  // Clear project selection and session — returns to workspace picker.
+  const selectProject = useCallback(async (id: ProjectId) => {
+    let project: ProjectConfig;
+    try { project = getProjectById(id); } catch { return; }
+    const revision = ++sessionRevision;
+    restorePromise = null;
+    loginOperation = null;
+    pendingLogout = null;
+    setLoggingIn(false);
+    setLoginError(null);
+    const oldProject = snapshot?.activeProject ?? null;
+    publish({ status: 'loading', session: null, activeProject: oldProject, recoveryError: null });
+    pendingProjectAction = { kind: 'select', project };
+    await performProjectAction(pendingProjectAction, revision);
+  }, []);
+
   const clearProject = useCallback(async () => {
-    try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // best effort
-    }
-    await clearStoredProjectId();
-    setAdminToken(null);
-    setUser(null);
-    setActiveProject(null);
-    setStatus('logged-out');
+    const revision = ++sessionRevision;
+    const project = snapshot?.activeProject ?? null;
+    restorePromise = null;
+    loginOperation = null;
+    pendingLogout = null;
+    setLoggingIn(false);
+    setLoginError(null);
+    publish(signedOut(project));
+    pendingProjectAction = { kind: 'clear' };
+    await performProjectAction(pendingProjectAction, revision);
   }, []);
 
-  // Logout: clear storage + in-memory token + state. Keeps project selection.
-  const logout = useCallback(async () => {
-    try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
-    } catch (error) {
-      logStartupModuleFailed('session.logout.storage.failed', error);
-    }
-    setAdminToken(null);
-    setUser(null);
-    setStatus('logged-out');
-  }, []);
-
-  // Login: call existing /api/mobile/admin/auth/login, persist on success.
-  // Endpoint contract (app/api/mobile/admin/auth/login/route.ts):
-  //   POST { email, password } → { token, user } | { error } with 400/401/403/500.
   const login = useCallback(async (email: string, password: string) => {
-    if (loginInFlight.current) {
+    if (loginOperation) {
       logStartupCheckpoint('auth.submit.duplicate', { ignored: true });
       return;
     }
-    loginInFlight.current = true;
-    let stage = 'auth.submit.started';
+    const operation = {};
+    loginOperation = operation;
+    const revision = ++sessionRevision;
+    const apiBaseUrl = normaliseBaseUrl(getApiBaseUrl());
+    restorePromise = null;
+    pendingLogout = null;
+    pendingProjectAction = null;
     setLoginError(null);
-    setExpiredMessage(null);
     setLoggingIn(true);
     logStartupModuleStarted('auth.submit');
-    logStartupCheckpoint('auth.submit.started', {
-      hasEmail: Boolean(email.trim()),
-      hasPassword: Boolean(password),
-    });
+    logStartupCheckpoint('auth.submit.started', { hasEmail: Boolean(email.trim()), hasPassword: Boolean(password) });
     try {
-      let res: Response;
+      let response: Response;
       try {
-        res = await fetch(`${getApiBaseUrl()}/api/mobile/admin/auth/login`, {
+        response = await fetch(`${apiBaseUrl}/api/mobile/admin/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: email.trim().toLowerCase(),
-            password,
-          }),
+          body: JSON.stringify({ email: email.trim().toLowerCase(), password, persistentSession: true, device: readAdminDeviceMetadata() }),
         });
-      } catch (error) {
-        logStartupModuleFailed('auth.request.failed', error, { stage });
-        // Network error: server not reachable, DNS, CORS, etc.
-        const looksLikeLocalhost = /localhost|127\.0\.0\.1/.test(getApiBaseUrl());
-        throw new Error(
-          looksLikeLocalhost
-            ? 'Cannot reach the local API server. Make sure the web API is running.'
-            : 'API base URL is not reachable. Check EXPO_PUBLIC_API_BASE_URL.',
-        );
+      } catch {
+        throw new Error(/localhost|127\.0\.0\.1/.test(apiBaseUrl)
+          ? 'Cannot reach the local API server. Make sure the web API is running.'
+          : 'API base URL is not reachable. Check EXPO_PUBLIC_API_BASE_URL.');
       }
-
-      const ct = res.headers.get('content-type') || '';
+      if (!currentOperation(revision, apiBaseUrl)) return;
       let payload: unknown = null;
-      if (ct.includes('application/json')) {
-        try {
-          payload = await res.json();
-        } catch (error) {
-          logStartupModuleFailed('auth.response.decode.failed', error, { status: res.status });
-        }
+      if ((response.headers.get('content-type') ?? '').includes('application/json')) {
+        payload = await response.json().catch(() => null);
       }
-      stage = 'auth.response.received';
-      logStartupCheckpoint('auth.response.received', {
-        status: res.status,
-        ok: res.ok,
-        json: ct.includes('application/json'),
-      });
-
-      if (!res.ok) {
-        // Map server response → friendly user-facing message. Never surface
-        // raw JSON or stack traces.
-        let message: string;
-        if (res.status === 401) {
-          message =
-            'Email or password is incorrect, or this account is not an admin.';
-        } else if (res.status === 403) {
-          // 403 is also used by the route for non-admin / unverified email.
-          // Prefer the server's message when present, otherwise generic.
-          const serverMsg =
-            payload && typeof payload === 'object'
-              ? (payload as Record<string, unknown>).error
-              : null;
-          message =
-            typeof serverMsg === 'string' && serverMsg.trim()
-              ? serverMsg
-              : 'This account is not allowed to sign in here.';
-        } else if (res.status === 400) {
-          message = 'Email and password are required.';
-        } else {
-          message = 'Login failed. Please try again.';
-        }
-        throw new Error(message);
+      if (!currentOperation(revision, apiBaseUrl)) return;
+      logStartupCheckpoint('auth.response.received', { status: response.status, ok: response.ok });
+      if (!response.ok) {
+        throw new Error(response.status === 401
+          ? 'Email or password is incorrect, or this account is not an admin.'
+          : response.status === 403 ? 'This account is not allowed to sign in here.'
+          : response.status === 400 ? 'Email and password are required.' : GENERIC_LOGIN_ERROR);
       }
-
       const data = validateLoginResponse(payload);
-      if (!data) {
-        throw new Error(GENERIC_LOGIN_ERROR);
-      }
-      stage = 'auth.response.validated';
-      logStartupCheckpoint('auth.response.validated', {
-        hasToken: true,
-        hasUser: true,
-        role: data.user.role,
-      });
-
-      const storedSession: StoredSession = { token: data.token, user: data.user };
-      const serializedSession = JSON.stringify(storedSession);
-      stage = 'auth.session.persist.started';
+      if (!data) throw new Error(GENERIC_LOGIN_ERROR);
+      logStartupCheckpoint('auth.response.validated', { hasToken: true, hasUser: true, role: data.user.role });
+      const storedSession: StoredAdminSession = { ...data, apiBaseUrl };
       logStartupModuleStarted('auth.session.persist');
       logStartupCheckpoint('auth.session.persist.started');
-      try {
-        await AsyncStorage.setItem(STORAGE_KEY, serializedSession);
-      } catch (error) {
-        logStartupModuleFailed('auth.session.persist.failed', error);
-        throw error;
-      }
-      stage = 'auth.session.persist.completed';
+      await writeStoredAdminSession(storedSession);
       logStartupCheckpoint('auth.session.persist.completed');
       logStartupModuleCompleted('auth.session.persist');
-
-      if (cancelled.current) return;
-      stage = 'auth.state.commit.started';
+      if (!currentOperation(revision, apiBaseUrl)) return;
       logStartupCheckpoint('auth.state.commit.started');
-      setAdminToken(data.token);
-      setUser(data.user);
-      setStatus('logged-in');
-      stage = 'auth.state.commit.completed';
+      publish({ status: 'logged-in', session: storedSession, activeProject: snapshot?.activeProject ?? null, recoveryError: null });
       logStartupCheckpoint('auth.state.commit.completed', { status: 'logged-in' });
       logStartupModuleCompleted('auth.submit');
-    } catch (err) {
-      logStartupModuleFailed('auth.submit.failed', err, { stage });
-      if (!cancelled.current) setLoginError(userFacingLoginError(err));
-      throw err;
+    } catch (error) {
+      if (!currentOperation(revision, apiBaseUrl)) return;
+      safeFailure('auth.submit.failed');
+      const message = error instanceof Error ? error.message : '';
+      setLoginError(FRIENDLY_LOGIN_ERRORS.has(message) ? message : GENERIC_LOGIN_ERROR);
+      throw new Error(FRIENDLY_LOGIN_ERRORS.has(message) ? message : GENERIC_LOGIN_ERROR);
     } finally {
-      loginInFlight.current = false;
-      if (!cancelled.current) setLoggingIn(false);
+      if (loginOperation === operation) {
+        loginOperation = null;
+        setLoggingIn(false);
+      }
     }
   }, []);
 
-  // Wire 401 → clear session + show "Session expired".
-  useEffect(() => {
-    setOnUnauthorized(() => {
-      clearStoredSession('unauthorized').catch((error) => {
-        logStartupModuleFailed('session.unauthorized.clear.failed', error);
-      });
-      setAdminToken(null);
-      setUser(null);
-      setExpiredMessage('Session expired. Please log in again.');
-      setStatus('logged-out');
-    });
-    return () => {
-      setOnUnauthorized(null);
-    };
-  }, []);
-
+  // API failures never change this cached session. Only explicit logout,
+  // project changes or user-directed recovery can remove local credentials.
   return {
-    status,
-    user,
+    status: state.status,
+    user: state.session?.user ?? null,
     loginError,
-    expiredMessage,
+    expiredMessage: state.notice ?? null,
+    recoveryError: state.recoveryError,
     loggingIn,
-    activeProject,
+    activeProject: state.activeProject,
     login,
     logout,
+    retryRestore,
     selectProject,
     clearProject,
   };

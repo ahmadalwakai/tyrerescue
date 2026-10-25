@@ -2,7 +2,9 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import type {
   InventoryItem,
+  InventoryPage,
   LoginResponse,
+  MovementPayload,
   SaleChannel,
   SessionRole,
   StockCity,
@@ -61,31 +63,71 @@ export function setApiAuthToken(token: string | null) {
   authToken = token;
 }
 
-async function request<T>(method: HttpMethod, path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+async function request<T>(method: HttpMethod, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  const controller = new AbortController();
+  let timedOut = false;
+  const abort = () => controller.abort();
+  let rejectOnAbort: (() => void) | undefined;
+  const cancelled = new Promise<never>((_resolve, reject) => {
+    rejectOnAbort = () => reject(new Error('Request aborted'));
+    controller.signal.addEventListener('abort', rejectOnAbort, { once: true });
   });
+  signal?.addEventListener('abort', abort, { once: true });
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, 20_000);
 
-  const contentType = response.headers.get('content-type') || '';
-  const payload = contentType.includes('application/json')
-    ? await response.json().catch(() => null)
-    : await response.text().catch(() => null);
+  try {
+    const fetchResponse = async () => {
+      if (signal?.aborted) throw new Error('Request aborted');
+      const response = await fetch(`${API_BASE_URL}${path}`, {
+        method,
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
 
-  if (!response.ok) {
-    const message =
-      payload && typeof payload === 'object' && 'error' in payload
-        ? String((payload as { error: unknown }).error)
-        : `Request failed (${response.status})`;
-    throw new ApiError(message, response.status, payload);
+      const contentType = response.headers.get('content-type') || '';
+      const payload = contentType.includes('application/json')
+        ? await response.json()
+        : await response.text();
+
+      if (!response.ok) {
+        const message =
+          payload && typeof payload === 'object' && 'error' in payload
+            ? String((payload as { error: unknown }).error)
+            : `Request failed (${response.status})`;
+        throw new ApiError(message, response.status, payload);
+      }
+      if (!contentType.includes('application/json')) {
+        throw new ApiError('The server returned an unexpected response. Please try again.', 502);
+      }
+
+      return payload as T;
+    };
+
+    return await Promise.race([fetchResponse(), cancelled]);
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    if (signal?.aborted) {
+      const aborted = new Error('Request cancelled');
+      aborted.name = 'AbortError';
+      throw aborted;
+    }
+    throw new ApiError(
+      timedOut ? 'The request timed out. Check your connection and try again.' : 'Unable to connect. Check your internet connection and try again.',
+      0,
+    );
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener('abort', abort);
+    if (rejectOnAbort) controller.signal.removeEventListener('abort', rejectOnAbort);
   }
-
-  return payload as T;
 }
 
 export const stockApi = {
@@ -96,9 +138,9 @@ export const stockApi = {
       { email, password },
     ),
 
-  refreshUser: async (role: SessionRole): Promise<StockUser> => {
+  refreshUser: async (role: SessionRole, signal?: AbortSignal): Promise<StockUser> => {
     if (role === 'admin') {
-      const response = await request<{ user: StockUser }>('GET', '/api/mobile/admin/auth/me');
+      const response = await request<{ user: StockUser }>('GET', '/api/mobile/admin/auth/me', undefined, signal);
       return response.user;
     }
 
@@ -107,11 +149,11 @@ export const stockApi = {
       driverId: string;
       name: string;
       email: string;
-    }>('GET', '/api/driver/profile');
+    }>('GET', '/api/driver/profile', undefined, signal);
     return { ...profile, role: 'driver' };
   },
 
-  cities: () => request<{ items: StockCity[] }>('GET', '/api/stock/cities'),
+  cities: () => request<{ items: StockCity[]; capabilities?: { sharedWorkerMode: boolean } }>('GET', '/api/stock/cities'),
 
   activeShift: () => request<{ shift: StockShift | null }>('GET', '/api/stock/shifts/active'),
 
@@ -174,10 +216,12 @@ export const stockApi = {
       shiftId,
     }),
 
-  inventory: (cityId: string, search: string, season: StockSeasonFilter = 'all', sort: StockSortOption = 'size') =>
-    request<{ items: InventoryItem[]; totalCount: number }>(
+  inventory: (cityId: string, search: string, season: StockSeasonFilter = 'all', sort: StockSortOption = 'size', options?: { page?: number; signal?: AbortSignal; tyreProductId?: string }) =>
+    request<InventoryPage>(
       'GET',
-      `/api/stock/cities/${encodeURIComponent(cityId)}/inventory?perPage=50&search=${encodeURIComponent(search)}&season=${encodeURIComponent(season)}&sort=${encodeURIComponent(sort)}`,
+      `/api/stock/cities/${encodeURIComponent(cityId)}/inventory?perPage=50&page=${Math.max(1, Math.trunc(options?.page || 1))}&search=${encodeURIComponent(search)}&season=${encodeURIComponent(season)}&sort=${encodeURIComponent(sort)}${options?.tyreProductId ? `&tyreProductId=${encodeURIComponent(options.tyreProductId)}` : ''}`,
+      undefined,
+      options?.signal,
     ),
 
   movements: (cityId: string) =>
@@ -185,6 +229,21 @@ export const stockApi = {
       'GET',
       `/api/stock/cities/${encodeURIComponent(cityId)}/movements?perPage=10`,
     ),
+
+  movementReceipt: async (cityId: string, idempotencyKey: string): Promise<{ movement: StockMovement | null }> => {
+    const response = await request<{ items: StockMovement[] }>(
+      'GET',
+      `/api/stock/cities/${encodeURIComponent(cityId)}/movements?perPage=1&idempotencyKey=${encodeURIComponent(idempotencyKey)}`,
+    );
+    const movement = response.items[0] ?? null;
+    if (movement && movement.idempotencyKey !== idempotencyKey) {
+      throw new ApiError('The server could not verify this movement receipt. Please try again.', 502);
+    }
+    return { movement };
+  },
+
+  recordMovement: (payload: MovementPayload) =>
+    request<{ movement: StockMovement }>('POST', '/api/stock/movements', payload),
 
   recordSale: (payload: {
     cityId: string;

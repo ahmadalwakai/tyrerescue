@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import type * as ExpoNotifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { api, getAdminToken } from './api';
+import { api, getAdminToken, getApiBaseUrl, getApiContextRevision } from './api';
 import { isNotificationStartupDisabled } from './notification-startup-config';
 import {
   extractNotificationResponseData,
@@ -11,6 +11,7 @@ import {
   normalizeExpoPushToken,
   normalizePermissionResponse,
   parseUrgentBookingNotificationOpenRequest,
+  parseDriverJourneyNotificationOpenRequest,
   type NotificationPermissionStatus,
 } from './notification-safety';
 import {
@@ -30,6 +31,14 @@ logStartupCheckpoint('NOTIFICATIONS_IMPORT_READY', { expoNotificationsImported: 
 
 let notificationsModulePromise: Promise<NotificationsModule | null> | null = null;
 let notificationHandlerConfigured = false;
+const pendingChatSounds = new Map<string, { isCurrent: () => boolean; expiresAt: number }>();
+let chatSoundSequence = 0;
+
+function isForegroundChatSoundData(data: unknown): boolean {
+  return Boolean(data && typeof data === 'object'
+    && (data as Record<string, unknown>).type === 'assisted_chat_sound'
+    && (data as Record<string, unknown>).version === 1);
+}
 
 async function loadNotificationsModule(context: string): Promise<NotificationsModule | null> {
   if (Platform.OS === 'web') return null;
@@ -61,13 +70,27 @@ async function getConfiguredNotifications(context: string): Promise<Notification
   logStartupModuleStarted('Notifications handler configuration', { context });
   try {
     Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-        shouldShowBanner: true,
-        shouldShowList: true,
-      }),
+      handleNotification: async (notification) => {
+        if (isForegroundChatSoundData(notification.request.content.data)) {
+          const pending = pendingChatSounds.get(notification.request.identifier);
+          const active = Boolean(pending && pending.expiresAt >= Date.now()
+            && AppState.currentState === 'active' && pending.isCurrent());
+          return {
+            shouldShowAlert: false,
+            shouldPlaySound: active,
+            shouldSetBadge: false,
+            shouldShowBanner: false,
+            shouldShowList: false,
+          };
+        }
+        return {
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        };
+      },
     });
     notificationHandlerConfigured = true;
     logStartupModuleCompleted('Notifications handler configuration', {
@@ -83,6 +106,75 @@ async function getConfiguredNotifications(context: string): Promise<Notification
     return null;
   }
   return Notifications;
+}
+
+/**
+ * Reuses the existing iOS notification sound engine. No audio module is loaded,
+ * no permission prompt is shown, and no banner/list/badge or navigation is used.
+ * Native sound assets are included by the existing notification config plugin.
+ */
+export function createForegroundChatSoundSession(isCurrent: () => boolean) {
+  let disposed = false;
+  const requests = new Map<string, ReturnType<typeof setTimeout>>();
+  const active = () => !disposed && isCurrent() && AppState.currentState === 'active';
+  const cancel = async (Notifications: NotificationsModule, identifier: string) => {
+    pendingChatSounds.delete(identifier);
+    const timer = requests.get(identifier);
+    if (timer) clearTimeout(timer);
+    requests.delete(identifier);
+    await Promise.allSettled([
+      Notifications.cancelScheduledNotificationAsync(identifier),
+      Notifications.dismissNotificationAsync(identifier),
+    ]);
+  };
+  return {
+    async play(kind: 'send' | 'receive'): Promise<boolean> {
+      // Android cannot guarantee a sound-only request without a tray entry.
+      if (Platform.OS !== 'ios' || !active() || isNotificationStartupDisabled()) return false;
+      try {
+        const Notifications = await getConfiguredNotifications('foreground-chat-sound');
+        if (!Notifications || !active()) return false;
+        const permissions = await Notifications.getPermissionsAsync();
+        if (!active() || normalizePermissionResponse(permissions) !== 'granted'
+          || permissions.ios?.allowsSound === false) return false;
+        const identifier = `assisted-chat-sound-${Date.now()}-${++chatSoundSequence}`;
+        pendingChatSounds.set(identifier, { isCurrent: active, expiresAt: Date.now() + 2_000 });
+        // Bookkeeping exists before scheduling, including if the native promise
+        // resolves after the chat/project/session has already been closed.
+        requests.set(identifier, setTimeout(() => { void cancel(Notifications, identifier); }, 2_000));
+        try {
+          await Notifications.scheduleNotificationAsync({
+            identifier,
+            content: {
+              sound: kind === 'send' ? 'chat-send.wav' : 'chat-receive.wav',
+              data: { type: 'assisted_chat_sound', version: 1 },
+              interruptionLevel: 'active',
+            },
+            trigger: null,
+          });
+          if (!active()) { await cancel(Notifications, identifier); return false; }
+          return true;
+        } catch {
+          await cancel(Notifications, identifier);
+          return false;
+        }
+      } catch {
+        // Missing native support or denied sound permission must never break chat.
+        return false;
+      }
+    },
+    dispose() {
+      disposed = true;
+      for (const [identifier, timer] of requests) {
+        pendingChatSounds.delete(identifier);
+        clearTimeout(timer);
+        void loadNotificationsModule('chat-sound-cleanup').then((Notifications) => {
+          if (Notifications) return cancel(Notifications, identifier);
+        }).catch(() => undefined);
+      }
+      requests.clear();
+    },
+  };
 }
 
 function logNotificationFailure(stage: string, error: unknown, details?: Record<string, unknown>): void {
@@ -288,6 +380,7 @@ export async function presentLocalUrgentBookingNotification(args: {
   bookingId: string;
   title?: string;
   body?: string;
+  isUrgent?: boolean;
 }): Promise<void> {
   if (Platform.OS === 'web') return;
   try {
@@ -297,6 +390,7 @@ export async function presentLocalUrgentBookingNotification(args: {
       title: args.title ?? 'Emergency booking received',
       body: args.body ?? 'Open Assisted Chat now',
       bookingId: args.bookingId,
+      isUrgent: args.isUrgent,
     });
   } catch (err) {
     console.warn('[notif] failed to present local urgent notification:', err);
@@ -304,7 +398,7 @@ export async function presentLocalUrgentBookingNotification(args: {
 }
 
 export function addAdminNotificationReceivedListener(
-  listener: () => void,
+  listener: (data?: unknown) => void,
 ): NotificationSubscription | null {
   if (Platform.OS === 'web') return null;
   if (isNotificationStartupDisabled()) {
@@ -317,9 +411,10 @@ export function addAdminNotificationReceivedListener(
   void getConfiguredNotifications('notification-received-listener')
     .then((Notifications) => {
       if (removed || !Notifications) return;
-      subscription = Notifications.addNotificationReceivedListener(() => {
+      subscription = Notifications.addNotificationReceivedListener((notification) => {
+        if (isForegroundChatSoundData(notification.request.content.data)) return;
         try {
-          listener();
+          listener(notification.request.content.data);
         } catch (error) {
           logNotificationFailure('notifications.received-listener.callback.failed', error);
         }
@@ -358,6 +453,7 @@ export function addAdminNotificationResponseListener(
       if (removed || !Notifications) return;
       subscription = Notifications.addNotificationResponseReceivedListener((response) => {
         const data = extractNotificationResponseData(response);
+        if (isForegroundChatSoundData(data)) return;
         if (!data) {
           logStartupCheckpoint('notifications.response-listener.payload.ignored', {
             reason: 'missing-or-malformed-data',
@@ -399,6 +495,7 @@ export async function getLastAdminNotificationResponseData(): Promise<unknown | 
     if (!Notifications) return null;
     const response = await Notifications.getLastNotificationResponseAsync();
     const data = extractNotificationResponseData(response);
+    if (isForegroundChatSoundData(data)) return null;
     if (!data) {
       logStartupCheckpoint('notifications.last-response.ignored', {
         reason: 'missing-or-malformed-data',
@@ -418,9 +515,11 @@ async function scheduleNotificationSafe(
     title: string;
     body: string;
     bookingId: string;
+    isUrgent?: boolean;
   },
 ): Promise<void> {
   try {
+    const isUrgent = args.isUrgent !== false;
     const androidPriority = Notifications.AndroidNotificationPriority as
       | Record<string, ExpoNotifications.AndroidNotificationPriority | undefined>
       | undefined;
@@ -428,14 +527,14 @@ async function scheduleNotificationSafe(
       content: {
         title: args.title,
         body: args.body,
-        sound: URGENT_SOUND,
-        ...(typeof androidPriority?.MAX === 'string' || typeof androidPriority?.MAX === 'number'
+        sound: isUrgent ? URGENT_SOUND : 'default',
+        ...(isUrgent && (typeof androidPriority?.MAX === 'string' || typeof androidPriority?.MAX === 'number')
           ? { priority: androidPriority.MAX }
           : {}),
-        vibrate: [0, 500, 250, 500, 250, 900],
-        data: { type: 'urgent_booking', bookingId: args.bookingId },
+        ...(isUrgent ? { vibrate: [0, 500, 250, 500, 250, 900] } : {}),
+        data: { type: 'urgent_booking', bookingId: args.bookingId, isUrgent, urgency: isUrgent ? 'urgent' : 'normal' },
         ...(Platform.OS === 'android'
-          ? { channelId: URGENT_BOOKINGS_V3_CHANNEL_ID }
+          ? { channelId: isUrgent ? URGENT_BOOKINGS_V3_CHANNEL_ID : LEGACY_BOOKINGS_CHANNEL_ID }
           : {}),
       },
       trigger: null,
@@ -448,6 +547,11 @@ async function scheduleNotificationSafe(
 // ─── Registration ─────────────────────────────────────────────────────────────
 
 let registrationInFlight: Promise<string | null> | null = null;
+let registrationContext: { adminToken: string; baseUrl: string; revision: number } | null = null;
+let unregistrationInFlight: Promise<void> | null = null;
+// Keep this device's observed token in memory even if the server sync fails,
+// so logout removes only this device, preserving this admin's other phones.
+let observedExpoToken: { token: string; adminToken: string; baseUrl: string } | null = null;
 
 export async function readAdminNotificationPermissionStatus(): Promise<NotificationPermissionStatus> {
   if (Platform.OS === 'web') return 'undetermined';
@@ -511,18 +615,17 @@ async function getAdminExpoPushToken(Notifications: NotificationsModule): Promis
     }
     logStartupCheckpoint('NOTIFICATIONS_TOKEN_SUCCESS', {
       tokenKind: 'expo',
-      tokenSuffix: token.slice(-8),
     });
     return token;
   } catch (error) {
     logStartupModuleFailed('NOTIFICATIONS_TOKEN_FAILED', error, { tokenKind: 'expo' });
-    console.error('[notif] failed to get Expo push token:', error);
+    console.error('[notif] failed to get Expo push token');
     return null;
   }
 }
 
-async function syncAdminExpoPushToken(token: string): Promise<boolean> {
-  if (!getAdminToken()) {
+async function syncAdminExpoPushToken(token: string, isCurrent: () => boolean): Promise<boolean> {
+  if (!getAdminToken() || !isCurrent()) {
     logStartupCheckpoint('NOTIFICATIONS_API_SYNC_FAILED', { reason: 'missing-admin-token' });
     return false;
   }
@@ -537,10 +640,10 @@ async function syncAdminExpoPushToken(token: string): Promise<boolean> {
       throw new Error('Backend did not confirm Expo push-token sync');
     }
     logStartupCheckpoint('NOTIFICATIONS_API_SYNC_SUCCESS', { tokenKind: 'expo' });
-    return true;
+    return isCurrent();
   } catch (error) {
     logStartupModuleFailed('NOTIFICATIONS_API_SYNC_FAILED', error, { tokenKind: 'expo' });
-    console.error('[notif] failed to upload push token:', error);
+    console.error('[notif] failed to upload push token');
     return false;
   }
 }
@@ -550,16 +653,22 @@ async function syncAdminExpoPushToken(token: string): Promise<boolean> {
  * already authorized, and upload it to the server. It never prompts on startup.
  */
 export async function registerAdminPushNotifications(): Promise<string | null> {
-  if (registrationInFlight) return registrationInFlight;
+  if (unregistrationInFlight) return null;
+  if (Platform.OS === 'web' || isNotificationStartupDisabled() || !Device.isDevice) return null;
+  const adminToken = getAdminToken();
+  const baseUrl = getApiBaseUrl();
+  const revision = getApiContextRevision();
+  if (!adminToken) return null;
+  if (registrationInFlight && registrationContext?.adminToken === adminToken
+    && registrationContext.baseUrl === baseUrl && registrationContext.revision === revision) return registrationInFlight;
 
-  registrationInFlight = (async () => {
+  const context = { adminToken, baseUrl, revision };
+  const isCurrent = () => getAdminToken() === adminToken && getApiBaseUrl() === baseUrl && getApiContextRevision() === revision
+    && registrationContext === context;
+  registrationContext = context;
+
+  const registration = (async () => {
     try {
-      // Web has no expo-notifications push surface; bail early so a web
-      // preview does not spam permission / token errors.
-      if (Platform.OS === 'web') {
-        return null;
-      }
-
       if (isNotificationStartupDisabled()) {
         logStartupCheckpoint('notifications.registration.skipped', { reason: 'startup-disabled' });
         return null;
@@ -589,23 +698,44 @@ export async function registerAdminPushNotifications(): Promise<string | null> {
       }
 
       const token = await getAdminExpoPushToken(Notifications);
-      if (!token) return null;
+      if (!token || !isCurrent()) return null;
+      observedExpoToken = { token, adminToken, baseUrl };
 
-      await syncAdminExpoPushToken(token);
+      const synced = await syncAdminExpoPushToken(token, isCurrent);
+      if (!synced || !isCurrent()) return null;
+      if (await readAdminNotificationPermissionStatus() !== 'granted' || !isCurrent()) return null;
 
-      console.log(`[notif] Expo push token registered tokenSuffix=${token.slice(-8)}`);
+      console.log('[notif] Expo push token registration confirmed');
 
       return token;
     } catch (error) {
       logStartupModuleFailed('notifications.registration.failed', error);
-      console.error('[notif] push registration failed:', error);
+      console.error('[notif] push registration failed');
       return null;
     }
   })().finally(() => {
-    registrationInFlight = null;
+    if (registrationInFlight === registration) {
+      registrationInFlight = null;
+      registrationContext = null;
+    }
   });
 
-  return registrationInFlight;
+  registrationInFlight = registration;
+  return registration;
+}
+
+/** Explicit user action only. The server resolves this session's own device. */
+export async function sendAdminNotificationTest(): Promise<void> {
+  if (Platform.OS === 'web' || isNotificationStartupDisabled() || !Device.isDevice || !getAdminToken()) {
+    throw new Error('Notification testing is available on a signed-in physical device only.');
+  }
+  const revision = getApiContextRevision();
+  const result: unknown = await api.post('/api/mobile/admin/notifications/test', {});
+  if (revision !== getApiContextRevision()) throw new Error('The active account or project changed.');
+  if (!result || typeof result !== 'object' || Array.isArray(result)
+    || (result as { ok?: unknown }).ok !== true || (result as { status?: unknown }).status !== 'accepted') {
+    throw new Error('The push service did not confirm acceptance.');
+  }
 }
 
 /**
@@ -629,12 +759,47 @@ export async function clearAdminBadge(): Promise<void> {
  * Call on admin logout.
  */
 export async function unregisterAdminPushNotifications(): Promise<void> {
-  registrationInFlight = null;
+  if (unregistrationInFlight) return unregistrationInFlight;
+  const operation = unregisterCurrentDevicePushNotifications();
+  unregistrationInFlight = operation;
   try {
-    await Promise.allSettled([
-      api.del('/api/mobile/admin/push-token'),
-      api.del('/api/mobile/admin/native-alert-token'),
-    ]);
+    await operation;
+  } finally {
+    if (unregistrationInFlight === operation) unregistrationInFlight = null;
+  }
+}
+
+async function unregisterCurrentDevicePushNotifications(): Promise<void> {
+  const adminToken = getAdminToken();
+  const baseUrl = getApiBaseUrl();
+  const revision = getApiContextRevision();
+  const pending = registrationContext?.adminToken === adminToken && registrationContext.baseUrl === baseUrl
+    ? registrationInFlight : null;
+  const observed = observedExpoToken;
+  observedExpoToken = null;
+  registrationInFlight = null;
+  registrationContext = null;
+  if (!adminToken) return;
+  const isCurrent = () => getAdminToken() === adminToken && getApiBaseUrl() === baseUrl && getApiContextRevision() === revision;
+  try {
+    // A POST already in progress must finish before DELETE, otherwise it could
+    // recreate the device row after logout removed it. Its readiness is invalidated above.
+    if (pending) await pending;
+    if (!isCurrent()) return;
+    let token = observed?.adminToken === adminToken && observed.baseUrl === baseUrl ? observed.token : null;
+    // A restarted app may not have observed its token in this JS process yet.
+    // Ask the native facade for this device's token without registering it.
+    if (!token && Platform.OS !== 'web' && Device.isDevice && !isNotificationStartupDisabled()) {
+      const Notifications = await getConfiguredNotifications('logout-device-token');
+      if (Notifications && isCurrent()) token = await getAdminExpoPushToken(Notifications);
+    }
+    if (!isCurrent()) return;
+    const requests: Promise<unknown>[] = [];
+    if (token) requests.push(api.del('/api/mobile/admin/push-token', { body: { token } }));
+    // Never send a bodyless Expo DELETE: older endpoints interpret it as
+    // removing every Expo device for this admin. Keep Android's native cleanup.
+    if (Platform.OS === 'android') requests.push(api.del('/api/mobile/admin/native-alert-token'));
+    await Promise.allSettled(requests);
   } catch (error) {
     logStartupModuleFailed('notifications.unregister.failed', error);
   }
@@ -674,6 +839,10 @@ export function isUrgentBookingNotificationData(data: unknown): boolean {
 
 export function getUrgentBookingNotificationOpenRequest(data: unknown) {
   return parseUrgentBookingNotificationOpenRequest(data);
+}
+
+export function getDriverJourneyNotificationOpenRequest(data: unknown) {
+  return parseDriverJourneyNotificationOpenRequest(data);
 }
 
 // ─── Dismissed Urgent Booking Memory (survives app restart) ─────────────────
@@ -724,7 +893,6 @@ export async function getDeviceFcmToken(): Promise<string | null> {
     if (token) {
       logStartupCheckpoint('NOTIFICATIONS_TOKEN_SUCCESS', {
         tokenKind: 'native-device',
-        tokenSuffix: token.slice(-8),
       });
       return token;
     }
@@ -741,7 +909,7 @@ export async function getDeviceFcmToken(): Promise<string | null> {
     // matching this package), raw FCM token retrieval fails and the device
     // cannot subscribe to urgent_bookings topic for background delivery.
     logStartupModuleFailed('NOTIFICATIONS_TOKEN_FAILED', err, { tokenKind: 'native-device' });
-    console.warn('[notif] failed to get raw Android FCM token:', err);
+    console.warn('[notif] failed to get raw Android FCM token');
     return null;
   }
 }

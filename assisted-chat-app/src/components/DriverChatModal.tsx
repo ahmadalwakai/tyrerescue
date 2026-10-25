@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -12,14 +11,18 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { api } from '@/lib/api';
+import { api, getAdminToken, getApiContextRevision } from '@/lib/api';
+import { getAdminSessionRevision } from '@/hooks/useAdminSession';
+import { useChatSounds } from '@/hooks/useChatSounds';
+import { useChatVoiceRecorder } from '@/hooks/useChatVoiceRecorder';
+import { chatMessageDisplayText } from '@/lib/chat-message-display';
 import { AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
-import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
-import { uploadChatImageAttachment, type ChatLocalAsset } from '@/lib/chat-attachments';
+import { ChatScreenLayout, useChatBottomPadding } from './chat/ChatScreenLayout';
+import { uploadChatImageAttachment, uploadChatVoiceAttachment, type ChatLocalAsset } from '@/lib/chat-attachments';
 import { saveChatAttachmentToDevice } from '@/lib/chat-download';
 import { ChatComposerIconButton } from './ChatComposerIconButton';
-import { ChatImageBubble } from './ChatImageBubble';
+import { ChatImageBubble, ChatPhotoPreview } from './ChatImageBubble';
 import { VoiceMessageBubble } from './VoiceMessageBubble';
 
 type ChatRole = 'customer' | 'admin' | 'driver';
@@ -59,6 +62,7 @@ interface Props {
   bookingId: string | null;
   bookingRef: string | null;
   onClose: () => void;
+  onDismiss?: () => void;
 }
 
 interface CreateConversationResponse {
@@ -69,9 +73,6 @@ interface MessagesResponse {
   messages: MessageView[];
   nextCursor: string | null;
 }
-
-const VOICE_UNAVAILABLE_MESSAGE =
-  'Voice messages are temporarily disabled in this TestFlight build while the native audio crash is being fixed.';
 
 function formatTime(iso: string): string {
   if (!iso) return '';
@@ -97,8 +98,7 @@ function isDeletedMessage(message: MessageView): boolean {
   return Boolean(message.deleted || (!message.body && !getAudioAttachment(message) && !getImageAttachment(message)));
 }
 
-export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Props) {
-  const recorderState = { durationMillis: 0 };
+export function DriverChatModal({ visible, bookingId, bookingRef, onClose, onDismiss }: Props) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ConversationDetail | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
@@ -112,22 +112,64 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
   const [editTarget, setEditTarget] = useState<MessageView | null>(null);
   const [editText, setEditText] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  const sendRequestRef = useRef<object | null>(null);
+  const messageFetchRef = useRef(0);
+  const acceptedMessagesRef = useRef<{ id: string; messages: MessageView[] } | null>(null);
+  const bottomPadding = useChatBottomPadding();
+  const scopeKey = `${getAdminSessionRevision()}:${getApiContextRevision()}:${bookingId ?? ''}`;
+  const scopeRef = useRef({ visible, scopeKey, generation: 0, conversationId: null as string | null });
+  if (scopeRef.current.visible !== visible || scopeRef.current.scopeKey !== scopeKey) {
+    scopeRef.current = { visible, scopeKey, generation: scopeRef.current.generation + 1, conversationId: null };
+  }
+  const { observeMessages, playSent } = useChatSounds({ visible, conversationId, scopeKey });
+  const captureScope = useCallback(() => ({ ...scopeRef.current, token: getAdminToken(), apiRevision: getApiContextRevision(), sessionRevision: getAdminSessionRevision() }), []);
+  const isCurrent = useCallback((scope: ReturnType<typeof captureScope>, id?: string) => (
+    scopeRef.current.visible && scope.visible && scope.scopeKey === scopeRef.current.scopeKey &&
+    scope.generation === scopeRef.current.generation && scope.token === getAdminToken() &&
+    scope.apiRevision === getApiContextRevision() && scope.sessionRevision === getAdminSessionRevision() &&
+    (!id || scopeRef.current.conversationId === id)
+  ), []);
+
+  const { state: recorderState, start: startRecording, finish: finishRecording, cancel: cancelRecording, getState: getRecordingState } = useChatVoiceRecorder({ visible, conversationId: conversationId, scopeKey });
+  const closeChat = useCallback(() => {
+    setPreviewUri(null);
+    void cancelRecording();
+    scopeRef.current.visible = false;
+    scopeRef.current.generation += 1;
+    sendRequestRef.current = null;
+    messageFetchRef.current += 1;
+    onClose();
+  }, [onClose, cancelRecording]);
 
   const markRead = useCallback((id: string) => {
     api.post(`/api/chat/conversations/${encodeURIComponent(id)}/read`).catch(() => undefined);
   }, []);
 
   const fetchMessages = useCallback(async (id: string) => {
+    const scope = captureScope();
+    const request = ++messageFetchRef.current;
     const data = await api.get<MessagesResponse>(
       `/api/chat/conversations/${encodeURIComponent(id)}/messages?limit=50`,
     );
+    if (!isCurrent(scope, id) || request !== messageFetchRef.current) return;
+    acceptedMessagesRef.current = { id: id, messages: data.messages ?? [] };
     setMessages(data.messages ?? []);
+    observeMessages(data.messages ?? [], id);
     markRead(id);
-  }, [markRead]);
+  }, [captureScope, isCurrent, markRead, observeMessages]);
+
+  // A fast response can finish before the new chat's layout effect installs its sound scope.
+  // Replay only the accepted snapshot after commit; the tracker suppresses duplicate observations.
+  useEffect(() => {
+    const snapshot = acceptedMessagesRef.current;
+    if (visible && !loading && snapshot && snapshot.id === conversationId) observeMessages(snapshot.messages, snapshot.id);
+  }, [conversationId, loading, messages, observeMessages, visible]);
 
   const openConversation = useCallback(async () => {
-    if (!bookingId) return;
+    if (!bookingId || !scopeRef.current.visible) return;
+    const scope = captureScope();
     setLoading(true);
     setError(null);
     try {
@@ -135,6 +177,8 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
         bookingId,
         channel: 'admin_driver',
       });
+      if (!isCurrent(scope)) return;
+      scopeRef.current.conversationId = created.conversationId;
       setConversationId(created.conversationId);
       const [nextDetail] = await Promise.all([
         api.get<ConversationDetail>(
@@ -142,8 +186,9 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
         ),
         fetchMessages(created.conversationId),
       ]);
-      setDetail(nextDetail);
+      if (isCurrent(scope, created.conversationId)) setDetail(nextDetail);
     } catch (err) {
+      if (!isCurrent(scope)) return;
       const msg = err instanceof Error ? err.message : 'Could not open driver chat';
       setError(
         msg.includes('No driver assigned') || msg.toLowerCase().includes('driver')
@@ -151,12 +196,19 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
           : msg,
       );
     } finally {
-      setLoading(false);
+      if (isCurrent(scope)) setLoading(false);
     }
-  }, [bookingId, fetchMessages]);
+  }, [bookingId, captureScope, fetchMessages, isCurrent]);
 
-  useEffect(() => {
-    if (!visible) return;
+  useLayoutEffect(() => {
+    scopeRef.current.visible = visible;
+    void cancelRecording();
+    scopeRef.current.generation += 1;
+    sendRequestRef.current = null; messageFetchRef.current += 1;
+    scopeRef.current.conversationId = null;
+    acceptedMessagesRef.current = null;
+    setPreviewUri(null);
+    setSending(false); setMediaBusy(false); setVoiceBusy(false); setActionBusy(false);
     setConversationId(null);
     setDetail(null);
     setMessages([]);
@@ -164,8 +216,10 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
     setActionTarget(null);
     setEditTarget(null);
     setEditText('');
+    if (!visible) return;
     void openConversation();
-  }, [openConversation, visible]);
+    return () => { scopeRef.current.visible = false; scopeRef.current.generation += 1; };
+  }, [cancelRecording, openConversation, scopeKey, visible]);
 
   const updateMessage = useCallback((updated: MessageView) => {
     setMessages((items) => items.map((item) => (item.id === updated.id ? updated : item)));
@@ -181,7 +235,11 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
 
   const handleSend = useCallback(async () => {
     const body = text.trim();
-    if (!conversationId || !body || sending) return;
+    if (!conversationId || !body || sending || sendRequestRef.current || getRecordingState().phase !== 'idle') return;
+    const scope = captureScope();
+    if (!isCurrent(scope, conversationId)) return;
+    const request = {};
+    sendRequestRef.current = request;
     setSending(true);
     setError(null);
     try {
@@ -189,66 +247,113 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
         `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages`,
         { body, messageType: 'text' },
       );
-      setMessages((prev) => [...prev, sent]);
+      if (!isCurrent(scope, conversationId)) return;
+      messageFetchRef.current += 1;
+      setMessages((prev) => prev.some((item) => item.id === sent.id) ? prev : [...prev, sent]);
+      playSent(sent.id);
       setText('');
       markRead(conversationId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send message');
+      if (isCurrent(scope, conversationId)) setError(err instanceof Error ? err.message : 'Could not send message');
     } finally {
-      setSending(false);
+      if (sendRequestRef.current === request) sendRequestRef.current = null;
+      if (isCurrent(scope, conversationId)) setSending(false);
     }
-  }, [conversationId, markRead, sending, text]);
+  }, [captureScope, conversationId, getRecordingState, isCurrent, markRead, playSent, sending, text]);
 
   const inputDisabled =
     loading ||
     sending ||
     voiceBusy ||
+    recorderState.phase !== 'idle' ||
     mediaBusy ||
     !conversationId ||
     detail?.locked === true ||
     detail?.status === 'closed' ||
     detail?.status === 'archived';
-  const recordingComposerActive = false;
+  const recordingComposerActive = recorderState.phase !== 'idle';
 
   const startVoiceRecording = useCallback(async () => {
-    if (inputDisabled || voiceBusy) return;
-    setError(VOICE_UNAVAILABLE_MESSAGE);
-  }, [inputDisabled, voiceBusy]);
+    if (inputDisabled || voiceBusy || sendRequestRef.current) return;
+    const scope = captureScope();
+    setError(null);
+    try { await startRecording(); }
+    catch (err) { if (isCurrent(scope)) setError(err instanceof Error ? err.message : 'Could not start voice recording.'); }
+  }, [captureScope, inputDisabled, isCurrent, voiceBusy, startRecording]);
 
   const cancelVoiceRecording = useCallback(async () => {
+    await cancelRecording();
     setVoiceBusy(false);
-  }, []);
+  }, [cancelRecording]);
 
   const sendVoiceRecording = useCallback(async () => {
-    setError(VOICE_UNAVAILABLE_MESSAGE);
-  }, []);
+    if (!conversationId || voiceBusy || sending || sendRequestRef.current) return;
+    const scope = captureScope();
+    if (!isCurrent(scope, conversationId)) return;
+    const request = {};
+    sendRequestRef.current = request;
+    setVoiceBusy(true);
+    setError(null);
+    try {
+      const uri = await finishRecording();
+      if (!uri || !isCurrent(scope, conversationId)) return;
+      const attachment = await uploadChatVoiceAttachment(uri);
+      if (!isCurrent(scope, conversationId) || getRecordingState().phase !== 'ready') return;
+      const sent = await api.post<MessageView>(
+        `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages`,
+        { body: null, messageType: 'audio', attachment },
+      );
+      if (!isCurrent(scope, conversationId)) return;
+      messageFetchRef.current += 1;
+      setMessages((items) => items.some((item) => item.id === sent.id) ? items : [...items, sent]);
+      playSent(sent.id);
+      markRead(conversationId);
+      await cancelRecording();
+    } catch (err) {
+      if (isCurrent(scope, conversationId)) setError(err instanceof Error ? err.message : 'Could not send voice message. Tap Send voice to retry.');
+    } finally {
+      if (sendRequestRef.current === request) sendRequestRef.current = null;
+      if (isCurrent(scope, conversationId)) setVoiceBusy(false);
+    }
+  }, [captureScope, getRecordingState, isCurrent, markRead, playSent, conversationId, sending, voiceBusy, cancelRecording, finishRecording]);
 
   const sendImageAsset = useCallback(async (asset: ChatLocalAsset) => {
-    if (!conversationId || mediaBusy || sending) return;
+    if (!conversationId || mediaBusy || sending || sendRequestRef.current || getRecordingState().phase !== 'idle') return;
+    const scope = captureScope();
+    if (!isCurrent(scope, conversationId)) return;
+    const request = {};
+    sendRequestRef.current = request;
     setMediaBusy(true);
     setSending(true);
     setError(null);
     try {
       const attachment = await uploadChatImageAttachment(asset);
+      if (!isCurrent(scope, conversationId)) return;
       const sent = await api.post<MessageView>(
         `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages`,
         { body: null, messageType: 'image', attachment },
       );
-      setMessages((prev) => [...prev, sent]);
+      if (!isCurrent(scope, conversationId)) return;
+      messageFetchRef.current += 1;
+      setMessages((prev) => prev.some((item) => item.id === sent.id) ? prev : [...prev, sent]);
+      playSent(sent.id);
       markRead(conversationId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not send photo');
     } finally {
-      setSending(false);
-      setMediaBusy(false);
+      if (sendRequestRef.current === request) sendRequestRef.current = null;
+      if (isCurrent(scope, conversationId)) { setSending(false); setMediaBusy(false); }
     }
-  }, [conversationId, markRead, mediaBusy, sending]);
+  }, [captureScope, conversationId, getRecordingState, isCurrent, markRead, mediaBusy, playSent, sending]);
 
   const pickImageFromLibrary = useCallback(async () => {
-    if (inputDisabled) return;
+    if (inputDisabled || !conversationId) return;
+    const scope = captureScope();
+    if (!isCurrent(scope, conversationId)) return;
     setError(null);
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!isCurrent(scope, conversationId)) return;
       if (!permission.granted) {
         setError('Photo library permission is required to send an image.');
         return;
@@ -258,7 +363,7 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
         allowsEditing: false,
         quality: 0.82,
       });
-      if (result.canceled || !result.assets[0]) return;
+      if (!isCurrent(scope, conversationId) || result.canceled || !result.assets[0]) return;
       const asset = result.assets[0];
       await sendImageAsset({
         uri: asset.uri,
@@ -267,15 +372,18 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
         file: asset.file,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not open photo library.');
+      if (isCurrent(scope, conversationId)) setError(err instanceof Error ? err.message : 'Could not open photo library.');
     }
-  }, [inputDisabled, sendImageAsset]);
+  }, [captureScope, conversationId, inputDisabled, isCurrent, sendImageAsset]);
 
   const takeCameraPhoto = useCallback(async () => {
-    if (inputDisabled) return;
+    if (inputDisabled || !conversationId) return;
+    const scope = captureScope();
+    if (!isCurrent(scope, conversationId)) return;
     setError(null);
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!isCurrent(scope, conversationId)) return;
       if (!permission.granted) {
         setError('Camera permission is required to send a photo.');
         return;
@@ -286,7 +394,7 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
         quality: 0.82,
         cameraType: ImagePicker.CameraType.back,
       });
-      if (result.canceled || !result.assets[0]) return;
+      if (!isCurrent(scope, conversationId) || result.canceled || !result.assets[0]) return;
       const asset = result.assets[0];
       await sendImageAsset({
         uri: asset.uri,
@@ -295,13 +403,15 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
         file: asset.file,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not open camera.');
+      if (isCurrent(scope, conversationId)) setError(err instanceof Error ? err.message : 'Could not open camera.');
     }
-  }, [inputDisabled, sendImageAsset]);
+  }, [captureScope, conversationId, inputDisabled, isCurrent, sendImageAsset]);
 
   const handleSaveMessageAttachment = useCallback(async (message: MessageView) => {
     const attachment = getImageAttachment(message) ?? getAudioAttachment(message);
     if (!attachment) return;
+    const scope = captureScope();
+    if (!isCurrent(scope)) return;
     setActionBusy(true);
     setError(null);
     try {
@@ -310,16 +420,18 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
         mimeType: attachment.mimeType,
         fileName: attachment.fileName,
       });
-      setActionTarget(null);
+      if (isCurrent(scope)) setActionTarget(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save attachment.');
+      if (isCurrent(scope)) setError(err instanceof Error ? err.message : 'Could not save attachment.');
     } finally {
-      setActionBusy(false);
+      if (isCurrent(scope)) setActionBusy(false);
     }
-  }, []);
+  }, [captureScope, isCurrent]);
 
   const handleDeleteMessage = useCallback(async (message: MessageView) => {
     if (!conversationId) return;
+    const scope = captureScope();
+    if (!isCurrent(scope, conversationId)) return;
     setActionBusy(true);
     setError(null);
     try {
@@ -327,14 +439,16 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
         `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(message.id)}`,
         { action: 'delete' },
       );
+      if (!isCurrent(scope, conversationId)) return;
+      messageFetchRef.current += 1;
       updateMessage(updated);
       setActionTarget(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete message.');
+      if (isCurrent(scope, conversationId)) setError(err instanceof Error ? err.message : 'Could not delete message.');
     } finally {
-      setActionBusy(false);
+      if (isCurrent(scope, conversationId)) setActionBusy(false);
     }
-  }, [conversationId, updateMessage]);
+  }, [captureScope, isCurrent, conversationId, updateMessage]);
 
   const beginEditMessage = useCallback((message: MessageView) => {
     setEditTarget(message);
@@ -345,6 +459,8 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
   const submitEditMessage = useCallback(async () => {
     const body = editText.trim();
     if (!conversationId || !editTarget || !body) return;
+    const scope = captureScope();
+    if (!isCurrent(scope, conversationId)) return;
     setActionBusy(true);
     setError(null);
     try {
@@ -352,30 +468,27 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
         `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(editTarget.id)}`,
         { action: 'edit', body },
       );
+      if (!isCurrent(scope, conversationId)) return;
+      messageFetchRef.current += 1;
       updateMessage(updated);
       setEditTarget(null);
       setEditText('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not edit message.');
+      if (isCurrent(scope, conversationId)) setError(err instanceof Error ? err.message : 'Could not edit message.');
     } finally {
-      setActionBusy(false);
+      if (isCurrent(scope, conversationId)) setActionBusy(false);
     }
-  }, [conversationId, editTarget, editText, updateMessage]);
+  }, [captureScope, isCurrent, conversationId, editTarget, editText, updateMessage]);
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <AdminModalShell keyboardAvoidingEnabled={false}>
-        <KeyboardAvoidingView
-          style={styles.keyboard}
-          behavior={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
-        >
-          <AdminModalHeader
-            title="Driver chat"
-            subtitle={bookingRef ? `#${bookingRef}` : 'Current booking'}
-            onClose={onClose}
-          />
-
+    <Modal visible={visible} presentationStyle="fullScreen" animationType="slide" onRequestClose={() => {
+      if (previewUri) setPreviewUri(null);
+      else if (editTarget) { setEditTarget(null); setEditText(''); }
+      else if (actionTarget) setActionTarget(null);
+      else closeChat();
+    }} onDismiss={onDismiss}>
+      <ChatScreenLayout title="Driver chat" subtitle="Private admin / driver conversation"
+        reference={bookingRef ? `#${bookingRef}` : null} onClose={closeChat}>
           {error ? (
             <View style={styles.noticeWrap}>
               <StatusBanner kind="err" message={error} />
@@ -421,17 +534,20 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
                       <ChatImageBubble
                         uri={imageAttachment.url}
                         mine={mine}
+                        onPreview={setPreviewUri}
                         onLongPress={() => setActionTarget(message)}
                       />
                     ) : audioAttachment ? (
                       <VoiceMessageBubble
                         uri={audioAttachment.url}
+                        active={visible}
+                        scopeKey={scopeKey}
                         mine={mine}
                         onLongPress={() => setActionTarget(message)}
                       />
                     ) : (
                       <Text style={[styles.body, mine ? styles.bodyMine : styles.bodyOther]}>
-                        {message.body || 'Attachment'}
+                        {chatMessageDisplayText(message.body || 'Attachment')}
                       </Text>
                     )}
                     <Text style={[styles.time, mine ? styles.timeMine : styles.timeOther]}>
@@ -461,7 +577,7 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
             )}
           </ScrollView>
 
-          <View style={styles.composer}>
+          <View style={[styles.composer, { paddingBottom: bottomPadding }]}>
             {detail?.locked ? (
               <Text style={styles.inputHint}>This conversation is locked.</Text>
             ) : detail?.status === 'closed' || detail?.status === 'archived' ? (
@@ -472,7 +588,7 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
                 <View style={styles.recordingPill}>
                   <View style={styles.recordingDot} />
                   <Text style={styles.recordingText}>
-                    Recording {formatRecordingTime(recorderState.durationMillis)}
+                    {recorderState.phase === 'preparing' ? 'Preparing microphone...' : recorderState.phase === 'ready' ? 'Voice ready' : recorderState.phase === 'stopping' ? 'Finishing...' : 'Recording'} {formatRecordingTime(recorderState.durationMillis)}
                   </Text>
                 </View>
                 <AppButton
@@ -487,12 +603,12 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
                   variant="primary"
                   onPress={() => { void sendVoiceRecording(); }}
                   loading={voiceBusy}
-                  disabled={voiceBusy}
+                  disabled={voiceBusy || recorderState.phase === 'preparing' || recorderState.phase === 'stopping'}
                   style={styles.recordSendButton}
                 />
               </View>
             ) : (
-              <View style={styles.inputRow}>
+              <View style={styles.composerFields}>
                 <TextInput
                   value={text}
                   onChangeText={setText}
@@ -501,7 +617,10 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
                   editable={!inputDisabled}
                   style={styles.input}
                   multiline
+                  maxLength={5000}
+                  accessibilityLabel="Message text"
                 />
+                <View style={styles.inputRow}>
                 <ChatComposerIconButton
                   icon="image-outline"
                   label="Send image"
@@ -531,10 +650,11 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
                   disabled={inputDisabled || !text.trim()}
                   style={styles.sendBtn}
                 />
+                </View>
               </View>
             )}
           </View>
-          <MessageActionsModal
+          <MessageActionsOverlay
             visible={Boolean(actionTarget)}
             message={actionTarget}
             busy={actionBusy}
@@ -557,7 +677,7 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
               if (actionTarget) void handleDeleteMessage(actionTarget);
             }}
           />
-          <EditMessageModal
+          <EditMessageOverlay
             visible={Boolean(editTarget)}
             value={editText}
             busy={actionBusy}
@@ -570,13 +690,13 @@ export function DriverChatModal({ visible, bookingId, bookingRef, onClose }: Pro
               void submitEditMessage();
             }}
           />
-        </KeyboardAvoidingView>
-      </AdminModalShell>
+          <ChatPhotoPreview uri={previewUri} onClose={() => setPreviewUri(null)} />
+      </ChatScreenLayout>
     </Modal>
   );
 }
 
-function MessageActionsModal({
+function MessageActionsOverlay({
   visible,
   message,
   busy,
@@ -599,9 +719,9 @@ function MessageActionsModal({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  if (!visible) return null;
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.actionBackdrop} onPress={onClose}>
+      <Pressable style={styles.actionBackdrop} onPress={onClose} accessibilityViewIsModal>
         <Pressable style={styles.actionSheet}>
           <View style={styles.actionHandle} />
           <Text style={styles.actionTitle}>Message tools</Text>
@@ -614,11 +734,10 @@ function MessageActionsModal({
           <ActionSheetButton label="Cancel" disabled={busy} onPress={onClose} />
         </Pressable>
       </Pressable>
-    </Modal>
   );
 }
 
-function EditMessageModal({
+function EditMessageOverlay({
   visible,
   value,
   busy,
@@ -633,9 +752,9 @@ function EditMessageModal({
   onCancel: () => void;
   onSave: () => void;
 }) {
+  if (!visible) return null;
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View style={styles.actionBackdrop}>
+      <View style={styles.actionBackdrop} accessibilityViewIsModal>
         <View style={styles.actionSheet}>
           <View style={styles.actionHandle} />
           <Text style={styles.actionTitle}>Edit message</Text>
@@ -654,7 +773,6 @@ function EditMessageModal({
           </View>
         </View>
       </View>
-    </Modal>
   );
 }
 
@@ -717,7 +835,7 @@ const styles = StyleSheet.create({
   closeBtnText: { color: colors.danger, fontSize: fontSize.sm, fontWeight: '900' },
   btnPressed: { opacity: 0.76 },
   noticeWrap: { paddingHorizontal: space.lg, paddingTop: space.md },
-  messages: { flex: 1 },
+  messages: { flex: 1, minHeight: 0, backgroundColor: '#000000' },
   messagesContent: {
     flexGrow: 1,
     paddingHorizontal: space.lg,
@@ -750,7 +868,7 @@ const styles = StyleSheet.create({
   sender: { fontSize: fontSize.xs, fontWeight: '800' },
   senderMine: { color: colors.accentText },
   senderOther: { color: colors.muted },
-  body: { fontSize: fontSize.md, lineHeight: 20 },
+  body: { fontSize: fontSize.md, lineHeight: 23, textAlign: 'auto', writingDirection: 'auto', flexShrink: 1 },
   bodyMine: { color: colors.accentText },
   bodyOther: { color: colors.text },
   deletedBody: { fontStyle: 'italic', opacity: 0.72 },
@@ -760,15 +878,16 @@ const styles = StyleSheet.create({
   composer: {
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    backgroundColor: colors.bg,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
+    backgroundColor: '#000000',
+    paddingHorizontal: space.md,
+    paddingTop: space.sm,
     gap: space.xs,
   },
   inputHint: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '700' },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm },
+  composerFields: { gap: space.sm },
+  inputRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.sm },
   input: {
-    flex: 1,
+    width: '100%',
     minHeight: 48,
     maxHeight: 116,
     borderRadius: radius.md,
@@ -779,8 +898,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
     fontSize: fontSize.md,
+    textAlign: 'auto', writingDirection: 'auto', textAlignVertical: 'top',
   },
-  sendBtn: { minWidth: 88 },
+  sendBtn: { flex: 1, minWidth: 84, minHeight: 48 },
   recordingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -810,7 +930,8 @@ const styles = StyleSheet.create({
   recordCancelButton: { minWidth: 82 },
   recordSendButton: { minWidth: 122 },
   actionBackdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
     backgroundColor: 'rgba(1,3,10,0.72)',
     justifyContent: 'flex-end',
     padding: space.lg,

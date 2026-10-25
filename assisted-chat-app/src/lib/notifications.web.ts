@@ -1,4 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { parseDriverJourneyNotificationOpenRequest } from './notification-safety';
+
+export const getDriverJourneyNotificationOpenRequest = parseDriverJourneyNotificationOpenRequest;
 
 export const URGENT_BOOKINGS_CHANNEL_ID = 'urgent-bookings';
 export const URGENT_BOOKINGS_V1_CHANNEL_ID = 'urgent_bookings_v1';
@@ -16,13 +19,14 @@ export async function presentLocalUrgentBookingNotification(_args: {
   bookingId: string;
   title?: string;
   body?: string;
+  isUrgent?: boolean;
 }): Promise<void> {
   void _args;
   return undefined;
 }
 
 export function addAdminNotificationReceivedListener(
-  _listener: () => void,
+  _listener: (data?: unknown) => void,
 ): NotificationSubscription | null {
   void _listener;
   return null;
@@ -37,6 +41,10 @@ export function addAdminNotificationResponseListener(
 
 export async function registerAdminPushNotifications(): Promise<string | null> {
   return null;
+}
+
+export async function sendAdminNotificationTest(): Promise<void> {
+  throw new Error('Notification testing is available in the installed app only.');
 }
 
 export async function readAdminNotificationPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {

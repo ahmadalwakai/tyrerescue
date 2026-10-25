@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
   AppState,
-  Image,
+  Keyboard,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -18,7 +18,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import assistedChatHeaderImageSource from '../../assets/images/assisted-chat-header.png';
 import { EMPTY_DRAFT, useAssistedChatDraft } from '@/hooks/useAssistedChatDraft';
 import { useAssistedChatPrice } from '@/hooks/useAssistedChatPrice';
 import { useAssistedChatDispatch } from '@/hooks/useAssistedChatDispatch';
@@ -29,10 +28,16 @@ import { useTodayBookings, type TodayBookingItem } from '@/hooks/useTodayBooking
 import { useRecentCustomers } from '@/hooks/useRecentCustomers';
 import { useDuplicateBookingWarning } from '@/hooks/useDuplicateBookingWarning';
 import { useNewCustomerBookingAlert } from '@/hooks/useNewCustomerBookingAlert';
+import { useDriverJourneys } from '@/hooks/useDriverJourneys';
+import { completeManualLogout } from '@/lib/manual-logout';
+import { ModalPresentationController } from '@/lib/modal-presentation';
+import { DriverJourneysModal } from './alerts/DriverJourneysModal';
 import { useBookingTracking } from '@/hooks/useBookingTracking';
 import { useActiveJobs, type ActiveJobItem } from '@/hooks/useActiveJobs';
 import { useLiveVisitorCount, type LiveVisitorCountState } from '@/hooks/useLiveVisitorCount';
+import { HeaderLiveVisitorCounter } from './HeaderLiveVisitorCounter';
 import { BookingTrackingCard } from './tracking/BookingTrackingCard';
+import { DriverLocationShareActions } from './tracking/DriverLocationShareActions';
 import { DriverAssignSection } from './tracking/DriverAssignSection';
 import type {
   AssistedChatDraft,
@@ -57,18 +62,23 @@ import { AdminVisitorsModal } from './AdminVisitorsModal';
 import { AdminInvoicesModal } from './AdminInvoicesModal';
 import { ProjectSourcesModal } from './ProjectSourcesModal';
 import { AddAdminModal } from './AddAdminModal';
+import { useRouter } from 'expo-router';
 import { MessageSenderModal } from './MessageSenderModal';
 import { AdminTrafficModal } from './AdminTrafficModal';
 import { AdminCallbacksModal } from './AdminCallbacksModal';
 import { AdminRevenueModal } from './AdminRevenueModal';
 import { AdminContactsModal } from './AdminContactsModal';
 import { AdminDemandModal } from './AdminDemandModal';
+import { AdminDevicesModal } from './AdminDevicesModal';
+import { AdminAccountModal } from './AdminAccountModal';
+import { CopyAddressButton } from './CopyAddressButton';
 import type { VirtualLandlineDraftPrefill } from './VirtualLandlineModal';
 import { SectionCard, FieldLabel, InlineNotice, AppButton, StatusBanner } from './ui';
 import { colors, fontSize, radius, space } from './theme';
 import { usePressScale, useOnChangeFadeSlide } from './motion';
 import { AppIcon, type AppIconName } from './icons/AppIcon';
-import { api } from '@/lib/api';
+import { api, getAdminToken, getApiContextRevision } from '@/lib/api';
+import { getAdminSessionRevision } from '@/hooks/useAdminSession';
 import { downloadInvoicePdfToDevice } from '@/lib/invoice-download';
 import {
   getPaymentLinkStatusLabel,
@@ -93,11 +103,15 @@ import {
   getDismissedUrgentBookingId,
   setDismissedUrgentBookingId,
   addAdminNotificationResponseListener,
+  addAdminNotificationReceivedListener,
   getLastAdminNotificationResponseData,
   getUrgentBookingNotificationOpenRequest,
+  getDriverJourneyNotificationOpenRequest,
   type NotificationSubscription,
 } from '@/lib/notifications';
 import { isNotificationStartupDisabled } from '@/lib/notification-startup-config';
+import { callbackNotificationDisposition, parseCallbackNotificationOpenRequest, parseCustomerChatNotificationOpenRequest,
+  type PendingCallbackNotification } from '@/lib/notification-safety';
 import {
   ensureUrgentAlertsArmed,
   type UrgentAlertsReadinessState,
@@ -110,6 +124,7 @@ import {
   createBookingTyreLine,
   formatAssistedChatServiceType,
   getAssistedChatWorkflow,
+  getManualLocationBlockedReason,
   hasAssistedChatTyre,
   isAssistedChatServiceOnly,
   normalizeAssistedChatTyreSize,
@@ -203,6 +218,7 @@ function DeferredVirtualLandlineModal(props: {
   if (!props.visible) return null;
   const { VirtualLandlineModal } = requireStartupModule(
     'Virtual Landline import',
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Defer native modal loading until opened to protect iOS startup.
     () => require('./VirtualLandlineModal') as typeof import('./VirtualLandlineModal'),
   );
   return <VirtualLandlineModal {...props} />;
@@ -210,11 +226,16 @@ function DeferredVirtualLandlineModal(props: {
 
 function DeferredChatHubModal(props: {
   visible: boolean;
+  initialConversationId?: string | null;
   onClose: () => void;
+  onDismiss: () => void;
 }) {
-  if (!props.visible) return null;
+  const [hasOpened, setHasOpened] = useState(props.visible);
+  if (props.visible && !hasOpened) setHasOpened(true);
+  if (!hasOpened && !props.visible) return null;
   const { ChatHubModal } = requireStartupModule(
     'Chat Hub import',
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Defer native modal loading until opened to protect iOS startup.
     () => require('./ChatHubModal') as typeof import('./ChatHubModal'),
   );
   return <ChatHubModal {...props} />;
@@ -225,19 +246,30 @@ function DeferredDriverChatModal(props: {
   bookingId: string | null;
   bookingRef: string | null;
   onClose: () => void;
+  onDismiss: () => void;
 }) {
-  if (!props.visible) return null;
+  const [hasOpened, setHasOpened] = useState(props.visible);
+  if (props.visible && !hasOpened) setHasOpened(true);
+  if (!hasOpened && !props.visible) return null;
   const { DriverChatModal } = requireStartupModule(
     'Driver Chat import',
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Defer native modal loading until opened to protect iOS startup.
     () => require('./DriverChatModal') as typeof import('./DriverChatModal'),
   );
   return <DriverChatModal {...props} />;
+}
+
+function RetainedAdminAccountModal(props: ComponentProps<typeof AdminAccountModal>) {
+  const [hasOpened, setHasOpened] = useState(props.visible);
+  if (props.visible && !hasOpened) setHasOpened(true);
+  return hasOpened || props.visible ? <AdminAccountModal {...props} /> : null;
 }
 
 function DeferredUrgentBookingPopup(props: ComponentProps<typeof import('./alerts/UrgentBookingPopup')['UrgentBookingPopup']>) {
   if (!props.visible) return null;
   const { UrgentBookingPopup } = requireStartupModule(
     'Urgent Booking Popup import',
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Defer native modal loading until opened to protect iOS startup.
     () => require('./alerts/UrgentBookingPopup') as typeof import('./alerts/UrgentBookingPopup'),
   );
   return <UrgentBookingPopup {...props} />;
@@ -247,6 +279,7 @@ function DeferredAdminStockModal(props: ComponentProps<typeof import('./AdminSto
   if (!props.visible) return null;
   const { AdminStockModal } = requireStartupModule(
     'Admin Stock import',
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Defer native modal loading until opened to protect iOS startup.
     () => require('./AdminStockModal') as typeof import('./AdminStockModal'),
   );
   return <AdminStockModal {...props} />;
@@ -256,6 +289,7 @@ function DeferredGarageModal(props: ComponentProps<typeof import('./GarageModal'
   if (!props.visible) return null;
   const { GarageModal } = requireStartupModule(
     'Garage import',
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Defer native modal loading until opened to protect iOS startup.
     () => require('./GarageModal') as typeof import('./GarageModal'),
   );
   return <GarageModal {...props} />;
@@ -265,6 +299,7 @@ function DeferredActiveJobsModal(props: ComponentProps<typeof import('./ActiveJo
   if (!props.visible) return null;
   const { ActiveJobsModal } = requireStartupModule(
     'Active Jobs import',
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Defer native modal loading until opened to protect iOS startup.
     () => require('./ActiveJobsModal') as typeof import('./ActiveJobsModal'),
   );
   return <ActiveJobsModal {...props} />;
@@ -274,6 +309,7 @@ function DeferredActiveJobMapModal(props: ComponentProps<typeof import('./Active
   if (!props.visible) return null;
   const { ActiveJobMapModal } = requireStartupModule(
     'Active Job Map import',
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Defer native modal loading until opened to protect iOS startup.
     () => require('./ActiveJobsModal') as typeof import('./ActiveJobsModal'),
   );
   return <ActiveJobMapModal {...props} />;
@@ -283,6 +319,7 @@ function DeferredTrackingModal(props: ComponentProps<typeof import('./TrackingMo
   if (!props.visible) return null;
   const { TrackingModal } = requireStartupModule(
     'Tracking Modal import',
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Defer native modal loading until opened to protect iOS startup.
     () => require('./TrackingModal') as typeof import('./TrackingModal'),
   );
   return <TrackingModal {...props} />;
@@ -291,6 +328,7 @@ function DeferredTrackingModal(props: ComponentProps<typeof import('./TrackingMo
 function DeferredLocationSection(props: ComponentProps<typeof import('./LocationSection')['LocationSection']>) {
   const { LocationSection } = requireStartupModule(
     'Location Section import',
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Defer native location loading until this section is rendered to protect iOS startup.
     () => require('./LocationSection') as typeof import('./LocationSection'),
   );
   return <LocationSection {...props} />;
@@ -583,18 +621,6 @@ function buildCustomerDetails(draft: AssistedChatDraft): string {
   return lines.join('\n');
 }
 
-function buildLocationDetails(draft: AssistedChatDraft): string {
-  const lines: string[] = ['Location details'];
-  if (draft.location.address.trim()) lines.push(`Address: ${draft.location.address.trim()}`);
-  if (draft.location.postcode) lines.push(`Postcode: ${draft.location.postcode}`);
-  if (draft.location.lat != null && draft.location.lng != null) {
-    lines.push(`Coordinates: ${draft.location.lat.toFixed(6)}, ${draft.location.lng.toFixed(6)}`);
-  }
-  if (draft.location.link) lines.push(`Location link: ${draft.location.link}`);
-  lines.push(`Status: ${draft.location.status}`);
-  return lines.join('\n');
-}
-
 function buildJobDetails(
   draft: AssistedChatDraft,
   effectiveTotal: number,
@@ -693,6 +719,9 @@ function StageContainer({ stageKey, children }: { stageKey: string; children: im
 }
 
 export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatScreenProps = {}) {
+  const driverJourneys = useDriverJourneys(activeProjectId);
+  const openDriverJourney = driverJourneys.open;
+  const router = useRouter();
   const { draft, hydrated, update, replace, clear } = useAssistedChatDraft();
   const [noteInput, setNoteInput] = useState('');
   const [noteSynced, setNoteSynced] = useState(false);
@@ -713,29 +742,37 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const [garageOpen, setGarageOpen] = useState(false);
   const [trafficOpen, setTrafficOpen] = useState(false);
   const [callbacksOpen, setCallbacksOpen] = useState(false);
+  const [callbacksDismissing, setCallbacksDismissing] = useState(false);
+  const [pendingCallbackNotification, setPendingCallbackNotification] = useState<PendingCallbackNotification | null>(null);
+  const lastCallbackNotificationRef = useRef<string | null>(null);
   const [revenueOpen, setRevenueOpen] = useState(false);
   const [contactsOpen, setContactsOpen] = useState(false);
   const [demandOpen, setDemandOpen] = useState(false);
   const [addAdminOpen, setAddAdminOpen] = useState(false);
+  const [devicesOpen, setDevicesOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [modalPresentation] = useState(() => new ModalPresentationController());
+  const primaryPresentation = useSyncExternalStore(modalPresentation.subscribe, modalPresentation.getState, modalPresentation.getState);
   const [activeJobsOpen, setActiveJobsOpen] = useState(false);
   const [activeJobsInitialSource, setActiveJobsInitialSource] = useState<string | null>(null);
   const [driverTrackingOpen, setDriverTrackingOpen] = useState(false);
   const [chatHubOpen, setChatHubOpen] = useState(false);
+  const [chatNotificationTarget, setChatNotificationTarget] = useState<{ conversationId: string; apiRevision: number; sessionRevision: number } | null>(null);
+  const [pendingChatNotification, setPendingChatNotification] = useState<{ conversationId: string; apiRevision: number; sessionRevision: number } | null>(null);
   const [messageSenderOpen, setMessageSenderOpen] = useState(false);
   const [virtualLandlineOpen, setVirtualLandlineOpen] = useState(false);
   const [trackingMapOpen, setTrackingMapOpen] = useState(false);
   const [duplicateAck, setDuplicateAck] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [moreDismissing, setMoreDismissing] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [editingStage, setEditingStage] = useState<AssistedChatStage | null>(null);
-  const [mapSummaryOpen, setMapSummaryOpen] = useState(false);
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
   const [headerInvoiceLoading, setHeaderInvoiceLoading] = useState(false);
   const [editPriceOpen, setEditPriceOpen] = useState(false);
   const [breakdownVisible, setBreakdownVisible] = useState(false);
   const [notifSetupOpen, setNotifSetupOpen] = useState(false);
   const [alertReadinessState, setAlertReadinessState] = useState<UrgentAlertsReadinessState>('checking');
-  const [fullScreenIntentGranted, setFullScreenIntentGranted] = useState<boolean>(true);
   const [armingCycle, setArmingCycle] = useState(0);
   const notificationsStartupStarted = useRef(false);
   const notificationsStartupCompleted = useRef(false);
@@ -759,6 +796,24 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     setActiveJobsInitialSource(null);
   }, []);
   const handleNotificationOpenData = useCallback((data: unknown) => {
+    const callbackRequest = parseCallbackNotificationOpenRequest(data);
+    if (callbackRequest) {
+      if (!api.hasAdminToken) return;
+      const request = { ...callbackRequest, apiRevision: getApiContextRevision(), sessionRevision: getAdminSessionRevision() };
+      if (lastCallbackNotificationRef.current !== `${request.apiRevision}:${request.sessionRevision}:${request.callbackId}`) setPendingCallbackNotification(request);
+      return;
+    }
+    const customerChatRequest = parseCustomerChatNotificationOpenRequest(data);
+    if (customerChatRequest) {
+      if (!api.hasAdminToken) return;
+      setPendingChatNotification({ ...customerChatRequest, apiRevision: getApiContextRevision(), sessionRevision: getAdminSessionRevision() });
+      return;
+    }
+    const journeyRequest = getDriverJourneyNotificationOpenRequest(data);
+    if (journeyRequest) {
+      void openDriverJourney(journeyRequest.eventId);
+      return;
+    }
     const request = getUrgentBookingNotificationOpenRequest(data);
     if (!request) {
       logStartupCheckpoint('notifications.open-request.ignored', {
@@ -770,7 +825,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     void clearAdminBadge().catch((error) => {
       logStartupModuleFailed('notifications.open-request.clear-badge.failed', error);
     });
-  }, [openBookingsInApp]);
+  }, [openBookingsInApp, openDriverJourney]);
 
   const insets = useSafeAreaInsets();
   const bottomBarPaddingBottom = Math.max(insets.bottom + 8, 16);
@@ -849,7 +904,6 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
           watcherStarted: result.watcherStarted,
         });
 
-        setFullScreenIntentGranted(result.fullScreenIntentGranted);
 
         if (result.armed) {
           setAlertReadinessState('armed');
@@ -904,6 +958,9 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       if (cancelled) return;
       handleNotificationOpenData(data);
     });
+    const journeyReceived = addAdminNotificationReceivedListener((data) => {
+      if (!cancelled && getDriverJourneyNotificationOpenRequest(data)) handleNotificationOpenData(data);
+    });
     void getLastAdminNotificationResponseData()
       .then((data) => {
         if (cancelled || !data) return;
@@ -916,6 +973,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
       cancelled = true;
       notifResponseRef.current?.remove();
       notifResponseRef.current = null;
+      journeyReceived?.remove();
     };
   }, [handleNotificationOpenData]);
 
@@ -951,7 +1009,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     triggerForegroundUrgentAlert,
   } = useNewCustomerBookingAlert();
 
-  // Urgent in-app popup state — separate from the persistent shimmer.
+  // New-booking popup state — separate from the persistent bell/shimmer.
   const [urgentPopupOpen, setUrgentPopupOpen] = useState(false);
   const dismissedUrgentBookingIdRef = useRef<string | null>(null);
   // Hydrated from AsyncStorage on mount so a previously acknowledged
@@ -983,13 +1041,13 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const urgentBookingId = latestNewBooking?.id ?? null;
   const urgentBookingIsUrgent = Boolean(latestNewBooking?.isUrgent);
 
-  // Show the urgent popup the first time we detect a new emergency booking,
+  // Show the popup for both emergency and scheduled customer bookings,
   // unless the operator has already dismissed THIS booking id or the
   // bookings modal is already open.
   useEffect(() => {
     if (!dismissedHydrated) return;
     if (!hasNewCustomerBooking) return;
-    if (!urgentBookingIsUrgent || !urgentBookingId) return;
+    if (!urgentBookingId) return;
     if (bookingsOpen) return;
     if (dismissedUrgentBookingIdRef.current === urgentBookingId) return;
     setUrgentPopupOpen(true);
@@ -1000,7 +1058,6 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     dismissedHydrated,
     hasNewCustomerBooking,
     urgentBookingId,
-    urgentBookingIsUrgent,
     bookingsOpen,
     triggerForegroundUrgentAlert,
   ]);
@@ -1009,14 +1066,14 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   // reminder alert at most every 60s (the hook itself enforces the
   // cooldown — this interval just gives it the opportunity).
   useEffect(() => {
-    if (!urgentPopupOpen) return;
+    if (!urgentPopupOpen || !urgentBookingIsUrgent) return;
     const id = setInterval(() => {
       void triggerForegroundUrgentAlert().catch((error) => {
         logStartupModuleFailed('notifications.foreground-alert.reminder.failed', error);
       });
     }, 60_000);
     return () => clearInterval(id);
-  }, [urgentPopupOpen, triggerForegroundUrgentAlert]);
+  }, [urgentPopupOpen, urgentBookingIsUrgent, triggerForegroundUrgentAlert]);
 
   // Clear the badge whenever the bookings modal is opened.
   useEffect(() => {
@@ -1081,28 +1138,60 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   }, [hasNewCustomerBooking, markBookingsSeen, openBookingsInApp]);
 
   const handleOpenHeaderChatHub = useCallback(() => {
+    if (!modalPresentation.open('chat')) return;
     setMoreOpen(false);
+    setChatNotificationTarget(null);
     setChatHubOpen(true);
-  }, []);
+  }, [modalPresentation]);
+  const handleCloseChatHub = useCallback(() => {
+    if (modalPresentation.close('chat', Platform.OS === 'ios')) setChatHubOpen(false);
+  }, [modalPresentation]);
+  const handleOpenProfile = useCallback(() => {
+    if (!modalPresentation.open('account')) return;
+    setMoreOpen(false);
+    setAccountOpen(true);
+  }, [modalPresentation]);
+  const handleCloseProfile = useCallback(() => {
+    if (modalPresentation.close('account', Platform.OS === 'ios')) setAccountOpen(false);
+  }, [modalPresentation]);
 
-  // Clear badge when app comes back to the foreground.
+  // Refresh iOS readiness after returning from Settings/background as well
+  // as clearing the badge. A transition check prevents an arming loop.
   useEffect(() => {
+    let previousState = AppState.currentState;
     const sub = AppState.addEventListener('change', (state) => {
+      const returnedToForeground = state === 'active'
+        && (previousState === 'inactive' || previousState === 'background');
+      previousState = state;
       if (state === 'active') {
         void clearAdminBadge().catch((error) => {
           logStartupModuleFailed('notifications.app-active.clear-badge.failed', error);
         });
+      }
+      if (returnedToForeground && Platform.OS === 'ios' && api.hasAdminToken && !isNotificationStartupDisabled()) {
+        setArmingCycle((value) => value + 1);
       }
     });
     return () => sub.remove();
   }, []);
 
   // Unregister on logout.
+  const logoutInFlight = useRef<Promise<void> | null>(null);
   const handleLogout = useCallback(async () => {
-    await unregisterAdminPushNotifications();
-    await clearTopicSubscriptionFlag();
-    setAlertReadinessState('not_armed');
-    await onLogout?.();
+    if (logoutInFlight.current) return logoutInFlight.current;
+    const revision = getAdminSessionRevision();
+    const adminToken = getAdminToken();
+    const baseUrl = api.baseUrl;
+    const isCurrent = () => getAdminSessionRevision() === revision && getAdminToken() === adminToken && api.baseUrl === baseUrl;
+    const operation = completeManualLogout(async () => {
+      await Promise.allSettled([unregisterAdminPushNotifications(), clearTopicSubscriptionFlag(isCurrent)]);
+    }, async () => {
+      setAlertReadinessState('not_armed');
+      await onLogout?.();
+    }, 8_000, isCurrent);
+    logoutInFlight.current = operation;
+    try { await operation; }
+    finally { if (logoutInFlight.current === operation) logoutInFlight.current = null; }
   }, [onLogout]);
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -1219,6 +1308,12 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     onBookingCreated: handleBookingCreated,
   });
 
+  // A saved booking may still need its payment link retried. Reveal the saved
+  // booking and recovery action instead of leaving a disabled review sheet up.
+  useEffect(() => {
+    if (!dispatch.busy && (draft.dispatchedBookingId || draft.dispatchedRefNumber)) setReviewOpen(false);
+  }, [dispatch.busy, draft.dispatchedBookingId, draft.dispatchedRefNumber]);
+
   // Live tracking session for the dispatched booking. Hook is a no-op when
   // dispatchedBookingId is null; auto-ensures (idempotent) the first time we
   // see a booking id, then polls /tracking every 8s.
@@ -1333,9 +1428,12 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const [driverChatOpen, setDriverChatOpen] = useState(false);
   const handleOpenDriverChat = useCallback(() => {
     const bookingId = draft.dispatchedBookingId;
-    if (!bookingId) return;
+    if (!bookingId || !modalPresentation.open('driver-chat')) return;
     setDriverChatOpen(true);
-  }, [draft.dispatchedBookingId]);
+  }, [draft.dispatchedBookingId, modalPresentation]);
+  const handleCloseDriverChat = useCallback(() => {
+    if (modalPresentation.close('driver-chat', Platform.OS === 'ios')) setDriverChatOpen(false);
+  }, [modalPresentation]);
 
   const workflow = useMemo(
     () => getAssistedChatWorkflow({
@@ -1353,6 +1451,20 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   );
 
   const activeStage = editingStage ?? workflow.currentStage;
+  const isManualLocationEditing = activeStage === 'LOCATION' && draft.location.method === 'address';
+  const manualLocationBlockedReason = isManualLocationEditing ? getManualLocationBlockedReason(draft.location) : null;
+  const setDispatchError = dispatch.setError;
+  const handleActiveStageUpdate = useCallback((patch: Partial<AssistedChatDraft>) => {
+    // Keep the address editor open after selecting a suggestion until the
+    // operator explicitly finishes. Coordinate selection still updates the draft.
+    if (activeStage === 'LOCATION' && patch.location?.method === 'address') setEditingStage('LOCATION');
+    if (activeStage === 'PAYMENT' && patch.paymentChoice !== undefined) {
+      if (dispatch.busy || draft.dispatchedRefNumber || draft.dispatchedBookingId || draft.paymentLink || activeQuote?.quoteStatus === 'PAID') return;
+      setEditingStage('PAYMENT');
+      setDispatchError(null);
+    }
+    update(patch);
+  }, [activeStage, activeQuote?.quoteStatus, dispatch.busy, draft.dispatchedBookingId, draft.dispatchedRefNumber, draft.paymentLink, setDispatchError, update]);
   const paymentAutoCheckActive = activeStage === 'PAYMENT' || activeStage === 'DISPATCHED';
   // Admin-created Stripe payment links are verified by the backend checker.
   // Auto-checking runs only while the payment surface is visible.
@@ -1363,7 +1475,6 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   });
   const hasLocation = draft.location.lat != null && draft.location.lng != null;
   const hasTyre = hasAssistedChatTyre(draft);
-  const quotePricingDistanceMiles = getQuotePricingDistanceMiles(draft.quote);
   const customerName = draft.customer.name.trim() || 'New customer';
   const customerPhone = draft.customer.phone.trim();
   const customerMessage = buildCustomerMessage({ draft, effectiveTotal, paymentChoice: draft.paymentChoice });
@@ -1422,7 +1533,6 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     setPhoneSynced(false);
     setDuplicateAck(false);
     setEditingStage(null);
-    setMapSummaryOpen(false);
     quoteActions.setMessage(null);
     locationShare.setMessage(null);
   }, [clear, locationShare, quoteActions]);
@@ -1747,11 +1857,6 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Customer details copied.' : 'Could not copy customer details.' });
   }, [draft, flashNotice]);
 
-  const handleCopyLocationDetails = useCallback(async () => {
-    const ok = await copyToClipboard(buildLocationDetails(draft));
-    flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Location details copied.' : 'Could not copy location details.' });
-  }, [draft, flashNotice]);
-
   const handleCopyJobDetails = useCallback(async () => {
     const ok = await copyToClipboard(buildJobDetails(draft, effectiveTotal, lockingNutCharge, selectedPaymentOption));
     flashNotice({ kind: ok ? 'ok' : 'err', text: ok ? 'Job details copied.' : 'Could not copy job details.' });
@@ -1840,6 +1945,20 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   }, [dispatch, draft.paymentChoice]);
 
   const handlePrimaryAction = useCallback(async () => {
+    if (activeStage === 'LOCATION' && draft.location.method === 'address') {
+      const blockedReason = getManualLocationBlockedReason(draft.location);
+      if (blockedReason) { flashNotice({ kind: 'info', text: blockedReason }); return; }
+      Keyboard.dismiss();
+      setEditingStage(null);
+      return;
+    }
+    if (activeStage === 'PAYMENT') {
+      if (dispatch.busy) return;
+      if (!draft.paymentChoice) { flashNotice({ kind: 'info', text: 'Choose a payment method before continuing.' }); return; }
+      Keyboard.dismiss();
+      setEditingStage(null);
+      return;
+    }
     if (editingStage === 'LOCATION') {
       const method = draft.customer.phone.trim()
         ? 'whatsapp'
@@ -1900,12 +2019,12 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     if (workflow.currentStage === 'DISPATCHED' && draft.dispatchedRefNumber) {
       openBookingsInApp(draft.dispatchedRefNumber);
     }
-  }, [draft, editingStage, handleReviewDispatch, locationShare, openBookingsInApp, price, quoteActions, workflow]);
+  }, [activeStage, dispatch.busy, draft, editingStage, flashNotice, handleReviewDispatch, locationShare, openBookingsInApp, price, quoteActions, workflow]);
 
   const sheetActions = useMemo<SheetAction[]>(() => {
     const actions: SheetAction[] = [];
     const locationShareRelevant = !hasLocation || draft.location.status === 'pending' || Boolean(draft.location.link);
-    const noToken = api.hasAdminToken ? null : 'Log in again before using admin actions.';
+    const noToken = api.hasAdminToken ? null : 'Unable to verify this session. Please retry.';
 
     actions.push(
       {
@@ -1947,7 +2066,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
         label: 'Chat hub',
         description: 'All customer and driver conversations in one place.',
         disabledReason: noToken,
-        onPress: () => setChatHubOpen(true),
+        onPress: handleOpenHeaderChatHub,
       },
       {
         id: 'message-sender',
@@ -2154,6 +2273,26 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     });
 
     actions.push({
+      id: 'tax-payroll',
+      label: 'Tax & Payroll',
+      description: 'Manage company tax registration and payroll settings.',
+      disabledReason: noToken,
+      onPress: () => {
+        setMoreOpen(false);
+        router.push('/tax-payroll');
+      },
+    });
+
+    actions.push({
+      id: 'admin-devices',
+      label: 'Devices & sessions',
+      icon: 'desktop',
+      description: 'View your signed-in devices, activity and remove sessions.',
+      disabledReason: noToken,
+      onPress: () => { setMoreOpen(false); setDevicesOpen(true); },
+    });
+
+    actions.push({
       id: 'add-admin',
       label: 'Add Admin',
       icon: 'lock',
@@ -2204,6 +2343,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
 
     return actions;
   }, [
+    activeProjectId,
     draft,
     draftHasContent,
     handleClear,
@@ -2221,52 +2361,42 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
     hasLocation,
     locationShare,
     handleLogout,
+    handleOpenHeaderChatHub,
     onLogout,
     openActiveJobsInApp,
     openBookingsInApp,
     quoteActions,
+    router,
     todayBookings.count,
     urgentBookingId,
   ]);
 
-  const primaryLabel = editingStage === 'LOCATION' ? 'Send Location Link' : editingStage ? 'Done Editing' : workflow.primaryActionLabel;
-  const primaryDisabled = editingStage === 'LOCATION' ? Boolean(locationShare.busy) : editingStage ? false : workflow.primaryActionDisabled;
-  const primaryDisabledReason = editingStage ? null : workflow.primaryActionDisabledReason;
+  const primaryLabel = isManualLocationEditing || activeStage === 'PAYMENT' ? 'Done Editing' : editingStage === 'LOCATION' ? 'Send Location Link' : editingStage ? 'Done Editing' : workflow.primaryActionLabel;
+  const primaryDisabled = isManualLocationEditing ? Boolean(manualLocationBlockedReason) : activeStage === 'PAYMENT' ? dispatch.busy || !draft.paymentChoice : editingStage === 'LOCATION' ? Boolean(locationShare.busy) : editingStage ? false : workflow.primaryActionDisabled;
+  const primaryDisabledReason = isManualLocationEditing ? manualLocationBlockedReason : activeStage === 'PAYMENT' ? (draft.paymentChoice ? null : 'Choose a payment method before continuing.') : editingStage ? null : workflow.primaryActionDisabledReason;
   const hasCustomerSummary = Boolean(
     draft.customer.name.trim() || draft.customer.phone.trim() || draft.customer.email.trim(),
   );
-  const showWorkflowSummary = Boolean(
-    hasCustomerSummary ||
-      hasLocation ||
-      draft.location.status === 'pending' ||
-      hasTyre ||
-      (draft.quote && !draft.priceNeedsRefresh) ||
-      savedQuoteRef ||
-      draft.paymentChoice,
-  );
-
   // Operator workflow projection: shared progress/next-action state derived
   // from the existing draft + workflow + quote/dispatch flags without
   // changing any backend behaviour.
   const hasPrice = Boolean(draft.quote && !draft.priceNeedsRefresh);
   const hasSavedQuote = Boolean(savedQuoteRef);
-  const operatorDerivationInput = {
-    draft,
-    activeStage,
-    hasLocation,
-    hasTyre,
-    hasPrice,
-    priceLoading: price.loading,
-    hasSavedQuote,
-    quoteConfirmed,
-    dispatchBusy: dispatch.busy,
-    locationPolling: locationShare.isPolling,
-    hasDispatched: Boolean(draft.dispatchedRefNumber),
-    hasPaymentLink: Boolean(draft.paymentLink),
-  };
   const operatorSteps = useMemo(
-    () => deriveOperatorWorkflowSteps(operatorDerivationInput),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    () => deriveOperatorWorkflowSteps({
+      draft,
+      activeStage,
+      hasLocation,
+      hasTyre,
+      hasPrice,
+      priceLoading: price.loading,
+      hasSavedQuote,
+      quoteConfirmed,
+      dispatchBusy: dispatch.busy,
+      locationPolling: locationShare.isPolling,
+      hasDispatched: Boolean(draft.dispatchedRefNumber),
+      hasPaymentLink: Boolean(draft.paymentLink),
+    }),
     [
       activeStage,
       draft,
@@ -2340,6 +2470,38 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
   const heroStage = hasCustomerSummary ? activeStage : 'CUSTOMER';
   const heroCopy = heroCopyForStage(heroStage, customerName);
   const activePanelCopy = activePanelCopyForStage(activeStage);
+  // Background feeds keep their unread state, but never present another UIKit
+  // controller over a screen the operator is opening, using or dismissing.
+  const operatorModalActive = Boolean(primaryPresentation.owner || historyOpen || recentOpen || quotesOpen || bookingsOpen
+    || projectSourcesOpen || visitorsOpen || invoicesOpen || stockOpen || garageOpen || trafficOpen || callbacksOpen || callbacksDismissing
+    || revenueOpen || contactsOpen || demandOpen || addAdminOpen || devicesOpen || activeJobsOpen || driverTrackingOpen
+    || messageSenderOpen || virtualLandlineOpen || trackingMapOpen || moreOpen || moreDismissing || reviewOpen || editPriceOpen || notifSetupOpen);
+  useEffect(() => {
+    if (!pendingChatNotification) return;
+    if (!api.hasAdminToken || pendingChatNotification.apiRevision !== getApiContextRevision() || pendingChatNotification.sessionRevision !== getAdminSessionRevision()) {
+      setPendingChatNotification(null);
+      return;
+    }
+    if (!hydrated || operatorModalActive || urgentPopupOpen || driverJourneys.visible) return;
+    if (!modalPresentation.open('chat')) return;
+    setChatNotificationTarget(pendingChatNotification);
+    setPendingChatNotification(null);
+    setChatHubOpen(true);
+  }, [activeProjectId, driverJourneys.visible, hydrated, modalPresentation, operatorModalActive, pendingChatNotification, urgentPopupOpen]);
+  useEffect(() => {
+    if (!pendingCallbackNotification) return;
+    const disposition = callbackNotificationDisposition(pendingCallbackNotification, {
+      authenticated: api.hasAdminToken,
+      apiRevision: getApiContextRevision(), sessionRevision: getAdminSessionRevision(), ready: hydrated,
+      // Chat's effect can claim the presenter earlier in this same effect flush.
+      busy: operatorModalActive || Boolean(modalPresentation.getState().owner) || urgentPopupOpen || driverJourneys.visible,
+    });
+    if (disposition === 'wait') return;
+    setPendingCallbackNotification(null);
+    if (disposition === 'discard') return;
+    lastCallbackNotificationRef.current = `${pendingCallbackNotification.apiRevision}:${pendingCallbackNotification.sessionRevision}:${pendingCallbackNotification.callbackId}`;
+    setCallbacksOpen(true);
+  }, [activeProjectId, driverJourneys.visible, hydrated, modalPresentation, operatorModalActive, pendingCallbackNotification, urgentPopupOpen]);
   if (!hydrated) {
     return (
       <SafeAreaView style={styles.loading}>
@@ -2371,6 +2533,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
             onMore={() => setMoreOpen(true)}
             onOpenChatHub={handleOpenHeaderChatHub}
             onOpenNotifications={handleOpenHeaderNotifications}
+            onOpenProfile={handleOpenProfile}
             liveVisitors={liveVisitors}
             notificationUnreadCount={headerNotificationUnreadCount}
             notificationState={headerNotificationVisualState}
@@ -2383,9 +2546,30 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
           />
 
           {!api.hasAdminToken ? <InlineNotice kind="warn">No admin token. Log in to enable API calls.</InlineNotice> : null}
+          <AppButton
+            label={`Driver journeys${driverJourneys.unreadCount ? ` · ${driverJourneys.unreadCount} unread` : ''}`}
+            variant="secondary"
+            onPress={() => { void driverJourneys.open(); }}
+            accessibilityLabel={`Driver journeys, ${driverJourneys.unreadCount} unread alerts`}
+          />
           {actionNotice ? <StatusBanner kind={actionNotice.kind} message={actionNotice.text} /> : null}
           {quoteActions.message ? <StatusBanner kind={quoteActions.message.kind === 'ok' ? 'ok' : quoteActions.message.kind === 'err' ? 'err' : 'info'} message={quoteActions.message.text} /> : null}
           {dispatch.error ? <StatusBanner kind="err" message={dispatch.error} /> : null}
+          {dispatch.canRetryPaymentLink ? (
+            <SectionCard title="Booking saved · payment link pending">
+              <Text style={styles.bodyText}>
+                {draft.dispatchedRefNumber ? `Booking ${draft.dispatchedRefNumber} is saved. ` : 'Your booking is saved. '}
+                Retry the payment link for this booking. Payment is confirmed only after the server verifies it.
+              </Text>
+              <AppButton
+                label={draft.paymentChoice === 'deposit' ? 'Retry deposit payment link' : 'Retry payment link'}
+                variant="primary"
+                disabled={dispatch.busy || paymentLinkActions.busy}
+                onPress={() => { void dispatch.retryPaymentLink(); }}
+                fullWidth
+              />
+            </SectionCard>
+          ) : null}
 
           <PrimaryActionDeck
             canCall={Boolean(customerDialNumber)}
@@ -2418,7 +2602,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
             {renderActiveStage({
               activeStage,
               draft,
-              update,
+              update: handleActiveStageUpdate,
               phoneInput,
               setPhoneInput,
               handlePhoneChange,
@@ -2447,7 +2631,6 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
               dispatch,
               handleCopyCustomerDetails,
               handleCopyReferenceNumber,
-              engineEffectiveTotal,
               originalCalculatedPriceGbp,
               setEditPriceOpen,
               breakdownVisible,
@@ -2464,6 +2647,10 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
                   customerLng={draft.location.lng}
                   onSelectDriver={(phone) => setSelectedDriverPhone(phone)}
                   onAssigned={() => { void bookingTracking.refresh(); }}
+                />
+                <DriverLocationShareActions
+                  bookingRef={draft.dispatchedRefNumber}
+                  bookingId={draft.dispatchedBookingId}
                 />
                 <BookingTrackingCard
                   data={bookingTracking.data}
@@ -2523,6 +2710,16 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
                         disabled={paymentLinkActions.checking || paymentLinkActions.liveStatus === 'paid'}
                         fullWidth
                       />
+                      {['failed', 'cancelled', 'expired'].includes(paymentLinkActions.liveStatus ?? '') ? (
+                        <AppButton
+                          label="Refresh payment link"
+                          variant="secondary"
+                          onPress={() => { void paymentLinkActions.createForDispatchedBooking(); }}
+                          loading={paymentLinkActions.busy}
+                          disabled={paymentLinkActions.busy}
+                          fullWidth
+                        />
+                      ) : null}
                     </>
                   ) : (
                     <>
@@ -2563,11 +2760,13 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
           <View style={styles.primaryWrap}>
             <PremiumBottomAction
               label={primaryLabel}
-              helper={activeStage === 'LOCATION' ? 'Customer will receive the location link for confirmation' : primaryDisabledReason ?? 'Continue the assisted workflow'}
+              icon={isManualLocationEditing || activeStage === 'PAYMENT' ? 'check' : 'paper-plane'}
+              multilineLabel={isManualLocationEditing || activeStage === 'PAYMENT'}
+              helper={isManualLocationEditing ? primaryDisabledReason ?? 'Confirm this address and continue to the next step' : activeStage === 'PAYMENT' ? primaryDisabledReason ?? 'Review your payment selection and continue' : activeStage === 'LOCATION' ? 'Customer will receive the location link for confirmation' : primaryDisabledReason ?? 'Continue the assisted workflow'}
               onPress={() => {
                 void handlePrimaryAction();
               }}
-              loading={(editingStage === 'LOCATION' && Boolean(locationShare.busy)) || (!editingStage && (price.loading || quoteActions.busy === 'save' || quoteActions.busy === 'confirm' || dispatch.busy))}
+              loading={activeStage === 'PAYMENT' ? dispatch.busy : !isManualLocationEditing && ((editingStage === 'LOCATION' && Boolean(locationShare.busy)) || (!editingStage && (price.loading || quoteActions.busy === 'save' || quoteActions.busy === 'confirm' || dispatch.busy)))}
               disabled={primaryDisabled}
             />
             {primaryDisabledReason ? <Text style={styles.primaryReason}>{primaryDisabledReason}</Text> : null}
@@ -2575,7 +2774,9 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
         </View>
       </KeyboardAvoidingView>
 
-      <GuidedActionSheet visible={moreOpen} title="More" actions={sheetActions} onClose={() => setMoreOpen(false)} />
+      <GuidedActionSheet visible={moreOpen} title="More" actions={sheetActions}
+        onClose={() => { setMoreOpen(false); setMoreDismissing(Platform.OS === 'ios'); }}
+        onDismiss={() => setMoreDismissing(false)} />
       <DispatchReviewSheet
         visible={reviewOpen}
         draft={draft}
@@ -2586,6 +2787,7 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
         dispatchBusy={dispatch.busy}
         dispatchError={dispatch.error}
         onClose={() => setReviewOpen(false)}
+        onEditPayment={() => { setReviewOpen(false); setEditingStage('PAYMENT'); }}
         onSend={handleSendToDriver}
       />
       <TodayBookingsModal visible={historyOpen} items={todayBookings.items} onClose={() => setHistoryOpen(false)} />
@@ -2624,18 +2826,41 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
         }}
       />
       <DeferredUrgentBookingPopup
-        visible={urgentPopupOpen}
+        visible={urgentPopupOpen && !operatorModalActive}
         booking={latestNewBooking}
         onOpenBookings={handleUrgentOpenBookings}
         onDismiss={handleUrgentDismiss}
       />
+      <DriverJourneysModal journeys={{ ...driverJourneys, visible: driverJourneys.visible && !urgentPopupOpen && !operatorModalActive }} />
       <AdminVisitorsModal visible={visitorsOpen} onClose={() => setVisitorsOpen(false)} />
       <AdminInvoicesModal visible={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
       <AdminTrafficModal visible={trafficOpen} onClose={() => setTrafficOpen(false)} />
-      <AdminCallbacksModal visible={callbacksOpen} onClose={() => setCallbacksOpen(false)} />
+      <AdminCallbacksModal visible={callbacksOpen}
+        onClose={() => { setCallbacksOpen(false); setCallbacksDismissing(Platform.OS === 'ios'); }}
+        onDismiss={() => setCallbacksDismissing(false)} />
       <AdminRevenueModal visible={revenueOpen} onClose={() => setRevenueOpen(false)} />
       <AdminContactsModal visible={contactsOpen} onClose={() => setContactsOpen(false)} />
       <AdminDemandModal visible={demandOpen} onClose={() => setDemandOpen(false)} />
+      {devicesOpen ? <AdminDevicesModal
+        visible={devicesOpen}
+        onClose={() => setDevicesOpen(false)}
+        onCurrentDeviceRemoved={async () => {
+          setDevicesOpen(false);
+          const revision = getAdminSessionRevision();
+          const adminToken = getAdminToken();
+          const baseUrl = api.baseUrl;
+          void clearTopicSubscriptionFlag(() => getAdminSessionRevision() === revision
+            && getAdminToken() === adminToken && api.baseUrl === baseUrl).catch(() => undefined);
+          await onLogout?.();
+        }}
+      /> : null}
+      <RetainedAdminAccountModal
+        visible={accountOpen}
+        onClose={handleCloseProfile}
+        onDismiss={() => modalPresentation.didDismiss('account')}
+        onLogout={handleLogout}
+        onNotificationsChanged={() => setArmingCycle((value) => value + 1)}
+      />
       <DeferredGarageModal visible={garageOpen} onClose={() => setGarageOpen(false)} />
       <DeferredAdminStockModal visible={stockOpen} onClose={() => setStockOpen(false)} />
       <DeferredVirtualLandlineModal
@@ -2650,7 +2875,9 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
         initialSourceApp={activeJobsInitialSource}
       />
       <DeferredTrackingModal visible={driverTrackingOpen} onClose={() => setDriverTrackingOpen(false)} />
-      <DeferredChatHubModal visible={chatHubOpen} onClose={() => setChatHubOpen(false)} />
+      <DeferredChatHubModal visible={chatHubOpen}
+        initialConversationId={chatNotificationTarget?.apiRevision === getApiContextRevision() && chatNotificationTarget.sessionRevision === getAdminSessionRevision() ? chatNotificationTarget.conversationId : null}
+        onClose={handleCloseChatHub} onDismiss={() => modalPresentation.didDismiss('chat')} />
       <MessageSenderModal
         visible={messageSenderOpen}
         draft={draft}
@@ -2684,7 +2911,8 @@ export function AssistedChatScreen({ onLogout, activeProjectId }: AssistedChatSc
         visible={driverChatOpen}
         bookingId={draft.dispatchedBookingId}
         bookingRef={draft.dispatchedRefNumber}
-        onClose={() => setDriverChatOpen(false)}
+        onClose={handleCloseDriverChat}
+        onDismiss={() => modalPresentation.didDismiss('driver-chat')}
       />
       <Modal
         visible={notifSetupOpen}
@@ -2756,7 +2984,6 @@ interface RenderActiveStageArgs {
   dispatch: ReturnType<typeof useAssistedChatDispatch>;
   handleCopyCustomerDetails: () => void | Promise<void>;
   handleCopyReferenceNumber: () => void | Promise<void>;
-  engineEffectiveTotal: number;
   originalCalculatedPriceGbp: number;
   setEditPriceOpen: (value: boolean) => void;
   breakdownVisible: boolean;
@@ -2798,7 +3025,6 @@ function renderActiveStage(args: RenderActiveStageArgs) {
     dispatch,
     handleCopyCustomerDetails,
     handleCopyReferenceNumber,
-    engineEffectiveTotal,
     originalCalculatedPriceGbp,
     setEditPriceOpen,
     breakdownVisible,
@@ -3014,6 +3240,8 @@ function renderActiveStage(args: RenderActiveStageArgs) {
             error={paymentLinkActions.error}
             autoCheckMessage={paymentLinkActions.autoCheckMessage}
             onCheck={paymentLinkActions.checkNow}
+            onRetry={paymentLinkActions.createForDispatchedBooking}
+            retrying={paymentLinkActions.busy}
           />
         ) : null}
       </View>
@@ -3083,6 +3311,8 @@ function renderActiveStage(args: RenderActiveStageArgs) {
             error={paymentLinkActions.error}
             autoCheckMessage={paymentLinkActions.autoCheckMessage}
             onCheck={paymentLinkActions.checkNow}
+            onRetry={paymentLinkActions.createForDispatchedBooking}
+            retrying={paymentLinkActions.busy}
           />
         ) : null}
       </View>
@@ -3152,6 +3382,8 @@ function renderActiveStage(args: RenderActiveStageArgs) {
             error={paymentLinkActions.error}
             autoCheckMessage={paymentLinkActions.autoCheckMessage}
             onCheck={paymentLinkActions.checkNow}
+            onRetry={paymentLinkActions.createForDispatchedBooking}
+            retrying={paymentLinkActions.busy}
           />
         ) : null}
       </View>
@@ -3192,7 +3424,9 @@ function renderActiveStage(args: RenderActiveStageArgs) {
           busy={dispatch.busy}
           paymentLink={draft.paymentLink}
           dispatchedRefNumber={draft.dispatchedRefNumber}
-          onChoose={(choice) => { void dispatch.choosePaymentAndDispatch(choice); }}
+          dispatchedBookingId={draft.dispatchedBookingId}
+          paymentConfirmed={activeQuote?.quoteStatus === 'PAID'}
+          onChoose={(choice) => update({ paymentChoice: choice })}
         />
         {breakdownVisible && draft.quote ? (
           <PriceSummary
@@ -3228,6 +3462,8 @@ function renderActiveStage(args: RenderActiveStageArgs) {
             error={paymentLinkActions.error}
             autoCheckMessage={paymentLinkActions.autoCheckMessage}
             onCheck={paymentLinkActions.checkNow}
+            onRetry={paymentLinkActions.createForDispatchedBooking}
+            retrying={paymentLinkActions.busy}
           />
         ) : null}
       </View>
@@ -3243,6 +3479,8 @@ function renderActiveStage(args: RenderActiveStageArgs) {
           <DetailRow label="Quote" value={savedQuoteRef ? `Quote ${savedQuoteRef}` : 'Saved quote unavailable'} />
           <DetailRow label="Total" value={formatGbp(effectiveTotal)} />
         </View>
+        <AppButton label="Change payment method" variant="secondary" onPress={openPaymentStage}
+          disabled={dispatch.busy || Boolean(draft.dispatchedBookingId || draft.paymentLink) || activeQuote?.quoteStatus === 'PAID'} fullWidth />
       </SectionCard>
     );
   }
@@ -3375,6 +3613,7 @@ function PremiumAppHeader({
   onMore,
   onOpenChatHub,
   onOpenNotifications,
+  onOpenProfile,
   liveVisitors,
   notificationUnreadCount,
   notificationState,
@@ -3386,6 +3625,7 @@ function PremiumAppHeader({
   onMore: () => void;
   onOpenChatHub: () => void;
   onOpenNotifications: () => void;
+  onOpenProfile: () => void;
   liveVisitors: LiveVisitorCountState;
   notificationUnreadCount: number;
   notificationState: HeaderNotificationVisualState;
@@ -3402,7 +3642,6 @@ function PremiumAppHeader({
   const showCustomerMeta = customerName.trim().toLowerCase() !== 'new customer';
   return (
     <View style={styles.header} testID="assisted-chat-header">
-      <HeaderImageBackground />
       <View style={styles.headerTopRow}>
         <View style={styles.headerIdentityRow}>
           <Pressable
@@ -3442,7 +3681,9 @@ function PremiumAppHeader({
           />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Profile"
+            accessibilityLabel="My account and settings"
+            testID="assisted-chat-header-profile-button"
+            onPress={onOpenProfile}
             style={({ pressed }) => [styles.headerIconButton, pressed && styles.contactButtonPressed]}
           >
             <IconBadge name="user-circle" tone="blue" size="sm" />
@@ -3455,132 +3696,6 @@ function PremiumAppHeader({
           {heroAccent ? <Text style={styles.heroTitleAccent}> {heroAccent}</Text> : null}
         </Text>
         <Text style={styles.heroHelper} numberOfLines={2}>{heroHelper}</Text>
-      </View>
-    </View>
-  );
-}
-
-function useAnimatedInteger(target: number | null): number | null {
-  const [animatedValue] = useState(() => new Animated.Value(target ?? 0));
-  const lastTargetRef = useRef<number | null>(target);
-  const [displayValue, setDisplayValue] = useState<number | null>(target);
-
-  useEffect(() => {
-    const listenerId = animatedValue.addListener(({ value }) => {
-      setDisplayValue(Math.max(0, Math.round(value)));
-    });
-    return () => {
-      animatedValue.removeListener(listenerId);
-    };
-  }, [animatedValue]);
-
-  useEffect(() => {
-    if (target === null) {
-      lastTargetRef.current = null;
-      animatedValue.setValue(0);
-      return undefined;
-    }
-
-    const previousTarget = lastTargetRef.current;
-    lastTargetRef.current = target;
-
-    if (previousTarget === null || previousTarget === target) {
-      animatedValue.setValue(target);
-      return undefined;
-    }
-
-    const distance = Math.abs(target - previousTarget);
-    const animation = Animated.timing(animatedValue, {
-      toValue: target,
-      duration: Math.min(950, 420 + distance * 35),
-      useNativeDriver: false,
-    });
-    animation.start();
-    return () => {
-      animation.stop();
-    };
-  }, [animatedValue, target]);
-
-  return displayValue;
-}
-
-function formatLiveVisitorProjectName(project: LiveVisitorCountState['activeProject']): string {
-  if (!project) return 'project';
-  if (project.origin) {
-    try {
-      const host = new URL(project.origin).hostname.replace(/^www\./, '');
-      if (host) return host;
-    } catch {
-      // Fall through to the project label.
-    }
-  }
-  return project.sourceLabel || project.sourceApp;
-}
-
-function HeaderLiveVisitorCounter({ state }: { state: LiveVisitorCountState }) {
-  const activeProject = state.activeProject;
-  const projectName = formatLiveVisitorProjectName(activeProject);
-  const displayCount = activeProject ? activeProject.liveCount : state.liveCount;
-  const animatedCount = useAnimatedInteger(displayCount);
-  const hasCount = displayCount !== null && !state.error;
-  const countLabel = hasCount
-    ? (animatedCount ?? displayCount ?? 0).toLocaleString('en-GB')
-    : state.loading
-      ? '...'
-      : '--';
-  const suffix = hasCount
-    ? displayCount === 1
-      ? ' live visitor'
-      : ' live visitors'
-    : state.loading
-      ? ' loading'
-      : ' unavailable';
-  const accessibilityLabel = hasCount
-    ? `${projectName} has ${displayCount} live ${displayCount === 1 ? 'visitor' : 'visitors'}`
-    : state.loading
-      ? `Loading ${projectName} live visitors`
-      : `${projectName} live visitors unavailable`;
-
-  return (
-    <View
-      style={styles.headerVisitorRow}
-      accessibilityRole="text"
-      accessibilityLabel={accessibilityLabel}
-      testID="assisted-chat-header-live-visitors"
-    >
-      <View style={styles.headerVisitorDot} />
-      <Text style={styles.headerVisitorText} numberOfLines={1}>
-        <Text>{projectName} </Text>
-        <Text style={styles.headerVisitorCount} testID="assisted-chat-header-live-visitors-count">
-          {countLabel}
-        </Text>
-        <Text>{suffix}</Text>
-      </Text>
-    </View>
-  );
-}
-
-function HeroPanel({
-  title,
-  helper,
-  badge,
-  tone,
-}: {
-  title: string;
-  helper: string;
-  badge: string;
-  tone: PremiumTone;
-}) {
-  const palette = tonePalette(tone);
-  return (
-    <View style={[styles.heroPanel, { borderColor: palette.border }]}>
-      <View style={styles.heroContent}>
-        <View style={[styles.heroStatusBadge, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-          <View style={[styles.heroStatusDot, { backgroundColor: palette.fg }]} />
-          <Text style={[styles.heroStatusText, { color: palette.fg }]} numberOfLines={1}>{badge}</Text>
-        </View>
-        <Text style={styles.heroTitle} numberOfLines={2}>{title}</Text>
-        <Text style={styles.heroHelper} numberOfLines={2}>{helper}</Text>
       </View>
     </View>
   );
@@ -3625,16 +3740,6 @@ function HeaderNotificationButton({
         </View>
       ) : null}
     </Pressable>
-  );
-}
-
-function HeaderImageBackground() {
-  return (
-    <View style={[styles.headerImageLayer, styles.pointerNone]} testID="assisted-chat-header-image-background">
-      <Image source={assistedChatHeaderImageSource} resizeMode="cover" style={styles.headerImage} />
-      <Image source={assistedChatHeaderImageSource} resizeMode="contain" style={styles.headerFeaturedImage} />
-      <View style={styles.headerImageOverlay} />
-    </View>
   );
 }
 
@@ -3733,7 +3838,7 @@ function PrimaryActionCard({
   const isDisabled = Boolean(disabled || loading);
   const palette = tonePalette(tone);
   const { pressScaleStyle, pressIn, pressOut } = usePressScale(isDisabled, 0.975);
-  const glow = useRef(new Animated.Value(0)).current;
+  const [glow] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (isDisabled) {
@@ -3885,12 +3990,16 @@ function ActiveWorkflowPanel({
 
 function PremiumBottomAction({
   label,
+  icon = 'paper-plane',
+  multilineLabel = false,
   helper,
   loading,
   disabled,
   onPress,
 }: {
   label: string;
+  icon?: AppIconName;
+  multilineLabel?: boolean;
   helper: string;
   loading: boolean;
   disabled: boolean;
@@ -3913,94 +4022,14 @@ function PremiumBottomAction({
     >
       <Animated.View style={[styles.premiumCtaInner, pressScaleStyle]}>
         <View style={styles.premiumCtaIcon}>
-          {loading ? <ActivityIndicator color={colors.text} /> : <AppIcon name="paper-plane" size={24} color={colors.text} />}
+          {loading ? <ActivityIndicator color={colors.text} /> : <AppIcon name={icon} size={24} color={colors.text} />}
         </View>
         <View style={styles.premiumCtaCopy}>
-          <Text style={styles.premiumCtaLabel} numberOfLines={1}>{label}</Text>
+          <Text style={styles.premiumCtaLabel} numberOfLines={multilineLabel ? 2 : 1}>{label}</Text>
           <Text style={styles.premiumCtaHelper} numberOfLines={1}>{helper}</Text>
         </View>
         <AppIcon name="chevron-right" size={24} color={colors.accentText} />
       </Animated.View>
-    </Pressable>
-  );
-}
-
-function SummaryCard({
-  title,
-  value,
-  detail,
-  done,
-  active,
-  rightLabel,
-  onPress,
-  onLongPress,
-  onRightPress,
-}: {
-  title: string;
-  value: string;
-  detail: string;
-  done: boolean;
-  active: boolean;
-  rightLabel?: string;
-  onPress: () => void;
-  onLongPress?: () => void | Promise<void>;
-  onRightPress?: () => void;
-}) {
-  const cardStyle = [
-    styles.summaryCard,
-    done && styles.summaryCardDone,
-    active && styles.summaryCardActive,
-  ];
-  const markerStyle = [
-    styles.summaryMarker,
-    done && styles.summaryMarkerDone,
-    active && styles.summaryMarkerActive,
-  ];
-  const content = (
-    <View style={styles.summaryMain}>
-      <Text style={styles.summaryTitle}>{title}</Text>
-      <Text style={styles.summaryValue} numberOfLines={title === 'Tyre' ? 3 : 1}>{value}</Text>
-      <Text style={styles.summaryDetail} numberOfLines={2}>{detail}</Text>
-    </View>
-  );
-
-  if (rightLabel && onRightPress) {
-    return (
-      <View style={cardStyle}>
-        <View style={markerStyle}>
-          <View style={styles.summaryMarkerDot} />
-        </View>
-        <Pressable
-          onPress={onPress}
-          onLongPress={onLongPress}
-          delayLongPress={350}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.summaryMainButton, pressed && styles.summaryCardPressed]}
-        >
-          {content}
-        </Pressable>
-        <Pressable onPress={onRightPress} style={styles.summaryRightButton} accessibilityRole="button">
-          <Text style={styles.summaryRightText}>{rightLabel}</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  return (
-    <Pressable
-      onPress={onPress}
-      onLongPress={onLongPress}
-      delayLongPress={350}
-      accessibilityRole="button"
-      style={({ pressed }) => [
-        cardStyle,
-        pressed && styles.summaryCardPressed,
-      ]}
-    >
-      <View style={markerStyle}>
-        <View style={styles.summaryMarkerDot} />
-      </View>
-      {content}
     </Pressable>
   );
 }
@@ -4098,6 +4127,8 @@ function PaymentLinkInline({
   error,
   autoCheckMessage,
   onCheck,
+  onRetry,
+  retrying,
 }: {
   link: StripePaymentLinkState;
   isManualPrice?: boolean;
@@ -4106,6 +4137,8 @@ function PaymentLinkInline({
   error: string | null;
   autoCheckMessage: string | null;
   onCheck: () => Promise<PaymentLinkLiveStatus | null>;
+  onRetry: () => Promise<StripePaymentLinkState | null>;
+  retrying: boolean;
 }) {
   const kindLabel = link.kind === 'deposit' ? 'Deposit payment link' : 'Full payment link';
   const handleCopy = (): void => {
@@ -4154,6 +4187,16 @@ function PaymentLinkInline({
           disabled={checkDisabled}
           fullWidth
         />
+        {['failed', 'cancelled', 'expired'].includes(liveStatus ?? '') ? (
+          <AppButton
+            label="Refresh payment link"
+            variant="secondary"
+            onPress={() => { void onRetry(); }}
+            loading={retrying}
+            disabled={retrying}
+            fullWidth
+          />
+        ) : null}
       </View>
       {error ? <StatusBanner kind="err" message={error} /> : null}
     </SectionCard>
@@ -4210,6 +4253,8 @@ function PaymentDispatchPanel({
   busy,
   paymentLink,
   dispatchedRefNumber,
+  dispatchedBookingId,
+  paymentConfirmed = false,
   onChoose,
 }: {
   effectiveTotal: number;
@@ -4217,15 +4262,20 @@ function PaymentDispatchPanel({
   busy: boolean;
   paymentLink: StripePaymentLinkState | null;
   dispatchedRefNumber: string | null;
+  dispatchedBookingId: string | null;
+  paymentConfirmed?: boolean;
   onChoose: (choice: AssistedChatPaymentChoice) => void;
 }) {
   const totalPence = Math.max(0, Math.round(effectiveTotal * 100));
   const deposit = getDepositSummary(totalPence);
-  const disabled = busy || Boolean(dispatchedRefNumber);
-  const doneMessage = dispatchedRefNumber
+  const finalized = Boolean(dispatchedRefNumber || dispatchedBookingId || paymentLink);
+  const disabled = busy || finalized || paymentConfirmed;
+  const doneMessage = paymentConfirmed
+    ? 'Payment is already confirmed. Its recorded method is locked.'
+    : finalized
     ? paymentLink
-      ? `${paymentLink.kind === 'deposit' ? '20% deposit' : 'Full payment'} link ready for ${dispatchedRefNumber}.`
-      : `Booking ${dispatchedRefNumber} created as cash on arrival.`
+      ? `${paymentLink.kind === 'deposit' ? '20% deposit' : 'Full payment'} link ready${dispatchedRefNumber ? ` for ${dispatchedRefNumber}` : ''}.`
+      : `Booking${dispatchedRefNumber ? ` ${dispatchedRefNumber}` : ''} already created. Review its payment details in Bookings.`
     : null;
   const options: Array<{ choice: AssistedChatPaymentChoice; label: string; detail: string }> = [
     { choice: 'full', label: 'Full payment link', detail: `Stripe link for ${formatPence(totalPence)}.` },
@@ -4239,6 +4289,7 @@ function PaymentDispatchPanel({
 
   return (
     <SectionCard title="Payment">
+      {!finalized && !paymentConfirmed ? <Text style={styles.bodyText}>You can change your selection before confirming the booking.</Text> : null}
       <View style={styles.readySummary}>
         <DetailRow label="Quote total" value={formatPence(totalPence)} />
       </View>
@@ -4249,9 +4300,10 @@ function PaymentDispatchPanel({
             <Pressable
               key={option.choice}
               accessibilityRole="button"
+              accessibilityLabel={option.label}
               accessibilityState={{ selected, disabled }}
               disabled={disabled}
-              onPress={() => onChoose(option.choice)}
+              onPress={disabled ? undefined : () => onChoose(option.choice)}
               style={({ pressed }) => [
                 styles.paymentOption,
                 selected && styles.paymentOptionSelected,
@@ -4279,9 +4331,18 @@ function PaymentDispatchPanel({
   );
 }
 
-function GuidedActionSheet({ visible, title, actions, onClose }: { visible: boolean; title: string; actions: SheetAction[]; onClose: () => void }) {
+function GuidedActionSheet({ visible, title, actions, onClose, onDismiss }: { visible: boolean; title: string; actions: SheetAction[]; onClose: () => void; onDismiss?: () => void }) {
+  const pendingAction = useRef<SheetAction['onPress'] | null>(null);
+  const closing = useRef(false);
+  useEffect(() => { if (visible) closing.current = false; }, [visible]);
+  useEffect(() => () => { pendingAction.current = null; }, []);
+  const runPendingAction = () => {
+    const action = pendingAction.current;
+    pendingAction.current = null;
+    if (action) void action();
+  };
   return (
-    <Modal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose} onDismiss={() => { runPendingAction(); onDismiss?.(); }}>
       <Pressable style={styles.sheetBackdrop} onPress={onClose}>
         <Pressable style={styles.actionSheet} onPress={() => {}}>
           <View style={styles.sheetHeader}>
@@ -4296,8 +4357,12 @@ function GuidedActionSheet({ visible, title, actions, onClose }: { visible: bool
                 <Pressable
                   key={action.id}
                   onPress={disabled ? undefined : () => {
+                    if (closing.current) return;
+                    closing.current = true;
+                    pendingAction.current = action.onPress;
                     onClose();
-                    void action.onPress();
+                    // iOS must finish dismissing More before presenting its destination.
+                    if (Platform.OS !== 'ios') runPendingAction();
                   }}
                   accessibilityRole="button"
                   accessibilityState={{ disabled }}
@@ -4366,6 +4431,7 @@ function DispatchReviewSheet({
   dispatchBusy,
   dispatchError,
   onClose,
+  onEditPayment,
   onSend,
 }: {
   visible: boolean;
@@ -4377,6 +4443,7 @@ function DispatchReviewSheet({
   dispatchBusy: boolean;
   dispatchError: string | null;
   onClose: () => void;
+  onEditPayment: () => void;
   onSend: () => void;
 }) {
   const distanceMiles = getQuotePricingDistanceMiles(draft.quote);
@@ -4388,8 +4455,14 @@ function DispatchReviewSheet({
       ? effectiveTotal
       : null;
   const stripeAmountTooLow = stripeCharge != null && stripeCharge < 0.30;
-  const canSend = Boolean(draft.paymentChoice && draft.quote && draft.quickBookingId && quoteConfirmed && !draft.dispatchedRefNumber && !stripeAmountTooLow);
-  const disabledReason = !draft.quote
+  const bookingAlreadyCreated = Boolean(draft.dispatchedRefNumber || draft.dispatchedBookingId || draft.paymentLink);
+  const paymentAlreadyConfirmed = activeQuote?.quoteStatus === 'PAID';
+  const canSend = Boolean(draft.paymentChoice && draft.quote && draft.quickBookingId && quoteConfirmed && !bookingAlreadyCreated && !paymentAlreadyConfirmed && !stripeAmountTooLow);
+  const disabledReason = bookingAlreadyCreated
+    ? `Booking already created${draft.dispatchedRefNumber ? ` as ${draft.dispatchedRefNumber}` : ''}. Open it from Bookings to review payment.`
+    : paymentAlreadyConfirmed
+    ? 'Payment is already confirmed. Review the recorded payment before creating another booking.'
+    : !draft.quote
     ? 'Get a price before dispatching.'
     : !draft.quickBookingId
     ? 'Get a current quick booking before dispatching.'
@@ -4399,8 +4472,6 @@ function DispatchReviewSheet({
     ? 'Choose a payment option before dispatching.'
     : stripeAmountTooLow && stripeCharge != null
     ? `Payment link cannot be sent for ${formatGbp(stripeCharge)}. Stripe minimum is £0.30. Edit the quote price or choose cash.`
-    : draft.dispatchedRefNumber
-    ? `Already dispatched as ${draft.dispatchedRefNumber}.`
     : null;
 
   return (
@@ -4424,9 +4495,12 @@ function DispatchReviewSheet({
               }
             />
             <DetailRow label="Address/location" value={draft.location.address.trim() || draft.location.status} />
+            <CopyAddressButton address={draft.location.address} postcode={draft.location.postcode} />
             <DetailRow label="Price" value={formatGbp(effectiveTotal)} />
             <DetailRow label="Quote ref" value={activeQuote?.quoteRef ?? draft.savedQuoteRef ?? 'Not saved'} />
-            <DetailRow label="Selected payment" value={paymentOptionLabel(selectedPaymentOption)} />
+            <DetailRow label="Selected payment" value={draft.paymentChoice ? paymentChoiceLabel(draft.paymentChoice) : paymentOptionLabel(selectedPaymentOption)} />
+            <AppButton label="Change payment method" variant="secondary" onPress={onEditPayment}
+              disabled={dispatchBusy || Boolean(draft.dispatchedRefNumber || draft.dispatchedBookingId || draft.paymentLink) || activeQuote?.quoteStatus === 'PAID'} fullWidth />
             <DetailRow label="Payment status" value={draft.paymentLink ? 'Payment link ready' : draft.paymentChoice ? paymentChoiceLabel(draft.paymentChoice) : 'Not selected'} />
             <DetailRow label="Distance" value={distanceMiles != null ? `${distanceMiles.toFixed(1)} miles` : 'Not available'} />
             <DetailRow label="Drive time" value={driveTime != null ? `${driveTime} minutes` : 'Not available'} />
@@ -4521,9 +4595,8 @@ const coolActionShadow = (
 ) as ViewStyle;
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' },
-  pointerNone: { pointerEvents: 'none' },
-  keyboardAvoider: { flex: 1, zIndex: 1 },
+  safe: { flex: 1, backgroundColor: '#000000', overflow: 'hidden' },
+  keyboardAvoider: { flex: 1, zIndex: 1, backgroundColor: colors.bg },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   header: {
     minHeight: 220,
@@ -4531,32 +4604,11 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 18,
     borderBottomWidth: 0,
-    backgroundColor: 'rgba(4,7,20,0.92)',
+    backgroundColor: '#000000',
     overflow: 'hidden',
     position: 'relative',
     borderRadius: 0,
     ...(premiumPanelShadow ?? {}),
-  },
-  headerImageLayer: {
-    position: 'absolute',
-    inset: 0,
-    zIndex: 0,
-  },
-  headerImage: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 1,
-  },
-  headerFeaturedImage: {
-    position: 'absolute',
-    top: -300,
-    right: -62,
-    width: 580,
-    height: 1030,
-    opacity: 1,
-  },
-  headerImageOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(4,7,20,0)',
   },
   headerTopRow: {
     flexDirection: 'row',
@@ -4610,33 +4662,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     flexShrink: 1,
     minWidth: 0,
-  },
-  headerVisitorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    minWidth: 0,
-    marginTop: 3,
-    maxWidth: '100%',
-  },
-  headerVisitorDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.accent,
-    flexShrink: 0,
-  },
-  headerVisitorText: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0,
-    minWidth: 0,
-    flexShrink: 1,
-  },
-  headerVisitorCount: {
-    color: colors.accent,
-    fontWeight: '900',
   },
   headerCustomer: { color: colors.text, fontSize: fontSize.sm, fontWeight: '900', marginTop: 3, minWidth: 0 },
   headerPhone: { color: colors.muted, fontSize: 11, marginTop: 1, fontWeight: '800', minWidth: 0 },

@@ -84,6 +84,7 @@ const POLL_MS = 12_000;
 
 export function useTracking(enabled: boolean, jobsRange: TrackingJobsRange = 'today') {
   const [data, setData] = useState<TrackingData | null>(null);
+  const [dataRange, setDataRange] = useState<TrackingJobsRange | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
@@ -100,6 +101,7 @@ export function useTracking(enabled: boolean, jobsRange: TrackingJobsRange = 'to
       );
       if (!aliveRef.current || requestSeq !== requestSeqRef.current) return;
       setData(result);
+      setDataRange(jobsRange);
       setError(null);
       setLastUpdated(Date.now());
     } catch (err) {
@@ -130,5 +132,5 @@ export function useTracking(enabled: boolean, jobsRange: TrackingJobsRange = 'to
     };
   }, [enabled, refresh]);
 
-  return { data, loading, error, lastUpdated, refresh };
+  return { data, dataRange, loading, error, lastUpdated, refresh };
 }

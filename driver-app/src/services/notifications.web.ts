@@ -16,8 +16,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
   return null;
 }
 
-export async function unregisterPushToken(): Promise<void> {
+export async function unregisterPushToken(_token?: string | null): Promise<void> {
   // Push notifications are native-only in the driver app.
+  void _token;
 }
 
 export async function fireLocalCriticalNotification(): Promise<string> {

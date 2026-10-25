@@ -10,6 +10,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -21,6 +22,8 @@ import { colors, fontSize, radius, space } from './theme';
 import { api } from '@/lib/api';
 import { useActiveJobs, type ActiveJobItem } from '@/hooks/useActiveJobs';
 import { AdminModalHeader, AdminModalShell } from './layout/AdminModalShell';
+import { DriverLocationShareActions } from '@/components/tracking/DriverLocationShareActions';
+import { CopyAddressButton } from './CopyAddressButton';
 
 interface Props {
   visible: boolean;
@@ -32,8 +35,13 @@ const STATUS_LABEL: Record<string, string> = {
   driver_assigned: 'Assigned',
   en_route: 'En route',
   arrived: 'Arrived',
+  on_site: 'On site',
   in_progress: 'In progress',
 };
+
+const DRIVER_LOCATION_SHARE_STATUSES = new Set([
+  'assigned', 'driver_assigned', 'en_route', 'arrived', 'on_site', 'in_progress',
+]);
 
 const SOURCE_LABELS: Record<string, string> = {
   tyre_rescue: 'Tyre Rescue',
@@ -356,6 +364,7 @@ export function ActiveJobsModal({ visible, onClose, initialSourceApp = null }: P
                   </Text>
                 ))}
               </Pressable>
+              <CopyAddressButton address={item.customer.address} contextKey={item.bookingId} />
               <View style={styles.rowActions}>
                 <Pressable
                   accessibilityRole="button"
@@ -381,6 +390,14 @@ export function ActiveJobsModal({ visible, onClose, initialSourceApp = null }: P
                   <Text style={styles.rowActionText}>Reassign driver</Text>
                 </Pressable>
               </View>
+              {item.driver.id && DRIVER_LOCATION_SHARE_STATUSES.has(item.status) ? (
+                <DriverLocationShareActions
+                  bookingRef={item.bookingRef}
+                  bookingId={item.bookingId}
+                  customerPhone={item.customer.phone}
+                  compact
+                />
+              ) : null}
             </View>
           )}
           refreshing={loading && items.length > 0}
@@ -1242,6 +1259,7 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
           }
         />
 
+        <View style={styles.mapBody}>
         <View style={styles.mapWrap}>
           {!token ? (
             <View style={styles.fallback}>
@@ -1358,14 +1376,17 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
           ) : null}
         </View>
 
-        {routeBadge ? (
-          <View style={styles.routeBadge}>
-            <Text style={styles.routeBadgeText}>{routeBadge}</Text>
-          </View>
-        ) : null}
-
-        {/* Compact bottom tracking summary. */}
-        <View style={styles.panel}>
+        {/* Keep the map visible while large text and share notices can scroll. */}
+        <ScrollView
+          style={styles.panel}
+          contentContainerStyle={styles.panelContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {routeBadge ? (
+            <View style={styles.routeBadge}>
+              <Text style={styles.routeBadgeText}>{routeBadge}</Text>
+            </View>
+          ) : null}
           {hasDriverLocation ? (
             <>
               <View style={styles.panelTop}>
@@ -1446,6 +1467,18 @@ export function ActiveJobMapModal({ visible, job, onClose }: MapModalProps) {
               </View>
             </View>
           )}
+          <Text style={styles.panelMeta}>Customer address</Text>
+          <Text style={styles.panelLine}>{customerAddress || 'Address not provided'}</Text>
+          <CopyAddressButton address={customerAddress} contextKey={job.bookingId} />
+          {(route?.driver?.id ?? job.driver.id) && DRIVER_LOCATION_SHARE_STATUSES.has(route?.status ?? job.status) ? (
+            <DriverLocationShareActions
+              bookingRef={job.bookingRef}
+              bookingId={job.bookingId}
+              customerPhone={customerPhone}
+              compact
+            />
+          ) : null}
+        </ScrollView>
         </View>
       </AdminModalShell>
     </Modal>
@@ -1573,14 +1606,19 @@ const styles = StyleSheet.create({
   },
   routeBadgeText: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '600' },
   panel: {
-    paddingHorizontal: space.lg,
-    paddingTop: space.md,
-    paddingBottom: space.lg,
+    flexGrow: 0,
+    flexShrink: 1,
+    maxHeight: '50%',
     borderTopWidth: 1,
     borderTopColor: colors.glowBorder,
     backgroundColor: colors.surface,
-    gap: space.sm,
     ...activeJobsPanelShadow,
+  },
+  panelContent: {
+    paddingHorizontal: space.lg,
+    paddingTop: space.md,
+    paddingBottom: space.lg,
+    gap: space.sm,
   },
   panelTop: {
     flexDirection: 'row',
@@ -1740,8 +1778,10 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
   },
+  mapBody: { flex: 1, minHeight: 0 },
   mapWrap: {
     flex: 1,
+    minHeight: 0,
     backgroundColor: colors.bg,
     borderTopWidth: 1,
     borderTopColor: colors.border,

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tyre Rescue",
     "slug": "tyre-rescue",
-    "version": "1.0.3",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "tyrerescue",
@@ -13,11 +13,13 @@
       "bundleIdentifier": "uk.tyrerescue.customer",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Tyre Rescue uses your location to find your address and check emergency availability for your booking.",
-        "NSPhotoLibraryUsageDescription": "Tyre Rescue lets you attach an optional tyre photo so the driver can prepare for your booking."
+        "NSPhotoLibraryUsageDescription": "Tyre Rescue lets you attach an optional tyre photo so the driver can prepare for your booking.",
+        "NSCameraUsageDescription": "Take a photo of your damaged tyre so the technician can prepare for your booking."
       },
       "config": {
         "usesNonExemptEncryption": false
-      }
+      },
+      "buildNumber": "20"
     },
     "android": {
       "adaptiveIcon": {
@@ -48,7 +50,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Tyre Rescue lets you attach an optional tyre photo so the driver can prepare for your booking."
+          "photosPermission": "Tyre Rescue lets you attach an optional tyre photo so the driver can prepare for your booking.",
+          "cameraPermission": "Take a photo of your damaged tyre so the technician can prepare for your booking.",
+          "microphonePermission": false
         }
       ],
       [

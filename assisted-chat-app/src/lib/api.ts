@@ -114,6 +114,7 @@ function inferBaseUrl(): string {
 }
 
 let resolvedApiBaseUrl: string;
+let apiContextRevision = 0;
 try {
   resolvedApiBaseUrl = inferBaseUrl();
   logStartupModuleCompleted('API config module', {
@@ -137,11 +138,18 @@ export function getApiBaseUrl(): string {
   return resolvedApiBaseUrl;
 }
 
+/** Changes whenever the active project or administrator credential changes. */
+export function getApiContextRevision(): number {
+  return apiContextRevision;
+}
+
 // EXPO_PUBLIC_API_BASE_URL always wins (dev LAN override).
 // In production, calling setApiBaseUrl switches the active project backend.
 export function setApiBaseUrl(url: string): void {
   if (process.env.EXPO_PUBLIC_API_BASE_URL?.trim()) return;
-  resolvedApiBaseUrl = url.replace(/\/$/, '');
+  const next = url.replace(/\/$/, '');
+  if (next !== resolvedApiBaseUrl) apiContextRevision += 1;
+  resolvedApiBaseUrl = next;
 }
 
 // Dev-only diagnostic so engineers can see exactly which Next.js host the
@@ -153,9 +161,8 @@ if (__DEV__) {
 
 // Admin Bearer token holder.
 //
-// The server accepts a Bearer mobile JWT signed with the existing
-// NEXTAUTH_SECRET (see `signMobileToken` / `requireAdminMobile` in
-// lib/auth.ts on the web). Tokens are minted via the existing endpoint
+// The server accepts durable opaque sessions and legacy mobile JWTs.
+// Tokens are minted via the existing endpoint
 //   POST /api/mobile/admin/auth/login
 // and stored locally by `useAdminSession` after the login screen.
 //
@@ -163,10 +170,10 @@ if (__DEV__) {
 // app still works when no one has logged in yet.
 let currentToken: string | null =
   process.env.EXPO_PUBLIC_ADMIN_TOKEN?.trim() || null;
-let onUnauthorized: (() => void) | null = null;
-
 export function setAdminToken(token: string | null): void {
-  currentToken = token && token.trim() ? token.trim() : null;
+  const next = token && token.trim() ? token.trim() : null;
+  if (next !== currentToken) apiContextRevision += 1;
+  currentToken = next;
 }
 
 export function getAdminToken(): string | null {
@@ -174,8 +181,12 @@ export function getAdminToken(): string | null {
 }
 
 export function setOnUnauthorized(cb: (() => void) | null): void {
-  onUnauthorized = cb;
+  // Compatibility for older callers. A request failure must never destroy a
+  // persistent session, including when an older request completes after login.
+  void cb;
 }
+
+export const SESSION_VERIFICATION_ERROR = 'Unable to verify this session. Please retry.';
 
 export class ApiError extends Error {
   status: number;
@@ -213,6 +224,7 @@ async function request<T>(
   };
 
   normalizeDevWebApiBaseUrl();
+  const requestContextRevision = apiContextRevision;
 
   let res: Response | null = null;
   const baseUrls = [resolvedApiBaseUrl, ...getDevWebFallbackBaseUrls()];
@@ -222,7 +234,7 @@ async function request<T>(
     const baseUrl = baseUrls[index];
     try {
       res = await fetch(`${baseUrl}${path}`, requestInit);
-      resolvedApiBaseUrl = baseUrl;
+      if (requestContextRevision === apiContextRevision) resolvedApiBaseUrl = baseUrl;
       break;
     } catch (error) {
       if (options.signal?.aborted) throw error;
@@ -242,22 +254,21 @@ async function request<T>(
   }
 
   const ct = res.headers.get('content-type') || '';
-  const payload: unknown = ct.includes('application/json') ? await res.json() : await res.text();
+  let payload: unknown;
+  try {
+    payload = ct.includes('application/json') ? await res.json() : await res.text();
+  } catch (error) {
+    if (res.status !== 401 || options.signal?.aborted) throw error;
+    // Even an invalid proxy/error body must surface the same retryable 401.
+    payload = null;
+  }
 
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
     let retryAfterSeconds: number | undefined;
 
     if (res.status === 401) {
-      // Notify the session hook so it can clear local state and show login.
-      message = 'Session expired. Please log in again.';
-      if (onUnauthorized) {
-        try {
-          onUnauthorized();
-        } catch {
-          // ignore notifier errors
-        }
-      }
+      message = SESSION_VERIFICATION_ERROR;
     } else if (res.status === 429) {
       const headerVal = res.headers.get('Retry-After');
       if (headerVal) {
@@ -274,7 +285,7 @@ async function request<T>(
       else if (typeof r.message === 'string' && r.message.trim()) message = r.message;
     }
     if (__DEV__) {
-      console.warn(`[api] ${method} ${resolvedApiBaseUrl}${path} → ${res.status}`, payload);
+      console.warn(`[api] ${method} ${baseUrls[0]}${path} → ${res.status}`, res.status === 401 ? undefined : payload);
     }
     throw new ApiError(message, res.status, payload, retryAfterSeconds);
   }
@@ -287,7 +298,7 @@ export const api = {
   post: <T>(p: string, b?: unknown, options?: RequestOptions) => request<T>('POST', p, b, options),
   patch: <T>(p: string, b?: unknown, options?: RequestOptions) => request<T>('PATCH', p, b, options),
   put: <T>(p: string, b?: unknown, options?: RequestOptions) => request<T>('PUT', p, b, options),
-  del: <T>(p: string, options?: RequestOptions) => request<T>('DELETE', p, undefined, options),
+  del: <T>(p: string, options?: RequestOptions & { body?: unknown }) => request<T>('DELETE', p, options?.body, options),
   get baseUrl() { return resolvedApiBaseUrl; },
   get hasAdminToken() {
     return currentToken !== null;

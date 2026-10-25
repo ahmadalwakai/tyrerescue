@@ -1,18 +1,19 @@
 import { Platform } from 'react-native';
 
-/** Brand colors mirrored from web lib/design-tokens.ts */
+/** High-contrast driver workspace with brand orange and blue navigation actions. */
 export const colors = {
-  bg: '#09090B',
-  surface: '#18181B',
-  card: '#27272A',
-  border: '#3F3F46',
+  bg: '#0B1220',
+  surface: '#121D2F',
+  card: '#19263B',
+  border: '#2D4059',
   accent: '#F97316',
   accentHover: '#EA580C',
   text: '#FAFAFA',
-  muted: '#A1A1AA',
+  muted: '#B5C2D6',
   success: '#22C55E',
   danger: '#EF4444',
   info: '#3B82F6',
+  navigation: '#1A73E8',
   purple: '#8B5CF6',
   white: '#FFFFFF',
 } as const;

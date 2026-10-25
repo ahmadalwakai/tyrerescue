@@ -1,6 +1,7 @@
 import { createElement, useEffect, useState, type ComponentType } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { LoginScreen } from '@/components/LoginScreen';
+import { SessionRecoveryScreen } from '@/components/SessionRecoveryScreen';
 import { useAdminSession, type AdminSession } from '@/hooks/useAdminSession';
 import { colors } from '@/components/theme';
 import {
@@ -22,6 +23,7 @@ function getAssistedChatScreen() {
 
   logStartupModuleStarted('Assisted Chat import');
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Restore sign-in before loading the protected native tree.
     const mod = require('@/components/AssistedChatScreen') as typeof import('@/components/AssistedChatScreen');
     AssistedChatScreenComponent = mod.AssistedChatScreen;
     logStartupModuleCompleted('Assisted Chat import');
@@ -49,6 +51,10 @@ export default function Index() {
         <ActivityIndicator color={colors.accent} />
       </View>
     );
+  }
+
+  if (session.status === 'recovery') {
+    return <SessionRecoveryScreen message={session.recoveryError} onRetry={session.retryRestore} onLogout={session.logout} />;
   }
 
   if (session.status === 'logged-out') {

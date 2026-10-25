@@ -369,6 +369,12 @@ export interface QuickBookFinalizeResponse {
 
 export type FinalizeResponse = QuickBookFinalizeResponse;
 
+// Authenticated, read-only recovery for a finalize whose response was lost.
+// Payment amounts and method are always restored from the real booking.
+export type QuickBookFinalizeRecoveryResponse =
+  | { finalized: false }
+  | { finalized: true; response: FinalizeResponse; canCollectPayment: boolean };
+
 export interface DepositCheckoutResponse {
   checkoutUrl: string | null;
   sessionId: string;

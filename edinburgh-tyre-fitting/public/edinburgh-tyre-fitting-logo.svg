@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 64" role="img" aria-label="Edinburgh Tyre Fitting">
+  <defs>
+    <linearGradient id="ring" x1="12" y1="8" x2="58" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB84D"/>
+      <stop offset="0.5" stop-color="#F15A24"/>
+      <stop offset="1" stop-color="#C5162E"/>
+    </linearGradient>
+  </defs>
+  <rect width="180" height="64" rx="12" fill="#101923"/>
+  <circle cx="34" cy="32" r="22" fill="none" stroke="url(#ring)" stroke-width="7"/>
+  <circle cx="34" cy="32" r="10" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.9"/>
+  <g stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.68">
+    <path d="M34 10v9"/>
+    <path d="M34 45v9"/>
+    <path d="M12 32h9"/>
+    <path d="M47 32h9"/>
+    <path d="m18.4 16.4 6.4 6.4"/>
+    <path d="m43.2 41.2 6.4 6.4"/>
+    <path d="m49.6 16.4-6.4 6.4"/>
+    <path d="m24.8 41.2-6.4 6.4"/>
+  </g>
+  <text x="68" y="29" fill="#FFFFFF" font-family="Arial Black, Arial, sans-serif" font-size="16" font-weight="900" letter-spacing="0">Edinburgh</text>
+  <text x="68" y="47" fill="#FFB84D" font-family="Arial Black, Arial, sans-serif" font-size="16" font-weight="900" letter-spacing="0">Tyre Fitting</text>
+</svg>

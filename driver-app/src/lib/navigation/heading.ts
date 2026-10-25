@@ -1,4 +1,4 @@
-import { bearingDegrees, haversineMeters, type Coordinates } from '@/services/directions';
+import { bearingDegrees, haversineMeters, type Coordinates } from '../../services/directions';
 
 export function isValidHeading(value: unknown): value is number {
   return (
@@ -11,6 +11,23 @@ export function isValidHeading(value: unknown): value is number {
 
 export function normaliseHeading(degrees: number): number {
   return ((degrees % 360) + 360) % 360;
+}
+
+/** Expo accuracy is 0 (unreliable) through 3 (high). Never treat unknown as north. */
+export function resolveCompassHeading(input: {
+  trueHeading?: number | null;
+  magHeading?: number | null;
+  accuracy?: number | null;
+}): number | null {
+  if (typeof input.accuracy !== 'number' || !Number.isFinite(input.accuracy) || input.accuracy < 2) {
+    return null;
+  }
+  for (const value of [input.trueHeading, input.magHeading]) {
+    if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+      return normaliseHeading(value);
+    }
+  }
+  return null;
 }
 
 export function bearingBetween(origin: Coordinates, destination: Coordinates): number {
@@ -37,8 +54,10 @@ export function resolveDriverHeading(input: ResolveHeadingInput): number | null 
 
   if (
     typeof gpsHeading === 'number' &&
+    Number.isFinite(gpsHeading) &&
     gpsHeading >= 0 &&
     typeof speed === 'number' &&
+    Number.isFinite(speed) &&
     speed > 1
   ) {
     return normaliseHeading(gpsHeading);
