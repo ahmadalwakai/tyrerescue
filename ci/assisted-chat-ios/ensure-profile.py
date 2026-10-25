@@ -11,6 +11,7 @@ Authenticates with the App Store Connect API key from the workflow's
 """
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -27,6 +28,30 @@ PROFILE_NAME = 'Tyre Rescue Assisted Chat Codemagic App Store'
 DISTRIBUTION_TYPES = {'DISTRIBUTION', 'IOS_DISTRIBUTION'}
 
 
+def private_key(raw: str) -> str:
+    """Accept the forms Codemagic uses: PEM text, @file:/@env: references,
+    escaped newlines, or the bare base64 body."""
+    value = raw.strip()
+    for _ in range(3):
+        if value.startswith('@file:'):
+            with open(os.path.expanduser(value[len('@file:'):]), encoding='utf-8') as handle:
+                value = handle.read().strip()
+        elif value.startswith('@env:'):
+            value = os.environ.get(value[len('@env:'):], '').strip()
+        else:
+            break
+    value = value.replace('\\n', '\n').strip().strip('"').strip("'")
+    # Rebuild the PEM framing from its body: the value may arrive on one line.
+    framed = re.search(r'-----BEGIN ([A-Z ]+)-----(.*?)-----END \1-----', value, re.S)
+    label, body = (framed.group(1), framed.group(2)) if framed else ('PRIVATE KEY', value)
+    body = ''.join(body.split())
+    lines = [body[i:i + 64] for i in range(0, len(body), 64)]
+    stripped = raw.strip()
+    form = stripped.split(':', 1)[0] if stripped.startswith('@') else 'pem' if framed else 'base64'
+    print(f'App Store Connect key loaded (source form: {form}).')
+    return f'-----BEGIN {label}-----\n' + '\n'.join(lines) + f'\n-----END {label}-----\n'
+
+
 def token() -> str:
     names = ['APP_STORE_CONNECT_ISSUER_ID', 'APP_STORE_CONNECT_KEY_IDENTIFIER', 'APP_STORE_CONNECT_PRIVATE_KEY']
     missing = [name for name in names if not os.environ.get(name)]
@@ -35,7 +60,7 @@ def token() -> str:
     now = int(time.time())
     return jwt.encode(
         {'iss': os.environ['APP_STORE_CONNECT_ISSUER_ID'], 'iat': now, 'exp': now + 900, 'aud': 'appstoreconnect-v1'},
-        os.environ['APP_STORE_CONNECT_PRIVATE_KEY'],
+        private_key(os.environ['APP_STORE_CONNECT_PRIVATE_KEY']),
         algorithm='ES256',
         headers={'kid': os.environ['APP_STORE_CONNECT_KEY_IDENTIFIER'], 'typ': 'JWT'},
     )
