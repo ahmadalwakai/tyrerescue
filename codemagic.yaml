@@ -1,4 +1,5 @@
-# Build only; TestFlight upload follows separately.
+# Customer workflows build only (TestFlight upload follows separately);
+# assisted-chat-ios also uploads its IPA to App Store Connect for TestFlight.
 workflows:
   # One-off: creates (or reuses) the App Store profile for Assisted Chat on the
   # Apple Developer Portal with the distribution certificate Codemagic already
@@ -26,6 +27,8 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 90
     working_directory: assisted-chat-app
+    integrations:
+      app_store_connect: Vibeset Codemagic
     environment:
       node: 24.22.1
       xcode: '26.2'
@@ -99,6 +102,13 @@ workflows:
     artifacts:
       - $CM_BUILD_DIR/assisted-chat-app/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+    publishing:
+      # Uploads the signed IPA to App Store Connect; once Apple finishes
+      # processing it, internal TestFlight testers can install it. No external
+      # beta review or App Store submission.
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
 
 
   customer-ios19-native:
